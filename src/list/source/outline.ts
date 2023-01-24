@@ -36,7 +36,7 @@ export default class Outline extends LocationList {
       symbols = await languages.getDocumentSymbol(document.textDocument, token)
     }
     if (token.isCancellationRequested) return []
-    if (!symbols) return await loadCtagsSymbols(document, this.nvim)
+    if (!symbols) return await loadCtagsSymbols(document, this.nvim, token)
     if (isFalsyOrEmpty(symbols)) return []
     let items = symbolsToListItems(symbols, document.uri, filterKind)
     return formatListItems(this.alignColumns, items)
@@ -89,24 +89,25 @@ export function getFilterText(s: DocumentSymbol | SymbolInformation, kind: strin
   return `${s.name}${getSymbolKind(s.kind)}`
 }
 
-export async function loadCtagsSymbols(document: Document, nvim: Neovim): Promise<ListItem[]> {
+export async function loadCtagsSymbols(document: Document, nvim: Neovim, token: CancellationToken): Promise<ListItem[]> {
   if (!which.sync('ctags', { nothrow: true })) {
     return []
   }
   let uri = URI.parse(document.uri)
   let extname = path.extname(uri.fsPath)
   let content = ''
-  let tempname = await nvim.call('tempname')
+  let tempname = await nvim.call('tempname') as string
   let filepath = `${tempname}.${extname}`
+  let cwd = path.dirname(tempname)
   let escaped = await nvim.call('fnameescape', filepath) as string
   await writeFile(escaped, document.getDocumentContent())
   try {
-    content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`)
+    content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`, { cwd }, token)
   } catch (e) {
     // noop
   }
   if (!content.trim().length) {
-    content = await runCommand(`ctags -f - --excmd=number ${escaped}`)
+    content = await runCommand(`ctags -f - --excmd=number ${escaped}`, { cwd }, token)
   }
   content = content.trim()
   if (!content) return []

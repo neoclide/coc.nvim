@@ -224,12 +224,21 @@ describe('Outline util', () => {
     let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
       return ''
     })
-    let items = await loadCtagsSymbols(doc, nvim)
+    let items = await loadCtagsSymbols(doc, nvim, CancellationToken.None)
     expect(items).toEqual([])
     spy.mockRestore()
     doc = await helper.createDocument(__filename)
-    items = await loadCtagsSymbols(doc, nvim)
+    items = await loadCtagsSymbols(doc, nvim, CancellationToken.None)
     expect(Array.isArray(items)).toBe(true)
+  })
+
+  it('should convert symbols to list items', async () => {
+    let symbols: DocumentSymbol[] = []
+    symbols.push(DocumentSymbol.create('function', '', SymbolKind.Function, Range.create(1, 0, 1, 1), Range.create(1, 0, 1, 1)))
+    symbols.push(DocumentSymbol.create('class', '', SymbolKind.Class, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)))
+    let items = symbolsToListItems(symbols, 'lsp:/1', 'class')
+    expect(items.length).toBe(1)
+    expect(items[0].data.kind).toBe('Class')
   })
 
   it('should convert to list items', async () => {

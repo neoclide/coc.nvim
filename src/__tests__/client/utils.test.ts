@@ -41,7 +41,7 @@ test('data2String', () => {
 test('parseTraceData', () => {
   expect(parseTraceData('msg')).toMatch('msg')
   expect(parseTraceData('Params: data')).toMatch('data')
-  expect(parseTraceData('Result: {"foo": bar}')).toMatch('bar')
+  expect(parseTraceData('Result: {"foo": "bar"}')).toMatch('bar')
 })
 
 test('DefaultErrorHandler', async () => {
@@ -72,6 +72,7 @@ test('Delayer', () => {
   let promises: Thenable<any>[] = []
 
   assert(!delayer.isTriggered())
+  delayer.trigger(factory, -1)
 
   promises.push(delayer.trigger(factory).then((result) => { assert.equal(result, 1); assert(!delayer.isTriggered()) }))
   assert(delayer.isTriggered())

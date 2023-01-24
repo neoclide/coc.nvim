@@ -4,6 +4,9 @@ import { pluginRoot } from './constants'
 import { CancellationError } from './errors'
 import { child_process, path, which } from './node'
 import { platform, Platform } from './platform'
+import iconv from 'iconv-lite'
+import { CancellationToken, Disposable } from './protocol'
+import { omit } from './lodash'
 
 export function isRunning(pid: number): boolean {
   try {
@@ -24,27 +27,37 @@ export function executable(command: string): boolean {
   return true
 }
 
-export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number, isWindows = platform === Platform.Windows): Promise<string> {
+export function runCommand(cmd: string, opts: ExecOptions & { encoding?: string } = {}, timeout?: CancellationToken | number, isWindows = platform === Platform.Windows): Promise<string> {
   if (!isWindows) {
     opts.shell = opts.shell || process.env.SHELL
   }
-  opts.maxBuffer = 500 * 1024
+  opts.maxBuffer = opts.maxBuffer ?? 500 * 1024
+  let encoding = opts.encoding || 'utf8'
+  encoding = iconv.encodingExists(encoding) ? encoding : 'utf8'
   return new Promise<string>((resolve, reject) => {
-    let timer: NodeJS.Timer
+    let disposable: Disposable | undefined
     let cp: ChildProcess
-    if (timeout) {
-      timer = setTimeout(() => {
-        cp.kill('SIGKILL')
+    if (typeof timeout === 'number') {
+      let timer = setTimeout(() => {
+        terminate(cp)
         reject(new CancellationError())
       }, timeout * 1000)
+      disposable = Disposable.create(() => {
+        clearTimeout(timer)
+      })
+    } else if (CancellationToken.is(timeout)) {
+      disposable = timeout.onCancellationRequested(() => {
+        terminate(cp)
+        reject(new CancellationError())
+      })
     }
-    cp = child_process.exec(cmd, opts, (err, stdout, stderr) => {
-      if (timer) clearTimeout(timer)
+    cp = child_process.exec(cmd, { ...omit(opts, ['encoding']), encoding: 'buffer' }, (err, stdout, stderr) => {
+      if (disposable) disposable.dispose()
       if (err) {
-        reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))
+        reject(new Error(`exited with ${err.code}\n${err}\n${stderr.toString('utf8')}`))
         return
       }
-      resolve(stdout)
+      resolve(iconv.decode(stdout, encoding))
     })
   })
 }

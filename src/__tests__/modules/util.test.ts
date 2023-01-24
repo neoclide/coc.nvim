@@ -1129,27 +1129,36 @@ describe('utility', () => {
   })
 
   it('should run command on windows', async () => {
+    await runCommand('echo 1')
     await runCommand('echo 1', { cwd: __dirname }, 1, true)
   })
 
   it('should run command with timeout', async () => {
-    let err
-    try {
+    await expect(async () => {
       await runCommand('sleep 2', { cwd: __dirname }, 0.01)
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
+    }).rejects.toThrow(errors.CancellationError)
+  })
+
+  it('should run command with Cancellation token', async () => {
+    let tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    setTimeout(() => {
+      tokenSource.cancel()
+    }, 20)
+    await expect(async () => {
+      await runCommand('sleep 2', { cwd: __dirname, encoding: 'unknown' }, token)
+    }).rejects.toThrow(errors.CancellationError)
+  })
+
+  it('should run command with encoding support', async () => {
+    let res = await runCommand('echo "\\xc4\\xe3\\x0a"', { cwd: __dirname, encoding: 'gbk' }, 1, true)
+    expect(res.trim()).toBe('你')
   })
 
   it('should throw on command error', async () => {
-    let err
-    try {
+    await expect(async () => {
       await runCommand('command_not_exists', { cwd: __dirname })
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
+    }).rejects.toThrow(Error)
   })
 
   it('should resolve concurrent with empty task', async () => {

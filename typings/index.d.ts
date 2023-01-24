@@ -6633,6 +6633,7 @@ declare module 'coc.nvim' {
     uid?: number
     gid?: number
     windowsHide?: boolean
+    encoding?: string
   }
 
   /**
@@ -6651,9 +6652,15 @@ declare module 'coc.nvim' {
   export function wait(ms: number): Promise<any>
 
   /**
-   * Run command with `child_process.exec`
+   * Run command with `child_process.exec`, CancellationError is rejected when timeout or cancelled.
+   *
+   * @param {string} cmd
+   * @param {ExecOptions} opts - Execute options, encoding is used by
+   * iconv-lite for decode stdout buffer to string, default to 'utf8'
+   * @param {number | CancellationToken} timeout - Timeout in seconds or Cancellation token.
+   * @returns {Promise<string>}
    */
-  export function runCommand(cmd: string, opts?: ExecOptions, timeout?: number): Promise<string>
+  export function runCommand(cmd: string, opts?: ExecOptions, timeout?: number | CancellationToken): Promise<string>
 
   /**
    * Check if process with pid is running
