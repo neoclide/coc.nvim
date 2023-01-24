@@ -10,7 +10,7 @@ import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
-import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
+import { checkFolder, isFolderIgnored, isParentFolder, resolveRoot } from '../util/fs'
 import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
@@ -173,7 +173,7 @@ export default class WorkspaceFolderController {
         }
       }
     }
-    if (workspaceFolderFallbackCwd && !res && !ignoredFolders.includes(cwd) && isParentFolder(cwd, dir, true)) {
+    if (!res && workspaceFolderFallbackCwd && !isFolderIgnored(cwd, ignoredFolders) && isParentFolder(cwd, dir, true)) {
       res = cwd
     }
     if (res) this.addWorkspaceFolder(res, fireEvent)

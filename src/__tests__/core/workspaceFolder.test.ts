@@ -162,6 +162,15 @@ describe('WorkspaceFolderController', () => {
       expect(res).toBe(os.tmpdir())
     })
 
+    it('should ignore cwd by ignore pattern', async () => {
+      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.ignoredFolders', ['**/*'], ['$HOME'])
+      let file = path.join(os.tmpdir(), 'foo')
+      let doc = await helper.createDocument(file)
+      let res = workspaceFolder.resolveRoot(doc, os.tmpdir(), false, expand)
+      expect(res).toBeNull()
+    })
+
     it('should not fallback to cwd as workspace folder', async () => {
       updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)

@@ -150,9 +150,9 @@ export async function isGitIgnored(fullpath: string | undefined): Promise<boolea
   return false
 }
 
-function isFolderIgnored(folder: string, ignored: string[] | undefined): boolean {
+export function isFolderIgnored(folder: string, ignored: string[] | undefined): boolean {
   if (isFalsyOrEmpty(ignored)) return false
-  return ignored.some(p => minimatch(folder, p, { dot: true }))
+  return ignored.some(p => sameFile(p, folder) || minimatch(folder, p, { dot: true }))
 }
 
 export function resolveRoot(folder: string, subs: ReadonlyArray<string>, cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
