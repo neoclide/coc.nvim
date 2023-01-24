@@ -1,3 +1,7 @@
+# 2023-01-24
+
+- Add `encoding` and `CancellationToken` support for `runCommand` function.
+
 # 2023-01-23
 
 - Make `vscode.open` command work with file uri.
