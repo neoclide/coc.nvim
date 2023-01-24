@@ -640,6 +640,7 @@ export default class Document {
     if (event === 'TextChanged'
       || (event === 'TextChangedI' && !change.insertChar)
       || !this._noFetch) {
+      fireLinesChanged(this.bufnr)
       this._noFetch = false
       this.fetchContent()
       return
