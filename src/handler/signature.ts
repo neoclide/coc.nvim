@@ -7,13 +7,14 @@ import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
 import { FloatConfig, FloatFactory } from '../types'
 import { disposeAll, getConditionValue } from '../util'
-import { isMarkdown } from '../util/is'
+import { isFalsyOrEmpty } from '../util/array'
 import { debounce } from '../util/node'
 import { CancellationTokenSource, Disposable, SignatureHelpTriggerKind } from '../util/protocol'
 import { byteLength, byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
+import { toDocumentation } from './util'
 
 interface SignatureConfig {
   wait: number
@@ -87,7 +88,7 @@ export default class Signature {
     if (text.endsWith(')')) return floatFactory.close()
   }
 
-  private loadConfiguration(e?: IConfigurationChangeEvent): void {
+  public loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('signature')) {
       let doc = window.activeTextEditor?.document
       let config = workspace.getConfiguration('signature', doc)
@@ -108,7 +109,7 @@ export default class Signature {
     return await this._triggerSignatureHelp(doc, position, true, 0)
   }
 
-  private async _triggerSignatureHelp(doc: Document, position: Position, invoke = true, offset = 0): Promise<boolean> {
+  private async _triggerSignatureHelp(doc: Document, position: Position, invoke: boolean, offset = 0): Promise<boolean> {
     this.tokenSource?.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
@@ -153,7 +154,7 @@ export default class Signature {
     let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
       let activeIndex = c.activeParameter ?? activeParameter
-      if (activeIndex === undefined && c.parameters?.length > 0) {
+      if (activeIndex === undefined && !isFalsyOrEmpty(c.parameters)) {
         activeIndex = 0
       }
       let nameIndex = c.label.indexOf('(')
@@ -189,23 +190,10 @@ export default class Signature {
         active: activeIndexes
       })
       if (paramDoc) {
-        let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value
-        if (content.trim().length) {
-          p.push({
-            content,
-            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-          })
-        }
+        p.push(toDocumentation(paramDoc))
       }
       if (idx == 0 && c.documentation) {
-        let { documentation } = c
-        let content = typeof documentation === 'string' ? documentation : documentation.value
-        if (content.trim().length) {
-          p.push({
-            content,
-            filetype: isMarkdown(c.documentation) ? 'markdown' : 'txt'
-          })
-        }
+        p.push(toDocumentation(c.documentation))
       }
       return p
     }, [])
@@ -214,7 +202,7 @@ export default class Signature {
     await this.signatureFactory.show(docs, { offsetX: offset })
   }
 
-  private echoSignature(signatureHelp: SignatureHelp): void {
+  public echoSignature(signatureHelp: SignatureHelp): void {
     let { signatures, activeParameter } = signatureHelp
     let columns = workspace.env.columns
     signatures = signatures.slice(0, workspace.env.cmdheight)

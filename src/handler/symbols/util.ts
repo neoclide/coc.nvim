@@ -1,5 +1,6 @@
 'use strict'
-import { DocumentSymbol, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
+import { DocumentSymbol, Range, SymbolTag } from 'vscode-languageserver-types'
+import { defaultValue } from '../../util'
 import { getSymbolKind } from '../../util/convert'
 import { comparePosition } from '../../util/position'
 
@@ -31,9 +32,9 @@ function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   return comparePosition(ra.start, rb.start)
 }
 
-export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
+function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
   let { name, selectionRange, detail, kind, children, range, tags } = sym
-  let { start } = selectionRange || range
+  let { start } = defaultValue(selectionRange, range)
   let obj: SymbolInfo = {
     col: start.character + 1,
     lnum: start.line + 1,
@@ -52,12 +53,4 @@ export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
       addDocumentSymbol(res, sym, level + 1)
     }
   }
-}
-
-function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
-  return a && DocumentSymbol.is(a)
-}
-
-export function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
-  return isDocumentSymbol(a[0])
 }

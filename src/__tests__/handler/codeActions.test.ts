@@ -8,6 +8,7 @@ import { ProviderResult } from '../../provider'
 import { checkAction } from '../../provider/codeActionManager'
 import { disposeAll } from '../../util'
 import { rangeInRange } from '../../util/position'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -89,6 +90,8 @@ describe('handler codeActions', () => {
 
     it('should register editor.action.organizeImport command', async () => {
       let doc = await helper.createDocument()
+      currActions = []
+      await commands.executeCommand('editor.action.organizeImport')
       await doc.buffer.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
       let edits: TextEdit[] = []
       edits.push(TextEdit.replace(Range.create(0, 0, 0, 3), 'bar'))
@@ -109,6 +112,9 @@ describe('handler codeActions', () => {
       await helper.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
       let line = await helper.getCmdline()
       expect(line).toMatch(/No quickfix code action/)
+      await helper.doAction('codeActionRange', 1, 2)
+      line = await helper.getCmdline()
+      expect(line).toMatch(/No code action available/)
     })
 
     it('should apply chosen action', async () => {
@@ -141,12 +147,14 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('foo', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
+      action = CodeAction.create('action', CodeActionKind.Empty)
+      currActions.push(action)
       action = CodeAction.create('bar', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
       let doc = await helper.createDocument()
       let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(2)
+      expect(res.length).toBe(3)
     })
 
     it('should get all actions', async () => {
@@ -377,6 +385,23 @@ describe('handler codeActions', () => {
       expect(res.length).toBe(1)
       let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
       expect(resolved).toBeDefined()
+      await expect(async () => {
+        await codeActions.doCodeAction(null, 'command', true)
+      }).rejects.toThrow(Error)
+      await codeActions.doCodeAction(null, 'cmd', true)
+      let line = await helper.getCmdline()
+      expect(line).toMatch('No cmd code action')
+    })
+
+    it('should use quickpick', async () => {
+      helper.updateConfiguration('coc.preferences.floatActions', false)
+      currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), CodeAction.create('bar', CodeActionKind.QuickFix)]
+      let spy = jest.spyOn(window, 'showQuickpick').mockImplementation(() => {
+        return Promise.resolve(-1)
+      })
+      await codeActions.doCodeAction(null)
+      spy.mockRestore()
+      helper.updateConfiguration('coc.preferences.floatActions', true)
     })
   })
 

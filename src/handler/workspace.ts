@@ -13,7 +13,7 @@ import { getLoggerFile } from '../logger'
 import Highligher from '../model/highligher'
 import snippetManager from '../snippets/manager'
 import { defaultValue } from '../util'
-import { CONFIG_FILE_NAME } from '../util/constants'
+import { CONFIG_FILE_NAME, isVim } from '../util/constants'
 import { directoryNotExists } from '../util/errors'
 import { isDirectory } from '../util/fs'
 import * as Is from '../util/is'
@@ -42,7 +42,7 @@ export default class WorkspaceHandler {
     commands.register({
       id: 'workspace.openLocation',
       execute: async (winid: number, loc: Location, openCommand?: string) => {
-        if (winid) await nvim.call('win_gotoid', [winid])
+        await nvim.call('win_gotoid', [winid])
         await workspace.jumpTo(loc.uri, loc.range.start, openCommand)
       }
     }, true)
@@ -157,9 +157,8 @@ export default class WorkspaceHandler {
   public async renameCurrent(): Promise<void> {
     let { nvim } = this
     let oldPath = await nvim.call('expand', ['%:p']) as string
-    // await nvim.callAsync()
     let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
-    newPath = newPath ? newPath.trim() : null
+    newPath = newPath.trim()
     if (newPath === oldPath || !newPath) return
     if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
       let overwrite = await window.showPrompt(`${newPath} exists, overwrite?`)
@@ -212,7 +211,7 @@ export default class WorkspaceHandler {
 
   public async getConfiguration(key: string): Promise<WorkspaceConfiguration> {
     let document = await workspace.document
-    return workspace.getConfiguration(key, document ? document.uri : undefined)
+    return workspace.getConfiguration(key, document)
   }
 
   public getRootPatterns(bufnr: number): RootPatterns | null {
@@ -220,7 +219,7 @@ export default class WorkspaceHandler {
     if (!doc) return null
     return {
       buffer: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.Buffer),
-      server: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.LanguageServer) || [],
+      server: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.LanguageServer),
       global: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.Global)
     }
   }
@@ -253,11 +252,11 @@ export default class WorkspaceHandler {
     lines.push('')
     let out = await this.nvim.call('execute', ['version']) as string
     let first = out.trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, '').trim()
-    lines.push('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
+    lines.push('vim version: ' + first + `${isVim ? ' ' + workspace.env.version : ''}`)
     lines.push('node version: ' + process.version)
     lines.push('coc.nvim version: ' + version)
     lines.push('coc.nvim directory: ' + path.dirname(__dirname))
-    lines.push('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
+    lines.push('term: ' + defaultValue(process.env.TERM_PROGRAM, process.env.TERM))
     lines.push('platform: ' + process.platform)
     lines.push('')
     lines.push('## Log of coc.nvim')

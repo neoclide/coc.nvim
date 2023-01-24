@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range, Position } from 'vscode-languageserver-protocol'
+import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import LinkedEditingHandler from '../../handler/linkedEditing'
 import languages from '../../languages'
-import workspace from '../../workspace'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -92,6 +92,30 @@ describe('LinkedEditing', () => {
     }, 2)
     await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 9, 0, 10, ['']])
     await doc.synchronize()
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
+  })
+
+  it('should not cancel when insert line break before range', async () => {
+    let doc = await workspace.document
+    await registerProvider('foo foo bar', Position.create(0, 0))
+    await helper.waitValue(() => {
+      return matches()
+    }, 2)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '\n')])
+    await helper.wait(20)
+    let res = await matches()
+    expect(res).toBe(2)
+  })
+
+  it('should cancel when insert line break in range', async () => {
+    let doc = await workspace.document
+    await registerProvider('foo foo bar', Position.create(0, 0))
+    await helper.waitValue(() => {
+      return matches()
+    }, 2)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 1), '\n  ')])
     await helper.waitValue(() => {
       return matches()
     }, 0)

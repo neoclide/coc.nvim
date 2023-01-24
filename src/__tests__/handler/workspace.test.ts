@@ -2,16 +2,19 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
 import extensions from '../../extension'
 import WorkspaceHandler from '../../handler/workspace'
+import languages from '../../languages'
+import { v4 as uuid } from 'uuid'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
+import snippetManager from '../../snippets/manager'
 
 let nvim: Neovim
 let handler: WorkspaceHandler
@@ -40,7 +43,7 @@ describe('Workspace handler', () => {
     expect(lines.join('\n')).toMatch(content)
   }
 
-  describe('methods', () => {
+  describe('commands', () => {
     it('should check filetype', async () => {
       await helper.createDocument('t.vim')
       await commands.executeCommand('document.echoFiletype')
@@ -81,6 +84,28 @@ describe('Workspace handler', () => {
       expect(bufname).toMatch('output')
     })
 
+    it('should open location', async () => {
+      let winid = await nvim.call('win_getid')
+      await commands.executeCommand('workspace.openLocation', winid, Location.create('lsp:/1', Range.create(0, 0, 0, 0)))
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toBe('lsp:/1')
+    })
+
+    it('should clear watchman roots', async () => {
+      let success = true
+      let spy = jest.spyOn(window, 'runTerminalCommand').mockImplementation(() => {
+        return Promise.resolve({ success, bufnr: 1 })
+      })
+      let res = await commands.executeCommand('workspace.clearWatchman')
+      expect(res).toBe(true)
+      success = false
+      res = await commands.executeCommand('workspace.clearWatchman')
+      expect(res).toBe(false)
+      spy.mockRestore()
+    })
+  })
+
+  describe('methods', () => {
     it('should rename buffer', async () => {
       let doc = await helper.createDocument('a')
       let fsPath = URI.parse(doc.uri).fsPath.replace(/a$/, 'b')
@@ -88,31 +113,63 @@ describe('Workspace handler', () => {
         if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
       }))
       let p = handler.renameCurrent()
-      await helper.wait(50)
+      await helper.waitValue(() => nvim.call('mode'), 'c')
       await nvim.input('<backspace>b<cr>')
       await p
       let name = await nvim.eval('bufname("%")') as string
       expect(name.endsWith('b')).toBe(true)
+      p = handler.renameCurrent()
+      await helper.waitValue(() => nvim.call('mode'), 'c')
+      await nvim.input('<C-u><cr>')
+      await p
     })
 
     it('should rename file', async () => {
-      let fsPath = path.join(os.tmpdir(), 'x')
-      let newPath = path.join(os.tmpdir(), 'b')
+      let dir = path.join(os.tmpdir(), uuid())
+      fs.mkdirSync(dir, { recursive: true })
+      let fsPath = path.join(dir, 'x')
+      let newPath = path.join(dir, 'b')
       disposables.push(Disposable.create(() => {
-        if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
-        if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+        fs.rmSync(dir, { recursive: true, force: true })
       }))
+      fs.writeFileSync(newPath, '', 'utf8')
       fs.writeFileSync(fsPath, 'foo', 'utf8')
       await helper.createDocument(fsPath)
+      let spy = jest.spyOn(window, 'showPrompt').mockImplementation(() => {
+        return Promise.resolve(true)
+      })
       let p = commands.executeCommand('workspace.renameCurrentFile')
       await helper.waitFor('mode', [], 'c')
       await nvim.input('<backspace>b<cr>')
       await p
+      spy.mockRestore()
       let name = await nvim.eval('bufname("%")') as string
       expect(name.endsWith('b')).toBe(true)
       expect(fs.existsSync(newPath)).toBe(true)
       let content = fs.readFileSync(newPath, 'utf8')
       expect(content).toMatch(/foo/)
+    })
+
+    it('should not rename when reject overwrite', async () => {
+      let dir = path.join(os.tmpdir(), uuid())
+      fs.mkdirSync(dir, { recursive: true })
+      let fsPath = path.join(dir, 'x')
+      let newPath = path.join(dir, 'b')
+      disposables.push(Disposable.create(() => {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }))
+      fs.writeFileSync(newPath, '', 'utf8')
+      await helper.createDocument(fsPath)
+      let spy = jest.spyOn(window, 'showPrompt').mockImplementation(() => {
+        return Promise.resolve(false)
+      })
+      let p = handler.renameCurrent()
+      await helper.waitFor('mode', [], 'c')
+      await nvim.input('<backspace>b<cr>')
+      await p
+      spy.mockRestore()
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch(/x$/)
     })
 
     it('should not throw when workspace folder does not exist', async () => {
@@ -171,6 +228,14 @@ describe('Workspace handler', () => {
     })
 
     it('should should error message for document not attached', async () => {
+      disposables.push(languages.registerDocumentFormatProvider(['*'], {
+        provideDocumentFormattingEdits: () => {
+          return []
+        }
+      }))
+      await handler.bufferCheck()
+      await checkFloat('Provider state')
+      await nvim.call('coc#float#close_all', [])
       await nvim.command('edit t|let b:coc_enabled = 0')
       await commands.executeCommand('document.checkBuffer')
       await checkFloat('not attached')
@@ -267,6 +332,11 @@ describe('Workspace handler', () => {
 
     it('should check jump', async () => {
       expect(await handler.snippetCheck(false, true)).toBe(false)
+      let spy = jest.spyOn(snippetManager, 'jumpable').mockImplementation(() => {
+        return true
+      })
+      expect(await handler.snippetCheck(false, true)).toBe(true)
+      spy.mockRestore()
     })
   })
 })

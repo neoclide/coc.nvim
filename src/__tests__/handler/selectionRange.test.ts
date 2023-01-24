@@ -55,11 +55,31 @@ describe('selectionRange', () => {
     async function getSelectedRange(): Promise<Range> {
       let m = await nvim.mode
       expect(m.mode).toBe('v')
-      let bufnr = await nvim.call('bufnr', ['%'])
       await nvim.input('<esc>')
       let res = await window.getSelectedRange('v')
       return res
     }
+
+    it('should not select with empty ranges', async () => {
+      let doc = await helper.createDocument()
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: () => []
+      }))
+      await doc.synchronize()
+      let res = await selection.selectRange('', true)
+      expect(res).toBe(false)
+    })
+
+    it('should select single range', async () => {
+      let doc = await helper.createDocument()
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\ntest\n')])
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: () => [{ range: Range.create(0, 0, 0, 3) }]
+      }))
+      await doc.synchronize()
+      let res = await selection.selectRange('', true)
+      expect(res).toBe(true)
+    })
 
     it('should select ranges forward', async () => {
       let doc = await helper.createDocument()
@@ -156,6 +176,7 @@ describe('selectionRange', () => {
     })
 
     it('should append/prepend selection ranges', async () => {
+      let doc = await workspace.document
       disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
         provideSelectionRanges: _doc => {
           return [{ range: Range.create(1, 1, 1, 4) }, { range: Range.create(1, 0, 1, 6) }]
@@ -176,7 +197,7 @@ describe('selectionRange', () => {
           return [{ range: Range.create(0, 0, 3, 0) }]
         }
       }))
-      let doc = await workspace.document
+
       let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
       expect(res.length).toBe(4)
       expect(res[0].range).toEqual(Range.create(1, 2, 1, 3))

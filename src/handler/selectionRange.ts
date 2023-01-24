@@ -2,6 +2,7 @@
 import type { Neovim } from '@chemzqm/neovim'
 import { Position, Range, SelectionRange } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../languages'
+import { isFalsyOrEmpty } from '../util/array'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -22,8 +23,7 @@ export default class SelectionRangeHandler {
     return selectionRanges
   }
 
-  public async selectRange(visualmode: string, forward: boolean): Promise<void> {
-    let { nvim } = this
+  public async selectRange(visualmode: string, forward: boolean): Promise<boolean> {
     let { doc } = await this.handler.getCurrentState()
     this.handler.checkProvider(ProviderName.SelectionRange, doc.textDocument)
     let positions: Position[] = []
@@ -53,9 +53,7 @@ export default class SelectionRangeHandler {
     let selectionRanges: SelectionRange[] = await this.handler.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, positions, token)
     })
-    if (!selectionRanges || selectionRanges.length == 0) return
-    let mode = await nvim.eval('mode()')
-    if (mode != 'n') await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+    if (isFalsyOrEmpty(selectionRanges)) return false
     let selectionRange: SelectionRange
     if (selectionRanges.length == 1) {
       selectionRange = selectionRanges[0]
@@ -76,8 +74,9 @@ export default class SelectionRangeHandler {
         selectionRange = selectionRange.parent
       }
     }
-    if (!selectionRange) return
+    if (!selectionRange) return false
     this.selectionRange = selectionRanges[0]
     await window.selectRange(selectionRange.range)
+    return true
   }
 }

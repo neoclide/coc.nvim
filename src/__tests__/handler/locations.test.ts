@@ -319,7 +319,7 @@ describe('locations', () => {
 
     it('should handle empty result', async () => {
       result = null
-      let res = await locations.findLocations('foo', 'mylocation', undefined, false)
+      let res = await locations.findLocations('foo', 'mylocation', undefined, 'edit')
       expect(res).toBe(false)
     })
 
@@ -335,7 +335,7 @@ describe('locations', () => {
         }]
       }
       result = location
-      await locations.findLocations('foo', 'mylocation', {}, false)
+      await locations.findLocations('foo', 'mylocation', {})
       let res = await nvim.getVar('coc_jump_locations') as any[]
       expect(res.length).toBe(3)
     })

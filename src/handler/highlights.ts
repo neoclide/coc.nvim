@@ -7,7 +7,7 @@ import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
-import { comparePosition } from '../util/position'
+import { comparePosition, compareRangesUsingStarts } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
@@ -88,7 +88,7 @@ export default class Highlights {
     if (!highlights) return
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
-      if (!hl.range) continue
+      if (!Range.is(hl.range)) continue
       let hlGroup = hl.kind == DocumentHighlightKind.Text
         ? 'CocHighlightText'
         : hl.kind == DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite'
@@ -133,11 +133,8 @@ export default class Highlights {
     this.handler.checkProvider(ProviderName.DocumentHighlight, doc.textDocument)
     let highlights = await this.getHighlights(doc, position)
     if (!highlights) return null
-    return highlights.map(o => o.range).sort((a, b) => {
-      if (a.start.line != b.start.line) {
-        return a.start.line - b.start.line
-      }
-      return a.start.character - b.start.character
+    return highlights.filter(o => Range.is(o.range)).map(o => o.range).sort((a, b) => {
+      return compareRangesUsingStarts(a, b)
     })
   }
 
@@ -153,7 +150,6 @@ export default class Highlights {
     this.cancel()
     let source = this.tokenSource = new CancellationTokenSource()
     let timer = this.timer = setTimeout(() => {
-      if (source.token.isCancellationRequested) return
       source.cancel()
     }, this.config.timeout)
     let highlights = await languages.getDocumentHighLight(doc.textDocument, position, source.token)

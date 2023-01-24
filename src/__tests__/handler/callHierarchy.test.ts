@@ -38,13 +38,9 @@ function createCallItem(name: string, kind: SymbolKind, uri: string, range: Rang
 
 describe('CallHierarchy', () => {
   it('should throw when provider does not exist', async () => {
-    let err
-    try {
+    await expect(async () => {
       await callHierarchy.getIncoming()
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
+    }).rejects.toThrow(Error)
   })
 
   it('should return null when provider not exist', async () => {
@@ -174,6 +170,22 @@ describe('CallHierarchy', () => {
     matches = await nvim.call('getmatches') as any[]
     expect(matches.length).toBe(0)
     await nvim.command(`wincmd o`)
+  })
+
+  it('should invoke reveal command', async () => {
+    let doc = await helper.createDocument('foo')
+    await nvim.setLine('foo')
+    let item: any = createCallItem('name', SymbolKind.Class, doc.uri, Range.create(0, 0, 1, 0))
+    let winid = await nvim.call('win_getid') as number
+    let commandId = 'callHierarchy.reveal'
+    await commands.executeCommand(commandId, winid, item)
+    item.ranges = [Range.create(0, 0, 0, 1)]
+    item.sourceUri = 'lsp:/1'
+    await commands.executeCommand(commandId, winid, item)
+    let newDoc = await helper.createDocument('bar')
+    await workspace.jumpTo(doc.uri)
+    item.sourceUri = newDoc.uri
+    await commands.executeCommand(commandId, winid, item)
   })
 
   it('should invoke open in new tab action', async () => {

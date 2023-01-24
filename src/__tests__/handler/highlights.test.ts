@@ -40,15 +40,14 @@ function registerProvider(): void {
         let end = document.positionAt(o.index + o[0].length)
         return {
           range: Range.create(start, end),
-          kind: i % 2 == 0 ? DocumentHighlightKind.Read : DocumentHighlightKind.Write
+          kind: i == 0 ? DocumentHighlightKind.Text : i % 2 == 0 ? DocumentHighlightKind.Read : DocumentHighlightKind.Write
         }
-      })
+      }).concat([{ range: undefined, kind: 2 }])
     }
   }))
 }
 
 describe('document highlights', () => {
-
   function registerTimerProvider(fn: Function, timeout: number): void {
     disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
       provideDocumentHighlights: (_document, _position, token) => {
@@ -180,7 +179,7 @@ describe('document highlights', () => {
   it('should add highlights to symbols', async () => {
     registerProvider()
     await helper.createDocument()
-    await nvim.setLine('foo bar foo')
+    await nvim.setLine('foo bar foo foo bar')
     await helper.doAction('highlight')
     let winid = await nvim.call('win_getid') as number
     expect(highlights.hasHighlights(winid)).toBe(true)

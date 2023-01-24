@@ -25,6 +25,13 @@ describe('vim api', () => {
     await nvim.command('bd!')
   })
 
+  it('should show info', async () => {
+    global.REVISION = '2e82259f'
+    let handler = helper.plugin.getHandler().workspace
+    await handler.showInfo()
+    await nvim.command('bd!')
+  })
+
   it('should navigate complete items', async () => {
     helper.updateConfiguration('suggest.noselect', true)
     const sources = require('../completion/sources').default

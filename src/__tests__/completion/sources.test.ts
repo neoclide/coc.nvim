@@ -450,6 +450,19 @@ describe('native sources', () => {
     await helper.waitPopup()
   })
 
+  it('should trim ext for file source', async () => {
+    let cwd = path.resolve(__dirname, '..')
+    let file = path.join(cwd, 't.ts')
+    await helper.edit(file)
+    await nvim.setLine('./')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: 'file' }, true)
+    await helper.waitPopup()
+    let items = helper.completion.activeItems
+    let idx = items.findIndex(o => o.word.endsWith('.ts'))
+    expect(idx).toBe(-1)
+  })
+
   it('should not complete when cancelled', async () => {
     await nvim.setLine('/foo')
     await nvim.input('A')

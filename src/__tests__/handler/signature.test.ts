@@ -31,6 +31,8 @@ describe('signatureHelp', () => {
 
   describe('triggerSignatureHelp', () => {
     it('should show signature by api', async () => {
+      let res = await signature.triggerSignatureHelp()
+      expect(res).toBe(false)
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
@@ -47,6 +49,11 @@ describe('signatureHelp', () => {
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
       expect(lines[2]).toMatch('my signature')
+    })
+
+    it('should load configuration', async () => {
+      await nvim.command(`edit +setl\\ buftype=nofile tree`)
+      signature.loadConfiguration()
     })
 
     it('should use 0 when activeParameter is undefined', async () => {
@@ -96,7 +103,7 @@ describe('signatureHelp', () => {
           return {
             signatures: [
               SignatureInformation.create('foo()', 'my signature'),
-              SignatureInformation.create('foo(a, b)', 'my signature', ParameterInformation.create('a', 'description')),
+              SignatureInformation.create('foo', 'my signature', ParameterInformation.create('a', 'description')),
             ],
             activeParameter: 0,
             activeSignature: 1
@@ -336,9 +343,11 @@ describe('signatureHelp', () => {
       configurations.updateMemoryConfig({ 'signature.hideOnTextChange': true })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
+          let s = SignatureInformation.create('foo()', 'my signature')
+          s.parameters = undefined
           return {
-            signatures: [SignatureInformation.create('foo()', 'my signature')],
-            activeParameter: null,
+            signatures: [s],
+            activeParameter: 0,
             activeSignature: null
           }
         }
@@ -367,7 +376,7 @@ describe('signatureHelp', () => {
       await helper.createDocument()
       await nvim.input('foo')
       await nvim.input('(')
-      await helper.wait(100)
+      await helper.wait(30)
       let win = await helper.getFloat()
       expect(win).toBeUndefined()
     })
@@ -403,6 +412,24 @@ describe('signatureHelp', () => {
       await signature.triggerSignatureHelp()
       line = await helper.getCmdline()
       expect(line).toMatch('aaaaaa')
+    })
+
+    it('should echo signature without match', async () => {
+      let signatureHelp = {
+        signatures: [SignatureInformation.create('foo(a, b)', 'my signature',
+          ParameterInformation.create('c', 'foo'),
+          ParameterInformation.create([7, 8], 'bar')),
+        SignatureInformation.create('a'.repeat(workspace.env.columns + 10))
+        ],
+        activeParameter: 0,
+        activeSignature: null
+      }
+      signature.echoSignature(signatureHelp)
+      await helper.wait(20)
+      let line = await helper.getCmdline()
+      expect(line).toMatch('foo')
+      signatureHelp.signatures[0].parameters = undefined
+      signature.echoSignature(signatureHelp)
     })
   })
 })

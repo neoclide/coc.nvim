@@ -52,11 +52,12 @@ function isCallHierarchyItem(item: any): item is CallHierarchyItem {
   return false
 }
 
+const HIGHLIGHT_GROUP = 'CocSelectedRange'
+
 export default class CallHierarchyHandler {
   private config: CallHierarchyConfig
   private disposables: Disposable[] = []
   public static commandId = 'callHierarchy.reveal'
-  public static rangesHighlight = 'CocSelectedRange'
   private highlightWinids: Set<number> = new Set()
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
@@ -66,10 +67,9 @@ export default class CallHierarchyHandler {
       await nvim.call('win_gotoid', [winid])
       await workspace.jumpTo(item.uri, item.selectionRange.start, openCommand)
       let win = await nvim.window
-      win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
-      win.highlightRanges(CallHierarchyHandler.rangesHighlight, [item.selectionRange], 10, true)
-
-      if (!item.ranges?.length) return
+      win.clearMatchGroup(HIGHLIGHT_GROUP)
+      win.highlightRanges(HIGHLIGHT_GROUP, [item.selectionRange], 10, true)
+      if (isFalsyOrEmpty(item.ranges)) return
       if (item.sourceUri) {
         let doc = workspace.getDocument(item.sourceUri)
         if (!doc) return
@@ -77,17 +77,17 @@ export default class CallHierarchyHandler {
         if (winid == -1) return
         if (winid != win.id) {
           win = nvim.createWindow(winid)
-          win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
+          win.clearMatchGroup(HIGHLIGHT_GROUP)
         }
       }
-      win.highlightRanges(CallHierarchyHandler.rangesHighlight, item.ranges, 100, true)
+      win.highlightRanges(HIGHLIGHT_GROUP, item.ranges, 100, true)
       this.highlightWinids.add(win.id)
     }, null, true))
     events.on('BufWinEnter', (_, winid) => {
       if (this.highlightWinids.has(winid)) {
         this.highlightWinids.delete(winid)
         let win = nvim.createWindow(winid)
-        win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
+        win.clearMatchGroup(HIGHLIGHT_GROUP)
       }
     }, null, this.disposables)
 

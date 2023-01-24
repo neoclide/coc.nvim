@@ -9,7 +9,7 @@ import { createLogger } from '../logger'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
 import { TextDocumentMatch } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
@@ -39,6 +39,7 @@ import TypeHierarchy from './typeHierarchy'
 import { HandlerDelegate } from './types'
 import WorkspaceHandler from './workspace'
 const logger = createLogger('Handler')
+const requestTimeout = getConditionValue(500, 10)
 
 export interface CurrentState {
   doc: Document
@@ -214,9 +215,7 @@ export default class Handler implements HandlerDelegate {
       this.requestTokenSource.cancel()
       this.requestTokenSource.dispose()
     }
-    if (this.requestTimer) {
-      clearTimeout(this.requestTimer)
-    }
+    clearTimeout(this.requestTimer)
     let statusItem = this.requestStatusItem
     this.requestTokenSource = new CancellationTokenSource()
     let { token } = this.requestTokenSource
@@ -225,7 +224,7 @@ export default class Handler implements HandlerDelegate {
       statusItem.isProgress = false
       this.requestTimer = setTimeout(() => {
         statusItem.hide()
-      }, 500)
+      }, requestTimeout)
     })
     statusItem.isProgress = true
     statusItem.text = `requesting ${name}`
@@ -255,7 +254,7 @@ export default class Handler implements HandlerDelegate {
     let kindText = getSymbolKind(kind)
     let defaultIcon = typeof labels['default'] === 'string' ? labels['default'] : kindText[0].toLowerCase()
     let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    if (!text || typeof text !== 'string') text = defaultIcon
+    if (!text) text = defaultIcon
     return {
       text,
       hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
@@ -274,7 +273,7 @@ export default class Handler implements HandlerDelegate {
   public async hasProvider(id: string): Promise<boolean> {
     let bufnr = await this.nvim.call('bufnr', '%') as number
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return false
+    if (!doc || !doc.attached) return false
     return languages.hasProvider(id as ProviderName, doc.textDocument)
   }
 

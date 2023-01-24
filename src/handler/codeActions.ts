@@ -5,6 +5,7 @@ import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
 import Document from '../model/document'
+import { isFalsyOrEmpty } from '../util/array'
 import { boolToNumber } from '../util/numbers'
 import window from '../window'
 import workspace from '../workspace'
@@ -56,7 +57,7 @@ export default class CodeActions {
     range = range ?? Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked }
-    if (only && Array.isArray(only)) context.only = only
+    if (!isFalsyOrEmpty(only)) context.only = only
     let codeActions = await this.handler.withRequestToken('code action', token => {
       return languages.getCodeActions(doc.textDocument, range, context, token)
     })
@@ -71,9 +72,7 @@ export default class CodeActions {
   }
 
   private get floatActions(): boolean {
-    if (!workspace.floatSupported) return false
-    let config = workspace.getConfiguration('coc.preferences', null)
-    return config.get<boolean>('floatActions', true)
+    return workspace.initialConfiguration.get<boolean>('coc.preferences.floatActions', true)
   }
 
   public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string, noExclude = false): Promise<void> {

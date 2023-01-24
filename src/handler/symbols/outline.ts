@@ -396,7 +396,7 @@ export default class SymbolsOutline {
   }
 }
 
-export function getNodeByPosition(position: Position, nodes: ReadonlyArray<OutlineNode>): OutlineNode | undefined {
+function getNodeByPosition(position: Position, nodes: ReadonlyArray<OutlineNode>): OutlineNode | undefined {
   let curr: OutlineNode | undefined
   let checkNodes = (nodes: ReadonlyArray<OutlineNode>): void => {
     for (let node of nodes) {

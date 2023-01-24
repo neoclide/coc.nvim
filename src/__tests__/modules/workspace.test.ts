@@ -9,6 +9,7 @@ import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
 import { disposeAll } from '../../util'
+import window from '../../window'
 import workspace, { Workspace } from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 

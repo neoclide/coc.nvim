@@ -50,6 +50,7 @@ describe('Hover', () => {
     })
 
     it('should check documentation', async () => {
+      expect(isDocumentation(undefined)).toBe(false)
       expect(isDocumentation({})).toBe(false)
       expect(isDocumentation({ filetype: '', content: '' })).toBe(true)
     })
@@ -64,7 +65,7 @@ describe('Hover', () => {
       let range = Range.create(0, 0, 0, 0)
       await addDefinitions(hovers, [undefined, {} as any, { targetUri: 'file:///not_exists', targetRange: range, targetSelectionRange: range }], '')
       expect(hovers.length).toBe(0)
-      let file = await createTmpFile('  foo\n  bar\n', disposables)
+      let file = await createTmpFile('  foo\nbar\n', disposables)
       range = Range.create(0, 0, 300, 0)
       await addDefinitions(hovers, [{ targetUri: URI.file(file).toString(), targetRange: range, targetSelectionRange: range }], '')
       expect(hovers.length).toBe(1)
