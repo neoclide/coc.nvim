@@ -73,7 +73,7 @@ export default class Terminals {
     return terminal
   }
 
-  public async runTerminalCommand(nvim: Neovim, cmd: string, cwd: string, keepfocus: boolean): Promise<TerminalResult> {
+  public async runTerminalCommand(nvim: Neovim, cmd: string, cwd: string | undefined, keepfocus: boolean): Promise<TerminalResult> {
     return await nvim.callAsync('coc#ui#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
