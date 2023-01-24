@@ -4,7 +4,6 @@ import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-langu
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import Document from '../../model/document'
-import { defaultValue } from '../../util'
 import { isFalsyOrEmpty } from '../../util/array'
 import { getSymbolKind } from '../../util/convert'
 import { writeFile } from '../../util/fs'

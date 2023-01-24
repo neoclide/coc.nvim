@@ -3,10 +3,11 @@ import EventEmitter from 'events'
 import path from 'path'
 import { Range } from 'vscode-languageserver-types'
 import events from '../../events'
-import manager, { ListManager, createConfigurationNode } from '../../list/manager'
+import manager, { createConfigurationNode, ListManager } from '../../list/manager'
 import { IList } from '../../list/types'
 import { QuickfixItem } from '../../types'
 import { toArray } from '../../util/array'
+import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import helper from '../helper'
 
@@ -337,6 +338,20 @@ describe('list', () => {
   })
 
   describe('loadItems()', () => {
+    it('should ignore cancellation error', async () => {
+      let list: IList = {
+        name: 'cancel',
+        actions: [{ name: 'open', execute: () => {} }],
+        defaultAction: 'open',
+        loadItems: () => Promise.reject(new CancellationError()),
+      }
+      let disposable = manager.registerList(list)
+      await manager.start(['cancel'])
+      disposable.dispose()
+      let line = await helper.getCmdline()
+      expect(line).toBe('')
+    })
+
     it('should load items for list', async () => {
       let res = await manager.loadItems('location')
       expect(res.length).toBeGreaterThan(0)

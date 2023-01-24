@@ -7,6 +7,7 @@ import extensions from '../extension/index'
 import { createLogger } from '../logger'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { dataHome, isVim } from '../util/constants'
+import { isCancellationError } from '../util/errors'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { stripAnsi } from '../util/node'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
@@ -114,11 +115,12 @@ export class ListManager implements Disposable {
     try {
       await session.start(args)
     } catch (e) {
-      this.nvim.command(`echo ""`, true)
       this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
+      this.nvim.command(`echo ""`, true)
+      if (isCancellationError(e)) return
       void window.showErrorMessage(`Error on "CocList ${name}": ${toErrorText(e)}`)
       this.nvim.redrawVim()
-      logger.error('Error on list start:', e)
+      logger.error(`Error on load ${name} list:`, e)
     }
   }
 
