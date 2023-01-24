@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Handler from '../../handler/index'
+import { handleError } from '../../handler/util'
 import { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import helper from '../helper'
@@ -29,6 +30,12 @@ afterEach(async () => {
 })
 
 describe('Handler', () => {
+  describe('handleError', () => {
+    it('should handleError', async () => {
+      handleError(new Error('error'))
+    })
+  })
+
   describe('hasProvider', () => {
     it('should check provider for document', async () => {
       let res = await helper.doAction('hasProvider', 'definition')

@@ -10,7 +10,7 @@ import Document from '../model/document'
 import snippetManager from '../snippets/manager'
 import { IConfigurationChangeEvent } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { pariedCharacters } from '../util/index'
+import { defaultValue, pariedCharacters } from '../util/index'
 import { CancellationTokenSource } from '../util/protocol'
 import { isAlphabet } from '../util/string'
 import window from '../window'
@@ -69,7 +69,8 @@ export default class FormatHandler {
       }
     }))
     handler.addDisposable(events.on('TextInsert', async (bufnr: number, _info, character: string) => {
-      if (!events.pumvisible) await this.tryFormatOnType(character, bufnr)
+      let doc = workspace.getDocument(bufnr)
+      if (!events.pumvisible && doc && doc.attached) await this.tryFormatOnType(character, doc)
     }))
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
       const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc
@@ -102,30 +103,25 @@ export default class FormatHandler {
 
   public shouldFormatOnType(filetype: string): boolean {
     const filetypes = this.preferences.formatOnTypeFiletypes
-    return isFalsyOrEmpty(filetype) || filetypes.includes(filetype) || filetypes.includes('*')
+    return isFalsyOrEmpty(filetypes) || filetypes.includes(filetype) || filetypes.includes('*')
   }
 
-  private async tryFormatOnType(ch: string, bufnr: number, newLine = false): Promise<void> {
-    if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return
-    if (snippetManager.getSession(bufnr) != null) return
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached || !this.shouldFormatOnType(doc.filetype)) return
+  public async tryFormatOnType(ch: string, doc: Document): Promise<boolean> {
+    if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return false
+    if (snippetManager.getSession(doc.bufnr) != null || !this.shouldFormatOnType(doc.filetype)) return false
     if (!languages.hasProvider(ProviderName.FormatOnType, doc.textDocument)) {
       logger.warn(`Format on type provider not found for buffer: ${doc.uri}`)
-      return
+      return false
     }
-    if (!languages.canFormatOnType(ch, doc.textDocument)) return
+    if (!languages.canFormatOnType(ch, doc.textDocument)) return false
     let position: Position
     let edits = await this.handler.withRequestToken('Format on type', async token => {
       position = await window.getCursorPosition()
-      let origLine = doc.getline(position.line - 1)
-      // not format for empty line.
-      if (newLine && /^\s*$/.test(origLine)) return
       await doc.synchronize()
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token)
     })
-    if (isFalsyOrEmpty(edits)) return
-    await doc.applyEdits(edits, false, true)
+    await doc.applyEdits(defaultValue(edits, []), false, true)
+    return true
   }
 
   public async formatCurrentBuffer(): Promise<boolean> {
@@ -154,15 +150,15 @@ export default class FormatHandler {
     return false
   }
 
-  private async handleEnter(bufnr: number): Promise<void> {
+  public async handleEnter(bufnr: number): Promise<void> {
     let { nvim } = this
     let { bracketEnterImprove } = this.preferences
-    await this.tryFormatOnType('\n', bufnr)
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return
+    await this.tryFormatOnType('\n', doc)
     if (bracketEnterImprove) {
       let line = (await nvim.call('line', '.') as number) - 1
-      let doc = workspace.getDocument(bufnr)
-      if (!doc) return
-      await doc.patchChange()
+      await doc._fetchContent(false)
       let pre = doc.getline(line - 1)
       let curr = doc.getline(line)
       let prevChar = pre[pre.length - 1]
@@ -170,12 +166,12 @@ export default class FormatHandler {
         let nextChar = curr.trim()[0]
         if (nextChar && pariedCharacters.get(prevChar) == nextChar) {
           let edits: TextEdit[] = []
-          let opts = await workspace.getFormatOptions(doc.uri)
-          let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
-          let currIndent = curr.match(/^\s*/)[0]
           let pos: Position = Position.create(line - 1, pre.length)
           // make sure indent of current line
           if (doc.filetype == 'vim') {
+            let opts = await workspace.getFormatOptions(doc.uri)
+            let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+            let currIndent = curr.match(/^\s*/)[0]
             let newText = '\n' + currIndent + space
             edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
             newText = newText + '\\ '

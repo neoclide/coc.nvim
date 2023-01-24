@@ -41,13 +41,12 @@ describe('format handler', () => {
 
     it('should throw when provider not found', async () => {
       let doc = await workspace.document
-      let err
-      try {
-        await format.documentFormat(doc)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await expect(async () => {
+        await commands.executeCommand('editor.action.formatDocument')
+      }).rejects.toThrow(Error)
+      await expect(async () => {
+        await commands.executeCommand('editor.action.formatDocument', doc.uri)
+      }).rejects.toThrow(Error)
     })
 
     it('should return false when get empty edits ', async () => {
@@ -165,6 +164,21 @@ describe('format handler', () => {
       expect(edits).toBe(null)
     })
 
+    it('should return -1 when range not exists', async () => {
+      disposables.push(languages.registerDocumentRangeFormatProvider(['*'], {
+        provideDocumentRangeFormattingEdits: () => {
+          return []
+        }
+      }, 1))
+      let spy = jest.spyOn(window, 'getSelectedRange').mockImplementation(() => {
+        return Promise.resolve(null)
+      })
+      let doc = await workspace.document
+      let res = await format.documentRangeFormat(doc, 'v')
+      spy.mockRestore()
+      expect(res).toBe(-1)
+    })
+
     it('should invoke range format', async () => {
       disposables.push(languages.registerDocumentRangeFormatProvider(['text'], {
         provideDocumentRangeFormattingEdits: (_document, range) => {
@@ -228,17 +242,25 @@ describe('format handler', () => {
       expect(line).toEqual('  foo')
     })
 
+    it('should respect formatOnTypeFiletypes', async () => {
+      helper.updateConfiguration('coc.preferences.formatOnTypeFiletypes', ['*'])
+      expect(format.shouldFormatOnType('vim')).toBe(true)
+      helper.updateConfiguration('coc.preferences.formatOnTypeFiletypes', ['txt'])
+      let doc = await helper.createDocument('t.vim')
+      let res = await format.tryFormatOnType('\n', doc)
+      expect(res).toBe(false)
+    })
+
     it('should does format on type', async () => {
       let doc = await workspace.document
-      disposables.push(languages.registerOnTypeFormattingEditProvider(['text'], {
+      disposables.push(languages.registerOnTypeFormattingEditProvider(['*'], {
         provideOnTypeFormattingEdits: () => {
           return [TextEdit.insert(Position.create(0, 0), '  ')]
         }
       }, ['|']))
-      let res = languages.canFormatOnType('a', doc.textDocument)
+      let res = await format.tryFormatOnType(';', doc)
       expect(res).toBe(false)
       await helper.edit()
-      await nvim.command('setf text')
       await nvim.input('i|')
       await helper.waitFor('getline', ['.'], '  |')
       let cursor = await window.getCursorPosition()
@@ -280,8 +302,16 @@ describe('format handler', () => {
       nvim.command('iunmap <CR>', true)
     })
 
+    it('should not throw for buffer not attached', async () => {
+      await nvim.command(`edit +setl\\ buftype=nofile foo`)
+      let doc = await workspace.document
+      expect(doc.attached).toBe(false)
+      await format.handleEnter(doc.bufnr)
+    })
+
     it('should format vim file on enter', async () => {
       let buf = await helper.edit('foo.vim')
+      await buf.setOption('expandtab', true)
       await nvim.command(`inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm() : "\\<C-g>u\\<CR>\\<c-r>=coc#on_enter()\\<CR>"`)
       await nvim.setLine('let foo={}')
       await nvim.command(`normal! gg$`)
@@ -290,6 +320,17 @@ describe('format handler', () => {
       await helper.waitFor('getline', [2], '  \\ ')
       let lines = await buf.lines
       expect(lines).toEqual(['let foo={', '  \\ ', '  \\ }'])
+    })
+
+    it('should use tab on format', async () => {
+      let buf = await helper.edit('foo.vim')
+      await buf.setOption('expandtab', false)
+      await nvim.command(`inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm() : "\\<C-g>u\\<CR>\\<c-r>=coc#on_enter()\\<CR>"`)
+      await nvim.setLine('let foo={}')
+      await nvim.command(`normal! gg$`)
+      await nvim.input('i')
+      await nvim.eval(`feedkeys("\\<CR>", 'im')`)
+      await helper.waitFor('getline', ['.'], '\t\\ ')
     })
 
     it('should add new line between bracket', async () => {
