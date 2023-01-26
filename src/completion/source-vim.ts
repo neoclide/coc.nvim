@@ -75,7 +75,7 @@ export default class VimSource extends Source {
         input
       })
     }
-    let vimItems = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt]) as (ExtendedCompleteItem | string)[]
+    let vimItems = await this.nvim.callAsync('coc#_do_complete', [this.name, opt]) as (ExtendedCompleteItem | string)[]
     if (!vimItems || vimItems.length == 0 || token.isCancellationRequested) return null
     let checkFirst = this.firstMatch && input.length > 0
     let inputFirst = checkFirst ? input[0].toLowerCase() : ''

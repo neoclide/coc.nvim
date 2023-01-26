@@ -113,7 +113,7 @@ export default class Complete {
     let token = tokenSource.token
     let res = await Promise.all([
       this.nvim.call('coc#util#synname', []),
-      this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
+      this.nvim.call('coc#_suggest_variables', []),
       this.document.patchChange()
     ]) as [string, { disable: boolean, disabled_sources: string[], blacklist: string[] }, undefined]
     if (token.isCancellationRequested) return

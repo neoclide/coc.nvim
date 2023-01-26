@@ -4,17 +4,6 @@ let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:vim_api_version = 34
 
-function! coc#util#remote_fns(name)
-  let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
-  let res = []
-  for fn in fns
-    if exists('*coc#source#'.a:name.'#'.fn)
-      call add(res, fn)
-    endif
-  endfor
-  return res
-endfunction
-
 function! coc#util#merge_winhl(curr, hls) abort
   let highlightMap = {}
   for parts in map(split(a:curr, ','), 'split(v:val, ":")')
@@ -26,21 +15,6 @@ function! coc#util#merge_winhl(curr, hls) abort
     let highlightMap[item[0]] = item[1]
   endfor
   return join(map(items(highlightMap), 'v:val[0].":".v:val[1]'), ',')
-endfunction
-
-function! coc#util#do_complete(name, opt, cb) abort
-  let handler = 'coc#source#'.a:name.'#complete'
-  let l:Cb = {res -> a:cb(v:null, res)}
-  let args = [a:opt, l:Cb]
-  call call(handler, args)
-endfunction
-
-function! coc#util#suggest_variables(bufnr) abort
-  return {
-      \ 'disable': getbufvar(a:bufnr, 'coc_suggest_disable', 0),
-      \ 'disabled_sources': getbufvar(a:bufnr, 'coc_disabled_sources', []),
-      \ 'blacklist': getbufvar(a:bufnr, 'coc_suggest_blacklist', []),
-      \ }
 endfunction
 
 function! coc#util#api_version() abort

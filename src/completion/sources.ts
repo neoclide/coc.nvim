@@ -124,7 +124,7 @@ export class Sources {
     try {
       let name = path.basename(filepath, '.vim')
       await nvim.command(`source ${filepath}`)
-      let fns = await nvim.call('coc#util#remote_fns', name) as string[]
+      let fns = await nvim.call('coc#_remote_fns', name) as string[]
       for (let fn of ['init', 'complete']) {
         if (!fns.includes(fn)) {
           throw new Error(`function "coc#source#${name}#${fn}" not found`)
