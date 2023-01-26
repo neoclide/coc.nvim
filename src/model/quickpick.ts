@@ -37,7 +37,7 @@ export default class QuickPick<T extends QuickPickItem> {
   public matchOnDescription = false
   public maxHeight = 10
   public width: number | undefined
-  public placeHolder: string | undefined
+  public placeholder: string | undefined
   private bufnr: number
   private win: Popup
   private filteredItems: readonly T[] = []
@@ -159,7 +159,7 @@ export default class QuickPick<T extends QuickPickItem> {
     let rounded = !!preferences.rounded
     await input.show(this.title, {
       position: 'center',
-      placeHolder: this.placeHolder,
+      placeHolder: this.placeholder,
       marginTop: 10,
       border: [1, 1, 0, 1],
       list: true,

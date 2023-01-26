@@ -129,7 +129,7 @@ export class Dialogs {
         let quickpick = new QuickPick<QuickPickItem>(this.nvim, this.dialogPreference)
         quickpick.items = items.map(o => typeof o === 'string' ? { label: o } : o)
         quickpick.title = toText(options.title)
-        quickpick.placeHolder = options.placeholder
+        quickpick.placeholder = options.placeholder
         quickpick.canSelectMany = !!options.canPickMany
         quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {

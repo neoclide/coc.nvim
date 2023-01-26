@@ -7195,7 +7195,7 @@ declare module 'coc.nvim' {
      * @param codeActionKinds Optional supported code action kinds.
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
-    export function registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: string[]): Disposable
+    export function registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: ReadonlyArray<string>): Disposable
 
     /**
      * Register a hover provider.
@@ -9510,6 +9510,10 @@ declare module 'coc.nvim' {
      * An optional title.
      */
     title: string | undefined
+    /**
+     * An optional placeholder text.
+     */
+    placeholder: string | undefined
     /**
      * If the UI should show a progress indicator. Defaults to false.
      *

@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import completion, { Completion } from '../../completion'
 import { sortItems } from '../../completion/complete'
 import sources from '../../completion/sources'
@@ -8,7 +9,6 @@ import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import { disposeAll, waitWithToken } from '../../util'
 import workspace from '../../workspace'
-import commands from '../../commands'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -823,11 +823,12 @@ describe('completion', () => {
     })
 
     it('should filter on backspace', async () => {
-      await create(['foo', 'fbi'], false)
-      await nvim.input('f')
+      let name = await create(['foo', 'fbi'], false)
+      triggerCompletion(name)
       await helper.waitPopup()
-      await nvim.input('o')
+      await nvim.input('fo')
       await helper.waitValue(() => completion.activeItems.length, 1)
+      await helper.wait(10)
       await nvim.input('<backspace>')
       await helper.waitValue(() => completion.activeItems.length, 2)
     })
