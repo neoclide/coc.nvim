@@ -631,11 +631,11 @@ endfunction
 
 function! coc#dialog#set_cursor(winid, bufnr, line) abort
   if s:is_vim
-    call coc#compat#execute(a:winid, 'exe '.a:line, 'silent!')
+    call coc#compat#execute(a:winid, 'exe '.max([a:line, 1]), 'silent!')
     call popup_setoptions(a:winid, {'cursorline' : 1})
     call popup_setoptions(a:winid, {'cursorline' : 0})
   else
-    call nvim_win_set_cursor(a:winid, [a:line, 0])
+    call nvim_win_set_cursor(a:winid, [max([a:line, 1]), 0])
   endif
   call coc#dialog#place_sign(a:bufnr, a:line)
 endfunction
