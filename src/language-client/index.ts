@@ -198,7 +198,7 @@ export class LanguageClient extends BaseLanguageClient {
         this._isDetached = undefined
       }
     }, err => {
-      if (err.message.includes('timed out')) {
+      if (this._serverProcess && err.message.includes('timed out')) {
         this._serverProcess.kill('SIGKILL')
         this._serverProcess = undefined
         return

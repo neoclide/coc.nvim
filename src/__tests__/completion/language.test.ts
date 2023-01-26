@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionItemKind, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import completion from '../../completion'
-import { fixIndent, getUltisnipOption } from '../../completion/source-language'
+import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ItemDefaults } from '../../completion/types'
 import languages from '../../languages'
@@ -53,6 +53,18 @@ describe('LanguageSource util', () => {
     expect(range).toEqual(Range.create(0, 0, 0, 3))
     expect(fixIndent(currline, line, range)).toBe(2)
     expect(range).toEqual(Range.create(0, 2, 0, 5))
+  })
+
+  it('should fix textEdit', async () => {
+    let edit = TextEdit.insert(Position.create(0, 1), '')
+    expect((fixTextEdit(0, edit) as TextEdit).range.start.character).toBe(0)
+    let insertReplaceEdit = InsertReplaceEdit.create('text', Range.create(0, 1, 0, 1), Range.create(0, 1, 0, 2))
+    fixTextEdit(0, insertReplaceEdit)
+    expect(insertReplaceEdit.insert.start.character).toBe(0)
+    expect(insertReplaceEdit.replace.start.character).toBe(0)
+    fixTextEdit(0, insertReplaceEdit)
+    expect(insertReplaceEdit.insert.start.character).toBe(0)
+    expect(insertReplaceEdit.replace.start.character).toBe(0)
   })
 
   it('should select recent item by prefix', async () => {
@@ -254,7 +266,7 @@ describe('language source', () => {
       await source.doComplete(opt, CancellationToken.None)
       let item = createCompletionItem('this')
       await source.onCompleteResolve(item, opt, CancellationToken.None)
-      res = { label: 'this' }
+      res = { label: 'this', textEdit: TextEdit.insert(Position.create(0, 0), 'this') }
       let p = n
       await source.onCompleteResolve(item, opt, CancellationToken.None)
       await source.onCompleteResolve(item, opt, CancellationToken.None)

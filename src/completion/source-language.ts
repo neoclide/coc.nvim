@@ -1,5 +1,5 @@
 'use strict'
-import { CompletionItem, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, InsertReplaceEdit, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import { getLineAndPosition } from '../core/ui'
 import { createLogger } from '../logger'
@@ -75,7 +75,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     return { isIncomplete, items: completeItems, itemDefaults }
   }
 
-  public onCompleteResolve(item: CompletionItem, _opt: CompleteOption | undefined, token: CancellationToken): Promise<void> | void {
+  public onCompleteResolve(item: CompletionItem, opt: CompleteOption | undefined, token: CancellationToken): Promise<void> | void {
     let hasResolve = Is.func(this.provider.resolveCompletionItem)
     if (!hasResolve) return
     let promise = this.resolving.get(item)
@@ -94,6 +94,10 @@ export default class LanguageSource implements ISource<CompletionItem> {
             invalid = true
             this.resolving.delete(item)
           } else {
+            if (resolved.textEdit) {
+              let character = characterIndex(opt.line, opt.col)
+              resolved.textEdit = fixTextEdit(character, resolved.textEdit)
+            }
             // addDocumentation(item, completeItem, opt.filetype)
             Object.assign(item, resolved)
           }
@@ -195,4 +199,21 @@ export function fixIndent(line: string, currline: string, range: Range): number 
   range.start.character += d
   range.end.character += d
   return d
+}
+
+export function fixTextEdit(character: number, edit: TextEdit | InsertReplaceEdit): TextEdit | InsertReplaceEdit {
+  if (TextEdit.is(edit)) {
+    if (character < edit.range.start.character) {
+      edit.range.start.character = character
+    }
+  }
+  if (InsertReplaceEdit.is(edit)) {
+    if (character < edit.insert.start.character) {
+      edit.insert.start.character = character
+    }
+    if (character < edit.replace.start.character) {
+      edit.replace.start.character = character
+    }
+  }
+  return edit
 }
