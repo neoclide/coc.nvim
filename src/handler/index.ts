@@ -149,11 +149,11 @@ export default class Handler implements HandlerDelegate {
     this.register('editor.action.triggerParameterHints', async () => {
       await this.signature.triggerSignatureHelp()
     })
-    this.register('editor.action.showReferences', async (uri: string, position: Position, references: Location[]) => {
+    this.register('editor.action.showReferences', async (uri: string | URI, position: Position, references: Location[]) => {
       await workspace.jumpTo(uri, position)
       await workspace.showLocations(references)
     })
-    this.register('editor.action.rename', async (uri: string, position: Position, newName?: string) => {
+    this.register('editor.action.rename', async (uri: string | URI, position: Position, newName?: string) => {
       await workspace.jumpTo(uri, position)
       await this.rename.rename(newName)
     })

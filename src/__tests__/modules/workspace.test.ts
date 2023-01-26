@@ -9,7 +9,6 @@ import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
 import { disposeAll } from '../../util'
-import window from '../../window'
 import workspace, { Workspace } from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -52,7 +51,7 @@ describe('workspace properties', () => {
     expect(workspaceFolder).toBeUndefined()
     let watchmanPath = workspace.getWatchmanPath()
     expect(watchmanPath == null || typeof watchmanPath === 'string').toBe(true)
-    let folder = workspace.getWorkspaceFolder(uri)
+    let folder = workspace.getWorkspaceFolder(URI.parse('lsp:/1'))
     expect(folder).toBeUndefined()
     let rootPath = await helper.doAction('currentWorkspacePath')
     expect(rootPath).toBe(process.cwd())

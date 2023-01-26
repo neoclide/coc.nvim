@@ -420,8 +420,8 @@ export class Workspace {
   /**
    * Get WorkspaceFolder of uri
    */
-  public getWorkspaceFolder(uri: string): WorkspaceFolder | undefined {
-    return this.workspaceFolderControl.getWorkspaceFolder(URI.parse(uri))
+  public getWorkspaceFolder(uri: string | URI): WorkspaceFolder | undefined {
+    return this.workspaceFolderControl.getWorkspaceFolder(typeof uri === 'string' ? URI.parse(uri) : uri)
   }
 
   /**

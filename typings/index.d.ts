@@ -4,10 +4,11 @@ Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 *******************************************************************/
 
 /// <reference types="node" />
-import cp from 'child_process'
-import { URL } from 'url'
 
 declare module 'coc.nvim' {
+  import cp from 'child_process'
+  import { URL } from 'url'
+
   // language server types {{
   /**
    * A tagging type for string properties that are actually document URIs.
@@ -6785,12 +6786,12 @@ declare module 'coc.nvim' {
     /**
      * Show locations by location list or vim's quickfix list.
      */
-    export function executeCommand(command: 'editor.action.showReferences', filepath: string | undefined, position: Position | undefined, locations: Location[]): Promise<void>
+    export function executeCommand(command: 'editor.action.showReferences', uri: string | Uri, position: Position | undefined, locations: Location[]): Promise<void>
 
     /**
      * Invoke rename action at position of specified uri.
      */
-    export function executeCommand(command: 'editor.action.rename', uri: string, position: Position): Promise<void>
+    export function executeCommand(command: 'editor.action.rename', uri: string | Uri, position: Position, newName?: string): Promise<void>
 
     /**
      * Run format action for current buffer.
@@ -8955,7 +8956,7 @@ declare module 'coc.nvim' {
     /**
      * Get WorkspaceFolder of uri
      */
-    export function getWorkspaceFolder(uri: string): WorkspaceFolder | undefined
+    export function getWorkspaceFolder(uri: string | Uri): WorkspaceFolder | undefined
 
     /**
      * Get content from buffer or file by uri.
