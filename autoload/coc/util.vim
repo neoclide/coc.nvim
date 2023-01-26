@@ -285,6 +285,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'root': s:root,
         \ 'apiversion': s:vim_api_version,
         \ 'mode': mode(),
         \ 'config': get(g:, 'coc_user_config', {}),

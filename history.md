@@ -1,3 +1,7 @@
+# 2023-01-26
+
+- Add escape support to `coc#status()`.
+
 # 2023-01-24
 
 - Add `encoding` and `CancellationToken` support for `runCommand` function.

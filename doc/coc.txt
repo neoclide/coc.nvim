@@ -1771,11 +1771,11 @@ g:coc_node_args						*g:coc_node_args*
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
-	Error character used for statusline, default: `E`
+	Error character used by |coc#status()|, default: `E`
 
 g:coc_status_warning_sign				*g:coc_status_warning_sign*
 
-	Warning character used for statusline, default: `W`
+	Warning character used by |coc#status()|, default: `W`
 
 g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 
@@ -2038,18 +2038,6 @@ coc#config({section}, {value})				*coc#config()*
 	but it's not recommended to use both.
 	Note: use |g:coc_user_config| when you have coc.nvim lazy loaded.
 
-coc#add_extension({name}, ...)				*coc#add_extension()*
-
-	Deprecated function for install extensions not exists.
-	Use |g:coc_global_extensions| variable instead.
-
-	Example: >
-
-	call coc#add_extension('coc-json', 'coc-tsserver', 'coc-rls')
-<
-	This function can be called before service initialized.
-	This function can be called multiple times.
-
 coc#add_command({id}, {command}, [{title}])		*coc#add_command()*
 
 	Add custom Vim command to commands list opened by
@@ -2085,15 +2073,17 @@ coc#on_enter()						*coc#on_enter()*
 	inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
                     	          \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 <
-	Note：to enable format on type, add ` "coc.preferences.formatOnType": true`
-	in your settings file.
+	To enable format on type, use |coc-preferences-formatOnType|
+	configuration.
 
-coc#status()						*coc#status()*
+coc#status([{escape}])					*coc#status()*
 
 	Return a status string that can be used in the status line, the status
-	includes diagnostic information from `b:coc_diagnostic_info` and
-	extension contributed statuses from `g:coc_status`. For statusline
-	integration, see |coc-status|
+	includes diagnostic information from |b:coc_diagnostic_info| and
+	extension contributed statuses from |g:coc_status|. For statusline
+	integration, see |coc-status|.
+
+	Escape '%' to '%%' when {escape} is truth value.
 
 coc#util#api_version() 					*coc#util#api_version()*
 
@@ -3101,7 +3091,7 @@ AUTOCMD							*coc-autocmds*
 
 :autocmd User CocStatusChange {command}
 
-	Triggered after `g:coc_status` changed, can be used for refresh
+	Triggered after |g:coc_status| changed, can be used for refresh
 	statusline.
 
 							*CocDiagnosticChange*
@@ -4138,7 +4128,7 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 ==============================================================================
 CHANGELOG						*coc-changelog*
 
-See history.md under project root.
+See ./history.md under project root.
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:

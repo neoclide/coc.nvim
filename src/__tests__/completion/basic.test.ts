@@ -1107,13 +1107,13 @@ describe('completion', () => {
           return Promise.resolve({ startcol: 0, items: [{ word: 'foo.bar' }] })
         }
       }
-      let disposable = sources.addSource(source)
+      disposables.push(sources.addSource(source))
       await nvim.setLine('foo.')
       await nvim.input('Ab')
       await helper.waitPopup()
-      let val = await nvim.getVar('coc#_context') as any
-      expect(val.start).toBe(0)
-      disposable.dispose()
+      await nvim.call('coc#pum#select_confirm')
+      let line = await nvim.line
+      expect(line).toBe('foo.bar')
     })
 
     it('should should complete items without input', async () => {
