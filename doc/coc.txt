@@ -393,6 +393,14 @@ Features automatically work by default:~
 
 Most features could be toggled by |coc-configuration| and some vim variables.
 
+To disable all features that automatically work, use configuration:
+>
+    "suggest.autoTrigger": "none",
+    "diagnostic.enable": false,
+    "pullDiagnostic.onChange": false,
+    "signature.enable": false,
+    "inlayHint.enable": false,
+<
 Features require enabled by configuration:~
 
   • Semantic highlights |coc-semantic-highlights|.
@@ -1591,7 +1599,6 @@ b:coc_root_patterns					*b:coc_root_patterns*
 	autocmd FileType python let b:coc_root_patterns =
 				\ ['.git', '.env']
 <
-
 b:coc_suggest_disable					*b:coc_suggest_disable*
 
 	Disable completion support of current buffer. Example: >
@@ -2118,8 +2125,8 @@ coc#util#root_patterns()				*coc#util#root_patterns()*
 <
 coc#util#get_config({key})				*coc#util#get_config()*
 
-	Get configuration (mostly defined in coc-settings.json)	by {key},
-	example: >
+	Get configuration of current document (mostly defined in
+	coc-settings.json) by {key}, example: >
 
 	:echo coc#util#get_config('coc.preferences')
 

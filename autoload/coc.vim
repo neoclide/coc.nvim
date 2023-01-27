@@ -129,3 +129,29 @@ endfunction
 function! coc#_select_confirm() abort
   return "\<C-r>=coc#pum#select_confirm()\<CR>"
 endfunction
+
+function! coc#_suggest_variables() abort
+  return {
+      \ 'disable': get(b:, 'coc_suggest_disable', 0),
+      \ 'disabled_sources': get(b:, 'coc_disabled_sources', []),
+      \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
+      \ }
+endfunction
+
+function! coc#_remote_fns(name)
+  let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
+  let res = []
+  for fn in fns
+    if exists('*coc#source#'.a:name.'#'.fn)
+      call add(res, fn)
+    endif
+  endfor
+  return res
+endfunction
+
+function! coc#_do_complete(name, opt, cb) abort
+  let handler = 'coc#source#'.a:name.'#complete'
+  let l:Cb = {res -> a:cb(v:null, res)}
+  let args = [a:opt, l:Cb]
+  call call(handler, args)
+endfunction

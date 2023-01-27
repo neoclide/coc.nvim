@@ -469,11 +469,10 @@ Try these steps if you experience problems with coc.nvim:
 
 ## Feedback
 
-- If you think Coc is useful, consider giving it a star
-- If you have a question, [ask on gitter](https://gitter.im/neoclide/coc.nvim)
+- Have a question? Start a discussion on [GitHub Discussions](https://github.com/neoclide/coc.nvim/discussions).
+- File a bug in [GitHub Issues](https://github.com/neoclide/coc.nvim/issues).
+- Chat with us on [Gitter](https://gitter.im/neoclide/coc.nvim).
 - 中文用户请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 讨论
-- If something is not working, [create an
-  issue](https://github.com/neoclide/coc.nvim/issues/new)
 
 ## Backers
 
