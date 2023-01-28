@@ -2,11 +2,11 @@
 import { isFalsyOrEmpty, toArray } from './array'
 import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
+import { fs } from './node'
 import * as Is from './is'
 import type { IJSONSchema } from './jsonSchema'
 import { toObject } from './object'
 import { Registry } from './registry'
-import { toText } from './string'
 
 export type IStringDictionary<V> = Record<string, V>
 
@@ -77,6 +77,8 @@ export interface IExtensionRegistry {
    * Get all extensions
    */
   getExtensions(): IExtensionContributions
+
+  resolveExtension(filepath: string): IExtensionInfo | undefined
 }
 
 /**
@@ -87,6 +89,19 @@ class ExtensionRegistry implements IExtensionRegistry {
 
   constructor() {
     this.extensionsById = new Map()
+  }
+  public resolveExtension(filepath: string): IExtensionInfo {
+    for (let item of this.extensionsById.values()) {
+      if (item.filepath && sameFile(item.filepath, filepath)) {
+        return item
+      }
+      if (!item.name.startsWith('single-')
+        && fs.existsSync(item.directory)
+        && isParentFolder(fs.realpathSync(item.directory), filepath, false)) {
+        return item
+      }
+    }
+    return undefined
   }
 
   public get onCommands(): ({ id: string, title: string })[] {
@@ -198,10 +213,7 @@ export function parseExtensionName(stack: string, level = 2): string | undefined
     if (ms) filepath = ms[1]
   }
   if (!filepath) return undefined
-  let arr = Array.from(extensionRegistry.getExtensions().extensions)
-  let find = arr.find(o => sameFile(toText(o.filepath), filepath))
-  if (find) return find.name
-  find = arr.find(o => isParentFolder(o.directory, filepath))
+  let find = extensionRegistry.resolveExtension(filepath)
   if (find) return find.name
   if (isParentFolder(pluginRoot, filepath)) return 'coc.nvim'
 }

@@ -46,7 +46,7 @@ export class Notifications {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
     if (items.length > 0) {
       let source = parseExtensionName(stack)
-      return await this.showMessagePicker(`Choose action (${source})`, message, `Coc${kind}Float`, items)
+      return await this.showMessagePicker(`Choose action ${source ? `(${source})` : ''}`, message, `Coc${kind}Float`, items)
     }
     await this.createNotification(kind.toLowerCase() as NotificationKind, message, [], stack)
     return undefined

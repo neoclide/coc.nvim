@@ -536,8 +536,10 @@ describe('Registry', () => {
     let filepath = path.join(os.tmpdir(), 'single')
     registry.registerExtension('single', { name: 'single', directory: os.tmpdir(), filepath })
     expect(parseSource(`\n\n${filepath}:1:1`)).toBe('single')
-    expect(parseSource(`\n\n${filepath.slice(0, -3)}:1:1`)).toBe('single')
+    expect(parseSource(`\n\n${filepath.slice(0, -3)}:1:1`)).toBeUndefined()
     expect(parseSource(`\n\n/a/b:1:1`)).toBeUndefined()
+    let dir = fs.realpathSync(os.tmpdir())
+    expect(parseSource(`\n\n${path.join(dir, 'foo')}:1:1`)).toBe('single')
     registry.unregistExtension('single')
   })
 
