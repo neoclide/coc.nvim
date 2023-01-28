@@ -37,9 +37,10 @@ export default class CommandsList extends BasicList {
       let { id, title } = obj
       if (ids.has(id)) continue
       ids.add(id)
+      let desc = toText(title)
       items.push({
-        label: [id, toText(title)],
-        filterText: id,
+        label: [id, desc],
+        filterText: id + ' ' + desc,
         data: { cmd: id, score: score(mruList, id) }
       })
     }
