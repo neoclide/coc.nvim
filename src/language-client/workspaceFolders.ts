@@ -142,6 +142,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   public register(data: RegistrationData<undefined>): void {
     let id = data.id
     let client = this._client
+    if (this._listeners.size > 0) return
     let disposable = workspace.onDidChangeWorkspaceFolders(event => {
       let didChangeWorkspaceFolders = (e: WorkspaceFoldersChangeEvent): Promise<void> => {
         return this.doSendEvent(e.added, e.removed)
