@@ -191,13 +191,12 @@ export function checkFolder(dir: string, patterns: string[], token?: Cancellatio
     let disposable: Disposable | undefined
     if (token) {
       disposable = token.onCancellationRequested(() => {
-        gl.abort()
         reject(new CancellationError())
       })
     }
     let find = false
     let pattern = patterns.length == 1 ? patterns[0] : `{${patterns.join(',')}}`
-    let gl = glob(pattern, {
+    let gl = new glob.Glob(pattern, {
       nosort: true,
       ignore: ['node_modules/**', '.git/**'],
       dot: true,
@@ -211,7 +210,6 @@ export function checkFolder(dir: string, patterns: string[], token?: Cancellatio
     gl.on('match', () => {
       if (disposable) disposable.dispose()
       find = true
-      gl.abort()
       resolve(true)
     })
     gl.on('end', () => {
