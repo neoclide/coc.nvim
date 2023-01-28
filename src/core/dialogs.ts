@@ -119,9 +119,9 @@ export class Dialogs {
    * Shows a selection list.
    */
   public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options: QuickPickOptions, token: CancellationToken): Promise<Item | Item[] | undefined> {
-    if (isFalsyOrEmpty(itemsOrItemsPromise)) return undefined
     options = defaultValue(options, {})
     const items = await Promise.resolve(itemsOrItemsPromise)
+    if (isFalsyOrEmpty(items)) return undefined
     let isText = items.some(s => typeof s === 'string')
     return await this.mutex.use(() => {
       return new Promise<Item | Item[] | undefined>((resolve, reject) => {
