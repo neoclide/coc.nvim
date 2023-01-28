@@ -875,17 +875,13 @@ describe('getOriginalLine', () => {
       await nvim.command('enew')
       await workspace.openTextDocument(URI.parse(doc.uri))
       let curr = await workspace.document
-      expect(curr.uri).toBe(doc.uri)
+      expect(curr.uri != doc.uri).toBe(true)
     })
 
     it('should throw when file does not exist', async () => {
-      let err
-      try {
+      await expect(async () => {
         await workspace.openTextDocument('/a/b/c')
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      }).rejects.toThrow(Error)
     })
 
     it('should open untitled document', async () => {
@@ -896,8 +892,6 @@ describe('getOriginalLine', () => {
     it('should load file that exists', async () => {
       let doc = await workspace.openTextDocument(URI.file(__filename))
       expect(URI.parse(doc.uri).fsPath).toBe(__filename)
-      let curr = await workspace.document
-      expect(curr.uri).toBe(doc.uri)
     })
   })
 })

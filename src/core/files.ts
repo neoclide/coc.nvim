@@ -243,10 +243,7 @@ export default class Files {
   public async openTextDocument(uri: URI | string): Promise<Document> {
     uri = typeof uri === 'string' ? URI.file(uri) : uri
     let doc = this.documents.getDocument(uri.toString())
-    if (doc) {
-      await this.jumpTo(uri, null, 'drop')
-      return doc
-    }
+    if (doc) return doc
     const scheme = uri.scheme
     if (scheme == 'file') {
       if (!fs.existsSync(uri.fsPath)) throw errors.fileNotExists(uri.fsPath)
@@ -256,7 +253,7 @@ export default class Files {
       await this.nvim.call('coc#util#open_file', ['tab drop', uri.path])
       return await this.documents.document
     }
-    return await this.loadResource(uri.toString())
+    return await this.loadResource(uri.toString(), null)
   }
 
   public async jumpTo(uri: string | URI, position?: Position | null, openCommand?: string): Promise<void> {
@@ -317,7 +314,7 @@ export default class Files {
   public async loadResource(uri: string, cmd?: string): Promise<Document> {
     let doc = this.documents.getDocument(uri)
     if (doc) return doc
-    if (!cmd) {
+    if (cmd === undefined) {
       const preferences = this.configurations.getConfiguration('workspace')
       cmd = preferences.get<string>('openResourceCommand', 'tab drop')
     }

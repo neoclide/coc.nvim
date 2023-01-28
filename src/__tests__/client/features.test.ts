@@ -1648,7 +1648,7 @@ describe('Server activation', () => {
         return undefined
       }
     }))
-    await workspace.openTextDocument(uri)
+    await workspace.jumpTo(uri)
     await helper.doAction('declarations')
     await started
     await client.stop()
