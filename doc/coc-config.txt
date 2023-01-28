@@ -1367,6 +1367,12 @@ Suggest~
 ------------------------------------------------------------------------------
 Tree~
 							*coc-config-tree*
+"tree.openedIcon"					*coc-config-tree-openedIcon*
+
+	Opened icon of tree view.
+
+	Scope: `application`, default: `"-"`
+
 "tree.closedIcon"					*coc-config-tree-closedIcon*
 
 	Closed icon of tree view.
@@ -1427,12 +1433,6 @@ Tree~
 	Trigger key to select/unselect item.
 
 	Scope: `application`, default: `"<space>"`
-
-"tree.openedIcon"					*coc-config-tree-openedIcon*
-
-	Opened icon of tree view.
-
-	Scope: `application`, default: `"-"`
 
 ------------------------------------------------------------------------------
 TypeHierarchy~

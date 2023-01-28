@@ -2,7 +2,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../../events'
-import { TreeViewOptions } from '../../tree'
+import { ProviderResult } from '../../provider'
+import { TreeDataProvider, TreeViewOptions } from '../../tree'
 import BasicDataProvider, { ProviderOptions, TreeNode } from '../../tree/BasicDataProvider'
 import { getItemLabel, TreeItem, TreeItemCollapsibleState } from '../../tree/TreeItem'
 import TreeView from '../../tree/TreeView'
@@ -865,6 +866,26 @@ describe('TreeView', () => {
       expect(markers.length > 0).toBe(true)
       expect(markers[0][3]['hl_group']).toBe('CocDeprecatedHighlight')
     })
+
+    it('should not throw when getTreeItem return undefined', async () => {
+      let provider: TreeDataProvider<any> = {
+        getTreeItem: (): TreeItem => {
+          return undefined
+        },
+        getChildren: (): ProviderResult<readonly any[]> => {
+          return [{ label: 'a' }]
+        }
+      }
+      let treeView = new TreeView('test', {
+        bufhidden: 'hide',
+        treeDataProvider: provider
+      })
+      await treeView.show()
+      await checkLines([
+        'test',
+      ])
+      treeView.dispose()
+    })
   })
 
   describe('focusItem()', () => {
@@ -1175,7 +1196,7 @@ describe('TreeView', () => {
         throw new Error('test error')
       })
       await nvim.input('a')
-      await helper.wait(50)
+      await helper.wait(20)
       spy.mockRestore()
     })
   })

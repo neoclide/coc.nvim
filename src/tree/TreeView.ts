@@ -642,7 +642,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return this.startLnum + idx
   }
 
-  private async getTreeItem(element: T): Promise<TreeItem> {
+  private async getTreeItem(element: T): Promise<TreeItem | undefined> {
     let exists: TreeItem
     let resolved = false
     let obj = this.nodesMap.get(element)
@@ -652,6 +652,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     let item = await Promise.resolve(this.provider.getTreeItem(element))
     if (exists
+      && item
       && exists.collapsibleState != TreeItemCollapsibleState.None
       && item.collapsibleState != TreeItemCollapsibleState.None) {
       item.collapsibleState = exists.collapsibleState
@@ -718,8 +719,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private async appendTreeNode(element: T, level: number, lnum: number, items: RenderedItem<T>[], highlights: HighlightItem[]): Promise<number> {
-    let takes = 1
     let treeItem = await this.getTreeItem(element)
+    if (!treeItem) return 0
+    let takes = 1
     let res = this.getRenderedLine(treeItem, lnum, level)
     highlights.push(...res.highlights)
     items.push({ level, line: res.line, node: element })
@@ -876,12 +878,13 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this._onDidRefrash.fire()
       this.retryTimers = 0
       release()
-    } catch (e) {
+    } catch (err) {
+      logger.error('Error on render', err)
       this.renderedItems = []
       this.nodesMap.clear()
       this.lineState = { titleCount: 0, messageCount: 1 }
       release()
-      let errMsg = `${e}`.replace(/\r?\n/g, ' ')
+      let errMsg = `${err}`.replace(/\r?\n/g, ' ')
       this.updateUI([errMsg], [{ hlGroup: 'WarningMsg', colStart: 0, colEnd: byteLength(errMsg), lnum: 0 }])
       if (this.retryTimers == maxRetry) return
       this.timer = setTimeout(() => {
