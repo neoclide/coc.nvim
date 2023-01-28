@@ -144,8 +144,7 @@ describe('handler codeActions', () => {
 
     it('should not filter disabled actions', async () => {
       currActions = []
-      let action = CodeAction.create('foo', CodeActionKind.QuickFix)
-      action.disabled = { reason: 'disabled' }
+      let action = CodeAction.create('foo', CodeActionKind.Source)
       currActions.push(action)
       action = CodeAction.create('action', CodeActionKind.Empty)
       currActions.push(action)
@@ -153,8 +152,8 @@ describe('handler codeActions', () => {
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
       let doc = await helper.createDocument()
-      let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(3)
+      let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 1, 0))
+      expect(res.length).toBe(2)
     })
 
     it('should get all actions', async () => {

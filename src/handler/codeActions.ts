@@ -54,6 +54,7 @@ export default class CodeActions {
   }
 
   public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
+    let excludeSourceAction = range !== null && (!only || only.findIndex(o => o.startsWith(CodeActionKind.Source)) == -1)
     range = range ?? Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked }
@@ -62,6 +63,9 @@ export default class CodeActions {
       return languages.getCodeActions(doc.textDocument, range, context, token)
     })
     if (!codeActions || codeActions.length == 0) return []
+    if (excludeSourceAction) {
+      codeActions = codeActions.filter(o => !o.kind || !o.kind.startsWith(CodeActionKind.Source))
+    }
     codeActions.sort((a, b) => {
       if (a.disabled && !b.disabled) return 1
       if (b.disabled && !a.disabled) return -1
@@ -75,9 +79,9 @@ export default class CodeActions {
     return workspace.initialConfiguration.get<boolean>('coc.preferences.floatActions', true)
   }
 
-  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string, noExclude = false): Promise<void> {
+  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string, showDisable = false): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
-    let range: Range
+    let range: Range | undefined
     if (mode) range = await window.getSelectedRange(mode)
     await doc.synchronize()
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
@@ -86,7 +90,7 @@ export default class CodeActions {
     } else if (Array.isArray(only)) {
       codeActions = codeActions.filter(o => only.some(k => o.kind && o.kind.startsWith(k)))
     }
-    if (!this.floatActions || !noExclude) codeActions = codeActions.filter(o => !o.disabled)
+    if (!this.floatActions || !showDisable) codeActions = codeActions.filter(o => !o.disabled)
     if (!codeActions || codeActions.length == 0) {
       void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return

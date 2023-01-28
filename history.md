@@ -1,3 +1,7 @@
+# 2023-01-29
+
+- Exclude `source` actions when request code actions with range.
+
 # 2023-01-26
 
 - Add escape support to `coc#status()`.
