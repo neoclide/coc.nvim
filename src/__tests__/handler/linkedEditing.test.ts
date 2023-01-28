@@ -104,9 +104,7 @@ describe('LinkedEditing', () => {
       return matches()
     }, 2)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '\n')])
-    await helper.wait(20)
-    let res = await matches()
-    expect(res).toBe(2)
+    await helper.waitValue(() => matches(), 2)
   })
 
   it('should cancel when insert line break in range', async () => {

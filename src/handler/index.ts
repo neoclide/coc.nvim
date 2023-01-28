@@ -153,9 +153,13 @@ export default class Handler implements HandlerDelegate {
       await workspace.jumpTo(uri, position)
       await workspace.showLocations(references)
     })
-    this.register('editor.action.rename', async (uri: string | URI, position: Position, newName?: string) => {
+    this.register('editor.action.rename', async (uri: string | URI | [URI, Position], position: Position, newName?: string) => {
+      if (Array.isArray(uri)) {
+        position = uri[1]
+        uri = uri[0]
+      }
       await workspace.jumpTo(uri, position)
-      await this.rename.rename(newName)
+      return await this.rename.rename(newName)
     })
     this.register('editor.action.format', async () => {
       await this.format.formatCurrentBuffer()

@@ -142,8 +142,8 @@ describe('rename handler', () => {
     })
 
     it('should return false for invalid position', async () => {
-      await helper.createDocument('t.js')
-      let res = await rename.rename('foo')
+      let doc = await helper.createDocument('t.js')
+      let res = await commands.executeCommand('editor.action.rename', [doc.uri, Position.create(0, 0)])
       expect(res).toBe(false)
     })
 
