@@ -2456,10 +2456,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Useful when `diagnostic.autoRefresh` is `false`.
 
-"refreshSource" [{source}]				*CocAction('refreshSource')*
-
-	refresh all sources or a source with a name of {source}.
-
 "sourceStat"						*CocAction('sourceStat')*
 
 	get the list of completion source stats for the current buffer.

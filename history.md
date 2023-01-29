@@ -1,6 +1,12 @@
+# 2023-01-30
+
+- Always show `cancellable` progress as notification without check
+  `notification.statusLineProgress`.
+
 # 2023-01-29
 
 - Exclude `source` actions when request code actions with range.
+- Any character can be used for channel name.
 
 # 2023-01-26
 

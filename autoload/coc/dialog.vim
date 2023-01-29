@@ -199,15 +199,16 @@ endfunction
 
 " Create list window under target window
 function! coc#dialog#create_list(target, dimension, opts) abort
-  let maxHeight = get(a:opts, 'maxHeight', 10)
-  let height = max([1, len(get(a:opts, 'lines', []))])
+  let maxHeight = get(a:opts, 'maxHeight', 30)
+  let height = get(a:opts, 'linecount', 1)
   let height = min([maxHeight, height, &lines - &cmdheight - 1 - a:dimension['row'] + a:dimension['height']])
   let chars = get(a:opts, 'rounded', 1) ? ['╯', '╰'] : ['┘', '└']
+  let width = a:dimension['width'] - 2
   let config = extend(copy(a:opts), {
       \ 'relative': 'editor',
       \ 'row': a:dimension['row'] + a:dimension['height'],
       \ 'col': a:dimension['col'],
-      \ 'width': a:dimension['width'] - 2,
+      \ 'width': width,
       \ 'height': height,
       \ 'border': [1, 1, 1, 1],
       \ 'scrollinside': 1,
@@ -221,6 +222,7 @@ function! coc#dialog#create_list(target, dimension, opts) abort
   let winid = result[0]
   call coc#float#add_related(winid, a:target)
   call setwinvar(winid, 'auto_height', get(a:opts, 'autoHeight', 1))
+  call setwinvar(winid, 'core_width', width)
   call setwinvar(winid, 'max_height', maxHeight)
   call setwinvar(winid, 'target_winid', a:target)
   call setwinvar(winid, 'kind', 'list')
@@ -590,8 +592,8 @@ function! coc#dialog#update_list(winid, bufnr, lines, highlights) abort
   if coc#window#tabnr(a:winid) == tabpagenr()
     if getwinvar(a:winid, 'auto_height', 0)
       let row = coc#float#get_row(a:winid)
-      " core height
-      let height = max([1, len(copy(a:lines))])
+      let width = getwinvar(a:winid, 'core_width', 80)
+      let height = s:get_height(a:lines, width)
       let height = min([getwinvar(a:winid, 'max_height', 10), height, &lines - &cmdheight - 1 - row])
       let curr = s:is_vim ? popup_getpos(a:winid)['core_height'] : nvim_win_get_height(a:winid)
       let delta = height - curr
@@ -725,6 +727,14 @@ function! s:create_loading_buf() abort
   let bufnr = coc#float#create_buf(0)
   call s:change_loading_buf(bufnr, 0)
   return bufnr
+endfunction
+
+function! s:get_height(lines, width) abort
+  let height = 0
+  for line in a:lines
+    let height += float2nr(strdisplaywidth(line) / a:width) + 1
+  endfor
+  return max([1, height])
 endfunction
 
 function! s:change_loading_buf(bufnr, idx) abort
