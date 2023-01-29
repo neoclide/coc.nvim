@@ -374,9 +374,12 @@ describe('createQuickPick', () => {
 
   it('should change current line by <C-j> and <C-k>', async () => {
     let quickpick = await window.createQuickPick()
-    quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
+    quickpick.items = [{ label: 'one'.repeat(30) }, { label: 'two' }, { label: 'three' }]
     await quickpick.show()
     disposables.push(quickpick)
+    let win = nvim.createWindow(quickpick.winid)
+    let height = await win.height
+    expect(height).toBe(4)
     await nvim.input('<C-j>')
     await helper.wait(1)
     await nvim.input('<C-j>')

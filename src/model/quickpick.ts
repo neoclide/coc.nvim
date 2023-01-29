@@ -3,7 +3,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { createLogger } from '../logger'
 import { HighlightItem, QuickPickItem } from '../types'
-import { disposeAll } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { anyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import { Disposable, Emitter, Event } from '../util/protocol'
@@ -35,7 +35,7 @@ export default class QuickPick<T extends QuickPickItem> {
   public value: string
   public canSelectMany = false
   public matchOnDescription = false
-  public maxHeight = 10
+  public maxHeight = 30
   public width: number | undefined
   public placeholder: string | undefined
   private bufnr: number
@@ -149,13 +149,26 @@ export default class QuickPick<T extends QuickPickItem> {
   public async show(): Promise<void> {
     let { nvim, items, input, width, preferences, maxHeight } = this
     let { lines, highlights } = this.buildList(items, input.value)
-    let minWidth: number
-    if (typeof width === 'number') {
-      minWidth = Math.min(width, this.maxWidth)
-    } else {
-      let sw = await StrWidth.create()
-      minWidth = Math.max(40, Math.min(80, lines.reduce<number>((p, c) => Math.max(p, sw.getWidth(c)), 0)))
-    }
+    let minWidth: number | undefined
+    let lincount = 0
+    const sw = await StrWidth.create()
+    if (typeof width === 'number') minWidth = Math.min(width, this.maxWidth)
+    let max = 40
+    lines.forEach(line => {
+      let w = sw.getWidth(line)
+      if (typeof minWidth === 'number') {
+        lincount += Math.ceil(w / minWidth)
+      } else {
+        if (w >= 80) {
+          minWidth = 80
+          lincount += Math.ceil(w / minWidth)
+        } else {
+          max = Math.max(max, w)
+          lincount += 1
+        }
+      }
+    })
+    if (minWidth === undefined) minWidth = max
     let rounded = !!preferences.rounded
     await input.show(this.title, {
       position: 'center',
@@ -169,9 +182,9 @@ export default class QuickPick<T extends QuickPickItem> {
       highlight: preferences.floatHighlight,
       borderhighlight: preferences.floatBorderHighlight
     })
-    let opts: any = { lines, rounded, maxHeight, highlights }
-    if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
-    if (preferences.floatBorderHighlight) opts.borderhighlight = preferences.floatBorderHighlight
+    let opts: any = { lines, rounded, maxHeight, highlights, linecount: Math.max(1, lincount) }
+    opts.highlight = defaultValue(preferences.floatHighlight, undefined)
+    opts.borderhighlight = defaultValue(preferences.floatBorderHighlight, undefined)
     let res = await nvim.call('coc#dialog#create_list', [input.winid, input.dimension, opts])
     if (!res) throw new Error('Unable to open list window.')
     // let height

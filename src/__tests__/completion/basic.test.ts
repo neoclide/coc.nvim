@@ -905,7 +905,7 @@ describe('completion', () => {
         doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }, { word: 'bar' }] }),
         onCompleteResolve: async (item, _opt, token) => {
           called = true
-          let res = await waitWithToken(100, token)
+          let res = await waitWithToken(200, token)
           cancelled = res
           item.info = 'info'
         }

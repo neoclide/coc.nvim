@@ -635,6 +635,6 @@ describe('SnippetSession', () => {
       await helper.waitPopup()
       let items = await helper.items()
       expect(items.length).toBe(3)
-    }, 10000)
+    })
   })
 })
