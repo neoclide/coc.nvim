@@ -2,7 +2,11 @@
   "eslint.validate": ["typescript"],
   "eslint.lintTask.options": [".", "--ext", ".ts"],
   "sumneko-lua.enableNvimLuaDev": true,
+  "javascript.format.semicolons": "remove",
+  "typescript.format.semicolons": "remove",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.quoteStyle": "single",
   "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-  "typescript.suggestionActions.enabled": false
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true
 }
