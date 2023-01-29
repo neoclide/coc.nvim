@@ -312,6 +312,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
     let winhl = 'Normal:'.a:hlgroup
+    call setwinvar(winid, 'delta', -1)
     call s:nvim_add_related(winid, a:winid, 'close', winhl, a:related)
   endif
 endfunction
@@ -660,7 +661,7 @@ function! coc#float#scroll(forward, ...)
 endfunction
 
 function! coc#float#scroll_win(winid, forward, amount) abort
-  let opts = s:get_options(a:winid)
+  let opts = coc#float#get_options(a:winid)
   let lines = getbufline(winbufnr(a:winid), 1, '$')
   let maxfirst = s:max_firstline(lines, opts['height'], opts['width'])
   let topline = opts['topline']
@@ -681,7 +682,7 @@ function! coc#float#scroll_win(winid, forward, amount) abort
   let topline = a:forward ? min([maxfirst, topline]) : max([1, topline])
   let lnum = s:get_cursorline(topline, lines, scrolloff, width, height)
   call s:win_setview(a:winid, topline, lnum)
-  let top = s:get_options(a:winid)['topline']
+  let top = coc#float#get_options(a:winid)['topline']
   " not changed
   if top == opts['topline']
     if a:forward
@@ -1291,7 +1292,7 @@ function! s:get_topline(topline, lines, forward, height, width) abort
 endfunction
 
 " topline content_height content_width
-function! s:get_options(winid) abort
+function! coc#float#get_options(winid) abort
   if has('nvim')
     let width = nvim_win_get_width(a:winid)
     if coc#window#get_var(a:winid, '&foldcolumn', 0)

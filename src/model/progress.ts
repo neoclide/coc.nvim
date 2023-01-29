@@ -29,21 +29,13 @@ export default class ProgressNotification<R> extends Notification {
   private readonly _onDidFinish = new Emitter<R>()
   public readonly onDidFinish: Event<R> = this._onDidFinish.event
   constructor(nvim: Neovim, private option: ProgressOptions<R>) {
-    const buttons = [{ index: 0, text: 'Cancel' }]
     super(nvim, {
       kind: 'progress',
       title: option.title,
-      buttons: option.cancellable ? buttons : undefined
+      closable: option.cancellable
     }, false)
     this.disposables.push(this._onDidFinish)
     events.on('BufWinLeave', this.cancelProgress, null, this.disposables)
-    if (option.cancellable) {
-      events.on('FloatBtnClick', (bufnr, buttonIndex) => {
-        if (buttonIndex == buttons.findIndex(button => button.text == 'Cancel')) {
-          this.cancelProgress(bufnr)
-        }
-      }, null, this.disposables)
-    }
   }
 
   private cancelProgress = (bufnr: any) => {
@@ -57,10 +49,10 @@ export default class ProgressNotification<R> extends Notification {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     this.disposables.push(tokenSource)
     let total = 0
-    if (this.config.buttons || !preferences.disabled) {
+    if (!preferences.disabled) {
       await super.show(preferences)
     } else {
-      logger.warn(`progress window disabled by "notification.disabledProgressSources"`)
+      logger.warn(`progress window disabled by configuration "notification.disabledProgressSources"`)
     }
     task({
       report: p => {
@@ -70,7 +62,7 @@ export default class ProgressNotification<R> extends Notification {
           total += p.increment
           nvim.call('coc#window#set_var', [this.winid, 'percent', `${total}%`], true)
         }
-        if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message.replace(/\r?\n/g, ' ')], true)
+        if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message], true)
       }
     }, tokenSource.token).then(res => {
       this._onDidFinish.fire(res)

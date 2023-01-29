@@ -83,7 +83,7 @@ describe('Notification', () => {
 })
 
 describe('ProgressNotification', () => {
-  it('should cancel on cancel click', async () => {
+  it('should cancel on window close', async () => {
     let n = new ProgressNotification(nvim, {
       cancellable: true,
       task: (_progress, token) => {
@@ -100,8 +100,7 @@ describe('ProgressNotification', () => {
         resolve(e)
       })
     })
-    await events.fire('FloatBtnClick', [n.bufnr, 0])
-    await events.fire('FloatBtnClick', [n.bufnr, -1])
+    await nvim.call('coc#float#close_all', [])
     let res = await p
     expect(res).toBeUndefined()
   })

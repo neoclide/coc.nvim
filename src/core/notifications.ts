@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { WorkspaceConfiguration } from '../configuration/types'
 import Notification, { MessageItem, NotificationConfig, NotificationKind, NotificationPreferences, toButtons, toTitles } from '../model/notification'
@@ -12,6 +13,20 @@ import { Dialogs } from './dialogs'
 import { echoMessages, MsgTypes } from './ui'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
+
+interface NotificationConfiguration {
+  statusLineProgress: boolean
+  border: boolean
+  disabledProgressSources: string[]
+  focusable: boolean
+  highlightGroup: string
+  marginRight: number
+  maxHeight: number
+  maxWidth: number
+  minProgressWidth: number
+  timeout: number
+  winblend: number
+}
 
 /**
  * Value-object describing where and how progress should show.
@@ -43,7 +58,7 @@ export class Notifications {
   }
 
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
-    if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
+    if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind)
     if (items.length > 0) {
       let source = parseExtensionName(stack)
       return await this.showMessagePicker(`Choose action ${source ? `(${source})` : ''}`, message, `Coc${kind}Float`, items)
@@ -102,9 +117,8 @@ export class Notifications {
   }
 
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
-    let config = this.configuration.get<any>('notification')
-    let stack = Error().stack
-    if (config.statusLineProgress) {
+    let config = this.configuration.get<NotificationConfiguration>('notification')
+    if (!options.cancellable && config.statusLineProgress) {
       return await this.createStatusLineProgress(options, task)
     }
     let progress = new ProgressNotification(this.nvim, {
@@ -112,10 +126,11 @@ export class Notifications {
       title: options.title,
       cancellable: options.cancellable
     })
-    let minWidth = toNumber(config.minProgressWidth, 30)
+    let minWidth = toNumber(config.minProgressWidth, 40)
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
+    let stack = Error().stack
     await progress.show(Object.assign(this.getNotificationPreference(stack, options.source), { minWidth }))
     return await promise
   }
@@ -131,7 +146,7 @@ export class Notifications {
         if (p.increment) {
           total += p.increment
         }
-        statusItem.text = formatMessage(title, p.message, total)
+        statusItem.text = formatMessage(title, p.message, total).replace(/\r?\n/g, ' ')
       }
     }, CancellationToken.None)
     statusItem.dispose()
@@ -144,7 +159,7 @@ export class Notifications {
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
     if (!source) source = parseExtensionName(stack)
-    let config = this.configuration.get<any>('notification')
+    let config = this.configuration.get<NotificationConfiguration>('notification')
     let disabledList = defaultValue(config.disabledProgressSources, []) as string[]
     let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
     return {

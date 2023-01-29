@@ -64,6 +64,7 @@ export interface NotificationConfig {
    * index is -1 for window close without button click
    */
   callback?: (index: number) => void
+  closable?: boolean
 }
 
 export function toButtons(texts: string[]): DialogButton[] {
@@ -107,6 +108,7 @@ export default class Notification {
     let { buttons, kind, title } = this.config
     let opts: any = Object.assign({}, preferences)
     opts.kind = kind ?? ''
+    opts.close = this.config.closable === true ? 1 : 0
     if (title) opts.title = title
     if (preferences.border) {
       opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : preferences.highlight
