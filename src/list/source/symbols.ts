@@ -1,5 +1,5 @@
 'use strict'
-import { Location, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
+import { Location, Range, SymbolTag, WorkspaceSymbol } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { AnsiHighlight, LocationWithTarget } from '../../types'
 import { toArray } from '../../util/array'
@@ -63,17 +63,20 @@ export default class Symbols extends LocationList {
   }
 
   public async resolveItem(item: ListItem): Promise<ListItem | null> {
-    let symbolItem = item.data.original
-    if (!symbolItem) return null
+    let symbolItem = item.data.original as WorkspaceSymbol
+    // no need to resolve
+    if (!symbolItem || Location.is(symbolItem.location)) return null
     let tokenSource = new CancellationTokenSource()
     let resolved = await languages.resolveWorkspaceSymbol(symbolItem, tokenSource.token)
     if (!resolved) return null
-    symbolItem.location = resolved.location
-    item.location = toTargetLocation(resolved.location)
+    if (Location.is(resolved.location)) {
+      symbolItem.location = resolved.location
+      item.location = toTargetLocation(resolved.location)
+    }
     return item
   }
 
-  public createListItem(input: string, item: SymbolInformation, kind: string, file: string): ListItem & ItemToSort {
+  public createListItem(input: string, item: WorkspaceSymbol, kind: string, file: string): ListItem & ItemToSort {
     let { name } = item
     let label = ''
     let ansiHighlights: AnsiHighlight[] = []
@@ -89,7 +92,7 @@ export default class Symbols extends LocationList {
         label += ' '
       }
       ansiHighlights.push({ span: [start, end], hlGroup: highlights[index] })
-      if (index === 0 && (toArray(item.tags)).includes(SymbolTag.Deprecated)) {
+      if (index === 0 && ((toArray(item.tags)).includes(SymbolTag.Deprecated)) || item['deprecated']) {
         ansiHighlights.push({ span: [start, end], hlGroup: 'CocDeprecatedHighlight' })
       }
     }
@@ -117,7 +120,10 @@ export default class Symbols extends LocationList {
   }
 }
 
-function toTargetLocation(location: Location): LocationWithTarget {
+function toTargetLocation(location: Location | { uri: string }): LocationWithTarget | Location {
+  if (!Location.is(location)) {
+    return Location.create(location.uri, Range.create(0, 0, 0, 0))
+  }
   let loc: LocationWithTarget = Location.create(location.uri, Range.create(location.range.start, location.range.start))
   loc.targetRange = location.range
   return loc

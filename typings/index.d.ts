@@ -5428,7 +5428,7 @@ declare module 'coc.nvim' {
     /**
      * Project-wide search for a symbol matching the given query string. It is up to the provider
      * how to search given the query string, like substring, indexOf etc. To improve performance implementors can
-     * skip the [location](#SymbolInformation.location) of symbols and implement `resolveWorkspaceSymbol` to do that
+     * skip the [location](#WorkspaceSymbol.location) of symbols and implement `resolveWorkspaceSymbol` to do that
      * later.
      *
      * The `query`-parameter should be interpreted in a *relaxed way* as the editor will apply its own highlighting
@@ -5444,10 +5444,10 @@ declare module 'coc.nvim' {
     provideWorkspaceSymbols(
       query: string,
       token: CancellationToken
-    ): ProviderResult<SymbolInformation[]>
+    ): ProviderResult<WorkspaceSymbol[]>
 
     /**
-     * Given a symbol fill in its [location](#SymbolInformation.location). This method is called whenever a symbol
+     * Given a symbol fill in its [location](#WorkspaceSymbol.location). This method is called whenever a symbol
      * is selected in the UI. Providers can implement this method and return incomplete symbols from
      * [`provideWorkspaceSymbols`](#WorkspaceSymbolProvider.provideWorkspaceSymbols) which often helps to improve
      * performance.
@@ -5459,9 +5459,9 @@ declare module 'coc.nvim' {
      * the given `symbol` is used.
      */
     resolveWorkspaceSymbol?(
-      symbol: SymbolInformation,
+      symbol: WorkspaceSymbol,
       token: CancellationToken
-    ): ProviderResult<SymbolInformation>
+    ): ProviderResult<WorkspaceSymbol>
   }
 
   /**
@@ -11388,7 +11388,7 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideWorkspaceSymbolsSignature {
-    (this: void, query: string, token: CancellationToken): ProviderResult<SymbolInformation[]>
+    (this: void, query: string, token: CancellationToken): ProviderResult<WorkspaceSymbol[]>
   }
 
   export interface ProvideCodeActionsSignature {
@@ -11535,7 +11535,7 @@ declare module 'coc.nvim' {
     }, token: CancellationToken, next: ProvideReferencesSignature) => ProviderResult<Location[]>
     provideDocumentHighlights?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDocumentHighlightsSignature) => ProviderResult<DocumentHighlight[]>
     provideDocumentSymbols?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideDocumentSymbolsSignature) => ProviderResult<SymbolInformation[] | DocumentSymbol[]>
-    provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<SymbolInformation[]>
+    provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<WorkspaceSymbol[]>
     provideCodeActions?: (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
     handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
     resolveCodeAction?: (this: void, item: CodeAction, token: CancellationToken, next: ResolveCodeActionSignature) => ProviderResult<CodeAction>

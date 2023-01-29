@@ -1,5 +1,5 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RegistrationType, ServerCapabilities, SymbolInformation, WorkspaceSymbolRegistrationOptions } from "vscode-languageserver-protocol"
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RegistrationType, ServerCapabilities, SymbolInformation, WorkspaceSymbol, WorkspaceSymbolRegistrationOptions } from "vscode-languageserver-protocol"
 import languages from "../languages"
 import { ProviderResult, WorkspaceSymbolProvider } from "../provider"
 import { WorkspaceSymbolRequest, WorkspaceSymbolResolveRequest } from '../util/protocol'
@@ -12,12 +12,12 @@ export interface ProvideWorkspaceSymbolsSignature {
 }
 
 export interface ResolveWorkspaceSymbolSignature {
-  (this: void, item: SymbolInformation, token: CancellationToken): ProviderResult<SymbolInformation>
+  (this: void, item: WorkspaceSymbol, token: CancellationToken): ProviderResult<SymbolInformation>
 }
 
 export interface WorkspaceSymbolMiddleware {
   provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<SymbolInformation[]>
-  resolveWorkspaceSymbol?: (this: void, item: SymbolInformation, token: CancellationToken, next: ResolveWorkspaceSymbolSignature) => ProviderResult<SymbolInformation>
+  resolveWorkspaceSymbol?: (this: void, item: WorkspaceSymbol, token: CancellationToken, next: ResolveWorkspaceSymbolSignature) => ProviderResult<WorkspaceSymbol>
 }
 
 interface WorkspaceFeatureRegistration<PR> {

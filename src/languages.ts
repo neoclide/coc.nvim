@@ -1,7 +1,7 @@
 'use strict'
 import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-types'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-types'
 import type { Sources } from './completion/sources'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
@@ -336,11 +336,11 @@ class Languages {
     return await this.selectionRangeManager.provideSelectionRanges(document, positions, token)
   }
 
-  public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<SymbolInformation[]> {
+  public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<WorkspaceSymbol[]> {
     return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token)
   }
 
-  public async resolveWorkspaceSymbol(symbol: SymbolInformation, token: CancellationToken): Promise<SymbolInformation> {
+  public async resolveWorkspaceSymbol(symbol: WorkspaceSymbol, token: CancellationToken): Promise<WorkspaceSymbol> {
     return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token)
   }
 

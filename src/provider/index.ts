@@ -1,5 +1,5 @@
 'use strict'
-import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 
@@ -323,7 +323,7 @@ export interface WorkspaceSymbolProvider {
   provideWorkspaceSymbols(
     query: string,
     token: CancellationToken
-  ): ProviderResult<SymbolInformation[]>
+  ): ProviderResult<(WorkspaceSymbol & { deprecated?: boolean })[]>
 
   /**
    * Given a symbol fill in its [location](#SymbolInformation.location). This method is called whenever a symbol
@@ -338,9 +338,9 @@ export interface WorkspaceSymbolProvider {
    * the given `symbol` is used.
    */
   resolveWorkspaceSymbol?(
-    symbol: SymbolInformation,
+    symbol: WorkspaceSymbol,
     token: CancellationToken
-  ): ProviderResult<SymbolInformation>
+  ): ProviderResult<WorkspaceSymbol>
 }
 
 /**

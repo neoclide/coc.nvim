@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range, SymbolInformation } from 'vscode-languageserver-types'
+import { Position, Range, SymbolInformation, WorkspaceSymbol } from 'vscode-languageserver-types'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -62,13 +62,13 @@ export default class Symbols {
     return workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
   }
 
-  public async getWorkspaceSymbols(input: string): Promise<SymbolInformation[]> {
+  public async getWorkspaceSymbols(input: string): Promise<WorkspaceSymbol[]> {
     this.handler.checkProvider(ProviderName.WorkspaceSymbols, null)
     let tokenSource = new CancellationTokenSource()
     return await languages.getWorkspaceSymbols(input, tokenSource.token)
   }
 
-  public async resolveWorkspaceSymbol(symbolInfo: SymbolInformation): Promise<SymbolInformation> {
+  public async resolveWorkspaceSymbol(symbolInfo: WorkspaceSymbol): Promise<WorkspaceSymbol> {
     if (symbolInfo.location?.uri) return symbolInfo
     let tokenSource = new CancellationTokenSource()
     return await languages.resolveWorkspaceSymbol(symbolInfo, tokenSource.token)

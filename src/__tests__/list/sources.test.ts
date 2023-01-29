@@ -980,6 +980,7 @@ describe('list sources', () => {
       res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
       expect(res).toBeNull()
       haveResult = true
+      symbols[0].location = { uri: 'lsp:///1' }
       res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
       expect(Location.is(res.location)).toBe(true)
       if (Location.is(res.location)) {
