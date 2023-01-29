@@ -2,12 +2,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import { OutputChannel } from '../types'
 
+function escapeQuote(input: string): string {
+  return input.replace(/'/g, "''")
+}
+
 export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
   private _disposed = false
   public created = false
   constructor(public name: string, private nvim?: Neovim, private onDispose?: () => void) {
-    if (!/^[\w\s-.]+$/.test(name)) throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`)
   }
 
   public get content(): string {
@@ -57,18 +60,20 @@ export default class BufferChannel implements OutputChannel {
 
   public hide(): void {
     this.created = false
-    if (this.nvim) this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true)
+    let name = escapeQuote(this.bufname)
+    if (this.nvim) this.nvim.command(`exe 'silent! bwipeout! '.fnameescape('${name}')`, true)
   }
 
   private get bufname(): string {
-    return `output:///${this.name}`
+    return `output:///${encodeURI(this.name)}`
   }
 
   public show(preserveFocus?: boolean, cmd = 'vs'): void {
     let { nvim } = this
     if (!nvim) return
+    let name = escapeQuote(this.bufname)
     nvim.pauseNotification()
-    nvim.command(`exe '${cmd} '.fnameescape('${this.bufname}')`, true)
+    nvim.command(`exe '${cmd} '.fnameescape('${name}')`, true)
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }

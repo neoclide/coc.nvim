@@ -823,9 +823,7 @@ describe('completion', () => {
     })
 
     it('should filter on backspace', async () => {
-      let name = await create(['foo', 'fbi'], false)
-      triggerCompletion(name)
-      await helper.waitPopup()
+      await create(['foo', 'fbi'], true)
       await nvim.input('fo')
       await helper.waitValue(() => completion.activeItems.length, 1)
       await helper.wait(10)

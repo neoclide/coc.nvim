@@ -156,6 +156,7 @@ export class Workspace {
     })
     this.files.attach(nvim, env, window)
     this.contentProvider.attach(nvim)
+    this.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     this.keymaps.attach(nvim)
     this.autocmds.attach(nvim, env)
     this.watchers.attach(nvim, env)
@@ -604,6 +605,7 @@ export class Workspace {
   }
 
   public dispose(): void {
+    channels.dispose()
     this.autocmds.dispose()
     this.statusLine.dispose()
     this.watchers.dispose()

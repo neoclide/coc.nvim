@@ -27,14 +27,17 @@ describe('OutputChannel', () => {
     o.clear()
   })
 
-  test('bad channel name', () => {
-    let err
-    try {
-      new OutputChannel('@', nvim)
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
+  test('channel name with special characters', async () => {
+    let ch = new OutputChannel("a@b 'c", nvim)
+    ch.show(false, 'edit')
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toBe('output:///a@b%20\'c')
+    let bufnr = await nvim.call('bufnr', ['%'])
+    ch.hide()
+    await helper.wait(10)
+    let loaded = await nvim.call('bufloaded', [bufnr])
+    expect(loaded).toBe(0)
+    ch.dispose()
   })
 
   test('outputChannel.show(true)', async () => {

@@ -4,7 +4,6 @@ import { CodeActionKind, InsertTextMode, Range } from 'vscode-languageserver-typ
 import commandManager from './commands'
 import completion, { Completion } from './completion'
 import sources from './completion/sources'
-import channels from './core/channels'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
@@ -199,7 +198,6 @@ export default class Plugin {
     let { nvim } = this
     await extensions.init(rtp)
     await workspace.init(window)
-    workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     nvim.setVar('coc_workspace_initialized', true, true)
     snippetManager.init()
     services.init()
@@ -243,7 +241,6 @@ export default class Plugin {
     extensions.dispose()
     listManager.dispose()
     workspace.dispose()
-    channels.dispose()
     window.dispose()
     sources.dispose()
     services.dispose()
