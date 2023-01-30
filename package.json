@@ -83,7 +83,7 @@
     "@typescript-eslint/parser": "^5.44.0",
     "browserslist": "^4.21.4",
     "bser": "^2.1.1",
-    "esbuild": "^0.15.13",
+    "esbuild": "^0.17.5",
     "eslint": "^8.28.0",
     "eslint-plugin-jest": "^27.1.5",
     "eslint-plugin-jsdoc": "^39.6.2",
