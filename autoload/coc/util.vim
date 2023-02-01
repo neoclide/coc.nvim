@@ -536,7 +536,7 @@ function! coc#util#get_data_home()
   if !empty(get(g:, 'coc_data_home', ''))
     let dir = resolve(expand(g:coc_data_home))
   else
-    if exists('$XDG_CONFIG_HOME')
+    if exists('$XDG_CONFIG_HOME') && isdirectory(resolve($XDG_CONFIG_HOME))
       let dir = resolve($XDG_CONFIG_HOME."/coc")
     else
       if s:is_win
