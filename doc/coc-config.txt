@@ -89,8 +89,8 @@ Colors~
 							*coc-config-colors*
 "colors.enable"						*coc-config-colors-enable*
 
-	Enable colors highlight feature, for termainal vim, 'termguicolors'
-	option should be enabled and the termainal support gui colors.
+	Enable colors highlight feature, for terminal vim, 'termguicolors'
+	option should be enabled and the terminal support gui colors.
 
 	Scope: `language-overridable`, default: `false`
 
