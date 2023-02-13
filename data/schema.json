@@ -821,7 +821,7 @@
     "colors.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable colors highlight feature, for termainal vim, 'termguicolors' option should be enabled and the termainal support gui colors.",
+      "description": "Enable colors highlight feature, for terminal vim, 'termguicolors' option should be enabled and the terminal support gui colors.",
       "default": false
     },
     "colors.filetypes": {
