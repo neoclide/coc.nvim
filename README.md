@@ -14,7 +14,7 @@
 
 ---
 
-<img alt="Gif" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
+<img alt="Custom coc popup menu with snippet support" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
 
 _Custom popup menu with snippet support_
 
