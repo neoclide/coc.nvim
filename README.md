@@ -38,7 +38,7 @@ curl -sL install-node.vercel.app/lts | bash
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
 ```vim
-" Use release branch (recommend)
+" Use release branch (recommended)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " Or build from source code by using yarn: https://yarnpkg.com
@@ -51,15 +51,14 @@ Checkout [Install
 coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
 more info.
 
-You **have to** install coc extension or configure language servers for
+You **have to** install coc extensions or configure language servers for
 LSP support.
 
-Install extensions like:
+Install extensions like this:
 
     :CocInstall coc-json coc-tsserver
 
-Or configure language server in `coc-settings.json` opened by
-`:CocConfig`, like:
+Or you can configure a language server in your `coc-settings.json`(open it using `:CocConfig`) like this:
 
 ```json
 {
@@ -90,7 +89,7 @@ Configuration is required to make coc.nvim easier to work with, since it
 doesn't change your key-mappings or Vim options. This is done as much as
 possible to avoid conflict with your other plugins.
 
-**❗️Important**: Some Vim plugins could change key mappings. Please use
+**❗️Important**: Some Vim plugins can change your key mappings. Please use
 command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
