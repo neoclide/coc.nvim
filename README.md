@@ -2,7 +2,7 @@
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
     <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220525/coc.png" height="240" />
   </a>
-  <p align="center">Make your Vim/Neovim as smart as VSCode</p>
+  <p align="center">Make your Vim/Neovim as smart as VS Code</p>
   <p align="center">
     <a href="LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-Anti%20996-brightgreen.svg?style=flat-square"></a>
     <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/coc.nvim/ci.yml?style=flat-square&branch=master"></a>
