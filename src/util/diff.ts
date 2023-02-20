@@ -56,7 +56,7 @@ export function diffLines(oldLines: ReadonlyArray<string>, newLines: ReadonlyArr
 export function patchLine(from: string, to: string, fill = ' '): string {
   if (from == to) return to
   let idx = to.indexOf(from)
-  if (idx !== -1) return fill.repeat(idx) + from
+  if (idx !== -1) return fill.repeat(byteLength(to.substring(0, idx))) + from
   let result = fastDiff(from, to)
   let str = ''
   for (let item of result) {
