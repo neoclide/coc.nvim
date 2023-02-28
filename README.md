@@ -35,6 +35,13 @@ Install [nodejs](https://nodejs.org/en/download/) >= 14.14:
 curl -sL install-node.vercel.app/lts | bash
 ```
 
+For [pathogen](https://github.com/tpope/vim-pathogen) users:
+
+```
+cd ~/.vim/bundle
+git clone https://github.com/neoclide/coc.nvim
+```
+
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
 ```vim
