@@ -262,7 +262,7 @@ export default class WorkspaceFolderController {
           clearTimeout(timer)
           tokenSource.cancel()
         }
-      })
+      }).catch(e => logger.error(`checkPatterns error:`, patterns, e))
     }))
     clearTimeout(timer)
     results.forEach(res => {
