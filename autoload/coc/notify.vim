@@ -357,8 +357,12 @@ function! s:progress(winid, total, curr, index) abort
       if !empty(message)
         let lines = lines + coc#string#reflow(split(message, '\v\r?\n'), width)
       endif
-      noa call setbufline(bufnr, 1, lines)
-      noa call deletebufline(bufnr, len(lines) + 1, '$')
+      if has('nvim')
+        call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
+      else
+        noa call setbufline(bufnr, 1, lines)
+        noa call deletebufline(bufnr, len(lines) + 1, '$')
+      endif
       let height = option['height']
       let delta = len(lines) - height
       if delta > 0 && height < 3
