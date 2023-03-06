@@ -29,6 +29,18 @@ export function resolveEnvVariables(str: string, env = process.env): string {
   return replaced
 }
 
+export function getFilePathFromLine(line: string, cursorIndex: number): string {
+  let begin = cursorIndex - 1
+  let end = cursorIndex
+  while (begin >= 0 && line[begin] !== ' ') {
+    begin--
+  }
+  while (end < line.length && line[end] !== ' ') {
+    end++
+  }
+  return line.slice(begin + 1, end)
+}
+
 export async function getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
   let f = path.join(root, filename)
   let stat = await statAsync(f)
@@ -85,7 +97,8 @@ export class File extends Source {
 
   private getPathOption(opt: CompleteOption): PathOption | null {
     let { line, colnr } = opt
-    let part = byteSlice(line, 0, colnr - 1)
+    let filepath = getFilePathFromLine(line, colnr - 1)
+    let part = byteSlice(filepath, 0, colnr - 1)
     part = resolveEnvVariables(part)
     if (!part || part.endsWith('//')) return null
     let ms = part.match(pathRe)
