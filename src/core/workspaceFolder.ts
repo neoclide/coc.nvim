@@ -153,7 +153,7 @@ export default class WorkspaceFolderController {
   }
 
   public resolveRoot(document: Document, cwd: string, fireEvent: boolean, expand: ((input: string) => string)): string | null {
-    if (document.buftype !== '' || document.schema !== 'file') return null
+    if (document.buftype !== '' || document.schema !== 'file' || document.readonly === 1) return null
     let u = URI.parse(document.uri)
     let curr = this.getWorkspaceFolder(u)
     if (curr) return URI.parse(curr.uri).fsPath

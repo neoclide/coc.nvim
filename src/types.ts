@@ -59,6 +59,7 @@ export interface BufferOption {
   readonly filetype: string
   readonly iskeyword: string
   readonly lisp: number
+  readonly readonly: number
   readonly changedtick: number
   readonly previewwindow: number
 }

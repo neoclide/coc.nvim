@@ -489,6 +489,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'variables': coc#util#variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'lisp': getbufvar(a:bufnr, '&lisp'),
+        \ 'readonly': getbufvar(a:bufnr, '&readonly'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),

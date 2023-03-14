@@ -47,6 +47,7 @@ export default class Document {
   private _winid = -1
   private _filetype: string
   private _bufname: string
+  private _readonly: number
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -107,6 +108,10 @@ export default class Document {
 
   public get bufname(): string {
     return this._bufname
+  }
+
+  public get readonly(): number {
+    return this._readonly
   }
 
   public get filetype(): string {
@@ -195,6 +200,7 @@ export default class Document {
     this._bufname = opts.bufname
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
+    this._readonly = opts.readonly
     this.variables = toObject(opts.variables)
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
