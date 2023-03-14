@@ -616,11 +616,8 @@ endfunction
 
 function! s:funcs.buf_del_var(bufnr, name)
   call s:check_bufnr(a:bufnr)
-  if a:bufnr == bufnr('%')
-    execute 'unlet! b:'.a:name
-  else
-    call s:buf_execute(a:bufnr, ['unlet! b:'.a:name])
-  endif
+  let bufvars = getbufvar(a:bufnr, '')
+  call remove(bufvars, a:name)
   return v:null
 endfunction
 
