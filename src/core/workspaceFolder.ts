@@ -10,7 +10,7 @@ import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
-import { checkFolder, isFolderIgnored, isParentFolder, resolveRoot } from '../util/fs'
+import { checkFolder, isDirectory, isFolderIgnored, isParentFolder, resolveRoot } from '../util/fs'
 import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
@@ -157,7 +157,7 @@ export default class WorkspaceFolderController {
     let u = URI.parse(document.uri)
     let curr = this.getWorkspaceFolder(u)
     if (curr) return URI.parse(curr.uri).fsPath
-    let dir = path.dirname(u.fsPath)
+    let dir = isDirectory(u.fsPath) ? path.normalize(u.fsPath) : path.dirname(u.fsPath)
     let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config
     if (ignoredFiletypes?.includes(document.filetype)) return null
     ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter(s => s && s.length > 0).map(s => expand(s)) : []
