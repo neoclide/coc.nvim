@@ -462,6 +462,15 @@ describe('Buffer API', () => {
     buffer.deleteVar('foo')
     curr = await buffer.getVar('foo')
     expect(curr).toBeNull()
+
+    // another non-current buffer
+    const buf2 = await nvim.createNewBuffer()
+    await buf2.setVar('foo', 'qux', false)
+    let curr2 = await buf2.getVar('foo')
+    expect(curr2).toBe('qux')
+    buf2.deleteVar('foo')
+    curr = await buf2.getVar('foo')
+    expect(curr).toBeNull()
   })
 })
 
