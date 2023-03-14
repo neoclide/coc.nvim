@@ -602,7 +602,7 @@ endfunction
 
 function! s:funcs.buf_get_var(bufnr, name)
   call s:check_bufnr(a:bufnr)
-  if !has_key(b:, a:name)
+  if !has_key(getbufvar(a:bufnr, ''), a:name)
     throw 'Key not found: '.a:name
   endif
   return getbufvar(a:bufnr, a:name)
