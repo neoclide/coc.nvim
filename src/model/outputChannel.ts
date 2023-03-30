@@ -19,14 +19,18 @@ export default class BufferChannel implements OutputChannel {
 
   private _append(value: string): void {
     let { nvim } = this
-    if (!nvim) return
-    let idx = this.lines.length - 1
+    if (!nvim || !this.created || value === "") return
     let newlines = value.split(/\r?\n/)
-    let lastline = this.lines[idx] + newlines[0]
-    this.lines[idx] = lastline
+    let lastline = newlines[0]
+    if (this.lines.length > 0) {
+      let idx = this.lines.length - 1
+      lastline = this.lines[idx] + newlines[0]
+      this.lines[idx] = lastline
+    } else {
+      this.lines = [lastline]
+    }
     let append = newlines.slice(1)
     this.lines = this.lines.concat(append)
-    if (!this.created) return
     nvim.pauseNotification()
     nvim.call('setbufline', [this.bufname, '$', lastline], true)
     if (append.length) {
