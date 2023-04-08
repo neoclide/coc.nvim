@@ -189,7 +189,6 @@ export default class SymbolsOutline {
           let views = this.treeViewList.filter(v => v.valid && v.targetBufnr == bufnr)
           views.forEach(view => view.description = meta.label)
         }
-        this.setMessage(bufnr, 'Loading document symbols')
         let arr = await buf.getSymbols()
         if (!arr || arr.length == 0) {
           // server may return empty symbols on buffer initialize, throw error to force reload.
