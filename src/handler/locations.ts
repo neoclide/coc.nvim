@@ -118,7 +118,18 @@ export default class LocationsHandler {
     if (!word) return null
     if (!languages.hasProvider(ProviderName.Definition, doc.textDocument)) return null
     let tokenSource = new CancellationTokenSource()
-    let definitions = await languages.getDefinition(doc.textDocument, position, tokenSource.token)
+    let definitions = []
+    try {
+      let timeout = workspace.initialConfiguration.get<number>('coc.preferences.tagDefinitionTimeout', 0)
+      if (timeout> 0) {
+        const abort = new Promise<[]>((_, rej) => setTimeout(() => rej(new Error('timeout')), timeout))
+        definitions = await Promise.race([languages.getDefinition(doc.textDocument, position, tokenSource.token), abort])
+      } else {
+        definitions = await languages.getDefinition(doc.textDocument, position, tokenSource.token)
+      }
+    } catch (e) {
+      return null
+    }
     if (!definitions || !definitions.length) return null
     return definitions.map(location => {
       let parsedURI = URI.parse(location.uri)

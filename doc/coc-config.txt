@@ -1650,6 +1650,11 @@ Preferences~
 
 	Scope: `application`, default: `500`
 
+"coc.preferences.tagDefinitionTimeout" 			*coc-preferences-tagDefinitionTimeout*
+
+	The timeout of CocTagFunc.
+	Scope: `application`, default: `0`
+
 ------------------------------------------------------------------------------
 Float configuration~
 							*coc-config-float*
