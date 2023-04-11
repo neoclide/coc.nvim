@@ -686,6 +686,12 @@
       "maximum": 5000,
       "description": "Will save handler timeout"
     },
+    "coc.preferences.tagDefinitionTimeout": {
+      "type": "integer",
+      "scope": "application",
+      "default": 0,
+      "description": "The timeout of CocTagFunc, default is infinity"
+    },
     "coc.source.around.disableSyntaxes": {
       "type": "array",
       "default": [],
