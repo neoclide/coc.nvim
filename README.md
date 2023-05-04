@@ -51,6 +51,11 @@ Checkout [Install
 coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
 more info.
 
+Start the plugin before you can install extension:
+
+    :CocStart
+
+
 You **have to** install coc extensions or configure language servers for
 LSP support.
 
