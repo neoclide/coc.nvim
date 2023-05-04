@@ -276,7 +276,7 @@ module.exports = {
     "id-match": "error",
     "jsdoc/check-alignment": "error",
     "jsdoc/check-indentation": "error",
-    "jsdoc/newline-after-description": "error",
+    "jsdoc/tag-lines": 1,
     "max-classes-per-file": "off",
     "new-parens": "error",
     "no-bitwise": "off",

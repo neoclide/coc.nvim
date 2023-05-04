@@ -123,8 +123,8 @@ export default class EditInspect {
     buffer.setOption('modifiable', false, true)
     await nvim.resumeNotification(true)
     this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<CR>', async () => {
-      let lnum = await nvim.call('line', '.')
-      let col = await nvim.call('col', '.')
+      let lnum = await nvim.call('line', '.') as number
+      let col = await nvim.call('col', '.') as number
       let find: ChangedFileItem
       for (let i = this.items.length - 1; i >= 0; i--) {
         let item = this.items[i]

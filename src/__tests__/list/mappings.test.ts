@@ -52,7 +52,7 @@ const locations: ReadonlyArray<QuickfixItem> = [{
 async function waitPreviewWindow(): Promise<void> {
   for (let i = 0; i < 40; i++) {
     await helper.wait(50)
-    let has = await nvim.call('coc#list#has_preview')
+    let has = await nvim.call('coc#list#has_preview') as number
     if (has > 0) return
   }
   throw new Error('timeout after 2s')
