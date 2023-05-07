@@ -246,8 +246,9 @@ describe('isValidWatchRoot()', () => {
   it('should check valid root', async () => {
     expect(isValidWatchRoot('/')).toBe(false)
     expect(isValidWatchRoot(os.homedir())).toBe(false)
-    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(false)
     expect(isValidWatchRoot(os.tmpdir())).toBe(false)
+    expect(isValidWatchRoot('/tmp/a')).toBe(true)
+    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(true)
   })
 })
 
