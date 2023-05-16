@@ -282,10 +282,11 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Echo diagnostic message under cursor.
    */
-  public async echoMessage(truncate = false, position: Position): Promise<boolean> {
+  public async echoMessage(truncate = false, position: Position, target?: string): Promise<boolean> {
     const config = this.config
     if (!config.enable || config.enableMessage === 'never' || config.displayByAle) return false
-    let useFloat = config.messageTarget == 'float'
+    if (!target) target = config.messageTarget
+    let useFloat = target == 'float'
     let diagnostics = this.getDiagnosticsAtPosition(position)
     if (config.messageLevel) {
       diagnostics = diagnostics.filter(diagnostic => {
@@ -316,8 +317,8 @@ export class DiagnosticBuffer implements SyncItem {
     return true
   }
 
-  public async showFloat(diagnostics: Diagnostic[]): Promise<boolean> {
-    if (this.config.messageTarget !== 'float') return false
+  public async showFloat(diagnostics: Diagnostic[], target = 'float'): Promise<boolean> {
+    if (target !== 'float') return false
     if (!floatFactory) floatFactory = window.createFloatFactory({ modes: ['n'], autoHide: true })
     if (diagnostics.length == 0) {
       floatFactory.close()

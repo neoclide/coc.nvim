@@ -423,11 +423,11 @@ class DiagnosticManager implements Disposable {
     return res[0].getDiagnosticsAtPosition(res[1])
   }
 
-  public async echoCurrentMessage(): Promise<void> {
+  public async echoCurrentMessage(target?: string): Promise<void> {
     let res = await this.getBufferAndPosition()
     if (!res) return
     let [item, position] = res
-    await item.echoMessage(false, position)
+    await item.echoMessage(false, position, target)
   }
 
   public async jumpRelated(): Promise<void> {

@@ -97,7 +97,7 @@ export default class Plugin {
     this.addAction('refreshSource', name => sources.refresh(name))
     this.addAction('toggleSource', name => sources.toggleSource(name))
     this.addAction('diagnosticRefresh', bufnr => diagnosticManager.refresh(bufnr))
-    this.addAction('diagnosticInfo', () => diagnosticManager.echoCurrentMessage())
+    this.addAction('diagnosticInfo', target => diagnosticManager.echoCurrentMessage(target))
     this.addAction('diagnosticToggle', enable => diagnosticManager.toggleDiagnostic(enable))
     this.addAction('diagnosticToggleBuffer', (bufnr, enable) => diagnosticManager.toggleDiagnosticBuffer(bufnr, enable))
     this.addAction('diagnosticNext', severity => diagnosticManager.jumpNext(severity))
