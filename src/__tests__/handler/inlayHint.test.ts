@@ -226,17 +226,6 @@ describe('InlayHint', () => {
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(1)
     })
-
-    it('should use custom subseparator', async () => {
-      helper.updateConfiguration('inlayHint.subSeparator', '|')
-      let doc = await helper.createDocument()
-      let disposable = await registerProvider('foo bar')
-      disposables.push(disposable)
-      await waitRefresh(doc.bufnr)
-      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      let virt_text = markers[0][3].virt_text
-      expect(virt_text[1]).toEqual(['|', 'CocInlayHintType'])
-    })
   })
 
   describe('toggle inlayHint', () => {

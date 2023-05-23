@@ -539,29 +539,11 @@ InlayHint~
 
 	Scope: `language-overridable`, default: `true`
 
-"inlayHint.parameterSeparator"				*coc-config-inlayHint-parameterSeparator*
-
-	Separator for parameter inlay hint, neovim only.
-
-	Scope: `language-overridable`, default: `""`
-
 "inlayHint.refreshOnInsertMode"				*coc-config-inlayHint-refreshOnInsertMode*
 
 	Refresh inlayHints on insert mode.
 
 	Scope: `language-overridable`, default: `false`
-
-"inlayHint.subSeparator"				*coc-config-inlayHint-subSeparator*
-
-	Separator for chained inlay hints, neovim only.
-
-	Scope: `language-overridable`, default: `" "`
-
-"inlayHint.typeSeparator"				*coc-config-inlayHint-typeSeparator*
-
-	Separator for type inlay hint, neovim only.
-
-	Scope: `language-overridable`, default: `""`
 
 ------------------------------------------------------------------------------
 Links~

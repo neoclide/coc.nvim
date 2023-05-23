@@ -1304,29 +1304,11 @@
         "type": "string"
       }
     },
-    "inlayHint.parameterSeparator": {
-      "type": "string",
-      "scope": "language-overridable",
-      "default": "",
-      "description": "Separator for parameter inlay hint, neovim only."
-    },
     "inlayHint.refreshOnInsertMode": {
       "type": "boolean",
       "default": false,
       "scope": "language-overridable",
       "description": "Refresh inlayHints on insert mode."
-    },
-    "inlayHint.subSeparator": {
-      "type": "string",
-      "scope": "language-overridable",
-      "default": " ",
-      "description": "Separator for chained inlay hints, neovim only."
-    },
-    "inlayHint.typeSeparator": {
-      "type": "string",
-      "scope": "language-overridable",
-      "default": "",
-      "description": "Separator for type inlay hint, neovim only."
     },
     "links.enable": {
       "type": "boolean",

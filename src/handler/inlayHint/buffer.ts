@@ -20,9 +20,6 @@ export interface InlayHintConfig {
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
-  typeSeparator: string
-  parameterSeparator: string
-  subSeparator: string
 }
 
 let srcId: number | undefined
@@ -74,9 +71,6 @@ export default class InlayHintBuffer implements SyncItem {
       filetypes: config.get<string[]>('filetypes'),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
       enableParameter: config.get<boolean>('enableParameter'),
-      typeSeparator: config.get<string>('typeSeparator', ''),
-      parameterSeparator: config.get<string>('parameterSeparator', ''),
-      subSeparator: config.get<string>('subSeparator', ' ')
     }
     if (changed) {
       let { enable, display } = this._config
@@ -190,42 +184,30 @@ export default class InlayHintBuffer implements SyncItem {
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[], isVim: boolean): void {
     let { nvim, doc } = this
     let buffer = doc.buffer
-    let { subSeparator, parameterSeparator, typeSeparator } = this.config
-    const chunksMap: Map<number, [string, string][]> = new Map()
-    if (!isVim) {
-      for (const item of inlayHints) {
-        let { line } = item.position
-        const chunks: [string, string][] = chunksMap.get(line) ?? []
-        if (chunks.length > 0) {
-          chunks.push([subSeparator, subSeparator === ' ' ? 'Normal' : getHighlightGroup(item.kind)])
-        }
-        let sep = item.kind === InlayHintKind.Parameter ? parameterSeparator : typeSeparator
-        chunks.push([sep + getLabel(item), getHighlightGroup(item.kind)])
-        chunksMap.set(line, chunks)
-      }
-    }
+
     nvim.pauseNotification()
     buffer.clearNamespace(srcId, range.start.line, range.end.line + 1)
-    if (isVim) {
-      for (const item of inlayHints) {
-        const chunks: [string, string][] = []
-        let { position } = item
-        let line = this.doc.getline(position.line)
-        let col = byteIndex(line, position.character) + 1
-        if (item.paddingLeft) {
-          chunks.push([' ', 'Normal'])
-        }
-        chunks.push([getLabel(item), getHighlightGroup(item.kind)])
-        if (item.paddingRight) {
-          chunks.push([' ', 'Normal'])
-        }
-        buffer.setVirtualText(srcId, position.line, chunks, { col })
+    for (const item of inlayHints) {
+      const chunks: [string, string][] = []
+      let { position } = item
+      let line = this.doc.getline(position.line)
+      let col = byteIndex(line, position.character) + 1
+      if (item.paddingLeft) {
+        chunks.push([' ', 'Normal'])
       }
-    } else {
-      for (let [line, chunks] of chunksMap.entries()) {
-        buffer.setExtMark(srcId, line, 0, {
+      chunks.push([getLabel(item), getHighlightGroup(item.kind)])
+      if (item.paddingRight) {
+        chunks.push([' ', 'Normal'])
+      }
+      if (isVim) {
+        buffer.setVirtualText(srcId, position.line, chunks, { col })
+      } else {
+        buffer.setExtMark(srcId, position.line, col - 1, {
           virt_text: chunks,
-          virt_text_pos: 'eol',
+          // TODO: needs @chemzqm/neovim to support virt_text_pos inline, disable the error alert for now
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          virt_text_pos: 'inline',
           hl_mode: 'combine'
         })
       }
