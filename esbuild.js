@@ -68,18 +68,17 @@ if (global.__isMain) {
   }
 }
 
-async function start(watch) {
+async function start() {
   await require('esbuild').build({
     entryPoints: ['index.js'],
     bundle: true,
-    watch,
     minify: process.env.NODE_ENV === 'production',
     sourcemap: process.env.NODE_ENV === 'development',
     define: {
       REVISION: '"' + revision + '"',
       ESBUILD: 'true',
       'process.env.COC_NVIM': '"1"',
-      'global.__TEST__': false
+      'global.__TEST__': 'false'
     },
     mainFields: ['module', 'main'],
     platform: 'node',
@@ -95,20 +94,6 @@ global.__isMain = require.main === module;`
   })
 }
 
-let watch = false
-if (process.argv.includes('--watch')) {
-  console.log('watching...')
-  watch = {
-    onRebuild(error) {
-      if (error) {
-        console.error('watch build failed:', error)
-      } else {
-        console.log('watch build succeeded')
-      }
-    },
-  }
-}
-
-start(watch).catch(e => {
+start().catch(e => {
   console.error(e)
 })
