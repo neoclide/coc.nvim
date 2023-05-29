@@ -176,7 +176,7 @@ export class ExtensionManager {
     workspace.onDidChangeWorkspaceFolders(e => {
       if (e.added.length > 0) {
         this.tryActivateExtensions(ActivateEvents.WorkspaceContains, events => {
-          let patterns = toWorkspaceContinsPatterns(events)
+          let patterns = toWorkspaceContainsPatterns(events)
           return workspace.checkPatterns(patterns, e.added)
         })
       }
@@ -708,7 +708,7 @@ export function getActivationEvents(json: ExtensionJson): string[] {
 /**
  * Convert globl patterns
  */
-export function toWorkspaceContinsPatterns(activationEvents: string[]): string[] {
+export function toWorkspaceContainsPatterns(activationEvents: string[]): string[] {
   let patterns: string[] = []
   for (let eventName of activationEvents) {
     let parts = eventName.split(':')

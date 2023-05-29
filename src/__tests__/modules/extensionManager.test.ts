@@ -7,7 +7,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import Watchman from '../../core/watchman'
 import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import events from '../../events'
-import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContinsPatterns } from '../../extension/manager'
+import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
 import { Registry } from '../../util/registry'
 import { disposeAll } from '../../util'
@@ -77,10 +77,10 @@ describe('utils', () => {
     expect(checkFileSystem('file:///1', ['onFileSystem:x', 'onFileSystem:file'])).toBe(true)
   })
 
-  it('should toWorkspaceContinsPatterns', async () => {
-    let res = toWorkspaceContinsPatterns(['workspaceContains:', 'workspaceContains:a.js', 'workspaceContains:b.js'])
+  it('should toWorkspaceContainsPatterns', async () => {
+    let res = toWorkspaceContainsPatterns(['workspaceContains:', 'workspaceContains:a.js', 'workspaceContains:b.js'])
     expect(res).toEqual(['a.js', 'b.js'])
-    res = toWorkspaceContinsPatterns(['workspaceContains:', 'workspaceContains:**/b.js'])
+    res = toWorkspaceContainsPatterns(['workspaceContains:', 'workspaceContains:**/b.js'])
     expect(res).toEqual(['**/b.js'])
   })
 })
