@@ -434,6 +434,9 @@
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
         },
+        "env": {
+          "$ref": "#/definitions/languageserver.env"
+        },
         "disableSnippetCompletion": {
           "$ref": "#/definitions/languageserver.disableSnippetCompletion"
         },
