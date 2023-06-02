@@ -17,9 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        neovim:
+          - "stable"
+          - "nightly"
         node:
           - "16"
-          - "14"
         include:
           # only enable coverage on the fastest job
           - node: "16"
@@ -47,16 +49,17 @@ jobs:
       - run: pip install pynvim
 
       - name: Setup vim
-        uses: rhysd/action-setup-vim@v1.2.13
+        uses: rhysd/action-setup-vim@v1
         id: vim
         with:
           version: v9.0.0815
 
       - name: Setup neovim
         id: nvim
-        uses: rhysd/action-setup-vim@v1.2.13
+        uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
+          version: ${{ matrix.neovim }}
 
       - name: Install Dependencies
         run: |
