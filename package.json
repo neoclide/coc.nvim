@@ -110,7 +110,7 @@
     "jsonc-parser": "^3.0.0",
     "marked": "^4.0.12",
     "minimatch": "^5.1.0",
-    "semver": "^7.3.2",
+    "semver": "^7.5.2",
     "strip-ansi": "^6.0.0",
     "tar": "^6.1.9",
     "tslib": "^2.0.3",
