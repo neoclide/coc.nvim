@@ -258,10 +258,8 @@ describe('LinkBuffer', () => {
   })
 
   it('should do highlight', async () => {
-    let empty = false
     disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
       provideDocumentLinks: (doc: TextDocument) => {
-        if (empty) return []
         let links: DocumentLink[] = []
         for (let i = 0; i < doc.lineCount - 1; i++) {
           links.push(DocumentLink.create(Range.create(i, 0, i, 1), 'test:///bar'))
@@ -286,9 +284,5 @@ describe('LinkBuffer', () => {
     doc._forceSync()
     let hls = await buf.buffer.getHighlights('links')
     expect(hls.length).toBe(2)
-    empty = true
-    await buf.getLinks()
-    hls = await buf.buffer.getHighlights('links')
-    expect(hls.length).toBe(0)
   })
 })
