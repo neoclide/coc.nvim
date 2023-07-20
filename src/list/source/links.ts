@@ -1,5 +1,5 @@
 'use strict'
-import { DocumentLink, Location } from 'vscode-languageserver-types'
+import { Location } from 'vscode-languageserver-types'
 import languages from '../../languages'
 import type { CancellationToken } from '../../util/protocol'
 import workspace from '../../workspace'
@@ -32,7 +32,6 @@ export default class LinksList extends BasicList {
     let items: ListItem[] = []
     let links = await languages.getDocumentLinks(doc.textDocument, token)
     if (links == null) throw new Error('Links provider not found.')
-    let res: DocumentLink[] = []
     for (let link of links) {
       link = link.target ? link : await languages.resolveDocumentLink(link, token)
       if (link.target) {
@@ -44,7 +43,6 @@ export default class LinksList extends BasicList {
           }
         })
       }
-      res.push(link)
     }
     return items
   }
