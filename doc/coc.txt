@@ -2376,7 +2376,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	When callback function exists as the last argument, the callback
 	function is called with `error` string as the first argument and
-	`resutl` as the second argument.  When no callback exists, error
+	`result` as the second argument.  When no callback exists, error
 	message would be echoed.
 
 	Checkout |coc-actions| for available actions.
