@@ -2376,7 +2376,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	When callback function exists as the last argument, the callback
 	function is called with `error` string as the first argument and
-	`resutl` as the second argument.  When no callback exists, error
+	`result` as the second argument.  When no callback exists, error
 	message would be echoed.
 
 	Checkout |coc-actions| for available actions.
@@ -3497,49 +3497,52 @@ LIST COMMAND						*coc-list-command*
 							*coc-list-options*
 Options of CocList command~
 
-----top
+--top
+
 	Show list as top window.
 
-----tab
+--tab
+
 	Open list in new tabpage.
 
-----normal
+--normal
 
 	Start list in normal mode, recommended for short list.
 
-----no-sort
+--no-sort
+
 	Disable sort made by fuzzy score or most recently used, use it when
 	it's already sorted.
 
-----input={input}
+--input={input}
 
 	Specify the input on session start.
 
-----height={number}
+--height={number}
 
 	Specify the height of list window, override configuration
 	|coc-config-list-height|.  No effect when list opened in new tab by
 	`--tab`.
 
-----strict
-  -S
+--strict, -S
+
 	Use strict matching instead of fuzzy matching.
 
-----regex
-  -R
+--regex, -R
+
 	Use regex matching instead of fuzzy matching.
 
-----ignore-case
+--ignore-case
 
 	Ignore case when using strict matching or regex matching.
 
-----number-select
-  -N
+--number-select, -N
+
 	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
-----interactive
-  -I
+--interactive, -I
+
 	Use interactive mode, list items would be reloaded on input
 	change, filter and sort would be done by list implementation.
 
@@ -3549,23 +3552,22 @@ Options of CocList command~
 	means options including `--strict`, `--no-sort`, `--regex`,
 	`--ignore-case` would not work at all.
 
-----auto-preview
-  -A
+--auto-preview, -A
 
 	Start a preview for the current item on the visible list.
 
-----no-quit
+--no-quit
 
 	Not quit list session after invoke action.
 
 	Note: you may need to refresh the list for current state.
 
-----first
+--first
 
 	Invoke default action for first list item on list open.
 	Nothing happens when the list is empty.
 
-----reverse
+--reverse
 
 	Reverse the order of list items shown in the window, the bottom line
 	would shown the first item.

@@ -96,7 +96,7 @@ endfunction
 " Used when 'wrap' and 'linebreak' is enabled
 function! coc#string#content_height(lines, width) abort
   let len = 0
-  let pattern = empty(&breakat) ? '.\zs' : '['.substitute(&breakat, '\([\[\]]\)', '\\\1', 'g').']\zs'
+  let pattern = empty(&breakat) ? '.\zs' : '['.substitute(&breakat, '\([\[\]\-]\)', '\\\1', 'g').']\zs'
   for line in a:lines
     if strwidth(line) <= a:width
       let len += 1

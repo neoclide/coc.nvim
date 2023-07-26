@@ -193,7 +193,7 @@ endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort
   if !coc#rpc#ready()
-    return cb('coc.nvim service not started.')
+    return call(a:cb, ['coc.nvim service not started.'])
   endif
   call s:client['request_async'](a:method, a:args, a:cb)
 endfunction

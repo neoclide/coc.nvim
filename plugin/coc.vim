@@ -25,7 +25,7 @@ function! s:checkVersion() abort
     else
       if !has('nvim-0.5.0') && !has('patch-8.2.0750')
         echohl WarningMsg
-        echom "coc.nvim works best on vim >= 8.2.0750 and neovim >= 0.5.0, consider upgrade your vim."
+        echom "coc.nvim works best on vim >= 8.2.0750 and neovim >= 0.5.0, consider upgrading vim."
         echom "You can add this to your vimrc to avoid this message:"
         echom "    let g:coc_disable_startup_warning = 1"
         echom "Note that some features may behave incorrectly."

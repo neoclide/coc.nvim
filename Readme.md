@@ -2,7 +2,7 @@
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
     <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220525/coc.png" height="240" />
   </a>
-  <p align="center">Make your Vim/Neovim as smart as VSCode</p>
+  <p align="center">Make your Vim/Neovim as smart as VS Code</p>
   <p align="center">
     <a href="LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-Anti%20996-brightgreen.svg?style=flat-square"></a>
     <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/coc.nvim/ci.yml?style=flat-square&branch=master"></a>
@@ -14,7 +14,7 @@
 
 ---
 
-<img alt="Gif" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
+<img alt="Custom coc popup menu with snippet support" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
 
 _Custom popup menu with snippet support_
 
@@ -38,7 +38,7 @@ curl -sL install-node.vercel.app/lts | bash
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
 ```vim
-" Use release branch (recommend)
+" Use release branch (recommended)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " Or build from source code by using yarn: https://yarnpkg.com
@@ -51,15 +51,14 @@ Checkout [Install
 coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
 more info.
 
-You **have to** install coc extension or configure language servers for
+You **have to** install coc extensions or configure language servers for
 LSP support.
 
-Install extensions like:
+Install extensions like this:
 
     :CocInstall coc-json coc-tsserver
 
-Or configure language server in `coc-settings.json` opened by
-`:CocConfig`, like:
+Or you can configure a language server in your `coc-settings.json`(open it using `:CocConfig`) like this:
 
 ```json
 {
@@ -90,7 +89,7 @@ Configuration is required to make coc.nvim easier to work with, since it
 doesn't change your key-mappings or Vim options. This is done as much as
 possible to avoid conflict with your other plugins.
 
-**❗️Important**: Some Vim plugins could change key mappings. Please use
+**❗️Important**: Some Vim plugins can change your key mappings. Please use
 command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
@@ -367,10 +366,8 @@ keyset("n", "<leader>a", "<Plug>(coc-codeaction-selected)", opts)
 
 -- Remap keys for apply code actions at the cursor position.
 keyset("n", "<leader>ac", "<Plug>(coc-codeaction-cursor)", opts)
--- Remap keys for apply code actions affect whole buffer.
+-- Remap keys for apply source code actions for current file.
 keyset("n", "<leader>as", "<Plug>(coc-codeaction-source)", opts)
--- Remap keys for applying codeActions to the current buffer
-keyset("n", "<leader>ac", "<Plug>(coc-codeaction)", opts)
 -- Apply the most preferred quickfix action on the current line.
 keyset("n", "<leader>qf", "<Plug>(coc-fix-current)", opts)
 
