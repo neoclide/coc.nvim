@@ -67,7 +67,7 @@ export default class Plugin {
     this.addAction('openLocalConfig', () => this.handler.workspace.openLocalConfig())
     this.addAction('bufferCheck', () => this.handler.workspace.bufferCheck())
     this.addAction('showInfo', () => this.handler.workspace.showInfo())
-    this.addAction('hasProvider', id => this.handler.hasProvider(id))
+    this.addAction('hasProvider', (id: string, bufnr?: number) => this.handler.hasProvider(id, bufnr))
     this.addAction('cursorsSelect', (bufnr: number, kind: string, mode: string) => this.cursors.select(bufnr, kind, mode))
     this.addAction('fillDiagnostics', (bufnr: number) => diagnosticManager.setLocationlist(bufnr))
     this.addAction('commandList', () => this.handler.commands.getCommandList())
