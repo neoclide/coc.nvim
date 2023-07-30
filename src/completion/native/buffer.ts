@@ -17,9 +17,10 @@ export class Buffer extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
     let { bufnr, input, word, triggerForInComplete } = opt
+    if (input.length === 0) return null
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
-    if (input.length === 0 || token.isCancellationRequested) return null
+    if (token.isCancellationRequested) return null
     let iterables: Iterable<string>[] = []
     for (let buf of this.keywords.items) {
       if (buf.bufnr === bufnr || (this.ignoreGitignore && buf.gitIgnored)) continue

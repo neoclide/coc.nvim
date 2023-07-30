@@ -13,17 +13,18 @@ export class Around extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
     let { bufnr, input, word, linenr, triggerForInComplete } = opt
+    if (input.length === 0) return null
     let buf = this.keywords.getItem(bufnr)
+    if (!buf) return null
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
-    if (input.length === 0 || !buf || token.isCancellationRequested) return null
+    if (token.isCancellationRequested) return null
     let iterable = buf.matchWords(linenr - 1)
     let items: Set<string> = new Set()
     let isIncomplete = await this.getResults([iterable], input, word, items, token)
     return {
-      isIncomplete, items: Array.from(items).map(s => {
-        return { word: s }
-      })
+      isIncomplete,
+      items: Array.from(items, word => ({ word }))
     }
   }
 }
