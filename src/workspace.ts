@@ -270,7 +270,7 @@ export class Workspace {
   }
 
   /**
-   * Keeped for backward compatible
+   * Kept for backward compatible
    */
   public get completeOpt(): string {
     return ''
