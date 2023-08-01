@@ -367,7 +367,7 @@ echoed).
 LSP FEATURES 						*coc-lsp*
 
 Most features of LSP 3.17 are supported, checkout the specification at
-https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
 
 Features not supported:
 
