@@ -31,7 +31,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
   private itemDefaults: ItemDefaults = {}
   // cursor position on trigger
   private triggerContext: TriggerContext | undefined
-  // Keeped Promise for resolve
+  // Kept Promise for resolve
   private resolving: WeakMap<CompletionItem, Promise<void>> = new WeakMap()
   constructor(
     public readonly name: string,

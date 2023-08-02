@@ -132,7 +132,7 @@ export class ExtensionManager {
       if (!activationEvents || activationEvents.includes('*')) {
         promises.push(void extension.activate())
       } else {
-        void this.autoActiavte(key, extension)
+        void this.autoActivate(key, extension)
       }
     }
     return Promise.allSettled(promises)
@@ -394,7 +394,7 @@ export class ExtensionManager {
     return extension.isActive ? 'activated' : 'loaded'
   }
 
-  public async autoActiavte(id: string, extension: Extension<API>): Promise<void> {
+  public async autoActivate(id: string, extension: Extension<API>): Promise<void> {
     try {
       let checked = await this.checkAutoActivate(extension.packageJSON)
       if (checked) await Promise.resolve(extension.activate())
@@ -514,7 +514,7 @@ export class ExtensionManager {
     })
     this.registContribution(id, packageJSON, root, filename)
     this._onDidLoadExtension.fire(extension)
-    if (this.activated && !noActive) await this.autoActiavte(id, extension)
+    if (this.activated && !noActive) await this.autoActivate(id, extension)
   }
 
   public unregistContribution(id: string): void {
@@ -540,7 +540,7 @@ export class ExtensionManager {
     })
     this.registContribution(id, packageJSON, __dirname)
     this._onDidLoadExtension.fire(extension)
-    await this.autoActiavte(id, extension)
+    await this.autoActivate(id, extension)
   }
 
   /**

@@ -135,7 +135,7 @@ describe('ExtensionManager', () => {
       expect(fn).toThrow(Error)
     })
 
-    it('should not throw when autoActiavte throws', async () => {
+    it('should not throw when autoActivated throws', async () => {
       tmpfolder = createFolder()
       createExtension(tmpfolder, {
         name: 'name',
@@ -148,7 +148,7 @@ describe('ExtensionManager', () => {
       let spy = jest.spyOn(manager, 'checkAutoActivate' as any).mockImplementation(() => {
         throw new Error('test error')
       })
-      await manager.autoActiavte('name', extension)
+      await manager.autoActivate('name', extension)
       spy.mockRestore()
     })
 
