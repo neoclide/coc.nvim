@@ -292,6 +292,7 @@ describe('workspace methods', () => {
     expect(workspace.match([{ scheme: 'file' }], doc.textDocument)).toBe(5)
     expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
+    expect(workspace.match([{ language: 'xml', scheme: 'file', pattern: '**/*.xml' }], doc.textDocument)).toBe(10)
   })
 
   it('should handle will save event', async () => {
