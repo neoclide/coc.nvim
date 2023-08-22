@@ -140,7 +140,7 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
       let p = caseInsensitive ? pattern.toLowerCase() : pattern
       let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
       if (p === f || minimatch(f, p, { dot: true })) {
-        ret = 5
+        ret = Math.max(ret, 5)
       } else {
         return 0
       }
