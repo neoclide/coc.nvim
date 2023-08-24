@@ -1,6 +1,6 @@
 'use strict'
 import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import Highlighter from '../model/highligher'
+import Highlighter from '../model/highlighter'
 import { defaultValue, disposeAll, getConditionValue, wait } from '../util'
 import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'
@@ -261,7 +261,6 @@ export default class ListSession {
 
   /**
    * Window id used by list.
-   *
    * @returns {number | undefined}
    */
   public get winid(): number | undefined {

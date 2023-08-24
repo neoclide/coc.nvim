@@ -23,7 +23,7 @@ import listManager from './list/manager'
 import download from './model/download'
 import fetch from './model/fetch'
 import FloatFactory from './model/floatFactory'
-import Highligher from './model/highligher'
+import Highlighter from './model/highlighter'
 import Mru from './model/mru'
 import RelativePattern from './model/relativePattern'
 import services, { ServiceStat } from './services'
@@ -80,7 +80,7 @@ module.exports = {
   ProtocolRequestType0,
   ProtocolNotificationType,
   ProtocolNotificationType0,
-  Highligher,
+  Highlighter,
   Mru,
   Emitter,
   SnippetString,

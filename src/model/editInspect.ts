@@ -12,7 +12,7 @@ import { isParentFolder } from '../util/fs'
 import { fastDiff, path } from '../util/node'
 import { Disposable } from '../util/protocol'
 import { getAnnotationKey, getPositionFromEdits, mergeSortEdits } from '../util/textedit'
-import Highlighter from './highligher'
+import Highlighter from './highlighter'
 
 export type RecoverFunc = () => Promise<any> | void
 
