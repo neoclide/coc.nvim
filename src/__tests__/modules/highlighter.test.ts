@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import Highlighter from '../../model/highligher'
+import Highlighter from '../../model/highlighter'
 import helper from '../helper'
 
 let nvim: Neovim
