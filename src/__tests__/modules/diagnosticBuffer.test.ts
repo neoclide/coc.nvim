@@ -45,7 +45,7 @@ describe('diagnostic buffer', () => {
       helper.updateConfiguration('diagnostic.messageTarget', 'echo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [createDiagnostic('foo')]
-      let res = await buf.showFloat(diagnostics)
+      let res = await buf.showFloat(diagnostics, 'echo')
       expect(res).toBe(false)
     })
 
