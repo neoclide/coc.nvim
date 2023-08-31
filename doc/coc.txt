@@ -1169,8 +1169,8 @@ Cursors session could be started by following ways:
 
   • Use command `:CocCommand document.renameCurrentWord` to rename variable
     under cursor.
-  • Use |<Plug>(coc-refactor)| to open refactor buffer.
-  • Use |:CocSearch| to open searched locations.
+  • Use |<Plug>(coc-refactor)| to open |coc-refactor-buffer|.
+  • Use |:CocSearch| to open searched locations with |coc-refactor-buffer|.
   • Use cursors related key-mappings to add text range, including
   |<Plug>(coc-cursors-operator)|, |<Plug>(coc-cursors-word)|,
   |<Plug>(coc-cursors-position)| and |<Plug>(coc-cursors-range)|
@@ -1185,6 +1185,18 @@ Default key-mappings when cursors activated:
 Use |coc-config-cursors| to change cursors related key-mappings.
 Use highlight group |CocCursorRange| to change default range highlight.
 Use |b:coc_cursors_activated| to check if cursors session is activated.
+
+							*coc-refactor-buffer*
+
+Refactor buffer is a specific buffer with |coc-cursors| enabled, normally
+opened by |CocAction('refactor')| and |:CocSearch|. When the refactor buffer
+saved, related buffers and files would be changed at once, workspace edits
+would be applied, which could be undo and redo, see |coc-workspace-edits|.
+
+Check out |coc-config-refactor| for related configuration.
+
+Use <CR> to open buffer at current position in split window.
+Use <Tab> to invoke tab open or remove action with current code chunk.
 
 --------------------------------------------------------------------------------
 SYMBOLS OUTLINE						*coc-outline*
@@ -2603,13 +2615,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "refactor"						*CocAction('refactor')*
 
-	Open refactor windows with current symbol as activated cursor ranges.
-	Check |coc-config-cursors| and |coc-config-refactor| for related
-	configuration. Use |coc-config-workspace-openResourceCommand| for
-	command to open buffers on save.
-
-	Use <CR> to open buffer at current position in split window.
-	Use <Tab> to invoke tab open or remove action with current chunk.
+	Open |coc-refactor-buffer| with current symbol as activated cursor
+	ranges. Requires LSP rename support enabled with current buffer, use
+	|:CocSearch| when rename support is not available.
 
 "format"						*CocAction('format')*
 
@@ -3007,7 +3015,7 @@ COMMANDS						*coc-commands*
 :CocSearch 						*:CocSearch*
 
 	Perform search by ripgrep https://github.com/BurntSushi/ripgrep,
-	refactor window would be opened.
+	and open |coc-refactor-buffer| with searched results.
 
 	Note: the search is performed on your files, so normally you should
 	save your buffers before invoke this command.
