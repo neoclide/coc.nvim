@@ -297,7 +297,9 @@ describe('WorkspaceFolderController', () => {
     it('should not throw on timeout', async () => {
       let spy = jest.spyOn(workspaceFolder, 'checkFolder').mockImplementation((_dir, _patterns, token) => {
         return new Promise((resolve, reject) => {
-          let timer = setTimeout(resolve, 200)
+          let timer = setTimeout(() => {
+            resolve(undefined)
+          }, 200)
           token.onCancellationRequested(() => {
             clearTimeout(timer)
             reject(new CancellationError())

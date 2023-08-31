@@ -1131,7 +1131,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.cleanUp(mode)
 
     let tm: NodeJS.Timeout
-    const tp = new Promise<undefined>(c => { tm = setTimeout(c, timeout) })
+    const tp = new Promise<any>(c => { tm = setTimeout(c, timeout) })
     const shutdown = (async connection => {
       await connection.shutdown()
       await connection.exit()

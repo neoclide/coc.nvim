@@ -270,7 +270,7 @@ export function findUp(name: string | string[], cwd: string): string {
   return null
 }
 
-export function readFile(fullpath: string, encoding: string): Promise<string> {
+export function readFile(fullpath: string, encoding: BufferEncoding): Promise<string> {
   return new Promise((resolve, reject) => {
     fs.readFile(fullpath, encoding, (err, content) => {
       if (err) reject(err)
