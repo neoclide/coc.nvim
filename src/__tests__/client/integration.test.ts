@@ -432,7 +432,7 @@ describe('Client integration', () => {
       revealOutputChannelOn: lsclient.RevealOutputChannelOn.Info,
       outputChannelName: 'custom',
       connectionOptions: {
-        cancellationStrategy: {} as any,
+        cancellationStrategy: { sender: {} } as any,
         maxRestartCount: 10,
       },
       stdioEncoding: 'utf8',
