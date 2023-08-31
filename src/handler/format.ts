@@ -44,7 +44,7 @@ export default class FormatHandler {
             return undefined
           }
           let options = await workspace.getFormatOptions(event.document.uri)
-          let formatOnSaveTimeout = workspace.initialConfiguration.get<number>('coc.preferences.formatOnSaveTimeout', 500)
+          let formatOnSaveTimeout = workspace.getConfiguration('coc.preferences', event.document).get('formatOnSaveTimeout', 500)
           let timer: NodeJS.Timer
           let tokenSource = new CancellationTokenSource()
           const tp = new Promise<undefined>(c => {
