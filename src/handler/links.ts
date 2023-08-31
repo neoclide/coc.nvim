@@ -145,6 +145,7 @@ export default class Links implements Disposable {
 }
 
 class LinkBuffer implements SyncItem {
+  private currentVersion = -1
   private tokenSource: CancellationTokenSource | undefined
   private _config: LinkConfig | undefined
   public links: DocumentLink[] = []
@@ -215,7 +216,9 @@ class LinkBuffer implements SyncItem {
   }
 
   public async getLinks(): Promise<void> {
-    if (!this.hasProvider || !this.config.enable) return
+    if (!this.hasProvider || !this.config.enable || this.currentVersion === this.doc.version) return
+    this.currentVersion = this.doc.version
+
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
