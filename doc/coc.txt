@@ -2445,9 +2445,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Get all diagnostic items of the current Neovim session.
 
-"diagnosticInfo"					*CocAction('diagnosticInfo')*
+"diagnosticInfo" [{target}]				*CocAction('diagnosticInfo')*
 
 	Show diagnostic message at the current position, do not truncate.
+
+	Optional {target} could be `float` or `echo`.
 
 "diagnosticToggle" [{enable}]	 			*CocAction('diagnosticToggle')*
 
