@@ -201,12 +201,9 @@ export default class InlayHintBuffer implements SyncItem {
       }
       if (isVim) {
         buffer.setVirtualText(srcId, position.line, chunks, { col })
-      } else {
+      } else if (workspace.has('nvim-0.10.0')) {
         buffer.setExtMark(srcId, position.line, col - 1, {
           virt_text: chunks,
-          // TODO: needs @chemzqm/neovim to support virt_text_pos inline, disable the error alert for now
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           virt_text_pos: 'inline',
           hl_mode: 'combine'
         })

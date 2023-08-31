@@ -310,10 +310,10 @@
     ieee754 "^1.1.8"
     int64-buffer "^0.1.9"
 
-"@chemzqm/neovim@^6.1.1":
-  version "6.1.1"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-6.1.1.tgz#bd624e27844ee7e1b7dc39f3abb30a25bcde2479"
-  integrity sha512-FadmfnNrtSFv6fsjQEevYCBZG5gxeHmfM545SSqS7lXoHlNBWhqQgeAmzcQ8AQGn3jPeXriDISOAuPvEy8NIgg==
+"@chemzqm/neovim@^6.1.2":
+  version "6.1.2"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-6.1.2.tgz#d4ae71d5bc6032aaabc5622522e5382ad305f7fe"
+  integrity sha512-gUQrGlz8cYOgywfj0S8Nht2WfTFQtLvun/erdCIhFdnK0eh1GhxcR2nM5xk1PcSXP3ewRK40gbRgJ3RFP6CSqQ==
   dependencies:
     "@chemzqm/msgpack-lite" "^0.1.29"
 
@@ -3368,6 +3368,7 @@ string-length@^4.0.1:
     strip-ansi "^6.0.0"
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -3386,6 +3387,7 @@ string-width@^5.0.1, string-width@^5.1.2:
     strip-ansi "^7.0.1"
 
 "strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+  name strip-ansi-cjs
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -3632,6 +3634,7 @@ which@^2.0.1, which@^2.0.2:
     isexe "^2.0.0"
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+  name wrap-ansi-cjs
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==

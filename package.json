@@ -46,6 +46,7 @@
       "ts",
       "tsx",
       "json",
+      "mjs",
       "js"
     ],
     "transform": {
@@ -91,7 +92,7 @@
     "vscode-languageserver": "^8.1.0"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^6.1.1",
+    "@chemzqm/neovim": "^6.1.2",
     "ansi-styles": "^5.0.0",
     "bytes": "^3.1.0",
     "caniuse-lite": "^1.0.30001524",

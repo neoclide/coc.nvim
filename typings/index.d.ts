@@ -2972,7 +2972,7 @@ declare module 'coc.nvim' {
      * and [Position.character](#Position.character).
      * If the start range position is greater than the end range position,
      * then the effect of getText is as if the two positions were swapped.
-  
+
      * @return The text of this document or a substring of the text if a
      *         range is provided.
      */
@@ -3832,7 +3832,7 @@ declare module 'coc.nvim' {
     hl_eol?: boolean
     // A list of [text, highlight] tuples
     virt_text?: [string, string | string[]][]
-    virt_text_pos?: 'eol' | 'overlay' | 'right_align'
+    virt_text_pos?: 'eol' | 'overlay' | 'right_align' | 'inline'
     virt_text_win_col?: number
     virt_text_hide?: boolean
     virt_lines?: [string, string | string[]][][]
