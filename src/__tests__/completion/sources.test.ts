@@ -6,7 +6,7 @@ import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-l
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
-import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
+import { File, filterFiles, getDirectory, getFileItem, getFilePathFromLine, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
 import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource from '../../completion/source-vim'
 import sources, { Sources, logError, getSourceType } from '../../completion/sources'
@@ -350,6 +350,11 @@ describe('native sources', () => {
   it('should getItemsFromRoot', async () => {
     let res = await getItemsFromRoot('a/b', '/not_exists', true, [])
     expect(res).toEqual([])
+  })
+
+  it('should getFilePathFromLine', () => {
+    expect(getFilePathFromLine('$HOME/ $PWD/', 6)).toBe('$HOME/')
+    expect(getFilePathFromLine('$HOME/ $PWD/', 12)).toBe('$PWD/')
   })
 
   it('should getFileItem', async () => {
