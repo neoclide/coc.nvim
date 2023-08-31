@@ -412,7 +412,7 @@ export class Converter {
     const character = range.start.character
     this.minCharacter = Math.min(this.minCharacter, character)
     let filterText = item.filterText ?? word
-    filterText = asciiMatch ? unidecode(filterText) : filterText, character
+    filterText = asciiMatch ? unidecode(filterText) : filterText
     const delta = this.getDelta(filterText, character)
     return {
       word: this.fixFollow(word, item.isSnippet, range.end.character),
