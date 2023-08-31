@@ -1071,6 +1071,8 @@ A snippet session would be deactivated under the following conditions:
   • Content changed in a snippet outside placeholder (except for deletion of
   plain text).
 
+Use |CocAction('snippetCancel')| for cancel snippet session manually.
+
 To load and expand custom snippets, install `coc-snippets` extension is
 recommended.
 
@@ -2640,6 +2642,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	`V`, `char`, `line`.
 
 	When {mode} is omitted, it should be called using |formatexpr|.
+
+"snippetCancel"						*CocAction('snippetCancel')*
+
+	Cancel current snippet session.
 
 "snippetInsert" {range} {snippet} [{mode}]		*CocAction('snippetInsert')*
 
