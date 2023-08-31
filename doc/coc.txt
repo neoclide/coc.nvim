@@ -2993,8 +2993,12 @@ COMMANDS						*coc-commands*
 
 :CocCommand {name} [{args}] ... 			*:CocCommand*
 
-	Run a command contributed by extensions, use `<tab>` for name
-	completion.
+	Run a command provided by coc.nvim or contributed by extensions, use
+	`<tab>` for name completion.
+
+	This command send notification to coc.nvim, to perform task after
+	the command use |CocAction('runCommand')| instead.
+
 
 :CocOpenLog						*:CocOpenLog*
 
