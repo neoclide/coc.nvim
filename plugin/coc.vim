@@ -99,8 +99,9 @@ function! CocAction(name, ...) abort
   return coc#rpc#request(a:name, a:000)
 endfunction
 
-function! CocHasProvider(name) abort
-  return coc#rpc#request('hasProvider', [a:name])
+function! CocHasProvider(name, ...) abort
+  let bufnr = empty(a:000) ? bufnr('%') : a:1
+  return coc#rpc#request('hasProvider', [a:name, bufnr])
 endfunction
 
 function! CocActionAsync(name, ...) abort

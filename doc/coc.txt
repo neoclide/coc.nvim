@@ -2398,16 +2398,19 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	Checkout |coc-actions| for available actions.
 
-CocHasProvider({feature})				*CocHasProvider()*
+CocHasProvider({feature}, [{bufnr}])			*CocHasProvider()*
 
-	Check if provider exists for specified feature of current buffer.
+	Check if provider exists for specified feature of current or
+	{bufnr} buffer.
 	Supported features:
 
 	`rename` `onTypeEdit` `documentLink` `documentColor` `foldingRange`
 	`format` `codeAction` `workspaceSymbols` `formatRange` `hover`
 	`signature` `documentSymbol` `documentHighlight` `definition`
 	`declaration` `typeDefinition` `reference` `implementation` `codeLens`
-	`selectionRange`
+	`selectionRange` `formatOnType` `callHierarchy` `semanticTokens`
+	`semanticTokensRange` `linkedEditing` `inlayHint` `inlineValue`
+	`typeHierarchy`
 
 CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 

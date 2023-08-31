@@ -274,8 +274,8 @@ export default class Handler implements HandlerDelegate {
     await this.codeActions.applyCodeAction(action)
   }
 
-  public async hasProvider(id: string): Promise<boolean> {
-    let bufnr = await this.nvim.call('bufnr', '%') as number
+  public async hasProvider(id: string, bufnr?: number): Promise<boolean> {
+    if (!bufnr) bufnr = await this.nvim.call('bufnr', '%') as number
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return false
     return languages.hasProvider(id as ProviderName, doc.textDocument)
