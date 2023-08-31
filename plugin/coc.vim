@@ -99,8 +99,9 @@ function! CocAction(name, ...) abort
   return coc#rpc#request(a:name, a:000)
 endfunction
 
-function! CocHasProvider(name) abort
-  return coc#rpc#request('hasProvider', [a:name])
+function! CocHasProvider(name, ...) abort
+  let bufnr = empty(a:000) ? bufnr('%') : a:1
+  return coc#rpc#request('hasProvider', [a:name, bufnr])
 endfunction
 
 function! CocActionAsync(name, ...) abort
@@ -645,8 +646,8 @@ function! s:ShowInfo()
     else
       let output = trim(system(node . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-      if empty(ms) || str2nr(ms[1]) < 14 || (str2nr(ms[1]) == 14 && str2nr(ms[2]) < 14)
-        call add(lines, 'Error: Node version '.output.' < 14.14.0, please upgrade node.js')
+      if empty(ms) || str2nr(ms[1]) < 16 || (str2nr(ms[1]) == 16 && str2nr(ms[2]) < 18)
+        call add(lines, 'Error: Node version '.output.' < 16.18.0, please upgrade node.js')
       endif
     endif
     " check bundle

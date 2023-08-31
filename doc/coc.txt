@@ -107,7 +107,7 @@ REQUIREMENTS						*coc-requirements*
 
 Neovim >= 0.4.0 or Vim >= 8.1.1719.
 
-NodeJS https://nodejs.org/ >= 14.14.0.
+NodeJS https://nodejs.org/ >= 16.18.0.
 
 Yarn https://yarnpkg.com/ required to build coc.nvim from typescript source
 code.
@@ -367,7 +367,7 @@ echoed).
 LSP FEATURES 						*coc-lsp*
 
 Most features of LSP 3.17 are supported, checkout the specification at
-https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
 
 Features not supported:
 
@@ -837,8 +837,8 @@ Use |coc-config-signature| to change default signature help behavior.
 ------------------------------------------------------------------------------
 INLAY HINT 						*coc-inlayHint*
 
-Inlay hint is enabled for all filetypes by default. Inlay hint uses virtual
-text which requires neovim >= 0.5.0 or vim >= 9.0.0067.
+Inlay hint is enabled for all filetypes by default.  Inlay hint uses virtual
+text which requires neovim >= 0.10.0 or vim >= 9.0.0067.
 
 Note: you may need configure extension or languageserver to make inlay hint
 works.
@@ -1169,8 +1169,8 @@ Cursors session could be started by following ways:
 
   • Use command `:CocCommand document.renameCurrentWord` to rename variable
     under cursor.
-  • Use |<Plug>(coc-refactor)| to open refactor buffer.
-  • Use |:CocSearch| to open searched locations.
+  • Use |<Plug>(coc-refactor)| to open |coc-refactor-buffer|.
+  • Use |:CocSearch| to open searched locations with |coc-refactor-buffer|.
   • Use cursors related key-mappings to add text range, including
   |<Plug>(coc-cursors-operator)|, |<Plug>(coc-cursors-word)|,
   |<Plug>(coc-cursors-position)| and |<Plug>(coc-cursors-range)|
@@ -1185,6 +1185,18 @@ Default key-mappings when cursors activated:
 Use |coc-config-cursors| to change cursors related key-mappings.
 Use highlight group |CocCursorRange| to change default range highlight.
 Use |b:coc_cursors_activated| to check if cursors session is activated.
+
+							*coc-refactor-buffer*
+
+Refactor buffer is a specific buffer with |coc-cursors| enabled, normally
+opened by |CocAction('refactor')| and |:CocSearch|. When the refactor buffer
+saved, related buffers and files would be changed at once, workspace edits
+would be applied, which could be undo and redo, see |coc-workspace-edits|.
+
+Check out |coc-config-refactor| for related configuration.
+
+Use <CR> to open buffer at current position in split window.
+Use <Tab> to invoke tab open or remove action with current code chunk.
 
 --------------------------------------------------------------------------------
 SYMBOLS OUTLINE						*coc-outline*
@@ -1945,6 +1957,11 @@ g:coc_status						*g:coc_status*
 	Status string contributed by coc.nvim and extensions, used for status
 	line.
 
+	You may need to escape `%` for your status line plugin.
+	VimL: `substitute(g:coc_status, '%', '%%', 'g')`
+	Lua: `string.gsub(vim.g.coc_status, "%%", "%%%%")`
+	
+
 g:coc_last_float_win					*g:coc_last_float_win*
 
 	Window id of latest created float/popup window.
@@ -2381,16 +2398,19 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	Checkout |coc-actions| for available actions.
 
-CocHasProvider({feature})				*CocHasProvider()*
+CocHasProvider({feature}, [{bufnr}])			*CocHasProvider()*
 
-	Check if provider exists for specified feature of current buffer.
+	Check if provider exists for specified feature of current or
+	{bufnr} buffer.
 	Supported features:
 
 	`rename` `onTypeEdit` `documentLink` `documentColor` `foldingRange`
 	`format` `codeAction` `workspaceSymbols` `formatRange` `hover`
 	`signature` `documentSymbol` `documentHighlight` `definition`
 	`declaration` `typeDefinition` `reference` `implementation` `codeLens`
-	`selectionRange`
+	`selectionRange` `formatOnType` `callHierarchy` `semanticTokens`
+	`semanticTokensRange` `linkedEditing` `inlayHint` `inlineValue`
+	`typeHierarchy`
 
 CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 
@@ -2425,9 +2445,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Get all diagnostic items of the current Neovim session.
 
-"diagnosticInfo"					*CocAction('diagnosticInfo')*
+"diagnosticInfo" [{target}]				*CocAction('diagnosticInfo')*
 
 	Show diagnostic message at the current position, do not truncate.
+
+	Optional {target} could be `float` or `echo`.
 
 "diagnosticToggle" [{enable}]	 			*CocAction('diagnosticToggle')*
 
@@ -2603,13 +2625,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "refactor"						*CocAction('refactor')*
 
-	Open refactor windows with current symbol as activated cursor ranges.
-	Check |coc-config-cursors| and |coc-config-refactor| for related
-	configuration. Use |coc-config-workspace-openResourceCommand| for
-	command to open buffers on save.
-
-	Use <CR> to open buffer at current position in split window.
-	Use <Tab> to invoke tab open or remove action with current chunk.
+	Open |coc-refactor-buffer| with current symbol as activated cursor
+	ranges. Requires LSP rename support enabled with current buffer, use
+	|:CocSearch| when rename support is not available.
 
 "format"						*CocAction('format')*
 
@@ -3007,7 +3025,7 @@ COMMANDS						*coc-commands*
 :CocSearch 						*:CocSearch*
 
 	Perform search by ripgrep https://github.com/BurntSushi/ripgrep,
-	refactor window would be opened.
+	and open |coc-refactor-buffer| with searched results.
 
 	Note: the search is performed on your files, so normally you should
 	save your buffers before invoke this command.

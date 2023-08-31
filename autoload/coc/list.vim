@@ -185,11 +185,22 @@ function! coc#list#get_preview(...) abort
   return -1
 endfunction
 
-function! coc#list#scroll_preview(dir) abort
+function! coc#list#scroll_preview(dir, floatPreview) abort
   let winid = coc#list#get_preview()
   if winid == -1
     return
   endif
+  if a:floatPreview
+    let forward = a:dir ==# 'up' ? 0 : 1
+    let amount = 1
+    if s:is_vim
+      call coc#float#scroll_win(winid, forward, amount)
+    else
+      call timer_start(0, { -> coc#float#scroll_win(winid, forward, amount)})
+    endif
+    return
+  endif
+
   if exists('*win_execute')
     call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
   else

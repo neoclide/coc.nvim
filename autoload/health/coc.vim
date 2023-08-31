@@ -32,9 +32,9 @@ function! s:checkEnvironment() abort
   if empty(ms)
     let valid = 0
     call health#report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
-  elseif str2nr(ms[1]) < 14 || (str2nr(ms[1]) == 14 && str2nr(ms[2]) < 14)
+  elseif str2nr(ms[1]) < 16 || (str2nr(ms[1]) == 16 && str2nr(ms[2]) < 18)
     let valid = 0
-    call health#report_warn('Node.js version '.trim(output).' < 14.14.0, please upgrade node.js')
+    call health#report_warn('Node.js version '.trim(output).' < 16.18.0, please upgrade node.js')
   endif
   if valid
     call health#report_ok('Environment check passed')
