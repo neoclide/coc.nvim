@@ -171,13 +171,11 @@ export default class Watchman {
 }
 
 /**
- * Exclude user's home, driver, tmpdir
+ * Exclude root, user's home, driver and tmpdir, but allow sub-directories under them.
  */
 export function isValidWatchRoot(root: string): boolean {
-  if (root == '/' || root == '/tmp' || root == '/private/tmp') return false
+  if (root == '/' || root == '/tmp' || root == '/private/tmp' || root == os.tmpdir()) return false
   if (isParentFolder(root, os.homedir(), true)) return false
   if (path.parse(root).base == root) return false
-  if (root.startsWith('/tmp/') || root.startsWith('/private/tmp/')) return false
-  if (isParentFolder(os.tmpdir(), root, true)) return false
   return true
 }

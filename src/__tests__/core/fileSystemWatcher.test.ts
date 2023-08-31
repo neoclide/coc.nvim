@@ -246,8 +246,9 @@ describe('isValidWatchRoot()', () => {
   it('should check valid root', async () => {
     expect(isValidWatchRoot('/')).toBe(false)
     expect(isValidWatchRoot(os.homedir())).toBe(false)
-    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(false)
     expect(isValidWatchRoot(os.tmpdir())).toBe(false)
+    expect(isValidWatchRoot('/tmp/a')).toBe(true)
+    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(true)
   })
 })
 
@@ -307,7 +308,7 @@ describe('fileSystemWatcher', () => {
 
   it('should use relative pattern #3', async () => {
     let called = false
-    let root = path.join(os.tmpdir(), 'not_exists')
+    let root = path.join(process.cwd(), 'not_exists')
     let pattern = new RelativePattern(root, '**/*')
     let watcher = createWatcher(pattern, false, true, true)
     watcher.onDidCreate(() => {
