@@ -308,7 +308,7 @@ describe('fileSystemWatcher', () => {
 
   it('should use relative pattern #3', async () => {
     let called = false
-    let root = path.join(os.tmpdir(), 'not_exists')
+    let root = path.join(process.cwd(), 'not_exists')
     let pattern = new RelativePattern(root, '**/*')
     let watcher = createWatcher(pattern, false, true, true)
     watcher.onDidCreate(() => {
