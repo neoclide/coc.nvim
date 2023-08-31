@@ -59,6 +59,9 @@ export class Completion implements Disposable {
     events.on('CursorMoved', () => {
       this.stop(true)
     }, null, this.disposables)
+    events.on('PumNavigate', () => {
+      this.complete?.cancel()
+    }, null, this.disposables)
     events.on('CursorMovedI', this._debounced, this, this.disposables)
     events.on('CursorMovedI', () => {
       clearTimeout(this.triggerTimer)

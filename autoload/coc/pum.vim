@@ -4,6 +4,7 @@ let s:pum_bufnr = 0
 let s:pum_winid = -1
 let s:pum_index = -1
 let s:pum_size = 0
+" word of complete item inserted
 let s:inserted = 0
 let s:virtual_text = 0
 let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
@@ -266,6 +267,7 @@ function! coc#pum#_navigate(next, insert) abort
     call s:save_indentkeys()
     let index = s:get_index(a:next)
     call s:select_by_index(index, a:insert)
+    call coc#rpc#notify('PumNavigate', [])
   endif
   return ''
 endfunction

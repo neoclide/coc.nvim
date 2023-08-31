@@ -1385,6 +1385,46 @@ describe('completion', () => {
       expect(items.length).toEqual(1)
       expect(items[0].word).toBe('foo')
     })
+
+    it('should cancel completion on navigate', async () => {
+      let source1: ISource = {
+        name: 'source1',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async () => Promise.resolve({
+          items: [{ word: 'foo' }, { word: 'for' }]
+        })
+      }
+      let cancelled = false
+      let source2: ISource = {
+        name: 'source2',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async (opt: CompleteOption, token) => {
+          return new Promise(resolve => {
+            let timer = setTimeout(() => {
+              resolve({ items: [{ word: 'foobar' }] })
+            }, 500)
+            token.onCancellationRequested(() => {
+              cancelled = true
+              clearTimeout(timer)
+            })
+          })
+        }
+      }
+      disposables.push(sources.addSource(source1))
+      disposables.push(sources.addSource(source2))
+
+      await nvim.input('i')
+      await nvim.input('f')
+      await helper.waitPopup()
+      await nvim.input('<down>')
+      await helper.waitValue(() => {
+        return cancelled
+      }, true)
+    })
   })
 
   describe('indent change', () => {
