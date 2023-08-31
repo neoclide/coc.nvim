@@ -40,7 +40,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-          cache: "npm"
+          cache: "yarn"
 
       - name: Setup python3
         uses: actions/setup-python@v4
@@ -64,7 +64,7 @@ jobs:
       - name: Install Dependencies
         run: |
           yarn global add bytes
-          npm install --frozen-lockfile
+          yarn install --frozen-lockfile
           sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version
           rg --version
