@@ -186,36 +186,37 @@ export function resolveRoot(folder: string, subs: ReadonlyArray<string>, cwd?: s
 }
 
 export function checkFolder(dir: string, patterns: string[], token?: CancellationToken): Promise<boolean> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (isFalsyOrEmpty(patterns)) return resolve(false)
     let disposable: Disposable | undefined
+    const ac = new AbortController()
     if (token) {
       disposable = token.onCancellationRequested(() => {
+        ac.abort()
         reject(new CancellationError())
       })
     }
+
     let find = false
     let pattern = patterns.length == 1 ? patterns[0] : `{${patterns.join(',')}}`
     let gl = new glob.Glob(pattern, {
       nosort: true,
+      signal: ac.signal,
       ignore: ['node_modules/**', '.git/**'],
       dot: true,
       cwd: dir,
       nodir: true,
       absolute: false
-    }, _err => {
-      if (disposable) disposable.dispose()
-      resolve(find)
     })
-    gl.on('match', () => {
-      if (disposable) disposable.dispose()
-      find = true
-      resolve(true)
-    })
-    gl.on('end', () => {
-      if (disposable) disposable.dispose()
-      resolve(find)
-    })
+    try {
+      for await (const _file of gl) {
+        find = true
+        break
+      }
+    } catch (e) {
+      logger.error(`Error on glob "${pattern}"`, dir, e)
+    }
+    resolve(find)
   })
 }
 

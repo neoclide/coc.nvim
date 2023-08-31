@@ -54,7 +54,6 @@ export interface TextDocumentWillSaveEvent {
    *
    * *Note:* This function can only be called during event dispatch and not
    * in an asynchronous manner:
-   *
    * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
    */
   waitUntil(thenable: Thenable<TextEdit[] | any>): void
@@ -82,14 +81,13 @@ export interface FileWillRenameEvent {
    *
    * ```ts
    * workspace.onWillCreateFiles(event => {
-   * 	// async, will *throw* an error
-   * 	setTimeout(() => event.waitUntil(promise));
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
    *
-   * 	// sync, OK
-   * 	event.waitUntil(promise);
+   * // sync, OK
+   * event.waitUntil(promise);
    * })
    * ```
-   *
    * @param thenable A thenable that delays saving.
    */
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
@@ -133,14 +131,13 @@ export interface FileWillCreateEvent {
    *
    * ```ts
    * workspace.onWillCreateFiles(event => {
-   *     // async, will *throw* an error
-   *     setTimeout(() => event.waitUntil(promise));
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
    *
-   *     // sync, OK
-   *     event.waitUntil(promise);
+   * // sync, OK
+   * event.waitUntil(promise);
    * })
    * ```
-   *
    * @param thenable A thenable that delays saving.
    */
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
@@ -179,14 +176,13 @@ export interface FileWillDeleteEvent {
    *
    * ```ts
    * workspace.onWillCreateFiles(event => {
-   *     // async, will *throw* an error
-   *     setTimeout(() => event.waitUntil(promise));
+   * // async, will *throw* an error
+   * setTimeout(() => event.waitUntil(promise));
    *
-   *     // sync, OK
-   *     event.waitUntil(promise);
+   * // sync, OK
+   * event.waitUntil(promise);
    * })
    * ```
-   *
    * @param thenable A thenable that delays saving.
    */
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
@@ -631,14 +627,21 @@ export default class Files {
     }
     let res: URI[] = []
     let exceed = false
+    const ac = new AbortController()
+    if (token) {
+      token.onCancellationRequested(() => {
+        ac.abort()
+      })
+    }
     for (let root of roots) {
-      let files = await promisify(glob)(pattern, {
+      let files = await glob.glob(pattern, {
+        signal: ac.signal,
         dot: true,
         cwd: root,
         nodir: true,
         absolute: false
       })
-      if (token?.isCancellationRequested) return []
+      if (token?.isCancellationRequested) break
       for (let file of files) {
         if (exclude && fileMatch(root, file, exclude)) continue
         res.push(URI.file(path.join(root, file)))
