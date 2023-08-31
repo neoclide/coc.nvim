@@ -160,6 +160,7 @@ export default class InputBox implements Disposable {
     if (this._disposed) return
     this._disposed = true
     this.nvim.call('coc#float#close', [this._winid ?? -1], true)
+    this.nvim.command(`silent! bd! ${this._bufnr}`, true)
     this._onDidFinish.fire(this.accepted ? this._input : null)
     this._winid = undefined
     this._bufnr = undefined
