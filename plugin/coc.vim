@@ -646,8 +646,8 @@ function! s:ShowInfo()
     else
       let output = trim(system(node . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-      if empty(ms) || str2nr(ms[1]) < 14 || (str2nr(ms[1]) == 14 && str2nr(ms[2]) < 14)
-        call add(lines, 'Error: Node version '.output.' < 14.14.0, please upgrade node.js')
+      if empty(ms) || str2nr(ms[1]) < 16 || (str2nr(ms[1]) == 16 && str2nr(ms[2]) < 18)
+        call add(lines, 'Error: Node version '.output.' < 16.18.0, please upgrade node.js')
       endif
     endif
     " check bundle

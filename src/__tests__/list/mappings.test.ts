@@ -409,7 +409,7 @@ describe('Default normal mappings', () => {
   it('should insert command by :', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.wait(10)
+    await helper.wait(20)
     await helper.listInput(':')
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
     let res = await nvim.getVar('x')
