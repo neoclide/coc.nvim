@@ -1957,6 +1957,11 @@ g:coc_status						*g:coc_status*
 	Status string contributed by coc.nvim and extensions, used for status
 	line.
 
+	You may need to escape `%` for your status line plugin.
+	VimL: `substitute(g:coc_status, '%', '%%', 'g')`
+	Lua: `string.gsub(vim.g.coc_status, "%%", "%%%%")`
+	
+
 g:coc_last_float_win					*g:coc_last_float_win*
 
 	Window id of latest created float/popup window.
