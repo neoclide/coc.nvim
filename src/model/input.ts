@@ -1,9 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { disposeAll } from '../util'
 import { omitUndefined } from '../util/object'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import { toText } from '../util/string'
 
 export interface InputPreference {
@@ -160,7 +160,7 @@ export default class InputBox implements Disposable {
     if (this._disposed) return
     this._disposed = true
     this.nvim.call('coc#float#close', [this._winid ?? -1], true)
-    this.nvim.command(`silent! bd! ${this._bufnr}`, true)
+    if (this.nvim.isVim) this.nvim.command(`silent! bd! ${this._bufnr}`, true)
     this._onDidFinish.fire(this.accepted ? this._input : null)
     this._winid = undefined
     this._bufnr = undefined
