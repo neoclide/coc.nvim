@@ -301,9 +301,10 @@ export default class Mappings {
   }
 
   private scrollPreview(dir: 'up' | 'down'): void {
+    const floatPreview = listConfiguration.get<boolean>('floatPreview', false)
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.call('coc#list#scroll_preview', [dir], true)
+    nvim.call('coc#list#scroll_preview', [dir, floatPreview], true)
     nvim.command('redraw', true)
     nvim.resumeNotification(false, true)
   }
