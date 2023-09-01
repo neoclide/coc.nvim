@@ -41,8 +41,8 @@ For [vim-plug](https://github.com/junegunn/vim-plug) users:
 " Use release branch (recommended)
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
-" Or build from source code by using yarn: https://yarnpkg.com
-Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'yarn install --frozen-lockfile'}
+" Or build from source code by using npm
+Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'npm ci'}
 ```
 
 in your `.vimrc` or `init.vim`, then restart Vim and run `:PlugInstall`.
