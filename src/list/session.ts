@@ -123,7 +123,7 @@ export default class ListSession {
     this.cwd = workspace.cwd
     this.hidden = false
     let { listArgs } = this
-    let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
+    let res = await this.nvim.eval(`[win_getid(),bufnr("%"),${workspace.isVim ? 'winheight("%")' : 'nvim_win_get_height(0)'}]`)
     this.listArgs = listArgs
     this.history.filter()
     this.targetWinid = res[0]
