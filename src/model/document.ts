@@ -180,7 +180,6 @@ export default class Document {
 
   /**
    * Returns if current document is opended with previewwindow
-   *
    * @deprecated
    */
   public get previewwindow(): boolean {
@@ -200,11 +199,12 @@ export default class Document {
     this.eol = opts.eol == 1
     this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
     if (Array.isArray(opts.lines)) {
-      this.lines = opts.lines
+      this.lines = opts.lines.map(line => line == null ? '' : line)
       this._noFetch = true
       this._attached = true
       this.attach()
     } else {
+      this.lines = []
       this._notAttachReason = getNotAttachReason(buftype, this.variables[`coc_enabled`] as number, opts.size)
     }
     this._filetype = this.convertFiletype(opts.filetype)
