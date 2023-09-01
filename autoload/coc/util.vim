@@ -135,7 +135,7 @@ function! coc#util#job_command()
   endif
   if !filereadable(s:root.'/build/index.js')
     if isdirectory(s:root.'/src')
-      echohl Error | echom '[coc.nvim] build/index.js not found, please install dependencies and compile coc.nvim by: yarn install' | echohl None
+      echohl Error | echom '[coc.nvim] build/index.js not found, please install dependencies and compile coc.nvim by: npm ci' | echohl None
     else
       echohl Error | echon '[coc.nvim] your coc.nvim is broken.' | echohl None
     endif
@@ -307,10 +307,9 @@ function! coc#util#all_state()
 endfunction
 
 function! coc#util#install() abort
-  let yarncmd = get(g:, 'coc_install_yarn_cmd', executable('yarnpkg') ? 'yarnpkg' : 'yarn')
   call coc#ui#open_terminal({
         \ 'cwd': s:root,
-        \ 'cmd': yarncmd.' install --frozen-lockfile --ignore-engines',
+        \ 'cmd': 'npm ci',
         \ 'autoclose': 0,
         \ })
 endfunction
