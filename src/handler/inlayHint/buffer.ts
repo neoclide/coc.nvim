@@ -99,6 +99,7 @@ export default class InlayHintBuffer implements SyncItem {
 
   public get enabled(): boolean {
     if (!this.config.display || !this.configEnabled) return false
+    if (workspace.isNvim && !workspace.has('nvim-0.10.0') && !global.__TEST__) return false
     return this.hasProvider
   }
 
@@ -178,10 +179,10 @@ export default class InlayHintBuffer implements SyncItem {
     }
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
     this.currentHints.push(...inlayHints)
-    this.setVirtualText(range, inlayHints, workspace.env.isVim)
+    this.setVirtualText(range, inlayHints)
   }
 
-  public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[], isVim: boolean): void {
+  public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
     let { nvim, doc } = this
     let buffer = doc.buffer
 
@@ -199,15 +200,7 @@ export default class InlayHintBuffer implements SyncItem {
       if (item.paddingRight) {
         chunks.push([' ', 'Normal'])
       }
-      if (isVim) {
-        buffer.setVirtualText(srcId, position.line, chunks, { col })
-      } else if (workspace.has('nvim-0.10.0')) {
-        buffer.setExtMark(srcId, position.line, col - 1, {
-          virt_text: chunks,
-          virt_text_pos: 'inline',
-          hl_mode: 'combine'
-        })
-      }
+      buffer.setVirtualText(srcId, position.line, chunks, { col })
     }
     nvim.resumeNotification(true, true)
     this._onDidRefresh.fire()

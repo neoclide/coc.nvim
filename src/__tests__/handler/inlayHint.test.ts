@@ -270,7 +270,7 @@ describe('InlayHint', () => {
       await nvim.setLine('foo bar')
       let item = handler.getItem(doc.bufnr)
       let r = Range.create(0, 0, 1, 0)
-      item.setVirtualText(r, [], true)
+      item.setVirtualText(r, [])
       let hint: InlayHintWithProvider = {
         label: 'string',
         position: Position.create(0, 0),
@@ -283,7 +283,7 @@ describe('InlayHint', () => {
         paddingLeft: true,
         paddingRight: true
       }
-      item.setVirtualText(r, [hint, paddingHint], true)
+      item.setVirtualText(r, [hint, paddingHint])
       await helper.waitValue(async () => {
         let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
         return markers.length
