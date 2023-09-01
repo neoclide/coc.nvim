@@ -120,6 +120,7 @@ export interface CompleteConfig {
   highPrioritySourceLimit: number
   lowPrioritySourceLimit: number
   removeDuplicateItems: boolean
+  removeCurrentWord: boolean
   defaultSortMethod: SortMethod
   asciiCharactersOnly: boolean
   enableFloat: boolean

@@ -188,6 +188,17 @@ describe('completion', () => {
       expect(words).toEqual(['foo'])
     })
 
+    it('should remove current word', async () => {
+      helper.updateConfiguration('suggest.removeCurrentWord', true)
+      let buf = await nvim.buffer
+      await buf.setLines(['foo bar', ''], { start: 0, end: -1, strictIndexing: false })
+      await nvim.call('cursor', [2, 1])
+      await nvim.input('if')
+      await helper.waitPopup()
+      await nvim.input('foo')
+      await helper.waitFor('coc#pum#visible', [], 0)
+    })
+
     it('should use border with floatConfig', async () => {
       helper.updateConfiguration('suggest.floatConfig', { border: true })
       await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)

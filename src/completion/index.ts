@@ -151,6 +151,7 @@ export class Completion implements Disposable {
       snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
       defaultSortMethod: suggest.get<SortMethod>('defaultSortMethod', SortMethod.Length),
       removeDuplicateItems: suggest.get<boolean>('removeDuplicateItems', false),
+      removeCurrentWord: suggest.get<boolean>('removeCurrentWord', false),
       acceptSuggestionOnCommitCharacter: suggest.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       triggerCompletionWait: suggest.get<number>('triggerCompletionWait', 0),
       triggerAfterInsertEnter: suggest.get<boolean>('triggerAfterInsertEnter', false),

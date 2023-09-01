@@ -2103,6 +2103,12 @@
       "scope": "language-overridable",
       "default": false
     },
+    "suggest.removeCurrentWord": {
+      "type": "boolean",
+      "description": "Remove word item (from around and buffer source) that is identical to current input",
+      "scope": "language-overridable",
+      "default": false
+    },
     "suggest.reversePumAboveCursor": {
       "type": "boolean",
       "scope": "application",

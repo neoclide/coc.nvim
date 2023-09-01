@@ -20,6 +20,8 @@ const MIN_TIMEOUT = 50
 const MAX_TIMEOUT = 5000
 const MAX_TRIGGER_WAIT = 200
 
+const WORD_SOURCES = new Set(['buffer', 'around', 'word'])
+
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
   isIncomplete?: boolean
@@ -266,7 +268,7 @@ export default class Complete {
     let { results, names, option, inputStart } = this
     this._input = input
     let len = input.length
-    let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, defaultSortMethod, removeDuplicateItems, removeCurrentWord } = this.config
     let arr: DurationCompleteItem[] = []
     let words: Set<string> = new Set()
     const emptyInput = len == 0
@@ -277,11 +279,13 @@ export default class Complete {
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
+      let isWord = WORD_SOURCES.has(name)
       let items = result.items
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
         let { word, filterText, dup } = item
         if (dup !== true && words.has(word)) continue
+        if (removeCurrentWord && isWord && word === input) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         let fuzzyResult: FuzzyScore | undefined
         if (!emptyInput) {
