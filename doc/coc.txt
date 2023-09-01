@@ -109,9 +109,6 @@ Neovim >= 0.4.0 or Vim >= 8.1.1719.
 
 NodeJS https://nodejs.org/ >= 16.18.0.
 
-Yarn https://yarnpkg.com/ required to build coc.nvim from typescript source
-code.
-
 ==============================================================================
 INSTALLATION						*coc-installation*
 
@@ -142,8 +139,8 @@ To use Vim's native |packages| on Linux or MaxOS, use script like: >
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
   nvim -c 'helptags ~/.local/share/nvim/site/pack/coc/start|q'
 
-when using source code of coc.nvim, you'll have to install
-https://yarnpkg.com/ and run `yarn install` in project root of coc.nvim.
+when using source code of coc.nvim, you'll have to run `npm install` in project
+root of coc.nvim.
 
 ==============================================================================
 EXTENSIONS						*coc-extensions*
@@ -165,7 +162,7 @@ See |coc-api-extension| for the guide to create coc.nvim extension.
 Install extensions from git (not recommended):~
 
   • Download the source code.
-  • In project root, install dependencies and compile the code by `yarn install`
+  • In project root, install dependencies and compile the code by `npm install`
     (needed by most coc extensions).
   • Add the project root to vim's runtimepath by `set runtimepath^=/path/to/project`
 

@@ -63,6 +63,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          npm i -g bytes
           npm ci
           sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version

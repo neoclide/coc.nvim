@@ -27,14 +27,13 @@ If this seems like a lot or you aren't able to do all this setup, you might also
 If you want to go the usual route and run the project locally, though:
 
 - [Install Node.js](https://nodejs.org/en/download/)
-- [Install Yarn](https://yarnpkg.com)
 - [Fork the project](https://guides.github.com/activities/forking/#fork)
 
 Then in your terminal:
 
 - Add coc.nvim to your vim's rtp by `set runtimepath^=/path/to/coc.nvim`
 - `cd path/to/your/coc.nvim`
-- `yarn install`
+- `npm install`
 - Install [coc-tsserver](https://github.com/neoclide/coc-tsserver) by
   `:CocInstall coc-tsserver` in your vim
 - Install [coc-eslint](https://github.com/neoclide/coc-eslint) by
@@ -72,10 +71,10 @@ To contribute code:
 - [Set up the project](#project-setup).
 - Make any necessary changes to the source code.
 - Include any [additional documentation](#contribute-documentation) the changes might need.
-- Make sure the code doesn't have lint issue by command `yarn lint` in your
+- Make sure the code doesn't have lint issue by command `npm run lint` in your
   terminal.
 - Write tests that verify that your contribution works as expected when necessary.
-- Make sure all tests passed by command `yarn jest` in your terminal.
+- Make sure all tests passed by command `npm test` in your terminal.
 - Write clear, concise commit message(s) using [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md).
 - Dependency updates, additions, or removals must be in individual commits, and the message must use the format: `<prefix>(deps): PKG@VERSION`, where `<prefix>` is any of the usual `conventional-changelog` prefixes, at your discretion.
 - Go to https://github.com/neoclide/coc.nvim/pulls and open a new pull request with your changes.
