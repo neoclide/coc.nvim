@@ -169,7 +169,7 @@ export class Workspace {
 
   public checkVersion(version: number) {
     if (this._env.apiversion != version) {
-      this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
+      this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'npm ci' after pull source code.`)
     }
   }
 

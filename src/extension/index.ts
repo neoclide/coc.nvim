@@ -161,10 +161,10 @@ export class Extensions {
   public get npm(): string {
     let npm = workspace.initialConfiguration.get<string>('npm.binPath')
     npm = workspace.expand(npm)
-    for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
+    for (let exe of [npm, 'npm']) {
       if (executable(exe)) return which.sync(exe)
     }
-    void window.showErrorMessage(`Can't find npm or yarn in your $PATH`)
+    void window.showErrorMessage(`Can't find ${npm} or npm in your $PATH`)
     return null
   }
 
