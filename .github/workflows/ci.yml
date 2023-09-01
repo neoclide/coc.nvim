@@ -63,8 +63,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          yarn global add bytes
-          npm install --frozen-lockfile
+          npm ci
           sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version
           rg --version
