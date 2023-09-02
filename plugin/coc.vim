@@ -441,7 +441,7 @@ function! s:Enable(initialize)
   endif
 endfunction
 
-function! s:static_highlight() abort
+function! s:StaticHighlight() abort
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
   hi default CocUnderline     term=underline cterm=underline gui=underline guisp=#ebdbb2
@@ -495,7 +495,8 @@ function! s:static_highlight() abort
   hi default link CocFloatDividingLine     CocVirtualText
 endfunction
 
-call s:static_highlight()
+call s:StaticHighlight()
+call s:AddAnsiGroups()
 
 function! s:Highlight() abort
   if coc#highlight#get_contrast('Normal', has('nvim') ? 'NormalFloat' : 'Pmenu') > 2.0
@@ -558,8 +559,6 @@ function! s:Highlight() abort
   for name in ['Parameter', 'Type']
     exe 'hi default link CocInlayHint'.name.' CocInlayHint'
   endfor
-
-  call s:AddAnsiGroups()
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)
     let hlMap = {
