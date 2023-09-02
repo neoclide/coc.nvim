@@ -482,10 +482,10 @@ endfunction
 function! coc#ui#safe_open(cmd, file) abort
   let bufname = fnameescape(a:file)
   try
-    execute a:cmd.' 'bufname
+    execute a:cmd.' '.bufname
   catch /.*/
     if bufname('%') != bufname
-      throw v:exception
+      throw 'Error on open '. v:exception
     endif
   endtry
 endfunction

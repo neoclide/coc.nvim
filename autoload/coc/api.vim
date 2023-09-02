@@ -271,7 +271,7 @@ function! s:funcs.command(command) abort
     " get error from python script run.
     if !empty(err)
       unlet g:errmsg
-      throw err
+      throw 'Command error '.err
     endif
   endif
 endfunction
