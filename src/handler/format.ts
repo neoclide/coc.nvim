@@ -161,6 +161,7 @@ export default class FormatHandler {
       await doc._fetchContent(false)
       let pre = doc.getline(line - 1)
       let curr = doc.getline(line)
+      let firstLine = doc.getline(0)
       let prevChar = pre[pre.length - 1]
       if (prevChar && pariedCharacters.has(prevChar)) {
         let nextChar = curr.trim()[0]
@@ -168,7 +169,7 @@ export default class FormatHandler {
           let edits: TextEdit[] = []
           let pos: Position = Position.create(line - 1, pre.length)
           // make sure indent of current line
-          if (doc.filetype == 'vim') {
+          if (doc.filetype == 'vim' && !firstLine.startsWith('vim9script')) {
             let opts = await workspace.getFormatOptions(doc.uri)
             let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
             let currIndent = curr.match(/^\s*/)[0]
