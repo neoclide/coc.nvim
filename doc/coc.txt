@@ -1691,6 +1691,10 @@ g:coc_start_at_startup					*g:coc_start_at_startup*
 
 	Default: 1
 
+g:coc_list_preview_filetype 				*g:coc_list_preview_filetype*
+
+	Enable set filetype for buffer in the preview window of |CocList|.
+
 g:coc_global_extensions					*g:coc_global_extensions*
 
 	Global extension names to install when they aren't installed.
