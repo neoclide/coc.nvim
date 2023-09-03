@@ -1294,6 +1294,13 @@ Suggest~
 
 	Scope: `language-overridable`, default: `false`
 
+"suggest.removeCurrentWord"				*coc-config-suggest-removeCurrentWord*
+
+	Remove word item (from around and buffer source) that is identical to
+	current input
+
+	Scope: `language-overridable`, default: `false`
+
 "suggest.reversePumAboveCursor"				*coc-config-suggest-reversePumAboveCursor*
 
 	Reverse order of complete items when pum shown above cursor.

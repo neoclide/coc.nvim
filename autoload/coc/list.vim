@@ -381,10 +381,14 @@ function! s:preview_highlights(winid, bufnr, config, float) abort
   call sign_unplace(sign_group, {'buffer': a:bufnr})
   let lnum = get(a:config, 'lnum', 1)
   if !empty(filetype)
-    let start = max([0, lnum - 300])
-    let end = min([coc#compat#buf_line_count(a:bufnr), lnum + 300])
-    call coc#highlight#highlight_lines(a:winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
-    call coc#compat#execute(a:winid, 'syn sync fromstart')
+    if get(g:, 'coc_list_preview_filetype', 0)
+      call coc#compat#execute(a:winid, 'setf '.filetype)
+    else
+      let start = max([0, lnum - 300])
+      let end = min([coc#compat#buf_line_count(a:bufnr), lnum + 300])
+      call coc#highlight#highlight_lines(a:winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
+      call coc#compat#execute(a:winid, 'syn sync fromstart')
+    endif
   else
     call coc#compat#execute(a:winid, 'filetype detect')
     let ft = getbufvar(a:bufnr, '&filetype', '')

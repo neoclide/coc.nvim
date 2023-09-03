@@ -109,9 +109,6 @@ Neovim >= 0.4.0 or Vim >= 8.1.1719.
 
 NodeJS https://nodejs.org/ >= 16.18.0.
 
-Yarn https://yarnpkg.com/ required to build coc.nvim from typescript source
-code.
-
 ==============================================================================
 INSTALLATION						*coc-installation*
 
@@ -142,8 +139,8 @@ To use Vim's native |packages| on Linux or MaxOS, use script like: >
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
   nvim -c 'helptags ~/.local/share/nvim/site/pack/coc/start|q'
 
-when using source code of coc.nvim, you'll have to install
-https://yarnpkg.com/ and run `yarn install` in project root of coc.nvim.
+when using source code of coc.nvim, you'll have to run `npm install` in project
+root of coc.nvim.
 
 ==============================================================================
 EXTENSIONS						*coc-extensions*
@@ -165,7 +162,7 @@ See |coc-api-extension| for the guide to create coc.nvim extension.
 Install extensions from git (not recommended):~
 
   • Download the source code.
-  • In project root, install dependencies and compile the code by `yarn install`
+  • In project root, install dependencies and compile the code by `npm install`
     (needed by most coc extensions).
   • Add the project root to vim's runtimepath by `set runtimepath^=/path/to/project`
 
@@ -1071,6 +1068,8 @@ A snippet session would be deactivated under the following conditions:
   • Content changed in a snippet outside placeholder (except for deletion of
   plain text).
 
+Use |CocAction('snippetCancel')| for cancel snippet session manually.
+
 To load and expand custom snippets, install `coc-snippets` extension is
 recommended.
 
@@ -1691,6 +1690,10 @@ g:coc_start_at_startup					*g:coc_start_at_startup*
 	set it to 0.
 
 	Default: 1
+
+g:coc_list_preview_filetype 				*g:coc_list_preview_filetype*
+
+	Enable set filetype for buffer in the preview window of |CocList|.
 
 g:coc_global_extensions					*g:coc_global_extensions*
 
@@ -2641,6 +2644,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	When {mode} is omitted, it should be called using |formatexpr|.
 
+"snippetCancel"						*CocAction('snippetCancel')*
+
+	Cancel current snippet session.
+
 "snippetInsert" {range} {snippet} [{mode}]		*CocAction('snippetInsert')*
 
 	Insert {snippet} text as specific {range} of current buffer.
@@ -2987,8 +2994,12 @@ COMMANDS						*coc-commands*
 
 :CocCommand {name} [{args}] ... 			*:CocCommand*
 
-	Run a command contributed by extensions, use `<tab>` for name
-	completion.
+	Run a command provided by coc.nvim or contributed by extensions, use
+	`<tab>` for name completion.
+
+	This command send notification to coc.nvim, to perform task after
+	the command use |CocAction('runCommand')| instead.
+
 
 :CocOpenLog						*:CocOpenLog*
 

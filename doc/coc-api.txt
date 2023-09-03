@@ -332,7 +332,7 @@ To manually create an extension, follow these step:
 Recommended steps:
 
   • Install types of NodeJS and coc.nvim by terminal command
-    `yarn install @types/node@16.18 coc.nvim` in extension folder.
+    `npm install @types/node@16.18 coc.nvim` in extension folder.
   • Bundle the javascript files when using multiple node dependencies by
     esbuild to save the time of installation.  A typical build script looks
     like:

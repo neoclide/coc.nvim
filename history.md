@@ -1,3 +1,7 @@
+# 2023-09-02
+
+- Support `g:coc_list_preview_filetype`.
+
 # 2023-08-31
 
 - Minimal node version changed from 14.14.0 to 16.18.0.
