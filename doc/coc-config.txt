@@ -442,6 +442,13 @@ DocumentHighlight~
 
 	Scope: `resource`, default: `-1`
 
+"documentHighlight.limit"				*coc-config-documentHighlight-limit*
+
+	Limit the highlights added by matchaddpos, too many positions could
+	cause vim slow.
+
+	Scope: `resource`, default: `100`
+
 "documentHighlight.timeout"				*coc-config-documentHighlight-timeout*
 
 	Timeout for document highlight, in milliseconds.
