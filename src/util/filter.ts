@@ -81,32 +81,25 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
     // permutations of the pattern to find a better match. The
     // permutations only swap neighbouring characters, e.g
     // `cnoso` becomes `conso`, `cnsoo`, `cnoos`.
-    const tries = Math.min(7, pattern.length - 1)
-    for (let movingPatternPos = patternPos + 1; movingPatternPos < tries; movingPatternPos++) {
-      const newPattern = nextTypoPermutation(pattern, movingPatternPos)
-      if (newPattern) {
-        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options)
-        if (candidate) {
-          candidate[0] -= 3 // permutation penalty
-          if (!top || candidate[0] > top[0]) {
-            top = candidate
-          }
-        }
-      }
-    }
-
+    //
+    // For the last 2 permutations try remove the final characters,
     // Maybe the last few letters of a pattern contain typos
     // For example, `conson` could be a typo for `console`
-    for (let slidePos = 1; slidePos < 3; slidePos++) {
-      if (slidePos < pattern.length) {
-        const newPattern = pattern.slice(0, pattern.length - slidePos)
-        if (newPattern) {
-          const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options)
-          if (candidate) {
-            candidate[0] -= 3 // permutation penalty
-            if (!top || candidate[0] > top[0]) {
-              top = candidate
-            }
+    const maxTriesPermutation = Math.min(7, pattern.length - 1);
+    const maxTries = maxTriesPermutation + 2;
+    for (let i = 1; i < maxTries; i++) {
+      let newPattern: string;
+      if (i <= maxTriesPermutation) {
+        newPattern = nextTypoPermutation(pattern, patternPos + i);
+      } else {
+        newPattern = pattern.slice(0, pattern.length - (i - maxTriesPermutation));
+      }
+      if (newPattern) {
+        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options);
+        if (candidate) {
+          candidate[0] -= 3; // permutation penalty
+          if (!top || candidate[0] > top[0]) {
+            top = candidate;
           }
         }
       }
