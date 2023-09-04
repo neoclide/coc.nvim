@@ -82,11 +82,11 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
     // permutations only swap neighbouring characters, e.g
     // `cnoso` becomes `conso`, `cnsoo`, `cnoos`.
     //
-    // For the last 2 permutations try remove the final characters,
-    // Maybe the last few letters of a pattern contain typos
-    // For example, `conson` could be a typo for `console`
+    // For the last 2 permutations try to remove the last characters,
+    // maybe the last few letters are typos. For example,
+    // `conson` could be a typo for `console`
     const maxTriesPermutation = Math.min(7, pattern.length - 1)
-    const maxTries = maxTriesPermutation + pattern.length
+    const maxTries = maxTriesPermutation + 2
     for (let i = 1; i < maxTries; i++) {
       let newPattern: string
       if (i <= maxTriesPermutation) {
