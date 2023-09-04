@@ -94,6 +94,23 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
         }
       }
     }
+
+    // Maybe the last few letters of a pattern contain typos
+    // For example, `conson` could be a typo for `console`
+    for (let slidePos = 1; slidePos < 3; slidePos++) {
+      if (slidePos < pattern.length) {
+        const newPattern = pattern.slice(0, pattern.length - slidePos)
+        if (newPattern) {
+          const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options)
+          if (candidate) {
+            candidate[0] -= 3 // permutation penalty
+            if (!top || candidate[0] > top[0]) {
+              top = candidate
+            }
+          }
+        }
+      }
+    }
   }
 
   return top
