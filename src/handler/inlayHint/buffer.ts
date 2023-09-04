@@ -26,6 +26,9 @@ let srcId: number | undefined
 const debounceInterval = getConditionValue(100, 10)
 const requestDelay = getConditionValue(500, 10)
 
+// Extend the rendering range for better experience when scrolling
+const RenderRangeExtendSize = 10
+
 function getHighlightGroup(kind: InlayHintKind): string {
   switch (kind) {
     case InlayHintKind.Parameter:
@@ -170,7 +173,9 @@ export default class InlayHintBuffer implements SyncItem {
     if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return
     if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
     if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return
-    let range = Range.create(res[0] - 1, 0, res[1], 0)
+    const startLine = Math.max(0, res[0] - RenderRangeExtendSize)
+    const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize)
+    let range = Range.create(startLine, 0, endLine, 0)
     let inlayHints = await this.requestInlayHints(range, token)
     if (inlayHints == null || token.isCancellationRequested) return
     this.regions.add(res[0], res[1])

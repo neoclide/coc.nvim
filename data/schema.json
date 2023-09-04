@@ -1185,7 +1185,13 @@
       "type": "integer",
       "default": -1,
       "scope": "resource",
-      "description": "Match priority used by document highlight, see ':h matchadd'"
+      "description": "Match priority used by document highlight, see ':h matchadd'."
+    },
+    "documentHighlight.limit": {
+      "type": "integer",
+      "default": 200,
+      "scope": "resource",
+      "description": "Limit the highlights added by matchaddpos, too many positions could cause vim slow."
     },
     "documentHighlight.timeout": {
       "type": "integer",

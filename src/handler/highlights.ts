@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { Buffer as NodeBuffer } from 'buffer'
 import { DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
@@ -7,16 +8,20 @@ import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
-import { comparePosition, compareRangesUsingStarts } from '../util/position'
+import { comparePosition, compareRangesUsingStarts, emptyRange } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
+import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
 
 interface HighlightConfig {
+  limit: number
   priority: number
   timeout: number
 }
+
+type HighlightPosition = [number, number, number]
 
 /**
  * Highlight same symbols on current window.
@@ -56,6 +61,7 @@ export default class Highlights {
     let config = workspace.getConfiguration('documentHighlight', this.handler.uri)
     if (!e || e.affectsConfiguration('documentHighlight')) {
       this.config = Object.assign(this.config || {}, {
+        limit: config.get<number>('limit', 200),
         priority: config.get<number>('priority', -1),
         timeout: config.get<number>('timeout', 300)
       })
@@ -99,10 +105,27 @@ export default class Highlights {
     nvim.pauseNotification()
     win.clearMatchGroup('^CocHighlight')
     for (let hlGroup of Object.keys(groups)) {
-      win.highlightRanges(hlGroup, groups[hlGroup], this.config.priority, true)
+      let positions: HighlightPosition[] = []
+      for (let range of groups[hlGroup]) {
+        this.addHighlightPositions(positions, doc, range, this.config.limit)
+      }
+      nvim.call('matchaddpos', [hlGroup, positions, this.config.priority], true)
     }
     nvim.resumeNotification(true, true)
     this.highlights.set(winid, highlights)
+  }
+
+  public addHighlightPositions(items: HighlightPosition[], doc: Document, range: Range, limit: number): void {
+    let { start, end } = range
+    if (emptyRange(range)) return
+    for (let line = start.line; line <= end.line; line++) {
+      const text = doc.getline(line, false)
+      let colStart = line == start.line ? byteIndex(text, start.character) : 0
+      let colEnd = line == end.line ? byteIndex(text, end.character) : NodeBuffer.byteLength(text)
+      if (colStart >= colEnd) continue
+      items.push([line + 1, colStart + 1, colEnd - colStart])
+      if (items.length == limit) break
+    }
   }
 
   public async jumpSymbol(direction: 'previous' | 'next'): Promise<void> {

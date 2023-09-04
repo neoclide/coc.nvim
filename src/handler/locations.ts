@@ -121,7 +121,7 @@ export default class LocationsHandler {
     let definitions = []
     try {
       let timeout = workspace.initialConfiguration.get<number>('coc.preferences.tagDefinitionTimeout', 0)
-      if (timeout> 0) {
+      if (timeout > 0) {
         const abort = new Promise<[]>((_, rej) => setTimeout(() => rej(new Error('timeout')), timeout))
         definitions = await Promise.race([languages.getDefinition(doc.textDocument, position, tokenSource.token), abort])
       } else {
