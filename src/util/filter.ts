@@ -85,21 +85,21 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
     // For the last 2 permutations try remove the final characters,
     // Maybe the last few letters of a pattern contain typos
     // For example, `conson` could be a typo for `console`
-    const maxTriesPermutation = Math.min(7, pattern.length - 1);
-    const maxTries = maxTriesPermutation + 2;
+    const maxTriesPermutation = Math.min(7, pattern.length - 1)
+    const maxTries = maxTriesPermutation + pattern.length
     for (let i = 1; i < maxTries; i++) {
-      let newPattern: string;
+      let newPattern: string
       if (i <= maxTriesPermutation) {
-        newPattern = nextTypoPermutation(pattern, patternPos + i);
+        newPattern = nextTypoPermutation(pattern, patternPos + i)
       } else {
-        newPattern = pattern.slice(0, pattern.length - (i - maxTriesPermutation));
+        newPattern = pattern.slice(0, pattern.length - (i - maxTriesPermutation))
       }
       if (newPattern) {
-        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options);
+        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options)
         if (candidate) {
-          candidate[0] -= 3; // permutation penalty
+          candidate[0] -= 3 // permutation penalty
           if (!top || candidate[0] > top[0]) {
-            top = candidate;
+            top = candidate
           }
         }
       }
