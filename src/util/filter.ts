@@ -85,27 +85,43 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
     // For the last 2 permutations try to remove the last characters,
     // maybe the last few letters are typos. For example,
     // `conson` could be a typo for `console`
-    const maxTriesPermutation = Math.min(7, pattern.length - 1)
-    const maxTries = maxTriesPermutation + 2
-    for (let i = 1; i < maxTries; i++) {
-      let newPattern: string
-      if (i <= maxTriesPermutation) {
-        newPattern = nextTypoPermutation(pattern, patternPos + i)
-      } else {
-        newPattern = pattern.slice(0, pattern.length - (i - maxTriesPermutation))
+    const maxTriesPermutation = Math.min(7, pattern.length - 1);
+    const maxTries = maxTriesPermutation + pattern.length;
+
+    // Loop for existing permutations
+    for (let i = 1; i <= maxTriesPermutation; i++) {
+      const newPattern = nextTypoPermutation(pattern, patternPos + i);
+      checkAndUpdateTopCandidate(newPattern, 3);
+    }
+
+    const lastChar = pattern.charAt(pattern.length - 1);
+
+    if ((/[a-zA-Z0-9]/.test(lastChar))) {
+      // Loop for removing characters at all positions
+      for (let i = 0; i < pattern.length; i++) {
+        const newPattern = pattern.slice(0, i) + pattern.slice(i + 1);
+        checkAndUpdateTopCandidate(newPattern, 1);
       }
+
+      // Loop for removing last characters
+      for (let i = 1; i < pattern.length; i++) {
+        const newPattern = pattern.slice(0, pattern.length - i);
+        checkAndUpdateTopCandidate(newPattern, i+1);
+      }
+    }
+
+    function checkAndUpdateTopCandidate(newPattern: string, penalty: int) {
       if (newPattern) {
-        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options)
+        const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options);
         if (candidate) {
-          candidate[0] -= 3 // permutation penalty
+          candidate[0] -= penalty; // permutation penalty
           if (!top || candidate[0] > top[0]) {
-            top = candidate
+            top = candidate;
           }
         }
       }
     }
   }
-
   return top
 }
 
