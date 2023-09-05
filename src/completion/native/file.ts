@@ -9,6 +9,7 @@ import workspace from '../../workspace'
 import Source from '../source'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, VimCompleteItem } from '../types'
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\+)(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-]+(\/|\\+))*(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-])*$/
+const invalid_characters = new Set(['#', '<', '$', '+', '%', '>', '!', '`', '&', '*', "'", '|', '{', '?', '"', '=', '}', '@'])
 
 interface PathOption {
   pathstr: string
@@ -29,16 +30,23 @@ export function resolveEnvVariables(str: string, env = process.env): string {
   return replaced
 }
 
-export function getFilePathFromLine(line: string, cursorIndex: number): string {
-  let begin = cursorIndex - 1
-  let end = cursorIndex
-  while (begin >= 0 && line[begin] !== ' ') {
+export function getLastPart(text: string): string | null {
+  let begin = text.length - 1
+  while (begin >= 0) {
+    let curr = text[begin]
+    if (invalid_characters.has(curr)) {
+      begin++
+      break
+    }
+    if (curr == ' ' && text[begin - 1] !== '\\') {
+      begin++
+      break
+    }
+    if (begin == 0) break
     begin--
   }
-  while (end < line.length && line[end] !== ' ') {
-    end++
-  }
-  return line.slice(begin + 1, end)
+  if (begin >= text.length) return null
+  return text.slice(begin)
 }
 
 export async function getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
@@ -97,10 +105,9 @@ export class File extends Source {
 
   private getPathOption(opt: CompleteOption): PathOption | null {
     let { line, colnr } = opt
-    let filepath = getFilePathFromLine(line, colnr - 1)
-    let part = byteSlice(filepath, 0, colnr - 1)
-    part = resolveEnvVariables(part)
-    if (!part || part.endsWith('//')) return null
+    let part = resolveEnvVariables(byteSlice(line, 0, colnr - 1))
+    let filepath = getLastPart(part)
+    if (!filepath || filepath.endsWith('//')) return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
       const pathstr = workspace.expand(ms[0])

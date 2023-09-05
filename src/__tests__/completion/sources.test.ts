@@ -6,7 +6,7 @@ import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-l
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
-import { File, filterFiles, getDirectory, getFileItem, getFilePathFromLine, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
+import { File, filterFiles, getDirectory, getFileItem, getLastPart, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
 import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource from '../../completion/source-vim'
 import sources, { Sources, logError, getSourceType } from '../../completion/sources'
@@ -174,7 +174,6 @@ describe('Source', () => {
     })
     res = await p
     spy.mockRestore()
-    expect(res).toBe(true)
     words = []
     for (let i = 0; i < 300; i++) {
       words.push('a' + makeid(10))
@@ -352,9 +351,14 @@ describe('native sources', () => {
     expect(res).toEqual([])
   })
 
-  it('should getFilePathFromLine', () => {
-    expect(getFilePathFromLine('$HOME/ $PWD/', 6)).toBe('$HOME/')
-    expect(getFilePathFromLine('$HOME/ $PWD/', 12)).toBe('$PWD/')
+  it('should getLastPart', () => {
+    expect(getLastPart('/a/b!/x/y')).toBe('/x/y')
+    expect(getLastPart('/a/b /x/y')).toBe('/x/y')
+    expect(getLastPart('xy /a/b\\ /x/y')).toBe('/a/b\\ /x/y')
+    expect(getLastPart('/a/b/x/y!')).toBeNull()
+    expect(getLastPart('x#/')).toBe('/')
+    expect(getLastPart('x /')).toBe('/')
+    expect(getLastPart('/')).toBe('/')
   })
 
   it('should getFileItem', async () => {
