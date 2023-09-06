@@ -1,14 +1,14 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable, SymbolInformation, SymbolKind, Range, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
-import workspace from '../../workspace'
-import window from '../../window'
-import events from '../../events'
+import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
 import helper from '../helper'
 import Parser from './parser'
-import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 
 let nvim: Neovim
 let symbols: Symbols
@@ -80,12 +80,10 @@ describe('symbols handler', () => {
       }
     }`
       let buf = await createBuffer(code)
-      await events.fire('CursorHold', [buf.id, [2, 8]])
-      let val = await buf.getVar('coc_current_function')
-      expect(val).toBe('fun1')
-      await events.fire('CursorHold', [buf.id, [1, 8]])
-      val = await buf.getVar('coc_current_function')
-      expect(val).toBe('myClass')
+      await events.fire('CursorMoved', [buf.id, [2, 8]])
+      await helper.waitFor('eval', ['b:coc_current_function'], 'fun1')
+      await events.fire('CursorMoved', [buf.id, [1, 8]])
+      await helper.waitFor('eval', ['b:coc_current_function'], 'myClass')
     })
   })
 

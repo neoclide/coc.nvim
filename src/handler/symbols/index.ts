@@ -1,10 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range, SymbolInformation, WorkspaceSymbol } from 'vscode-languageserver-types'
+import { Position, Range, WorkspaceSymbol } from 'vscode-languageserver-types'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { disposeAll } from '../../util/index'
+import { disposeAll, getConditionValue } from '../../util/index'
+import { debounce } from '../../util/node'
 import { equals } from '../../util/object'
 import { positionInRange, rangeInRange } from '../../util/position'
 import { CancellationTokenSource, Disposable } from '../../util/protocol'
@@ -15,6 +16,8 @@ import { HandlerDelegate } from '../types'
 import SymbolsBuffer from './buffer'
 import Outline from './outline'
 import { convertSymbols, SymbolInfo } from './util'
+
+const CURSORMOVE_DEBOUNCE = getConditionValue(300, 0)
 
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
@@ -36,7 +39,7 @@ export default class Symbols {
       return buf
     })
     this.outline = new Outline(nvim, this.buffers, handler)
-    events.on('CursorHold', async (bufnr: number, cursor) => {
+    let debounced = debounce(async (bufnr: number, cursor: [number, number]) => {
       if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return
       let doc = workspace.getDocument(bufnr)
       let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
@@ -45,7 +48,11 @@ export default class Symbols {
       let buffer = nvim.createBuffer(bufnr)
       buffer.setVar('coc_current_function', func ?? '', true)
       this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-    }, null, this.disposables)
+    }, CURSORMOVE_DEBOUNCE)
+    events.on('CursorMoved', debounced, this, this.disposables)
+    this.disposables.push(Disposable.create(() => {
+      debounced.clear()
+    }))
     events.on('InsertEnter', (bufnr: number) => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.cancel()
