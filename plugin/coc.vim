@@ -267,7 +267,7 @@ function! s:Disable() abort
     return
   endif
   autocmd! coc_nvim
-  call coc#rpc#request('detach', [])
+  call coc#rpc#notify('detach', [])
   echohl MoreMsg
     echom '[coc.nvim] Event disabled'
   echohl None
