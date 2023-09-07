@@ -41,9 +41,11 @@ class WordsSource implements ISource<ExtendedCompleteItem> {
   public readonly shortcut = ''
   public readonly triggerOnly = true
   public words: string[] = []
+  public startcol: number | undefined
 
   public doComplete(opt: CompleteOption) {
     return {
+      startcol: this.startcol,
       items: this.words.map(s => {
         return { word: s, filterText: opt.input }
       })
@@ -80,7 +82,8 @@ export class Sources {
     return this.keywords.getItem(bufnr)
   }
 
-  public setWords(words: string[]): void {
+  public setWords(words: string[], col: number): void {
+    this.wordsSource.startcol = col
     this.wordsSource.words = words
   }
 
@@ -264,7 +267,6 @@ export class Sources {
 
   /**
    * Get sources should be used without trigger.
-   *
    * @param {string} filetype
    * @returns {ISource[]}
    */

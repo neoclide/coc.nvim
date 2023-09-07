@@ -492,7 +492,7 @@ describe('native sources', () => {
     expect(s.name).toBe('$words')
     expect(s.shortcut).toBe('')
     expect(s.triggerOnly).toBe(true)
-    sources.setWords(['foo', 'bar'])
+    sources.setWords(['foo', 'bar'], 1)
     await nvim.setLine('longwords')
     await nvim.input('A')
     nvim.call('coc#start', { source: '$words' }, true)

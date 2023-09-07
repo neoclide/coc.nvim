@@ -174,7 +174,7 @@ export class SnippetSession {
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       let sources = (await import('../completion/sources')).default
-      sources.setWords(marker.choice.options.map(o => o.value))
+      sources.setWords(marker.choice.options.map(o => o.value), col - 1)
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
