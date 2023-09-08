@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
-    <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220525/coc.png" height="240" />
+    <img alt="Logo" src="https://github.com/neoclide/coc.nvim/assets/251450/9c2bc011-35f0-4ef5-93ba-bc3f17e65bb7" height="240" />
   </a>
   <p align="center">Make your Vim/Neovim as smart as VS Code</p>
   <p align="center">
@@ -14,7 +14,7 @@
 
 ---
 
-<img alt="Custom coc popup menu with snippet support" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
+<img alt="Custom coc popup menu with snippet support" src="https://github.com/neoclide/coc.nvim/assets/251450/05f60ab8-dcb1-40f7-9e4a-3c03f5db5398" width="60%" />
 
 _Custom popup menu with snippet support_
 
