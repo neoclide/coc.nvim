@@ -109,6 +109,20 @@ set updatetime=300
 " diagnostics appear/become resolved
 set signcolumn=yes
 
+" Use project-specific coc-settings.json file:
+" Function to set g:coc_config based on the current project directory
+function! SetCocConfig()
+  let l:coc_settings_json = findfile('coc-settings.json', expand('%:p:h') . ';') " try to find it above the current file being edited
+  if empty(l:coc_settings_json)
+	let l:coc_settings_json = $HOME . '/.vim/coc-settings.json' " Fallback to the global config
+  endif
+  let g:coc_config = l:coc_settings_json
+endfunction
+" Automatically set g:coc_config when entering a buffer or when the directory changes
+autocmd DirChanged * call SetCocConfig()
+autocmd BufEnter * call SetCocConfig()
+
+
 " Use tab for trigger completion with characters ahead and navigate
 " NOTE: There's always complete item selected by default, you may want to enable
 " no select by `"suggest.noselect": true` in your configuration file
