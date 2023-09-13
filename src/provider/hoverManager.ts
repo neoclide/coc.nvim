@@ -26,7 +26,7 @@ export default class HoverManager extends Manager<HoverProvider> {
     let hovers: Hover[] = []
     let results = await Promise.allSettled(items.map(item => {
       return Promise.resolve(item.provider.provideHover(document, position, token)).then(hover => {
-        if (!Hover.is(hover)) return
+        if (!hover) return
         if (hovers.findIndex(o => equals(o.contents, hover.contents)) == -1) {
           hovers.push(hover)
         }
