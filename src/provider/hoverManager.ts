@@ -2,9 +2,10 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Hover, Position } from 'vscode-languageserver-types'
+import { isHover } from '../util/is'
 import { equals } from '../util/object'
 import { CancellationToken, Disposable } from '../util/protocol'
-import { HoverProvider, DocumentSelector } from './index'
+import { DocumentSelector, HoverProvider } from './index'
 import Manager from './manager'
 
 export default class HoverManager extends Manager<HoverProvider> {
@@ -26,7 +27,7 @@ export default class HoverManager extends Manager<HoverProvider> {
     let hovers: Hover[] = []
     let results = await Promise.allSettled(items.map(item => {
       return Promise.resolve(item.provider.provideHover(document, position, token)).then(hover => {
-        if (!Hover.is(hover)) return
+        if (!isHover(hover)) return
         if (hovers.findIndex(o => equals(o.contents, hover.contents)) == -1) {
           hovers.push(hover)
         }

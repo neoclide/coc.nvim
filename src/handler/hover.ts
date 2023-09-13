@@ -124,8 +124,8 @@ export default class HoverHandler {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
     }, false)
     await addDefinitions(hovers, defs, doc.filetype)
-    let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover
-    if (hover) {
+    let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover | undefined
+    if (hover?.range) {
       let win = this.nvim.createWindow(winid)
       win.highlightRanges('CocHoverRange', [hover.range], 99, true)
       this.timer = setTimeout(() => {

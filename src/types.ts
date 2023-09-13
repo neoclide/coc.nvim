@@ -195,7 +195,6 @@ export interface OutputChannel {
   readonly content?: string
   /**
    * Append the given value to the channel.
-   *
    * @param value A string, falsy values will not be printed.
    */
   append(value: string): void
@@ -203,7 +202,6 @@ export interface OutputChannel {
   /**
    * Append the given value and a line feed character
    * to the channel.
-   *
    * @param value A string, falsy values will be printed.
    */
   appendLine(value: string): void
@@ -215,7 +213,6 @@ export interface OutputChannel {
 
   /**
    * Reveal this channel in the UI.
-   *
    * @param preserveFocus When `true` the channel will not take focus.
    */
   show(preserveFocus?: boolean): void
@@ -310,7 +307,6 @@ export interface TextDocumentContentChange {
   range: Range
   /**
    * The optional length of the range that got replaced.
-   *
    * @deprecated use range instead.
    */
   rangeLength?: number
