@@ -100,17 +100,17 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
       // Loop for removing characters at all positions
       for (let i = 0; i < pattern.length; i++) {
         const newPattern = pattern.slice(0, i) + pattern.slice(i + 1);
-        checkAndUpdateTopCandidate(newPattern, 1);
+        checkAndUpdateTopCandidate(newPattern, 4);
       }
 
       // Loop for removing last characters
-      for (let i = 1; i < pattern.length; i++) {
+      for (let i = 1; i < 3; i++) {
         const newPattern = pattern.slice(0, pattern.length - i);
-        checkAndUpdateTopCandidate(newPattern, i+1);
+        checkAndUpdateTopCandidate(newPattern, i+4);
       }
     }
 
-    function checkAndUpdateTopCandidate(newPattern: string, penalty: int) {
+    function checkAndUpdateTopCandidate(newPattern: string, penalty: number) {
       if (newPattern) {
         const candidate = fuzzyScore(newPattern, newPattern.toLowerCase(), patternPos, word, lowWord, wordPos, options);
         if (candidate) {
