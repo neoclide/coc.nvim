@@ -1,6 +1,6 @@
 'use strict'
 import { URL } from 'url'
-import type { CompletionItem, Command, CompletionList, MarkupContent } from 'vscode-languageserver-types'
+import { Command, CompletionItem, CompletionList, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
 
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -12,6 +12,17 @@ export function isUrl(url: any): boolean {
   } catch (e) {
     return false
   }
+}
+
+export function isHover(value: any): value is Hover {
+  let candidate = value as Hover
+  return !!candidate && objectLiteral(candidate) && (
+    MarkupContent.is(candidate.contents) ||
+    MarkedString.is(candidate.contents) ||
+    typedArray(candidate.contents, MarkedString.is)
+  ) && (
+      value.range == null || Range.is(value.range)
+    )
 }
 
 export function isCommand(obj: any): obj is Command {
