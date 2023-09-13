@@ -17,8 +17,6 @@ import SymbolsBuffer from './buffer'
 import Outline from './outline'
 import { convertSymbols, SymbolInfo } from './util'
 
-const CURSORMOVE_DEBOUNCE = getConditionValue(300, 0)
-
 export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
   private disposables: Disposable[] = []
@@ -48,7 +46,7 @@ export default class Symbols {
       let buffer = nvim.createBuffer(bufnr)
       buffer.setVar('coc_current_function', func ?? '', true)
       this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-    }, CURSORMOVE_DEBOUNCE)
+    }, this.debounceTime())
     events.on('CursorMoved', debounced, this, this.disposables)
     this.disposables.push(Disposable.create(() => {
       debounced.clear()
@@ -63,6 +61,11 @@ export default class Symbols {
     let doc = workspace.getDocument(bufnr)
     let config = workspace.getConfiguration('coc.preferences', doc)
     return config.get<boolean>('currentFunctionSymbolAutoUpdate', false)
+  }
+
+  public debounceTime(): number {
+    let config = workspace.getConfiguration('coc.preferences')
+    return getConditionValue(config.get<number>('currentFunctionSymbolDebounceTime', 300), 0)
   }
 
   public get labels(): { [key: string]: string } {
