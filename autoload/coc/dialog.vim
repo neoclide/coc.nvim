@@ -169,6 +169,8 @@ function! coc#dialog#_create_prompt_nvim(title, default, opts) abort
     call feedkeys('A', 'int')
   elseif mode ==# 'i'
     call feedkeys("\<end>", 'int')
+  else
+    call feedkeys("\<esc>A", 'int')
   endif
   let placeHolder = get(a:opts, 'placeHolder', '')
   if empty(a:default) && !empty(placeHolder) && has('nvim-0.5.0')
