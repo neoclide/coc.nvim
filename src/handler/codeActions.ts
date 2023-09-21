@@ -7,6 +7,7 @@ import languages from '../languages'
 import Document from '../model/document'
 import { isFalsyOrEmpty } from '../util/array'
 import { boolToNumber } from '../util/numbers'
+import { CancellationTokenSource } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
@@ -59,9 +60,8 @@ export default class CodeActions {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked }
     if (!isFalsyOrEmpty(only)) context.only = only
-    let codeActions = await this.handler.withRequestToken('code action', token => {
-      return languages.getCodeActions(doc.textDocument, range, context, token)
-    })
+    let tokenSource = new CancellationTokenSource()
+    let codeActions = await languages.getCodeActions(doc.textDocument, range, context, tokenSource.token)
     if (!codeActions || codeActions.length == 0) return []
     if (excludeSourceAction) {
       codeActions = codeActions.filter(o => !o.kind || !o.kind.startsWith(CodeActionKind.Source))
@@ -139,9 +139,8 @@ export default class CodeActions {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
     }
-    let resolved = await this.handler.withRequestToken('resolve codeAction', token => {
-      return languages.resolveCodeAction(action, token)
-    })
+    let tokenSource = new CancellationTokenSource()
+    let resolved = await languages.resolveCodeAction(action, tokenSource.token)
     if (!resolved) return
     let { edit, command } = resolved
     if (edit) await workspace.applyEdit(edit)
