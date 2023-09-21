@@ -142,6 +142,7 @@ export default class CodeActions {
     let resolved = await this.handler.withRequestToken('resolve codeAction', token => {
       return languages.resolveCodeAction(action, token)
     })
+    if (!resolved) return
     let { edit, command } = resolved
     if (edit) await workspace.applyEdit(edit)
     if (command) await commandManager.execute(command)

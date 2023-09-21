@@ -443,6 +443,18 @@ describe('handler codeActions', () => {
       expect(lines).toEqual(['bar'])
     })
 
+    it('should not throw when resolved action is null', async () => {
+      await helper.createDocument()
+      let edits: TextEdit[] = []
+      edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
+      let action = CodeAction.create('code fix', CodeActionKind.QuickFix)
+      action.isPreferred = true
+      currActions = [action]
+      resolvedAction = null
+      let arr = await helper.doAction('quickfixes', 'line')
+      await commands.executeCommand('editor.action.doCodeAction', arr[0])
+    })
+
     it('should throw for disabled action', async () => {
       let action: any = CodeAction.create('my action', CodeActionKind.Empty)
       action.disabled = { reason: 'disabled', providerId: 'x' }
