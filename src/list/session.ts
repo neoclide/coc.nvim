@@ -478,7 +478,7 @@ export default class ListSession {
 
   public async resume(): Promise<void> {
     if (this.winid) await this.hide()
-    let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
+    let res = await this.nvim.eval(`[win_getid(),bufnr("%"),${workspace.isVim ? 'winheight("%")' : 'nvim_win_get_height(0)'}]`)
     this.hidden = false
     this.targetWinid = res[0]
     this.targetBufnr = res[1]
