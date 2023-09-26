@@ -9,7 +9,7 @@ import { toNumber } from '../util/numbers'
 import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
 import workspace from '../workspace'
 import { CompleteOption, DurationCompleteItem } from './types'
-import { getKindHighlight, getKindText, highlightOffert, MruLoader, Selection } from './util'
+import { getKindHighlight, getKindText, highlightOffset, MruLoader, Selection } from './util'
 
 export interface PumDimension {
   readonly height: number
@@ -277,7 +277,7 @@ export default class PopupMenu {
       switch (name) {
         case 'abbr': {
           if (!isFalsyOrEmpty(item.positions)) {
-            let pre = highlightOffert(len, item)
+            let pre = highlightOffset(len, item)
             if (pre != -1) {
               positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
             } else {

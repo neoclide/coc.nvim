@@ -260,7 +260,7 @@ export function shouldIndent(indentkeys: string, pretext: string): boolean {
   return false
 }
 
-export function highlightOffert<T extends { filterText: string, abbr: string }>(pre: number, item: T): number {
+export function highlightOffset<T extends { filterText: string, abbr: string }>(pre: number, item: T): number {
   let { filterText, abbr } = item
   let idx = abbr.indexOf(filterText)
   if (idx == -1) return -1

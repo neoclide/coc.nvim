@@ -293,7 +293,7 @@ export default class Complete {
           if (item.delta > 0) {
             // better input to make it have higher score and better highlight
             let prev = filterText.slice(0, item.delta)
-            fuzzyResult = scoreFn(prev + input, prev + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
+            fuzzyResult = scoreFn(prev + input, prev.toLowerCase() + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
           } else {
             fuzzyResult = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
           }
