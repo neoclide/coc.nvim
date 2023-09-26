@@ -3,7 +3,7 @@ import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTa
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ISource } from '../../completion/types'
-import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
+import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import languages from '../../languages'
@@ -87,10 +87,10 @@ describe('util functions', () => {
   })
 
   it('should get highlight offset', () => {
-    let n = highlightOffert(3, { abbr: 'abc', filterText: 'def' })
+    let n = highlightOffset(3, { abbr: 'abc', filterText: 'def' })
     expect(n).toBe(-1)
-    expect(highlightOffert(3, { abbr: 'abc', filterText: 'abc' })).toBe(3)
-    expect(highlightOffert(3, { abbr: 'xy abc', filterText: 'abc' })).toBe(6)
+    expect(highlightOffset(3, { abbr: 'abc', filterText: 'abc' })).toBe(3)
+    expect(highlightOffset(3, { abbr: 'xy abc', filterText: 'abc' })).toBe(6)
   })
 
   it('should getKindText', () => {
