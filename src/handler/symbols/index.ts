@@ -37,6 +37,7 @@ export default class Symbols {
       return buf
     })
     this.outline = new Outline(nvim, this.buffers, handler)
+    const debounceTime = workspace.initialConfiguration.get<number>('coc.preferences.currentFunctionSymbolDebounceTime', 300)
     let debounced = debounce(async (bufnr: number, cursor: [number, number]) => {
       if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return
       let doc = workspace.getDocument(bufnr)
@@ -46,7 +47,7 @@ export default class Symbols {
       let buffer = nvim.createBuffer(bufnr)
       buffer.setVar('coc_current_function', func ?? '', true)
       this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-    }, this.debounceTime())
+    }, getConditionValue(debounceTime, 0))
     events.on('CursorMoved', debounced, this, this.disposables)
     this.disposables.push(Disposable.create(() => {
       debounced.clear()
@@ -61,11 +62,6 @@ export default class Symbols {
     let doc = workspace.getDocument(bufnr)
     let config = workspace.getConfiguration('coc.preferences', doc)
     return config.get<boolean>('currentFunctionSymbolAutoUpdate', false)
-  }
-
-  public debounceTime(): number {
-    let config = workspace.getConfiguration('coc.preferences')
-    return getConditionValue(config.get<number>('currentFunctionSymbolDebounceTime', 300), 0)
   }
 
   public get labels(): { [key: string]: string } {

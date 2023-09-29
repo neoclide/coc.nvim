@@ -1530,7 +1530,7 @@ Preferences~
 	Set debounce timer for the update of b:coc_current_function on CursorMove
 	event
 
-	Scope: `language-overridable`, default: `300`
+	Scope: `application`, default: `300`
 
 "coc.preferences.enableLinkedEditing"			*coc-preferences-enableLinkedEditing*
 

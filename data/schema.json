@@ -537,7 +537,7 @@
     },
     "coc.preferences.currentFunctionSymbolDebounceTime": {
       "type": "number",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Set debounce timer for the update of b:coc_current_function on CursorMove event",
       "default": 300
     },
