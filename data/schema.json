@@ -532,8 +532,14 @@
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Automatically update the value of b:coc_current_function on CursorHold event",
+      "description": "Automatically update the value of b:coc_current_function on CursorMove event",
       "default": false
+    },
+    "coc.preferences.currentFunctionSymbolDebounceTime": {
+      "type": "number",
+      "scope": "language-overridable",
+      "description": "Set debounce timer for the update of b:coc_current_function on CursorMove event",
+      "default": 300
     },
     "coc.preferences.enableLinkedEditing": {
       "type": "boolean",
