@@ -1520,10 +1520,17 @@ Preferences~
 
 "coc.preferences.currentFunctionSymbolAutoUpdate"	*coc-preferences-currentFunctionSymbolAutoUpdate*
 
-	Automatically update the value of b:coc_current_function on CursorHold
+	Automatically update the value of b:coc_current_function on CursorMove
 	event
 
 	Scope: `language-overridable`, default: `false`
+
+"coc.preferences.currentFunctionSymbolDebounceTime"	*coc-preferences-currentFunctionSymbolDebounceTime*
+
+	Set debounce timer for the update of b:coc_current_function on CursorMove
+	event
+
+	Scope: `application`, default: `300`
 
 "coc.preferences.enableLinkedEditing"			*coc-preferences-enableLinkedEditing*
 

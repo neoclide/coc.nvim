@@ -1997,7 +1997,8 @@ b:coc_current_function					*b:coc_current_function*
 	Function string that current cursor in.
 
 	Enable |coc-preferences-currentFunctionSymbolAutoUpdate| to update the
-	value on CursorHold.
+	value on CursorMove and use |coc-preferences-currentFunctionSymbolDebounceTime|
+	to set the time to debounce the event.
 
 b:coc_cursors_activated					*b:coc_cursors_activated*
 
