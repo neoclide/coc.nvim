@@ -44,6 +44,10 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " Or build from source code by using npm
 Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'npm ci'}
 ```
+For [packer.nvim](https://github.com/wbthomason/packer.nvim) users:
+```vim
+use {'neoclide/coc.nvim', branch = 'release'}
+```
 
 in your `.vimrc` or `init.vim`, then restart Vim and run `:PlugInstall`.
 
