@@ -146,6 +146,8 @@ export class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
+    const shouldRun = await this.checkComplete(opt)
+    if (!shouldRun) return null
     let { filepath } = opt
     let option = this.getPathOption(opt)
     if (!option || option.startcol < opt.col) return null

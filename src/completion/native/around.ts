@@ -12,6 +12,8 @@ export class Around extends Source {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
+    const shouldRun = await this.checkComplete(opt)
+    if (!shouldRun) return null
     let { bufnr, input, word, linenr, triggerForInComplete } = opt
     if (input.length === 0) return null
     let buf = this.keywords.getItem(bufnr)
