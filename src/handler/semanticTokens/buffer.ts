@@ -64,7 +64,6 @@ const highlightGroupMap: Map<string, string> = new Map()
 
 export interface StaticConfig {
   filetypes: string[] | null
-  highlightGroups: ReadonlyArray<string>
 }
 
 export default class SemanticTokensBuffer implements SyncItem {
@@ -190,7 +189,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!workspace.env.updateHighlight) throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
     if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`)
     if (!this.hasProvider || !this.hasLegend) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
-    if (this.staticConfig.highlightGroups.length === 0) throw new Error(`Unable to find highlight groups starts with CocSem`)
   }
 
   public async getTokenRanges(
@@ -232,42 +230,41 @@ export default class SemanticTokensBuffer implements SyncItem {
    * Single line only.
    */
   private addHighlightItems(highlights: SemanticTokenRange[], range: [number, number, number], tokenType: string, tokenModifiers: string[]): void {
+    // highlight groups:
+    // CocSem + Type + type
+    // CocSem + Mod + modifier
+    // CocSem + TypeMod + type + modifier
+
     let { combinedModifiers } = this.config
-    let { highlightGroups } = this.staticConfig
-    let highlightGroup: string
     let combine = false
-    // Compose highlight group CocSem + modifier + type
-    for (let item of tokenModifiers) {
-      let hlGroup = HLGROUP_PREFIX + toHighlightPart(item) + toHighlightPart(tokenType)
-      if (highlightGroups.includes(hlGroup)) {
-        combine = combinedModifiers.includes(item)
-        highlightGroup = hlGroup
-        break
-      }
-    }
-    if (!highlightGroup) {
-      for (let modifier of tokenModifiers) {
-        let hlGroup = HLGROUP_PREFIX + toHighlightPart(modifier)
-        if (highlightGroups.includes(hlGroup)) {
-          highlightGroup = hlGroup
-          combine = combinedModifiers.includes(modifier)
-          break
-        }
-      }
-    }
-    if (!highlightGroup) {
-      let hlGroup = HLGROUP_PREFIX + toHighlightPart(tokenType)
-      if (highlightGroups.includes(hlGroup)) {
-        highlightGroup = hlGroup
-      }
-    }
+
     highlights.push({
       range,
       tokenType,
       combine,
-      hlGroup: highlightGroup,
+      hlGroup: HLGROUP_PREFIX + 'Type' + toHighlightPart(tokenType),
       tokenModifiers,
     })
+
+    for (let modifier of tokenModifiers) {
+      combine = combinedModifiers.includes(modifier)
+
+      highlights.push({
+        range,
+        tokenType,
+        combine,
+        hlGroup: HLGROUP_PREFIX + 'Mode' + toHighlightPart(modifier),
+        tokenModifiers,
+      })
+
+      highlights.push({
+        range,
+        tokenType,
+        combine,
+        hlGroup: HLGROUP_PREFIX + 'TypeMod' + toHighlightPart(tokenType) + toHighlightPart(modifier),
+        tokenModifiers,
+      })
+    }
   }
 
   private toHighlightItems(highlights: ReadonlyArray<SemanticTokenRange>, startLine?: number, endLine?: number): HighlightItem[] {

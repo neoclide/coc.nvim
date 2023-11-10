@@ -1,3 +1,10 @@
+# 2024-02-28
+
+- break change: semantictokens highlight groups changed:
+  - `cocsem + type` to `cocsemtype + type`
+  - `cocsem + modifier` to `cocsemmod + modifier`
+  - `CocSem + modifier + type` to `CocSemTypeMod + type + modifier`
+
 # 2024-03-06
 
 - add `outline.autoHide` configuration to automatically hide the outline window when an item is clicked

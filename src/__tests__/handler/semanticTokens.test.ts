@@ -266,7 +266,6 @@ describe('semanticTokens', () => {
           }
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
-      await semanticTokens.fetchHighlightGroups()
       await semanticTokens.showHighlightInfo()
       let buf = await nvim.buffer
       let lines = await buf.lines
@@ -339,7 +338,7 @@ describe('semanticTokens', () => {
       let buf = await win.buffer
       let lines = await buf.lines
       let content = lines.join('\n')
-      expect(content).toMatch('CocSemDeclarationFunction')
+      expect(content).toMatch('CocSemTypeFunction')
       await window.moveTo({ line: 1, character: 0 })
       await commandManager.executeCommand('semanticTokens.inspect')
       win = await helper.getFloat()
@@ -717,7 +716,7 @@ describe('semanticTokens', () => {
       await nvim.call('CocAction', 'semanticHighlight')
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens']) as any[]
       expect(highlights.length).toBeGreaterThan(0)
-      expect(highlights[0][0]).toBe('CocSemKeyword')
+      expect(highlights[0][0]).toBe('CocSemTypeKeyword')
     })
   })
 
@@ -761,17 +760,10 @@ describe('semanticTokens', () => {
       // @ts-ignore
       workspace._env.updateHighlight = true
       expect(enabled).toBe(false)
-      semanticTokens.staticConfig.highlightGroups = ['CocSemKeyword']
       expect(() => {
         item.checkState()
       }).toThrow('provider not found')
       registerProvider()
-      doc = await helper.createDocument('t.rs')
-      item = semanticTokens.getItem(doc.bufnr)
-      semanticTokens.staticConfig.highlightGroups = []
-      expect(() => {
-        item.checkState()
-      }).toThrow('Unable to find highlight groups')
     })
   })
 

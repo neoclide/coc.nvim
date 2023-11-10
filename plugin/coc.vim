@@ -562,32 +562,33 @@ function! s:Highlight() abort
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)
     let hlMap = {
-        \ 'Namespace': ['@namespace', 'Include'],
-        \ 'Type': ['@type', 'Type'],
-        \ 'Class': ['@constructor', 'Special'],
-        \ 'Enum': ['@type', 'Type'],
-        \ 'Interface': ['@type', 'Type'],
-        \ 'Struct': ['@structure', 'Identifier'],
+        \ 'TypeNamespace': ['@namespace', 'Include'],
+        \ 'TypeType': ['@type', 'Type'],
+        \ 'TypeClass': ['@constructor', 'Special'],
+        \ 'TypeEnum': ['@type', 'Type'],
+        \ 'TypeInterface': ['@type', 'Type'],
+        \ 'TypeStruct': ['@structure', 'Identifier'],
+        \ 'TypeTypeParameter': ['@parameter', 'Identifier'],
         \ 'TypeParameter': ['@parameter', 'Identifier'],
-        \ 'Parameter': ['@parameter', 'Identifier'],
-        \ 'Variable': ['@variable', 'Identifier'],
-        \ 'Property': ['@property', 'Identifier'],
-        \ 'EnumMember': ['@property', 'Constant'],
-        \ 'Event': ['@keyword', 'Keyword'],
-        \ 'Function': ['@function', 'Function'],
-        \ 'Method': ['@method', 'Function'],
-        \ 'Macro': ['@constant.macro', 'Define'],
-        \ 'Keyword': ['@keyword', 'Keyword'],
-        \ 'Modifier': ['@storageclass', 'StorageClass'],
-        \ 'Comment': ['@comment', 'Comment'],
-        \ 'String': ['@string', 'String'],
-        \ 'Number': ['@number', 'Number'],
-        \ 'Boolean': ['@boolean', 'Boolean'],
-        \ 'Regexp': ['@string.regex', 'String'],
-        \ 'Operator': ['@operator', 'Operator'],
-        \ 'Decorator': ['@symbol', 'Identifier'],
-        \ 'Deprecated': ['@text.strike', 'CocDeprecatedHighlight']
+        \ 'TypeVariable': ['@variable', 'Identifier'],
+        \ 'TypeProperty': ['@property', 'Identifier'],
+        \ 'TypeEnumMember': ['@property', 'Constant'],
+        \ 'TypeEvent': ['@keyword', 'Keyword'],
+        \ 'TypeFunction': ['@function', 'Function'],
+        \ 'TypeMethod': ['@method', 'Function'],
+        \ 'TypeMacro': ['@constant.macro', 'Define'],
+        \ 'TypeKeyword': ['@keyword', 'Keyword'],
+        \ 'TypeModifier': ['@storageclass', 'StorageClass'],
+        \ 'TypeComment': ['@comment', 'Comment'],
+        \ 'TypeString': ['@string', 'String'],
+        \ 'TypeNumber': ['@number', 'Number'],
+        \ 'TypeBoolean': ['@boolean', 'Boolean'],
+        \ 'TypeRegexp': ['@string.regex', 'String'],
+        \ 'TypeOperator': ['@operator', 'Operator'],
+        \ 'TypeDecorator': ['@symbol', 'Identifier'],
+        \ 'ModDeprecated': ['@text.strike', 'CocDeprecatedHighlight']
         \ }
+    " TODO: add CocSemModXXX and CocSemTypeModeXXX
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')

@@ -7,9 +7,9 @@ import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highlighter'
 import { Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
-import { distinct, isFalsyOrEmpty, toArray } from '../../util/array'
+import { distinct, toArray } from '../../util/array'
 import type { Disposable } from '../../util/protocol'
-import { toErrorText, toText, upperFirst } from '../../util/string'
+import { toErrorText, toText } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, StaticConfig, toHighlightPart } from './buffer'
@@ -28,7 +28,6 @@ export default class SemanticTokens {
   constructor(private nvim: Neovim) {
     this.staticConfig = {
       filetypes: getFiletypes(),
-      highlightGroups: []
     }
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('semanticTokens')) {
@@ -76,7 +75,6 @@ export default class SemanticTokens {
       return new SemanticTokensBuffer(this.nvim, doc, this.staticConfig)
     })
     languages.onDidSemanticTokensRefresh(async selector => {
-      if (isFalsyOrEmpty(this.staticConfig.highlightGroups)) await this.fetchHighlightGroups()
       let visibleBufs = window.visibleTextEditors.map(o => o.document.bufnr)
       for (let item of this.highlighters.items) {
         if (!workspace.match(selector, item.doc)) continue
@@ -157,11 +155,6 @@ export default class SemanticTokens {
     floatFactory?.close()
   }
 
-  public async fetchHighlightGroups(): Promise<void> {
-    let highlightGroups = await this.nvim.call('coc#util#semantic_hlgroups') as string[]
-    this.staticConfig.highlightGroups = highlightGroups
-  }
-
   public async getCurrentItem(): Promise<SemanticTokensBuffer | undefined> {
     let buf = await this.nvim.buffer
     return this.getItem(buf.id)
@@ -176,7 +169,6 @@ export default class SemanticTokens {
   public async highlightCurrent(): Promise<void> {
     let item = await this.getCurrentItem()
     if (!item || !item.enabled) throw new Error(`Unable to perform semantic highlights for current buffer.`)
-    await this.fetchHighlightGroups()
     await item.forceHighlight()
   }
 
