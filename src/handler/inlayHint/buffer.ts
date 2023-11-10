@@ -23,7 +23,7 @@ export interface InlayHintConfig {
 }
 
 let srcId: number | undefined
-const debounceInterval = getConditionValue(100, 10)
+const debounceInterval = getConditionValue(150, 10)
 const requestDelay = getConditionValue(500, 10)
 
 // Extend the rendering range for better experience when scrolling
