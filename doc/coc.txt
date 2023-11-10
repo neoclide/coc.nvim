@@ -3350,27 +3350,22 @@ Semantic highlight groups are starts with `CocSem` which link to related
 highlight groups, use variable |g:coc_default_semantic_highlight_groups| to
 disable creation of these highlight groups.
 
+The highlight groups rules:
+>
+`CocSemType + type` for types
+`CocSemMod + modifier` for modifiers
+`CocSemTypeMode + type + modifier` for modifier with type
+<
+
 Only semantic tokens types and `deprecated` modifier have default
 highlight groups.
 
 You need create highlight groups for highlight other modifiers and/or specific
 modifier with type, for example:
 >
-	" Add highlights for defaultLibrary modifier
-	hi link CocSemDefaultLibrary TSOtherDefaultLibrary
-	hi link CocSemDefaultLibraryClass TSTypeDefaultLibrary
-	hi link CocSemDefaultLibraryInterface TSTypeDefaultLibrary
-	hi link CocSemDefaultLibraryEnum TSTypeDefaultLibrary
-	hi link CocSemDefaultLibraryType TSTypeDefaultLibrary
-	hi link CocSemDefaultLibraryNamespace TSTypeDefaultLibrary
-
 	" Add highlights for declaration modifier
-	hi link CocSemDeclaration TSOtherDeclaration
-	hi link CocSemDeclarationClass TSTypeDeclaration
-	hi link CocSemDeclarationInterface TSTypeDeclaration
-	hi link CocSemDeclarationEnum TSTypeDeclaration
-	hi link CocSemDeclarationType TSTypeDeclaration
-	hi link CocSemDeclarationNamespace TSTypeDeclaration
+	hi link CocSemModDeclaration Declaration
+	hi link CocSemTypeModClassDeclaration ClassDeclaration
 <
 The modifier highlight groups have higher priority.
 
