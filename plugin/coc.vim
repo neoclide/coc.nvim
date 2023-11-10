@@ -588,7 +588,7 @@ function! s:Highlight() abort
         \ 'TypeDecorator': ['@symbol', 'Identifier'],
         \ 'ModDeprecated': ['@text.strike', 'CocDeprecatedHighlight']
         \ }
-    " TODO: add CocSemModXXX and CocSemTypeModeXXX
+    " TODO: add CocSemTypeModeXXX
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')

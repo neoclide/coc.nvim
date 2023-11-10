@@ -232,7 +232,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   private addHighlightItems(highlights: SemanticTokenRange[], range: [number, number, number], tokenType: string, tokenModifiers: string[]): void {
     // highlight groups:
     // CocSem + Type + type
-    // CocSem + Mod + modifier
     // CocSem + TypeMod + type + modifier
 
     let { combinedModifiers } = this.config
@@ -246,17 +245,10 @@ export default class SemanticTokensBuffer implements SyncItem {
       tokenModifiers,
     })
 
-    for (let modifier of tokenModifiers) {
+    if (tokenModifiers.length) {
+      // only use first modifier to avoid highlight flicking
+      const modifier = tokenModifiers[0]
       combine = combinedModifiers.includes(modifier)
-
-      highlights.push({
-        range,
-        tokenType,
-        combine,
-        hlGroup: HLGROUP_PREFIX + 'Mode' + toHighlightPart(modifier),
-        tokenModifiers,
-      })
-
       highlights.push({
         range,
         tokenType,

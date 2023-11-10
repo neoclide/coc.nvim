@@ -338,7 +338,7 @@ describe('semanticTokens', () => {
       let buf = await win.buffer
       let lines = await buf.lines
       let content = lines.join('\n')
-      expect(content).toMatch('CocSemTypeFunction')
+      expect(content).toMatch('Type: function\nModifiers: declaration\nHighlight group: CocSemTypeFunction')
       await window.moveTo({ line: 1, character: 0 })
       await commandManager.executeCommand('semanticTokens.inspect')
       win = await helper.getFloat()

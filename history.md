@@ -2,7 +2,6 @@
 
 - Break change: semanticTokens highlight groups changed:
   - `CocSem + type` to `CocSemType + type`
-  - `CocSem + modifier` to `CocSemMod + modifier`
   - `CocSem + modifier + type` to `CocSemTypeMod + type + modifier`
 
 # 2023-09-02
