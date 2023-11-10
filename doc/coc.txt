@@ -3359,7 +3359,6 @@ disable creation of these highlight groups.
 The highlight groups rules:
 >
 `CocSemType + type` for types
-`CocSemMod + modifier` for modifiers
 `CocSemTypeMode + type + modifier` for modifier with type
 <
 
@@ -3370,7 +3369,6 @@ You need create highlight groups for highlight other modifiers and/or specific
 modifier with type, for example:
 >
 	" Add highlights for declaration modifier
-	hi link CocSemModDeclaration Declaration
 	hi link CocSemTypeModClassDeclaration ClassDeclaration
 <
 The modifier highlight groups have higher priority.
