@@ -319,7 +319,9 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    if hlexists(a:hl_group)
+      call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    endif
   endif
 endfunction
 
