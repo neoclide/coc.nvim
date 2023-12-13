@@ -239,7 +239,7 @@ export class Chars {
     }
   }
 
-  public matchLine(line: string, min = 2, max = 1024): string[] {
+  public matchLine(line: string, segmentChinese = true, min = 2, max = 1024): string[] {
     let res: Set<string> = new Set()
     let l = line.length
     if (l > max) {
@@ -249,7 +249,7 @@ export class Chars {
     for (let [start, end] of this.iterateWords(line)) {
       if (end - start < min) continue
       let word = line.slice(start, end)
-      if (chineseRegex.test(word[0])) {
+      if (segmentChinese && chineseRegex.test(word[0])) {
         for (let text of chineseSegments(word)) {
           res.add(text)
         }

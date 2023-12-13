@@ -1890,6 +1890,12 @@
       "scope": "language-overridable",
       "default": false
     },
+    "suggest.chineseSegments": {
+      "type": "boolean",
+      "default": true,
+      "scope": "application",
+      "description": "Divide Chinese sentence into segments in around/buffer source"
+    },
     "suggest.asciiMatch": {
       "type": "boolean",
       "description": "Convert unicode characters to ascii for match",
