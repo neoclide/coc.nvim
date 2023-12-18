@@ -94,7 +94,7 @@ export class Dialog {
     let highlight = this.config.highlight || preferences.floatHighlight
     let opts: any = { maxwidth: preferences.maxWidth || 80, }
     if (title) opts.title = title
-    if (close || typeof close === 'undefined') opts.close = 1
+    opts.close = +(close ?? 1)
     if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (highlight) opts.highlight = highlight
