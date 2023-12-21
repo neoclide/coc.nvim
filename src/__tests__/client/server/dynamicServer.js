@@ -150,7 +150,7 @@ connection.onDocumentSymbol(() => {
 })
 
 connection.onExecuteCommand(param => {
-  if (param.command = 'test_command') {
+  if (param.command === 'test_command') {
     return {success: true}
   }
 })
