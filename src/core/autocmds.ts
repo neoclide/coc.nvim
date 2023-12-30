@@ -65,5 +65,5 @@ export function createCommand(id: number, autocmd: Autocmd): string {
     pattern = ''
   }
   let method = autocmd.request ? 'request' : 'notify'
-  return `autocmd! ${groupName} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', [${id}${args}])`
+  return `autocmd ${groupName} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', [${id}${args}])`
 }
