@@ -66,8 +66,8 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', () => {
       clearTimeout(this.triggerTimer)
     }, null, this.disposables)
-    events.on('CompleteStop', kind => {
-      this.stop(false, kind)
+    events.on('CompleteStop', async kind => {
+      await this.stopAwaitable(false, kind)
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
@@ -360,6 +360,10 @@ export class Completion implements Disposable {
   }
 
   public stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): void {
+    void this.stopAwaitable(close, kind)
+  }
+
+  public async stopAwaitable(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
     let { complete } = this
     if (complete == null) return
     let inserted = kind === CompleteFinishKind.Confirm || (this.popupEvent?.inserted && kind != CompleteFinishKind.Cancel)
@@ -374,14 +378,16 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     doc._forceSync()
-    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
+    const completeDone = events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (resolved && inserted) {
       this._mru.add(line.slice(character, inputStart) + input, item)
     }
+    let confirmDone = Promise.resolve()
     if (kind == CompleteFinishKind.Confirm && resolved) {
-      void this.confirmCompletion(resolved.source, resolved.item, option)
+      confirmDone = this.confirmCompletion(resolved.source, resolved.item, option)
     }
+    await Promise.all([completeDone, confirmDone])
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {

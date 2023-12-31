@@ -99,7 +99,11 @@ export default (opts: Attach, requestApi = false): Plugin => {
     timing.start(method)
     try {
       events.requesting = true
-      if (method == 'CocAutocmd') {
+      if (method == 'CompleteStop') {
+        logger.trace('Event: ', method, ...args)
+        await events.fire(method, args)
+        resp.send(undefined)
+      } else if (method == 'CocAutocmd') {
         logger.trace('Request autocmd:', ...args)
         await events.fire(args[0], args.slice(1))
         resp.send(undefined)
