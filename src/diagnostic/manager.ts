@@ -263,7 +263,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
-   * Show diagnostics under curosr in preview window
+   * Show diagnostics under cursor in preview window
    */
   public async preview(): Promise<void> {
     let diagnostics = await this.getCurrentDiagnostics()

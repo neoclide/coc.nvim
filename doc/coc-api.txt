@@ -98,14 +98,14 @@ Complete function:~
   • line: Content line when trigger completion.
   • col: Start col of completion, start col of the keywords before cursor by
     default, 0 based.
-  • input: Input text between start col and curosr col.
+  • input: Input text between start col and cursor col.
   • filetype: Filetype of current buffer.
   • filepath: Fullpath of current buffer.
   • changedtick: b:changedtick value when trigger completion.
   • triggerCharacter: The character which trigger the completion, could be
     empty string.
   • colnr: Cursor col when trigger completion, 1 based.
-  • linenr: Line number of curosr, 1 based.
+  • linenr: Line number of cursor, 1 based.
 
   Complete items extends vim's |complete-items| with the following properties:
 
@@ -133,7 +133,7 @@ Optional functions:~
   by coc.nvim:
 
   • `coc#source#{name}#get_startcol(option)` Used to alter the start col of
-    completion, the returned col must <= current curosr col.
+    completion, the returned col must <= current cursor col.
   • `coc#source#{name}#on_complete(item)` Called with selected complete item
     when user confirm the completion by |coc#pum#confirm()| or
     |coc#_select_confirm()|. Normally used for apply nesessary edits to the
