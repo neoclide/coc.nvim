@@ -65,7 +65,7 @@ function! coc#pum#close(...) abort
     endif
     call s:close_pum()
     if !get(a:, 2, 0)
-      call coc#rpc#notify('CompleteStop', [kind])
+      call coc#rpc#request('CompleteStop', [kind])
     endif
   endif
   return ''
@@ -115,7 +115,7 @@ function! coc#pum#_insert() abort
     endif
     doautocmd <nomodeline> TextChangedI
     call s:close_pum()
-    call coc#rpc#notify('CompleteStop', [''])
+    call coc#rpc#request('CompleteStop', [''])
   endif
   return ''
 endfunction
