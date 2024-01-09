@@ -206,7 +206,7 @@ export default class Configurations {
 
   public folderToConfigfile(folder: string): string | undefined {
     if (sameFile(folder, os.homedir())) return undefined
-    let filepath = path.join(folder, `.vim/${CONFIG_FILE_NAME}`)
+    let filepath = path.join(folder, '.vim', CONFIG_FILE_NAME)
     if (sameFile(filepath, this.userConfigFile)) return undefined
     return filepath
   }
