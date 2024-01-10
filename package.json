@@ -101,7 +101,7 @@
     "decompress-response": "^6.0.0",
     "fast-diff": "^1.3.0",
     "fb-watchman": "^2.0.1",
-    "follow-redirects": "^1.15.2",
+    "follow-redirects": "^1.15.4",
     "glob": "^10.3.4",
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
