@@ -3711,6 +3711,8 @@ Configurations `"list.normalMappings"` and `"list.insertMappings"` are used
 for customizing the list key-mappings, example: >
 
 	"list.insertMappings": {
+		"<C-space>": "do:previewtoggle",
+		"<C-_>": "do:help"
 		"<C-r>": "do:refresh",
 		"<C-f>": "feedkeys:\\<C-f>",
 		"<C-b>": "feedkeys:\\<C-b>",
