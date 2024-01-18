@@ -88,6 +88,12 @@ export default class Mappings {
     this.addAction('prompt:right', () => {
       prompt.moveRight()
     })
+    this.addAction('prompt:leftword', () => {
+      prompt.moveLeftWord()
+    })
+    this.addAction('prompt:rightword', () => {
+      prompt.moveRightWord()
+    })
     this.addAction('prompt:deleteforward', () => {
       prompt.onBackspace()
     })

@@ -625,6 +625,26 @@ describe('list insert mappings', () => {
     expect(input).toBe('afc')
   })
 
+  it('should move cursor by leftword and rightword', async () => {
+    let revert = helper.updateConfiguration('list.insertMappings', {
+      '<A-b>': 'prompt:leftword',
+      '<A-f>': 'prompt:rightword',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('aaa bbb ccc') // -> aaa bbb ccc|
+    await helper.listInput('<A-b>')       // -> aaa bbb |ccc
+    await helper.listInput('<A-b>')       // -> aaa |bbb ccc
+    await helper.listInput('ddd ')        // -> aaa ddd |bbb ccc
+    await helper.listInput('<A-f>')       // -> aaa ddd bbb |ccc
+    await helper.listInput('eee ')        // -> aaa ddd bbb eee |ccc
+    expect(manager.mappings.hasUserMapping('insert', '<A-b>')).toBe(true)
+    expect(manager.mappings.hasUserMapping('insert', '<A-f>')).toBe(true)
+    let input = manager.prompt.input
+    revert()
+    expect(input).toBe('aaa ddd bbb eee ccc')
+  })
+
   it('should move cursor by <end> and <home>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready

@@ -107,6 +107,28 @@ export default class Prompt {
     this.drawPrompt()
   }
 
+  public moveLeftWord(): void {
+    // Reuses logic from removeWord(), except that we only update the
+    // cursorIndex and don't actually remove the word.
+    let { cusorIndex, input } = this
+    if (cusorIndex == 0) return
+    let pre = input.slice(0, cusorIndex)
+    let remain = pre.replace(/[\w$]+([^\w$]+)?$/, '')
+    this.cusorIndex = cusorIndex - (pre.length - remain.length)
+    this.drawPrompt()
+    this._onDidChangeInput.fire(this._input)
+  }
+
+  public moveRightWord(): void {
+    let { cusorIndex, input } = this
+    if (cusorIndex == input.length) return
+    let post = input.slice(cusorIndex)
+    let nextWord = post.match(/[\w$]+ */).at(0) ?? post
+    this.cusorIndex = cusorIndex + nextWord.length
+    this.drawPrompt()
+    this._onDidChangeInput.fire(this._input)
+  }
+
   public moveToEnd(): void {
     if (this.cusorIndex == this._input.length) return
     this.cusorIndex = this._input.length
