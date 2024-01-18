@@ -23,6 +23,8 @@ export const validKeys = [
   '<LeftDrag>',
   '<LeftRelease>',
   '<2-LeftMouse>',
+  '<C-space>',
+  '<C-_>',
   '<C-a>',
   '<C-b>',
   '<C-c>',

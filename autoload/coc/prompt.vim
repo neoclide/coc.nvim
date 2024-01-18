@@ -29,6 +29,8 @@ let s:char_map = {
       \ "\<LeftDrag>": '<LeftDrag>',
       \ "\<LeftRelease>": '<LeftRelease>',
       \ "\<2-LeftMouse>": '<2-LeftMouse>',
+      \ "\<C-space>": '<C-space>',
+      \ "\<C-_>": '<C-_>',
       \ "\<C-a>": '<C-a>',
       \ "\<C-b>": '<C-b>',
       \ "\<C-c>": '<C-c>',
