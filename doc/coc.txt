@@ -3760,6 +3760,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'end'            - move cursor to end.
 	'left'           - move cursor left.
 	'right'          - move cursor right.
+	'leftword'       - move cursor left by a word.
+	'rightword'      - move cursor right by a word.
 	'deleteforward'  - remove previous character.
 	'deletebackward' - remove next character.
 	'removetail'     - remove characters afterwards.
