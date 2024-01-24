@@ -104,6 +104,7 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   let alignTop = dimension['row'] < 0
   let winid = res[0]
   let bufnr = res[1]
+  call coc#compat#execute(winid, 'setl nonumber')
   redraw
   if has('nvim')
     call coc#float#nvim_scrollbar(winid)
