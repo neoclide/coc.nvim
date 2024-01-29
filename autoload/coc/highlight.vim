@@ -742,6 +742,9 @@ function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
 endfunction
 
 function! s:add_highlights(bufnr, ns, highlights, priority) abort
+  if bufwinnr(a:bufnr) == -1 " check buffer exists
+    return
+  endif
   for item in a:highlights
     let opts = {
           \ 'priority': a:priority,
