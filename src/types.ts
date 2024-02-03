@@ -1,10 +1,9 @@
 'use strict'
 import type { Window } from '@chemzqm/neovim'
 import type { Disposable, Event } from 'vscode-languageserver-protocol'
-import type { CreateFile, DeleteFile, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
+import type { CreateFile, DeleteFile, Diagnostic, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type RelativePattern from './model/relativePattern'
-import type { Diagnostic } from 'vscode-languageserver-types'
 
 export type { IConfigurationChangeEvent } from './configuration/types'
 
