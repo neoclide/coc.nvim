@@ -726,15 +726,15 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, i
 endfunction
 
 function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
-  let hls = []
-  let next = []
-  for i in range(0, len(a:highlights) - 1)
-    if i < g:coc_highlight_maximum_count
-      call add(hls, a:highlights[i])
-    else
-      call add(next, a:highlights[i])
-    endif
-  endfor
+  let lhl = len(a:highlights)
+  let maxc = g:coc_highlight_maximum_count
+  if maxc < lhl
+    let hls = a:highlights[:maxc-1]
+    let next = a:highlights[maxc:]
+  else
+    let hls = a:highlights[:]
+    let next = []
+  endif
   call s:add_highlights(a:bufnr, a:ns, hls, a:priority)
   if len(next)
     call timer_start(30, {->s:add_highlights_timer(a:bufnr, a:ns, next, a:priority)})
