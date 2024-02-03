@@ -4,7 +4,7 @@ import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-langu
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
+import { DiagnosticWithFileType, DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
 import { getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
@@ -317,7 +317,7 @@ export class DiagnosticBuffer implements SyncItem {
     return true
   }
 
-  public async showFloat(diagnostics: Diagnostic[], target = 'float'): Promise<boolean> {
+  public async showFloat(diagnostics: DiagnosticWithFileType[], target = 'float'): Promise<boolean> {
     if (target !== 'float') return false
     if (!floatFactory) floatFactory = window.createFloatFactory({ modes: ['n'], autoHide: true })
     if (diagnostics.length == 0) {
@@ -335,7 +335,9 @@ export class DiagnosticBuffer implements SyncItem {
     }
     diagnostics.forEach(diagnostic => {
       let filetype = 'Error'
-      if (ft === '') {
+      if (diagnostic.filetype) {
+        filetype = diagnostic.filetype
+      } else if (ft === '') {
         switch (diagnostic.severity) {
           case DiagnosticSeverity.Hint:
             filetype = 'Hint'
