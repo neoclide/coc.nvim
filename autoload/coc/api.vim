@@ -495,7 +495,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   let id = s:generate_id(a:bufnr)
   try
     call prop_add(a:line + 1, a:colStart + 1, {'bufnr': bufnr, 'type': type, 'id': id, 'end_col': end})
-  catch /^Vim\%((\a\+)\)\=:E967/
+  catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
     " ignore 967
   endtry
   if a:srcId == 0
