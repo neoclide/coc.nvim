@@ -4,6 +4,7 @@ import type { Disposable, Event } from 'vscode-languageserver-protocol'
 import type { CreateFile, DeleteFile, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type RelativePattern from './model/relativePattern'
+import type { Diagnostic } from 'vscode-languageserver-types'
 
 export type { IConfigurationChangeEvent } from './configuration/types'
 
@@ -348,3 +349,12 @@ export interface DidChangeTextDocumentParams {
   readonly originalLines: ReadonlyArray<string>
 }
 // }}
+
+export interface DiagnosticWithFileType extends Diagnostic {
+  /**
+   * The `filetype` property provides the type of file associated with the diagnostic information.
+   * This information is utilized by the diagnostic buffer panel for highlighting and formatting
+   * the diagnostic messages according to the specific filetype.
+   */
+  filetype?: string;
+}
