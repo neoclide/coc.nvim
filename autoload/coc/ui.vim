@@ -333,11 +333,11 @@ function! coc#ui#open_url(url)
     return
   endif
   if has('mac') && executable('open')
-    call system('open '.a:url)
+    call system('open "'.a:url.'"')
     return
   endif
   if executable('xdg-open')
-    call system('xdg-open '.a:url)
+    call system('xdg-open "'.a:url.'"')
     return
   endif
   call system('cmd /c start "" /b '. substitute(a:url, '&', '^&', 'g'))
