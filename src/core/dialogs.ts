@@ -105,7 +105,7 @@ export class Dialogs {
       let menu = new Menu(this.nvim, { items, ...option }, token)
       let promise = new Promise<number>(resolve => {
         menu.onDidClose(selected => {
-          events.race(['BufHidden'], 20).finally(() => {
+          void events.race(['BufHidden'], 20).finally(() => {
             resolve(selected)
           })
         })
