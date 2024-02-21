@@ -26,7 +26,7 @@ jobs:
         run: npm install --frozen-lockfile
 
       - name: Check Types by TSC
-        run: yarn lint:typecheck
+        run: npm run lint:typecheck
 
       - name: Lint ESLint
-        run: yarn lint
+        run: npm run lint
