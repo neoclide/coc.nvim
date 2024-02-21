@@ -37,7 +37,18 @@ describe('Plugin', () => {
 
 describe('exports', () => {
   it('should exports all types from vscode-languageserver-types', () => {
-    const excludes = ['EOL', 'URI', 'TextDocument']
+    // TODO: remove inline types after inline completion added
+    const excludes = [
+      'EOL',
+      'URI',
+      'TextDocument',
+      'StringValue',
+      'InlineCompletionItem',
+      'InlineCompletionList',
+      'InlineCompletionTriggerKind',
+      'SelectedCompletionInfo',
+      'InlineCompletionContext'
+    ]
     let list: string[] = []
     for (let key of Object.keys(vsTypes)) {
       if (typeof exportObj[key] === 'undefined' && !excludes.includes(key)) {
