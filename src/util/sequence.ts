@@ -7,7 +7,7 @@ export class Sequence {
   public run(fn: () => Promise<void>): void {
     if (!this._busy) {
       this._busy = true
-      fn().finally(() => {
+      void fn().finally(() => {
         this.next()
       })
     } else {
@@ -27,7 +27,7 @@ export class Sequence {
     if (!fn) {
       this.finish()
     } else {
-      fn().finally(() => {
+      void fn().finally(() => {
         this.next()
       })
     }
