@@ -145,7 +145,9 @@ function! coc#rpc#restart()
     autocmd! coc_dynamic_content
     autocmd! coc_dynamic_option
     call coc#rpc#request('detach', [])
-    unlet g:coc_status
+    if !empty(get(g:, 'coc_status', ''))
+      unlet g:coc_status
+    endif
     let g:coc_service_initialized = 0
     sleep 100m
     if exists('$COC_NVIM_REMOTE_ADDRESS')
