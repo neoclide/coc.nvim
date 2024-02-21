@@ -175,7 +175,7 @@ export default class CodeLensBuffer implements SyncItem {
     // nvim could have extmarks exceeded last line.
     if (end == total) end = -1
     this.nvim.pauseNotification()
-    this.clear(start - 1, end)
+    this.clear()
     this.setVirtualText(codeLenses)
     this.nvim.resumeNotification(true, true)
   }
