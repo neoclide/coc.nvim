@@ -59,7 +59,11 @@ function! coc#window#get_var(winid, name, ...) abort
   if !s:is_vim
     try
       if a:name =~# '^&'
-        return nvim_win_get_option(a:winid, a:name[1:])
+        if has('nvim-0.10')
+          return nvim_get_option_value(a:name[1:], {'win': a:winid})
+        else
+          return nvim_win_get_option(a:winid, a:name[1:])
+        endif
       else
         return nvim_win_get_var(a:winid, a:name)
       endif
@@ -80,7 +84,11 @@ function! coc#window#set_var(winid, name, value) abort
   try
     if !s:is_vim
       if a:name =~# '^&'
-        call nvim_win_set_option(a:winid, a:name[1:], a:value)
+        if has('nvim-0.10')
+          call nvim_set_option_value(a:name[1:], a:value, {'win': a:winid})
+        else
+          call nvim_win_set_option(a:winid, a:name[1:], a:value)
+        endif
       else
         call nvim_win_set_var(a:winid, a:name, a:value)
       endif
