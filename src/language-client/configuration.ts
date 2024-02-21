@@ -88,7 +88,7 @@ export class PullConfigurationFeature implements StaticFeature {
         result = toJSONObject(workspace.getConfiguration(undefined, resource).get(section))
       } else {
         let config = workspace.getConfiguration(section.substr(0, index), resource)
-        result = toJSONObject(config.get(section.substr(index + 1)))
+        result = toJSONObject(mergeConfigProperties(config))[section.substr(index + 1)]
       }
     } else {
       let config = workspace.getConfiguration(section, resource)
@@ -209,7 +209,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   public static getConfiguredSettings(key: string, workspaceFolder: WorkspaceFolder | undefined): any {
     let len = '.settings'.length
     let config = workspace.getConfiguration(key.slice(0, - len), workspaceFolder)
-    return mergeConfigProperties(config.get<any>('settings', {}))
+    return mergeConfigProperties(toJSONObject(config.get<any>('settings', {})))
   }
 
   public static extractSettingsInformation(keys: string[], workspaceFolder?: WorkspaceFolder): any {
