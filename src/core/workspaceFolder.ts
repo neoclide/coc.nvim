@@ -155,8 +155,6 @@ export default class WorkspaceFolderController {
   public resolveRoot(document: Document, cwd: string, fireEvent: boolean, expand: ((input: string) => string)): string | null {
     if (document.buftype !== '' || document.schema !== 'file') return null
     let u = URI.parse(document.uri)
-    let curr = this.getWorkspaceFolder(u)
-    if (curr) return URI.parse(curr.uri).fsPath
     let dir = isDirectory(u.fsPath) ? path.normalize(u.fsPath) : path.dirname(u.fsPath)
     let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config
     if (ignoredFiletypes?.includes(document.filetype)) return null
