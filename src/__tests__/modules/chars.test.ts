@@ -219,7 +219,7 @@ describe('chars', () => {
     it('should matchLine', async () => {
       let text = 'a'.repeat(2048)
       let chars = new Chars('@')
-      expect(chars.matchLine(text, 3, 128)).toEqual(['a'.repeat(128)])
+      expect(chars.matchLine(text, true, 3, 128)).toEqual(['a'.repeat(128)])
       expect(chars.matchLine('a b c')).toEqual([])
       expect(chars.matchLine('foo bar')).toEqual(['foo', 'bar'])
       expect(chars.matchLine('?foo bar')).toEqual(['foo', 'bar'])
@@ -228,6 +228,8 @@ describe('chars', () => {
       expect(chars.matchLine(' 你好foo')).toEqual(['你好', 'foo'])
       expect(chars.matchLine('bar你好')).toEqual(['bar', '你好'])
       expect(chars.matchLine('你好，世界。')).toEqual(['你好', '世界'])
+      expect(chars.matchLine('你好世界', true)).toEqual(['你好', '世界'])
+      expect(chars.matchLine('你好世界', false)).toEqual(['你好世界'])
       expect(chars.matchLine('foo😍bar foo，bar')).toEqual(['foo', 'bar'])
     })
   })

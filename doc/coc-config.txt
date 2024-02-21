@@ -1101,6 +1101,12 @@ Suggest~
 
 	Scope: `language-overridable`, default: `false`
 
+"suggest.chineseSegments"				*coc-config-suggest-chineseSegments*
+
+	Divide Chinese sentence into segments in around/buffer source.
+
+	Scope: `language-overridable`, default: `true`
+
 "suggest.asciiMatch"					*coc-config-suggest-asciiMatch*
 
 	Convert unicode characters to ascii for match.

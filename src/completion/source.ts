@@ -120,6 +120,10 @@ export default class Source implements ISource<ExtendedCompleteItem> {
     return this.getConfig('disableSyntaxes', [])
   }
 
+  public get chineseSegments(): boolean {
+    return this.getConfig('chineseSegments', true)
+  }
+
   public getConfig<T>(key: string, defaultValue?: T): T | null {
     let val = this.config[key]
     if (Is.func(val) || val == null) return defaultValue ?? null
