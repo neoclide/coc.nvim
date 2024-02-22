@@ -47,6 +47,7 @@ export default class Document {
   private _winid = -1
   private _filetype: string
   private _bufname: string
+  private _commandLine = false
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -118,7 +119,7 @@ export default class Document {
   }
 
   public get isCommandLine(): boolean {
-    return this.uri && this.uri.endsWith('%5BCommand%20Line%5D')
+    return this._commandLine
   }
 
   /**
@@ -192,6 +193,7 @@ export default class Document {
   private init(opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
     this._bufname = opts.bufname
+    this._commandLine = opts.commandline === 1
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
     this.variables = toObject(opts.variables)
