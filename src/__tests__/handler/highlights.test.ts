@@ -209,7 +209,8 @@ describe('document highlights', () => {
   it('should not throw when document is command line', async () => {
     await nvim.call('feedkeys', ['q:', 'in'])
     let doc = await workspace.document
-    expect(doc.isCommandLine).toBe(true)
+    // FIXME: nvim 0.10 bug https://github.com/neovim/neovim/issues/27576
+    // expect(doc.isCommandLine).toBe(true)
     await highlights.highlight()
     await nvim.input('<C-c>')
   })
