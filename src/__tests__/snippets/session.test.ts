@@ -159,8 +159,7 @@ describe('SnippetSession', () => {
       expect(res).toBe(true)
       let { placeholder } = session
       expect(placeholder.index).toBe(1)
-      let r = await getCursorRange()
-      res = await session.start('${1:foo} ${2:bar}', r)
+      res = await session.start('${1:foo} ${2:bar}', defaultRange)
       expect(res).toBe(true)
       placeholder = session.placeholder
       expect(placeholder.index).toBe(2)
