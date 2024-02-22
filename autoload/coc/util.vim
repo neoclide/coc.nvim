@@ -64,7 +64,7 @@ endfunction
 function! coc#util#path_replace_patterns() abort
   if has('win32unix') && exists('g:coc_cygqwin_path_prefixes')
     echohl WarningMsg
-    echon 'g:coc_cygqwin_path_prefixes is deprecated, use g:coc_uri_prefix_replace_patterns instead' 
+    echon 'g:coc_cygqwin_path_prefixes is deprecated, use g:coc_uri_prefix_replace_patterns instead'
     echohl None
     return g:coc_cygqwin_path_prefixes
   endif
@@ -468,6 +468,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
+  let commandline = get(getbufinfo(a:bufnr)[0], 'command', 0) || bufname(a:bufnr) == '[Command Line]'
   let size = coc#util#bufsize(a:bufnr)
   let lines = v:null
   if getbufvar(a:bufnr, 'coc_enabled', 1)
@@ -478,6 +479,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
   endif
   return {
         \ 'bufnr': a:bufnr,
+        \ 'commandline': commandline,
         \ 'size': size,
         \ 'lines': lines,
         \ 'winid': bufwinid(a:bufnr),

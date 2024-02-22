@@ -54,6 +54,7 @@ export interface BufferOption {
   readonly lines: null | string[]
   readonly variables: { [key: string]: any }
   readonly bufname: string
+  readonly commandline: number
   readonly fullpath: string
   readonly buftype: string
   readonly filetype: string
@@ -355,5 +356,5 @@ export interface DiagnosticWithFileType extends Diagnostic {
    * This information is utilized by the diagnostic buffer panel for highlighting and formatting
    * the diagnostic messages according to the specific filetype.
    */
-  filetype?: string;
+  filetype?: string
 }
