@@ -158,8 +158,12 @@ export default class Symbols {
     if (inner && selectRange) {
       let { start, end } = selectRange
       let line = doc.getline(start.line + 1)
-      let endLine = doc.getline(end.line - 1)
-      selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
+      // https://github.com/neoclide/coc.nvim/issues/1847
+      // https://github.com/neoclide/coc.nvim/pull/4488#issuecomment-1409717682
+      // don't decrease end.line for python
+      let endDelta = doc.filetype === 'python' ? 0 : 1
+      let endLine = doc.getline(end.line - endDelta)
+      selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - endDelta, endLine.length)
     }
     if (selectRange) {
       await window.selectRange(selectRange)
