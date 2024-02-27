@@ -285,6 +285,12 @@ export default class SymbolsOutline {
         disposable.dispose()
         this.closePreview()
       })
+      treeView.onDidChangeVisibility(visible => {
+        if (this.nvim.isVim && visible && previewBufnr) {
+          prev = undefined
+          this.closePreview()
+        }
+      })
       treeView.onDidCursorMoved(async node => {
         if (autoPreview && prev !== node) {
           prev = node
