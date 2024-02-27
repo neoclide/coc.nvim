@@ -7,6 +7,9 @@ let s:outline_preview_bufnr = 0
 
 " Check <Tab> and <CR>
 function! coc#ui#check_pum_keymappings(trigger) abort
+  if get(g:, 'coc_disable_mappings_check', 0) == 1
+    return
+  endif
   if a:trigger !=# 'none'
     for key in ['<cr>', '<tab>', '<c-y>', '<s-tab>']
       let arg = maparg(key, 'i', 0, 1)
