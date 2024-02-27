@@ -1,3 +1,8 @@
+# 2024-02-27
+
+- Add `g:coc_disable_mappings_check` to disable key-mappings checking
+- Add `suggest.chineseSegments` configuration to control whether to divide Chinese sentences into segments or not
+
 # 2023-09-02
 
 - Support `g:coc_list_preview_filetype`.
