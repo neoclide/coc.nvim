@@ -60,3 +60,16 @@ endfunction
 function! DictAdd() dict
   return self.key + 1
 endfunction
+
+" fake clipboard
+let g:clipboard = {
+  \  'name': 'fakeClipboard',
+  \  'copy': {
+  \    '+': {lines, regtype -> extend(g:, {'fakeClipboard': [lines, regtype]}) },
+  \    '*': {lines, regtype -> extend(g:, {'fakeClipboard': [lines, regtype]}) },
+  \   },
+  \  'paste': {
+  \    '+': {-> get(g:, 'fakeClipboard', [])},
+  \    '*': {-> get(g:, 'fakeClipboard', [])},
+  \  },
+  \}
