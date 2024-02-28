@@ -65,8 +65,7 @@ jobs:
         run: |
           npm i -g bytes
           npm ci
-          sudo apt-get install -y xclip ripgrep exuberant-ctags
-          xclip -version
+          sudo apt-get install -y ripgrep exuberant-ctags
           rg --version
           ctags --version
           vim --version
