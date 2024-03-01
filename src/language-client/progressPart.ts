@@ -68,8 +68,8 @@ export class ProgressPart {
     let msg: { message?: string, increment?: number } = {}
     if (params.message) msg.message = params.message
     if (validPercent(params.percentage)) {
-      msg.increment = params.percentage - this._percent
-      this._percent = params.percentage
+      msg.increment = Math.round(params.percentage) - this._percent
+      this._percent = Math.round(params.percentage)
     }
     if (Object.keys(msg).length > 0) {
       this.progress.report(msg)
