@@ -640,7 +640,7 @@ export default class Document {
    */
   public onTextChange(event: string, change: InsertChange): void {
     if (event === 'TextChanged'
-      || (event === 'TextChangedI' && !change.insertChar)
+      || event === 'TextChangedI'
       || !this._noFetch) {
       fireLinesChanged(this.bufnr)
       this._noFetch = false
