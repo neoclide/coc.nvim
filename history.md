@@ -1,3 +1,7 @@
+# 2024-03-06
+
+- add `outline.autoHide` configuration to automatically hide the outline window when an item is clicked
+
 # 2024-02-27
 
 - Add `g:coc_disable_mappings_check` to disable key-mappings checking

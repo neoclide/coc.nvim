@@ -35,6 +35,7 @@ interface OutlineConfig {
   detailAsDescription: boolean
   codeActionKinds: CodeActionKind[]
   sortBy: 'position' | 'name' | 'category'
+  autoHide: boolean
   autoPreview: boolean
   previewMaxWidth: number
   previewBorder: boolean
@@ -114,6 +115,7 @@ export default class SymbolsOutline {
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
         showLineNumber: c.get<boolean>('showLineNumber'),
         codeActionKinds: c.get<string[]>('codeActionKinds'),
+        autoHide: c.get<boolean>('autoHide'),
         autoPreview: c.get<boolean>('autoPreview'),
         previewMaxWidth: c.get<number>('previewMaxWidth'),
         previewBorder: c.get<boolean>('previewBorder'),
@@ -214,6 +216,9 @@ export default class SymbolsOutline {
           buf.clearNamespace('outline-hover')
           nvim.command('redraw', true)
         }, hoverTimeout)
+        if (this.config.autoHide) {
+          await this.hide()
+        }
       },
       resolveActions: async (_, element) => {
         let winnr = await nvim.call('bufwinnr', [bufnr])
