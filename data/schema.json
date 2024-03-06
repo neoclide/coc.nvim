@@ -1588,6 +1588,12 @@
       "default": "npm",
       "description": "Command or absolute path to npm or yarn."
     },
+    "outline.autoHide": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "description": "Automatically close the outline window when an item is clicked."
+    },
     "outline.autoPreview": {
       "type": "boolean",
       "scope": "application",
