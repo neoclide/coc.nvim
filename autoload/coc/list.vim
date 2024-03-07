@@ -98,6 +98,7 @@ function! coc#list#setup(source)
   setl norelativenumber bufhidden=wipe nocursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
+  setl foldcolumn=0
   if exists('&cursorlineopt')
     setl cursorlineopt=both
   endif
