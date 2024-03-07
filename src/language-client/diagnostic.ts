@@ -674,13 +674,13 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
     const client = this._client
-    let [id, options] = this.getRegistration(documentSelector, capabilities.diagnosticProvider)
-    if (!id || !options) return
     client.onRequest(DiagnosticRefreshRequest.type, async () => {
       for (const provider of this.getAllProviders()) {
         provider.onDidChangeDiagnosticsEmitter.fire()
       }
     })
+    let [id, options] = this.getRegistration(documentSelector, capabilities.diagnosticProvider)
+    if (!id || !options) return
     this.register({ id, registerOptions: options })
   }
 
