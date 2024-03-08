@@ -111,7 +111,7 @@ connection.onRequest('getSaveCount', () => {
   return saveCount
 })
 
-connection.onRequest('getWorkspceCount', () => {
+connection.onRequest('getWorkspaceCount', () => {
   return workspaceCount
 })
 

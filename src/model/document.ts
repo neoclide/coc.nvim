@@ -180,7 +180,7 @@ export default class Document {
   }
 
   /**
-   * Returns if current document is opended with previewwindow
+   * Returns if current document is opened with previewwindow
    * @deprecated
    */
   public get previewwindow(): boolean {

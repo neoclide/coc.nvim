@@ -44,9 +44,9 @@ export default class EditInspect {
     }, null, this.disposables)
   }
 
-  private addFile(filepath: string, highligher: Highlighter, lnum?: number): void {
+  private addFile(filepath: string, highlighter: Highlighter, lnum?: number): void {
     this.items.push({
-      index: highligher.length,
+      index: highlighter.length,
       filepath,
       lnum
     })
@@ -70,42 +70,42 @@ export default class EditInspect {
     const absPath = filepath => {
       return path.isAbsolute(filepath) ? filepath : path.join(cwd, filepath)
     }
-    let highligher = new Highlighter()
+    let highlighter = new Highlighter()
     let changes = toArray(state.edit.documentChanges)
     let map = grouByAnnotation(changes, state.edit.changeAnnotations ?? {})
     for (let [label, changes] of map.entries()) {
       if (label) {
-        highligher.addLine(label, 'MoreMsg')
-        highligher.addLine('')
+        highlighter.addLine(label, 'MoreMsg')
+        highlighter.addLine('')
       }
       for (let change of changes) {
         if (TextDocumentEdit.is(change)) {
           let linesChange = state.changes[change.textDocument.uri]
           let fsPath = relpath(change.textDocument.uri)
-          highligher.addTexts([
+          highlighter.addTexts([
             { text: 'Change', hlGroup: 'Title' },
             { text: ' ' },
             { text: fsPath, hlGroup: 'Directory' },
             { text: `:${linesChange.lnum}`, hlGroup: 'LineNr' },
           ])
-          this.addFile(fsPath, highligher, linesChange.lnum)
-          highligher.addLine('')
-          this.addChangedLines(highligher, linesChange, fsPath, linesChange.lnum)
-          highligher.addLine('')
+          this.addFile(fsPath, highlighter, linesChange.lnum)
+          highlighter.addLine('')
+          this.addChangedLines(highlighter, linesChange, fsPath, linesChange.lnum)
+          highlighter.addLine('')
         } else if (CreateFile.is(change) || DeleteFile.is(change)) {
           let title = DeleteFile.is(change) ? 'Delete' : 'Create'
           let fsPath = relpath(change.uri)
-          highligher.addTexts([
+          highlighter.addTexts([
             { text: title, hlGroup: 'Title' },
             { text: ' ' },
             { text: fsPath, hlGroup: 'Directory' }
           ])
-          this.addFile(fsPath, highligher)
-          highligher.addLine('')
+          this.addFile(fsPath, highlighter)
+          highlighter.addLine('')
         } else if (RenameFile.is(change)) {
           let oldPath = relpath(change.oldUri)
           let newPath = relpath(change.newUri)
-          highligher.addTexts([
+          highlighter.addTexts([
             { text: 'Rename', hlGroup: 'Title' },
             { text: ' ' },
             { text: oldPath, hlGroup: 'Directory' },
@@ -113,13 +113,13 @@ export default class EditInspect {
             { text: newPath, hlGroup: 'Directory' }
           ])
           this.renameMap.set(oldPath, newPath)
-          this.addFile(newPath, highligher)
-          highligher.addLine('')
+          this.addFile(newPath, highlighter)
+          highlighter.addLine('')
         }
       }
     }
     nvim.pauseNotification()
-    highligher.render(buffer)
+    highlighter.render(buffer)
     buffer.setOption('modifiable', false, true)
     await nvim.resumeNotification(true)
     this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<CR>', async () => {
@@ -148,36 +148,36 @@ export default class EditInspect {
     }, true))
   }
 
-  public addChangedLines(highligher: Highlighter, linesChange: LinesChange, fsPath: string, lnum: number): void {
+  public addChangedLines(highlighter: Highlighter, linesChange: LinesChange, fsPath: string, lnum: number): void {
     let diffs = fastDiff(linesChange.oldLines.join('\n'), linesChange.newLines.join('\n'))
     for (let i = 0; i < diffs.length; i++) {
       let diff = diffs[i]
       if (diff[0] == fastDiff.EQUAL) {
         let text = diff[1]
         if (!text.includes('\n')) {
-          highligher.addText(text)
+          highlighter.addText(text)
         } else {
           let parts = text.split('\n')
-          highligher.addText(parts[0])
+          highlighter.addText(parts[0])
           let curr = lnum + parts.length - 1
-          highligher.addLine('')
-          highligher.addTexts([
+          highlighter.addLine('')
+          highlighter.addTexts([
             { text: 'Change', hlGroup: 'Title' },
             { text: ' ' },
             { text: fsPath, hlGroup: 'Directory' },
             { text: `:${curr}`, hlGroup: 'LineNr' },
           ])
-          this.addFile(fsPath, highligher, curr)
-          highligher.addLine('')
+          this.addFile(fsPath, highlighter, curr)
+          highlighter.addLine('')
           let last = parts[parts.length - 1]
-          highligher.addText(last)
+          highlighter.addText(last)
         }
         lnum += text.split('\n').length - 1
       } else if (diff[0] == fastDiff.DELETE) {
         lnum += diff[1].split('\n').length - 1
-        highligher.addText(diff[1], 'DiffDelete')
+        highlighter.addText(diff[1], 'DiffDelete')
       } else {
-        highligher.addText(diff[1], 'DiffAdd')
+        highlighter.addText(diff[1], 'DiffAdd')
       }
     }
   }

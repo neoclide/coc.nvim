@@ -17,7 +17,7 @@ import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOp
 const logger = createLogger('list-worker')
 const controlCode = '\x1b'
 const WHITE_SPACE_CHARS = [32, 9]
-const SERCH_HL_GROUP = 'CocListSearch'
+const SEARCH_HL_GROUP = 'CocListSearch'
 
 export interface FilterOption {
   append?: boolean
@@ -212,8 +212,8 @@ export default class Worker {
       let search = input.length > 0 && item.filterText !== ''
       if (search) {
         let filterLabel = getFilterLabel(item)
-        let results = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
-        item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
+        let results = this.fuzzyMatch.matchHighlights(filterLabel, SEARCH_HL_GROUP)
+        item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SEARCH_HL_GROUP) : []
         if (results) item.ansiHighlights.push(...results.highlights)
       }
       return item
@@ -233,7 +233,7 @@ export default class Worker {
       let filterLabel = getFilterLabel(item)
       let byteIndex = bytes(filterLabel)
       let curr = 0
-      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SERCH_HL_GROUP)
+      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SEARCH_HL_GROUP)
       for (let input of inputs) {
         let label = filterLabel.slice(curr)
         let idx = indexOf(label, input, smartcase, ignorecase)
@@ -244,7 +244,7 @@ export default class Worker {
       }
       if (spans.length !== inputs.length) return false
       item.ansiHighlights.push(...spans.map(s => {
-        return { span: s, hlGroup: SERCH_HL_GROUP }
+        return { span: s, hlGroup: SEARCH_HL_GROUP }
       }))
       return true
     }, onFilter, token)
@@ -260,7 +260,7 @@ export default class Worker {
     }, [])
     await filter(items, item => {
       convertItemLabel(item)
-      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SERCH_HL_GROUP)
+      item.ansiHighlights = toArray(item.ansiHighlights).filter(o => o.hlGroup !== SEARCH_HL_GROUP)
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
       let byteIndex = bytes(filterLabel)
@@ -274,7 +274,7 @@ export default class Worker {
       }
       if (spans.length !== inputs.length) return false
       item.ansiHighlights.push(...spans.map(s => {
-        return { span: s, hlGroup: SERCH_HL_GROUP }
+        return { span: s, hlGroup: SEARCH_HL_GROUP }
       }))
       return true
     }, onFilter, token)
@@ -290,9 +290,9 @@ export default class Worker {
     await filter(items, item => {
       convertItemLabel(item)
       let filterLabel = getFilterLabel(item)
-      let match = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
+      let match = this.fuzzyMatch.matchHighlights(filterLabel, SEARCH_HL_GROUP)
       if (!match || (smartcase && !fuzzyMatch(codes, filterLabel))) return false
-      let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SERCH_HL_GROUP) : []
+      let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SEARCH_HL_GROUP) : []
       ansiHighlights.push(...match.highlights)
       return {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),

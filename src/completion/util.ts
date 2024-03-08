@@ -494,13 +494,13 @@ function toItemKey(item: MruItem): string {
 export class MruLoader {
   private max = 0
   private items: LRUCache<string, number> = new LRUCache(MAX_MRU_ITEMS)
-  private itemsNoPrefex: LRUCache<string, number> = new LRUCache(MAX_MRU_ITEMS)
+  private itemsNoPrefix: LRUCache<string, number> = new LRUCache(MAX_MRU_ITEMS)
 
   public getScore(input: string, item: MruItem, selection: Selection): number {
     let key = toItemKey(item)
-    if (input.length == 0) return this.itemsNoPrefex.get(key) ?? -1
+    if (input.length == 0) return this.itemsNoPrefix.get(key) ?? -1
     if (selection === Selection.RecentlyUsedByPrefix) key = `${input}|${key}`
-    let map = selection === Selection.RecentlyUsed ? this.itemsNoPrefex : this.items
+    let map = selection === Selection.RecentlyUsed ? this.itemsNoPrefix : this.items
     return map.get(key) ?? -1
   }
 
@@ -512,13 +512,13 @@ export class MruLoader {
     }
     let line = `${prefix}|${key}`
     this.items.set(line, this.max)
-    this.itemsNoPrefex.set(key, this.max)
+    this.itemsNoPrefix.set(key, this.max)
     this.max += 1
   }
 
   public clear(): void {
     this.max = 0
     this.items.clear()
-    this.itemsNoPrefex.clear()
+    this.itemsNoPrefix.clear()
   }
 }

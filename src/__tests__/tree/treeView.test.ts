@@ -963,7 +963,7 @@ describe('TreeView', () => {
       expect(line).toMatch('b')
     })
 
-    it('should expand item whih single level', async () => {
+    it('should expand item which single level', async () => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
@@ -979,7 +979,7 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should expand item whih 2 level', async () => {
+    it('should expand item which 2 level', async () => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]

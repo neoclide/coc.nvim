@@ -393,19 +393,19 @@ export default class RefactorBuffer {
     try {
       await document.synchronize()
       let count = document.lineCount
-      let highligher = new Highlighter()
+      let highlighter = new Highlighter()
       let hlRanges: Range[] = []
       for (let item of items) {
         let ranges: FileRange[] = []
         for (let range of item.ranges) {
-          highligher.addLine(SEPARATOR)
-          highligher.addLine(SEPARATOR)
-          let lnum = count + highligher.length
-          highligher.addText(`${isParentFolder(cwd, item.filepath) ? path.relative(cwd, item.filepath) : item.filepath}`)
+          highlighter.addLine(SEPARATOR)
+          highlighter.addLine(SEPARATOR)
+          let lnum = count + highlighter.length
+          highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path.relative(cwd, item.filepath) : item.filepath}`)
           // white spaces for conceal texts
           let n = String(range.start + 1).length + String(range.end).length + 4
-          if (!this.srcId) highligher.addText(' '.repeat(n))
-          let base = 0 - highligher.length - count
+          if (!this.srcId) highlighter.addText(' '.repeat(n))
+          let base = 0 - highlighter.length - count
           if (range.highlights) {
             hlRanges.push(...range.highlights.map(r => adjustRange(r, base)))
           }
@@ -414,7 +414,7 @@ export default class RefactorBuffer {
             lines = await this.getLines(item.filepath, start, end)
           }
           ranges.push({ lines, lnum, start, highlights })
-          highligher.addLines(lines)
+          highlighter.addLines(lines)
         }
         if (ranges.length) {
           let newItem: FileItem = { filepath: item.filepath, ranges }
@@ -429,7 +429,7 @@ export default class RefactorBuffer {
       let { nvim, buffer } = this
       this.changing = true
       nvim.pauseNotification()
-      highligher.render(buffer, count)
+      highlighter.render(buffer, count)
       this.highlightLineNr()
       buffer.setOption('modified', false, true)
       buffer.setOption('undolevels', 1000, true)

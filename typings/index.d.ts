@@ -6113,7 +6113,7 @@ declare module 'coc.nvim' {
      */
     readonly winid: number
     /**
-     * Returns if current document is opended with previewwindow
+     * Returns if current document is opened with previewwindow
      */
     readonly previewwindow: boolean
     /**
