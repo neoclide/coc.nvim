@@ -59,7 +59,7 @@ describe('ProgressPart', () => {
     await helper.wait(10)
     p.report({ kind: 'report', message: 'msg', percentage: 50 })
     await helper.wait(10)
-    p.done('finised')
+    p.done('finished')
   })
 
   it('should close notification on cancel', async () => {

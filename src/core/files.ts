@@ -480,7 +480,7 @@ export default class Files {
   /**
    * Return denied annotations
    */
-  private async promptAnotations(documentChanges: DocumentChange[], changeAnnotations: { [id: string]: ChangeAnnotation } | undefined): Promise<string[]> {
+  private async promptAnnotations(documentChanges: DocumentChange[], changeAnnotations: { [id: string]: ChangeAnnotation } | undefined): Promise<string[]> {
     let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
     let denied: string[] = []
     for (let key of toConfirm) {
@@ -503,7 +503,7 @@ export default class Files {
     let recovers: RecoverFunc[] = []
     let currentOnly = false
     try {
-      let denied = await this.promptAnotations(documentChanges, edit.changeAnnotations)
+      let denied = await this.promptAnnotations(documentChanges, edit.changeAnnotations)
       if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied)
       let changes: { [uri: string]: LinesChange } = {}
       let currentUri = await this.documents.getCurrentUri()

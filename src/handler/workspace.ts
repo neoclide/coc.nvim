@@ -10,7 +10,7 @@ import { PatternType } from '../core/workspaceFolder'
 import extensions from '../extension'
 import languages, { ProviderName } from '../languages'
 import { getLoggerFile } from '../logger'
-import Highligher from '../model/highlighter'
+import Highlighter from '../model/highlighter'
 import snippetManager from '../snippets/manager'
 import { defaultValue } from '../util'
 import { CONFIG_FILE_NAME, isVim } from '../util/constants'
@@ -184,7 +184,7 @@ export default class WorkspaceHandler {
       })
       return
     }
-    let hi = new Highligher()
+    let hi = new Highlighter()
     hi.addLine('Provider state', 'Title')
     hi.addLine('')
     for (let name of Object.values(ProviderName)) {

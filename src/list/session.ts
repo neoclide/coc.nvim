@@ -341,46 +341,46 @@ export default class ListSession {
     await nvim.resumeNotification()
     let hasOptions = list.options && list.options.length
     let buf = await nvim.buffer
-    let highligher = new Highlighter()
-    highligher.addLine('NAME', 'Label')
-    highligher.addLine(`  ${list.name} - ${list.description || ''}\n`)
-    highligher.addLine('SYNOPSIS', 'Label')
-    highligher.addLine(`  :CocList [LIST OPTIONS] ${list.name}${hasOptions ? ' [ARGUMENTS]' : ''}\n`)
+    let highlighter = new Highlighter()
+    highlighter.addLine('NAME', 'Label')
+    highlighter.addLine(`  ${list.name} - ${list.description || ''}\n`)
+    highlighter.addLine('SYNOPSIS', 'Label')
+    highlighter.addLine(`  :CocList [LIST OPTIONS] ${list.name}${hasOptions ? ' [ARGUMENTS]' : ''}\n`)
     if (list.detail) {
-      highligher.addLine('DESCRIPTION', 'Label')
+      highlighter.addLine('DESCRIPTION', 'Label')
       let lines = list.detail.split('\n').map(s => '  ' + s)
-      highligher.addLine(lines.join('\n') + '\n')
+      highlighter.addLine(lines.join('\n') + '\n')
     }
     if (hasOptions) {
-      highligher.addLine('ARGUMENTS', 'Label')
-      highligher.addLine('')
+      highlighter.addLine('ARGUMENTS', 'Label')
+      highlighter.addLine('')
       for (let opt of list.options) {
-        highligher.addLine(opt.name, 'Special')
-        highligher.addLine(`  ${opt.description}`)
-        highligher.addLine('')
+        highlighter.addLine(opt.name, 'Special')
+        highlighter.addLine(`  ${opt.description}`)
+        highlighter.addLine('')
       }
-      highligher.addLine('')
+      highlighter.addLine('')
     }
     let config = workspace.getConfiguration(`list.source.${list.name}`)
     if (Object.keys(config).length) {
-      highligher.addLine('CONFIGURATIONS', 'Label')
-      highligher.addLine('')
+      highlighter.addLine('CONFIGURATIONS', 'Label')
+      highlighter.addLine('')
       for (let key of Object.keys(config)) {
         let val = config[key]
         let name = `list.source.${list.name}.${key}`
         let description = defaultValue(workspace.configurations.getDescription(name), key)
-        highligher.addLine(`  "${name}"`, 'MoreMsg')
-        highligher.addText(` - ${description} current value: `)
-        highligher.addText(JSON.stringify(val), 'Special')
+        highlighter.addLine(`  "${name}"`, 'MoreMsg')
+        highlighter.addText(` - ${description} current value: `)
+        highlighter.addText(JSON.stringify(val), 'Special')
       }
-      highligher.addLine('')
+      highlighter.addLine('')
     }
-    highligher.addLine('ACTIONS', 'Label')
-    highligher.addLine(`  ${list.actions.map(o => o.name).join(', ')}`)
-    highligher.addLine('')
-    highligher.addLine(`see ':h coc-list-options' for available list options.`, 'Comment')
+    highlighter.addLine('ACTIONS', 'Label')
+    highlighter.addLine(`  ${list.actions.map(o => o.name).join(', ')}`)
+    highlighter.addLine('')
+    highlighter.addLine(`see ':h coc-list-options' for available list options.`, 'Comment')
     nvim.pauseNotification()
-    highligher.render(buf, 0, -1)
+    highlighter.render(buf, 0, -1)
     nvim.command('setl nomod', true)
     nvim.command('setl nomodifiable', true)
     nvim.command('normal! gg', true)
