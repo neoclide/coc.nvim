@@ -93,6 +93,7 @@ possible to avoid conflict with your other plugins.
 command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
+" https://raw.githubusercontent.com/neoclide/coc.nvim/master/coc-example-config.vim
 
 " May need for Vim (not Neovim) since coc.nvim calculates byte offset by count
 " utf-8 byte sequence
@@ -261,6 +262,8 @@ nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 NOTE: This only works in Neovim 0.7.0dev+.
 
 ```lua
+-- https://raw.githubusercontent.com/neoclide/coc.nvim/master/coc-example-config.lua
+
 -- Some servers have issues with backup files, see #649
 vim.opt.backup = false
 vim.opt.writebackup = false
