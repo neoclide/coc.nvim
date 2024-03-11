@@ -1,0 +1,32 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lint:
+    if: github.event.pull_request.draft == false
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm install --frozen-lockfile
+
+      - name: Check Types by TSC
+        run: npm run lint:typecheck
+
+      - name: Lint ESLint
+        run: npm run lint

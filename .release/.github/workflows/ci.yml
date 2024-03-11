@@ -1,0 +1,87 @@
+name: Dev
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim:
+          - "stable"
+          - "nightly"
+        node:
+          - "16"
+        include:
+          # only enable coverage on the fastest job
+          - node: "16"
+            ENABLE_CODE_COVERAGE: true
+
+    env:
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+          cache: "npm"
+
+      - name: Setup python3
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      - run: pip install pynvim
+
+      - name: Setup vim
+        uses: rhysd/action-setup-vim@v1
+        id: vim
+        with:
+          version: v9.0.0815
+
+      - name: Setup neovim
+        id: nvim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+
+      - name: Install Dependencies
+        run: |
+          npm i -g bytes
+          npm ci
+          sudo apt-get install -y ripgrep exuberant-ctags
+          rg --version
+          ctags --version
+          vim --version
+          nvim --version
+
+      - name: Run jest
+        env:
+          VIM_COMMAND: ${{ steps.vim.outputs.executable }}
+          NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
+        run: |
+          node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
+
+      - name: Codecov
+        uses: codecov/codecov-action@v3.1.1
+        if: ${{ matrix.ENABLE_CODE_COVERAGE }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
