@@ -4,6 +4,7 @@ coverage
 __pycache__
 .pyc
 .log
+.release
 src
 publish.sh
 doc/tags
