@@ -34,7 +34,7 @@ export default class ConfigurationProxy implements IConfigurationShape {
     let dir = path.dirname(fsPath)
     let formattingOptions = { tabSize: 2, insertSpaces: true }
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    let content = fs.readFileSync(fsPath, { encoding: 'utf8', flag: 'a+' })
+    let content = fs.readFileSync(fsPath, { flag: 'a+' }).toString('utf8')
     content = content || '{}'
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
