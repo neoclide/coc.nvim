@@ -21,10 +21,10 @@ jobs:
           - "stable"
           - "nightly"
         node:
-          - "16"
+          - "20"
         include:
           # only enable coverage on the fastest job
-          - node: "16"
+          - node: "20"
             ENABLE_CODE_COVERAGE: true
 
     env:
@@ -32,20 +32,20 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: "npm"
 
       - name: Setup python3
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.11"
       - run: pip install pynvim
 
       - name: Setup vim
@@ -79,7 +79,7 @@ jobs:
           node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
 
       - name: Codecov
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v4
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
