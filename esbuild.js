@@ -2,7 +2,7 @@ const cp = require('child_process')
 let revision = 'master'
 if (process.env.NODE_ENV !== 'development') {
   try {
-    let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
+    let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, { encoding: 'utf8' })
     revision = res.replaceAll('"', '').replace(',', ' ')
   } catch (e) {
     // ignore
@@ -12,13 +12,13 @@ if (process.env.NODE_ENV !== 'development') {
 let entryPlugin = {
   name: 'entry',
   setup(build) {
-    build.onResolve({filter: /^index\.js$/}, args => {
+    build.onResolve({ filter: /^index\.js$/ }, args => {
       return {
         path: args.path,
         namespace: 'entry-ns'
       }
     })
-    build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
+    build.onLoad({ filter: /.*/, namespace: 'entry-ns' }, () => {
       let contents = `'use strict'
 if (global.__isMain) {
   Object.defineProperty(console, 'log', {
@@ -83,7 +83,7 @@ async function start() {
     mainFields: ['module', 'main'],
     platform: 'node',
     treeShaking: true,
-    target: 'node16.18',
+    target: 'node18',
     plugins: [entryPlugin],
     banner: {
       js: `"use strict";

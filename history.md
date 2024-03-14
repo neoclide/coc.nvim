@@ -1,3 +1,7 @@
+# 2024-03-14
+
+- Minimal node version changed from 16.18.0 to 18
+
 # 2024-03-06
 
 - add `outline.autoHide` configuration to automatically hide the outline window when an item is clicked

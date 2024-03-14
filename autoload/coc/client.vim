@@ -138,8 +138,8 @@ function! coc#client#check_version() abort
     let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
     if empty(ms)
       let msgs = ['Unable to get node version by "'.cmd.'" please install NodeJS from https://nodejs.org/en/download/']
-    elseif str2nr(ms[1]) < 16 || (str2nr(ms[1]) == 16 && str2nr(ms[2]) < 18)
-      let msgs = ['Current Node.js version '.trim(output).' < 16.18.0 ', 'Please upgrade your Node.js']
+    elseif str2nr(ms[1]) < 18)
+      let msgs = ['Current Node.js version '.trim(output).' < 18 ', 'Please upgrade your Node.js']
     endif
   endif
   if !empty(msgs)
