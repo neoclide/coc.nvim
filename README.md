@@ -471,8 +471,8 @@ Try these steps if you experience problems with coc.nvim:
 
 - Have a question? Start a discussion on [GitHub Discussions](https://github.com/neoclide/coc.nvim/discussions).
 - File a bug in [GitHub Issues](https://github.com/neoclide/coc.nvim/issues).
-- Chat with us on [Gitter](https://matrix.to/#/#coc.nvim:matrix.org).
-- 中文用户请到 [中文 gitter](https://matrix.to/#/#neoclide_coc-cn:gitter.im) 讨论
+- Chat with us on [Matrix](https://matrix.to/#/#coc.nvim:matrix.org).
+- 中文用户请到 [中文 Matrix](https://matrix.to/#/#neoclide_coc-cn:gitter.im) 讨论
 
 ## Backers
 

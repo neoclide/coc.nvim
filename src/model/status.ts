@@ -22,7 +22,7 @@ export default class StatusLine implements Disposable {
   private items: Map<string, StatusBarItem> = new Map()
   private shownIds: Set<string> = new Set()
   private _text = ''
-  private interval: NodeJS.Timer
+  private interval: NodeJS.Timeout
   public nvim: Neovim
   constructor() {
     this.interval = setInterval(() => {

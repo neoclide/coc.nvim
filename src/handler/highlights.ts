@@ -32,7 +32,7 @@ export default class Highlights {
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private highlights: Map<number, DocumentHighlight[]> = new Map()
-  private timer: NodeJS.Timer
+  private timer: NodeJS.Timeout
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     events.on(['CursorMoved', 'CursorMovedI'], () => {
       this.cancel()

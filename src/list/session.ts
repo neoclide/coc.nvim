@@ -25,7 +25,7 @@ export default class ListSession {
   public readonly worker: Worker
   private cwd: string
   private loadingFrame = ''
-  private timer: NodeJS.Timer
+  private timer: NodeJS.Timeout
   private hidden = false
   private disposables: Disposable[] = []
   private savedHeight: number

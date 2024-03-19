@@ -62,7 +62,7 @@ export class DiagnosticBuffer implements SyncItem {
     public readonly doc: Document
   ) {
     this.loadConfiguration()
-    let timer: NodeJS.Timer
+    let timer: NodeJS.Timeout
     let fn: any = () => {
       clearTimeout(timer)
       this._refreshing = true
@@ -222,7 +222,6 @@ export class DiagnosticBuffer implements SyncItem {
 
   /**
    * Update diagnostics when diagnostics change on collection.
-   *
    * @param {string} collection
    * @param {Diagnostic[]} diagnostics
    */

@@ -62,7 +62,7 @@ export function waitImmediate(): Promise<void> {
 }
 
 export function delay(func: () => void, defaultDelay: number): ((ms?: number) => void) & { clear: () => void } {
-  let timer: NodeJS.Timer
+  let timer: NodeJS.Timeout
   let fn = (ms?: number) => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {

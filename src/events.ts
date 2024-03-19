@@ -274,7 +274,7 @@ class Events {
       let traceSlow = SYNC_AUTOCMDS.includes(event)
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {
-          let timer: NodeJS.Timer
+          let timer: NodeJS.Timeout
           if (traceSlow) {
             timer = setTimeout(() => {
               console.error(`Slow "${event}" handler detected`, fn['stack'])

@@ -33,7 +33,7 @@ export class Completion implements Disposable {
   private pum: PopupMenu
   private _mru: MruLoader
   private pretext: string | undefined
-  private triggerTimer: NodeJS.Timer
+  private triggerTimer: NodeJS.Timeout
   private popupEvent: PopupChangeEvent
   private floating: Floating
   private disposables: Disposable[] = []

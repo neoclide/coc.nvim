@@ -47,7 +47,6 @@ export function getExtname(dispositionHeader: string): string | undefined {
 
 /**
  * Download file from url, with optional untar/unzip support.
- *
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
@@ -77,7 +76,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
         req.destroy(new Error('request aborted'))
       })
     }
-    let timer: NodeJS.Timer
+    let timer: NodeJS.Timeout
     const req = mod.request(opts, (res: IncomingMessage) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers

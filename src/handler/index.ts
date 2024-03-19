@@ -73,7 +73,7 @@ export default class Handler implements HandlerDelegate {
   public readonly inlayHintHandler: InlayHintHandler
   private _requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
-  private requestTimer: NodeJS.Timer
+  private requestTimer: NodeJS.Timeout
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {

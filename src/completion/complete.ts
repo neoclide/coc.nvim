@@ -32,7 +32,7 @@ export default class Complete {
   private results: Map<string, CompleteResultToFilter> = new Map()
   private _input = ''
   private _completing = false
-  private timer: NodeJS.Timer
+  private timer: NodeJS.Timeout
   private names: string[] = []
   private asciiMatch: boolean
   private timeout: number
@@ -149,7 +149,7 @@ export default class Complete {
     this._completing = true
     const remains: Set<string> = new Set()
     sources.forEach(s => remains.add(s.name))
-    let timer: NodeJS.Timer
+    let timer: NodeJS.Timeout
     let disposable: Disposable
     let tp = new Promise<void>(resolve => {
       disposable = token.onCancellationRequested(() => {

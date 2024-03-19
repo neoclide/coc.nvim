@@ -68,7 +68,7 @@ export class ListManager implements Disposable {
       let session = this.getSessionByWinid(winid)
       if (session) this.prompt.start(session.listOptions)
     }, null, this.disposables)
-    let timer: NodeJS.Timer
+    let timer: NodeJS.Timeout
     events.on('WinLeave', winid => {
       clearTimeout(timer)
       let session = this.getSessionByWinid(winid)
@@ -457,7 +457,6 @@ export class ListManager implements Disposable {
 
   /**
    * Get items of {name} list
-   *
    * @param {string} name
    * @returns {Promise<any>}
    */
