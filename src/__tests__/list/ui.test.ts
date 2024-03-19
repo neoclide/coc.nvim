@@ -27,7 +27,7 @@ class SimpleList extends BasicList {
 }
 
 class SlowTask extends EventEmitter implements ListTask {
-  private interval: NodeJS.Timer
+  private interval: NodeJS.Timeout
   constructor() {
     super()
     let i = 0

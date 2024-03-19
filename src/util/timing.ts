@@ -12,7 +12,7 @@ interface Timing {
  */
 export function createTiming(name: string, timeout?: number): Timing {
   let start: number
-  let timer: NodeJS.Timer
+  let timer: NodeJS.Timeout
   let _label: string
   return {
     start(label?: string) {

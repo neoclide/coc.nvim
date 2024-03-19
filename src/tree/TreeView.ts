@@ -88,7 +88,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   public provider: TreeDataProvider<T>
   private nodesMap: Map<T, TreeItemData> = new Map()
   private mutex: Mutex = new Mutex()
-  private timer: NodeJS.Timer
+  private timer: NodeJS.Timeout
   private disposables: Disposable[] = []
   private tooltipFactory: FloatFactory
   private resolveTokenSource: CancellationTokenSource | undefined

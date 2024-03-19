@@ -73,7 +73,7 @@
     "@types/marked": "^4.3.1",
     "@types/minimatch": "^5.1.2",
     "@types/mkdirp": "^1.0.1",
-    "@types/node": "16.18",
+    "@types/node": "^18.19.25",
     "@types/semver": "^7.5.1",
     "@types/unidecode": "^0.1.1",
     "@types/uuid": "^8.3.0",

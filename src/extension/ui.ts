@@ -60,7 +60,7 @@ export class InstallBuffer implements InstallUI {
   private messagesMap: Map<string, string[]> = new Map()
   private disposables: Disposable[] = []
   private names: string[] = []
-  private interval: NodeJS.Timer
+  private interval: NodeJS.Timeout
   public bufnr: number
 
   constructor(private isUpdate: boolean) {

@@ -202,7 +202,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
         req.destroy(new CancellationError())
       })
     }
-    let timer: NodeJS.Timer
+    let timer: NodeJS.Timeout
     const req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {

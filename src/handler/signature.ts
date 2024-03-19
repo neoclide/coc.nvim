@@ -39,7 +39,7 @@ interface SignaturePart {
 const debounceTime = getConditionValue(100, 10)
 
 export default class Signature {
-  private timer: NodeJS.Timer
+  private timer: NodeJS.Timeout
   private config: SignatureConfig
   private signatureFactory: FloatFactory
   private lastPosition: SignaturePosition | undefined
