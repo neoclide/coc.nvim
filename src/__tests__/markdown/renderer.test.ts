@@ -1,10 +1,11 @@
 import { marked } from 'marked'
-import Renderer, { bulletPointLine, fixHardReturn, generateTableRow, identify, numberedLine, toSpaces } from '../../markdown/renderer'
+import Renderer, { bulletPointLine, fixHardReturn, generateTableRow, identify, numberedLine, toSpaces, toSpecialSpaces } from '../../markdown/renderer'
 import * as styles from '../../markdown/styles'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'
 
 marked.setOptions({
-  renderer: new Renderer()
+  renderer: new Renderer(),
+  hooks: Renderer.hooks,
 })
 
 function parse(text: string): AnsiResult {
@@ -28,8 +29,10 @@ describe('Renderer of marked', () => {
     expect(identify('  ', '')).toBe('')
     expect(fixHardReturn('a\rb', true)).toBe('a\nb')
     expect(toSpaces('ab')).toBe('  ')
+    expect(toSpecialSpaces('ab')).toBe('\0\0\0\0\0\0')
     expect(bulletPointLine('  ', '  * foo')).toBe('  * foo')
-    expect(bulletPointLine('  ', 'foo')).toBe('  foo')
+    expect(bulletPointLine('  ', 'foo')).toBe('\0\0\0\0\0\0foo')
+    expect(bulletPointLine('  ', '\0\0\0foo')).toBe('\0\0\0foo')
     expect(generateTableRow('')).toEqual([])
     expect(numberedLine('  ', 'foo', 1).line).toBe('   foo')
   })

@@ -157,7 +157,8 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   marked.setOptions({
     renderer: new Renderer(),
     gfm: true,
-    breaks: Is.boolean(opts.breaks) ? opts.breaks : true
+    breaks: Is.boolean(opts.breaks) ? opts.breaks : true,
+    hooks: Renderer.hooks,
   })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
