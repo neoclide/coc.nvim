@@ -90,12 +90,12 @@ export default class Menu {
     this.addKeys('<C-b>', async () => {
       await this.win.scrollBackward()
     })
-    this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
+    this.addKeys(['j', '<C-j>', '<down>', '<tab>', '<C-n>'], () => {
       // next
       let idx = this.currIndex == this.total - 1 ? 0 : this.currIndex + 1
       setCursorIndex(idx)
     })
-    this.addKeys(['k', '<up>', '<s-tab>', '<C-p>'], () => {
+    this.addKeys(['k', '<C-k>', '<up>', '<s-tab>', '<C-p>'], () => {
       // previous
       let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
       setCursorIndex(idx)
