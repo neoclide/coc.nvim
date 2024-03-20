@@ -201,6 +201,50 @@ bar
       '  * foo', '  * bar', '    * one', '    * two'
     ])
   })
+
+  it('should render complicated nested list', () => {
+    let content = `
+- greeting
+  - hello
+    - me
+      you
+      them
+  - hi
+    - me
+      you
+      them
+    - him
+      her
+- bye
+- code
+
+  \`\`\`typescript
+  function foo () {
+          console.log('foo')
+    console.log('bar')
+  }
+  \`\`\`
+`
+    let res = parseMarkdown(content, {})
+    expect(res.lines).toEqual(
+`  * greeting
+    * hello
+      * me
+        you
+        them
+    * hi
+      * me
+        you
+        them
+      * him
+        her
+  * bye
+  * code
+    function foo () {
+            console.log('foo')
+      console.log('bar')
+    }`.split('\n'))
+  })
 })
 
 describe('parseDocuments', () => {

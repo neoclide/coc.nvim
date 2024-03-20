@@ -1,5 +1,6 @@
 'use strict'
 import { toObject } from '../util/object'
+import { MarkedOptions } from 'marked'
 /**
  * Renderer for convert markdown to terminal string
  */
@@ -92,9 +93,21 @@ export function toSpaces(str) {
   return ' '.repeat(str.length)
 }
 
+const SPECIAL_SPACE = '\0\0\0'
+const SPACE = ' '
+export function toSpecialSpaces(str) {
+  return SPECIAL_SPACE.repeat(str.length)
+}
+
 let BULLET_POINT = '* '
 export function bulletPointLine(indent, line) {
-  return isPointedLine(line, indent) ? line : toSpaces(BULLET_POINT) + line
+  if (isPointedLine(line, indent)) {
+    return line
+  }
+  if (!line.includes(SPECIAL_SPACE)) {
+    return toSpecialSpaces(BULLET_POINT) + line
+  }
+  return line
 }
 
 function bulletPointLines(lines, indent) {
@@ -203,6 +216,12 @@ class Renderer {
     this.unescape = unescapeEntities
     this.highlightOptions = toObject(highlightOptions)
     this.transform = this.compose(undoColon, this.unescape)
+  }
+  public static hooks: MarkedOptions['hooks'] = {
+      preprocess: str => str,
+      postprocess: str => {
+        return str.replace(new RegExp(SPECIAL_SPACE, 'g'), SPACE)
+    }
   }
 
   public text(t: string): string {
