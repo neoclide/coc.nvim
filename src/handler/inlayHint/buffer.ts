@@ -194,16 +194,16 @@ export default class InlayHintBuffer implements SyncItem {
     nvim.pauseNotification()
     buffer.clearNamespace(srcId, range.start.line, range.end.line + 1)
     for (const item of inlayHints) {
-      const chunks: [string, string][] = []
+      const chunks = []
       let { position } = item
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
       if (item.paddingLeft) {
-        chunks.push([' ', 'Normal'])
+        chunks.push([' '])
       }
       chunks.push([getLabel(item), getHighlightGroup(item.kind)])
       if (item.paddingRight) {
-        chunks.push([' ', 'Normal'])
+        chunks.push([' '])
       }
       buffer.setVirtualText(srcId, position.line, chunks, { col, hl_mode: 'replace' })
     }
