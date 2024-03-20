@@ -562,33 +562,32 @@ function! s:Highlight() abort
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)
     let hlMap = {
-        \ 'TypeNamespace': ['@namespace', 'Include'],
+        \ 'TypeNamespace': ['@module', 'Include'],
         \ 'TypeType': ['@type', 'Type'],
         \ 'TypeClass': ['@constructor', 'Special'],
         \ 'TypeEnum': ['@type', 'Type'],
         \ 'TypeInterface': ['@type', 'Type'],
         \ 'TypeStruct': ['@structure', 'Identifier'],
-        \ 'TypeTypeParameter': ['@parameter', 'Identifier'],
-        \ 'TypeParameter': ['@parameter', 'Identifier'],
+        \ 'TypeTypeParameter': ['@variable.parameter', 'Identifier'],
+        \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
         \ 'TypeVariable': ['@variable', 'Identifier'],
         \ 'TypeProperty': ['@property', 'Identifier'],
         \ 'TypeEnumMember': ['@property', 'Constant'],
         \ 'TypeEvent': ['@keyword', 'Keyword'],
         \ 'TypeFunction': ['@function', 'Function'],
-        \ 'TypeMethod': ['@method', 'Function'],
+        \ 'TypeMethod': ['@function.method', 'Function'],
         \ 'TypeMacro': ['@constant.macro', 'Define'],
         \ 'TypeKeyword': ['@keyword', 'Keyword'],
-        \ 'TypeModifier': ['@storageclass', 'StorageClass'],
+        \ 'TypeModifier': ['@keyword.storage', 'StorageClass'],
         \ 'TypeComment': ['@comment', 'Comment'],
         \ 'TypeString': ['@string', 'String'],
         \ 'TypeNumber': ['@number', 'Number'],
         \ 'TypeBoolean': ['@boolean', 'Boolean'],
-        \ 'TypeRegexp': ['@string.regex', 'String'],
+        \ 'TypeRegexp': ['@string.regexp', 'String'],
         \ 'TypeOperator': ['@operator', 'Operator'],
-        \ 'TypeDecorator': ['@symbol', 'Identifier'],
-        \ 'ModDeprecated': ['@text.strike', 'CocDeprecatedHighlight']
+        \ 'TypeDecorator': ['@string.special.symbol', 'Identifier'],
+        \ 'ModDeprecated': ['@markup.strikethrough', 'CocDeprecatedHighlight']
         \ }
-    " TODO: add CocSemTypeModeXXX
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')
@@ -597,7 +596,7 @@ function! s:Highlight() abort
   endif
   let symbolMap = {
       \ 'Keyword': ['@keyword', 'Keyword'],
-      \ 'Namespace': ['@namespace', 'Include'],
+      \ 'Namespace': ['@module', 'Include'],
       \ 'Class': ['@constructor', 'Special'],
       \ 'Method': ['@method', 'Function'],
       \ 'Property': ['@property', 'Identifier'],
@@ -611,7 +610,7 @@ function! s:Highlight() abort
       \ 'File': ['@file', 'Statement'],
       \ 'Module': ['@module', 'Statement'],
       \ 'Package': ['@package', 'Statement'],
-      \ 'Field': ['@field', 'Identifier'],
+      \ 'Field': ['@variable.member', 'Identifier'],
       \ 'Constructor': ['@constructor', 'Special'],
       \ 'Enum': ['@type', 'CocSymbolDefault'],
       \ 'Interface': ['@type', 'CocSymbolDefault'],
@@ -629,7 +628,7 @@ function! s:Highlight() abort
       \ 'Struct': ['@structure', 'Keyword'],
       \ 'Event': ['@constant', 'Constant'],
       \ 'Operator': ['@operator', 'Operator'],
-      \ 'TypeParameter': ['@parameter', 'Identifier'],
+      \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
     let hlGroup = coc#highlight#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
