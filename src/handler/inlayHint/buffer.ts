@@ -205,7 +205,7 @@ export default class InlayHintBuffer implements SyncItem {
       if (item.paddingRight) {
         chunks.push([' ', 'Normal'])
       }
-      buffer.setVirtualText(srcId, position.line, chunks, { col })
+      buffer.setVirtualText(srcId, position.line, chunks, { col, hl_mode: 'replace' })
     }
     nvim.resumeNotification(true, true)
     this._onDidRefresh.fire()
