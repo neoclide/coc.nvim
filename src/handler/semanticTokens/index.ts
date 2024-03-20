@@ -207,7 +207,7 @@ export default class SemanticTokens {
       let legend = languages.getLegend(doc.textDocument) ?? languages.getLegend(doc.textDocument, true)
       if (legend.tokenTypes.length) {
         for (const t of [...new Set(legend.tokenTypes)]) {
-          let text = HLGROUP_PREFIX + toHighlightPart(t)
+          let text = HLGROUP_PREFIX + 'Type' + toHighlightPart(t)
           hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
         }
         hl.addLine('')
@@ -215,18 +215,7 @@ export default class SemanticTokens {
         hl.addLine('No token types supported', 'Comment')
         hl.addLine('')
       }
-      hl.addLine('Tokens modifiers that current Language Server supported:', headGroup)
-      hl.addLine('')
-      if (legend.tokenModifiers.length) {
-        for (const t of [...new Set(legend.tokenModifiers)]) {
-          let text = HLGROUP_PREFIX + toHighlightPart(t)
-          hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
-        }
-        hl.addLine('')
-      } else {
-        hl.addLine('No token modifiers exist', 'Comment')
-        hl.addLine('')
-      }
+      // modifiers are added to one token type, we can't list them directly
     } catch (e) {
       hl.addLine(toErrorText(e))
     }
