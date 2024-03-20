@@ -8,7 +8,7 @@ let s:namespace_map = {}
 let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 " Maximum count to highlight each time.
-let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 100)
+let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 200)
 let s:term = &termguicolors == 0 && !has('gui_running')
 
 if has('nvim-0.5.0') && s:clear_match_by_window == 0
@@ -319,7 +319,9 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    if hlexists(a:hl_group)
+      call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    endif
   endif
 endfunction
 
