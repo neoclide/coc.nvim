@@ -1504,7 +1504,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
     const generalCapabilities = ensure(result, 'general')!
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
-    generalCapabilities.markdown = { parser: 'marked', version: '4.0.10' }
+    generalCapabilities.markdown = { parser: 'marked', version: '7.0.5' }
     generalCapabilities.positionEncodings = ['utf-16']
     // Added in 3.17.0
     // if (this._clientOptions.markdown.supportHtml) {
