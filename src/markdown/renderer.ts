@@ -1,6 +1,6 @@
 'use strict'
 import { toObject } from '../util/object'
-import { marked } from 'marked'
+import { MarkedOptions } from 'marked'
 /**
  * Renderer for convert markdown to terminal string
  */
@@ -217,7 +217,7 @@ class Renderer {
     this.highlightOptions = toObject(highlightOptions)
     this.transform = this.compose(undoColon, this.unescape)
   }
-  public static hooks: marked.MarkedOptions['hooks'] = {
+  public static hooks: MarkedOptions['hooks'] = {
       preprocess: str => str,
       postprocess: str => {
         return str.replace(new RegExp(SPECIAL_SPACE, 'g'), SPACE)
