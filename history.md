@@ -1,5 +1,6 @@
 # 2024-02-28
 
+- Increase `g:coc_highlight_maximum_count` default to 200
 - Break change: semanticTokens highlight groups changed:
   - `CocSem + type` to `CocSemType + type`
   - `CocSem + modifier + type` to `CocSemTypeMod + type + modifier`

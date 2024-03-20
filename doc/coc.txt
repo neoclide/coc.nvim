@@ -1877,7 +1877,7 @@ g:coc_highlight_maximum_count 				*g:coc_highlight_maximum_count*
 	When highlight items exceed maximum count, highlight items will be
 	grouped and added by using |timer_start| for better user experience.
 
-	Default `100`
+	Default `200`
 
 g:coc_default_semantic_highlight_groups 		*g:coc_default_semantic_highlight_groups*
 
