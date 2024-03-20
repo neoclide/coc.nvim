@@ -1,5 +1,5 @@
 'use strict'
-import type { IMinimatch, IOptions } from 'minimatch'
+import { Minimatch, MinimatchOptions } from 'minimatch'
 import { minimatch } from '../util/node'
 import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -34,7 +34,6 @@ function asRenameFilesParams(e: FileRenameEvent | FileWillRenameEvent): RenameFi
 
 /**
  * File operation middleware
- *
  * @since 3.16.0
  */
 export interface FileOperationsMiddleware {
@@ -55,7 +54,7 @@ interface EventWithFiles<I> {
 }
 
 abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
-  extends BaseFeature<FileOperationsWorkspaceMiddleware, object> implements DynamicFeature<FileOperationRegistrationOptions>  {
+  extends BaseFeature<FileOperationsWorkspaceMiddleware, object> implements DynamicFeature<FileOperationRegistrationOptions> {
   private _event: Event<E>
   private _registrationType: RegistrationType<FileOperationRegistrationOptions>
   private _clientCapability: keyof FileOperationClientCapabilities
@@ -65,7 +64,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     string,
     Array<{
       scheme?: string
-      matcher: IMinimatch
+      matcher: Minimatch
       kind?: FileOperationPatternKind
     }>
   >()
@@ -197,7 +196,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     return { ...event, files }
   }
 
-  public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): IOptions | undefined {
+  public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): MinimatchOptions | undefined {
     if (options === undefined) {
       return undefined
     }
