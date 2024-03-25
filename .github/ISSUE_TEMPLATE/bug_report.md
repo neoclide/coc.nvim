@@ -6,7 +6,7 @@ about: Create a report to help us improve
 <!--
 **Warning: We will close the bug issue without the issue template and the reproduce ways.**
 
-If you have question, please ask at https://gitter.im/neoclide/coc.nvim
+If you have question, please ask at https://github.com/neoclide/coc.nvim/discussions
 
 If the problem related to specific language server, please checkout: https://git.io/fjCEM
 

@@ -662,9 +662,26 @@ describe('list sources', () => {
 
     it('should load diagnostics source', async () => {
       await createDocument('a')
+      await createDocument('b')
       await manager.start(['diagnostics'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
+
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines.length).toEqual(10)
+    })
+
+    it('should load diagnostics for buffer only', async () => {
+      await createDocument('a')
+      await createDocument('b')
+      await manager.start(['diagnostics', '--buffer'])
+      await manager.session?.ui.ready
+      expect(manager.isActivated).toBe(true)
+
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines.length).toEqual(5)
     })
 
     it('should refresh on diagnostics refresh', async () => {
