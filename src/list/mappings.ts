@@ -141,7 +141,7 @@ export default class Mappings {
     })
     this.addAction('expr', async expr => {
       let name = await manager.call(expr)
-      if (name) await manager.doAction(name)
+      await manager.doAction(name)
     })
 
     this.addKeyMapping('insert', '<C-s>', 'do:switch')
