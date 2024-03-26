@@ -8,7 +8,7 @@
     <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/coc.nvim/ci.yml?style=flat-square&branch=master"></a>
       <a href="https://codecov.io/gh/neoclide/coc.nvim"><img alt="Codecov Coverage Status" src="https://img.shields.io/codecov/c/github/neoclide/coc.nvim.svg?style=flat-square"></a>
     <a href="doc/coc.txt"><img alt="Doc" src="https://img.shields.io/badge/doc-%3Ah%20coc.txt-brightgreen.svg?style=flat-square"></a>
-    <a href="https://matrix.to/#/#coc.nvim:matrix.org"><img alt="Gitter" src="https://img.shields.io/gitter/room/neoclide/coc.nvim.svg?style=flat-square"></a>
+    <a href="https://matrix.to/#/#coc.nvim:matrix.org"><img alt="Matrix" src="https://img.shields.io/matrix/coc.nvim%3Amatrix.org?style=flat-square"></a>
   </p>
 </p>
 

@@ -1,11 +1,13 @@
 'use strict'
+import { URI } from 'vscode-uri'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
 import { defaultValue } from '../../util'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
+import workspace from '../../workspace'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 import { ListManager } from '../manager'
-import { ListContext, ListItem } from '../types'
+import { ListArgument, ListContext, ListItem } from '../types'
 import LocationList from './location'
 
 export function convertToLabel(item: DiagnosticItem, cwd: string, includeCode: boolean, pathFormat: PathFormatting = 'full'): string[] {
@@ -20,6 +22,11 @@ export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
   public readonly description = 'diagnostics of current workspace'
   public name = 'diagnostics'
+  public options: ListArgument[] = [{
+    name: '--buffer',
+    hasValue: true,
+    description: 'list diagnostics of current buffer only',
+  }]
   public constructor(manager: ListManager) {
     super()
     diagnosticManager.onDidRefresh(async () => {
@@ -30,7 +37,11 @@ export default class DiagnosticsList extends LocationList {
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list = await diagnosticManager.getDiagnosticList()
-    let { cwd } = context
+    let { cwd, args } = context
+    if (args.includes('--buffer')) {
+      const doc = await workspace.document
+      list = list.filter(item => item.file === URI.parse(doc.uri).fsPath)
+    }
     const config = this.getConfig()
     const includeCode = config.get<boolean>('includeCode', true)
     const pathFormat = config.get<PathFormatting>('pathFormat', "full")
