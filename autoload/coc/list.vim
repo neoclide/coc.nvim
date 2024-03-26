@@ -40,7 +40,7 @@ function! coc#list#setlines(bufnr, lines, append)
 endfunction
 
 function! coc#list#options(...)
-  let list = ['--top', '--tab', '--normal', '--no-sort', '--input=', '--strict',
+  let list = ['--top', '--tab', '--buffer', '--normal', '--no-sort', '--input=', '--strict',
         \ '--regex', '--interactive', '--number-select', '--auto-preview',
         \ '--ignore-case', '--no-quit', '--first', '--reverse', '--height=']
   if get(g:, 'coc_enabled', 0)

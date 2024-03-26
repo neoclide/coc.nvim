@@ -562,31 +562,31 @@ function! s:Highlight() abort
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)
     let hlMap = {
-        \ 'Namespace': ['@namespace', 'Include'],
-        \ 'Type': ['@type', 'Type'],
-        \ 'Class': ['@constructor', 'Special'],
-        \ 'Enum': ['@type', 'Type'],
-        \ 'Interface': ['@type', 'Type'],
-        \ 'Struct': ['@structure', 'Identifier'],
-        \ 'TypeParameter': ['@parameter', 'Identifier'],
-        \ 'Parameter': ['@parameter', 'Identifier'],
-        \ 'Variable': ['@variable', 'Identifier'],
-        \ 'Property': ['@property', 'Identifier'],
-        \ 'EnumMember': ['@property', 'Constant'],
-        \ 'Event': ['@keyword', 'Keyword'],
-        \ 'Function': ['@function', 'Function'],
-        \ 'Method': ['@method', 'Function'],
-        \ 'Macro': ['@constant.macro', 'Define'],
-        \ 'Keyword': ['@keyword', 'Keyword'],
-        \ 'Modifier': ['@storageclass', 'StorageClass'],
-        \ 'Comment': ['@comment', 'Comment'],
-        \ 'String': ['@string', 'String'],
-        \ 'Number': ['@number', 'Number'],
-        \ 'Boolean': ['@boolean', 'Boolean'],
-        \ 'Regexp': ['@string.regex', 'String'],
-        \ 'Operator': ['@operator', 'Operator'],
-        \ 'Decorator': ['@symbol', 'Identifier'],
-        \ 'Deprecated': ['@text.strike', 'CocDeprecatedHighlight']
+        \ 'TypeNamespace': ['@module', 'Include'],
+        \ 'TypeType': ['@type', 'Type'],
+        \ 'TypeClass': ['@constructor', 'Special'],
+        \ 'TypeEnum': ['@type', 'Type'],
+        \ 'TypeInterface': ['@type', 'Type'],
+        \ 'TypeStruct': ['@structure', 'Identifier'],
+        \ 'TypeTypeParameter': ['@variable.parameter', 'Identifier'],
+        \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
+        \ 'TypeVariable': ['@variable', 'Identifier'],
+        \ 'TypeProperty': ['@property', 'Identifier'],
+        \ 'TypeEnumMember': ['@property', 'Constant'],
+        \ 'TypeEvent': ['@keyword', 'Keyword'],
+        \ 'TypeFunction': ['@function', 'Function'],
+        \ 'TypeMethod': ['@function.method', 'Function'],
+        \ 'TypeMacro': ['@constant.macro', 'Define'],
+        \ 'TypeKeyword': ['@keyword', 'Keyword'],
+        \ 'TypeModifier': ['@keyword.storage', 'StorageClass'],
+        \ 'TypeComment': ['@comment', 'Comment'],
+        \ 'TypeString': ['@string', 'String'],
+        \ 'TypeNumber': ['@number', 'Number'],
+        \ 'TypeBoolean': ['@boolean', 'Boolean'],
+        \ 'TypeRegexp': ['@string.regexp', 'String'],
+        \ 'TypeOperator': ['@operator', 'Operator'],
+        \ 'TypeDecorator': ['@string.special.symbol', 'Identifier'],
+        \ 'ModDeprecated': ['@markup.strikethrough', 'CocDeprecatedHighlight']
         \ }
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
@@ -596,7 +596,7 @@ function! s:Highlight() abort
   endif
   let symbolMap = {
       \ 'Keyword': ['@keyword', 'Keyword'],
-      \ 'Namespace': ['@namespace', 'Include'],
+      \ 'Namespace': ['@module', 'Include'],
       \ 'Class': ['@constructor', 'Special'],
       \ 'Method': ['@method', 'Function'],
       \ 'Property': ['@property', 'Identifier'],
@@ -610,7 +610,7 @@ function! s:Highlight() abort
       \ 'File': ['@file', 'Statement'],
       \ 'Module': ['@module', 'Statement'],
       \ 'Package': ['@package', 'Statement'],
-      \ 'Field': ['@field', 'Identifier'],
+      \ 'Field': ['@variable.member', 'Identifier'],
       \ 'Constructor': ['@constructor', 'Special'],
       \ 'Enum': ['@type', 'CocSymbolDefault'],
       \ 'Interface': ['@type', 'CocSymbolDefault'],
@@ -628,7 +628,7 @@ function! s:Highlight() abort
       \ 'Struct': ['@structure', 'Keyword'],
       \ 'Event': ['@constant', 'Constant'],
       \ 'Operator': ['@operator', 'Operator'],
-      \ 'TypeParameter': ['@parameter', 'Identifier'],
+      \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
     let hlGroup = coc#highlight#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
