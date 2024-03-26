@@ -26,6 +26,10 @@ export default class DiagnosticsList extends LocationList {
     name: '--buffer',
     hasValue: true,
     description: 'list diagnostics of current buffer only',
+  }, {
+      name: '--workspace-folder',
+      hasValue: true,
+      description: 'list diagnostics of current workspace folder only',
   }]
   public constructor(manager: ListManager) {
     super()
@@ -38,9 +42,14 @@ export default class DiagnosticsList extends LocationList {
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list = await diagnosticManager.getDiagnosticList()
     let { cwd, args } = context
+    if (args.includes('--workspace-folder')) {
+      const normalized = URI.parse(workspace.getWorkspaceFolder(cwd).uri)
+      list = list.filter(item => isParentFolder(normalized.fsPath, item.file))
+    }
     if (args.includes('--buffer')) {
       const doc = await workspace.document
-      list = list.filter(item => item.file === URI.parse(doc.uri).fsPath)
+      const normalized = URI.parse(doc.uri)
+      list = list.filter(item => item.file === normalized.fsPath)
     }
     const config = this.getConfig()
     const includeCode = config.get<boolean>('includeCode', true)
