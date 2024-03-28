@@ -1,3 +1,8 @@
+# 2024-03-26
+
+- Added new `--workspace-folder` argument for diagnostics lists
+- Added new `--buffer` argument for diagnostics lists
+
 # 2024-02-28
 
 - Increase `g:coc_highlight_maximum_count` default to 200
