@@ -816,20 +816,20 @@
     },
     "codeLens.position": {
       "type": "string",
-      "scope": "resource",
+      "scope": "language-overridable",
       "enum": ["top", "eol", "right_align"],
       "description": "Position of codeLens, requires nvim >= 0.6.0",
       "default": "top"
     },
     "codeLens.separator": {
       "type": "string",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Separator text for codeLens in virtual text",
       "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Subseparator between codeLenses in virtual text",
       "default": " | "
     },
