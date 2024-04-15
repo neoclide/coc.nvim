@@ -38,7 +38,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
     let base = s:get_option_vim(align, column, get(a:opts, 'text_wrap', 'truncate'))
     for [text, hl] in blocks
       let type = coc#api#create_type(a:src_id, hl, a:opts)
-      let opts = extend({ 'text': text, 'type': type }, base)
+      let opts = extend({ 'text': text, 'type': type, 'bufnr': a:bufnr }, base)
       if first && !empty(indent)
         let opts['text'] = indent . text
       endif
