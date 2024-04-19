@@ -238,6 +238,7 @@ export class Installer extends EventEmitter implements IInstaller {
       this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
       const child = child_process.spawn(this.npm, args, {
         cwd: folder,
+        shell: process.platform === 'win32',
         env: Object.assign(process.env, { NODE_ENV: 'production' })
       })
       this.readLines('[npm stdout]', child.stdout)
