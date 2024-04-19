@@ -35,7 +35,7 @@ export default class CommandTask extends EventEmitter implements ListTask {
 
   private start(): void {
     let { cmd, args, cwd, onLine } = this.opt
-    let proc = spawn(cmd, args, { cwd: cwd || workspace.cwd, windowsHide: true })
+    let proc = spawn(cmd, args, { cwd: cwd || workspace.cwd, windowsHide: true, shell: process.platform === 'win32' })
     this.disposables.push({
       dispose: () => {
         proc.kill()
