@@ -15,6 +15,9 @@ function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
   if s:is_vim
     call coc#api#exec('buf_set_lines', [a:bufnr, a:start, a:end, 0, a:replacement])
   else
+    if a:start == a:end && empty(a:replacement)
+      return
+    end
     call nvim_buf_set_lines(a:bufnr, a:start, a:end, 0, a:replacement)
   endif
 endfunction
