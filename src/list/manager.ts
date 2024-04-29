@@ -154,6 +154,7 @@ export class ListManager implements Disposable {
         void window.showWarningMessage(`Can't find exists ${name} list`)
         return
       }
+      this.lastSession = session
       await session.resume()
     }
   }
