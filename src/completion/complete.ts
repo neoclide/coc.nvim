@@ -17,7 +17,7 @@ import { WordDistance } from './wordDistance'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
 const MIN_TIMEOUT = 50
-const MAX_TIMEOUT = 5000
+const MAX_TIMEOUT = 15000
 const MAX_TRIGGER_WAIT = 200
 
 const WORD_SOURCES = new Set(['buffer', 'around', 'word'])

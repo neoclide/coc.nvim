@@ -132,7 +132,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     }
     if (item.command) {
       if (commands.has(item.command.command)) {
-        await commands.execute(item.command)
+        void commands.execute(item.command)
       } else {
         logger.warn(`Command "${item.command.command}" not registered to coc.nvim`)
       }

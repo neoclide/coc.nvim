@@ -199,11 +199,11 @@ export default class InlayHintBuffer implements SyncItem {
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
       if (item.paddingLeft) {
-        chunks.push([' '])
+        chunks.push(nvim.isVim ? [' ', 'Normal'] : [' '])
       }
       chunks.push([getLabel(item), getHighlightGroup(item.kind)])
       if (item.paddingRight) {
-        chunks.push([' '])
+        chunks.push(nvim.isVim ? [' ', 'Normal'] : [' '])
       }
       buffer.setVirtualText(srcId, position.line, chunks, { col, hl_mode: 'replace' })
     }

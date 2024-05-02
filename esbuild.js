@@ -72,7 +72,6 @@ async function start() {
   await require('esbuild').build({
     entryPoints: ['index.js'],
     bundle: true,
-    minify: process.env.NODE_ENV === 'production',
     sourcemap: process.env.NODE_ENV === 'development',
     define: {
       REVISION: '"' + revision + '"',

@@ -19,7 +19,7 @@ const controlCode = '\x1b'
 class Task extends EventEmitter {
   private process: ChildProcess
   public start(cmd: string, args: string[], cwd: string): void {
-    this.process = spawn(cmd, args, { cwd })
+    this.process = spawn(cmd, args, { cwd, shell: process.platform === 'win32' })
     this.process.on('error', e => {
       this.emit('error', e.message)
     })
