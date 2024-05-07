@@ -201,25 +201,28 @@ export class Installer extends EventEmitter implements IInstaller {
     return path.dirname(jsonFile)
   }
 
-  public getInstallArguments(exePath: string, url: string | undefined): string[] {
+  public getInstallArguments(exePath: string, url: string | undefined): { env: string, args: string[] } {
+    let env = 'production'
     let args = ['install', '--ignore-scripts', '--no-lockfile']
     if (url && url.startsWith('https://github.com')) {
       args = ['install']
+      env = 'development'
+    } else {
+      if (isNpmCommand(exePath)) {
+        args.push('--omit=dev')
+        args.push('--legacy-peer-deps')
+        args.push('--no-global')
+      }
+      if (isYarn(exePath)) {
+        args.push('--production')
+        args.push('--ignore-engines')
+      }
+      if (isPnpm(exePath)) {
+        args.push('--production')
+        args.push('--config.strict-peer-dependencies=false')
+      }
     }
-    if (isNpmCommand(exePath)) {
-      args.push('--omit=dev')
-      args.push('--legacy-peer-deps')
-      args.push('--no-global')
-    }
-    if (isYarn(exePath)) {
-      args.push('--production')
-      args.push('--ignore-engines')
-    }
-    if (isPnpm(exePath)) {
-      args.push('--production')
-      args.push('--config.strict-peer-dependencies=false')
-    }
-    return args
+    return { env, args }
   }
 
   private readLines(key: string, stream: NodeJS.ReadableStream): void {
@@ -234,13 +237,13 @@ export class Installer extends EventEmitter implements IInstaller {
   public installDependencies(folder: string, dependencies: string[]): Promise<void> {
     if (dependencies.length == 0) return Promise.resolve()
     return new Promise<void>((resolve, reject) => {
-      let args = this.getInstallArguments(this.npm, this.url)
+      let {env, args} = this.getInstallArguments(this.npm, this.url)
       this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
       const cmd = process.platform === 'win32' && this.npm.includes(' ') ? `"${this.npm}"` : this.npm
       const child = child_process.spawn(cmd, args, {
         cwd: folder,
         shell: process.platform === 'win32',
-        env: Object.assign(process.env, { NODE_ENV: 'production' })
+        env: Object.assign(process.env, { NODE_ENV: env })
       })
       this.readLines('[npm stdout]', child.stdout)
       this.readLines('[npm stderr]', child.stderr)

@@ -71,9 +71,9 @@ describe('Installer', () => {
   describe('getInfo()', () => {
     it('should get install arguments', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install', '--production', '--config.strict-peer-dependencies=false'])
-      expect(installer.getInstallArguments('npm', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--omit=dev', '--legacy-peer-deps', '--no-global'])
-      expect(installer.getInstallArguments('yarn', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'])
+      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual({ env: 'development', args: ['install'] })
+      expect(installer.getInstallArguments('npm', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
+      expect(installer.getInstallArguments('yarn', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'] })
     })
 
     it('should getInfo from url', async () => {
@@ -419,7 +419,7 @@ describe('Installer', () => {
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
       let spy = jest.spyOn(installer, 'getInstallArguments').mockImplementation(() => {
-        return ['--error']
+        return { env: 'production', args: ['--error'] }
       })
       let fn = async () => {
         await installer.installDependencies(tmpfolder, ['a', 'b'])
