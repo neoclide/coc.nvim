@@ -74,6 +74,7 @@ describe('Installer', () => {
       expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual({ env: 'development', args: ['install'] })
       expect(installer.getInstallArguments('npm', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
       expect(installer.getInstallArguments('yarn', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'] })
+      expect(installer.getInstallArguments('pnpm', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--config.strict-peer-dependencies=false'] })
     })
 
     it('should getInfo from url', async () => {
