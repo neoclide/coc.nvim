@@ -67,6 +67,7 @@ export interface PopupMenuConfig {
   virtualText: boolean
   detailMaxLength: number
   detailField: string
+  reTriggerAfterIndent: boolean
   invalidInsertCharacters: string[]
 }
 

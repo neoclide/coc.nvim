@@ -1464,6 +1464,30 @@ describe('completion', () => {
         return completion.option?.col
       }, 0)
     })
+
+    it('should not trigger completion after indent change with reTriggerAfterIndent = false', async () => {
+      helper.updateConfiguration('suggest.reTriggerAfterIndent', false)
+      await helper.createDocument('t')
+      let source: ISource = {
+        name: 'source1',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async () => Promise.resolve({
+          items: [{ word: 'endif' }]
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i')
+      await nvim.input('  endi')
+      await helper.waitPopup()
+      await nvim.input('f')
+      await helper.wait(10)
+      await nvim.call('setline', ['.', 'endif'])
+      await helper.wait(10)
+      let visible = await pumvisible()
+      expect(visible).toBe(false)
+    })
   })
 
   describe('sortItems', () => {
