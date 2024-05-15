@@ -1915,6 +1915,12 @@
       "description": "How should completion be triggered",
       "enum": ["always", "trigger", "none"]
     },
+    "suggest.reTriggerAfterIndent": {
+      "type": "boolean",
+      "description": "Re-Trigger completion after indent changes",
+      "scope": "language-overridable",
+      "default": true
+    },
     "suggest.completionItemKindLabels": {
       "type": "object",
       "default": {},

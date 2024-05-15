@@ -183,6 +183,7 @@ export class Completion implements Disposable {
       floatConfig: toObject(suggest.floatConfig),
       pumFloatConfig: suggest.pumFloatConfig,
       labelMaxLength: suggest.labelMaxLength,
+      reTriggerAfterIndent: !!suggest.reTriggerAfterIndent,
       reversePumAboveCursor: !!suggest.reversePumAboveCursor,
       snippetIndicator: toText(suggest.snippetIndicator),
       noselect: !!suggest.noselect,
@@ -264,7 +265,7 @@ export class Completion implements Disposable {
         }
       }
       // retrigger after indent
-      if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+      if (this.staticConfig.reTriggerAfterIndent && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
         await this.triggerCompletion(doc, info)
         return
       }
