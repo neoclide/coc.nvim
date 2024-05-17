@@ -1,3 +1,15 @@
+# 2024-05-14
+
+- Added `suggest.reTriggerAfterIndent` to control re-trigger or not after indent changes
+
+# 2024-05-07
+
+- Allow `CocInstall` to install extension from Github in development mode
+
+# 2024-04-12
+
+- Change scope of codeLens configuration to `language-overridable`
+
 # 2024-03-26
 
 - Added new `--workspace-folder` argument for diagnostics lists
