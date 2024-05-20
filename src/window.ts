@@ -144,10 +144,11 @@ export class Window {
    * Reveal buffer of output channel.
    *
    * @param name Name of output channel.
+   * @param cmd command for open output channel.
    * @param preserveFocus Preserve window focus when true.
    */
-  public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    let command = this.configuration.get<string>('workspace.openOutputCommand', 'vs')
+  public showOutputChannel(name: string, cmd?: string, preserveFocus?: boolean): void {
+    let command = cmd ? cmd : this.configuration.get<string>('workspace.openOutputCommand', 'vs')
     channels.show(name, command, preserveFocus)
   }
 
