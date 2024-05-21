@@ -172,7 +172,11 @@ function! coc#util#jump(cmd, filepath, ...) abort
   elseif a:cmd ==# 'edit' && bufloaded(file)
     exe 'b '.bufnr(file)
   else
-    call s:safer_open(a:cmd, file)
+    if s:is_vim
+      call timer_start(10, { -> s:safer_open(a:cmd, file)})
+    else
+      call s:safer_open(a:cmd, file)
+    endif
   endif
   if !empty(get(a:, 1, []))
     let line = getline(a:1[0] + 1)
