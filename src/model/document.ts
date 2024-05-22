@@ -644,7 +644,7 @@ export default class Document {
       || !this._noFetch) {
       fireLinesChanged(this.bufnr)
       this._noFetch = false
-      this.fetchContent()
+      void this._fetchContent()
       return
     }
     let { line, changedtick, lnum } = change
