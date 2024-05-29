@@ -14261,28 +14261,28 @@ var require_Buffer = __commonJS({
         return this.request(`${this.prefix}get_offset`, [index]);
       }
       /**
-          Adds a highlight to buffer.
+            Adds a highlight to buffer.
       
-          This can be used for plugins which dynamically generate
-          highlights to a buffer (like a semantic highlighter or
-          linter). The function adds a single highlight to a buffer.
-          Unlike matchaddpos() highlights follow changes to line
-          numbering (as lines are inserted/removed above the highlighted
-          line), like signs and marks do.
+            This can be used for plugins which dynamically generate
+            highlights to a buffer (like a semantic highlighter or
+            linter). The function adds a single highlight to a buffer.
+            Unlike matchaddpos() highlights follow changes to line
+            numbering (as lines are inserted/removed above the highlighted
+            line), like signs and marks do.
       
-          "src_id" is useful for batch deletion/updating of a set of
-          highlights. When called with src_id = 0, an unique source id
-          is generated and returned. Succesive calls can pass in it as
-          "src_id" to add new highlights to the same source group. All
-          highlights in the same group can then be cleared with
-          nvim_buf_clear_namespace. If the highlight never will be
-          manually deleted pass in -1 for "src_id".
+            "src_id" is useful for batch deletion/updating of a set of
+            highlights. When called with src_id = 0, an unique source id
+            is generated and returned. Succesive calls can pass in it as
+            "src_id" to add new highlights to the same source group. All
+            highlights in the same group can then be cleared with
+            nvim_buf_clear_namespace. If the highlight never will be
+            manually deleted pass in -1 for "src_id".
       
-          If "hl_group" is the empty string no highlight is added, but a
-          new src_id is still returned. This is useful for an external
-          plugin to synchrounously request an unique src_id at
-          initialization, and later asynchronously add and clear
-          highlights in response to buffer changes. */
+            If "hl_group" is the empty string no highlight is added, but a
+            new src_id is still returned. This is useful for an external
+            plugin to synchrounously request an unique src_id at
+            initialization, and later asynchronously add and clear
+            highlights in response to buffer changes. */
       addHighlight({ hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId }) {
         if (!hlGroup)
           throw new Error("hlGroup should not empty");
@@ -43636,7 +43636,7 @@ var init_document = __esm({
         if (event === "TextChanged" || event === "TextChangedI" || !this._noFetch) {
           fireLinesChanged(this.bufnr);
           this._noFetch = false;
-          this.fetchContent();
+          void this._fetchContent();
           return;
         }
         let { line, changedtick, lnum } = change;
@@ -49307,10 +49307,11 @@ var init_window = __esm({
        * Reveal buffer of output channel.
        *
        * @param name Name of output channel.
+       * @param cmd command for open output channel.
        * @param preserveFocus Preserve window focus when true.
        */
-      showOutputChannel(name2, preserveFocus) {
-        let command = this.configuration.get("workspace.openOutputCommand", "vs");
+      showOutputChannel(name2, cmd, preserveFocus) {
+        let command = cmd ? cmd : this.configuration.get("workspace.openOutputCommand", "vs");
         channels_default.show(name2, command, preserveFocus);
       }
       /**
@@ -88912,9 +88913,9 @@ var init_workspace2 = __esm({
         }, false, "Generates a snapshot of the current V8 heap and writes it to a JSON file.");
         commands_default.register({
           id: "workspace.showOutput",
-          execute: async (name2) => {
+          execute: async (name2, cmd) => {
             if (!name2) name2 = await window_default.showQuickPick(workspace_default.channelNames, { title: "Choose output name" });
-            window_default.showOutputChannel(toText(name2));
+            window_default.showOutputChannel(toText(name2), cmd);
           }
         }, false, "open output buffer to show output from languageservers or extensions.");
         commands_default.register({
@@ -89044,7 +89045,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-2c7e7156 2024-05-15 09:42:33 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-c3ae5c3b 2024-05-23 20:39:40 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
