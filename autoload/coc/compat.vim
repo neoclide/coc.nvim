@@ -64,8 +64,6 @@ function! coc#compat#win_is_valid(winid) abort
   return !empty(getwininfo(a:winid))
 endfunction
 
-" clear matches by window id, not throw on none exists window.
-" may not work on vim < 8.1.1084 & neovim < 0.4.0
 function! coc#compat#clear_matches(winid) abort
   if !coc#compat#win_is_valid(a:winid)
     return
@@ -76,9 +74,7 @@ function! coc#compat#clear_matches(winid) abort
     return
   endif
   if s:is_vim
-    if has('patch-8.1.1084')
-      call clearmatches(a:winid)
-    endif
+    call clearmatches(a:winid)
   else
     if exists('*nvim_set_current_win')
       noa call nvim_set_current_win(a:winid)
@@ -93,13 +89,7 @@ function! coc#compat#matchaddpos(group, pos, priority, winid) abort
   if curr == a:winid
     call matchaddpos(a:group, a:pos, a:priority, -1)
   else
-    if s:is_vim
-      if has('patch-8.1.0218')
-        call matchaddpos(a:group, a:pos, a:priority, -1, {'window': a:winid})
-      endif
-    else
-      call matchaddpos(a:group, a:pos, a:priority, -1, {'window': a:winid})
-    endif
+    call matchaddpos(a:group, a:pos, a:priority, -1, {'window': a:winid})
   endif
 endfunction
 

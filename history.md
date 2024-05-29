@@ -1,3 +1,9 @@
+# 2024-05-29
+
+- Break change: increase minimum vim/nvim version requirement
+  - vim  9.0.0438
+  - nvim 0.8.0
+
 # 2024-05-14
 
 - Added `suggest.reTriggerAfterIndent` to control re-trigger or not after indent changes

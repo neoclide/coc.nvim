@@ -175,20 +175,6 @@ describe('InlayHint', () => {
   })
 
   describe('env & options', () => {
-    it('should not create when virtualText not supported', async () => {
-      Object.assign(workspace.env, {
-        virtualText: false
-      })
-      disposables.push(Disposable.create(() => {
-        Object.assign(workspace.env, {
-          virtualText: true
-        })
-      }))
-      let doc = await helper.createDocument()
-      let item = handler.getItem(doc.bufnr)
-      expect(item).toBeUndefined()
-    })
-
     it('should not enabled when disabled by configuration', async () => {
       helper.updateConfiguration('inlayHint.filetypes', [])
       let doc = await workspace.document

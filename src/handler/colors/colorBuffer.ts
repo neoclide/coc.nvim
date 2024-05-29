@@ -79,7 +79,7 @@ export default class ColorBuffer implements SyncItem {
   public get enabled(): boolean {
     let { filetypes } = this.config
     let { filetype } = this.doc
-    if (!workspace.env.updateHighlight || !this.hasProvider) return false
+    if (!this.hasProvider) return false
     if (Array.isArray(filetypes) && (filetypes.includes('*') || filetypes.includes(filetype))) return true
     return this.enable
   }
