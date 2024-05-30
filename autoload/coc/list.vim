@@ -108,9 +108,7 @@ function! coc#list#setup(source)
     setl cursorline
     setl winhighlight=CursorLine:CocListLine
   endif
-  if has('nvim-0.5.0') || has('patch-8.1.0864')
-    setl scrolloff=0
-  endif
+  setl scrolloff=0
   setl filetype=list
   syntax case ignore
   let source = a:source[8:]

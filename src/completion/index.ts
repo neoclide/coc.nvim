@@ -289,7 +289,7 @@ export class Completion implements Disposable {
         logger.debug('commit by commit character.')
         let startcol = byteIndex(this.option.line, resolvedItem.character) + 1
         this.stop(true)
-        this.nvim.call('coc#pum#repalce', [startcol, resolvedItem.word + info.insertChar], true)
+        this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word + info.insertChar], true)
         return
       }
     }

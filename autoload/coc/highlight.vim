@@ -1,8 +1,5 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:nvim_50 = has('nvim-0.5.0')
-let s:nvim_60 = has('nvim-0.6.0')
-let s:clear_match_by_window = s:nvim_60 || s:is_vim
 let s:set_extmark = has('nvim') && exists('*nvim_buf_set_extmark')
 let s:namespace_map = {}
 let s:ns_id = 1
@@ -10,15 +7,6 @@ let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInf
 " Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 200)
 let s:term = &termguicolors == 0 && !has('gui_running')
-
-if has('nvim-0.5.0') && s:clear_match_by_window == 0
-  try
-    call getmatches(0)
-    let s:clear_match_by_window = 1
-  catch /^Vim\%((\a\+)\)\=:E118/
-    " ignored
-  endtry
-endif
 
 " Update buffer region by region.
 function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
@@ -69,7 +57,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   " index list that exists with current highlights
   let exists = []
   let ns = coc#highlight#create_namespace(a:key)
-  if has('nvim-0.5.0') || exists('*prop_list')
+  if has('nvim') || exists('*prop_list')
     let endLnum = end < 0 ? linecount - 1 : end - 1
     let firstLnum = a:highlights[0]['lnum']
     if firstLnum > start
@@ -153,54 +141,28 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
-  if s:nvim_60
+  if has('nvim')
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
-  elseif s:nvim_50
-    return luaeval(
-          \ 'require("coc.highlight").getHighlights(_A[1],_A[2],_A[3],_A[4])',
-          \ [a:bufnr, a:key, start, end]
-          \ )
   endif
+
   let res = []
   let ns = s:namespace_map[a:key]
-  if exists('*prop_list')
-    let types = coc#api#get_types(ns)
-    if empty(types)
-      return res
-    endif
-    " Could filter by end_lnum and types
-    if has('patch-8.2.3652')
-      let endLnum = end == -1 ? -1 : end + 1
-      for prop in prop_list(start + 1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': endLnum})
-        if prop['start'] == 0 || prop['end'] == 0
-          " multi line textprop are not supported, simply ignore it
-          continue
-        endif
-        let startCol = prop['col'] - 1
-        let endCol = startCol + prop['length']
-        call add(res, [s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id']])
-      endfor
-    else
-      if end == -1
-        let end = coc#compat#buf_line_count(a:bufnr)
-      else
-        let end = end + 1
-      endif
-      for line in range(start + 1, end)
-        for prop in prop_list(line, {'bufnr': a:bufnr})
-          if index(types, prop['type']) == -1 || prop['start'] == 0 || prop['end'] == 0
-            " multi line textprop are not supported, simply ignore it
-            continue
-          endif
-          let startCol = prop['col'] - 1
-          let endCol = startCol + prop['length']
-          call add(res, [s:prop_type_hlgroup(prop['type']), line - 1, startCol, endCol, prop['id']])
-        endfor
-      endfor
-    endif
-  else
-    throw 'Get highlights requires neovim 0.5.0 or vim support prop_list'
+  let types = coc#api#get_types(ns)
+  if empty(types)
+    return res
   endif
+
+  let endLnum = end == -1 ? -1 : end + 1
+  for prop in prop_list(start + 1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': endLnum})
+    if prop['start'] == 0 || prop['end'] == 0
+      " multi line textprop are not supported, simply ignore it
+      continue
+    endif
+    let startCol = prop['col'] - 1
+    let endCol = startCol + prop['length']
+    call add(res, [s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id']])
+  endfor
+
   return res
 endfunction
 
@@ -212,13 +174,8 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   endif
   let ns = coc#highlight#create_namespace(a:key)
   let g:c = 1
-  if s:nvim_60
+  if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
-  elseif s:nvim_50
-    call luaeval(
-          \ 'require("coc.highlight").set(_A[1],_A[2],_A[3],_A[4])',
-          \ [a:bufnr, ns, a:highlights, a:priority]
-          \ )
   else
     if len(a:highlights) > g:coc_highlight_maximum_count
       call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
@@ -560,10 +517,6 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     " not valid
     return []
   endif
-  if !s:clear_match_by_window
-    let curr = win_getid()
-    noa call win_gotoid(winid)
-  endif
   let ids = []
   for range in a:ranges
     let pos = []
@@ -583,7 +536,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
       call add(pos, [lnum, colStart, colEnd - colStart])
     endfor
     if !empty(pos)
-      let opts = s:clear_match_by_window ? {'window': a:winid} : {}
+      let opts = {'window': a:winid}
       let i = 1
       let l = []
       for p in pos
@@ -601,9 +554,6 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
       endif
     endif
   endfor
-  if !s:clear_match_by_window
-    noa call win_gotoid(curr)
-  endif
   return ids
 endfunction
 
@@ -614,27 +564,10 @@ function! coc#highlight#clear_match_group(winid, match) abort
     " not valid
     return
   endif
-  if s:clear_match_by_window
-    let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
-    for item in arr
-      call matchdelete(item['id'], winid)
-    endfor
-  else
-    let curr = win_getid()
-    let switch = exists('*nvim_set_current_win') && curr != winid
-    if switch
-      noa call nvim_set_current_win(a:winid)
-    endif
-    if win_getid() == winid
-      let arr = filter(getmatches(), 'v:val["group"] =~# "'.a:match.'"')
-      for item in arr
-        call matchdelete(item['id'])
-      endfor
-    endif
-    if switch
-      noa call nvim_set_current_win(curr)
-    endif
-  endif
+  let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
+  for item in arr
+    call matchdelete(item['id'], winid)
+  endfor
 endfunction
 
 " Clear matches by match ids, use 0 for current win.
@@ -644,33 +577,13 @@ function! coc#highlight#clear_matches(winid, ids)
     " not valid
     return
   endif
-  if s:clear_match_by_window
-    for id in a:ids
-      try
-        call matchdelete(id, winid)
-      catch /^Vim\%((\a\+)\)\=:E803/
-        " ignore
-      endtry
-    endfor
-  else
-    let curr = win_getid()
-    let switch = exists('*nvim_set_current_win') && curr != winid
-    if switch
-      noa call nvim_set_current_win(a:winid)
-    endif
-    if win_getid() == winid
-      for id in a:ids
-        try
-          call matchdelete(id)
-        catch /^Vim\%((\a\+)\)\=:E803/
-          " ignore
-        endtry
-      endfor
-    endif
-    if switch
-      noa call nvim_set_current_win(curr)
-    endif
-  endif
+  for id in a:ids
+    try
+      call matchdelete(id, winid)
+    catch /^Vim\%((\a\+)\)\=:E803/
+      " ignore
+    endtry
+  endfor
 endfunction
 
 function! coc#highlight#clear_all() abort

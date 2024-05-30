@@ -10,7 +10,6 @@ let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') && s:utf ? "\u274
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') && s:utf ? "\u26a0\ufe0f " : 'W ')
 let s:select_api = exists('*nvim_select_popupmenu_item')
 let s:callbacks = {}
-let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
 function! coc#expandable() abort
   return coc#rpc#request('snippetCheck', [1, 0])
@@ -42,7 +41,7 @@ function! coc#_insert_key(method, key, ...) abort
   if get(a:, 1, 1)
     if coc#pum#visible()
       let prefix = "\<C-r>=coc#pum#close()\<CR>"
-    elseif pumvisible() && s:hide_pum
+    elseif pumvisible()
       let prefix = "\<C-x>\<C-z>"
     endif
   endif

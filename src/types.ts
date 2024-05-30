@@ -142,7 +142,6 @@ export interface HighlightItem extends HighlightItemOption {
 
 export interface Env {
   runtimepath: string
-  readonly virtualText: boolean
   readonly guicursor: string
   readonly tabCount: number
   readonly mode: string
@@ -169,7 +168,6 @@ export interface Env {
   readonly progpath: string
   readonly dialog: boolean
   readonly textprop: boolean
-  readonly updateHighlight: boolean
   readonly vimCommands: CommandConfig[]
   readonly semanticHighlights: string[]
 }

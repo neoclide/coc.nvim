@@ -750,15 +750,9 @@ describe('semanticTokens', () => {
         item.checkState()
       })
       toThrow(() => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        workspace._env.updateHighlight = false
         item.checkState()
       })
       let enabled = item.enabled
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      workspace._env.updateHighlight = true
       expect(enabled).toBe(false)
       expect(() => {
         item.checkState()

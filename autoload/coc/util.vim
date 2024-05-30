@@ -286,12 +286,10 @@ function! coc#util#vim_info()
         \ 'guicursor': &guicursor,
         \ 'pumwidth': exists('&pumwidth') ? &pumwidth : 15,
         \ 'tabCount': tabpagenr('$'),
-        \ 'updateHighlight': has('nvim-0.5.0') || has('textprop') ? v:true : v:false,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') ? v:true : v:false,
-        \ 'virtualText': has('nvim-0.5.0') || has('patch-9.0.0067') ? v:true : v:false,
         \ 'dialog': 1,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}

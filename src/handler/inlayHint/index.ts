@@ -16,7 +16,6 @@ export default class InlayHintHandler {
   private disposables: Disposable[] = []
   constructor(nvim: Neovim, handler: HandlerDelegate) {
     this.buffers = workspace.registerBufferSync(doc => {
-      if (!workspace.env.virtualText) return
       return new InlayHintBuffer(nvim, doc)
     })
     this.disposables.push(this.buffers)
