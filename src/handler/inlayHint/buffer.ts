@@ -116,16 +116,26 @@ export default class InlayHintBuffer implements SyncItem {
     return enable === true
   }
 
-  public toggle(): void {
+  public enable() {
     if (!languages.hasProvider(ProviderName.InlayHint, this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
     if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`)
+    this.config.display = true
+    void this.renderRange()
+  }
+
+  public disable() {
+    if (!languages.hasProvider(ProviderName.InlayHint, this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
+    if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`)
+    this.config.display = false
+    this.clearCache()
+    this.clearVirtualText()
+  }
+
+  public toggle(): void {
     if (this.config.display) {
-      this.config.display = false
-      this.clearCache()
-      this.clearVirtualText()
+      this.disable()
     } else {
-      this.config.display = true
-      void this.renderRange()
+      this.enable()
     }
   }
 
