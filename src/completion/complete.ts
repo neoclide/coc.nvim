@@ -241,11 +241,10 @@ export default class Complete {
     return added
   }
 
-  public async completeInComplete(resumeInput: string): Promise<DurationCompleteItem[] | undefined> {
+  public async completeInComplete(resumeInput: string) {
     let { document } = this
     this.cancelInComplete()
     let tokenSource = this.createTokenSource(true)
-    let token = tokenSource.token
     await document.patchChange(true)
     let { input, colnr, linenr, followWord, position } = this.option
     Object.assign(this.option, {
@@ -257,11 +256,8 @@ export default class Complete {
       triggerCharacter: undefined,
       triggerForInComplete: true
     })
-    this.cid++
     const sources = this.getIncompleteSources()
     await this.completeSources(sources, tokenSource, this.cid)
-    if (token.isCancellationRequested) return undefined
-    return this.filterItems(resumeInput)
   }
 
   public filterItems(input: string): DurationCompleteItem[] | undefined {
@@ -322,7 +318,7 @@ export default class Complete {
   public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
     clearTimeout(this.timer)
     if (input !== this.option.input && this.hasInComplete) {
-      return await this.completeInComplete(input)
+      void this.completeInComplete(input)
     }
     return this.filterItems(input)
   }
