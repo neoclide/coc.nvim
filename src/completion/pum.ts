@@ -166,7 +166,9 @@ export default class PopupMenu {
     }
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
-      if (!item.word.startsWith(search)) {
+      // `word` and `filterText` may be different
+      // `search` may match `word` or `filterText`
+      if (!item.word.startsWith(search) && !item.filterText.startsWith(search)) {
         selectedIndex = -1
       }
     }
