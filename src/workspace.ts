@@ -589,6 +589,10 @@ export class Workspace {
     return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace)
   }
 
+  public asRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
+    return this.getRelativePath(pathOrUri, includeWorkspace)
+  }
+
   public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
     return this.files.findFiles(include, exclude, maxResults, token)
   }
