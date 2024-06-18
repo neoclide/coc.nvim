@@ -559,8 +559,10 @@ export class DiagnosticBuffer implements SyncItem {
     let res: HighlightItem[] = []
     for (let i = 0; i < Math.min(this._config.highlightLimit, diagnostics.length); i++) {
       let diagnostic = diagnostics[i]
-      let hlGroup = getHighlightGroup(diagnostic)
-      this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      let hlGroups = getHighlightGroup(diagnostic)
+      for (const hlGroup of hlGroups) {
+        this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      }
     }
     // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
