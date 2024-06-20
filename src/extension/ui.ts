@@ -193,8 +193,9 @@ export class InstallBuffer implements InstallUI {
   private async show(): Promise<void> {
     let isSync = events.requesting === true
     let { nvim } = workspace
+    const useTab = workspace.getConfiguration('coc.preferences').get('extensionUpdateUIInTab', false)
     nvim.pauseNotification()
-    nvim.command(isSync ? 'enew' : 'vs +enew', true)
+    nvim.command(isSync ? 'enew' : (useTab ? 'tabnew' : 'vs +enew'), true)
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
