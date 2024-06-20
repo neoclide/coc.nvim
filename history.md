@@ -1,3 +1,7 @@
+# 2024-06-20
+
+- Added `coc.preferences.extensionUpdateUIInTab` to open `CocUpdate` UI in tab
+
 # 2024-05-29
 
 - Break change: increase minimum vim/nvim version requirement

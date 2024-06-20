@@ -578,6 +578,12 @@
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
     },
+    "coc.preferences.extensionUpdateUIInTab": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "description": "Display extension updating UI in vim tab"
+    },
     "coc.preferences.floatActions": {
       "type": "boolean",
       "scope": "application",
