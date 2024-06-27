@@ -1303,6 +1303,13 @@
       "scope": "language-overridable",
       "description": "Enable inlay hint support"
     },
+    "inlayHint.position": {
+      "type": "string",
+      "default": "inline",
+      "scope": "language-overridable",
+      "description": "Controls where to show inlay hints: inline in the text, or at the end of the line",
+      "enum": ["inline", "eol"]
+    },
     "inlayHint.enableParameter": {
       "type": "boolean",
       "scope": "language-overridable",
