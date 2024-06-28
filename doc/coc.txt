@@ -2171,6 +2171,11 @@ coc#pum#visible() 					*coc#pum#visible()*
 	Check if customized popupmenu is visible like |pumvisible()| does.
 	Return 1 when popup menu is visible.
 
+coc#pum#has_item_selected()				*coc#pum#has_item_selected*
+
+	Check if there is a completion item selected in the popup menu.
+	Return 1 when there has been a completion item selected.
+
 coc#pum#next({insert}) 					*coc#pum#next()*
 
 	Select next item of customized popupmenu, insert word when {insert} is
