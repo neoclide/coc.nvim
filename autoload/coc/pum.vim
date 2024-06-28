@@ -23,10 +23,7 @@ if s:is_vim
 endif
 
 function! coc#pum#has_item_selected() abort
-    if s:pum_winid == -1
-        return 0
-    endif
-    return s:pum_index != -1
+    return coc#pum#visible() && s:pum_index != -1
 endfunction
 
 function! coc#pum#visible() abort
