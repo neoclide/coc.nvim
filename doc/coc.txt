@@ -2965,7 +2965,7 @@ COMMANDS						*coc-commands*
 
 :CocConfig						*:CocConfig*
 
-	Edit the user config file `.vim/coc-settings.json` in
+	Edit the user config file `coc-settings.json` in
 	|coc#util#get_config_home()|
 
 :CocLocalConfig						*:CocLocalConfig*

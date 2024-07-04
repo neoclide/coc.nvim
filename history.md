@@ -1,3 +1,11 @@
+# 2024-07-04
+
+- Added `NVIM_APPNAME` support
+
+# 2024-06-27
+
+- Added `inlayHint.position` configuration, with `inline` and `eol` options
+
 # 2024-06-20
 
 - Added `coc.preferences.extensionUpdateUIInTab` to open `CocUpdate` UI in tab
