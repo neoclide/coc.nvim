@@ -40,8 +40,8 @@ endfunction
 
 function! s:checkEnvironment() abort
   let valid
-    \ = s:checkVim(has('nvim'), 'nvim', 'nvim-0.4.0')
-    \ + s:checkVim(!has('nvim'), 'vim', 'patch-8.1.1719')
+    \ = s:checkVim(has('nvim'), 'nvim', 'nvim-0.8.0')
+    \ + s:checkVim(!has('nvim'), 'vim', 'patch-9.0.0438')
   let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
   if !executable(node)
     let valid = 0

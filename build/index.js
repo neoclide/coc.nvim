@@ -14261,28 +14261,28 @@ var require_Buffer = __commonJS({
         return this.request(`${this.prefix}get_offset`, [index]);
       }
       /**
-            Adds a highlight to buffer.
+          Adds a highlight to buffer.
       
-            This can be used for plugins which dynamically generate
-            highlights to a buffer (like a semantic highlighter or
-            linter). The function adds a single highlight to a buffer.
-            Unlike matchaddpos() highlights follow changes to line
-            numbering (as lines are inserted/removed above the highlighted
-            line), like signs and marks do.
+          This can be used for plugins which dynamically generate
+          highlights to a buffer (like a semantic highlighter or
+          linter). The function adds a single highlight to a buffer.
+          Unlike matchaddpos() highlights follow changes to line
+          numbering (as lines are inserted/removed above the highlighted
+          line), like signs and marks do.
       
-            "src_id" is useful for batch deletion/updating of a set of
-            highlights. When called with src_id = 0, an unique source id
-            is generated and returned. Succesive calls can pass in it as
-            "src_id" to add new highlights to the same source group. All
-            highlights in the same group can then be cleared with
-            nvim_buf_clear_namespace. If the highlight never will be
-            manually deleted pass in -1 for "src_id".
+          "src_id" is useful for batch deletion/updating of a set of
+          highlights. When called with src_id = 0, an unique source id
+          is generated and returned. Succesive calls can pass in it as
+          "src_id" to add new highlights to the same source group. All
+          highlights in the same group can then be cleared with
+          nvim_buf_clear_namespace. If the highlight never will be
+          manually deleted pass in -1 for "src_id".
       
-            If "hl_group" is the empty string no highlight is added, but a
-            new src_id is still returned. This is useful for an external
-            plugin to synchrounously request an unique src_id at
-            initialization, and later asynchronously add and clear
-            highlights in response to buffer changes. */
+          If "hl_group" is the empty string no highlight is added, but a
+          new src_id is still returned. This is useful for an external
+          plugin to synchrounously request an unique src_id at
+          initialization, and later asynchronously add and clear
+          highlights in response to buffer changes. */
       addHighlight({ hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId }) {
         if (!hlGroup)
           throw new Error("hlGroup should not empty");
@@ -38278,6 +38278,12 @@ var init_schema = __esm({
           description: "Interval for check extension update, could be daily, weekly, never",
           enum: ["daily", "weekly", "never"]
         },
+        "coc.preferences.extensionUpdateUIInTab": {
+          type: "boolean",
+          scope: "application",
+          default: false,
+          description: "Display extension updating UI in vim tab"
+        },
         "coc.preferences.floatActions": {
           type: "boolean",
           scope: "application",
@@ -38996,6 +39002,13 @@ var init_schema = __esm({
           default: true,
           scope: "language-overridable",
           description: "Enable inlay hint support"
+        },
+        "inlayHint.position": {
+          type: "string",
+          default: "inline",
+          scope: "language-overridable",
+          description: "Controls where to show inlay hints: inline in the text, or at the end of the line",
+          enum: ["inline", "eol"]
         },
         "inlayHint.enableParameter": {
           type: "boolean",
@@ -48091,6 +48104,9 @@ var init_workspace = __esm({
       getRelativePath(pathOrUri, includeWorkspace) {
         return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace);
       }
+      asRelativePath(pathOrUri, includeWorkspace) {
+        return this.getRelativePath(pathOrUri, includeWorkspace);
+      }
       async findFiles(include, exclude, maxResults, token) {
         return this.files.findFiles(include, exclude, maxResults, token);
       }
@@ -52011,23 +52027,29 @@ function sortDiagnostics(a, b) {
   return a.source > b.source ? 1 : -1;
 }
 function getHighlightGroup(diagnostic) {
+  let hlGroups2 = [];
   let tags = diagnostic.tags || [];
   if (tags.includes(DiagnosticTag.Deprecated)) {
-    return "CocDeprecatedHighlight" /* Deprecated */;
+    hlGroups2.push("CocDeprecatedHighlight" /* Deprecated */);
   }
   if (tags.includes(DiagnosticTag.Unnecessary)) {
-    return "CocUnusedHighlight" /* Unused */;
+    hlGroups2.push("CocUnusedHighlight" /* Unused */);
   }
   switch (diagnostic.severity) {
-    case DiagnosticSeverity.Warning:
-      return "CocWarningHighlight" /* Warning */;
-    case DiagnosticSeverity.Information:
-      return "CocInfoHighlight" /* Information */;
     case DiagnosticSeverity.Hint:
-      return "CocHintHighlight" /* Hint */;
-    default:
-      return "CocErrorHighlight" /* Error */;
+      hlGroups2.push("CocHintHighlight" /* Hint */);
+      break;
+    case DiagnosticSeverity.Information:
+      hlGroups2.push("CocInfoHighlight" /* Information */);
+      break;
+    case DiagnosticSeverity.Warning:
+      hlGroups2.push("CocWarningHighlight" /* Warning */);
+      break;
+    case DiagnosticSeverity.Error:
+      hlGroups2.push("CocErrorHighlight" /* Error */);
+      break;
   }
+  return hlGroups2;
 }
 function adjustDiagnostics(diagnostics, edit2) {
   let res = [];
@@ -52543,8 +52565,10 @@ var init_buffer = __esm({
         let res = [];
         for (let i = 0; i < Math.min(this._config.highlightLimit, diagnostics.length); i++) {
           let diagnostic = diagnostics[i];
-          let hlGroup = getHighlightGroup(diagnostic);
-          this.doc.addHighlights(res, hlGroup, diagnostic.range);
+          let hlGroups2 = getHighlightGroup(diagnostic);
+          for (const hlGroup of hlGroups2) {
+            this.doc.addHighlights(res, hlGroup, diagnostic.range);
+          }
         }
         res.sort((a, b) => {
           if (a.lnum != b.lnum) return a.lnum - b.lnum;
@@ -79167,8 +79191,9 @@ var init_ui3 = __esm({
       async show() {
         let isSync = events_default.requesting === true;
         let { nvim } = workspace_default;
+        const useTab = workspace_default.getConfiguration("coc.preferences").get("extensionUpdateUIInTab", false);
         nvim.pauseNotification();
-        nvim.command(isSync ? "enew" : "vs +enew", true);
+        nvim.command(isSync ? "enew" : useTab ? "tabnew" : "vs +enew", true);
         nvim.call("bufnr", ["%"], true);
         nvim.command("setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1", true);
         if (!isSync) nvim.command("nnoremap <silent><nowait><buffer> q :q<CR>", true);
@@ -82272,7 +82297,7 @@ var init_completion2 = __esm({
             logger45.debug("commit by commit character.");
             let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
             this.stop(true);
-            this.nvim.call("coc#pum#repalce", [startcol, resolvedItem.word + info.insertChar], true);
+            this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word + info.insertChar], true);
             return;
           }
         }
@@ -83947,7 +83972,7 @@ var init_colorBuffer = __esm({
       get enabled() {
         let { filetypes } = this.config;
         let { filetype } = this.doc;
-        if (!workspace_default.env.updateHighlight || !this.hasProvider) return false;
+        if (!this.hasProvider) return false;
         if (Array.isArray(filetypes) && (filetypes.includes("*") || filetypes.includes(filetype))) return true;
         return this.enable;
       }
@@ -84988,6 +85013,7 @@ var init_buffer4 = __esm({
         let changed = this._config && this._config.enable != config.enable;
         this._config = {
           enable: config.get("enable"),
+          position: config.get("position"),
           display: config.get("display", true),
           filetypes: config.get("filetypes"),
           refreshOnInsertMode: config.get("refreshOnInsertMode"),
@@ -85107,6 +85133,9 @@ var init_buffer4 = __esm({
           if (item.paddingRight) {
             chunks.push(nvim.isVim ? [" ", "Normal"] : ["\u2003"]);
           }
+          if (this.config.position == "eol" /* Eol */) {
+            col = 0;
+          }
           buffer.setVirtualText(srcId2, position.line, chunks, { col, hl_mode: "replace" });
         }
         nvim.resumeNotification(true, true);
@@ -85139,7 +85168,6 @@ var init_inlayHint2 = __esm({
       constructor(nvim, handler) {
         this.disposables = [];
         this.buffers = workspace_default.registerBufferSync((doc) => {
-          if (!workspace_default.env.virtualText) return;
           return new InlayHintBuffer(nvim, doc);
         });
         this.disposables.push(this.buffers);
@@ -87060,11 +87088,10 @@ var init_buffer6 = __esm({
         return this.nvim.createBuffer(this.bufnr);
       }
       get enabled() {
-        if (!this.configEnabled || !workspace_default.env.updateHighlight || !this.hasLegend) return false;
+        if (!this.configEnabled || !this.hasLegend) return false;
         return this.hasProvider;
       }
       checkState() {
-        if (!workspace_default.env.updateHighlight) throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`);
         if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`);
         if (!this.hasProvider || !this.hasLegend) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`);
       }
@@ -89045,7 +89072,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-c3ae5c3b 2024-05-23 20:39:40 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-56632971 2024-07-04 19:25:14 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

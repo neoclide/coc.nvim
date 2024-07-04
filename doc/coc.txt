@@ -1361,7 +1361,7 @@ Selection range function:~
 CODE LENS 						*coc-code-lens*
 
 Code lens feature shows additional information above or after specific lines.
-Works best on nvim >= 0.6.0 and vim >= 9.0.0438. On older vim, some
+Works best on nvim >= 0.8.0 and vim >= 9.0.0438. On older vim, some
 configurations may not work.
 
 CodeLens are not shown by default, use |coc-config-codeLens-enable| to enable,
@@ -2171,6 +2171,11 @@ coc#pum#visible() 					*coc#pum#visible()*
 	Check if customized popupmenu is visible like |pumvisible()| does.
 	Return 1 when popup menu is visible.
 
+coc#pum#has_item_selected()				*coc#pum#has_item_selected*
+
+	Check if there is a completion item selected in the popup menu.
+	Return 1 when there has been a completion item selected.
+
 coc#pum#next({insert}) 					*coc#pum#next()*
 
 	Select next item of customized popupmenu, insert word when {insert} is
@@ -2960,7 +2965,7 @@ COMMANDS						*coc-commands*
 
 :CocConfig						*:CocConfig*
 
-	Edit the user config file `.vim/coc-settings.json` in
+	Edit the user config file `coc-settings.json` in
 	|coc#util#get_config_home()|
 
 :CocLocalConfig						*:CocLocalConfig*
