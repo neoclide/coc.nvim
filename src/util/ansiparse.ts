@@ -247,3 +247,9 @@ export function ansiparse(str: string): AnsiItem[] {
   }
   return result
 }
+
+export function stripAnsiColoring(str?: string): string {
+  // eslint-disable-next-line
+  const ansiColorCodeRegex = /\u001b\[[0-9;]*m/g
+  return str.replace(ansiColorCodeRegex, '')
+}

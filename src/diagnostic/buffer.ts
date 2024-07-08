@@ -12,6 +12,7 @@ import { Emitter, Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
+import { stripAnsiColoring } from '../util/ansiparse'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -515,10 +516,11 @@ export class DiagnosticBuffer implements SyncItem {
         .slice(0, this._config.virtualTextLines)
         .join(this._config.virtualTextLineSeparator)
       let arr = map.get(line) ?? []
-      arr.unshift([virtualTextPrefix + formatDiagnostic(this._config.virtualTextFormat, {
+      const formattedDiagnostic = formatDiagnostic(this._config.virtualTextFormat, {
         ...diagnostic,
         message: msg
-      }), highlight])
+      })
+      arr.unshift([virtualTextPrefix + stripAnsiColoring(formattedDiagnostic), highlight])
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {
