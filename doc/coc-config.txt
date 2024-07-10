@@ -552,6 +552,12 @@ InlayHint~
 
 	Scope: `language-overridable`, default: `false`
 
+"inlayHint.position"					*coc-config-inlayHint-position*
+
+	Controls the position of inlay hint, supports `inline` and `eol`.
+
+	Scope: `language-overridable`, default: `inline`
+
 ------------------------------------------------------------------------------
 Links~
 							*coc-config-links*
@@ -814,6 +820,12 @@ Outline~
 "outline.autoPreview"					*coc-config-outline-autoPreview*
 
 	Enable auto preview on cursor move.
+
+	Scope: `application`, default: `false`
+
+"outline.autoHide"					*coc-config-outline-autoHide*
+
+	Automatically hide the outline window when an item is clicked.
 
 	Scope: `application`, default: `false`
 
@@ -1314,6 +1326,12 @@ Suggest~
 
 	Scope: `language-overridable`, default: `false`
 
+"suggest.reTriggerAfterIndent"				*coc-config-suggest-reTriggerAfterIndent*
+
+	Controls re-trigger or not after indent changes.
+
+	Scope: `application`, default: `true`
+
 "suggest.reversePumAboveCursor"				*coc-config-suggest-reversePumAboveCursor*
 
 	Reverse order of complete items when pum shown above cursor.
@@ -1575,6 +1593,12 @@ Preferences~
 	"never"
 
 	Scope: `application`, default: `"never"`
+
+"coc.preferences.extensionUpdateUIInTab"			*coc-preferences-extensionUpdateUIInTab*
+
+	Open `CocUpdate` UI in tab
+
+	Scope: `application`, default: `false`
 
 "coc.preferences.floatActions"				*coc-preferences-floatActions*
 
