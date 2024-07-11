@@ -51,6 +51,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       let opts['virt_text'] = a:blocks
       if s:n10 && column != 0
         let opts['virt_text_pos'] = 'inline'
+        let opts['right_gravity'] = get(a:opts, 'right_gravity', v:true)
       elseif align ==# 'right'
         let opts['virt_text_pos'] = 'right_align'
       else
