@@ -217,7 +217,7 @@ export default class InlayHintBuffer implements SyncItem {
       }
       // TODO right_gravity field is absent in VirtualTextOption
       let opts: any = { col, hl_mode: 'replace' }
-      if (nvim.isVim && item.kind == InlayHintKind.Parameter) { opts.right_gravity = false }
+      if (!nvim.isVim && item.kind == InlayHintKind.Parameter) { opts.right_gravity = false }
       buffer.setVirtualText(srcId, position.line, chunks, opts)
     }
     nvim.resumeNotification(true, true)
