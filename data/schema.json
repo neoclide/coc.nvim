@@ -2318,7 +2318,13 @@
     },
     "workspace.ignoredFolders": {
       "type": "array",
-      "default": ["$HOME"],
+      "default": [
+        "$HOME",
+        "$HOME/.cargo/**",
+        "$HOME/.rustup/**",
+        "$HOME/pkg/mod/**",
+        "$HOMEBREW_PREFIX/**"
+      ],
       "scope": "application",
       "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
       "items": {
