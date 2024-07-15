@@ -1,15 +1,15 @@
 "use strict"
-Object.defineProperty(exports, "__esModule", {value: true})
-const node_1 = require("vscode-languageserver")
+Object.defineProperty(exports, "__esModule", { value: true })
+const node_1 = require("vscode-languageserver/node")
 const connection = (0, node_1.createConnection)()
 let notified = false
-connection.onInitialize((_params) => {
+connection.onInitialize(_params => {
   return {
     capabilities: {}
   }
 })
 
-connection.onRequest('request', (param) => {
+connection.onRequest('request', param => {
   return param.value + 1
 })
 
@@ -18,7 +18,7 @@ connection.onNotification('notification', () => {
 })
 
 connection.onRequest('notified', () => {
-  return {notified}
+  return { notified }
 })
 
 connection.onRequest('triggerRequest', async () => {
@@ -26,7 +26,7 @@ connection.onRequest('triggerRequest', async () => {
 })
 
 connection.onNotification('triggerNotification', async () => {
-  await connection.sendNotification('notification', {x: 1})
+  await connection.sendNotification('notification', { x: 1 })
 })
 
 connection.listen()

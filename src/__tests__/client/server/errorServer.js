@@ -1,7 +1,7 @@
 "use strict"
-const {createConnection, ResponseError} = require("vscode-languageserver")
+const { createConnection, ResponseError } = require("vscode-languageserver/node")
 const connection = createConnection()
-connection.onInitialize((_params) => {
+connection.onInitialize(_params => {
   return {
     capabilities: {}
   }

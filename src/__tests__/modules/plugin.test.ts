@@ -38,11 +38,14 @@ describe('Plugin', () => {
 describe('exports', () => {
   it('should exports all types from vscode-languageserver-types', () => {
     // TODO: remove inline types after inline completion added
+    // TODO: remove this after vscode-languageserver-types updated to 3.18
     const excludes = [
       'EOL',
       'URI',
+      'LanguageKind',
       'TextDocument',
       'StringValue',
+      'SnippetTextEdit',
       'InlineCompletionItem',
       'InlineCompletionList',
       'InlineCompletionTriggerKind',

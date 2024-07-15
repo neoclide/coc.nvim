@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ChangeAnnotation, CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { ChangeAnnotation, CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import type { LinesChange } from '../core/files'
 import type Keymaps from '../core/keymaps'
@@ -191,7 +191,8 @@ export function getOriginalLine(item: ChangedFileItem, change: TextDocumentEdit 
   if (typeof item.lnum !== 'number') return undefined
   let lnum = item.lnum
   if (change) {
-    let edits = mergeSortEdits(change.edits)
+    // TODO: filter SnippetTextEdit for now
+    let edits = mergeSortEdits(change.edits.filter(edit => 'newText' in edit))
     let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
     lnum = pos.line + 1
   }

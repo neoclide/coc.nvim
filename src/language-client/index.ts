@@ -8,7 +8,7 @@ import { child_process, fs, path } from '../util/node'
 import { terminate } from '../util/processes'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
 import workspace from '../workspace'
-import { BaseLanguageClient, LanguageClientOptions, MessageTransports } from './client'
+import { BaseLanguageClient, LanguageClientOptions, MessageTransports, ShutdownMode } from './client'
 
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
@@ -18,33 +18,6 @@ const STOP_TIMEOUT = getConditionValue(2000, 100)
 export * from './client'
 
 declare let v8debug: any
-
-export interface ExecutableOptions {
-  cwd?: string
-  env?: any
-  detached?: boolean
-  shell?: boolean
-}
-
-export interface Executable {
-  command: string
-  args?: string[]
-  options?: ExecutableOptions
-}
-
-namespace Executable {
-  export function is(value: any): value is Executable {
-    return Is.string(value.command)
-  }
-}
-
-export interface ForkOptions {
-  cwd?: string
-  env?: any
-  execPath?: string
-  encoding?: string
-  execArgv?: string[]
-}
 
 export enum TransportKind {
   stdio,
@@ -81,6 +54,34 @@ namespace Transport {
  * passed pipe name or port number.
  */
 export type Transport = TransportKind | SocketTransport
+
+export interface ExecutableOptions {
+  cwd?: string
+  env?: any
+  detached?: boolean
+  shell?: boolean
+}
+
+export interface Executable {
+  command: string
+  transport?: Transport
+  args?: string[]
+  options?: ExecutableOptions
+}
+
+namespace Executable {
+  export function is(value: any): value is Executable {
+    return Is.string(value.command)
+  }
+}
+
+export interface ForkOptions {
+  cwd?: string
+  env?: any
+  execPath?: string
+  encoding?: string
+  execArgv?: string[]
+}
 
 export interface NodeModule {
   module: string
@@ -187,8 +188,8 @@ export class LanguageClient extends BaseLanguageClient {
     this._isInDebugMode = !!forceDebug
   }
 
-  public stop(timeout = STOP_TIMEOUT): Promise<void> {
-    return super.stop(timeout).then(() => {
+  protected shutdown(mode: ShutdownMode, timeout = STOP_TIMEOUT): Promise<void> {
+    return super.shutdown(mode, timeout).then(() => {
       if (this._serverProcess) {
         let toCheck = this._serverProcess
         this._serverProcess = undefined
@@ -224,9 +225,9 @@ export class LanguageClient extends BaseLanguageClient {
     }, STOP_TIMEOUT)
   }
 
-  protected handleConnectionClosed(): void {
+  protected handleConnectionClosed(): Promise<void> {
     this._serverProcess = undefined
-    super.handleConnectionClosed()
+    return super.handleConnectionClosed()
   }
 
   public get isInDebugMode(): boolean {
@@ -303,8 +304,10 @@ export class LanguageClient extends BaseLanguageClient {
     if (runDebug.run || runDebug.debug) {
       if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode(process.execArgv)) {
         json = runDebug.debug
+        this._isInDebugMode = true
       } else {
         json = runDebug.run
+        this._isInDebugMode = false
       }
     } else {
       json = server as NodeModule | Executable

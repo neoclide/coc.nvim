@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver')
+const { createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest } = require('vscode-languageserver/node')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -11,7 +11,7 @@ let prepareResponse
 let configuration
 let folders
 let foldersEvent
-connection.onInitialize((params) => {
+connection.onInitialize(params => {
   options = params.initializationOptions || {}
   let changeNotifications = options.changeNotifications ?? 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
   return {
@@ -19,9 +19,9 @@ connection.onInitialize((params) => {
       inlineValueProvider: {},
       executeCommandProvider: {
       },
-      documentSymbolProvider: options.label ? {label: 'test'} : true,
+      documentSymbolProvider: options.label ? { label: 'test' } : true,
       textDocumentSync: TextDocumentSyncKind.Full,
-      renameProvider: options.prepareRename ? {prepareProvider: true} : true,
+      renameProvider: options.prepareRename ? { prepareProvider: true } : true,
       workspaceSymbolProvider: true,
       codeLensProvider: {
         resolveProvider: true
@@ -34,30 +34,30 @@ connection.onInitialize((params) => {
           // Static reg is folders + .txt files with operation kind in the path
           didCreate: {
             filters: [
-              {scheme: 'lsptest', pattern: {glob: '**/*', matches: 'file', options: {}}},
-              {scheme: 'file', pattern: {glob: '**/*', matches: 'file', options: {ignoreCase: false}}}
+              { scheme: 'lsptest', pattern: { glob: '**/*', matches: 'file', options: {} } },
+              { scheme: 'file', pattern: { glob: '**/*', matches: 'file', options: { ignoreCase: false } } }
             ]
           },
           didRename: {
             filters: [
-              {scheme: 'file', pattern: {glob: '**/*', matches: 'folder'}},
-              {scheme: 'file', pattern: {glob: '**/*', matches: 'file'}}
+              { scheme: 'file', pattern: { glob: '**/*', matches: 'folder' } },
+              { scheme: 'file', pattern: { glob: '**/*', matches: 'file' } }
             ]
           },
           didDelete: {
-            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+            filters: [{ scheme: 'file', pattern: { glob: '**/*' } }]
           },
           willCreate: {
-            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+            filters: [{ scheme: 'file', pattern: { glob: '**/*' } }]
           },
           willRename: {
             filters: [
-              {scheme: 'file', pattern: {glob: '**/*', matches: 'folder'}},
-              {scheme: 'file', pattern: {glob: '**/*', matches: 'file'}}
+              { scheme: 'file', pattern: { glob: '**/*', matches: 'folder' } },
+              { scheme: 'file', pattern: { glob: '**/*', matches: 'file' } }
             ]
           },
           willDelete: {
-            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+            filters: [{ scheme: 'file', pattern: { glob: '**/*' } }]
           },
         }
       },
@@ -66,21 +66,21 @@ connection.onInitialize((params) => {
 })
 
 connection.onInitialized(() => {
-  connection.client.register(RenameRequest.type, {
+  void connection.client.register(RenameRequest.type, {
     prepareProvider: options.prepareRename
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(WorkspaceSymbolRequest.type, {
+  void connection.client.register(WorkspaceSymbolRequest.type, {
     resolveProvider: true
   }).then(d => {
     disposables.push(d)
   })
   let full = false
   if (options.delta) {
-    full = {delta: true}
+    full = { delta: true }
   }
-  connection.client.register(SemanticTokensRegistrationType.method, {
+  void connection.client.register(SemanticTokensRegistrationType.method, {
     full,
     range: options.rangeTokens,
     legend: {
@@ -88,21 +88,21 @@ connection.onInitialized(() => {
       tokenModifiers: []
     },
   })
-  connection.client.register(CodeActionRequest.method, {
+  void connection.client.register(CodeActionRequest.method, {
     resolveProvider: false
   })
-  connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
-  connection.client.register(ExecuteCommandRequest.type, {
+  void connection.client.register(DidChangeConfigurationNotification.type, { section: undefined })
+  void connection.client.register(ExecuteCommandRequest.type, {
     commands: ['test_command']
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
-    documentSelector: [{language: 'vim'}]
+  void connection.client.register(CompletionRequest.type, {
+    documentSelector: [{ language: 'vim' }]
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
+  void connection.client.register(CompletionRequest.type, {
     triggerCharacters: ['/'],
   }).then(d => {
     disposables.push(d)
@@ -110,11 +110,11 @@ connection.onInitialized(() => {
 })
 
 let lastFileOperationRequest
-connection.workspace.onDidCreateFiles(params => {lastFileOperationRequest = {type: 'create', params}})
-connection.workspace.onDidRenameFiles(params => {lastFileOperationRequest = {type: 'rename', params}})
-connection.workspace.onDidDeleteFiles(params => {lastFileOperationRequest = {type: 'delete', params}})
-connection.workspace.onWillRenameFiles(params => {lastFileOperationRequest = {type: 'willRename', params}})
-connection.workspace.onWillDeleteFiles(params => {lastFileOperationRequest = {type: 'willDelete', params}})
+connection.workspace.onDidCreateFiles(params => { lastFileOperationRequest = { type: 'create', params } })
+connection.workspace.onDidRenameFiles(params => { lastFileOperationRequest = { type: 'rename', params } })
+connection.workspace.onDidDeleteFiles(params => { lastFileOperationRequest = { type: 'delete', params } })
+connection.workspace.onWillRenameFiles(params => { lastFileOperationRequest = { type: 'willRename', params } })
+connection.workspace.onWillDeleteFiles(params => { lastFileOperationRequest = { type: 'willDelete', params } })
 
 // connection.onDidChangeWorkspaceFolders(e => {
 //   foldersEvent = params
@@ -122,7 +122,7 @@ connection.workspace.onWillDeleteFiles(params => {lastFileOperationRequest = {ty
 
 connection.onCompletion(_params => {
   return [
-    {label: 'item', insertText: 'text'}
+    { label: 'item', insertText: 'text' }
   ]
 })
 
@@ -151,7 +151,7 @@ connection.onDocumentSymbol(() => {
 
 connection.onExecuteCommand(param => {
   if (param.command === 'test_command') {
-    return {success: true}
+    return { success: true }
   }
 })
 
@@ -168,7 +168,7 @@ connection.onRequest('setPrepareResponse', param => {
 
 connection.onNotification('pullConfiguration', () => {
   configuration = connection.sendRequest(ConfigurationRequest.type, {
-    items: [{section: 'foo'}]
+    items: [{ section: 'foo' }]
   })
 })
 
@@ -185,7 +185,7 @@ connection.onRequest('getFoldersEvent', () => {
 })
 
 connection.onNotification('fireInlineValueRefresh', () => {
-  connection.sendRequest(InlineValueRefreshRequest.type)
+  void connection.sendRequest(InlineValueRefreshRequest.type)
 })
 
 connection.onNotification('requestFolders', async () => {
@@ -211,11 +211,11 @@ connection.onWorkspaceSymbolResolve(item => {
 })
 
 connection.onCodeLens(params => {
-  return [{range: Range.create(0, 0, 0, 3)}, {range: Range.create(1, 0, 1, 3)}]
+  return [{ range: Range.create(0, 0, 0, 3) }, { range: Range.create(1, 0, 1, 3) }]
 })
 
 connection.onCodeLensResolve(codelens => {
-  return {range: codelens.range, command: {title: 'format', command: 'format'}}
+  return { range: codelens.range, command: { title: 'format', command: 'format' } }
 })
 
 connection.listen()

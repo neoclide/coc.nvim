@@ -514,7 +514,8 @@ export default class Files {
           let { textDocument, edits } = change
           let { uri } = textDocument
           let doc = await this.loadResource(uri)
-          let revertEdit = await doc.applyEdits(edits, false, uri === currentUri)
+          // TODO: filter SnippetTextEdit for now
+          let revertEdit = await doc.applyEdits(edits.filter(edit => 'newText' in edit), false, uri === currentUri)
           if (revertEdit) {
             let version = doc.version
             let { newText, range } = revertEdit

@@ -1,13 +1,11 @@
 'use strict'
-Object.defineProperty(exports, "__esModule", {value: true})
+Object.defineProperty(exports, "__esModule", { value: true })
 const tslib_1 = require("tslib")
 const assert = tslib_1.__importStar(require("assert"))
-const vscode_languageserver_1 = require("vscode-languageserver")
+const vscode_languageserver_1 = require("vscode-languageserver/node")
 let connection = vscode_languageserver_1.createConnection()
 
-let documents = new vscode_languageserver_1.TextDocuments()
-documents.listen(connection)
-connection.onInitialize((params) => {
+connection.onInitialize(params => {
   assert.equal(params.capabilities.workspace.applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
   assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, [vscode_languageserver_1.ResourceOperationKind.Create, vscode_languageserver_1.ResourceOperationKind.Rename, vscode_languageserver_1.ResourceOperationKind.Delete])
@@ -21,16 +19,16 @@ connection.onInitialize((params) => {
   assert.equal(valueSet[valueSet.length - 1], vscode_languageserver_1.CompletionItemKind.TypeParameter)
   let capabilities = {
     textDocumentSync: 1,
-    completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
+    completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
     hoverProvider: true,
     renameProvider: {
       prepareProvider: true
     }
   }
-  return {capabilities, customResults: {"hello": "world"}}
+  return { capabilities, customResults: { hello: "world" } }
 })
 connection.onInitialized(() => {
-  connection.sendDiagnostics({uri: "uri:/test.ts", diagnostics: []})
+  void connection.sendDiagnostics({ uri: "uri:/test.ts", diagnostics: [] })
 })
 // Listen on the connection
 connection.listen()
