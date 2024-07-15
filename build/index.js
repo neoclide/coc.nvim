@@ -35335,6 +35335,10 @@ function ansiparse(str) {
   }
   return result;
 }
+function stripAnsiColoring(str) {
+  const ansiColorCodeRegex = /\u001b\[[0-9;]*m/g;
+  return str.replace(ansiColorCodeRegex, "");
+}
 var foregroundColors, backgroundColors, styles2;
 var init_ansiparse = __esm({
   "src/util/ansiparse.ts"() {
@@ -40018,7 +40022,13 @@ var init_schema = __esm({
         },
         "workspace.ignoredFolders": {
           type: "array",
-          default: ["$HOME"],
+          default: [
+            "$HOME",
+            "$HOME/.cargo/**",
+            "$HOME/.rustup/**",
+            "$HOME/pkg/mod/**",
+            "$HOMEBREW_PREFIX/**"
+          ],
           scope: "application",
           description: "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
           items: {
@@ -52092,6 +52102,7 @@ var init_buffer = __esm({
     init_window();
     init_workspace();
     init_util4();
+    init_ansiparse();
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
     hlGroups = ["CocErrorHighlight", "CocWarningHighlight", "CocInfoHighlight", "CocHintHighlight", "CocDeprecatedHighlight", "CocUnusedHighlight"];
@@ -52524,10 +52535,11 @@ var init_buffer = __esm({
           let highlight = getNameFromSeverity(diagnostic.severity) + "VirtualText";
           let msg = diagnostic.message.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0).slice(0, this._config.virtualTextLines).join(this._config.virtualTextLineSeparator);
           let arr = map.get(line) ?? [];
-          arr.unshift([virtualTextPrefix + formatDiagnostic(this._config.virtualTextFormat, {
+          const formattedDiagnostic = formatDiagnostic(this._config.virtualTextFormat, {
             ...diagnostic,
             message: msg
-          }), highlight]);
+          });
+          arr.unshift([virtualTextPrefix + stripAnsiColoring(formattedDiagnostic), highlight]);
           map.set(line, arr);
         }
         for (let [line, blocks] of map.entries()) {
@@ -85136,7 +85148,11 @@ var init_buffer4 = __esm({
           if (this.config.position == "eol" /* Eol */) {
             col = 0;
           }
-          buffer.setVirtualText(srcId2, position.line, chunks, { col, hl_mode: "replace" });
+          let opts = { col, hl_mode: "replace" };
+          if (!nvim.isVim && item.kind == InlayHintKind.Parameter) {
+            opts.right_gravity = false;
+          }
+          buffer.setVirtualText(srcId2, position.line, chunks, opts);
         }
         nvim.resumeNotification(true, true);
         this._onDidRefresh.fire();
@@ -89072,7 +89088,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-56632971 2024-07-04 19:25:14 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-33d0a523 2024-07-12 09:31:17 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
