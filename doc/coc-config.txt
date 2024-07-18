@@ -371,6 +371,12 @@ Diagnostic~
 
 	Scope: `application`, default: `"⚠"`
 
+"diagnostic.showRelatedInformation"				*coc-config-diagnostic-showRelatedInformation*
+
+	Show related information in diagnostics.
+
+	Scope: `language-overridable`, default: `true`
+
 ------------------------------------------------------------------------------
 Dialog~
 							*coc-config-dialog*

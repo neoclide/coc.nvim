@@ -1139,6 +1139,12 @@
       "description": "Text of warning sign",
       "default": "⚠"
     },
+    "diagnostic.showRelatedInformation": {
+      "type": "boolean",
+      "default": true,
+      "scope": "language-overridable",
+      "description": "Show related information in diagnostics."
+    },
     "dialog.confirmKey": {
       "type": "string",
       "default": "<cr>",

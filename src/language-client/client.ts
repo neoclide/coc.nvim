@@ -1582,17 +1582,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       entries.set(uri, diagnostics)
       for (const diagnostic of diagnostics) {
         if (diagnostic.relatedInformation?.length) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
           for (const info of diagnostic.relatedInformation) {
-            const basename = path.basename(URI.parse(info.location.uri).fsPath)
-            const ln = info.location.range.start.line
-            message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`
-
             const diags: Diagnostic[] = entries.get(info.location.uri) || []
             diags.push(Diagnostic.create(info.location.range, info.message, DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source))
             entries.set(info.location.uri, diags)
           }
-          diagnostic.message = message
         }
         this._diagnostics.set(Array.from(entries))
       }

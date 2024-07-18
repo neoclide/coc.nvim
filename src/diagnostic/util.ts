@@ -61,6 +61,7 @@ export interface DiagnosticConfig {
   showDeprecated: boolean
   format: string
   floatConfig: FloatConfig
+  showRelatedInformation: boolean
 }
 
 export function formatDiagnostic(format: string, diagnostic: Diagnostic): string {
