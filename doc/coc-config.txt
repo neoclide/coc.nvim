@@ -367,7 +367,7 @@ Diagnostic~
 
 "diagnostic.showRelatedInformation"				*coc-config-diagnostic-showRelatedInformation*
 
-	Show related information in diagnostics.
+	Display related information in the diagnostic floating window.
 
 	Scope: `language-overridable`, default: `true`
 

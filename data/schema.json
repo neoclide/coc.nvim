@@ -1137,7 +1137,7 @@
       "type": "boolean",
       "default": true,
       "scope": "language-overridable",
-      "description": "Show related information in diagnostics."
+      "description": "Display related information in the diagnostic floating window."
     },
     "dialog.confirmKey": {
       "type": "string",

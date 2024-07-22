@@ -356,26 +356,24 @@ export class DiagnosticBuffer implements SyncItem {
         filetype = ft
       }
       let msg = diagnostic.message
-      let links = diagnostic.codeDescription?.href ?? ''
+      let link = diagnostic.codeDescription?.href ?? ''
       if (config.showRelatedInformation && diagnostic.relatedInformation?.length) {
-        msg = `${diagnostic.message}\n\nRelated diagnostics:\n`
+        msg = `${diagnostic.message}\n\nRelated information:\n`
         for (const info of diagnostic.relatedInformation) {
             const fsPath = URI.parse(info.location.uri).fsPath
             const basename = path.basename(fsPath)
             const line = info.location.range.start.line + 1
             const column = info.location.range.start.character + 1
             msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
-            links = `${links}\n${basename}#${line},${column}: ${fsPath}`
         }
         msg = msg + "\n\n"
-        links = links.trim()
       }
       docs.push({ filetype, content: formatDiagnostic(config.format, {
         ...diagnostic,
         message: msg
       }) })
-      if (links.length) {
-        docs.push({ filetype: 'txt', content: links })
+      if (link) {
+        docs.push({ filetype: 'txt', content: link })
       }
     })
     await floatFactory.show(docs, this.config.floatConfig)
