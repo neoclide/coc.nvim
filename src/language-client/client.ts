@@ -1568,7 +1568,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
     if (!this._diagnostics) return
 
-    // TODO make is async
     this._diagnostics.set(uri, diagnostics)
   }
 
