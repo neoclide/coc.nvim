@@ -431,9 +431,7 @@ class DiagnosticManager implements Disposable {
   }
 
   public async jumpRelated(): Promise<void> {
-    let diagnostics = await this.getCurrentDiagnostics()
-    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
-    let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
+    let locations = await this.relatedInformation()
     if (locations.length == 1) {
       await workspace.jumpTo(locations[0].uri, locations[0].range.start)
     } else if (locations.length > 1) {
@@ -441,6 +439,13 @@ class DiagnosticManager implements Disposable {
     } else {
       void window.showWarningMessage('No related information found.')
     }
+  }
+
+  public async relatedInformation(): Promise<Location[]> {
+    let diagnostics = await this.getCurrentDiagnostics()
+    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
+    let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
+    return locations
   }
 
   public reset(): void {
