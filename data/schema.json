@@ -1039,12 +1039,6 @@
       "description": "Enable diagnostic refresh on insert mode, default false.",
       "default": false
     },
-    "diagnostic.separateRelatedInformationAsDiagnostics": {
-      "type": "boolean",
-      "default": false,
-      "scope": "application",
-      "description": "Separate related information as diagnostics."
-    },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,

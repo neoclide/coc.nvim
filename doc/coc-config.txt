@@ -272,12 +272,6 @@ Diagnostic~
 
 	Scope: `language-overridable`, default: `false`
 
-"diagnostic.separateRelatedInformationAsDiagnostics"	*coc-config-diagnostic-separateRelatedInformationAsDiagnostics*
-
-	Separate related information as diagnostics.
-
-	Scope: `application`, default: `false`
-
 "diagnostic.showDeprecated"				*coc-config-diagnostic-showDeprecated*
 
 	Show diagnostics with deprecated tag.
