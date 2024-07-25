@@ -485,6 +485,7 @@ export default class ListUI {
     this.onLineChange(index)
     this.window?.setCursor([lnum, col], true)
     this.nvim.call('coc#list#select', [this.bufnr, lnum], true)
+    this.nvim.call('coc#util#do_autocmd', ['CocListMoved'], true)
   }
 
   public async setIndex(index: number): Promise<void> {
