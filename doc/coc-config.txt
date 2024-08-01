@@ -272,12 +272,6 @@ Diagnostic~
 
 	Scope: `language-overridable`, default: `false`
 
-"diagnostic.separateRelatedInformationAsDiagnostics"	*coc-config-diagnostic-separateRelatedInformationAsDiagnostics*
-
-	Separate related information as diagnostics.
-
-	Scope: `application`, default: `false`
-
 "diagnostic.showDeprecated"				*coc-config-diagnostic-showDeprecated*
 
 	Show diagnostics with deprecated tag.
@@ -370,6 +364,12 @@ Diagnostic~
 	Text of warning sign.
 
 	Scope: `application`, default: `"⚠"`
+
+"diagnostic.showRelatedInformation"				*coc-config-diagnostic-showRelatedInformation*
+
+	Display related information in the diagnostic floating window.
+
+	Scope: `language-overridable`, default: `true`
 
 ------------------------------------------------------------------------------
 Dialog~
