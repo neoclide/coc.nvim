@@ -67661,7 +67661,6 @@ var init_ui2 = __esm({
         this.onLineChange(index);
         this.window?.setCursor([lnum, col], true);
         this.nvim.call("coc#list#select", [this.bufnr, lnum], true);
-        this.nvim.call("coc#util#do_autocmd", ["CocListMoved"], true);
       }
       async setIndex(index) {
         if (index < 0 || index >= this.items.length) return;
@@ -76293,7 +76292,6 @@ var init_manager3 = __esm({
       }
       triggerCursorMoved() {
         if (this.nvim.isVim) this.nvim.command("doautocmd <nomodeline> CursorMoved", true);
-        this.nvim.call("coc#util#do_autocmd", ["CocListMoved"], true);
       }
       async call(fname) {
         if (this.session) return await this.session.call(fname);
@@ -89125,7 +89123,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-39cd270f 2024-07-25 13:17:01 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-c5ffbb3c 2024-08-01 17:40:42 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
