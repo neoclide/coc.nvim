@@ -406,7 +406,6 @@ export class ListManager implements Disposable {
 
   public triggerCursorMoved(): void {
     if (this.nvim.isVim) this.nvim.command('doautocmd <nomodeline> CursorMoved', true)
-    this.nvim.call('coc#util#do_autocmd', ['CocListMoved'], true)
   }
 
   public async call(fname: string): Promise<any> {
