@@ -244,13 +244,13 @@ class Languages {
     return this.workspaceSymbolsManager.register(provider)
   }
 
-  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0): Disposable {
-    const extensionName = parseExtensionName(Error().stack)
+  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    extensionName = extensionName ?? parseExtensionName(Error().stack)
     return this.formatManager.register(extensionName, selector, provider, priority)
   }
 
-  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0): Disposable {
-    const extensionName = parseExtensionName(Error().stack)
+  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    extensionName = extensionName ?? parseExtensionName(Error().stack)
     return this.formatRangeManager.register(extensionName, selector, provider, priority)
   }
 
