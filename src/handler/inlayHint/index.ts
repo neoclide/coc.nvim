@@ -58,7 +58,7 @@ export default class InlayHintHandler {
       execute: (bufnr?: number) => {
         return this.toggle(bufnr ?? workspace.bufnr)
       },
-    }, false, 'toggle codeLens display of current buffer')
+    }, false, 'toggle inlayHint display of current buffer')
     handler.addDisposable(Disposable.create(() => {
       disposeAll(this.disposables)
     }))
