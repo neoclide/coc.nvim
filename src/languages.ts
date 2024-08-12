@@ -248,14 +248,18 @@ class Languages {
   // within coc.nvim. It does not meant to be explicitly specified by extension authors.
   public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
     // To select formatter by extension name, we need to know who registered the formatting provider. This is possible
-    // by using parseExtensionName(). However, when the formatting provider is registered through the language client,
-    // parseExtensionName() returns "coc.nvim". But in this case the original extension name extension name shoould be
-    // passed as the `extensionName` parameter.
+    // by using parseExtensionName() when the extension explicitly called registerDocumentFormatProvider() within its
+    // activation code. However, when the formatting provider is registered through the language client,
+    // parseExtensionName() returns just "coc.nvim". But in this case the original extension name extension name should
+    // be passed as the `extensionName` parameter.
     extensionName = extensionName ?? parseExtensionName(Error().stack)
     return this.formatManager.register(extensionName, selector, provider, priority)
   }
 
+  // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
+  // within coc.nvim. It does not meant to be explicitly specified by extension authors.
   public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    // See registerDocumentFormatProvider() for the explanation of the `extensionName` parameter.
     extensionName = extensionName ?? parseExtensionName(Error().stack)
     return this.formatRangeManager.register(extensionName, selector, provider, priority)
   }

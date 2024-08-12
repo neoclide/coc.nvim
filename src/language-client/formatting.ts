@@ -177,7 +177,11 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
       }
     }
 
-    return [languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined, this._client.registeredExtensionName), provider]
+    return [
+      // We need to pass the originaly registered extension name to keep track of it.
+      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined, this._client.registeredExtensionName),
+      provider
+    ]
   }
 }
 
