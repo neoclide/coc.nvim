@@ -121,6 +121,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
     }
 
     return [
+      // We need to pass the originaly registered extension name to keep track of it.
       languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority, this._client.registeredExtensionName),
       provider
     ]

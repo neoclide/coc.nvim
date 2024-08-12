@@ -244,7 +244,13 @@ class Languages {
     return this.workspaceSymbolsManager.register(provider)
   }
 
+  // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
+  // within coc.nvim. It does not meant to be explicitly specified by extension authors.
   public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    // To select formatter by extension name, we need to know who registered the formatting provider. This is possible
+    // by using parseExtensionName(). However, when the formatting provider is registered through the language client,
+    // parseExtensionName() returns "coc.nvim". But in this case the original extension name extension name shoould be
+    // passed as the `extensionName` parameter.
     extensionName = extensionName ?? parseExtensionName(Error().stack)
     return this.formatManager.register(extensionName, selector, provider, priority)
   }
