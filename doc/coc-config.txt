@@ -1624,6 +1624,12 @@ Preferences~
 
 	Scope: `language-overridable`, default: `false`
 
+"coc.preferences.formatterExtension"			*coc-preferences-formatterExtension*
+
+	Extension used for formatting documents. When set to null, the formatter with highest priority is used.
+
+	Scope: `language-overridable`, default: `null`
+
 "coc.preferences.jumpCommand"				*coc-preferences-jumpCommand*
 
 	Command used for location jump, like goto definition, goto references 
