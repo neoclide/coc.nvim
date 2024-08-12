@@ -1,3 +1,7 @@
+# 2024-08-12
+
+- Added `coc.preferences.formatterExtension` configuration
+
 # 2024-07-04
 
 - Added `NVIM_APPNAME` support

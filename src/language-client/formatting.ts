@@ -6,7 +6,7 @@ import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, On
 import {
   DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
 } from '../util/protocol'
-import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
+import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
@@ -121,7 +121,8 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
     }
 
     return [
-      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority),
+      // We need to pass the originaly registered extension name to keep track of it.
+      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority, this._client.registeredExtensionName),
       provider
     ]
   }
@@ -176,7 +177,11 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
       }
     }
 
-    return [languages.registerDocumentRangeFormatProvider(options.documentSelector, provider), provider]
+    return [
+      // We need to pass the originaly registered extension name to keep track of it.
+      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined, this._client.registeredExtensionName),
+      provider
+    ]
   }
 }
 

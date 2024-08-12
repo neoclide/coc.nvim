@@ -263,6 +263,8 @@ export namespace MessageTransports {
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
+  public registeredExtensionName: string
+
   private _id: string
   private _name: string
   private _clientOptions: ResolvedClientOptions

@@ -630,6 +630,12 @@
         "type": "string"
       }
     },
+    "coc.preferences.formatterExtension": {
+      "type": ["null", "string"],
+      "default": null,
+      "scope": "language-overridable",
+      "description": "Extension used for formatting documents. When set to null, the formatter with highest priority is used."
+    },
     "coc.preferences.jumpCommand": {
       "anyOf": [
         {
