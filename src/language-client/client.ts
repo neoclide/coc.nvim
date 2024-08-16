@@ -174,7 +174,6 @@ export type LanguageClientOptions = {
   rootPatterns?: string[]
   requireRootPattern?: boolean
   documentSelector?: DocumentSelector
-  separateDiagnostics?: boolean
   disableMarkdown?: boolean
   disableWorkspaceFolders?: boolean
   disableDiagnostics?: boolean
@@ -206,7 +205,6 @@ type ResolvedClientOptions = {
   disabledFeatures: string[]
   disableMarkdown: boolean
   disableDynamicRegister: boolean
-  separateDiagnostics: boolean
   rootPatterns?: string[]
   requireRootPattern?: boolean
   documentSelector: DocumentSelector
@@ -265,6 +263,8 @@ export namespace MessageTransports {
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
+  public registeredExtensionName: string
+
   private _id: string
   private _name: string
   private _clientOptions: ResolvedClientOptions
@@ -382,15 +382,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       }
     }
-    let separateDiagnostics = clientOptions.separateDiagnostics
-    if (clientOptions.separateDiagnostics === undefined) {
-      separateDiagnostics = workspace.getConfiguration('diagnostic', clientOptions.workspaceFolder).get('separateRelatedInformationAsDiagnostics') as boolean
-    }
     return {
       disabledFeatures,
       disableMarkdown,
       disableSnippetCompletion,
-      separateDiagnostics,
       diagnosticPullOptions: pullOption,
       rootPatterns: clientOptions.rootPatterns ?? [],
       requireRootPattern: clientOptions.requireRootPattern,
@@ -1575,30 +1570,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
     if (!this._diagnostics) return
 
-    const separate = this.clientOptions.separateDiagnostics
-    // TODO make is async
-    if (separate && diagnostics.length > 0) {
-      const entries: Map<string, Diagnostic[]> = new Map()
-      entries.set(uri, diagnostics)
-      for (const diagnostic of diagnostics) {
-        if (diagnostic.relatedInformation?.length) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
-          for (const info of diagnostic.relatedInformation) {
-            const basename = path.basename(URI.parse(info.location.uri).fsPath)
-            const ln = info.location.range.start.line
-            message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`
-
-            const diags: Diagnostic[] = entries.get(info.location.uri) || []
-            diags.push(Diagnostic.create(info.location.range, info.message, DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source))
-            entries.set(info.location.uri, diags)
-          }
-          diagnostic.message = message
-        }
-        this._diagnostics.set(Array.from(entries))
-      }
-    } else {
-      this._diagnostics.set(uri, diagnostics)
-    }
+    this._diagnostics.set(uri, diagnostics)
   }
 
   private handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {

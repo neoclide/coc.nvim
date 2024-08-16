@@ -14,6 +14,7 @@ import { toObject } from './util/object'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import window from './window'
 import workspace from './workspace'
+import { parseExtensionName } from './util/extensionRegistry'
 const logger = createLogger('services')
 
 export enum ServiceStat {
@@ -277,12 +278,15 @@ class ServiceManager implements Disposable {
   public registerLanguageClient(client: LanguageClient): Disposable
   public registerLanguageClient(name: string, config: LanguageServerConfig, folder?: URI): Disposable
   public registerLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig, folder?: URI): Disposable {
+    const registeredExtensionName = parseExtensionName(Error().stack)
+
     let id = typeof name === 'string' ? `languageserver.${name}` : name.id
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
     let client: LanguageClient | null = typeof name === 'string' ? null : name
     if (this.registered.has(id)) return Disposable.create(() => {})
     if (client && typeof client.dispose === 'function') disposables.push(client)
+    if (client) client.registeredExtensionName = registeredExtensionName
     let created = false
     let service: IServiceProvider = {
       id,
@@ -298,6 +302,7 @@ class ServiceManager implements Disposable {
             let opts = getLanguageServerOptions(id, name, config, folder)
             if (!opts || config.enable === false) return
             client = new LanguageClient(id, name, opts[1], opts[0])
+            client.registeredExtensionName = registeredExtensionName
             service.selector = opts[0].documentSelector
             service.client = client
             disposables.push(client)

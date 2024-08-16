@@ -1,7 +1,7 @@
 'use strict'
 import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-types'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, TextEdit, TypeHierarchyItem, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-types'
 import type { Sources } from './completion/sources'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
@@ -35,6 +35,7 @@ import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/ty
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
+import { parseExtensionName } from './util/extensionRegistry'
 import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import { toText } from './util/string'
@@ -243,12 +244,24 @@ class Languages {
     return this.workspaceSymbolsManager.register(provider)
   }
 
-  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0): Disposable {
-    return this.formatManager.register(selector, provider, priority)
+  // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
+  // within coc.nvim. It does not meant to be explicitly specified by extension authors.
+  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    // To select formatter by extension name, we need to know who registered the formatting provider. This is possible
+    // by using parseExtensionName() when the extension explicitly called registerDocumentFormatProvider() within its
+    // activation code. However, when the formatting provider is registered through the language client,
+    // parseExtensionName() returns just "coc.nvim". But in this case the original extension name extension name should
+    // be passed as the `extensionName` parameter.
+    extensionName = extensionName ?? parseExtensionName(Error().stack)
+    return this.formatManager.register(extensionName, selector, provider, priority)
   }
 
-  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0): Disposable {
-    return this.formatRangeManager.register(selector, provider, priority)
+  // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
+  // within coc.nvim. It does not meant to be explicitly specified by extension authors.
+  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0, extensionName?: string): Disposable {
+    // See registerDocumentFormatProvider() for the explanation of the `extensionName` parameter.
+    extensionName = extensionName ?? parseExtensionName(Error().stack)
+    return this.formatRangeManager.register(extensionName, selector, provider, priority)
   }
 
   public registerCallHierarchyProvider(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {

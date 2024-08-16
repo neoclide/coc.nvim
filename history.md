@@ -1,3 +1,19 @@
+# 2024-08-12
+
+- Added `coc.preferences.formatterExtension` configuration
+
+# 2024-07-04
+
+- Added `NVIM_APPNAME` support
+
+# 2024-06-27
+
+- Added `inlayHint.position` configuration, with `inline` and `eol` options
+
+# 2024-06-20
+
+- Added `coc.preferences.extensionUpdateUIInTab` to open `CocUpdate` UI in tab
+
 # 2024-05-29
 
 - Break change: increase minimum vim/nvim version requirement

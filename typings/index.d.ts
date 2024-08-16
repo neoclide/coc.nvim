@@ -3812,8 +3812,17 @@ declare module 'coc.nvim' {
   export interface NvimFloatOptions {
     standalone?: boolean
     focusable?: boolean
-    relative?: 'editor' | 'cursor' | 'win'
+    relative?: 'editor' | 'cursor' | 'win' | 'mouse'
     anchor?: 'NW' | 'NE' | 'SW' | 'SE'
+    border?: 'none' | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | string[]
+    style?: 'minimal'
+    title?: string
+    title_pos?: 'left' | 'center' | 'right'
+    footer?: string | [string, string][]
+    footer_pos?: 'left' | 'center' | 'right'
+    noautocmd?: boolean
+    fixed?: boolean
+    hide?: boolean
     height: number
     width: number
     row: number

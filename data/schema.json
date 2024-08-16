@@ -578,6 +578,12 @@
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
     },
+    "coc.preferences.extensionUpdateUIInTab": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "description": "Display extension updating UI in vim tab"
+    },
     "coc.preferences.floatActions": {
       "type": "boolean",
       "scope": "application",
@@ -623,6 +629,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "coc.preferences.formatterExtension": {
+      "type": ["null", "string"],
+      "default": null,
+      "scope": "language-overridable",
+      "description": "Extension used for formatting documents. When set to null, the formatter with highest priority is used."
     },
     "coc.preferences.jumpCommand": {
       "anyOf": [
@@ -1033,12 +1045,6 @@
       "description": "Enable diagnostic refresh on insert mode, default false.",
       "default": false
     },
-    "diagnostic.separateRelatedInformationAsDiagnostics": {
-      "type": "boolean",
-      "default": false,
-      "scope": "application",
-      "description": "Separate related information as diagnostics."
-    },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,
@@ -1132,6 +1138,12 @@
       "scope": "application",
       "description": "Text of warning sign",
       "default": "⚠"
+    },
+    "diagnostic.showRelatedInformation": {
+      "type": "boolean",
+      "default": true,
+      "scope": "language-overridable",
+      "description": "Display related information in the diagnostic floating window."
     },
     "dialog.confirmKey": {
       "type": "string",
@@ -1296,6 +1308,13 @@
       "default": true,
       "scope": "language-overridable",
       "description": "Enable inlay hint support"
+    },
+    "inlayHint.position": {
+      "type": "string",
+      "default": "inline",
+      "scope": "language-overridable",
+      "description": "Controls where to show inlay hints: inline in the text, or at the end of the line",
+      "enum": ["inline", "eol"]
     },
     "inlayHint.enableParameter": {
       "type": "boolean",
@@ -2305,7 +2324,13 @@
     },
     "workspace.ignoredFolders": {
       "type": "array",
-      "default": ["$HOME"],
+      "default": [
+        "$HOME",
+        "$HOME/.cargo/**",
+        "$HOME/.rustup/**",
+        "$HOME/pkg/mod/**",
+        "$HOMEBREW_PREFIX/**"
+      ],
       "scope": "application",
       "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
       "items": {

@@ -598,51 +598,6 @@ describe('Client integration', () => {
     expect(fn).toBeCalled()
   })
 
-  it('should separate diagnostics', async () => {
-    async function startServer(disable?: boolean, handleDiagnostics?: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void): Promise<lsclient.LanguageClient> {
-      let clientOptions: lsclient.LanguageClientOptions = {
-        disableDiagnostics: disable,
-        separateDiagnostics: true,
-        initializationOptions: {},
-        middleware: {
-          handleDiagnostics
-        }
-      }
-      let serverModule = path.join(__dirname, './server/eventServer.js')
-      let serverOptions: lsclient.ServerOptions = {
-        module: serverModule,
-        transport: lsclient.TransportKind.stdio,
-      }
-      let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-      await client.start()
-      return client
-    }
-    let client = await startServer()
-    await client.sendNotification('diagnostics')
-    await helper.waitValue(() => {
-      let collection = client.diagnostics
-      let res = collection.get('lsptest:/2')
-      return res.length
-    }, 2)
-    await client.stop()
-    client = await startServer(true)
-    await client.sendNotification('diagnostics')
-    await helper.wait(50)
-    let collection = client.diagnostics
-    expect(collection).toBeUndefined()
-    await client.stop()
-    let called = false
-    client = await startServer(false, (uri, diagnostics, next) => {
-      called = true
-      next(uri, diagnostics)
-    })
-    await client.sendNotification('diagnostics')
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    await client.stop()
-  })
-
   it('should check version on apply workspaceEdit', async () => {
     let uri = URI.file(__filename)
     await workspace.loadFile(uri.toString())

@@ -272,12 +272,6 @@ Diagnostic~
 
 	Scope: `language-overridable`, default: `false`
 
-"diagnostic.separateRelatedInformationAsDiagnostics"	*coc-config-diagnostic-separateRelatedInformationAsDiagnostics*
-
-	Separate related information as diagnostics.
-
-	Scope: `application`, default: `false`
-
 "diagnostic.showDeprecated"				*coc-config-diagnostic-showDeprecated*
 
 	Show diagnostics with deprecated tag.
@@ -370,6 +364,12 @@ Diagnostic~
 	Text of warning sign.
 
 	Scope: `application`, default: `"⚠"`
+
+"diagnostic.showRelatedInformation"				*coc-config-diagnostic-showRelatedInformation*
+
+	Display related information in the diagnostic floating window.
+
+	Scope: `language-overridable`, default: `true`
 
 ------------------------------------------------------------------------------
 Dialog~
@@ -551,6 +551,12 @@ InlayHint~
 	Refresh inlayHints on insert mode.
 
 	Scope: `language-overridable`, default: `false`
+
+"inlayHint.position"					*coc-config-inlayHint-position*
+
+	Controls the position of inlay hint, supports `inline` and `eol`.
+
+	Scope: `language-overridable`, default: `inline`
 
 ------------------------------------------------------------------------------
 Links~
@@ -814,6 +820,12 @@ Outline~
 "outline.autoPreview"					*coc-config-outline-autoPreview*
 
 	Enable auto preview on cursor move.
+
+	Scope: `application`, default: `false`
+
+"outline.autoHide"					*coc-config-outline-autoHide*
+
+	Automatically hide the outline window when an item is clicked.
 
 	Scope: `application`, default: `false`
 
@@ -1314,6 +1326,12 @@ Suggest~
 
 	Scope: `language-overridable`, default: `false`
 
+"suggest.reTriggerAfterIndent"				*coc-config-suggest-reTriggerAfterIndent*
+
+	Controls re-trigger or not after indent changes.
+
+	Scope: `application`, default: `true`
+
 "suggest.reversePumAboveCursor"				*coc-config-suggest-reversePumAboveCursor*
 
 	Reverse order of complete items when pum shown above cursor.
@@ -1576,6 +1594,12 @@ Preferences~
 
 	Scope: `application`, default: `"never"`
 
+"coc.preferences.extensionUpdateUIInTab"			*coc-preferences-extensionUpdateUIInTab*
+
+	Open `CocUpdate` UI in tab
+
+	Scope: `application`, default: `false`
+
 "coc.preferences.floatActions"				*coc-preferences-floatActions*
 
 	Set to false to disable float/popup support for actions menu.
@@ -1599,6 +1623,12 @@ Preferences~
 	Set to true to enable formatting on typing
 
 	Scope: `language-overridable`, default: `false`
+
+"coc.preferences.formatterExtension"			*coc-preferences-formatterExtension*
+
+	Extension used for formatting documents. When set to null, the formatter with highest priority is used.
+
+	Scope: `language-overridable`, default: `null`
 
 "coc.preferences.jumpCommand"				*coc-preferences-jumpCommand*
 

@@ -513,13 +513,14 @@ function! coc#util#get_config_home()
     return resolve($VIMCONFIG)
   endif
   if has('nvim')
+    let appname = empty($NVIM_APPNAME) ? 'nvim' : $NVIM_APPNAME
     if exists('$XDG_CONFIG_HOME')
-      return resolve($XDG_CONFIG_HOME."/nvim")
+      return resolve($XDG_CONFIG_HOME."/".appname)
     endif
     if s:is_win
-      return resolve($HOME.'/AppData/Local/nvim')
+      return resolve($HOME.'/AppData/Local/'.appname)
     endif
-    return resolve($HOME.'/.config/nvim')
+    return resolve($HOME.'/.config/'.appname)
   else
     if s:is_win
       return resolve($HOME."/vimfiles")

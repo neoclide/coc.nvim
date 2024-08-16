@@ -599,6 +599,7 @@ import { DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeatureShape, Di
 import { WorkspaceProviderFeature } from './workspaceSymbol'
 
 export interface FeatureClient<M, CO = object> {
+  registeredExtensionName: string
   clientOptions: CO
   middleware: M
   readonly id: string

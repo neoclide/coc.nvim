@@ -104,6 +104,7 @@ export default class Plugin {
     this.addAction('diagnosticPrevious', severity => diagnosticManager.jumpPrevious(severity))
     this.addAction('diagnosticPreview', () => diagnosticManager.preview())
     this.addAction('diagnosticList', () => diagnosticManager.getDiagnosticList())
+    this.addAction('diagnosticRelatedInformation', () => diagnosticManager.relatedInformation())
     this.addAction('findLocations', (id, method, params, openCommand) => this.handler.locations.findLocations(id, method, params, openCommand))
     this.addAction('getTagList', () => this.handler.locations.getTagList())
     this.addAction('definitions', () => this.handler.locations.definitions())

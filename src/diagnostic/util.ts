@@ -61,6 +61,7 @@ export interface DiagnosticConfig {
   showDeprecated: boolean
   format: string
   floatConfig: FloatConfig
+  showRelatedInformation: boolean
 }
 
 export function formatDiagnostic(format: string, diagnostic: Diagnostic): string {
@@ -158,24 +159,31 @@ export function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
   return a.source > b.source ? 1 : -1
 }
 
-export function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
+export function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight[] {
+  let hlGroups: DiagnosticHighlight[] = []
   let tags = diagnostic.tags || []
   if (tags.includes(DiagnosticTag.Deprecated)) {
-    return DiagnosticHighlight.Deprecated
+    hlGroups.push(DiagnosticHighlight.Deprecated)
   }
   if (tags.includes(DiagnosticTag.Unnecessary)) {
-    return DiagnosticHighlight.Unused
+    hlGroups.push(DiagnosticHighlight.Unused)
   }
   switch (diagnostic.severity) {
-    case DiagnosticSeverity.Warning:
-      return DiagnosticHighlight.Warning
-    case DiagnosticSeverity.Information:
-      return DiagnosticHighlight.Information
     case DiagnosticSeverity.Hint:
-      return DiagnosticHighlight.Hint
-    default:
-      return DiagnosticHighlight.Error
+      hlGroups.push(DiagnosticHighlight.Hint)
+      break
+    case DiagnosticSeverity.Information:
+      hlGroups.push(DiagnosticHighlight.Information)
+      break
+    case DiagnosticSeverity.Warning:
+      hlGroups.push(DiagnosticHighlight.Warning)
+      break
+    case DiagnosticSeverity.Error:
+      hlGroups.push(DiagnosticHighlight.Error)
+      break
   }
+
+  return hlGroups
 }
 
 export function adjustDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, edit: TextEdit): ReadonlyArray<Diagnostic> {

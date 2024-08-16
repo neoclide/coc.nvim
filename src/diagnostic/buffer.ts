@@ -1,6 +1,7 @@
 'use strict'
 import type { Buffer, Neovim, VirtualTextOption } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
@@ -10,8 +11,10 @@ import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
 import { Emitter, Event } from '../util/protocol'
 import window from '../window'
+import { path } from '../util/node'
 import workspace from '../workspace'
 import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
+import { stripAnsiColoring } from '../util/ansiparse'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -123,6 +126,7 @@ export class DiagnosticBuffer implements SyncItem {
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
+      showRelatedInformation: config.get<boolean>('showRelatedInformation', true),
     }
     if (this._config.virtualText && !virtualTextSrcId) {
       void this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
@@ -351,9 +355,25 @@ export class DiagnosticBuffer implements SyncItem {
       } else {
         filetype = ft
       }
-      docs.push({ filetype, content: formatDiagnostic(config.format, diagnostic) })
-      if (diagnostic.codeDescription?.href) {
-        docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
+      let msg = diagnostic.message
+      let link = diagnostic.codeDescription?.href ?? ''
+      if (config.showRelatedInformation && diagnostic.relatedInformation?.length) {
+        msg = `${diagnostic.message}\n\nRelated information:\n`
+        for (const info of diagnostic.relatedInformation) {
+            const fsPath = URI.parse(info.location.uri).fsPath
+            const basename = path.basename(fsPath)
+            const line = info.location.range.start.line + 1
+            const column = info.location.range.start.character + 1
+            msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
+        }
+        msg = msg + "\n\n"
+      }
+      docs.push({ filetype, content: formatDiagnostic(config.format, {
+        ...diagnostic,
+        message: msg
+      }) })
+      if (link) {
+        docs.push({ filetype: 'txt', content: link })
       }
     })
     await floatFactory.show(docs, this.config.floatConfig)
@@ -515,10 +535,11 @@ export class DiagnosticBuffer implements SyncItem {
         .slice(0, this._config.virtualTextLines)
         .join(this._config.virtualTextLineSeparator)
       let arr = map.get(line) ?? []
-      arr.unshift([virtualTextPrefix + formatDiagnostic(this._config.virtualTextFormat, {
+      const formattedDiagnostic = formatDiagnostic(this._config.virtualTextFormat, {
         ...diagnostic,
         message: msg
-      }), highlight])
+      })
+      arr.unshift([virtualTextPrefix + stripAnsiColoring(formattedDiagnostic), highlight])
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {
@@ -559,8 +580,10 @@ export class DiagnosticBuffer implements SyncItem {
     let res: HighlightItem[] = []
     for (let i = 0; i < Math.min(this._config.highlightLimit, diagnostics.length); i++) {
       let diagnostic = diagnostics[i]
-      let hlGroup = getHighlightGroup(diagnostic)
-      this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      let hlGroups = getHighlightGroup(diagnostic)
+      for (const hlGroup of hlGroups) {
+        this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      }
     }
     // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
