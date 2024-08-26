@@ -525,7 +525,13 @@ function! coc#util#get_config_home()
     if s:is_win
       return resolve($HOME."/vimfiles")
     endif
-    return resolve($HOME.'/.vim')
+    if isdirectory(resolve($HOME.'/.vim'))
+      return resolve($HOME.'/.vim')
+    endif
+    if exists('$XDG_CONFIG_HOME') && isdirectory(resolve($XDG_CONFIG_HOME))
+      return resolve($XDG_CONFIG_HOME.'/vim')
+    endif
+    return resolve($HOME.'/.config/vim')
   endif
 endfunction
 
