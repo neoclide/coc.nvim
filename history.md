@@ -1,3 +1,8 @@
+# 2024-08-20
+
+- Add `CocAction('removeWorkspaceFolder')`.
+- Expanded the quick pick API in typings
+
 # 2024-08-12
 
 - Added `coc.preferences.formatterExtension` configuration

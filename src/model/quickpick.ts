@@ -118,6 +118,10 @@ export default class QuickPick<T extends QuickPickItem> {
     return this.win?.winid
   }
 
+  public get inputBox(): InputBox | undefined {
+    return this.input
+  }
+
   public setCursor(index: number): void {
     this.win?.setCursor(index, true)
   }

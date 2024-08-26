@@ -220,6 +220,21 @@ describe('Workspace handler', () => {
       expect(find).toBeDefined()
     })
 
+    it('should remove workspace folder', async () => {
+      expect(() => {
+        handler.addWorkspaceFolder(__filename)
+      }).toThrow(Error)
+      expect(() => {
+        handler.addWorkspaceFolder(__filename)
+      }).toThrow(Error)
+      await helper.plugin.cocAction('addWorkspaceFolder', __dirname)
+      await helper.plugin.cocAction('removeWorkspaceFolder', __dirname)
+      let folders = workspace.workspaceFolderControl.workspaceFolders
+      let uri = URI.file(__dirname).toString()
+      let find = folders.find(o => o.uri === uri)
+      expect(find).toBeUndefined()
+    })
+
     it('should check env on vim resized', async () => {
       await events.fire('VimResized', [80, 80])
       expect(workspace.env.columns).toBe(80)

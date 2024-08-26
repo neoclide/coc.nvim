@@ -174,6 +174,13 @@ export default class WorkspaceHandler {
     workspace.workspaceFolderControl.addWorkspaceFolder(folder, true)
   }
 
+  public removeWorkspaceFolder(folder: string): void {
+    if (!Is.string(folder)) throw TypeError(`folder should be string`)
+    folder = workspace.expand(folder)
+    if (!isDirectory(folder)) throw directoryNotExists(folder)
+    workspace.workspaceFolderControl.removeWorkspaceFolder(folder)
+  }
+
   public async bufferCheck(): Promise<void> {
     let doc = await workspace.document
     if (!doc.attached) {
