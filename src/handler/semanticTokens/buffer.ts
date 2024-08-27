@@ -423,7 +423,7 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public async requestRangeHighlights(token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim, doc } = this
-    let region = await nvim.call('coc#window#visible_range', [this.bufnr]) as [number, number]
+    let region = await nvim.call('coc#window#visible_range') as [number, number]
     if (!region || token.isCancellationRequested) return null
     let endLine = Math.min(region[0] + workspace.env.lines * 2, region[1] + workspace.env.lines, doc.lineCount)
     let range = Range.create(region[0] - 1, 0, endLine, 0)

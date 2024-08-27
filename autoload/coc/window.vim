@@ -194,9 +194,9 @@ function! coc#window#close(winid) abort
   endif
 endfunction
 
-function! coc#window#visible_range(bufnr) abort
-  let winid = bufwinid(a:bufnr)
-  if winid == -1
+function! coc#window#visible_range() abort
+  let winid = win_getid()
+  if winid == 0
     return v:null
   endif
   let info = getwininfo(winid)[0]
