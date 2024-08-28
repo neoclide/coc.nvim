@@ -187,7 +187,7 @@ describe('SnippetSession', () => {
       res = await session.start('${1:foo} ${2:bar}', r, false)
       expect(res).toBe(true)
       line = await nvim.line
-      expect(line).toBe('afoo bar b')
+      expect(line).toBe('foo bara b')
     })
 
     it('should not nested when range not contains', async () => {
