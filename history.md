@@ -1,3 +1,7 @@
+# 2024-08-28
+
+- Add configuration `codeLens.display`
+
 # 2024-08-20
 
 - Add `CocAction('removeWorkspaceFolder')`.

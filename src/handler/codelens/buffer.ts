@@ -25,6 +25,7 @@ export interface CodeLensInfo {
 export interface CodeLensConfig {
   position: 'top' | 'eol' | 'right_align'
   enabled: boolean
+  display: boolean
   separator: string
   subseparator: string
 }
@@ -49,7 +50,6 @@ export default class CodeLensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
   private _config: CodeLensConfig | undefined
-  private display = true
   public resolveCodeLens: (() => void) & { clear(): void }
   public debounceFetch: (() => void) & { clear(): void }
   constructor(
@@ -75,6 +75,7 @@ export default class CodeLensBuffer implements SyncItem {
     let config = workspace.getConfiguration('codeLens', this.document)
     this._config = {
       enabled: config.get<boolean>('enable', false),
+      display: config.get<boolean>('display', true),
       position: config.get<'top' | 'eol' | 'right_align'>('position', 'top'),
       separator: config.get<string>('separator', ''),
       subseparator: config.get<string>('subseparator', ' ')
@@ -82,11 +83,12 @@ export default class CodeLensBuffer implements SyncItem {
   }
 
   public async toggleDisplay(): Promise<void> {
-    if (this.display) {
-      this.display = false
+    if (!this.hasProvider || !this.config.enabled) return
+    if (this.config.display) {
+      this.config.display = false
       this.clear()
     } else {
-      this.display = true
+      this.config.display = true
       this.resolveCodeLens.clear()
       await this._resolveCodeLenses()
     }
@@ -191,7 +193,7 @@ export default class CodeLensBuffer implements SyncItem {
    */
   private setVirtualText(codeLenses: CodeLens[]): void {
     let { document } = this
-    if (!srcId || !document || !codeLenses.length || !this.display) return
+    if (!srcId || !document || !codeLenses.length || !this.config.display) return
     let top = this.config.position === 'top'
     let list: Map<number, CodeLens[]> = new Map()
     for (let codeLens of codeLenses) {

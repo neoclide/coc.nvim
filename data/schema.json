@@ -826,6 +826,12 @@
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
       "default": false
     },
+    "codeLens.display": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "default": true,
+      "description": "Display codeLens."
+    },
     "codeLens.position": {
       "type": "string",
       "scope": "language-overridable",

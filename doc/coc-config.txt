@@ -66,6 +66,12 @@ CodeLens~
 
 	Scope: `language-overridable`, default: `false`
 
+"codeLens.display"					*coc-config-codeLens-display*
+
+	Display codeLens. Toggle with :CocCommand document.toggleCodeLens
+
+	Scope: `language-overridable`, default: `true`
+
 "codeLens.position"					*coc-config-codeLens-position*
 
 	Position of codeLens, requires nvim >= 0.6.0.
