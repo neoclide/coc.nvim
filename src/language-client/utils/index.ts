@@ -15,7 +15,7 @@ export function toMethod(type: string | MessageSignature): string {
 }
 
 export function currentTimeStamp(): string {
-  return getTimestamp(new Date())
+  return new Date().toLocaleTimeString()
 }
 
 export function getTraceMessage(data: any): string {
