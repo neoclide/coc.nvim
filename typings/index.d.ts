@@ -8934,7 +8934,7 @@ declare module 'coc.nvim' {
     /**
      * Get created document by uri or bufnr.
      */
-    export function getDocument(uri: number | string): Document | null
+    export function getDocument(uri: number | string): Document | null | undefined
 
     /**
      * Apply WorkspaceEdit.

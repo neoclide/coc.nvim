@@ -357,7 +357,7 @@ export class Workspace {
   /**
    * Get created document by uri or bufnr.
    */
-  public getDocument(uri: number | string): Document | null {
+  public getDocument(uri: number | string): Document | null | undefined {
     return this.documentsManager.getDocument(uri)
   }
 
