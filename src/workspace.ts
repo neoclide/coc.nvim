@@ -357,13 +357,13 @@ export class Workspace {
   /**
    * Get created document by uri or bufnr.
    */
-  public getDocument(uri: number | string): Document | null {
+  public getDocument(uri: number | string): Document | null | undefined {
     return this.documentsManager.getDocument(uri)
   }
 
   public hasDocument(uri: string, version?: number): boolean {
     let doc = this.documentsManager.getDocument(uri)
-    return doc != null && (version != null ? doc.version == version : true)
+    return doc && (version != null ? doc.version == version : true)
   }
 
   public getUri(bufnr: number, defaultValue = ''): string {
