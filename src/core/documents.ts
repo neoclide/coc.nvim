@@ -188,7 +188,7 @@ export default class Documents implements Disposable {
 
   public getDocument(uri: number | string, caseInsensitive = platform.isWindows || platform.isMacintosh): Document | null {
     if (typeof uri === 'number') {
-      return this.buffers.get(uri)
+      return this.buffers.get(uri) ?? null
     }
     let u = URI.parse(uri)
     uri = u.toString()
