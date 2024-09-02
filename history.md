@@ -1,3 +1,16 @@
+# 2024-08-28
+
+- Add configuration `codeLens.display`
+
+# 2024-08-20
+
+- Add `CocAction('removeWorkspaceFolder')`.
+- Expanded the quick pick API in typings
+
+# 2024-08-12
+
+- Added `coc.preferences.formatterExtension` configuration
+
 # 2024-07-04
 
 - Added `NVIM_APPNAME` support
