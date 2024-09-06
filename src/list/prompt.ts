@@ -167,7 +167,7 @@ export default class Prompt {
     if (cusorIndex == 0) return
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex)
-    let remain = pre.replace(/[\w$]+([^\w$]+)?$/, '')
+    let remain = pre.replace(/[\w\s$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+([^\w\s$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+)?$/u, '')
     this.cusorIndex = cusorIndex - (pre.length - remain.length)
     this._input = `${remain}${post}`
     this.drawPrompt()
