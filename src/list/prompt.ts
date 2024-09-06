@@ -167,7 +167,9 @@ export default class Prompt {
     if (cusorIndex == 0) return
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex)
-    let remain = pre.replace(/[\w\s$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+([^\w\s$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+)?$/u, '')
+    let remain = pre
+      .trimEnd()  // to remove last whitespaces
+      .replace(/[\w$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+$/u, '')  // to remove the last word
     this.cusorIndex = cusorIndex - (pre.length - remain.length)
     this._input = `${remain}${post}`
     this.drawPrompt()
