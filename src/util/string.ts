@@ -330,3 +330,122 @@ export function bytes(text: string, max?: number): (characterIndex: number) => n
     return res
   }
 }
+
+/**
+ * Unicode class.
+ */
+export type UnicodeClass =
+  | "ascii"
+  | "punctuation"
+  | "space"
+  | "word"
+  | "hiragana"
+  | "katakana"
+  | "cjkideograph"
+  | "hangulsyllable"
+  | "superscript"
+  | "subscript"
+  | "braille"
+  | "other"
+
+// Unicode class ranges. This list is based on Neovim's classification.
+// reference: https://github.com/neovim/neovim/blob/052e048db676ef3e68efc497c02902e3d43e6255/src/nvim/mbyte.c#L1229-L1305
+const nonAsciiUnicodeClassRanges = [
+  [0x037e, 0x037e, "punctuation"],
+  [0x0387, 0x0387, "punctuation"],
+  [0x055a, 0x055f, "punctuation"],
+  [0x0589, 0x0589, "punctuation"],
+  [0x05be, 0x05be, "punctuation"],
+  [0x05c0, 0x05c0, "punctuation"],
+  [0x05c3, 0x05c3, "punctuation"],
+  [0x05f3, 0x05f4, "punctuation"],
+  [0x060c, 0x060c, "punctuation"],
+  [0x061b, 0x061b, "punctuation"],
+  [0x061f, 0x061f, "punctuation"],
+  [0x066a, 0x066d, "punctuation"],
+  [0x06d4, 0x06d4, "punctuation"],
+  [0x0700, 0x070d, "punctuation"],
+  [0x0964, 0x0965, "punctuation"],
+  [0x0970, 0x0970, "punctuation"],
+  [0x0df4, 0x0df4, "punctuation"],
+  [0x0e4f, 0x0e4f, "punctuation"],
+  [0x0e5a, 0x0e5b, "punctuation"],
+  [0x0f04, 0x0f12, "punctuation"],
+  [0x0f3a, 0x0f3d, "punctuation"],
+  [0x0f85, 0x0f85, "punctuation"],
+  [0x104a, 0x104f, "punctuation"],
+  [0x10fb, 0x10fb, "punctuation"],
+  [0x1361, 0x1368, "punctuation"],
+  [0x166d, 0x166e, "punctuation"],
+  [0x1680, 0x1680, "space"],
+  [0x169b, 0x169c, "punctuation"],
+  [0x16eb, 0x16ed, "punctuation"],
+  [0x1735, 0x1736, "punctuation"],
+  [0x17d4, 0x17dc, "punctuation"],
+  [0x1800, 0x180a, "punctuation"],
+  [0x2000, 0x200b, "space"],
+  [0x200c, 0x2027, "punctuation"],
+  [0x2028, 0x2029, "space"],
+  [0x202a, 0x202e, "punctuation"],
+  [0x202f, 0x202f, "space"],
+  [0x2030, 0x205e, "punctuation"],
+  [0x205f, 0x205f, "space"],
+  [0x2060, 0x27ff, "punctuation"],
+  [0x2070, 0x207f, "superscript"],
+  [0x2080, 0x2094, "subscript"],
+  [0x20a0, 0x27ff, "punctuation"],
+  [0x2800, 0x28ff, "braille"],
+  [0x2900, 0x2998, "punctuation"],
+  [0x29d8, 0x29db, "punctuation"],
+  [0x29fc, 0x29fd, "punctuation"],
+  [0x2e00, 0x2e7f, "punctuation"],
+  [0x3000, 0x3000, "space"],
+  [0x3001, 0x3020, "punctuation"],
+  [0x3030, 0x3030, "punctuation"],
+  [0x303d, 0x303d, "punctuation"],
+  [0x3040, 0x309f, "hiragana"],
+  [0x30a0, 0x30ff, "katakana"],
+  [0x3300, 0x9fff, "cjkideograph"],
+  [0xac00, 0xd7a3, "hangulsyllable"],
+  [0xf900, 0xfaff, "cjkideograph"],
+  [0xfd3e, 0xfd3f, "punctuation"],
+  [0xfe30, 0xfe6b, "punctuation"],
+  [0xff00, 0xff0f, "punctuation"],
+  [0xff1a, 0xff20, "punctuation"],
+  [0xff3b, 0xff40, "punctuation"],
+  [0xff5b, 0xff65, "punctuation"],
+  [0x1d000, 0x1d24f, "other"],
+  [0x1d400, 0x1d7ff, "other"],
+  [0x1f000, 0x1f2ff, "other"],
+  [0x1f300, 0x1f9ff, "other"],
+  [0x20000, 0x2a6df, "cjkideograph"],
+  [0x2a700, 0x2b73f, "cjkideograph"],
+  [0x2b740, 0x2b81f, "cjkideograph"],
+  [0x2f800, 0x2fa1f, "cjkideograph"],
+] as const
+
+/**
+ * Get class of a Unicode character.
+ */
+export function getUnicodeClass(char: string): UnicodeClass {
+  if (char == null) return "other"
+
+  const charCode = char.charCodeAt(0)
+  if (charCode == null) return "other"
+
+  // Check for ASCII character
+  if (charCode <= 0x7f) {
+    if (charCode === 0) return "other"
+    if (/\s/.test(char)) return "space"
+    if (/\w/.test(char)) return "word"
+    return "punctuation"
+  }
+
+  for (const [start, end, category] of nonAsciiUnicodeClassRanges) {
+    if (start <= charCode && charCode <= end) {
+      return category
+    }
+  }
+
+  return "other"
+}
