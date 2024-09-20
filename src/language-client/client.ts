@@ -1,21 +1,21 @@
 'use strict'
-import type { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HandlerResult, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineCompletionRequest, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { createLogger } from '../logger'
 import type { MessageItem } from '../model/notification'
-import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
+import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
 import { defaultValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { sameFile } from '../util/fs'
 import * as Is from '../util/is'
-import { os, path } from '../util/node'
+import { os } from '../util/node'
 import { comparePosition } from '../util/position'
 import {
   ApplyWorkspaceEditRequest, createProtocolConnection, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, InitializedNotification, InitializeRequest, InlayHintRequest, LogMessageNotification, LSPErrorCodes, MessageReader, MessageType, MessageWriter, PositionEncodingKind, PublishDiagnosticsNotification, RegistrationRequest, ResourceOperationKind, ResponseError, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRequest, ShowDocumentRequest, ShowMessageNotification, ShowMessageRequest, ShutdownRequest, TextDocumentSyncKind, Trace, TraceFormat, UnregistrationRequest, WorkDoneProgress
@@ -38,12 +38,13 @@ import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbo
 import { ExecuteCommandFeature, ExecuteCommandMiddleware } from './executeCommand'
 import { Connection, DynamicFeature, ensure, FeatureClient, LSPCancellationError, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, FileOperationsMiddleware, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
-import { FileSystemWatcherFeature, FileSystemWatcherMiddleware } from './fileSystemWatcher'
+import { DidChangeWatchedFileSignature, FileSystemWatcherFeature, FileSystemWatcherMiddleware } from './fileSystemWatcher'
 import { FoldingRangeFeature, FoldingRangeProviderMiddleware } from './foldingRange'
 import { $FormattingOptions, DocumentFormattingFeature, DocumentOnTypeFormattingFeature, DocumentRangeFormattingFeature, FormattingMiddleware } from './formatting'
 import { HoverFeature, HoverMiddleware } from './hover'
 import { ImplementationFeature, ImplementationMiddleware } from './implementation'
 import { InlayHintsFeature, InlayHintsMiddleware, InlayHintsProviderShape } from './inlayHint'
+import { InlineCompletionItemFeature, InlineCompletionMiddleware } from './inlineCompletion'
 import { InlineValueFeature, InlineValueMiddleware, InlineValueProviderShape } from './inlineValue'
 import { LinkedEditingFeature, LinkedEditingRangeMiddleware } from './linkedEditingRange'
 import { ProgressFeature } from './progress'
@@ -58,7 +59,7 @@ import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinitio
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
 import * as cv from './utils/converter'
-import { CloseAction, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
+import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
@@ -93,26 +94,34 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
   connection.onClose(closeHandler)
   let result: Connection = {
     id: '',
-    hasPendingResponse: (): boolean => connection.hasPendingResponse(),
     listen: (): void => connection.listen(),
-    sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => {
-      return connection.sendRequest(toMethod(type), ...params)
-    },
-    onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(toMethod(type), handler),
-    sendNotification: (type: string | MessageSignature, params?: any): Promise<void> => {
-      return connection.sendNotification(toMethod(type), params)
-    },
-    onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(toMethod(type), handler),
+
+    hasPendingResponse: connection.hasPendingResponse,
+
+    sendRequest: connection.sendRequest,
+    onRequest: connection.onRequest,
+
+    sendNotification: connection.sendNotification,
+    onNotification: connection.onNotification,
 
     onProgress: connection.onProgress,
     sendProgress: connection.sendProgress,
-    trace: (
-      value: Trace,
-      tracer: Tracer,
-      sendNotificationOrTraceOptions: TraceOptions
-    ): Promise<void> => {
-      return connection.trace(value, tracer, sendNotificationOrTraceOptions)
+
+    trace: (value: Trace, tracer: Tracer, sendNotificationOrTraceOptions?: boolean | TraceOptions): Promise<void> => {
+      const defaultTraceOptions: TraceOptions = {
+        sendNotification: false,
+        traceFormat: TraceFormat.Text
+      }
+
+      if (sendNotificationOrTraceOptions === undefined) {
+        return connection.trace(value, tracer, defaultTraceOptions)
+      } else if (Is.boolean(sendNotificationOrTraceOptions)) {
+        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
+      } else {
+        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
+      }
     },
+
     initialize: (params: InitializeParams) => {
       return connection.sendRequest(InitializeRequest.type, params)
     },
@@ -129,6 +138,7 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
 }
 
 export enum RevealOutputChannelOn {
+  Debug = 0,
   Info = 1,
   Warn = 2,
   Error = 3,
@@ -143,11 +153,18 @@ export interface HandleDiagnosticsSignature {
   (this: void, uri: string, diagnostics: Diagnostic[]): void
 }
 
-export type WorkspaceMiddleware = DidChangeConfigurationMiddleware & FileSystemWatcherMiddleware & ConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
+interface _WorkspaceMiddleware {
+  didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => Promise<void>
+  handleApplyEdit?: (this: void, params: ApplyWorkspaceEditParams, next: ApplyWorkspaceEditRequest.HandlerSignature) => HandlerResult<ApplyWorkspaceEditResult, void>
+}
+
+export type WorkspaceMiddleware = _WorkspaceMiddleware & DidChangeConfigurationMiddleware & FileSystemWatcherMiddleware & ConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
 
 export interface _WindowMiddleware {
-  showDocument?: (this: void, params: ShowDocumentParams, next: ShowDocumentRequest.HandlerSignature) => Promise<ShowDocumentResult>
+  showDocument?: ShowDocumentRequest.MiddlewareSignature
 }
+
+export type WindowMiddleware = _WindowMiddleware
 
 /**
  * The Middleware lets extensions intercept the request and notifications send and received
@@ -156,19 +173,40 @@ export interface _WindowMiddleware {
 export interface _Middleware {
   handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
   handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
+  handleRegisterCapability?: (this: void, params: RegistrationParams, next: RegistrationRequest.HandlerSignature) => Promise<void>
+  handleUnregisterCapability?: (this: void, params: UnregistrationParams, next: UnregistrationRequest.HandlerSignature) => Promise<void>
   workspace?: WorkspaceMiddleware
-  window?: _WindowMiddleware
+  window?: WindowMiddleware
 }
 
+// A general middleware is applied to both requests and notifications
+interface GeneralMiddleware {
+  sendRequest?<P, R>(
+    this: void,
+    type: string | MessageSignature,
+    param: P | undefined,
+    token: CancellationToken | undefined,
+    next: (type: string | MessageSignature, param?: P, token?: CancellationToken) => Promise<R>,
+  ): Promise<R>
+
+  sendNotification?<R>(
+    this: void,
+    type: string | MessageSignature,
+    next: (type: string | MessageSignature, params?: R) => Promise<void>,
+    params: R
+  ): Promise<void>
+}
+
+// TODO: TextDocumentContentMiddleware
 export type Middleware = _Middleware & TextDocumentSynchronizationMiddleware & SignatureHelpMiddleware & ReferencesMiddleware &
   DefinitionMiddleware & DocumentHighlightMiddleware & DocumentSymbolMiddleware & DocumentLinkMiddleware &
   CodeActionMiddleware & FormattingMiddleware & RenameMiddleware & CodeLensMiddleware &
   HoverMiddleware & CompletionMiddleware & ExecuteCommandMiddleware & TypeDefinitionMiddleware &
   ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware &
   FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware &
-  InlayHintsMiddleware & InlineValueMiddleware & TypeHierarchyMiddleware &
+  InlayHintsMiddleware & InlineCompletionMiddleware & InlineValueMiddleware & TypeHierarchyMiddleware &
   WorkspaceSymbolMiddleware & DiagnosticProviderMiddleware & LinkedEditingRangeMiddleware &
-  SelectionRangeProviderMiddleware
+  SelectionRangeProviderMiddleware & GeneralMiddleware
 
 export type LanguageClientOptions = {
   rootPatterns?: string[]
@@ -199,6 +237,9 @@ export type LanguageClientOptions = {
     isTrusted?: boolean
     supportHtml?: boolean
   }
+  textSynchronization?: {
+    delayOpenNotifications: boolean
+  }
 } & $ConfigurationOptions & $CompletionOptions & $FormattingOptions & $DiagnosticPullOptions & $WorkspaceOptions
 
 type ResolvedClientOptions = {
@@ -222,12 +263,16 @@ type ResolvedClientOptions = {
     isTrusted: boolean
     supportHtml?: boolean
   }
+  textSynchronization?: {
+    delayOpenNotifications: boolean
+  }
 } & $ConfigurationOptions & Required<$CompletionOptions> & Required<$FormattingOptions> & Required<$DiagnosticPullOptions> & Required<$WorkspaceOptions>
 
 export enum State {
   Stopped = 1,
   Running = 2,
   Starting = 3,
+  StartFailed = 4,
 }
 
 export interface StateChangeEvent {
@@ -260,6 +305,11 @@ export namespace MessageTransports {
       MessageWriter.is(value.writer)
     )
   }
+}
+
+export enum ShutdownMode {
+  Restart = 'restart',
+  Stop = 'stop'
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
@@ -405,6 +455,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       middleware: clientOptions.middleware ?? {},
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
+      textSynchronization: {
+        delayOpenNotifications: clientOptions.textSynchronization?.delayOpenNotifications === true
+      },
       markdown
     }
   }
@@ -467,7 +520,46 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.checkState()
     try {
       const connection = await this.$start()
-      return await connection.sendRequest<R>(type, ...params)
+
+      let param: any | undefined
+      let token: CancellationToken | undefined
+      // Separate cancellation tokens from other parameters for a better client interface
+      if (params.length === 1) {
+        // CancellationToken is an interface, so we need to check if the first param complies to it
+        if (CancellationToken.is(params[0])) {
+          token = params[0]
+        } else {
+          param = params[0]
+        }
+      } else if (params.length === 2) {
+        param = params[0]
+        token = params[1]
+      }
+      if (token !== undefined && token.isCancellationRequested) {
+        return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
+      }
+      const _sendRequest = this._clientOptions.middleware?.sendRequest
+      if (_sendRequest !== undefined) {
+        // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
+        // pass them to the original sendRequest function.
+        return _sendRequest(type, param, token, (type, param, token) => {
+          const params: any[] = []
+
+          // Add the parameters if there are any
+          if (param !== undefined) {
+            params.push(param)
+          }
+
+          // Add the cancellation token if there is one
+          if (token !== undefined) {
+            params.push(token)
+          }
+
+          return connection.sendRequest<R>(type, ...params)
+        })
+      } else {
+        return connection.sendRequest<R>(type, ...params)
+      }
     } catch (error) {
       this.error(`Sending request ${toMethod(type)} failed.`, error)
       throw error
@@ -528,7 +620,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     try {
       const connection = await this.$start()
-      return await connection.sendNotification(type, params)
+      const _sendNotification = this._clientOptions.middleware?.sendNotification
+
+      return _sendNotification
+        ? _sendNotification(type, connection.sendNotification.bind(connection), params)
+        : connection.sendNotification(type, params)
     } catch (error) {
       this.error(`Sending notification ${toMethod(type)} failed.`, error)
       throw error
@@ -690,33 +786,29 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
+  public debug(message: string, data?: any, showNotification = true): void {
+    this.logOutputMessage(MessageType.Debug, RevealOutputChannelOn.Debug, 'Debug', message, data, showNotification)
+  }
+
   public info(message: string, data?: any, showNotification = true): void {
-    let prefix = `[Info  - ${currentTimeStamp()}]`
-    this.outputChannel.appendLine(`${prefix} ${message}`)
-    this.consoleMessage(prefix, message)
-    if (data != null) this.traceData(data)
-    if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Info) {
-      this.showNotificationMessage(MessageType.Info, message)
-    }
+    this.logOutputMessage(MessageType.Info, RevealOutputChannelOn.Info, 'Info', message, data, showNotification)
   }
 
   public warn(message: string, data?: any, showNotification = true): void {
-    let prefix = `[Warn  - ${currentTimeStamp()}]`
-    this.outputChannel.appendLine(`${prefix} ${message}`)
-    this.consoleMessage(prefix, message)
-    if (data != null) this.traceData(data)
-    if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Warn) {
-      this.showNotificationMessage(MessageType.Warning, message)
-    }
+    this.logOutputMessage(MessageType.Warning, RevealOutputChannelOn.Warn, 'Warn', message, data, showNotification)
   }
 
   public error(message: string, data?: any, showNotification: boolean | 'force' = true): void {
-    let prefix = `[Error - ${currentTimeStamp()}]`
+    this.logOutputMessage(MessageType.Error, RevealOutputChannelOn.Error, 'Error', message, data, showNotification)
+  }
+
+  private logOutputMessage(type: MessageType, reveal: RevealOutputChannelOn, name: string, message: string, data: any | undefined, showNotification: boolean | 'force'): void {
+    let prefix = `[${name.padEnd(5)} - ${currentTimeStamp()}]`
     this.outputChannel.appendLine(`${prefix} ${message}`)
     this.consoleMessage(prefix, message, true)
     if (data != null) this.traceData(data, true)
-    if (showNotification === 'force' || (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Error)) {
-      this.showNotificationMessage(MessageType.Error, message)
+    if (showNotification === 'force' || (showNotification && this._clientOptions.revealOutputChannelOn <= reveal)) {
+      this.showNotificationMessage(type, message, data)
     }
   }
 
@@ -727,7 +819,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (data != null) this.traceData(data)
   }
 
-  private showNotificationMessage(type: MessageType, message: string) {
+  private showNotificationMessage(type: MessageType, message?: string, data?: any) {
+    message = message ?? 'A request has failed. See the output for more information.'
+    if (data) {
+      message += '\n' + data2String(data)
+    }
+
     const messageFunc = type === MessageType.Error
       ? window.showErrorMessage.bind(window)
       : type === MessageType.Warning
@@ -871,6 +968,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         case MessageType.Info:
           this.info(message.message)
           break
+        case MessageType.Debug:
+          this.debug(message.message)
+          break
         default:
           this.outputChannel.appendLine(message.message)
       }
@@ -914,7 +1014,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         return res == null ? null : res
       })
     })
-    connection.onRequest(ShowDocumentRequest.type, async (params): Promise<ShowDocumentResult> => {
+    connection.onRequest(ShowDocumentRequest.type, async (params, token) => {
       const showDocument = async (params: ShowDocumentParams): Promise<ShowDocumentResult> => {
         try {
           if (params.external === true || /^https?:\/\//.test(params.uri)) {
@@ -938,7 +1038,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       const middleware = this._clientOptions.middleware.window?.showDocument
       if (middleware !== undefined) {
-        return middleware(params, showDocument)
+        return middleware(params, token, showDocument)
       } else {
         return showDocument(params)
       }
@@ -1101,10 +1201,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public stop(timeout = 2000): Promise<void> {
     // Wait 2 seconds on stop
-    return this.shutdown('stop', timeout)
+    return this.shutdown(ShutdownMode.Stop, timeout)
   }
 
-  private async shutdown(mode: 'suspend' | 'stop', timeout: number): Promise<void> {
+  protected async shutdown(mode: ShutdownMode, timeout = 2000): Promise<void> {
     // If the client is stopped or in its initial state return.
     if (this.$state === ClientState.Stopped || this.$state === ClientState.Initial) {
       return
@@ -1112,7 +1212,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
-      return this._onStop
+      if (this._onStop !== undefined) {
+        return this._onStop
+      } else {
+        throw new Error(`Client is stopping but no stop promise available.`)
+      }
     }
 
     const connection = this.activeConnection()
@@ -1148,7 +1252,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       throw error
     }).finally(() => {
       this.$state = ClientState.Stopped
-      mode === 'stop' && this.cleanUpChannel()
+      mode === ShutdownMode.Stop && this.cleanUpChannel()
       this._onStart = undefined
       this._onStop = undefined
       this._connection = undefined
@@ -1167,20 +1271,27 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private cleanUp(mode: 'restart' | 'suspend' | 'stop'): void {
+  private cleanUp(mode: ShutdownMode): void {
     if (this._listeners) {
       this._listeners.forEach(listener => listener.dispose())
       this._listeners = []
     }
+
+    const disposables = this._listeners.splice(0, this._listeners.length)
+    for (const disposable of disposables) {
+      disposable.dispose()
+    }
+
     if (this._syncedDocuments) {
       this._syncedDocuments.clear()
     }
-    for (let feature of this._features.values()) {
+    // Clear features in reverse order;
+    for (const feature of Array.from(this._features.entries()).map(entry => entry[1]).reverse()) {
       if (typeof feature.dispose === 'function') {
         feature.dispose()
       }
     }
-    if (mode === 'stop' && this._diagnostics) {
+    if ((mode === ShutdownMode.Stop || mode === ShutdownMode.Restart) && this._diagnostics !== undefined) {
       this._diagnostics.dispose()
       this._diagnostics = undefined
     }
@@ -1214,47 +1325,45 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  protected abstract createMessageTransports(
-    encoding: string
-  ): Promise<MessageTransports | null>
+  protected abstract createMessageTransports(encoding: string): Promise<MessageTransports | null>
 
   private async createConnection(): Promise<Connection> {
     let errorHandler = (error: Error, message: Message | undefined, count: number | undefined) => {
-      this.handleConnectionError(error, message, count)
+      this.handleConnectionError(error, message, count).catch(error => this.error(`Handling connection error failed`, error))
     }
     let closeHandler = () => {
-      this.handleConnectionClosed()
+      this.handleConnectionClosed().catch(error => this.error(`Handling connection close failed`, error))
     }
     const transports = await this.createMessageTransports(defaultValue(this._clientOptions.stdioEncoding, 'utf8'))
     this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions)
     return this._connection
   }
 
-  protected handleConnectionClosed() {
+  protected async handleConnectionClosed(): Promise<void> {
     // Check whether this is a normal shutdown in progress or the client stopped normally.
     if (this.$state === ClientState.Stopped) {
       logger.debug(`client ${this._id} normal closed`)
       return
     }
     try {
-      if (this._connection) {
+      if (this._connection !== undefined) {
         this._connection.dispose()
       }
     } catch (error) {
       // Disposing a connection could fail if error cases.
     }
-    let action = CloseAction.DoNotRestart
-    if (this.$state !== ClientState.Stopping && this._clientOptions.errorHandler) {
+    let handlerResult: CloseHandlerResult = { action: CloseAction.DoNotRestart }
+    if (this.$state !== ClientState.Stopping) {
       try {
-        action = this._clientOptions.errorHandler!.closed()
+        handlerResult = await this._clientOptions.errorHandler.closed()
       } catch (error) {
         // Ignore errors coming from the error handler.
       }
     }
     this._connection = undefined
-    if (action === CloseAction.DoNotRestart) {
-      this.error('Connection to server got closed. Server will not be restarted.', undefined, 'force')
-      this.cleanUp('stop')
+    if (handlerResult.action === CloseAction.DoNotRestart) {
+      this.error(handlerResult.message ?? 'Connection to server got closed. Server will not be restarted.', undefined, handlerResult.handled === true ? false : 'force')
+      this.cleanUp(ShutdownMode.Stop)
       if (this.$state === ClientState.Starting) {
         this.$state = ClientState.StartFailed
       } else {
@@ -1262,13 +1371,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       this._onStop = Promise.resolve()
       this._onStart = undefined
-    } else if (action === CloseAction.Restart) {
-      this.info('Connection to server got closed. Server will restart.')
-      this.cleanUp('restart')
+    } else if (handlerResult.action === CloseAction.Restart) {
+      this.info(handlerResult.message ?? 'Connection to server got closed. Server will restart.', !handlerResult.handled)
+      this.cleanUp(ShutdownMode.Restart)
       this.$state = ClientState.Initial
       this._onStop = Promise.resolve()
       this._onStart = undefined
-      this.start().catch(this.error.bind(this, `Restarting server failed`))
+      this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
     }
   }
 
@@ -1278,11 +1387,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  public handleConnectionError(error: Error, message: Message, count: number) {
-    let action = this._clientOptions.errorHandler!.error(error, message, count)
-    if (action === ErrorAction.Shutdown) {
-      this.error(`Connection to server ${this._name} is erroring, ${error.message}. Shutting down server.`, error, 'force')
+  public async handleConnectionError(error: Error, message: Message, count: number): Promise<void> {
+    let result = await this._clientOptions.errorHandler!.error(error, message, count)
+    if (result.action === ErrorAction.Shutdown) {
+      const message = `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
+      this.error(result.message ?? message, error, result.handled === true ? false : 'force')
       this.stop().catch(this.error.bind(this, `Stopping server failed`))
+    } else {
+      const message = `Client ${this._name}: connection to server is erroring.\n${error.message}`
+      this.error(result.message ?? message, error, result.handled === true ? false : 'force')
     }
   }
 
@@ -1400,6 +1513,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public getFeature(request: typeof SemanticTokensRegistrationType.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviderShape>
   public getFeature(request: typeof LinkedEditingRangeRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
   public getFeature(request: typeof TypeHierarchyPrepareRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+  public getFeature(request: typeof InlineCompletionRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineCompletionItemProvider>
   public getFeature(request: typeof InlineValueRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
   public getFeature(request: typeof InlayHintRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
   public getFeature(request: typeof WorkspaceSymbolRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>
@@ -1450,6 +1564,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerFeature(new WillDeleteFilesFeature(this), 'fileEvents')
     this.registerFeature(new SemanticTokensFeature(this), 'semanticTokens')
     this.registerFeature(new InlayHintsFeature(this), 'inlayHint')
+    this.registerFeature(new InlineCompletionItemFeature(this), 'inlineCompletion')
     this.registerFeature(new InlineValueFeature(this), 'inlineValue')
     this.registerFeature(new DiagnosticFeature(this), 'pullDiagnostic')
     this.registerFeature(new TypeHierarchyFeature(this), 'typeHierarchy')
@@ -1484,6 +1599,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     workspaceEdit.changeAnnotationSupport = {
       groupsOnLabel: false
     }
+    workspaceEdit.metadataSupport = true
+    workspaceEdit.snippetEditSupport = true
+
     const diagnostics = ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!
     diagnostics.relatedInformation = true
     diagnostics.versionSupport = true

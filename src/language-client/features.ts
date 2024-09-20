@@ -4,7 +4,7 @@ import type {
   DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
   DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest,
   DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions,
-  FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineValueRequest,
+  FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineCompletionRequest, InlineValueRequest,
   LinkedEditingRangeRequest, MarkupKind, MessageSignature, NotificationHandler, NotificationHandler0,
   NotificationType, NotificationType0, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, ReferencesRequest,
   RegistrationType, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities,
@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver-protocol'
 import { Emitter, Event, WorkDoneProgressOptions, TextDocumentRegistrationOptions, StaticRegistrationOptions } from '../util/protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
+import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import * as Is from '../util/is'
 import workspace from '../workspace'
@@ -174,14 +174,12 @@ export interface StaticFeature {
   readonly method: string
   /**
    * Called to fill the initialize params.
-   *
    * @params the initialize params.
    */
   fillInitializeParams?: (params: InitializeParams) => void
 
   /**
    * Called to fill in the client capabilities this feature implements.
-   *
    * @param capabilities The client capabilities to fill.
    */
   fillClientCapabilities(capabilities: ClientCapabilities): void
@@ -190,7 +188,6 @@ export interface StaticFeature {
    * A preflight where the server capabilities are shown to all features
    * before a feature is actually initialized. This allows feature to
    * capture some state if they are a pre-requisite for other features.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -202,7 +199,6 @@ export interface StaticFeature {
    * when the client has successfully received the initialize request from
    * the server and before the client sends the initialized notification
    * to the server.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -237,14 +233,12 @@ export interface DynamicFeature<RO> {
 
   /**
    * Called to fill the initialize params.
-   *
    * @params the initialize params.
    */
   fillInitializeParams?: (params: InitializeParams) => void
 
   /**
    * Called to fill in the client capabilities this feature implements.
-   *
    * @param capabilities The client capabilities to fill.
    */
   fillClientCapabilities(capabilities: ClientCapabilities): void
@@ -253,7 +247,6 @@ export interface DynamicFeature<RO> {
    * A preflight where the server capabilities are shown to all features
    * before a feature is actually initialized. This allows feature to
    * capture some state if they are a pre-requisite for other features.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -265,7 +258,6 @@ export interface DynamicFeature<RO> {
    * when the client has successfully received the initialize request from
    * the server and before the client sends the initialized notification
    * to the server.
-   *
    * @param capabilities the server capabilities.
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -284,14 +276,12 @@ export interface DynamicFeature<RO> {
 
   /**
    * Is called when the server send a register request for the given message.
-   *
    * @param data additional registration data as defined in the protocol.
    */
   register(data: RegistrationData<RO>): void
 
   /**
    * Is called when the server wants to unregister a feature.
-   *
    * @param id the id used when registering the feature.
    */
   unregister(id: string): void
@@ -683,6 +673,7 @@ export interface FeatureClient<M, CO = object> {
   getFeature(request: typeof SemanticTokensRegistrationType.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviderShape>
   getFeature(request: typeof LinkedEditingRangeRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
   getFeature(request: typeof TypeHierarchyPrepareRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+  getFeature(request: typeof InlineCompletionRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineCompletionItemProvider>
   getFeature(request: typeof InlineValueRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
   getFeature(request: typeof InlayHintRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
   getFeature(request: typeof WorkspaceSymbolRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>

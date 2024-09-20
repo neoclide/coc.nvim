@@ -81,7 +81,7 @@
     "eslint-plugin-jsdoc": "^48.11.0",
     "jest": "29.7.0",
     "typescript": "^5.5.4",
-    "vscode-languageserver": "^9.0.1"
+    "vscode-languageserver": "^10.0.0-next.11"
   },
   "dependencies": {
     "@chemzqm/neovim": "^6.1.2",
@@ -108,9 +108,9 @@
     "unidecode": "^1.0.1",
     "unzip-stream": "^0.3.4",
     "uuid": "^9.0.1",
-    "vscode-languageserver-protocol": "^3.17.5",
-    "vscode-languageserver-textdocument": "^1.0.11",
-    "vscode-languageserver-types": "^3.17.5",
+    "vscode-languageserver-protocol": "^3.17.6-next.11",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "vscode-languageserver-types": "^3.17.6-next.5",
     "vscode-uri": "^3.0.8",
     "which": "^4.0.0"
   }
