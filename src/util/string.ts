@@ -431,7 +431,6 @@ export function getUnicodeClass(char: string): UnicodeClass {
   if (char == null) return "other"
 
   const charCode = char.charCodeAt(0)
-  console.log("char code is", charCode)
   if (charCode == null) return "other"
 
   // Check for ASCII character

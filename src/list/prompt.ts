@@ -244,7 +244,6 @@ function getLastWordRemovedText(text: string): string {
 
   // Remove last contiguous characters of the same unicode class.
   const last = getUnicodeClass(res[res.length - 1])
-  console.log("unicode class of", res[res.length - 1], "is", last)
   while (res !== "" && getUnicodeClass(res[res.length - 1]) === last) {
     res = res.slice(0, res.length - 1)
   }
