@@ -1,8 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ListMode, ListOptions, Matcher } from './types'
 import { Emitter, Event } from '../util/protocol'
+import { getUnicodeClass } from '../util/string'
 import listConfiguration from './configuration'
+import { ListMode, ListOptions, Matcher } from './types'
 
 export default class Prompt {
   private cusorIndex = 0
@@ -113,7 +114,7 @@ export default class Prompt {
     let { cusorIndex, input } = this
     if (cusorIndex == 0) return
     let pre = input.slice(0, cusorIndex)
-    let remain = pre.replace(/[\w$]+([^\w$]+)?$/, '')
+    let remain = getLastWordRemovedText(pre)
     this.cusorIndex = cusorIndex - (pre.length - remain.length)
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
@@ -167,9 +168,7 @@ export default class Prompt {
     if (cusorIndex == 0) return
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex)
-    let remain = pre
-      .trimEnd()  // to remove last whitespaces
-      .replace(/[\w$\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+$/u, '')  // to remove the last word
+    let remain = getLastWordRemovedText(pre)
     this.cusorIndex = cusorIndex - (pre.length - remain.length)
     this._input = `${remain}${post}`
     this.drawPrompt()
@@ -234,4 +233,21 @@ export default class Prompt {
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
+}
+
+function getLastWordRemovedText(text: string): string {
+  let res = text
+
+  // Remove last whitespaces
+  res = res.trimEnd()
+  if (res === "") return res
+
+  // Remove last contiguous characters of the same unicode class.
+  const last = getUnicodeClass(res[res.length - 1])
+  console.log("unicode class of", res[res.length - 1], "is", last)
+  while (res !== "" && getUnicodeClass(res[res.length - 1]) === last) {
+    res = res.slice(0, res.length - 1)
+  }
+
+  return res
 }
