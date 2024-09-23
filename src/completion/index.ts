@@ -76,7 +76,7 @@ export class Completion implements Disposable {
       if (!this.option) return
       this.popupEvent = ev
       let resolved = this.complete.resolveItem(this.selectedItem)
-      if (!resolved || (!ev.move && this.complete.isCompleting)) return
+      if (!resolved) return
       let detailRendered = this.selectedItem.detailRendered
       let showDocs = this.config.enableFloat
       await this.floating.resolveItem(resolved.source, resolved.item, this.option, showDocs, detailRendered)
