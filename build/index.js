@@ -24776,7 +24776,24 @@ function bytes(text, max) {
     return res;
   };
 }
-var UTF8_2BYTES_START, UTF8_3BYTES_START, UTF8_4BYTES_START, encoding, asciiTable;
+function getUnicodeClass(char) {
+  if (char == null) return "other";
+  const charCode = char.charCodeAt(0);
+  if (charCode == null) return "other";
+  if (charCode <= 127) {
+    if (charCode === 0) return "other";
+    if (/\s/.test(char)) return "space";
+    if (/\w/.test(char)) return "word";
+    return "punctuation";
+  }
+  for (const [start, end, category] of nonAsciiUnicodeClassRanges) {
+    if (start <= charCode && charCode <= end) {
+      return category;
+    }
+  }
+  return "other";
+}
+var UTF8_2BYTES_START, UTF8_3BYTES_START, UTF8_4BYTES_START, encoding, asciiTable, nonAsciiUnicodeClassRanges;
 var init_string = __esm({
   "src/util/string.ts"() {
     "use strict";
@@ -24790,6 +24807,79 @@ var init_string = __esm({
       [48, 57],
       [65, 90],
       [97, 122]
+    ];
+    nonAsciiUnicodeClassRanges = [
+      [894, 894, "punctuation"],
+      [903, 903, "punctuation"],
+      [1370, 1375, "punctuation"],
+      [1417, 1417, "punctuation"],
+      [1470, 1470, "punctuation"],
+      [1472, 1472, "punctuation"],
+      [1475, 1475, "punctuation"],
+      [1523, 1524, "punctuation"],
+      [1548, 1548, "punctuation"],
+      [1563, 1563, "punctuation"],
+      [1567, 1567, "punctuation"],
+      [1642, 1645, "punctuation"],
+      [1748, 1748, "punctuation"],
+      [1792, 1805, "punctuation"],
+      [2404, 2405, "punctuation"],
+      [2416, 2416, "punctuation"],
+      [3572, 3572, "punctuation"],
+      [3663, 3663, "punctuation"],
+      [3674, 3675, "punctuation"],
+      [3844, 3858, "punctuation"],
+      [3898, 3901, "punctuation"],
+      [3973, 3973, "punctuation"],
+      [4170, 4175, "punctuation"],
+      [4347, 4347, "punctuation"],
+      [4961, 4968, "punctuation"],
+      [5741, 5742, "punctuation"],
+      [5760, 5760, "space"],
+      [5787, 5788, "punctuation"],
+      [5867, 5869, "punctuation"],
+      [5941, 5942, "punctuation"],
+      [6100, 6108, "punctuation"],
+      [6144, 6154, "punctuation"],
+      [8192, 8203, "space"],
+      [8204, 8231, "punctuation"],
+      [8232, 8233, "space"],
+      [8234, 8238, "punctuation"],
+      [8239, 8239, "space"],
+      [8240, 8286, "punctuation"],
+      [8287, 8287, "space"],
+      [8288, 10239, "punctuation"],
+      [8304, 8319, "superscript"],
+      [8320, 8340, "subscript"],
+      [8352, 10239, "punctuation"],
+      [10240, 10495, "braille"],
+      [10496, 10648, "punctuation"],
+      [10712, 10715, "punctuation"],
+      [10748, 10749, "punctuation"],
+      [11776, 11903, "punctuation"],
+      [12288, 12288, "space"],
+      [12289, 12320, "punctuation"],
+      [12336, 12336, "punctuation"],
+      [12349, 12349, "punctuation"],
+      [12352, 12447, "hiragana"],
+      [12448, 12543, "katakana"],
+      [13056, 40959, "cjkideograph"],
+      [44032, 55203, "hangulsyllable"],
+      [63744, 64255, "cjkideograph"],
+      [64830, 64831, "punctuation"],
+      [65072, 65131, "punctuation"],
+      [65280, 65295, "punctuation"],
+      [65306, 65312, "punctuation"],
+      [65339, 65344, "punctuation"],
+      [65371, 65381, "punctuation"],
+      [118784, 119375, "other"],
+      [119808, 120831, "other"],
+      [126976, 127743, "other"],
+      [127744, 129535, "other"],
+      [131072, 173791, "cjkideograph"],
+      [173824, 177983, "cjkideograph"],
+      [177984, 178207, "cjkideograph"],
+      [194560, 195103, "cjkideograph"]
     ];
   }
 });
@@ -43540,8 +43630,8 @@ var init_document = __esm({
        * Get ranges of word in textDocument.
        */
       getSymbolRanges(word) {
-        let { version: version2, filetype, uri } = this;
-        let textDocument = new LinesTextDocument(uri, filetype, version2, this.lines, this.bufnr, this.eol);
+        let { version: version2, languageId, uri } = this;
+        let textDocument = new LinesTextDocument(uri, languageId, version2, this.lines, this.bufnr, this.eol);
         let res = [];
         let content = textDocument.getText();
         let str = "";
@@ -67026,11 +67116,22 @@ var init_mappings = __esm({
 });
 
 // src/list/prompt.ts
+function getLastWordRemovedText(text) {
+  let res = text;
+  res = res.trimEnd();
+  if (res === "") return res;
+  const last = getUnicodeClass(res[res.length - 1]);
+  while (res !== "" && getUnicodeClass(res[res.length - 1]) === last) {
+    res = res.slice(0, res.length - 1);
+  }
+  return res;
+}
 var Prompt;
 var init_prompt = __esm({
   "src/list/prompt.ts"() {
     "use strict";
     init_protocol();
+    init_string();
     init_configuration3();
     Prompt = class {
       constructor(nvim) {
@@ -67126,7 +67227,7 @@ var init_prompt = __esm({
         let { cusorIndex, input } = this;
         if (cusorIndex == 0) return;
         let pre = input.slice(0, cusorIndex);
-        let remain = pre.replace(/[\w$]+([^\w$]+)?$/, "");
+        let remain = getLastWordRemovedText(pre);
         this.cusorIndex = cusorIndex - (pre.length - remain.length);
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
@@ -67174,7 +67275,7 @@ var init_prompt = __esm({
         if (cusorIndex == 0) return;
         let pre = input.slice(0, cusorIndex);
         let post = input.slice(cusorIndex);
-        let remain = pre.replace(/[\w$]+([^\w$]+)?$/, "");
+        let remain = getLastWordRemovedText(pre);
         this.cusorIndex = cusorIndex - (pre.length - remain.length);
         this._input = `${remain}${post}`;
         this.drawPrompt();
@@ -89204,7 +89305,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-9c25f2f7 2024-08-31 14:53:59 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-9fd85781 2024-09-21 00:59:00 +0900" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
