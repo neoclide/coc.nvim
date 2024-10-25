@@ -913,7 +913,7 @@
     "diagnostic.displayByAle": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
+      "description": "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
       "default": false
     },
     "diagnostic.enable": {

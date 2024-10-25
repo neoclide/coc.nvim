@@ -2468,8 +2468,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "diagnosticToggle" [{enable}]	 			*CocAction('diagnosticToggle')*
 
-	Enable/disable diagnostics on the fly, not work when `displayByAle` is
-	enabled. You can toggle by specifying {enable}. {enable} can be 0 or 1
+	Enable/disable diagnostics on the fly. This setting is ignored if
+	`displayByAle` is enabled. You can toggle by specifying {enable}.
+	{enable} can be 0 or 1
 
 "diagnosticToggleBuffer" [{bufnr}] [{enable}] 		*CocAction('diagnosticToggleBuffer')*
 
