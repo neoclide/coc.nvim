@@ -2116,6 +2116,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "hackergrrl",
+      "name": "Kira Oakley",
+      "avatar_url": "https://avatars.githubusercontent.com/u/489362?v=4",
+      "profile": "http://eight45.net",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
