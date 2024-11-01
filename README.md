@@ -833,6 +833,7 @@ Try these steps if you experience problems with coc.nvim:
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/statiolake"><img src="https://avatars.githubusercontent.com/u/20490597?v=4?s=50" width="50px;" alt="lake"/><br /><sub><b>lake</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=statiolake" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://www.davidosomething.com/"><img src="https://avatars.githubusercontent.com/u/609213?v=4?s=50" width="50px;" alt="David O'Trakoun"/><br /><sub><b>David O'Trakoun</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=davidosomething" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/aispeaking"><img src="https://avatars.githubusercontent.com/u/139532597?v=4?s=50" width="50px;" alt="aispeaking"/><br /><sub><b>aispeaking</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=aispeaking" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/cclauss"><img src="https://avatars.githubusercontent.com/u/3709715?v=4?s=50" width="50px;" alt="Christian Clauss"/><br /><sub><b>Christian Clauss</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=cclauss" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
