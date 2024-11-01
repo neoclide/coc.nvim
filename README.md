@@ -849,6 +849,7 @@ Try these steps if you experience problems with coc.nvim:
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/itsf4llofstars"><img src="https://avatars.githubusercontent.com/u/90528743?v=4?s=50" width="50px;" alt="itsf4llofstars"/><br /><sub><b>itsf4llofstars</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=itsf4llofstars" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/brainwo"><img src="https://avatars.githubusercontent.com/u/45139213?v=4?s=50" width="50px;" alt="Brian Wo"/><br /><sub><b>Brian Wo</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=brainwo" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://wsdjeg.net/"><img src="https://avatars.githubusercontent.com/u/13142418?v=4?s=50" width="50px;" alt="Eric Wong"/><br /><sub><b>Eric Wong</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=wsdjeg" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/oxalica"><img src="https://avatars.githubusercontent.com/u/14816024?v=4?s=50" width="50px;" alt="oxalica"/><br /><sub><b>oxalica</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=oxalica" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
