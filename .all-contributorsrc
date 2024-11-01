@@ -1999,8 +1999,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "zhixiao-zhang",
+      "name": "forceofsystem",
+      "avatar_url": "https://avatars.githubusercontent.com/u/89405463?v=4",
+      "profile": "https://github.com/zhixiao-zhang",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }
