@@ -1999,8 +1999,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "de-vri-es",
+      "name": "Maarten de Vries",
+      "avatar_url": "https://avatars.githubusercontent.com/u/786213?v=4",
+      "profile": "https://www.linkedin.com/in/de-vries-maarten/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }
