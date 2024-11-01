@@ -2089,6 +2089,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "mehalter",
+      "name": "Micah Halter",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1591837?v=4",
+      "profile": "http://mehalter.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
