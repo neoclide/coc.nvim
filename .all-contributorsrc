@@ -1999,8 +1999,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "A4-Tacks",
+      "name": "A4-Tacks",
+      "avatar_url": "https://avatars.githubusercontent.com/u/102709083?v=4",
+      "profile": "https://github.com/A4-Tacks",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }
