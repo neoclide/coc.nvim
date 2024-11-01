@@ -841,6 +841,7 @@ Try these steps if you experience problems with coc.nvim:
       <td align="center" valign="top" width="14.28%"><a href="https://yongjie.codes/"><img src="https://avatars.githubusercontent.com/u/14101781?v=4?s=50" width="50px;" alt="Yong Jie"/><br /><sub><b>Yong Jie</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=YongJieYongJie" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://eight45.net"><img src="https://avatars.githubusercontent.com/u/489362?v=4?s=50" width="50px;" alt="Kira Oakley"/><br /><sub><b>Kira Oakley</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=hackergrrl" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://merwan.github.io"><img src="https://avatars.githubusercontent.com/u/222879?v=4?s=50" width="50px;" alt="Merouane Atig"/><br /><sub><b>Merouane Atig</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=merwan" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://gera2ld.space/"><img src="https://avatars.githubusercontent.com/u/3139113?v=4?s=50" width="50px;" alt="Gerald"/><br /><sub><b>Gerald</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=gera2ld" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
