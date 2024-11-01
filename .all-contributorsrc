@@ -1999,8 +1999,18 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "asmodeus812",
+      "name": "Svetlozar Iliev",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15955811?v=4",
+      "profile": "http://www.lebstertm.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }
