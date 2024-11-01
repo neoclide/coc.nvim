@@ -2043,7 +2043,7 @@
       "profile": "https://github.com/A4-Tacks",
       "contributions": [
         "code"
-        ]
+      ]
     },
     {
       "login": "zhixiao-zhang",
@@ -2052,7 +2052,7 @@
       "profile": "https://github.com/zhixiao-zhang",
       "contributions": [
         "code"
-       ]
+      ]
     },
     {
       "login": "statiolake",
@@ -2061,7 +2061,7 @@
       "profile": "https://github.com/statiolake",
       "contributions": [
         "code"
-       ]
+      ]
     },
     {
       "login": "davidosomething",
@@ -2070,6 +2070,15 @@
       "profile": "https://www.davidosomething.com/",
       "contributions": [
         "doc"
+      ]
+    },
+    {
+      "login": "aispeaking",
+      "name": "aispeaking",
+      "avatar_url": "https://avatars.githubusercontent.com/u/139532597?v=4",
+      "profile": "https://github.com/aispeaking",
+      "contributions": [
+        "code"
       ]
     }
   ],
