@@ -2179,6 +2179,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "wsdjeg",
+      "name": "Eric Wong",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13142418?v=4",
+      "profile": "https://wsdjeg.net/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
