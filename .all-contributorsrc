@@ -2143,6 +2143,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "V-Mann-Nick",
+      "name": "Nicklas Sedlock",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47660390?v=4",
+      "profile": "https://nicklas.sedlock.xyz/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
