@@ -844,6 +844,9 @@ Try these steps if you experience problems with coc.nvim:
       <td align="center" valign="top" width="14.28%"><a href="https://gera2ld.space/"><img src="https://avatars.githubusercontent.com/u/3139113?v=4?s=50" width="50px;" alt="Gerald"/><br /><sub><b>Gerald</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=gera2ld" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://nicklas.sedlock.xyz/"><img src="https://avatars.githubusercontent.com/u/47660390?v=4?s=50" width="50px;" alt="Nicklas Sedlock"/><br /><sub><b>Nicklas Sedlock</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=V-Mann-Nick" title="Code">💻</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/tcx4c70"><img src="https://avatars.githubusercontent.com/u/16728230?v=4?s=50" width="50px;" alt="Adam Tao"/><br /><sub><b>Adam Tao</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=tcx4c70" title="Code">💻</a></td>
+    </tr>
   </tbody>
 </table>
 
