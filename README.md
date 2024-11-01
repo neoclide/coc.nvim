@@ -822,6 +822,7 @@ Try these steps if you experience problems with coc.nvim:
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/skysky97"><img src="https://avatars.githubusercontent.com/u/18086458?v=4?s=50" width="50px;" alt="Li Yunting"/><br /><sub><b>Li Yunting</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Askysky97" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/LebJe"><img src="https://avatars.githubusercontent.com/u/51171427?v=4?s=50" width="50px;" alt="Jeff L."/><br /><sub><b>Jeff L.</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=LebJe" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://hachyderm.io/@mcmire"><img src="https://avatars.githubusercontent.com/u/7371?v=4?s=50" width="50px;" alt="Elliot Winkler"/><br /><sub><b>Elliot Winkler</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=mcmire" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://www.linkedin.com/in/de-vries-maarten/"><img src="https://avatars.githubusercontent.com/u/786213?v=4?s=50" width="50px;" alt="Maarten de Vries"/><br /><sub><b>Maarten de Vries</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=de-vri-es" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
