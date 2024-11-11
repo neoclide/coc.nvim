@@ -3985,7 +3985,7 @@ QuickPick related (available when created by |coc-dialog-quickpick|).
 <C-b>               - scroll backward quickpick list.
 <C-j> <C-n> <down>  - move to next item in quickpick list.
 <C-k> <C-p> <up>    - move to previous item in quickpick list.
-<C-space>           - toggle selection of current item in quickpick list when
+<C-t> <C-space>     - toggle selection of current item in quickpick list when
 canSelectMany is supported.
 
 Note on neovim, other insert mode key-mappings could work.
