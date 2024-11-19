@@ -60,6 +60,24 @@ export class LinesTextDocument implements TextDocument {
     return this.lines.length + (this.eol ? 1 : 0)
   }
 
+  public intersectWith(range: Range): Range {
+    let start: Position = Position.create(0, 0)
+    if (start.line < range.start.line) {
+      start = range.start
+    } else if (range.start.line === start.line) {
+      start = Position.create(start.line, Math.max(start.character, range.start.character))
+    }
+
+    let end: Position = this.end
+    if (range.end.line < end.line) {
+      end = range.end
+    } else if (range.end.line === end.line) {
+      end = Position.create(end.line, Math.min(end.character, range.end.character))
+    }
+
+    return Range.create(start, end)
+  }
+
   public getText(range?: Range): string {
     if (range) {
       let { start, end } = range

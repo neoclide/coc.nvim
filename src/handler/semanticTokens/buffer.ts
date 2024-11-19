@@ -426,7 +426,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let region = await nvim.call('coc#window#visible_range') as [number, number]
     if (!region || token.isCancellationRequested) return null
     let endLine = Math.min(region[0] + workspace.env.lines * 2, region[1] + workspace.env.lines, doc.lineCount)
-    let range = Range.create(region[0] - 1, 0, endLine, 0)
+    let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0))
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)
