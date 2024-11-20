@@ -182,7 +182,7 @@ export default class InlayHintBuffer implements SyncItem {
     if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return
     const startLine = Math.max(0, res[0] - RenderRangeExtendSize)
     const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize)
-    let range = Range.create(startLine, 0, endLine, 0)
+    let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0))
     let inlayHints = await this.requestInlayHints(range, token)
     if (inlayHints == null || token.isCancellationRequested) return
     this.regions.add(res[0], res[1])
