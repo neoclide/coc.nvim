@@ -1,4 +1,4 @@
-import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import type { Buffer, Neovim, Window } from '../neovim'
 import * as cp from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'

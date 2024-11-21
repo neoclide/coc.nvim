@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import styles from 'ansi-styles'
 import { EventEmitter } from 'events'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'

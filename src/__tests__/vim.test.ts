@@ -1,5 +1,5 @@
 process.env.VIM_NODE_RPC = '1'
-import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
+import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
 import { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import { sameFile } from '../util/fs'
 import type { Helper } from './helper'

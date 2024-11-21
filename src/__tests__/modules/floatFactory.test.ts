@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import events from '../../events'
 import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'

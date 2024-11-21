@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import events from '../events'
 import extensions from '../extension'
 import { createLogger } from '../logger'

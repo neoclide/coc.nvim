@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { ChangeAnnotation, CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import type { LinesChange } from '../core/files'

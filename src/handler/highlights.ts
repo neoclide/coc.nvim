@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { Buffer as NodeBuffer } from 'buffer'
 import { DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-types'
 import commands from '../commands'

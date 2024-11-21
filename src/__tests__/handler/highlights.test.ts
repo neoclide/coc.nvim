@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { Disposable, DocumentHighlightKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Highlights from '../../handler/highlights'

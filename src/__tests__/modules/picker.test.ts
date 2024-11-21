@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Picker, { toPickerItems } from '../../model/picker'

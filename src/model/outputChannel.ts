@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { OutputChannel } from '../types'
 
 function escapeQuote(input: string): string {

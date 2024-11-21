@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import Cursors from '../../cursors'
 import CursorsSession, { surrondChanges } from '../../cursors/session'

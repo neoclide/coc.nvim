@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import sources from '../../completion/sources'

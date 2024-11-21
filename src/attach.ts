@@ -1,5 +1,5 @@
 'use strict'
-import { attach, Attach, Neovim } from '@chemzqm/neovim'
+import { attach, Attach, Neovim } from './neovim'
 import { URI } from 'vscode-uri'
 import events from './events'
 import { createLogger } from './logger'
@@ -30,7 +30,7 @@ export function pathReplace(patterns: object | undefined): void {
 }
 
 export default (opts: Attach, requestApi = false): Plugin => {
-  const nvim: Neovim = attach(opts, createLogger('node-client'), requestApi)
+  const nvim: Neovim = attach(opts, createLogger('node-client-root'), requestApi)
   nvim.setVar('coc_process_pid', process.pid, true)
   nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
   const plugin = new Plugin(nvim)

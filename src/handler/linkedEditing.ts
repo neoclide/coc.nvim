@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Neovim, Window } from '../neovim'
 import { Position, TextEdit } from 'vscode-languageserver-types'
 import TextRange from '../cursors/textRange'
 import { getBeforeCount, getChange, getDelta } from '../cursors/util'

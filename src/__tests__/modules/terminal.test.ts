@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import helper from '../helper'
 import { TerminalModel } from '../../model/terminal'
 

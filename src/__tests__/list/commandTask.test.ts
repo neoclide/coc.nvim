@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import path from 'path'
 import { ListContext, ListTask } from '../../list/types'
 import manager from '../../list/manager'

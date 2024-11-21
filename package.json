@@ -84,7 +84,7 @@
     "vscode-languageserver": "^9.0.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^6.1.2",
+    "@chemzqm/msgpack-lite": "^0.1.29",
     "ansi-styles": "^5.2.0",
     "bytes": "^3.1.2",
     "cli-table": "^0.3.11",

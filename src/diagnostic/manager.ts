@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '../neovim'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range, TextDocumentIdentifier } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
