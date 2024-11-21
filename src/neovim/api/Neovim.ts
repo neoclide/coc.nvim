@@ -44,6 +44,21 @@ function getArgs(args?: VimValue | VimValue[]): VimValue[] {
 export class Neovim extends BaseApi {
   protected prefix = 'nvim_'
 
+  public getOption(name: string): Promise<VimValue> {
+    const method = this.transport.isVim ? `nvim_get_option` : `nvim_get_option_value`
+    const args = this.transport.isVim ? [name] : [name, {}]
+    return this.request(method, args)
+  }
+
+  public setOption(name: string, value: VimValue): Promise<void>
+  public setOption(name: string, value: VimValue, isNotify: true): void
+  public setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
+    const method = this.transport.isVim ? `nvim_set_option` : `nvim_set_option_value`
+    const args = this.transport.isVim ? [name, value] : [name, value, {}]
+
+    return isNotify ? this.notify(method, args) : this.request(method, args)
+  }
+
   public get apiInfo(): Promise<[number, ApiInfo]> {
     return this.request(`${this.prefix}get_api_info`)
   }
