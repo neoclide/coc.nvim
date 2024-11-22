@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'

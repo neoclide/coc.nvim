@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '../neovim'
 import type { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'

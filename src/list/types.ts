@@ -1,4 +1,4 @@
-import type { Window, Buffer } from '@chemzqm/neovim'
+import type { Window, Buffer } from '../neovim'
 import type { ProviderResult } from '../provider/index'
 import type { LocationWithTarget } from '../types'
 import type { CancellationToken } from '../util/protocol'

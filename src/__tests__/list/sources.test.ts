@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
@@ -696,7 +696,7 @@ describe('list sources', () => {
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder1')
       jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
-        name : 'workspace-folder1',
+        name: 'workspace-folder1',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])
@@ -721,7 +721,7 @@ describe('list sources', () => {
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder4')
       jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
-        name : 'workspace-folder4',
+        name: 'workspace-folder4',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])

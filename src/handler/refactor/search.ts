@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import { Range } from 'vscode-languageserver-types'

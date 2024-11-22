@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import Editors, { TextEditor, renamed } from '../../core/editors'
 import workspace from '../../workspace'
 import window from '../../window'

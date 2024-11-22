@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'

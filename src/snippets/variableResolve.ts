@@ -1,11 +1,10 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
 import WorkspaceFolderController from '../core/workspaceFolder'
 import { path } from '../util/node'
 import { hasOwnProperty } from '../util/object'
-import { toText } from '../util/string'
 import { Variable, VariableResolver } from "./parser"
 
 export function padZero(n: number): string {

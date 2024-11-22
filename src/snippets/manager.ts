@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'

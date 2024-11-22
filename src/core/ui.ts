@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
 import { Documentation, FloatConfig, FloatFactory, FloatOptions } from '../types'
@@ -59,7 +59,6 @@ export function createFloatFactory(nvim: Neovim, conf: FloatWinConfig, defaults:
 /**
  * Prompt user for confirm, a float/popup window would be used when possible,
  * use vim's |confirm()| function as callback.
- *
  * @param title The prompt text.
  * @returns Result of confirm.
  */
@@ -70,7 +69,6 @@ export async function showPrompt(nvim: Neovim, title: string): Promise<boolean> 
 
 /**
  * Move cursor to position.
- *
  * @param position LSP position.
  */
 export async function moveTo(nvim: Neovim, position: Position, redraw: boolean): Promise<void> {
@@ -81,7 +79,6 @@ export async function moveTo(nvim: Neovim, position: Position, redraw: boolean):
 /**
  * Get current cursor character offset in document,
  * length of line break would always be 1.
- *
  * @returns Character offset.
  */
 export async function getOffset(nvim: Neovim): Promise<number> {
@@ -91,7 +88,6 @@ export async function getOffset(nvim: Neovim): Promise<number> {
 /**
  * Get screen position of current cursor(relative to editor),
  * both `row` and `col` are 0 based.
- *
  * @returns Cursor screen position.
  */
 export async function getCursorScreenPosition(nvim: Neovim): Promise<ScreenPosition> {

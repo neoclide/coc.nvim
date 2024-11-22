@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { Disposable } from '../util/protocol'
 import events from '../events'
 import { disposeAll } from '../util'
@@ -9,7 +9,6 @@ import { toArray } from '../util/array'
 /**
  * Represents an action that is shown with an information, warning, or
  * error message.
- *
  * @see [showInformationMessage](#window.showInformationMessage)
  * @see [showWarningMessage](#window.showWarningMessage)
  * @see [showErrorMessage](#window.showErrorMessage)

@@ -1,4 +1,4 @@
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Neovim, Window } from '../../neovim'
 import EventEmitter from 'events'
 import path from 'path'
 import { Range } from 'vscode-languageserver-types'

@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import events from '../events'
 import { TerminalModel, TerminalOptions } from '../model/terminal'
 import { disposeAll } from '../util'
