@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 import path from 'path'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
@@ -97,11 +97,12 @@ describe('Client integration', () => {
       run: { module: serverModule, transport: TransportKind.ipc },
       debug: { module: serverModule, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
     }
-    const documentSelector: DocumentSelector = [{ scheme: 'lsptests' }]
+    const documentSelector: DocumentSelector = [{ scheme: 'lsptests', language: 'bat' }]
 
     middleware = {}
     const clientOptions: LanguageClientOptions = {
-      documentSelector, synchronize: {}, initializationOptions: {}, middleware
+      documentSelector, synchronize: {}, initializationOptions: {}, middleware,
+      workspaceFolder: { name: 'test_folder', uri: URI.parse('file-test:///').toString() },
     }
 
     client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
@@ -137,7 +138,9 @@ describe('Client integration', () => {
           resolveProvider: true
         },
         documentFormattingProvider: true,
-        documentRangeFormattingProvider: true,
+        documentRangeFormattingProvider: {
+          rangesSupport: true
+        },
         documentOnTypeFormattingProvider: {
           firstTriggerCharacter: ':'
         },
@@ -154,6 +157,7 @@ describe('Client integration', () => {
           documentSelector: [{ language: '*' }]
         },
         selectionRangeProvider: true,
+        inlineCompletionProvider: true,
         inlineValueProvider: {},
         inlayHintProvider: {
           resolveProvider: true
@@ -270,6 +274,7 @@ describe('Client integration', () => {
     testFeature(SemanticTokensRegistrationType.method, 'document')
     testFeature(LinkedEditingRangeRequest.method, 'document')
     testFeature(TypeHierarchyPrepareRequest.method, 'document')
+    testFeature(InlineCompletionRequest.method, 'document')
     testFeature(InlineValueRequest.method, 'document')
     testFeature(InlayHintRequest.method, 'document')
     testFeature(WorkspaceSymbolRequest.method, 'workspace')
@@ -536,6 +541,40 @@ describe('Client integration', () => {
       {},
       tokenSource.token,
     )
+  })
+
+  test('Progress percentage is an integer', async () => {
+    const progressToken = 'TEST-PROGRESS-PERCENTAGE'
+    const percentages: Array<number | undefined> = []
+    let currentProgressResolver: (value: unknown) => void | undefined
+
+    // Set up middleware that calls the current resolve function when it gets its 'end' progress event.
+    middleware.handleWorkDoneProgress = (token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next) => {
+      if (token === progressToken) {
+        const percentage = params.kind === 'report' || params.kind === 'begin' ? params.percentage : undefined
+        percentages.push(percentage)
+
+        if (params.kind === 'end') {
+          setImmediate(currentProgressResolver)
+        }
+      }
+      return next(token, params)
+    }
+
+    // Trigger a progress event.
+    await new Promise<unknown>(resolve => {
+      currentProgressResolver = resolve
+      void client.sendRequest(
+        new ProtocolRequestType<any, null, never, any, any>('testing/sendPercentageProgress'),
+        {},
+        tokenSource.token,
+      )
+    })
+
+    middleware.handleWorkDoneProgress = undefined
+
+    // Ensure percentages are rounded according to the spec
+    assert.deepStrictEqual(percentages, [0, 50, undefined])
   })
 
   test('Document Formatting', async () => {
@@ -822,7 +861,7 @@ describe('Client integration', () => {
 
   const referenceFileUri = URI.parse('/dummy-edit')
   function ensureReferenceEdit(edits: WorkspaceEdit, type: string, expectedLines: string[]) {
-    // // Ensure the edits are as expected.
+    // Ensure the edits are as expected.
     assert.strictEqual(edits.documentChanges?.length, 1)
     const edit = edits.documentChanges[0] as TextDocumentEdit
     assert.strictEqual(edit.edits.length, 1)
@@ -1351,6 +1390,27 @@ describe('Client integration', () => {
     }, true)
   })
 
+  test('Inline Completions', async () => {
+    const provider = client.getFeature(InlineCompletionRequest.method)?.getProvider(document)
+    isDefined(provider)
+    const results = (await provider.provideInlineCompletionItems(document, position, { triggerKind: 1, selectedCompletionInfo: { range, text: 'text' } }, tokenSource.token)) as InlineCompletionItem[]
+
+    isArray(results, InlineCompletionItem, 1)
+
+    rangeEqual(results[0].range!, 1, 2, 3, 4)
+    assert.strictEqual(results[0].filterText!, 'te')
+    assert.strictEqual(results[0].insertText, 'text inline')
+
+    let middlewareCalled = false
+    middleware.provideInlineCompletionItems = (d, r, c, t, n) => {
+      middlewareCalled = true
+      return n(d, r, c, t)
+    }
+    await provider.provideInlineCompletionItems(document, position, { triggerKind: 1, selectedCompletionInfo: undefined }, tokenSource.token)
+    middleware.provideInlineCompletionItems = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
   test('Workspace symbols', async () => {
     const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
     isDefined(providers)
@@ -1364,6 +1424,58 @@ describe('Client integration', () => {
     const symbol = await provider.resolveWorkspaceSymbol!(results[0], tokenSource.token)
     isDefined(symbol)
     rangeEqual(symbol.location['range'], 1, 2, 3, 4)
+  })
+
+  test('General middleware', async () => {
+    let middlewareCallCount = 0
+    // Add a general middleware for both requests and notifications
+    middleware.sendRequest = (type, param, token, next) => {
+      middlewareCallCount++
+      return next(type, param, token)
+    }
+    middleware.sendNotification = (type, next, params) => {
+      middlewareCallCount++
+      return next(type, params)
+    }
+    // Send a request
+    const definitionProvider = client.getFeature(DefinitionRequest.method).getProvider(document)
+    isDefined(definitionProvider)
+    await definitionProvider.provideDefinition(document, position, tokenSource.token)
+    // Send a notification
+    const notificationProvider = client.getFeature(DidSaveTextDocumentNotification.method).getProvider(document)
+    isDefined(notificationProvider)
+    await notificationProvider.send(document)
+    // Verify that both the request and notification went through the middleware
+    middleware.sendRequest = undefined
+    middleware.sendNotification = undefined
+    assert.strictEqual(middlewareCallCount, 2)
+  })
+
+  test('applyEdit middleware', async () => {
+    const middlewareEvents: Array<ApplyWorkspaceEditParams> = []
+    let currentProgressResolver: (value: unknown) => void | undefined
+
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.handleApplyEdit = async (params, next) => {
+      middlewareEvents.push(params)
+      setImmediate(currentProgressResolver)
+      return next(params, tokenSource.token)
+    }
+
+    // Trigger sample applyEdit event.
+    await new Promise<unknown>(resolve => {
+      currentProgressResolver = resolve
+      void client.sendRequest(
+        new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
+        {},
+        tokenSource.token,
+      )
+    })
+
+    middleware.workspace.handleApplyEdit = undefined
+
+    // Ensure event was handled.
+    assert.deepStrictEqual(middlewareEvents, [{ label: 'Apply Edit', edit: {} }])
   })
 })
 
@@ -1383,9 +1495,9 @@ class CrashClient extends LanguageClient {
     })
   }
 
-  protected handleConnectionClosed(): void {
-    super.handleConnectionClosed()
+  protected handleConnectionClosed(): Promise<void> {
     this.resolve!()
+    return super.handleConnectionClosed()
   }
 }
 
