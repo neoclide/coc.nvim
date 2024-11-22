@@ -1,17 +1,20 @@
 const assert = require('assert')
-const {URI} = require('vscode-uri')
+const { URI } = require('vscode-uri')
 const {
   createConnection, CompletionItemKind, ResourceOperationKind, FailureHandlingKind,
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification} = require('vscode-languageserver')
+  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification } = require('vscode-languageserver/node')
 
 const {
   DidCreateFilesNotification,
   DidRenameFilesNotification,
   DidDeleteFilesNotification,
-  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression
+  InlineCompletionItem,
+  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression,
+  ApplyWorkspaceEditRequest,
+  DocumentSymbol
 } = require('vscode-languageserver-protocol')
 
 let connection = createConnection()
@@ -64,7 +67,7 @@ connection.onInitialize(params => {
       triggerCharacters: [','],
       retriggerCharacters: [';']
     },
-    completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
+    completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
     referencesProvider: true,
     documentHighlightProvider: true,
     codeActionProvider: {
@@ -74,7 +77,9 @@ connection.onInitialize(params => {
       resolveProvider: true
     },
     documentFormattingProvider: true,
-    documentRangeFormattingProvider: true,
+    documentRangeFormattingProvider: {
+      rangesSupport: true
+    },
     documentOnTypeFormattingProvider: {
       firstTriggerCharacter: ':'
     },
@@ -84,20 +89,22 @@ connection.onInitialize(params => {
     documentLinkProvider: {
       resolveProvider: true
     },
+    documentSymbolProvider: true,
     colorProvider: true,
     declarationProvider: true,
     foldingRangeProvider: true,
     implementationProvider: {
-      documentSelector: [{language: '*'}]
+      documentSelector: [{ language: '*' }]
     },
     selectionRangeProvider: true,
     inlineValueProvider: {},
+    inlineCompletionProvider: {},
     inlayHintProvider: {
       resolveProvider: true
     },
     typeDefinitionProvider: {
       id: '82671a9a-2a69-4e9f-a8d7-e1034eaa0d2e',
-      documentSelector: [{language: '*'}]
+      documentSelector: [{ language: '*' }]
     },
     callHierarchyProvider: true,
     semanticTokensProvider: {
@@ -114,28 +121,28 @@ connection.onInitialize(params => {
       fileOperations: {
         // Static reg is folders + .txt files with operation kind in the path
         didCreate: {
-          filters: [{scheme: 'file', pattern: {glob: '**/created-static/**{/,/*.txt}'}}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' } }]
         },
         didRename: {
           filters: [
-            {scheme: 'file', pattern: {glob: '**/renamed-static/**/', matches: 'folder'}},
-            {scheme: 'file', pattern: {glob: '**/renamed-static/**/*.txt', matches: 'file'}}
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
           ]
         },
         didDelete: {
-          filters: [{scheme: 'file', pattern: {glob: '**/deleted-static/**{/,/*.txt}'}}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }]
         },
         willCreate: {
-          filters: [{scheme: 'file', pattern: {glob: '**/created-static/**{/,/*.txt}'}}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/created-static/**{/,/*.txt}' } }]
         },
         willRename: {
           filters: [
-            {scheme: 'file', pattern: {glob: '**/renamed-static/**/', matches: 'folder'}},
-            {scheme: 'file', pattern: {glob: '**/renamed-static/**/*.txt', matches: 'file'}}
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/', matches: 'folder' } },
+            { scheme: 'file', pattern: { glob: '**/renamed-static/**/*.txt', matches: 'file' } }
           ]
         },
         willDelete: {
-          filters: [{scheme: 'file', pattern: {glob: '**/deleted-static/**{/,/*.txt}'}}]
+          filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }]
         },
       },
     },
@@ -151,58 +158,58 @@ connection.onInitialize(params => {
     },
     notebookDocumentSync: {
       notebookSelector: [{
-        notebook: {notebookType: 'jupyter-notebook'},
-        cells: [{language: 'python'}]
+        notebook: { notebookType: 'jupyter-notebook' },
+        cells: [{ language: 'python' }]
       }]
     }
   }
-  return {capabilities, customResults: {hello: 'world'}}
+  return { capabilities, customResults: { hello: 'world' } }
 })
 
 connection.onInitialized(() => {
   // Dynamic reg is folders + .js files with operation kind in the path
-  connection.client.register(DidCreateFilesNotification.type, {
-    filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
+  void connection.client.register(DidCreateFilesNotification.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/created-dynamic/**{/,/*.js}' } }]
   })
-  connection.client.register(DidRenameFilesNotification.type, {
+  void connection.client.register(DidRenameFilesNotification.type, {
     filters: [
-      {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
-      {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/', matches: 'folder' } },
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/*.js', matches: 'file' } }
     ]
   })
-  connection.client.register(DidDeleteFilesNotification.type, {
-    filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
+  void connection.client.register(DidDeleteFilesNotification.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/deleted-dynamic/**{/,/*.js}' } }]
   })
-  connection.client.register(WillCreateFilesRequest.type, {
-    filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
+  void connection.client.register(WillCreateFilesRequest.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/created-dynamic/**{/,/*.js}' } }]
   })
-  connection.client.register(WillRenameFilesRequest.type, {
+  void connection.client.register(WillRenameFilesRequest.type, {
     filters: [
-      {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
-      {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/', matches: 'folder' } },
+      { scheme: 'file', pattern: { glob: '**/renamed-dynamic/**/*.js', matches: 'file' } }
     ]
   })
-  connection.client.register(WillDeleteFilesRequest.type, {
-    filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
+  void connection.client.register(WillDeleteFilesRequest.type, {
+    filters: [{ scheme: 'file', pattern: { glob: '**/deleted-dynamic/**{/,/*.js}' } }]
   })
-  connection.client.register(SignatureHelpRequest.type, {
+  void connection.client.register(SignatureHelpRequest.type, {
     triggerCharacters: [':'],
     retriggerCharacters: [':']
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(WorkspaceSymbolRequest.type, {
+  void connection.client.register(WorkspaceSymbolRequest.type, {
     workDoneProgress: false,
     resolveProvider: true
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(DidChangeConfigurationNotification.type, {
+  void connection.client.register(DidChangeConfigurationNotification.type, {
     section: 'http'
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(DidCreateFilesNotification.type, {
+  void connection.client.register(DidCreateFilesNotification.type, {
     filters: [{
       pattern: {
         glob: '**/renamed-dynamic/**/',
@@ -225,35 +232,35 @@ connection.onNotification('unregister', () => {
 })
 
 connection.onCodeLens(params => {
-  return [{range: Range.create(0, 0, 0, 3)}, {range: Range.create(1, 0, 1, 3)}]
+  return [{ range: Range.create(0, 0, 0, 3) }, { range: Range.create(1, 0, 1, 3) }]
 })
 
 connection.onNotification('fireCodeLensRefresh', () => {
-  connection.sendRequest(CodeLensRefreshRequest.type)
+  void connection.sendRequest(CodeLensRefreshRequest.type)
 })
 
 connection.onNotification('fireSemanticTokensRefresh', () => {
-  connection.sendRequest(SemanticTokensRefreshRequest.type)
+  void connection.sendRequest(SemanticTokensRefreshRequest.type)
 })
 
 connection.onNotification('fireInlayHintsRefresh', () => {
-  connection.sendRequest(InlayHintRefreshRequest.type)
+  void connection.sendRequest(InlayHintRefreshRequest.type)
 })
 
 connection.onCodeLensResolve(codelens => {
-  return {range: codelens.range, command: {title: 'format', command: 'editor.action.format'}}
+  return { range: codelens.range, command: { title: 'format', command: 'editor.action.format' } }
 })
 
 connection.onDeclaration(params => {
   assert.equal(params.position.line, 1)
   assert.equal(params.position.character, 1)
-  return {uri: params.textDocument.uri, range: {start: {line: 1, character: 1}, end: {line: 1, character: 2}}}
+  return { uri: params.textDocument.uri, range: { start: { line: 1, character: 1 }, end: { line: 1, character: 2 } } }
 })
 
 connection.onDefinition(params => {
   assert.equal(params.position.line, 1)
   assert.equal(params.position.character, 1)
-  return {uri: params.textDocument.uri, range: {start: {line: 0, character: 0}, end: {line: 0, character: 1}}}
+  return { uri: params.textDocument.uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } } }
 })
 
 connection.onHover(_params => {
@@ -267,7 +274,7 @@ connection.onHover(_params => {
 
 connection.onCompletion(_params => {
   return [
-    {label: 'item', insertText: 'text'}
+    { label: 'item', insertText: 'text' }
   ]
 })
 
@@ -309,7 +316,7 @@ connection.onCodeAction(params => {
 
 connection.onExecuteCommand(params => {
   if (params.command == 'test_command') {
-    return {success: true}
+    return { success: true }
   }
 })
 
@@ -341,7 +348,7 @@ connection.onPrepareRename(_params => {
 })
 
 connection.onRenameRequest(_params => {
-  return {documentChanges: []}
+  return { documentChanges: [] }
 })
 
 connection.onDocumentLinks(_params => {
@@ -353,6 +360,12 @@ connection.onDocumentLinks(_params => {
 connection.onDocumentLinkResolve(link => {
   link.target = URI.file('/target.txt').toString()
   return link
+})
+
+connection.onDocumentSymbol(_params => {
+  return [
+    DocumentSymbol.create('name', undefined, SymbolKind.Method, Range.create(1, 1, 3, 1), Range.create(2, 1, 2, 3))
+  ]
 })
 
 connection.onDocumentColor(_params => {
@@ -376,7 +389,7 @@ connection.onFoldingRanges(_params => {
 connection.onImplementation(params => {
   assert.equal(params.position.line, 1)
   assert.equal(params.position.character, 1)
-  return {uri: params.textDocument.uri, range: {start: {line: 2, character: 2}, end: {line: 3, character: 3}}}
+  return { uri: params.textDocument.uri, range: { start: { line: 2, character: 2 }, end: { line: 3, character: 3 } } }
 })
 
 connection.onSelectionRanges(_params => {
@@ -386,9 +399,9 @@ connection.onSelectionRanges(_params => {
 })
 
 let lastFileOperationRequest
-connection.workspace.onDidCreateFiles(params => {lastFileOperationRequest = {type: 'create', params}})
-connection.workspace.onDidRenameFiles(params => {lastFileOperationRequest = {type: 'rename', params}})
-connection.workspace.onDidDeleteFiles(params => {lastFileOperationRequest = {type: 'delete', params}})
+connection.workspace.onDidCreateFiles(params => { lastFileOperationRequest = { type: 'create', params } })
+connection.workspace.onDidRenameFiles(params => { lastFileOperationRequest = { type: 'rename', params } })
+connection.workspace.onDidDeleteFiles(params => { lastFileOperationRequest = { type: 'delete', params } })
 
 connection.onRequest(
   new ProtocolRequestType('testing/lastFileOperationRequest'),
@@ -401,7 +414,7 @@ connection.workspace.onWillCreateFiles(params => {
   const createdFilenames = params.files.map(f => `${f.uri}`).join('\n')
   return {
     documentChanges: [{
-      textDocument: {uri: '/dummy-edit', version: null},
+      textDocument: { uri: '/dummy-edit', version: null },
       edits: [
         TextEdit.insert(Position.create(0, 0), `WILL CREATE:\n${createdFilenames}`),
       ]
@@ -413,7 +426,7 @@ connection.workspace.onWillRenameFiles(params => {
   const renamedFilenames = params.files.map(f => `${f.oldUri} -> ${f.newUri}`).join('\n')
   return {
     documentChanges: [{
-      textDocument: {uri: '/dummy-edit', version: null},
+      textDocument: { uri: '/dummy-edit', version: null },
       edits: [
         TextEdit.insert(Position.create(0, 0), `WILL RENAME:\n${renamedFilenames}`),
       ]
@@ -425,7 +438,7 @@ connection.workspace.onWillDeleteFiles(params => {
   const deletedFilenames = params.files.map(f => `${f.uri}`).join('\n')
   return {
     documentChanges: [{
-      textDocument: {uri: '/dummy-edit', version: null},
+      textDocument: { uri: '/dummy-edit', version: null },
       edits: [
         TextEdit.insert(Position.create(0, 0), `WILL DELETE:\n${deletedFilenames}`),
       ]
@@ -436,7 +449,7 @@ connection.workspace.onWillDeleteFiles(params => {
 connection.onTypeDefinition(params => {
   assert.equal(params.position.line, 1)
   assert.equal(params.position.character, 1)
-  return {uri: params.textDocument.uri, range: {start: {line: 2, character: 2}, end: {line: 3, character: 3}}}
+  return { uri: params.textDocument.uri, range: { start: { line: 2, character: 2 }, end: { line: 3, character: 3 } } }
 })
 
 connection.languages.callHierarchy.onPrepare(params => {
@@ -490,6 +503,13 @@ connection.languages.semanticTokens.onDelta(() => {
   }
 })
 
+connection.languages.onLinkedEditingRange(() => {
+  return {
+    ranges: [Range.create(1, 1, 1, 1)],
+    wordPattern: '\\w'
+  }
+})
+
 connection.languages.diagnostics.on(() => {
   return {
     kind: DocumentDiagnosticReportKind.Full,
@@ -524,8 +544,8 @@ connection.languages.typeHierarchy.onPrepare(params => {
     selectionRange: Range.create(2, 2, 2, 2),
     uri: params.textDocument.uri
   }
-  typeHierarchySample.superTypes = [{...currentItem, name: 'classA', uri: 'uri-for-A'}]
-  typeHierarchySample.subTypes = [{...currentItem, name: 'classC', uri: 'uri-for-C'}]
+  typeHierarchySample.superTypes = [{ ...currentItem, name: 'classA', uri: 'uri-for-A' }]
+  typeHierarchySample.subTypes = [{ ...currentItem, name: 'classC', uri: 'uri-for-C' }]
   return [currentItem]
 })
 
@@ -561,21 +581,24 @@ connection.languages.inlayHint.resolve(hint => {
   return hint
 })
 
-connection.languages.onLinkedEditingRange(() => {
-  return {
-    ranges: [Range.create(1, 1, 1, 1)],
-    wordPattern: '\\w'
-  }
+connection.languages.inlineCompletion.on(_params => {
+  return [
+    InlineCompletionItem.create('text inline', 'te', Range.create(1, 2, 3, 4))
+  ]
+})
+
+connection.workspace.textDocumentContent.on(_params => {
+  return { text: 'Some test content' }
 })
 
 connection.onRequest(
   new ProtocolRequestType('testing/sendSampleProgress'),
   async (_, __) => {
     const progressToken = 'TEST-PROGRESS-TOKEN'
-    await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken})
-    void connection.sendProgress(WorkDoneProgress.type, progressToken, {kind: 'begin', title: 'Test Progress'})
-    void connection.sendProgress(WorkDoneProgress.type, progressToken, {kind: 'report', percentage: 50, message: 'Halfway!'})
-    void connection.sendProgress(WorkDoneProgress.type, progressToken, {kind: 'end', message: 'Completed!'})
+    await connection.sendRequest(WorkDoneProgressCreateRequest.type, { token: progressToken })
+    void connection.sendProgress(WorkDoneProgress.type, progressToken, { kind: 'begin', title: 'Test Progress' })
+    void connection.sendProgress(WorkDoneProgress.type, progressToken, { kind: 'report', percentage: 50, message: 'Halfway!' })
+    void connection.sendProgress(WorkDoneProgress.type, progressToken, { kind: 'end', message: 'Completed!' })
   },
 )
 
@@ -583,19 +606,35 @@ connection.onRequest(
   new ProtocolRequestType('testing/beginOnlyProgress'),
   async (_, __) => {
     const progressToken = 'TEST-PROGRESS-BEGIN'
-    await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken})
+    await connection.sendRequest(WorkDoneProgressCreateRequest.type, { token: progressToken })
   },
 )
 
+connection.onRequest(new ProtocolRequestType('testing/sendPercentageProgress'), async (_, __) => {
+  // According to the spec, the reported percentage has to be an integer.
+  // Because JS doesn't have integer support, we have rounding code in place.
+  const progressToken2 = 'TEST-PROGRESS-PERCENTAGE'
+  await connection.sendRequest(WorkDoneProgressCreateRequest.type, { token: progressToken2 })
+  const progress = connection.window.attachWorkDoneProgress(progressToken2)
+  progress.begin('Test Progress', 0.1)
+  progress.report(49.9, 'Halfway!')
+  progress.done()
+})
+
 connection.onWorkspaceSymbol(() => {
   return [
-    {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}
+    { name: 'name', kind: SymbolKind.Array, location: { uri: 'file:///abc.txt' } }
   ]
 })
 
 connection.onWorkspaceSymbolResolve(symbol => {
   symbol.location = Location.create(symbol.location.uri, Range.create(1, 2, 3, 4))
   return symbol
+})
+
+connection.onRequest(new ProtocolRequestType('testing/sendApplyEdit'), async (_, __) => {
+  const params = { label: 'Apply Edit', edit: {} }
+  await connection.sendRequest(ApplyWorkspaceEditRequest.type, params)
 })
 
 // Listen on the connection

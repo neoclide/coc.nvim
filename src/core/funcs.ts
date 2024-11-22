@@ -137,7 +137,8 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
 
     if (pattern) {
-      let p = caseInsensitive ? pattern.toLowerCase() : pattern
+      const realPattern = typeof pattern === 'string' ? pattern : pattern.pattern
+      let p = caseInsensitive ? realPattern.toLowerCase() : realPattern
       let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
       if (p === f || minimatch(f, p, { dot: true })) {
         ret = Math.max(ret, 5)
