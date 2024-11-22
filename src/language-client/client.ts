@@ -63,6 +63,7 @@ import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
+import * as c2p from './utils/codeConverter'
 
 const logger = createLogger('language-client-client')
 
@@ -194,6 +195,9 @@ export type LanguageClientOptions = {
   progressOnInitialization?: boolean
   errorHandler?: ErrorHandler
   middleware?: Middleware
+  uriConverter?: {
+    code2Protocol: c2p.URIConverter
+  }
   connectionOptions?: ConnectionOptions
   markdown?: {
     isTrusted?: boolean
@@ -217,6 +221,9 @@ type ResolvedClientOptions = {
   progressOnInitialization: boolean
   errorHandler: ErrorHandler
   middleware: Middleware
+  uriConverter?: {
+    code2Protocol: c2p.URIConverter
+  }
   connectionOptions?: ConnectionOptions
   markdown: {
     isTrusted: boolean
@@ -300,6 +307,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _tracer: Tracer
   private _consoleDebug = false
 
+  private readonly _c2p: c2p.Converter
+
   public constructor(
     id: string,
     name: string,
@@ -342,6 +351,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       }
     }
+    this._c2p = c2p.createConverter(clientOptions.uriConverter ? clientOptions.uriConverter.code2Protocol : undefined)
     this._syncedDocuments = new Map<string, TextDocument>()
     this.registerBuiltinFeatures()
   }
@@ -441,6 +451,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public get middleware(): Middleware {
     return this._clientOptions.middleware
+  }
+
+  public get code2ProtocolConverter(): c2p.Converter {
+    return this._c2p
   }
 
   public getPublicState(): State {

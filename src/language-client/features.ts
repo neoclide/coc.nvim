@@ -606,6 +606,8 @@ export interface FeatureClient<M, CO = object> {
   readonly configuredSection: string | undefined
   supportedMarkupKind: MarkupKind[]
 
+  code2ProtocolConverter: c2p.Converter
+
   start(): Promise<void>
   isRunning(): boolean
   stop(): Promise<void>
