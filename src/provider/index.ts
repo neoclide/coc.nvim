@@ -1,5 +1,5 @@
 'use strict'
-import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-protocol'
+import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol, InlineCompletionContext, InlineCompletionItem, InlineCompletionList } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 
@@ -57,12 +57,10 @@ export type ProviderResult<T> =
 export interface CompletionItemProvider {
   /**
    * Provide completion items for the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
    * @param context How the completion was triggered.
-   *
    * @return An array of completions, a [completion list](#CompletionList), or a thenable that resolves to either.
    * The lack of a result can be signaled by returning `undefined`, `null`, or an empty array.
    */
@@ -78,7 +76,6 @@ export interface CompletionItemProvider {
    * or [details](#CompletionItem.detail).
    *
    * The editor will only resolve a completion item once.
-   *
    * @param item A completion item currently active in the UI.
    * @param token A cancellation token.
    * @return The resolved completion item or a thenable that resolves to of such. It is OK to return the given
@@ -91,6 +88,34 @@ export interface CompletionItemProvider {
 }
 
 /**
+ * The inline completion item provider interface defines the contract between extensions and
+ * the inline completion feature.
+ *
+ * Providers are asked for completions either explicitly by a user gesture or implicitly when typing.
+ */
+export interface InlineCompletionItemProvider {
+
+  /**
+   * Provides inline completion items for the given position and document.
+   * If inline completions are enabled, this method will be called whenever the user stopped typing.
+   * It will also be called when the user explicitly triggers inline completions or explicitly asks for the next or previous inline completion.
+   * In that case, all available inline completions should be returned.
+   * `context.triggerKind` can be used to distinguish between these scenarios.
+   * @param document The document inline completions are requested for.
+   * @param position The position inline completions are requested for.
+   * @param context A context object with additional information.
+   * @param token A cancellation token.
+   * @returns An array of completion items or a thenable that resolves to an array of completion items.
+   */
+  provideInlineCompletionItems(
+    document: TextDocument,
+    position: Position,
+    context: InlineCompletionContext,
+    token: CancellationToken
+  ): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+}
+
+/**
  * The hover provider interface defines the contract between extensions and
  * the [hover](https://code.visualstudio.com/docs/editor/intellisense)-feature.
  */
@@ -99,7 +124,6 @@ export interface HoverProvider {
    * Provide a hover for the given position and document. Multiple hovers at the same
    * position will be merged by the editor. A hover can have a range which defaults
    * to the word range at the position when omitted.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -121,7 +145,6 @@ export interface HoverProvider {
 export interface DefinitionProvider {
   /**
    * Provide the definition of the symbol at the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -154,7 +177,6 @@ export interface DeclarationProvider {
 export interface SignatureHelpProvider {
   /**
    * Provide help for the signature at the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -176,7 +198,6 @@ export interface SignatureHelpProvider {
 export interface TypeDefinitionProvider {
   /**
    * Provide the type definition of the symbol at the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -208,7 +229,6 @@ export interface ReferenceContext {
 export interface ReferenceProvider {
   /**
    * Provide a set of project-wide references for the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param context
@@ -237,7 +257,6 @@ export interface FoldingRangeProvider {
   /**
    * Returns a list of folding ranges or null and undefined if the provider
    * does not want to participate or was cancelled.
-   *
    * @param document The document in which the command was invoked.
    * @param context Additional context information (for future use)
    * @param token A cancellation token.
@@ -266,7 +285,6 @@ export interface DocumentSymbolProvider {
 
   /**
    * Provide symbol information for the given document.
-   *
    * @param document The document in which the command was invoked.
    * @param token A cancellation token.
    * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
@@ -285,7 +303,6 @@ export interface DocumentSymbolProvider {
 export interface ImplementationProvider {
   /**
    * Provide the implementations of the symbol at the given position and document.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -314,7 +331,6 @@ export interface WorkspaceSymbolProvider {
    * and scoring on the results. A good rule of thumb is to match case-insensitive and to simply check that the
    * characters of *query* appear in their order in a candidate symbol. Don't use prefix, substring, or similar
    * strict matching.
-   *
    * @param query A non-empty query string.
    * @param token A cancellation token.
    * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
@@ -330,7 +346,6 @@ export interface WorkspaceSymbolProvider {
    * is selected in the UI. Providers can implement this method and return incomplete symbols from
    * [`provideWorkspaceSymbols`](#WorkspaceSymbolProvider.provideWorkspaceSymbols) which often helps to improve
    * performance.
-   *
    * @param symbol The symbol that is to be resolved. Guaranteed to be an instance of an object returned from an
    * earlier call to `provideWorkspaceSymbols`.
    * @param token A cancellation token.
@@ -351,7 +366,6 @@ export interface RenameProvider {
   /**
    * Provide an edit that describes changes that have to be made to one
    * or many resources to rename a symbol to a different name.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param newName The new name of the symbol. If the given name is not valid, the provider must return a rejected promise.
@@ -370,7 +384,6 @@ export interface RenameProvider {
    * Optional function for resolving and validating a position *before* running rename. The result can
    * be a range or a range and a placeholder text. The placeholder text should be the identifier of the symbol
    * which is being renamed - when omitted the text in the returned range is used.
-   *
    * @param document The document in which rename will be invoked.
    * @param position The position at which rename will be invoked.
    * @param token A cancellation token.
@@ -390,7 +403,6 @@ export interface RenameProvider {
 export interface DocumentFormattingEditProvider {
   /**
    * Provide formatting edits for a whole document.
-   *
    * @param document The document in which the command was invoked.
    * @param options Options controlling formatting.
    * @param token A cancellation token.
@@ -415,7 +427,6 @@ export interface DocumentRangeFormattingEditProvider {
    * The given range is a hint and providers can decide to format a smaller
    * or larger range. Often this is done by adjusting the start and end
    * of the range to full syntax nodes.
-   *
    * @param document The document in which the command was invoked.
    * @param range The range which should be formatted.
    * @param options Options controlling formatting.
@@ -440,7 +451,6 @@ export interface DocumentRangeFormattingEditProvider {
 export interface CodeActionProvider<T extends CodeAction = CodeAction> {
   /**
    * Provide commands for the given document and range.
-   *
    * @param document The document in which the command was invoked.
    * @param range The selector or range for which the command was invoked. This will always be a selection if
    * there is a currently active editor.
@@ -460,7 +470,6 @@ export interface CodeActionProvider<T extends CodeAction = CodeAction> {
    * Given a code action fill in its [`edit`](#CodeAction.edit)-property. Changes to
    * all other properties, like title, are ignored. A code action that has an edit
    * will not be resolved.
-   *
    * @param codeAction A code action.
    * @param token A cancellation token.
    * @return The resolved code action or a thenable that resolves to such. It is OK to return the given
@@ -491,7 +500,6 @@ export interface DocumentHighlightProvider {
   /**
    * Provide a set of document highlights, like all occurrences of a variable or
    * all exit-points of a function.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -514,7 +522,6 @@ export interface DocumentLinkProvider {
   /**
    * Provide links for the given document. Note that the editor ships with a default provider that detects
    * `http(s)` and `file` links.
-   *
    * @param document The document in which the command was invoked.
    * @param token A cancellation token.
    * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
@@ -527,7 +534,6 @@ export interface DocumentLinkProvider {
    * link is selected in the UI. Providers can implement this method and return incomple links
    * (without target) from the [`provideDocumentLinks`](#DocumentLinkProvider.provideDocumentLinks) method which
    * often helps to improve performance.
-   *
    * @param link The link that is to be resolved.
    * @param token A cancellation token.
    */
@@ -549,7 +555,6 @@ export interface CodeLensProvider {
    * Compute a list of [lenses](#CodeLens). This call should return as fast as possible and if
    * computing the commands is expensive implementors should only return code lens objects with the
    * range set and implement [resolve](#CodeLensProvider.resolveCodeLens).
-   *
    * @param document The document in which the command was invoked.
    * @param token A cancellation token.
    * @return An array of code lenses or a thenable that resolves to such. The lack of a result can be
@@ -560,7 +565,6 @@ export interface CodeLensProvider {
   /**
    * This function will be called for each visible code lens, usually when scrolling and after
    * calls to [compute](#CodeLensProvider.provideCodeLenses)-lenses.
-   *
    * @param codeLens code lens that must be resolved.
    * @param token A cancellation token.
    * @return The given, resolved code lens or thenable that resolves to such.
@@ -580,7 +584,6 @@ export interface OnTypeFormattingEditProvider {
    * The given position and character should hint to the provider
    * what range the position to expand to, like find the matching `{`
    * when `}` has been entered.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param ch The character that has been typed.
@@ -600,7 +603,6 @@ export interface DocumentColorProvider {
 
   /**
    * Provide colors for the given document.
-   *
    * @param document The document in which the command was invoked.
    * @param token A cancellation token.
    * @return An array of [color information](#ColorInformation) or a thenable that resolves to such. The lack of a result
@@ -610,7 +612,6 @@ export interface DocumentColorProvider {
 
   /**
    * Provide [representations](#ColorPresentation) for a color.
-   *
    * @param color The color to show and insert.
    * @param context A context object with additional information
    * @param token A cancellation token.
@@ -633,7 +634,6 @@ export interface TextDocumentContentProvider {
    * The editor will use the returned string-content to create a readonly
    * [document](#TextDocument). Resources allocated should be released when
    * the corresponding document has been [closed](#workspace.onDidCloseTextDocument).
-   *
    * @param uri An uri which scheme matches the scheme this provider was [registered](#workspace.registerTextDocumentContentProvider) for.
    * @param token A cancellation token.
    * @return A string or a thenable that resolves to such.
@@ -660,7 +660,6 @@ export interface CallHierarchyProvider {
    * Bootstraps call hierarchy by returning the item that is denoted by the given document
    * and position. This item will be used as entry into the call graph. Providers should
    * return `undefined` or `null` when there is no item at the given location.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -673,7 +672,6 @@ export interface CallHierarchyProvider {
    * Provide all incoming calls for an item, e.g all callers for a method. In graph terms this describes directed
    * and annotated edges inside the call graph, e.g the given item is the starting node and the result is the nodes
    * that can be reached.
-   *
    * @param item The hierarchy item for which incoming calls should be computed.
    * @param token A cancellation token.
    * @returns A set of incoming calls or a thenable that resolves to such. The lack of a result can be
@@ -685,7 +683,6 @@ export interface CallHierarchyProvider {
    * Provide all outgoing calls for an item, e.g call calls to functions, methods, or constructors from the given item. In
    * graph terms this describes directed and annotated edges inside the call graph, e.g the given item is the starting
    * node and the result is the nodes that can be reached.
-   *
    * @param item The hierarchy item for which outgoing calls should be computed.
    * @param token A cancellation token.
    * @returns A set of outgoing calls or a thenable that resolves to such. The lack of a result can be
@@ -759,7 +756,6 @@ export interface DocumentSemanticTokensProvider {
    *    // 1st token,  2nd token,  3rd token
    *    [  2,5,3,0,3,  0,5,4,1,0,  3,2,7,2,0 ]
    * ```
-   *
    * @see [SemanticTokensBuilder](#SemanticTokensBuilder) for a helper to encode tokens as integers.
    * *NOTE*: When doing edits, it is possible that multiple edits occur until VS Code decides to invoke the semantic tokens provider.
    * *NOTE*: If the provider cannot temporarily compute semantic tokens, it can indicate this by throwing an error with the message 'Busy'.
@@ -815,7 +811,6 @@ export interface LinkedEditingRangeProvider {
    * that have the same content. A change to one of the ranges can be applied to all other ranges if the new content
    * is valid. An optional word pattern can be returned with the result to describe valid contents.
    * If no result-specific word pattern is provided, the word pattern from the language configuration is used.
-   *
    * @param document The document in which the provider was invoked.
    * @param position The position at which the provider was invoked.
    * @param token A cancellation token.
@@ -839,7 +834,6 @@ export interface InlayHintsProvider<T extends InlayHint = InlayHint> {
    * Provide inlay hints for the given range and document.
    *
    * *Note* that inlay hints that are not {@link Range.contains contained} by the given range are ignored.
-   *
    * @param document The document in which the command was invoked.
    * @param range The range for which inlay hints should be computed.
    * @param token A cancellation token.
@@ -852,7 +846,6 @@ export interface InlayHintsProvider<T extends InlayHint = InlayHint> {
    * or complete label {@link InlayHintLabelPart parts}.
    *
    * *Note* that the editor will resolve an inlay hint at most once.
-   *
    * @param hint An inlay hint.
    * @param token A cancellation token.
    * @return The resolved inlay hint or a thenable that resolves to such. It is OK to return the given `item`. When no result is returned, the given `item` will be used.
@@ -870,7 +863,6 @@ export interface TypeHierarchyProvider {
    * Bootstraps type hierarchy by returning the item that is denoted by the given document
    * and position. This item will be used as entry into the type graph. Providers should
    * return `undefined` or `null` when there is no item at the given location.
-   *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
    * @param token A cancellation token.
@@ -883,7 +875,6 @@ export interface TypeHierarchyProvider {
    * Provide all supertypes for an item, e.g all types from which a type is derived/inherited. In graph terms this describes directed
    * and annotated edges inside the type graph, e.g the given item is the starting node and the result is the nodes
    * that can be reached.
-   *
    * @param item The hierarchy item for which super types should be computed.
    * @param token A cancellation token.
    * @returns A set of direct supertypes or a thenable that resolves to such. The lack of a result can be
@@ -895,7 +886,6 @@ export interface TypeHierarchyProvider {
    * Provide all subtypes for an item, e.g all types which are derived/inherited from the given item. In
    * graph terms this describes directed and annotated edges inside the type graph, e.g the given item is the starting
    * node and the result is the nodes that can be reached.
-   *
    * @param item The hierarchy item for which subtypes should be computed.
    * @param token A cancellation token.
    * @returns A set of direct subtypes or a thenable that resolves to such. The lack of a result can be
@@ -913,7 +903,6 @@ export interface InlineValuesProvider {
 
   /**
    * An optional event to signal that inline values have changed.
-   *
    * @see {@link EventEmitter}
    */
   onDidChangeInlineValues?: Event<void> | undefined
@@ -922,7 +911,6 @@ export interface InlineValuesProvider {
    * Provide "inline value" information for a given document and range.
    * The editor calls this method whenever debugging stops in the given document.
    * The returned inline values information is rendered in the editor at the end of lines.
-   *
    * @param document The document for which the inline values information is needed.
    * @param viewPort The visible document range for which inline values should be computed.
    * @param context A bag containing contextual information like the current location.
