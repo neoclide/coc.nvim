@@ -145,12 +145,13 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     watchDelete: boolean,
     listeners: Disposable[]
   ): void {
+    const client = this._client
     // TODO rename support
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Created
           }),
         null,
@@ -161,7 +162,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       fileSystemWatcher.onDidChange(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Changed
           }),
         null,
@@ -172,7 +173,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       fileSystemWatcher.onDidDelete(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Deleted
           }),
         null,

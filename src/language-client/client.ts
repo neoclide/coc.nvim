@@ -57,7 +57,6 @@ import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidClo
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
-import * as cv from './utils/converter'
 import { CloseAction, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
@@ -993,7 +992,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
-      rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
+      rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),

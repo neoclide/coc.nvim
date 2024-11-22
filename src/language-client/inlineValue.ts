@@ -5,7 +5,6 @@ import languages from '../languages'
 import { InlineValuesProvider, ProviderResult } from '../provider'
 import { Emitter, InlineValueRefreshRequest, InlineValueRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export type ProvideInlineValuesSignature = (this: void, document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken) => ProviderResult<InlineValue[]>
 
@@ -52,7 +51,7 @@ export class InlineValueFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideInlineValues: ProvideInlineValuesSignature = (document, range, context, token) => {
           const requestParams: InlineValueParams = {
-            textDocument: cv.asTextDocumentIdentifier(document),
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             range,
             context
           }

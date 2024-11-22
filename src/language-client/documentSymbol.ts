@@ -6,7 +6,6 @@ import languages from '../languages'
 import { DocumentSymbolProvider, ProviderResult } from '../provider'
 import { CancellationToken, Disposable, DocumentSymbolRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export const SupportedSymbolKinds: SymbolKind[] = [
@@ -99,7 +98,7 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
         const _provideDocumentSymbols: ProvideDocumentSymbolsSignature = (document, token) => {
           return this.sendRequest(
             DocumentSymbolRequest.type,
-            cv.asDocumentSymbolParams(document),
+            client.code2ProtocolConverter.asDocumentSymbolParams(document),
             token
           )
         }

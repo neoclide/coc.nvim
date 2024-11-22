@@ -177,6 +177,6 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   private asProtocol(workspaceFolder: undefined): null
   private asProtocol(workspaceFolder: WorkspaceFolder | undefined): WorkspaceFolder | null {
     if (workspaceFolder == null) return null
-    return { uri: workspaceFolder.uri, name: workspaceFolder.name }
+    return { uri: this._client.code2ProtocolConverter.asUri(URI.parse(workspaceFolder.uri)), name: workspaceFolder.name }
   }
 }

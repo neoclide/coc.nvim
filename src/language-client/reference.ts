@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, ReferenceProvider } from '../provider'
 import { ReferencesRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideReferencesSignature {
@@ -66,7 +65,7 @@ export class ReferencesFeature extends TextDocumentLanguageFeature<
         const _providerReferences: ProvideReferencesSignature = (document, position, options, token) => {
           return this.sendRequest(
             ReferencesRequest.type,
-            cv.asReferenceParams(document, position, options),
+            client.code2ProtocolConverter.asReferenceParams(document, position, options),
             token
           )
         }

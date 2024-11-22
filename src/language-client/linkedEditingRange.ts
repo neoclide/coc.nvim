@@ -5,7 +5,6 @@ import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
 import { LinkedEditingRangeRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export interface ProvideLinkedEditingRangeSignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
@@ -44,7 +43,7 @@ export class LinkedEditingFeature extends TextDocumentLanguageFeature<boolean | 
       provideLinkedEditingRanges: (document, position, token) => {
         const client = this._client
         const provideLinkedEditing: ProvideLinkedEditingRangeSignature = (document, position, token) => {
-          const params = cv.asTextDocumentPositionParams(document, position)
+          const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position)
           return this.sendRequest(LinkedEditingRangeRequest.type, params, token)
         }
         const middleware = client.middleware!

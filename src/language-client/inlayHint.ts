@@ -7,7 +7,6 @@ import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
 import { Emitter, InlayHintRefreshRequest, InlayHintRequest, InlayHintResolveRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export type ProvideInlayHintsSignature = (this: void, document: TextDocument, viewPort: Range, token: CancellationToken) => ProviderResult<InlayHint[]>
 export type ResolveInlayHintSignature = (this: void, item: InlayHint, token: CancellationToken) => ProviderResult<InlayHint>
@@ -60,7 +59,7 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideInlayHints: ProvideInlayHintsSignature = (document, range, token) => {
           const requestParams: InlayHintParams = {
-            textDocument: cv.asTextDocumentIdentifier(document),
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             range
           }
           return this.sendRequest(InlayHintRequest.type, requestParams, token, null)

@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, TypeDefinitionProvider } from '../provider'
 import { CancellationToken, TypeDefinitionRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export interface ProvideTypeDefinitionSignature {
   (
@@ -50,7 +49,7 @@ export class TypeDefinitionFeature extends TextDocumentLanguageFeature<boolean |
       provideTypeDefinition: (document, position, token) => {
         const client = this._client
         const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) =>
-          this.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token)
+          this.sendRequest(TypeDefinitionRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token)
         const middleware = client.middleware
         return middleware.provideTypeDefinition
           ? middleware.provideTypeDefinition(document, position, token, provideTypeDefinition)
