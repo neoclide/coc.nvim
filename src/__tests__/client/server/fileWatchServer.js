@@ -1,17 +1,17 @@
 'use strict'
-const {createConnection, DidChangeWatchedFilesNotification} = require('vscode-languageserver')
-const {URI} = require('vscode-uri')
+const { createConnection, DidChangeWatchedFilesNotification } = require('vscode-languageserver/node')
+const { URI } = require('vscode-uri')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
-connection.onInitialize((_params) => {
-  return {capabilities: {}}
+connection.onInitialize(_params => {
+  return { capabilities: {} }
 })
 
 let disposables = []
 connection.onInitialized(() => {
-  connection.client.register(DidChangeWatchedFilesNotification.type, {
+  void connection.client.register(DidChangeWatchedFilesNotification.type, {
     watchers: [{
       globPattern: '**/jsconfig.json',
     }, {
@@ -32,14 +32,14 @@ connection.onInitialized(() => {
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(DidChangeWatchedFilesNotification.type, {
+  void connection.client.register(DidChangeWatchedFilesNotification.type, {
     watchers: null
   }).then(d => {
     disposables.push(d)
   })
 })
 connection.onNotification(DidChangeWatchedFilesNotification.type, params => {
-  connection.sendNotification('filesChange', params)
+  void connection.sendNotification('filesChange', params)
 })
 
 connection.onNotification('unwatch', () => {
