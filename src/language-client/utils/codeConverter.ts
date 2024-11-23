@@ -53,13 +53,13 @@ export interface URIConverter {
 }
 
 export function createConverter(uriConverter?: URIConverter): Converter {
-  uriConverter = uriConverter || ((value: URI) => value.toString());
+  uriConverter = uriConverter || ((value: URI) => value.toString())
 
   function asUri(value: URI | DocumentUri): string {
     if (URI.isUri(value)) {
-      return uriConverter(value);
+      return uriConverter(value)
     } else {
-      return uriConverter(URI.parse(value));
+      return uriConverter(URI.parse(value))
     }
   }
 
@@ -103,7 +103,6 @@ export function createConverter(uriConverter?: URIConverter): Converter {
     return result
   }
 
-
   function asFullChangeTextDocumentParams(textDocument: TextDocument): protocol.DidChangeTextDocumentParams {
     return {
       textDocument: asVersionedTextDocumentIdentifier(textDocument),
@@ -111,21 +110,20 @@ export function createConverter(uriConverter?: URIConverter): Converter {
     }
   }
 
-
   function asCloseTextDocumentParams(textDocument: TextDocument): protocol.DidCloseTextDocumentParams {
     return {
       textDocument: asTextDocumentIdentifier(textDocument)
     }
   }
 
-  function asSaveTextDocumentParams(textDocument: TextDocument, includeText: boolean = false): protocol.DidSaveTextDocumentParams {
+  function asSaveTextDocumentParams(textDocument: TextDocument, includeText = false): protocol.DidSaveTextDocumentParams {
     let result: protocol.DidSaveTextDocumentParams = {
       textDocument: asVersionedTextDocumentIdentifier(textDocument)
     }
     if (includeText) {
-      result.text = textDocument.getText();
+      result.text = textDocument.getText()
     }
-    return result;
+    return result
   }
 
   function asWillSaveTextDocumentParams(event: TextDocumentWillSaveEvent): protocol.WillSaveTextDocumentParams {
@@ -175,14 +173,14 @@ export function createConverter(uriConverter?: URIConverter): Converter {
   function asTextDocumentPositionParams(textDocument: TextDocument, position: Position): protocol.TextDocumentPositionParams {
     return {
       textDocument: asTextDocumentIdentifier(textDocument),
-      position: position
+      position
     }
   }
 
   function asCompletionParams(textDocument: TextDocument, position: Position, context: protocol.CompletionContext): protocol.CompletionParams {
     return {
       textDocument: asTextDocumentIdentifier(textDocument),
-      position: position,
+      position,
       context: omit(context, ['option'])
     }
   }
@@ -190,15 +188,15 @@ export function createConverter(uriConverter?: URIConverter): Converter {
   function asSignatureHelpParams(textDocument: TextDocument, position: Position, context: protocol.SignatureHelpContext): protocol.SignatureHelpParams {
     return {
       textDocument: asTextDocumentIdentifier(textDocument),
-      position: position,
-      context: context
+      position,
+      context
     }
   }
 
   function asReferenceParams(textDocument: TextDocument, position: Position, options: { includeDeclaration: boolean }): protocol.ReferenceParams {
     return {
       textDocument: asTextDocumentIdentifier(textDocument),
-      position: position,
+      position,
       context: { includeDeclaration: options.includeDeclaration }
     }
   }
