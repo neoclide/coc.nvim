@@ -5,7 +5,6 @@ import languages from '../languages'
 import { DocumentHighlightRequest } from '../util/protocol'
 import { DocumentHighlightProvider, ProviderResult } from '../provider'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentHighlightsSignature {
@@ -64,7 +63,7 @@ export class DocumentHighlightFeature extends TextDocumentLanguageFeature<
         const _provideDocumentHighlights: ProvideDocumentHighlightsSignature = (document, position, token) => {
           return this.sendRequest(
             DocumentHighlightRequest.type,
-            cv.asTextDocumentPositionParams(document, position),
+            client.code2ProtocolConverter.asTextDocumentPositionParams(document, position),
             token
           )
         }

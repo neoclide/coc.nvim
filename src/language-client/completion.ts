@@ -6,7 +6,6 @@ import languages from '../languages'
 import { CompletionItemProvider, ProviderResult } from '../provider'
 import { CompletionRequest, CompletionResolveRequest, Disposable } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 const SupportedCompletionItemKinds: CompletionItemKind[] = [
@@ -124,7 +123,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
         const provideCompletionItems: ProvideCompletionItemsSignature = (document, position, context, token) => {
           return this.sendRequest(
             CompletionRequest.type,
-            cv.asCompletionParams(document, position, context),
+            this._client.code2ProtocolConverter.asCompletionParams(document, position, context),
             token,
             []
           )

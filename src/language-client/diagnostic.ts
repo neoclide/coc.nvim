@@ -383,8 +383,9 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       onDidChangeDiagnostics: this.onDidChangeDiagnosticsEmitter.event,
       provideDiagnostics: (document, previousResultId, token) => {
         const middleware = this.client.middleware!
+        const client = this._client
         const provideDiagnostics: ProvideDiagnosticSignature = (document, previousResultId, token) => {
-          const uri = document instanceof URI ? document.toString() : document.uri
+          const uri = client.code2ProtocolConverter.asUri(document instanceof URI ? document : URI.parse(document.uri))
           const params: DocumentDiagnosticParams = {
             identifier: this.options.identifier,
             textDocument: { uri },

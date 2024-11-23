@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, SignatureHelpProvider } from '../provider'
 import { SignatureHelpRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideSignatureHelpSignature {
@@ -69,7 +68,7 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
         const providerSignatureHelp: ProvideSignatureHelpSignature = (document, position, context, token) => {
           return this.sendRequest(
             SignatureHelpRequest.type,
-            cv.asSignatureHelpParams(document, position, context),
+            client.code2ProtocolConverter.asSignatureHelpParams(document, position, context),
             token
           )
         }

@@ -9,7 +9,6 @@ import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, Pr
 import * as Is from '../util/is'
 import { Disposable, Emitter, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationType, SemanticTokensRequest, TokenFormat } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export interface DocumentSemanticsTokensSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
@@ -126,7 +125,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
           const middleware = client.middleware!
           const provideDocumentSemanticTokens: DocumentSemanticsTokensSignature = (document, token) => {
             const params: SemanticTokensParams = {
-              textDocument: cv.asTextDocumentIdentifier(document)
+              textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
             }
             return this.sendRequest(SemanticTokensRequest.type, params, token)
           }
@@ -140,7 +139,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
             const middleware = client.middleware!
             const provideDocumentSemanticTokensEdits: DocumentSemanticsTokensEditsSignature = (document, previousResultId, token) => {
               const params: SemanticTokensDeltaParams = {
-                textDocument: cv.asTextDocumentIdentifier(document),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
                 previousResultId
               }
               return this.sendRequest(SemanticTokensDeltaRequest.type, params, token)
@@ -161,7 +160,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
           const middleware = client.middleware!
           const provideDocumentRangeSemanticTokens: DocumentRangeSemanticTokensSignature = (document, range, token) => {
             const params: SemanticTokensRangeParams = {
-              textDocument: cv.asTextDocumentIdentifier(document),
+              textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
               range
             }
             return this.sendRequest(SemanticTokensRangeRequest.type, params, token)

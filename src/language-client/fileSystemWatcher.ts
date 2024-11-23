@@ -10,8 +10,9 @@ import { debounce } from '../util/node'
 import { DidChangeWatchedFilesNotification, FileChangeType, RelativePattern, WatchKind } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
+import RelativePatternImpl from '../model/relativePattern'
+import { URI } from 'vscode-uri'
 
 export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void
@@ -31,6 +32,14 @@ interface $FileEventOptions {
   }
 }
 const debounceTime = getConditionValue(200, 20)
+
+function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
+  let { baseUri, pattern } = rp
+  if (typeof baseUri === 'string') {
+    return new RelativePatternImpl(URI.parse(baseUri), pattern)
+  }
+  return new RelativePatternImpl(baseUri, pattern)
+}
 
 export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatchedFilesRegistrationOptions> {
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
@@ -108,7 +117,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       if (Is.string(watcher.globPattern)) {
         globPattern = watcher.globPattern
       } else if (RelativePattern.is(watcher.globPattern)) {
-        globPattern = cv.asRelativePattern(watcher.globPattern)
+        globPattern = asRelativePattern(watcher.globPattern)
       } else {
         continue
       }
@@ -145,12 +154,13 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     watchDelete: boolean,
     listeners: Disposable[]
   ): void {
+    const client = this._client
     // TODO rename support
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Created
           }),
         null,
@@ -161,7 +171,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       fileSystemWatcher.onDidChange(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Changed
           }),
         null,
@@ -172,7 +182,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       fileSystemWatcher.onDidDelete(
         resource =>
           this.notifyFileEvent({
-            uri: cv.asUri(resource),
+            uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Deleted
           }),
         null,

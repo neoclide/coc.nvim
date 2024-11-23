@@ -112,9 +112,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
         const client = this._client
         const _provideCodeActions: ProvideCodeActionsSignature = (document, range, context, token) => {
           const params: CodeActionParams = {
-            textDocument: {
-              uri: document.uri
-            },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             range,
             context,
           }

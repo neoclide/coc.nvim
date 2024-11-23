@@ -19,6 +19,7 @@ import * as Is from '../util/is'
 import workspace from '../workspace'
 import * as UUID from './utils/uuid'
 import { CancellationError } from '../util/errors'
+import * as c2p from './utils/codeConverter'
 
 export class LSPCancellationError extends CancellationError {
   public readonly data: object | Object
@@ -605,6 +606,8 @@ export interface FeatureClient<M, CO = object> {
   readonly id: string
   readonly configuredSection: string | undefined
   supportedMarkupKind: MarkupKind[]
+
+  code2ProtocolConverter: c2p.Converter
 
   start(): Promise<void>
   isRunning(): boolean

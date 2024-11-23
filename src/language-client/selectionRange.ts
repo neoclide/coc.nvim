@@ -38,7 +38,7 @@ export class SelectionRangeFeature extends TextDocumentLanguageFeature<boolean |
         const client = this._client
         const provideSelectionRanges: ProvideSelectionRangeSignature = (document, positions, token) => {
           const requestParams: SelectionRangeParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             positions
           }
           return this.sendRequest(SelectionRangeRequest.type, requestParams, token)

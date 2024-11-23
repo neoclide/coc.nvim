@@ -7,7 +7,6 @@ import {
   DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
 } from '../util/protocol'
 import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentFormattingEditsSignature {
@@ -108,7 +107,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideDocumentFormattingEdits: ProvideDocumentFormattingEditsSignature = (document, options, token) => {
           const params: DocumentFormattingParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             options
           }
           return this.sendRequest(DocumentFormattingRequest.type, params, token)
@@ -164,7 +163,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideDocumentRangeFormattingEdits: ProvideDocumentRangeFormattingEditsSignature = (document, range, options, token) => {
           const params: DocumentRangeFormattingParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             range,
             options,
           }
@@ -214,7 +213,7 @@ export class DocumentOnTypeFormattingFeature extends TextDocumentLanguageFeature
         const client = this._client
         const provideOnTypeFormattingEdits: ProvideOnTypeFormattingEditsSignature = (document, position, ch, options, token) => {
           const params: DocumentOnTypeFormattingParams = {
-            textDocument: cv.asVersionedTextDocumentIdentifier(document),
+            textDocument: client.code2ProtocolConverter.asVersionedTextDocumentIdentifier(document),
             position,
             ch,
             options

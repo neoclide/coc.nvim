@@ -20,18 +20,6 @@ function assign<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
   target[key] = value
 }
 
-function asCreateDeleteFilesParams(e: FileCreateEvent | FileDeleteEvent): CreateFilesParams | DeleteFilesParams {
-  return {
-    files: e.files.map(f => ({ uri: f.toString() }))
-  }
-}
-
-function asRenameFilesParams(e: FileRenameEvent | FileWillRenameEvent): RenameFilesParams {
-  return {
-    files: e.files.map(f => ({ oldUri: f.oldUri.toString(), newUri: f.newUri.toString() }))
-  }
-}
-
 /**
  * File operation middleware
  * @since 3.16.0
@@ -261,7 +249,7 @@ export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI,
       'didCreate',
       'didCreate',
       (i: URI) => i,
-      e => asCreateDeleteFilesParams(e),
+      client.code2ProtocolConverter.asDidCreateFilesParams
     )
   }
 
@@ -280,7 +268,7 @@ export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ ol
       'didRename',
       'didRename',
       (i: { oldUri: URI; newUri: URI }) => i.oldUri,
-      e => asRenameFilesParams(e)
+      client.code2ProtocolConverter.asDidRenameFilesParams
     )
   }
 
@@ -299,7 +287,7 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
       'didDelete',
       'didDelete',
       (i: URI) => i,
-      e => asCreateDeleteFilesParams(e)
+      client.code2ProtocolConverter.asDidDeleteFilesParams
     )
   }
 
@@ -366,7 +354,7 @@ export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, Fil
       'willCreate',
       'willCreate',
       (i: URI) => i,
-      e => asCreateDeleteFilesParams(e)
+      client.code2ProtocolConverter.asWillCreateFilesParams
     )
   }
 
@@ -385,7 +373,7 @@ export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri
       'willRename',
       'willRename',
       (i: { oldUri: URI; newUri: URI }) => i.oldUri,
-      e => asRenameFilesParams(e)
+      client.code2ProtocolConverter.asWillRenameFilesParams
     )
   }
 
@@ -404,7 +392,7 @@ export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, Fil
       'willDelete',
       'willDelete',
       (i: URI) => i,
-      e => asCreateDeleteFilesParams(e)
+      client.code2ProtocolConverter.asWillDeleteFilesParams
     )
   }
 
