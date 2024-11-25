@@ -2468,8 +2468,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "diagnosticToggle" [{enable}]	 			*CocAction('diagnosticToggle')*
 
-	Enable/disable diagnostics on the fly, not work when `displayByAle` is
-	enabled. You can toggle by specifying {enable}. {enable} can be 0 or 1
+	Enable/disable diagnostics on the fly. This setting is ignored if
+	`displayByAle` is enabled. You can toggle by specifying {enable}.
+	{enable} can be 0 or 1
 
 "diagnosticToggleBuffer" [{bufnr}] [{enable}] 		*CocAction('diagnosticToggleBuffer')*
 
@@ -3984,7 +3985,7 @@ QuickPick related (available when created by |coc-dialog-quickpick|).
 <C-b>               - scroll backward quickpick list.
 <C-j> <C-n> <down>  - move to next item in quickpick list.
 <C-k> <C-p> <up>    - move to previous item in quickpick list.
-<C-space>           - toggle selection of current item in quickpick list when
+<C-t> <C-space>     - toggle selection of current item in quickpick list when
 canSelectMany is supported.
 
 Note on neovim, other insert mode key-mappings could work.

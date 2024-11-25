@@ -82,6 +82,9 @@ function getKey(key) {
     if (key.name == 'f') {
       return '<C-f>'
     }
+    if (key.name == 't') {
+      return '<C-t>'
+    }
     if (key.name == 'b') {
       return '<C-b>'
     }

@@ -177,7 +177,7 @@ var require_ansi_styles = __commonJS({
 // node_modules/debounce/index.js
 var require_debounce = __commonJS({
   "node_modules/debounce/index.js"(exports2, module2) {
-    function debounce3(func2, wait2, immediate) {
+    function debounce3(func3, wait2, immediate) {
       var timeout2, args, context, timestamp, result;
       if (null == wait2) wait2 = 100;
       function later() {
@@ -187,7 +187,7 @@ var require_debounce = __commonJS({
         } else {
           timeout2 = null;
           if (!immediate) {
-            result = func2.apply(context, args);
+            result = func3.apply(context, args);
             context = args = null;
           }
         }
@@ -200,7 +200,7 @@ var require_debounce = __commonJS({
         var callNow = immediate && !timeout2;
         if (!timeout2) timeout2 = setTimeout(later, wait2);
         if (callNow) {
-          result = func2.apply(context, args);
+          result = func3.apply(context, args);
           context = args = null;
         }
         return result;
@@ -213,7 +213,7 @@ var require_debounce = __commonJS({
       };
       debounced.flush = function() {
         if (timeout2) {
-          result = func2.apply(context, args);
+          result = func3.apply(context, args);
           context = args = null;
           clearTimeout(timeout2);
           timeout2 = null;
@@ -1158,11 +1158,11 @@ var require_commonjs = __commonJS({
       return (f) => f.length === len && f !== "." && f !== "..";
     };
     var defaultPlatform = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
-    var path3 = {
+    var path4 = {
       win32: { sep: "\\" },
       posix: { sep: "/" }
     };
-    exports2.sep = defaultPlatform === "win32" ? path3.win32.sep : path3.posix.sep;
+    exports2.sep = defaultPlatform === "win32" ? path4.win32.sep : path4.posix.sep;
     exports2.minimatch.sep = exports2.sep;
     exports2.GLOBSTAR = Symbol("globstar **");
     exports2.minimatch.GLOBSTAR = exports2.GLOBSTAR;
@@ -4316,12 +4316,12 @@ var require_commonjs4 = __commonJS({
       /**
        * Get the Path object referenced by the string path, resolved from this Path
        */
-      resolve(path3) {
-        if (!path3) {
+      resolve(path4) {
+        if (!path4) {
           return this;
         }
-        const rootPath = this.getRootString(path3);
-        const dir = path3.substring(rootPath.length);
+        const rootPath = this.getRootString(path4);
+        const dir = path4.substring(rootPath.length);
         const dirParts = dir.split(this.splitSep);
         const result = rootPath ? this.getRoot(rootPath).#resolveParts(dirParts) : this.#resolveParts(dirParts);
         return result;
@@ -5074,8 +5074,8 @@ var require_commonjs4 = __commonJS({
       /**
        * @internal
        */
-      getRootString(path3) {
-        return node_path_1.win32.parse(path3).root;
+      getRootString(path4) {
+        return node_path_1.win32.parse(path4).root;
       }
       /**
        * @internal
@@ -5122,8 +5122,8 @@ var require_commonjs4 = __commonJS({
       /**
        * @internal
        */
-      getRootString(path3) {
-        return path3.startsWith("/") ? "/" : "";
+      getRootString(path4) {
+        return path4.startsWith("/") ? "/" : "";
       }
       /**
        * @internal
@@ -5173,8 +5173,8 @@ var require_commonjs4 = __commonJS({
        *
        * @internal
        */
-      constructor(cwd2 = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16 * 1024, fs: fs2 = defaultFS } = {}) {
-        this.#fs = fsFromOption(fs2);
+      constructor(cwd2 = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16 * 1024, fs: fs3 = defaultFS } = {}) {
+        this.#fs = fsFromOption(fs3);
         if (cwd2 instanceof URL || cwd2.startsWith("file://")) {
           cwd2 = (0, node_url_1.fileURLToPath)(cwd2);
         }
@@ -5213,11 +5213,11 @@ var require_commonjs4 = __commonJS({
       /**
        * Get the depth of a provided path, string, or the cwd
        */
-      depth(path3 = this.cwd) {
-        if (typeof path3 === "string") {
-          path3 = this.cwd.resolve(path3);
+      depth(path4 = this.cwd) {
+        if (typeof path4 === "string") {
+          path4 = this.cwd.resolve(path4);
         }
-        return path3.depth();
+        return path4.depth();
       }
       /**
        * Return the cache of child entries.  Exposed so subclasses can create
@@ -5704,9 +5704,9 @@ var require_commonjs4 = __commonJS({
         process2();
         return results;
       }
-      chdir(path3 = this.cwd) {
+      chdir(path4 = this.cwd) {
         const oldCwd = this.cwd;
-        this.cwd = typeof path3 === "string" ? this.cwd.resolve(path3) : path3;
+        this.cwd = typeof path4 === "string" ? this.cwd.resolve(path4) : path4;
         this.cwd[setAsCwd](oldCwd);
       }
     };
@@ -5733,8 +5733,8 @@ var require_commonjs4 = __commonJS({
       /**
        * @internal
        */
-      newRoot(fs2) {
-        return new PathWin32(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs2 });
+      newRoot(fs3) {
+        return new PathWin32(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs3 });
       }
       /**
        * Return true if the provided path string is an absolute path
@@ -5763,8 +5763,8 @@ var require_commonjs4 = __commonJS({
       /**
        * @internal
        */
-      newRoot(fs2) {
-        return new PathPosix(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs2 });
+      newRoot(fs3) {
+        return new PathPosix(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs3 });
       }
       /**
        * Return true if the provided path string is an absolute path
@@ -6089,8 +6089,8 @@ var require_processor = __commonJS({
       }
       // match, absolute, ifdir
       entries() {
-        return [...this.store.entries()].map(([path3, n]) => [
-          path3,
+        return [...this.store.entries()].map(([path4, n]) => [
+          path4,
           !!(n & 2),
           !!(n & 1)
         ]);
@@ -6307,9 +6307,9 @@ var require_walker = __commonJS({
       #sep;
       signal;
       maxDepth;
-      constructor(patterns, path3, opts) {
+      constructor(patterns, path4, opts) {
         this.patterns = patterns;
-        this.path = path3;
+        this.path = path4;
         this.opts = opts;
         this.#sep = !opts.posix && opts.platform === "win32" ? "\\" : "/";
         if (opts.ignore) {
@@ -6323,11 +6323,11 @@ var require_walker = __commonJS({
           });
         }
       }
-      #ignored(path3) {
-        return this.seen.has(path3) || !!this.#ignore?.ignored?.(path3);
+      #ignored(path4) {
+        return this.seen.has(path4) || !!this.#ignore?.ignored?.(path4);
       }
-      #childrenIgnored(path3) {
-        return !!this.#ignore?.childrenIgnored?.(path3);
+      #childrenIgnored(path4) {
+        return !!this.#ignore?.childrenIgnored?.(path4);
       }
       // backpressure mechanism
       pause() {
@@ -6539,8 +6539,8 @@ var require_walker = __commonJS({
     exports2.GlobUtil = GlobUtil;
     var GlobWalker = class extends GlobUtil {
       matches;
-      constructor(patterns, path3, opts) {
-        super(patterns, path3, opts);
+      constructor(patterns, path4, opts) {
+        super(patterns, path4, opts);
         this.matches = /* @__PURE__ */ new Set();
       }
       matchEmit(e) {
@@ -6579,8 +6579,8 @@ var require_walker = __commonJS({
     exports2.GlobWalker = GlobWalker;
     var GlobStream = class extends GlobUtil {
       results;
-      constructor(patterns, path3, opts) {
-        super(patterns, path3, opts);
+      constructor(patterns, path4, opts) {
+        super(patterns, path4, opts);
         this.results = new minipass_1.Minipass({
           signal: this.signal,
           objectMode: true
@@ -6930,10 +6930,10 @@ var require_posix = __commonJS({
     exports2.sync = exports2.isexe = void 0;
     var fs_1 = require("fs");
     var promises_1 = require("fs/promises");
-    var isexe = async (path3, options2 = {}) => {
+    var isexe = async (path4, options2 = {}) => {
       const { ignoreErrors = false } = options2;
       try {
-        return checkStat(await (0, promises_1.stat)(path3), options2);
+        return checkStat(await (0, promises_1.stat)(path4), options2);
       } catch (e) {
         const er = e;
         if (ignoreErrors || er.code === "EACCES")
@@ -6942,10 +6942,10 @@ var require_posix = __commonJS({
       }
     };
     exports2.isexe = isexe;
-    var sync = (path3, options2 = {}) => {
+    var sync = (path4, options2 = {}) => {
       const { ignoreErrors = false } = options2;
       try {
-        return checkStat((0, fs_1.statSync)(path3), options2);
+        return checkStat((0, fs_1.statSync)(path4), options2);
       } catch (e) {
         const er = e;
         if (ignoreErrors || er.code === "EACCES")
@@ -6983,10 +6983,10 @@ var require_win32 = __commonJS({
     exports2.sync = exports2.isexe = void 0;
     var fs_1 = require("fs");
     var promises_1 = require("fs/promises");
-    var isexe = async (path3, options2 = {}) => {
+    var isexe = async (path4, options2 = {}) => {
       const { ignoreErrors = false } = options2;
       try {
-        return checkStat(await (0, promises_1.stat)(path3), path3, options2);
+        return checkStat(await (0, promises_1.stat)(path4), path4, options2);
       } catch (e) {
         const er = e;
         if (ignoreErrors || er.code === "EACCES")
@@ -6995,10 +6995,10 @@ var require_win32 = __commonJS({
       }
     };
     exports2.isexe = isexe;
-    var sync = (path3, options2 = {}) => {
+    var sync = (path4, options2 = {}) => {
       const { ignoreErrors = false } = options2;
       try {
-        return checkStat((0, fs_1.statSync)(path3), path3, options2);
+        return checkStat((0, fs_1.statSync)(path4), path4, options2);
       } catch (e) {
         const er = e;
         if (ignoreErrors || er.code === "EACCES")
@@ -7007,7 +7007,7 @@ var require_win32 = __commonJS({
       }
     };
     exports2.sync = sync;
-    var checkPathExt = (path3, options2) => {
+    var checkPathExt = (path4, options2) => {
       const { pathExt = process.env.PATHEXT || "" } = options2;
       const peSplit = pathExt.split(";");
       if (peSplit.indexOf("") !== -1) {
@@ -7015,14 +7015,14 @@ var require_win32 = __commonJS({
       }
       for (let i = 0; i < peSplit.length; i++) {
         const p = peSplit[i].toLowerCase();
-        const ext = path3.substring(path3.length - p.length).toLowerCase();
+        const ext = path4.substring(path4.length - p.length).toLowerCase();
         if (p && ext === p) {
           return true;
         }
       }
       return false;
     };
-    var checkStat = (stat, path3, options2) => stat.isFile() && checkPathExt(path3, options2);
+    var checkStat = (stat, path4, options2) => stat.isFile() && checkPathExt(path4, options2);
   }
 });
 
@@ -7204,9 +7204,9 @@ var require_constants = __commonJS({
 // node_modules/semver/internal/debug.js
 var require_debug = __commonJS({
   "node_modules/semver/internal/debug.js"(exports2, module2) {
-    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+    var debug2 = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
-    module2.exports = debug;
+    module2.exports = debug2;
   }
 });
 
@@ -7218,7 +7218,7 @@ var require_re = __commonJS({
       MAX_SAFE_BUILD_LENGTH,
       MAX_LENGTH
     } = require_constants();
-    var debug = require_debug();
+    var debug2 = require_debug();
     exports2 = module2.exports = {};
     var re = exports2.re = [];
     var safeRe = exports2.safeRe = [];
@@ -7240,7 +7240,7 @@ var require_re = __commonJS({
     var createToken = (name2, value, isGlobal) => {
       const safe = makeSafeRegex(value);
       const index = R++;
-      debug(name2, index, value);
+      debug2(name2, index, value);
       t[name2] = index;
       src[index] = value;
       re[index] = new RegExp(value, isGlobal ? "g" : void 0);
@@ -7337,7 +7337,7 @@ var require_identifiers = __commonJS({
 // node_modules/semver/classes/semver.js
 var require_semver = __commonJS({
   "node_modules/semver/classes/semver.js"(exports2, module2) {
-    var debug = require_debug();
+    var debug2 = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
@@ -7359,7 +7359,7 @@ var require_semver = __commonJS({
             `version is longer than ${MAX_LENGTH} characters`
           );
         }
-        debug("SemVer", version2, options2);
+        debug2("SemVer", version2, options2);
         this.options = options2;
         this.loose = !!options2.loose;
         this.includePrerelease = !!options2.includePrerelease;
@@ -7407,7 +7407,7 @@ var require_semver = __commonJS({
         return this.version;
       }
       compare(other) {
-        debug("SemVer.compare", this.version, this.options, other);
+        debug2("SemVer.compare", this.version, this.options, other);
         if (!(other instanceof _SemVer)) {
           if (typeof other === "string" && other === this.version) {
             return 0;
@@ -7440,7 +7440,7 @@ var require_semver = __commonJS({
         do {
           const a = this.prerelease[i];
           const b = other.prerelease[i];
-          debug("prerelease compare", i, a, b);
+          debug2("prerelease compare", i, a, b);
           if (a === void 0 && b === void 0) {
             return 0;
           } else if (b === void 0) {
@@ -7462,7 +7462,7 @@ var require_semver = __commonJS({
         do {
           const a = this.build[i];
           const b = other.build[i];
-          debug("build compare", i, a, b);
+          debug2("build compare", i, a, b);
           if (a === void 0 && b === void 0) {
             return 0;
           } else if (b === void 0) {
@@ -7498,6 +7498,8 @@ var require_semver = __commonJS({
             this.inc("patch", identifier, identifierBase);
             this.inc("pre", identifier, identifierBase);
             break;
+          // If the input is a non-prerelease version, this acts the same as
+          // prepatch.
           case "prerelease":
             if (this.prerelease.length === 0) {
               this.inc("patch", identifier, identifierBase);
@@ -7525,6 +7527,8 @@ var require_semver = __commonJS({
             }
             this.prerelease = [];
             break;
+          // This probably shouldn't be used publicly.
+          // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
           case "pre": {
             const base = Number(identifierBase) ? 1 : 0;
             if (!identifier && identifierBase === false) {
@@ -7974,7 +7978,7 @@ var require_lrucache = __commonJS({
 var require_range = __commonJS({
   "node_modules/semver/classes/range.js"(exports2, module2) {
     var SPACE_CHARACTERS = /\s+/g;
-    var Range12 = class _Range {
+    var Range11 = class _Range {
       constructor(range, options2) {
         options2 = parseOptions(options2);
         if (range instanceof _Range) {
@@ -8048,21 +8052,21 @@ var require_range = __commonJS({
         const loose = this.options.loose;
         const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
         range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
-        debug("hyphen replace", range);
+        debug2("hyphen replace", range);
         range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
-        debug("comparator trim", range);
+        debug2("comparator trim", range);
         range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
-        debug("tilde trim", range);
+        debug2("tilde trim", range);
         range = range.replace(re[t.CARETTRIM], caretTrimReplace);
-        debug("caret trim", range);
+        debug2("caret trim", range);
         let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
         if (loose) {
           rangeList = rangeList.filter((comp) => {
-            debug("loose invalid filter", comp, this.options);
+            debug2("loose invalid filter", comp, this.options);
             return !!comp.match(re[t.COMPARATORLOOSE]);
           });
         }
-        debug("range list", rangeList);
+        debug2("range list", rangeList);
         const rangeMap = /* @__PURE__ */ new Map();
         const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
         for (const comp of comparators) {
@@ -8112,12 +8116,12 @@ var require_range = __commonJS({
         return false;
       }
     };
-    module2.exports = Range12;
+    module2.exports = Range11;
     var LRU = require_lrucache();
     var cache = new LRU();
     var parseOptions = require_parse_options();
     var Comparator = require_comparator();
-    var debug = require_debug();
+    var debug2 = require_debug();
     var SemVer = require_semver();
     var {
       safeRe: re,
@@ -8142,15 +8146,15 @@ var require_range = __commonJS({
       return result;
     };
     var parseComparator = (comp, options2) => {
-      debug("comp", comp, options2);
+      debug2("comp", comp, options2);
       comp = replaceCarets(comp, options2);
-      debug("caret", comp);
+      debug2("caret", comp);
       comp = replaceTildes(comp, options2);
-      debug("tildes", comp);
+      debug2("tildes", comp);
       comp = replaceXRanges(comp, options2);
-      debug("xrange", comp);
+      debug2("xrange", comp);
       comp = replaceStars(comp, options2);
-      debug("stars", comp);
+      debug2("stars", comp);
       return comp;
     };
     var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
@@ -8160,7 +8164,7 @@ var require_range = __commonJS({
     var replaceTilde = (comp, options2) => {
       const r = options2.loose ? re[t.TILDELOOSE] : re[t.TILDE];
       return comp.replace(r, (_, M, m, p, pr) => {
-        debug("tilde", comp, _, M, m, p, pr);
+        debug2("tilde", comp, _, M, m, p, pr);
         let ret;
         if (isX(M)) {
           ret = "";
@@ -8169,12 +8173,12 @@ var require_range = __commonJS({
         } else if (isX(p)) {
           ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
         } else if (pr) {
-          debug("replaceTilde pr", pr);
+          debug2("replaceTilde pr", pr);
           ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
         } else {
           ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
         }
-        debug("tilde return", ret);
+        debug2("tilde return", ret);
         return ret;
       });
     };
@@ -8182,11 +8186,11 @@ var require_range = __commonJS({
       return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options2)).join(" ");
     };
     var replaceCaret = (comp, options2) => {
-      debug("caret", comp, options2);
+      debug2("caret", comp, options2);
       const r = options2.loose ? re[t.CARETLOOSE] : re[t.CARET];
       const z = options2.includePrerelease ? "-0" : "";
       return comp.replace(r, (_, M, m, p, pr) => {
-        debug("caret", comp, _, M, m, p, pr);
+        debug2("caret", comp, _, M, m, p, pr);
         let ret;
         if (isX(M)) {
           ret = "";
@@ -8199,7 +8203,7 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
           }
         } else if (pr) {
-          debug("replaceCaret pr", pr);
+          debug2("replaceCaret pr", pr);
           if (M === "0") {
             if (m === "0") {
               ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
@@ -8210,7 +8214,7 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
           }
         } else {
-          debug("no pr");
+          debug2("no pr");
           if (M === "0") {
             if (m === "0") {
               ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
@@ -8221,19 +8225,19 @@ var require_range = __commonJS({
             ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
           }
         }
-        debug("caret return", ret);
+        debug2("caret return", ret);
         return ret;
       });
     };
     var replaceXRanges = (comp, options2) => {
-      debug("replaceXRanges", comp, options2);
+      debug2("replaceXRanges", comp, options2);
       return comp.split(/\s+/).map((c) => replaceXRange(c, options2)).join(" ");
     };
     var replaceXRange = (comp, options2) => {
       comp = comp.trim();
       const r = options2.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
       return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
-        debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        debug2("xRange", comp, ret, gtlt, M, m, p, pr);
         const xM = isX(M);
         const xm = xM || isX(m);
         const xp = xm || isX(p);
@@ -8280,16 +8284,16 @@ var require_range = __commonJS({
         } else if (xp) {
           ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
         }
-        debug("xRange return", ret);
+        debug2("xRange return", ret);
         return ret;
       });
     };
     var replaceStars = (comp, options2) => {
-      debug("replaceStars", comp, options2);
+      debug2("replaceStars", comp, options2);
       return comp.trim().replace(re[t.STAR], "");
     };
     var replaceGTE0 = (comp, options2) => {
-      debug("replaceGTE0", comp, options2);
+      debug2("replaceGTE0", comp, options2);
       return comp.trim().replace(re[options2.includePrerelease ? t.GTE0PRE : t.GTE0], "");
     };
     var hyphenReplace = (incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
@@ -8327,7 +8331,7 @@ var require_range = __commonJS({
       }
       if (version2.prerelease.length && !options2.includePrerelease) {
         for (let i = 0; i < set.length; i++) {
-          debug(set[i].semver);
+          debug2(set[i].semver);
           if (set[i].semver === Comparator.ANY) {
             continue;
           }
@@ -8363,7 +8367,7 @@ var require_comparator = __commonJS({
           }
         }
         comp = comp.trim().split(/\s+/).join(" ");
-        debug("comparator", comp, options2);
+        debug2("comparator", comp, options2);
         this.options = options2;
         this.loose = !!options2.loose;
         this.parse(comp);
@@ -8372,7 +8376,7 @@ var require_comparator = __commonJS({
         } else {
           this.value = this.operator + this.semver.version;
         }
-        debug("comp", this);
+        debug2("comp", this);
       }
       parse(comp) {
         const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
@@ -8394,7 +8398,7 @@ var require_comparator = __commonJS({
         return this.value;
       }
       test(version2) {
-        debug("Comparator.test", version2, this.options.loose);
+        debug2("Comparator.test", version2, this.options.loose);
         if (this.semver === ANY || version2 === ANY) {
           return true;
         }
@@ -8415,12 +8419,12 @@ var require_comparator = __commonJS({
           if (this.value === "") {
             return true;
           }
-          return new Range12(comp.value, options2).test(this.value);
+          return new Range11(comp.value, options2).test(this.value);
         } else if (comp.operator === "") {
           if (comp.value === "") {
             return true;
           }
-          return new Range12(this.value, options2).test(comp.semver);
+          return new Range11(this.value, options2).test(comp.semver);
         }
         options2 = parseOptions(options2);
         if (options2.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
@@ -8451,19 +8455,19 @@ var require_comparator = __commonJS({
     var parseOptions = require_parse_options();
     var { safeRe: re, t } = require_re();
     var cmp = require_cmp();
-    var debug = require_debug();
+    var debug2 = require_debug();
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
   }
 });
 
 // node_modules/semver/functions/satisfies.js
 var require_satisfies = __commonJS({
   "node_modules/semver/functions/satisfies.js"(exports2, module2) {
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = (version2, range, options2) => {
       try {
-        range = new Range12(range, options2);
+        range = new Range11(range, options2);
       } catch (er) {
         return false;
       }
@@ -8476,8 +8480,8 @@ var require_satisfies = __commonJS({
 // node_modules/semver/ranges/to-comparators.js
 var require_to_comparators = __commonJS({
   "node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
-    var Range12 = require_range();
-    var toComparators = (range, options2) => new Range12(range, options2).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+    var Range11 = require_range();
+    var toComparators = (range, options2) => new Range11(range, options2).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
     module2.exports = toComparators;
   }
 });
@@ -8486,13 +8490,13 @@ var require_to_comparators = __commonJS({
 var require_max_satisfying = __commonJS({
   "node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var maxSatisfying = (versions, range, options2) => {
       let max = null;
       let maxSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range12(range, options2);
+        rangeObj = new Range11(range, options2);
       } catch (er) {
         return null;
       }
@@ -8514,13 +8518,13 @@ var require_max_satisfying = __commonJS({
 var require_min_satisfying = __commonJS({
   "node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var minSatisfying = (versions, range, options2) => {
       let min = null;
       let minSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range12(range, options2);
+        rangeObj = new Range11(range, options2);
       } catch (er) {
         return null;
       }
@@ -8542,10 +8546,10 @@ var require_min_satisfying = __commonJS({
 var require_min_version = __commonJS({
   "node_modules/semver/ranges/min-version.js"(exports2, module2) {
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var gt = require_gt();
     var minVersion = (range, loose) => {
-      range = new Range12(range, loose);
+      range = new Range11(range, loose);
       let minver = new SemVer("0.0.0");
       if (range.test(minver)) {
         return minver;
@@ -8568,6 +8572,7 @@ var require_min_version = __commonJS({
                 compver.prerelease.push(0);
               }
               compver.raw = compver.format();
+            /* fallthrough */
             case "":
             case ">=":
               if (!setMin || gt(compver, setMin)) {
@@ -8577,6 +8582,7 @@ var require_min_version = __commonJS({
             case "<":
             case "<=":
               break;
+            /* istanbul ignore next */
             default:
               throw new Error(`Unexpected operation: ${comparator.operator}`);
           }
@@ -8597,10 +8603,10 @@ var require_min_version = __commonJS({
 // node_modules/semver/ranges/valid.js
 var require_valid2 = __commonJS({
   "node_modules/semver/ranges/valid.js"(exports2, module2) {
-    var Range12 = require_range();
+    var Range11 = require_range();
     var validRange = (range, options2) => {
       try {
-        return new Range12(range, options2).range || "*";
+        return new Range11(range, options2).range || "*";
       } catch (er) {
         return null;
       }
@@ -8615,7 +8621,7 @@ var require_outside = __commonJS({
     var SemVer = require_semver();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = require_satisfies();
     var gt = require_gt();
     var lt = require_lt();
@@ -8623,7 +8629,7 @@ var require_outside = __commonJS({
     var gte = require_gte();
     var outside = (version2, range, hilo, options2) => {
       version2 = new SemVer(version2, options2);
-      range = new Range12(range, options2);
+      range = new Range11(range, options2);
       let gtfn, ltefn, ltfn, comp, ecomp;
       switch (hilo) {
         case ">":
@@ -8698,10 +8704,10 @@ var require_ltr = __commonJS({
 // node_modules/semver/ranges/intersects.js
 var require_intersects = __commonJS({
   "node_modules/semver/ranges/intersects.js"(exports2, module2) {
-    var Range12 = require_range();
+    var Range11 = require_range();
     var intersects = (r1, r2, options2) => {
-      r1 = new Range12(r1, options2);
-      r2 = new Range12(r2, options2);
+      r1 = new Range11(r1, options2);
+      r2 = new Range11(r2, options2);
       return r1.intersects(r2, options2);
     };
     module2.exports = intersects;
@@ -8760,7 +8766,7 @@ var require_simplify = __commonJS({
 // node_modules/semver/ranges/subset.js
 var require_subset = __commonJS({
   "node_modules/semver/ranges/subset.js"(exports2, module2) {
-    var Range12 = require_range();
+    var Range11 = require_range();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
     var satisfies = require_satisfies();
@@ -8769,8 +8775,8 @@ var require_subset = __commonJS({
       if (sub === dom) {
         return true;
       }
-      sub = new Range12(sub, options2);
-      dom = new Range12(dom, options2);
+      sub = new Range11(sub, options2);
+      dom = new Range11(dom, options2);
       let sawNonNull = false;
       OUTER: for (const simpleSub of sub.set) {
         for (const simpleDom of dom.set) {
@@ -8949,7 +8955,7 @@ var require_semver2 = __commonJS({
     var cmp = require_cmp();
     var coerce = require_coerce();
     var Comparator = require_comparator();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = require_satisfies();
     var toComparators = require_to_comparators();
     var maxSatisfying = require_max_satisfying();
@@ -8987,7 +8993,7 @@ var require_semver2 = __commonJS({
       cmp,
       coerce,
       Comparator,
-      Range: Range12,
+      Range: Range11,
       satisfies,
       toComparators,
       maxSatisfying,
@@ -11648,6 +11654,7 @@ var require_unidecode = __commonJS({
       switch (raw.length) {
         case 1:
           return ord(raw);
+        // http://en.wikipedia.org/wiki/UTF-8
         case 2:
           b1 = ord(raw.substr(0, 1));
           b2 = ord(raw.substr(1, 1));
@@ -11717,8 +11724,8 @@ var init_node = __esm({
 });
 
 // src/logger/log.ts
-function textToLogLevel(level2) {
-  let str = level2.toLowerCase();
+function textToLogLevel(level3) {
+  let str = level3.toLowerCase();
   switch (str) {
     case "trace":
       return 0 /* Trace */;
@@ -11754,8 +11761,8 @@ function format(args, depth = 2, color = false, hidden = false) {
   }
   return result;
 }
-function stringifyLogLevel(level2) {
-  switch (level2) {
+function stringifyLogLevel(level3) {
+  switch (level3) {
     case 1 /* Debug */:
       return "DEBUG";
     case 4 /* Error */:
@@ -11787,9 +11794,9 @@ var init_log = __esm({
       constructor() {
         this.level = DEFAULT_LOG_LEVEL;
       }
-      setLevel(level2) {
-        if (this.level !== level2) {
-          this.level = level2;
+      setLevel(level3) {
+        if (this.level !== level3) {
+          this.level = level3;
         }
       }
       getLevel() {
@@ -11797,7 +11804,7 @@ var init_log = __esm({
       }
     };
     FileLogger = class extends AbstractLogger {
-      constructor(fsPath2, level2, config) {
+      constructor(fsPath2, level3, config) {
         super();
         this.fsPath = fsPath2;
         this.backupIndex = 1;
@@ -11809,7 +11816,7 @@ var init_log = __esm({
           depth: 2,
           showHidden: false
         }, config);
-        this.setLevel(level2);
+        this.setLevel(level3);
         this.promise = this.initialize();
       }
       switchConsole() {
@@ -11820,7 +11827,7 @@ var init_log = __esm({
         return format(args, depth, color, showHidden);
       }
       createLogger(scope) {
-        let logger59 = this.loggers.has(scope) ? this.loggers.get(scope) : {
+        let logger61 = this.loggers.has(scope) ? this.loggers.get(scope) : {
           category: scope,
           mark: () => {
           },
@@ -11869,8 +11876,8 @@ var init_log = __esm({
             return this.promise;
           }
         };
-        this.loggers.set(scope, logger59);
-        return logger59;
+        this.loggers.set(scope, logger61);
+        return logger61;
       }
       async initialize() {
         return Promise.resolve();
@@ -11878,17 +11885,17 @@ var init_log = __esm({
       shouldBackup(size) {
         return size > MAX_FILE_SIZE;
       }
-      _log(level2, scope, args, time) {
+      _log(level3, scope, args, time) {
         if (this.useConsole) {
-          let method = level2 === 4 /* Error */ ? "error" : "log";
-          console[method](`${stringifyLogLevel(level2)} [${scope}]`, format(args, null, true));
+          let method = level3 === 4 /* Error */ ? "error" : "log";
+          console[method](`${stringifyLogLevel(level3)} [${scope}]`, format(args, null, true));
         } else {
           let message = this.format(args);
           this.promise = this.promise.then(() => {
             let fn = async () => {
               let text;
               if (this.config.userFormatters !== false) {
-                let parts = [time, stringifyLogLevel(level2), `(pid:${process.pid})`, `[${scope}]`];
+                let parts = [time, stringifyLogLevel(level3), `(pid:${process.pid})`, `[${scope}]`];
                 text = `${parts.join(" ")} - ${message}
 `;
               } else {
@@ -11962,12 +11969,12 @@ function waitImmediate() {
     });
   });
 }
-function delay(func2, defaultDelay) {
+function delay(func3, defaultDelay) {
   let timer;
   let fn = (ms) => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
-      func2();
+      func3();
     }, ms ?? defaultDelay);
     timer.unref();
   };
@@ -12122,13 +12129,13 @@ var require_bufferish_array = __commonJS({
 var require_bufferish_buffer = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/bufferish-buffer.js"(exports2, module2) {
     var Bufferish = require_bufferish();
-    var Buffer3 = Bufferish.global;
+    var Buffer4 = Bufferish.global;
     var exports2 = module2.exports = Bufferish.hasBuffer ? alloc(0) : [];
-    exports2.alloc = Bufferish.hasBuffer && Buffer3.alloc || alloc;
+    exports2.alloc = Bufferish.hasBuffer && Buffer4.alloc || alloc;
     exports2.concat = Bufferish.concat;
     exports2.from = from;
     function alloc(size) {
-      return Buffer3.alloc(size);
+      return Buffer4.alloc(size);
     }
     function from(value) {
       if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) {
@@ -12140,10 +12147,10 @@ var require_bufferish_buffer = __commonJS({
       } else if (typeof value === "number") {
         throw new TypeError('"value" argument must not be a number');
       }
-      if (Buffer3.from && Buffer3.from.length !== 1) {
-        return Buffer3.from(value);
+      if (Buffer4.from && Buffer4.from.length !== 1) {
+        return Buffer4.from(value);
       } else {
-        return new Buffer3(value);
+        return new Buffer4(value);
       }
     }
   }
@@ -12189,7 +12196,7 @@ var require_bufferish_uint8array = __commonJS({
 var require_buffer_lite = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/buffer-lite.js"(exports2) {
     exports2.copy = copy;
-    exports2.toString = toString;
+    exports2.toString = toString2;
     exports2.write = write;
     function write(string2, offset) {
       var buffer = this;
@@ -12218,7 +12225,7 @@ var require_buffer_lite = __commonJS({
       }
       return index - offset;
     }
-    function toString(encoding2, start, end) {
+    function toString2(encoding2, start, end) {
       var buffer = this;
       var index = start | 0;
       if (!end) end = buffer.length;
@@ -12272,12 +12279,12 @@ var require_bufferish_proto = __commonJS({
     var BufferLite = require_buffer_lite();
     exports2.copy = copy;
     exports2.slice = slice;
-    exports2.toString = toString;
+    exports2.toString = toString2;
     exports2.write = gen("write");
     var Bufferish = require_bufferish();
-    var Buffer3 = Bufferish.global;
-    var isBufferShim = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer3;
-    var brokenTypedArray = isBufferShim && !Buffer3.TYPED_ARRAY_SUPPORT;
+    var Buffer4 = Bufferish.global;
+    var isBufferShim = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer4;
+    var brokenTypedArray = isBufferShim && !Buffer4.TYPED_ARRAY_SUPPORT;
     function copy(target, targetStart, start, end) {
       var thisIsBuffer = Bufferish.isBuffer(this);
       var targetIsBuffer = Bufferish.isBuffer(target);
@@ -12298,7 +12305,7 @@ var require_bufferish_proto = __commonJS({
       copy.call(this, target, 0, start, end);
       return target;
     }
-    function toString(encoding2, start, end) {
+    function toString2(encoding2, start, end) {
       var f = !isBufferShim && Bufferish.isBuffer(this) ? this.toString : BufferLite.toString;
       return f.apply(this, arguments);
     }
@@ -12315,11 +12322,11 @@ var require_bufferish_proto = __commonJS({
 // node_modules/@chemzqm/msgpack-lite/lib/bufferish.js
 var require_bufferish = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/bufferish.js"(exports2) {
-    var Buffer3 = exports2.global = require_buffer_global();
-    var hasBuffer = exports2.hasBuffer = Buffer3 && !!Buffer3.isBuffer;
+    var Buffer4 = exports2.global = require_buffer_global();
+    var hasBuffer = exports2.hasBuffer = Buffer4 && !!Buffer4.isBuffer;
     var hasArrayBuffer = exports2.hasArrayBuffer = "undefined" !== typeof ArrayBuffer;
     exports2.isArrayBuffer = hasArrayBuffer ? isArrayBuffer : _false;
-    var isBuffer = exports2.isBuffer = hasBuffer ? Buffer3.isBuffer : _false;
+    var isBuffer = exports2.isBuffer = hasBuffer ? Buffer4.isBuffer : _false;
     var isView = exports2.isView = hasArrayBuffer ? ArrayBuffer.isView || _is("ArrayBuffer", "buffer") : _false;
     exports2.alloc = alloc;
     exports2.concat = concat;
@@ -12401,23 +12408,23 @@ var require_ext_packer = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/ext-packer.js"(exports2) {
     exports2.setExtPackers = setExtPackers;
     var Bufferish = require_bufferish();
-    var Buffer3 = Bufferish.global;
+    var Buffer4 = Bufferish.global;
     var packTypedArray = Bufferish.Uint8Array.from;
     var _encode;
     var ERROR_COLUMNS = { name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1 };
     function setExtPackers(codec) {
-      codec.addExtPacker(14, Error, [packError, encode]);
-      codec.addExtPacker(1, EvalError, [packError, encode]);
-      codec.addExtPacker(2, RangeError, [packError, encode]);
-      codec.addExtPacker(3, ReferenceError, [packError, encode]);
-      codec.addExtPacker(4, SyntaxError, [packError, encode]);
-      codec.addExtPacker(5, TypeError, [packError, encode]);
-      codec.addExtPacker(6, URIError, [packError, encode]);
-      codec.addExtPacker(10, RegExp, [packRegExp, encode]);
-      codec.addExtPacker(11, Boolean, [packValueOf, encode]);
-      codec.addExtPacker(12, String, [packValueOf, encode]);
-      codec.addExtPacker(13, Date, [Number, encode]);
-      codec.addExtPacker(15, Number, [packValueOf, encode]);
+      codec.addExtPacker(14, Error, [packError, encode2]);
+      codec.addExtPacker(1, EvalError, [packError, encode2]);
+      codec.addExtPacker(2, RangeError, [packError, encode2]);
+      codec.addExtPacker(3, ReferenceError, [packError, encode2]);
+      codec.addExtPacker(4, SyntaxError, [packError, encode2]);
+      codec.addExtPacker(5, TypeError, [packError, encode2]);
+      codec.addExtPacker(6, URIError, [packError, encode2]);
+      codec.addExtPacker(10, RegExp, [packRegExp, encode2]);
+      codec.addExtPacker(11, Boolean, [packValueOf, encode2]);
+      codec.addExtPacker(12, String, [packValueOf, encode2]);
+      codec.addExtPacker(13, Date, [Number, encode2]);
+      codec.addExtPacker(15, Number, [packValueOf, encode2]);
       if ("undefined" !== typeof Uint8Array) {
         codec.addExtPacker(17, Int8Array, packTypedArray);
         codec.addExtPacker(18, Uint8Array, packTypedArray);
@@ -12436,10 +12443,10 @@ var require_ext_packer = __commonJS({
         codec.addExtPacker(29, DataView, packTypedArray);
       }
       if (Bufferish.hasBuffer) {
-        codec.addExtPacker(27, Buffer3, Bufferish.from);
+        codec.addExtPacker(27, Buffer4, Bufferish.from);
       }
     }
-    function encode(input) {
+    function encode2(input) {
       if (!_encode) _encode = require_encode().encode;
       return _encode(input);
     }
@@ -12500,7 +12507,7 @@ var require_int64_buffer = __commonJS({
         proto.offset = 0;
         proto[_isInt64] = true;
         proto.toNumber = toNumber2;
-        proto.toString = toString;
+        proto.toString = toString2;
         proto.toJSON = toNumber2;
         proto.toArray = toArray2;
         if (BUFFER) proto.toBuffer = toBuffer;
@@ -12582,7 +12589,7 @@ var require_int64_buffer = __commonJS({
           if (!unsigned) high |= 0;
           return high ? high * BIT32 + low : low;
         }
-        function toString(radix) {
+        function toString2(radix) {
           var buffer = this.buffer;
           var offset = this.offset;
           var high = readInt32(buffer, offset + posH);
@@ -12806,10 +12813,10 @@ var require_write_token = __commonJS({
     var Int64BE = Int64Buffer.Int64BE;
     var uint8 = require_write_uint8().uint8;
     var Bufferish = require_bufferish();
-    var Buffer3 = Bufferish.global;
-    var IS_BUFFER_SHIM = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer3;
-    var NO_TYPED_ARRAY = IS_BUFFER_SHIM && !Buffer3.TYPED_ARRAY_SUPPORT;
-    var Buffer_prototype = Bufferish.hasBuffer && Buffer3.prototype || {};
+    var Buffer4 = Bufferish.global;
+    var IS_BUFFER_SHIM = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer4;
+    var NO_TYPED_ARRAY = IS_BUFFER_SHIM && !Buffer4.TYPED_ARRAY_SUPPORT;
+    var Buffer_prototype = Bufferish.hasBuffer && Buffer4.prototype || {};
     exports2.getWriteToken = getWriteToken;
     function getWriteToken(options2) {
       if (options2 && options2.uint8array) {
@@ -12855,29 +12862,29 @@ var require_write_token = __commonJS({
     }
     function init_safe() {
       var token = uint8.slice();
-      token[196] = writeN(196, 1, Buffer3.prototype.writeUInt8);
-      token[197] = writeN(197, 2, Buffer3.prototype.writeUInt16BE);
-      token[198] = writeN(198, 4, Buffer3.prototype.writeUInt32BE);
-      token[199] = writeN(199, 1, Buffer3.prototype.writeUInt8);
-      token[200] = writeN(200, 2, Buffer3.prototype.writeUInt16BE);
-      token[201] = writeN(201, 4, Buffer3.prototype.writeUInt32BE);
-      token[202] = writeN(202, 4, Buffer3.prototype.writeFloatBE);
-      token[203] = writeN(203, 8, Buffer3.prototype.writeDoubleBE);
-      token[204] = writeN(204, 1, Buffer3.prototype.writeUInt8);
-      token[205] = writeN(205, 2, Buffer3.prototype.writeUInt16BE);
-      token[206] = writeN(206, 4, Buffer3.prototype.writeUInt32BE);
+      token[196] = writeN(196, 1, Buffer4.prototype.writeUInt8);
+      token[197] = writeN(197, 2, Buffer4.prototype.writeUInt16BE);
+      token[198] = writeN(198, 4, Buffer4.prototype.writeUInt32BE);
+      token[199] = writeN(199, 1, Buffer4.prototype.writeUInt8);
+      token[200] = writeN(200, 2, Buffer4.prototype.writeUInt16BE);
+      token[201] = writeN(201, 4, Buffer4.prototype.writeUInt32BE);
+      token[202] = writeN(202, 4, Buffer4.prototype.writeFloatBE);
+      token[203] = writeN(203, 8, Buffer4.prototype.writeDoubleBE);
+      token[204] = writeN(204, 1, Buffer4.prototype.writeUInt8);
+      token[205] = writeN(205, 2, Buffer4.prototype.writeUInt16BE);
+      token[206] = writeN(206, 4, Buffer4.prototype.writeUInt32BE);
       token[207] = writeN(207, 8, writeUInt64BE);
-      token[208] = writeN(208, 1, Buffer3.prototype.writeInt8);
-      token[209] = writeN(209, 2, Buffer3.prototype.writeInt16BE);
-      token[210] = writeN(210, 4, Buffer3.prototype.writeInt32BE);
+      token[208] = writeN(208, 1, Buffer4.prototype.writeInt8);
+      token[209] = writeN(209, 2, Buffer4.prototype.writeInt16BE);
+      token[210] = writeN(210, 4, Buffer4.prototype.writeInt32BE);
       token[211] = writeN(211, 8, writeInt64BE);
-      token[217] = writeN(217, 1, Buffer3.prototype.writeUInt8);
-      token[218] = writeN(218, 2, Buffer3.prototype.writeUInt16BE);
-      token[219] = writeN(219, 4, Buffer3.prototype.writeUInt32BE);
-      token[220] = writeN(220, 2, Buffer3.prototype.writeUInt16BE);
-      token[221] = writeN(221, 4, Buffer3.prototype.writeUInt32BE);
-      token[222] = writeN(222, 2, Buffer3.prototype.writeUInt16BE);
-      token[223] = writeN(223, 4, Buffer3.prototype.writeUInt32BE);
+      token[217] = writeN(217, 1, Buffer4.prototype.writeUInt8);
+      token[218] = writeN(218, 2, Buffer4.prototype.writeUInt16BE);
+      token[219] = writeN(219, 4, Buffer4.prototype.writeUInt32BE);
+      token[220] = writeN(220, 2, Buffer4.prototype.writeUInt16BE);
+      token[221] = writeN(221, 4, Buffer4.prototype.writeUInt32BE);
+      token[222] = writeN(222, 2, Buffer4.prototype.writeUInt16BE);
+      token[223] = writeN(223, 4, Buffer4.prototype.writeUInt32BE);
       return token;
     }
     function write1(type) {
@@ -13046,9 +13053,9 @@ var require_write_type = __commonJS({
         var length = value.length;
         var type = length < 16 ? 144 + length : length <= 65535 ? 220 : 221;
         token[type](encoder, length);
-        var encode = encoder.codec.encode;
+        var encode2 = encoder.codec.encode;
         for (var i = 0; i < length; i++) {
-          encode(encoder, value[i]);
+          encode2(encoder, value[i]);
         }
       }
       function bin_buffer(encoder, value) {
@@ -13076,10 +13083,10 @@ var require_write_type = __commonJS({
         var length = keys.length;
         var type = length < 16 ? 128 + length : length <= 65535 ? 222 : 223;
         token[type](encoder, length);
-        var encode = encoder.codec.encode;
+        var encode2 = encoder.codec.encode;
         keys.forEach(function(key) {
-          encode(encoder, key);
-          encode(encoder, value[key]);
+          encode2(encoder, key);
+          encode2(encoder, value[key]);
         });
       }
       function map_to_map(encoder, value) {
@@ -13087,10 +13094,10 @@ var require_write_type = __commonJS({
         var length = value.size;
         var type = length < 16 ? 128 + length : length <= 65535 ? 222 : 223;
         token[type](encoder, length);
-        var encode = encoder.codec.encode;
+        var encode2 = encoder.codec.encode;
         value.forEach(function(val, key, m) {
-          encode(encoder, key);
-          encode(encoder, val);
+          encode2(encoder, key);
+          encode2(encoder, val);
         });
       }
       function raw(encoder, value) {
@@ -13106,7 +13113,7 @@ var require_write_type = __commonJS({
 // node_modules/@chemzqm/msgpack-lite/lib/codec-base.js
 var require_codec_base = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/codec-base.js"(exports2) {
-    exports2.createCodec = createCodec;
+    exports2.createCodec = createCodec2;
     exports2.install = install;
     exports2.filter = filter2;
     var Bufferish = require_bufferish();
@@ -13146,10 +13153,10 @@ var require_codec_base = __commonJS({
     function filter2(filter3) {
       return Array.isArray(filter3) ? join(filter3) : filter3;
     }
-    function createCodec(options2) {
+    function createCodec2(options2) {
       return new Codec(options2);
     }
-    exports2.preset = createCodec({ preset: true });
+    exports2.preset = createCodec2({ preset: true });
   }
 });
 
@@ -13168,11 +13175,11 @@ var require_write_core = __commonJS({
     exports2.preset = init.call(CodecBase.preset);
     function getEncoder(options2) {
       var writeType = WriteType.getWriteType(options2);
-      return encode;
-      function encode(encoder, value) {
-        var func2 = writeType[typeof value];
-        if (!func2) throw new Error('Unsupported type "' + typeof value + '": ' + value);
-        func2(encoder, value);
+      return encode2;
+      function encode2(encoder, value) {
+        var func3 = writeType[typeof value];
+        if (!func3) throw new Error('Unsupported type "' + typeof value + '": ' + value);
+        func3(encoder, value);
       }
     }
     function init() {
@@ -13395,9 +13402,9 @@ var require_encode_buffer = __commonJS({
 // node_modules/@chemzqm/msgpack-lite/lib/encode.js
 var require_encode = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/encode.js"(exports2) {
-    exports2.encode = encode;
+    exports2.encode = encode2;
     var EncodeBuffer = require_encode_buffer().EncodeBuffer;
-    function encode(input, options2) {
+    function encode2(input, options2) {
       var encoder = new EncodeBuffer(options2);
       encoder.write(input);
       return encoder.read();
@@ -13410,22 +13417,22 @@ var require_ext_unpacker = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/ext-unpacker.js"(exports2) {
     exports2.setExtUnpackers = setExtUnpackers;
     var Bufferish = require_bufferish();
-    var Buffer3 = Bufferish.global;
+    var Buffer4 = Bufferish.global;
     var _decode;
     var ERROR_COLUMNS = { name: 1, message: 1, stack: 1, columnNumber: 1, fileName: 1, lineNumber: 1 };
     function setExtUnpackers(codec) {
-      codec.addExtUnpacker(14, [decode, unpackError(Error)]);
-      codec.addExtUnpacker(1, [decode, unpackError(EvalError)]);
-      codec.addExtUnpacker(2, [decode, unpackError(RangeError)]);
-      codec.addExtUnpacker(3, [decode, unpackError(ReferenceError)]);
-      codec.addExtUnpacker(4, [decode, unpackError(SyntaxError)]);
-      codec.addExtUnpacker(5, [decode, unpackError(TypeError)]);
-      codec.addExtUnpacker(6, [decode, unpackError(URIError)]);
-      codec.addExtUnpacker(10, [decode, unpackRegExp]);
-      codec.addExtUnpacker(11, [decode, unpackClass(Boolean)]);
-      codec.addExtUnpacker(12, [decode, unpackClass(String)]);
-      codec.addExtUnpacker(13, [decode, unpackClass(Date)]);
-      codec.addExtUnpacker(15, [decode, unpackClass(Number)]);
+      codec.addExtUnpacker(14, [decode2, unpackError(Error)]);
+      codec.addExtUnpacker(1, [decode2, unpackError(EvalError)]);
+      codec.addExtUnpacker(2, [decode2, unpackError(RangeError)]);
+      codec.addExtUnpacker(3, [decode2, unpackError(ReferenceError)]);
+      codec.addExtUnpacker(4, [decode2, unpackError(SyntaxError)]);
+      codec.addExtUnpacker(5, [decode2, unpackError(TypeError)]);
+      codec.addExtUnpacker(6, [decode2, unpackError(URIError)]);
+      codec.addExtUnpacker(10, [decode2, unpackRegExp]);
+      codec.addExtUnpacker(11, [decode2, unpackClass(Boolean)]);
+      codec.addExtUnpacker(12, [decode2, unpackClass(String)]);
+      codec.addExtUnpacker(13, [decode2, unpackClass(Date)]);
+      codec.addExtUnpacker(15, [decode2, unpackClass(Number)]);
       if ("undefined" !== typeof Uint8Array) {
         codec.addExtUnpacker(17, unpackClass(Int8Array));
         codec.addExtUnpacker(18, unpackClass(Uint8Array));
@@ -13444,10 +13451,10 @@ var require_ext_unpacker = __commonJS({
         codec.addExtUnpacker(29, [unpackArrayBuffer, unpackClass(DataView)]);
       }
       if (Bufferish.hasBuffer) {
-        codec.addExtUnpacker(27, unpackClass(Buffer3));
+        codec.addExtUnpacker(27, unpackClass(Buffer4));
       }
     }
-    function decode(input) {
+    function decode2(input) {
       if (!_decode) _decode = require_decode().decode;
       return _decode(input);
     }
@@ -13515,10 +13522,10 @@ var require_read_format = __commonJS({
       var i;
       var k = new Array(len);
       var v = new Array(len);
-      var decode = decoder.codec.decode;
+      var decode2 = decoder.codec.decode;
       for (i = 0; i < len; i++) {
-        k[i] = decode(decoder);
-        v[i] = decode(decoder);
+        k[i] = decode2(decoder);
+        v[i] = decode2(decoder);
       }
       for (i = 0; i < len; i++) {
         value[k[i]] = v[i];
@@ -13530,10 +13537,10 @@ var require_read_format = __commonJS({
       var i;
       var k = new Array(len);
       var v = new Array(len);
-      var decode = decoder.codec.decode;
+      var decode2 = decoder.codec.decode;
       for (i = 0; i < len; i++) {
-        k[i] = decode(decoder);
-        v[i] = decode(decoder);
+        k[i] = decode2(decoder);
+        v[i] = decode2(decoder);
       }
       for (i = 0; i < len; i++) {
         value.set(k[i], v[i]);
@@ -13542,9 +13549,9 @@ var require_read_format = __commonJS({
     }
     function array(decoder, len) {
       var value = new Array(len);
-      var decode = decoder.codec.decode;
+      var decode2 = decoder.codec.decode;
       for (var i = 0; i < len; i++) {
-        value[i] = decode(decoder);
+        value[i] = decode2(decoder);
       }
       return value;
     }
@@ -13742,12 +13749,12 @@ var require_read_core = __commonJS({
     exports2.preset = init.call(CodecBase.preset);
     function getDecoder(options2) {
       var readToken = ReadToken.getReadToken(options2);
-      return decode;
-      function decode(decoder) {
+      return decode2;
+      function decode2(decoder) {
         var type = readUint8(decoder);
-        var func2 = readToken[type];
-        if (!func2) throw new Error("Invalid type: " + (type ? "0x" + type.toString(16) : type));
-        return func2(decoder);
+        var func3 = readToken[type];
+        if (!func3) throw new Error("Invalid type: " + (type ? "0x" + type.toString(16) : type));
+        return func3(decoder);
       }
     }
     function init() {
@@ -13799,9 +13806,9 @@ var require_decode_buffer = __commonJS({
 // node_modules/@chemzqm/msgpack-lite/lib/decode.js
 var require_decode = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/decode.js"(exports2) {
-    exports2.decode = decode;
+    exports2.decode = decode2;
     var DecodeBuffer = require_decode_buffer().DecodeBuffer;
-    function decode(input, options2) {
+    function decode2(input, options2) {
       var decoder = new DecodeBuffer(options2);
       decoder.write(input);
       return decoder.read();
@@ -13854,9 +13861,9 @@ var require_encode_stream = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/encode-stream.js"(exports2) {
     exports2.createEncodeStream = EncodeStream;
     var util = require("util");
-    var Transform2 = require("stream").Transform;
+    var Transform3 = require("stream").Transform;
     var EncodeBuffer = require_encode_buffer().EncodeBuffer;
-    util.inherits(EncodeStream, Transform2);
+    util.inherits(EncodeStream, Transform3);
     var DEFAULT_OPTIONS = { objectMode: true };
     function EncodeStream(options2) {
       if (!(this instanceof EncodeStream)) return new EncodeStream(options2);
@@ -13865,7 +13872,7 @@ var require_encode_stream = __commonJS({
       } else {
         options2 = DEFAULT_OPTIONS;
       }
-      Transform2.call(this, options2);
+      Transform3.call(this, options2);
       var stream = this;
       var encoder = this.encoder = new EncodeBuffer(options2);
       encoder.push = function(chunk) {
@@ -13888,9 +13895,9 @@ var require_decode_stream = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/decode-stream.js"(exports2) {
     exports2.createDecodeStream = DecodeStream;
     var util = require("util");
-    var Transform2 = require("stream").Transform;
+    var Transform3 = require("stream").Transform;
     var DecodeBuffer = require_decode_buffer().DecodeBuffer;
-    util.inherits(DecodeStream, Transform2);
+    util.inherits(DecodeStream, Transform3);
     var DEFAULT_OPTIONS = { objectMode: true };
     function DecodeStream(options2) {
       if (!(this instanceof DecodeStream)) return new DecodeStream(options2);
@@ -13899,7 +13906,7 @@ var require_decode_stream = __commonJS({
       } else {
         options2 = DEFAULT_OPTIONS;
       }
-      Transform2.call(this, options2);
+      Transform3.call(this, options2);
       var stream = this;
       var decoder = this.decoder = new DecodeBuffer(options2);
       decoder.push = function(chunk) {
@@ -13948,14 +13955,16 @@ var require_msgpack_lite = __commonJS({
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/Base.js
-var require_Base = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/Base.js"(exports2) {
+// src/neovim/api/Base.ts
+var BaseApi;
+var init_Base = __esm({
+  "src/neovim/api/Base.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.BaseApi = void 0;
-    var BaseApi = class {
-      constructor({ data, client }) {
+    BaseApi = class {
+      constructor({
+        data,
+        client
+      }) {
         this.data = data;
         if (client) {
           this.client = client;
@@ -14003,9 +14012,12 @@ var require_Base = __commonJS({
       }
       /** Retrieves a scoped variable depending on type (using `this.prefix`) */
       getVar(name2) {
-        return this.request(`${this.prefix}get_var`, [name2]).then((res) => res, (_err) => {
-          return null;
-        });
+        return this.request(`${this.prefix}get_var`, [name2]).then(
+          (res) => res,
+          (_err) => {
+            return null;
+          }
+        );
       }
       setVar(name2, value, isNotify = false) {
         if (isNotify) {
@@ -14034,22 +14046,19 @@ var require_Base = __commonJS({
         this.transport.notify(name2, this.getArgsByPrefix(args));
       }
       toJSON() {
-        var _a2;
-        return (_a2 = this.data) !== null && _a2 !== void 0 ? _a2 : 0;
+        return this.data ?? 0;
       }
     };
-    exports2.BaseApi = BaseApi;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/Buffer.js
-var require_Buffer = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/Buffer.js"(exports2) {
+// src/neovim/api/Buffer.ts
+var Buffer2;
+var init_Buffer = __esm({
+  "src/neovim/api/Buffer.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Buffer = void 0;
-    var Base_1 = require_Base();
-    var Buffer3 = class extends Base_1.BaseApi {
+    init_Base();
+    Buffer2 = class extends BaseApi {
       constructor() {
         super(...arguments);
         this.prefix = "nvim_buf_";
@@ -14057,9 +14066,9 @@ var require_Buffer = __commonJS({
       /**
        * Attach to buffer to listen to buffer events
        * @param sendBuffer Set to true if the initial notification should contain
-       *        the whole buffer. If so, the first notification will be a
-       *        `nvim_buf_lines_event`. Otherwise, the first notification will be
-       *        a `nvim_buf_changedtick_event`
+       * the whole buffer. If so, the first notification will be a
+       * `nvim_buf_lines_event`. Otherwise, the first notification will be
+       * a `nvim_buf_changedtick_event`
        */
       async attach(sendBuffer = false, options2 = {}) {
         return await this.request(`${this.prefix}attach`, [sendBuffer, options2]);
@@ -14104,10 +14113,10 @@ var require_Buffer = __commonJS({
         ]);
       }
       setLines(lines, opts, notify = false) {
-        let { start, end, strictIndexing } = opts !== null && opts !== void 0 ? opts : {};
-        start = start !== null && start !== void 0 ? start : 0;
-        end = end !== null && end !== void 0 ? end : start + 1;
-        const indexing = strictIndexing !== null && strictIndexing !== void 0 ? strictIndexing : true;
+        let { start, end, strictIndexing } = opts ?? {};
+        start = start ?? 0;
+        end = end ?? start + 1;
+        const indexing = strictIndexing ?? true;
         const method = notify ? "notify" : "request";
         return this[method](`${this.prefix}set_lines`, [
           start,
@@ -14118,7 +14127,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Set virtual text for a line, works on nvim >= 0.5.0 and vim9
-       *
        * @public
        * @param {number} src_id - Source group to use or 0 to use a new group, or -1
        * @param {number} line - Line to annotate with virtual text (zero-indexed)
@@ -14132,7 +14140,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Removes an ext mark by notification.
-       *
        * @public
        * @param {number} ns_id - Namespace id
        * @param {number} id - Extmark id
@@ -14145,7 +14152,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Gets the position (0-indexed) of an extmark.
-       *
        * @param {number} ns_id - Namespace id
        * @param {number} id - Extmark id
        * @param {Object} opts - Optional parameters.
@@ -14162,9 +14168,8 @@ var require_Buffer = __commonJS({
        * positions define the bounds). 0 and -1 are understood as (0,0) and (-1,-1)
        * respectively, thus the following are equivalent:
        *
-       *     nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
-       *     nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
-       *
+       * nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
+       * nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
        * @param {number} ns_id - Namespace id
        * @param {[number, number] | number} start
        * @param {[number, number] | number} end
@@ -14176,7 +14181,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Creates or updates an extmark by notification, `:h nvim_buf_set_extmark`.
-       *
        * @param {number} ns_id
        * @param {number} line
        * @param {number} col
@@ -14255,9 +14259,9 @@ var require_Buffer = __commonJS({
         this.notify(`${this.prefix}del_keymap`, [mode, lhs]);
       }
       /**
-      * Checks if a buffer is valid and loaded. See |api-buffer| for
-      * more info about unloaded buffers.
-      */
+       * Checks if a buffer is valid and loaded. See |api-buffer| for
+       * more info about unloaded buffers.
+       */
       get loaded() {
         return this.request(`${this.prefix}is_loaded`, []);
       }
@@ -14272,38 +14276,43 @@ var require_Buffer = __commonJS({
        *
        * Unlike |line2byte()|, throws error for out-of-bounds indexing.
        * Returns -1 for unloaded buffer.
-       *
        * @return {Number} Integer byte offset, or -1 for unloaded buffer.
        */
       getOffset(index) {
         return this.request(`${this.prefix}get_offset`, [index]);
       }
       /**
-          Adds a highlight to buffer.
-      
-          This can be used for plugins which dynamically generate
-          highlights to a buffer (like a semantic highlighter or
-          linter). The function adds a single highlight to a buffer.
-          Unlike matchaddpos() highlights follow changes to line
-          numbering (as lines are inserted/removed above the highlighted
-          line), like signs and marks do.
-      
-          "src_id" is useful for batch deletion/updating of a set of
-          highlights. When called with src_id = 0, an unique source id
-          is generated and returned. Succesive calls can pass in it as
-          "src_id" to add new highlights to the same source group. All
-          highlights in the same group can then be cleared with
-          nvim_buf_clear_namespace. If the highlight never will be
-          manually deleted pass in -1 for "src_id".
-      
-          If "hl_group" is the empty string no highlight is added, but a
-          new src_id is still returned. This is useful for an external
-          plugin to synchrounously request an unique src_id at
-          initialization, and later asynchronously add and clear
-          highlights in response to buffer changes. */
-      addHighlight({ hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId }) {
-        if (!hlGroup)
-          throw new Error("hlGroup should not empty");
+       * Adds a highlight to buffer.
+       *
+       * This can be used for plugins which dynamically generate
+       * highlights to a buffer (like a semantic highlighter or
+       * linter). The function adds a single highlight to a buffer.
+       * Unlike matchaddpos() highlights follow changes to line
+       * numbering (as lines are inserted/removed above the highlighted
+       * line), like signs and marks do.
+       *
+       * "src_id" is useful for batch deletion/updating of a set of
+       * highlights. When called with src_id = 0, an unique source id
+       * is generated and returned. Succesive calls can pass in it as
+       * "src_id" to add new highlights to the same source group. All
+       * highlights in the same group can then be cleared with
+       * nvim_buf_clear_namespace. If the highlight never will be
+       * manually deleted pass in -1 for "src_id".
+       *
+       * If "hl_group" is the empty string no highlight is added, but a
+       * new src_id is still returned. This is useful for an external
+       * plugin to synchrounously request an unique src_id at
+       * initialization, and later asynchronously add and clear
+       * highlights in response to buffer changes.
+       */
+      addHighlight({
+        hlGroup,
+        line,
+        colStart: _start,
+        colEnd: _end,
+        srcId: _srcId
+      }) {
+        if (!hlGroup) throw new Error("hlGroup should not empty");
         const colEnd = typeof _end !== "undefined" ? _end : -1;
         const colStart = typeof _start !== "undefined" ? _start : -0;
         const srcId4 = typeof _srcId !== "undefined" ? _srcId : -1;
@@ -14319,7 +14328,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Clear highlights of specified lins.
-       *
        * @deprecated use clearNamespace() instead.
        */
       clearHighlight(args = {}) {
@@ -14337,7 +14345,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Add highlight to ranges by notification.
-       *
        * @param {string | number} srcId Unique key or namespace number.
        * @param {string} hlGroup Highlight group.
        * @param {Range[]} ranges List of highlight ranges
@@ -14347,7 +14354,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Clear namespace by id or name.
-       *
        * @param key Unique key or namespace number, use -1 for all namespaces
        * @param lineStart Start of line, 0 based, default to 0.
        * @param lineEnd End of line, 0 based, default to -1.
@@ -14357,14 +14363,12 @@ var require_Buffer = __commonJS({
       }
       /**
        * Add sign to buffer by notification.
-       *
        * @param {SignPlaceOption} sign
        * @returns {void}
        */
       placeSign(sign) {
         let opts = { lnum: sign.lnum };
-        if (typeof sign.priority === "number")
-          opts.priority = sign.priority;
+        if (typeof sign.priority === "number") opts.priority = sign.priority;
         this.client.call("sign_place", [sign.id || 0, sign.group || "", sign.name, this.id, opts], true);
       }
       /**
@@ -14372,13 +14376,11 @@ var require_Buffer = __commonJS({
        */
       unplaceSign(opts) {
         let details = { buffer: this.id };
-        if (opts.id != null)
-          details.id = opts.id;
+        if (opts.id != null) details.id = opts.id;
         this.client.call("sign_unplace", [opts.group || "", details], true);
       }
       /**
        * Get signs by group name or id and lnum.
-       *
        * @param {SignPlacedOption} opts
        * @returns {Promise<SignItem[]>}
        */
@@ -14388,7 +14390,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Get highlight items by name space (end inclusive).
-       *
        * @param {string} ns Namespace key.
        * @param {number} start 0 based line number.
        * @param {number} end 0 based line number.
@@ -14410,7 +14411,6 @@ var require_Buffer = __commonJS({
       }
       /**
        * Update highlight items by notification.
-       *
        * @param {string | number} ns Namespace key or id.
        * @param {HighlightItem[]} highlights Highlight items.
        * @param {HighlightOption} opts Optional options.
@@ -14446,18 +14446,16 @@ var require_Buffer = __commonJS({
         }
       }
     };
-    exports2.Buffer = Buffer3;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/Window.js
-var require_Window = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/Window.js"(exports2) {
+// src/neovim/api/Window.ts
+var Window;
+var init_Window = __esm({
+  "src/neovim/api/Window.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Window = void 0;
-    var Base_1 = require_Base();
-    var Window2 = class extends Base_1.BaseApi {
+    init_Base();
+    Window = class extends BaseApi {
       constructor() {
         super(...arguments);
         this.prefix = "nvim_win_";
@@ -14509,17 +14507,22 @@ var require_Window = __commonJS({
       }
       /** 0-indexed, on-screen window position(row) in display cells. */
       get row() {
-        return this.request(`${this.prefix}get_position`, []).then((position) => position[0]);
+        return this.request(`${this.prefix}get_position`, []).then(
+          (position) => position[0]
+        );
       }
       /** 0-indexed, on-screen window position(col) in display cells. */
       get col() {
-        return this.request(`${this.prefix}get_position`, []).then((position) => position[1]);
+        return this.request(`${this.prefix}get_position`, []).then(
+          (position) => position[1]
+        );
       }
       /** Is window valid */
       get valid() {
         return this.request(`${this.prefix}is_valid`, []);
       }
       /** Get window number */
+      // eslint-disable-next-line id-blacklist
       get number() {
         return this.request(`${this.prefix}get_number`, []);
       }
@@ -14557,18 +14560,16 @@ var require_Window = __commonJS({
         this.client.call("coc#highlight#clear_matches", [this.id, ids], true);
       }
     };
-    exports2.Window = Window2;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/Tabpage.js
-var require_Tabpage = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/Tabpage.js"(exports2) {
+// src/neovim/api/Tabpage.ts
+var Tabpage;
+var init_Tabpage = __esm({
+  "src/neovim/api/Tabpage.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Tabpage = void 0;
-    var Base_1 = require_Base();
-    var Tabpage = class extends Base_1.BaseApi {
+    init_Base();
+    Tabpage = class extends BaseApi {
       constructor() {
         super(...arguments);
         this.prefix = "nvim_tabpage_";
@@ -14592,6 +14593,7 @@ var require_Tabpage = __commonJS({
         return this.request(`${this.prefix}is_valid`, []);
       }
       /** Tabpage number */
+      // eslint-disable-next-line id-blacklist
       get number() {
         return this.request(`${this.prefix}get_number`, []);
       }
@@ -14604,38 +14606,30 @@ var require_Tabpage = __commonJS({
         throw new Error("Tabpage does not have `setOption`");
       }
     };
-    exports2.Tabpage = Tabpage;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/types.js
-var require_types = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/types.js"(exports2) {
+// src/neovim/api/types.ts
+var Metadata;
+var init_types = __esm({
+  "src/neovim/api/types.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Metadata = exports2.ExtType = void 0;
-    var Buffer_1 = require_Buffer();
-    var Window_1 = require_Window();
-    var Tabpage_1 = require_Tabpage();
-    var ExtType;
-    (function(ExtType2) {
-      ExtType2[ExtType2["Buffer"] = 0] = "Buffer";
-      ExtType2[ExtType2["Window"] = 1] = "Window";
-      ExtType2[ExtType2["Tabpage"] = 2] = "Tabpage";
-    })(ExtType = exports2.ExtType || (exports2.ExtType = {}));
-    exports2.Metadata = [
+    init_Buffer();
+    init_Window();
+    init_Tabpage();
+    Metadata = [
       {
-        constructor: Buffer_1.Buffer,
+        constructor: Buffer2,
         name: "Buffer",
         prefix: "nvim_buf_"
       },
       {
-        constructor: Window_1.Window,
+        constructor: Window,
         name: "Window",
         prefix: "nvim_win_"
       },
       {
-        constructor: Tabpage_1.Tabpage,
+        constructor: Tabpage,
         name: "Tabpage",
         prefix: "nvim_tabpage_"
       }
@@ -14643,15 +14637,15 @@ var require_types = __commonJS({
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/utils/buffered.js
-var require_buffered = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/utils/buffered.js"(exports2) {
+// src/neovim/utils/buffered.ts
+var import_stream, MIN_SIZE, waterMark, Buffered;
+var init_buffered = __esm({
+  "src/neovim/utils/buffered.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var stream_1 = require("stream");
-    var MIN_SIZE = Buffer.poolSize;
-    var waterMark = 10 * 1024 * 1024;
-    var Buffered = class extends stream_1.Transform {
+    import_stream = require("stream");
+    MIN_SIZE = Buffer.poolSize;
+    waterMark = 10 * 1024 * 1024;
+    Buffered = class extends import_stream.Transform {
       constructor() {
         super({
           readableHighWaterMark: waterMark,
@@ -14667,14 +14661,12 @@ var require_buffered = __commonJS({
           this.push(Buffer.concat(chunks));
         }
       }
-      // eslint-disable-next-line consistent-return
+      // eslint-disable-next-line consistent-return, @typescript-eslint/explicit-member-accessibility
       _transform(chunk, _encoding, callback) {
         const { chunks, timer } = this;
-        if (timer)
-          clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         if (chunk.length < MIN_SIZE) {
-          if (!chunks)
-            return callback(null, chunk);
+          if (!chunks) return callback(null, chunk);
           chunks.push(chunk);
           this.sendData();
           callback();
@@ -14688,6 +14680,7 @@ var require_buffered = __commonJS({
           callback();
         }
       }
+      // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
       _flush(callback) {
         const { chunks } = this;
         if (chunks) {
@@ -14699,25 +14692,51 @@ var require_buffered = __commonJS({
         }
       }
     };
-    exports2.default = Buffered;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/utils/logger.js
-var require_logger = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/utils/logger.js"(exports2) {
+// src/neovim/utils/logger.ts
+function getLogFile() {
+  let file = process.env.NODE_CLIENT_LOG_FILE;
+  if (file) return file;
+  let dir = process.env.XDG_RUNTIME_DIR;
+  if (dir) return import_path.default.join(dir, "node-client.log");
+  return import_path.default.join(import_os.default.tmpdir(), `node-client-${process.pid}.log`);
+}
+function toObject(arg) {
+  if (arg == null) {
+    return arg;
+  }
+  if (Array.isArray(arg)) {
+    return arg.map((o) => toObject(o));
+  }
+  if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") {
+    return "[" + arg.prefix + arg.data + "]";
+  }
+  return arg;
+}
+function toString(arg) {
+  if (debugging) return (0, import_util3.inspect)(arg, { depth: null, colors: true, compact: false });
+  if (arg == null) return String(arg);
+  if (typeof arg == "object") return JSON.stringify(arg, null, 2);
+  return String(arg);
+}
+function toTimeString(currentTime) {
+  return `${toTwoDigits2(currentTime.getHours())}:${toTwoDigits2(currentTime.getMinutes())}:${toTwoDigits2(currentTime.getSeconds())}.${toThreeDigits2(currentTime.getMilliseconds())}`;
+}
+function createLogger2(name2) {
+  return new Logger(name2);
+}
+var import_fs, import_os, import_path, import_util3, debugging, nullLogger, LOG_FILE_PATH, level2, invalid, toTwoDigits2, toThreeDigits2, Logger;
+var init_logger2 = __esm({
+  "src/neovim/utils/logger.ts"() {
     "use strict";
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.createLogger = exports2.level = exports2.nullLogger = void 0;
-    var fs_1 = __importDefault(require("fs"));
-    var os_1 = __importDefault(require("os"));
-    var path_1 = __importDefault(require("path"));
-    var util_1 = require("util");
-    var debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
-    exports2.nullLogger = {
+    import_fs = __toESM(require("fs"));
+    import_os = __toESM(require("os"));
+    import_path = __toESM(require("path"));
+    import_util3 = require("util");
+    debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
+    nullLogger = {
       debug: () => {
       },
       info: () => {
@@ -14729,145 +14748,100 @@ var require_logger = __commonJS({
       trace: () => {
       }
     };
-    function getLogFile() {
-      let file = process.env.NODE_CLIENT_LOG_FILE;
-      if (file)
-        return file;
-      let dir = process.env.XDG_RUNTIME_DIR;
-      if (dir)
-        return path_1.default.join(dir, "node-client.log");
-      return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
-    }
-    var LOG_FILE_PATH = getLogFile();
-    exports2.level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
-    var invalid = !debugging && process.getuid && process.getuid() == 0;
+    LOG_FILE_PATH = getLogFile();
+    level2 = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
+    invalid = !debugging && process.getuid && process.getuid() == 0;
     if (!invalid && !debugging) {
       try {
-        fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
-        fs_1.default.writeFileSync(LOG_FILE_PATH, "", { encoding: "utf8", mode: 438 });
+        import_fs.default.mkdirSync(import_path.default.dirname(LOG_FILE_PATH), { recursive: true });
+        import_fs.default.writeFileSync(LOG_FILE_PATH, "", { encoding: "utf8", mode: 438 });
       } catch (_e) {
         invalid = true;
       }
     }
-    function toObject2(arg) {
-      if (arg == null) {
-        return arg;
-      }
-      if (Array.isArray(arg)) {
-        return arg.map((o) => toObject2(o));
-      }
-      if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") {
-        return "[" + arg.prefix + arg.data + "]";
-      }
-      return arg;
-    }
-    function toString(arg) {
-      if (debugging)
-        return (0, util_1.inspect)(arg, { depth: null, colors: true, compact: false });
-      if (arg == null)
-        return String(arg);
-      if (typeof arg == "object")
-        return JSON.stringify(arg, null, 2);
-      return String(arg);
-    }
-    var toTwoDigits2 = (v) => v < 10 ? `0${v}` : v.toString();
-    var toThreeDigits2 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
-    function toTimeString(currentTime) {
-      return `${toTwoDigits2(currentTime.getHours())}:${toTwoDigits2(currentTime.getMinutes())}:${toTwoDigits2(currentTime.getSeconds())}.${toThreeDigits2(currentTime.getMilliseconds())}`;
-    }
-    var Logger = class {
+    toTwoDigits2 = (v) => v < 10 ? `0${v}` : v.toString();
+    toThreeDigits2 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+    Logger = class {
       constructor(name2) {
         this.name = name2;
       }
       get stream() {
-        if (this._stream)
-          return this._stream;
+        if (this._stream) return this._stream;
         if (debugging) {
           this._stream = process.stdout;
         } else {
-          this._stream = fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
+          this._stream = import_fs.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
         }
         return this._stream;
       }
-      getText(level2, data, meta) {
+      getText(level3, data, meta) {
         let more = "";
         if (meta.length) {
-          let arr = toObject2(meta);
+          let arr = toObject(meta);
           more = " " + arr.map((o) => toString(o)).join(", ");
         }
-        return `${toTimeString(/* @__PURE__ */ new Date())} ${level2.toUpperCase()} [${this.name}] - ${data}${more}
+        return `${toTimeString(/* @__PURE__ */ new Date())} ${level3.toUpperCase()} [${this.name}] - ${data}${more}
 `;
       }
       debug(data, ...meta) {
-        if (exports2.level != "debug" || invalid)
-          return;
+        if (level2 != "debug" || invalid) return;
         this.stream.write(this.getText("debug", data, meta));
       }
       info(data, ...meta) {
-        if (invalid)
-          return;
+        if (invalid) return;
         this.stream.write(this.getText("info", data, meta));
       }
       warn(data, ...meta) {
-        if (invalid)
-          return;
+        if (invalid) return;
         this.stream.write(this.getText("warn", data, meta));
       }
       error(data, ...meta) {
-        if (invalid)
-          return;
+        if (invalid) return;
         let stream = debugging ? process.stderr : this.stream;
         stream.write(this.getText("error", data, meta));
       }
       trace(data, ...meta) {
-        if (exports2.level != "trace" || invalid)
-          return;
+        if (level2 != "trace" || invalid) return;
         this.stream.write(this.getText("trace", data, meta));
       }
     };
-    function createLogger2(name2) {
-      return new Logger(name2);
-    }
-    exports2.createLogger = createLogger2;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/transport/base.js
-var require_base = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/transport/base.js"(exports2) {
+// src/neovim/transport/base.ts
+var import_events, debug, logger2, Transport;
+var init_base = __esm({
+  "src/neovim/transport/base.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var events_1 = require("events");
-    var logger_1 = require_logger();
-    var debug = logger_1.level === "debug";
-    var logger59 = (0, logger_1.createLogger)("transport");
-    var Transport3 = class extends events_1.EventEmitter {
-      constructor(logger60, isVim2) {
+    import_events = require("events");
+    init_logger2();
+    debug = level2 === "debug";
+    logger2 = createLogger2("transport");
+    Transport = class extends import_events.EventEmitter {
+      constructor(logger61, isVim2) {
         super();
-        this.logger = logger60;
+        this.logger = logger61;
         this.isVim = isVim2;
         this.pauseLevel = 0;
         this.paused = /* @__PURE__ */ new Map();
       }
       debug(key, ...meta) {
-        if (!debug)
-          return;
-        logger59.debug(key, ...meta);
+        if (!debug) return;
+        logger2.debug(key, ...meta);
       }
       info(key, ...meta) {
-        logger59.info(key, ...meta);
+        logger2.info(key, ...meta);
       }
       debugMessage(msg) {
-        if (!debug)
-          return;
+        if (!debug) return;
         const msgType = msg[0];
         if (msgType == 0) {
-          logger59.debug("receive request:", msg.slice(1));
+          logger2.debug("receive request:", msg.slice(1));
         } else if (msgType == 1) {
         } else if (msgType == 2) {
-          logger59.debug("receive notification:", msg.slice(1));
+          logger2.debug("receive notification:", msg.slice(1));
         } else {
-          logger59.debug("unknown message:", msg);
+          logger2.debug("unknown message:", msg);
         }
       }
       pauseNotification() {
@@ -14883,8 +14857,7 @@ var require_base = __commonJS({
       }
       resumeNotification(isNotify = false) {
         let { pauseLevel } = this;
-        if (pauseLevel == 0)
-          return isNotify ? null : Promise.resolve([[], null]);
+        if (pauseLevel == 0) return isNotify ? null : Promise.resolve([[], null]);
         let obj = {};
         Error.captureStackTrace(obj);
         this.pauseLevel = pauseLevel - 1;
@@ -14917,53 +14890,21 @@ var require_base = __commonJS({
         return isNotify ? null : Promise.resolve([[], void 0]);
       }
     };
-    exports2.default = Transport3;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/transport/nvim.js
-var require_nvim = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/transport/nvim.js"(exports2) {
+// src/neovim/transport/nvim.ts
+var msgpack, NvimTransport;
+var init_nvim = __esm({
+  "src/neovim/transport/nvim.ts"() {
     "use strict";
-    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      var desc = Object.getOwnPropertyDescriptor(m, k);
-      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function() {
-          return m[k];
-        } };
-      }
-      Object.defineProperty(o, k2, desc);
-    } : function(o, m, k, k2) {
-      if (k2 === void 0) k2 = k;
-      o[k2] = m[k];
-    });
-    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
-      Object.defineProperty(o, "default", { enumerable: true, value: v });
-    } : function(o, v) {
-      o["default"] = v;
-    });
-    var __importStar = exports2 && exports2.__importStar || function(mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null) {
-        for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-      }
-      __setModuleDefault(result, mod);
-      return result;
-    };
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.NvimTransport = void 0;
-    var msgpack = __importStar(require_msgpack_lite());
-    var types_1 = require_types();
-    var buffered_1 = __importDefault(require_buffered());
-    var base_1 = __importDefault(require_base());
-    var NvimTransport = class extends base_1.default {
-      constructor(logger59) {
-        super(logger59, false);
+    msgpack = __toESM(require_msgpack_lite());
+    init_types();
+    init_buffered();
+    init_base();
+    NvimTransport = class extends Transport {
+      constructor(logger61) {
+        super(logger61, false);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = 1;
         this.attached = false;
@@ -14983,7 +14924,12 @@ var require_nvim = __commonJS({
         this.debugMessage(msg);
         if (msgType === 0) {
           let method = msg[2].toString();
-          this.emit("request", method, msg[3], this.createResponse(method, msg[1]));
+          this.emit(
+            "request",
+            method,
+            msg[3],
+            this.createResponse(method, msg[1])
+          );
         } else if (msgType === 1) {
           const id = msg[1];
           const handler = this.pending.get(id);
@@ -15003,19 +14949,28 @@ var require_nvim = __commonJS({
       }
       setupCodec() {
         const codec = msgpack.createCodec();
-        types_1.Metadata.forEach(({ constructor }, id) => {
-          codec.addExtPacker(id, constructor, (obj) => msgpack.encode(obj.data));
-          codec.addExtUnpacker(id, (data) => new constructor({
-            client: this.client,
-            data: msgpack.decode(data)
-          }));
-        });
+        Metadata.forEach(
+          ({ constructor }, id) => {
+            codec.addExtPacker(
+              id,
+              constructor,
+              (obj) => msgpack.encode(obj.data)
+            );
+            codec.addExtUnpacker(
+              id,
+              (data) => new constructor({
+                client: this.client,
+                data: msgpack.decode(data)
+              })
+            );
+          }
+        );
         this.codec = codec;
         return this.codec;
       }
       attach(writer, reader, client) {
         this.encodeStream = this.encodeStream.pipe(writer);
-        const buffered = new buffered_1.default();
+        const buffered = new Buffered();
         reader.pipe(buffered).pipe(this.decodeStream);
         this.writer = writer;
         this.reader = reader;
@@ -15023,8 +14978,7 @@ var require_nvim = __commonJS({
         this.attached = true;
       }
       detach() {
-        if (!this.attached)
-          return;
+        if (!this.attached) return;
         this.attached = false;
         this.encodeStream.unpipe(this.writer);
         this.reader.unpipe(this.decodeStream);
@@ -15034,23 +14988,23 @@ var require_nvim = __commonJS({
         this.pending.clear();
       }
       request(method, args, cb) {
-        if (!this.attached)
-          return cb([0, "transport disconnected"]);
+        if (!this.attached) return cb([0, "transport disconnected"]);
         let id = this.nextRequestId;
         this.nextRequestId = this.nextRequestId + 1;
         let startTs = Date.now();
         this.debug("request to nvim:", id, method, args);
-        this.encodeStream.write(msgpack.encode([0, id, method, args], {
-          codec: this.codec
-        }));
+        this.encodeStream.write(
+          msgpack.encode([0, id, method, args], {
+            codec: this.codec
+          })
+        );
         this.pending.set(id, (err, res) => {
           this.debug("response of nvim:", id, Date.now() - startTs, res, err);
           cb(err, res);
         });
       }
       notify(method, args) {
-        if (!this.attached)
-          return;
+        if (!this.attached) return;
         if (this.pauseLevel != 0) {
           let arr = this.paused.get(this.pauseLevel);
           if (arr) {
@@ -15059,14 +15013,18 @@ var require_nvim = __commonJS({
           }
         }
         this.debug("nvim notification:", method, args);
-        this.encodeStream.write(msgpack.encode([2, method, args], {
-          codec: this.codec
-        }));
+        this.encodeStream.write(
+          msgpack.encode([2, method, args], {
+            codec: this.codec
+          })
+        );
       }
       send(arr) {
-        this.encodeStream.write(msgpack.encode(arr, {
-          codec: this.codec
-        }));
+        this.encodeStream.write(
+          msgpack.encode(arr, {
+            codec: this.codec
+          })
+        );
       }
       createResponse(method, requestId) {
         let { encodeStream } = this;
@@ -15078,56 +15036,51 @@ var require_nvim = __commonJS({
         return {
           send: (resp, isError) => {
             clearTimeout(timer);
-            if (called || !this.attached)
-              return;
+            if (called || !this.attached) return;
             this.debug("response of client:", requestId, `${Date.now() - startTs}ms`, resp, isError == true);
             called = true;
-            encodeStream.write(msgpack.encode([
-              1,
-              requestId,
-              isError ? resp : null,
-              !isError ? resp : null
-            ]));
+            encodeStream.write(
+              msgpack.encode([
+                1,
+                requestId,
+                isError ? resp : null,
+                !isError ? resp : null
+              ])
+            );
           }
         };
       }
     };
-    exports2.NvimTransport = NvimTransport;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/utils/constants.js
-var require_constants2 = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/utils/constants.js"(exports2) {
+// src/neovim/utils/constants.ts
+var isCocNvim, isTester;
+var init_constants = __esm({
+  "src/neovim/utils/constants.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isTester = exports2.isCocNvim = void 0;
-    exports2.isCocNvim = true;
-    exports2.isTester = process.env.COC_TESTER == "1";
+    isCocNvim = true;
+    isTester = process.env.COC_TESTER == "1";
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/transport/connection.js
-var require_connection = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/transport/connection.js"(exports2) {
+// src/neovim/transport/connection.ts
+var import_events2, logger3, NR_CODE, Connection;
+var init_connection = __esm({
+  "src/neovim/transport/connection.ts"() {
     "use strict";
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var events_1 = __importDefault(require("events"));
-    var logger_1 = require_logger();
-    var logger59 = (0, logger_1.createLogger)("connection");
-    var NR_CODE = 10;
-    var Connection2 = class extends events_1.default {
+    import_events2 = __toESM(require("events"));
+    init_logger2();
+    logger3 = createLogger2("connection");
+    NR_CODE = 10;
+    Connection = class extends import_events2.default {
       constructor(readable, writeable) {
         super();
         this.writeable = writeable;
         let cached = [];
         let hasCache = false;
         readable.once("data", (buf) => {
-          if (!Buffer.isBuffer(buf))
-            throw new Error(`Vim connection expect buffer from readable stream.`);
+          if (!Buffer.isBuffer(buf)) throw new Error(`Vim connection expect buffer from readable stream.`);
         });
         let onData = (buf) => {
           let start = 0;
@@ -15154,7 +15107,7 @@ var require_connection = __commonJS({
         };
         readable.on("data", onData);
         let onClose = () => {
-          logger59.warn("readable stream closed.");
+          logger3.warn("readable stream closed.");
         };
         readable.on("close", onClose);
         this.clean = () => {
@@ -15163,8 +15116,7 @@ var require_connection = __commonJS({
         };
       }
       parseData(str) {
-        if (str.length == 0)
-          return;
+        if (str.length == 0) return;
         let arr;
         try {
           arr = JSON.parse(str);
@@ -15174,13 +15126,13 @@ var require_connection = __commonJS({
         }
         let [id, obj] = arr;
         if (id > 0) {
-          logger59.debug("received request:", id, obj);
+          logger3.debug("received request:", id, obj);
           this.emit("request", id, obj);
         } else if (id == 0) {
-          logger59.debug("received notification:", obj);
+          logger3.debug("received notification:", obj);
           this.emit("notification", obj);
         } else {
-          logger59.debug("received response:", id, obj);
+          logger3.debug("received response:", id, obj);
           this.emit("response", id, obj);
         }
       }
@@ -15191,7 +15143,7 @@ var require_connection = __commonJS({
         this.send([0, [event, data || null]]);
       }
       send(arr) {
-        logger59.debug("send to vim:", arr);
+        logger3.debug("send to vim:", arr);
         this.writeable.write(JSON.stringify(arr) + "\n");
       }
       redraw(force) {
@@ -15203,12 +15155,12 @@ var require_connection = __commonJS({
       expr(expr) {
         this.send(["expr", expr]);
       }
-      call(func2, args, requestId) {
+      call(func3, args, requestId) {
         if (typeof requestId === "number") {
-          this.send(["call", func2, args, requestId]);
+          this.send(["call", func3, args, requestId]);
           return;
         }
-        this.send(["call", func2, args]);
+        this.send(["call", func3, args]);
       }
       dispose() {
         if (typeof this.clean === "function") {
@@ -15218,18 +15170,17 @@ var require_connection = __commonJS({
         this.removeAllListeners();
       }
     };
-    exports2.default = Connection2;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/transport/request.js
-var require_request = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/transport/request.js"(exports2) {
+// src/neovim/transport/request.ts
+var func, Request;
+var init_request = __esm({
+  "src/neovim/transport/request.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var constants_1 = require_constants2();
-    var func2 = constants_1.isCocNvim ? "coc#api#call" : "nvim#api#call";
-    var Request = class {
+    init_constants();
+    func = isCocNvim ? "coc#api#call" : "nvim#api#call";
+    Request = class {
       constructor(connection, cb, id) {
         this.connection = connection;
         this.cb = cb;
@@ -15237,12 +15188,11 @@ var require_request = __commonJS({
       }
       request(method, args = []) {
         this.method = method;
-        this.connection.call(func2, [method.slice(5), args], this.id);
+        this.connection.call(func, [method.slice(5), args], this.id);
       }
       callback(client, err, result) {
         let { method, cb } = this;
-        if (err)
-          return cb([0, err.toString()]);
+        if (err) return cb([0, err.toString()]);
         switch (method) {
           case "nvim_list_wins":
           case "nvim_tabpage_list_wins":
@@ -15267,40 +15217,46 @@ var require_request = __commonJS({
         }
       }
     };
-    exports2.default = Request;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/transport/vim.js
-var require_vim = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/transport/vim.js"(exports2) {
+// src/neovim/transport/vim.ts
+var VimTransport;
+var init_vim = __esm({
+  "src/neovim/transport/vim.ts"() {
     "use strict";
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.VimTransport = void 0;
-    var constants_1 = require_constants2();
-    var base_1 = __importDefault(require_base());
-    var connection_1 = __importDefault(require_connection());
-    var request_1 = __importDefault(require_request());
-    var VimTransport = class extends base_1.default {
-      constructor(logger59) {
-        super(logger59, true);
+    init_constants();
+    init_base();
+    init_connection();
+    init_request();
+    VimTransport = class extends Transport {
+      constructor(logger61) {
+        super(logger61, true);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = -1;
         this.attached = false;
+        /**
+         * Cached error message
+         */
         this.errText = "";
+        /**
+         * Cached out message
+         */
         this.outText = "";
-        this.notifyMethod = constants_1.isCocNvim ? "coc#api#notify" : "nvim#api#notify";
+        this.notifyMethod = isCocNvim ? "coc#api#notify" : "nvim#api#notify";
       }
       attach(writer, reader, client) {
-        let connection = this.connection = new connection_1.default(reader, writer);
+        let connection = this.connection = new Connection(reader, writer);
         this.attached = true;
         this.client = client;
         connection.on("request", (id, obj) => {
           let [method, args] = obj;
-          this.emit("request", method, args, this.createResponse(method, id));
+          this.emit(
+            "request",
+            method,
+            args,
+            this.createResponse(method, id)
+          );
         });
         connection.on("notification", (obj) => {
           let [event, args] = obj;
@@ -15326,8 +15282,7 @@ var require_vim = __commonJS({
         this.connection.send(arr);
       }
       detach() {
-        if (!this.attached)
-          return;
+        if (!this.attached) return;
         this.attached = false;
         this.connection.dispose();
         for (let req of this.pending.values()) {
@@ -15339,19 +15294,17 @@ var require_vim = __commonJS({
        * Send request to vim
        */
       request(method, args, cb) {
-        if (!this.attached)
-          return cb([0, "transport disconnected"]);
+        if (!this.attached) return cb([0, "transport disconnected"]);
         let id = this.nextRequestId;
         this.nextRequestId = this.nextRequestId - 1;
-        let req = new request_1.default(this.connection, (err, res) => {
+        let req = new Request(this.connection, (err, res) => {
           cb(err, res);
         }, id);
         this.pending.set(id, req);
         req.request(method, args);
       }
       notify(method, args) {
-        if (!this.attached)
-          return;
+        if (!this.attached) return;
         if (this.pauseLevel != 0) {
           let arr = this.paused.get(this.pauseLevel);
           if (arr) {
@@ -15388,40 +15341,44 @@ var require_vim = __commonJS({
         let { connection } = this;
         return {
           send: (resp, isError) => {
-            if (called || !this.attached)
-              return;
+            if (called || !this.attached) return;
             called = true;
             let err = null;
-            if (isError)
-              err = typeof resp === "string" ? resp : resp.toString();
+            if (isError) err = typeof resp === "string" ? resp : resp.toString();
             connection.response(requestId, [err, isError ? null : resp]);
           }
         };
       }
     };
-    exports2.VimTransport = VimTransport;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/Neovim.js
-var require_Neovim = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/Neovim.js"(exports2) {
+// src/neovim/api/Neovim.ts
+function getArgs(args) {
+  if (!args) return [];
+  if (Array.isArray(args)) return args;
+  return [args];
+}
+var Neovim;
+var init_Neovim = __esm({
+  "src/neovim/api/Neovim.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Neovim = void 0;
-    var Base_1 = require_Base();
-    var constants_1 = require_constants2();
-    function getArgs(args) {
-      if (!args)
-        return [];
-      if (Array.isArray(args))
-        return args;
-      return [args];
-    }
-    var Neovim2 = class extends Base_1.BaseApi {
+    init_Base();
+    init_constants();
+    Neovim = class extends BaseApi {
       constructor() {
         super(...arguments);
         this.prefix = "nvim_";
+      }
+      getOption(name2) {
+        const method = this.transport.isVim ? `nvim_get_option` : `nvim_get_option_value`;
+        const args = this.transport.isVim ? [name2] : [name2, {}];
+        return this.request(method, args);
+      }
+      setOption(name2, value, isNotify) {
+        const method = this.transport.isVim ? `nvim_set_option` : `nvim_set_option_value`;
+        const args = this.transport.isVim ? [name2, value] : [name2, value, {}];
+        return isNotify ? this.notify(method, args) : this.request(method, args);
       }
       get apiInfo() {
         return this.request(`${this.prefix}get_api_info`);
@@ -15445,7 +15402,7 @@ var require_Neovim = __commonJS({
         return this.request(`${this.prefix}get_chan_info`, [chan]);
       }
       createNamespace(name2 = "") {
-        if (constants_1.isCocNvim) {
+        if (isCocNvim) {
           name2 = name2.startsWith("coc-") ? name2.slice(4) : name2;
           return this.request(`${this.prefix}call_function`, ["coc#highlight#create_namespace", [name2]]);
         }
@@ -15629,7 +15586,6 @@ var require_Neovim = __commonJS({
       }
       /**
        * Runs a command and returns output.
-       *
        * @deprecated Use exec instead.
        */
       commandOutput(arg) {
@@ -15656,7 +15612,6 @@ var require_Neovim = __commonJS({
       }
       /**
        * Send mouse event from GUI. Neovim only.
-       *
        * @param {MouseButton} button Mouse button: one of "left", "right", "middle", "wheel", "move".
        * @param {ButtonAction} action For ordinary buttons, one of "press", "drag", "release".
        * @param {string} modifier String of modifiers each represented by a single char.
@@ -15757,25 +15712,34 @@ var require_Neovim = __commonJS({
         }
       }
     };
-    exports2.Neovim = Neovim2;
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/client.js
-var require_client = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/client.js"(exports2) {
+// src/neovim/api/client.ts
+function applyMixins(derivedCtor, constructors) {
+  constructors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name2) => {
+      Object.defineProperty(
+        derivedCtor.prototype,
+        name2,
+        Object.getOwnPropertyDescriptor(baseCtor.prototype, name2) || /* @__PURE__ */ Object.create(null)
+      );
+    });
+  });
+}
+var import_events3, functionsOnVim, AsyncResponse, NeovimClient;
+var init_client = __esm({
+  "src/neovim/api/client.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.NeovimClient = exports2.AsyncResponse = void 0;
-    var nvim_1 = require_nvim();
-    var vim_1 = require_vim();
-    var constants_1 = require_constants2();
-    var Buffer_1 = require_Buffer();
-    var Neovim_1 = require_Neovim();
-    var Tabpage_1 = require_Tabpage();
-    var Window_1 = require_Window();
-    var events_1 = require("events");
-    var functionsOnVim = [
+    init_nvim();
+    init_vim();
+    init_constants();
+    init_Buffer();
+    init_Neovim();
+    init_Tabpage();
+    init_Window();
+    import_events3 = require("events");
+    functionsOnVim = [
       "nvim_buf_attach",
       "nvim_get_mode",
       "nvim_list_runtime_paths",
@@ -15827,6 +15791,7 @@ var require_client = __commonJS({
       "nvim_get_api_info",
       "nvim_unsubscribe",
       "nvim_get_option",
+      "nvim_get_option_value",
       "nvim_list_wins",
       "nvim_set_client_info",
       "nvim_win_set_cursor",
@@ -15858,15 +15823,14 @@ var require_client = __commonJS({
       "nvim_call_function",
       "nvim_buf_is_valid"
     ];
-    var AsyncResponse = class {
+    AsyncResponse = class {
       constructor(requestId, cb) {
         this.requestId = requestId;
         this.cb = cb;
         this.finished = false;
       }
       finish(err, res) {
-        if (this.finished)
-          return;
+        if (this.finished) return;
         this.finished = true;
         if (err) {
           this.cb(new Error(err));
@@ -15875,23 +15839,15 @@ var require_client = __commonJS({
         this.cb(null, res);
       }
     };
-    exports2.AsyncResponse = AsyncResponse;
-    function applyMixins(derivedCtor, constructors) {
-      constructors.forEach((baseCtor) => {
-        Object.getOwnPropertyNames(baseCtor.prototype).forEach((name2) => {
-          Object.defineProperty(derivedCtor.prototype, name2, Object.getOwnPropertyDescriptor(baseCtor.prototype, name2) || /* @__PURE__ */ Object.create(null));
-        });
-      });
-    }
-    var NeovimClient = class extends Neovim_1.Neovim {
-      constructor(logger59, isVim2) {
+    NeovimClient = class extends Neovim {
+      constructor(logger61, isVim2) {
         super({});
-        this.logger = logger59;
+        this.logger = logger61;
         this.isVim = isVim2;
         this.requestId = 1;
         this.responses = /* @__PURE__ */ new Map();
         this.attachedBuffers = /* @__PURE__ */ new Map();
-        this._transport = isVim2 ? new vim_1.VimTransport(logger59) : new nvim_1.NvimTransport(logger59);
+        this._transport = isVim2 ? new VimTransport(logger61) : new NvimTransport(logger61);
         this.handleRequest = this.handleRequest.bind(this);
         this.handleNotification = this.handleNotification.bind(this);
       }
@@ -15899,38 +15855,34 @@ var require_client = __commonJS({
         return this._transport;
       }
       echoError(msg) {
-        let prefix = constants_1.isCocNvim ? "[coc.nvim] " : "";
+        let prefix = isCocNvim ? "[coc.nvim] " : "";
         if (msg instanceof Error) {
-          if (!constants_1.isTester)
-            this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
+          if (!isTester) this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
           this.logError(msg.message || "Unknown error", msg);
         } else {
-          if (!constants_1.isTester)
-            this.errWriteLine(prefix + msg);
+          if (!isTester) this.errWriteLine(prefix + msg);
           this.logError(msg.toString(), new Error());
         }
       }
       logError(msg, ...args) {
-        if (constants_1.isTester)
-          console.error(msg, ...args);
-        if (!this.logger)
-          return;
+        if (isTester) console.error(msg, ...args);
+        if (!this.logger) return;
         this.logger.error(msg, ...args);
       }
       createBuffer(id) {
-        return new Buffer_1.Buffer({
+        return new Buffer2({
           data: id,
           client: this
         });
       }
       createWindow(id) {
-        return new Window_1.Window({
+        return new Window({
           data: id,
           client: this
         });
       }
       createTabpage(id) {
-        return new Tabpage_1.Tabpage({
+        return new Tabpage({
           data: id,
           client: this
         });
@@ -15939,12 +15891,14 @@ var require_client = __commonJS({
        * Invoke redraw on vim.
        */
       redrawVim(force) {
-        if (!this.isVim)
-          return;
+        if (!this.isVim) return;
         this.transport.notify("nvim_command", ["redraw" + (force ? "!" : "")]);
       }
       /** Attaches msgpack to read/write streams * */
-      attach({ reader, writer }, requestApi = true) {
+      attach({
+        reader,
+        writer
+      }, requestApi = true) {
         this.transport.attach(writer, reader, this);
         this.transport.on("request", this.handleRequest);
         this.transport.on("notification", this.handleNotification);
@@ -15984,8 +15938,7 @@ var require_client = __commonJS({
         this.notify("nvim_call_function", ["coc#rpc#async_request", [id, method, args || []]]);
         return new Promise((resolve, reject) => {
           let response = new AsyncResponse(id, (err, res) => {
-            if (err)
-              return reject(err);
+            if (err) return reject(err);
             resolve(res);
           });
           this.responses.set(id, response);
@@ -15996,8 +15949,7 @@ var require_client = __commonJS({
           if (method.startsWith("nvim_buf_")) {
             const shortName = method.replace(/nvim_buf_(.*)_event/, "$1");
             const { id } = args[0];
-            if (!this.attachedBuffers.has(id))
-              return;
+            if (!this.attachedBuffers.has(id)) return;
             const bufferMap = this.attachedBuffers.get(id);
             const cbs = bufferMap.get(shortName) || [];
             cbs.forEach((cb) => cb(...args));
@@ -16038,13 +15990,17 @@ var require_client = __commonJS({
       }
       requestApi() {
         return new Promise((resolve, reject) => {
-          this.transport.request("nvim_get_api_info", [], (err, res) => {
-            if (err) {
-              reject(new Error(Array.isArray(err) ? err[1] : err.message || err.toString()));
-            } else {
-              resolve(res);
+          this.transport.request(
+            "nvim_get_api_info",
+            [],
+            (err, res) => {
+              if (err) {
+                reject(new Error(Array.isArray(err) ? err[1] : err.message || err.toString()));
+              } else {
+                resolve(res);
+              }
             }
-          });
+          );
         });
       }
       async generateApi() {
@@ -16056,8 +16012,7 @@ var require_client = __commonJS({
       attachBufferEvent(bufnr, eventName, cb) {
         const bufferMap = this.attachedBuffers.get(bufnr) || /* @__PURE__ */ new Map();
         const cbs = bufferMap.get(eventName) || [];
-        if (cbs.includes(cb))
-          return;
+        if (cbs.includes(cb)) return;
         cbs.push(cb);
         bufferMap.set(eventName, cbs);
         this.attachedBuffers.set(bufnr, bufferMap);
@@ -16068,8 +16023,7 @@ var require_client = __commonJS({
        */
       detachBufferEvent(bufnr, eventName, cb) {
         const bufferMap = this.attachedBuffers.get(bufnr);
-        if (!bufferMap || !bufferMap.has(eventName))
-          return;
+        if (!bufferMap || !bufferMap.has(eventName)) return;
         const handlers = bufferMap.get(eventName).filter((handler) => handler !== cb);
         bufferMap.set(eventName, handlers);
       }
@@ -16100,119 +16054,88 @@ var require_client = __commonJS({
        * @deprecated
        */
       hasFunction(name2) {
-        if (!this.isVim)
-          return true;
+        if (!this.isVim) return true;
         return functionsOnVim.includes(name2);
       }
     };
-    exports2.NeovimClient = NeovimClient;
-    applyMixins(NeovimClient, [events_1.EventEmitter]);
+    applyMixins(NeovimClient, [import_events3.EventEmitter]);
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/attach/attach.js
-var require_attach = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/attach/attach.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.attach = void 0;
-    var net_1 = require("net");
-    var client_1 = require_client();
-    var logger_1 = require_logger();
-    function attach2({ reader: _reader, writer: _writer, proc, socket }, logger59 = null, requestApi = true) {
-      let writer;
-      let reader;
-      let neovim;
-      if (!logger59)
-        logger59 = logger_1.nullLogger;
-      if (socket) {
-        const client = (0, net_1.createConnection)(socket);
-        writer = client;
-        reader = client;
-        client.once("close", () => {
-          neovim.detach();
-        });
-      } else if (_reader && _writer) {
-        writer = _writer;
-        reader = _reader;
-      } else if (proc) {
-        writer = proc.stdin;
-        reader = proc.stdout;
-        proc.once("disconnect", () => {
-          neovim.detach();
-        });
-      }
-      writer.on("error", (err) => {
-        if (err.code == "EPIPE") {
-          neovim.detach();
-        }
-      });
-      if (writer && reader) {
-        neovim = new client_1.NeovimClient(logger59, process.env.VIM_NODE_RPC == "1");
-        neovim.attach({
-          writer,
-          reader
-        }, requestApi);
-        return neovim;
-      }
-      throw new Error("Invalid arguments, could not attach");
+// src/neovim/attach/attach.ts
+function attach({
+  reader: _reader,
+  writer: _writer,
+  proc,
+  socket
+}, logger61 = null, requestApi = true) {
+  let writer;
+  let reader;
+  let neovim;
+  if (!logger61) logger61 = nullLogger;
+  if (socket) {
+    const client = (0, import_net.createConnection)(socket);
+    writer = client;
+    reader = client;
+    client.once("close", () => {
+      neovim.detach();
+    });
+  } else if (_reader && _writer) {
+    writer = _writer;
+    reader = _reader;
+  } else if (proc) {
+    writer = proc.stdin;
+    reader = proc.stdout;
+    proc.once("disconnect", () => {
+      neovim.detach();
+    });
+  }
+  writer.on("error", (err) => {
+    if (err.code == "EPIPE") {
+      neovim.detach();
     }
-    exports2.attach = attach2;
+  });
+  if (writer && reader) {
+    neovim = new NeovimClient(logger61, process.env.VIM_NODE_RPC == "1");
+    neovim.attach({
+      writer,
+      reader
+    }, requestApi);
+    return neovim;
+  }
+  throw new Error("Invalid arguments, could not attach");
+}
+var import_net;
+var init_attach = __esm({
+  "src/neovim/attach/attach.ts"() {
+    "use strict";
+    import_net = require("net");
+    init_client();
+    init_logger2();
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/index.js
-var require_api = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/index.js"(exports2) {
+// src/neovim/api/index.ts
+var init_api = __esm({
+  "src/neovim/api/index.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Tabpage = exports2.Window = exports2.Buffer = exports2.NeovimClient = exports2.Neovim = void 0;
-    var client_1 = require_client();
-    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
-      return client_1.NeovimClient;
-    } });
-    var client_2 = require_client();
-    Object.defineProperty(exports2, "NeovimClient", { enumerable: true, get: function() {
-      return client_2.NeovimClient;
-    } });
-    var Buffer_1 = require_Buffer();
-    Object.defineProperty(exports2, "Buffer", { enumerable: true, get: function() {
-      return Buffer_1.Buffer;
-    } });
-    var Window_1 = require_Window();
-    Object.defineProperty(exports2, "Window", { enumerable: true, get: function() {
-      return Window_1.Window;
-    } });
-    var Tabpage_1 = require_Tabpage();
-    Object.defineProperty(exports2, "Tabpage", { enumerable: true, get: function() {
-      return Tabpage_1.Tabpage;
-    } });
+    init_client();
+    init_client();
+    init_Buffer();
+    init_Window();
+    init_Tabpage();
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/index.js
-var require_lib2 = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/index.js"(exports2) {
+// src/neovim/index.ts
+var init_neovim = __esm({
+  "src/neovim/index.ts"() {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Window = exports2.Tabpage = exports2.Buffer = exports2.Neovim = exports2.attach = void 0;
-    var attach_1 = require_attach();
-    Object.defineProperty(exports2, "attach", { enumerable: true, get: function() {
-      return attach_1.attach;
-    } });
-    var index_1 = require_api();
-    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
-      return index_1.Neovim;
-    } });
-    Object.defineProperty(exports2, "Buffer", { enumerable: true, get: function() {
-      return index_1.Buffer;
-    } });
-    Object.defineProperty(exports2, "Tabpage", { enumerable: true, get: function() {
-      return index_1.Tabpage;
-    } });
-    Object.defineProperty(exports2, "Window", { enumerable: true, get: function() {
-      return index_1.Window;
-    } });
+    init_attach();
+    init_types();
+    init_Neovim();
+    init_Buffer();
+    init_api();
   }
 });
 
@@ -16665,7 +16588,7 @@ var init_main = __esm({
       }
       Position9.is = is;
     })(Position || (Position = {}));
-    (function(Range12) {
+    (function(Range11) {
       function create(one, two, three, four) {
         if (Is.uinteger(one) && Is.uinteger(two) && Is.uinteger(three) && Is.uinteger(four)) {
           return { start: Position.create(one, two), end: Position.create(three, four) };
@@ -16675,12 +16598,12 @@ var init_main = __esm({
           throw new Error(`Range#create called with invalid arguments[${one}, ${two}, ${three}, ${four}]`);
         }
       }
-      Range12.create = create;
+      Range11.create = create;
       function is(value) {
         let candidate = value;
         return Is.objectLiteral(candidate) && Position.is(candidate.start) && Position.is(candidate.end);
       }
-      Range12.is = is;
+      Range11.is = is;
     })(Range || (Range = {}));
     (function(Location3) {
       function create(uri, range) {
@@ -17942,7 +17865,7 @@ var init_main = __esm({
       }
     };
     (function(Is2) {
-      const toString = Object.prototype.toString;
+      const toString2 = Object.prototype.toString;
       function defined(value) {
         return typeof value !== "undefined";
       }
@@ -17956,29 +17879,29 @@ var init_main = __esm({
       }
       Is2.boolean = boolean2;
       function string2(value) {
-        return toString.call(value) === "[object String]";
+        return toString2.call(value) === "[object String]";
       }
       Is2.string = string2;
       function number2(value) {
-        return toString.call(value) === "[object Number]";
+        return toString2.call(value) === "[object Number]";
       }
       Is2.number = number2;
       function numberRange(value, min, max) {
-        return toString.call(value) === "[object Number]" && min <= value && value <= max;
+        return toString2.call(value) === "[object Number]" && min <= value && value <= max;
       }
       Is2.numberRange = numberRange;
       function integer2(value) {
-        return toString.call(value) === "[object Number]" && -2147483648 <= value && value <= 2147483647;
+        return toString2.call(value) === "[object Number]" && -2147483648 <= value && value <= 2147483647;
       }
       Is2.integer = integer2;
       function uinteger3(value) {
-        return toString.call(value) === "[object Number]" && 0 <= value && value <= 2147483647;
+        return toString2.call(value) === "[object Number]" && 0 <= value && value <= 2147483647;
       }
       Is2.uinteger = uinteger3;
-      function func2(value) {
-        return toString.call(value) === "[object Function]";
+      function func3(value) {
+        return toString2.call(value) === "[object Function]";
       }
-      Is2.func = func2;
+      Is2.func = func3;
       function objectLiteral2(value) {
         return value !== null && typeof value === "object";
       }
@@ -18029,7 +17952,7 @@ function string(value) {
 function number(value) {
   return typeof value === "number";
 }
-function func(value) {
+function func2(value) {
   return typeof value == "function";
 }
 function objectLiteral(obj) {
@@ -18053,7 +17976,7 @@ function isEmpty(obj) {
   if (Array.isArray(obj)) return obj.length == 0;
   return Object.keys(obj).length == 0;
 }
-function toObject(obj) {
+function toObject2(obj) {
   return obj == null ? {} : obj;
 }
 function omitUndefined(obj) {
@@ -18216,10 +18139,10 @@ var require_is = __commonJS({
       return value instanceof Error;
     }
     exports2.error = error;
-    function func2(value) {
+    function func3(value) {
       return typeof value === "function";
     }
-    exports2.func = func2;
+    exports2.func = func3;
     function array(value) {
       return Array.isArray(value);
     }
@@ -18847,9 +18770,9 @@ var require_disposable = __commonJS({
     exports2.Disposable = void 0;
     var Disposable37;
     (function(Disposable38) {
-      function create(func2) {
+      function create(func3) {
         return {
-          dispose: func2
+          dispose: func3
         };
       }
       Disposable38.create = create;
@@ -18951,7 +18874,7 @@ var require_events = __commonJS({
         this._contexts = void 0;
       }
     };
-    var Emitter2 = class _Emitter {
+    var Emitter3 = class _Emitter {
       constructor(_options) {
         this._options = _options;
       }
@@ -19005,8 +18928,8 @@ var require_events = __commonJS({
         }
       }
     };
-    exports2.Emitter = Emitter2;
-    Emitter2._noop = function() {
+    exports2.Emitter = Emitter3;
+    Emitter3._noop = function() {
     };
   }
 });
@@ -19696,7 +19619,7 @@ ${header}`);
 });
 
 // node_modules/vscode-jsonrpc/lib/common/connection.js
-var require_connection2 = __commonJS({
+var require_connection = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/connection.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -19778,7 +19701,7 @@ var require_connection2 = __commonJS({
         }
       }
       Trace3.fromString = fromString;
-      function toString(value) {
+      function toString2(value) {
         switch (value) {
           case Trace3.Off:
             return "off";
@@ -19792,7 +19715,7 @@ var require_connection2 = __commonJS({
             return "off";
         }
       }
-      Trace3.toString = toString;
+      Trace3.toString = toString2;
     })(Trace2 || (exports2.Trace = Trace2 = {}));
     var TraceFormat2;
     (function(TraceFormat3) {
@@ -19922,7 +19845,7 @@ var require_connection2 = __commonJS({
       ConnectionState2[ConnectionState2["Disposed"] = 4] = "Disposed";
     })(ConnectionState || (ConnectionState = {}));
     function createMessageConnection(messageReader, messageWriter, _logger, options2) {
-      const logger59 = _logger !== void 0 ? _logger : exports2.NullLogger;
+      const logger61 = _logger !== void 0 ? _logger : exports2.NullLogger;
       let sequenceNumber = 0;
       let notificationSequenceNumber = 0;
       let unknownResponseSequenceNumber = 0;
@@ -20050,7 +19973,7 @@ var require_connection2 = __commonJS({
                 requestTokens.delete(cancelId);
                 response.id = toCancel.id;
                 traceSendingResponse(response, message.method, Date.now());
-                messageWriter.write(response).catch(() => logger59.error(`Sending response for canceled message failed.`));
+                messageWriter.write(response).catch(() => logger61.error(`Sending response for canceled message failed.`));
                 return;
               }
             }
@@ -20083,7 +20006,7 @@ var require_connection2 = __commonJS({
             message.result = resultOrError === void 0 ? null : resultOrError;
           }
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
         }
         function replyError(error, method, startTime2) {
           const message = {
@@ -20092,7 +20015,7 @@ var require_connection2 = __commonJS({
             error: error.toJson()
           };
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
         }
         function replySuccess(result, method, startTime2) {
           if (result === void 0) {
@@ -20104,7 +20027,7 @@ var require_connection2 = __commonJS({
             result
           };
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
         }
         traceReceivedRequest(requestMessage);
         const element = requestHandlers.get(requestMessage.method);
@@ -20191,10 +20114,10 @@ var require_connection2 = __commonJS({
         }
         if (responseMessage.id === null) {
           if (responseMessage.error) {
-            logger59.error(`Received response message without id: Error is: 
+            logger61.error(`Received response message without id: Error is: 
 ${JSON.stringify(responseMessage.error, void 0, 4)}`);
           } else {
-            logger59.error(`Received response message without id. No further error information provided.`);
+            logger61.error(`Received response message without id. No further error information provided.`);
           }
         } else {
           const key = responseMessage.id;
@@ -20213,9 +20136,9 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               }
             } catch (error) {
               if (error.message) {
-                logger59.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
+                logger61.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
               } else {
-                logger59.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
+                logger61.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
               }
             }
           }
@@ -20246,7 +20169,7 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               if (message.params === void 0) {
                 if (type !== void 0) {
                   if (type.numberOfParams !== 0 && type.parameterStructures !== messages_1.ParameterStructures.byName) {
-                    logger59.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
+                    logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
                   }
                 }
                 notificationHandler();
@@ -20257,17 +20180,17 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
                 } else {
                   if (type !== void 0) {
                     if (type.parameterStructures === messages_1.ParameterStructures.byName) {
-                      logger59.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
+                      logger61.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
                     }
                     if (type.numberOfParams !== message.params.length) {
-                      logger59.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
+                      logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
                     }
                   }
                   notificationHandler(...params);
                 }
               } else {
                 if (type !== void 0 && type.parameterStructures === messages_1.ParameterStructures.byPosition) {
-                  logger59.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
+                  logger61.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
                 }
                 notificationHandler(message.params);
               }
@@ -20276,9 +20199,9 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
             }
           } catch (error) {
             if (error.message) {
-              logger59.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
+              logger61.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
             } else {
-              logger59.error(`Notification handler '${message.method}' failed unexpectedly.`);
+              logger61.error(`Notification handler '${message.method}' failed unexpectedly.`);
             }
           }
         } else {
@@ -20287,10 +20210,10 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
       }
       function handleInvalidMessage(message) {
         if (!message) {
-          logger59.error("Received empty message.");
+          logger61.error("Received empty message.");
           return;
         }
-        logger59.error(`Received message which is neither a response nor a notification message:
+        logger61.error(`Received message which is neither a response nor a notification message:
 ${JSON.stringify(message, null, 4)}`);
         const responseMessage = message;
         if (Is2.string(responseMessage.id) || Is2.number(responseMessage.id)) {
@@ -20575,7 +20498,7 @@ ${JSON.stringify(message, null, 4)}`);
           };
           traceSendingNotification(notificationMessage);
           return messageWriter.write(notificationMessage).catch((error) => {
-            logger59.error(`Sending notification failed.`);
+            logger61.error(`Sending notification failed.`);
             throw error;
           });
         },
@@ -20667,11 +20590,11 @@ ${JSON.stringify(message, null, 4)}`);
             disposable = token.onCancellationRequested(() => {
               const p = cancellationStrategy.sender.sendCancellation(connection, id);
               if (p === void 0) {
-                logger59.log(`Received no promise from cancellation strategy when cancelling id ${id}`);
+                logger61.log(`Received no promise from cancellation strategy when cancelling id ${id}`);
                 return Promise.resolve();
               } else {
                 return p.catch(() => {
-                  logger59.log(`Sending cancellation messages for id ${id} failed`);
+                  logger61.log(`Sending cancellation messages for id ${id} failed`);
                 });
               }
             });
@@ -20702,7 +20625,7 @@ ${JSON.stringify(message, null, 4)}`);
               await messageWriter.write(requestMessage);
               responsePromises.set(id, responsePromise);
             } catch (error) {
-              logger59.error(`Sending request failed.`);
+              logger61.error(`Sending request failed.`);
               responsePromise.reject(new messages_1.ResponseError(messages_1.ErrorCodes.MessageWriteError, error.message ? error.message : "Unknown reason"));
               throw error;
             }
@@ -20824,7 +20747,7 @@ ${JSON.stringify(message, null, 4)}`);
 });
 
 // node_modules/vscode-jsonrpc/lib/common/api.js
-var require_api2 = __commonJS({
+var require_api = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/api.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -20968,7 +20891,7 @@ var require_api2 = __commonJS({
     Object.defineProperty(exports2, "AbstractMessageBuffer", { enumerable: true, get: function() {
       return messageBuffer_1.AbstractMessageBuffer;
     } });
-    var connection_1 = require_connection2();
+    var connection_1 = require_connection();
     Object.defineProperty(exports2, "ConnectionStrategy", { enumerable: true, get: function() {
       return connection_1.ConnectionStrategy;
     } });
@@ -21031,7 +20954,7 @@ var require_ril = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require("util");
-    var api_1 = require_api2();
+    var api_1 = require_api();
     var MessageBuffer = class _MessageBuffer extends api_1.AbstractMessageBuffer {
       constructor(encoding2 = "utf-8") {
         super(encoding2);
@@ -21205,12 +21128,12 @@ var require_main = __commonJS({
     exports2.createMessageConnection = exports2.createServerSocketTransport = exports2.createClientSocketTransport = exports2.createServerPipeTransport = exports2.createClientPipeTransport = exports2.generateRandomPipeName = exports2.StreamMessageWriter = exports2.StreamMessageReader = exports2.SocketMessageWriter = exports2.SocketMessageReader = exports2.PortMessageWriter = exports2.PortMessageReader = exports2.IPCMessageWriter = exports2.IPCMessageReader = void 0;
     var ril_1 = require_ril();
     ril_1.default.install();
-    var path3 = require("path");
-    var os2 = require("os");
+    var path4 = require("path");
+    var os3 = require("os");
     var crypto_1 = require("crypto");
     var net_1 = require("net");
-    var api_1 = require_api2();
-    __exportStar(require_api2(), exports2);
+    var api_1 = require_api();
+    __exportStar(require_api(), exports2);
     var IPCMessageReader2 = class extends api_1.AbstractMessageReader {
       constructor(process2) {
         super();
@@ -21341,9 +21264,9 @@ var require_main = __commonJS({
       }
       let result;
       if (XDG_RUNTIME_DIR) {
-        result = path3.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
+        result = path4.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
       } else {
-        result = path3.join(os2.tmpdir(), `vscode-${randomSuffix}.sock`);
+        result = path4.join(os3.tmpdir(), `vscode-${randomSuffix}.sock`);
       }
       const limit = safeIpcPathLengths.get(process.platform);
       if (limit !== void 0 && result.length > limit) {
@@ -21426,16 +21349,16 @@ var require_main = __commonJS({
       const candidate = value;
       return candidate.write !== void 0 && candidate.addListener !== void 0;
     }
-    function createMessageConnection(input, output, logger59, options2) {
-      if (!logger59) {
-        logger59 = api_1.NullLogger;
+    function createMessageConnection(input, output, logger61, options2) {
+      if (!logger61) {
+        logger61 = api_1.NullLogger;
       }
       const reader = isReadableStream(input) ? new StreamMessageReader2(input) : input;
       const writer = isWritableStream(output) ? new StreamMessageWriter2(output) : output;
       if (api_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, api_1.createMessageConnection)(reader, writer, logger59, options2);
+      return (0, api_1.createMessageConnection)(reader, writer, logger61, options2);
     }
     exports2.createMessageConnection = createMessageConnection;
   }
@@ -21513,8 +21436,8 @@ var require_main2 = __commonJS({
         }
         Position10.is = is;
       })(Position9 || (exports3.Position = Position9 = {}));
-      var Range12;
-      (function(Range13) {
+      var Range11;
+      (function(Range12) {
         function create(one, two, three, four) {
           if (Is2.uinteger(one) && Is2.uinteger(two) && Is2.uinteger(three) && Is2.uinteger(four)) {
             return { start: Position9.create(one, two), end: Position9.create(three, four) };
@@ -21524,13 +21447,13 @@ var require_main2 = __commonJS({
             throw new Error("Range#create called with invalid arguments[".concat(one, ", ").concat(two, ", ").concat(three, ", ").concat(four, "]"));
           }
         }
-        Range13.create = create;
+        Range12.create = create;
         function is(value) {
           var candidate = value;
           return Is2.objectLiteral(candidate) && Position9.is(candidate.start) && Position9.is(candidate.end);
         }
-        Range13.is = is;
-      })(Range12 || (exports3.Range = Range12 = {}));
+        Range12.is = is;
+      })(Range11 || (exports3.Range = Range11 = {}));
       var Location3;
       (function(Location4) {
         function create(uri, range) {
@@ -21539,7 +21462,7 @@ var require_main2 = __commonJS({
         Location4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Range12.is(candidate.range) && (Is2.string(candidate.uri) || Is2.undefined(candidate.uri));
+          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && (Is2.string(candidate.uri) || Is2.undefined(candidate.uri));
         }
         Location4.is = is;
       })(Location3 || (exports3.Location = Location3 = {}));
@@ -21551,7 +21474,7 @@ var require_main2 = __commonJS({
         LocationLink4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Range12.is(candidate.targetRange) && Is2.string(candidate.targetUri) && Range12.is(candidate.targetSelectionRange) && (Range12.is(candidate.originSelectionRange) || Is2.undefined(candidate.originSelectionRange));
+          return Is2.objectLiteral(candidate) && Range11.is(candidate.targetRange) && Is2.string(candidate.targetUri) && Range11.is(candidate.targetSelectionRange) && (Range11.is(candidate.originSelectionRange) || Is2.undefined(candidate.originSelectionRange));
         }
         LocationLink4.is = is;
       })(LocationLink3 || (exports3.LocationLink = LocationLink3 = {}));
@@ -21583,7 +21506,7 @@ var require_main2 = __commonJS({
         ColorInformation4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Range12.is(candidate.range) && Color2.is(candidate.color);
+          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && Color2.is(candidate.color);
         }
         ColorInformation4.is = is;
       })(ColorInformation3 || (exports3.ColorInformation = ColorInformation3 = {}));
@@ -21694,7 +21617,7 @@ var require_main2 = __commonJS({
         function is(value) {
           var _a2;
           var candidate = value;
-          return Is2.defined(candidate) && Range12.is(candidate.range) && Is2.string(candidate.message) && (Is2.number(candidate.severity) || Is2.undefined(candidate.severity)) && (Is2.integer(candidate.code) || Is2.string(candidate.code) || Is2.undefined(candidate.code)) && (Is2.undefined(candidate.codeDescription) || Is2.string((_a2 = candidate.codeDescription) === null || _a2 === void 0 ? void 0 : _a2.href)) && (Is2.string(candidate.source) || Is2.undefined(candidate.source)) && (Is2.undefined(candidate.relatedInformation) || Is2.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation2.is));
+          return Is2.defined(candidate) && Range11.is(candidate.range) && Is2.string(candidate.message) && (Is2.number(candidate.severity) || Is2.undefined(candidate.severity)) && (Is2.integer(candidate.code) || Is2.string(candidate.code) || Is2.undefined(candidate.code)) && (Is2.undefined(candidate.codeDescription) || Is2.string((_a2 = candidate.codeDescription) === null || _a2 === void 0 ? void 0 : _a2.href)) && (Is2.string(candidate.source) || Is2.undefined(candidate.source)) && (Is2.undefined(candidate.relatedInformation) || Is2.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation2.is));
         }
         Diagnostic9.is = is;
       })(Diagnostic8 || (exports3.Diagnostic = Diagnostic8 = {}));
@@ -21734,7 +21657,7 @@ var require_main2 = __commonJS({
         TextEdit11.del = del;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.newText) && Range12.is(candidate.range);
+          return Is2.objectLiteral(candidate) && Is2.string(candidate.newText) && Range11.is(candidate.range);
         }
         TextEdit11.is = is;
       })(TextEdit10 || (exports3.TextEdit = TextEdit10 = {}));
@@ -22278,7 +22201,7 @@ var require_main2 = __commonJS({
         InsertReplaceEdit3.create = create;
         function is(value) {
           var candidate = value;
-          return candidate && Is2.string(candidate.newText) && Range12.is(candidate.insert) && Range12.is(candidate.replace);
+          return candidate && Is2.string(candidate.newText) && Range11.is(candidate.insert) && Range11.is(candidate.replace);
         }
         InsertReplaceEdit3.is = is;
       })(InsertReplaceEdit2 || (exports3.InsertReplaceEdit = InsertReplaceEdit2 = {}));
@@ -22325,7 +22248,7 @@ var require_main2 = __commonJS({
       (function(Hover5) {
         function is(value) {
           var candidate = value;
-          return !!candidate && Is2.objectLiteral(candidate) && (MarkupContent2.is(candidate.contents) || MarkedString2.is(candidate.contents) || Is2.typedArray(candidate.contents, MarkedString2.is)) && (value.range === void 0 || Range12.is(value.range));
+          return !!candidate && Is2.objectLiteral(candidate) && (MarkupContent2.is(candidate.contents) || MarkedString2.is(candidate.contents) || Is2.typedArray(candidate.contents, MarkedString2.is)) && (value.range === void 0 || Range11.is(value.range));
         }
         Hover5.is = is;
       })(Hover4 || (exports3.Hover = Hover4 = {}));
@@ -22446,7 +22369,7 @@ var require_main2 = __commonJS({
         DocumentSymbol8.create = create;
         function is(value) {
           var candidate = value;
-          return candidate && Is2.string(candidate.name) && Is2.number(candidate.kind) && Range12.is(candidate.range) && Range12.is(candidate.selectionRange) && (candidate.detail === void 0 || Is2.string(candidate.detail)) && (candidate.deprecated === void 0 || Is2.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
+          return candidate && Is2.string(candidate.name) && Is2.number(candidate.kind) && Range11.is(candidate.range) && Range11.is(candidate.selectionRange) && (candidate.detail === void 0 || Is2.string(candidate.detail)) && (candidate.deprecated === void 0 || Is2.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
         }
         DocumentSymbol8.is = is;
       })(DocumentSymbol7 || (exports3.DocumentSymbol = DocumentSymbol7 = {}));
@@ -22523,7 +22446,7 @@ var require_main2 = __commonJS({
         CodeLens4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.defined(candidate) && Range12.is(candidate.range) && (Is2.undefined(candidate.command) || Command3.is(candidate.command));
+          return Is2.defined(candidate) && Range11.is(candidate.range) && (Is2.undefined(candidate.command) || Command3.is(candidate.command));
         }
         CodeLens4.is = is;
       })(CodeLens3 || (exports3.CodeLens = CodeLens3 = {}));
@@ -22547,7 +22470,7 @@ var require_main2 = __commonJS({
         DocumentLink4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.defined(candidate) && Range12.is(candidate.range) && (Is2.undefined(candidate.target) || Is2.string(candidate.target));
+          return Is2.defined(candidate) && Range11.is(candidate.range) && (Is2.undefined(candidate.target) || Is2.string(candidate.target));
         }
         DocumentLink4.is = is;
       })(DocumentLink3 || (exports3.DocumentLink = DocumentLink3 = {}));
@@ -22559,7 +22482,7 @@ var require_main2 = __commonJS({
         SelectionRange6.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Range12.is(candidate.range) && (candidate.parent === void 0 || SelectionRange6.is(candidate.parent));
+          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && (candidate.parent === void 0 || SelectionRange6.is(candidate.parent));
         }
         SelectionRange6.is = is;
       })(SelectionRange5 || (exports3.SelectionRange = SelectionRange5 = {}));
@@ -22618,7 +22541,7 @@ var require_main2 = __commonJS({
         InlineValueText3.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range12.is(candidate.range) && Is2.string(candidate.text);
+          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && Is2.string(candidate.text);
         }
         InlineValueText3.is = is;
       })(InlineValueText2 || (exports3.InlineValueText = InlineValueText2 = {}));
@@ -22630,7 +22553,7 @@ var require_main2 = __commonJS({
         InlineValueVariableLookup3.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range12.is(candidate.range) && Is2.boolean(candidate.caseSensitiveLookup) && (Is2.string(candidate.variableName) || candidate.variableName === void 0);
+          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && Is2.boolean(candidate.caseSensitiveLookup) && (Is2.string(candidate.variableName) || candidate.variableName === void 0);
         }
         InlineValueVariableLookup3.is = is;
       })(InlineValueVariableLookup2 || (exports3.InlineValueVariableLookup = InlineValueVariableLookup2 = {}));
@@ -22642,7 +22565,7 @@ var require_main2 = __commonJS({
         InlineValueEvaluatableExpression3.create = create;
         function is(value) {
           var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range12.is(candidate.range) && (Is2.string(candidate.expression) || candidate.expression === void 0);
+          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && (Is2.string(candidate.expression) || candidate.expression === void 0);
         }
         InlineValueEvaluatableExpression3.is = is;
       })(InlineValueEvaluatableExpression2 || (exports3.InlineValueEvaluatableExpression = InlineValueEvaluatableExpression2 = {}));
@@ -22654,7 +22577,7 @@ var require_main2 = __commonJS({
         InlineValueContext4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.defined(candidate) && Range12.is(value.stoppedLocation);
+          return Is2.defined(candidate) && Range11.is(value.stoppedLocation);
         }
         InlineValueContext4.is = is;
       })(InlineValueContext3 || (exports3.InlineValueContext = InlineValueContext3 = {}));
@@ -22916,7 +22839,7 @@ var require_main2 = __commonJS({
       );
       var Is2;
       (function(Is3) {
-        var toString = Object.prototype.toString;
+        var toString2 = Object.prototype.toString;
         function defined(value) {
           return typeof value !== "undefined";
         }
@@ -22930,29 +22853,29 @@ var require_main2 = __commonJS({
         }
         Is3.boolean = boolean2;
         function string2(value) {
-          return toString.call(value) === "[object String]";
+          return toString2.call(value) === "[object String]";
         }
         Is3.string = string2;
         function number2(value) {
-          return toString.call(value) === "[object Number]";
+          return toString2.call(value) === "[object Number]";
         }
         Is3.number = number2;
         function numberRange(value, min, max) {
-          return toString.call(value) === "[object Number]" && min <= value && value <= max;
+          return toString2.call(value) === "[object Number]" && min <= value && value <= max;
         }
         Is3.numberRange = numberRange;
         function integer3(value) {
-          return toString.call(value) === "[object Number]" && -2147483648 <= value && value <= 2147483647;
+          return toString2.call(value) === "[object Number]" && -2147483648 <= value && value <= 2147483647;
         }
         Is3.integer = integer3;
         function uinteger4(value) {
-          return toString.call(value) === "[object Number]" && 0 <= value && value <= 2147483647;
+          return toString2.call(value) === "[object Number]" && 0 <= value && value <= 2147483647;
         }
         Is3.uinteger = uinteger4;
-        function func2(value) {
-          return toString.call(value) === "[object Function]";
+        function func3(value) {
+          return toString2.call(value) === "[object Function]";
         }
-        Is3.func = func2;
+        Is3.func = func3;
         function objectLiteral2(value) {
           return value !== null && typeof value === "object";
         }
@@ -23034,10 +22957,10 @@ var require_is2 = __commonJS({
       return value instanceof Error;
     }
     exports2.error = error;
-    function func2(value) {
+    function func3(value) {
       return typeof value === "function";
     }
-    exports2.func = func2;
+    exports2.func = func3;
     function array(value) {
       return Array.isArray(value);
     }
@@ -24386,24 +24309,24 @@ var require_protocol = __commonJS({
 });
 
 // node_modules/vscode-languageserver-protocol/lib/common/connection.js
-var require_connection3 = __commonJS({
+var require_connection2 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/connection.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.createProtocolConnection = void 0;
     var vscode_jsonrpc_1 = require_main();
-    function createProtocolConnection2(input, output, logger59, options2) {
+    function createProtocolConnection2(input, output, logger61, options2) {
       if (vscode_jsonrpc_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger59, options2);
+      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger61, options2);
     }
     exports2.createProtocolConnection = createProtocolConnection2;
   }
 });
 
 // node_modules/vscode-languageserver-protocol/lib/common/api.js
-var require_api3 = __commonJS({
+var require_api2 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/api.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
@@ -24428,7 +24351,7 @@ var require_api3 = __commonJS({
     __exportStar(require_main2(), exports2);
     __exportStar(require_messages2(), exports2);
     __exportStar(require_protocol(), exports2);
-    var connection_1 = require_connection3();
+    var connection_1 = require_connection2();
     Object.defineProperty(exports2, "createProtocolConnection", { enumerable: true, get: function() {
       return connection_1.createProtocolConnection;
     } });
@@ -24468,9 +24391,9 @@ var require_main3 = __commonJS({
     exports2.createProtocolConnection = void 0;
     var node_1 = require_node();
     __exportStar(require_node(), exports2);
-    __exportStar(require_api3(), exports2);
-    function createProtocolConnection2(input, output, logger59, options2) {
-      return (0, node_1.createMessageConnection)(input, output, logger59, options2);
+    __exportStar(require_api2(), exports2);
+    function createProtocolConnection2(input, output, logger61, options2) {
+      return (0, node_1.createMessageConnection)(input, output, logger61, options2);
     }
     exports2.createProtocolConnection = createProtocolConnection2;
   }
@@ -24889,7 +24812,7 @@ function shouldIgnore(err) {
   if (err instanceof CancellationError || err instanceof Error && err.message.includes("transport disconnected")) return true;
   return false;
 }
-var logger2, SYNC_AUTOCMDS, Events, events_default;
+var logger4, SYNC_AUTOCMDS, Events, events_default;
 var init_events = __esm({
   "src/events.ts"() {
     "use strict";
@@ -24900,7 +24823,7 @@ var init_events = __esm({
     init_object();
     init_protocol();
     init_string();
-    logger2 = createLogger("events");
+    logger4 = createLogger("events");
     SYNC_AUTOCMDS = ["BufWritePre"];
     Events = class {
       constructor() {
@@ -25067,14 +24990,14 @@ var init_events = __esm({
               if (traceSlow) {
                 timer = setTimeout(() => {
                   console.error(`Slow "${event}" handler detected`, fn["stack"]);
-                  logger2.error(`Slow "${event}" handler detected`, fn["stack"]);
+                  logger4.error(`Slow "${event}" handler detected`, fn["stack"]);
                 }, this.timeout);
               }
               try {
                 await fn(args);
               } catch (e) {
                 let res = shouldIgnore(e);
-                if (!res) logger2.error(`Error on event: ${event}`, e);
+                if (!res) logger4.error(`Error on event: ${event}`, e);
               }
               clearTimeout(timer);
             };
@@ -25134,7 +25057,7 @@ var init_package = __esm({
 
 // src/util/constants.ts
 var ASCII_END, VERSION, isVim, APIVERSION, floatHighlightGroup, CONFIG_FILE_NAME, configHome, dataHome, userConfigFile, pluginRoot, watchmanCommand;
-var init_constants = __esm({
+var init_constants2 = __esm({
   "src/util/constants.ts"() {
     "use strict";
     init_package();
@@ -25332,6 +25255,7 @@ function createScanner(text, ignoreTrivia = false) {
       return token = 14;
     }
     switch (code) {
+      // tokens: []{}:,
       case 123:
         pos++;
         return token = 1;
@@ -25350,10 +25274,12 @@ function createScanner(text, ignoreTrivia = false) {
       case 44:
         pos++;
         return token = 5;
+      // strings
       case 34:
         pos++;
         value = scanString();
         return token = 10;
+      // comments
       case 47:
         const start = pos - 1;
         if (text.charCodeAt(pos + 1) === 47) {
@@ -25397,12 +25323,16 @@ function createScanner(text, ignoreTrivia = false) {
         value += String.fromCharCode(code);
         pos++;
         return token = 16;
+      // numbers
       case 45:
         value += String.fromCharCode(code);
         pos++;
         if (pos === len || !isDigit(text.charCodeAt(pos))) {
           return token = 16;
         }
+      // found a minus, followed by a number so
+      // we fall through to proceed with scanning
+      // numbers
       case 48:
       case 49:
       case 50:
@@ -25415,6 +25345,7 @@ function createScanner(text, ignoreTrivia = false) {
       case 57:
         value += scanNumber();
         return token = 11;
+      // literals and unknown symbols
       default:
         while (pos < len && isUnknownContentCharacter(code)) {
           pos++;
@@ -25953,12 +25884,12 @@ function parseTree(text, errors = [], options2 = ParseOptions.DEFAULT) {
   }
   return result;
 }
-function findNodeAtLocation(root, path3) {
+function findNodeAtLocation(root, path4) {
   if (!root) {
     return void 0;
   }
   let node = root;
-  for (let segment of path3) {
+  for (let segment of path4) {
     if (typeof segment === "string") {
       if (node.type !== "object" || !Array.isArray(node.children)) {
         return void 0;
@@ -26324,14 +26255,14 @@ var init_parser = __esm({
 
 // node_modules/jsonc-parser/lib/esm/impl/edit.js
 function setProperty(text, originalPath, value, options2) {
-  const path3 = originalPath.slice();
+  const path4 = originalPath.slice();
   const errors = [];
   const root = parseTree(text, errors);
   let parent = void 0;
   let lastSegment = void 0;
-  while (path3.length > 0) {
-    lastSegment = path3.pop();
-    parent = findNodeAtLocation(root, path3);
+  while (path4.length > 0) {
+    lastSegment = path4.pop();
+    parent = findNodeAtLocation(root, path4);
     if (parent === void 0 && value !== void 0) {
       if (typeof lastSegment === "string") {
         value = { [lastSegment]: value };
@@ -26511,8 +26442,8 @@ function printParseErrorCode(code) {
   }
   return "<unknown ParseErrorCode>";
 }
-function modify(text, path3, value, options2) {
-  return setProperty(text, path3, value, options2);
+function modify(text, path4, value, options2) {
+  return setProperty(text, path4, value, options2);
 }
 function applyEdits(text, edits) {
   let sortedEdits = edits.slice(0).sort((a, b) => {
@@ -26642,7 +26573,7 @@ function loadJson(filepath) {
     let text = fs.readFileSync(filepath, "utf8");
     let data = parse2(text, errors, { allowTrailingComma: true });
     if (errors.length > 0) {
-      logger3.error(`Error on parse json file ${filepath}`, errors);
+      logger5.error(`Error on parse json file ${filepath}`, errors);
     }
     return data ?? {};
   } catch (e) {
@@ -26653,9 +26584,9 @@ function writeJson(filepath, obj) {
   let dir = path.dirname(filepath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    logger3.info(`Creating directory ${dir}`);
+    logger5.info(`Creating directory ${dir}`);
   }
-  fs.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
+  fs.writeFileSync(filepath, JSON.stringify(toObject2(obj), null, 2), "utf8");
 }
 async function statAsync(filepath) {
   let stat = null;
@@ -26771,7 +26702,7 @@ function checkFolder(dir, patterns, token) {
         break;
       }
     } catch (e) {
-      logger3.error(`Error on glob "${pattern}"`, dir, e);
+      logger5.error(`Error on glob "${pattern}"`, dir, e);
     }
     resolve(find);
   });
@@ -26940,7 +26871,7 @@ function isParentFolder(folder, filepath, checkEqual = false) {
   if (sameFile(pdir, dir)) return checkEqual ? true : false;
   return fileStartsWith(dir, pdir) && dir[pdir.length] == path.sep;
 }
-var logger3, exec, FileType;
+var logger5, exec, FileType;
 var init_fs = __esm({
   "src/util/fs.ts"() {
     "use strict";
@@ -26955,7 +26886,7 @@ var init_fs = __esm({
     init_node();
     init_object();
     init_platform();
-    logger3 = createLogger("util-fs");
+    logger5 = createLogger("util-fs");
     exec = child_process.exec;
     FileType = /* @__PURE__ */ ((FileType2) => {
       FileType2[FileType2["Unknown"] = 0] = "Unknown";
@@ -26973,7 +26904,7 @@ var init_mru = __esm({
   "src/model/mru.ts"() {
     "use strict";
     init_array();
-    init_constants();
+    init_constants2();
     init_fs();
     init_node();
     Mru = class {
@@ -27054,7 +26985,7 @@ var init_mru = __esm({
 
 // src/configuration/types.ts
 var ConfigurationUpdateTarget;
-var init_types = __esm({
+var init_types2 = __esm({
   "src/configuration/types.ts"() {
     "use strict";
     ConfigurationUpdateTarget = /* @__PURE__ */ ((ConfigurationUpdateTarget3) => {
@@ -27077,7 +27008,7 @@ function convertScope(key, scope, defaultScope) {
 }
 function convertProperties(properties, defaultScope = 2 /* WINDOW */) {
   let obj = {};
-  for (let [key, def] of Object.entries(toObject(properties))) {
+  for (let [key, def] of Object.entries(toObject2(properties))) {
     let data = deepClone(def);
     data.scope = convertScope(key, def.scope, defaultScope);
     obj[key] = data;
@@ -27088,7 +27019,7 @@ var RegistryImpl, Registry, sourcePrefixes;
 var init_registry = __esm({
   "src/util/registry.ts"() {
     "use strict";
-    init_types();
+    init_types2();
     init_errors();
     init_is();
     init_object();
@@ -27119,7 +27050,7 @@ function getExtensionDefinitions() {
   let obj = {};
   for (let extensionInfo of extensionRegistry.getExtensions().extensions) {
     let definitions = extensionInfo.definitions;
-    Object.entries(toObject(definitions)).forEach(([key, val]) => {
+    Object.entries(toObject2(definitions)).forEach(([key, val]) => {
       obj[key] = val;
     });
   }
@@ -27135,15 +27066,15 @@ function getProperties(configuration2) {
   let obj = {};
   if (Array.isArray(configuration2)) {
     for (let item of configuration2) {
-      Object.assign(obj, toObject(item["properties"]));
+      Object.assign(obj, toObject2(item["properties"]));
     }
   } else if (objectLiteral(configuration2["properties"])) {
     obj = configuration2["properties"];
   }
   return obj;
 }
-function parseExtensionName(stack, level2 = 2) {
-  let line = stack.split(/\r?\n/).slice(level2)[0];
+function parseExtensionName(stack, level3 = 2) {
+  let line = stack.split(/\r?\n/).slice(level3)[0];
   if (!line) return void 0;
   line = line.replace(/^\s*at\s*/, "");
   let filepath;
@@ -27164,7 +27095,7 @@ var init_extensionRegistry = __esm({
   "src/util/extensionRegistry.ts"() {
     "use strict";
     init_array();
-    init_constants();
+    init_constants2();
     init_fs();
     init_node();
     init_is();
@@ -27245,7 +27176,7 @@ var init_extensionRegistry = __esm({
 });
 
 // src/commands.ts
-var logger4, CommandItem, extensionRegistry2, CommandManager, commands_default;
+var logger6, CommandItem, extensionRegistry2, CommandManager, commands_default;
 var init_commands = __esm({
   "src/commands.ts"() {
     "use strict";
@@ -27257,7 +27188,7 @@ var init_commands = __esm({
     init_protocol();
     init_registry();
     init_string();
-    logger4 = createLogger("commands");
+    logger6 = createLogger("commands");
     CommandItem = class {
       constructor(id, impl, thisArg, internal) {
         this.id = id;
@@ -27323,7 +27254,6 @@ var init_commands = __esm({
        *
        * Registering a command with an existing command identifier twice
        * will cause an error.
-       *
        * @param command A unique identifier for the command.
        * @param impl A command handler function.
        * @param thisArg The `this` context used when invoking the handler function.
@@ -27331,7 +27261,7 @@ var init_commands = __esm({
        */
       registerCommand(id, impl, thisArg, internal = false) {
         if (id.startsWith("_")) internal = true;
-        if (this.commands.has(id)) logger4.warn(`Command ${id} already registered`);
+        if (this.commands.has(id)) logger6.warn(`Command ${id} already registered`);
         this.commands.set(id, new CommandItem(id, impl, thisArg, internal));
         return import_node3.Disposable.create(() => {
           this.commands.delete(id);
@@ -27345,7 +27275,6 @@ var init_commands = __esm({
        * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`URI`](#URI) and [`Location`](#Location).
        * * *Note 2:* There are no restrictions when executing commands that have been contributed
        * by extensions.
-       *
        * @param command Identifier of the command to execute.
        * @param rest Parameters passed to the command function.
        * @return A promise that resolves to the returned value of the given command. `undefined` when
@@ -27773,7 +27702,7 @@ var Popup;
 var init_popup = __esm({
   "src/model/popup.ts"() {
     "use strict";
-    init_constants();
+    init_constants2();
     Popup = class {
       constructor(nvim, winid, bufnr, linecount, _currIndex = 0) {
         this.nvim = nvim;
@@ -28671,7 +28600,7 @@ var wasmFile, FuzzyMatch;
 var init_fuzzyMatch = __esm({
   "src/model/fuzzyMatch.ts"() {
     "use strict";
-    init_constants();
+    init_constants2();
     init_filter();
     init_node();
     init_string();
@@ -28790,7 +28719,7 @@ var wasmPath, instance, StrWidth;
 var init_strwidth = __esm({
   "src/model/strwidth.ts"() {
     "use strict";
-    init_constants();
+    init_constants2();
     init_node();
     wasmPath = path.join(pluginRoot, "bin/strwidth.wasm");
     StrWidth = class _StrWidth {
@@ -28833,7 +28762,7 @@ var init_strwidth = __esm({
 });
 
 // src/model/quickpick.ts
-var logger5, QuickPick;
+var logger7, QuickPick;
 var init_quickpick = __esm({
   "src/model/quickpick.ts"() {
     "use strict";
@@ -28848,7 +28777,7 @@ var init_quickpick = __esm({
     init_input();
     init_popup();
     init_strwidth();
-    logger5 = createLogger("quickpick");
+    logger7 = createLogger("quickpick");
     QuickPick = class {
       constructor(nvim, preferences = {}) {
         this.nvim = nvim;
@@ -28949,7 +28878,7 @@ var init_quickpick = __esm({
               this.setCursor(this.currIndex + 1);
             } else if (["<C-k>", "<C-p>", "<up>"].includes(key)) {
               this.setCursor(this.currIndex - 1);
-            } else if (this.canSelectMany && key == "<C-@>") {
+            } else if (this.canSelectMany && ["<C-@>", "<C-t>"].includes(key)) {
               this.toggePicked(this.currIndex);
             }
           }
@@ -29184,7 +29113,7 @@ var require_safer = __commonJS({
   "node_modules/safer-buffer/safer.js"(exports2, module2) {
     "use strict";
     var buffer = require("buffer");
-    var Buffer3 = buffer.Buffer;
+    var Buffer4 = buffer.Buffer;
     var safer = {};
     var key;
     for (key in buffer) {
@@ -29193,12 +29122,12 @@ var require_safer = __commonJS({
       safer[key] = buffer[key];
     }
     var Safer = safer.Buffer = {};
-    for (key in Buffer3) {
-      if (!Buffer3.hasOwnProperty(key)) continue;
+    for (key in Buffer4) {
+      if (!Buffer4.hasOwnProperty(key)) continue;
       if (key === "allocUnsafe" || key === "allocUnsafeSlow") continue;
-      Safer[key] = Buffer3[key];
+      Safer[key] = Buffer4[key];
     }
-    safer.Buffer.prototype = Buffer3.prototype;
+    safer.Buffer.prototype = Buffer4.prototype;
     if (!Safer.from || Safer.from === Uint8Array.from) {
       Safer.from = function(value, encodingOrOffset, length) {
         if (typeof value === "number") {
@@ -29207,7 +29136,7 @@ var require_safer = __commonJS({
         if (value && typeof value.length === "undefined") {
           throw new TypeError("The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type " + typeof value);
         }
-        return Buffer3(value, encodingOrOffset, length);
+        return Buffer4(value, encodingOrOffset, length);
       };
     }
     if (!Safer.alloc) {
@@ -29218,7 +29147,7 @@ var require_safer = __commonJS({
         if (size < 0 || size >= 2 * (1 << 30)) {
           throw new RangeError('The value "' + size + '" is invalid for option "size"');
         }
-        var buf = Buffer3(size);
+        var buf = Buffer4(size);
         if (!fill || fill.length === 0) {
           buf.fill(0);
         } else if (typeof encoding2 === "string") {
@@ -29295,7 +29224,7 @@ var require_bom_handling = __commonJS({
 var require_internal = __commonJS({
   "node_modules/iconv-lite/encodings/internal.js"(exports2, module2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     module2.exports = {
       // Encodings
       utf8: { type: "_internal", bomAware: true },
@@ -29317,7 +29246,7 @@ var require_internal = __commonJS({
       else if (this.enc === "cesu8") {
         this.enc = "utf8";
         this.encoder = InternalEncoderCesu8;
-        if (Buffer3.from("eda0bdedb2a9", "hex").toString() !== "\u{1F4A9}") {
+        if (Buffer4.from("eda0bdedb2a9", "hex").toString() !== "\u{1F4A9}") {
           this.decoder = InternalDecoderCesu8;
           this.defaultCharUnicode = iconv2.defaultCharUnicode;
         }
@@ -29333,8 +29262,8 @@ var require_internal = __commonJS({
       this.decoder = new StringDecoder(codec.enc);
     }
     InternalDecoder.prototype.write = function(buf) {
-      if (!Buffer3.isBuffer(buf)) {
-        buf = Buffer3.from(buf);
+      if (!Buffer4.isBuffer(buf)) {
+        buf = Buffer4.from(buf);
       }
       return this.decoder.write(buf);
     };
@@ -29345,7 +29274,7 @@ var require_internal = __commonJS({
       this.enc = codec.enc;
     }
     InternalEncoder.prototype.write = function(str) {
-      return Buffer3.from(str, this.enc);
+      return Buffer4.from(str, this.enc);
     };
     InternalEncoder.prototype.end = function() {
     };
@@ -29357,15 +29286,15 @@ var require_internal = __commonJS({
       var completeQuads = str.length - str.length % 4;
       this.prevStr = str.slice(completeQuads);
       str = str.slice(0, completeQuads);
-      return Buffer3.from(str, "base64");
+      return Buffer4.from(str, "base64");
     };
     InternalEncoderBase64.prototype.end = function() {
-      return Buffer3.from(this.prevStr, "base64");
+      return Buffer4.from(this.prevStr, "base64");
     };
     function InternalEncoderCesu8(options2, codec) {
     }
     InternalEncoderCesu8.prototype.write = function(str) {
-      var buf = Buffer3.alloc(str.length * 3), bufIdx = 0;
+      var buf = Buffer4.alloc(str.length * 3), bufIdx = 0;
       for (var i = 0; i < str.length; i++) {
         var charCode = str.charCodeAt(i);
         if (charCode < 128)
@@ -29447,7 +29376,7 @@ var require_internal = __commonJS({
 var require_utf32 = __commonJS({
   "node_modules/iconv-lite/encodings/utf32.js"(exports2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     exports2._utf32 = Utf32Codec;
     function Utf32Codec(codecOptions, iconv2) {
       this.iconv = iconv2;
@@ -29465,8 +29394,8 @@ var require_utf32 = __commonJS({
       this.highSurrogate = 0;
     }
     Utf32Encoder.prototype.write = function(str) {
-      var src = Buffer3.from(str, "ucs2");
-      var dst = Buffer3.alloc(src.length * 2);
+      var src = Buffer4.from(str, "ucs2");
+      var dst = Buffer4.alloc(src.length * 2);
       var write32 = this.isLE ? dst.writeUInt32LE : dst.writeUInt32BE;
       var offset = 0;
       for (var i = 0; i < src.length; i += 2) {
@@ -29500,7 +29429,7 @@ var require_utf32 = __commonJS({
     Utf32Encoder.prototype.end = function() {
       if (!this.highSurrogate)
         return;
-      var buf = Buffer3.alloc(4);
+      var buf = Buffer4.alloc(4);
       if (this.isLE)
         buf.writeUInt32LE(this.highSurrogate, 0);
       else
@@ -29518,7 +29447,7 @@ var require_utf32 = __commonJS({
         return "";
       var i = 0;
       var codepoint = 0;
-      var dst = Buffer3.alloc(src.length + 4);
+      var dst = Buffer4.alloc(src.length + 4);
       var offset = 0;
       var isLE = this.isLE;
       var overflow = this.overflow;
@@ -29666,7 +29595,7 @@ var require_utf32 = __commonJS({
 var require_utf16 = __commonJS({
   "node_modules/iconv-lite/encodings/utf16.js"(exports2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     exports2.utf16be = Utf16BECodec;
     function Utf16BECodec() {
     }
@@ -29676,7 +29605,7 @@ var require_utf16 = __commonJS({
     function Utf16BEEncoder() {
     }
     Utf16BEEncoder.prototype.write = function(str) {
-      var buf = Buffer3.from(str, "ucs2");
+      var buf = Buffer4.from(str, "ucs2");
       for (var i = 0; i < buf.length; i += 2) {
         var tmp = buf[i];
         buf[i] = buf[i + 1];
@@ -29692,7 +29621,7 @@ var require_utf16 = __commonJS({
     Utf16BEDecoder.prototype.write = function(buf) {
       if (buf.length == 0)
         return "";
-      var buf2 = Buffer3.alloc(buf.length + 1), i = 0, j = 0;
+      var buf2 = Buffer4.alloc(buf.length + 1), i = 0, j = 0;
       if (this.overflowByte !== -1) {
         buf2[0] = buf[0];
         buf2[1] = this.overflowByte;
@@ -29800,7 +29729,7 @@ var require_utf16 = __commonJS({
 var require_utf7 = __commonJS({
   "node_modules/iconv-lite/encodings/utf7.js"(exports2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     exports2.utf7 = Utf7Codec;
     exports2.unicode11utf7 = "utf7";
     function Utf7Codec(codecOptions, iconv2) {
@@ -29814,7 +29743,7 @@ var require_utf7 = __commonJS({
       this.iconv = codec.iconv;
     }
     Utf7Encoder.prototype.write = function(str) {
-      return Buffer3.from(str.replace(nonDirectChars, function(chunk) {
+      return Buffer4.from(str.replace(nonDirectChars, function(chunk) {
         return "+" + (chunk === "+" ? "" : this.iconv.encode(chunk, "utf16-be").toString("base64").replace(/=+$/, "")) + "-";
       }.bind(this)));
     };
@@ -29848,7 +29777,7 @@ var require_utf7 = __commonJS({
               res += "+";
             } else {
               var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i2), "ascii");
-              res += this.iconv.decode(Buffer3.from(b64str, "base64"), "utf16-be");
+              res += this.iconv.decode(Buffer4.from(b64str, "base64"), "utf16-be");
             }
             if (buf[i2] != minusChar)
               i2--;
@@ -29865,7 +29794,7 @@ var require_utf7 = __commonJS({
         var canBeDecoded = b64str.length - b64str.length % 8;
         base64Accum = b64str.slice(canBeDecoded);
         b64str = b64str.slice(0, canBeDecoded);
-        res += this.iconv.decode(Buffer3.from(b64str, "base64"), "utf16-be");
+        res += this.iconv.decode(Buffer4.from(b64str, "base64"), "utf16-be");
       }
       this.inBase64 = inBase64;
       this.base64Accum = base64Accum;
@@ -29874,7 +29803,7 @@ var require_utf7 = __commonJS({
     Utf7Decoder.prototype.end = function() {
       var res = "";
       if (this.inBase64 && this.base64Accum.length > 0)
-        res = this.iconv.decode(Buffer3.from(this.base64Accum, "base64"), "utf16-be");
+        res = this.iconv.decode(Buffer4.from(this.base64Accum, "base64"), "utf16-be");
       this.inBase64 = false;
       this.base64Accum = "";
       return res;
@@ -29889,11 +29818,11 @@ var require_utf7 = __commonJS({
     function Utf7IMAPEncoder(options2, codec) {
       this.iconv = codec.iconv;
       this.inBase64 = false;
-      this.base64Accum = Buffer3.alloc(6);
+      this.base64Accum = Buffer4.alloc(6);
       this.base64AccumIdx = 0;
     }
     Utf7IMAPEncoder.prototype.write = function(str) {
-      var inBase64 = this.inBase64, base64Accum = this.base64Accum, base64AccumIdx = this.base64AccumIdx, buf = Buffer3.alloc(str.length * 5 + 10), bufIdx = 0;
+      var inBase64 = this.inBase64, base64Accum = this.base64Accum, base64AccumIdx = this.base64AccumIdx, buf = Buffer4.alloc(str.length * 5 + 10), bufIdx = 0;
       for (var i2 = 0; i2 < str.length; i2++) {
         var uChar = str.charCodeAt(i2);
         if (32 <= uChar && uChar <= 126) {
@@ -29930,7 +29859,7 @@ var require_utf7 = __commonJS({
       return buf.slice(0, bufIdx);
     };
     Utf7IMAPEncoder.prototype.end = function() {
-      var buf = Buffer3.alloc(10), bufIdx = 0;
+      var buf = Buffer4.alloc(10), bufIdx = 0;
       if (this.inBase64) {
         if (this.base64AccumIdx > 0) {
           bufIdx += buf.write(this.base64Accum.slice(0, this.base64AccumIdx).toString("base64").replace(/\//g, ",").replace(/=+$/, ""), bufIdx);
@@ -29963,7 +29892,7 @@ var require_utf7 = __commonJS({
               res += "&";
             } else {
               var b64str = base64Accum + this.iconv.decode(buf.slice(lastI, i2), "ascii").replace(/,/g, "/");
-              res += this.iconv.decode(Buffer3.from(b64str, "base64"), "utf16-be");
+              res += this.iconv.decode(Buffer4.from(b64str, "base64"), "utf16-be");
             }
             if (buf[i2] != minusChar)
               i2--;
@@ -29980,7 +29909,7 @@ var require_utf7 = __commonJS({
         var canBeDecoded = b64str.length - b64str.length % 8;
         base64Accum = b64str.slice(canBeDecoded);
         b64str = b64str.slice(0, canBeDecoded);
-        res += this.iconv.decode(Buffer3.from(b64str, "base64"), "utf16-be");
+        res += this.iconv.decode(Buffer4.from(b64str, "base64"), "utf16-be");
       }
       this.inBase64 = inBase64;
       this.base64Accum = base64Accum;
@@ -29989,7 +29918,7 @@ var require_utf7 = __commonJS({
     Utf7IMAPDecoder.prototype.end = function() {
       var res = "";
       if (this.inBase64 && this.base64Accum.length > 0)
-        res = this.iconv.decode(Buffer3.from(this.base64Accum, "base64"), "utf16-be");
+        res = this.iconv.decode(Buffer4.from(this.base64Accum, "base64"), "utf16-be");
       this.inBase64 = false;
       this.base64Accum = "";
       return res;
@@ -30001,7 +29930,7 @@ var require_utf7 = __commonJS({
 var require_sbcs_codec = __commonJS({
   "node_modules/iconv-lite/encodings/sbcs-codec.js"(exports2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     exports2._sbcs = SBCSCodec;
     function SBCSCodec(codecOptions, iconv2) {
       if (!codecOptions)
@@ -30014,8 +29943,8 @@ var require_sbcs_codec = __commonJS({
           asciiString += String.fromCharCode(i);
         codecOptions.chars = asciiString + codecOptions.chars;
       }
-      this.decodeBuf = Buffer3.from(codecOptions.chars, "ucs2");
-      var encodeBuf = Buffer3.alloc(65536, iconv2.defaultCharSingleByte.charCodeAt(0));
+      this.decodeBuf = Buffer4.from(codecOptions.chars, "ucs2");
+      var encodeBuf = Buffer4.alloc(65536, iconv2.defaultCharSingleByte.charCodeAt(0));
       for (var i = 0; i < codecOptions.chars.length; i++)
         encodeBuf[codecOptions.chars.charCodeAt(i)] = i;
       this.encodeBuf = encodeBuf;
@@ -30026,7 +29955,7 @@ var require_sbcs_codec = __commonJS({
       this.encodeBuf = codec.encodeBuf;
     }
     SBCSEncoder.prototype.write = function(str) {
-      var buf = Buffer3.alloc(str.length);
+      var buf = Buffer4.alloc(str.length);
       for (var i = 0; i < str.length; i++)
         buf[i] = this.encodeBuf[str.charCodeAt(i)];
       return buf;
@@ -30038,7 +29967,7 @@ var require_sbcs_codec = __commonJS({
     }
     SBCSDecoder.prototype.write = function(buf) {
       var decodeBuf = this.decodeBuf;
-      var newBuf = Buffer3.alloc(buf.length * 2);
+      var newBuf = Buffer4.alloc(buf.length * 2);
       var idx1 = 0, idx2 = 0;
       for (var i = 0; i < buf.length; i++) {
         idx1 = buf[i] * 2;
@@ -30665,7 +30594,7 @@ var require_sbcs_data_generated = __commonJS({
 var require_dbcs_codec = __commonJS({
   "node_modules/iconv-lite/encodings/dbcs-codec.js"(exports2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     exports2._dbcs = DBCSCodec;
     var UNASSIGNED = -1;
     var GB18030_CODE = -2;
@@ -30877,7 +30806,7 @@ var require_dbcs_codec = __commonJS({
       this.gb18030 = codec.gb18030;
     }
     DBCSEncoder.prototype.write = function(str) {
-      var newBuf = Buffer3.alloc(str.length * (this.gb18030 ? 4 : 3)), leadSurrogate = this.leadSurrogate, seqObj = this.seqObj, nextChar = -1, i2 = 0, j = 0;
+      var newBuf = Buffer4.alloc(str.length * (this.gb18030 ? 4 : 3)), leadSurrogate = this.leadSurrogate, seqObj = this.seqObj, nextChar = -1, i2 = 0, j = 0;
       while (true) {
         if (nextChar === -1) {
           if (i2 == str.length) break;
@@ -30973,7 +30902,7 @@ var require_dbcs_codec = __commonJS({
     DBCSEncoder.prototype.end = function() {
       if (this.leadSurrogate === -1 && this.seqObj === void 0)
         return;
-      var newBuf = Buffer3.alloc(10), j = 0;
+      var newBuf = Buffer4.alloc(10), j = 0;
       if (this.seqObj) {
         var dbcsCode = this.seqObj[DEF_CHAR];
         if (dbcsCode !== void 0) {
@@ -31003,7 +30932,7 @@ var require_dbcs_codec = __commonJS({
       this.gb18030 = codec.gb18030;
     }
     DBCSDecoder.prototype.write = function(buf) {
-      var newBuf = Buffer3.alloc(buf.length * 2), nodeIdx = this.nodeIdx, prevBytes = this.prevBytes, prevOffset = this.prevBytes.length, seqStart = -this.prevBytes.length, uCode;
+      var newBuf = Buffer4.alloc(buf.length * 2), nodeIdx = this.nodeIdx, prevBytes = this.prevBytes, prevOffset = this.prevBytes.length, seqStart = -this.prevBytes.length, uCode;
       for (var i2 = 0, j = 0; i2 < buf.length; i2++) {
         var curByte = i2 >= 0 ? buf[i2] : prevBytes[i2 + prevOffset];
         var uCode = this.decodeTables[nodeIdx][curByte];
@@ -32604,16 +32533,16 @@ var require_encodings = __commonJS({
 var require_streams = __commonJS({
   "node_modules/iconv-lite/lib/streams.js"(exports2, module2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     module2.exports = function(stream_module) {
-      var Transform2 = stream_module.Transform;
+      var Transform3 = stream_module.Transform;
       function IconvLiteEncoderStream(conv, options2) {
         this.conv = conv;
         options2 = options2 || {};
         options2.decodeStrings = false;
-        Transform2.call(this, options2);
+        Transform3.call(this, options2);
       }
-      IconvLiteEncoderStream.prototype = Object.create(Transform2.prototype, {
+      IconvLiteEncoderStream.prototype = Object.create(Transform3.prototype, {
         constructor: { value: IconvLiteEncoderStream }
       });
       IconvLiteEncoderStream.prototype._transform = function(chunk, encoding2, done) {
@@ -32643,7 +32572,7 @@ var require_streams = __commonJS({
           chunks.push(chunk);
         });
         this.on("end", function() {
-          cb(null, Buffer3.concat(chunks));
+          cb(null, Buffer4.concat(chunks));
         });
         return this;
       };
@@ -32651,13 +32580,13 @@ var require_streams = __commonJS({
         this.conv = conv;
         options2 = options2 || {};
         options2.encoding = this.encoding = "utf8";
-        Transform2.call(this, options2);
+        Transform3.call(this, options2);
       }
-      IconvLiteDecoderStream.prototype = Object.create(Transform2.prototype, {
+      IconvLiteDecoderStream.prototype = Object.create(Transform3.prototype, {
         constructor: { value: IconvLiteDecoderStream }
       });
       IconvLiteDecoderStream.prototype._transform = function(chunk, encoding2, done) {
-        if (!Buffer3.isBuffer(chunk) && !(chunk instanceof Uint8Array))
+        if (!Buffer4.isBuffer(chunk) && !(chunk instanceof Uint8Array))
           return done(new Error("Iconv decoding stream needs buffers as its input."));
         try {
           var res = this.conv.write(chunk);
@@ -32696,29 +32625,29 @@ var require_streams = __commonJS({
 });
 
 // node_modules/iconv-lite/lib/index.js
-var require_lib3 = __commonJS({
+var require_lib2 = __commonJS({
   "node_modules/iconv-lite/lib/index.js"(exports2, module2) {
     "use strict";
-    var Buffer3 = require_safer().Buffer;
+    var Buffer4 = require_safer().Buffer;
     var bomHandling = require_bom_handling();
     var iconv2 = module2.exports;
     iconv2.encodings = null;
     iconv2.defaultCharUnicode = "\uFFFD";
     iconv2.defaultCharSingleByte = "?";
-    iconv2.encode = function encode(str, encoding2, options2) {
+    iconv2.encode = function encode2(str, encoding2, options2) {
       str = "" + (str || "");
       var encoder = iconv2.getEncoder(encoding2, options2);
       var res = encoder.write(str);
       var trail = encoder.end();
-      return trail && trail.length > 0 ? Buffer3.concat([res, trail]) : res;
+      return trail && trail.length > 0 ? Buffer4.concat([res, trail]) : res;
     };
-    iconv2.decode = function decode(buf, encoding2, options2) {
+    iconv2.decode = function decode2(buf, encoding2, options2) {
       if (typeof buf === "string") {
         if (!iconv2.skipDecodeWarning) {
           console.error("Iconv-lite warning: decode()-ing strings is deprecated. Refer to https://github.com/ashtuchkin/iconv-lite/wiki/Use-Buffers-when-decoding");
           iconv2.skipDecodeWarning = true;
         }
-        buf = Buffer3.from("" + (buf || ""), "binary");
+        buf = Buffer4.from("" + (buf || ""), "binary");
       }
       var decoder = iconv2.getDecoder(encoding2, options2);
       var res = decoder.write(buf);
@@ -32936,11 +32865,11 @@ var import_iconv_lite;
 var init_processes = __esm({
   "src/util/processes.ts"() {
     "use strict";
-    init_constants();
+    init_constants2();
     init_errors();
     init_node();
     init_platform();
-    import_iconv_lite = __toESM(require_lib3());
+    import_iconv_lite = __toESM(require_lib2());
     init_protocol();
     init_lodash();
   }
@@ -33101,7 +33030,7 @@ var init_funcs = __esm({
     "use strict";
     init_esm();
     init_resolver();
-    init_constants();
+    init_constants2();
     init_fs();
     init_node();
     init_platform();
@@ -33140,8 +33069,8 @@ function _getDefaults() {
 function changeDefaults(newDefaults) {
   _defaults = newDefaults;
 }
-function escape(html, encode) {
-  if (encode) {
+function escape(html, encode2) {
+  if (encode2) {
     if (escapeTest.test(html)) {
       return html.replace(escapeReplace, getEscapeReplacement);
     }
@@ -33279,15 +33208,15 @@ function findClosingBracket(str, b) {
   if (str.indexOf(b[1]) === -1) {
     return -1;
   }
-  let level2 = 0;
+  let level3 = 0;
   for (let i = 0; i < str.length; i++) {
     if (str[i] === "\\") {
       i++;
     } else if (str[i] === b[0]) {
-      level2++;
+      level3++;
     } else if (str[i] === b[1]) {
-      level2--;
-      if (level2 < 0) {
+      level3--;
+      if (level3 < 0) {
         return i;
       }
     }
@@ -34549,13 +34478,13 @@ ${quote}</blockquote>
       html(html, block2) {
         return html;
       }
-      heading(text, level2, raw, slugger) {
+      heading(text, level3, raw, slugger) {
         if (this.options.headerIds) {
           const id = this.options.headerPrefix + slugger.slug(raw);
-          return `<h${level2} id="${id}">${text}</h${level2}>
+          return `<h${level3} id="${id}">${text}</h${level3}>
 `;
         }
-        return `<h${level2}>${text}</h${level2}>
+        return `<h${level3}>${text}</h${level3}>
 `;
       }
       hr() {
@@ -36101,7 +36030,7 @@ var require_utils = __commonJS({
 });
 
 // node_modules/cli-table/lib/index.js
-var require_lib4 = __commonJS({
+var require_lib3 = __commonJS({
   "node_modules/cli-table/lib/index.js"(exports2, module2) {
     var colors = require_safe();
     var utils = require_utils();
@@ -36471,7 +36400,7 @@ var init_renderer = __esm({
         this.tab = "  ";
         this.tableSettings = this.o.tableOptions;
         this.unescape = unescapeEntities;
-        this.highlightOptions = toObject(highlightOptions);
+        this.highlightOptions = toObject2(highlightOptions);
         this.transform = this.compose(undoColon, this.unescape);
       }
       static {
@@ -36494,10 +36423,10 @@ var init_renderer = __esm({
       html(html) {
         return this.o.html(html);
       }
-      heading(text, level2, _raw) {
+      heading(text, level3, _raw) {
         text = this.transform(text);
         return section(
-          level2 === 1 ? this.o.firstHeading(text) : this.o.heading(text)
+          level3 === 1 ? this.o.firstHeading(text) : this.o.heading(text)
         );
       }
       hr() {
@@ -36523,7 +36452,7 @@ var init_renderer = __esm({
         return section(text);
       }
       table(header, body) {
-        const Table = require_lib4();
+        const Table = require_lib3();
         let table = new Table(
           Object.assign(
             {},
@@ -36830,7 +36759,7 @@ var init_floatFactory = __esm({
     init_mutex();
     init_object();
     init_protocol();
-    init_constants();
+    init_constants2();
     debounceTime = getConditionValue(100, 10);
     FloatFactoryImpl = class {
       constructor(nvim) {
@@ -37064,24 +36993,24 @@ async function echoLines(nvim, env, lines, truncate) {
 }
 function echoMessages(nvim, msg, messageType, messageLevel) {
   let hl = "Error";
-  let level2 = 2 /* Error */;
+  let level3 = 2 /* Error */;
   switch (messageType) {
     case "more":
-      level2 = 0 /* More */;
+      level3 = 0 /* More */;
       hl = "MoreMsg";
       break;
     case "warning":
-      level2 = 1 /* Warning */;
+      level3 = 1 /* Warning */;
       hl = "WarningMsg";
       break;
   }
-  if (level2 >= toMessageLevel(messageLevel)) {
+  if (level3 >= toMessageLevel(messageLevel)) {
     let method = isVim ? "callTimer" : "call";
     nvim[method]("coc#ui#echo_messages", [hl, ("[coc.nvim] " + msg).split("\n")], true);
   }
 }
-function toMessageLevel(level2) {
-  switch (level2) {
+function toMessageLevel(level3) {
+  switch (level3) {
     case "error":
       return 2 /* Error */;
     case "warning":
@@ -37131,7 +37060,7 @@ var init_ui = __esm({
     "use strict";
     init_main();
     init_floatFactory();
-    init_constants();
+    init_constants2();
     init_string();
     operateModes = ["char", "line", "block"];
   }
@@ -37150,7 +37079,7 @@ var init_dialogs = __esm({
     init_quickpick();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_mutex();
     init_numbers();
     init_platform();
@@ -37495,7 +37424,7 @@ function formatMessage(title, message, total) {
   if (total) parts.push(total + "%");
   return parts.join(" ");
 }
-var logger6, ProgressNotification;
+var logger8, ProgressNotification;
 var init_progress = __esm({
   "src/model/progress.ts"() {
     "use strict";
@@ -37503,7 +37432,7 @@ var init_progress = __esm({
     init_logger();
     init_protocol();
     init_notification();
-    logger6 = createLogger("model-progress");
+    logger8 = createLogger("model-progress");
     ProgressNotification = class extends Notification {
       constructor(nvim, option) {
         super(nvim, {
@@ -37530,7 +37459,7 @@ var init_progress = __esm({
         if (!preferences.disabled) {
           await super.show(preferences);
         } else {
-          logger6.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
+          logger8.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
         }
         task({
           report: (p) => {
@@ -37618,8 +37547,8 @@ var init_notifications = __esm({
         return items[res - 1];
       }
       echoMessages(msg, messageType) {
-        let level2 = this.configuration.get("coc.preferences.messageLevel", "more");
-        echoMessages(this.nvim, msg, messageType, level2);
+        let level3 = this.configuration.get("coc.preferences.messageLevel", "more");
+        echoMessages(this.nvim, msg, messageType, level3);
       }
       async showNotification(config, stack) {
         let notification = new Notification(this.nvim, config);
@@ -37811,7 +37740,7 @@ var init_terminals = __esm({
         return await nvim.callAsync("coc#ui#run_terminal", { cmd, cwd: cwd2, keepfocus: keepfocus ? 1 : 0 });
       }
       async openTerminal(nvim, cmd, opts) {
-        return await nvim.call("coc#ui#open_terminal", { cmd, ...toObject(opts) });
+        return await nvim.call("coc#ui#open_terminal", { cmd, ...toObject2(opts) });
       }
       reset() {
         for (let terminal of this._terminals.values()) {
@@ -38748,7 +38677,7 @@ var init_schema = __esm({
         "diagnostic.displayByAle": {
           type: "boolean",
           scope: "language-overridable",
-          description: "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
+          description: "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
           default: false
         },
         "diagnostic.enable": {
@@ -40635,18 +40564,18 @@ function doRemoveFromValueTree(valueTree, segments) {
   }
 }
 function getConfigurationValue(config, settingPath, defaultValue2) {
-  function accessSetting(config2, path4) {
+  function accessSetting(config2, path5) {
     let current = config2;
-    for (let i = 0; i < path4.length; i++) {
+    for (let i = 0; i < path5.length; i++) {
       if (typeof current !== "object" || current === null) {
         return void 0;
       }
-      current = current[path4[i]];
+      current = current[path5[i]];
     }
     return current;
   }
-  const path3 = settingPath.split(".");
-  const result = accessSetting(config, path3);
+  const path4 = settingPath.split(".");
+  const result = accessSetting(config, path4);
   return typeof result === "undefined" ? defaultValue2 : result;
 }
 function toJSONObject(obj) {
@@ -40724,7 +40653,7 @@ var init_util2 = __esm({
     init_is();
     init_node();
     init_object();
-    init_types();
+    init_types2();
     documentUri = "file:///1";
     OVERRIDE_IDENTIFIER_PATTERN = `\\[([^\\]]+)\\]`;
     OVERRIDE_IDENTIFIER_REGEX = new RegExp(OVERRIDE_IDENTIFIER_PATTERN, "g");
@@ -40964,7 +40893,7 @@ var init_configuration = __esm({
   "src/configuration/configuration.ts"() {
     "use strict";
     init_esm();
-    init_types();
+    init_types2();
     init_array();
     init_fs();
     init_object();
@@ -41339,7 +41268,7 @@ var init_event = __esm({
 });
 
 // src/configuration/parser.ts
-var logger7, ConfigurationModelParser;
+var logger9, ConfigurationModelParser;
 var init_parser2 = __esm({
   "src/configuration/parser.ts"() {
     "use strict";
@@ -41348,7 +41277,7 @@ var init_parser2 = __esm({
     init_logger();
     init_model();
     init_util2();
-    logger7 = createLogger("parser");
+    logger9 = createLogger("parser");
     ConfigurationModelParser = class {
       constructor(_name) {
         this._name = _name;
@@ -41483,7 +41412,7 @@ var init_registry2 = __esm({
     init_object();
     init_protocol();
     init_registry();
-    init_types();
+    init_types2();
     init_util2();
     EXCLUDE_KEYS = ["log-path", "logPath"];
     Extensions3 = {
@@ -41539,7 +41468,7 @@ var init_registry2 = __esm({
       doDeregisterConfigurations(configurations) {
         const properties = [];
         const deregisterConfiguration = (configuration2) => {
-          for (const key in toObject(configuration2.properties)) {
+          for (const key in toObject2(configuration2.properties)) {
             properties.push(key);
             delete this.configurationProperties[key];
             this.removeFromSchema(key, configuration2.properties[key]);
@@ -41554,7 +41483,7 @@ var init_registry2 = __esm({
         scope = configuration2.scope == null ? scope : configuration2.scope;
         const propertyKeys = [];
         const properties = configuration2.properties;
-        for (const key in toObject(properties)) {
+        for (const key in toObject2(properties)) {
           const property = properties[key];
           if (validate && validateProperty(key, property)) {
             delete properties[key];
@@ -41589,7 +41518,7 @@ var init_registry2 = __esm({
       registerJSONConfiguration(configuration2) {
         const register4 = (configuration3) => {
           const properties = configuration3.properties;
-          for (const key in toObject(properties)) {
+          for (const key in toObject2(properties)) {
             this.updateSchema(key, properties[key]);
           }
         };
@@ -41644,7 +41573,7 @@ var init_registry2 = __esm({
 });
 
 // src/configuration/index.ts
-var logger8, userSettingsSchemaId, folderSettingsSchemaId, jsonRegistry, configuration, Configurations;
+var logger10, userSettingsSchemaId, folderSettingsSchemaId, jsonRegistry, configuration, Configurations;
 var init_configuration2 = __esm({
   "src/configuration/index.ts"() {
     "use strict";
@@ -41653,7 +41582,7 @@ var init_configuration2 = __esm({
     init_logger();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_extensionRegistry();
     init_fs();
     init_is();
@@ -41667,9 +41596,9 @@ var init_configuration2 = __esm({
     init_model();
     init_parser2();
     init_registry2();
-    init_types();
+    init_types2();
     init_util2();
-    logger8 = createLogger("configurations");
+    logger10 = createLogger("configurations");
     userSettingsSchemaId = "vscode://schemas/settings/user";
     folderSettingsSchemaId = "vscode://schemas/settings/folder";
     jsonRegistry = Registry.as(Extensions2.JSONContribution);
@@ -41746,7 +41675,7 @@ var init_configuration2 = __esm({
               keys2.push(key);
               let val = def.default;
               addToValueTree(root, key, val, (msg) => {
-                logger8.error(`Conflict configuration: ${msg}`);
+                logger10.error(`Conflict configuration: ${msg}`);
               });
             } else {
               toRemove.push(key);
@@ -41862,7 +41791,7 @@ var init_configuration2 = __esm({
         this.watchFile(configFilePath, 3 /* WorkspaceFolder */);
         let model = this.parseConfigurationModel(configFilePath, configFile);
         this._configuration.addFolderConfiguration(folder, model, resource);
-        logger8.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
+        logger10.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
         return true;
       }
       watchFile(filepath, target) {
@@ -41938,7 +41867,7 @@ var init_configuration2 = __esm({
               folder = this._configuration.resolveFolder(resource) ?? this.resolveWorkspaceFolderForResource(resource);
               if (!folder) {
                 console.error(`Unable to locate workspace folder configuration for ${resource}`);
-                logger8.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
+                logger10.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
                 return;
               }
             }
@@ -42042,7 +41971,7 @@ var init_configuration2 = __esm({
 });
 
 // src/configuration/shape.ts
-var logger9, ConfigurationProxy;
+var logger11, ConfigurationProxy;
 var init_shape = __esm({
   "src/configuration/shape.ts"() {
     "use strict";
@@ -42050,7 +41979,7 @@ var init_shape = __esm({
     init_esm();
     init_logger();
     init_node();
-    logger9 = createLogger("configuration-shape");
+    logger11 = createLogger("configuration-shape");
     ConfigurationProxy = class {
       constructor(resolver2, _test = false) {
         this.resolver = resolver2;
@@ -42061,7 +41990,7 @@ var init_shape = __esm({
       }
       async modifyConfiguration(fsPath2, key, value) {
         if (this._test) return;
-        logger9.info(`modify configuration file: ${fsPath2}`, key, value);
+        logger11.info(`modify configuration file: ${fsPath2}`, key, value);
         let dir = path.dirname(fsPath2);
         let formattingOptions = { tabSize: 2, insertSpaces: true };
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -42606,7 +42535,7 @@ function getAnnotationKey(change) {
 function toDocumentChanges(edit2) {
   if (edit2.documentChanges) return edit2.documentChanges;
   let changes = [];
-  for (let [uri, edits] of Object.entries(toObject(edit2.changes))) {
+  for (let [uri, edits] of Object.entries(toObject2(edit2.changes))) {
     changes.push({ textDocument: { uri, version: null }, edits });
   }
   return changes;
@@ -43168,6 +43097,21 @@ var init_textdocument = __esm({
       get lineCount() {
         return this.lines.length + (this.eol ? 1 : 0);
       }
+      intersectWith(range) {
+        let start = Position.create(0, 0);
+        if (start.line < range.start.line) {
+          start = range.start;
+        } else if (range.start.line === start.line) {
+          start = Position.create(start.line, Math.max(start.character, range.start.character));
+        }
+        let end = this.end;
+        if (range.end.line < end.line) {
+          end = range.end;
+        } else if (range.end.line === end.line) {
+          end = Position.create(end.line, Math.min(end.character, range.end.character));
+        }
+        return Range.create(start, end);
+      }
       getText(range) {
         if (range) {
           let { start, end } = range;
@@ -43258,7 +43202,7 @@ var init_document = __esm({
     init_main();
     init_esm();
     init_events();
-    init_constants();
+    init_constants2();
     init_diff();
     init_util();
     init_is();
@@ -43402,7 +43346,7 @@ var init_document = __esm({
         this._commandLine = opts.commandline === 1;
         this._previewwindow = !!opts.previewwindow;
         this._winid = opts.winid;
-        this.variables = toObject(opts.variables);
+        this.variables = toObject2(opts.variables);
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
         this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);
@@ -43933,7 +43877,7 @@ var require_bytes = __commonJS({
 });
 
 // src/core/documents.ts
-var logger10, cwd, Documents;
+var logger12, cwd, Documents;
 var init_documents = __esm({
   "src/core/documents.ts"() {
     "use strict";
@@ -43948,7 +43892,7 @@ var init_documents = __esm({
     init_platform();
     init_protocol();
     init_string();
-    logger10 = createLogger("core-documents");
+    logger12 = createLogger("core-documents");
     cwd = normalizeFilePath(process.cwd());
     Documents = class {
       constructor(configurations, workspaceFolder) {
@@ -44283,7 +44227,7 @@ var init_documents = __esm({
         if (this.buffers.has(bufnr)) return this.buffers.get(bufnr);
         let buffer = this.nvim.createBuffer(bufnr);
         let doc = new Document(buffer, this._env, this.nvim, opts);
-        if (opts.size > this.config.maxFileSize) logger10.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
+        if (opts.size > this.config.maxFileSize) logger12.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
         this.buffers.set(bufnr, doc);
         if (doc.attached) {
           if (doc.schema == "file") {
@@ -44294,7 +44238,7 @@ var init_documents = __esm({
           this._onDidOpenTextDocument.fire(doc.textDocument);
           doc.onDocumentChange((e) => this._onDidChangeDocument.fire(e));
         }
-        logger10.debug("buffer created", bufnr, doc.attached, doc.uri);
+        logger12.debug("buffer created", bufnr, doc.attached, doc.uri);
         return doc;
       }
       onBufEnter(bufnr) {
@@ -44319,7 +44263,7 @@ var init_documents = __esm({
       detachBuffer(bufnr) {
         let doc = this.buffers.get(bufnr);
         if (!doc) return;
-        logger10.debug("document detach", bufnr, doc.uri);
+        logger12.debug("document detach", bufnr, doc.uri);
         this._onDidCloseDocument.fire(doc.textDocument);
         this.buffers.delete(bufnr);
         doc.detach();
@@ -44383,7 +44327,7 @@ var init_documents = __esm({
                 i = i + 1;
                 if (i == total) cb(void 0);
               }, (e) => {
-                logger10.error(`Error on will save handler:`, e);
+                logger12.error(`Error on will save handler:`, e);
                 i = i + 1;
                 if (i == total) cb(void 0);
               });
@@ -44542,7 +44486,7 @@ function renamed(editor, info) {
   if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
   return false;
 }
-var logger11, Editors;
+var logger13, Editors;
 var init_editors = __esm({
   "src/core/editors.ts"() {
     "use strict";
@@ -44552,7 +44496,7 @@ var init_editors = __esm({
     init_logger();
     init_fs();
     init_protocol();
-    logger11 = createLogger("core-editors");
+    logger13 = createLogger("core-editors");
     Editors = class {
       constructor(documents) {
         this.documents = documents;
@@ -44689,7 +44633,7 @@ var init_editors = __esm({
           let editor = this.fromOptions(opts);
           this.editors.set(winid, editor);
           if (winid == this.winid) this.onChangeCurrent(editor);
-          logger11.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
+          logger13.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
           return true;
         } else {
           this.editors.delete(opts.winid);
@@ -45046,7 +44990,7 @@ function fileMatch(root, relpath, pattern) {
 function fsPath(uri) {
   return URI.parse(uri).fsPath;
 }
-var logger12, Files;
+var logger14, Files;
 var init_files = __esm({
   "src/core/files.ts"() {
     "use strict";
@@ -45061,7 +45005,7 @@ var init_files = __esm({
     init_protocol();
     init_string();
     init_textedit();
-    logger12 = createLogger("core-files");
+    logger14 = createLogger("core-files");
     Files = class {
       constructor(documents, configurations, workspaceFolderControl, keymaps) {
         this.documents = documents;
@@ -45384,7 +45328,7 @@ var init_files = __esm({
           if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit2.changeAnnotations }, changes, recovers, applied: true };
           this.nvim.redrawVim();
         } catch (e) {
-          logger12.error("Error on applyEdits:", edit2, e);
+          logger14.error("Error on applyEdits:", edit2, e);
           if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`);
           await this.undoChanges(recovers);
           return false;
@@ -45404,8 +45348,8 @@ var init_files = __esm({
           void this.window.showWarningMessage("No workspace edit to inspect");
           return;
         }
-        let inspect2 = new EditInspect(this.nvim, this.keymaps);
-        await inspect2.show(this.editState);
+        let inspect3 = new EditInspect(this.nvim, this.keymaps);
+        await inspect3.show(this.editState);
       }
       async undoWorkspaceEdit() {
         let { editState } = this;
@@ -45839,10 +45783,10 @@ var require_bser = __commonJS({
   "node_modules/bser/index.js"(exports2) {
     var EE = require("events").EventEmitter;
     var util = require("util");
-    var os2 = require("os");
+    var os3 = require("os");
     var assert2 = require("assert");
     var Int64 = require_Int64();
-    var isBigEndian = os2.endianness() == "BE";
+    var isBigEndian = os3.endianness() == "BE";
     function nextPow2(size) {
       return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
     }
@@ -46570,7 +46514,7 @@ function isValidWatchRoot(root) {
   if (path.parse(root).base == root) return false;
   return true;
 }
-var logger13, requiredCapabilities, Watchman;
+var logger15, requiredCapabilities, Watchman;
 var init_watchman = __esm({
   "src/core/watchman.ts"() {
     "use strict";
@@ -46578,7 +46522,7 @@ var init_watchman = __esm({
     init_logger();
     init_fs();
     init_node();
-    logger13 = createLogger("core-watchman");
+    logger15 = createLogger("core-watchman");
     requiredCapabilities = ["relative_root", "cmd-watch-project", "wildmatch", "field-new"];
     Watchman = class _Watchman {
       constructor(binaryPath, channel) {
@@ -46610,10 +46554,10 @@ var init_watchman = __esm({
         let resp = await this.command(["watch-project", root]);
         let { watch, warning, relative_path } = resp;
         if (!watch) return false;
-        if (warning) logger13.warn(warning);
+        if (warning) logger15.warn(warning);
         this.watch = watch;
         this.relative_path = relative_path;
-        logger13.info(`watchman watching project: ${root}`);
+        logger15.info(`watchman watching project: ${root}`);
         this.appendOutput(`watchman watching project: ${root}`);
         return true;
       }
@@ -46667,7 +46611,7 @@ var init_watchman = __esm({
         if (!watch) return;
         this.appendOutput(`unsubscribe "${subscription}" in: ${watch}`);
         return this.command(["unsubscribe", watch, subscription]).catch((e) => {
-          if (e.message?.includes("The client was ended")) logger13.error(e);
+          if (e.message?.includes("The client was ended")) logger15.error(e);
         });
       }
       dispose() {
@@ -46703,7 +46647,7 @@ var init_watchman = __esm({
 });
 
 // src/core/fileSystemWatcher.ts
-var logger14, FileSystemWatcherManager, FileSystemWatcher;
+var logger16, FileSystemWatcherManager, FileSystemWatcher;
 var init_fileSystemWatcher = __esm({
   "src/core/fileSystemWatcher.ts"() {
     "use strict";
@@ -46715,7 +46659,7 @@ var init_fileSystemWatcher = __esm({
     init_node();
     init_protocol();
     init_watchman();
-    logger14 = createLogger("fileSystemWatcher");
+    logger16 = createLogger("fileSystemWatcher");
     FileSystemWatcherManager = class _FileSystemWatcherManager {
       constructor(workspaceFolder, watchmanPath) {
         this.workspaceFolder = workspaceFolder;
@@ -46908,7 +46852,7 @@ var init_fileSystemWatcher = __esm({
           this.disposables.push(disposable);
         }, (e) => {
           if (e instanceof Error && e.message.includes("client was ended")) return;
-          logger14.error(`Error on subscribe ${pattern}`, e);
+          logger16.error(`Error on subscribe ${pattern}`, e);
         });
       }
       dispose() {
@@ -46933,7 +46877,7 @@ function getKeymapModifier(mode) {
 function getBufnr(buffer) {
   return typeof buffer === "number" ? buffer : events_default.bufnr;
 }
-var logger15, Keymaps;
+var logger17, Keymaps;
 var init_keymaps = __esm({
   "src/core/keymaps.ts"() {
     "use strict";
@@ -46941,7 +46885,7 @@ var init_keymaps = __esm({
     init_logger();
     init_protocol();
     init_string();
-    logger15 = createLogger("core-keymaps");
+    logger17 = createLogger("core-keymaps");
     Keymaps = class {
       constructor() {
         this.keymaps = /* @__PURE__ */ new Map();
@@ -46952,7 +46896,7 @@ var init_keymaps = __esm({
       async doKeymap(key, defaultReturn) {
         let keymap = this.keymaps.get(key) ?? this.keymaps.get("coc-" + key);
         if (!keymap) {
-          logger15.error(`keymap for ${key} not found`);
+          logger17.error(`keymap for ${key} not found`);
           return defaultReturn;
         }
         let [fn, repeat2] = keymap;
@@ -47042,7 +46986,7 @@ var init_keymaps = __esm({
 });
 
 // src/core/watchers.ts
-var logger16, Watchers;
+var logger18, Watchers;
 var init_watchers = __esm({
   "src/core/watchers.ts"() {
     "use strict";
@@ -47051,7 +46995,7 @@ var init_watchers = __esm({
     init_util();
     init_protocol();
     init_string();
-    logger16 = createLogger("watchers");
+    logger18 = createLogger("watchers");
     Watchers = class {
       constructor() {
         this.optionCallbacks = /* @__PURE__ */ new Map();
@@ -47067,7 +47011,7 @@ var init_watchers = __esm({
                 await Promise.resolve(cb(oldValue, newValue));
               } catch (e) {
                 this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`);
-                logger16.error(`Error on OptionSet callback:`, e);
+                logger18.error(`Error on OptionSet callback:`, e);
               }
             })();
           }));
@@ -47080,7 +47024,7 @@ var init_watchers = __esm({
                 await Promise.resolve(cb(oldValue, newValue));
               } catch (e) {
                 this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`);
-                logger16.error(`Error on GlobalChange callback:`, e);
+                logger18.error(`Error on GlobalChange callback:`, e);
               }
             })();
           }));
@@ -47158,7 +47102,7 @@ function toWorkspaceFolder(fsPath2) {
     uri: URI.file(fsPath2).toString()
   };
 }
-var PatternType, logger17, PatternTypes, checkPatternTimeout, extensionRegistry3, WorkspaceFolderController;
+var PatternType, logger19, PatternTypes, checkPatternTimeout, extensionRegistry3, WorkspaceFolderController;
 var init_workspaceFolder = __esm({
   "src/core/workspaceFolder.ts"() {
     "use strict";
@@ -47180,7 +47124,7 @@ var init_workspaceFolder = __esm({
       PatternType2[PatternType2["Global"] = 2] = "Global";
       return PatternType2;
     })(PatternType || {});
-    logger17 = createLogger("core-workspaceFolder");
+    logger19 = createLogger("core-workspaceFolder");
     PatternTypes = [0 /* Buffer */, 1 /* LanguageServer */, 2 /* Global */];
     checkPatternTimeout = getConditionValue(5e3, 50);
     extensionRegistry3 = Registry.as(Extensions.ExtensionContribution);
@@ -47219,7 +47163,7 @@ var init_workspaceFolder = __esm({
         }
       }
       addServerRootPatterns(lspConfig) {
-        for (let key of Object.keys(toObject(lspConfig))) {
+        for (let key of Object.keys(toObject2(lspConfig))) {
           let config = lspConfig[key];
           let { filetypes, rootPatterns } = config;
           if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) {
@@ -47387,7 +47331,7 @@ var init_workspaceFolder = __esm({
         clearTimeout(timer);
         results.forEach((res) => {
           if (res.status === "rejected" && !isCancellationError(res.reason)) {
-            logger17.error(`checkPatterns error:`, patterns, res.reason);
+            logger19.error(`checkPatterns error:`, patterns, res.reason);
           }
         });
         return find;
@@ -47552,7 +47496,7 @@ var init_db = __esm({
        * @param {number|null|boolean|string|{[index} data saved data.
        */
       push(key, data) {
-        let origin = toObject(this.load());
+        let origin = toObject2(this.load());
         let obj = origin;
         let parts = key.split(".");
         let len = parts.length;
@@ -47734,7 +47678,6 @@ var init_task = __esm({
       }
       /**
        * Start task, task will be restarted when already running.
-       *
        * @param {TaskOptions} opts
        * @returns {Promise<boolean>}
        */
@@ -47772,7 +47715,7 @@ var init_task = __esm({
 });
 
 // src/workspace.ts
-var logger18, methods, Workspace, workspace_default;
+var logger20, methods, Workspace, workspace_default;
 var init_workspace = __esm({
   "src/workspace.ts"() {
     "use strict";
@@ -47800,12 +47743,12 @@ var init_workspace = __esm({
     init_status();
     init_strwidth();
     init_task();
-    init_constants();
+    init_constants2();
     init_extensionRegistry();
     init_node();
     init_object();
     init_processes();
-    logger18 = createLogger("workspace");
+    logger20 = createLogger("workspace");
     methods = [
       "showMessage",
       "runTerminalCommand",
@@ -47836,7 +47779,7 @@ var init_workspace = __esm({
           this.strWdith = strWdith;
         });
         events_default.on("VimResized", (columns, lines) => {
-          Object.assign(toObject(this.env), { columns, lines });
+          Object.assign(toObject2(this.env), { columns, lines });
         });
         Object.defineProperty(this.statusLine, "nvim", {
           get: () => this.nvim
@@ -47878,7 +47821,7 @@ var init_workspace = __esm({
             get: () => {
               return (...args) => {
                 let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-                logger18.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
+                logger20.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
                 return window2[method].apply(window2, args);
               };
             }
@@ -47888,7 +47831,7 @@ var init_workspace = __esm({
           Object.defineProperty(this, name2, {
             get: () => {
               let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-              logger18.warn(`workspace.${name2} is deprecated, please use window.${name2} instead.`, stack);
+              logger20.warn(`workspace.${name2} is deprecated, please use window.${name2} instead.`, stack);
               return window2[name2];
             }
           });
@@ -48020,7 +47963,7 @@ var init_workspace = __esm({
       registerAutocmd(autocmd) {
         if (autocmd.request && autocmd.event !== "BufWritePre") {
           let name2 = parseExtensionName(Error().stack);
-          logger18.warn(`Extension "${name2}" registered synchronized autocmd "${autocmd.event}", which could be slow.`);
+          logger20.warn(`Extension "${name2}" registered synchronized autocmd "${autocmd.event}", which could be slow.`);
         }
         return this.autocmds.registerAutocmd(autocmd);
       }
@@ -48448,7 +48391,7 @@ var TreeView_exports = {};
 __export(TreeView_exports, {
   default: () => BasicTreeView
 });
-var logger19, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
+var logger21, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
 var init_TreeView = __esm({
   "src/tree/TreeView.ts"() {
     "use strict";
@@ -48468,7 +48411,7 @@ var init_TreeView = __esm({
     init_workspace();
     init_filter2();
     init_TreeItem();
-    logger19 = createLogger("BasicTreeView");
+    logger21 = createLogger("BasicTreeView");
     retryTimeout = getConditionValue(500, 10);
     maxRetry = getConditionValue(5, 1);
     highlightNamespace = "tree";
@@ -48782,7 +48725,7 @@ var init_TreeView = __esm({
           release();
         } catch (e) {
           release();
-          logger19.error(`Error on tree filter:`, e);
+          logger21.error(`Error on tree filter:`, e);
         }
       }
       async onHover(lnum) {
@@ -48855,25 +48798,25 @@ var init_TreeView = __esm({
           let idx = items.findIndex((o) => o.node === node);
           if (idx != -1 && this.bufnr) {
             let obj = items[idx];
-            let level2 = obj.level;
+            let level3 = obj.level;
             let removeCount = 0;
             for (let i = idx; i < items.length; i++) {
               let o = items[i];
-              if (i == idx || o && o.level > level2) {
+              if (i == idx || o && o.level > level3) {
                 removeCount += 1;
               }
             }
             let appendItems = [];
             let highlights = [];
             let start = idx + this.startLnum;
-            await this.appendTreeNode(node, level2, start, appendItems, highlights);
+            await this.appendTreeNode(node, level3, start, appendItems, highlights);
             items.splice(idx, removeCount, ...appendItems);
             this.updateUI(appendItems.map((o) => o.line), highlights, start, start + removeCount);
           }
           release();
         } catch (e) {
           let errMsg = `Error on tree refresh: ${e}`;
-          logger19.error(errMsg, e);
+          logger21.error(errMsg, e);
           this.nvim.errWriteLine("[coc.nvim] " + errMsg);
           release();
         }
@@ -48931,10 +48874,10 @@ var init_TreeView = __esm({
         }
         let removeCount = 0;
         if (treeItem.collapsibleState == 2 /* Expanded */) {
-          let level2 = obj.level;
+          let level3 = obj.level;
           for (let i = nodeIdx + 1; i < this.renderedItems.length; i++) {
             let o2 = this.renderedItems[i];
-            if (!o2 || o2.level <= level2) break;
+            if (!o2 || o2.level <= level3) break;
             removeCount += 1;
           }
           treeItem.collapsibleState = 1 /* Collapsed */;
@@ -49029,11 +48972,11 @@ var init_TreeView = __esm({
         this.nodesMap.set(element, { item, resolved });
         return item;
       }
-      getRenderedLine(treeItem, lnum, level2) {
+      getRenderedLine(treeItem, lnum, level3) {
         let { openedIcon, closedIcon } = this.config;
         const highlights = [];
         const { label, deprecated, description } = treeItem;
-        let prefix = "  ".repeat(level2);
+        let prefix = "  ".repeat(level3);
         const addHighlight = (text, hlGroup) => {
           let colStart = byteLength(prefix);
           highlights.push({
@@ -49085,15 +49028,15 @@ var init_TreeView = __esm({
         }
         return { line: prefix, highlights };
       }
-      async appendTreeNode(element, level2, lnum, items, highlights) {
+      async appendTreeNode(element, level3, lnum, items, highlights) {
         let treeItem = await this.getTreeItem(element);
         if (!treeItem) return 0;
         let takes = 1;
-        let res = this.getRenderedLine(treeItem, lnum, level2);
+        let res = this.getRenderedLine(treeItem, lnum, level3);
         highlights.push(...res.highlights);
-        items.push({ level: level2, line: res.line, node: element });
+        items.push({ level: level3, line: res.line, node: element });
         if (treeItem.collapsibleState == 2 /* Expanded */) {
-          let l = level2 + 1;
+          let l = level3 + 1;
           let children = await Promise.resolve(this.provider.getChildren(element));
           for (let el of toArray(children)) {
             let n = await this.appendTreeNode(el, l, lnum + takes, items, highlights);
@@ -49219,7 +49162,7 @@ var init_TreeView = __esm({
           let highlights = [];
           let { startLnum } = this;
           let nodes = await Promise.resolve(this.provider.getChildren());
-          let level2 = 0;
+          let level3 = 0;
           let lnum = startLnum;
           let renderedItems = [];
           if (isFalsyOrEmpty(nodes)) {
@@ -49227,7 +49170,7 @@ var init_TreeView = __esm({
           } else {
             if (this.message == "No results") this.message = "";
             for (let node of nodes) {
-              let n = await this.appendTreeNode(node, level2, lnum, renderedItems, highlights);
+              let n = await this.appendTreeNode(node, level3, lnum, renderedItems, highlights);
               lnum += n;
             }
           }
@@ -49240,7 +49183,7 @@ var init_TreeView = __esm({
           this.retryTimers = 0;
           release();
         } catch (err) {
-          logger19.error("Error on render", err);
+          logger21.error("Error on render", err);
           this.renderedItems = [];
           this.nodesMap.clear();
           this.lineState = { titleCount: 0, messageCount: 1 };
@@ -49374,7 +49317,7 @@ var init_TreeView = __esm({
 });
 
 // src/window.ts
-var Window, window_default;
+var Window2, window_default;
 var init_window = __esm({
   "src/window.ts"() {
     "use strict";
@@ -49386,7 +49329,7 @@ var init_window = __esm({
     init_ui();
     init_object();
     init_protocol();
-    Window = class {
+    Window2 = class {
       constructor() {
         this.highlights = new Highlights();
         this.terminalManager = new Terminals();
@@ -49443,7 +49386,6 @@ var init_window = __esm({
       }
       /**
        * Run command in vim terminal for result
-       *
        * @param cmd Command to run.
        * @param cwd Cwd of terminal, default to result of |getcwd()|.
        */
@@ -49452,7 +49394,6 @@ var init_window = __esm({
       }
       /**
        * Open terminal window.
-       *
        * @param cmd Command to run.
        * @param opts Terminal option.
        * @returns number buffer number of terminal
@@ -49462,7 +49403,6 @@ var init_window = __esm({
       }
       /**
        * Reveal message with message type.
-       *
        * @param msg Message text to show.
        * @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
        */
@@ -49471,7 +49411,6 @@ var init_window = __esm({
       }
       /**
        * Create a new output channel
-       *
        * @param name Unique name of output channel.
        * @returns A new output channel.
        */
@@ -49480,7 +49419,6 @@ var init_window = __esm({
       }
       /**
        * Reveal buffer of output channel.
-       *
        * @param name Name of output channel.
        * @param cmd command for open output channel.
        * @param preserveFocus Preserve window focus when true.
@@ -49491,7 +49429,6 @@ var init_window = __esm({
       }
       /**
        * Echo lines at the bottom of vim.
-       *
        * @param lines Line list.
        * @param truncate Truncate the lines to avoid 'press enter to continue' when true
        */
@@ -49500,7 +49437,6 @@ var init_window = __esm({
       }
       /**
        * Get current cursor position (line, character both 0 based).
-       *
        * @returns Cursor position.
        */
       getCursorPosition() {
@@ -49508,7 +49444,6 @@ var init_window = __esm({
       }
       /**
        * Move cursor to position.
-       *
        * @param position LSP position.
        */
       async moveTo(position) {
@@ -49529,7 +49464,6 @@ var init_window = __esm({
       /**
        * Get current cursor character offset in document,
        * length of line break would always be 1.
-       *
        * @returns Character offset.
        */
       getOffset() {
@@ -49538,7 +49472,6 @@ var init_window = __esm({
       /**
        * Get screen position of current cursor(relative to editor),
        * both `row` and `col` are 0 based.
-       *
        * @returns Cursor screen position.
        */
       getCursorScreenPosition() {
@@ -49546,7 +49479,6 @@ var init_window = __esm({
       }
       /**
        * Create a {@link TreeView} instance.
-       *
        * @param viewId Id of the view, used as title of TreeView when title doesn't exist.
        * @param options Options for creating the {@link TreeView}
        * @returns a {@link TreeView}.
@@ -49557,7 +49489,6 @@ var init_window = __esm({
       }
       /**
        * Create statusbar item that would be included in `g:coc_status`.
-       *
        * @param priority Higher priority item would be shown right.
        * @param option
        * @return A new status bar item.
@@ -49568,7 +49499,6 @@ var init_window = __esm({
       /**
        * Get diff from highlight items and current highlights on vim.
        * Return null when buffer not loaded
-       *
        * @param bufnr Buffer number
        * @param ns Highlight namespace
        * @param items Highlight items
@@ -49581,19 +49511,17 @@ var init_window = __esm({
       }
       /**
        * Create a FloatFactory, user's configurations are respected.
-       *
        * @param {FloatWinConfig} conf - Float window configuration
        * @returns {FloatFactory}
        */
       createFloatFactory(conf) {
         let configuration2 = this.workspace.initialConfiguration;
-        let defaults2 = toObject(configuration2.get("floatFactory.floatConfig"));
+        let defaults2 = toObject2(configuration2.get("floatFactory.floatConfig"));
         let markdownPreference = this.workspace.configurations.markdownPreference;
         return createFloatFactory(this.workspace.nvim, Object.assign({ ...markdownPreference, maxWidth: 80 }, conf), defaults2);
       }
       /**
        * Show quickpick for single item, use `window.menuPick` for menu at current current position.
-       *
        * @deprecated Use 'window.showMenuPicker()' or `window.showQuickPick` instead.
        * @param items Label list.
        * @param placeholder Prompt text, default to 'choose by number'.
@@ -49615,7 +49543,6 @@ var init_window = __esm({
        * Note that in many cases the more convenient {@link window.showQuickPick}
        * is easier to use. {@link window.createQuickPick} should be used
        * when {@link window.showQuickPick} does not offer the required flexibility.
-       *
        * @return A new {@link QuickPick}.
        */
       async createQuickPick(config = {}) {
@@ -49623,7 +49550,6 @@ var init_window = __esm({
       }
       /**
        * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-       *
        * @param items Array of texts.
        * @param option Options for menu.
        * @param token A token that can be used to signal cancellation.
@@ -49635,7 +49561,6 @@ var init_window = __esm({
       /**
        * Prompt user for confirm, a float/popup window would be used when possible,
        * use vim's |confirm()| function as callback.
-       *
        * @param title The prompt text.
        * @returns Result of confirm.
        */
@@ -49645,7 +49570,6 @@ var init_window = __esm({
       /**
        * Show dialog window at the center of screen.
        * Note that the dialog would always be closed after button click.
-       *
        * @param config Dialog configuration.
        * @returns Dialog or null when dialog can't work.
        */
@@ -49654,7 +49578,6 @@ var init_window = __esm({
       }
       /**
        * Request input from user
-       *
        * @param title Title text of prompt window.
        * @param value Default value of input, empty text by default.
        * @param {InputOptions} option for input window
@@ -49665,7 +49588,6 @@ var init_window = __esm({
       }
       /**
        * Creates and show a {@link InputBox} to let the user enter some text input.
-       *
        * @return A new {@link InputBox}.
        */
       async createInputBox(title, value, option) {
@@ -49677,7 +49599,6 @@ var init_window = __esm({
       /**
        * Show an information message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49689,7 +49610,6 @@ var init_window = __esm({
       /**
        * Show an warning message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49701,7 +49621,6 @@ var init_window = __esm({
       /**
        * Show an error message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49726,7 +49645,6 @@ var init_window = __esm({
        *
        * Timer is used to add highlights when there're too many highlight items to add,
        * the highlight process won't be finished on that case.
-       *
        * @param {number} bufnr - Buffer name
        * @param {string} ns - Namespace
        * @param {number} priority
@@ -49744,13 +49662,13 @@ var init_window = __esm({
         this.terminalManager.dispose();
       }
     };
-    window_default = new Window();
+    window_default = new Window2();
   }
 });
 
 // src/completion/types.ts
 var SourceType;
-var init_types2 = __esm({
+var init_types3 = __esm({
   "src/completion/types.ts"() {
     "use strict";
     SourceType = /* @__PURE__ */ ((SourceType2) => {
@@ -49873,7 +49791,7 @@ var init_eval = __esm({
   "src/snippets/eval.ts"() {
     "use strict";
     import_child_process = require("child_process");
-    init_constants();
+    init_constants2();
     init_node();
     init_string();
     stringStartRe = /\\A/;
@@ -49953,7 +49871,7 @@ function transformEscapes(input, backslashIndexes = []) {
   }
   return res;
 }
-var logger20, ULTISNIP_VARIABLES, knownRegexOptions, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var logger22, ULTISNIP_VARIABLES, knownRegexOptions, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform2, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser3 = __esm({
   "src/snippets/parser.ts"() {
     "use strict";
@@ -49964,7 +49882,7 @@ var init_parser3 = __esm({
     init_node();
     init_string();
     init_eval();
-    logger20 = createLogger("snippets-parser");
+    logger22 = createLogger("snippets-parser");
     ULTISNIP_VARIABLES = ["VISUAL", "YANK", "UUID"];
     knownRegexOptions = ["d", "g", "i", "m", "s", "u", "y"];
     Scanner = class _Scanner {
@@ -50244,7 +50162,7 @@ var init_parser3 = __esm({
         return ret;
       }
     };
-    Transform = class _Transform extends Marker {
+    Transform2 = class _Transform extends Marker {
       constructor() {
         super(...arguments);
         this.ascii = false;
@@ -51110,7 +51028,7 @@ var init_parser3 = __esm({
         }
       }
       _parseTransform(parent) {
-        let transform = new Transform();
+        let transform = new Transform2();
         transform.ultisnip = this.ultisnip === true;
         let regexValue = "";
         let regexOptions = "";
@@ -51156,7 +51074,7 @@ var init_parser3 = __esm({
               ascii = true;
             } else {
               if (!knownRegexOptions.includes(c)) {
-                logger20.error(`Unknown regex option: ${c}`);
+                logger22.error(`Unknown regex option: ${c}`);
               }
               regexOptions += c;
             }
@@ -51893,13 +51811,13 @@ var init_util3 = __esm({
     init_parser3();
     init_array();
     init_charCode();
-    init_constants();
+    init_constants2();
     init_is();
     init_map();
     init_node();
     init_object();
     init_string();
-    init_types2();
+    init_types3();
     INVALID_WORD_CHARS = [10 /* LineFeed */, 13 /* CarriageReturn */];
     DollarSign = "$";
     QuestionMark = "?";
@@ -52031,11 +51949,11 @@ var init_util3 = __esm({
       convertLspCompleteItem(item) {
         const { option, inputStart } = this;
         const label = item.label.trim();
-        const itemDefaults = toObject(option.itemDefaults);
+        const itemDefaults = toObject2(option.itemDefaults);
         const word = getWord(item, itemDefaults);
         const range = getReplaceRange(item, itemDefaults, inputStart, this.option.insertMode) ?? option.range;
         const character = range.start.character;
-        const data = toObject(item.data);
+        const data = toObject2(item.data);
         const filterText = item.filterText ?? item.label;
         const delta = this.getDelta(filterText, character);
         let obj = {
@@ -52133,9 +52051,9 @@ function getSeverityType(severity) {
       return "E";
   }
 }
-function severityLevel(level2) {
-  if (level2 == null) return void 0;
-  switch (level2) {
+function severityLevel(level3) {
+  if (level3 == null) return void 0;
+  switch (level3) {
     case "hint":
       return DiagnosticSeverity.Hint;
     case "information":
@@ -52553,10 +52471,13 @@ Related information:
             }
             msg = msg + "\n\n";
           }
-          docs.push({ filetype, content: formatDiagnostic(config.format, {
-            ...diagnostic,
-            message: msg
-          }) });
+          docs.push({
+            filetype,
+            content: formatDiagnostic(config.format, {
+              ...diagnostic,
+              message: msg
+            })
+          });
           if (link) {
             docs.push({ filetype: "txt", content: link });
           }
@@ -52933,7 +52854,7 @@ var init_manager = __esm({
     init_events();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_fs();
     init_position();
     init_protocol();
@@ -53069,11 +52990,11 @@ var init_manager = __esm({
       getSortedRanges(uri, minLevel, severity) {
         let collections = this.getCollections(uri);
         let res = [];
-        let level2 = severity ? severityLevel(severity) : 0;
+        let level3 = severity ? severityLevel(severity) : 0;
         for (let collection of collections) {
           let diagnostics = collection.get(uri);
-          if (level2) {
-            diagnostics = diagnostics.filter((o) => o.severity == level2);
+          if (level3) {
+            diagnostics = diagnostics.filter((o) => o.severity == level3);
           } else {
             if (minLevel && minLevel < DiagnosticSeverity.Hint) {
               diagnostics = diagnostics.filter((o) => {
@@ -53107,11 +53028,11 @@ var init_manager = __esm({
        * Get filtered diagnostics by collection.
        */
       getDiagnosticsByCollection(buf, collection) {
-        let { level: level2, showUnused, showDeprecated } = buf.config;
+        let { level: level3, showUnused, showDeprecated } = buf.config;
         let items = collection.get(buf.uri) ?? [];
         if (items.length) {
           items = items.filter((d) => {
-            if (level2 && d.severity && d.severity > level2) {
+            if (level3 && d.severity && d.severity > level3) {
               return false;
             }
             if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
@@ -53229,7 +53150,7 @@ var init_manager = __esm({
       async getDiagnosticList() {
         let res = [];
         let config = workspace_default.getConfiguration("diagnostic");
-        let level2 = severityLevel(config.get("level", "hint"));
+        let level3 = severityLevel(config.get("level", "hint"));
         for (let collection of this.collections) {
           for (let [uri, diagnostics] of collection.entries()) {
             if (diagnostics.length == 0) continue;
@@ -53246,7 +53167,7 @@ var init_manager = __esm({
               }
             }
             for (let diagnostic of diagnostics) {
-              if (diagnostic.severity && diagnostic.severity > level2) continue;
+              if (diagnostic.severity && diagnostic.severity > level3) continue;
               let { start, end } = diagnostic.range;
               let o = {
                 file: u.fsPath,
@@ -53400,7 +53321,7 @@ function addLocation(arr, location) {
     });
   }
 }
-var logger21, Manager;
+var logger23, Manager;
 var init_manager2 = __esm({
   "src/provider/manager.ts"() {
     "use strict";
@@ -53409,7 +53330,7 @@ var init_manager2 = __esm({
     init_object();
     init_protocol();
     init_workspace();
-    logger21 = createLogger("provider-manager");
+    logger23 = createLogger("provider-manager");
     Manager = class {
       constructor() {
         this.providers = /* @__PURE__ */ new Set();
@@ -53426,7 +53347,7 @@ var init_manager2 = __esm({
       handleResults(results, name2) {
         results.forEach((res) => {
           if (res.status === "rejected") {
-            logger21.error(`Provider error on ${name2}:`, res.reason);
+            logger23.error(`Provider error on ${name2}:`, res.reason);
           }
         });
       }
@@ -53579,7 +53500,7 @@ var init_codeActionManager = __esm({
       async resolveCodeAction(codeAction, token) {
         if (codeAction.edit != null || codeAction.providerId == null) return codeAction;
         let provider = this.getProviderById(codeAction.providerId);
-        if (!provider || !func(provider.resolveCodeAction)) return codeAction;
+        if (!provider || !func2(provider.resolveCodeAction)) return codeAction;
         let resolved = await Promise.resolve(provider.resolveCodeAction(omit(codeAction, ["providerId"]), token));
         return resolved ?? codeAction;
       }
@@ -53997,7 +53918,7 @@ var init_foldingRangeManager = __esm({
 });
 
 // src/provider/formatManager.ts
-var logger22, FormatManager;
+var logger24, FormatManager;
 var init_formatManager = __esm({
   "src/provider/formatManager.ts"() {
     "use strict";
@@ -54005,7 +53926,7 @@ var init_formatManager = __esm({
     init_logger();
     init_workspace();
     init_manager2();
-    logger22 = createLogger("provider-formatManager");
+    logger24 = createLogger("provider-formatManager");
     FormatManager = class extends Manager {
       register(extensionName, selector, provider, priority) {
         return this.addProvider({
@@ -54019,7 +53940,7 @@ var init_formatManager = __esm({
       async provideDocumentFormattingEdits(document2, options2, token) {
         let item = this.getProvider(document2);
         if (!item) return null;
-        logger22.info("Format by:", item.extensionName);
+        logger24.info("Format by:", item.extensionName);
         let { provider } = item;
         return await Promise.resolve(provider.provideDocumentFormattingEdits(document2, options2, token));
       }
@@ -54029,10 +53950,10 @@ var init_formatManager = __esm({
           const items = this.getProviders(document2);
           const userChoiceProvider = items.find((item) => item.extensionName === userChoice);
           if (userChoiceProvider) {
-            logger22.info("Using user-specified formatter:", userChoice);
+            logger24.info("Using user-specified formatter:", userChoice);
             return userChoiceProvider;
           }
-          logger22.error("User-specified formatter not found:", userChoice);
+          logger24.error("User-specified formatter not found:", userChoice);
           return null;
         }
         return super.getProvider(document2);
@@ -54042,7 +53963,7 @@ var init_formatManager = __esm({
 });
 
 // src/provider/formatRangeManager.ts
-var logger23, FormatRangeManager;
+var logger25, FormatRangeManager;
 var init_formatRangeManager = __esm({
   "src/provider/formatRangeManager.ts"() {
     "use strict";
@@ -54050,7 +53971,7 @@ var init_formatRangeManager = __esm({
     init_logger();
     init_workspace();
     init_manager2();
-    logger23 = createLogger("provider-formatRangeManager");
+    logger25 = createLogger("provider-formatRangeManager");
     FormatRangeManager = class extends Manager {
       register(extensionName, selector, provider, priority) {
         return this.addProvider({
@@ -54069,7 +53990,7 @@ var init_formatRangeManager = __esm({
       async provideDocumentRangeFormattingEdits(document2, range, options2, token) {
         let item = this.getProvider(document2);
         if (!item) return null;
-        logger23.info("Range format by:", item.extensionName);
+        logger25.info("Range format by:", item.extensionName);
         let { provider } = item;
         return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document2, range, options2, token));
       }
@@ -54079,10 +54000,10 @@ var init_formatRangeManager = __esm({
           const items = this.getProviders(document2);
           const userChoiceProvider = items.find((item) => item.extensionName === userChoice);
           if (userChoiceProvider) {
-            logger23.info("Using user-specified range formatter:", userChoice);
+            logger25.info("Using user-specified range formatter:", userChoice);
             return userChoiceProvider;
           }
-          logger23.error("User-specified range formatter not found:", userChoice);
+          logger25.error("User-specified range formatter not found:", userChoice);
           return null;
         }
         return super.getProvider(document2);
@@ -54168,11 +54089,11 @@ function isInlayHint(obj) {
 }
 function isValidInlayHint(hint, range) {
   if (hint.label.length === 0 || Array.isArray(hint.label) && hint.label.every((part) => part.value.length === 0)) {
-    logger24.warn("INVALID inlay hint, empty label", hint);
+    logger26.warn("INVALID inlay hint, empty label", hint);
     return false;
   }
   if (!isInlayHint(hint)) {
-    logger24.warn("INVALID inlay hint", hint);
+    logger26.warn("INVALID inlay hint", hint);
     return false;
   }
   if (range && positionInRange(hint.position, range) !== 0) {
@@ -54184,7 +54105,7 @@ function getLabel(hint) {
   if (typeof hint.label === "string") return hint.label;
   return hint.label.map((o) => o.value).join("");
 }
-var logger24, InlayHintManger;
+var logger26, InlayHintManger;
 var init_inlayHintManager = __esm({
   "src/provider/inlayHintManager.ts"() {
     "use strict";
@@ -54193,7 +54114,7 @@ var init_inlayHintManager = __esm({
     init_logger();
     init_position();
     init_manager2();
-    logger24 = createLogger("inlayHintManger");
+    logger26 = createLogger("inlayHintManger");
     InlayHintManger = class extends Manager {
       register(selector, provider) {
         return this.addProvider({
@@ -54278,14 +54199,14 @@ var init_inlineValueManager = __esm({
 });
 
 // src/provider/linkedEditingRangeManager.ts
-var logger25, LinkedEditingRangeManager;
+var logger27, LinkedEditingRangeManager;
 var init_linkedEditingRangeManager = __esm({
   "src/provider/linkedEditingRangeManager.ts"() {
     "use strict";
     init_esm_node();
     init_logger();
     init_manager2();
-    logger25 = createLogger("linkedEditingManager");
+    logger27 = createLogger("linkedEditingManager");
     LinkedEditingRangeManager = class extends Manager {
       register(selector, provider) {
         return this.addProvider({
@@ -54815,7 +54736,7 @@ var require_mimic_response = __commonJS({
 var require_decompress_response = __commonJS({
   "node_modules/decompress-response/index.js"(exports2, module2) {
     "use strict";
-    var { Transform: Transform2, PassThrough } = require("stream");
+    var { Transform: Transform3, PassThrough } = require("stream");
     var zlib = require("zlib");
     var mimicResponse = require_mimic_response();
     module2.exports = (response) => {
@@ -54829,7 +54750,7 @@ var require_decompress_response = __commonJS({
         return response;
       }
       let isEmpty2 = true;
-      const checker = new Transform2({
+      const checker = new Transform3({
         transform(data, _encoding, callback) {
           isEmpty2 = false;
           callback(null, data);
@@ -55008,11 +54929,11 @@ var require_common = __commonJS({
         let enableOverride = null;
         let namespacesCache;
         let enabledCache;
-        function debug(...args) {
-          if (!debug.enabled) {
+        function debug2(...args) {
+          if (!debug2.enabled) {
             return;
           }
-          const self = debug;
+          const self = debug2;
           const curr = Number(/* @__PURE__ */ new Date());
           const ms = curr - (prevTime || curr);
           self.diff = ms;
@@ -55042,12 +54963,12 @@ var require_common = __commonJS({
           const logFn = self.log || createDebug.log;
           logFn.apply(self, args);
         }
-        debug.namespace = namespace;
-        debug.useColors = createDebug.useColors();
-        debug.color = createDebug.selectColor(namespace);
-        debug.extend = extend;
-        debug.destroy = createDebug.destroy;
-        Object.defineProperty(debug, "enabled", {
+        debug2.namespace = namespace;
+        debug2.useColors = createDebug.useColors();
+        debug2.color = createDebug.selectColor(namespace);
+        debug2.extend = extend;
+        debug2.destroy = createDebug.destroy;
+        Object.defineProperty(debug2, "enabled", {
           enumerable: true,
           configurable: false,
           get: () => {
@@ -55065,9 +54986,9 @@ var require_common = __commonJS({
           }
         });
         if (typeof createDebug.init === "function") {
-          createDebug.init(debug);
+          createDebug.init(debug2);
         }
-        return debug;
+        return debug2;
       }
       function extend(namespace, delimiter) {
         const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
@@ -55325,7 +55246,7 @@ var require_has_flag = __commonJS({
 var require_supports_color = __commonJS({
   "node_modules/supports-color/index.js"(exports2, module2) {
     "use strict";
-    var os2 = require("os");
+    var os3 = require("os");
     var tty = require("tty");
     var hasFlag = require_has_flag();
     var { env } = process;
@@ -55344,15 +55265,15 @@ var require_supports_color = __commonJS({
         forceColor = env.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env.FORCE_COLOR, 10), 3);
       }
     }
-    function translateLevel(level2) {
-      if (level2 === 0) {
+    function translateLevel(level3) {
+      if (level3 === 0) {
         return false;
       }
       return {
-        level: level2,
+        level: level3,
         hasBasic: true,
-        has256: level2 >= 2,
-        has16m: level2 >= 3
+        has256: level3 >= 2,
+        has16m: level3 >= 3
       };
     }
     function supportsColor(haveStream, streamIsTTY) {
@@ -55373,7 +55294,7 @@ var require_supports_color = __commonJS({
         return min;
       }
       if (process.platform === "win32") {
-        const osRelease = os2.release().split(".");
+        const osRelease = os3.release().split(".");
         if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
           return Number(osRelease[2]) >= 14931 ? 3 : 2;
         }
@@ -55412,8 +55333,8 @@ var require_supports_color = __commonJS({
       return min;
     }
     function getSupportLevel(stream) {
-      const level2 = supportsColor(stream, stream && stream.isTTY);
-      return translateLevel(level2);
+      const level3 = supportsColor(stream, stream && stream.isTTY);
+      return translateLevel(level3);
     }
     module2.exports = {
       supportsColor: getSupportLevel,
@@ -55577,11 +55498,11 @@ var require_node3 = __commonJS({
     function load() {
       return process.env.DEBUG;
     }
-    function init(debug) {
-      debug.inspectOpts = {};
+    function init(debug2) {
+      debug2.inspectOpts = {};
       const keys = Object.keys(exports2.inspectOpts);
       for (let i = 0; i < keys.length; i++) {
-        debug.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
+        debug2.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
       }
     }
     module2.exports = require_common()(exports2);
@@ -55611,19 +55532,19 @@ var require_src = __commonJS({
 // node_modules/follow-redirects/debug.js
 var require_debug2 = __commonJS({
   "node_modules/follow-redirects/debug.js"(exports2, module2) {
-    var debug;
+    var debug2;
     module2.exports = function() {
-      if (!debug) {
+      if (!debug2) {
         try {
-          debug = require_src()("follow-redirects");
+          debug2 = require_src()("follow-redirects");
         } catch (error) {
         }
-        if (typeof debug !== "function") {
-          debug = function() {
+        if (typeof debug2 !== "function") {
+          debug2 = function() {
           };
         }
       }
-      debug.apply(null, arguments);
+      debug2.apply(null, arguments);
     };
   }
 });
@@ -55637,7 +55558,7 @@ var require_follow_redirects = __commonJS({
     var https2 = require("https");
     var Writable = require("stream").Writable;
     var assert2 = require("assert");
-    var debug = require_debug2();
+    var debug2 = require_debug2();
     var useNativeURL = false;
     try {
       assert2(new URL5());
@@ -55946,7 +55867,7 @@ var require_follow_redirects = __commonJS({
       var currentHost = currentHostHeader || currentUrlParts.host;
       var currentUrl = /^\w+:/.test(location) ? this._currentUrl : url.format(Object.assign(currentUrlParts, { host: currentHost }));
       var redirectUrl = resolveUrl2(location, currentUrl);
-      debug("redirecting to", redirectUrl.href);
+      debug2("redirecting to", redirectUrl.href);
       this._isRedirect = true;
       spreadUrlObject(redirectUrl, this._options);
       if (redirectUrl.protocol !== currentUrlParts.protocol && redirectUrl.protocol !== "https:" || redirectUrl.host !== currentHost && !isSubdomain(redirectUrl.host, currentHost)) {
@@ -56000,7 +55921,7 @@ var require_follow_redirects = __commonJS({
             options2.hostname = "::1";
           }
           assert2.equal(options2.protocol, protocol2, "protocol mismatch");
-          debug("options", options2);
+          debug2("options", options2);
           return new RedirectableRequest(options2, callback);
         }
         function get(input, options2, callback) {
@@ -56175,7 +56096,7 @@ var require_src2 = __commonJS({
     var events_1 = require("events");
     var debug_1 = __importDefault(require_src());
     var promisify_1 = __importDefault(require_promisify());
-    var debug = debug_1.default("agent-base");
+    var debug2 = debug_1.default("agent-base");
     function isAgent(v) {
       return Boolean(v) && typeof v.addRequest === "function";
     }
@@ -56294,7 +56215,7 @@ var require_src2 = __commonJS({
               timeoutId = null;
             }
             if (isAgent(socket)) {
-              debug("Callback returned another Agent instance %o", socket.constructor.name);
+              debug2("Callback returned another Agent instance %o", socket.constructor.name);
               socket.addRequest(req, opts);
               return;
             }
@@ -56314,7 +56235,7 @@ var require_src2 = __commonJS({
           }
           if (!this.promisifiedCallback) {
             if (this.callback.length >= 3) {
-              debug("Converting legacy callback function to promise");
+              debug2("Converting legacy callback function to promise");
               this.promisifiedCallback = promisify_1.default(this.callback);
             } else {
               this.promisifiedCallback = this.callback;
@@ -56327,18 +56248,18 @@ var require_src2 = __commonJS({
             opts.port = Number(opts.port);
           }
           try {
-            debug("Resolving socket for %o request: %o", opts.protocol, `${req.method} ${req.path}`);
+            debug2("Resolving socket for %o request: %o", opts.protocol, `${req.method} ${req.path}`);
             Promise.resolve(this.promisifiedCallback(req, opts)).then(onsocket, callbackError);
           } catch (err) {
             Promise.reject(err).catch(callbackError);
           }
         }
         freeSocket(socket, opts) {
-          debug("Freeing socket %o %o", socket.constructor.name, opts);
+          debug2("Freeing socket %o %o", socket.constructor.name, opts);
           socket.destroy();
         }
         destroy() {
-          debug("Destroying agent %o", this.constructor.name);
+          debug2("Destroying agent %o", this.constructor.name);
         }
       }
       createAgent2.Agent = Agent;
@@ -56389,7 +56310,7 @@ var require_agent = __commonJS({
     var debug_1 = __importDefault(require_src());
     var once_1 = __importDefault(require_dist());
     var agent_base_1 = require_src2();
-    var debug = (0, debug_1.default)("http-proxy-agent");
+    var debug2 = (0, debug_1.default)("http-proxy-agent");
     function isHTTPS(protocol2) {
       return typeof protocol2 === "string" ? /^https:?$/i.test(protocol2) : false;
     }
@@ -56404,7 +56325,7 @@ var require_agent = __commonJS({
         if (!opts) {
           throw new Error("an HTTP(S) proxy server `host` and `port` must be specified!");
         }
-        debug("Creating new HttpProxyAgent instance: %o", opts);
+        debug2("Creating new HttpProxyAgent instance: %o", opts);
         super(opts);
         const proxy = Object.assign({}, opts);
         this.secureProxy = opts.secureProxy || isHTTPS(proxy.protocol);
@@ -56449,30 +56370,30 @@ var require_agent = __commonJS({
           }
           let socket;
           if (secureProxy) {
-            debug("Creating `tls.Socket`: %o", proxy);
+            debug2("Creating `tls.Socket`: %o", proxy);
             socket = tls_1.default.connect(proxy);
           } else {
-            debug("Creating `net.Socket`: %o", proxy);
+            debug2("Creating `net.Socket`: %o", proxy);
             socket = net_1.default.connect(proxy);
           }
           if (req._header) {
             let first;
             let endOfHeaders;
-            debug("Regenerating stored HTTP header string for request");
+            debug2("Regenerating stored HTTP header string for request");
             req._header = null;
             req._implicitHeader();
             if (req.output && req.output.length > 0) {
-              debug("Patching connection write() output buffer with updated header");
+              debug2("Patching connection write() output buffer with updated header");
               first = req.output[0];
               endOfHeaders = first.indexOf("\r\n\r\n") + 4;
               req.output[0] = req._header + first.substring(endOfHeaders);
-              debug("Output buffer: %o", req.output);
+              debug2("Output buffer: %o", req.output);
             } else if (req.outputData && req.outputData.length > 0) {
-              debug("Patching connection write() output buffer with updated header");
+              debug2("Patching connection write() output buffer with updated header");
               first = req.outputData[0].data;
               endOfHeaders = first.indexOf("\r\n\r\n") + 4;
               req.outputData[0].data = req._header + first.substring(endOfHeaders);
-              debug("Output buffer: %o", req.outputData[0].data);
+              debug2("Output buffer: %o", req.outputData[0].data);
             }
           }
           yield (0, once_1.default)(socket, "connect");
@@ -56512,7 +56433,7 @@ var require_parse_proxy_response = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     var debug_1 = __importDefault(require_src());
-    var debug = debug_1.default("https-proxy-agent:parse-proxy-response");
+    var debug2 = debug_1.default("https-proxy-agent:parse-proxy-response");
     function parseProxyResponse(socket) {
       return new Promise((resolve, reject) => {
         let buffersLength = 0;
@@ -56531,14 +56452,14 @@ var require_parse_proxy_response = __commonJS({
           socket.removeListener("readable", read);
         }
         function onclose(err) {
-          debug("onclose had error %o", err);
+          debug2("onclose had error %o", err);
         }
         function onend() {
-          debug("onend");
+          debug2("onend");
         }
         function onerror(err) {
           cleanup();
-          debug("onerror %o", err);
+          debug2("onerror %o", err);
           reject(err);
         }
         function ondata(b) {
@@ -56547,13 +56468,13 @@ var require_parse_proxy_response = __commonJS({
           const buffered = Buffer.concat(buffers, buffersLength);
           const endOfHeaders = buffered.indexOf("\r\n\r\n");
           if (endOfHeaders === -1) {
-            debug("have not received end of HTTP headers yet...");
+            debug2("have not received end of HTTP headers yet...");
             read();
             return;
           }
           const firstLine = buffered.toString("ascii", 0, buffered.indexOf("\r\n"));
           const statusCode = +firstLine.split(" ")[1];
-          debug("got proxy server response: %o", firstLine);
+          debug2("got proxy server response: %o", firstLine);
           resolve({
             statusCode,
             buffered
@@ -56611,7 +56532,7 @@ var require_agent2 = __commonJS({
     var debug_1 = __importDefault(require_src());
     var agent_base_1 = require_src2();
     var parse_proxy_response_1 = __importDefault(require_parse_proxy_response());
-    var debug = debug_1.default("https-proxy-agent:agent");
+    var debug2 = debug_1.default("https-proxy-agent:agent");
     var HttpsProxyAgent2 = class extends agent_base_1.Agent {
       constructor(_opts) {
         let opts;
@@ -56623,7 +56544,7 @@ var require_agent2 = __commonJS({
         if (!opts) {
           throw new Error("an HTTP(S) proxy server `host` and `port` must be specified!");
         }
-        debug("creating new HttpsProxyAgent instance: %o", opts);
+        debug2("creating new HttpsProxyAgent instance: %o", opts);
         super(opts);
         const proxy = Object.assign({}, opts);
         this.secureProxy = opts.secureProxy || isHTTPS(proxy.protocol);
@@ -56654,10 +56575,10 @@ var require_agent2 = __commonJS({
           const { proxy, secureProxy } = this;
           let socket;
           if (secureProxy) {
-            debug("Creating `tls.Socket`: %o", proxy);
+            debug2("Creating `tls.Socket`: %o", proxy);
             socket = tls_1.default.connect(proxy);
           } else {
-            debug("Creating `net.Socket`: %o", proxy);
+            debug2("Creating `net.Socket`: %o", proxy);
             socket = net_1.default.connect(proxy);
           }
           const headers = Object.assign({}, proxy.headers);
@@ -56684,7 +56605,7 @@ var require_agent2 = __commonJS({
           if (statusCode === 200) {
             req.once("socket", resume);
             if (opts.secureEndpoint) {
-              debug("Upgrading socket connection to TLS");
+              debug2("Upgrading socket connection to TLS");
               const servername = opts.servername || opts.host;
               return tls_1.default.connect(Object.assign(Object.assign({}, omit2(opts, "host", "hostname", "path", "port")), {
                 socket,
@@ -56697,7 +56618,7 @@ var require_agent2 = __commonJS({
           const fakeSocket = new net_1.default.Socket({ writable: false });
           fakeSocket.readable = true;
           req.once("socket", (s) => {
-            debug("replaying proxy buffer for failed request");
+            debug2("replaying proxy buffer for failed request");
             assert_1.default(s.listenerCount("data") > 0);
             s.push(buffered);
             s.push(null);
@@ -56827,7 +56748,7 @@ function getAgent(endpoint, options2) {
       auth: proxyURL.username ? `${proxyURL.username}:${toText(proxyURL.password)}` : void 0,
       rejectUnauthorized: typeof options2.proxyStrictSSL === "boolean" ? options2.proxyStrictSSL : true
     };
-    logger26.info(`Using proxy ${proxy} from ${options2.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
+    logger28.info(`Using proxy ${proxy} from ${options2.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
     return endpoint.protocol === "http:" ? (0, import_http_proxy_agent.default)(opts) : (0, import_https_proxy_agent.default)(opts);
   }
   return null;
@@ -56941,7 +56862,7 @@ function fetch(urlInput, options2 = {}, token) {
   let url = toURL(urlInput);
   let opts = resolveRequestOptions(url, options2);
   return request(url, options2.data, opts, token).catch((err) => {
-    logger26.error(`Fetch error for ${url}:`, opts, err);
+    logger28.error(`Fetch error for ${url}:`, opts, err);
     if (opts.agent && opts.agent.proxy) {
       let { proxy } = opts.agent;
       throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`);
@@ -56950,7 +56871,7 @@ function fetch(urlInput, options2 = {}, token) {
     }
   });
 }
-var import_decompress_response, import_follow_redirects, import_http_proxy_agent, import_https_proxy_agent, import_querystring, import_url2, logger26, timeout;
+var import_decompress_response, import_follow_redirects, import_http_proxy_agent, import_https_proxy_agent, import_querystring, import_url2, logger28, timeout;
 var init_fetch = __esm({
   "src/model/fetch.ts"() {
     "use strict";
@@ -56967,7 +56888,7 @@ var init_fetch = __esm({
     init_workspace();
     init_string();
     init_util();
-    logger26 = createLogger("model-fetch");
+    logger28 = createLogger("model-fetch");
     timeout = getConditionValue(500, 50);
   }
 });
@@ -56976,34 +56897,34 @@ var init_fetch = __esm({
 var require_safe_buffer = __commonJS({
   "node_modules/safe-buffer/index.js"(exports2, module2) {
     var buffer = require("buffer");
-    var Buffer3 = buffer.Buffer;
+    var Buffer4 = buffer.Buffer;
     function copyProps(src, dst) {
       for (var key in src) {
         dst[key] = src[key];
       }
     }
-    if (Buffer3.from && Buffer3.alloc && Buffer3.allocUnsafe && Buffer3.allocUnsafeSlow) {
+    if (Buffer4.from && Buffer4.alloc && Buffer4.allocUnsafe && Buffer4.allocUnsafeSlow) {
       module2.exports = buffer;
     } else {
       copyProps(buffer, exports2);
       exports2.Buffer = SafeBuffer;
     }
     function SafeBuffer(arg, encodingOrOffset, length) {
-      return Buffer3(arg, encodingOrOffset, length);
+      return Buffer4(arg, encodingOrOffset, length);
     }
-    SafeBuffer.prototype = Object.create(Buffer3.prototype);
-    copyProps(Buffer3, SafeBuffer);
+    SafeBuffer.prototype = Object.create(Buffer4.prototype);
+    copyProps(Buffer4, SafeBuffer);
     SafeBuffer.from = function(arg, encodingOrOffset, length) {
       if (typeof arg === "number") {
         throw new TypeError("Argument must not be a number");
       }
-      return Buffer3(arg, encodingOrOffset, length);
+      return Buffer4(arg, encodingOrOffset, length);
     };
     SafeBuffer.alloc = function(size, fill, encoding2) {
       if (typeof size !== "number") {
         throw new TypeError("Argument must be a number");
       }
-      var buf = Buffer3(size);
+      var buf = Buffer4(size);
       if (fill !== void 0) {
         if (typeof encoding2 === "string") {
           buf.fill(fill, encoding2);
@@ -57019,7 +56940,7 @@ var require_safe_buffer = __commonJS({
       if (typeof size !== "number") {
         throw new TypeError("Argument must be a number");
       }
-      return Buffer3(size);
+      return Buffer4(size);
     };
     SafeBuffer.allocUnsafeSlow = function(size) {
       if (typeof size !== "number") {
@@ -57037,7 +56958,7 @@ var require_content_disposition = __commonJS({
     module2.exports = contentDisposition;
     module2.exports.parse = parse3;
     var basename = require("path").basename;
-    var Buffer3 = require_safe_buffer().Buffer;
+    var Buffer4 = require_safe_buffer().Buffer;
     var ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
     var HEX_ESCAPE_REGEXP = /%[0-9A-Fa-f]{2}/;
     var HEX_ESCAPE_REPLACE_REGEXP = /%([0-9A-Fa-f]{2})/g;
@@ -57116,7 +57037,7 @@ var require_content_disposition = __commonJS({
           value = getlatin1(binary);
           break;
         case "utf-8":
-          value = Buffer3.from(binary, "binary").toString("utf8");
+          value = Buffer4.from(binary, "binary").toString("utf8");
           break;
         default:
           throw new TypeError("unsupported charset in extended field");
@@ -57765,7 +57686,7 @@ var require_minipass = __commonJS({
 });
 
 // node_modules/minizlib/constants.js
-var require_constants3 = __commonJS({
+var require_constants2 = __commonJS({
   "node_modules/minizlib/constants.js"(exports2, module2) {
     var realZlibConstants = require("zlib").constants || /* istanbul ignore next */
     { ZLIB_VERNUM: 4736 };
@@ -58409,11 +58330,11 @@ var require_minizlib = __commonJS({
   "node_modules/minizlib/index.js"(exports2) {
     "use strict";
     var assert2 = require("assert");
-    var Buffer3 = require("buffer").Buffer;
+    var Buffer4 = require("buffer").Buffer;
     var realZlib = require("zlib");
-    var constants = exports2.constants = require_constants3();
+    var constants = exports2.constants = require_constants2();
     var Minipass = require_minipass2();
-    var OriginalBufferConcat = Buffer3.concat;
+    var OriginalBufferConcat = Buffer4.concat;
     var _superWrite = Symbol("_superWrite");
     var ZlibError = class extends Error {
       constructor(err) {
@@ -58483,7 +58404,7 @@ var require_minizlib = __commonJS({
           return;
         if (typeof flushFlag !== "number")
           flushFlag = this[_fullFlushFlag];
-        this.write(Object.assign(Buffer3.alloc(0), { [_flushFlag]: flushFlag }));
+        this.write(Object.assign(Buffer4.alloc(0), { [_flushFlag]: flushFlag }));
       }
       end(chunk, encoding2, cb) {
         if (chunk)
@@ -58499,7 +58420,7 @@ var require_minizlib = __commonJS({
         if (typeof encoding2 === "function")
           cb = encoding2, encoding2 = "utf8";
         if (typeof chunk === "string")
-          chunk = Buffer3.from(chunk, encoding2);
+          chunk = Buffer4.from(chunk, encoding2);
         if (this[_sawError])
           return;
         assert2(this[_handle], "zlib binding closed");
@@ -58510,14 +58431,14 @@ var require_minizlib = __commonJS({
         const originalClose = this[_handle].close;
         this[_handle].close = () => {
         };
-        Buffer3.concat = (args) => args;
+        Buffer4.concat = (args) => args;
         let result;
         try {
           const flushFlag = typeof chunk[_flushFlag] === "number" ? chunk[_flushFlag] : this[_flushFlag];
           result = this[_handle]._processChunk(chunk, flushFlag);
-          Buffer3.concat = OriginalBufferConcat;
+          Buffer4.concat = OriginalBufferConcat;
         } catch (err) {
-          Buffer3.concat = OriginalBufferConcat;
+          Buffer4.concat = OriginalBufferConcat;
           this[_onError](new ZlibError(err));
         } finally {
           if (this[_handle]) {
@@ -58532,12 +58453,12 @@ var require_minizlib = __commonJS({
         let writeReturn;
         if (result) {
           if (Array.isArray(result) && result.length > 0) {
-            writeReturn = this[_superWrite](Buffer3.from(result[0]));
+            writeReturn = this[_superWrite](Buffer4.from(result[0]));
             for (let i = 1; i < result.length; i++) {
               writeReturn = this[_superWrite](result[i]);
             }
           } else {
-            writeReturn = this[_superWrite](Buffer3.from(result));
+            writeReturn = this[_superWrite](Buffer4.from(result));
           }
         }
         if (cb)
@@ -58558,14 +58479,14 @@ var require_minizlib = __commonJS({
         this[_level] = opts.level;
         this[_strategy] = opts.strategy;
       }
-      params(level2, strategy) {
+      params(level3, strategy) {
         if (this[_sawError])
           return;
         if (!this[_handle])
           throw new Error("cannot switch params when binding is closed");
         if (!this[_handle].params)
           throw new Error("not supported in this implementation");
-        if (this[_level] !== level2 || this[_strategy] !== strategy) {
+        if (this[_level] !== level3 || this[_strategy] !== strategy) {
           this.flush(constants.Z_SYNC_FLUSH);
           assert2(this[_handle], "zlib binding closed");
           const origFlush = this[_handle].flush;
@@ -58574,12 +58495,12 @@ var require_minizlib = __commonJS({
             cb();
           };
           try {
-            this[_handle].params(level2, strategy);
+            this[_handle].params(level3, strategy);
           } finally {
             this[_handle].flush = origFlush;
           }
           if (this[_handle]) {
-            this[_level] = level2;
+            this[_level] = level3;
             this[_strategy] = strategy;
           }
         }
@@ -58716,6 +58637,8 @@ var require_read_entry = __commonJS({
           case "OldExtendedHeader":
             this.meta = true;
             break;
+          // NOTE: gnutar and bsdtar treat unrecognized types as 'File'
+          // it may be worth doing the same, but with a warning.
           default:
             this.ignore = true;
         }
@@ -58771,7 +58694,7 @@ var require_read_entry = __commonJS({
 });
 
 // node_modules/tar/lib/types.js
-var require_types2 = __commonJS({
+var require_types = __commonJS({
   "node_modules/tar/lib/types.js"(exports2) {
     "use strict";
     exports2.name = /* @__PURE__ */ new Map([
@@ -58821,7 +58744,7 @@ var require_types2 = __commonJS({
 var require_large_numbers = __commonJS({
   "node_modules/tar/lib/large-numbers.js"(exports2, module2) {
     "use strict";
-    var encode = (num, buf) => {
+    var encode2 = (num, buf) => {
       if (!Number.isSafeInteger(num)) {
         throw Error("cannot encode number outside of javascript safe integer range");
       } else if (num < 0) {
@@ -58901,7 +58824,7 @@ var require_large_numbers = __commonJS({
     var onesComp = (byte) => (255 ^ byte) & 255;
     var twosComp = (byte) => (255 ^ byte) + 1 & 255;
     module2.exports = {
-      encode,
+      encode: encode2,
       parse: parse3
     };
   }
@@ -58911,7 +58834,7 @@ var require_large_numbers = __commonJS({
 var require_header = __commonJS({
   "node_modules/tar/lib/header.js"(exports2, module2) {
     "use strict";
-    var types = require_types2();
+    var types = require_types();
     var pathModule = require("path").posix;
     var large = require_large_numbers();
     var SLURP = Symbol("slurp");
@@ -59019,10 +58942,10 @@ var require_header = __commonJS({
         }
         const prefixSize = this.ctime || this.atime ? 130 : 155;
         const split = splitPrefix(this.path || "", prefixSize);
-        const path3 = split[0];
+        const path4 = split[0];
         const prefix = split[1];
         this.needPax = split[2];
-        this.needPax = encString(buf, off, 100, path3) || this.needPax;
+        this.needPax = encString(buf, off, 100, path4) || this.needPax;
         this.needPax = encNumber(buf, off + 100, 8, this.mode) || this.needPax;
         this.needPax = encNumber(buf, off + 108, 8, this.uid) || this.needPax;
         this.needPax = encNumber(buf, off + 116, 8, this.gid) || this.needPax;
@@ -59132,7 +59055,7 @@ var require_pax = __commonJS({
   "node_modules/tar/lib/pax.js"(exports2, module2) {
     "use strict";
     var Header = require_header();
-    var path3 = require("path");
+    var path4 = require("path");
     var Pax = class {
       constructor(obj, global2) {
         this.atime = obj.atime || null;
@@ -59167,7 +59090,7 @@ var require_pax = __commonJS({
           // XXX split the path
           // then the path should be PaxHeader + basename, but less than 99,
           // prepend with the dirname
-          path: ("PaxHeader/" + path3.basename(this.path)).slice(0, 99),
+          path: ("PaxHeader/" + path4.basename(this.path)).slice(0, 99),
           mode: this.mode || 420,
           uid: this.uid || null,
           gid: this.gid || null,
@@ -59298,16 +59221,16 @@ var require_winchars = __commonJS({
 var require_strip_absolute_path = __commonJS({
   "node_modules/tar/lib/strip-absolute-path.js"(exports2, module2) {
     var { isAbsolute, parse: parse3 } = require("path").win32;
-    module2.exports = (path3) => {
+    module2.exports = (path4) => {
       let r = "";
-      let parsed = parse3(path3);
-      while (isAbsolute(path3) || parsed.root) {
-        const root = path3.charAt(0) === "/" && path3.slice(0, 4) !== "//?/" ? "/" : parsed.root;
-        path3 = path3.slice(root.length);
+      let parsed = parse3(path4);
+      while (isAbsolute(path4) || parsed.root) {
+        const root = path4.charAt(0) === "/" && path4.slice(0, 4) !== "//?/" ? "/" : parsed.root;
+        path4 = path4.slice(root.length);
         r += root;
-        parsed = parse3(path3);
+        parsed = parse3(path4);
       }
-      return [r, path3];
+      return [r, path4];
     };
   }
 });
@@ -59344,16 +59267,16 @@ var require_write_entry = __commonJS({
     var { Minipass } = require_minipass();
     var Pax = require_pax();
     var Header = require_header();
-    var fs2 = require("fs");
-    var path3 = require("path");
+    var fs3 = require("fs");
+    var path4 = require("path");
     var normPath = require_normalize_windows_path();
     var stripSlash = require_strip_trailing_slashes();
-    var prefixPath = (path4, prefix) => {
+    var prefixPath = (path5, prefix) => {
       if (!prefix) {
-        return normPath(path4);
+        return normPath(path5);
       }
-      path4 = normPath(path4).replace(/^\.(\/|$)/, "");
-      return stripSlash(prefix) + "/" + path4;
+      path5 = normPath(path5).replace(/^\.(\/|$)/, "");
+      return stripSlash(prefix) + "/" + path5;
     };
     var maxReadSize = 16 * 1024 * 1024;
     var PROCESS = Symbol("process");
@@ -59424,7 +59347,7 @@ var require_write_entry = __commonJS({
           this.path = winchars.decode(this.path.replace(/\\/g, "/"));
           p = p.replace(/\\/g, "/");
         }
-        this.absolute = normPath(opt.absolute || path3.resolve(this.cwd, p));
+        this.absolute = normPath(opt.absolute || path4.resolve(this.cwd, p));
         if (this.path === "") {
           this.path = "./";
         }
@@ -59447,7 +59370,7 @@ var require_write_entry = __commonJS({
         return super.emit(ev, ...data);
       }
       [LSTAT]() {
-        fs2.lstat(this.absolute, (er, stat) => {
+        fs3.lstat(this.absolute, (er, stat) => {
           if (er) {
             return this.emit("error", er);
           }
@@ -59472,6 +59395,7 @@ var require_write_entry = __commonJS({
             return this[DIRECTORY]();
           case "SymbolicLink":
             return this[SYMLINK]();
+          // unsupported types are ignored.
           default:
             return this.end();
         }
@@ -59479,8 +59403,8 @@ var require_write_entry = __commonJS({
       [MODE](mode) {
         return modeFix(mode, this.type === "Directory", this.portable);
       }
-      [PREFIX](path4) {
-        return prefixPath(path4, this.prefix);
+      [PREFIX](path5) {
+        return prefixPath(path5, this.prefix);
       }
       [HEADER]() {
         if (this.type === "Directory" && this.portable) {
@@ -59529,7 +59453,7 @@ var require_write_entry = __commonJS({
         this.end();
       }
       [SYMLINK]() {
-        fs2.readlink(this.absolute, (er, linkpath) => {
+        fs3.readlink(this.absolute, (er, linkpath) => {
           if (er) {
             return this.emit("error", er);
           }
@@ -59543,7 +59467,7 @@ var require_write_entry = __commonJS({
       }
       [HARDLINK](linkpath) {
         this.type = "Link";
-        this.linkpath = normPath(path3.relative(this.cwd, linkpath));
+        this.linkpath = normPath(path4.relative(this.cwd, linkpath));
         this.stat.size = 0;
         this[HEADER]();
         this.end();
@@ -59566,7 +59490,7 @@ var require_write_entry = __commonJS({
         this[OPENFILE]();
       }
       [OPENFILE]() {
-        fs2.open(this.absolute, "r", (er, fd) => {
+        fs3.open(this.absolute, "r", (er, fd) => {
           if (er) {
             return this.emit("error", er);
           }
@@ -59590,7 +59514,7 @@ var require_write_entry = __commonJS({
       }
       [READ]() {
         const { fd, buf, offset, length, pos } = this;
-        fs2.read(fd, buf, offset, length, pos, (er, bytesRead) => {
+        fs3.read(fd, buf, offset, length, pos, (er, bytesRead) => {
           if (er) {
             return this[CLOSE](() => this.emit("error", er));
           }
@@ -59598,7 +59522,7 @@ var require_write_entry = __commonJS({
         });
       }
       [CLOSE](cb) {
-        fs2.close(this.fd, cb);
+        fs3.close(this.fd, cb);
       }
       [ONREAD](bytesRead) {
         if (bytesRead <= 0 && this.remain > 0) {
@@ -59662,19 +59586,19 @@ var require_write_entry = __commonJS({
     });
     var WriteEntrySync = class extends WriteEntry {
       [LSTAT]() {
-        this[ONLSTAT](fs2.lstatSync(this.absolute));
+        this[ONLSTAT](fs3.lstatSync(this.absolute));
       }
       [SYMLINK]() {
-        this[ONREADLINK](fs2.readlinkSync(this.absolute));
+        this[ONREADLINK](fs3.readlinkSync(this.absolute));
       }
       [OPENFILE]() {
-        this[ONOPENFILE](fs2.openSync(this.absolute, "r"));
+        this[ONOPENFILE](fs3.openSync(this.absolute, "r"));
       }
       [READ]() {
         let threw = true;
         try {
           const { fd, buf, offset, length, pos } = this;
-          const bytesRead = fs2.readSync(fd, buf, offset, length, pos);
+          const bytesRead = fs3.readSync(fd, buf, offset, length, pos);
           this[ONREAD](bytesRead);
           threw = false;
         } finally {
@@ -59691,7 +59615,7 @@ var require_write_entry = __commonJS({
         cb();
       }
       [CLOSE](cb) {
-        fs2.closeSync(this.fd);
+        fs3.closeSync(this.fd);
         cb();
       }
     };
@@ -59774,8 +59698,8 @@ var require_write_entry = __commonJS({
         super.write(this.header.block);
         readEntry.pipe(this);
       }
-      [PREFIX](path4) {
-        return prefixPath(path4, this.prefix);
+      [PREFIX](path5) {
+        return prefixPath(path5, this.prefix);
       }
       [MODE](mode) {
         return modeFix(mode, this.type === "Directory", this.portable);
@@ -60190,8 +60114,8 @@ var require_pack = __commonJS({
   "node_modules/tar/lib/pack.js"(exports2, module2) {
     "use strict";
     var PackJob = class {
-      constructor(path4, absolute) {
-        this.path = path4 || "./";
+      constructor(path5, absolute) {
+        this.path = path5 || "./";
         this.absolute = absolute;
         this.entry = null;
         this.stat = null;
@@ -60229,8 +60153,8 @@ var require_pack = __commonJS({
     var WRITEENTRYCLASS = Symbol("writeEntryClass");
     var WRITE = Symbol("write");
     var ONDRAIN = Symbol("ondrain");
-    var fs2 = require("fs");
-    var path3 = require("path");
+    var fs3 = require("fs");
+    var path4 = require("path");
     var warner = require_warn_mixin();
     var normPath = require_normalize_windows_path();
     var Pack = warner(class Pack extends Minipass {
@@ -60294,31 +60218,31 @@ var require_pack = __commonJS({
       [WRITE](chunk) {
         return super.write(chunk);
       }
-      add(path4) {
-        this.write(path4);
+      add(path5) {
+        this.write(path5);
         return this;
       }
-      end(path4) {
-        if (path4) {
-          this.write(path4);
+      end(path5) {
+        if (path5) {
+          this.write(path5);
         }
         this[ENDED] = true;
         this[PROCESS]();
         return this;
       }
-      write(path4) {
+      write(path5) {
         if (this[ENDED]) {
           throw new Error("write after end");
         }
-        if (path4 instanceof ReadEntry) {
-          this[ADDTARENTRY](path4);
+        if (path5 instanceof ReadEntry) {
+          this[ADDTARENTRY](path5);
         } else {
-          this[ADDFSENTRY](path4);
+          this[ADDFSENTRY](path5);
         }
         return this.flowing;
       }
       [ADDTARENTRY](p) {
-        const absolute = normPath(path3.resolve(this.cwd, p.path));
+        const absolute = normPath(path4.resolve(this.cwd, p.path));
         if (!this.filter(p.path, p)) {
           p.resume();
         } else {
@@ -60331,7 +60255,7 @@ var require_pack = __commonJS({
         this[PROCESS]();
       }
       [ADDFSENTRY](p) {
-        const absolute = normPath(path3.resolve(this.cwd, p));
+        const absolute = normPath(path4.resolve(this.cwd, p));
         this[QUEUE].push(new PackJob(p, absolute));
         this[PROCESS]();
       }
@@ -60339,7 +60263,7 @@ var require_pack = __commonJS({
         job.pending = true;
         this[JOBS] += 1;
         const stat = this.follow ? "stat" : "lstat";
-        fs2[stat](job.absolute, (er, stat2) => {
+        fs3[stat](job.absolute, (er, stat2) => {
           job.pending = false;
           this[JOBS] -= 1;
           if (er) {
@@ -60360,7 +60284,7 @@ var require_pack = __commonJS({
       [READDIR](job) {
         job.pending = true;
         this[JOBS] += 1;
-        fs2.readdir(job.absolute, (er, entries) => {
+        fs3.readdir(job.absolute, (er, entries) => {
           job.pending = false;
           this[JOBS] -= 1;
           if (er) {
@@ -60522,10 +60446,10 @@ var require_pack = __commonJS({
       }
       [STAT](job) {
         const stat = this.follow ? "statSync" : "lstatSync";
-        this[ONSTAT](job, fs2[stat](job.absolute));
+        this[ONSTAT](job, fs3[stat](job.absolute));
       }
       [READDIR](job, stat) {
-        this[ONREADDIR](job, fs2.readdirSync(job.absolute));
+        this[ONREADDIR](job, fs3.readdirSync(job.absolute));
       }
       // gotta get it all in this tick
       [PIPE](job) {
@@ -61084,8 +61008,8 @@ var require_fs_minipass = __commonJS({
     "use strict";
     var MiniPass = require_minipass3();
     var EE = require("events").EventEmitter;
-    var fs2 = require("fs");
-    var writev = fs2.writev;
+    var fs3 = require("fs");
+    var writev = fs3.writev;
     if (!writev) {
       const binding = process.binding("fs");
       const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback;
@@ -61125,16 +61049,16 @@ var require_fs_minipass = __commonJS({
     var _defaultFlag = Symbol("_defaultFlag");
     var _errored = Symbol("_errored");
     var ReadStream = class extends MiniPass {
-      constructor(path3, opt) {
+      constructor(path4, opt) {
         opt = opt || {};
         super(opt);
         this.readable = true;
         this.writable = false;
-        if (typeof path3 !== "string")
+        if (typeof path4 !== "string")
           throw new TypeError("path must be a string");
         this[_errored] = false;
         this[_fd] = typeof opt.fd === "number" ? opt.fd : null;
-        this[_path] = path3;
+        this[_path] = path4;
         this[_readSize] = opt.readSize || 16 * 1024 * 1024;
         this[_reading] = false;
         this[_size] = typeof opt.size === "number" ? opt.size : Infinity;
@@ -61158,7 +61082,7 @@ var require_fs_minipass = __commonJS({
         throw new TypeError("this is a readable stream");
       }
       [_open]() {
-        fs2.open(this[_path], "r", (er, fd) => this[_onopen](er, fd));
+        fs3.open(this[_path], "r", (er, fd) => this[_onopen](er, fd));
       }
       [_onopen](er, fd) {
         if (er)
@@ -61178,7 +61102,7 @@ var require_fs_minipass = __commonJS({
           const buf = this[_makeBuf]();
           if (buf.length === 0)
             return process.nextTick(() => this[_onread](null, 0, buf));
-          fs2.read(this[_fd], buf, 0, buf.length, null, (er, br, buf2) => this[_onread](er, br, buf2));
+          fs3.read(this[_fd], buf, 0, buf.length, null, (er, br, buf2) => this[_onread](er, br, buf2));
         }
       }
       [_onread](er, br, buf) {
@@ -61192,7 +61116,7 @@ var require_fs_minipass = __commonJS({
         if (this[_autoClose] && typeof this[_fd] === "number") {
           const fd = this[_fd];
           this[_fd] = null;
-          fs2.close(fd, (er) => er ? this.emit("error", er) : this.emit("close"));
+          fs3.close(fd, (er) => er ? this.emit("error", er) : this.emit("close"));
         }
       }
       [_onerror](er) {
@@ -61235,7 +61159,7 @@ var require_fs_minipass = __commonJS({
       [_open]() {
         let threw = true;
         try {
-          this[_onopen](null, fs2.openSync(this[_path], "r"));
+          this[_onopen](null, fs3.openSync(this[_path], "r"));
           threw = false;
         } finally {
           if (threw)
@@ -61249,7 +61173,7 @@ var require_fs_minipass = __commonJS({
             this[_reading] = true;
             do {
               const buf = this[_makeBuf]();
-              const br = buf.length === 0 ? 0 : fs2.readSync(this[_fd], buf, 0, buf.length, null);
+              const br = buf.length === 0 ? 0 : fs3.readSync(this[_fd], buf, 0, buf.length, null);
               if (!this[_handleChunk](br, buf))
                 break;
             } while (true);
@@ -61265,13 +61189,13 @@ var require_fs_minipass = __commonJS({
         if (this[_autoClose] && typeof this[_fd] === "number") {
           const fd = this[_fd];
           this[_fd] = null;
-          fs2.closeSync(fd);
+          fs3.closeSync(fd);
           this.emit("close");
         }
       }
     };
     var WriteStream = class extends EE {
-      constructor(path3, opt) {
+      constructor(path4, opt) {
         opt = opt || {};
         super(opt);
         this.readable = false;
@@ -61281,7 +61205,7 @@ var require_fs_minipass = __commonJS({
         this[_ended] = false;
         this[_needDrain] = false;
         this[_queue] = [];
-        this[_path] = path3;
+        this[_path] = path4;
         this[_fd] = typeof opt.fd === "number" ? opt.fd : null;
         this[_mode] = opt.mode === void 0 ? 438 : opt.mode;
         this[_pos] = typeof opt.start === "number" ? opt.start : null;
@@ -61312,7 +61236,7 @@ var require_fs_minipass = __commonJS({
         this.emit("error", er);
       }
       [_open]() {
-        fs2.open(
+        fs3.open(
           this[_path],
           this[_flags],
           this[_mode],
@@ -61356,7 +61280,7 @@ var require_fs_minipass = __commonJS({
         return true;
       }
       [_write](buf) {
-        fs2.write(this[_fd], buf, 0, buf.length, this[_pos], (er, bw) => this[_onwrite](er, bw));
+        fs3.write(this[_fd], buf, 0, buf.length, this[_pos], (er, bw) => this[_onwrite](er, bw));
       }
       [_onwrite](er, bw) {
         if (er)
@@ -61400,7 +61324,7 @@ var require_fs_minipass = __commonJS({
         if (this[_autoClose] && typeof this[_fd] === "number") {
           const fd = this[_fd];
           this[_fd] = null;
-          fs2.close(fd, (er) => er ? this.emit("error", er) : this.emit("close"));
+          fs3.close(fd, (er) => er ? this.emit("error", er) : this.emit("close"));
         }
       }
     };
@@ -61409,7 +61333,7 @@ var require_fs_minipass = __commonJS({
         let fd;
         if (this[_defaultFlag] && this[_flags] === "r+") {
           try {
-            fd = fs2.openSync(this[_path], this[_flags], this[_mode]);
+            fd = fs3.openSync(this[_path], this[_flags], this[_mode]);
           } catch (er) {
             if (er.code === "ENOENT") {
               this[_flags] = "w";
@@ -61418,14 +61342,14 @@ var require_fs_minipass = __commonJS({
               throw er;
           }
         } else
-          fd = fs2.openSync(this[_path], this[_flags], this[_mode]);
+          fd = fs3.openSync(this[_path], this[_flags], this[_mode]);
         this[_onopen](null, fd);
       }
       [_close]() {
         if (this[_autoClose] && typeof this[_fd] === "number") {
           const fd = this[_fd];
           this[_fd] = null;
-          fs2.closeSync(fd);
+          fs3.closeSync(fd);
           this.emit("close");
         }
       }
@@ -61434,7 +61358,7 @@ var require_fs_minipass = __commonJS({
         try {
           this[_onwrite](
             null,
-            fs2.writeSync(this[_fd], buf, 0, buf.length, this[_pos])
+            fs3.writeSync(this[_fd], buf, 0, buf.length, this[_pos])
           );
           threw = false;
         } finally {
@@ -61711,6 +61635,7 @@ var require_parse2 = __commonJS({
             this[EX] = this[EX] || /* @__PURE__ */ Object.create(null);
             this[EX].linkpath = this[META].replace(/\0.*/, "");
             break;
+          /* istanbul ignore next */
           default:
             throw new Error("unknown meta: " + entry.type);
         }
@@ -61849,6 +61774,7 @@ var require_parse2 = __commonJS({
             case "meta":
               position += this[CONSUMEMETA](chunk, position);
               break;
+            /* istanbul ignore next */
             default:
               throw new Error("invalid state: " + this[STATE]);
           }
@@ -61882,9 +61808,9 @@ var require_list = __commonJS({
     "use strict";
     var hlo = require_high_level_opt();
     var Parser = require_parse2();
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var fsm = require_fs_minipass();
-    var path3 = require("path");
+    var path4 = require("path");
     var stripSlash = require_strip_trailing_slashes();
     module2.exports = (opt_, files, cb) => {
       if (typeof opt_ === "function") {
@@ -61926,8 +61852,8 @@ var require_list = __commonJS({
       const map = new Map(files.map((f) => [stripSlash(f), true]));
       const filter2 = opt.filter;
       const mapHas = (file, r) => {
-        const root = r || path3.parse(file).root || ".";
-        const ret = file === root ? false : map.has(file) ? map.get(file) : mapHas(path3.dirname(file), root);
+        const root = r || path4.parse(file).root || ".";
+        const ret = file === root ? false : map.has(file) ? map.get(file) : mapHas(path4.dirname(file), root);
         map.set(file, ret);
         return ret;
       };
@@ -61939,16 +61865,16 @@ var require_list = __commonJS({
       let threw = true;
       let fd;
       try {
-        const stat = fs2.statSync(file);
+        const stat = fs3.statSync(file);
         const readSize = opt.maxReadSize || 16 * 1024 * 1024;
         if (stat.size < readSize) {
-          p.end(fs2.readFileSync(file));
+          p.end(fs3.readFileSync(file));
         } else {
           let pos = 0;
           const buf = Buffer.allocUnsafe(readSize);
-          fd = fs2.openSync(file, "r");
+          fd = fs3.openSync(file, "r");
           while (pos < stat.size) {
-            const bytesRead = fs2.readSync(fd, buf, 0, readSize, pos);
+            const bytesRead = fs3.readSync(fd, buf, 0, readSize, pos);
             pos += bytesRead;
             p.write(buf.slice(0, bytesRead));
           }
@@ -61958,7 +61884,7 @@ var require_list = __commonJS({
       } finally {
         if (threw && fd) {
           try {
-            fs2.closeSync(fd);
+            fs3.closeSync(fd);
           } catch (er) {
           }
         }
@@ -61971,7 +61897,7 @@ var require_list = __commonJS({
       const p = new Promise((resolve, reject) => {
         parse3.on("error", reject);
         parse3.on("end", resolve);
-        fs2.stat(file, (er, stat) => {
+        fs3.stat(file, (er, stat) => {
           if (er) {
             reject(er);
           } else {
@@ -61998,7 +61924,7 @@ var require_create = __commonJS({
     var Pack = require_pack();
     var fsm = require_fs_minipass();
     var t = require_list();
-    var path3 = require("path");
+    var path4 = require("path");
     module2.exports = (opt_, files, cb) => {
       if (typeof files === "function") {
         cb = files;
@@ -62045,7 +61971,7 @@ var require_create = __commonJS({
       files.forEach((file) => {
         if (file.charAt(0) === "@") {
           t({
-            file: path3.resolve(p.cwd, file.slice(1)),
+            file: path4.resolve(p.cwd, file.slice(1)),
             sync: true,
             noResume: true,
             onentry: (entry) => p.add(entry)
@@ -62061,7 +61987,7 @@ var require_create = __commonJS({
         const file = files.shift();
         if (file.charAt(0) === "@") {
           return t({
-            file: path3.resolve(p.cwd, file.slice(1)),
+            file: path4.resolve(p.cwd, file.slice(1)),
             noResume: true,
             onentry: (entry) => p.add(entry)
           }).then((_) => addFilesAsync(p, files));
@@ -62090,10 +62016,10 @@ var require_replace = __commonJS({
     "use strict";
     var hlo = require_high_level_opt();
     var Pack = require_pack();
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var fsm = require_fs_minipass();
     var t = require_list();
-    var path3 = require("path");
+    var path4 = require("path");
     var Header = require_header();
     module2.exports = (opt_, files, cb) => {
       const opt = hlo(opt_);
@@ -62116,19 +62042,19 @@ var require_replace = __commonJS({
       let position;
       try {
         try {
-          fd = fs2.openSync(opt.file, "r+");
+          fd = fs3.openSync(opt.file, "r+");
         } catch (er) {
           if (er.code === "ENOENT") {
-            fd = fs2.openSync(opt.file, "w+");
+            fd = fs3.openSync(opt.file, "w+");
           } else {
             throw er;
           }
         }
-        const st = fs2.fstatSync(fd);
+        const st = fs3.fstatSync(fd);
         const headBuf = Buffer.alloc(512);
         POSITION: for (position = 0; position < st.size; position += 512) {
           for (let bufPos = 0, bytes2 = 0; bufPos < 512; bufPos += bytes2) {
-            bytes2 = fs2.readSync(
+            bytes2 = fs3.readSync(
               fd,
               headBuf,
               bufPos,
@@ -62160,7 +62086,7 @@ var require_replace = __commonJS({
       } finally {
         if (threw) {
           try {
-            fs2.closeSync(fd);
+            fs3.closeSync(fd);
           } catch (er) {
           }
         }
@@ -62180,7 +62106,7 @@ var require_replace = __commonJS({
       const getPos = (fd, size, cb_) => {
         const cb2 = (er, pos) => {
           if (er) {
-            fs2.close(fd, (_) => cb_(er));
+            fs3.close(fd, (_) => cb_(er));
           } else {
             cb_(null, pos);
           }
@@ -62197,7 +62123,7 @@ var require_replace = __commonJS({
           }
           bufPos += bytes2;
           if (bufPos < 512 && bytes2) {
-            return fs2.read(
+            return fs3.read(
               fd,
               headBuf,
               bufPos,
@@ -62228,9 +62154,9 @@ var require_replace = __commonJS({
             opt.mtimeCache.set(h.path, h.mtime);
           }
           bufPos = 0;
-          fs2.read(fd, headBuf, 0, 512, position, onread);
+          fs3.read(fd, headBuf, 0, 512, position, onread);
         };
-        fs2.read(fd, headBuf, 0, 512, position, onread);
+        fs3.read(fd, headBuf, 0, 512, position, onread);
       };
       const promise = new Promise((resolve, reject) => {
         p.on("error", reject);
@@ -62238,14 +62164,14 @@ var require_replace = __commonJS({
         const onopen = (er, fd) => {
           if (er && er.code === "ENOENT" && flag === "r+") {
             flag = "w+";
-            return fs2.open(opt.file, flag, onopen);
+            return fs3.open(opt.file, flag, onopen);
           }
           if (er) {
             return reject(er);
           }
-          fs2.fstat(fd, (er2, st) => {
+          fs3.fstat(fd, (er2, st) => {
             if (er2) {
-              return fs2.close(fd, () => reject(er2));
+              return fs3.close(fd, () => reject(er2));
             }
             getPos(fd, st.size, (er3, position) => {
               if (er3) {
@@ -62262,7 +62188,7 @@ var require_replace = __commonJS({
             });
           });
         };
-        fs2.open(opt.file, flag, onopen);
+        fs3.open(opt.file, flag, onopen);
       });
       return cb ? promise.then(cb, cb) : promise;
     };
@@ -62270,7 +62196,7 @@ var require_replace = __commonJS({
       files.forEach((file) => {
         if (file.charAt(0) === "@") {
           t({
-            file: path3.resolve(p.cwd, file.slice(1)),
+            file: path4.resolve(p.cwd, file.slice(1)),
             sync: true,
             noResume: true,
             onentry: (entry) => p.add(entry)
@@ -62286,7 +62212,7 @@ var require_replace = __commonJS({
         const file = files.shift();
         if (file.charAt(0) === "@") {
           return t({
-            file: path3.resolve(p.cwd, file.slice(1)),
+            file: path4.resolve(p.cwd, file.slice(1)),
             noResume: true,
             onentry: (entry) => p.add(entry)
           }).then((_) => addFilesAsync(p, files));
@@ -62325,7 +62251,7 @@ var require_update = __commonJS({
       if (!opt.mtimeCache) {
         opt.mtimeCache = /* @__PURE__ */ new Map();
       }
-      opt.filter = filter2 ? (path3, stat) => filter2(path3, stat) && !(opt.mtimeCache.get(path3) > stat.mtime) : (path3, stat) => !(opt.mtimeCache.get(path3) > stat.mtime);
+      opt.filter = filter2 ? (path4, stat) => filter2(path4, stat) && !(opt.mtimeCache.get(path4) > stat.mtime) : (path4, stat) => !(opt.mtimeCache.get(path4) > stat.mtime);
     };
   }
 });
@@ -62334,24 +62260,24 @@ var require_update = __commonJS({
 var require_opts_arg = __commonJS({
   "node_modules/mkdirp/lib/opts-arg.js"(exports2, module2) {
     var { promisify: promisify3 } = require("util");
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var optsArg = (opts) => {
       if (!opts)
-        opts = { mode: 511, fs: fs2 };
+        opts = { mode: 511, fs: fs3 };
       else if (typeof opts === "object")
-        opts = { mode: 511, fs: fs2, ...opts };
+        opts = { mode: 511, fs: fs3, ...opts };
       else if (typeof opts === "number")
-        opts = { mode: opts, fs: fs2 };
+        opts = { mode: opts, fs: fs3 };
       else if (typeof opts === "string")
-        opts = { mode: parseInt(opts, 8), fs: fs2 };
+        opts = { mode: parseInt(opts, 8), fs: fs3 };
       else
         throw new TypeError("invalid options argument");
-      opts.mkdir = opts.mkdir || opts.fs.mkdir || fs2.mkdir;
+      opts.mkdir = opts.mkdir || opts.fs.mkdir || fs3.mkdir;
       opts.mkdirAsync = promisify3(opts.mkdir);
-      opts.stat = opts.stat || opts.fs.stat || fs2.stat;
+      opts.stat = opts.stat || opts.fs.stat || fs3.stat;
       opts.statAsync = promisify3(opts.stat);
-      opts.statSync = opts.statSync || opts.fs.statSync || fs2.statSync;
-      opts.mkdirSync = opts.mkdirSync || opts.fs.mkdirSync || fs2.mkdirSync;
+      opts.statSync = opts.statSync || opts.fs.statSync || fs3.statSync;
+      opts.mkdirSync = opts.mkdirSync || opts.fs.mkdirSync || fs3.mkdirSync;
       return opts;
     };
     module2.exports = optsArg;
@@ -62363,28 +62289,28 @@ var require_path_arg = __commonJS({
   "node_modules/mkdirp/lib/path-arg.js"(exports2, module2) {
     var platform2 = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform;
     var { resolve, parse: parse3 } = require("path");
-    var pathArg = (path3) => {
-      if (/\0/.test(path3)) {
+    var pathArg = (path4) => {
+      if (/\0/.test(path4)) {
         throw Object.assign(
           new TypeError("path must be a string without null bytes"),
           {
-            path: path3,
+            path: path4,
             code: "ERR_INVALID_ARG_VALUE"
           }
         );
       }
-      path3 = resolve(path3);
+      path4 = resolve(path4);
       if (platform2 === "win32") {
         const badWinChars = /[*|"<>?:]/;
-        const { root } = parse3(path3);
-        if (badWinChars.test(path3.substr(root.length))) {
+        const { root } = parse3(path4);
+        if (badWinChars.test(path4.substr(root.length))) {
           throw Object.assign(new Error("Illegal characters in path."), {
-            path: path3,
+            path: path4,
             code: "EINVAL"
           });
         }
       }
-      return path3;
+      return path4;
     };
     module2.exports = pathArg;
   }
@@ -62394,20 +62320,20 @@ var require_path_arg = __commonJS({
 var require_find_made = __commonJS({
   "node_modules/mkdirp/lib/find-made.js"(exports2, module2) {
     var { dirname } = require("path");
-    var findMade = (opts, parent, path3 = void 0) => {
-      if (path3 === parent)
+    var findMade = (opts, parent, path4 = void 0) => {
+      if (path4 === parent)
         return Promise.resolve();
       return opts.statAsync(parent).then(
-        (st) => st.isDirectory() ? path3 : void 0,
+        (st) => st.isDirectory() ? path4 : void 0,
         // will fail later
         (er) => er.code === "ENOENT" ? findMade(opts, dirname(parent), parent) : void 0
       );
     };
-    var findMadeSync = (opts, parent, path3 = void 0) => {
-      if (path3 === parent)
+    var findMadeSync = (opts, parent, path4 = void 0) => {
+      if (path4 === parent)
         return void 0;
       try {
-        return opts.statSync(parent).isDirectory() ? path3 : void 0;
+        return opts.statSync(parent).isDirectory() ? path4 : void 0;
       } catch (er) {
         return er.code === "ENOENT" ? findMadeSync(opts, dirname(parent), parent) : void 0;
       }
@@ -62420,21 +62346,21 @@ var require_find_made = __commonJS({
 var require_mkdirp_manual = __commonJS({
   "node_modules/mkdirp/lib/mkdirp-manual.js"(exports2, module2) {
     var { dirname } = require("path");
-    var mkdirpManual = (path3, opts, made) => {
+    var mkdirpManual = (path4, opts, made) => {
       opts.recursive = false;
-      const parent = dirname(path3);
-      if (parent === path3) {
-        return opts.mkdirAsync(path3, opts).catch((er) => {
+      const parent = dirname(path4);
+      if (parent === path4) {
+        return opts.mkdirAsync(path4, opts).catch((er) => {
           if (er.code !== "EISDIR")
             throw er;
         });
       }
-      return opts.mkdirAsync(path3, opts).then(() => made || path3, (er) => {
+      return opts.mkdirAsync(path4, opts).then(() => made || path4, (er) => {
         if (er.code === "ENOENT")
-          return mkdirpManual(parent, opts).then((made2) => mkdirpManual(path3, opts, made2));
+          return mkdirpManual(parent, opts).then((made2) => mkdirpManual(path4, opts, made2));
         if (er.code !== "EEXIST" && er.code !== "EROFS")
           throw er;
-        return opts.statAsync(path3).then((st) => {
+        return opts.statAsync(path4).then((st) => {
           if (st.isDirectory())
             return made;
           else
@@ -62444,12 +62370,12 @@ var require_mkdirp_manual = __commonJS({
         });
       });
     };
-    var mkdirpManualSync = (path3, opts, made) => {
-      const parent = dirname(path3);
+    var mkdirpManualSync = (path4, opts, made) => {
+      const parent = dirname(path4);
       opts.recursive = false;
-      if (parent === path3) {
+      if (parent === path4) {
         try {
-          return opts.mkdirSync(path3, opts);
+          return opts.mkdirSync(path4, opts);
         } catch (er) {
           if (er.code !== "EISDIR")
             throw er;
@@ -62458,15 +62384,15 @@ var require_mkdirp_manual = __commonJS({
         }
       }
       try {
-        opts.mkdirSync(path3, opts);
-        return made || path3;
+        opts.mkdirSync(path4, opts);
+        return made || path4;
       } catch (er) {
         if (er.code === "ENOENT")
-          return mkdirpManualSync(path3, opts, mkdirpManualSync(parent, opts, made));
+          return mkdirpManualSync(path4, opts, mkdirpManualSync(parent, opts, made));
         if (er.code !== "EEXIST" && er.code !== "EROFS")
           throw er;
         try {
-          if (!opts.statSync(path3).isDirectory())
+          if (!opts.statSync(path4).isDirectory())
             throw er;
         } catch (_) {
           throw er;
@@ -62483,30 +62409,30 @@ var require_mkdirp_native = __commonJS({
     var { dirname } = require("path");
     var { findMade, findMadeSync } = require_find_made();
     var { mkdirpManual, mkdirpManualSync } = require_mkdirp_manual();
-    var mkdirpNative = (path3, opts) => {
+    var mkdirpNative = (path4, opts) => {
       opts.recursive = true;
-      const parent = dirname(path3);
-      if (parent === path3)
-        return opts.mkdirAsync(path3, opts);
-      return findMade(opts, path3).then((made) => opts.mkdirAsync(path3, opts).then(() => made).catch((er) => {
+      const parent = dirname(path4);
+      if (parent === path4)
+        return opts.mkdirAsync(path4, opts);
+      return findMade(opts, path4).then((made) => opts.mkdirAsync(path4, opts).then(() => made).catch((er) => {
         if (er.code === "ENOENT")
-          return mkdirpManual(path3, opts);
+          return mkdirpManual(path4, opts);
         else
           throw er;
       }));
     };
-    var mkdirpNativeSync = (path3, opts) => {
+    var mkdirpNativeSync = (path4, opts) => {
       opts.recursive = true;
-      const parent = dirname(path3);
-      if (parent === path3)
-        return opts.mkdirSync(path3, opts);
-      const made = findMadeSync(opts, path3);
+      const parent = dirname(path4);
+      if (parent === path4)
+        return opts.mkdirSync(path4, opts);
+      const made = findMadeSync(opts, path4);
       try {
-        opts.mkdirSync(path3, opts);
+        opts.mkdirSync(path4, opts);
         return made;
       } catch (er) {
         if (er.code === "ENOENT")
-          return mkdirpManualSync(path3, opts);
+          return mkdirpManualSync(path4, opts);
         else
           throw er;
       }
@@ -62518,12 +62444,12 @@ var require_mkdirp_native = __commonJS({
 // node_modules/mkdirp/lib/use-native.js
 var require_use_native = __commonJS({
   "node_modules/mkdirp/lib/use-native.js"(exports2, module2) {
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var version2 = process.env.__TESTING_MKDIRP_NODE_VERSION__ || process.version;
     var versArr = version2.replace(/^v/, "").split(".");
     var hasNative = +versArr[0] > 10 || +versArr[0] === 10 && +versArr[1] >= 12;
-    var useNative = !hasNative ? () => false : (opts) => opts.mkdir === fs2.mkdir;
-    var useNativeSync = !hasNative ? () => false : (opts) => opts.mkdirSync === fs2.mkdirSync;
+    var useNative = !hasNative ? () => false : (opts) => opts.mkdir === fs3.mkdir;
+    var useNativeSync = !hasNative ? () => false : (opts) => opts.mkdirSync === fs3.mkdirSync;
     module2.exports = { useNative, useNativeSync };
   }
 });
@@ -62536,21 +62462,21 @@ var require_mkdirp = __commonJS({
     var { mkdirpNative, mkdirpNativeSync } = require_mkdirp_native();
     var { mkdirpManual, mkdirpManualSync } = require_mkdirp_manual();
     var { useNative, useNativeSync } = require_use_native();
-    var mkdirp = (path3, opts) => {
-      path3 = pathArg(path3);
+    var mkdirp = (path4, opts) => {
+      path4 = pathArg(path4);
       opts = optsArg(opts);
-      return useNative(opts) ? mkdirpNative(path3, opts) : mkdirpManual(path3, opts);
+      return useNative(opts) ? mkdirpNative(path4, opts) : mkdirpManual(path4, opts);
     };
-    var mkdirpSync = (path3, opts) => {
-      path3 = pathArg(path3);
+    var mkdirpSync = (path4, opts) => {
+      path4 = pathArg(path4);
       opts = optsArg(opts);
-      return useNativeSync(opts) ? mkdirpNativeSync(path3, opts) : mkdirpManualSync(path3, opts);
+      return useNativeSync(opts) ? mkdirpNativeSync(path4, opts) : mkdirpManualSync(path4, opts);
     };
     mkdirp.sync = mkdirpSync;
-    mkdirp.native = (path3, opts) => mkdirpNative(pathArg(path3), optsArg(opts));
-    mkdirp.manual = (path3, opts) => mkdirpManual(pathArg(path3), optsArg(opts));
-    mkdirp.nativeSync = (path3, opts) => mkdirpNativeSync(pathArg(path3), optsArg(opts));
-    mkdirp.manualSync = (path3, opts) => mkdirpManualSync(pathArg(path3), optsArg(opts));
+    mkdirp.native = (path4, opts) => mkdirpNative(pathArg(path4), optsArg(opts));
+    mkdirp.manual = (path4, opts) => mkdirpManual(pathArg(path4), optsArg(opts));
+    mkdirp.nativeSync = (path4, opts) => mkdirpNativeSync(pathArg(path4), optsArg(opts));
+    mkdirp.manualSync = (path4, opts) => mkdirpManualSync(pathArg(path4), optsArg(opts));
     module2.exports = mkdirp;
   }
 });
@@ -62559,69 +62485,69 @@ var require_mkdirp = __commonJS({
 var require_chownr = __commonJS({
   "node_modules/chownr/chownr.js"(exports2, module2) {
     "use strict";
-    var fs2 = require("fs");
-    var path3 = require("path");
-    var LCHOWN = fs2.lchown ? "lchown" : "chown";
-    var LCHOWNSYNC = fs2.lchownSync ? "lchownSync" : "chownSync";
-    var needEISDIRHandled = fs2.lchown && !process.version.match(/v1[1-9]+\./) && !process.version.match(/v10\.[6-9]/);
-    var lchownSync = (path4, uid, gid) => {
+    var fs3 = require("fs");
+    var path4 = require("path");
+    var LCHOWN = fs3.lchown ? "lchown" : "chown";
+    var LCHOWNSYNC = fs3.lchownSync ? "lchownSync" : "chownSync";
+    var needEISDIRHandled = fs3.lchown && !process.version.match(/v1[1-9]+\./) && !process.version.match(/v10\.[6-9]/);
+    var lchownSync = (path5, uid, gid) => {
       try {
-        return fs2[LCHOWNSYNC](path4, uid, gid);
+        return fs3[LCHOWNSYNC](path5, uid, gid);
       } catch (er) {
         if (er.code !== "ENOENT")
           throw er;
       }
     };
-    var chownSync = (path4, uid, gid) => {
+    var chownSync = (path5, uid, gid) => {
       try {
-        return fs2.chownSync(path4, uid, gid);
+        return fs3.chownSync(path5, uid, gid);
       } catch (er) {
         if (er.code !== "ENOENT")
           throw er;
       }
     };
-    var handleEISDIR = needEISDIRHandled ? (path4, uid, gid, cb) => (er) => {
+    var handleEISDIR = needEISDIRHandled ? (path5, uid, gid, cb) => (er) => {
       if (!er || er.code !== "EISDIR")
         cb(er);
       else
-        fs2.chown(path4, uid, gid, cb);
+        fs3.chown(path5, uid, gid, cb);
     } : (_, __, ___, cb) => cb;
-    var handleEISDirSync = needEISDIRHandled ? (path4, uid, gid) => {
+    var handleEISDirSync = needEISDIRHandled ? (path5, uid, gid) => {
       try {
-        return lchownSync(path4, uid, gid);
+        return lchownSync(path5, uid, gid);
       } catch (er) {
         if (er.code !== "EISDIR")
           throw er;
-        chownSync(path4, uid, gid);
+        chownSync(path5, uid, gid);
       }
-    } : (path4, uid, gid) => lchownSync(path4, uid, gid);
+    } : (path5, uid, gid) => lchownSync(path5, uid, gid);
     var nodeVersion = process.version;
-    var readdir = (path4, options2, cb) => fs2.readdir(path4, options2, cb);
-    var readdirSync = (path4, options2) => fs2.readdirSync(path4, options2);
+    var readdir = (path5, options2, cb) => fs3.readdir(path5, options2, cb);
+    var readdirSync = (path5, options2) => fs3.readdirSync(path5, options2);
     if (/^v4\./.test(nodeVersion))
-      readdir = (path4, options2, cb) => fs2.readdir(path4, cb);
+      readdir = (path5, options2, cb) => fs3.readdir(path5, cb);
     var chown = (cpath, uid, gid, cb) => {
-      fs2[LCHOWN](cpath, uid, gid, handleEISDIR(cpath, uid, gid, (er) => {
+      fs3[LCHOWN](cpath, uid, gid, handleEISDIR(cpath, uid, gid, (er) => {
         cb(er && er.code !== "ENOENT" ? er : null);
       }));
     };
     var chownrKid = (p, child, uid, gid, cb) => {
       if (typeof child === "string")
-        return fs2.lstat(path3.resolve(p, child), (er, stats) => {
+        return fs3.lstat(path4.resolve(p, child), (er, stats) => {
           if (er)
             return cb(er.code !== "ENOENT" ? er : null);
           stats.name = child;
           chownrKid(p, stats, uid, gid, cb);
         });
       if (child.isDirectory()) {
-        chownr(path3.resolve(p, child.name), uid, gid, (er) => {
+        chownr(path4.resolve(p, child.name), uid, gid, (er) => {
           if (er)
             return cb(er);
-          const cpath = path3.resolve(p, child.name);
+          const cpath = path4.resolve(p, child.name);
           chown(cpath, uid, gid, cb);
         });
       } else {
-        const cpath = path3.resolve(p, child.name);
+        const cpath = path4.resolve(p, child.name);
         chown(cpath, uid, gid, cb);
       }
     };
@@ -62651,7 +62577,7 @@ var require_chownr = __commonJS({
     var chownrKidSync = (p, child, uid, gid) => {
       if (typeof child === "string") {
         try {
-          const stats = fs2.lstatSync(path3.resolve(p, child));
+          const stats = fs3.lstatSync(path4.resolve(p, child));
           stats.name = child;
           child = stats;
         } catch (er) {
@@ -62662,8 +62588,8 @@ var require_chownr = __commonJS({
         }
       }
       if (child.isDirectory())
-        chownrSync(path3.resolve(p, child.name), uid, gid);
-      handleEISDirSync(path3.resolve(p, child.name), uid, gid);
+        chownrSync(path4.resolve(p, child.name), uid, gid);
+      handleEISDirSync(path4.resolve(p, child.name), uid, gid);
     };
     var chownrSync = (p, uid, gid) => {
       let children;
@@ -62691,14 +62617,14 @@ var require_mkdir = __commonJS({
   "node_modules/tar/lib/mkdir.js"(exports2, module2) {
     "use strict";
     var mkdirp = require_mkdirp();
-    var fs2 = require("fs");
-    var path3 = require("path");
+    var fs3 = require("fs");
+    var path4 = require("path");
     var chownr = require_chownr();
     var normPath = require_normalize_windows_path();
     var SymlinkError = class extends Error {
-      constructor(symlink, path4) {
+      constructor(symlink, path5) {
         super("Cannot extract through symbolic link");
-        this.path = path4;
+        this.path = path5;
         this.symlink = symlink;
       }
       get name() {
@@ -62706,9 +62632,9 @@ var require_mkdir = __commonJS({
       }
     };
     var CwdError = class extends Error {
-      constructor(path4, code) {
-        super(code + ": Cannot cd into '" + path4 + "'");
-        this.path = path4;
+      constructor(path5, code) {
+        super(code + ": Cannot cd into '" + path5 + "'");
+        this.path = path5;
         this.code = code;
       }
       get name() {
@@ -62718,7 +62644,7 @@ var require_mkdir = __commonJS({
     var cGet = (cache, key) => cache.get(normPath(key));
     var cSet = (cache, key, val) => cache.set(normPath(key), val);
     var checkCwd = (dir, cb) => {
-      fs2.stat(dir, (er, st) => {
+      fs3.stat(dir, (er, st) => {
         if (er || !st.isDirectory()) {
           er = new CwdError(dir, er && er.code || "ENOTDIR");
         }
@@ -62745,7 +62671,7 @@ var require_mkdir = __commonJS({
           if (created && doChown) {
             chownr(created, uid, gid, (er2) => done(er2));
           } else if (needChmod) {
-            fs2.chmod(dir, mode, cb);
+            fs3.chmod(dir, mode, cb);
           } else {
             cb();
           }
@@ -62760,7 +62686,7 @@ var require_mkdir = __commonJS({
       if (preserve) {
         return mkdirp(dir, { mode }).then((made) => done(null, made), done);
       }
-      const sub = normPath(path3.relative(cwd2, dir));
+      const sub = normPath(path4.relative(cwd2, dir));
       const parts = sub.split("/");
       mkdir_(cwd2, parts, mode, cache, unlink, cwd2, null, done);
     };
@@ -62769,26 +62695,26 @@ var require_mkdir = __commonJS({
         return cb(null, created);
       }
       const p = parts.shift();
-      const part = normPath(path3.resolve(base + "/" + p));
+      const part = normPath(path4.resolve(base + "/" + p));
       if (cGet(cache, part)) {
         return mkdir_(part, parts, mode, cache, unlink, cwd2, created, cb);
       }
-      fs2.mkdir(part, mode, onmkdir(part, parts, mode, cache, unlink, cwd2, created, cb));
+      fs3.mkdir(part, mode, onmkdir(part, parts, mode, cache, unlink, cwd2, created, cb));
     };
     var onmkdir = (part, parts, mode, cache, unlink, cwd2, created, cb) => (er) => {
       if (er) {
-        fs2.lstat(part, (statEr, st) => {
+        fs3.lstat(part, (statEr, st) => {
           if (statEr) {
             statEr.path = statEr.path && normPath(statEr.path);
             cb(statEr);
           } else if (st.isDirectory()) {
             mkdir_(part, parts, mode, cache, unlink, cwd2, created, cb);
           } else if (unlink) {
-            fs2.unlink(part, (er2) => {
+            fs3.unlink(part, (er2) => {
               if (er2) {
                 return cb(er2);
               }
-              fs2.mkdir(part, mode, onmkdir(part, parts, mode, cache, unlink, cwd2, created, cb));
+              fs3.mkdir(part, mode, onmkdir(part, parts, mode, cache, unlink, cwd2, created, cb));
             });
           } else if (st.isSymbolicLink()) {
             return cb(new SymlinkError(part, part + "/" + parts.join("/")));
@@ -62805,7 +62731,7 @@ var require_mkdir = __commonJS({
       let ok = false;
       let code = "ENOTDIR";
       try {
-        ok = fs2.statSync(dir).isDirectory();
+        ok = fs3.statSync(dir).isDirectory();
       } catch (er) {
         code = er.code;
       } finally {
@@ -62832,7 +62758,7 @@ var require_mkdir = __commonJS({
           chownr.sync(created2, uid, gid);
         }
         if (needChmod) {
-          fs2.chmodSync(dir, mode);
+          fs3.chmodSync(dir, mode);
         }
       };
       if (cache && cGet(cache, dir) === true) {
@@ -62845,26 +62771,26 @@ var require_mkdir = __commonJS({
       if (preserve) {
         return done(mkdirp.sync(dir, mode));
       }
-      const sub = normPath(path3.relative(cwd2, dir));
+      const sub = normPath(path4.relative(cwd2, dir));
       const parts = sub.split("/");
       let created = null;
       for (let p = parts.shift(), part = cwd2; p && (part += "/" + p); p = parts.shift()) {
-        part = normPath(path3.resolve(part));
+        part = normPath(path4.resolve(part));
         if (cGet(cache, part)) {
           continue;
         }
         try {
-          fs2.mkdirSync(part, mode);
+          fs3.mkdirSync(part, mode);
           created = created || part;
           cSet(cache, part, true);
         } catch (er) {
-          const st = fs2.lstatSync(part);
+          const st = fs3.lstatSync(part);
           if (st.isDirectory()) {
             cSet(cache, part, true);
             continue;
           } else if (unlink) {
-            fs2.unlinkSync(part);
-            fs2.mkdirSync(part, mode);
+            fs3.unlinkSync(part);
+            fs3.mkdirSync(part, mode);
             created = created || part;
             cSet(cache, part, true);
             continue;
@@ -62904,12 +62830,12 @@ var require_path_reservations = __commonJS({
     module2.exports = () => {
       const queues = /* @__PURE__ */ new Map();
       const reservations = /* @__PURE__ */ new Map();
-      const getDirs = (path3) => {
-        const dirs = path3.split("/").slice(0, -1).reduce((set, path4) => {
+      const getDirs = (path4) => {
+        const dirs = path4.split("/").slice(0, -1).reduce((set, path5) => {
           if (set.length) {
-            path4 = join(set[set.length - 1], path4);
+            path5 = join(set[set.length - 1], path5);
           }
-          set.push(path4 || "/");
+          set.push(path5 || "/");
           return set;
         }, []);
         return dirs;
@@ -62921,8 +62847,8 @@ var require_path_reservations = __commonJS({
           throw new Error("function does not have any path reservations");
         }
         return {
-          paths: res.paths.map((path3) => queues.get(path3)),
-          dirs: [...res.dirs].map((path3) => queues.get(path3))
+          paths: res.paths.map((path4) => queues.get(path4)),
+          dirs: [...res.dirs].map((path4) => queues.get(path4))
         };
       };
       const check = (fn) => {
@@ -62943,11 +62869,11 @@ var require_path_reservations = __commonJS({
         }
         const { paths, dirs } = reservations.get(fn);
         const next = /* @__PURE__ */ new Set();
-        paths.forEach((path3) => {
-          const q = queues.get(path3);
+        paths.forEach((path4) => {
+          const q = queues.get(path4);
           assert2.equal(q[0], fn);
           if (q.length === 1) {
-            queues.delete(path3);
+            queues.delete(path4);
           } else {
             q.shift();
             if (typeof q[0] === "function") {
@@ -62978,13 +62904,13 @@ var require_path_reservations = __commonJS({
           return stripSlashes(join(normalize(p))).toLowerCase();
         });
         const dirs = new Set(
-          paths.map((path3) => getDirs(path3)).reduce((a, b) => a.concat(b))
+          paths.map((path4) => getDirs(path4)).reduce((a, b) => a.concat(b))
         );
         reservations.set(fn, { dirs, paths });
-        paths.forEach((path3) => {
-          const q = queues.get(path3);
+        paths.forEach((path4) => {
+          const q = queues.get(path4);
           if (!q) {
-            queues.set(path3, [fn]);
+            queues.set(path4, [fn]);
           } else {
             q.push(fn);
           }
@@ -63011,8 +62937,8 @@ var require_get_write_flag = __commonJS({
   "node_modules/tar/lib/get-write-flag.js"(exports2, module2) {
     var platform2 = process.env.__FAKE_PLATFORM__ || process.platform;
     var isWindows2 = platform2 === "win32";
-    var fs2 = global.__FAKE_TESTING_FS__ || require("fs");
-    var { O_CREAT, O_TRUNC, O_WRONLY, UV_FS_O_FILEMAP = 0 } = fs2.constants;
+    var fs3 = global.__FAKE_TESTING_FS__ || require("fs");
+    var { O_CREAT, O_TRUNC, O_WRONLY, UV_FS_O_FILEMAP = 0 } = fs3.constants;
     var fMapEnabled = isWindows2 && !!UV_FS_O_FILEMAP;
     var fMapLimit = 512 * 1024;
     var fMapFlag = UV_FS_O_FILEMAP | O_TRUNC | O_CREAT | O_WRONLY;
@@ -63026,9 +62952,9 @@ var require_unpack = __commonJS({
     "use strict";
     var assert2 = require("assert");
     var Parser = require_parse2();
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var fsm = require_fs_minipass();
-    var path3 = require("path");
+    var path4 = require("path");
     var mkdir = require_mkdir();
     var wc = require_winchars();
     var pathReservations = require_path_reservations();
@@ -63066,34 +62992,34 @@ var require_unpack = __commonJS({
     var platform2 = process.env.TESTING_TAR_FAKE_PLATFORM || process.platform;
     var isWindows2 = platform2 === "win32";
     var DEFAULT_MAX_DEPTH = 1024;
-    var unlinkFile = (path4, cb) => {
+    var unlinkFile = (path5, cb) => {
       if (!isWindows2) {
-        return fs2.unlink(path4, cb);
+        return fs3.unlink(path5, cb);
       }
-      const name2 = path4 + ".DELETE." + crypto4.randomBytes(16).toString("hex");
-      fs2.rename(path4, name2, (er) => {
+      const name2 = path5 + ".DELETE." + crypto4.randomBytes(16).toString("hex");
+      fs3.rename(path5, name2, (er) => {
         if (er) {
           return cb(er);
         }
-        fs2.unlink(name2, cb);
+        fs3.unlink(name2, cb);
       });
     };
-    var unlinkFileSync = (path4) => {
+    var unlinkFileSync = (path5) => {
       if (!isWindows2) {
-        return fs2.unlinkSync(path4);
+        return fs3.unlinkSync(path5);
       }
-      const name2 = path4 + ".DELETE." + crypto4.randomBytes(16).toString("hex");
-      fs2.renameSync(path4, name2);
-      fs2.unlinkSync(name2);
+      const name2 = path5 + ".DELETE." + crypto4.randomBytes(16).toString("hex");
+      fs3.renameSync(path5, name2);
+      fs3.unlinkSync(name2);
     };
     var uint32 = (a, b, c) => a === a >>> 0 ? a : b === b >>> 0 ? b : c;
-    var cacheKeyNormalize = (path4) => stripSlash(normPath(normalize(path4))).toLowerCase();
+    var cacheKeyNormalize = (path5) => stripSlash(normPath(normalize(path5))).toLowerCase();
     var pruneCache = (cache, abs) => {
       abs = cacheKeyNormalize(abs);
-      for (const path4 of cache.keys()) {
-        const pnorm = cacheKeyNormalize(path4);
+      for (const path5 of cache.keys()) {
+        const pnorm = cacheKeyNormalize(path5);
         if (pnorm === abs || pnorm.indexOf(abs + "/") === 0) {
-          cache.delete(path4);
+          cache.delete(path5);
         }
       }
     };
@@ -63152,7 +63078,7 @@ var require_unpack = __commonJS({
         this.noMtime = !!opt.noMtime;
         this.preservePaths = !!opt.preservePaths;
         this.unlink = !!opt.unlink;
-        this.cwd = normPath(path3.resolve(opt.cwd || process.cwd()));
+        this.cwd = normPath(path4.resolve(opt.cwd || process.cwd()));
         this.strip = +opt.strip || 0;
         this.processUmask = opt.noChmod ? 0 : process.umask();
         this.umask = typeof opt.umask === "number" ? opt.umask : this.processUmask;
@@ -63220,10 +63146,10 @@ var require_unpack = __commonJS({
             });
           }
         }
-        if (path3.isAbsolute(entry.path)) {
-          entry.absolute = normPath(path3.resolve(entry.path));
+        if (path4.isAbsolute(entry.path)) {
+          entry.absolute = normPath(path4.resolve(entry.path));
         } else {
-          entry.absolute = normPath(path3.resolve(this.cwd, entry.path));
+          entry.absolute = normPath(path4.resolve(this.cwd, entry.path));
         }
         if (!this.preservePaths && entry.absolute.indexOf(this.cwd + "/") !== 0 && entry.absolute !== this.cwd) {
           this.warn("TAR_ENTRY_ERROR", "path escaped extraction target", {
@@ -63238,9 +63164,9 @@ var require_unpack = __commonJS({
           return false;
         }
         if (this.win32) {
-          const { root: aRoot } = path3.win32.parse(entry.absolute);
+          const { root: aRoot } = path4.win32.parse(entry.absolute);
           entry.absolute = aRoot + wc.encode(entry.absolute.slice(aRoot.length));
-          const { root: pRoot } = path3.win32.parse(entry.path);
+          const { root: pRoot } = path4.win32.parse(entry.path);
           entry.path = pRoot + wc.encode(entry.path.slice(pRoot.length));
         }
         return true;
@@ -63256,6 +63182,7 @@ var require_unpack = __commonJS({
             if (entry.mode) {
               entry.mode = entry.mode | 448;
             }
+          // eslint-disable-next-line no-fallthrough
           case "File":
           case "OldFile":
           case "ContiguousFile":
@@ -63311,7 +63238,7 @@ var require_unpack = __commonJS({
         });
         stream.on("error", (er) => {
           if (stream.fd) {
-            fs2.close(stream.fd, () => {
+            fs3.close(stream.fd, () => {
             });
           }
           stream.write = () => true;
@@ -63322,7 +63249,7 @@ var require_unpack = __commonJS({
         const done = (er) => {
           if (er) {
             if (stream.fd) {
-              fs2.close(stream.fd, () => {
+              fs3.close(stream.fd, () => {
               });
             }
             this[ONERROR](er, entry);
@@ -63330,7 +63257,7 @@ var require_unpack = __commonJS({
             return;
           }
           if (--actions === 0) {
-            fs2.close(stream.fd, (er2) => {
+            fs3.close(stream.fd, (er2) => {
               if (er2) {
                 this[ONERROR](er2, entry);
               } else {
@@ -63347,13 +63274,13 @@ var require_unpack = __commonJS({
             actions++;
             const atime = entry.atime || /* @__PURE__ */ new Date();
             const mtime = entry.mtime;
-            fs2.futimes(fd, atime, mtime, (er) => er ? fs2.utimes(abs, atime, mtime, (er2) => done(er2 && er)) : done());
+            fs3.futimes(fd, atime, mtime, (er) => er ? fs3.utimes(abs, atime, mtime, (er2) => done(er2 && er)) : done());
           }
           if (this[DOCHOWN](entry)) {
             actions++;
             const uid = this[UID](entry);
             const gid = this[GID](entry);
-            fs2.fchown(fd, uid, gid, (er) => er ? fs2.chown(abs, uid, gid, (er2) => done(er2 && er)) : done());
+            fs3.fchown(fd, uid, gid, (er) => er ? fs3.chown(abs, uid, gid, (er2) => done(er2 && er)) : done());
           }
           done();
         });
@@ -63385,11 +63312,11 @@ var require_unpack = __commonJS({
           };
           if (entry.mtime && !this.noMtime) {
             actions++;
-            fs2.utimes(entry.absolute, entry.atime || /* @__PURE__ */ new Date(), entry.mtime, done);
+            fs3.utimes(entry.absolute, entry.atime || /* @__PURE__ */ new Date(), entry.mtime, done);
           }
           if (this[DOCHOWN](entry)) {
             actions++;
-            fs2.chown(entry.absolute, this[UID](entry), this[GID](entry), done);
+            fs3.chown(entry.absolute, this[UID](entry), this[GID](entry), done);
           }
           done();
         });
@@ -63407,7 +63334,7 @@ var require_unpack = __commonJS({
         this[LINK](entry, entry.linkpath, "symlink", done);
       }
       [HARDLINK](entry, done) {
-        const linkpath = normPath(path3.resolve(this.cwd, entry.linkpath));
+        const linkpath = normPath(path4.resolve(this.cwd, entry.linkpath));
         this[LINK](entry, linkpath, "link", done);
       }
       [PEND]() {
@@ -63462,7 +63389,7 @@ var require_unpack = __commonJS({
         };
         const start = () => {
           if (entry.absolute !== this.cwd) {
-            const parent = normPath(path3.dirname(entry.absolute));
+            const parent = normPath(path4.dirname(entry.absolute));
             if (parent !== this.cwd) {
               return this[MKDIR](parent, this.dmode, (er) => {
                 if (er) {
@@ -63477,7 +63404,7 @@ var require_unpack = __commonJS({
           afterMakeParent();
         };
         const afterMakeParent = () => {
-          fs2.lstat(entry.absolute, (lstatEr, st) => {
+          fs3.lstat(entry.absolute, (lstatEr, st) => {
             if (st && (this.keep || this.newer && st.mtime > entry.mtime)) {
               this[SKIP](entry);
               done();
@@ -63493,10 +63420,10 @@ var require_unpack = __commonJS({
                 if (!needChmod) {
                   return afterChmod();
                 }
-                return fs2.chmod(entry.absolute, entry.mode, afterChmod);
+                return fs3.chmod(entry.absolute, entry.mode, afterChmod);
               }
               if (entry.absolute !== this.cwd) {
-                return fs2.rmdir(entry.absolute, (er) => this[MAKEFS](er, entry, done));
+                return fs3.rmdir(entry.absolute, (er) => this[MAKEFS](er, entry, done));
               }
             }
             if (entry.absolute === this.cwd) {
@@ -63532,7 +63459,7 @@ var require_unpack = __commonJS({
         }
       }
       [LINK](entry, linkpath, link, done) {
-        fs2[link](linkpath, entry.absolute, (er) => {
+        fs3[link](linkpath, entry.absolute, (er) => {
           if (er) {
             this[ONERROR](er, entry);
           } else {
@@ -63565,7 +63492,7 @@ var require_unpack = __commonJS({
           this[CHECKED_CWD] = true;
         }
         if (entry.absolute !== this.cwd) {
-          const parent = normPath(path3.dirname(entry.absolute));
+          const parent = normPath(path4.dirname(entry.absolute));
           if (parent !== this.cwd) {
             const mkParent = this[MKDIR](parent, this.dmode);
             if (mkParent) {
@@ -63573,7 +63500,7 @@ var require_unpack = __commonJS({
             }
           }
         }
-        const [lstatEr, st] = callSync(() => fs2.lstatSync(entry.absolute));
+        const [lstatEr, st] = callSync(() => fs3.lstatSync(entry.absolute));
         if (st && (this.keep || this.newer && st.mtime > entry.mtime)) {
           return this[SKIP](entry);
         }
@@ -63584,11 +63511,11 @@ var require_unpack = __commonJS({
           if (entry.type === "Directory") {
             const needChmod = !this.noChmod && entry.mode && (st.mode & 4095) !== entry.mode;
             const [er3] = needChmod ? callSync(() => {
-              fs2.chmodSync(entry.absolute, entry.mode);
+              fs3.chmodSync(entry.absolute, entry.mode);
             }) : [];
             return this[MAKEFS](er3, entry);
           }
-          const [er2] = callSync(() => fs2.rmdirSync(entry.absolute));
+          const [er2] = callSync(() => fs3.rmdirSync(entry.absolute));
           this[MAKEFS](er2, entry);
         }
         const [er] = entry.absolute === this.cwd ? [] : callSync(() => unlinkFileSync(entry.absolute));
@@ -63599,7 +63526,7 @@ var require_unpack = __commonJS({
         const oner = (er) => {
           let closeError;
           try {
-            fs2.closeSync(fd);
+            fs3.closeSync(fd);
           } catch (e) {
             closeError = e;
           }
@@ -63610,7 +63537,7 @@ var require_unpack = __commonJS({
         };
         let fd;
         try {
-          fd = fs2.openSync(entry.absolute, getFlag(entry.size), mode);
+          fd = fs3.openSync(entry.absolute, getFlag(entry.size), mode);
         } catch (er) {
           return oner(er);
         }
@@ -63621,7 +63548,7 @@ var require_unpack = __commonJS({
         }
         tx.on("data", (chunk) => {
           try {
-            fs2.writeSync(fd, chunk, 0, chunk.length);
+            fs3.writeSync(fd, chunk, 0, chunk.length);
           } catch (er) {
             oner(er);
           }
@@ -63632,10 +63559,10 @@ var require_unpack = __commonJS({
             const atime = entry.atime || /* @__PURE__ */ new Date();
             const mtime = entry.mtime;
             try {
-              fs2.futimesSync(fd, atime, mtime);
+              fs3.futimesSync(fd, atime, mtime);
             } catch (futimeser) {
               try {
-                fs2.utimesSync(entry.absolute, atime, mtime);
+                fs3.utimesSync(entry.absolute, atime, mtime);
               } catch (utimeser) {
                 er = futimeser;
               }
@@ -63645,10 +63572,10 @@ var require_unpack = __commonJS({
             const uid = this[UID](entry);
             const gid = this[GID](entry);
             try {
-              fs2.fchownSync(fd, uid, gid);
+              fs3.fchownSync(fd, uid, gid);
             } catch (fchowner) {
               try {
-                fs2.chownSync(entry.absolute, uid, gid);
+                fs3.chownSync(entry.absolute, uid, gid);
               } catch (chowner) {
                 er = er || fchowner;
               }
@@ -63667,13 +63594,13 @@ var require_unpack = __commonJS({
         }
         if (entry.mtime && !this.noMtime) {
           try {
-            fs2.utimesSync(entry.absolute, entry.atime || /* @__PURE__ */ new Date(), entry.mtime);
+            fs3.utimesSync(entry.absolute, entry.atime || /* @__PURE__ */ new Date(), entry.mtime);
           } catch (er2) {
           }
         }
         if (this[DOCHOWN](entry)) {
           try {
-            fs2.chownSync(entry.absolute, this[UID](entry), this[GID](entry));
+            fs3.chownSync(entry.absolute, this[UID](entry), this[GID](entry));
           } catch (er2) {
           }
         }
@@ -63700,7 +63627,7 @@ var require_unpack = __commonJS({
       }
       [LINK](entry, linkpath, link, done) {
         try {
-          fs2[link + "Sync"](linkpath, entry.absolute);
+          fs3[link + "Sync"](linkpath, entry.absolute);
           done();
           entry.resume();
         } catch (er) {
@@ -63719,9 +63646,9 @@ var require_extract = __commonJS({
     "use strict";
     var hlo = require_high_level_opt();
     var Unpack = require_unpack();
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var fsm = require_fs_minipass();
-    var path3 = require("path");
+    var path4 = require("path");
     var stripSlash = require_strip_trailing_slashes();
     module2.exports = (opt_, files, cb) => {
       if (typeof opt_ === "function") {
@@ -63753,8 +63680,8 @@ var require_extract = __commonJS({
       const map = new Map(files.map((f) => [stripSlash(f), true]));
       const filter2 = opt.filter;
       const mapHas = (file, r) => {
-        const root = r || path3.parse(file).root || ".";
-        const ret = file === root ? false : map.has(file) ? map.get(file) : mapHas(path3.dirname(file), root);
+        const root = r || path4.parse(file).root || ".";
+        const ret = file === root ? false : map.has(file) ? map.get(file) : mapHas(path4.dirname(file), root);
         map.set(file, ret);
         return ret;
       };
@@ -63763,7 +63690,7 @@ var require_extract = __commonJS({
     var extractFileSync = (opt) => {
       const u = new Unpack.Sync(opt);
       const file = opt.file;
-      const stat = fs2.statSync(file);
+      const stat = fs3.statSync(file);
       const readSize = opt.maxReadSize || 16 * 1024 * 1024;
       const stream = new fsm.ReadStreamSync(file, {
         readSize,
@@ -63778,7 +63705,7 @@ var require_extract = __commonJS({
       const p = new Promise((resolve, reject) => {
         u.on("error", reject);
         u.on("close", resolve);
-        fs2.stat(file, (er, stat) => {
+        fs3.stat(file, (er, stat) => {
           if (er) {
             reject(er);
           } else {
@@ -63814,7 +63741,7 @@ var require_tar = __commonJS({
     exports2.WriteEntry = require_write_entry();
     exports2.Header = require_header();
     exports2.Pax = require_pax();
-    exports2.types = require_types2();
+    exports2.types = require_types();
   }
 });
 
@@ -63964,7 +63891,7 @@ var require_traverse = __commonJS({
       }(this.value);
     };
     function walk2(root, cb, immutable) {
-      var path3 = [];
+      var path4 = [];
       var parents = [];
       var alive = true;
       return function walker(node_) {
@@ -63973,11 +63900,11 @@ var require_traverse = __commonJS({
         var state = {
           node,
           node_,
-          path: [].concat(path3),
+          path: [].concat(path4),
           parent: parents.slice(-1)[0],
-          key: path3.slice(-1)[0],
-          isRoot: path3.length === 0,
-          level: path3.length,
+          key: path4.slice(-1)[0],
+          isRoot: path4.length === 0,
+          level: path4.length,
           circular: null,
           update: function(x) {
             if (!state.isRoot) {
@@ -64032,7 +63959,7 @@ var require_traverse = __commonJS({
           parents.push(state);
           var keys = Object.keys(state.node);
           keys.forEach(function(key, i2) {
-            path3.push(key);
+            path4.push(key);
             if (modifiers.pre) modifiers.pre.call(state, state.node[key], key);
             var child = walker(state.node[key]);
             if (immutable && Object.hasOwnProperty.call(state.node, key)) {
@@ -64041,7 +63968,7 @@ var require_traverse = __commonJS({
             child.isLast = i2 == keys.length - 1;
             child.isFirst = i2 == 0;
             if (modifiers.post) modifiers.post.call(state, child);
-            path3.pop();
+            path4.pop();
           });
           parents.pop();
         }
@@ -64085,7 +64012,7 @@ var require_traverse = __commonJS({
 var require_chainsaw = __commonJS({
   "node_modules/chainsaw/index.js"(exports2, module2) {
     var Traverse = require_traverse();
-    var EventEmitter4 = require("events").EventEmitter;
+    var EventEmitter6 = require("events").EventEmitter;
     module2.exports = Chainsaw;
     function Chainsaw(builder) {
       var saw = Chainsaw.saw(builder, {});
@@ -64101,7 +64028,7 @@ var require_chainsaw = __commonJS({
       return saw.chain();
     };
     Chainsaw.saw = function(builder, handlers) {
-      var saw = new EventEmitter4();
+      var saw = new EventEmitter6();
       saw.handlers = handlers;
       saw.actions = [];
       saw.chain = function() {
@@ -64445,7 +64372,7 @@ var require_vars = __commonJS({
 var require_binary = __commonJS({
   "node_modules/binary/index.js"(exports2, module2) {
     var Chainsaw = require_chainsaw();
-    var EventEmitter4 = require("events").EventEmitter;
+    var EventEmitter6 = require("events").EventEmitter;
     var Buffers = require_buffers();
     var Vars = require_vars();
     var Stream = require("stream").Stream;
@@ -64631,8 +64558,8 @@ var require_binary = __commonJS({
         caughtEnd = true;
       };
       stream.pipe = Stream.prototype.pipe;
-      Object.getOwnPropertyNames(EventEmitter4.prototype).forEach(function(name2) {
-        stream[name2] = EventEmitter4.prototype[name2];
+      Object.getOwnPropertyNames(EventEmitter6.prototype).forEach(function(name2) {
+        stream[name2] = EventEmitter6.prototype[name2];
       });
       return stream;
     };
@@ -64750,14 +64677,14 @@ var require_binary = __commonJS({
       }
       return val;
     }
-    function words(decode) {
+    function words(decode2) {
       var self = {};
       [1, 2, 4, 8].forEach(function(bytes2) {
         var bits = bytes2 * 8;
-        self["word" + bits + "le"] = self["word" + bits + "lu"] = decode(bytes2, decodeLEu);
-        self["word" + bits + "ls"] = decode(bytes2, decodeLEs);
-        self["word" + bits + "be"] = self["word" + bits + "bu"] = decode(bytes2, decodeBEu);
-        self["word" + bits + "bs"] = decode(bytes2, decodeBEs);
+        self["word" + bits + "le"] = self["word" + bits + "lu"] = decode2(bytes2, decodeLEu);
+        self["word" + bits + "ls"] = decode2(bytes2, decodeLEs);
+        self["word" + bits + "be"] = self["word" + bits + "bu"] = decode2(bytes2, decodeBEu);
+        self["word" + bits + "bs"] = decode2(bytes2, decodeBEs);
       });
       self.word8 = self.word8u = self.word8be;
       self.word8s = self.word8bs;
@@ -64769,13 +64696,13 @@ var require_binary = __commonJS({
 // node_modules/unzip-stream/lib/matcher-stream.js
 var require_matcher_stream = __commonJS({
   "node_modules/unzip-stream/lib/matcher-stream.js"(exports2, module2) {
-    var Transform2 = require("stream").Transform;
+    var Transform3 = require("stream").Transform;
     var util = require("util");
     function MatcherStream(patternDesc, matchFn) {
       if (!(this instanceof MatcherStream)) {
         return new MatcherStream();
       }
-      Transform2.call(this);
+      Transform3.call(this);
       var p = typeof patternDesc === "object" ? patternDesc.pattern : patternDesc;
       this.pattern = Buffer.isBuffer(p) ? p : Buffer.from(p);
       this.requiredLength = this.pattern.length;
@@ -64784,7 +64711,7 @@ var require_matcher_stream = __commonJS({
       this.bytesSoFar = 0;
       this.matchFn = matchFn;
     }
-    util.inherits(MatcherStream, Transform2);
+    util.inherits(MatcherStream, Transform3);
     MatcherStream.prototype.checkDataChunk = function(ignoreMatchZero) {
       var enoughData = this.data.length >= this.requiredLength;
       if (!enoughData) {
@@ -65062,11 +64989,11 @@ var require_unzip_stream = __commonJS({
           return requiredLength;
         case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
           var isUtf8 = (this.parsedEntity.flags & 2048) !== 0;
-          var path3 = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
+          var path4 = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
           var extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength);
           var extra = this._readExtraFields(extraDataBuffer);
           if (extra && extra.parsed && extra.parsed.path && !isUtf8) {
-            path3 = extra.parsed.path;
+            path4 = extra.parsed.path;
           }
           this.parsedEntity.extra = extra.parsed;
           var isUnix = (this.parsedEntity.versionMadeBy & 65280) >> 8 === 3;
@@ -65078,7 +65005,7 @@ var require_unzip_stream = __commonJS({
           }
           if (this.options.debug) {
             const debugObj = Object.assign({}, this.parsedEntity, {
-              path: path3,
+              path: path4,
               flags: "0x" + this.parsedEntity.flags.toString(16),
               unixAttrs: unixAttrs && "0" + unixAttrs.toString(8),
               isSymlink,
@@ -65116,6 +65043,7 @@ var require_unzip_stream = __commonJS({
           return requiredLength;
         case states.ERROR:
           return chunk.length;
+        // discard
         default:
           console.log("didn't handle state #", this.state, "discarding");
           return chunk.length;
@@ -65463,7 +65391,7 @@ var require_unzip_stream = __commonJS({
 // node_modules/unzip-stream/lib/parser-stream.js
 var require_parser_stream = __commonJS({
   "node_modules/unzip-stream/lib/parser-stream.js"(exports2, module2) {
-    var Transform2 = require("stream").Transform;
+    var Transform3 = require("stream").Transform;
     var util = require("util");
     var UnzipStream = require_unzip_stream();
     function ParserStream(opts) {
@@ -65471,7 +65399,7 @@ var require_parser_stream = __commonJS({
         return new ParserStream(opts);
       }
       var transformOpts = opts || {};
-      Transform2.call(this, { readableObjectMode: true });
+      Transform3.call(this, { readableObjectMode: true });
       this.opts = opts || {};
       this.unzipStream = new UnzipStream(this.opts);
       var self = this;
@@ -65482,7 +65410,7 @@ var require_parser_stream = __commonJS({
         self.emit("error", error);
       });
     }
-    util.inherits(ParserStream, Transform2);
+    util.inherits(ParserStream, Transform3);
     ParserStream.prototype._transform = function(chunk, encoding2, cb) {
       this.unzipStream.write(chunk, encoding2, cb);
     };
@@ -65497,13 +65425,13 @@ var require_parser_stream = __commonJS({
     };
     ParserStream.prototype.on = function(eventName, fn) {
       if (eventName === "entry") {
-        return Transform2.prototype.on.call(this, "data", fn);
+        return Transform3.prototype.on.call(this, "data", fn);
       }
-      return Transform2.prototype.on.call(this, eventName, fn);
+      return Transform3.prototype.on.call(this, eventName, fn);
     };
     ParserStream.prototype.drainAll = function() {
       this.unzipStream.drainAll();
-      return this.pipe(new Transform2({ objectMode: true, transform: function(d, e, cb) {
+      return this.pipe(new Transform3({ objectMode: true, transform: function(d, e, cb) {
         cb();
       } }));
     };
@@ -65514,8 +65442,8 @@ var require_parser_stream = __commonJS({
 // node_modules/unzip-stream/node_modules/mkdirp/index.js
 var require_mkdirp2 = __commonJS({
   "node_modules/unzip-stream/node_modules/mkdirp/index.js"(exports2, module2) {
-    var path3 = require("path");
-    var fs2 = require("fs");
+    var path4 = require("path");
+    var fs3 = require("fs");
     var _0777 = parseInt("0777", 8);
     module2.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
     function mkdirP(p, opts, f, made) {
@@ -65526,7 +65454,7 @@ var require_mkdirp2 = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs2;
+      var xfs = opts.fs || fs3;
       if (mode === void 0) {
         mode = _0777;
       }
@@ -65534,7 +65462,7 @@ var require_mkdirp2 = __commonJS({
       var cb = f || /* istanbul ignore next */
       function() {
       };
-      p = path3.resolve(p);
+      p = path4.resolve(p);
       xfs.mkdir(p, mode, function(er) {
         if (!er) {
           made = made || p;
@@ -65542,12 +65470,15 @@ var require_mkdirp2 = __commonJS({
         }
         switch (er.code) {
           case "ENOENT":
-            if (path3.dirname(p) === p) return cb(er);
-            mkdirP(path3.dirname(p), opts, function(er2, made2) {
+            if (path4.dirname(p) === p) return cb(er);
+            mkdirP(path4.dirname(p), opts, function(er2, made2) {
               if (er2) cb(er2, made2);
               else mkdirP(p, opts, cb, made2);
             });
             break;
+          // In the case of any other error, just see if there's a dir
+          // there already.  If so, then hooray!  If not, then something
+          // is borked.
           default:
             xfs.stat(p, function(er2, stat) {
               if (er2 || !stat.isDirectory()) cb(er, made);
@@ -65562,21 +65493,24 @@ var require_mkdirp2 = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs2;
+      var xfs = opts.fs || fs3;
       if (mode === void 0) {
         mode = _0777;
       }
       if (!made) made = null;
-      p = path3.resolve(p);
+      p = path4.resolve(p);
       try {
         xfs.mkdirSync(p, mode);
         made = made || p;
       } catch (err0) {
         switch (err0.code) {
           case "ENOENT":
-            made = sync(path3.dirname(p), opts, made);
+            made = sync(path4.dirname(p), opts, made);
             sync(p, opts, made);
             break;
+          // In the case of any other error, just see if there's a dir
+          // there already.  If so, then hooray!  If not, then something
+          // is borked.
           default:
             var stat;
             try {
@@ -65596,16 +65530,16 @@ var require_mkdirp2 = __commonJS({
 // node_modules/unzip-stream/lib/extract.js
 var require_extract2 = __commonJS({
   "node_modules/unzip-stream/lib/extract.js"(exports2, module2) {
-    var fs2 = require("fs");
-    var path3 = require("path");
+    var fs3 = require("fs");
+    var path4 = require("path");
     var util = require("util");
     var mkdirp = require_mkdirp2();
-    var Transform2 = require("stream").Transform;
+    var Transform3 = require("stream").Transform;
     var UnzipStream = require_unzip_stream();
     function Extract(opts) {
       if (!(this instanceof Extract))
         return new Extract(opts);
-      Transform2.call(this);
+      Transform3.call(this);
       this.opts = opts || {};
       this.unzipStream = new UnzipStream(this.opts);
       this.unfinishedEntries = 0;
@@ -65617,7 +65551,7 @@ var require_extract2 = __commonJS({
         self.emit("error", error);
       });
     }
-    util.inherits(Extract, Transform2);
+    util.inherits(Extract, Transform3);
     Extract.prototype._transform = function(chunk, encoding2, cb) {
       this.unzipStream.write(chunk, encoding2, cb);
     };
@@ -65639,11 +65573,11 @@ var require_extract2 = __commonJS({
     };
     Extract.prototype._processEntry = function(entry) {
       var self = this;
-      var destPath = path3.join(this.opts.path, entry.path);
-      var directory = entry.isDirectory ? destPath : path3.dirname(destPath);
+      var destPath = path4.join(this.opts.path, entry.path);
+      var directory = entry.isDirectory ? destPath : path4.dirname(destPath);
       this.unfinishedEntries++;
       var writeFileFn = function() {
-        var pipedStream = fs2.createWriteStream(destPath);
+        var pipedStream = fs3.createWriteStream(destPath);
         pipedStream.on("close", function() {
           self.unfinishedEntries--;
           self._notifyAwaiter();
@@ -65759,13 +65693,13 @@ function download(urlInput, options2, token) {
           if (hash) hash.update(chunk);
           if (hasTotal) {
             let percent = (cur / total * 100).toFixed(1);
-            typeof onProgress === "function" ? onProgress(percent) : logger27.info(`Download ${url} progress ${percent}%`);
+            typeof onProgress === "function" ? onProgress(percent) : logger29.info(`Download ${url} progress ${percent}%`);
           }
         });
         res.on("end", () => {
           clearTimeout(timer);
           timer = void 0;
-          logger27.info("Download completed:", url);
+          logger29.info("Download completed:", url);
         });
         let stream;
         if (extract === "untar") {
@@ -65785,7 +65719,7 @@ function download(urlInput, options2, token) {
               return;
             }
           }
-          logger27.info(`Downloaded ${url} => ${dest}`);
+          logger29.info(`Downloaded ${url} => ${dest}`);
           setTimeout(() => {
             resolve(dest);
           }, 100);
@@ -65818,7 +65752,7 @@ function download(urlInput, options2, token) {
     req.end();
   });
 }
-var logger27;
+var logger29;
 var init_download = __esm({
   "src/model/download.ts"() {
     "use strict";
@@ -65826,7 +65760,7 @@ var init_download = __esm({
     init_logger();
     init_node();
     init_fetch();
-    logger27 = createLogger("model-download");
+    logger29 = createLogger("model-download");
   }
 });
 
@@ -65847,7 +65781,7 @@ function registryUrl(home = os.homedir()) {
       }
       if (uri) res = new import_url3.URL(uri);
     } catch (e) {
-      logger28.debug("Error on parse .npmrc:", e);
+      logger30.debug("Error on parse .npmrc:", e);
     }
   }
   return res ?? new import_url3.URL("https://registry.npmjs.org");
@@ -65876,11 +65810,11 @@ function isSymbolicLink(folder) {
 function getDependencies(obj) {
   return Object.keys(obj.dependencies ?? {}).filter((id) => !local_dependencies.includes(id));
 }
-var import_events29, import_url3, logger28, local_dependencies, Installer;
+var import_events32, import_url3, logger30, local_dependencies, Installer;
 var init_installer = __esm({
   "src/extension/installer.ts"() {
     "use strict";
-    import_events29 = require("events");
+    import_events32 = require("events");
     import_url3 = require("url");
     init_esm_node();
     init_logger();
@@ -65890,9 +65824,9 @@ var init_installer = __esm({
     init_node();
     init_string();
     init_workspace();
-    logger28 = createLogger("extension-installer");
+    logger30 = createLogger("extension-installer");
     local_dependencies = ["coc.nvim", "esbuild", "webpack", "@types/node"];
-    Installer = class extends import_events29.EventEmitter {
+    Installer = class extends import_events32.EventEmitter {
       constructor(root, npm, def) {
         super();
         this.root = root;
@@ -65961,7 +65895,7 @@ var init_installer = __esm({
       async install() {
         this.log(`Using npm from: ${this.npm}`);
         let info = await this.getInfo();
-        logger28.info(`Fetched info of ${this.def}`, info);
+        logger30.info(`Fetched info of ${this.def}`, info);
         let { name: name2, version: version2 } = info;
         let required = toText(info["engines.coc"]).replace(/^\^/, ">=");
         if (required && !semver.satisfies(workspace_default.version, required)) {
@@ -66149,18 +66083,18 @@ var init_memos = __esm({
 });
 
 // src/list/commandTask.ts
-var import_events30, spawn, logger29, CommandTask;
+var import_events33, spawn, logger31, CommandTask;
 var init_commandTask = __esm({
   "src/list/commandTask.ts"() {
     "use strict";
-    import_events30 = require("events");
+    import_events33 = require("events");
     init_logger();
     init_util();
     init_node();
     init_workspace();
     spawn = child_process.spawn;
-    logger29 = createLogger("list-commandTask");
-    CommandTask = class extends import_events30.EventEmitter {
+    logger31 = createLogger("list-commandTask");
+    CommandTask = class extends import_events33.EventEmitter {
       constructor(opt) {
         super();
         this.opt = opt;
@@ -66179,7 +66113,7 @@ var init_commandTask = __esm({
           this.emit("error", e.message);
         });
         proc.stderr.on("data", (chunk) => {
-          logger29.error(`[${cmd} Error]`, chunk.toString("utf8"));
+          logger31.error(`[${cmd} Error]`, chunk.toString("utf8"));
         });
         const rl = readline.createInterface(proc.stdout);
         rl.on("line", (line) => {
@@ -66578,20 +66512,20 @@ function fuzzyMatch(needle, text, ignorecase = false) {
 var init_fuzzy = __esm({
   "src/util/fuzzy.ts"() {
     "use strict";
-    init_constants();
+    init_constants2();
   }
 });
 
 // src/list/db.ts
-var logger30, DB_PATH, DataBase, db_default;
+var logger32, DB_PATH, DataBase, db_default;
 var init_db2 = __esm({
   "src/list/db.ts"() {
     "use strict";
     init_node();
     init_logger();
     init_string();
-    init_constants();
-    logger30 = createLogger("list-db");
+    init_constants2();
+    logger32 = createLogger("list-db");
     DB_PATH = path.join(dataHome, "list_history.dat");
     DataBase = class {
       constructor() {
@@ -66602,7 +66536,7 @@ var init_db2 = __esm({
         try {
           this.load();
         } catch (e) {
-          logger30.error(`Error on load db`, e);
+          logger32.error(`Error on load db`, e);
         }
       }
       get currItems() {
@@ -66708,7 +66642,7 @@ var init_db2 = __esm({
 });
 
 // src/list/history.ts
-var logger31, InputHistory;
+var logger33, InputHistory;
 var init_history = __esm({
   "src/list/history.ts"() {
     "use strict";
@@ -66718,7 +66652,7 @@ var init_history = __esm({
     init_fuzzy();
     init_db2();
     init_string();
-    logger31 = createLogger("list-history");
+    logger33 = createLogger("list-history");
     InputHistory = class {
       constructor(prompt, name2, db, cwd2) {
         this.prompt = prompt;
@@ -66761,7 +66695,7 @@ var init_history = __esm({
           });
           db.save();
         } catch (e) {
-          logger31.error(`Error on migrate history:`, e);
+          logger33.error(`Error on migrate history:`, e);
         }
       }
       get curr() {
@@ -67990,7 +67924,7 @@ function parseInput(input) {
   }
   return res.map((s) => s.replace(/\\\s/g, " ").trim()).filter((s) => s.length > 0);
 }
-var logger32, controlCode, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
+var logger34, controlCode, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esm({
   "src/list/worker.ts"() {
     "use strict";
@@ -68006,7 +67940,7 @@ var init_worker = __esm({
     init_string();
     init_workspace();
     init_configuration3();
-    logger32 = createLogger("list-worker");
+    logger34 = createLogger("list-worker");
     controlCode = "\x1B";
     WHITE_SPACE_CHARS = [32, 9];
     SEARCH_HL_GROUP = "CocListSearch";
@@ -68128,7 +68062,7 @@ var init_worker = __esm({
             clearInterval(interval2);
             workspace_default.nvim.call("coc#prompt#stop_prompt", ["list"], true);
             workspace_default.nvim.echoError(`Task error: ${error.toString()}`);
-            logger32.error("List task error:", error);
+            logger34.error("List task error:", error);
           });
           task.on("end", onEnd);
         }
@@ -69474,7 +69408,7 @@ var init_convert = __esm({
 // src/list/source/outline.ts
 function symbolsToListItems(symbols, uri, filterKind) {
   let items = [];
-  const addSymbols = (symbols2, level2 = 0) => {
+  const addSymbols = (symbols2, level3 = 0) => {
     symbols2.sort((a, b) => {
       return compareRangesUsingStarts(a.selectionRange, b.selectionRange);
     });
@@ -69482,13 +69416,13 @@ function symbolsToListItems(symbols, uri, filterKind) {
       let kind = getSymbolKind(s.kind);
       let location = Location.create(uri, s.selectionRange);
       items.push({
-        label: [`${"| ".repeat(level2)}${s.name}`, `[${kind}]`, `${s.range.start.line + 1}`],
+        label: [`${"| ".repeat(level3)}${s.name}`, `[${kind}]`, `${s.range.start.line + 1}`],
         filterText: getFilterText(s, filterKind),
         location,
         data: { kind }
       });
       if (!isFalsyOrEmpty(s.children)) {
-        addSymbols(s.children, level2 + 1);
+        addSymbols(s.children, level3 + 1);
       }
     }
   };
@@ -69653,14 +69587,14 @@ var init_features = __esm({
     };
     ((StaticFeature4) => {
       function is(value) {
-        return value !== void 0 && value !== null && func(value.fillClientCapabilities) && func(value.initialize) && func(value.dispose) && (value.fillInitializeParams === void 0 || func(value.fillInitializeParams)) && value.registrationType === void 0;
+        return value !== void 0 && value !== null && func2(value.fillClientCapabilities) && func2(value.initialize) && func2(value.dispose) && (value.fillInitializeParams === void 0 || func2(value.fillInitializeParams)) && value.registrationType === void 0;
       }
       StaticFeature4.is = is;
     })(StaticFeature || (StaticFeature = {}));
     ((DynamicFeature8) => {
       function is(value) {
         const candidate = value;
-        return candidate !== void 0 && candidate !== null && func(candidate.fillClientCapabilities) && func(candidate.initialize) && func(candidate.dispose) && (candidate.fillInitializeParams === void 0 || func(candidate.fillInitializeParams)) && func(candidate.register) && func(candidate.unregister) && candidate.registrationType !== void 0;
+        return candidate !== void 0 && candidate !== null && func2(candidate.fillClientCapabilities) && func2(candidate.initialize) && func2(candidate.dispose) && (candidate.fillInitializeParams === void 0 || func2(candidate.fillInitializeParams)) && func2(candidate.register) && func2(candidate.unregister) && candidate.registrationType !== void 0;
       }
       DynamicFeature8.is = is;
     })(DynamicFeature || (DynamicFeature = {}));
@@ -69846,176 +69780,6 @@ var init_features = __esm({
   }
 });
 
-// src/model/relativePattern.ts
-var RelativePattern2;
-var init_relativePattern = __esm({
-  "src/model/relativePattern.ts"() {
-    "use strict";
-    init_esm();
-    init_errors();
-    RelativePattern2 = class {
-      constructor(base, pattern) {
-        if (typeof base !== "string") {
-          if (!base || !URI.isUri(base) && typeof base.uri !== "string") {
-            throw illegalArgument("base");
-          }
-        }
-        if (typeof pattern !== "string") {
-          throw illegalArgument("pattern");
-        }
-        if (typeof base === "string") {
-          this.baseUri = URI.file(base);
-        } else if (URI.isUri(base)) {
-          this.baseUri = base;
-        } else {
-          this.baseUri = URI.parse(base.uri);
-        }
-        this.pattern = pattern;
-      }
-      toJSON() {
-        return {
-          pattern: this.pattern,
-          baseUri: this.baseUri.toJSON()
-        };
-      }
-    };
-  }
-});
-
-// src/language-client/utils/converter.ts
-function convertToTextDocumentItem(document2) {
-  return {
-    uri: document2.uri,
-    languageId: document2.languageId,
-    version: document2.version,
-    text: document2.getText()
-  };
-}
-function asOpenTextDocumentParams(textDocument) {
-  return {
-    textDocument: convertToTextDocumentItem(textDocument)
-  };
-}
-function asRelativePattern(rp) {
-  let { baseUri, pattern } = rp;
-  if (typeof baseUri === "string") {
-    return new RelativePattern2(URI.parse(baseUri), pattern);
-  }
-  return new RelativePattern2(baseUri, pattern);
-}
-function asCloseTextDocumentParams(document2) {
-  return {
-    textDocument: {
-      uri: document2.uri
-    }
-  };
-}
-function asFullChangeTextDocumentParams(document2) {
-  let result = {
-    textDocument: {
-      uri: document2.uri,
-      version: document2.version
-    },
-    contentChanges: [{ text: document2.getText() }]
-  };
-  return result;
-}
-function asChangeTextDocumentParams(event) {
-  let { textDocument, contentChanges } = event;
-  let result = {
-    textDocument: {
-      uri: textDocument.uri,
-      version: textDocument.version
-    },
-    contentChanges: contentChanges.slice()
-  };
-  return result;
-}
-function asWillSaveTextDocumentParams(event) {
-  return {
-    textDocument: asVersionedTextDocumentIdentifier(event.document),
-    reason: event.reason
-  };
-}
-function asVersionedTextDocumentIdentifier(textDocument) {
-  return {
-    uri: textDocument.uri,
-    version: textDocument.version
-  };
-}
-function asSaveTextDocumentParams(document2, includeText) {
-  let result = {
-    textDocument: asVersionedTextDocumentIdentifier(document2)
-  };
-  if (includeText) {
-    result.text = document2.getText();
-  }
-  return result;
-}
-function asUri(resource) {
-  return resource.toString();
-}
-function asCompletionParams(textDocument, position, context) {
-  return {
-    textDocument: {
-      uri: textDocument.uri
-    },
-    position,
-    context: omit(context, ["option"])
-  };
-}
-function asTextDocumentPositionParams(textDocument, position) {
-  return {
-    textDocument: {
-      uri: textDocument.uri
-    },
-    position
-  };
-}
-function asSignatureHelpParams(textDocument, position, context) {
-  return {
-    textDocument: asTextDocumentIdentifier(textDocument),
-    position,
-    context
-  };
-}
-function asTextDocumentIdentifier(textDocument) {
-  return {
-    uri: textDocument.uri
-  };
-}
-function asReferenceParams(textDocument, position, options2) {
-  return {
-    textDocument: {
-      uri: textDocument.uri
-    },
-    position,
-    context: { includeDeclaration: options2.includeDeclaration }
-  };
-}
-function asDocumentSymbolParams(textDocument) {
-  return {
-    textDocument: {
-      uri: textDocument.uri
-    }
-  };
-}
-function asCodeLensParams(textDocument) {
-  return {
-    textDocument: {
-      uri: textDocument.uri
-    }
-  };
-}
-var init_converter = __esm({
-  "src/language-client/utils/converter.ts"() {
-    "use strict";
-    init_esm();
-    init_relativePattern();
-    init_lodash();
-  }
-});
-
 // src/language-client/callHierarchy.ts
 var CallHierarchyFeature;
 var init_callHierarchy = __esm({
@@ -70024,7 +69788,6 @@ var init_callHierarchy = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     CallHierarchyFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.CallHierarchyPrepareRequest.type);
@@ -70046,7 +69809,7 @@ var init_callHierarchy = __esm({
           prepareCallHierarchy: (document2, position, token) => {
             const client = this._client;
             const prepareCallHierarchy = (document3, position2, token2) => {
-              const params = asTextDocumentPositionParams(document3, position2);
+              const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
               return this.sendRequest(import_node3.CallHierarchyPrepareRequest.type, params, token2);
             };
             const middleware = client.middleware;
@@ -70146,9 +69909,7 @@ var init_codeAction = __esm({
             const client = this._client;
             const _provideCodeActions = (document3, range2, context2, token2) => {
               const params = {
-                textDocument: {
-                  uri: document3.uri
-                },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2,
                 context: context2
               };
@@ -70195,7 +69956,6 @@ var init_codeLens = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     CodeLensFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -70225,7 +69985,7 @@ var init_codeLens = __esm({
             const provideCodeLenses = (document3, token2) => {
               return this.sendRequest(
                 import_node3.CodeLensRequest.type,
-                asCodeLensParams(document3),
+                client.code2ProtocolConverter.asCodeLensParams(document3),
                 token2
               );
             };
@@ -70281,7 +70041,7 @@ var init_colorProvider = __esm({
             const provideColorPresentations = (color2, context2, token2) => {
               const requestParams = {
                 color: color2,
-                textDocument: { uri: context2.document.uri },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context2.document),
                 range: context2.range
               };
               return this.sendRequest(import_node3.ColorPresentationRequest.type, requestParams, token2);
@@ -70293,7 +70053,7 @@ var init_colorProvider = __esm({
             const client = this._client;
             const provideDocumentColors = (document3, token2) => {
               const requestParams = {
-                textDocument: { uri: document3.uri }
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
               return this.sendRequest(import_node3.DocumentColorRequest.type, requestParams, token2);
             };
@@ -70316,7 +70076,6 @@ var init_completion = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     SupportedCompletionItemKinds = [
       CompletionItemKind.Text,
@@ -70394,7 +70153,7 @@ var init_completion = __esm({
             const provideCompletionItems = (document3, position2, context2, token2) => {
               return this.sendRequest(
                 import_node3.CompletionRequest.type,
-                asCompletionParams(document3, position2, context2),
+                this._client.code2ProtocolConverter.asCompletionParams(document3, position2, context2),
                 token2,
                 []
               );
@@ -70577,13 +70336,13 @@ var init_configuration4 = __esm({
         return mergeConfigProperties(toJSONObject(config.get("settings", {})));
       }
       static extractSettingsInformation(keys, workspaceFolder) {
-        function ensurePath(config, path3) {
+        function ensurePath(config, path4) {
           let current = config;
-          for (let i = 0; i < path3.length - 1; i++) {
-            let obj = current[path3[i]];
+          for (let i = 0; i < path4.length - 1; i++) {
+            let obj = current[path4[i]];
             if (!obj) {
               obj = /* @__PURE__ */ Object.create(null);
-              current[path3[i]] = obj;
+              current[path4[i]] = obj;
             }
             current = obj;
           }
@@ -70599,8 +70358,8 @@ var init_configuration4 = __esm({
           } else {
             config = workspace_default.getConfiguration(key, workspaceFolder);
           }
-          let path3 = keys[i].split(".");
-          ensurePath(result, path3)[path3[path3.length - 1]] = config;
+          let path4 = keys[i].split(".");
+          ensurePath(result, path4)[path4[path4.length - 1]] = config;
         }
         return result;
       }
@@ -70616,7 +70375,6 @@ var init_declaration = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     DeclarationFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.DeclarationRequest.type);
@@ -70637,7 +70395,7 @@ var init_declaration = __esm({
         const provider = {
           provideDeclaration: (document2, position, token) => {
             const client = this._client;
-            const provideDeclaration = (document3, position2, token2) => this.sendRequest(import_node3.DeclarationRequest.type, asTextDocumentPositionParams(document3, position2), token2);
+            const provideDeclaration = (document3, position2, token2) => this.sendRequest(import_node3.DeclarationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideDeclaration ? middleware.provideDeclaration(document2, position, token, provideDeclaration) : provideDeclaration(document2, position, token);
           }
@@ -70656,7 +70414,6 @@ var init_definition = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     DefinitionFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -70684,7 +70441,7 @@ var init_definition = __esm({
             const provideDefinition = (document3, position2, token2) => {
               return this.sendRequest(
                 import_node3.DefinitionRequest.type,
-                asTextDocumentPositionParams(document3, position2),
+                client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
             };
@@ -70929,8 +70686,9 @@ var init_diagnostic = __esm({
           onDidChangeDiagnostics: this.onDidChangeDiagnosticsEmitter.event,
           provideDiagnostics: (document2, previousResultId, token) => {
             const middleware = this.client.middleware;
+            const client = this._client;
             const provideDiagnostics = (document3, previousResultId2, token2) => {
-              const uri = document3 instanceof URI ? document3.toString() : document3.uri;
+              const uri = client.code2ProtocolConverter.asUri(document3 instanceof URI ? document3 : URI.parse(document3.uri));
               const params = {
                 identifier: this.options.identifier,
                 textDocument: { uri },
@@ -71196,7 +70954,6 @@ var init_documentHighlight = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     DocumentHighlightFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -71225,7 +70982,7 @@ var init_documentHighlight = __esm({
             const _provideDocumentHighlights = (document3, position2, token2) => {
               return this.sendRequest(
                 import_node3.DocumentHighlightRequest.type,
-                asTextDocumentPositionParams(document3, position2),
+                client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
             };
@@ -71274,7 +71031,7 @@ var init_documentLink = __esm({
             const provideDocumentLinks = (document3, token2) => {
               return this.sendRequest(
                 import_node3.DocumentLinkRequest.type,
-                { textDocument: { uri: document3.uri } },
+                client.code2ProtocolConverter.asDocumentLinkParams(document3),
                 token2
               );
             };
@@ -71305,7 +71062,6 @@ var init_documentSymbol = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     SupportedSymbolKinds = [
       SymbolKind.File,
@@ -71372,7 +71128,7 @@ var init_documentSymbol = __esm({
             const _provideDocumentSymbols = (document3, token2) => {
               return this.sendRequest(
                 import_node3.DocumentSymbolRequest.type,
-                asDocumentSymbolParams(document3),
+                client.code2ProtocolConverter.asDocumentSymbolParams(document3),
                 token2
               );
             };
@@ -71461,16 +71217,6 @@ function access(target, key) {
 function assign(target, key, value) {
   target[key] = value;
 }
-function asCreateDeleteFilesParams(e) {
-  return {
-    files: e.files.map((f) => ({ uri: f.toString() }))
-  };
-}
-function asRenameFilesParams(e) {
-  return {
-    files: e.files.map((f) => ({ oldUri: f.oldUri.toString(), newUri: f.newUri.toString() }))
-  };
-}
 var FileOperationFeature, NotificationFileOperationFeature, DidCreateFilesFeature, DidRenameFilesFeature, DidDeleteFilesFeature, RequestFileOperationFeature, WillCreateFilesFeature, WillRenameFilesFeature, WillDeleteFilesFeature;
 var init_fileOperations = __esm({
   "src/language-client/fileOperations.ts"() {
@@ -71547,13 +71293,13 @@ var init_fileOperations = __esm({
         const fileMatches = await Promise.all(
           event.files.map(async (item) => {
             const uri = prop(item);
-            const path3 = uri.fsPath.replace(/\\/g, "/");
+            const path4 = uri.fsPath.replace(/\\/g, "/");
             for (const filters of this._filters.values()) {
               for (const filter2 of filters) {
                 if (filter2.scheme !== void 0 && filter2.scheme !== uri.scheme) {
                   continue;
                 }
-                if (filter2.matcher.match(path3)) {
+                if (filter2.matcher.match(path4)) {
                   if (filter2.kind === void 0) {
                     return true;
                   }
@@ -71567,7 +71313,7 @@ var init_fileOperations = __esm({
                   }
                 } else if (filter2.kind === import_node3.FileOperationPatternKind.folder) {
                   const fileType = await getFileType(uri.fsPath);
-                  if (fileType === 2 /* Directory */ && filter2.matcher.match(`${path3}/`)) {
+                  if (fileType === 2 /* Directory */ && filter2.matcher.match(`${path4}/`)) {
                     return true;
                   }
                 }
@@ -71624,7 +71370,7 @@ var init_fileOperations = __esm({
           "didCreate",
           "didCreate",
           (i) => i,
-          (e) => asCreateDeleteFilesParams(e)
+          client.code2ProtocolConverter.asDidCreateFilesParams
         );
       }
       doSend(event, next) {
@@ -71641,7 +71387,7 @@ var init_fileOperations = __esm({
           "didRename",
           "didRename",
           (i) => i.oldUri,
-          (e) => asRenameFilesParams(e)
+          client.code2ProtocolConverter.asDidRenameFilesParams
         );
       }
       doSend(event, next) {
@@ -71658,7 +71404,7 @@ var init_fileOperations = __esm({
           "didDelete",
           "didDelete",
           (i) => i,
-          (e) => asCreateDeleteFilesParams(e)
+          client.code2ProtocolConverter.asDidDeleteFilesParams
         );
       }
       doSend(event, next) {
@@ -71698,7 +71444,7 @@ var init_fileOperations = __esm({
           "willCreate",
           "willCreate",
           (i) => i,
-          (e) => asCreateDeleteFilesParams(e)
+          client.code2ProtocolConverter.asWillCreateFilesParams
         );
       }
       doSend(event, next) {
@@ -71715,7 +71461,7 @@ var init_fileOperations = __esm({
           "willRename",
           "willRename",
           (i) => i.oldUri,
-          (e) => asRenameFilesParams(e)
+          client.code2ProtocolConverter.asWillRenameFilesParams
         );
       }
       doSend(event, next) {
@@ -71732,7 +71478,7 @@ var init_fileOperations = __esm({
           "willDelete",
           "willDelete",
           (i) => i,
-          (e) => asCreateDeleteFilesParams(e)
+          client.code2ProtocolConverter.asWillDeleteFilesParams
         );
       }
       doSend(event, next) {
@@ -71743,7 +71489,50 @@ var init_fileOperations = __esm({
   }
 });
 
+// src/model/relativePattern.ts
+var RelativePattern2;
+var init_relativePattern = __esm({
+  "src/model/relativePattern.ts"() {
+    "use strict";
+    init_esm();
+    init_errors();
+    RelativePattern2 = class {
+      constructor(base, pattern) {
+        if (typeof base !== "string") {
+          if (!base || !URI.isUri(base) && typeof base.uri !== "string") {
+            throw illegalArgument("base");
+          }
+        }
+        if (typeof pattern !== "string") {
+          throw illegalArgument("pattern");
+        }
+        if (typeof base === "string") {
+          this.baseUri = URI.file(base);
+        } else if (URI.isUri(base)) {
+          this.baseUri = base;
+        } else {
+          this.baseUri = URI.parse(base.uri);
+        }
+        this.pattern = pattern;
+      }
+      toJSON() {
+        return {
+          pattern: this.pattern,
+          baseUri: this.baseUri.toJSON()
+        };
+      }
+    };
+  }
+});
+
 // src/language-client/fileSystemWatcher.ts
+function asRelativePattern(rp) {
+  let { baseUri, pattern } = rp;
+  if (typeof baseUri === "string") {
+    return new RelativePattern2(URI.parse(baseUri), pattern);
+  }
+  return new RelativePattern2(baseUri, pattern);
+}
 var debounceTime5, FileSystemWatcherFeature;
 var init_fileSystemWatcher2 = __esm({
   "src/language-client/fileSystemWatcher.ts"() {
@@ -71754,8 +71543,9 @@ var init_fileSystemWatcher2 = __esm({
     init_protocol();
     init_workspace();
     init_features();
-    init_converter();
     init_uuid();
+    init_relativePattern();
+    init_esm();
     debounceTime5 = getConditionValue(200, 20);
     FileSystemWatcherFeature = class {
       constructor(_client) {
@@ -71855,10 +71645,11 @@ var init_fileSystemWatcher2 = __esm({
         this._watchers.set(data.id, disposables);
       }
       hookListeners(fileSystemWatcher, watchCreate, watchChange, watchDelete, listeners) {
+        const client = this._client;
         if (watchCreate) {
           fileSystemWatcher.onDidCreate(
             (resource) => this.notifyFileEvent({
-              uri: asUri(resource),
+              uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node3.FileChangeType.Created
             }),
             null,
@@ -71868,7 +71659,7 @@ var init_fileSystemWatcher2 = __esm({
         if (watchChange) {
           fileSystemWatcher.onDidChange(
             (resource) => this.notifyFileEvent({
-              uri: asUri(resource),
+              uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node3.FileChangeType.Changed
             }),
             null,
@@ -71878,7 +71669,7 @@ var init_fileSystemWatcher2 = __esm({
         if (watchDelete) {
           fileSystemWatcher.onDidDelete(
             (resource) => this.notifyFileEvent({
-              uri: asUri(resource),
+              uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node3.FileChangeType.Deleted
             }),
             null,
@@ -71942,7 +71733,7 @@ var init_foldingRange = __esm({
             const client = this._client;
             const provideFoldingRanges = (document3, _, token2) => {
               const requestParams = {
-                textDocument: { uri: document3.uri }
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
               return this.sendRequest(import_node3.FoldingRangeRequest.type, requestParams, token2);
             };
@@ -71964,7 +71755,6 @@ var init_formatting2 = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     DocumentFormattingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -71992,7 +71782,7 @@ var init_formatting2 = __esm({
             const client = this._client;
             const provideDocumentFormattingEdits = (document3, options4, token2) => {
               const params = {
-                textDocument: { uri: document3.uri },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 options: options4
               };
               return this.sendRequest(import_node3.DocumentFormattingRequest.type, params, token2);
@@ -72034,7 +71824,7 @@ var init_formatting2 = __esm({
             const client = this._client;
             const provideDocumentRangeFormattingEdits = (document3, range2, options4, token2) => {
               const params = {
-                textDocument: { uri: document3.uri },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2,
                 options: options4
               };
@@ -72074,7 +71864,7 @@ var init_formatting2 = __esm({
             const client = this._client;
             const provideOnTypeFormattingEdits = (document3, position2, ch2, options4, token2) => {
               const params = {
-                textDocument: asVersionedTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asVersionedTextDocumentIdentifier(document3),
                 position: position2,
                 ch: ch2,
                 options: options4
@@ -72101,7 +71891,6 @@ var init_hover = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     HoverFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -72132,7 +71921,7 @@ var init_hover = __esm({
             const provideHover = (document3, position2, token2) => {
               return this.sendRequest(
                 import_node3.HoverRequest.type,
-                asTextDocumentPositionParams(document3, position2),
+                client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
             };
@@ -72154,7 +71943,6 @@ var init_implementation = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     ImplementationFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.ImplementationRequest.type);
@@ -72175,7 +71963,7 @@ var init_implementation = __esm({
         const provider = {
           provideImplementation: (document2, position, token) => {
             const client = this._client;
-            const provideImplementation = (document3, position2, token2) => this.sendRequest(import_node3.ImplementationRequest.type, asTextDocumentPositionParams(document3, position2), token2);
+            const provideImplementation = (document3, position2, token2) => this.sendRequest(import_node3.ImplementationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideImplementation ? middleware.provideImplementation(document2, position, token, provideImplementation) : provideImplementation(document2, position, token);
           }
@@ -72194,7 +71982,6 @@ var init_inlayHint = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     InlayHintsFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.InlayHintRequest.type);
@@ -72227,7 +72014,7 @@ var init_inlayHint = __esm({
             const client = this._client;
             const provideInlayHints = (document3, range2, token2) => {
               const requestParams = {
-                textDocument: asTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2
               };
               return this.sendRequest(import_node3.InlayHintRequest.type, requestParams, token2, null);
@@ -72259,7 +72046,6 @@ var init_inlineValue = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     InlineValueFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.InlineValueRequest.type);
@@ -72288,7 +72074,7 @@ var init_inlineValue = __esm({
             const client = this._client;
             const provideInlineValues = (document3, range, context2, token2) => {
               const requestParams = {
-                textDocument: asTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range,
                 context: context2
               };
@@ -72313,7 +72099,6 @@ var init_linkedEditingRange = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     LinkedEditingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.LinkedEditingRangeRequest.type);
@@ -72334,7 +72119,7 @@ var init_linkedEditingRange = __esm({
           provideLinkedEditingRanges: (document2, position, token) => {
             const client = this._client;
             const provideLinkedEditing = (document3, position2, token2) => {
-              const params = asTextDocumentPositionParams(document3, position2);
+              const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
               return this.sendRequest(import_node3.LinkedEditingRangeRequest.type, params, token2);
             };
             const middleware = client.middleware;
@@ -72498,7 +72283,6 @@ var init_reference = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     ReferencesFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -72527,7 +72311,7 @@ var init_reference = __esm({
             const _providerReferences = (document3, position2, options4, token2) => {
               return this.sendRequest(
                 import_node3.ReferencesRequest.type,
-                asReferenceParams(document3, position2, options4),
+                client.code2ProtocolConverter.asReferenceParams(document3, position2, options4),
                 token2
               );
             };
@@ -72551,7 +72335,6 @@ var init_rename = __esm({
     init_is();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     RenameFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -72583,7 +72366,7 @@ var init_rename = __esm({
             const client = this._client;
             const provideRenameEdits = (document3, position2, newName2, token2) => {
               const params = {
-                textDocument: { uri: document3.uri },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 position: position2,
                 newName: newName2
               };
@@ -72596,7 +72379,7 @@ var init_rename = __esm({
             const client = this._client;
             const prepareRename = (document3, position2, token2) => {
               const params = {
-                textDocument: asTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 position: position2
               };
               return this.sendRequest(import_node3.PrepareRenameRequest.type, params, token2).then((result) => {
@@ -72656,7 +72439,7 @@ var init_selectionRange = __esm({
             const client = this._client;
             const provideSelectionRanges = (document3, positions2, token2) => {
               const requestParams = {
-                textDocument: { uri: document3.uri },
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 positions: positions2
               };
               return this.sendRequest(import_node3.SelectionRangeRequest.type, requestParams, token2);
@@ -72681,7 +72464,6 @@ var init_semanticTokens = __esm({
     init_is();
     init_protocol();
     init_features();
-    init_converter();
     SemanticTokensFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.SemanticTokensRegistrationType.type);
@@ -72763,7 +72545,7 @@ var init_semanticTokens = __esm({
             const middleware = client.middleware;
             const provideDocumentSemanticTokens = (document3, token2) => {
               const params = {
-                textDocument: asTextDocumentIdentifier(document3)
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
               return this.sendRequest(import_node3.SemanticTokensRequest.type, params, token2);
             };
@@ -72774,7 +72556,7 @@ var init_semanticTokens = __esm({
             const middleware = client.middleware;
             const provideDocumentSemanticTokensEdits = (document3, previousResultId2, token2) => {
               const params = {
-                textDocument: asTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 previousResultId: previousResultId2
               };
               return this.sendRequest(import_node3.SemanticTokensDeltaRequest.type, params, token2);
@@ -72789,7 +72571,7 @@ var init_semanticTokens = __esm({
             const middleware = client.middleware;
             const provideDocumentRangeSemanticTokens = (document3, range2, token2) => {
               const params = {
-                textDocument: asTextDocumentIdentifier(document3),
+                textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2
               };
               return this.sendRequest(import_node3.SemanticTokensRangeRequest.type, params, token2);
@@ -72818,7 +72600,6 @@ var init_signatureHelp = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     init_uuid();
     SignatureHelpFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
@@ -72851,7 +72632,7 @@ var init_signatureHelp = __esm({
             const providerSignatureHelp = (document3, position2, context2, token2) => {
               return this.sendRequest(
                 import_node3.SignatureHelpRequest.type,
-                asSignatureHelpParams(document3, position2, context2),
+                client.code2ProtocolConverter.asSignatureHelpParams(document3, position2, context2),
                 token2
               );
             };
@@ -72874,7 +72655,6 @@ var init_textSynchronization = __esm({
     init_protocol();
     init_workspace();
     init_features();
-    init_converter();
     init_uuid();
     DidOpenTextDocumentFeature = class extends TextDocumentEventFeature {
       constructor(client, _syncedDocuments) {
@@ -72883,7 +72663,7 @@ var init_textSynchronization = __esm({
           workspace_default.onDidOpenTextDocument,
           import_node3.DidOpenTextDocumentNotification.type,
           "didOpen",
-          (textDocument) => asOpenTextDocumentParams(textDocument),
+          (textDocument) => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument),
           TextDocumentEventFeature.textDocumentFilter
         );
         this._syncedDocuments = _syncedDocuments;
@@ -72924,7 +72704,7 @@ var init_textSynchronization = __esm({
           workspace_default.onDidCloseTextDocument,
           import_node3.DidCloseTextDocumentNotification.type,
           "didClose",
-          (textDocument) => asCloseTextDocumentParams(textDocument),
+          (textDocument) => client.code2ProtocolConverter.asCloseTextDocumentParams(textDocument),
           TextDocumentEventFeature.textDocumentFilter
         );
         this._syncedDocuments = _syncedDocuments;
@@ -73025,15 +72805,16 @@ var init_textSynchronization = __esm({
             let middleware = this._client.middleware;
             let promise;
             let didChange;
+            const client = this._client;
             if (changeData.syncKind === import_node3.TextDocumentSyncKind.Incremental) {
               didChange = async (event2) => {
-                const params = asChangeTextDocumentParams(event2);
+                const params = client.code2ProtocolConverter.asChangeTextDocumentParams(event2);
                 await this._client.sendNotification(import_node3.DidChangeTextDocumentNotification.type, params);
                 this.notificationSent(event2, import_node3.DidChangeTextDocumentNotification.type, params);
               };
             } else if (changeData.syncKind === import_node3.TextDocumentSyncKind.Full) {
               didChange = async (event2) => {
-                const params = asFullChangeTextDocumentParams(textDocument);
+                const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(textDocument);
                 await this._client.sendNotification(import_node3.DidChangeTextDocumentNotification.type, params);
                 this.notificationSent(event2, import_node3.DidChangeTextDocumentNotification.type, params);
               };
@@ -73085,7 +72866,7 @@ var init_textSynchronization = __esm({
           workspace_default.onWillSaveTextDocument,
           import_node3.WillSaveTextDocumentNotification.type,
           "willSave",
-          (willSaveEvent) => asWillSaveTextDocumentParams(willSaveEvent),
+          (willSaveEvent) => client.code2ProtocolConverter.asWillSaveTextDocumentParams(willSaveEvent),
           (selectors, willSaveEvent) => TextDocumentEventFeature.textDocumentFilter(selectors, willSaveEvent.document)
         );
       }
@@ -73144,11 +72925,12 @@ var init_textSynchronization = __esm({
           this._selectors.values(),
           event.document
         )) {
+          const client = this._client;
           let middleware = this._client.middleware;
           let willSaveWaitUntil = (event2) => {
             return this.sendRequest(
               import_node3.WillSaveTextDocumentWaitUntilRequest.type,
-              asWillSaveTextDocumentParams(event2),
+              client.code2ProtocolConverter.asWillSaveTextDocumentParams(event2),
               import_node3.CancellationToken.None
             );
           };
@@ -73179,7 +72961,7 @@ var init_textSynchronization = __esm({
           workspace_default.onDidSaveTextDocument,
           import_node3.DidSaveTextDocumentNotification.type,
           "didSave",
-          (textDocument) => asSaveTextDocumentParams(textDocument, this._includeText),
+          (textDocument) => client.code2ProtocolConverter.asSaveTextDocumentParams(textDocument, this._includeText),
           TextDocumentEventFeature.textDocumentFilter
         );
         this._includeText = false;
@@ -73216,7 +72998,6 @@ var init_typeDefinition = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     TypeDefinitionFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.TypeDefinitionRequest.type);
@@ -73237,7 +73018,7 @@ var init_typeDefinition = __esm({
         const provider = {
           provideTypeDefinition: (document2, position, token) => {
             const client = this._client;
-            const provideTypeDefinition = (document3, position2, token2) => this.sendRequest(import_node3.TypeDefinitionRequest.type, asTextDocumentPositionParams(document3, position2), token2);
+            const provideTypeDefinition = (document3, position2, token2) => this.sendRequest(import_node3.TypeDefinitionRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideTypeDefinition ? middleware.provideTypeDefinition(document2, position, token, provideTypeDefinition) : provideTypeDefinition(document2, position, token);
           }
@@ -73256,7 +73037,6 @@ var init_typeHierarchy = __esm({
     init_languages();
     init_protocol();
     init_features();
-    init_converter();
     TypeHierarchyFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
         super(client, import_node3.TypeHierarchyPrepareRequest.type);
@@ -73278,7 +73058,7 @@ var init_typeHierarchy = __esm({
         const provider = {
           prepareTypeHierarchy: (document2, position, token) => {
             const prepareTypeHierarchy = (document3, position2, token2) => {
-              const params = asTextDocumentPositionParams(document3, position2);
+              const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
               return this.sendRequest(import_node3.TypeHierarchyPrepareRequest.type, params, token2);
             };
             const middleware = client.middleware;
@@ -73412,24 +73192,24 @@ var init_errorHandler = __esm({
 });
 
 // src/language-client/utils/logger.ts
-var logger33, ConsoleLogger, NullLogger;
-var init_logger2 = __esm({
+var logger35, ConsoleLogger, NullLogger;
+var init_logger3 = __esm({
   "src/language-client/utils/logger.ts"() {
     "use strict";
     init_logger();
-    logger33 = createLogger("language-client");
+    logger35 = createLogger("language-client");
     ConsoleLogger = class {
       error(message) {
-        logger33.error(message);
+        logger35.error(message);
       }
       warn(message) {
-        logger33.warn(message);
+        logger35.warn(message);
       }
       info(message) {
-        logger33.info(message);
+        logger35.info(message);
       }
       log(message) {
-        logger33.log(message);
+        logger35.log(message);
       }
     };
     NullLogger = class {
@@ -73588,7 +73368,7 @@ var init_workspaceFolders = __esm({
       }
       asProtocol(workspaceFolder) {
         if (workspaceFolder == null) return null;
-        return { uri: workspaceFolder.uri, name: workspaceFolder.name };
+        return { uri: this._client.code2ProtocolConverter.asUri(URI.parse(workspaceFolder.uri)), name: workspaceFolder.name };
       }
     };
   }
@@ -73688,10 +73468,189 @@ var init_workspaceSymbol = __esm({
   }
 });
 
+// src/language-client/utils/codeConverter.ts
+function createConverter(uriConverter) {
+  uriConverter = uriConverter || ((value) => value.toString());
+  function asUri(value) {
+    if (URI.isUri(value)) {
+      return uriConverter(value);
+    } else {
+      return uriConverter(URI.parse(value));
+    }
+  }
+  function asTextDocumentItem(textDocument) {
+    return {
+      uri: asUri(textDocument.uri),
+      languageId: textDocument.languageId,
+      version: textDocument.version,
+      text: textDocument.getText()
+    };
+  }
+  function asTextDocumentIdentifier(textDocument) {
+    return {
+      uri: asUri(textDocument.uri)
+    };
+  }
+  function asVersionedTextDocumentIdentifier(textDocument) {
+    return {
+      uri: asUri(textDocument.uri),
+      version: textDocument.version
+    };
+  }
+  function asOpenTextDocumentParams(textDocument) {
+    return {
+      textDocument: asTextDocumentItem(textDocument)
+    };
+  }
+  function asChangeTextDocumentParams(event) {
+    let { textDocument, contentChanges } = event;
+    let result = {
+      textDocument: {
+        uri: asUri(textDocument.uri),
+        version: textDocument.version
+      },
+      contentChanges: contentChanges.slice()
+    };
+    return result;
+  }
+  function asFullChangeTextDocumentParams(textDocument) {
+    return {
+      textDocument: asVersionedTextDocumentIdentifier(textDocument),
+      contentChanges: [{ text: textDocument.getText() }]
+    };
+  }
+  function asCloseTextDocumentParams(textDocument) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument)
+    };
+  }
+  function asSaveTextDocumentParams(textDocument, includeText = false) {
+    let result = {
+      textDocument: asVersionedTextDocumentIdentifier(textDocument)
+    };
+    if (includeText) {
+      result.text = textDocument.getText();
+    }
+    return result;
+  }
+  function asWillSaveTextDocumentParams(event) {
+    return {
+      textDocument: asTextDocumentIdentifier(event.document),
+      reason: event.reason
+    };
+  }
+  function asDidCreateFilesParams(event) {
+    return {
+      files: event.files.map((file) => ({ uri: asUri(file) }))
+    };
+  }
+  function asDidRenameFilesParams(event) {
+    return {
+      files: event.files.map(
+        (file) => ({ oldUri: asUri(file.oldUri), newUri: asUri(file.newUri) })
+      )
+    };
+  }
+  function asDidDeleteFilesParams(event) {
+    return {
+      files: event.files.map((file) => ({ uri: asUri(file) }))
+    };
+  }
+  function asWillCreateFilesParams(event) {
+    return {
+      files: event.files.map((file) => ({ uri: asUri(file) }))
+    };
+  }
+  function asWillRenameFilesParams(event) {
+    return {
+      files: event.files.map((file) => ({ oldUri: asUri(file.oldUri), newUri: asUri(file.newUri) }))
+    };
+  }
+  function asWillDeleteFilesParams(event) {
+    return {
+      files: event.files.map((file) => ({ uri: asUri(file) }))
+    };
+  }
+  function asTextDocumentPositionParams(textDocument, position) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument),
+      position
+    };
+  }
+  function asCompletionParams(textDocument, position, context) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument),
+      position,
+      context: omit(context, ["option"])
+    };
+  }
+  function asSignatureHelpParams(textDocument, position, context) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument),
+      position,
+      context
+    };
+  }
+  function asReferenceParams(textDocument, position, options2) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument),
+      position,
+      context: { includeDeclaration: options2.includeDeclaration }
+    };
+  }
+  function asDocumentSymbolParams(textDocument) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument)
+    };
+  }
+  function asCodeLensParams(textDocument) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument)
+    };
+  }
+  function asDocumentLinkParams(textDocument) {
+    return {
+      textDocument: asTextDocumentIdentifier(textDocument)
+    };
+  }
+  return {
+    asUri,
+    asTextDocumentItem,
+    asTextDocumentIdentifier,
+    asVersionedTextDocumentIdentifier,
+    asOpenTextDocumentParams,
+    asChangeTextDocumentParams,
+    asFullChangeTextDocumentParams,
+    asCloseTextDocumentParams,
+    asSaveTextDocumentParams,
+    asWillSaveTextDocumentParams,
+    asDidCreateFilesParams,
+    asDidRenameFilesParams,
+    asDidDeleteFilesParams,
+    asWillCreateFilesParams,
+    asWillRenameFilesParams,
+    asWillDeleteFilesParams,
+    asTextDocumentPositionParams,
+    asCompletionParams,
+    asSignatureHelpParams,
+    asReferenceParams,
+    asDocumentSymbolParams,
+    asCodeLensParams,
+    asDocumentLinkParams
+  };
+}
+var init_codeConverter = __esm({
+  "src/language-client/utils/codeConverter.ts"() {
+    "use strict";
+    init_esm();
+    init_lodash();
+  }
+});
+
 // src/language-client/client.ts
-function createConnection(input, output, errorHandler, closeHandler, options2) {
-  let logger59 = new ConsoleLogger();
-  let connection = (0, import_node3.createProtocolConnection)(input, output, logger59, options2);
+function createConnection2(input, output, errorHandler, closeHandler, options2) {
+  let logger61 = new ConsoleLogger();
+  let connection = (0, import_node3.createProtocolConnection)(input, output, logger61, options2);
   connection.onError((data) => {
     errorHandler(data[0], data[1], data[2]);
   });
@@ -73727,8 +73686,8 @@ function createConnection(input, output, errorHandler, closeHandler, options2) {
   };
   return result;
 }
-var logger34, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, BaseLanguageClient, ProposedFeatures;
-var init_client = __esm({
+var logger36, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, BaseLanguageClient, ProposedFeatures;
+var init_client2 = __esm({
   "src/language-client/client.ts"() {
     "use strict";
     init_main();
@@ -73780,13 +73739,13 @@ var init_client = __esm({
     init_typeDefinition();
     init_typeHierarchy();
     init_utils();
-    init_converter();
     init_errorHandler();
-    init_logger2();
+    init_logger3();
     init_uuid();
     init_workspaceFolders();
     init_workspaceSymbol();
-    logger34 = createLogger("language-client-client");
+    init_codeConverter();
+    logger36 = createLogger("language-client-client");
     redOpen = "\x1B[31m";
     redClose = "\x1B[39m";
     RevealOutputChannelOn = /* @__PURE__ */ ((RevealOutputChannelOn2) => {
@@ -73858,6 +73817,7 @@ var init_client = __esm({
             }
           }
         };
+        this._c2p = createConverter(clientOptions.uriConverter ? clientOptions.uriConverter.code2Protocol : void 0);
         this._syncedDocuments = /* @__PURE__ */ new Map();
         this.registerBuiltinFeatures();
       }
@@ -73888,7 +73848,7 @@ var init_client = __esm({
         for (let key of ["disableCompletion", "disableWorkspaceFolders", "disableDiagnostics"]) {
           if (typeof clientOptions[key] === "boolean") {
             let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-            logger34.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
+            logger36.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
             if (clientOptions[key] === true) {
               let s = key.slice(7);
               disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
@@ -73947,6 +73907,9 @@ var init_client = __esm({
       }
       get middleware() {
         return this._clientOptions.middleware;
+      }
+      get code2ProtocolConverter() {
+        return this._c2p;
       }
       getPublicState() {
         if (this.$state === 3 /* Running */) {
@@ -74401,9 +74364,9 @@ var init_client = __esm({
         let initParams = {
           processId: process.pid,
           rootPath: rootPath ? rootPath : null,
-          rootUri: rootPath ? asUri(URI.file(rootPath)) : null,
+          rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI.file(rootPath)) : null,
           capabilities: this.computeClientCapabilities(),
-          initializationOptions: func(initializationOptions) ? initializationOptions() : initializationOptions,
+          initializationOptions: func2(initializationOptions) ? initializationOptions() : initializationOptions,
           trace: import_node3.Trace.toString(this._trace),
           workspaceFolders: workspaceFolder ? [workspaceFolder] : null,
           locale: getLocale(),
@@ -74510,7 +74473,7 @@ var init_client = __esm({
           } else {
             void window_default.showErrorMessage(toText(error.message));
             this.error("Server initialization failed.", error);
-            logger34.error(`Server ${this.id} initialization failed.`, error);
+            logger36.error(`Server ${this.id} initialization failed.`, error);
             cb(false);
           }
           throw error;
@@ -74626,12 +74589,12 @@ var init_client = __esm({
           this.handleConnectionClosed();
         };
         const transports = await this.createMessageTransports(defaultValue(this._clientOptions.stdioEncoding, "utf8"));
-        this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions);
+        this._connection = createConnection2(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions);
         return this._connection;
       }
       handleConnectionClosed() {
         if (this.$state === 5 /* Stopped */) {
-          logger34.debug(`client ${this._id} normal closed`);
+          logger36.debug(`client ${this._id} normal closed`);
           return;
         }
         try {
@@ -74792,7 +74755,7 @@ var init_client = __esm({
       }
       fillInitializeParams(params) {
         for (let feature of this._features) {
-          if (func(feature.fillInitializeParams)) {
+          if (func2(feature.fillInitializeParams)) {
             feature.fillInitializeParams(params);
           }
         }
@@ -74835,7 +74798,7 @@ var init_client = __esm({
       initializeFeatures(_connection) {
         let documentSelector = this._clientOptions.documentSelector;
         for (let feature of this._features) {
-          if (func(feature.preInitialize)) {
+          if (func2(feature.preInitialize)) {
             feature.preInitialize(this._capabilities, documentSelector);
           }
         }
@@ -74997,7 +74960,7 @@ function startedInDebugMode(args) {
   }
   return false;
 }
-var logger35, debugStartWith, debugEquals, STOP_TIMEOUT, Executable, TransportKind, Transport, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
+var logger37, debugStartWith, debugEquals, STOP_TIMEOUT, Executable, TransportKind, Transport2, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esm({
   "src/language-client/index.ts"() {
     "use strict";
@@ -75008,9 +74971,9 @@ var init_language_client = __esm({
     init_processes();
     init_protocol();
     init_workspace();
-    init_client();
-    init_client();
-    logger35 = createLogger("language-client-index");
+    init_client2();
+    init_client2();
+    logger37 = createLogger("language-client-index");
     debugStartWith = ["--debug=", "--debug-brk=", "--inspect=", "--inspect-brk="];
     debugEquals = ["--debug", "--debug-brk", "--inspect", "--inspect-brk"];
     STOP_TIMEOUT = getConditionValue(2e3, 100);
@@ -75027,13 +74990,13 @@ var init_language_client = __esm({
       TransportKind2[TransportKind2["socket"] = 3] = "socket";
       return TransportKind2;
     })(TransportKind || {});
-    ((Transport3) => {
+    ((Transport4) => {
       function isSocket(value) {
         let candidate = value;
         return candidate && candidate.kind === 3 /* socket */ && number(candidate.port);
       }
-      Transport3.isSocket = isSocket;
-    })(Transport || (Transport = {}));
+      Transport4.isSocket = isSocket;
+    })(Transport2 || (Transport2 = {}));
     ((NodeModule2) => {
       function is(value) {
         return string(value.module);
@@ -75146,7 +75109,7 @@ var init_language_client = __esm({
         }
         let server = this._serverOptions;
         const logMessage = this.logMessage.bind(this);
-        if (func(server)) {
+        if (func2(server)) {
           return server().then((result) => {
             if (MessageTransports.is(result)) {
               this._isDetached = !!result.detached;
@@ -75200,7 +75163,7 @@ var init_language_client = __esm({
               } else if (transport === 2 /* pipe */) {
                 pipeName = (0, import_node3.generateRandomPipeName)();
                 args.push(`--pipe=${pipeName}`);
-              } else if (Transport.isSocket(transport)) {
+              } else if (Transport2.isSocket(transport)) {
                 args.push(`--socket=${transport.port}`);
               }
               args.push(`--clientProcessId=${process.pid}`);
@@ -75214,7 +75177,7 @@ var init_language_client = __esm({
                 let sp = child_process.fork(node.module, args || [], options2);
                 assertStdio(sp);
                 this._serverProcess = sp;
-                logger35.info(`Language server "${this.id}" started with ${sp.pid}`);
+                logger37.info(`Language server "${this.id}" started with ${sp.pid}`);
                 sp.stderr.on("data", logMessage);
                 if (transport === 1 /* ipc */) {
                   sp.stdout.on("data", logMessage);
@@ -75226,7 +75189,7 @@ var init_language_client = __esm({
                 return (0, import_node3.createClientPipeTransport)(pipeName).then((transport2) => {
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
-                  logger35.info(`Language server "${this.id}" started with ${sp.pid}`);
+                  logger37.info(`Language server "${this.id}" started with ${sp.pid}`);
                   this._serverProcess = sp;
                   sp.stderr.on("data", logMessage);
                   sp.stdout.on("data", logMessage);
@@ -75234,12 +75197,12 @@ var init_language_client = __esm({
                     resolve({ reader: protocol2[0], writer: protocol2[1] });
                   });
                 });
-              } else if (Transport.isSocket(transport)) {
+              } else if (Transport2.isSocket(transport)) {
                 return (0, import_node3.createClientSocketTransport)(transport.port).then((transport2) => {
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
                   this._serverProcess = sp;
-                  logger35.info(`Language server "${this.id}" started with ${sp.pid}`);
+                  logger37.info(`Language server "${this.id}" started with ${sp.pid}`);
                   sp.stderr.on("data", logMessage);
                   sp.stdout.on("data", logMessage);
                   void transport2.onConnected().then((protocol2) => {
@@ -75262,7 +75225,7 @@ var init_language_client = __esm({
             if (!serverProcess || !serverProcess.pid) {
               return Promise.reject(new Error(`Launching server "${this.id}" using command ${command.command} failed.`));
             }
-            logger35.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
+            logger37.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
             serverProcess.on("exit", (code) => {
               if (code != 0) this.error(`${command.command} exited with code: ${code}`);
             });
@@ -75360,7 +75323,7 @@ function getLanguageServerOptions(id, name2, config, folder) {
     serverOptions = () => new Promise((resolve, reject) => {
       let client = new net.Socket();
       let host = config.host ?? "127.0.0.1";
-      logger36.info(`languageserver "${id}" connecting to ${host}:${port}`);
+      logger38.info(`languageserver "${id}" connecting to ${host}:${port}`);
       client.connect(port, host, () => {
         resolve({
           reader: client,
@@ -75375,7 +75338,7 @@ function getLanguageServerOptions(id, name2, config, folder) {
   let disabledFeatures = Array.from(config.disabledFeatures || []);
   for (let key of ["disableWorkspaceFolders", "disableCompletion", "disableDiagnostics"]) {
     if (config[key] === true) {
-      logger36.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
+      logger38.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
       let s = key.slice(7);
       disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
     }
@@ -75426,7 +75389,7 @@ function isValidServerConfig(key, config) {
     errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`);
   }
   if (errors.length) {
-    logger36.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
+    logger38.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
     return false;
   }
   return true;
@@ -75518,7 +75481,7 @@ function getStateName(state) {
       return "unknown";
   }
 }
-var logger36, ServiceStat, ServiceManager, services_default;
+var logger38, ServiceStat, ServiceManager, services_default;
 var init_services = __esm({
   "src/services.ts"() {
     "use strict";
@@ -75534,7 +75497,7 @@ var init_services = __esm({
     init_window();
     init_workspace();
     init_extensionRegistry();
-    logger36 = createLogger("services");
+    logger38 = createLogger("services");
     ServiceStat = /* @__PURE__ */ ((ServiceStat2) => {
       ServiceStat2[ServiceStat2["Initial"] = 0] = "Initial";
       ServiceStat2[ServiceStat2["Starting"] = 1] = "Starting";
@@ -75586,7 +75549,7 @@ var init_services = __esm({
         this.registered.set(id, service);
         this.tryStartService(service);
         service.onServiceReady(() => {
-          logger36.info(`service ${id} started`);
+          logger38.info(`service ${id} started`);
         }, null, this.disposables);
         return import_node3.Disposable.create(() => {
           if (!this.registered.has(id)) return;
@@ -75660,7 +75623,7 @@ var init_services = __esm({
         return res;
       }
       registerClientsByConfig(lspConfig, folder) {
-        for (let key of Object.keys(toObject(lspConfig))) {
+        for (let key of Object.keys(toObject2(lspConfig))) {
           let config = lspConfig[key];
           if (!isValidServerConfig(key, config)) {
             continue;
@@ -75745,7 +75708,7 @@ var init_services = __esm({
                 service.state = convertState(newState);
                 let oldStr = stateString(oldState);
                 let newStr = stateString(newState);
-                logger36.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
+                logger38.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
               }, null, disposables);
             }
             try {
@@ -75753,13 +75716,13 @@ var init_services = __esm({
                 service.state = convertState(client.state);
               } else {
                 service.state = 1 /* Starting */;
-                logger36.debug(`starting service: ${id}`);
+                logger38.debug(`starting service: ${id}`);
                 await client.start();
                 onDidServiceReady.fire(void 0);
               }
             } catch (e) {
               void window_default.showErrorMessage(`Server ${id} failed to start: ${e}`);
-              logger36.error(`Server ${id} failed to start:`, e);
+              logger38.error(`Server ${id} failed to start:`, e);
               service.state = 2 /* StartFailed */;
             }
           },
@@ -76085,17 +76048,17 @@ function createConfigurationNode(name2, interactive, id) {
   if (id) node.extensionInfo = { id };
   return node;
 }
-var logger37, mouseKeys, winleaveDalay, ListManager, manager_default2;
+var logger39, mouseKeys, winleaveDalay, ListManager, manager_default2;
 var init_manager3 = __esm({
   "src/list/manager.ts"() {
     "use strict";
     init_registry2();
-    init_types();
+    init_types2();
     init_events();
     init_extension();
     init_logger();
     init_util();
-    init_constants();
+    init_constants2();
     init_errors();
     init_extensionRegistry();
     init_node();
@@ -76120,7 +76083,7 @@ var init_manager3 = __esm({
     init_services2();
     init_sources();
     init_symbols();
-    logger37 = createLogger("list-manager");
+    logger39 = createLogger("list-manager");
     mouseKeys = ["<LeftMouse>", "<LeftDrag>", "<LeftRelease>", "<2-LeftMouse>"];
     winleaveDalay = isVim ? 50 : 0;
     ListManager = class {
@@ -76198,7 +76161,7 @@ var init_manager3 = __esm({
           if (isCancellationError(e)) return;
           void window_default.showErrorMessage(`Error on "CocList ${name2}": ${toErrorText(e)}`);
           this.nvim.redrawVim();
-          logger37.error(`Error on load ${name2} list:`, e);
+          logger39.error(`Error on load ${name2} list:`, e);
         }
       }
       getSessionByWinid(winid) {
@@ -76460,6 +76423,7 @@ var init_manager3 = __esm({
       }
       triggerCursorMoved() {
         if (this.nvim.isVim) this.nvim.command("doautocmd <nomodeline> CursorMoved", true);
+        this.nvim.call("coc#util#do_autocmd", ["CocListMoved"], true);
       }
       async call(fname) {
         if (this.session) return await this.session.call(fname);
@@ -77105,7 +77069,7 @@ var init_variableResolve = __esm({
 });
 
 // src/snippets/session.ts
-var logger38, NAME_SPACE2, SnippetSession;
+var logger40, NAME_SPACE2, SnippetSession;
 var init_session2 = __esm({
   "src/snippets/session.ts"() {
     "use strict";
@@ -77121,7 +77085,7 @@ var init_session2 = __esm({
     init_parser3();
     init_snippet();
     init_variableResolve();
-    logger38 = createLogger("snippets-session");
+    logger40 = createLogger("snippets-session");
     NAME_SPACE2 = "snippets";
     SnippetSession = class {
       constructor(nvim, document2, config) {
@@ -77210,7 +77174,7 @@ var init_session2 = __esm({
         this.nvim.call("coc#snippet#disable", [], true);
         if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [this.bufnr, NAME_SPACE2, 0, -1], true);
         this._onCancelEvent.fire(void 0);
-        logger38.debug(`session ${this.bufnr} cancelled`);
+        logger40.debug(`session ${this.bufnr} cancelled`);
       }
       get isActive() {
         return this._isActive;
@@ -77256,7 +77220,7 @@ var init_session2 = __esm({
           this.highlights(placeholder);
           if (placeholder.index == 0) {
             if (finalCount == 1) {
-              logger38.info("Jump to final placeholder, cancelling snippet session");
+              logger40.info("Jump to final placeholder, cancelling snippet session");
               this.deactivate();
             } else {
               nvim.call("coc#snippet#disable", [], true);
@@ -77290,7 +77254,7 @@ var init_session2 = __esm({
         if (!this.isActive) return;
         let position = await window_default.getCursorPosition();
         if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
-          logger38.info("Cursor insert out of range, cancelling snippet session");
+          logger40.info("Cursor insert out of range, cancelling snippet session");
           this.deactivate();
         }
       }
@@ -77320,7 +77284,7 @@ var init_session2 = __esm({
         if (change && !rangeInRange(change.range, range)) change = void 0;
         let end = getEndPosition(range.end, textDocument, d);
         if (!end) {
-          logger38.info("Content change after snippet, cancel snippet session");
+          logger40.info("Content change after snippet, cancel snippet session");
           this.deactivate();
           return;
         }
@@ -77331,10 +77295,10 @@ var init_session2 = __esm({
             let pos = d.positionAt(content.length - text.length);
             this.snippet.resetStartPosition(pos);
             this.textDocument = d;
-            logger38.info("Content change before snippet, reset snippet position");
+            logger40.info("Content change before snippet, reset snippet position");
             return;
           }
-          logger38.info("Before and snippet body changed, cancel snippet session");
+          logger40.info("Before and snippet body changed, cancel snippet session");
           this.deactivate();
           return;
         }
@@ -77375,11 +77339,11 @@ var init_session2 = __esm({
           let pos = getEnd(range.start, inserted.slice(0, -text.length));
           this.snippet.resetStartPosition(pos);
           this.textDocument = d;
-          logger38.info("Content change before snippet, reset snippet position");
+          logger40.info("Content change before snippet, reset snippet position");
           return;
         }
         if (!placeholder) {
-          logger38.info("Unable to find changed placeholder, cancel snippet session");
+          logger40.info("Unable to find changed placeholder, cancel snippet session");
           this.deactivate();
           return;
         }
@@ -77407,7 +77371,7 @@ var init_session2 = __esm({
         } else {
           this.highlights(placeholder);
         }
-        logger38.debug("update cost:", Date.now() - start, res.delta);
+        logger40.debug("update cost:", Date.now() - start, res.delta);
         this.textDocument = this.document.textDocument;
         if (this.config.nextOnDelete) {
           if (curr && curr.value.length > 0 && placeholder.marker.toString() === "") {
@@ -78016,8 +77980,8 @@ var require_src3 = __commonJS({
     init_util();
     init_fs();
     init_processes();
-    init_types();
     init_types2();
+    init_types3();
     init_workspaceFolder();
     module2.exports = {
       get nvim() {
@@ -78182,7 +78146,7 @@ function removedGlobalStub(name2) {
 function makeRequireFunction(cocExports) {
   const req = (p) => {
     if (p === "coc.nvim") {
-      return toObject(cocExports);
+      return toObject2(cocExports);
     }
     return this.require(p);
   };
@@ -78208,7 +78172,7 @@ function getProtoWithCompile(mod) {
   if (hasOwnProperty(mod.prototype.__proto__, "_compile")) return mod.prototype.__proto__;
   throw new Error("_compile not found");
 }
-function createSandbox(filename, logger59, name2, noExport = false) {
+function createSandbox(filename, logger61, name2, noExport = false) {
   const module2 = new Module(filename);
   module2.paths = Module._nodeModulePaths(filename);
   const sandbox = vm.createContext({
@@ -78217,19 +78181,19 @@ function createSandbox(filename, logger59, name2, noExport = false) {
     URL: globalThis.URL,
     console: {
       debug: (...args) => {
-        logger59.debug.apply(logger59, args);
+        logger61.debug.apply(logger61, args);
       },
       log: (...args) => {
-        logger59.info.apply(logger59, args);
+        logger61.info.apply(logger61, args);
       },
       error: (...args) => {
-        logger59.error.apply(logger59, args);
+        logger61.error.apply(logger61, args);
       },
       info: (...args) => {
-        logger59.info.apply(logger59, args);
+        logger61.info.apply(logger61, args);
       },
       warn: (...args) => {
-        logger59.warn.apply(logger59, args);
+        logger61.warn.apply(logger61, args);
       }
     }
   }, { name: name2 });
@@ -78269,8 +78233,8 @@ function createExtension(id, filename, isEmpty2) {
     },
     deactivate: null
   };
-  const logger59 = getLogger(!global.__isMain && true, id);
-  const sandbox = createSandbox(filename, logger59, id);
+  const logger61 = getLogger(!global.__isMain && true, id);
+  const sandbox = createSandbox(filename, logger61, id);
   delete Module._cache[require.resolve(filename)];
   const defaultImport = sandbox.require(filename);
   const activate = defaultImport && defaultImport.activate || defaultImport;
@@ -78326,23 +78290,23 @@ function createTiming(name2, timeout2) {
       clearTimeout(timer);
       if (timeout2) {
         timer = setTimeout(() => {
-          logger39.error(`${name2} timeout after ${timeout2}ms`);
+          logger41.error(`${name2} timeout after ${timeout2}ms`);
         }, timeout2);
         timer.unref();
       }
     },
     stop() {
       clearTimeout(timer);
-      logger39.trace(`${name2}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
+      logger41.trace(`${name2}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
     }
   };
 }
-var logger39;
+var logger41;
 var init_timing = __esm({
   "src/util/timing.ts"() {
     "use strict";
     init_logger();
-    logger39 = createLogger("timing");
+    logger41 = createLogger("timing");
   }
 });
 
@@ -78418,7 +78382,7 @@ function checkExtensionRoot(root) {
     }
     let stat = fs.statSync(root);
     if (!stat.isDirectory()) {
-      logger40.info(`Trying to delete ${root}`);
+      logger42.info(`Trying to delete ${root}`);
       fs.unlinkSync(root);
       fs.mkdirSync(root, { recursive: true });
     }
@@ -78441,13 +78405,13 @@ function loadJson2(filepath) {
   try {
     let text = fs.readFileSync(filepath, "utf8");
     let data = JSON.parse(text);
-    return toObject(data);
+    return toObject2(data);
   } catch (e) {
-    logger40.error(`Error on parse json file ${filepath}`, e);
+    logger42.error(`Error on parse json file ${filepath}`, e);
     return {};
   }
 }
-var logger40, ONE_DAY, ExtensionStat;
+var logger42, ONE_DAY, ExtensionStat;
 var init_stat = __esm({
   "src/extension/stat.ts"() {
     "use strict";
@@ -78457,7 +78421,7 @@ var init_stat = __esm({
     init_is();
     init_node();
     init_object();
-    logger40 = createLogger("extension-stat");
+    logger42 = createLogger("extension-stat");
     ONE_DAY = 24 * 60 * 60 * 1e3;
     ExtensionStat = class {
       constructor(folder) {
@@ -78469,7 +78433,7 @@ var init_stat = __esm({
         try {
           this.migrate();
         } catch (e) {
-          logger40.error(`Error on update package.json at ${folder}`, e);
+          logger42.error(`Error on update package.json at ${folder}`, e);
         }
       }
       migrate() {
@@ -78691,20 +78655,20 @@ function toWorkspaceContainsPatterns(activationEvents) {
   }
   return patterns;
 }
-var logger41, extensionRegistry5, memos, configurationRegistry2, ExtensionManager;
+var logger43, extensionRegistry5, memos, configurationRegistry2, ExtensionManager;
 var init_manager5 = __esm({
   "src/extension/manager.ts"() {
     "use strict";
     init_esm();
     init_registry2();
-    init_types();
+    init_types2();
     init_watchman();
     init_events();
     init_logger();
     init_memos();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_extensionRegistry();
     init_factory();
     init_fs();
@@ -78718,7 +78682,7 @@ var init_manager5 = __esm({
     init_window();
     init_workspace();
     init_stat();
-    logger41 = createLogger("extensions-manager");
+    logger43 = createLogger("extensions-manager");
     extensionRegistry5 = Registry.as(Extensions.ExtensionContribution);
     memos = new Memos(path.resolve(dataHome, "memos.json"));
     memos.merge(path.resolve(dataHome, "../memos.json"));
@@ -78999,7 +78963,7 @@ var init_manager5 = __esm({
           let checked = await this.checkAutoActivate(extension.packageJSON);
           if (checked) await Promise.resolve(extension.activate());
         } catch (e) {
-          logger41.error(`Error on activate ${id}`, e);
+          logger43.error(`Error on activate ${id}`, e);
         }
       }
       async loadExtensionFile(filepath, noActive = false) {
@@ -79025,7 +78989,7 @@ var init_manager5 = __esm({
             let extensionType = stat.isLocal ? 1 /* Local */ : 0 /* Global */;
             void this.registerExtension(stat.root, stat.packageJSON, extensionType);
           } catch (e) {
-            logger41.error(`Error on regist extension from ${stat.root}: `, e);
+            logger43.error(`Error on regist extension from ${stat.root}: `, e);
           }
         }
       }
@@ -79064,7 +79028,7 @@ var init_manager5 = __esm({
                 timing.stop();
                 resolve(res);
               } catch (e) {
-                logger41.error(`Error on active extension ${id}:`, e);
+                logger43.error(`Error on active extension ${id}:`, e);
                 reject(e);
               }
             });
@@ -79104,7 +79068,7 @@ var init_manager5 = __esm({
                 await Promise.resolve(ext.deactivate());
                 ext = void 0;
               } catch (e) {
-                logger41.error(`Error on ${id} deactivate: `, e);
+                logger43.error(`Error on ${id} deactivate: `, e);
               }
             }
           }
@@ -79435,16 +79399,16 @@ var init_ui3 = __esm({
 function toUrl(val) {
   return isUrl(val) ? val.replace(/\.git(#master|#main)?$/, "") : "";
 }
-var logger42, EXTENSIONS_FOLDER, Extensions4, extension_default;
+var logger44, EXTENSIONS_FOLDER, Extensions4, extension_default;
 var init_extension = __esm({
   "src/extension/index.ts"() {
     "use strict";
     init_commands();
-    init_types();
+    init_types2();
     init_logger();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_is();
     init_node();
     init_processes();
@@ -79454,7 +79418,7 @@ var init_extension = __esm({
     init_manager5();
     init_stat();
     init_ui3();
-    logger42 = createLogger("extensions-index");
+    logger44 = createLogger("extensions-index");
     EXTENSIONS_FOLDER = path.join(dataHome, "extensions");
     Extensions4 = class {
       constructor() {
@@ -79466,7 +79430,7 @@ var init_extension = __esm({
           id: "extensions.forceUpdateAll",
           execute: async () => {
             let arr = await this.manager.cleanExtensions();
-            logger42.info(`Force update extensions: ${arr}`);
+            logger44.info(`Force update extensions: ${arr}`);
             await this.installExtensions(arr);
           }
         }, false, "remove all global extensions and install them");
@@ -79603,7 +79567,7 @@ var init_extension = __esm({
             installBuffer.addMessage(key, err.message);
             installBuffer.finishProgress(key, false);
             void window_default.showErrorMessage(`Error on install ${key}: ${err}`);
-            logger42.error(`Error on install ${key}`, err);
+            logger44.error(`Error on install ${key}`, err);
           }
         };
         await concurrent(list2, fn);
@@ -79642,7 +79606,7 @@ var init_extension = __esm({
             installBuffer.addMessage(id, err.message);
             installBuffer.finishProgress(id, false);
             void window_default.showErrorMessage(`Error on update ${id}: ${err}`);
-            logger42.error(`Error on update ${id}`, err);
+            logger44.error(`Error on update ${id}`, err);
           }
         };
         await concurrent(stats, fn, silent ? 1 : 3);
@@ -79665,7 +79629,7 @@ var init_extension = __esm({
             let json = await loadGlobalJsonAsync(root, VERSION);
             res.push({ root, isLocal: false, packageJSON: json });
           } catch (err) {
-            logger42.error(`Error on load package.json of ${key}`, err);
+            logger44.error(`Error on load package.json of ${key}`, err);
           }
         }
         return res;
@@ -79696,7 +79660,7 @@ var init_extension = __esm({
             packageJSON: obj
           });
         });
-        logger42.debug("globalExtensionStats:", infos.length);
+        logger44.debug("globalExtensionStats:", infos.length);
         return infos;
       }
       runtimeExtensionStats(runtimepath) {
@@ -79843,13 +79807,13 @@ var init_source = __esm({
     init_events();
     init_util();
     init_array();
-    init_constants();
+    init_constants2();
     init_fuzzy();
     init_node();
     init_is();
     init_string();
     init_workspace();
-    init_types2();
+    init_types3();
     WORD_PREFIXES = ["_", "$", "-"];
     WORD_PREFIXES_CODE = [95, 36, 45];
     MAX_DURATION = getConditionValue(80, 20);
@@ -79931,7 +79895,7 @@ var init_source = __esm({
       }
       getConfig(key, defaultValue2) {
         let val = this.config[key];
-        if (func(val) || val == null) return defaultValue2 ?? null;
+        if (func2(val) || val == null) return defaultValue2 ?? null;
         return val;
       }
       toggle() {
@@ -79949,16 +79913,16 @@ var init_source = __esm({
           }
         }
         let fn = this.defaults["shouldComplete"];
-        if (func(fn)) return !!await Promise.resolve(fn.call(this, opt));
+        if (func2(fn)) return !!await Promise.resolve(fn.call(this, opt));
         return true;
       }
       async refresh() {
         let fn = this.defaults["refresh"];
-        if (func(fn)) await Promise.resolve(fn.call(this));
+        if (func2(fn)) await Promise.resolve(fn.call(this));
       }
       async onCompleteDone(item, opt) {
         let fn = this.defaults["onCompleteDone"];
-        if (func(fn)) await Promise.resolve(fn.call(this, item, opt));
+        if (func2(fn)) await Promise.resolve(fn.call(this, item, opt));
       }
       async doComplete(opt, token) {
         let shouldRun = await this.checkComplete(opt);
@@ -79968,7 +79932,7 @@ var init_source = __esm({
       }
       async onCompleteResolve(item, opt, token) {
         let fn = this.defaults["onCompleteResolve"];
-        if (func(fn)) await Promise.resolve(fn.call(this, item, opt, token));
+        if (func2(fn)) await Promise.resolve(fn.call(this, item, opt, token));
       }
       /**
        * Add words to items with timer.
@@ -80048,7 +80012,7 @@ function fixTextEdit(character, edit2) {
   }
   return edit2;
 }
-var logger43, LanguageSource;
+var logger45, LanguageSource;
 var init_source_language = __esm({
   "src/completion/source-language.ts"() {
     "use strict";
@@ -80065,9 +80029,9 @@ var init_source_language = __esm({
     init_protocol();
     init_string();
     init_workspace();
-    init_types2();
+    init_types3();
     init_util3();
-    logger43 = createLogger("source-language");
+    logger45 = createLogger("source-language");
     LanguageSource = class {
       constructor(name2, shortcut, provider, documentSelector, triggerCharacters, allCommitCharacters, priority) {
         this.name = name2;
@@ -80106,16 +80070,16 @@ var init_source_language = __esm({
         if (!result || token.isCancellationRequested) return null;
         let completeItems = Array.isArray(result) ? result : result.items;
         if (!completeItems || completeItems.length == 0) return null;
-        let itemDefaults = this.itemDefaults = toObject(result["itemDefaults"]);
+        let itemDefaults = this.itemDefaults = toObject2(result["itemDefaults"]);
         let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
         return { isIncomplete, items: completeItems, itemDefaults };
       }
       onCompleteResolve(item, opt, token) {
-        let hasResolve = func(this.provider.resolveCompletionItem);
+        let hasResolve = func2(this.provider.resolveCompletionItem);
         if (!hasResolve) return;
         let promise = this.resolving.get(item);
         if (promise) return promise;
-        let invalid = false;
+        let invalid2 = false;
         promise = new Promise(async (resolve, reject) => {
           let disposable = token.onCancellationRequested(() => {
             this.resolving.delete(item);
@@ -80126,7 +80090,7 @@ var init_source_language = __esm({
             disposable.dispose();
             if (!token.isCancellationRequested) {
               if (!resolved) {
-                invalid = true;
+                invalid2 = true;
                 this.resolving.delete(item);
               } else {
                 if (resolved.textEdit) {
@@ -80138,12 +80102,12 @@ var init_source_language = __esm({
             }
             resolve();
           } catch (e) {
-            invalid = true;
+            invalid2 = true;
             this.resolving.delete(item);
             reject(e);
           }
         });
-        if (!invalid) {
+        if (!invalid2) {
           this.resolving.set(item, promise);
         }
         return promise;
@@ -80166,7 +80130,7 @@ var init_source_language = __esm({
           if (commands_default.has(item.command.command)) {
             void commands_default.execute(item.command);
           } else {
-            logger43.warn(`Command "${item.command.command}" not registered to coc.nvim`);
+            logger45.warn(`Command "${item.command.command}" not registered to coc.nvim`);
           }
         }
       }
@@ -80349,20 +80313,20 @@ var init_around = __esm({
 // src/completion/native/buffer.ts
 var buffer_exports = {};
 __export(buffer_exports, {
-  Buffer: () => Buffer2,
+  Buffer: () => Buffer3,
   register: () => register2
 });
 function register2(sourceMap, keywords) {
-  let source = new Buffer2(keywords);
+  let source = new Buffer3(keywords);
   sourceMap.set("buffer", source);
 }
-var Buffer2;
+var Buffer3;
 var init_buffer2 = __esm({
   "src/completion/native/buffer.ts"() {
     "use strict";
     init_util();
     init_source();
-    Buffer2 = class extends Source {
+    Buffer3 = class extends Source {
       constructor(keywords) {
         super({ name: "buffer", filepath: __filename });
         this.keywords = keywords;
@@ -80578,14 +80542,14 @@ __export(sources_exports, {
   logError: () => logError
 });
 function logError(err) {
-  logger44.error("Error on source create", err);
+  logger46.error("Error on source create", err);
 }
 function getSourceType(sourceType) {
   if (sourceType === 0 /* Native */) return "native";
   if (sourceType === 1 /* Remote */) return "remote";
   return "service";
 }
-var logger44, WordsSource, Sources, sources_default;
+var logger46, WordsSource, Sources, sources_default;
 var init_sources2 = __esm({
   "src/completion/sources.ts"() {
     "use strict";
@@ -80605,9 +80569,9 @@ var init_sources2 = __esm({
     init_source();
     init_source_language();
     init_source_vim();
-    init_types2();
+    init_types3();
     init_util3();
-    logger44 = createLogger("sources");
+    logger46 = createLogger("sources");
     WordsSource = class {
       constructor() {
         this.name = "$words";
@@ -80679,7 +80643,7 @@ var init_sources2 = __esm({
           toArray(allCommitCharacters),
           priority
         );
-        logger44.trace("created service source", name2);
+        logger46.trace("created service source", name2);
         this.sourceMap.set(name2, source);
         return {
           dispose: () => {
@@ -80781,8 +80745,8 @@ var init_sources2 = __esm({
       }
       createRemoteSources() {
         let paths = workspace_default.env.runtimepath.split(",");
-        for (let path3 of paths) {
-          this.createVimSources(path3).catch(logError);
+        for (let path4 of paths) {
+          this.createVimSources(path4).catch(logError);
         }
       }
       async createVimSources(pluginPath) {
@@ -80810,7 +80774,7 @@ var init_sources2 = __esm({
       }
       shouldCommit(source, item, commitCharacter) {
         if (!item || source == null) return false;
-        if (func(source.shouldCommit)) {
+        if (func2(source.shouldCommit)) {
           return source.shouldCommit(item, commitCharacter);
         }
         return false;
@@ -80866,7 +80830,7 @@ var init_sources2 = __esm({
       addSource(source) {
         let { name: name2 } = source;
         if (this.names.includes(name2)) {
-          logger44.warn(`Recreate source ${name2}`);
+          logger46.warn(`Recreate source ${name2}`);
         }
         this.sourceMap.set(name2, source);
         return import_node3.Disposable.create(() => {
@@ -80915,14 +80879,14 @@ var init_sources2 = __esm({
       onDocumentEnter(bufnr) {
         let { sources } = this;
         for (let s of sources) {
-          if (s.enable && func(s.onEnter)) {
+          if (s.enable && func2(s.onEnter)) {
             s.onEnter(bufnr);
           }
         }
       }
       createSource(config) {
         if (typeof config.name !== "string" || typeof config.doComplete !== "function") {
-          logger44.error(`Bad config for createSource:`, config);
+          logger46.error(`Bad config for createSource:`, config);
           throw new TypeError(`name and doComplete required for createSource`);
         }
         let source = new Source(Object.assign({ sourceType: 2 /* Service */ }, config));
@@ -81126,7 +81090,7 @@ var init_languages = __esm({
         return this.renameManager.register(selector, provider);
       }
       registerWorkspaceSymbolProvider(provider) {
-        if (arguments.length > 1 && func(arguments[1].provideWorkspaceSymbols)) {
+        if (arguments.length > 1 && func2(arguments[1].provideWorkspaceSymbols)) {
           provider = arguments[1];
         }
         return this.workspaceSymbolsManager.register(provider);
@@ -81327,7 +81291,7 @@ var init_languages = __esm({
         disposables.push(import_node3.Disposable.create(() => {
           clearTimeout(timer);
         }));
-        func(provider[key]) && disposables.push(provider[key](() => {
+        func2(provider[key]) && disposables.push(provider[key](() => {
           clearTimeout(timer);
           emitter.fire(selector);
         }));
@@ -81449,7 +81413,7 @@ var init_wordDistance = __esm({
             if (!equals([events_default.cursor.lnum, events_default.cursor.col], cursor)) {
               return 0;
             }
-            if (item.kind === CompletionItemKind.Keyword || toObject(item.source)["name"] === "snippets") {
+            if (item.kind === CompletionItemKind.Keyword || toObject2(item.source)["name"] === "snippets") {
               return 2 << 20;
             }
             const wordLines = wordRanges[item.word];
@@ -81492,7 +81456,7 @@ function sortItems(emptyInput, defaultSortMethod, a, b) {
       return a.filterText.length - b.filterText.length;
   }
 }
-var logger45, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
+var logger47, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
 var init_complete = __esm({
   "src/completion/complete.ts"() {
     "use strict";
@@ -81506,10 +81470,10 @@ var init_complete = __esm({
     init_protocol();
     init_string();
     init_workspace();
-    init_types2();
+    init_types3();
     init_util3();
     init_wordDistance();
-    logger45 = createLogger("completion-complete");
+    logger47 = createLogger("completion-complete");
     MAX_DISTANCE = 2 << 20;
     MIN_TIMEOUT = 50;
     MAX_TIMEOUT = 15e3;
@@ -81596,18 +81560,18 @@ var init_complete = __esm({
         this.option.synname = res[0];
         let variables = res[1];
         if (variables.disable) {
-          logger45.warn("suggest cancelled by b:coc_suggest_disable");
+          logger47.warn("suggest cancelled by b:coc_suggest_disable");
           return true;
         }
         if (!isFalsyOrEmpty(variables.disabled_sources)) {
           this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
           if (this.sources.length === 0) {
-            logger45.warn("suggest cancelled by b:coc_disabled_sources");
+            logger47.warn("suggest cancelled by b:coc_disabled_sources");
             return true;
           }
         }
         if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
-          logger45.warn("suggest cancelled by b:coc_suggest_blacklist");
+          logger47.warn("suggest cancelled by b:coc_suggest_blacklist");
           return true;
         }
         void WordDistance.create(this.config.localityBonus, this.option, token).then((instance2) => {
@@ -81633,7 +81597,7 @@ var init_complete = __esm({
             let names = Array.from(remains);
             disposable.dispose();
             tokenSource.cancel();
-            logger45.warn(`Completion timeout after ${this.timeout}ms`, names);
+            logger47.warn(`Completion timeout after ${this.timeout}ms`, names);
             this.nvim.setVar(`coc_timeout_sources`, names, true);
             resolve();
           }, this.timeout);
@@ -81661,7 +81625,7 @@ var init_complete = __esm({
         const sourceName = source.name;
         let added = false;
         try {
-          if (func(source.shouldComplete)) {
+          if (func2(source.shouldComplete)) {
             let shouldRun = await Promise.resolve(source.shouldComplete(opt));
             if (!shouldRun || token.isCancellationRequested) return;
           }
@@ -81674,7 +81638,7 @@ var init_complete = __esm({
                 return;
               }
               let len = result ? result.items.length : 0;
-              logger45.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
+              logger47.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
               if (len > 0) {
                 if (number(result.startcol)) {
                   let line = opt.linenr - 1;
@@ -81686,7 +81650,7 @@ var init_complete = __esm({
                 const items = result.items.reduce((items2, item) => {
                   let completeItem = converter.convertToDurationItem(item);
                   if (!completeItem) {
-                    logger45.error(`Unexpected completion item from ${sourceName}:`, item);
+                    logger47.error(`Unexpected completion item from ${sourceName}:`, item);
                     return items2;
                   }
                   map.set(completeItem, item);
@@ -81705,7 +81669,7 @@ var init_complete = __esm({
             });
           });
         } catch (err) {
-          logger45.error("Complete error:", source.name, err);
+          logger47.error("Complete error:", source.name, err);
         }
         return added;
       }
@@ -81849,7 +81813,7 @@ var init_complete = __esm({
 });
 
 // src/completion/floating.ts
-var logger46, RESOLVE_TIMEOUT, Floating;
+var logger48, RESOLVE_TIMEOUT, Floating;
 var init_floating = __esm({
   "src/completion/floating.ts"() {
     "use strict";
@@ -81861,7 +81825,7 @@ var init_floating = __esm({
     init_protocol();
     init_workspace();
     init_util3();
-    logger46 = createLogger("completion-floating");
+    logger48 = createLogger("completion-floating");
     RESOLVE_TIMEOUT = getConditionValue(500, 50);
     Floating = class {
       constructor(config) {
@@ -81869,14 +81833,14 @@ var init_floating = __esm({
       }
       async resolveItem(source, item, opt, showDocs, detailRendered = false) {
         this.cancel();
-        if (func(source.onCompleteResolve)) {
+        if (func2(source.onCompleteResolve)) {
           try {
             await this.requestWithToken((token) => {
               return Promise.resolve(source.onCompleteResolve(item, opt, token));
             });
           } catch (e) {
             if (isCancellationError(e)) return;
-            logger46.error(`Error on resolve complete item from ${source.name}:`, item, e);
+            logger48.error(`Error on resolve complete item from ${source.name}:`, item, e);
             return;
           }
         }
@@ -82255,7 +82219,7 @@ var init_pum = __esm({
 });
 
 // src/completion/index.ts
-var logger47, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
+var logger49, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
 var init_completion2 = __esm({
   "src/completion/index.ts"() {
     "use strict";
@@ -82277,9 +82241,9 @@ var init_completion2 = __esm({
     init_floating();
     init_pum();
     init_sources2();
-    init_types2();
+    init_types3();
     init_util3();
-    logger47 = createLogger("completion");
+    logger49 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
     CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
     Completion = class {
@@ -82417,7 +82381,7 @@ var init_completion2 = __esm({
           invalidInsertCharacters: toArray(suggest.invalidInsertCharacters),
           formatItems: suggest.formatItems,
           filterOnBackspace: suggest.filterOnBackspace,
-          floatConfig: toObject(suggest.floatConfig),
+          floatConfig: toObject2(suggest.floatConfig),
           pumFloatConfig: suggest.pumFloatConfig,
           labelMaxLength: suggest.labelMaxLength,
           reTriggerAfterIndent: !!suggest.reTriggerAfterIndent,
@@ -82448,7 +82412,7 @@ var init_completion2 = __esm({
         this._debounced.clear();
         let doc = workspace_default.getAttachedDocument(option.bufnr);
         option.filetype = doc.filetype;
-        logger47.debug("trigger completion with", option);
+        logger49.debug("trigger completion with", option);
         this.stop(true);
         this.pretext = byteSlice(option.line, 0, option.colnr - 1);
         sourceList = sourceList ?? sources_default.getSources(option);
@@ -82516,7 +82480,7 @@ var init_completion2 = __esm({
           let resolvedItem = this.selectedItem;
           let result = this.complete.resolveItem(resolvedItem);
           if (result && sources_default.shouldCommit(result.source, result.item, last)) {
-            logger47.debug("commit by commit character.");
+            logger49.debug("commit by commit character.");
             let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
             this.stop(true);
             this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word + info.insertChar], true);
@@ -82554,7 +82518,7 @@ var init_completion2 = __esm({
         if (!sources && !this.shouldTrigger(doc, pre)) return false;
         const option = this.getCompleteOption(doc, info);
         if (sources == null && option.input.length < minTriggerInputLength) {
-          logger47.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
+          logger49.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
           return false;
         }
         if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false;
@@ -82613,7 +82577,7 @@ var init_completion2 = __esm({
       }
       async confirmCompletion(source, item, option) {
         await this.floating.resolveItem(source, item, option, false);
-        if (!func(source.onCompleteDone)) return;
+        if (!func2(source.onCompleteDone)) return;
         let { insertMode, snippetsSupport } = this.config;
         let opt = Object.assign({ insertMode, snippetsSupport }, option);
         await Promise.resolve(source.onCompleteDone(item, opt));
@@ -82849,7 +82813,7 @@ function surrondChanges(changes, len) {
   if (end !== len) return false;
   return true;
 }
-var logger48, CursorSession;
+var logger50, CursorSession;
 var init_session3 = __esm({
   "src/cursors/session.ts"() {
     "use strict";
@@ -82865,7 +82829,7 @@ var init_session3 = __esm({
     init_workspace();
     init_textRange();
     init_util5();
-    logger48 = createLogger("cursors-session");
+    logger50 = createLogger("cursors-session");
     CursorSession = class {
       constructor(nvim, doc, config) {
         this.nvim = nvim;
@@ -82972,20 +82936,20 @@ var init_session3 = __esm({
           affected = affected.slice(0, 1);
         }
         if (affected.length == 0) {
-          logger48.debug("no affected ranges");
+          logger50.debug("no affected ranges");
           this.ranges.forEach((r) => {
             r.adjustFromEdit({ range, newText: text });
           });
           this.doHighlights();
         } else if (affected.length == 1 && rangeInRange(range, affected[0].range)) {
-          logger48.debug("affected single range");
+          logger50.debug("affected single range");
           if (text.includes("\n")) {
             this.cancel();
             return;
           }
           await this.applySingleEdit(affected[0], { range, newText: text });
         } else if (!text.length || !this.validChange(range, text)) {
-          logger48.debug("filter affected ranges.");
+          logger50.debug("filter affected ranges.");
           let ranges = this.ranges.filter((r) => !affected.includes(r));
           if (ranges.length > 0) {
             this.ranges = ranges;
@@ -82997,7 +82961,7 @@ var init_session3 = __esm({
             this.cancel();
           }
         } else {
-          logger48.debug("Check undo & redo");
+          logger50.debug("Check undo & redo");
           let first = this.ranges[0];
           let last = this.ranges[this.ranges.length - 1];
           let originalLines = e.originalLines.slice(first.line, last.line + 1);
@@ -83045,7 +83009,7 @@ var init_session3 = __esm({
        */
       cancel() {
         if (!this.activated) return;
-        logger48.debug("cursors cancel");
+        logger50.debug("cursors cancel");
         let buffer = this.doc.buffer;
         this.activated = false;
         this.ranges = [];
@@ -83096,7 +83060,7 @@ var init_session3 = __esm({
           return false;
         }
         let used = 0;
-        let invalid = false;
+        let invalid2 = false;
         let changes = [];
         for (let i = 0; i < diffs.length; i++) {
           let [kind, text] = diffs[i];
@@ -83110,7 +83074,7 @@ var init_session3 = __esm({
             let offset = used;
             used += text.length;
             if (used > len) {
-              invalid = true;
+              invalid2 = true;
               break;
             }
             changes.push({ offset, remove: text });
@@ -83123,7 +83087,7 @@ var init_session3 = __esm({
             }
           }
         }
-        if (invalid || !changes.length) {
+        if (invalid2 || !changes.length) {
           this.cancel();
           return false;
         }
@@ -83749,7 +83713,7 @@ var init_codeActions = __esm({
 
 // src/handler/util.ts
 function handleError(e) {
-  logger49.error(`Error on handler: `, toErrorText(e));
+  logger51.error(`Error on handler: `, toErrorText(e));
 }
 function toDocumentation(doc) {
   return {
@@ -83757,14 +83721,14 @@ function toDocumentation(doc) {
     filetype: isMarkdown(doc) ? "markdown" : "txt"
   };
 }
-var logger49;
+var logger51;
 var init_util6 = __esm({
   "src/handler/util.ts"() {
     "use strict";
     init_logger();
     init_is();
     init_string();
-    logger49 = createLogger("handler-util");
+    logger51 = createLogger("handler-util");
   }
 });
 
@@ -83787,7 +83751,7 @@ function getCommands(line, codeLenses) {
   }
   return commands;
 }
-var logger50, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
+var logger52, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer3 = __esm({
   "src/handler/codelens/buffer.ts"() {
     "use strict";
@@ -83802,7 +83766,7 @@ var init_buffer3 = __esm({
     init_window();
     init_workspace();
     init_util6();
-    logger50 = createLogger("codelens-buffer");
+    logger52 = createLogger("codelens-buffer");
     debounceTime7 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
     NORMAL_HL = "Normal";
@@ -84509,7 +84473,7 @@ var init_fold = __esm({
 });
 
 // src/handler/format.ts
-var logger51, FormatHandler;
+var logger53, FormatHandler;
 var init_format2 = __esm({
   "src/handler/format.ts"() {
     "use strict";
@@ -84525,7 +84489,7 @@ var init_format2 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger51 = createLogger("handler-format");
+    logger53 = createLogger("handler-format");
     FormatHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -84539,7 +84503,7 @@ var init_format2 = __esm({
           if (this.shouldFormatOnSave(event.document)) {
             let willSaveWaitUntil = async () => {
               if (!languages_default.hasFormatProvider(event.document)) {
-                logger51.warn(`Format provider not found for ${event.document.uri}`);
+                logger53.warn(`Format provider not found for ${event.document.uri}`);
                 return void 0;
               }
               let options2 = await workspace_default.getFormatOptions(event.document.uri);
@@ -84548,7 +84512,7 @@ var init_format2 = __esm({
               let tokenSource = new import_node3.CancellationTokenSource();
               const tp = new Promise((c) => {
                 timer = setTimeout(() => {
-                  logger51.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
+                  logger53.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
                   tokenSource.cancel();
                   c(void 0);
                 }, formatOnSaveTimeout);
@@ -84604,7 +84568,7 @@ var init_format2 = __esm({
         if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return false;
         if (manager_default3.getSession(doc.bufnr) != null || !this.shouldFormatOnType(doc.filetype)) return false;
         if (!languages_default.hasProvider("formatOnType" /* FormatOnType */, doc.textDocument)) {
-          logger51.warn(`Format on type provider not found for buffer: ${doc.uri}`);
+          logger53.warn(`Format on type provider not found for buffer: ${doc.uri}`);
           return false;
         }
         if (!languages_default.canFormatOnType(ch, doc.textDocument)) return false;
@@ -85328,7 +85292,7 @@ var init_buffer4 = __esm({
         if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return;
         const startLine = Math.max(0, res[0] - RenderRangeExtendSize);
         const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize);
-        let range = Range.create(startLine, 0, endLine, 0);
+        let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0));
         let inlayHints = await this.requestInlayHints(range, token);
         if (inlayHints == null || token.isCancellationRequested) return;
         this.regions.add(res[0], res[1]);
@@ -86094,7 +86058,7 @@ function fixChangeParams(e) {
   }
   return { contentChanges: changes, bufnr, textDocument, original, originalLines };
 }
-var logger52, SEPARATOR, RefactorBuffer;
+var logger54, SEPARATOR, RefactorBuffer;
 var init_buffer5 = __esm({
   "src/handler/refactor/buffer.ts"() {
     "use strict";
@@ -86115,7 +86079,7 @@ var init_buffer5 = __esm({
     init_window();
     init_workspace();
     init_changes();
-    logger52 = createLogger("handler-refactorBuffer");
+    logger54 = createLogger("handler-refactorBuffer");
     SEPARATOR = "\u3000";
     RefactorBuffer = class {
       constructor(bufnr, srcId4, nvim, config, opts) {
@@ -86456,7 +86420,7 @@ var init_buffer5 = __esm({
           await window_default.cursors.addRanges(hlRanges);
         } catch (e) {
           this.changing = false;
-          logger52.error(`Error on add file item:`, e);
+          logger54.error(`Error on add file item:`, e);
         }
         release();
       }
@@ -86638,12 +86602,12 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_child_process2, import_events50, logger53, defaultArgs, controlCode2, Task2, Search;
+var import_child_process2, import_events53, logger55, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
     import_child_process2 = require("child_process");
-    import_events50 = require("events");
+    import_events53 = require("events");
     init_main();
     init_logger();
     init_highlighter();
@@ -86651,10 +86615,10 @@ var init_search = __esm({
     init_mutex();
     init_node();
     init_window();
-    logger53 = createLogger("handler-search");
+    logger55 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
-    Task2 = class extends import_events50.EventEmitter {
+    Task2 = class extends import_events53.EventEmitter {
       start(cmd, args, cwd2) {
         this.process = (0, import_child_process2.spawn)(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
         this.process.on("error", (e) => {
@@ -86752,7 +86716,7 @@ var init_search = __esm({
           try {
             await refactorBuf.addFileItems(items);
           } catch (e) {
-            logger53.error(e);
+            logger55.error(e);
           }
           release();
         };
@@ -87201,7 +87165,7 @@ function toHighlightPart(token) {
   highlightGroupMap.set(token, part);
   return part;
 }
-var logger54, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
+var logger56, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
 var init_buffer6 = __esm({
   "src/handler/semanticTokens/buffer.ts"() {
     "use strict";
@@ -87218,7 +87182,7 @@ var init_buffer6 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger54 = createLogger("semanticTokens-buffer");
+    logger56 = createLogger("semanticTokens-buffer");
     yieldEveryMilliseconds = getConditionValue(15, 5);
     HLGROUP_PREFIX = "CocSem";
     NAMESPACE4 = "semanticTokens";
@@ -87455,7 +87419,7 @@ var init_buffer6 = __esm({
             if (e instanceof CancellationError) {
               this.highlight(requestDelay2);
             } else {
-              logger54.error("Error on request semanticTokens: ", e);
+              logger56.error("Error on request semanticTokens: ", e);
             }
           }
           return void 0;
@@ -87537,7 +87501,7 @@ var init_buffer6 = __esm({
         let region = await nvim.call("coc#window#visible_range");
         if (!region || token.isCancellationRequested) return null;
         let endLine = Math.min(region[0] + workspace_default.env.lines * 2, region[1] + workspace_default.env.lines, doc.lineCount);
-        let range = Range.create(region[0] - 1, 0, endLine, 0);
+        let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0));
         let res = await languages_default.provideDocumentRangeSemanticTokens(doc.textDocument, range, token);
         if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null;
         let legend = languages_default.getLegend(doc.textDocument, true);
@@ -88068,7 +88032,7 @@ var init_signature = __esm({
 });
 
 // src/handler/symbols/buffer.ts
-var logger55, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
+var logger57, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
 var init_buffer7 = __esm({
   "src/handler/symbols/buffer.ts"() {
     "use strict";
@@ -88078,7 +88042,7 @@ var init_buffer7 = __esm({
     init_node();
     init_protocol();
     init_util6();
-    logger55 = createLogger("symbols-buffer");
+    logger57 = createLogger("symbols-buffer");
     DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
     SymbolsBuffer = class {
       constructor(doc, autoUpdateBufnrs) {
@@ -88181,12 +88145,12 @@ var init_BasicDataProvider = __esm({
           this.resolveActions = opts.resolveActions.bind(this);
         }
       }
-      iterate(node, parentNode, level2, fn) {
-        let res = fn(node, parentNode, level2);
+      iterate(node, parentNode, level3, fn) {
+        let res = fn(node, parentNode, level3);
         if (res === false) return false;
         if (Array.isArray(node.children)) {
           for (let element of node.children) {
-            let res2 = this.iterate(element, node, level2 + 1, fn);
+            let res2 = this.iterate(element, node, level3 + 1, fn);
             if (res2 === false) return false;
           }
         }
@@ -88269,8 +88233,8 @@ var init_BasicDataProvider = __esm({
           item = new TreeItem(label);
         } else {
           if (expandLevel && expandLevel > 0) {
-            let level2 = this.getLevel(node);
-            let state = level2 && level2 <= expandLevel ? 2 /* Expanded */ : 1 /* Collapsed */;
+            let level3 = this.getLevel(node);
+            let state = level3 && level3 <= expandLevel ? 2 /* Expanded */ : 1 /* Collapsed */;
             item = new TreeItem(label, state);
           } else {
             item = new TreeItem(label, 1 /* Collapsed */);
@@ -88314,17 +88278,17 @@ var init_BasicDataProvider = __esm({
       }
       getLevel(element) {
         if (!this.data) return 0;
-        let level2 = 0;
+        let level3 = 0;
         for (let item of toArray(this.data)) {
           let res = this.iterate(item, null, 1, (node, _parentNode, l) => {
             if (node === element) {
-              level2 = l;
+              level3 = l;
               return false;
             }
           });
           if (res === false) break;
         }
-        return level2;
+        return level3;
       }
       /**
        * Resolve command and tooltip
@@ -88739,14 +88703,14 @@ function sortDocumentSymbols(a, b) {
   let rb = b.selectionRange;
   return comparePosition(ra.start, rb.start);
 }
-function addDocumentSymbol(res, sym, level2) {
+function addDocumentSymbol(res, sym, level3) {
   let { name: name2, selectionRange, detail, kind, children, range, tags } = sym;
   let { start } = defaultValue(selectionRange, range);
   let obj = {
     col: start.character + 1,
     lnum: start.line + 1,
     text: name2,
-    level: level2,
+    level: level3,
     kind: getSymbolKind(kind),
     range,
     selectionRange
@@ -88757,7 +88721,7 @@ function addDocumentSymbol(res, sym, level2) {
   if (children && children.length) {
     children.sort(sortDocumentSymbols);
     for (let sym2 of children) {
-      addDocumentSymbol(res, sym2, level2 + 1);
+      addDocumentSymbol(res, sym2, level3 + 1);
     }
   }
 }
@@ -88812,9 +88776,9 @@ var init_symbols2 = __esm({
           let doc = workspace_default.getDocument(bufnr);
           let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1);
           let pos = Position.create(cursor[0] - 1, character);
-          let func2 = await this.getFunctionSymbol(bufnr, pos);
+          let func3 = await this.getFunctionSymbol(bufnr, pos);
           let buffer = nvim.createBuffer(bufnr);
-          buffer.setVar("coc_current_function", func2 ?? "", true);
+          buffer.setVar("coc_current_function", func3 ?? "", true);
           this.nvim.call("coc#util#do_autocmd", ["CocStatusChange"], true);
         }, getConditionValue(debounceTime13, 0));
         events_default.on("CursorMoved", debounced, this, this.disposables);
@@ -89089,7 +89053,7 @@ var init_workspace2 = __esm({
     init_highlighter();
     init_manager4();
     init_util();
-    init_constants();
+    init_constants2();
     init_errors();
     init_fs();
     init_is();
@@ -89305,7 +89269,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-9fd85781 2024-09-21 00:59:00 +0900" : "");
+        let version2 = workspace_default.version + (true ? "-aacbbcad 2024-11-23 13:34:02 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89334,7 +89298,7 @@ var init_workspace2 = __esm({
 });
 
 // src/handler/index.ts
-var logger56, requestTimeout, Handler;
+var logger58, requestTimeout, Handler;
 var init_handler = __esm({
   "src/handler/index.ts"() {
     "use strict";
@@ -89371,7 +89335,7 @@ var init_handler = __esm({
     init_symbols2();
     init_typeHierarchy2();
     init_workspace2();
-    logger56 = createLogger("Handler");
+    logger58 = createLogger("Handler");
     requestTimeout = getConditionValue(500, 10);
     Handler = class {
       constructor(nvim) {
@@ -89427,7 +89391,7 @@ var init_handler = __esm({
           execute: async () => {
             let doc = await workspace_default.document;
             let edit2 = await this.rename.getWordEdit();
-            let ranges = getRangesFromEdit(doc.uri, toObject(edit2));
+            let ranges = getRangesFromEdit(doc.uri, toObject2(edit2));
             if (!ranges) return window_default.showWarningMessage("Invalid position");
             await commands_default.executeCommand("editor.action.addRanges", ranges);
           }
@@ -89527,7 +89491,7 @@ var init_handler = __esm({
         try {
           res = await Promise.resolve(fn(token));
         } catch (e) {
-          logger56.error(`Error on request ${name2}`, e);
+          logger58.error(`Error on request ${name2}`, e);
           this.nvim.errWriteLine(`Error on ${name2}: ${e}`);
         }
         if (this.requestTokenSource) {
@@ -89577,7 +89541,7 @@ var init_handler = __esm({
 });
 
 // src/plugin.ts
-var logger57, Plugin;
+var logger59, Plugin;
 var init_plugin = __esm({
   "src/plugin.ts"() {
     "use strict";
@@ -89597,7 +89561,7 @@ var init_plugin = __esm({
     init_util();
     init_window();
     init_workspace();
-    logger57 = createLogger("plugin");
+    logger59 = createLogger("plugin");
     Plugin = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -89788,7 +89752,7 @@ var init_plugin = __esm({
         nvim.setVar("coc_service_initialized", 1, true);
         nvim.call("coc#util#do_autocmd", ["CocNvimInit"], true);
         nvim.resumeNotification(false, true);
-        logger57.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
+        logger59.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
         this.ready = true;
         await events_default.fire("ready", []);
       }
@@ -89832,33 +89796,33 @@ __export(attach_exports, {
 function pathReplace(patterns) {
   if (objectLiteral(patterns)) {
     const old_uri = URI.file;
-    URI.file = (path3) => {
-      path3 = path3.replace(/\\/g, "/");
-      Object.keys(patterns).forEach((k) => path3 = path3.replace(new RegExp("^" + k), patterns[k]));
-      return old_uri(path3);
+    URI.file = (path4) => {
+      path4 = path4.replace(/\\/g, "/");
+      Object.keys(patterns).forEach((k) => path4 = path4.replace(new RegExp("^" + k), patterns[k]));
+      return old_uri(path4);
     };
   }
 }
-var import_neovim, logger58, ACTIONS_NO_WAIT, semVer, pendingNotifications, attach_default;
-var init_attach = __esm({
+var logger60, ACTIONS_NO_WAIT, semVer, pendingNotifications, attach_default;
+var init_attach2 = __esm({
   "src/attach.ts"() {
     "use strict";
-    import_neovim = __toESM(require_lib2());
+    init_neovim();
     init_esm();
     init_events();
     init_logger();
     init_plugin();
-    init_constants();
+    init_constants2();
     init_is();
     init_node();
     init_string();
     init_timing();
-    logger58 = createLogger("attach");
+    logger60 = createLogger("attach");
     ACTIONS_NO_WAIT = ["installExtensions", "updateExtensions"];
     semVer = semver.parse(VERSION);
     pendingNotifications = [];
     attach_default = (opts, requestApi = false) => {
-      const nvim = (0, import_neovim.attach)(opts, createLogger("node-client"), requestApi);
+      const nvim = attach(opts, createLogger("node-client-root"), requestApi);
       nvim.setVar("coc_process_pid", process.pid, true);
       nvim.setClientInfo("coc", { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, "remote", {}, {});
       const plugin = new Plugin(nvim);
@@ -89867,7 +89831,7 @@ var init_attach = __esm({
         for (let [method, args] of pendingNotifications) {
           plugin.cocAction(method, ...args).catch((e) => {
             console.error(`Error on notification "${method}": ${e}`);
-            logger58.error(`Error on notification ${method}`, e);
+            logger60.error(`Error on notification ${method}`, e);
           });
         }
         pendingNotifications = [];
@@ -89880,7 +89844,7 @@ var init_attach = __esm({
             break;
           }
           case "Log": {
-            logger58.debug("Vim log", ...args);
+            logger60.debug("Vim log", ...args);
             break;
           }
           case "TaskExit":
@@ -89896,18 +89860,18 @@ var init_attach = __esm({
           case "CompleteStop":
           case "PumInsert":
           case "PumNavigate":
-            logger58.trace("Event: ", method, ...args);
+            logger60.trace("Event: ", method, ...args);
             await events_default.fire(method, args);
             break;
           case "CocAutocmd":
-            logger58.trace("Notification autocmd:", ...args);
+            logger60.trace("Notification autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             break;
           case "redraw":
             break;
           default: {
             try {
-              logger58.info("receive notification:", method, args);
+              logger60.info("receive notification:", method, args);
               if (!plugin.isReady) {
                 pendingNotifications.push([method, args]);
                 return;
@@ -89915,7 +89879,7 @@ var init_attach = __esm({
               await plugin.cocAction(method, ...args);
             } catch (e) {
               console.error(`Error on notification "${method}": ${toErrorText(e)}`);
-              logger58.error(`Error on notification ${method}`, e);
+              logger60.error(`Error on notification ${method}`, e);
             }
           }
         }
@@ -89926,19 +89890,19 @@ var init_attach = __esm({
         try {
           events_default.requesting = true;
           if (method == "CompleteStop") {
-            logger58.trace("Event: ", method, ...args);
+            logger60.trace("Event: ", method, ...args);
             await events_default.fire(method, args);
             resp.send(void 0);
           } else if (method == "CocAutocmd") {
-            logger58.trace("Request autocmd:", ...args);
+            logger60.trace("Request autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             resp.send(void 0);
           } else {
             if (!plugin.isReady && !ACTIONS_NO_WAIT.includes(method)) {
-              logger58.warn(`Plugin not ready on request "${method}"`, args);
+              logger60.warn(`Plugin not ready on request "${method}"`, args);
               resp.send("Plugin not ready", true);
             } else {
-              logger58.info("Request action:", method, args);
+              logger60.info("Request action:", method, args);
               let res = await plugin.cocAction(method, ...args);
               resp.send(res);
             }
@@ -89947,7 +89911,7 @@ var init_attach = __esm({
         } catch (e) {
           events_default.requesting = false;
           resp.send(toErrorText(e), true);
-          logger58.error(`Request error:`, method, args, e);
+          logger60.error(`Request error:`, method, args, e);
         }
         timing.stop();
       });
@@ -89960,15 +89924,15 @@ var init_attach = __esm({
 if (global.__isMain) {
   Object.defineProperty(console, "log", {
     value() {
-      if (logger59) logger59.info(...arguments);
+      if (logger61) logger61.info(...arguments);
     }
   });
-  const { createLogger: createLogger2 } = (init_logger(), __toCommonJS(logger_exports));
-  const logger59 = createLogger2("server");
+  const { createLogger: createLogger3 } = (init_logger(), __toCommonJS(logger_exports));
+  const logger61 = createLogger3("server");
   process.on("uncaughtException", function(err) {
     let msg = "Uncaught exception: " + err.message;
     console.error(msg);
-    logger59.error("uncaughtException", err.stack);
+    logger61.error("uncaughtException", err.stack);
   });
   process.on("unhandledRejection", function(reason, p) {
     if (reason instanceof Error) {
@@ -89985,15 +89949,15 @@ if (global.__isMain) {
     } else {
       console.error("UnhandledRejection: " + reason);
     }
-    logger59.error("unhandledRejection ", p, reason);
+    logger61.error("unhandledRejection ", p, reason);
   });
-  const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
+  const attach2 = (init_attach2(), __toCommonJS(attach_exports)).default;
   attach2({ reader: process.stdin, writer: process.stdout });
 } else {
   const exports2 = require_src3();
-  const logger59 = (init_logger(), __toCommonJS(logger_exports)).logger;
-  const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
-  module.exports = { attach: attach2, exports: exports2, logger: logger59, loadExtension: (filepath, active) => {
+  const logger61 = (init_logger(), __toCommonJS(logger_exports)).logger;
+  const attach2 = (init_attach2(), __toCommonJS(attach_exports)).default;
+  module.exports = { attach: attach2, exports: exports2, logger: logger61, loadExtension: (filepath, active) => {
     return exports2.extensions.manager.load(filepath, active);
   } };
 }
