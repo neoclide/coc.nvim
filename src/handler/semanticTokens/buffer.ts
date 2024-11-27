@@ -388,8 +388,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
-      o[0] = Math.max(0, Math.floor(o[0] - height / 2))
-      o[1] = Math.min(lineCount, Math.ceil(o[1] + height / 2))
+      o[0] = Math.max(0, Math.floor(o[0] - height))
+      o[1] = Math.min(lineCount, Math.ceil(o[1] + height))
     })
     for (let [start, end] of Regions.mergeSpans(spans)) {
       if (!skipCheck && regions.has(start, end)) continue
