@@ -685,51 +685,5 @@ describe('window', () => {
       expect(markers[0][1]).toBe(0)
       expect(markers[0][3].end_col).toBe(3)
     })
-
-    it('should not use extmarks on neovim < 0.5.1', async () => {
-      window.highlights.checkMarkers = false
-      disposables.push({
-        dispose: () => {
-          window.highlights.checkMarkers = true
-        }
-      })
-      let buf = await createFile('foo\nbar\nbza\ndef\n')
-      let items: HighlightItem[] = [{
-        hlGroup: 'Search',
-        lnum: 0,
-        colStart: 0,
-        colEnd: 1
-      }, {
-        hlGroup: 'Search',
-        lnum: 1,
-        colStart: 2,
-        colEnd: 3
-      }]
-      await setHighlights(items)
-      let res = await window.diffHighlights(buf.id, ns, [{
-        hlGroup: 'Search',
-        lnum: 0,
-        colStart: 0,
-        colEnd: 3
-      }, {
-        hlGroup: 'Search',
-        lnum: 2,
-        colStart: 0,
-        colEnd: 3
-      }])
-      expect(res).toEqual({
-        remove: [0, 1],
-        add: [['Search', 0, 0, 3, 0, 0, 0], ['Search', 2, 0, 3, 0, 0, 0]],
-        removeMarkers: []
-      })
-      await window.applyDiffHighlights(buf.id, ns, priority, res, true)
-      // let markers = await helper.getExtMarks(buf, ns_id)
-      let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      let arr = markers.map(o => [o[1], o[2], o[3].end_col, o[3].hl_group])
-      expect(arr).toEqual([
-        [0, 0, 3, 'Search'],
-        [2, 0, 3, 'Search']
-      ])
-    })
   })
 })

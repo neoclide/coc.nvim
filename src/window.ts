@@ -59,9 +59,7 @@ export class Window {
     })
   }
 
-  public init(env: Env): void {
-    this.highlights.checkMarkers = this.workspace.has('nvim-0.5.1') || env.isVim
-  }
+  public init(_env: Env): void {}
 
   public get activeTextEditor(): TextEditor | undefined {
     return this.workspace.editors.activeTextEditor
