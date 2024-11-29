@@ -260,7 +260,7 @@ describe('util functions', () => {
         position: Position.create(0, 1)
       }
       let option: ConvertOption = {
-        insertMode: InsertMode.Repalce,
+        insertMode: InsertMode.Replace,
         priority: 0,
         range: Range.create(0, 1, 0, 4),
         source: getSource(),
@@ -279,7 +279,7 @@ describe('util functions', () => {
         position: Position.create(0, 0)
       }
       let option: ConvertOption = {
-        insertMode: InsertMode.Repalce,
+        insertMode: InsertMode.Replace,
         range: Range.create(0, 0, 0, 0),
         priority: 0,
         source: getSource(),
@@ -305,7 +305,7 @@ describe('util functions', () => {
         position: Position.create(0, 1)
       }
       let option: ConvertOption = {
-        insertMode: InsertMode.Repalce,
+        insertMode: InsertMode.Replace,
         range: Range.create(0, 1, 0, 1),
         priority: 0,
         source: getSource(),
@@ -333,7 +333,7 @@ describe('util functions', () => {
       }
       let option: ConvertOption = {
         range: Range.create(0, 0, 0, 1),
-        insertMode: InsertMode.Repalce,
+        insertMode: InsertMode.Replace,
         priority: 0,
         asciiMatch: false,
         source: getSource(),

@@ -100,7 +100,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
 
 export enum InsertMode {
   Insert = 'insert',
-  Repalce = 'replace',
+  Replace = 'replace',
 }
 
 export interface CompleteConfig {

@@ -348,7 +348,7 @@ export default class Complete {
     let { insertMode } = this.config
     let { linenr, followWord, position } = this.option
     let line = linenr - 1
-    let end = position.character + (insertMode == InsertMode.Repalce ? followWord.length : 0)
+    let end = position.character + (insertMode == InsertMode.Replace ? followWord.length : 0)
     return Range.create(line, this.inputStart, line, end)
   }
 
