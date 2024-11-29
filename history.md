@@ -1,3 +1,8 @@
+# 2024-11-29
+
+- Increase `g:coc_highlight_maximum_count` default to 500 for better performance.
+- Add `uriConverter.code2Protocol` for extensions
+
 # 2024-10-25
 
 - Mention [davidosomething/coc-diagnostics-shim.nvim](https://github.com/davidosomething/coc-diagnostics-shim.nvim) as alternative to ALE for diagnostics display.
