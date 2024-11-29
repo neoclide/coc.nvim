@@ -6,7 +6,7 @@ import listConfiguration from './configuration'
 import { ListMode, ListOptions, Matcher } from './types'
 
 export default class Prompt {
-  private cusorIndex = 0
+  private cursorIndex = 0
   private _input = ''
   private _matcher: Matcher | ''
   private _mode: ListMode = 'insert'
@@ -24,7 +24,7 @@ export default class Prompt {
 
   public set input(str: string) {
     if (this._input == str) return
-    this.cusorIndex = str.length
+    this.cursorIndex = str.length
     this._input = str
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
@@ -48,7 +48,7 @@ export default class Prompt {
   public start(opts?: ListOptions): void {
     if (opts) {
       this.interactive = opts.interactive
-      this.cusorIndex = opts.input.length
+      this.cursorIndex = opts.input.length
       this._input = opts.input
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
@@ -64,12 +64,12 @@ export default class Prompt {
 
   public reset(): void {
     this._input = ''
-    this.cusorIndex = 0
+    this.cursorIndex = 0
   }
 
   public drawPrompt(): void {
     let indicator = listConfiguration.get<string>('indicator', '>')
-    let { cusorIndex, interactive, input, _matcher } = this
+    let { cursorIndex, interactive, input, _matcher } = this
     let cmds = ['echo ""']
     if (this.mode == 'insert') {
       if (interactive) {
@@ -78,14 +78,14 @@ export default class Prompt {
         cmds.push(`echohl MoreMsg | echon '${_matcher.toUpperCase()} ' | echohl None`)
       }
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
-      if (cusorIndex == input.length) {
+      if (cursorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)
         cmds.push(`echohl Cursor | echon ' ' | echohl None`)
       } else {
-        let pre = input.slice(0, cusorIndex)
+        let pre = input.slice(0, cursorIndex)
         if (pre) cmds.push(`echon '${pre.replace(/'/g, "''")}'`)
-        cmds.push(`echohl Cursor | echon '${input[cusorIndex].replace(/'/, "''")}' | echohl None`)
-        let post = input.slice(cusorIndex + 1)
+        cmds.push(`echohl Cursor | echon '${input[cursorIndex].replace(/'/, "''")}' | echohl None`)
+        let post = input.slice(cursorIndex + 1)
         cmds.push(`echon '${post.replace(/'/g, "''")}'`)
       }
     } else {
@@ -97,98 +97,98 @@ export default class Prompt {
   }
 
   public moveLeft(): void {
-    if (this.cusorIndex == 0) return
-    this.cusorIndex = this.cusorIndex - 1
+    if (this.cursorIndex == 0) return
+    this.cursorIndex = this.cursorIndex - 1
     this.drawPrompt()
   }
 
   public moveRight(): void {
-    if (this.cusorIndex == this._input.length) return
-    this.cusorIndex = this.cusorIndex + 1
+    if (this.cursorIndex == this._input.length) return
+    this.cursorIndex = this.cursorIndex + 1
     this.drawPrompt()
   }
 
   public moveLeftWord(): void {
     // Reuses logic from removeWord(), except that we only update the
     // cursorIndex and don't actually remove the word.
-    let { cusorIndex, input } = this
-    if (cusorIndex == 0) return
-    let pre = input.slice(0, cusorIndex)
+    let { cursorIndex, input } = this
+    if (cursorIndex == 0) return
+    let pre = input.slice(0, cursorIndex)
     let remain = getLastWordRemovedText(pre)
-    this.cusorIndex = cusorIndex - (pre.length - remain.length)
+    this.cursorIndex = cursorIndex - (pre.length - remain.length)
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public moveRightWord(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == input.length) return
-    let post = input.slice(cusorIndex)
+    let { cursorIndex, input } = this
+    if (cursorIndex == input.length) return
+    let post = input.slice(cursorIndex)
     let nextWord = post.match(/[\w$]+ */).at(0) ?? post
-    this.cusorIndex = cusorIndex + nextWord.length
+    this.cursorIndex = cursorIndex + nextWord.length
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public moveToEnd(): void {
-    if (this.cusorIndex == this._input.length) return
-    this.cusorIndex = this._input.length
+    if (this.cursorIndex == this._input.length) return
+    this.cursorIndex = this._input.length
     this.drawPrompt()
   }
 
   public moveToStart(): void {
-    if (this.cusorIndex == 0) return
-    this.cusorIndex = 0
+    if (this.cursorIndex == 0) return
+    this.cursorIndex = 0
     this.drawPrompt()
   }
 
   public onBackspace(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == 0) return
-    let pre = input.slice(0, cusorIndex)
-    let post = input.slice(cusorIndex)
-    this.cusorIndex = cusorIndex - 1
+    let { cursorIndex, input } = this
+    if (cursorIndex == 0) return
+    let pre = input.slice(0, cursorIndex)
+    let post = input.slice(cursorIndex)
+    this.cursorIndex = cursorIndex - 1
     this._input = `${pre.slice(0, pre.length - 1)}${post}`
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public removeNext(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == input.length) return
-    let pre = input.slice(0, cusorIndex)
-    let post = input.slice(cusorIndex + 1)
+    let { cursorIndex, input } = this
+    if (cursorIndex == input.length) return
+    let pre = input.slice(0, cursorIndex)
+    let post = input.slice(cursorIndex + 1)
     this._input = `${pre}${post}`
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public removeWord(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == 0) return
-    let pre = input.slice(0, cusorIndex)
-    let post = input.slice(cusorIndex)
+    let { cursorIndex, input } = this
+    if (cursorIndex == 0) return
+    let pre = input.slice(0, cursorIndex)
+    let post = input.slice(cursorIndex)
     let remain = getLastWordRemovedText(pre)
-    this.cusorIndex = cusorIndex - (pre.length - remain.length)
+    this.cursorIndex = cursorIndex - (pre.length - remain.length)
     this._input = `${remain}${post}`
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public removeTail(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == input.length) return
-    let pre = input.slice(0, cusorIndex)
+    let { cursorIndex, input } = this
+    if (cursorIndex == input.length) return
+    let pre = input.slice(0, cursorIndex)
     this._input = pre
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
   }
 
   public removeAhead(): void {
-    let { cusorIndex, input } = this
-    if (cusorIndex == 0) return
-    let post = input.slice(cusorIndex)
-    this.cusorIndex = 0
+    let { cursorIndex, input } = this
+    if (cursorIndex == 0) return
+    let post = input.slice(cursorIndex)
+    this.cursorIndex = 0
     this._input = post
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)
@@ -225,10 +225,10 @@ export default class Prompt {
   }
 
   private addText(text: string): void {
-    let { cusorIndex, input } = this
-    this.cusorIndex = cusorIndex + text.length
-    let pre = input.slice(0, cusorIndex)
-    let post = input.slice(cusorIndex)
+    let { cursorIndex, input } = this
+    this.cursorIndex = cursorIndex + text.length
+    let pre = input.slice(0, cursorIndex)
+    let post = input.slice(cursorIndex)
     this._input = `${pre}${text}${post}`
     this.drawPrompt()
     this._onDidChangeInput.fire(this._input)

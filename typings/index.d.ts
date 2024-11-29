@@ -10813,7 +10813,7 @@ declare module 'coc.nvim' {
      *
      * @param {string} snippet Textmate snippet string.
      * @param {boolean} select Not select first placeholder when false, default `true`.
-     * @param {Range} range Repalce range, insert to current cursor position when undefined.
+     * @param {Range} range Replace range, insert to current cursor position when undefined.
      * @returns {Promise<boolean>} true when insert success.
      */
     export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, ultisnip?: UltiSnippetOption | boolean): Promise<boolean>

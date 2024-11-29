@@ -87,7 +87,7 @@ describe('Handler', () => {
     })
   })
 
-  describe('checkProvier', () => {
+  describe('checkProvider', () => {
     it('should throw error when provider not found', async () => {
       let doc = await helper.createDocument()
       let err
