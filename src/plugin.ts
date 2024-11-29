@@ -230,7 +230,7 @@ export default class Plugin {
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
     let fn = this.actions.get(method)
-    if (!fn) throw new Error(`Action "${method}" not exist`)
+    if (!fn) throw new Error(`Action "${method}" does not exist`)
     return await Promise.resolve(fn.apply(null, args))
   }
 
