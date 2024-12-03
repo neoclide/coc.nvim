@@ -34,7 +34,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       let type = coc#api#create_type(a:src_id, hl, a:opts)
       let opts = extend({ 'text': text, 'type': type, 'bufnr': a:bufnr }, base)
       if first && !empty(indent)
-        let opts['text'] = indent . text
+        let opts['text_padding_left'] = s:calc_padding_size(indent)
       endif
       call prop_add(a:line + 1, column, opts)
       let first = 0
@@ -76,4 +76,20 @@ function! s:get_option_vim(align, column, wrap) abort
     let opts['text_wrap'] = a:wrap
   endif
   return opts
+endfunction
+
+function! s:calc_padding_size(indent) abort
+  let tabSize = &shiftwidth
+  if tabSize == 0
+    let tabSize = &tabstop
+  endif
+  let padding = 0
+  for c in a:indent
+    if c == "\t"
+      let padding += tabSize - (padding % tabSize)
+    else
+      let padding += 1
+    endif
+  endfor
+  return padding
 endfunction
