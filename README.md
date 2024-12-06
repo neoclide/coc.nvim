@@ -83,6 +83,11 @@ Checkout the wiki for more details:
 
 Checkout `:h coc-nvim` for Vim interface.
 
+## Ask AI
+
+[coc-nvim] (https://codeparrot.ai/oracle?owner=neoclide&repo=coc.nvim) AI will help you understand this repository better. You can ask for code examples, installation guide, debugging help and much more.
+
+
 ## Example Vim configuration
 
 Configuration is required to make coc.nvim easier to work with, since it
