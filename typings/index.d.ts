@@ -9829,6 +9829,11 @@ declare module 'coc.nvim' {
     cursorline?: boolean
     modes?: string[]
     excludeImages?: boolean
+    position?: "fixed" | "auto";
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
   }
 
   export interface FloatFactory {

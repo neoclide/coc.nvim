@@ -60,6 +60,28 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+        },
+        "position": {
+          "type": "string",
+          "default": "auto",
+          "description": "Controls how floating windows are positioned. When set to `'fixed'`, the window will be positioned according to the `top`, `bottom`, `left`, and `right` settings. When set to `'auto'`, the window follows the default position.",
+          "enum": ["fixed", "auto"]
+        },
+        "top": {
+          "type": "number",
+          "description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `bottom` is set."
+        },
+        "bottom": {
+          "type": "number",
+          "description": "Distance from the bottom of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `top` if both are set."
+        },
+        "left": {
+          "type": "number",
+          "description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `right` is set."
+        },
+        "right": {
+          "type": "number",
+          "description": "Distance from the right edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `left` if both are set."
         }
       }
     },
@@ -970,7 +992,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "diagnostic.format": {
@@ -1242,7 +1269,12 @@
         "maxHeight": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "hover.autoHide": {
@@ -1268,7 +1300,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "hover.previewMaxHeight": {
@@ -1861,7 +1898,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "signature.hideOnTextChange": {
