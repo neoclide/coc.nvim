@@ -50,7 +50,7 @@ export default class Plugin {
       void window.showInformationMessage(`Run :CocInstall coc-json for json intellisense`)
     })
     this.addAction('rootPatterns', (bufnr: number) => this.handler.workspace.getRootPatterns(bufnr))
-    this.addAction('ensureDocument', () => this.handler.workspace.ensureDocument())
+    this.addAction('ensureDocument', (bufnr?: number) => this.handler.workspace.ensureDocument(bufnr))
     this.addAction('addWorkspaceFolder', (folder: string) => this.handler.workspace.addWorkspaceFolder(folder))
     this.addAction('removeWorkspaceFolder', (folder: string) => this.handler.workspace.removeWorkspaceFolder(folder))
     this.addAction('getConfig', (key: string) => this.handler.workspace.getConfiguration(key))

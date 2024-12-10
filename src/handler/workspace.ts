@@ -231,8 +231,8 @@ export default class WorkspaceHandler {
     }
   }
 
-  public async ensureDocument(): Promise<boolean> {
-    let doc = await workspace.document
+  public async ensureDocument(bufnr?: number): Promise<boolean> {
+    let doc = bufnr ? workspace.getDocument(bufnr) : await workspace.document
     return doc && doc.attached
   }
 
