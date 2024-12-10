@@ -79,7 +79,7 @@ export default class CodeActions {
     return workspace.initialConfiguration.get<boolean>('coc.preferences.floatActions', true)
   }
 
-  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string, showDisable = false): Promise<void> {
+  public async doCodeAction(mode: string | null, only: CodeActionKind[] | string, showDisable = false): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range | undefined
     if (mode) range = await window.getSelectedRange(mode)
