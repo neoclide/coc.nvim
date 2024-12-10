@@ -1,4 +1,4 @@
--- https://raw.githubusercontent.com/neoclide/coc.nvim/master/coc-example-config.lua
+-- https://raw.githubusercontent.com/neoclide/coc.nvim/refs/heads/master/doc/coc-example-config.lua
 
 -- Some servers have issues with backup files, see #649
 vim.opt.backup = false
