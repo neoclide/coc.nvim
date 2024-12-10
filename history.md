@@ -1,3 +1,8 @@
+# 2024-12-10
+
+- Floating window can be set to fixed position, try `diagnostic.floatConfig`
+- `ensureDocument` and `hasProvider` support to accept specified bufnr
+
 # 2024-11-29
 
 - Increase `g:coc_highlight_maximum_count` default to 500 for better performance.

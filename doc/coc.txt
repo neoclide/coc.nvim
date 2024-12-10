@@ -2448,9 +2448,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	Add {folder} to workspace folders, {folder} should be exists directory
 	on file system.
 
-"ensureDocument" 					*CocAction('ensureDocument')*
+"ensureDocument" [{bufnr}] 				*CocAction('ensureDocument')*
 
-	Ensure current document is attached to coc.nvim
+	Ensure current or specified document is attached to coc.nvim
 	|coc-document-attached|, should be used when you need invoke action of
 	current document on buffer create.
 
