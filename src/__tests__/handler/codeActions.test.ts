@@ -323,7 +323,7 @@ describe('handler codeActions', () => {
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action, CodeAction.create('foo')]
-      let promise = codeActions.doCodeAction(null)
+      let promise = codeActions.doCodeAction(null, undefined)
       await helper.waitFloat()
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
       expect(ids.length).toBeGreaterThan(0)
@@ -398,7 +398,7 @@ describe('handler codeActions', () => {
       let spy = jest.spyOn(window, 'showQuickpick').mockImplementation(() => {
         return Promise.resolve(-1)
       })
-      await codeActions.doCodeAction(null)
+      await codeActions.doCodeAction(null, undefined)
       spy.mockRestore()
       helper.updateConfiguration('coc.preferences.floatActions', true)
     })

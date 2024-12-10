@@ -17,8 +17,7 @@ import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
-
-export type HoverTarget = 'float' | 'preview' | 'echo'
+import { HoverTarget } from '../plugin'
 
 interface HoverConfig {
   target: HoverTarget

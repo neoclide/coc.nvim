@@ -256,7 +256,7 @@ export class ExtensionManager {
    * Activate extension, throw error if disabled or doesn't exist.
    * Returns true if extension successfully activated.
    */
-  public async activate(id): Promise<boolean> {
+  public async activate(id: string): Promise<boolean> {
     let item = this.extensions.get(id)
     if (!item) throw new Error(`Extension ${id} not registered!`)
     let { extension } = item
@@ -265,7 +265,7 @@ export class ExtensionManager {
     return extension.isActive === true
   }
 
-  public async deactivate(id): Promise<void> {
+  public async deactivate(id: string): Promise<void> {
     let item = this.extensions.get(id)
     if (!item || !item.extension.isActive) return
     await Promise.resolve(item.deactivate())
