@@ -1,4 +1,4 @@
-" https://raw.githubusercontent.com/neoclide/coc.nvim/master/coc-example.vim
+" https://raw.githubusercontent.com/neoclide/coc.nvim/refs/heads/master/doc/coc-example-config.vim
 
 " May need for Vim (not Neovim) since coc.nvim calculates byte offset by count
 " utf-8 byte sequence
