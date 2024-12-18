@@ -188,6 +188,22 @@ describe('Document', () => {
       await nvim.command(`edit +setl\\ filetype=txt.vim foo`)
       let doc = await workspace.document
       expect(doc.languageId).toBe('txt')
+
+      await nvim.command(`edit +setl\\ filetype=jproperties application.properties`)
+      doc = await workspace.document
+      expect(doc.languageId).toBe('spring-boot-properties')
+
+      await nvim.command(`edit +setl\\ filetype=jproperties bootstrap.test.properties`)
+      doc = await workspace.document
+      expect(doc.languageId).toBe('spring-boot-properties')
+
+      await nvim.command(`edit +setl\\ filetype=yaml application.yml`)
+      doc = await workspace.document
+      expect(doc.languageId).toBe('spring-boot-properties-yaml')
+
+      await nvim.command(`edit +setl\\ filetype=yaml application.test.yaml`)
+      doc = await workspace.document
+      expect(doc.languageId).toBe('spring-boot-properties-yaml')
     })
 
     it('should parse iskeyword of character range', async () => {

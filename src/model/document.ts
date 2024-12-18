@@ -128,7 +128,16 @@ export default class Document {
    */
   public get languageId(): string {
     let { _filetype } = this
-    return _filetype.includes('.') ? _filetype.match(/(.*?)\./)[1] : _filetype
+    const ft = _filetype.includes('.') ? _filetype.match(/(.*?)\./)[1] : _filetype
+
+    if (ft === 'jproperties' && /(application|bootstrap).*\.properties$/.test(this._bufname)) {
+      return 'spring-boot-properties'
+    }
+    if (ft === 'yaml' && /(application|bootstrap).*\.ya?ml$/.test(this._bufname)) {
+      return 'spring-boot-properties-yaml'
+    }
+
+    return ft
   }
 
   /**
