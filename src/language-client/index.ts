@@ -378,6 +378,7 @@ export class LanguageClient extends BaseLanguageClient {
         let options = Object.assign({}, command.options)
         options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
         options.cwd = options.cwd || serverWorkingDir
+        options.shell = process.platform === 'win32' || !!options.shell
         let cmd = workspace.expand(json.command)
         let serverProcess = child_process.spawn(cmd, args, options)
         serverProcess.on('error', e => {
