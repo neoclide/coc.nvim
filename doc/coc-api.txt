@@ -391,7 +391,7 @@ correct source map support for the error stack.
 • Find out the npm root by `npm root -g`
 • Load source-map-support with coc.nvim by append arguments to node in vimrc:
   `let g:coc_node_args = ['-r', '/path/to/npm/root/source-map-support/register']`
-  Repalce the part `/path/to/npm/root` with result from `npm root -g` terminal
+  Replace the part `/path/to/npm/root` with result from `npm root -g` terminal
   command.
 
 Note: the source-map-support module slows down the coc.nvim initialization.

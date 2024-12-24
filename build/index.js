@@ -17420,11 +17420,11 @@ var init_main = __esm({
       }
       SymbolInformation5.create = create;
     })(SymbolInformation || (SymbolInformation = {}));
-    (function(WorkspaceSymbol5) {
+    (function(WorkspaceSymbol6) {
       function create(name2, kind, uri, range) {
         return range !== void 0 ? { name: name2, kind, location: { uri, range } } : { name: name2, kind, location: { uri } };
       }
-      WorkspaceSymbol5.create = create;
+      WorkspaceSymbol6.create = create;
     })(WorkspaceSymbol || (WorkspaceSymbol = {}));
     (function(DocumentSymbol7) {
       function create(name2, detail, kind, range, selectionRange, children) {
@@ -17480,7 +17480,7 @@ var init_main = __esm({
       }
       CodeActionContext5.is = is;
     })(CodeActionContext || (CodeActionContext = {}));
-    (function(CodeAction6) {
+    (function(CodeAction7) {
       function create(title, kindOrCommandOrEdit, kind) {
         let result = { title };
         let checkKind = true;
@@ -17497,12 +17497,12 @@ var init_main = __esm({
         }
         return result;
       }
-      CodeAction6.create = create;
+      CodeAction7.create = create;
       function is(value) {
         let candidate = value;
         return candidate && Is.string(candidate.title) && (candidate.diagnostics === void 0 || Is.typedArray(candidate.diagnostics, Diagnostic.is)) && (candidate.kind === void 0 || Is.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command.is(candidate.command)) && (candidate.isPreferred === void 0 || Is.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit.is(candidate.edit));
       }
-      CodeAction6.is = is;
+      CodeAction7.is = is;
     })(CodeAction || (CodeAction = {}));
     (function(CodeLens3) {
       function create(range, data) {
@@ -22344,13 +22344,13 @@ var require_main2 = __commonJS({
         }
         SymbolInformation6.create = create;
       })(SymbolInformation5 || (exports3.SymbolInformation = SymbolInformation5 = {}));
-      var WorkspaceSymbol5;
-      (function(WorkspaceSymbol6) {
+      var WorkspaceSymbol6;
+      (function(WorkspaceSymbol7) {
         function create(name2, kind, uri, range) {
           return range !== void 0 ? { name: name2, kind, location: { uri, range } } : { name: name2, kind, location: { uri } };
         }
-        WorkspaceSymbol6.create = create;
-      })(WorkspaceSymbol5 || (exports3.WorkspaceSymbol = WorkspaceSymbol5 = {}));
+        WorkspaceSymbol7.create = create;
+      })(WorkspaceSymbol6 || (exports3.WorkspaceSymbol = WorkspaceSymbol6 = {}));
       var DocumentSymbol7;
       (function(DocumentSymbol8) {
         function create(name2, detail, kind, range, selectionRange, children) {
@@ -22409,8 +22409,8 @@ var require_main2 = __commonJS({
         }
         CodeActionContext6.is = is;
       })(CodeActionContext5 || (exports3.CodeActionContext = CodeActionContext5 = {}));
-      var CodeAction6;
-      (function(CodeAction7) {
+      var CodeAction7;
+      (function(CodeAction8) {
         function create(title, kindOrCommandOrEdit, kind) {
           var result = { title };
           var checkKind = true;
@@ -22427,13 +22427,13 @@ var require_main2 = __commonJS({
           }
           return result;
         }
-        CodeAction7.create = create;
+        CodeAction8.create = create;
         function is(value) {
           var candidate = value;
           return candidate && Is2.string(candidate.title) && (candidate.diagnostics === void 0 || Is2.typedArray(candidate.diagnostics, Diagnostic8.is)) && (candidate.kind === void 0 || Is2.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command3.is(candidate.command)) && (candidate.isPreferred === void 0 || Is2.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit7.is(candidate.edit));
         }
-        CodeAction7.is = is;
-      })(CodeAction6 || (exports3.CodeAction = CodeAction6 = {}));
+        CodeAction8.is = is;
+      })(CodeAction7 || (exports3.CodeAction = CodeAction7 = {}));
       var CodeLens3;
       (function(CodeLens4) {
         function create(range, data) {
@@ -36866,6 +36866,11 @@ var init_floatFactory = __esm({
         if (opts.highlight) config.highlight = opts.highlight;
         if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight;
         if (opts.cursorline) config.cursorline = 1;
+        if (opts.position) config.relative = opts.position === "fixed" ? config.relative = "editor" : "cursor";
+        if (typeof opts.top === "number" && opts.top >= 0) config.top = opts.top;
+        if (typeof opts.left === "number" && opts.left >= 0) config.left = opts.left;
+        if (typeof opts.bottom === "number" && opts.bottom >= 0) config.bottom = opts.bottom;
+        if (typeof opts.right === "number" && opts.right >= 0) config.right = opts.right;
         let autoHide = opts.autoHide === false ? false : true;
         if (autoHide) config.autohide = 1;
         this.unbind();
@@ -37282,32 +37287,23 @@ var init_highlights = __esm({
             }
             if (added.length == 0) {
               if (exists.length > 0) {
-                if (this.checkMarkers) {
-                  removeMarkers.push(...exists.map((o) => o[4]));
-                } else {
-                  linesToRemove.push(i);
-                }
+                removeMarkers.push(...exists.map((o) => o[4]));
               }
             } else {
               if (exists.length == 0) {
                 newItems.push(...added.map((o) => convertHighlightItem(o)));
               } else {
-                if (this.checkMarkers) {
-                  let skip = 0;
-                  let min = Math.min(exists.length, added.length);
-                  while (skip < min) {
-                    if (isSame(added[skip], exists[skip])) {
-                      skip++;
-                    } else {
-                      break;
-                    }
+                let skip = 0;
+                let min = Math.min(exists.length, added.length);
+                while (skip < min) {
+                  if (isSame(added[skip], exists[skip])) {
+                    skip++;
+                  } else {
+                    break;
                   }
-                  removeMarkers.push(...exists.slice(skip).map((o) => o[4]));
-                  newItems.push(...added.slice(skip).map((o) => convertHighlightItem(o)));
-                } else if (added.length != exists.length || !added.every((o, i2) => isSame(o, exists[i2]))) {
-                  linesToRemove.push(i);
-                  newItems.push(...added.map((o) => convertHighlightItem(o)));
                 }
+                removeMarkers.push(...exists.slice(skip).map((o) => o[4]));
+                newItems.push(...added.slice(skip).map((o) => convertHighlightItem(o)));
               }
             }
           }
@@ -37824,6 +37820,28 @@ var init_schema = __esm({
               minimum: 0,
               maximum: 100,
               description: "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+            },
+            position: {
+              type: "string",
+              default: "auto",
+              description: "Controls how floating windows are positioned. When set to `'fixed'`, the window will be positioned according to the `top`, `bottom`, `left`, and `right` settings. When set to `'auto'`, the window follows the default position.",
+              enum: ["fixed", "auto"]
+            },
+            top: {
+              type: "number",
+              description: "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `bottom` is set."
+            },
+            bottom: {
+              type: "number",
+              description: "Distance from the bottom of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `top` if both are set."
+            },
+            left: {
+              type: "number",
+              description: "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `right` is set."
+            },
+            right: {
+              type: "number",
+              description: "Distance from the right edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `left` if both are set."
             }
           }
         },
@@ -38734,7 +38752,12 @@ var init_schema = __esm({
             maxWidth: {},
             winblend: {},
             focusable: {},
-            shadow: {}
+            shadow: {},
+            position: {},
+            top: {},
+            bottom: {},
+            left: {},
+            right: {}
           }
         },
         "diagnostic.format": {
@@ -39006,7 +39029,12 @@ var init_schema = __esm({
             maxHeight: {},
             winblend: {},
             focusable: {},
-            shadow: {}
+            shadow: {},
+            position: {},
+            top: {},
+            bottom: {},
+            left: {},
+            right: {}
           }
         },
         "hover.autoHide": {
@@ -39032,7 +39060,12 @@ var init_schema = __esm({
             maxWidth: {},
             winblend: {},
             focusable: {},
-            shadow: {}
+            shadow: {},
+            position: {},
+            top: {},
+            bottom: {},
+            left: {},
+            right: {}
           }
         },
         "hover.previewMaxHeight": {
@@ -39625,7 +39658,12 @@ var init_schema = __esm({
             maxWidth: {},
             winblend: {},
             focusable: {},
-            shadow: {}
+            shadow: {},
+            position: {},
+            top: {},
+            bottom: {},
+            left: {},
+            right: {}
           }
         },
         "signature.hideOnTextChange": {
@@ -49354,8 +49392,7 @@ var init_window = __esm({
           get: () => this.workspace.statusLine
         });
       }
-      init(env) {
-        this.highlights.checkMarkers = this.workspace.has("nvim-0.5.1") || env.isVim;
+      init(_env) {
       }
       get activeTextEditor() {
         return this.workspace.editors.activeTextEditor;
@@ -67070,7 +67107,7 @@ var init_prompt = __esm({
     Prompt = class {
       constructor(nvim) {
         this.nvim = nvim;
-        this.cusorIndex = 0;
+        this.cursorIndex = 0;
         this._input = "";
         this._mode = "insert";
         this.interactive = false;
@@ -67083,7 +67120,7 @@ var init_prompt = __esm({
       }
       set input(str) {
         if (this._input == str) return;
-        this.cusorIndex = str.length;
+        this.cursorIndex = str.length;
         this._input = str;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
@@ -67103,7 +67140,7 @@ var init_prompt = __esm({
       start(opts) {
         if (opts) {
           this.interactive = opts.interactive;
-          this.cusorIndex = opts.input.length;
+          this.cursorIndex = opts.input.length;
           this._input = opts.input;
           this._mode = opts.mode;
           this._matcher = opts.interactive ? "" : opts.matcher;
@@ -67117,11 +67154,11 @@ var init_prompt = __esm({
       }
       reset() {
         this._input = "";
-        this.cusorIndex = 0;
+        this.cursorIndex = 0;
       }
       drawPrompt() {
         let indicator = configuration_default.get("indicator", ">");
-        let { cusorIndex, interactive, input, _matcher } = this;
+        let { cursorIndex, interactive, input, _matcher } = this;
         let cmds = ['echo ""'];
         if (this.mode == "insert") {
           if (interactive) {
@@ -67130,14 +67167,14 @@ var init_prompt = __esm({
             cmds.push(`echohl MoreMsg | echon '${_matcher.toUpperCase()} ' | echohl None`);
           }
           cmds.push(`echohl Special | echon '${indicator} ' | echohl None`);
-          if (cusorIndex == input.length) {
+          if (cursorIndex == input.length) {
             cmds.push(`echon '${input.replace(/'/g, "''")}'`);
             cmds.push(`echohl Cursor | echon ' ' | echohl None`);
           } else {
-            let pre = input.slice(0, cusorIndex);
+            let pre = input.slice(0, cursorIndex);
             if (pre) cmds.push(`echon '${pre.replace(/'/g, "''")}'`);
-            cmds.push(`echohl Cursor | echon '${input[cusorIndex].replace(/'/, "''")}' | echohl None`);
-            let post = input.slice(cusorIndex + 1);
+            cmds.push(`echohl Cursor | echon '${input[cursorIndex].replace(/'/, "''")}' | echohl None`);
+            let post = input.slice(cursorIndex + 1);
             cmds.push(`echon '${post.replace(/'/g, "''")}'`);
           }
         } else {
@@ -67148,86 +67185,86 @@ var init_prompt = __esm({
         this.nvim.command(cmd, true);
       }
       moveLeft() {
-        if (this.cusorIndex == 0) return;
-        this.cusorIndex = this.cusorIndex - 1;
+        if (this.cursorIndex == 0) return;
+        this.cursorIndex = this.cursorIndex - 1;
         this.drawPrompt();
       }
       moveRight() {
-        if (this.cusorIndex == this._input.length) return;
-        this.cusorIndex = this.cusorIndex + 1;
+        if (this.cursorIndex == this._input.length) return;
+        this.cursorIndex = this.cursorIndex + 1;
         this.drawPrompt();
       }
       moveLeftWord() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == 0) return;
-        let pre = input.slice(0, cusorIndex);
+        let { cursorIndex, input } = this;
+        if (cursorIndex == 0) return;
+        let pre = input.slice(0, cursorIndex);
         let remain = getLastWordRemovedText(pre);
-        this.cusorIndex = cusorIndex - (pre.length - remain.length);
+        this.cursorIndex = cursorIndex - (pre.length - remain.length);
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       moveRightWord() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == input.length) return;
-        let post = input.slice(cusorIndex);
+        let { cursorIndex, input } = this;
+        if (cursorIndex == input.length) return;
+        let post = input.slice(cursorIndex);
         let nextWord = post.match(/[\w$]+ */).at(0) ?? post;
-        this.cusorIndex = cusorIndex + nextWord.length;
+        this.cursorIndex = cursorIndex + nextWord.length;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       moveToEnd() {
-        if (this.cusorIndex == this._input.length) return;
-        this.cusorIndex = this._input.length;
+        if (this.cursorIndex == this._input.length) return;
+        this.cursorIndex = this._input.length;
         this.drawPrompt();
       }
       moveToStart() {
-        if (this.cusorIndex == 0) return;
-        this.cusorIndex = 0;
+        if (this.cursorIndex == 0) return;
+        this.cursorIndex = 0;
         this.drawPrompt();
       }
       onBackspace() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == 0) return;
-        let pre = input.slice(0, cusorIndex);
-        let post = input.slice(cusorIndex);
-        this.cusorIndex = cusorIndex - 1;
+        let { cursorIndex, input } = this;
+        if (cursorIndex == 0) return;
+        let pre = input.slice(0, cursorIndex);
+        let post = input.slice(cursorIndex);
+        this.cursorIndex = cursorIndex - 1;
         this._input = `${pre.slice(0, pre.length - 1)}${post}`;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       removeNext() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == input.length) return;
-        let pre = input.slice(0, cusorIndex);
-        let post = input.slice(cusorIndex + 1);
+        let { cursorIndex, input } = this;
+        if (cursorIndex == input.length) return;
+        let pre = input.slice(0, cursorIndex);
+        let post = input.slice(cursorIndex + 1);
         this._input = `${pre}${post}`;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       removeWord() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == 0) return;
-        let pre = input.slice(0, cusorIndex);
-        let post = input.slice(cusorIndex);
+        let { cursorIndex, input } = this;
+        if (cursorIndex == 0) return;
+        let pre = input.slice(0, cursorIndex);
+        let post = input.slice(cursorIndex);
         let remain = getLastWordRemovedText(pre);
-        this.cusorIndex = cusorIndex - (pre.length - remain.length);
+        this.cursorIndex = cursorIndex - (pre.length - remain.length);
         this._input = `${remain}${post}`;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       removeTail() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == input.length) return;
-        let pre = input.slice(0, cusorIndex);
+        let { cursorIndex, input } = this;
+        if (cursorIndex == input.length) return;
+        let pre = input.slice(0, cursorIndex);
         this._input = pre;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
       }
       removeAhead() {
-        let { cusorIndex, input } = this;
-        if (cusorIndex == 0) return;
-        let post = input.slice(cusorIndex);
-        this.cusorIndex = 0;
+        let { cursorIndex, input } = this;
+        if (cursorIndex == 0) return;
+        let post = input.slice(cursorIndex);
+        this.cursorIndex = 0;
         this._input = post;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
@@ -67259,10 +67296,10 @@ var init_prompt = __esm({
         this.addText(text);
       }
       addText(text) {
-        let { cusorIndex, input } = this;
-        this.cusorIndex = cusorIndex + text.length;
-        let pre = input.slice(0, cusorIndex);
-        let post = input.slice(cusorIndex);
+        let { cursorIndex, input } = this;
+        this.cursorIndex = cursorIndex + text.length;
+        let pre = input.slice(0, cursorIndex);
+        let post = input.slice(cursorIndex);
         this._input = `${pre}${text}${post}`;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
@@ -75217,6 +75254,7 @@ var init_language_client = __esm({
             let options2 = Object.assign({}, command.options);
             options2.env = options2.env ? Object.assign({}, process.env, options2.env) : process.env;
             options2.cwd = options2.cwd || serverWorkingDir;
+            options2.shell = process.platform === "win32" || !!options2.shell;
             let cmd = workspace_default.expand(json.command);
             let serverProcess = child_process.spawn(cmd, args, options2);
             serverProcess.on("error", (e) => {
@@ -81774,7 +81812,7 @@ var init_complete = __esm({
         let { insertMode } = this.config;
         let { linenr, followWord, position } = this.option;
         let line = linenr - 1;
-        let end = position.character + (insertMode == "replace" /* Repalce */ ? followWord.length : 0);
+        let end = position.character + (insertMode == "replace" /* Replace */ ? followWord.length : 0);
         return Range.create(line, this.inputStart, line, end);
       }
       createTokenSource(isIncomplete) {
@@ -82346,7 +82384,7 @@ var init_completion2 = __esm({
         let suggest = workspace_default.getConfiguration("suggest", doc);
         this.config = {
           autoTrigger: suggest.get("autoTrigger", "always"),
-          insertMode: suggest.get("insertMode", "replace" /* Repalce */),
+          insertMode: suggest.get("insertMode", "replace" /* Replace */),
           filterGraceful: suggest.get("filterGraceful", true),
           enableFloat: suggest.get("enableFloat", true),
           languageSourcePriority: suggest.get("languageSourcePriority", 99),
@@ -87465,9 +87503,8 @@ var init_buffer6 = __esm({
         if (token.isCancellationRequested || spans.length === 0) return;
         let height = workspace_default.env.lines;
         spans.forEach((o) => {
-          let s = o[0];
-          o[0] = Math.max(0, Math.floor(s - height * 1.5));
-          o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5), s + height * 2);
+          o[0] = Math.max(0, Math.floor(o[0] - height));
+          o[1] = Math.min(lineCount, Math.ceil(o[1] + height));
         });
         for (let [start, end] of Regions.mergeSpans(spans)) {
           if (!skipCheck && regions.has(start, end)) continue;
@@ -89249,8 +89286,8 @@ var init_workspace2 = __esm({
           global: workspace_default.workspaceFolderControl.getRootPatterns(doc, 2 /* Global */)
         };
       }
-      async ensureDocument() {
-        let doc = await workspace_default.document;
+      async ensureDocument(bufnr) {
+        let doc = bufnr ? workspace_default.getDocument(bufnr) : await workspace_default.document;
         return doc && doc.attached;
       }
       async doKeymap(key, defaultReturn = "") {
@@ -89269,7 +89306,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-aacbbcad 2024-11-23 13:34:02 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-a6e54aed 2024-12-18 12:26:34 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89591,7 +89628,7 @@ var init_plugin = __esm({
           void window_default.showInformationMessage(`Run :CocInstall coc-json for json intellisense`);
         });
         this.addAction("rootPatterns", (bufnr) => this.handler.workspace.getRootPatterns(bufnr));
-        this.addAction("ensureDocument", () => this.handler.workspace.ensureDocument());
+        this.addAction("ensureDocument", (bufnr) => this.handler.workspace.ensureDocument(bufnr));
         this.addAction("addWorkspaceFolder", (folder) => this.handler.workspace.addWorkspaceFolder(folder));
         this.addAction("removeWorkspaceFolder", (folder) => this.handler.workspace.removeWorkspaceFolder(folder));
         this.addAction("getConfig", (key) => this.handler.workspace.getConfiguration(key));
@@ -89764,7 +89801,7 @@ var init_plugin = __esm({
       }
       async cocAction(method, ...args) {
         let fn = this.actions.get(method);
-        if (!fn) throw new Error(`Action "${method}" not exist`);
+        if (!fn) throw new Error(`Action "${method}" does not exist`);
         return await Promise.resolve(fn.apply(null, args));
       }
       getHandler() {
