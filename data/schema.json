@@ -938,6 +938,12 @@
       "description": "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
       "default": false
     },
+    "diagnostic.displayByVimDiagnostic": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Display diagnostics with nvim's `vim.diagnostic`. This setting will disable diagnostic display using coc's handler. A restart required on change. Neovim only.",
+      "default": false
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "scope": "language-overridable",
