@@ -39,6 +39,7 @@ export interface DiagnosticConfig {
   checkCurrentLine: boolean
   enableMessage: string
   displayByAle: boolean
+  displayByVimDiagnostic: boolean
   signPriority: number
   level: number
   locationlistLevel: number | undefined

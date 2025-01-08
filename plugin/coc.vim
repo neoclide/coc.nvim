@@ -414,6 +414,10 @@ function! s:Enable(initialize)
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Highlight() | call s:Autocmd('ColorScheme')
+
+    if has('nvim-0.10')
+      autocmd User CocDiagnosticChange call v:lua.require('coc.diagnostic').on_diagnostic_change()
+    endif
   augroup end
   if a:initialize == 0
      call coc#rpc#request('attach', [])
