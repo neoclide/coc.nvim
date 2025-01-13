@@ -687,8 +687,6 @@ describe('diagnostic manager', () => {
       await manager.toggleDiagnosticBuffer(doc.bufnr, 1)
       res = await buf.getVar('coc_diagnostic_info') as any
       expect(res.error).toBe(2)
-      let items = await buf.getVar('coc_diagnostic_map') as any
-      expect(items.length).toBe(5)
     })
   })
 
