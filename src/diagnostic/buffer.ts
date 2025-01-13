@@ -420,7 +420,7 @@ export class DiagnosticBuffer implements SyncItem {
       nvim.resumeNotification(true, true)
     } else if (displayByVimDiagnostic) {
       nvim.pauseNotification()
-      this.setDiagnosticInfo()
+      this.setDiagnosticInfo(true)
       nvim.resumeNotification(true, true)
     } else {
       let emptyCollections: string[] = []
@@ -485,7 +485,7 @@ export class DiagnosticBuffer implements SyncItem {
     this.nvim.call('coc#ui#update_signs', [this.bufnr, group, signs], true)
   }
 
-  public setDiagnosticInfo(): void {
+  public setDiagnosticInfo(full = false): void {
     let lnums = [0, 0, 0, 0]
     let info = { error: 0, warning: 0, information: 0, hint: 0, lnums }
     let items: DiagnosticItem[] = []
@@ -510,21 +510,22 @@ export class DiagnosticBuffer implements SyncItem {
             info.error = info.error + 1
         }
 
-        let { start, end } = diagnostic.range
-        items.push({
-          file: URI.parse(this.doc.uri).fsPath,
-          lnum: start.line + 1,
-          end_lnum: end.line + 1,
-          col: start.character + 1,
-          end_col: end.character + 1,
-          code: diagnostic.code,
-          source: diagnostic.source,
-          message: diagnostic.message,
-          severity: getSeverityName(diagnostic.severity),
-          level: diagnostic.severity ?? 0,
-          location: Location.create(this.doc.uri, diagnostic.range)
-
-        })
+        if (full) {
+          let { start, end } = diagnostic.range
+          items.push({
+            file: URI.parse(this.doc.uri).fsPath,
+            lnum: start.line + 1,
+            end_lnum: end.line + 1,
+            col: start.character + 1,
+            end_col: end.character + 1,
+            code: diagnostic.code,
+            source: diagnostic.source,
+            message: diagnostic.message,
+            severity: getSeverityName(diagnostic.severity),
+            level: diagnostic.severity ?? 0,
+            location: Location.create(this.doc.uri, diagnostic.range)
+          })
+        }
       }
     }
     let buf = this.nvim.createBuffer(this.bufnr)
