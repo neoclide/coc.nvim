@@ -38698,6 +38698,12 @@ var init_schema = __esm({
           description: "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
           default: false
         },
+        "diagnostic.displayByVimDiagnostic": {
+          type: "boolean",
+          scope: "language-overridable",
+          description: "Display diagnostics with nvim's `vim.diagnostic`. This setting will disable diagnostic display using coc's handler. A restart required on change. Neovim only.",
+          default: false
+        },
         "diagnostic.enable": {
           type: "boolean",
           scope: "language-overridable",
@@ -52272,6 +52278,7 @@ var init_buffer = __esm({
           virtualTextLineSeparator: config.get("virtualTextLineSeparator", " \\ "),
           virtualTextLines: config.get("virtualTextLines", 3),
           displayByAle: config.get("displayByAle", false),
+          displayByVimDiagnostic: config.get("displayByVimDiagnostic", false),
           level: severityLevel(config.get("level", "hint")),
           locationlistLevel: severityLevel(config.get("locationlistLevel")),
           signLevel: severityLevel(config.get("signLevel")),
@@ -52336,6 +52343,9 @@ var init_buffer = __esm({
       }
       get displayByAle() {
         return this._config.displayByAle;
+      }
+      get displayByVimDiagnostic() {
+        return this.nvim.isVim === false && this._config.displayByVimDiagnostic;
       }
       clearHighlight(collection) {
         this.buffer.clearNamespace(NAMESPACE + collection);
@@ -52425,7 +52435,7 @@ var init_buffer = __esm({
        */
       async echoMessage(truncate = false, position, target) {
         const config = this.config;
-        if (!config.enable || config.enableMessage === "never" || config.displayByAle) return false;
+        if (!config.enable || config.enableMessage === "never" || config.displayByAle || config.displayByVimDiagnostic) return false;
         if (!target) target = config.messageTarget;
         let useFloat = target == "float";
         let diagnostics = this.getDiagnosticsAtPosition(position);
@@ -52541,7 +52551,7 @@ Related information:
        * Refresh changed diagnostics to UI.
        */
       refresh(diagnosticsMap, info) {
-        let { nvim, displayByAle } = this;
+        let { nvim, displayByAle, displayByVimDiagnostic } = this;
         for (let collection of diagnosticsMap.keys()) {
           this._dirties.delete(collection);
         }
@@ -52550,6 +52560,10 @@ Related information:
           for (let [collection, diagnostics] of diagnosticsMap.entries()) {
             this.refreshAle(collection, diagnostics);
           }
+          nvim.resumeNotification(true, true);
+        } else if (displayByVimDiagnostic) {
+          nvim.pauseNotification();
+          this.setDiagnosticInfo(true);
           nvim.resumeNotification(true, true);
         } else {
           let emptyCollections = [];
@@ -52608,9 +52622,10 @@ Related information:
         }
         this.nvim.call("coc#ui#update_signs", [this.bufnr, group, signs], true);
       }
-      setDiagnosticInfo() {
+      setDiagnosticInfo(full = false) {
         let lnums = [0, 0, 0, 0];
         let info = { error: 0, warning: 0, information: 0, hint: 0, lnums };
+        let items = [];
         for (let diagnostics of this.diagnosticsMap.values()) {
           for (let diagnostic of diagnostics) {
             let lnum = diagnostic.range.start.line + 1;
@@ -52631,10 +52646,27 @@ Related information:
                 lnums[0] = lnums[0] ? Math.min(lnums[0], lnum) : lnum;
                 info.error = info.error + 1;
             }
+            if (full) {
+              let { start, end } = diagnostic.range;
+              items.push({
+                file: URI.parse(this.doc.uri).fsPath,
+                lnum: start.line + 1,
+                end_lnum: end.line + 1,
+                col: start.character + 1,
+                end_col: end.character + 1,
+                code: diagnostic.code,
+                source: diagnostic.source,
+                message: diagnostic.message,
+                severity: getSeverityName(diagnostic.severity),
+                level: diagnostic.severity ?? 0,
+                location: Location.create(this.doc.uri, diagnostic.range)
+              });
+            }
           }
         }
         let buf = this.nvim.createBuffer(this.bufnr);
         buf.setVar("coc_diagnostic_info", info, true);
+        buf.setVar("coc_diagnostic_map", items, true);
         this.nvim.call("coc#util#do_autocmd", ["CocDiagnosticChange"], true);
       }
       showVirtualText(lnum) {
@@ -52734,6 +52766,7 @@ Related information:
         } else {
           nvim.pauseNotification();
           this.buffer.deleteVar("coc_diagnostic_info");
+          this.buffer.deleteVar("coc_diagnostic_map");
           for (let collection of collections) {
             this.clearHighlight(collection);
             this.clearSigns(collection);
@@ -89306,7 +89339,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-a6e54aed 2024-12-18 12:26:34 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-baac60ac 2025-01-13 11:27:36 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

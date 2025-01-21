@@ -1998,6 +1998,10 @@ b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
 	can be used to customize statusline. See |coc-status|.
 
+b:coc_diagnostic_map					*b:coc_diagnostic_map*
+
+	Diagnostics of current buffer, the format is same as *diagnostic-structure*
+
 b:coc_current_function					*b:coc_current_function*
 
 	Function string that current cursor in.
