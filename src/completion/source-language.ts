@@ -144,7 +144,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     let { character, line } = this.triggerContext
     let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
-    let { textEdit, insertText, label } = item
+    let { textEdit, textEditText, insertText, label } = item
     let range = getReplaceRange(item, this.itemDefaults, undefined, option.insertMode)
     if (!range) {
       // create default replace range
@@ -153,7 +153,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     }
     // replace range must contains cursor position.
     if (range.end.character < character) range.end.character = character
-    let newText = textEdit ? textEdit.newText : insertText ?? label
+    let newText = textEdit ? textEdit.newText : (textEditText ? textEditText : insertText) ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, pos.text, range)
     // cursor moved count
