@@ -80210,14 +80210,14 @@ var init_source_language = __esm({
         let { character, line } = this.triggerContext;
         let pos = await getLineAndPosition(workspace_default.nvim);
         if (pos.line != linenr - 1) return;
-        let { textEdit, insertText, label } = item;
+        let { textEdit, textEditText, insertText, label } = item;
         let range = getReplaceRange(item, this.itemDefaults, void 0, option.insertMode);
         if (!range) {
           let end = character + (option.insertMode == "insert" /* Insert */ ? 0 : option.followWord.length);
           range = Range.create(pos.line, characterIndex(line, col), pos.line, end);
         }
         if (range.end.character < character) range.end.character = character;
-        let newText = textEdit ? textEdit.newText : insertText ?? label;
+        let newText = textEdit ? textEdit.newText : (textEditText ? textEditText : insertText) ?? label;
         let indentCount = fixIndent(line, pos.text, range);
         let delta = pos.character - character - indentCount;
         if (delta !== 0) range.end.character += delta;
@@ -89339,7 +89339,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-baac60ac 2025-01-13 11:27:36 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-89cd1a23 2025-02-06 13:10:23 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
