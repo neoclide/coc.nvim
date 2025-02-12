@@ -75,7 +75,7 @@
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "<8",
     "@typescript-eslint/parser": "<8",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.25.0",
     "eslint": "<9",
     "eslint-plugin-jest": "^28.9.0",
     "eslint-plugin-jsdoc": "^48.11.0",
