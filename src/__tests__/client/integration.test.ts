@@ -4,12 +4,12 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
-import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
+import { MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
-import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
+import { CloseAction, ErrorAction } from '../../language-client'
 import { LSPCancellationError } from '../../language-client/features'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
@@ -213,11 +213,11 @@ describe('Client events', () => {
       synchronize: {},
       errorHandler: {
         error: () => {
-          return ErrorAction.Shutdown
+          return { action: ErrorAction.Shutdown, handled: true }
         },
         closed: () => {
           called = true
-          return CloseAction.DoNotRestart
+          return { action: CloseAction.DoNotRestart, handled: true }
         }
       },
       initializationOptions: { initEvent: true }
@@ -234,7 +234,7 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return called
     }, true)
-    client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
+    void client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
   })
 
   it('should handle message events', async () => {
@@ -295,9 +295,9 @@ describe('Client events', () => {
       synchronize: {},
       middleware: {
         window: {
-          showDocument: async (params, next) => {
+          showDocument: async (params, token, next) => {
             called = true
-            let res = await next(params, CancellationToken.None)
+            let res = await next(params, token)
             return res as any
           }
         }
@@ -437,11 +437,11 @@ describe('Client integration', () => {
       },
       stdioEncoding: 'utf8',
       errorHandler: {
-        error: (): lsclient.ErrorAction => {
-          return lsclient.ErrorAction.Continue
+        error: () => {
+          return { action: lsclient.ErrorAction.Continue, handled: true }
         },
         closed: () => {
-          return lsclient.CloseAction.DoNotRestart
+          return { action: lsclient.CloseAction.DoNotRestart, handled: true }
         }
       },
       progressOnInitialization: true,
