@@ -687,9 +687,6 @@ function! coc#float#has_scroll() abort
 endfunction
 
 function! coc#float#scroll(forward, ...)
-  if !has('nvim-0.4.0') && !has('patch-8.2.0750')
-    throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
-  endif
   let amount = get(a:, 1, 0)
   let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val) && getwinvar(v:val,"kind","") !=# "pum"')
   if empty(winids)

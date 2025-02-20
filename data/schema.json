@@ -1112,7 +1112,7 @@
     "diagnostic.virtualText": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use virtual text to display diagnostics, requires neovim >= 0.5.0 or vim >= 9.0.0067.",
+      "description": "Use virtual text to display diagnostics.",
       "default": false
     },
     "diagnostic.virtualTextAlign": {
@@ -2262,7 +2262,7 @@
     "suggest.virtualText": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
+      "description": "Show virtual text for insert word of selected item",
       "default": false
     },
     "tree.closedIcon": {

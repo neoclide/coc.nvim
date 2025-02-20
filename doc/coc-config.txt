@@ -306,8 +306,7 @@ Diagnostic~
 
 "diagnostic.virtualText"				*coc-config-diagnostic-virtualText*
 
-	Use virtual text to display diagnostics, requires neovim >= 0.5.0 or
-	vim >= 9.0.0067.
+	Use virtual text to display diagnostics.
 
 	Scope: `language-overridable`, default: `false`
 
@@ -1386,8 +1385,8 @@ Suggest~
 
 "suggest.virtualText"					*coc-config-suggest-virtualText*
 
-	Show virtual text for insert word of selected item, requires
-	neovim >= 0.5.0 or vim >= 9.0.0067.
+	Show virtual text after cursor for insert word of current selected
+	complete item.
 
 	Scope: `application`, default: `false`
 

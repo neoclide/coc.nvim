@@ -8269,7 +8269,7 @@ declare module 'coc.nvim' {
      */
     readonly runtimepath: string
     /**
-     * |virtualText| support in (neo)vim, needs nvim >= 0.5.0 or vim >= 9.0067
+     * |virtualText| support in (neo)vim
      */
     readonly virtualText: boolean
     /**
@@ -8329,7 +8329,7 @@ declare module 'coc.nvim' {
      */
     readonly isiTerm: boolean
     /**
-     * version of (neo)vim, on vim it's like: 8020750, on neoivm it's like: 0.5.0
+     * version of (neo)vim, on vim it's like: 8020750, on neoivm it's like
      */
     readonly version: string
     /**
@@ -8337,7 +8337,7 @@ declare module 'coc.nvim' {
      */
     readonly progpath: string
     /**
-     * Is true when dialog feature is supported, which need vim >= 8.2.750 or neovim >= 0.4.0
+     * Is true when dialog feature is supported
      */
     readonly dialog: boolean
     /**
@@ -9829,11 +9829,11 @@ declare module 'coc.nvim' {
     cursorline?: boolean
     modes?: string[]
     excludeImages?: boolean
-    position?: "fixed" | "auto";
-    top?: number;
-    bottom?: number;
-    left?: number;
-    right?: number;
+    position?: "fixed" | "auto"
+    top?: number
+    bottom?: number
+    left?: number
+    right?: number
   }
 
   export interface FloatFactory {
