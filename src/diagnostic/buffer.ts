@@ -293,7 +293,7 @@ export class DiagnosticBuffer implements SyncItem {
    */
   public async echoMessage(truncate = false, position: Position, target?: string): Promise<boolean> {
     const config = this.config
-    if (!config.enable || config.enableMessage === 'never' || config.displayByAle || config.displayByVimDiagnostic) return false
+    if (!config.enable || config.enableMessage === 'never' || this.displayByAle || this.displayByVimDiagnostic) return false
     if (!target) target = config.messageTarget
     let useFloat = target == 'float'
     let diagnostics = this.getDiagnosticsAtPosition(position)
