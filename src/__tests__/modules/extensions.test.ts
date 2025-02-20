@@ -38,7 +38,7 @@ describe('extensions', () => {
     expect(extensions.onDidActiveExtension).toBeDefined()
     expect(extensions.onDidUnloadExtension).toBeDefined()
     expect(extensions.schemes).toBeDefined()
-    expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
+    expect(extensions.createInstaller('npm', 'id')).toBeDefined()
   })
 
   it('should not throw with addSchemeProperty', async () => {
@@ -162,7 +162,7 @@ describe('extensions', () => {
   })
 
   it('should catch error when installExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -184,7 +184,7 @@ describe('extensions', () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         update: () => {
@@ -201,7 +201,7 @@ describe('extensions', () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -222,7 +222,7 @@ describe('extensions', () => {
       return [{ id: 'test', exotic: true, uri: 'http://example.com' }] as any
     })
     let called = false
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -262,7 +262,7 @@ describe('extensions', () => {
   it('should install global extension', async () => {
     expect(extensions.getExtensionById('coc-omni')).toBeUndefined()
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         install: async () => {

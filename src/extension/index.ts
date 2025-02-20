@@ -172,7 +172,7 @@ export class Extensions {
     return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate)
   }
 
-  public creteInstaller(npm: string, def: string): IInstaller {
+  public createInstaller(npm: string, def: string): IInstaller {
     return new Installer(this.modulesFolder, npm, def)
   }
 
@@ -188,7 +188,7 @@ export class Extensions {
     let fn = async (key: string): Promise<void> => {
       try {
         installBuffer.startProgress(key)
-        let installer = this.creteInstaller(npm, key)
+        let installer = this.createInstaller(npm, key)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(key, msg, isProgress)
         })
@@ -231,7 +231,7 @@ export class Extensions {
       try {
         installBuffer.startProgress(id)
         let url = stat.exotic ? stat.uri : null
-        let installer = this.creteInstaller(npm, id)
+        let installer = this.createInstaller(npm, id)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(id, msg, isProgress)
         })
