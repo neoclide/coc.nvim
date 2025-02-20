@@ -615,6 +615,14 @@ describe('language source', () => {
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo()')
     })
+
+    it('should use textEditText when exists with default range', async () => {
+      await start({ label: 'foo', insertText: 'bar', textEditText: 'foofoo' }, {
+        editRange: Range.create(0, 0, 0, 0)
+      })
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'foofoo')
+    })
   })
 
   describe('textEdit', () => {

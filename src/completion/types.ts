@@ -39,6 +39,7 @@ export interface CompleteOption {
 export interface CompleteDoneOption extends CompleteOption {
   readonly snippetsSupport: boolean
   readonly insertMode: InsertMode
+  readonly itemDefaults?: ItemDefaults
 }
 
 // For filter, render and resolve
