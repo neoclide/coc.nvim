@@ -199,7 +199,7 @@ Update global extensions:~
 
 Use |:CocUpdate| or |:CocUpdateSync|.
 
-To update extensions automatically, config |coc-preferences-extensionUpdateCheck|.
+To configure extension update, see |coc-config-extensions|.
 
 Manage extensions list:~
 

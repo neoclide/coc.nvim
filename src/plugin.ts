@@ -151,7 +151,7 @@ export default class Plugin {
     this.addAction('runCommand', (...args: any[]) => this.handler.commands.runCommand(...args))
     this.addAction('repeatCommand', () => this.handler.commands.repeat())
     this.addAction('installExtensions', (...list: string[]) => extensions.installExtensions(list))
-    this.addAction('updateExtensions', (silent: boolean) => extensions.updateExtensions(silent))
+    this.addAction('updateExtensions', (silent: boolean) => extensions.updateExtensions(silent, extensions.getUpdateSettings().updateUIInTab))
     this.addAction('extensionStats', () => extensions.getExtensionStates())
     this.addAction('loadedExtensions', () => extensions.manager.loadedExtensions)
     this.addAction('watchExtension', (id: string) => extensions.manager.watchExtension(id))

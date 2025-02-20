@@ -18,6 +18,11 @@ export enum State {
   Success,
 }
 
+interface InstallSettings {
+  isUpdate: boolean
+  updateUIInTab?: boolean
+}
+
 export interface InstallUI {
   start(names: string[]): void | Promise<void>
   addMessage(name: string, msg: string, isProgress?: boolean): void
@@ -26,7 +31,15 @@ export interface InstallUI {
 }
 
 export class InstallChannel implements InstallUI {
-  constructor(private isUpdate: boolean, private channel: OutputChannel) {
+  constructor(private settings: InstallSettings, private channel: OutputChannel) {
+  }
+
+  private get isUpdate(): boolean {
+    return this.settings.isUpdate
+  }
+
+  public getText(): string {
+    return this.isUpdate ? 'update' : 'install'
   }
 
   public start(names: string[]): void {
@@ -40,14 +53,14 @@ export class InstallChannel implements InstallUI {
   }
 
   public startProgress(name: string): void {
-    this.channel.appendLine(`Start ${this.isUpdate ? 'update' : 'install'} ${name}`)
+    this.channel.appendLine(`Start ${this.getText()} ${name}`)
   }
 
   public finishProgress(name: string, succeed?: boolean): void {
     if (succeed) {
-      this.channel.appendLine(`${name} ${this.isUpdate ? 'update' : 'install'} succeed!`)
+      this.channel.appendLine(`${name} ${this.getText()} succeed!`)
     } else {
-      this.channel.appendLine(`${name} ${this.isUpdate ? 'update' : 'install'} failed!`)
+      this.channel.appendLine(`${name} ${this.getText()} failed!`)
     }
   }
 }
@@ -63,7 +76,7 @@ export class InstallBuffer implements InstallUI {
   private interval: NodeJS.Timeout
   public bufnr: number
 
-  constructor(private isUpdate: boolean) {
+  constructor(private settings: InstallSettings) {
     let floatFactory = window.createFloatFactory({ modes: ['n'] })
     this.disposables.push(floatFactory)
     let fn = debounce(async (bufnr, cursor) => {
@@ -165,6 +178,10 @@ export class InstallBuffer implements InstallUI {
     return this.interval == null
   }
 
+  private get isUpdate(): boolean {
+    return this.settings.isUpdate
+  }
+
   // draw frame
   public draw(): void {
     let { remains, bufnr } = this
@@ -193,9 +210,8 @@ export class InstallBuffer implements InstallUI {
   private async show(): Promise<void> {
     let isSync = events.requesting === true
     let { nvim } = workspace
-    const useTab = workspace.getConfiguration('coc.preferences').get('extensionUpdateUIInTab', false)
     nvim.pauseNotification()
-    nvim.command(isSync ? 'enew' : (useTab ? 'tabnew' : 'vs +enew'), true)
+    nvim.command(isSync ? 'enew' : (this.settings.updateUIInTab ? 'tabnew' : 'vs +enew'), true)
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)

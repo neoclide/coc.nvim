@@ -8,6 +8,7 @@ import extensions, { Extensions, toUrl } from '../../extension'
 import { writeFile, writeJson } from '../../util/fs'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { ConfigurationUpdateTarget } from '../../configuration/types'
 
 let tmpfolder: string
 beforeAll(async () => {
@@ -45,13 +46,32 @@ describe('extensions', () => {
     extensions.addSchemeProperty('', null)
   })
 
+  it('should get update settings', async () => {
+    let settings = extensions.getUpdateSettings()
+    expect(settings.updateCheck).toBe('never')
+    expect(settings.updateUIInTab).toBe(false)
+    expect(settings.silentAutoupdate).toBe(true)
+    let config = workspace.getConfiguration('extensions')
+    await config.update('updateCheck', 'weekly', ConfigurationUpdateTarget.Global)
+    await config.update('updateUIInTab', true, ConfigurationUpdateTarget.Global)
+    await config.update('silentAutoupdate', false, ConfigurationUpdateTarget.Global)
+    settings = extensions.getUpdateSettings()
+    expect(settings.updateCheck).toBe('weekly')
+    expect(settings.updateUIInTab).toBe(true)
+    expect(settings.silentAutoupdate).toBe(false)
+    await config.update('updateCheck', undefined, ConfigurationUpdateTarget.Global)
+    await config.update('updateUIInTab', undefined, ConfigurationUpdateTarget.Global)
+    await config.update('silentAutoupdate', undefined, ConfigurationUpdateTarget.Global)
+  })
+
   it('should toggle auto update', async () => {
     await commands.executeCommand('extensions.toggleAutoUpdate')
-    let config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
-    expect(config).toBe('daily')
+    let config = workspace.getConfiguration('extensions')
+    expect(config.get('updateCheck')).toBe('daily')
     await commands.executeCommand('extensions.toggleAutoUpdate')
-    config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
-    expect(config).toBe('never')
+    config = workspace.getConfiguration('extensions')
+    expect(config.get('updateCheck')).toBe('never')
+    await config.update('extensions.updateCheck', undefined, ConfigurationUpdateTarget.Global)
   })
 
   it('should get extensions stat', async () => {
@@ -212,7 +232,7 @@ describe('extensions', () => {
         }
       } as any
     })
-    await extensions.updateExtensions()
+    await extensions.updateExtensions(true, true)
     spy.mockRestore()
     s.mockRestore()
   })

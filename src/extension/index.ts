@@ -5,16 +5,17 @@ import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
 import { distinct, isFalsyOrEmpty } from '../util/array'
-import { dataHome, VERSION } from '../util/constants'
+import { VERSION, dataHome } from '../util/constants'
 import { isUrl } from '../util/is'
 import { fs, path, which } from '../util/node'
+import { toObject } from '../util/object'
 import { executable } from '../util/processes'
 import { Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { IInstaller, Installer } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState, ExtensionToLoad } from './manager'
-import { checkExtensionRoot, ExtensionStat, loadExtensionJson, loadGlobalJsonAsync } from './stat'
+import { ExtensionStat, checkExtensionRoot, loadExtensionJson, loadGlobalJsonAsync } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
 const logger = createLogger('extensions-index')
 
@@ -25,6 +26,12 @@ export interface PropertyScheme {
   enum?: string[]
   items?: any
   [key: string]: any
+}
+
+export interface UpdateSettings {
+  updateCheck: string
+  updateUIInTab: boolean
+  silentAutoupdate: boolean
 }
 
 const EXTENSIONS_FOLDER = path.join(dataHome, 'extensions')
@@ -52,18 +59,29 @@ export class Extensions {
     commands.register({
       id: 'extensions.toggleAutoUpdate',
       execute: async () => {
-        let config = workspace.getConfiguration('coc.preferences', null)
-        let interval = config.get<string>('extensionUpdateCheck', 'daily')
+        let settings = this.getUpdateSettings()
         let target = ConfigurationUpdateTarget.Global
-        if (interval == 'never') {
-          await config.update('extensionUpdateCheck', 'daily', target)
+        let config = workspace.getConfiguration(null, null)
+        if (settings.updateCheck == 'never') {
+          await config.update('extensions.updateCheck', 'daily', target)
           void window.showInformationMessage('Extension auto update enabled.')
         } else {
-          await config.update('extensionUpdateCheck', 'never', target)
+          await config.update('extensions.updateCheck', 'never', target)
           void window.showInformationMessage('Extension auto update disabled.')
         }
+        await config.update('coc.preferences.extensionUpdateCheck', undefined, target)
       }
     }, false, 'toggle auto update of extensions.')
+  }
+
+  public getUpdateSettings(): UpdateSettings {
+    let config = workspace.getConfiguration(null, null)
+    let extensionsConfig = toObject<Partial<UpdateSettings>>(config.inspect('extensions').globalValue)
+    return {
+      updateCheck: extensionsConfig.updateCheck ?? config.get<string>('coc.preferences.extensionUpdateCheck', 'never'),
+      updateUIInTab: extensionsConfig.updateUIInTab ?? config.get<boolean>('coc.preferences.extensionUpdateUIInTab', false),
+      silentAutoupdate: extensionsConfig.silentAutoupdate ?? config.get<boolean>('coc.preferences.silentAutoupdate', true)
+    }
   }
 
   public async init(runtimepath: string): Promise<void> {
@@ -77,16 +95,17 @@ export class Extensions {
 
   public async activateExtensions(): Promise<void> {
     await this.manager.activateExtensions()
-    if (process.env.COC_NO_PLUGINS == '1') return
+    if (process.env.COC_NO_PLUGINS == '1') {
+      logger.warn('Extensions disabled by env COC_NO_PLUGINS')
+      return
+    }
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
     // check extensions need watch & install
-    let config = workspace.initialConfiguration.get('coc.preferences') as any
-    let interval = config.extensionUpdateCheck
-    let silent = config.silentAutoupdate
-    if (this.states.shouldUpdate(interval)) {
+    let settings = this.getUpdateSettings()
+    if (this.states.shouldUpdate(settings.updateCheck)) {
       this.outputChannel.appendLine('Start auto update...')
-      this.updateExtensions(silent).catch(e => {
+      this.updateExtensions(settings.silentAutoupdate, settings.updateUIInTab).catch(e => {
         this.outputChannel.appendLine(`Error on updateExtensions ${e}`)
       })
     }
@@ -168,8 +187,8 @@ export class Extensions {
     return null
   }
 
-  private createInstallerUI(isUpdate: boolean, silent: boolean): InstallUI {
-    return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate)
+  private createInstallerUI(isUpdate: boolean, silent: boolean, updateUIInTab: boolean): InstallUI {
+    return silent ? new InstallChannel({ isUpdate }, this.outputChannel) : new InstallBuffer({ isUpdate, updateUIInTab })
   }
 
   public createInstaller(npm: string, def: string): IInstaller {
@@ -183,7 +202,7 @@ export class Extensions {
     if (isFalsyOrEmpty(list) || !this.npm) return
     let { npm } = this
     list = distinct(list)
-    let installBuffer = this.createInstallerUI(false, false)
+    let installBuffer = this.createInstallerUI(false, false, false)
     await Promise.resolve(installBuffer.start(list))
     let fn = async (key: string): Promise<void> => {
       try {
@@ -211,7 +230,7 @@ export class Extensions {
   /**
    * Update global extensions
    */
-  public async updateExtensions(silent = false): Promise<void> {
+  public async updateExtensions(silent = false, updateUIInTab = false): Promise<void> {
     let { npm } = this
     if (!npm) return
     let stats = this.globalExtensionStats()
@@ -224,7 +243,7 @@ export class Extensions {
     })
     this.states.setLastUpdate()
     this.cleanModulesFolder()
-    let installBuffer = this.createInstallerUI(true, silent)
+    let installBuffer = this.createInstallerUI(true, silent, updateUIInTab)
     await Promise.resolve(installBuffer.start(stats.map(o => o.id)))
     let fn = async (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
