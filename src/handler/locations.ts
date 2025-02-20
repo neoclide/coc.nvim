@@ -136,7 +136,7 @@ export default class LocationsHandler {
       const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString()
       return {
         name: word,
-        cmd: `silent keepjumps call cursor(${location.range.start.line + 1}, ${location.range.start.character + 1})`,
+        cmd: `silent keepjumps call coc#cursor#move_to(${location.range.start.line}, ${location.range.start.character})`,
         filename,
       }
     })
