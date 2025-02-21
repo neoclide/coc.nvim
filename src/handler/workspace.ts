@@ -212,7 +212,7 @@ export default class WorkspaceHandler {
     })
   }
 
-  public async doAutocmd(id: number, args: any[]): Promise<void> {
+  public async doAutocmd(id: string, args: any[]): Promise<void> {
     await workspace.autocmds.doAutocmd(id, args)
   }
 

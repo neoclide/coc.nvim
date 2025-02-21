@@ -141,9 +141,7 @@ function! coc#rpc#restart()
     call coc#highlight#clear_all()
     call coc#ui#sign_unplace()
     call coc#float#close_all()
-    autocmd! coc_dynamic_autocmd
-    autocmd! coc_dynamic_content
-    autocmd! coc_dynamic_option
+    call coc#clearGroups('coc_dynamic_')
     call coc#rpc#request('detach', [])
     if !empty(get(g:, 'coc_status', ''))
       unlet g:coc_status

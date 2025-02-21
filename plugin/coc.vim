@@ -699,8 +699,6 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
-augroup coc_dynamic_autocmd
-augroup END
 augroup coc_dynamic_content
 augroup END
 augroup coc_dynamic_option

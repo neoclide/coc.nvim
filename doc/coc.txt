@@ -2957,7 +2957,7 @@ COMMANDS						*coc-commands*
 
 	To disable dynamic autocmds registered by extensions, use:
 >
-	:autocmd! coc_dynamic_autocmd
+	:call coc#clearGroups('coc_dynamic_')
 <
 :CocEnable						*:CocEnable*
 
