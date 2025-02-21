@@ -107,6 +107,31 @@ describe('format handler', () => {
       expect(res).toBe(true)
     })
 
+    it('should not format on save when disabled', async () => {
+      helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'])
+      disposables.push(languages.registerDocumentFormatProvider(['text'], {
+        provideDocumentFormattingEdits: document => {
+          let lines = document.getText().replace(/\n$/, '').split(/\n/)
+          let edits: TextEdit[] = []
+          for (let i = 0; i < lines.length; i++) {
+            edits.push(TextEdit.insert(Position.create(0, 0), '  '))
+          }
+          console.log(22)
+          return edits
+        }
+      }))
+      nvim.pauseNotification()
+      let filepath = await createTmpFile('a\nb\nc\n')
+      nvim.command('e ' + filepath, true)
+      nvim.command('let b:coc_disable_autoformat = 1', true)
+      nvim.command('setf text', true)
+      await nvim.resumeNotification()
+      await nvim.command('w')
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines).toEqual(['a', 'b', 'c'])
+    })
+
     it('should invoke format on save', async () => {
       helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'])
       disposables.push(languages.registerDocumentFormatProvider(['text'], {
@@ -247,6 +272,21 @@ describe('format handler', () => {
       expect(format.shouldFormatOnType('vim')).toBe(true)
       helper.updateConfiguration('coc.preferences.formatOnTypeFiletypes', ['txt'])
       let doc = await helper.createDocument('t.vim')
+      let res = await format.tryFormatOnType('\n', doc)
+      expect(res).toBe(false)
+    })
+
+    it('should not format on type when disabled by variable', async () => {
+      disposables.push(languages.registerDocumentFormatProvider(['*'], {
+        provideDocumentFormattingEdits: () => {
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      nvim.pauseNotification()
+      nvim.command('e foo', true)
+      nvim.command('let b:coc_disable_autoformat = 1', true)
+      await nvim.resumeNotification()
+      let doc = await workspace.document
       let res = await format.tryFormatOnType('\n', doc)
       expect(res).toBe(false)
     })
