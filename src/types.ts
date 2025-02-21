@@ -142,6 +142,7 @@ export interface HighlightItem extends HighlightItemOption {
 
 export interface Env {
   runtimepath: string
+  readonly jumpAutocmd: boolean
   readonly guicursor: string
   readonly tabCount: number
   readonly mode: string
@@ -233,6 +234,13 @@ export interface KeymapOption {
   cancel?: boolean
   silent?: boolean
   repeat?: boolean
+}
+
+export interface JumpInfo {
+  // placeholder range
+  readonly range: Range
+  // character before current placeholder.
+  readonly charbefore: string
 }
 
 export interface Autocmd {

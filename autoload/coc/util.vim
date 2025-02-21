@@ -257,6 +257,7 @@ function! s:Call(method, args)
   endtry
 endfunction
 
+" Global vim information
 function! coc#util#vim_info()
   return {
         \ 'root': s:root,
@@ -273,6 +274,8 @@ function! coc#util#vim_info()
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'pumevent': 1,
+        \ 'dialog': 1,
+        \ 'jumpAutocmd': coc#util#check_jump_autocmd(),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': has('win32unix') ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
@@ -290,9 +293,20 @@ function! coc#util#vim_info()
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') ? v:true : v:false,
-        \ 'dialog': 1,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}
+endfunction
+
+function! coc#util#check_jump_autocmd() abort
+  let autocmd_event = 'User'
+  let autocmd_group = 'CocJumpPlaceholder'
+  if exists('#' . autocmd_event . '#' . autocmd_group)
+    let content = execute('autocmd ' . autocmd_event . ' ' . autocmd_group)
+    if content =~# 'showSignatureHelp'
+      return v:true
+    endif
+  endif
+  return v:false
 endfunction
 
 function! coc#util#all_state()

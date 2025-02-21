@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-02-21
+
+To avoid unexpected signature help window close, signature help will be triggered after placeholder jump by default, when autocmd `CocJumpPlaceholder call CocActionAsync('showSignatureHelp')` not exists.
+
 ## 2025-02-20
 
 Use `extensions` section for extension related configurations. Deprecated configuration sections: `coc.preferences.extensionUpdateCheck`, `coc.preferences.extensionUpdateUIInTab` and `coc.preferences.silentAutoupdate`.

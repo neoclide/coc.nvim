@@ -4,7 +4,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { TextDocumentContentChange, UltiSnippetOption } from '../types'
+import { JumpInfo, TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, rangeInRange } from '../util/position'
@@ -12,6 +12,7 @@ import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/pro
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import events from '../events'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
@@ -190,6 +191,11 @@ export class SnippetSession {
         }
       }
     }
+    let info: JumpInfo = {
+      range: placeholder.range,
+      charbefore: start.character == 0 ? '' : line.slice(start.character - 1, start.character)
+    }
+    void events.fire('PlaceholderJump', [document.bufnr, info])
   }
 
   private highlights(placeholder: CocSnippetPlaceholder, redrawVim = true): void {

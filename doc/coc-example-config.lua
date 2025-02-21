@@ -90,14 +90,6 @@ vim.api.nvim_create_autocmd('FileType', {
   desc = 'Setup formatexpr specified filetype(s).'
 })
 
--- Update signature help on jump placeholder
-vim.api.nvim_create_autocmd('User', {
-  group = 'CocGroup',
-  pattern = 'CocJumpPlaceholder',
-  command = "call CocActionAsync('showSignatureHelp')",
-  desc = 'Update signature help on jump placeholder'
-})
-
 -- Apply codeAction to the selected region
 -- Example: `<leader>aap` for current paragraph
 local opts = { silent = true, nowait = true }

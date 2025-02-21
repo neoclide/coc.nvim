@@ -34,11 +34,11 @@ export interface FloatWinConfig extends FloatConfig {
   cursorline?: boolean
   modes?: string[]
   excludeImages?: boolean
-  position?: "fixed" | "auto";
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
+  position?: "fixed" | "auto"
+  top?: number
+  bottom?: number
+  left?: number
+  right?: number
 }
 
 /**

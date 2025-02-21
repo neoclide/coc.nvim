@@ -1,12 +1,12 @@
 'use strict'
-import { Neovim } from '../neovim'
 import { MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
+import { Neovim } from '../neovim'
 import { FloatConfig, FloatFactory } from '../types'
-import { disposeAll, getConditionValue } from '../util'
+import { disposeAll, getConditionValue, wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { debounce } from '../util/node'
 import { CancellationTokenSource, Disposable, SignatureHelpTriggerKind } from '../util/protocol'
@@ -64,14 +64,28 @@ export default class Signature {
       }
     }, null, this.disposables)
     events.on('TextInsert', async (bufnr, info, character) => {
-      if (!this.config.enableTrigger) return
+      if (!this.shouldAutoTrigger(bufnr, character)) return
       let doc = workspace.getDocument(bufnr)
-      if (!doc || !doc.attached || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return
       await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
+    }, null, this.disposables)
+    events.on('PlaceholderJump', async (bufnr, info) => {
+      if (workspace.env.jumpAutocmd || info.charbefore === '') return
+      // need wait for CursorMoved events on placeholder select
+      await wait(50)
+      if (!this.shouldAutoTrigger(bufnr, info.charbefore)) return
+      let doc = workspace.getDocument(bufnr)
+      await this._triggerSignatureHelp(doc, info.range.start, false)
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
     }, null, this.disposables)
+  }
+
+  public shouldAutoTrigger(bufnr: number, character: string): boolean {
+    if (!this.config.enableTrigger) return false
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return false
+    return true
   }
 
   private checkCurosr(bufnr: number, cursor: [number, number]): void {
