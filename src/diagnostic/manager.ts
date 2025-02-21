@@ -35,6 +35,7 @@ interface DiagnosticSignConfig {
 
 export interface DiagnosticItem {
   file: string
+  bufnr?: number
   lnum: number
   end_lnum: number
   col: number
@@ -154,7 +155,7 @@ class DiagnosticManager implements Disposable {
    */
   public async setLocationlist(bufnr: number): Promise<void> {
     let doc = workspace.getAttachedDocument(bufnr)
-    let buf = this.buffers.getItem(doc.bufnr)
+    let buf = this.getItem(doc.bufnr)
     let diagnostics: Diagnostic[] = []
     for (let diags of Object.values(this.getDiagnostics(buf))) {
       diagnostics.push(...diags)
@@ -378,6 +379,7 @@ class DiagnosticManager implements Disposable {
           let { start, end } = diagnostic.range
           let o: DiagnosticItem = {
             file: u.fsPath,
+            bufnr: doc ? doc.bufnr : undefined,
             lnum: start.line + 1,
             end_lnum: end.line + 1,
             col: Array.isArray(lines) ? byteIndex(lines[start.line] ?? '', start.character) + 1 : start.character + 1,
