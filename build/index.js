@@ -101,7 +101,7 @@ var require_ansi_styles = __commonJS({
       styles3.bgColor.bgGray = styles3.bgColor.bgBlackBright;
       styles3.color.grey = styles3.color.blackBright;
       styles3.bgColor.bgGrey = styles3.bgColor.bgBlackBright;
-      for (const [groupName2, group] of Object.entries(styles3)) {
+      for (const [groupName, group] of Object.entries(styles3)) {
         for (const [styleName, style] of Object.entries(group)) {
           styles3[styleName] = {
             open: `\x1B[${style[0]}m`,
@@ -110,7 +110,7 @@ var require_ansi_styles = __commonJS({
           group[styleName] = styles3[styleName];
           codes.set(style[0], style[1]);
         }
-        Object.defineProperty(styles3, groupName2, {
+        Object.defineProperty(styles3, groupName, {
           value: group,
           enumerable: false
         });
@@ -14126,7 +14126,7 @@ var init_Buffer = __esm({
         ]);
       }
       /**
-       * Set virtual text for a line, works on nvim >= 0.5.0 and vim9
+       * Set virtual text for a line.
        * @public
        * @param {number} src_id - Source group to use or 0 to use a new group, or -1
        * @param {number} line - Line to annotate with virtual text (zero-indexed)
@@ -38358,13 +38358,22 @@ var init_schema = __esm({
           scope: "application",
           default: "never",
           description: "Interval for check extension update, could be daily, weekly, never",
+          deprecationMessage: "Use configuration 'extensions.updateCheck' instead.",
           enum: ["daily", "weekly", "never"]
         },
         "coc.preferences.extensionUpdateUIInTab": {
           type: "boolean",
           scope: "application",
           default: false,
-          description: "Display extension updating UI in vim tab"
+          deprecationMessage: "Use configuration 'extensions.updateUIInTab' instead.",
+          description: "Display extension updating UI in new vim tab"
+        },
+        "coc.preferences.silentAutoupdate": {
+          type: "boolean",
+          description: "Not open split window with update status when performing auto update.",
+          deprecationMessage: "Use configuration 'extensions.silentAutoupdate' instead.",
+          scope: "application",
+          default: true
         },
         "coc.preferences.floatActions": {
           type: "boolean",
@@ -38391,7 +38400,7 @@ var init_schema = __esm({
           scope: "resource",
           default: null,
           description: "Filetypes that should run format on save.",
-          deprecationMessage: "Use coc.preferences.formatOnSave as language override configuration instead, see :h coc-configuration-scope",
+          deprecationMessage: "Use 'coc.preferences.formatOnSave' as language override configuration instead, see :h coc-configuration-scope",
           items: {
             type: "string"
           }
@@ -38407,7 +38416,7 @@ var init_schema = __esm({
           default: null,
           scope: "resource",
           description: "Filetypes that should run format on typing, only works when `coc.preferences.formatOnType` is `true`",
-          deprecationMessage: "Use coc.preferences.formatOnType as language override configuration instead, see :h coc-configuration-scope",
+          deprecationMessage: "Use 'coc.preferences.formatOnType' as language override configuration instead, see :h coc-configuration-scope",
           items: {
             type: "string"
           }
@@ -38462,12 +38471,6 @@ var init_schema = __esm({
           scope: "application",
           default: true,
           description: "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
-        },
-        "coc.preferences.silentAutoupdate": {
-          type: "boolean",
-          description: "Not open split window with update status when performing auto update.",
-          scope: "application",
-          default: true
         },
         "coc.preferences.useQuickfixForLocations": {
           type: "boolean",
@@ -38872,7 +38875,7 @@ var init_schema = __esm({
         "diagnostic.virtualText": {
           type: "boolean",
           scope: "language-overridable",
-          description: "Use virtual text to display diagnostics, requires neovim >= 0.5.0 or vim >= 9.0.0067.",
+          description: "Use virtual text to display diagnostics.",
           default: false
         },
         "diagnostic.virtualTextAlign": {
@@ -39111,6 +39114,25 @@ var init_schema = __esm({
           description: "Controls whether the proxy server certificate should be verified against the list of supplied CAs",
           default: true,
           scope: "application"
+        },
+        "extensions.updateCheck": {
+          type: "string",
+          scope: "application",
+          default: "never",
+          description: "Interval time for check extension update, could be daily, weekly, never",
+          enum: ["daily", "weekly", "never"]
+        },
+        "extensions.silentAutoupdate": {
+          type: "boolean",
+          description: "Not open split window with update status when performing auto update.",
+          scope: "application",
+          default: true
+        },
+        "extensions.updateUIInTab": {
+          type: "boolean",
+          scope: "application",
+          default: false,
+          description: "Display extension updating UI in new vim tab"
         },
         "inlayHint.enable": {
           type: "boolean",
@@ -40022,7 +40044,7 @@ var init_schema = __esm({
         "suggest.virtualText": {
           type: "boolean",
           scope: "application",
-          description: "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
+          description: "Show virtual text for insert word of selected item",
           default: false
         },
         "tree.closedIcon": {
@@ -42056,6 +42078,16 @@ var init_shape = __esm({
 });
 
 // src/core/autocmds.ts
+function getAutoCmdText(autocmd) {
+  let { arglist, pattern, request: request2, callback } = autocmd;
+  let res = "";
+  res += Array.isArray(autocmd.event) ? autocmd.event.join(" ") + " " : autocmd.event + " ";
+  if (pattern) res += pattern + " ";
+  if (request2) res += "request ";
+  if (Array.isArray(arglist)) res += arglist.join(" ") + " ";
+  res += callback.toString();
+  return res;
+}
 function createCommand(id, autocmd) {
   let args = isFalsyOrEmpty(autocmd.arglist) ? "" : ", " + autocmd.arglist.join(", ");
   let event = Array.isArray(autocmd.event) ? autocmd.event.join(",") : autocmd.event;
@@ -42064,52 +42096,59 @@ function createCommand(id, autocmd) {
     pattern = "";
   }
   let method = autocmd.request ? "request" : "notify";
-  return `autocmd ${groupName} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', [${id}${args}])`;
+  return `autocmd ${id} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', ['${id}'${args}])`;
 }
-var autocmdMaxId, groupName, Autocmds;
+var groupPrefix, Autocmds;
 var init_autocmds = __esm({
   "src/core/autocmds.ts"() {
     "use strict";
-    init_util();
     init_array();
     init_protocol();
-    autocmdMaxId = 0;
-    groupName = "coc_dynamic_autocmd";
+    init_node();
+    groupPrefix = "coc_dynamic_";
     Autocmds = class {
       constructor() {
         this.autocmds = /* @__PURE__ */ new Map();
-        this.disposables = [];
       }
       attach(nvim, env) {
         this.nvim = nvim;
         this.env = env;
+      }
+      // unique id for autocmd to create unique group name
+      generateId(autocmd) {
+        let text = getAutoCmdText(autocmd);
+        return groupPrefix + crypto.createHash("md5").update(text).digest("hex");
       }
       async doAutocmd(id, args) {
         let autocmd = this.autocmds.get(id);
         if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args));
       }
       registerAutocmd(autocmd) {
-        autocmdMaxId += 1;
-        let id = autocmdMaxId;
+        let id = this.generateId(autocmd);
+        let { nvim } = this;
         this.autocmds.set(id, autocmd);
-        this.nvim.command(createCommand(id, autocmd), true);
+        nvim.pauseNotification();
+        let cmd = createCommand(id, autocmd);
+        nvim.command("augroup " + id, true);
+        nvim.command(`autocmd!`, true);
+        nvim.command(cmd, true);
+        nvim.command("augroup END", true);
+        nvim.resumeNotification(false, true);
         return import_node3.Disposable.create(() => {
-          this.autocmds.delete(id);
-          this.resetDynamicAutocmd();
+          nvim.command(`autocmd! ${id}`, true);
         });
       }
       resetDynamicAutocmd() {
         let { nvim } = this;
         nvim.pauseNotification();
-        nvim.command(`autocmd! ${groupName}`, true);
         for (let [id, autocmd] of this.autocmds.entries()) {
+          nvim.command(`autocmd! ${id}`, true);
           nvim.command(createCommand(id, autocmd), true);
         }
         nvim.resumeNotification(false, true);
       }
       dispose() {
-        this.nvim.command(`autocmd! ${groupName}`, true);
-        disposeAll(this.disposables);
+        this.autocmds.clear();
       }
     };
   }
@@ -52435,7 +52474,7 @@ var init_buffer = __esm({
        */
       async echoMessage(truncate = false, position, target) {
         const config = this.config;
-        if (!config.enable || config.enableMessage === "never" || config.displayByAle || config.displayByVimDiagnostic) return false;
+        if (!config.enable || config.enableMessage === "never" || this.displayByAle || this.displayByVimDiagnostic) return false;
         if (!target) target = config.messageTarget;
         let useFloat = target == "float";
         let diagnostics = this.getDiagnosticsAtPosition(position);
@@ -79291,9 +79330,15 @@ var init_ui3 = __esm({
     init_workspace();
     interval = getConditionValue(100, 1);
     InstallChannel = class {
-      constructor(isUpdate, channel) {
-        this.isUpdate = isUpdate;
+      constructor(settings, channel) {
+        this.settings = settings;
         this.channel = channel;
+      }
+      get isUpdate() {
+        return this.settings.isUpdate;
+      }
+      getText() {
+        return this.isUpdate ? "update" : "install";
       }
       start(names) {
         this.channel.appendLine(`${this.isUpdate ? "Updating" : "Installing"} ${names.join(", ")}`);
@@ -79304,20 +79349,20 @@ var init_ui3 = __esm({
         }
       }
       startProgress(name2) {
-        this.channel.appendLine(`Start ${this.isUpdate ? "update" : "install"} ${name2}`);
+        this.channel.appendLine(`Start ${this.getText()} ${name2}`);
       }
       finishProgress(name2, succeed) {
         if (succeed) {
-          this.channel.appendLine(`${name2} ${this.isUpdate ? "update" : "install"} succeed!`);
+          this.channel.appendLine(`${name2} ${this.getText()} succeed!`);
         } else {
-          this.channel.appendLine(`${name2} ${this.isUpdate ? "update" : "install"} failed!`);
+          this.channel.appendLine(`${name2} ${this.getText()} failed!`);
         }
       }
     };
     debounceTime6 = getConditionValue(500, 10);
     InstallBuffer = class {
-      constructor(isUpdate) {
-        this.isUpdate = isUpdate;
+      constructor(settings) {
+        this.settings = settings;
         this.statMap = /* @__PURE__ */ new Map();
         this.updated = /* @__PURE__ */ new Set();
         this.messagesMap = /* @__PURE__ */ new Map();
@@ -79415,6 +79460,9 @@ var init_ui3 = __esm({
       get stopped() {
         return this.interval == null;
       }
+      get isUpdate() {
+        return this.settings.isUpdate;
+      }
       // draw frame
       draw() {
         let { remains, bufnr } = this;
@@ -79441,9 +79489,8 @@ var init_ui3 = __esm({
       async show() {
         let isSync = events_default.requesting === true;
         let { nvim } = workspace_default;
-        const useTab = workspace_default.getConfiguration("coc.preferences").get("extensionUpdateUIInTab", false);
         nvim.pauseNotification();
-        nvim.command(isSync ? "enew" : useTab ? "tabnew" : "vs +enew", true);
+        nvim.command(isSync ? "enew" : this.settings.updateUIInTab ? "tabnew" : "vs +enew", true);
         nvim.call("bufnr", ["%"], true);
         nvim.command("setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1", true);
         if (!isSync) nvim.command("nnoremap <silent><nowait><buffer> q :q<CR>", true);
@@ -79482,6 +79529,7 @@ var init_extension = __esm({
     init_constants2();
     init_is();
     init_node();
+    init_object();
     init_processes();
     init_window();
     init_workspace();
@@ -79509,18 +79557,28 @@ var init_extension = __esm({
         commands_default.register({
           id: "extensions.toggleAutoUpdate",
           execute: async () => {
-            let config = workspace_default.getConfiguration("coc.preferences", null);
-            let interval2 = config.get("extensionUpdateCheck", "daily");
+            let settings = this.getUpdateSettings();
             let target = 1 /* Global */;
-            if (interval2 == "never") {
-              await config.update("extensionUpdateCheck", "daily", target);
+            let config = workspace_default.getConfiguration(null, null);
+            if (settings.updateCheck == "never") {
+              await config.update("extensions.updateCheck", "daily", target);
               void window_default.showInformationMessage("Extension auto update enabled.");
             } else {
-              await config.update("extensionUpdateCheck", "never", target);
+              await config.update("extensions.updateCheck", "never", target);
               void window_default.showInformationMessage("Extension auto update disabled.");
             }
+            await config.update("coc.preferences.extensionUpdateCheck", void 0, target);
           }
         }, false, "toggle auto update of extensions.");
+      }
+      getUpdateSettings() {
+        let config = workspace_default.getConfiguration(null, null);
+        let extensionsConfig = toObject2(config.inspect("extensions").globalValue);
+        return {
+          updateCheck: extensionsConfig.updateCheck ?? config.get("coc.preferences.extensionUpdateCheck", "never"),
+          updateUIInTab: extensionsConfig.updateUIInTab ?? config.get("coc.preferences.extensionUpdateUIInTab", false),
+          silentAutoupdate: extensionsConfig.silentAutoupdate ?? config.get("coc.preferences.silentAutoupdate", true)
+        };
       }
       async init(runtimepath) {
         if (process.env.COC_NO_PLUGINS == "1") return;
@@ -79532,15 +79590,16 @@ var init_extension = __esm({
       }
       async activateExtensions() {
         await this.manager.activateExtensions();
-        if (process.env.COC_NO_PLUGINS == "1") return;
+        if (process.env.COC_NO_PLUGINS == "1") {
+          logger44.warn("Extensions disabled by env COC_NO_PLUGINS");
+          return;
+        }
         let names = this.states.filterGlobalExtensions(workspace_default.env.globalExtensions);
         void this.installExtensions(names);
-        let config = workspace_default.initialConfiguration.get("coc.preferences");
-        let interval2 = config.extensionUpdateCheck;
-        let silent = config.silentAutoupdate;
-        if (this.states.shouldUpdate(interval2)) {
+        let settings = this.getUpdateSettings();
+        if (this.states.shouldUpdate(settings.updateCheck)) {
           this.outputChannel.appendLine("Start auto update...");
-          this.updateExtensions(silent).catch((e) => {
+          this.updateExtensions(settings.silentAutoupdate, settings.updateUIInTab).catch((e) => {
             this.outputChannel.appendLine(`Error on updateExtensions ${e}`);
           });
         }
@@ -79606,10 +79665,10 @@ var init_extension = __esm({
         void window_default.showErrorMessage(`Can't find ${npm} or npm in your $PATH`);
         return null;
       }
-      createInstallerUI(isUpdate, silent) {
-        return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate);
+      createInstallerUI(isUpdate, silent, updateUIInTab) {
+        return silent ? new InstallChannel({ isUpdate }, this.outputChannel) : new InstallBuffer({ isUpdate, updateUIInTab });
       }
-      creteInstaller(npm, def) {
+      createInstaller(npm, def) {
         return new Installer(this.modulesFolder, npm, def);
       }
       /**
@@ -79619,12 +79678,12 @@ var init_extension = __esm({
         if (isFalsyOrEmpty(list2) || !this.npm) return;
         let { npm } = this;
         list2 = distinct(list2);
-        let installBuffer = this.createInstallerUI(false, false);
+        let installBuffer = this.createInstallerUI(false, false, false);
         await Promise.resolve(installBuffer.start(list2));
         let fn = async (key) => {
           try {
             installBuffer.startProgress(key);
-            let installer = this.creteInstaller(npm, key);
+            let installer = this.createInstaller(npm, key);
             installer.on("message", (msg, isProgress) => {
               installBuffer.addMessage(key, msg, isProgress);
             });
@@ -79646,7 +79705,7 @@ var init_extension = __esm({
       /**
        * Update global extensions
        */
-      async updateExtensions(silent = false) {
+      async updateExtensions(silent = false, updateUIInTab = false) {
         let { npm } = this;
         if (!npm) return;
         let stats = this.globalExtensionStats();
@@ -79659,14 +79718,14 @@ var init_extension = __esm({
         });
         this.states.setLastUpdate();
         this.cleanModulesFolder();
-        let installBuffer = this.createInstallerUI(true, silent);
+        let installBuffer = this.createInstallerUI(true, silent, updateUIInTab);
         await Promise.resolve(installBuffer.start(stats.map((o) => o.id)));
         let fn = async (stat) => {
           let { id } = stat;
           try {
             installBuffer.startProgress(id);
             let url = stat.exotic ? stat.uri : null;
-            let installer = this.creteInstaller(npm, id);
+            let installer = this.createInstaller(npm, id);
             installer.on("message", (msg, isProgress) => {
               installBuffer.addMessage(id, msg, isProgress);
             });
@@ -80143,6 +80202,7 @@ var init_source_language = __esm({
         if (!completeItems || completeItems.length == 0) return null;
         let itemDefaults = this.itemDefaults = toObject2(result["itemDefaults"]);
         let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
+        this.hasDefaultRange = Range.is(itemDefaults.editRange);
         return { isIncomplete, items: completeItems, itemDefaults };
       }
       onCompleteResolve(item, opt, token) {
@@ -80217,7 +80277,7 @@ var init_source_language = __esm({
           range = Range.create(pos.line, characterIndex(line, col), pos.line, end);
         }
         if (range.end.character < character) range.end.character = character;
-        let newText = textEdit ? textEdit.newText : (textEditText ? textEditText : insertText) ?? label;
+        let newText = textEdit ? textEdit.newText : (textEditText && this.hasDefaultRange ? textEditText : insertText) ?? label;
         let indentCount = fixIndent(line, pos.text, range);
         let delta = pos.character - character - indentCount;
         if (delta !== 0) range.end.character += delta;
@@ -84614,10 +84674,12 @@ var init_format2 = __esm({
       }
       shouldFormatOnSave(doc) {
         let { languageId, uri } = doc;
+        let document2 = workspace_default.getDocument(doc.uri);
+        if (!document2 || document2.getVar("disable_autoformat", 0)) return false;
         let config = workspace_default.getConfiguration("coc.preferences", { uri, languageId });
         let filetypes = config.get("formatOnSaveFiletypes", null);
-        let formatOnSave = config.get("formatOnSave", false);
         if (Array.isArray(filetypes)) return filetypes.includes("*") || filetypes.includes(languageId);
+        let formatOnSave = config.get("formatOnSave", false);
         return formatOnSave;
       }
       setConfiguration(e) {
@@ -84636,8 +84698,11 @@ var init_format2 = __esm({
         return isFalsyOrEmpty(filetypes) || filetypes.includes(filetype) || filetypes.includes("*");
       }
       async tryFormatOnType(ch, doc) {
-        if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return false;
-        if (manager_default3.getSession(doc.bufnr) != null || !this.shouldFormatOnType(doc.filetype)) return false;
+        if (doc.getVar("disable_autoformat", 0)) return false;
+        if (!this.preferences.formatOnType) return false;
+        if (manager_default3.getSession(doc.bufnr) != null) return false;
+        if (!ch || isAlphabet(ch.charCodeAt(0))) return false;
+        if (!this.shouldFormatOnType(doc.filetype)) return false;
         if (!languages_default.hasProvider("formatOnType" /* FormatOnType */, doc.textDocument)) {
           logger53.warn(`Format on type provider not found for buffer: ${doc.uri}`);
           return false;
@@ -85977,7 +86042,7 @@ var init_locations = __esm({
           const filename = parsedURI.scheme == "file" ? parsedURI.fsPath : parsedURI.toString();
           return {
             name: word,
-            cmd: `silent keepjumps call cursor(${location.range.start.line + 1}, ${location.range.start.character + 1})`,
+            cmd: `silent keepjumps call coc#cursor#move_to(${location.range.start.line}, ${location.range.start.character})`,
             filename
           };
         });
@@ -89339,7 +89404,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-89cd1a23 2025-02-06 13:10:23 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-1e177c40 2025-02-21 14:39:48 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89760,7 +89825,7 @@ var init_plugin = __esm({
         this.addAction("runCommand", (...args) => this.handler.commands.runCommand(...args));
         this.addAction("repeatCommand", () => this.handler.commands.repeat());
         this.addAction("installExtensions", (...list2) => extension_default.installExtensions(list2));
-        this.addAction("updateExtensions", (silent) => extension_default.updateExtensions(silent));
+        this.addAction("updateExtensions", (silent) => extension_default.updateExtensions(silent, extension_default.getUpdateSettings().updateUIInTab));
         this.addAction("extensionStats", () => extension_default.getExtensionStates());
         this.addAction("loadedExtensions", () => extension_default.manager.loadedExtensions);
         this.addAction("watchExtension", (id) => extension_default.manager.watchExtension(id));

@@ -346,10 +346,18 @@ endfunction
 
 function! coc#client#open_log()
   if !get(g:, 'node_client_debug', 0)
-    echohl Error | echon '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enable debug mode.' | echohl None
+    throw '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enable debug mode.'
     return
   endif
   execute 'vs '.s:logfile
+endfunction
+
+function! coc#client#get_log()
+  if !get(g:, 'node_client_debug', 0)
+    throw '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enable debug mode.'
+    return ''
+  endif
+  return s:logfile
 endfunction
 
 function! s:on_error(name, msgs) abort

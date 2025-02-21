@@ -23,6 +23,19 @@ function! coc#expandableOrJumpable() abort
   return coc#rpc#request('snippetCheck', [1, 1])
 endfunction
 
+function! coc#clearGroups(prefix) abort
+  " 遍历所有 augroup 名称
+  for group in getcompletion('', 'augroup')
+    " 检查是否以指定前缀开头
+    if group =~# '^' . a:prefix
+      " 进入该 augroup，执行清空操作
+      execute 'augroup ' . group
+        autocmd!
+      augroup END
+    endif
+  endfor
+endfunction
+
 " add vim command to CocCommand list
 function! coc#add_command(id, cmd, ...)
   let config = {'id':a:id, 'cmd':a:cmd, 'title': get(a:,1,'')}

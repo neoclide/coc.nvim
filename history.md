@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-02-20
+
+Use `extensions` section for extension related configurations. Deprecated configuration sections: `coc.preferences.extensionUpdateCheck`, `coc.preferences.extensionUpdateUIInTab` and `coc.preferences.silentAutoupdate`.
+
 ## 2025-01-03
 
 - Add `diagnostic.displayByVimDiagnostic` configuration, set diagnostics to `vim.diagnostic` on nvim, and prevent coc.nvim's handler to display in virtualText/sign/floating etc.
