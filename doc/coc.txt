@@ -987,7 +987,8 @@ To enable highlight on CursorHold, create an autocmd like this: >
 
 	autocmd CursorHold * call CocActionAsync('highlight')
 <
-Checkout |coc-highlights-document| for related highlight groups.
+See |coc-config-documentHighlight| for related configurations.
+See |coc-highlights-document| for related highlight groups.
 
 Note error will not be thrown when provider not exists or nothing returned
 from languageserver with |CocAction('highlight')|
@@ -3880,6 +3881,20 @@ outline							*coc-list-outline*
 symbols							*coc-list-symbols*
 
 	Search workspace symbols.
+	To customize filepath displayed in the list, user could inject
+	javascript global function `formatFilepath` which accept filepath and
+	should return string. ex:
+>
+	const path = require('path')
+	global.formatFilepath = function (file) {
+	  return file.startsWith('jdt:/') ? path.basename(file) : file
+	}
+<
+	save the file to `~/custom.js` and make coc load it by add
+>
+	let g:coc_node_args = ['-r', expand('~/custom.js')]
+<
+	to your vimrc
 
 	Actions:
 

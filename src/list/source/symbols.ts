@@ -20,6 +20,13 @@ interface ItemToSort {
   }
 }
 
+export function formatFilepath(file: string): string {
+  if (typeof global.formatFilepath === 'function') {
+    return global.formatFilepath(file) + ''
+  }
+  return file
+}
+
 export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
@@ -81,7 +88,7 @@ export default class Symbols extends LocationList {
     let label = ''
     let ansiHighlights: AnsiHighlight[] = []
     // Normal Typedef Comment
-    let parts = [name, `[${kind}]`, file]
+    let parts = [name, `[${kind}]`, formatFilepath(file)]
     let highlights = ['Normal', 'Typedef', 'Comment']
     for (let index = 0; index < parts.length; index++) {
       const text = parts[index]
