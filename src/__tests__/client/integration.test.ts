@@ -1,15 +1,15 @@
 import * as assert from 'assert'
 import cp from 'child_process'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
-import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
+import { MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
-import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
+import { CloseAction, ErrorAction } from '../../language-client'
 import { LSPCancellationError } from '../../language-client/features'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
@@ -253,18 +253,32 @@ describe('Client events', () => {
     await client.sendNotification('logMessage')
     await client.sendNotification('showMessage')
     let types = [MessageType.Error, MessageType.Warning, MessageType.Info, MessageType.Log]
+    let times = 0
+    const mockMessageFunctions = function(): Disposable {
+      let names = ['showErrorMessage', 'showWarningMessage', 'showInformationMessage']
+      let fns: Function[] = []
+      for (let name of names) {
+        let spy = jest.spyOn(window as any, name).mockImplementation(() => {
+          times++
+          return Promise.resolve(true)
+        })
+        fns.push(() => {
+          spy.mockRestore()
+        })
+      }
+      return Disposable.create(() => {
+        for (let fn of fns) {
+          fn()
+        }
+      })
+    }
+    disposables.push(mockMessageFunctions())
     for (const t of types) {
       await client.sendNotification('requestMessage', { type: t })
-      await helper.waitValue(async () => {
-        let m = await workspace.nvim.mode
-        return m.blocking
-      }, true)
-      if (t == MessageType.Error) {
-        await workspace.nvim.input('1')
-      } else {
-        await workspace.nvim.input('<cr>')
-      }
     }
+    await helper.waitValue(() => {
+      return times >= 3
+    }, true)
     let filename = path.join(os.tmpdir(), uuid())
     let uri = URI.file(filename)
     fs.writeFileSync(filename, 'foo', 'utf8')
