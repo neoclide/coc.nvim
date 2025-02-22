@@ -70,6 +70,8 @@ class DiagnosticManager implements Disposable {
       execute: () => this.jumpRelated()
     }, false, 'jump to related locations of current diagnostic.')
     this.defineSigns(workspace.initialConfiguration.get<DiagnosticSignConfig>('diagnostic'))
+    let globalValue = workspace.initialConfiguration.inspect('diagnostic.enable').globalValue
+    this.enabled = globalValue !== false
     this.buffers = workspace.registerBufferSync(doc => {
       let buf = new DiagnosticBuffer(this.nvim, doc)
       buf.onDidRefresh(diagnostics => {

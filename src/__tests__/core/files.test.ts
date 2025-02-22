@@ -548,7 +548,8 @@ describe('getOriginalLine', () => {
     })
 
     it('should render annotation label', async () => {
-      let doc = await helper.createDocument(uuid())
+      let filepath = await createTmpFile('', disposables)
+      let doc = await helper.createDocument(filepath)
       let edit: WorkspaceEdit = {
         documentChanges: [
           {
