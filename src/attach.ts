@@ -68,6 +68,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
       case 'FloatBtnClick':
       case 'CompleteStop':
       case 'PumInsert':
+      case 'InputListSelect':
       case 'PumNavigate':
         logger.trace('Event: ', method, ...args)
         await events.fire(method, args)

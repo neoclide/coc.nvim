@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-02-22
+
+- QuickPick works with vim without terminal support.
+
 ## 2025-02-21
 
 - To avoid unexpected signature help window close, signature help will be triggered after placeholder jump by default, when autocmd `CocJumpPlaceholder call CocActionAsync('showSignatureHelp')` not exists.

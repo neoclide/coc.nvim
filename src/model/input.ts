@@ -16,6 +16,7 @@ export interface InputPreference {
   maxWidth?: number
   highlight?: string
   borderhighlight?: string
+  quickpick?: string[]
   /**
    * map list key-mappings
    */
@@ -99,7 +100,6 @@ export default class InputBox implements Disposable {
     })
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this._bufnr) {
-        this._winid = undefined
         this.dispose()
       }
     }, null, this.disposables)
@@ -147,8 +147,7 @@ export default class InputBox implements Disposable {
     if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
       this.clear = true
     }
-    let config = omitUndefined(preferences)
-    let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, config]) as RequestResult
+    let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, omitUndefined(preferences)]) as RequestResult
     if (!res) throw new Error('Unable to open input window')
     this._bufnr = res[0]
     this._winid = res[1]

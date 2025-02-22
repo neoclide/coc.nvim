@@ -476,4 +476,25 @@ describe('createQuickPick', () => {
       return lines
     }, ['foo description', 'foot', 'bar'])
   })
+
+  it('should check InputListSelect', async () => {
+    const createQuickPick = async () => {
+      let quickpick = await window.createQuickPick<QuickPickItem>()
+      quickpick.items = [{ label: 'one' }]
+      disposables.push(quickpick)
+      await quickpick.show()
+      return quickpick
+    }
+    for (let val of [-1, 1]) {
+      let quickpick = await createQuickPick()
+      let called = false
+      quickpick.onDidFinish(() => {
+        called = true
+      })
+      await events.fire('InputListSelect', [val])
+      await helper.waitValue(() => {
+        return called
+      }, true)
+    }
+  })
 })

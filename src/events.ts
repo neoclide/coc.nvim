@@ -74,7 +74,7 @@ export type TabEvents = 'TabNew' | 'TabClosed'
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
   | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
-  | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump'
+  | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
@@ -324,6 +324,7 @@ class Events {
   public on(event: 'InputChar', handler: (session: string, character: string, mode: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PromptInsert', handler: (value: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PlaceholderJump', handler: (bufnr: number, info: JumpInfo) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'InputListSelect', handler: (index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: EmptyEvents, handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents | AllEvents[], handler: (...args: unknown[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
