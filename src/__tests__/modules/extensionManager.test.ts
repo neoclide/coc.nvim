@@ -156,10 +156,11 @@ describe('ExtensionManager', () => {
       workspace.workspaceFolderControl.addWorkspaceFolder(__dirname, false)
       tmpfolder = createFolder()
       let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
+      let basename = path.basename(__filename)
       createExtension(tmpfolder, {
         name: 'name',
         engines: { coc: '>= 0.0.80' },
-        activationEvents: ['workspaceContains:extensionManager.test.ts'],
+        activationEvents: ['workspaceContains:' + basename],
         contributes: {
           rootPatterns: [
             {
