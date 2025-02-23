@@ -1,5 +1,5 @@
 'use strict'
-import type { Window } from './neovim'
+import type { Window } from '@chemzqm/neovim'
 import type { Disposable, Event } from 'vscode-languageserver-protocol'
 import type { CreateFile, DeleteFile, Diagnostic, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
@@ -20,6 +20,8 @@ declare global {
     }
   }
 }
+
+export type HoverTarget = 'float' | 'preview' | 'echo'
 
 export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
   T,
