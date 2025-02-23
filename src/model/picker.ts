@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim } from '../neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'

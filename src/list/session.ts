@@ -1,5 +1,5 @@
 'use strict'
-import type { Buffer, Neovim, Window } from '../neovim'
+import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import Highlighter from '../model/highlighter'
 import { defaultValue, disposeAll, getConditionValue, wait } from '../util'
 import { debounce } from '../util/node'

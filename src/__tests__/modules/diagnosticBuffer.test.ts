@@ -1,5 +1,5 @@
 import helper from '../helper'
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position, TextEdit } from 'vscode-languageserver-types'
 import workspace from '../../workspace'

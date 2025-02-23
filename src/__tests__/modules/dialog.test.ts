@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import { Dialog, DialogButton } from '../../model/dialog'
 import ProgressNotification from '../../model/progress'

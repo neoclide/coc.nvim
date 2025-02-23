@@ -4,7 +4,6 @@ import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
-import { Neovim } from '../neovim'
 import { FloatConfig, FloatFactory } from '../types'
 import { disposeAll, getConditionValue, wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
@@ -15,6 +14,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
 import { toDocumentation } from './util'
+import { Neovim } from '@chemzqm/neovim'
 
 interface SignatureConfig {
   wait: number

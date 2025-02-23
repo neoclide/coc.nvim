@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable, SymbolKind } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Handler from '../../handler/index'

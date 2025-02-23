@@ -1,5 +1,5 @@
-import { Neovim } from '../../neovim'
-import { Disposable, ParameterInformation, Range, SignatureInformation } from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import { Disposable, ParameterInformation, SignatureInformation, Range } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Signature from '../../handler/signature'
 import languages from '../../languages'

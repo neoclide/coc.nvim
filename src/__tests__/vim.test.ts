@@ -1,5 +1,5 @@
 process.env.VIM_NODE_RPC = '1'
-import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
+import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import { sameFile } from '../util/fs'
 import type { Helper } from './helper'
@@ -162,8 +162,7 @@ describe('client API', () => {
   it('should set option', async () => {
     await nvim.setOption('emoji', false)
     let res = await nvim.getOption('emoji')
-    // neovim return false for Boolean option.
-    expect(res).toBe(0)
+    expect(res).toBe(false)
   })
 
   it('should set current buffer', async () => {
@@ -187,12 +186,12 @@ describe('client API', () => {
     let valid = await buf.valid
     expect(valid).toBe(true)
     let listed = await buf.getOption('buflisted')
-    expect(listed).toBe(0)
+    expect(listed).toBe(false)
     buf = await nvim.createNewBuffer(true, true)
     valid = await buf.valid
     expect(valid).toBe(true)
     listed = await buf.getOption('buflisted')
-    expect(listed).toBe(1)
+    expect(listed).toBe(true)
     let buftype = await buf.getOption('buftype')
     expect(buftype).toBe('nofile')
   })
@@ -356,10 +355,10 @@ describe('Buffer API', () => {
   it('should set buffer option', async () => {
     await buffer.setOption('buflisted', false)
     let curr = await buffer.getOption('buflisted')
-    expect(curr).toBe(0)
+    expect(curr).toBe(false)
     await buffer.setOption('buflisted', true)
     curr = await buffer.getOption('buflisted')
-    expect(curr).toBe(1)
+    expect(curr).toBe(true)
   })
 
   it('should get changedtick', async () => {
@@ -530,10 +529,10 @@ describe('Window API', () => {
 
   it('should get and set option', async () => {
     let relative = await win.getOption('relativenumber')
-    expect(relative).toBe(0)
+    expect(relative).toBe(false)
     await win.setOption('relativenumber', true)
     relative = await win.getOption('relativenumber')
-    expect(relative).toBe(1)
+    expect(relative).toBe(true)
     await win.setOption('relativenumber', false)
     await expect(async () => {
       await win.getOption('not_exists')
@@ -588,7 +587,7 @@ describe('Popup', () => {
     await win.setOption('relativenumber', true)
     // different on neovim which returns true and false
     let option = await win.getOption('relativenumber')
-    expect(option).toBe(1)
+    expect(option).toBe(true)
     await win.setVar('foo', 'bar', false)
     let val = await win.getVar('foo')
     expect(val).toBe('bar')

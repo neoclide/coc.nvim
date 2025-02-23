@@ -1,5 +1,5 @@
 'use strict'
-import type { Buffer, Neovim, VirtualTextOption } from '../neovim'
+import type { Buffer, Neovim, VirtualTextOption } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Location, Position, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../events'
@@ -366,20 +366,18 @@ export class DiagnosticBuffer implements SyncItem {
       if (config.showRelatedInformation && diagnostic.relatedInformation?.length) {
         msg = `${diagnostic.message}\n\nRelated information:\n`
         for (const info of diagnostic.relatedInformation) {
-          const fsPath = URI.parse(info.location.uri).fsPath
-          const basename = path.basename(fsPath)
-          const line = info.location.range.start.line + 1
-          const column = info.location.range.start.character + 1
-          msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
+            const fsPath = URI.parse(info.location.uri).fsPath
+            const basename = path.basename(fsPath)
+            const line = info.location.range.start.line + 1
+            const column = info.location.range.start.character + 1
+            msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
         }
         msg = msg + "\n\n"
       }
-      docs.push({
-        filetype, content: formatDiagnostic(config.format, {
-          ...diagnostic,
-          message: msg
-        })
-      })
+      docs.push({ filetype, content: formatDiagnostic(config.format, {
+        ...diagnostic,
+        message: msg
+      }) })
       if (link) {
         docs.push({ filetype: 'txt', content: link })
       }

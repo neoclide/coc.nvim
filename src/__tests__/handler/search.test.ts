@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import Refactor from '../../handler/refactor'
 import Search, { getPathFromArgs } from '../../handler/refactor/search'
 import helper from '../helper'

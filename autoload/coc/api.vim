@@ -20,6 +20,8 @@ let s:buffer_id = {}
 let s:id_types = {}
 let s:tab_id = 1
 let s:keymap_arguments = ['nowait', 'silent', 'script', 'expr', 'unique']
+" Boolean options of vim 9.1.1134
+let s:boolean_options = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'autoindent', 'autoread', 'autoshelldir', 'autowrite', 'autowriteall', 'backup', 'balloonevalterm', 'binary', 'bomb', 'breakindent', 'buflisted', 'cdhome', 'cindent', 'compatible', 'confirm', 'copyindent', 'cursorbind', 'cursorcolumn', 'cursorline', 'delcombine', 'diff', 'digraph', 'edcompatible', 'emoji', 'endoffile', 'endofline', 'equalalways', 'errorbells', 'esckeys', 'expandtab', 'exrc', 'fileignorecase', 'fixendofline', 'foldenable', 'fsync', 'gdefault', 'hidden', 'hkmap', 'hkmapp', 'hlsearch', 'icon', 'ignorecase', 'imcmdline', 'imdisable', 'incsearch', 'infercase', 'insertmode', 'joinspaces', 'langnoremap', 'langremap', 'lazyredraw', 'linebreak', 'lisp', 'list', 'loadplugins', 'magic', 'modeline', 'modelineexpr', 'modifiable', 'modified', 'more', 'number', 'paste', 'preserveindent', 'previewwindow', 'prompt', 'readonly', 'relativenumber', 'remap', 'revins', 'rightleft', 'ruler', 'scrollbind', 'secure', 'shelltemp', 'shiftround', 'shortname', 'showcmd', 'showfulltag', 'showmatch', 'showmode', 'smartcase', 'smartindent', 'smarttab', 'smoothscroll', 'spell', 'splitbelow', 'splitright', 'startofline', 'swapfile', 'tagbsearch', 'tagrelative', 'tagstack', 'termbidi', 'termguicolors', 'terse', 'textauto', 'textmode', 'tildeop', 'timeout', 'title', 'ttimeout', 'ttybuiltin', 'ttyfast', 'undofile', 'visualbell', 'warn', 'weirdinvert', 'wildignorecase', 'wildmenu', 'winfixbuf', 'winfixheight', 'winfixwidth', 'wrap', 'wrapscan', 'write', 'writeany', 'writebackup', 'xtermcodes']
 
 " helper {{
 " Create a window with bufnr for execute win_execute
@@ -432,6 +434,71 @@ function! s:funcs.del_keymap(mode, lhs) abort
   let lhs = substitute(a:lhs, ' ', '<space>', 'g')
   execute 'silent '.a:mode.'unmap '.lhs
   return v:null
+endfunction
+
+function! s:funcs.set_option_value(name, value, opts) abort
+  let l:win = get(a:opts, 'win', 0)
+  let l:buf = get(a:opts, 'buf', 0)
+  if has_key(a:opts, 'scope') && has_key(a:opts, 'buf')
+    throw "Can't use both scope and buf"
+  endif
+  let l:scope = get(a:opts, 'scope', 'global')
+  call s:check_option_args(l:scope, l:win, l:buf)
+  if l:buf != 0
+    call s:funcs.buf_set_option(l:buf, a:name, a:value)
+  elseif l:win != 0
+    call s:funcs.win_set_option(l:win, a:name, a:value)
+  else
+    if l:scope ==# 'global'
+      execute 'let &'.a:name.' = a:value'
+    else
+      call s:funcs.win_set_option(win_getid(), a:name, a:value)
+      call s:funcs.buf_set_option(bufnr('%'), a:name, a:value)
+    endif
+  endif
+  return v:null
+endfunction
+
+function! s:funcs.get_option_value(name, opts) abort
+  let l:win = get(a:opts, 'win', 0)
+  let l:buf = get(a:opts, 'buf', 0)
+  if has_key(a:opts, 'scope') && has_key(a:opts, 'buf')
+    throw "Can't use both scope and buf"
+  endif
+  let l:scope = get(a:opts, 'scope', 'global')
+  call s:check_option_args(l:scope, l:win, l:buf)
+  let l:result = v:null
+  " return eval('&'.a:name)
+  if l:buf != 0
+    let l:result = getbufvar(l:buf, '&'.a:name)
+  elseif l:win != 0
+    let l:result = s:funcs.win_get_option(l:win, a:name)
+  else
+    if l:scope ==# 'global'
+      let l:result = eval('&'.a:name)
+    else
+      let l:result = gettabwinvar(tabpagenr(), 0, '&'.a:name, get(a:, 1, v:null))
+      if l:result is v:null
+        let l:result = getbufvar(bufnr('%'), '&'.a:name)
+      endif
+    endif
+  endif
+  if index(s:boolean_options, a:name) != -1
+    return l:result == 0 ? v:false : v:true
+  endif
+  return l:result
+endfunction
+
+function! s:check_option_args(scope, win, buf) abort
+  if a:scope !=# 'global' && a:scope !=# 'local'
+    throw "Invalid 'scope': expected 'local' or 'global'"
+  endif
+  if a:win && empty(getwininfo(a:win)) && empty(popup_getpos(a:win))
+    throw "Invalid window id: ".a:win
+  endif
+  if a:buf && !bufexists(a:buf)
+    throw "Invalid buffer id: ".a:buf
+  endif
 endfunction
 " }}
 

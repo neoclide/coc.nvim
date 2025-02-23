@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event, NotificationHandler, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { ProgressContext, ProgressPart } from '../../language-client/progressPart'
 import helper from '../helper'

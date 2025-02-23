@@ -2,7 +2,7 @@ import helper from '../helper'
 import path from 'path'
 import workspace from '../../workspace'
 import Plugin from '../../plugin'
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import * as exportObj from '../../index'
 import * as vsTypes from 'vscode-languageserver-types'
 

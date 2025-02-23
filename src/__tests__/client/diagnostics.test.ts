@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'

@@ -1,5 +1,5 @@
 'use strict'
-import type { VirtualTextOption } from '../neovim'
+import type { VirtualTextOption } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range, TextEdit } from 'vscode-languageserver-types'
 import { FloatConfig } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'

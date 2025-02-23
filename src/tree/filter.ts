@@ -1,6 +1,6 @@
 'use strict'
 import events from '../events'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { disposeAll } from '../util'
 export const sessionKey = 'filter'

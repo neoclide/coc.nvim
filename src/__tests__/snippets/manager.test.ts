@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'

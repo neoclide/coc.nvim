@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '../neovim'
+import type { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { createLogger } from '../logger'
 import { ProviderResult } from '../provider'

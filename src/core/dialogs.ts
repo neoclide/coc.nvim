@@ -1,4 +1,4 @@
-import type { Neovim } from '../neovim'
+import type { Neovim } from '@chemzqm/neovim'
 import type { WorkspaceConfiguration } from '../configuration/types'
 import events from '../events'
 import { Dialog, DialogConfig, DialogPreferences } from '../model/dialog'

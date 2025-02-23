@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from './neovim'
+import { Neovim } from '@chemzqm/neovim'
 import type { DocumentSelector, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CreateFileOptions, DeleteFileOptions, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'

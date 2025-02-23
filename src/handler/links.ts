@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim } from '../neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DocumentLink, Range } from 'vscode-languageserver-types'
 import { IConfigurationChangeEvent } from '../configuration/types'

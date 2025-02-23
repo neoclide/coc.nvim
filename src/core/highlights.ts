@@ -1,4 +1,4 @@
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '../types'
 import { defaultValue } from '../util'
 import { equals } from '../util/object'

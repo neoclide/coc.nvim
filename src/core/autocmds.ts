@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Autocmd } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { Disposable } from '../util/protocol'

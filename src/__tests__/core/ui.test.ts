@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import * as ui from '../../core/ui'
 import helper from '../helper'

@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
 import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
 import helper from '../helper'

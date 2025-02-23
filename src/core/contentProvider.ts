@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { TextDocumentContentProvider } from '../provider'

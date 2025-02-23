@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer } from '../neovim'
+import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'
 import { HighlightItem } from '../types'

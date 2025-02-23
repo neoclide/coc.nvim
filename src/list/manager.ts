@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import { ConfigurationScope, ConfigurationTarget } from '../configuration/types'
 import events from '../events'

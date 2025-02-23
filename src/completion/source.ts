@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'

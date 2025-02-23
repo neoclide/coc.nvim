@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, FoldingRange } from 'vscode-languageserver-protocol'
 import FoldHandler from '../../handler/fold'
 import languages from '../../languages'

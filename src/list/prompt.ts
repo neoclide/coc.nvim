@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event } from '../util/protocol'
 import { getUnicodeClass } from '../util/string'
 import listConfiguration from './configuration'

@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import SelectionRange from '../../handler/selectionRange'
 import languages from '../../languages'

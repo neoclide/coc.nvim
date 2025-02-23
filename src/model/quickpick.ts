@@ -1,7 +1,7 @@
 'use strict'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { createLogger } from '../logger'
-import { Buffer, Neovim } from '../neovim'
 import { HighlightItem, QuickPickItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
 import { toArray } from '../util/array'

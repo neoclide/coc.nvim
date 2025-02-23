@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { WorkspaceConfiguration } from '../configuration/types'
 import Notification, { MessageItem, NotificationConfig, NotificationKind, NotificationPreferences, toButtons, toTitles } from '../model/notification'
 import ProgressNotification, { formatMessage, Progress } from '../model/progress'

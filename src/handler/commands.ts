@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../commands'
 import listManager from '../list/manager'
 import workspace from '../workspace'
