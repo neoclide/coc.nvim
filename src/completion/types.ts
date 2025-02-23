@@ -184,6 +184,7 @@ export interface SourceConfig<T extends ExtendedCompleteItem = ExtendedCompleteI
   documentSelector?: DocumentSelector
   firstMatch?: boolean
   optionalFns?: string[]
+  isVim9?: boolean
   refresh?(): Promise<void>
   toggle?(): void
   onEnter?(bufnr: number): void

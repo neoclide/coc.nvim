@@ -6,6 +6,7 @@ Notable changes of coc.nvim:
 
 - All global properties works with extensions #5222.
 - Return true or false for boolean option on vim (same as neovim).
+- Support completion sources using vim9sciprt module.
 
 ## 2025-02-22
 

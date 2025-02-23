@@ -45,6 +45,23 @@ folder.  With code:
 `init` and `complete` are required functions for vim sources, error message
 will be shown when not exists.
 
+vim9script can be also used on vim9 (not supported on neovim), the function
+first letter need to be uppercased, like:
+>
+  vim9script
+  export def Init(): dict<any>
+    return {
+      priority: 9,
+      shortcut: 'Email',
+      triggerCharacters: ['@']
+    }
+  enddef
+
+  export def Complete(option: dict<any>, Callback: func(list<any>))
+    const items = ['foo@gmail.com', 'bar@yahoo.com']
+    Callback(items)
+  enddef
+<
 Source option: ~
 
   The source option object is returned by `coc#source#{name}#init`

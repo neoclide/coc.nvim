@@ -34,6 +34,7 @@ export default class Source implements ISource<ExtendedCompleteItem> {
   public readonly sourceType: SourceType
   public readonly isSnippet: boolean
   public readonly documentSelector: DocumentSelector | undefined
+  public readonly isVim9: boolean
   /**
    * Words that not match during session
    * The word that not match previous input would not match further input
@@ -46,6 +47,7 @@ export default class Source implements ISource<ExtendedCompleteItem> {
   constructor(option: Partial<SourceConfig>) {
     // readonly properties
     this.name = option.name
+    this.isVim9 = option.isVim9 === true
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native
     this.isSnippet = !!option.isSnippet

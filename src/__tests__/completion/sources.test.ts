@@ -8,7 +8,7 @@ import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
 import { File, filterFiles, getDirectory, getFileItem, getLastPart, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
 import Source, { firstMatchFuzzy } from '../../completion/source'
-import VimSource from '../../completion/source-vim'
+import VimSource, { getMethodName, checkInclude } from '../../completion/source-vim'
 import sources, { Sources, logError, getSourceType } from '../../completion/sources'
 import { CompleteOption, ExtendedCompleteItem, SourceConfig, SourceType } from '../../completion/types'
 import { disposeAll } from '../../util'
@@ -499,5 +499,16 @@ describe('native sources', () => {
     await helper.waitPopup()
     let items = await helper.items()
     expect(items.map(o => o.word)).toEqual(['foo', 'bar'])
+  })
+
+  it('should get method name', () => {
+    expect(getMethodName('f', ['f', 'o'])).toBe('f')
+    expect(getMethodName('foo', ['Foo', 'Bar'])).toBe('Foo')
+    expect(() => {
+      getMethodName('foo', ['Bar'])
+    }).toThrow()
+    expect(checkInclude('f', ['f', 'o'])).toBe(true)
+    expect(checkInclude('b', ['f', 'o'])).toBe(false)
+    expect(checkInclude('foo', ['Foo', 'Bar'])).toBe(true)
   })
 })
