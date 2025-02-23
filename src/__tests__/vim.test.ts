@@ -636,3 +636,14 @@ describe('Tabpage API', () => {
     expect(win.id).toBe(curr)
   })
 })
+
+describe('notify', () => {
+  it('should call function by notify', async () => {
+    let curr = await nvim.call('line', ['.'])
+    nvim.call('setline', [curr, 'foo'], true)
+    await helper.waitValue(async () => {
+      return await nvim.call('getline', [curr])
+    }, 'foo')
+    await nvim.command('normal! dd')
+  })
+})

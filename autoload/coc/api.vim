@@ -940,7 +940,18 @@ endfunction
 
 function! coc#api#notify(method, args) abort
   try
-    call call(s:funcs[a:method], a:args)
+    " vim throw error with return when vim9 function has no return value.
+    if a:method ==# 'call_function'
+      call call(a:args[0], a:args[1])
+    elseif a:method ==# 'call_dict_function'
+      if type(a:args[0]) == v:t_string
+        call call(a:args[1], a:args[2], eval(a:args[0]))
+      else
+        call call(a:args[1], a:args[2], a:args[0])
+      endif
+    else
+      call call(s:funcs[a:method], a:args)
+    endif
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])
   endtry

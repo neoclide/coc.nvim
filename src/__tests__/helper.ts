@@ -91,7 +91,7 @@ export class Helper extends EventEmitter {
       server = this.server = net.createServer(socket => {
         this.plugin = attach({ reader: socket, writer: socket })
         this.nvim.on('vim_error', err => {
-          // console.error('Error from vim: ', err)
+          console.error('Error from vim: ', err)
         })
         resolve()
       })
