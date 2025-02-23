@@ -1,7 +1,6 @@
 'use strict'
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
-import { defaults } from './lodash'
 import { hasOwnProperty, toObject } from './object'
 
 export interface ExtensionExport {
@@ -116,6 +115,38 @@ export function getProtoWithCompile(mod: Function): IModule {
 
 const ModuleProto = getProtoWithCompile(Module)
 
+export function copyGlobalProperties(sandbox: ISandbox, globalObj: any): ISandbox {
+  for (const key of Reflect.ownKeys(globalObj)) {
+    const value = sandbox[key]
+    if (value === undefined) {
+      sandbox[key] = globalObj[key]
+    }
+  }
+  return sandbox
+}
+
+export function createConsole(con: Object, logger: ILogger): Object {
+  let result: any = {}
+  let methods = ['debug', 'log', 'info', 'error', 'warn']
+  for (let key of Object.keys(con)) {
+    if (methods.includes(key)) {
+      result[key] = (...args: any[]) => {
+        logger[key].apply(logger, args)
+      }
+    } else {
+      let fn = con[key]
+      if (typeof fn === 'function') {
+        result[key] = () => {
+          logger.warn(`function console.${key} not supported`)
+        }
+      } else {
+        result[key] = fn
+      }
+    }
+  }
+  return result
+}
+
 export function createSandbox(filename: string, logger: ILogger, name?: string, noExport = global.__TEST__): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
@@ -124,27 +155,11 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
     module,
     Buffer,
     URL: globalThis.URL,
-    console: {
-      debug: (...args: any[]) => {
-        logger.debug.apply(logger, args)
-      },
-      log: (...args: any[]) => {
-        logger.info.apply(logger, args)
-      },
-      error: (...args: any[]) => {
-        logger.error.apply(logger, args)
-      },
-      info: (...args: any[]) => {
-        logger.info.apply(logger, args)
-      },
-      warn: (...args: any[]) => {
-        logger.warn.apply(logger, args)
-      }
-    }
+    console: createConsole(console, logger)
   }, { name }) as ISandbox
 
-  defaults(sandbox, global)
-  sandbox.Reflect = Reflect
+  copyGlobalProperties(sandbox, global)
+  // sandbox.Reflect = Reflect
   let cocExports = noExport ? undefined : require('../index')
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = ModuleProto._compile
@@ -157,7 +172,10 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
   sandbox.process = new (process as any).constructor()
-  for (let key of Object.keys(process)) {
+  for (let key of Reflect.ownKeys(process)) {
+    if (typeof key === 'string' && key.startsWith('_')) {
+      continue
+    }
     sandbox.process[key] = process[key]
   }
 
