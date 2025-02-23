@@ -183,8 +183,7 @@ export interface SourceConfig<T extends ExtendedCompleteItem = ExtendedCompleteI
   filepath?: string
   documentSelector?: DocumentSelector
   firstMatch?: boolean
-  optionalFns?: string[]
-  isVim9?: boolean
+  remoteFns?: string[]
   refresh?(): Promise<void>
   toggle?(): void
   onEnter?(bufnr: number): void
@@ -201,7 +200,7 @@ export interface ISource<T extends CompleteItem = CompleteItem> {
   shortcut?: string
   priority?: number
   sourceType?: SourceType
-  optionalFns?: string[]
+  remoteFns?: string[]
   triggerCharacters?: string[]
   triggerOnly?: boolean
   triggerPatterns?: RegExp[]

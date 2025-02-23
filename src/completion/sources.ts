@@ -135,7 +135,6 @@ export class Sources {
           throw new Error(`function "coc#source#${name}#${fn}" not found`)
         }
       }
-      const isVim9 = fns.includes('Complete')
       let props = await nvim.call(`coc#source#${name}#${getMethodName('init', fns)}`, []) as VimSourceConfig
       let packageJSON = {
         name: `coc-vim-source-${name}`,
@@ -197,11 +196,10 @@ export class Sources {
           let source = new VimSource({
             name,
             filepath,
-            isVim9,
             isSnippet: props.isSnippet,
             sourceType: SourceType.Remote,
             triggerOnly: !!props.triggerOnly,
-            optionalFns: fns.filter(n => !['init', 'complete', 'Init', 'Complete'].includes(n))
+            remoteFns: fns
           })
           this.addSource(source)
           return Promise.resolve()

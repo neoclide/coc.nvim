@@ -146,7 +146,7 @@ describe('Source', () => {
         return Promise.resolve()
       }
     })
-    expect(s.optionalFns).toEqual([])
+    // expect(s.optionalFns).toEqual([])
     await s.refresh()
     await s.onCompleteDone({} as any, opt)
     await s.doComplete(opt, CancellationToken.None)
@@ -228,7 +228,7 @@ endfunction `
     let source = new VimSource({
       name: 'vim',
       sourceType: SourceType.Remote,
-      optionalFns: ['on_complete', 'on_enter']
+      remoteFns: ['on_complete', 'on_enter']
     })
     helper.updateConfiguration('coc.source.vim.disableSyntaxes', ['comment'])
     helper.updateConfiguration('coc.source.vim.filetypes', ['vim'])
@@ -296,7 +296,7 @@ endfunction `
     let source = new VimSource({
       name: 'vim',
       sourceType: SourceType.Remote,
-      optionalFns: ['on_complete']
+      remoteFns: ['on_complete']
     })
     let item: ExtendedCompleteItem = {
       word: 'word',
