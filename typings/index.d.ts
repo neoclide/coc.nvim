@@ -11626,6 +11626,10 @@ declare module 'coc.nvim' {
     filter?(document: { uri: string, languageId: string }, mode: 'onType' | 'onSave'): boolean
   }
 
+  export interface URIConverter {
+    (value: Uri): string
+  }
+
   export interface LanguageClientOptions {
     ignoredRootPaths?: string[]
     disableSnippetCompletion?: boolean
@@ -11643,6 +11647,10 @@ declare module 'coc.nvim' {
      * to 'utf8' if omitted.
      */
     stdioEncoding?: string
+    // converter used to decode uri.
+    uriConverter?: {
+      code2Protocol: URIConverter
+    }
     initializationOptions?: any | (() => any)
     initializationFailedHandler?: InitializationFailedHandler
     progressOnInitialization?: boolean
