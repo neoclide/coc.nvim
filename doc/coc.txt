@@ -8,6 +8,7 @@ CONTENTS					*coc-contents*
 Introduction					|coc-introduction|
 Requirements					|coc-requirements|
 Installation					|coc-installation|
+File system watch 				|coc-filesystemwatch|
 Language server 				|coc-languageserver|
 Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
@@ -145,6 +146,25 @@ To use Vim's native |packages| on Linux or macOS, use script like: >
 
 when using source code of coc.nvim, you'll have to run `npm install` in project
 root of coc.nvim.
+
+==============================================================================
+File system watch					*coc-filesystemwatch*
+
+Watchman https://facebook.github.io/watchman/ is used by coc.nvim to provide
+file change detection to extensions and languageservers.  The watchman command
+is detected from your $PATH, the feature will silently fail when watchman
+can't work.
+
+Watchman automatically watch |coc-workspace-folders| for file events by
+default.
+
+Use command: >
+	:CocCommand workspace.showOutput watchman
+<
+to open output channel of watchman.
+
+Use configuration |coc-config-fileSystemWatch| to change behavior of file
+system watch.
 
 ==============================================================================
 LANGUAGESERVER 						*coc-languageserver*
@@ -673,6 +693,8 @@ Diagnostics of coc.nvim are automatically refreshed to UI by default, checkout
 Note most language servers only send diagnostics for opened buffers for
 performance reason, some lint tools could provide diagnostics for all files in
 workspace.
+
+See |coc-highlights-diagnostics| for diagnostic related highlight groups.
 
 							*coc-diagnostics-refresh*
 Changes on diagnostics refresh ~

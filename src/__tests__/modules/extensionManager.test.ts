@@ -644,8 +644,8 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       let res = await manager.loadExtension(extFolder)
       expect(res).toBe(true)
-      let spy = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
-        return ''
+      let spy = jest.spyOn(workspace.fileSystemWatchers, 'getWatchmanPath').mockImplementation(() => {
+        return Promise.reject('not found')
       })
       let fn = async () => {
         await manager.watchExtension('name')
@@ -659,6 +659,7 @@ describe('ExtensionManager', () => {
 
     it('should reload extension on file change', async () => {
       tmpfolder = createFolder()
+      workspace.fileSystemWatchers.disabled = false
       let extFolder = path.join(tmpfolder, 'node_modules', 'name')
       createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
       let manager = create(tmpfolder)

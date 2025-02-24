@@ -1,15 +1,14 @@
 import { URI } from 'vscode-uri'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import { ConfigurationScope } from '../configuration/types'
-import Watchman from '../core/watchman'
 import events from '../events'
 import { createLogger } from '../logger'
 import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
-import { Extensions as ExtensionsInfo, getProperties, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
-import { createExtension, ExtensionExport } from '../util/factory'
+import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
+import { ExtensionExport, createExtension } from '../util/factory'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -17,7 +16,7 @@ import { omit } from '../util/lodash'
 import { path } from '../util/node'
 import { deepClone, deepIterate, isEmpty } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
-import { convertProperties, Registry } from '../util/registry'
+import { Registry, convertProperties } from '../util/registry'
 import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
@@ -595,10 +594,8 @@ export class ExtensionManager {
         void window.showInformationMessage(`reloaded ${id}`)
       }, global.__TEST__ === true))
     } else {
-      let watchmanPath = workspace.getWatchmanPath()
-      if (!watchmanPath) throw new Error('watchman not found')
-      let client: Watchman = await Watchman.createClient(watchmanPath, item.directory)
-      this.disposables.push(client)
+      let client = await workspace.fileSystemWatchers.createClient(item.directory, true)
+      if (!client) throw new Error('watchman not found')
       void window.showInformationMessage(`watching ${item.directory}`)
       await client.subscribe('**/*.js', async () => {
         await this.reloadExtension(id)

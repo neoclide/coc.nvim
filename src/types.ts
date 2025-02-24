@@ -40,6 +40,12 @@ export interface AnsiHighlight {
   hlGroup: string
 }
 
+export interface FileWatchConfig {
+  readonly watchmanPath: string | null | undefined
+  readonly enable: boolean
+  readonly ignoredFolders: string[]
+}
+
 export interface LocationWithTarget extends Location {
   /**
    * The full target range of this link. If the target for example is a symbol then target range is the

@@ -4,6 +4,7 @@ CONTENTS
 
 Core features
 	Workspace 				|coc-config-workspace|
+	File system watch 			|coc-config-fileSystemWatch|
 	Extensions 				|coc-config-extensions|
 	Preferences 				|coc-config-preferences|
 	Float factory 				|coc-config-floatFactory|
@@ -102,6 +103,30 @@ WORKSPACE
 	patterns resolved.
 
 	Scope: `application`, default: `true`
+
+------------------------------------------------------------------------------
+FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
+
+"fileSystemWatch.watchmanPath" 				*coc-config-filesystemwatch-watchmanPath*
+
+	executable path for https://facebook.github.io/watchman/, detected
+	from $PATH by default	
+	
+	Scope: `application`, default: `null`
+
+"fileSystemWatch.enable" 				*coc-config-filesystemwatch-enable*
+
+	Enable file system watch support for workspace folders.
+	
+	Scope: `application`, default: `true`
+
+"fileSystemWatch.ignoredFolders" 			*coc-config-filesystemwatch-ignoredFolders*
+
+	List of folders that should not be watched for file changes,
+	environment variables  and minimatch patterns
+	can be used.
+
+	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}"]`
 
 ------------------------------------------------------------------------------
 EXTENSIONS

@@ -6,8 +6,8 @@ import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration/index'
-import { FileSystemWatcher, FileSystemWatcherManager } from '../../core/fileSystemWatcher'
-import Watchman, { FileChangeItem, isValidWatchRoot } from '../../core/watchman'
+import { FileSystemWatcher, FileSystemWatcherManager, should_ignore } from '../../core/fileSystemWatcher'
+import Watchman, { FileChangeItem } from '../../core/watchman'
 import WorkspaceFolderController from '../../core/workspaceFolder'
 import RelativePattern from '../../model/relativePattern'
 import { GlobPattern } from '../../types'
@@ -59,6 +59,7 @@ function sendSubscription(uid: string, root: string, files: FileChangeItem[]): v
 
 let capabilities: any
 let watchResponse: any
+let defaultConfig = { watchmanPath: null, enable: true, ignoredFolders: [] }
 beforeAll(async () => {
   await helper.setup()
 })
@@ -67,7 +68,7 @@ beforeAll(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
-  watcherManager = new FileSystemWatcherManager(workspaceFolder, 'watchman')
+  watcherManager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
   Object.assign(watcherManager, { disabled: false })
   watcherManager.attach(helper.createNullChannel())
   // create a mock sever for watchman
@@ -235,21 +236,6 @@ describe('Watchman#createClient', () => {
     expect(client).toBeDefined()
   })
 
-  it('should not create client for root', async () => {
-    await expect(async () => {
-      await Watchman.createClient(null, '/')
-    }).rejects.toThrow(Error)
-  })
-})
-
-describe('isValidWatchRoot()', () => {
-  it('should check valid root', async () => {
-    expect(isValidWatchRoot('/')).toBe(false)
-    expect(isValidWatchRoot(os.homedir())).toBe(false)
-    expect(isValidWatchRoot(os.tmpdir())).toBe(false)
-    expect(isValidWatchRoot('/tmp/a')).toBe(true)
-    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(true)
-  })
 })
 
 describe('fileSystemWatcher', () => {
@@ -276,6 +262,11 @@ describe('fileSystemWatcher', () => {
   beforeAll(async () => {
     workspaceFolder.addWorkspaceFolder(cwd, true)
     await watcherManager.waitClient(cwd)
+  })
+
+  it('should check ignored folders', async () => {
+    expect(should_ignore('/', [])).toBe(false)
+    expect(should_ignore('/', ['/', 'a'])).toBe(true)
   })
 
   it('should use relative pattern #1', async () => {
@@ -428,7 +419,7 @@ describe('fileSystemWatcher', () => {
     watcher.onDidCreate(e => {
       uri = e
     })
-    await helper.wait(50)
+    await waitReady(watcher)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, __dirname, changes)
     await helper.waitValue(() => {
@@ -441,17 +432,16 @@ describe('create FileSystemWatcherManager', () => {
   it('should attach to existing workspace folder', async () => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
-    let watcherManager = new FileSystemWatcherManager(workspaceFolder, '')
-    Object.assign(watcherManager, { disabled: false })
+    let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, enable: false })
+    watcherManager.disabled = false
     watcherManager.attach(helper.createNullChannel())
-    await watcherManager.createClient(os.tmpdir())
     await watcherManager.createClient(cwd)
     await watcherManager.waitClient(cwd)
     watcherManager.dispose()
   })
 
   it('should get watchman path', async () => {
-    let watcherManager = new FileSystemWatcherManager(workspaceFolder, 'invalid_command')
+    let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'invalid_command' })
     process.env.WATCHMAN_SOCK = ''
     await expect(async () => {
       await watcherManager.getWatchmanPath()

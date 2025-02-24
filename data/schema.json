@@ -721,6 +721,7 @@
     "coc.preferences.watchmanPath": {
       "type": "string",
       "scope": "application",
+      "deprecationMessage": "Use configuration \"fileSystemWatch.watchmanPath\" instead.",
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": null
     },
@@ -1260,6 +1261,27 @@
       "maximum": 5000,
       "scope": "resource",
       "description": "Timeout for document highlight, in milliseconds."
+    },
+    "fileSystemWatch.watchmanPath": {
+      "type": ["null", "string"],
+      "scope": "application",
+      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "default": null
+    },
+    "fileSystemWatch.enable": {
+      "type": "boolean",
+      "default": true,
+      "scope": "application",
+      "description": "Enable file system watch support for workspace folders."
+    },
+    "fileSystemWatch.ignoredFolders": {
+      "type": "array",
+      "default": ["/private/tmp", "/", "${tmpdir}"],
+      "scope": "application",
+      "description": "List of folders that should not be watched for file changes, environment variables and minimatch patterns can be used.",
+      "items": {
+        "type": "string"
+      }
     },
     "floatFactory.floatConfig": {
       "type": "object",

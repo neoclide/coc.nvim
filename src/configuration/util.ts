@@ -32,6 +32,8 @@ export function expand(input: string): string {
       return process.env[key] ?? match
     }
     switch (name) {
+      case 'tmpdir':
+        return os.tmpdir()
       case 'userHome':
         return os.homedir()
       case 'cwd':

@@ -3,8 +3,7 @@ import type { Client } from 'fb-watchman'
 import { v1 as uuidv1 } from 'uuid'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
-import { isParentFolder } from '../util/fs'
-import { minimatch, os, path } from '../util/node'
+import { minimatch, path } from '../util/node'
 import { Disposable } from '../util/protocol'
 const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
@@ -35,7 +34,6 @@ export type ChangeCallback = (FileChange) => void
 
 /**
  * Watchman wrapper for fb-watchman client
- *
  * @public
  */
 export default class Watchman {
@@ -54,7 +52,7 @@ export default class Watchman {
 
   public checkCapability(): Promise<boolean> {
     let { client } = this
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       client.capabilityCheck({
         optional: [],
         required: requiredCapabilities
@@ -154,7 +152,6 @@ export default class Watchman {
   }
 
   public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman> {
-    if (!isValidWatchRoot(root)) throw new Error(`Watch for ${root} is ignored`)
     let watchman: Watchman
     try {
       watchman = new Watchman(binaryPath, channel)
@@ -168,14 +165,4 @@ export default class Watchman {
       throw e
     }
   }
-}
-
-/**
- * Exclude root, user's home, driver and tmpdir, but allow sub-directories under them.
- */
-export function isValidWatchRoot(root: string): boolean {
-  if (root == '/' || root == '/tmp' || root == '/private/tmp' || root == os.tmpdir()) return false
-  if (isParentFolder(root, os.homedir(), true)) return false
-  if (path.parse(root).base == root) return false
-  return true
 }
