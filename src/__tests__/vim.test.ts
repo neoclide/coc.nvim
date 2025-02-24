@@ -418,6 +418,10 @@ describe('Buffer API', () => {
     let n = await buffer.length
     expect(n).toBe(5)
     await nvim.command('silent! %bwipeout!')
+    await expect(async () => {
+      let buf = nvim.createBuffer(-1)
+      await buf.length
+    }).rejects.toThrow(/Invalid buffer/)
   })
 
   it('should get lines', async () => {

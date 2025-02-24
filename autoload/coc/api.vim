@@ -37,7 +37,7 @@ function! s:create_popup(bufnr) abort
 endfunction
 
 function! s:check_bufnr(bufnr) abort
-  if !bufloaded(a:bufnr)
+  if a:bufnr != 0 && !bufloaded(a:bufnr)
     throw 'Invalid buffer id: '.a:bufnr
   endif
 endfunction
@@ -122,20 +122,17 @@ function! s:win_tabnr(winid) abort
 endfunction
 
 function! s:buf_line_count(bufnr) abort
-  if bufnr('%') == a:bufnr
+  if a:bufnr == 0
     return line('$')
   endif
-  if exists('*getbufinfo')
-    let info = getbufinfo(a:bufnr)
-    if empty(info)
-      return 0
-    endif
-    " vim 8.1 has getbufinfo but no linecount
-    if has_key(info[0], 'linecount')
-      return info[0]['linecount']
-    endif
+  let info = getbufinfo(a:bufnr)
+  if empty(info)
+    throw "Invalid buffer id: ".a:bufnr
   endif
-  return len(getbufline(a:bufnr, 1, '$'))
+  if info[0]['loaded'] == 0
+    return 0
+  endif
+  return info[0]['linecount']
 endfunction
 
 function! s:execute(cmd)
@@ -594,7 +591,6 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
 endfunction
 
 function! s:funcs.buf_line_count(bufnr) abort
-  call s:check_bufnr(a:bufnr)
   return s:buf_line_count(a:bufnr)
 endfunction
 
