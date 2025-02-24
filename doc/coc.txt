@@ -8,6 +8,7 @@ CONTENTS					*coc-contents*
 Introduction					|coc-introduction|
 Requirements					|coc-requirements|
 Installation					|coc-installation|
+Language server 				|coc-languageserver|
 Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
 Floating windows 				|coc-floating|
@@ -146,14 +147,25 @@ when using source code of coc.nvim, you'll have to run `npm install` in project
 root of coc.nvim.
 
 ==============================================================================
+LANGUAGESERVER 						*coc-languageserver*
+
+Language servers are services which provide LSP features, the servers are
+provided by |coc-extensions| or |coc-config-languageserver|.
+
+To get language server for your language, see:
+https://github.com/neoclide/coc.nvim/wiki/Language-servers
+
+To debug language server, see:
+https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
+
+==============================================================================
 EXTENSIONS						*coc-extensions*
 
-To provide LSP features of different filetypes, the user have to config
-|coc-config-languageserver| or install coc extensions.
+Comprae to |coc-config-languageserver| extensions are more powerful since they
+could contribute json schemes, commands, and use middleware methods of
+languageserver to provide better results.  Extensions could provide more
+features by make use of NodeJS and coc.nvim's API.
 
-Extensions are more powerful since they could contribute json schemes,
-commands, and use middleware methods of languageserver to provide better
-results.  It's also possible to provide features that beyond LSP.
 							*coc-extensions-folder*
 Extensions are loaded from `"extensions"` folder inside
 |coc#util#get_data_home()| and folders in 'runtimepath' when detected.
@@ -199,9 +211,9 @@ Update global extensions: ~
 
 Use |:CocUpdate| or |:CocUpdateSync|.
 
-To configure extension update, see |coc-config-extensions|.
+To configure extension behavior, see |coc-config-extensions|.
 
-Manage extensions list: ~
+Manage extensions: ~
 
 Use |coc-list-extensions| or |CocAction('extensionStats')| to get list of extensions.
 
