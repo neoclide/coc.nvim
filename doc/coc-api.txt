@@ -11,8 +11,8 @@ Debug extensions 				|coc-api-debug|
 
 ==============================================================================
 
-This is the guide for extend coc.nvim by create vim completion sources and
-coc.nvim extensions.
+The guide for extend coc.nvim by create vim completion sources and coc.nvim
+extensions.
 
 ------------------------------------------------------------------------------
 VIM SOURCES 					*coc-api-vim-source*
@@ -134,8 +134,8 @@ Complete function: ~
     items, word is used when not exists.
   • filterText: A string that should be used when filtering a set of
     complete items, word is used when not exists.
-  • insertText: The text to insert, could be snippet text, word is used when
-    not exists.
+  • insertText: The text to insert, could be textmate snippet text, word is
+    used when not exists.
   • isSnippet: The text to insert is snippet when is truthy value, when
     truthy and `on_complete` not provided by vim source, the `insertText` is
     expanded as textmate snippet when confirm completion.
@@ -386,7 +386,8 @@ The error messages are not stored by vim's message history, use
 
 When error happens on the vim side, the promise would be rejected when sending
 request to vim, for notifications, vim would send `nvim_error_event` to the
-NodeJS process, and the node-client would create error log for it.
+NodeJS process, and the node-client would create error log for it (could be
+opened by |:CocOpenLog|).
 
 Use the log file: ~
 

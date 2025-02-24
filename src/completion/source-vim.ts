@@ -24,10 +24,11 @@ export function checkInclude(name: string, fns: ReadonlyArray<string>): boolean 
 
 export default class VimSource extends Source {
 
-  private async callOptionalFunc(fname: string, args: any[]): Promise<any> {
+  private async callOptionalFunc(fname: string, args: any[], isNotify = false): Promise<any> {
     let exists = checkInclude(fname, this.remoteFns)
     if (!exists) return null
     let name = `coc#source#${this.name}#${getMethodName(fname, this.remoteFns)}`
+    if (isNotify) return this.nvim.call(name, args, true)
     return await this.nvim.call(name, args)
   }
 
@@ -55,23 +56,22 @@ export default class VimSource extends Source {
 
   public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     if (checkInclude('on_complete', this.remoteFns)) {
-      await this.callOptionalFunc('on_complete', [item])
+      await this.callOptionalFunc('on_complete', [item], true)
     } else if (item.isSnippet && item.insertText) {
       await this.insertSnippet(item.insertText, opt)
     }
   }
 
   public onEnter(bufnr: number): void {
-    if (!checkInclude('on_enter', this.remoteFns)) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return
+    if (!doc || !checkInclude('on_enter', this.remoteFns)) return
     let { filetypes } = this
     if (filetypes && !filetypes.includes(doc.filetype)) return
     void this.callOptionalFunc('on_enter', [{
       bufnr,
       uri: doc.uri,
       languageId: doc.filetype
-    }])
+    }], true)
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem> | null> {
