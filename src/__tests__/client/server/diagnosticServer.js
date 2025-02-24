@@ -1,6 +1,6 @@
 'use strict'
-const {createConnection, ResponseError, LSPErrorCodes, DiagnosticRefreshRequest, DocumentDiagnosticReportKind, Diagnostic, Range, DiagnosticSeverity, TextDocuments, TextDocumentSyncKind} = require('vscode-languageserver')
-const {TextDocument} = require('vscode-languageserver-textdocument')
+const { createConnection, ResponseError, LSPErrorCodes, DiagnosticRefreshRequest, DocumentDiagnosticReportKind, Diagnostic, Range, DiagnosticSeverity, TextDocuments, TextDocumentSyncKind } = require('vscode-languageserver/node')
+const { TextDocument } = require('vscode-languageserver-textdocument')
 let documents = new TextDocuments(TextDocument)
 
 const connection = createConnection()
@@ -8,7 +8,7 @@ console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
 let options
 documents.listen(connection)
-connection.onInitialize((params) => {
+connection.onInitialize(params => {
   options = params.initializationOptions || {}
   const interFileDependencies = options.interFileDependencies !== false
   const workspaceDiagnostics = options.workspaceDiagnostics === true
@@ -27,11 +27,11 @@ connection.onInitialize((params) => {
 
 let count = 0
 let saveCount = 0
-connection.languages.diagnostics.on((params) => {
+connection.languages.diagnostics.on(params => {
   let uri = params.textDocument.uri
   if (uri.endsWith('error')) return Promise.reject(new Error('server error'))
-  if (uri.endsWith('cancel')) return new ResponseError(LSPErrorCodes.ServerCancelled, 'cancel', {retriggerRequest: false})
-  if (uri.endsWith('retrigger')) return new ResponseError(LSPErrorCodes.ServerCancelled, 'retrigger', {retriggerRequest: true})
+  if (uri.endsWith('cancel')) return new ResponseError(LSPErrorCodes.ServerCancelled, 'cancel', { retriggerRequest: false })
+  if (uri.endsWith('retrigger')) return new ResponseError(LSPErrorCodes.ServerCancelled, 'retrigger', { retriggerRequest: true })
   if (uri.endsWith('change')) count++
   if (uri.endsWith('save')) saveCount++
   if (uri.endsWith('empty')) return null
@@ -79,7 +79,7 @@ connection.languages.diagnostics.onWorkspace((params, _, __, reporter) => {
         })
       }, 20)
       setTimeout(() => {
-        resolve({items: []})
+        resolve({ items: [] })
       }, 50)
     })
   }
@@ -100,7 +100,7 @@ connection.languages.diagnostics.onWorkspace((params, _, __, reporter) => {
 })
 
 connection.onNotification('fireRefresh', () => {
-  connection.sendRequest(DiagnosticRefreshRequest.type)
+  void connection.sendRequest(DiagnosticRefreshRequest.type)
 })
 
 connection.onRequest('getChangeCount', () => {
