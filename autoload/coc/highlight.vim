@@ -1,6 +1,5 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:set_extmark = has('nvim') && exists('*nvim_buf_set_extmark')
 let s:namespace_map = {}
 let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
@@ -258,7 +257,9 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
   let opts = get(a:, 1, {})
   let priority = get(opts, 'priority', v:null)
   if !s:is_vim
-    if s:set_extmark && a:src_id != -1
+    if a:src_id == -1
+      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
+    else
       " get(opts, 'start_incl', 0) ? v:true : v:false,
       try
         call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
@@ -272,13 +273,12 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       catch /^Vim\%((\a\+)\)\=:E5555/
         " the end_col could be invalid, ignore this error
       endtry
-    else
-      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    if hlexists(a:hl_group)
-      call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    if !hlexists(a:hl_group)
+      execute 'highlight '.a:hl_group.' ctermfg=NONE'
     endif
+    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
   endif
 endfunction
 
