@@ -119,11 +119,16 @@ class Languages {
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
   private inlineValueManager = new InlineValueManager()
+  public readonly registerDocumentRangeFormattingEditProvider: Function
+  public readonly registerDocumentFormattingEditProvider: Function
 
   public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
 
   constructor() {
     this.registerReferenceProvider = this.registerReferencesProvider
+    // same name as VSCode
+    this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider
+    this.registerDocumentFormattingEditProvider = this.registerDocumentFormatProvider
   }
 
   public hasFormatProvider(doc: TextDocumentMatch): boolean {
