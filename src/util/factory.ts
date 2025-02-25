@@ -116,7 +116,8 @@ export function getProtoWithCompile(mod: Function): IModule {
 const ModuleProto = getProtoWithCompile(Module)
 
 export function copyGlobalProperties(sandbox: ISandbox, globalObj: any): ISandbox {
-  for (const key of Reflect.ownKeys(globalObj)) {
+  // Use Reflect.ownKeys affect instanceof of extensions, instanceof Error and instanceof TypeError won't work
+  for (const key of Object.keys(globalObj)) {
     const value = sandbox[key]
     if (value === undefined) {
       sandbox[key] = globalObj[key]
@@ -155,6 +156,7 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
     module,
     Buffer,
     URL: globalThis.URL,
+    WebAssembly: globalThis.WebAssembly,
     console: createConsole(console, logger)
   }, { name }) as ISandbox
 
