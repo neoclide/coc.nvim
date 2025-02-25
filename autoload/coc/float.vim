@@ -604,8 +604,10 @@ endfunction
 " Close float window by id
 function! coc#float#close(winid, ...) abort
   let noautocmd = get(a:, 1, 0)
-  call coc#float#close_related(a:winid)
-  call s:close_win(a:winid, noautocmd)
+  if a:winid >= 0
+    call coc#float#close_related(a:winid)
+    call s:close_win(a:winid, noautocmd)
+  endif
   return 1
 endfunction
 

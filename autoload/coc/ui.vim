@@ -53,7 +53,7 @@ function! coc#ui#quickpick(title, items, cb) abort
       call a:cb(v:exception)
     endtry
   else
-    let res = inputlist([a:title] + a:items)
+    let res = inputlist([a:title] + map(range(1, len(a:items)), 'v:val . ". " . a:items[v:val - 1]'))
     call a:cb(v:null, res)
   endif
 endfunction

@@ -159,6 +159,9 @@ endfunction
 
 " execute command or list of commands in window
 function! coc#compat#execute(winid, command, ...) abort
+  if a:winid < 0
+    return
+  endif
   if exists('*win_execute')
     if type(a:command) == v:t_string
       keepalt call win_execute(a:winid, a:command, get(a:, 1, ''))

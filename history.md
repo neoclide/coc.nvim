@@ -2,6 +2,21 @@
 
 Notable changes of coc.nvim:
 
+## 2025-02-23
+
+- All global properties works with extensions #5222.
+- Return true or false for boolean option on vim (same as neovim).
+- Support completion sources using vim9sciprt module.
+
+## 2025-02-22
+
+- QuickPick works with vim without terminal support.
+
+## 2025-02-21
+
+- To avoid unexpected signature help window close, signature help will be triggered after placeholder jump by default, when autocmd `CocJumpPlaceholder call CocActionAsync('showSignatureHelp')` not exists.
+- Support `global.formatFilepath` function for customize filepath displayed in symbols list.
+
 ## 2025-02-20
 
 Use `extensions` section for extension related configurations. Deprecated configuration sections: `coc.preferences.extensionUpdateCheck`, `coc.preferences.extensionUpdateUIInTab` and `coc.preferences.silentAutoupdate`.

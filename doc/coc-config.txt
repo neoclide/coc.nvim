@@ -4,6 +4,7 @@ CONTENTS
 
 Core features
 	Workspace 				|coc-config-workspace|
+	File system watch 			|coc-config-fileSystemWatch|
 	Extensions 				|coc-config-extensions|
 	Preferences 				|coc-config-preferences|
 	Float factory 				|coc-config-floatFactory|
@@ -47,7 +48,7 @@ CORE FEATURES
 Configurations of builtin features.
 
 ------------------------------------------------------------------------------
-Workspace~
+WORKSPACE
 							*coc-config-workspace*
 "workspace.rootPatterns"				*coc-config-workspace-rootPatterns*
 
@@ -104,7 +105,31 @@ Workspace~
 	Scope: `application`, default: `true`
 
 ------------------------------------------------------------------------------
-Extensions~
+FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
+
+"fileSystemWatch.watchmanPath" 				*coc-config-filesystemwatch-watchmanPath*
+
+	executable path for https://facebook.github.io/watchman/, detected
+	from $PATH by default	
+	
+	Scope: `application`, default: `null`
+
+"fileSystemWatch.enable" 				*coc-config-filesystemwatch-enable*
+
+	Enable file system watch support for workspace folders.
+	
+	Scope: `application`, default: `true`
+
+"fileSystemWatch.ignoredFolders" 			*coc-config-filesystemwatch-ignoredFolders*
+
+	List of folders that should not be watched for file changes,
+	environment variables  and minimatch patterns
+	can be used.
+
+	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}"]`
+
+------------------------------------------------------------------------------
+EXTENSIONS
 							*coc-config-extensions*
 "extensions.updateCheck" 				*coc-config-extensions-updateCheck*
 
@@ -126,7 +151,7 @@ Extensions~
 	Scope: `application`, default: `false`
 
 ------------------------------------------------------------------------------
-Preferences~
+PREFERENCES
 							*coc-config-preferences*
 "coc.preferences.bracketEnterImprove"			*coc-preferences-bracketEnterImprove*
 
@@ -276,7 +301,7 @@ Preferences~
 	Scope: `application`, default: `0`
 
 ------------------------------------------------------------------------------
-FloatFactory~
+FLOATfACTORY
 							*coc-config-floatFactory*
 "floatFactory.floatConfig"				*coc-config-floatFactory-floatConfig*
 
@@ -288,7 +313,7 @@ FloatFactory~
 
 
 ------------------------------------------------------------------------------
-Float configuration~
+FLOAT CONFIGURATION
 							*coc-config-float*
 
 Used by `floatFactory.floatConfig`, `suggest.floatConfig`,
@@ -327,7 +352,7 @@ following properties are supported:
 	  Takes precedence over `left` if both are set."
 
 ------------------------------------------------------------------------------
-Tree~
+TREE
 							*coc-config-tree*
 
 Configurations for tree view.
@@ -400,7 +425,7 @@ Configurations for tree view.
 	Scope: `application`, default: `"<space>"`
 
 ------------------------------------------------------------------------------
-Dialog~
+DIALOG
 							*coc-config-dialog*
 Configurations for dialog windows.
 
@@ -464,7 +489,7 @@ Configurations for dialog windows.
 	Scope: `application`, default: `"MoreMsg"`
 
 ------------------------------------------------------------------------------
-Http proxy~
+HTTP PROXY
 							*coc-config-http*
 
 Configurations for http requests, used by coc.nvim and some coc extensions.
@@ -497,7 +522,7 @@ Configurations for http requests, used by coc.nvim and some coc extensions.
 	Scope: `application`, default: `true`
 
 ------------------------------------------------------------------------------
-Npm~
+NPM
 							*coc-config-npm*
 "npm.binPath"						*coc-config-npm-binPath*
 
@@ -507,7 +532,7 @@ Npm~
 	Scope: `application`, default: `"npm"`
 
 ------------------------------------------------------------------------------
-Languageserver~
+LANGUAGESERVER
 							*coc-config-languageserver*
 
 	Dictionary of Language Servers, key is the ID of corresponding server,
@@ -561,8 +586,8 @@ Languageserver~
 	  this languageserver.
 
 	- "disabledFeatures": Disable features for this languageserver,
-	  valid keys:
->
+	  valid keys: >
+
 	  ["completion", "configuration", "workspaceFolders", "diagnostics",
 	  "willSave", "willSaveUntil", "didSaveTextDocument",
 	  "fileSystemWatcher", "hover", "signatureHelp", "definition",
@@ -583,7 +608,7 @@ Languageserver~
 	- "progressOnInitialization": Enable progress report on languageserver
 	  initialize.
 
-Language server start with command:~
+Language server start with command: ~
 
 	Additional fields can be used for a command languageserver:
 
@@ -596,7 +621,7 @@ Language server start with command:~
 
 	- "shell": Use shell for server process, default: `false`
 
-Language server start with module:~
+Language server start with module: ~
 
 	Additional fields can be used for a languageserver started by node
 	module:
@@ -616,7 +641,7 @@ Language server start with module:~
 
 	- "transportPort": Port number used when transport is 'socket'.
 
-Language server use initialized socket server:~
+Language server use initialized socket server: ~
 
 	- "port": Port number of socket server.
 
@@ -631,7 +656,7 @@ Configurations for features provided by language server.
 
 ------------------------------------------------------------------------------
 
-CallHierarchy~
+CALLHIERARCHY
 							*coc-config-callHierarchy*
 "callHierarchy.enableTooltip"				*coc-config-callHierarchy-enableTooltip*
 
@@ -652,7 +677,7 @@ CallHierarchy~
 	Scope: `application`, default: `"botright 30vs"`
 
 ------------------------------------------------------------------------------
-CodeLens~
+CODELENS
 							*coc-config-codeLens*
 "codeLens.enable"					*coc-config-codeLens-enable*
 
@@ -685,7 +710,7 @@ CodeLens~
 	Scope: `resource`, default: `" | "`
 
 ------------------------------------------------------------------------------
-Colors~
+COLORS
 							*coc-config-colors*
 "colors.enable"						*coc-config-colors-enable*
 
@@ -701,7 +726,7 @@ Colors~
 	Scope: `application`, default: `1000`
 
 ------------------------------------------------------------------------------
-Cursors~
+CURSORS
 							*coc-config-cursors*
 "cursors.cancelKey"					*coc-config-cursors-cancelKey*
 
@@ -728,7 +753,7 @@ Cursors~
 	Scope: `application`, default: `true`
 
 ------------------------------------------------------------------------------
-Diagnostic~
+DIAGNOSTIC
 							*coc-config-diagnostic*
 "diagnostic.autoRefresh"				*coc-config-diagnostic-autoRefresh*
 
@@ -972,7 +997,7 @@ Diagnostic~
 	Scope: `language-overridable`, default: `true`
 
 ------------------------------------------------------------------------------
-DocumentHighlight~
+DOCUMENTHIGHLIGHT
 							*coc-config-documentHighlight*
 "documentHighlight.priority"				*coc-config-documentHighlight-priority*
 
@@ -994,7 +1019,7 @@ DocumentHighlight~
 	Scope: `resource`, default: `300`
 
 ------------------------------------------------------------------------------
-Hover~
+HOVER
 							*coc-config-hover*
 "hover.autoHide"					*coc-config-hover-autoHide*
 
@@ -1023,7 +1048,7 @@ Hover~
 	Scope: `resource`, default: `float`
 
 ------------------------------------------------------------------------------
-InlayHint~
+INLAYHINT
 							*coc-config-inlayHint*
 "inlayHint.enable"					*coc-config-inlayHint-enable*
 
@@ -1056,7 +1081,7 @@ InlayHint~
 	Scope: `language-overridable`, default: `inline`
 
 ------------------------------------------------------------------------------
-Links~
+LINK
 							*coc-config-links*
 "links.enable" 						*coc-config-links-enable*
 
@@ -1077,7 +1102,7 @@ Links~
 	Scope: `application`, default: `false`
 
 ------------------------------------------------------------------------------
-List~
+LIST
 							*coc-config-list*
 "list.alignColumns"					*coc-config-list-alignColumns*
 
@@ -1233,7 +1258,7 @@ List~
 	Scope: `application`.
 
 ------------------------------------------------------------------------------
-Notification~
+NOTIFICATION
 							*coc-config-notification*
 "notification.border"					*coc-config-notification-border*
 
@@ -1302,7 +1327,7 @@ Notification~
 	Scope: `application`, default: `30`
 
 ------------------------------------------------------------------------------
-Outline~
+OUTLINE
 							*coc-config-outline*
 "outline.autoPreview"					*coc-config-outline-autoPreview*
 
@@ -1429,7 +1454,7 @@ Outline~
 	Scope: `application`, default: `"p"`
 
 ------------------------------------------------------------------------------
-PullDiagnostic~
+PULLDIAGNOSTIC
 							*coc-config-pullDiagnostic*
 "pullDiagnostic.ignored"				*coc-config-pullDiagnostic-ignored*
 
@@ -1457,7 +1482,7 @@ PullDiagnostic~
 	Scope: `application`, default: `true`
 
 ------------------------------------------------------------------------------
-Refactor~
+REFACTOR
 							*coc-config-refactor*
 "refactor.afterContext"					*coc-config-refactor-afterContext*
 
@@ -1491,7 +1516,7 @@ Refactor~
 	Scope: `application`, default: `"<Tab>"`
 
 ------------------------------------------------------------------------------
-SemanticTokens~
+SEMANTICTOKENS
 							*coc-config-semanticTokens*
 "semanticTokens.combinedModifiers"			*coc-config-semanticTokens-combinedModifiers*
 
@@ -1520,7 +1545,7 @@ SemanticTokens~
 	Scope: `language-overridable`, default: `["variable","string","parameter"]`
 
 ------------------------------------------------------------------------------
-Signature~
+SIGNATURE
 							*coc-config-signature*
 "signature.enable"					*coc-config-signature-enable*
 
@@ -1561,7 +1586,7 @@ Signature~
 	Scope: `language-overridable`, default: `500`
 
 ------------------------------------------------------------------------------
-Snippet~
+SNIPPET
 							*coc-config-snippet*
 "snippet.highlight"					*coc-config-snippet-highlight*
 
@@ -1584,7 +1609,7 @@ Snippet~
 	Scope: `application`, default: `"SNIP"`
 
 ------------------------------------------------------------------------------
-Suggest~
+SUGGEST
 							*coc-config-suggest*
 "suggest.acceptSuggestionOnCommitCharacter"		*coc-config-suggest-acceptSuggestionOnCommitCharacter*
 
@@ -1872,7 +1897,7 @@ Suggest~
 	Scope: `application`, default: `false`
 
 ------------------------------------------------------------------------------
-TypeHierarchy~
+TYPEHIERARCHY
 							*coc-config-typeHierarchy*
 "typeHierarchy.enableTooltip"				*coc-config-typeHierarchy-enableTooltip*
 
