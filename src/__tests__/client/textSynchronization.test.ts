@@ -166,6 +166,7 @@ describe('TextDocumentSynchronization', () => {
       await client.forceDocumentSync()
       await nvim.call('setline', [1, 'bar'])
       await doc.synchronize()
+      await client.forceDocumentSync()
       await helper.waitValue(() => {
         return called
       }, true)

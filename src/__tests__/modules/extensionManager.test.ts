@@ -674,7 +674,7 @@ describe('ExtensionManager', () => {
         fn()
         return Promise.resolve()
       })
-      let spy = jest.spyOn(Watchman, 'createClient').mockImplementation(() => {
+      let spy = jest.spyOn(workspace.fileSystemWatchers, 'createClient').mockImplementation(() => {
         return {
           dispose: () => {},
           subscribe: (_key: string, cb: Function) => {
