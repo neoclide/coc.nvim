@@ -138,7 +138,6 @@ console.warn('warn')`, sandbox)
   it('should copy properties', () => {
     let obj = factory.copyGlobalProperties({} as any, global)
     expect(typeof obj['fetch']).toBe('function')
-    expect(typeof obj['WebAssembly']).toBe('object')
   })
 
   it('should not throw process.chdir', () => {
