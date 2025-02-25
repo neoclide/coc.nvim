@@ -740,6 +740,10 @@ Use key-mappings:
 	|<Plug>(coc-diagnostic-next-error)| jump to next error.
 	|<Plug>(coc-diagnostic-prev-error)| jump to previous error.
 
+Diagnostic may have related location, to jum tp related location, use:
+>
+ 	:CocCommand workspace.diagnosticRelated
+<
 Check diagnostics ~
 
 Use |coc-list-diagnostics| to open |coc-list| with all available diagnostics.
@@ -913,7 +917,8 @@ some of those options.
 							*coc-format-document*
 Format full document: ~
 
-Use |CocAction('format')|, you can create a command like: >
+Choose "editor.action.formatDocument" from |coc-list-commands|.
+Or use |CocAction('format')|, you can create a command like: >
 
 	command! -nargs=0 Format :call CocActionAsync('format')
 <
@@ -1047,6 +1052,9 @@ Note: pick color may not work on your system.
 
 To change color presentation, use |CocAction('colorPresentation')| or choose
 `editor.action.colorPresentation` from |:CocCommand|.
+
+To toggle color highlight of current buffer, choose
+`document.toggleColors` from |:CocCommand|
 
 To highlights colors without languageservers, install
 https://github.com/neoclide/coc-highlight
@@ -1190,6 +1198,25 @@ To undo and redo workspace edit just applied, use command
 To inspect previous workspace edit, use command
 `:CocCommand workspace.inspectEdit`, in opened buffer, use <CR> for jump to
 change position under cursor.
+
+							*coc-workspace-rename*
+Rename current file ~
+
+To move or rename current file, it's recommended to use
+`:CocCommand workspace.renameCurrentFile` which makes vim reload current
+buffer and send expected events to language servers.
+							*coc-workspace-output*
+Output channels ~
+
+Output channels shows logs for user to inspect.  Use command
+`workspace.showOutput` to open output channel.
+
+Builtin channels:
+
+- `watchman` shows watchman related logs.
+- `extensions` shows extension install and update related logs.
+
+|coc-languageserver| and |coc-extensions| could contribute output channels.
 
 ------------------------------------------------------------------------------
 CURSORS SUPPORT						*coc-cursors*
@@ -1356,6 +1383,14 @@ To create custom highlights for symbol under cursor, follow these steps:
   • Refresh semantic highlight of current buffer by: >
 
   :CocCommand semanticTokens.refreshCurrent
+<
+  • Clear semantic highlight by: >
+
+  " Clear semantic tokens highlight of current buffer
+  :CocCommand semanticTokens.clearCurrent
+
+  " Clear semantic tokens highlight for all buffers
+  :CocCommand semanticTokens.clearAll
 <
 See |CocSem| to customize semantic token highlight groups.
 
@@ -3043,12 +3078,13 @@ COMMANDS						*coc-commands*
 
 	Block version of update coc extensions.
 
-:CocCommand {name} [{args}] ... 			*:CocCommand*
+:CocCommand [{name}] [{args}] ... 			*:CocCommand*
 
 	Run a command provided by coc.nvim or contributed by extensions, use
-	`<tab>` for name completion.
+	`<tab>` for name completion.  Open |coc-list-commands| when {name} not
+	provided.
 
-	This command send notification to coc.nvim, to perform task after
+	Note: This command send notification to coc.nvim, to perform task after
 	the command use |CocAction('runCommand')| instead.
 
 
@@ -3947,6 +3983,37 @@ commands						*coc-list-commands*
 	Actions:
 
 	- 'run': run selected command, default action.
+
+	Builtin commands:
+	- document.checkBuffer
+	- document.echoFiletype
+	- document.jumpToNextSymbol
+	- document.jumpToPrevSymbol
+	- document.renameCurrentWord
+	- document.showIncomingCalls
+	- document.showOutgoingCalls
+	- document.toggleCodeLens
+	- document.toggleColors
+	- document.toggleInlayHint
+	- editor.action.colorPresentation
+	- editor.action.formatDocument
+	- editor.action.organizeImport
+	- editor.action.pickColor
+	- extensions.forceUpdateAll
+	- extensions.toggleAutoUpdate
+	- semanticTokens.checkCurrent
+	- semanticTokens.clearAll
+	- semanticTokens.clearCurrent
+	- semanticTokens.inspect
+	- semanticTokens.refreshCurrent
+	- workspace.clearWatchman
+	- workspace.diagnosticRelated
+	- workspace.inspectEdit
+	- workspace.undo
+	- workspace.redo
+	- workspace.renameCurrentFile
+	- workspace.showOutput
+	- workspace.workspaceFolders
 
 links							*coc-list-links*
 
