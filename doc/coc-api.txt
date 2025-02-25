@@ -153,7 +153,7 @@ Optional functions: ~
     completion, the returned col must <= current cursor col.
   • `coc#source#{name}#on_complete(item)` Called with selected complete item
     when user confirm the completion by |coc#pum#confirm()| or
-    |coc#_select_confirm()|. Normally used for apply nesessary edits to the
+    |coc#_select_confirm()|. Normally used for apply necessary edits to the
     buffer.
   • `coc#source#{name}#on_enter(option)` Called on |BufEnter| with option
     contains:
@@ -289,7 +289,7 @@ activated during coc.nvim initialize.  Other possible events:
     `"workspaceContains:**/package.json"`
 
 Optional `contributes` property contains the meta data that contributed to
-coc.nvim, inclduing:
+coc.nvim, including:
 
   • rootPatterns: The patterns to resolve |coc-workspace-folders| for
     associated filetype.

@@ -1849,7 +1849,7 @@ g:coc_status_warning_sign				*g:coc_status_warning_sign*
 g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 
 	Command used for open quickfix list.  To jump fist position after
-	quickfix list opend, you can use:
+	quickfix list opened, you can use:
 >
 	let g:coc_quickfix_open_command = 'copen|cfirst'
 <
