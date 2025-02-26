@@ -101,6 +101,7 @@ export class Extensions {
     }
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
+    await this.promptRecommendedExtensions()
     // check extensions need watch & install
     let settings = this.getUpdateSettings()
     if (this.states.shouldUpdate(settings.updateCheck)) {
@@ -108,6 +109,17 @@ export class Extensions {
       this.updateExtensions(settings.silentAutoupdate, settings.updateUIInTab).catch(e => {
         this.outputChannel.appendLine(`Error on updateExtensions ${e}`)
       })
+    }
+  }
+
+  public async promptRecommendedExtensions(): Promise<void> {
+    const recommendations = workspace.getConfiguration('extensions', workspace.workspaceFolders[0]).get<string[]>('recommendations', [])
+    const unInstalled = this.states.filterGlobalExtensions(recommendations)
+    if (unInstalled.length) {
+      const toInstalls = await window.showPickerDialog(unInstalled, 'Install recommend extensions?')
+      if (toInstalls?.length) {
+        await this.installExtensions(toInstalls)
+      }
     }
   }
 
