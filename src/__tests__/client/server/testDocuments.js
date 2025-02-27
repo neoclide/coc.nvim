@@ -1,6 +1,6 @@
-const {ResponseError, LSPErrorCodes} = require('vscode-languageserver')
-const ls = require('vscode-languageserver')
-const {TextDocument} = require('vscode-languageserver-textdocument')
+const { ResponseError, LSPErrorCodes } = require('vscode-languageserver/node')
+const ls = require('vscode-languageserver/node')
+const { TextDocument } = require('vscode-languageserver-textdocument')
 let connection = ls.createConnection()
 let documents = new ls.TextDocuments(TextDocument)
 
@@ -10,16 +10,16 @@ let lastChangeEvent
 let lastWillSave
 let lastDidSave
 documents.onDidOpen(e => {
-  lastOpenEvent = {uri: e.document.uri, version: e.document.version}
+  lastOpenEvent = { uri: e.document.uri, version: e.document.version }
 })
 documents.onDidClose(e => {
-  lastCloseEvent = {uri: e.document.uri}
+  lastCloseEvent = { uri: e.document.uri }
 })
 documents.onDidChangeContent(e => {
-  lastChangeEvent = {uri: e.document.uri, text: e.document.getText()}
+  lastChangeEvent = { uri: e.document.uri, text: e.document.getText() }
 })
 documents.onWillSave(e => {
-  lastWillSave = {uri: e.document.uri}
+  lastWillSave = { uri: e.document.uri }
 })
 documents.onWillSaveWaitUntil(e => {
   let uri = e.document.uri
@@ -28,7 +28,7 @@ documents.onWillSaveWaitUntil(e => {
   return [ls.TextEdit.insert(ls.Position.create(0, 0), 'abc')]
 })
 documents.onDidSave(e => {
-  lastDidSave = {uri: e.document.uri}
+  lastDidSave = { uri: e.document.uri }
 })
 documents.listen(connection)
 
@@ -47,7 +47,7 @@ connection.onInitialize(params => {
       save: true
     }
   }
-  return {capabilities}
+  return { capabilities }
 })
 
 connection.onRequest('getLastOpen', () => {
@@ -72,22 +72,22 @@ connection.onRequest('getLastDidSave', () => {
 
 let disposables = []
 connection.onNotification('registerDocumentSync', () => {
-  let opt = {documentSelector: [{language: 'vim'}]}
-  connection.client.register(ls.DidOpenTextDocumentNotification.type, opt).then(d => {
+  let opt = { documentSelector: [{ language: 'vim' }] }
+  void connection.client.register(ls.DidOpenTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.DidCloseTextDocumentNotification.type, opt).then(d => {
+  void connection.client.register(ls.DidCloseTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.DidChangeTextDocumentNotification.type, Object.assign({
+  void connection.client.register(ls.DidChangeTextDocumentNotification.type, Object.assign({
     syncKind: opts.none === true ? ls.TextDocumentSyncKind.None : ls.TextDocumentSyncKind.Incremental
   }, opt)).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.WillSaveTextDocumentNotification.type, opt).then(d => {
+  void connection.client.register(ls.WillSaveTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.WillSaveTextDocumentWaitUntilRequest.type, opt).then(d => {
+  void connection.client.register(ls.WillSaveTextDocumentWaitUntilRequest.type, opt).then(d => {
     disposables.push(d)
   })
 })
