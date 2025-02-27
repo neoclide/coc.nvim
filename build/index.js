@@ -78451,7 +78451,7 @@ function makeRequireFunction(cocExports) {
     }
     return this.require(p);
   };
-  req.resolve = (request2) => Module._resolveFilename(request2, this);
+  req.resolve = requireFunc.resolve.bind(requireFunc);
   req.main = mainModule;
   req.extensions = Module._extensions;
   req.cache = Module._cache;
@@ -78560,13 +78560,14 @@ function createExtension(id, filename, isEmpty2) {
   } };
   return typeof defaultImport === "function" ? { activate } : Object.assign({}, defaultImport);
 }
-var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
+var requireFunc, consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
 var init_factory = __esm({
   "src/util/factory.ts"() {
     "use strict";
     init_logger();
     init_node();
     init_object();
+    requireFunc = require;
     consoleLogger = {
       category: "",
       log: console.log.bind(console),
@@ -89640,7 +89641,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-57705289 2025-02-27 16:42:36 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-4118fb2d 2025-02-27 22:29:11 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
