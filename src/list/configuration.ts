@@ -77,6 +77,7 @@ export const validKeys = [
   '<A-x>',
   '<A-y>',
   '<A-z>',
+  '<A-bs>'
 ]
 
 export class ListConfiguration {
