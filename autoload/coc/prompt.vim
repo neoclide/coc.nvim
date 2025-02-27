@@ -81,6 +81,7 @@ let s:char_map = {
       \ "\<A-x>": '<A-x>',
       \ "\<A-y>": '<A-y>',
       \ "\<A-z>": '<A-z>',
+      \ "\<A-bs>": '<A-bs>',
       \ }
 
 function! coc#prompt#getc() abort

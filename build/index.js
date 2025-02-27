@@ -66498,7 +66498,8 @@ var init_configuration3 = __esm({
       "<A-w>",
       "<A-x>",
       "<A-y>",
-      "<A-z>"
+      "<A-z>",
+      "<A-bs>"
     ];
     ListConfiguration = class {
       get debounceTime() {
@@ -69161,49 +69162,6 @@ var init_commands2 = __esm({
 });
 
 // src/list/source/location.ts
-function createItem(filename, loc) {
-  let uri = loc.uri ?? URI.file(loc.filename).toString();
-  let label = "";
-  const ansiHighlights = [];
-  let start = 0;
-  if (filename.length > 0) {
-    label = filename + " ";
-    ansiHighlights.push({ span: [start, start + byteLength(filename)], hlGroup: "Directory" });
-  }
-  start = byteLength(label);
-  let lnum = loc.lnum ?? loc.range.start.line + 1;
-  let col = loc.col ?? byteLength(loc.text.slice(0, loc.range.start.character)) + 1;
-  let position = `|${loc.type ? loc.type + " " : ""}${lnum} Col ${col}|`;
-  label += position;
-  ansiHighlights.push({ span: [start, start + byteLength(position)], hlGroup: "LineNr" });
-  if (loc.type) {
-    let hl = loc.type.toLowerCase() === "error" ? "Error" : "WarningMsg";
-    ansiHighlights.push({ span: [start + 1, start + byteLength(loc.type)], hlGroup: hl });
-  }
-  if (loc.range && loc.range.start.line == loc.range.end.line) {
-    let len = byteLength(label) + 1;
-    let start2 = len + byteLength(loc.text.slice(0, loc.range.start.character));
-    let end = len + byteLength(loc.text.slice(0, loc.range.end.character));
-    ansiHighlights.push({ span: [start2, end], hlGroup: "Search" });
-  }
-  label += " " + loc.text;
-  let filterText = `${filename}${loc.text.trim()}`;
-  let location;
-  if (loc.range) {
-    location = Location.create(uri, loc.range);
-  } else {
-    let start2 = Position.create(loc.lnum - 1, loc.col - 1);
-    let end = Position.create((loc.end_lnum ?? loc.lnum) - 1, (loc.end_col ?? loc.col) - 1);
-    location = Location.create(uri, Range.create(start2, end));
-  }
-  location.targetRange = loc.targetRange ? loc.targetRange : Range.create(lnum - 1, 0, lnum - 1, 99);
-  return {
-    label,
-    location,
-    filterText,
-    ansiHighlights
-  };
-}
 var LocationList;
 var init_location = __esm({
   "src/list/source/location.ts"() {
@@ -69232,6 +69190,12 @@ var init_location = __esm({
         });
         this.addLocationActions();
       }
+      formatFilepath(file) {
+        if (typeof global.formatFilepath === "function") {
+          return global.formatFilepath(file) + "";
+        }
+        return file;
+      }
       async loadItems(context, _token) {
         let locs = await this.nvim.getVar("coc_jump_locations");
         locs = toArray(locs);
@@ -69242,9 +69206,53 @@ var init_location = __esm({
           if (filename.length > 0 && path.isAbsolute(filename)) {
             filename = isParentFolder(context.cwd, filename) ? path.relative(context.cwd, filename) : filename;
           }
-          return createItem(filename, loc);
+          return this.createItem(filename, loc);
         });
         return items;
+      }
+      createItem(filename, loc) {
+        let uri = loc.uri ?? URI.file(loc.filename).toString();
+        let label = "";
+        const ansiHighlights = [];
+        let start = 0;
+        filename = this.formatFilepath(filename);
+        if (filename.length > 0) {
+          label = filename + " ";
+          ansiHighlights.push({ span: [start, start + byteLength(filename)], hlGroup: "Directory" });
+        }
+        start = byteLength(label);
+        let lnum = loc.lnum ?? loc.range.start.line + 1;
+        let col = loc.col ?? byteLength(loc.text.slice(0, loc.range.start.character)) + 1;
+        let position = `|${loc.type ? loc.type + " " : ""}${lnum} Col ${col}|`;
+        label += position;
+        ansiHighlights.push({ span: [start, start + byteLength(position)], hlGroup: "LineNr" });
+        if (loc.type) {
+          let hl = loc.type.toLowerCase() === "error" ? "Error" : "WarningMsg";
+          ansiHighlights.push({ span: [start + 1, start + byteLength(loc.type)], hlGroup: hl });
+        }
+        if (loc.range && loc.range.start.line == loc.range.end.line) {
+          let len = byteLength(label) + 1;
+          let start2 = len + byteLength(loc.text.slice(0, loc.range.start.character));
+          let end = len + byteLength(loc.text.slice(0, loc.range.end.character));
+          ansiHighlights.push({ span: [start2, end], hlGroup: "Search" });
+        }
+        label += " " + loc.text;
+        let filterText = `${filename}${loc.text.trim()}`;
+        let location;
+        if (loc.range) {
+          location = Location.create(uri, loc.range);
+        } else {
+          let start2 = Position.create(loc.lnum - 1, loc.col - 1);
+          let end = Position.create((loc.end_lnum ?? loc.lnum) - 1, (loc.end_col ?? loc.col) - 1);
+          location = Location.create(uri, Range.create(start2, end));
+        }
+        location.targetRange = loc.targetRange ? loc.targetRange : Range.create(lnum - 1, 0, lnum - 1, 99);
+        return {
+          label,
+          location,
+          filterText,
+          ansiHighlights
+        };
       }
     };
   }
@@ -76156,12 +76164,6 @@ var init_sources = __esm({
 });
 
 // src/list/source/symbols.ts
-function formatFilepath(file) {
-  if (typeof global.formatFilepath === "function") {
-    return global.formatFilepath(file) + "";
-  }
-  return file;
-}
 function toTargetLocation(location) {
   if (!Location.is(location)) {
     return Location.create(location.uri, Range.create(0, 0, 0, 0));
@@ -76252,7 +76254,7 @@ var init_symbols = __esm({
         let { name: name2 } = item;
         let label = "";
         let ansiHighlights = [];
-        let parts = [name2, `[${kind}]`, formatFilepath(file)];
+        let parts = [name2, `[${kind}]`, this.formatFilepath(file)];
         let highlights = ["Normal", "Typedef", "Comment"];
         for (let index = 0; index < parts.length; index++) {
           const text = parts[index];
@@ -85329,6 +85331,7 @@ var init_hover2 = __esm({
         const defs = await this.handler.withRequestToken("definitionHover", (token) => {
           return languages_default.getDefinitionLinks(doc.textDocument, position, token);
         }, false);
+        if (defs == null) return false;
         await addDefinitions(hovers, defs, doc.filetype);
         let hover = hovers.find((o) => Hover.is(o) && Range.is(o.range));
         if (hover?.range) {
@@ -86156,6 +86159,7 @@ var init_locations = __esm({
     init_object();
     init_protocol();
     init_workspace();
+    init_array();
     LocationsHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -86209,35 +86213,35 @@ var init_locations = __esm({
           return languages_default.getDefinition(doc, position, token);
         });
         await this.handleLocations(definition, openCommand);
-        return definition ? definition.length > 0 : false;
+        return !isFalsyOrEmpty(definition);
       }
       async gotoDeclaration(openCommand) {
         let definition = await this.request("declaration" /* Declaration */, (doc, position, token) => {
           return languages_default.getDeclaration(doc, position, token);
         });
         await this.handleLocations(definition, openCommand);
-        return definition ? definition.length > 0 : false;
+        return !isFalsyOrEmpty(definition);
       }
       async gotoTypeDefinition(openCommand) {
         let definition = await this.request("typeDefinition" /* TypeDefinition */, (doc, position, token) => {
           return languages_default.getTypeDefinition(doc, position, token);
         });
         await this.handleLocations(definition, openCommand);
-        return definition ? definition.length > 0 : false;
+        return !isFalsyOrEmpty(definition);
       }
       async gotoImplementation(openCommand) {
         let definition = await this.request("implementation" /* Implementation */, (doc, position, token) => {
           return languages_default.getImplementation(doc, position, token);
         });
         await this.handleLocations(definition, openCommand);
-        return definition ? definition.length > 0 : false;
+        return !isFalsyOrEmpty(definition);
       }
       async gotoReferences(openCommand, includeDeclaration = true) {
         let definition = await this.request("reference" /* Reference */, (doc, position, token) => {
           return languages_default.getReferences(doc, { includeDeclaration }, position, token);
         });
         await this.handleLocations(definition, openCommand);
-        return definition ? definition.length > 0 : false;
+        return !isFalsyOrEmpty(definition);
       }
       async getTagList() {
         let { doc, position } = await this.handler.getCurrentState();
@@ -87445,10 +87449,9 @@ var init_selectionRange2 = __esm({
         let { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("selectionRange" /* SelectionRange */, doc.textDocument);
         await doc.synchronize();
-        let selectionRanges = await this.handler.withRequestToken("selection ranges", (token) => {
+        return await this.handler.withRequestToken("selection ranges", (token) => {
           return languages_default.getSelectionRanges(doc.textDocument, [position], token);
         });
-        return selectionRanges;
       }
       async selectRange(visualmode, forward) {
         let { doc } = await this.handler.getCurrentState();
@@ -89637,7 +89640,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-9ca54c0e 2025-02-25 19:38:14 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-57705289 2025-02-27 16:42:36 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

@@ -3899,6 +3899,21 @@ location						*coc-list-location*
 	- 'split': Use |:split| to open location.
 	- 'quickfix': Add selected items to Vim's quickfix.
 
+	To customize filepath displayed in the list, user could inject
+	javascript global function `formatFilepath` which accept filepath and
+	should return string. ex:
+>
+	const path = require('path')
+	global.formatFilepath = function (file) {
+	  return file.startsWith('jdt:/') ? path.basename(file) : file
+	}
+<
+	save the file to `~/custom.js` and make coc load it by add
+>
+	let g:coc_node_args = ['-r', expand('~/custom.js')]
+<
+	to your vimrc.  `formatFilepath` works for |coc-list-symbols| as well.
+
 extensions						*coc-list-extensions*
 
 	Manage coc.nvim extensions.
@@ -3949,20 +3964,6 @@ outline							*coc-list-outline*
 symbols							*coc-list-symbols*
 
 	Search workspace symbols.
-	To customize filepath displayed in the list, user could inject
-	javascript global function `formatFilepath` which accept filepath and
-	should return string. ex:
->
-	const path = require('path')
-	global.formatFilepath = function (file) {
-	  return file.startsWith('jdt:/') ? path.basename(file) : file
-	}
-<
-	save the file to `~/custom.js` and make coc load it by add
->
-	let g:coc_node_args = ['-r', expand('~/custom.js')]
-<
-	to your vimrc
 
 	Actions:
 
