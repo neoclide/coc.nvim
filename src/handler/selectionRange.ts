@@ -17,10 +17,9 @@ export default class SelectionRangeHandler {
     let { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvider(ProviderName.SelectionRange, doc.textDocument)
     await doc.synchronize()
-    let selectionRanges: SelectionRange[] = await this.handler.withRequestToken('selection ranges', token => {
+    return await this.handler.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, [position], token)
     })
-    return selectionRanges
   }
 
   public async selectRange(visualmode: string, forward: boolean): Promise<boolean> {

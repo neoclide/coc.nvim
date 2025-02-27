@@ -121,6 +121,8 @@ export default class HoverHandler {
     const defs = await this.handler.withRequestToken('definitionHover', token => {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
     }, false)
+    // could be cancelled
+    if (defs == null) return false
     await addDefinitions(hovers, defs, doc.filetype)
     let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover | undefined
     if (hover?.range) {
