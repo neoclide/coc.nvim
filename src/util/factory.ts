@@ -2,7 +2,6 @@
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
 import { hasOwnProperty, toObject } from './object'
-const requireFunc = require
 
 export interface ExtensionExport {
   activate: (context: unknown) => any
@@ -24,7 +23,7 @@ export interface ILogger {
 
 export interface IModule {
   new(name: string, parent?: boolean): any
-  _resolveFilename: (file: string, context: any) => string
+  _resolveFilename: (file: string, context: any, isMain: boolean, options: any) => string
   _extensions: {}
   _cache: { [file: string]: any }
   _compile: (content: string, filename: string) => any
@@ -74,7 +73,7 @@ function makeRequireFunction(this: any, cocExports: any): any {
     }
     return this.require(p)
   }
-  req.resolve = requireFunc.resolve.bind(requireFunc)
+  req.resolve = (request, options) => Module._resolveFilename(request, this, false, options)
   // request => Module._resolveFilename(request, this)
   req.main = mainModule
   // Enable support to add extra extension types
