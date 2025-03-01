@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-02-24
+
+- Configurations for file system watch, see `:h coc-config-fileSystemWatch`.
+
 ## 2025-02-23
 
 - All global properties works with extensions #5222.

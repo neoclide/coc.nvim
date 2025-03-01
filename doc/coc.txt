@@ -740,7 +740,7 @@ Use key-mappings:
 	|<Plug>(coc-diagnostic-next-error)| jump to next error.
 	|<Plug>(coc-diagnostic-prev-error)| jump to previous error.
 
-Diagnostic may have related location, to jum tp related location, use:
+Diagnostic may have related location, to jump to related location, use:
 >
  	:CocCommand workspace.diagnosticRelated
 <
