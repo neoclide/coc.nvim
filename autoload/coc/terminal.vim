@@ -14,6 +14,9 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
   setl norelativenumber
   setl nonumber
   setl bufhidden=hide
+  if exists('&winfixbuf')
+    setl winfixbuf
+  endif
   if exists('#User#CocTerminalOpen')
     exe 'doautocmd <nomodeline> User CocTerminalOpen'
   endif

@@ -78,6 +78,9 @@ function! coc#list#create(position, height, name, numberSelect)
     setl nonumber
     setl norelativenumber
   endif
+  if exists('&winfixbuf')
+    setl winfixbuf
+  endif
   setl colorcolumn=""
   return [bufnr('%'), win_getid(), tabpagenr()]
 endfunction
