@@ -235,8 +235,7 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
     let start = range['start']
     let end = range['end']
     for lnum in range(start['line'] + 1, end['line'] + 1)
-      let arr = getbufline(bufnr, lnum)
-      let line = empty(arr) ? '' : arr[0]
+      let line = get(getbufline(bufnr, lnum), 0, '')
       if empty(line)
         continue
       endif
