@@ -3352,6 +3352,7 @@ List related ~
 
 *CocSearch* for matched characters.
 *CocListLine* for current cursor line.
+*CocListCurrent* for range highlight in preview window.
 *CocListSearch* for matched characters.
 *CocListMode* for mode text in the statusline.
 *CocListPath* for cwd text in the statusline.
