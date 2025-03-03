@@ -1786,15 +1786,6 @@ g:coc_global_extensions					*g:coc_global_extensions*
 	Note: coc.nvim will try to install extensions that are not installed
 	in this list after initialization.
 
-g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
-
-	This map defines URI prefix replacements. This is useful in the case
-	that an LSP requires code to adhere to a particular directory
-	structure. For example, `/Users/myUser/workspace` can be mapped to
-	`/home/myUser/workspace`.
->
-	let g:coc_uri_prefix_replace_patterns = {'/Users': '/home'}
-<
 g:coc_enable_locationlist				*g:coc_enable_locationlist*
 
 	Use location list of |coc-list| when jump to locations.
@@ -3351,7 +3342,7 @@ List related ~
 							*CocList*
 
 *CocSearch* for matched characters.
-*CocListLine* for current cursor line.
+*CocListLine* for current cursor line in list window and preview window.
 *CocListSearch* for matched characters.
 *CocListMode* for mode text in the statusline.
 *CocListPath* for cwd text in the statusline.

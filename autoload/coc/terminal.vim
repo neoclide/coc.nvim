@@ -126,25 +126,21 @@ function! coc#terminal#show(bufnr, opts) abort
     execute 'normal! G'
     return v:true
   endif
-  let curr_winids = []
+  let curr_winid = -1
   for winid in winids
     if get(get(getwininfo(winid), 0, {}), 'tabnr', 0) == tabpagenr()
-      call add(curr_winids, winid)
+      let curr_winid = winid
     else
-      if s:is_vim
-        call coc#api#exec('win_close', [winid, 1])
-      else
-        call nvim_win_close(winid, 1)
-      endif
+      call coc#window#close(winid)
     endif
   endfor
   let height = get(a:opts, 'height', 8)
-  if empty(curr_winids)
+  if curr_winid == -1
     execute 'below '.a:bufnr.'sb'
     execute 'resize '.height
     call coc#util#do_autocmd('CocTerminalOpen')
   else
-    call win_gotoid(curr_winids[0])
+    call win_gotoid(curr_winid)
   endif
   execute 'normal! G'
   if get(a:opts, 'preserveFocus', v:false)

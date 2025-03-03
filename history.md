@@ -5,6 +5,7 @@ Notable changes of coc.nvim:
 ## 2025-03-03
 
 - Add command `workspace.openLocalConfig`.
+- Support vim built with win32unix enabled, including cygwin, git bash, WSL etc.
 
 ## 2025-02-24
 

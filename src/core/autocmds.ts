@@ -6,7 +6,6 @@ import { Disposable } from '../util/protocol'
 import { crypto } from '../util/node'
 
 interface PartialEnv {
-  isCygwin: boolean
   isVim: boolean
   version: string
 }

@@ -444,7 +444,7 @@ describe('SnippetSession', () => {
       let res = await session.start('a${1:a}b', defaultRange)
       expect(res).toBe(true)
       await buf.append(['foo', 'bar'])
-      await nvim.call('cursor', [2, 1])
+      await nvim.call('cursor', [2, 2])
       await session.checkPosition()
       expect(session.isActive).toBe(false)
     })

@@ -199,7 +199,7 @@ export default class Document {
     this.variables = toObject(opts.variables)
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
+    this._uri = getUri(opts.fullpath, this.bufnr, buftype)
     if (Array.isArray(opts.lines)) {
       this.lines = opts.lines.map(line => line == null ? '' : line)
       this._noFetch = true
@@ -686,9 +686,9 @@ function fireLinesChanged(bufnr: number): void {
   void events.fire('LinesChanged', [bufnr])
 }
 
-export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
+export function getUri(fullpath: string, id: number, buftype: string): string {
   if (!fullpath) return `untitled:${id}`
-  if (path.isAbsolute(fullpath)) return URI.file(isCygwin ? fullpath : path.normalize(fullpath)).toString()
+  if (path.isAbsolute(fullpath)) return URI.file(path.normalize(fullpath)).toString()
   if (isUrl(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`
