@@ -47,6 +47,12 @@ export default class WorkspaceHandler {
       }
     }, true)
     commands.register({
+      id: 'workspace.openLocalConfig',
+      execute: async () => {
+        await this.openLocalConfig()
+      }
+    }, false, 'Open config file of current workspace folder')
+    commands.register({
       id: 'workspace.undo',
       execute: async () => {
         await workspace.files.undoWorkspaceEdit()

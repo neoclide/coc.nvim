@@ -184,7 +184,7 @@ describe('Workspace handler', () => {
       await handler.openLocalConfig()
       await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
       await nvim.command('setf vim')
-      await handler.openLocalConfig()
+      await commands.executeCommand('workspace.openLocalConfig')
     })
 
     it('should open local config', async () => {

@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-03-03
+
+- Add command `workspace.openLocalConfig`.
+
 ## 2025-02-24
 
 - Configurations for file system watch, see `:h coc-config-fileSystemWatch`.
@@ -19,7 +23,7 @@ Notable changes of coc.nvim:
 ## 2025-02-21
 
 - To avoid unexpected signature help window close, signature help will be triggered after placeholder jump by default, when autocmd `CocJumpPlaceholder call CocActionAsync('showSignatureHelp')` not exists.
-- Support `global.formatFilepath` function for customize filepath displayed in symbols list.
+- Support `global.formatFilepath` function for customize filepath displayed in symbols & location list.
 
 ## 2025-02-20
 
