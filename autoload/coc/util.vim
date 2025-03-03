@@ -539,7 +539,7 @@ function! coc#util#get_config_home(...)
         if exists('$XDG_CONFIG_HOME')
           let dir = resolve($XDG_CONFIG_HOME."/".appname)
         else
-          if s:is_win || s:is_win32unix
+          if s:is_win
             let dir = resolve($HOME.'/AppData/Local/'.appname)
           else
             let dir = resolve($HOME.'/.config/'.appname)
