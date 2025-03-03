@@ -14,6 +14,9 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
   setl norelativenumber
   setl nonumber
   setl bufhidden=hide
+  if exists('&winfixbuf')
+    setl winfixbuf
+  endif
   if exists('#User#CocTerminalOpen')
     exe 'doautocmd <nomodeline> User CocTerminalOpen'
   endif
@@ -112,4 +115,36 @@ function! coc#terminal#close(bufnr) abort
     endif
   endif
   exe 'silent! bd! '.a:bufnr
+endfunction
+
+function! coc#terminal#show(bufnr, opts) abort
+  if !bufloaded(a:bufnr)
+    return v:false
+  endif
+  let winids = win_findbuf(a:bufnr)
+  if index(winids, win_getid()) != -1
+    execute 'normal! G'
+    return v:true
+  endif
+  let curr_winid = -1
+  for winid in winids
+    if get(get(getwininfo(winid), 0, {}), 'tabnr', 0) == tabpagenr()
+      let curr_winid = winid
+    else
+      call coc#window#close(winid)
+    endif
+  endfor
+  let height = get(a:opts, 'height', 8)
+  if curr_winid == -1
+    execute 'below '.a:bufnr.'sb'
+    execute 'resize '.height
+    call coc#util#do_autocmd('CocTerminalOpen')
+  else
+    call win_gotoid(curr_winid)
+  endif
+  execute 'normal! G'
+  if get(a:opts, 'preserveFocus', v:false)
+    execute 'wincmd p'
+  endif
+  return v:true
 endfunction

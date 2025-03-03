@@ -33065,7 +33065,7 @@ function getWatchmanPath(configurations) {
   return which.sync(watchmanPath, { nothrow: true });
 }
 async function findUp2(nvim, cwd2, filename) {
-  let filepath = await nvim.call("expand", "%:p");
+  let filepath = await nvim.call("coc#util#get_fullpath");
   filepath = path.normalize(filepath);
   let isFile2 = filepath && path.isAbsolute(filepath);
   if (isFile2 && !isParentFolder(cwd2, filepath, true)) {
@@ -37759,24 +37759,7 @@ var init_terminal = __esm({
       async show(preserveFocus) {
         let { bufnr, nvim } = this;
         if (!bufnr) return false;
-        let [loaded, curr, winids] = await nvim.eval(`[bufloaded(${bufnr}),win_getid(),win_findbuf(${bufnr})]`);
-        if (!loaded) return false;
-        let winid = winids[0];
-        if (winid && curr == winid) return true;
-        nvim.pauseNotification();
-        if (!winid) {
-          nvim.command(`below ${bufnr}sb`, true);
-          nvim.command("resize 8", true);
-          nvim.call("coc#util#do_autocmd", ["CocTerminalOpen"], true);
-        } else {
-          nvim.call("win_gotoid", [winid], true);
-        }
-        nvim.command("normal! G", true);
-        if (preserveFocus) {
-          nvim.command("wincmd p", true);
-        }
-        await nvim.resumeNotification();
-        return true;
+        return await nvim.call("coc#terminal#show", [bufnr, { preserveFocus }]);
       }
       async hide() {
         let { bufnr, nvim } = this;
@@ -43397,9 +43380,9 @@ function fireDetach(bufnr) {
 function fireLinesChanged(bufnr) {
   void events_default.fire("LinesChanged", [bufnr]);
 }
-function getUri(fullpath, id, buftype, isCygwin) {
+function getUri(fullpath, id, buftype) {
   if (!fullpath) return `untitled:${id}`;
-  if (path.isAbsolute(fullpath)) return URI.file(isCygwin ? fullpath : path.normalize(fullpath)).toString();
+  if (path.isAbsolute(fullpath)) return URI.file(path.normalize(fullpath)).toString();
   if (isUrl(fullpath)) return URI.parse(fullpath).toString();
   if (buftype != "") return `${buftype}:${id}`;
   return `unknown:${id}`;
@@ -43568,7 +43551,7 @@ var init_document = __esm({
         this.variables = toObject(opts.variables);
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
-        this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin);
+        this._uri = getUri(opts.fullpath, this.bufnr, buftype);
         if (Array.isArray(opts.lines)) {
           this.lines = opts.lines.map((line) => line == null ? "" : line);
           this._noFetch = true;
@@ -49971,7 +49954,7 @@ function preparePythonCodes(snip) {
   let { range, context, line } = snip;
   let pyCodes = [
     "import re, os, vim, string, random",
-    `path = vim.eval('expand("%:p")') or ""`,
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`
   ];
   if (context) {
@@ -77285,7 +77268,7 @@ var init_variableResolve = __esm({
       async resolveValue(name2) {
         let { nvim } = this;
         if (["TM_FILENAME", "TM_FILENAME_BASE", "TM_DIRECTORY", "TM_FILEPATH"].includes(name2)) {
-          let filepath = await nvim.eval('expand("%:p")');
+          let filepath = await nvim.call("coc#util#get_fullpath");
           if (name2 === "TM_FILENAME") return path.basename(filepath);
           if (name2 === "TM_FILENAME_BASE") return path.basename(filepath, path.extname(filepath));
           if (name2 === "TM_DIRECTORY") return path.dirname(filepath);
@@ -77324,7 +77307,7 @@ var init_variableResolve = __esm({
           return v4_default();
         }
         if (["RELATIVE_FILEPATH", "WORKSPACE_NAME", "WORKSPACE_FOLDER"].includes(name2)) {
-          let filepath = await nvim.eval('expand("%:p")');
+          let filepath = await nvim.call("coc#util#get_fullpath");
           let folder = this.workspaceFolder.getWorkspaceFolder(URI.file(filepath));
           if (name2 === "RELATIVE_FILEPATH") return this.workspaceFolder.getRelativePath(filepath);
           if (name2 === "WORKSPACE_NAME") return folder.name;
@@ -89446,6 +89429,12 @@ var init_workspace2 = __esm({
           }
         }, true);
         commands_default.register({
+          id: "workspace.openLocalConfig",
+          execute: async () => {
+            await this.openLocalConfig();
+          }
+        }, false, "Open config file of current workspace folder");
+        commands_default.register({
           id: "workspace.undo",
           execute: async () => {
             await workspace_default.files.undoWorkspaceEdit();
@@ -89524,7 +89513,7 @@ var init_workspace2 = __esm({
        * Open local config file
        */
       async openLocalConfig() {
-        let fsPath2 = await this.nvim.call("expand", ["%:p"]);
+        let fsPath2 = await this.nvim.call("coc#util#get_fullpath", []);
         let filetype = await this.nvim.eval("&filetype");
         if (!fsPath2 || !path.isAbsolute(fsPath2)) {
           void window_default.showWarningMessage(`Current buffer doesn't have valid file path.`);
@@ -89552,7 +89541,7 @@ var init_workspace2 = __esm({
       }
       async renameCurrent() {
         let { nvim } = this;
-        let oldPath = await nvim.call("expand", ["%:p"]);
+        let oldPath = await nvim.call("coc#util#get_fullpath", []);
         let newPath = await nvim.callAsync("coc#util#with_callback", ["input", ["New path: ", oldPath, "file"]]);
         newPath = newPath.trim();
         if (newPath === oldPath || !newPath) return;
@@ -89640,7 +89629,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7e303349 2025-02-28 22:30:05 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-7b8be9ea 2025-03-03 17:38:45 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90210,8 +90199,7 @@ var init_attach = __esm({
       nvim.on("notification", async (method, args) => {
         switch (method) {
           case "VimEnter": {
-            pathReplace(args[0]);
-            await plugin.init(args[1]);
+            await plugin.init(args[0]);
             break;
           }
           case "Log": {
