@@ -106,6 +106,12 @@ export function getCharIndexes(input: string, character: string): number[] {
   return res
 }
 
+export function* iterateCharacter(input: string, character: string): Iterable<number> {
+  for (let i = 0; i < input.length; i++) {
+    if (input[i] == character) yield i
+  }
+}
+
 export function isHighSurrogate(codePoint: number): boolean {
   return codePoint >= 0xd800 && codePoint <= 0xdbff
 }
