@@ -12,7 +12,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strictPropertyInitialization": false,
-    "target": "es2017",
+    "target": "es2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "lib": ["es2017", "es2018", "es2019", "ES2020.Promise"],
