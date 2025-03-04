@@ -6760,6 +6760,11 @@ declare module 'coc.nvim' {
     export function executeCommand(command: 'workbench.action.reloadWindow'): Promise<void>
 
     /**
+     * Open user's coc-settings.json configuration file.
+     */
+    export function executeCommand(command: 'workbench.action.openSettingsJson'): Promise<void>
+
+    /**
      * Insert snippet at range of current buffer.
      *
      * @param edit Contains snippet text and range to replace.

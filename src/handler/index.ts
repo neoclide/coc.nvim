@@ -139,6 +139,12 @@ export default class Handler implements HandlerDelegate {
         this.nvim.command('CocRestart', true)
       }
     }, true)
+    commands.register({
+      id: 'workbench.action.openS',
+      execute: () => {
+        this.nvim.command('CocConfig', true)
+      }
+    }, true)
 
     this.register('vscode.open', async (url: string | URI) => {
       await workspace.openResource(url.toString())

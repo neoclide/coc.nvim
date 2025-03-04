@@ -2,6 +2,9 @@
 
 Notable changes of coc.nvim:
 
+## 2025-03-04
+- Add VSCode command `workbench.action.openSettingsJson`.
+
 ## 2025-03-03
 
 - Add command `workspace.openLocalConfig`.
