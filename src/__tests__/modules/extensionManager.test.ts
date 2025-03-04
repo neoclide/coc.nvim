@@ -4,17 +4,16 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import Watchman from '../../core/watchman'
-import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import events from '../../events'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
-import { Registry } from '../../util/registry'
 import { disposeAll } from '../../util'
+import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import { writeJson } from '../../util/fs'
+import { deepIterate } from '../../util/object'
+import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { deepIterate } from '../../util/object'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -158,7 +157,7 @@ describe('ExtensionManager', () => {
       let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
       let basename = path.basename(__filename)
       createExtension(tmpfolder, {
-        name: 'name',
+        name: 'FooBar',
         engines: { coc: '>= 0.0.80' },
         activationEvents: ['workspaceContains:' + basename],
         contributes: {
@@ -182,10 +181,10 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
-      let item = manager.getExtension('name')
+      let item = manager.getExtension('FooBar')
       expect(item.extension.isActive).toBe(true)
       expect(manager.all.length).toBe(1)
-      expect(manager.getExtensionState('name')).toBe('activated')
+      expect(manager.getExtensionState('FooBar')).toBe('activated')
       expect(item.extension.exports['abs']).toBeDefined()
     })
   })
