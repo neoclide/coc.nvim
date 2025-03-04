@@ -140,7 +140,7 @@ export default class Handler implements HandlerDelegate {
       }
     }, true)
     commands.register({
-      id: 'workbench.action.openS',
+      id: 'workbench.action.openSettingsJson',
       execute: () => {
         this.nvim.command('CocConfig', true)
       }
