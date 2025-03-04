@@ -321,7 +321,7 @@ export default class Complete {
 
   public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
     clearTimeout(this.timer)
-    if (input !== this.option.input && this.hasInComplete) {
+    if (input.length > this.option.input.length && this.hasInComplete) {
       return await this.completeInComplete(input)
     }
     return this.filterItems(input)

@@ -360,7 +360,7 @@ describe('completion', () => {
       })
       await p
       await helper.wait(20)
-      completion.stop(true)
+      await completion.stop(true)
       spy.mockRestore()
     })
 
@@ -827,9 +827,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('if')
       await helper.waitPopup()
-      await nvim.input('o')
-      await helper.wait(10)
-      await nvim.input('.')
+      await nvim.input('o.')
       await helper.waitFor('getline', ['.'], 'foo.')
     })
 
@@ -1523,7 +1521,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.selectedItem
       }, undefined)
-      completion.stop(true, CompleteFinishKind.Normal)
+      await completion.stop(true, CompleteFinishKind.Normal)
       await events.fire('MenuPopupChanged', [{}])
       expect(completion.document).toBeNull()
     })
