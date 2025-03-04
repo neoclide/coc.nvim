@@ -74,6 +74,7 @@ export class Workspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  public readonly isTrusted = true
   public statusLine = new StatusLine()
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth

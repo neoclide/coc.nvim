@@ -8707,6 +8707,7 @@ declare module 'coc.nvim' {
 
   export namespace workspace {
     export const nvim: Neovim
+    export const isTrusted = true
     /**
      * Current buffer number, could be wrong since vim could not send autocmd as expected.
      *
