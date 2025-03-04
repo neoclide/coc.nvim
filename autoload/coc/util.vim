@@ -286,6 +286,7 @@ function! coc#util#vim_info()
         \ 'pumwidth': exists('&pumwidth') ? &pumwidth : 15,
         \ 'tabCount': tabpagenr('$'),
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
+        \ 'virtualText': v:true,
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') ? v:true : v:false,
