@@ -59,9 +59,41 @@ export default class InlayHintHandler {
         return this.toggle(bufnr ?? workspace.bufnr)
       },
     }, false, 'toggle inlayHint display of current buffer')
+    commands.register({
+      id: 'document.enableInlayHint',
+      execute: (bufnr?: number) => {
+        return this.enable(bufnr ?? workspace.bufnr)
+      },
+    }, false, 'enable codeLens display of current buffer')
+    commands.register({
+      id: 'document.disableInlayHint',
+      execute: (bufnr?: number) => {
+        return this.disable(bufnr ?? workspace.bufnr)
+      },
+    }, false, 'disable codeLens display of current buffer')
     handler.addDisposable(Disposable.create(() => {
       disposeAll(this.disposables)
     }))
+  }
+
+  public enable(bufnr: number): void {
+    let item = this.getItem(bufnr)
+    try {
+      workspace.getAttachedDocument(bufnr)
+      item.enable()
+    } catch (e) {
+      void window.showErrorMessage((e as Error).message)
+    }
+  }
+
+  public disable(bufnr: number): void {
+    let item = this.getItem(bufnr)
+    try {
+      workspace.getAttachedDocument(bufnr)
+      item.disable()
+    } catch (e) {
+      void window.showErrorMessage((e as Error).message)
+    }
   }
 
   public toggle(bufnr: number): void {
