@@ -254,6 +254,10 @@ export class Workspace {
     return this.workspaceFolderControl.workspaceFolders
   }
 
+  public fixWin32unixFilepath(filepath: string): string {
+    return this.documentsManager.fixUnixPrefix(filepath, this.env.unixPrefix)
+  }
+
   public checkPatterns(patterns: string[], folders?: WorkspaceFolder[]): Promise<boolean> {
     return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns)
   }

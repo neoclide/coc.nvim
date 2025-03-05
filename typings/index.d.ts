@@ -8845,6 +8845,14 @@ declare module 'coc.nvim' {
     export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string
 
     /**
+     * Returns converted unix path when the vim is built with win32unix enabled. Original fullpath is returned when the
+     * convert is not necessary.  Only needed when the fullpath is passed vim directly.
+     *
+     * @param fullpath The filepath to fix, only windows absolute filepath is fixed.
+     */
+    export function fixWin32unixFilepath(fullpath: string): string
+
+    /**
      * Opens a document. Will return early if this document is already open. Otherwise
      * the document is loaded and the {@link workspace.onDidOpenTextDocument didOpen}-event fires.
      *

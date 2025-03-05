@@ -112,6 +112,10 @@ describe('workspace methods', () => {
     expect(workspace.getUri(999)).toBe('')
   })
 
+  it('should fixWin32unixPrefix', async () => {
+    expect(workspace.fixWin32unixFilepath('/foo')).toBe('/foo')
+  })
+
   it('should get attached document', async () => {
     let fn = () => {
       workspace.getAttachedDocument('file://not_exists')
