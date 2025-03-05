@@ -156,6 +156,7 @@ export interface Env {
   readonly mode: string
   readonly apiversion: number
   readonly pumwidth: number
+  readonly unixPrefix: string
   readonly ambiguousIsNarrow: boolean
   readonly floating: boolean
   readonly sign: boolean

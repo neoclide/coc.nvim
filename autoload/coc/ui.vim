@@ -485,13 +485,22 @@ endfunction
 
 " Use noa to setloclist, avoid BufWinEnter autocmd
 function! coc#ui#setloclist(nr, items, action, title) abort
+  let items = s:is_win32unix ? map(copy(a:items), 's:convert_qfitem(v:val)'): a:items
   if a:action ==# ' '
     let title = get(getloclist(a:nr, {'title': 1}), 'title', '')
     let action = title ==# a:title ? 'r' : ' '
-    noa call setloclist(a:nr, [], action, {'title': a:title, 'items': a:items})
+    noa call setloclist(a:nr, [], action, {'title': a:title, 'items': items})
   else
-    noa call setloclist(a:nr, [], a:action, {'title': a:title, 'items': a:items})
+    noa call setloclist(a:nr, [], a:action, {'title': a:title, 'items': items})
   endif
+endfunction
+
+function! s:convert_qfitem(item) abort
+  let result = copy(a:item)
+  if has_key(result, 'filename')
+    let result['filename'] = coc#util#node_to_win32unix(result['filename'])
+  endif
+  return result
 endfunction
 
 function! coc#ui#get_mouse() abort

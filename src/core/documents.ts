@@ -586,6 +586,11 @@ export default class Documents implements Disposable {
     }
   }
 
+  public fixUnixPrefix(filepath: string, prefix: string): string {
+    if (!this._env.isCygwin || !/^\w:/.test(filepath)) return filepath
+    return prefix + filepath[0].toLowerCase() + filepath.slice(2).replace(/\\/g, '/')
+  }
+
   /**
    * Convert location to quickfix item.
    */
@@ -604,7 +609,7 @@ export default class Documents implements Disposable {
     let endLine = start.line == end.line ? text : await this.getLine(uri, end.line)
     let item: QuickfixItem = {
       uri,
-      filename: u.scheme == 'file' ? u.fsPath : uri,
+      filename: u.scheme == 'file' ? this.fixUnixPrefix(u.fsPath, this._env.unixPrefix) : uri,
       lnum: start.line + 1,
       end_lnum: end.line + 1,
       col: text ? byteIndex(text, start.character) + 1 : start.character + 1,

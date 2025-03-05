@@ -7,15 +7,15 @@ import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DiagnosticWithFileType, DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
 import { getConditionValue } from '../util'
+import { stripAnsiColoring } from '../util/ansiparse'
 import { isFalsyOrEmpty } from '../util/array'
+import { path } from '../util/node'
 import { lineInRange, positionInRange } from '../util/position'
 import { Emitter, Event } from '../util/protocol'
 import window from '../window'
-import { path } from '../util/node'
 import workspace from '../workspace'
-import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
-import { stripAnsiColoring } from '../util/ansiparse'
 import { DiagnosticItem } from './manager'
+import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -366,21 +366,21 @@ export class DiagnosticBuffer implements SyncItem {
       if (config.showRelatedInformation && diagnostic.relatedInformation?.length) {
         msg = `${diagnostic.message}\n\nRelated information:\n`
         for (const info of diagnostic.relatedInformation) {
-            const fsPath = URI.parse(info.location.uri).fsPath
-            const basename = path.basename(fsPath)
-            const line = info.location.range.start.line + 1
-            const column = info.location.range.start.character + 1
-            msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
+          const fsPath = URI.parse(info.location.uri).fsPath
+          const basename = path.basename(fsPath)
+          const line = info.location.range.start.line + 1
+          const column = info.location.range.start.character + 1
+          msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
         }
         msg = msg + "\n\n"
       }
-      docs.push({ filetype, content: formatDiagnostic(config.format, {
-        ...diagnostic,
-        message: msg
-      }) })
-      if (link) {
-        docs.push({ filetype: 'txt', content: link })
-      }
+      docs.push({
+        filetype, content: formatDiagnostic(config.format, {
+          ...diagnostic,
+          message: msg
+        })
+      })
+      if (link) docs.push({ filetype: 'txt', content: link })
     })
     await floatFactory.show(docs, this.config.floatConfig)
     return true

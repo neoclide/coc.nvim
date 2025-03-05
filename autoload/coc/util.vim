@@ -282,6 +282,7 @@ function! coc#util#vim_info()
         \ 'version': coc#util#version(),
         \ 'pumevent': 1,
         \ 'dialog': 1,
+        \ 'unixPrefix': s:win32unix_prefix,
         \ 'jumpAutocmd': coc#util#check_jump_autocmd(),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': s:is_win32unix ? v:true : v:false,
