@@ -35,6 +35,7 @@ interface DiagnosticSignConfig {
 
 export interface DiagnosticItem {
   file: string
+  bufnr?: number
   lnum: number
   end_lnum: number
   col: number
@@ -69,6 +70,8 @@ class DiagnosticManager implements Disposable {
       execute: () => this.jumpRelated()
     }, false, 'jump to related locations of current diagnostic.')
     this.defineSigns(workspace.initialConfiguration.get<DiagnosticSignConfig>('diagnostic'))
+    let globalValue = workspace.initialConfiguration.inspect('diagnostic.enable').globalValue
+    this.enabled = globalValue !== false
     this.buffers = workspace.registerBufferSync(doc => {
       let buf = new DiagnosticBuffer(this.nvim, doc)
       buf.onDidRefresh(diagnostics => {
@@ -154,7 +157,7 @@ class DiagnosticManager implements Disposable {
    */
   public async setLocationlist(bufnr: number): Promise<void> {
     let doc = workspace.getAttachedDocument(bufnr)
-    let buf = this.buffers.getItem(doc.bufnr)
+    let buf = this.getItem(doc.bufnr)
     let diagnostics: Diagnostic[] = []
     for (let diags of Object.values(this.getDiagnostics(buf))) {
       diagnostics.push(...diags)
@@ -378,6 +381,7 @@ class DiagnosticManager implements Disposable {
           let { start, end } = diagnostic.range
           let o: DiagnosticItem = {
             file: u.fsPath,
+            bufnr: doc ? doc.bufnr : undefined,
             lnum: start.line + 1,
             end_lnum: end.line + 1,
             col: Array.isArray(lines) ? byteIndex(lines[start.line] ?? '', start.character) + 1 : start.character + 1,
@@ -431,9 +435,7 @@ class DiagnosticManager implements Disposable {
   }
 
   public async jumpRelated(): Promise<void> {
-    let diagnostics = await this.getCurrentDiagnostics()
-    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
-    let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
+    let locations = await this.relatedInformation()
     if (locations.length == 1) {
       await workspace.jumpTo(locations[0].uri, locations[0].range.start)
     } else if (locations.length > 1) {
@@ -441,6 +443,13 @@ class DiagnosticManager implements Disposable {
     } else {
       void window.showWarningMessage('No related information found.')
     }
+  }
+
+  public async relatedInformation(): Promise<Location[]> {
+    let diagnostics = await this.getCurrentDiagnostics()
+    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
+    let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
+    return locations
   }
 
   public reset(): void {

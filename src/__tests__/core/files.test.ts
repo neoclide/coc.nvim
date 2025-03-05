@@ -548,7 +548,8 @@ describe('getOriginalLine', () => {
     })
 
     it('should render annotation label', async () => {
-      let doc = await helper.createDocument(uuid())
+      let filepath = await createTmpFile('', disposables)
+      let doc = await helper.createDocument(filepath)
       let edit: WorkspaceEdit = {
         documentChanges: [
           {
@@ -583,13 +584,14 @@ describe('getOriginalLine', () => {
       let lines = await buf.lines
       expect(lines[0]).toBe('Text changes')
       await nvim.command('exe 1')
+      await nvim.command('wa')
       await nvim.input('<CR>')
       let bufnr = await nvim.call('bufnr', ['%'])
       expect(bufnr).toBe(buf.id)
       await nvim.command('exe 3')
       await nvim.input('<CR>')
       let fsPath = URI.parse(doc.uri).fsPath
-      await helper.waitFor('expand', ['%:p'], fsPath)
+      await helper.waitFor('eval', ['expand("%:p")'], fsPath)
       await nvim.call('win_gotoid', [winid])
       await nvim.input('<esc>')
       await helper.wait(10)

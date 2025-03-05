@@ -409,11 +409,11 @@ describe('Default normal mappings', () => {
   it('should insert command by :', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.wait(20)
     await helper.listInput(':')
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
-    let res = await nvim.getVar('x')
-    expect(res).toBe(1)
+    await helper.waitValue(() => {
+      return nvim.getVar('x')
+    }, 1)
   })
 
   it('should select action by <tab>', async () => {
@@ -462,7 +462,6 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     list.text = 'new'
     await helper.listInput('<C-l>')
-    await helper.wait(30)
     let line = await nvim.line
     expect(line).toMatch('new')
   })

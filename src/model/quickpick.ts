@@ -4,8 +4,8 @@ import events from '../events'
 import { createLogger } from '../logger'
 import { HighlightItem, QuickPickItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
-import { isFalsyOrEmpty, toArray } from '../util/array'
-import { anyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { toArray } from '../util/array'
+import { FuzzyScorer, anyScore, fuzzyScoreGracefulAggressive } from '../util/filter'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteLength, toText } from '../util/string'
 import { DialogPreferences } from './dialog'
@@ -118,6 +118,10 @@ export default class QuickPick<T extends QuickPickItem> {
     return this.win?.winid
   }
 
+  public get inputBox(): InputBox | undefined {
+    return this.input
+  }
+
   public setCursor(index: number): void {
     this.win?.setCursor(index, true)
   }
@@ -129,6 +133,12 @@ export default class QuickPick<T extends QuickPickItem> {
         this.win = undefined
       }
     }, null, this.disposables)
+    events.on('InputListSelect', index => {
+      if (index >= 0) {
+        this.setCursor(index)
+      }
+      this.onFinish(index < 0 ? undefined : '')
+    }, null, this.disposables)
     events.on('PromptKeyPress', async (bufnr, key) => {
       if (bufnr == inputBufnr) {
         if (key == '<C-f>') {
@@ -139,7 +149,7 @@ export default class QuickPick<T extends QuickPickItem> {
           this.setCursor(this.currIndex + 1)
         } else if (['<C-k>', '<C-p>', '<up>'].includes(key)) {
           this.setCursor(this.currIndex - 1)
-        } else if (this.canSelectMany && key == '<C-@>') {
+        } else if (this.canSelectMany && ['<C-@>', '<C-t>'].includes(key)) {
           this.toggePicked(this.currIndex)
         }
       }
@@ -171,6 +181,7 @@ export default class QuickPick<T extends QuickPickItem> {
     if (minWidth === undefined) minWidth = max
     let rounded = !!preferences.rounded
     await input.show(this.title, {
+      quickpick: lines,
       position: 'center',
       placeHolder: this.placeholder,
       marginTop: 10,
@@ -275,7 +286,7 @@ export default class QuickPick<T extends QuickPickItem> {
 
   private onFinish(input: string | undefined): void {
     let items = input == null ? null : this.getSelectedItems()
-    if (!this.canSelectMany && input !== undefined && !isFalsyOrEmpty(items)) {
+    if (!this.canSelectMany && input !== undefined && Array.isArray(items)) {
       this._onDidChangeSelection.fire(items)
     }
     this.nvim.call('coc#float#close', [this.winid], true)

@@ -39,6 +39,7 @@ export default class Complete {
   private cid = 0
   private minCharacter = Number.MAX_SAFE_INTEGER
   private inputStart: number
+  private completingSources: Set<string> = new Set()
   private readonly _onDidRefresh = new Emitter<void>()
   private wordDistance: WordDistance | undefined
   private tokenSources: Set<CancellationTokenSource> = new Set()
@@ -147,8 +148,7 @@ export default class Complete {
     const token = tokenSource.token
     if (token.isCancellationRequested) return
     this._completing = true
-    const remains: Set<string> = new Set()
-    sources.forEach(s => remains.add(s.name))
+    const remains: Set<string> = new Set(sources.map(s => s.name))
     let timer: NodeJS.Timeout
     let disposable: Disposable
     let tp = new Promise<void>(resolve => {
@@ -169,8 +169,8 @@ export default class Complete {
     const range = this.getDefaultRange()
     let promises = sources.map(s => this.completeSource(s, range, token).then(added => {
       remains.delete(s.name)
-      if (token.isCancellationRequested || cid != 0 || (this.cid > 0 && this._completing)) return
-      if (remains.size === 0) {
+      if (token.isCancellationRequested) return
+      if (this.completingSources.size === 0) {
         this.fireRefresh(0)
       } else if (added) {
         this.fireRefresh(16)
@@ -190,6 +190,7 @@ export default class Complete {
     const insertMode = this.config.insertMode
     const sourceName = source.name
     let added = false
+    this.completingSources.add(sourceName)
     try {
       if (Is.func(source.shouldComplete)) {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
@@ -238,14 +239,14 @@ export default class Complete {
       // this.nvim.echoError(err)
       logger.error('Complete error:', source.name, err)
     }
+    this.completingSources.delete(sourceName)
     return added
   }
 
-  public async completeInComplete(resumeInput: string): Promise<DurationCompleteItem[] | undefined> {
+  public async completeInComplete(resumeInput: string): Promise<undefined> {
     let { document } = this
     this.cancelInComplete()
     let tokenSource = this.createTokenSource(true)
-    let token = tokenSource.token
     await document.patchChange(true)
     let { input, colnr, linenr, followWord, position } = this.option
     Object.assign(this.option, {
@@ -260,8 +261,6 @@ export default class Complete {
     this.cid++
     const sources = this.getIncompleteSources()
     await this.completeSources(sources, tokenSource, this.cid)
-    if (token.isCancellationRequested) return undefined
-    return this.filterItems(resumeInput)
   }
 
   public filterItems(input: string): DurationCompleteItem[] | undefined {
@@ -320,10 +319,12 @@ export default class Complete {
   }
 
   public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
-    clearTimeout(this.timer)
-    if (input !== this.option.input && this.hasInComplete) {
-      return await this.completeInComplete(input)
+    if (input.length > this.option.input.length && this.hasInComplete) {
+      this.fireRefresh(30)
+      void this.completeInComplete(input)
+      return undefined
     }
+    clearTimeout(this.timer)
     return this.filterItems(input)
   }
 
@@ -348,7 +349,7 @@ export default class Complete {
     let { insertMode } = this.config
     let { linenr, followWord, position } = this.option
     let line = linenr - 1
-    let end = position.character + (insertMode == InsertMode.Repalce ? followWord.length : 0)
+    let end = position.character + (insertMode == InsertMode.Replace ? followWord.length : 0)
     return Range.create(line, this.inputStart, line, end)
   }
 

@@ -24,6 +24,7 @@ function! coc#task#start(id, opts)
   if s:is_vim
     let options = {
           \ 'cwd': cwd,
+          \ 'noblock' : 1,
           \ 'err_mode': 'nl',
           \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:on_stderr(a:id, [message])},
@@ -31,9 +32,6 @@ function! coc#task#start(id, opts)
           \ 'exit_cb': {channel, code -> s:on_exit(a:id, code)},
           \ 'env': env,
           \}
-    if has("patch-8.1.350")
-      let options['noblock'] = 1
-    endif
     if get(a:opts, 'pty', 0)
       let options['pty'] = 1
     endif
@@ -51,27 +49,12 @@ function! coc#task#start(id, opts)
           \ 'on_stdout': {channel, msgs -> s:on_stdout(a:id, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(a:id, code)},
           \ 'detach': get(a:opts, 'detach', 0),
+          \ 'env': env,
           \}
-    let original = {}
-    if !empty(env)
-      if has('nvim-0.5.0')
-        let options['env'] = env
-      elseif exists('*setenv') && exists('*getenv')
-        for key in keys(env)
-          let original[key] = getenv(key)
-          call setenv(key, env[key])
-        endfor
-      endif
-    endif
     if get(a:opts, 'pty', 0)
       let options['pty'] = 1
     endif
     let chan_id = jobstart(cmd, options)
-    if !empty(original)
-      for key in keys(original)
-        call setenv(key, original[key])
-      endfor
-    endif
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.a:id.' task' | echohl None
       return v:false

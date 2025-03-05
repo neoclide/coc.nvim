@@ -140,7 +140,7 @@ describe('diagnostic buffer', () => {
       buf.updateHighlights('', [diagnostic])
       await nvim.resumeNotification()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
-      expect(res.length).toBe(1)
+      expect(res.length).toBe(2)
     })
 
     it('should not refresh for empty diagnostics', async () => {
@@ -370,11 +370,13 @@ describe('diagnostic buffer', () => {
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[1].tags = [DiagnosticTag.Deprecated]
       let res = buf.getHighlightItems(diagnostics)
-      expect(res.length).toBe(5)
+      expect(res.length).toBe(7)
       expect(res.map(o => o.hlGroup)).toEqual([
         'CocUnusedHighlight',
+        'CocWarningHighlight',
         'CocErrorHighlight',
         'CocDeprecatedHighlight',
+        'CocWarningHighlight',
         'CocHintHighlight',
         'CocErrorHighlight'
       ])

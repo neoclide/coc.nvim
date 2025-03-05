@@ -1,4 +1,4 @@
--- https://raw.githubusercontent.com/neoclide/coc.nvim/master/coc-example-config.lua
+-- https://raw.githubusercontent.com/neoclide/coc.nvim/refs/heads/master/doc/coc-example-config.lua
 
 -- Some servers have issues with backup files, see #649
 vim.opt.backup = false
@@ -88,14 +88,6 @@ vim.api.nvim_create_autocmd('FileType', {
   pattern = 'typescript,json',
   command = "setl formatexpr=CocAction('formatSelected')",
   desc = 'Setup formatexpr specified filetype(s).'
-})
-
--- Update signature help on jump placeholder
-vim.api.nvim_create_autocmd('User', {
-  group = 'CocGroup',
-  pattern = 'CocJumpPlaceholder',
-  command = "call CocActionAsync('showSignatureHelp')",
-  desc = 'Update signature help on jump placeholder'
 })
 
 -- Apply codeAction to the selected region

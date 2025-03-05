@@ -81,6 +81,7 @@ let s:char_map = {
       \ "\<A-x>": '<A-x>',
       \ "\<A-y>": '<A-y>',
       \ "\<A-z>": '<A-z>',
+      \ "\<A-bs>": '<A-bs>',
       \ }
 
 function! coc#prompt#getc() abort
@@ -139,7 +140,7 @@ function! s:start_prompt()
   if s:activated | return | endif
   if !get(g:, 'coc_disable_transparent_cursor', 0)
     if s:gui
-      if has('nvim-0.5.0') && !empty(s:saved_cursor)
+      if has('nvim') && !empty(s:saved_cursor)
         set guicursor+=a:ver1-CocCursorTransparent/lCursor
       endif
     elseif s:is_vim
@@ -195,7 +196,7 @@ function! s:reset() abort
   if !get(g:, 'coc_disable_transparent_cursor',0)
     " neovim has bug with revert empty &guicursor
     if s:gui && !empty(s:saved_cursor)
-      if has('nvim-0.5.0')
+      if has('nvim')
         set guicursor+=a:ver1-Cursor/lCursor
         let &guicursor = s:saved_cursor
       endif

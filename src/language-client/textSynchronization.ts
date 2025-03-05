@@ -6,7 +6,6 @@ import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../types
 import { CancellationToken, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, Emitter, Event, TextDocumentSyncKind, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicDocumentFeature, DynamicFeature, ensure, FeatureClient, NextSignature, NotificationSendEvent, NotifyingFeature, RegistrationData, TextDocumentEventFeature, TextDocumentSendFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface TextDocumentSynchronizationMiddleware {
@@ -42,7 +41,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
       workspace.onDidOpenTextDocument,
       DidOpenTextDocumentNotification.type,
       'didOpen',
-      textDocument => cv.asOpenTextDocumentParams(textDocument),
+      textDocument => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument),
       TextDocumentEventFeature.textDocumentFilter
     )
   }
@@ -94,7 +93,7 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
       workspace.onDidCloseTextDocument,
       DidCloseTextDocumentNotification.type,
       'didClose',
-      textDocument => cv.asCloseTextDocumentParams(textDocument),
+      textDocument => client.code2ProtocolConverter.asCloseTextDocumentParams(textDocument),
       TextDocumentEventFeature.textDocumentFilter
     )
   }
@@ -234,15 +233,16 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
         let middleware = this._client.middleware!
         let promise: Promise<void> | undefined
         let didChange: (event: TextDocumentChangeEvent) => Promise<void>
+        const client = this._client
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
-            const params = cv.asChangeTextDocumentParams(event)
+            const params = client.code2ProtocolConverter.asChangeTextDocumentParams(event)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
-            const params = cv.asFullChangeTextDocumentParams(textDocument)
+            const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(textDocument)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
@@ -300,7 +300,7 @@ export class WillSaveFeature extends TextDocumentEventFeature<WillSaveTextDocume
       workspace.onWillSaveTextDocument,
       WillSaveTextDocumentNotification.type,
       'willSave',
-      willSaveEvent => cv.asWillSaveTextDocumentParams(willSaveEvent),
+      willSaveEvent => client.code2ProtocolConverter.asWillSaveTextDocumentParams(willSaveEvent),
       (selectors, willSaveEvent) => TextDocumentEventFeature.textDocumentFilter(selectors, willSaveEvent.document)
     )
   }
@@ -388,11 +388,12 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
     if (TextDocumentEventFeature.textDocumentFilter(
       this._selectors.values(),
       event.document)) {
+      const client = this._client
       let middleware = this._client.middleware
       let willSaveWaitUntil = (event: TextDocumentWillSaveEvent): Thenable<TextEdit[]> => {
         return this.sendRequest(
           WillSaveTextDocumentWaitUntilRequest.type,
-          cv.asWillSaveTextDocumentParams(event),
+          client.code2ProtocolConverter.asWillSaveTextDocumentParams(event),
           CancellationToken.None
         )
       }
@@ -428,7 +429,7 @@ export class DidSaveTextDocumentFeature extends TextDocumentEventFeature<DidSave
     super(
       client, workspace.onDidSaveTextDocument, DidSaveTextDocumentNotification.type,
       'didSave',
-      textDocument => cv.asSaveTextDocumentParams(textDocument, this._includeText),
+      textDocument => client.code2ProtocolConverter.asSaveTextDocumentParams(textDocument, this._includeText),
       TextDocumentEventFeature.textDocumentFilter
     )
     this._includeText = false

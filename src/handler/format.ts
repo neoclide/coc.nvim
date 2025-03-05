@@ -81,11 +81,13 @@ export default class FormatHandler {
 
   public shouldFormatOnSave(doc: TextDocument): boolean {
     let { languageId, uri } = doc
+    let document = workspace.getDocument(doc.uri)
+    if (!document || document.getVar('disable_autoformat', 0)) return false
     // the document could be not current one.
     let config = workspace.getConfiguration('coc.preferences', { uri, languageId })
     let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
-    let formatOnSave = config.get<boolean>('formatOnSave', false)
     if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(languageId)
+    let formatOnSave = config.get<boolean>('formatOnSave', false)
     return formatOnSave
   }
 
@@ -107,8 +109,11 @@ export default class FormatHandler {
   }
 
   public async tryFormatOnType(ch: string, doc: Document): Promise<boolean> {
-    if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return false
-    if (snippetManager.getSession(doc.bufnr) != null || !this.shouldFormatOnType(doc.filetype)) return false
+    if (doc.getVar('disable_autoformat', 0)) return false
+    if (!this.preferences.formatOnType) return false
+    if (snippetManager.getSession(doc.bufnr) != null) return false
+    if (!ch || isAlphabet(ch.charCodeAt(0))) return false
+    if (!this.shouldFormatOnType(doc.filetype)) return false
     if (!languages.hasProvider(ProviderName.FormatOnType, doc.textDocument)) {
       logger.warn(`Format on type provider not found for buffer: ${doc.uri}`)
       return false

@@ -387,7 +387,7 @@ describe('InstallBuffer', () => {
 
   it('should sync by not split', async () => {
     global.__TEST__ = false
-    let buf = new InstallBuffer(false)
+    let buf = new InstallBuffer({ isUpdate: false, updateUIInTab: false })
     disposables.push(buf)
     events.requesting = true
     await buf.start(['a', 'b', 'c'])
@@ -397,7 +397,7 @@ describe('InstallBuffer', () => {
   })
 
   it('should draw buffer with stats', async () => {
-    let buf = new InstallBuffer(true)
+    let buf = new InstallBuffer({ isUpdate: true, updateUIInTab: true })
     disposables.push(buf)
     buf.draw()
     await buf.start(['a', 'b', 'c', 'd'])
@@ -418,7 +418,7 @@ describe('InstallBuffer', () => {
   })
 
   it('should stop when all items finished', async () => {
-    let buf = new InstallBuffer(false)
+    let buf = new InstallBuffer({ isUpdate: false })
     disposables.push(buf)
     await buf.start(['a', 'b'])
     buf.startProgress('a')
@@ -433,7 +433,7 @@ describe('InstallBuffer', () => {
 
   it('should show messages and dispose', async () => {
     events.requesting = true
-    let buf = new InstallBuffer(true)
+    let buf = new InstallBuffer({ isUpdate: true })
     disposables.push(buf)
     await buf.start(['a', 'b'])
     buf.startProgress('a')
@@ -456,7 +456,7 @@ describe('InstallBuffer', () => {
 describe('InstallChannel', () => {
   it('should create install InstallChannel', async () => {
     let outputChannel = window.createOutputChannel('test')
-    let channel = new InstallChannel(true, outputChannel)
+    let channel = new InstallChannel({ isUpdate: true }, outputChannel)
     channel.start(['a', 'b'])
     channel.startProgress('a')
     channel.addMessage('a', 'msg', true)
@@ -467,7 +467,7 @@ describe('InstallChannel', () => {
 
   it('should create update InstallChannel', async () => {
     let outputChannel = window.createOutputChannel('test')
-    let channel = new InstallChannel(false, outputChannel)
+    let channel = new InstallChannel({ isUpdate: false }, outputChannel)
     channel.start(['a', 'b'])
     channel.startProgress('a')
     channel.finishProgress('a', true)

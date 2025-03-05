@@ -2,34 +2,47 @@
 import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
-import { GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
+import { FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
-import { minimatch, path, which } from '../util/node'
+import { minimatch, path, which, os } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import Watchman, { FileChange } from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
 const logger = createLogger('fileSystemWatcher')
+const WATCHMAN_COMMAND = 'watchman'
 
 export interface RenameEvent {
   oldUri: URI
   newUri: URI
 }
 
+export function should_ignore(root: string, ignored: string[] | undefined): boolean {
+  for (let folder of ignored) {
+    if (sameFile(root, folder)) {
+      return true
+    }
+  }
+  return false
+}
+
 export class FileSystemWatcherManager {
-  private clientsMap: Map<string, Watchman | null> = new Map()
+  private clientsMap: Map<string, Watchman> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
   private creating: Set<string> = new Set()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
-  private disabled = global.__TEST__
+  public disabled = global.__TEST__
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
     private workspaceFolder: WorkspaceFolderControl,
-    private watchmanPath: string | null
+    private config: FileWatchConfig
   ) {
+    if (!config.enable) {
+      this.disabled = true
+    }
   }
 
   public attach(channel: OutputChannel): void {
@@ -56,23 +69,24 @@ export class FileSystemWatcherManager {
     }, null, this.disposables)
   }
 
-  public waitClient(root: string): Promise<void> {
-    if (this.clientsMap.has(root)) return Promise.resolve()
+  public waitClient(root: string): Promise<Watchman> {
+    if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root))
     return new Promise(resolve => {
       let disposable = this.onDidCreateClient(r => {
         if (r == root) {
           disposable.dispose()
-          resolve()
+          resolve(this.clientsMap.get(r))
         }
       })
     })
   }
 
-  public async createClient(root: string): Promise<void> {
-    if (this.watchmanPath == null || this.has(root) || this.disabled) return
+  public async createClient(root: string, skipCheck = false): Promise<Watchman | false | undefined> {
+    if (!skipCheck && (this.disabled || should_ignore(root, this.config.ignoredFolders))) return
+    if (this.has(root)) return this.waitClient(root)
     try {
-      let watchmanPath = await this.getWatchmanPath()
       this.creating.add(root)
+      let watchmanPath = await this.getWatchmanPath()
       let client = await Watchman.createClient(watchmanPath, root, this.channel)
       this.creating.delete(root)
       this.clientsMap.set(root, client)
@@ -80,16 +94,18 @@ export class FileSystemWatcherManager {
         watcher.listen(root, client)
       }
       this._onDidCreateClient.fire(root)
+      return client
     } catch (e) {
       this.creating.delete(root)
       if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`)
+      return false
     }
   }
 
   public async getWatchmanPath(): Promise<string> {
-    let watchmanPath = this.watchmanPath
+    let watchmanPath = this.config.watchmanPath ?? WATCHMAN_COMMAND
     if (!process.env.WATCHMAN_SOCK) {
-      watchmanPath = await which(this.watchmanPath, { all: false })
+      watchmanPath = await which(watchmanPath, { all: false })
     }
     return watchmanPath
   }

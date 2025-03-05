@@ -7,6 +7,7 @@ let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:frames = ['·  ', '·· ', '···', ' ··', '  ·', '   ']
 let s:sign_group = 'PopUpCocDialog'
 let s:detail_bufnr = 0
+let s:term_support = s:is_vim ? has('terminal') : 1
 
 " Float window aside pum
 function! coc#dialog#create_pum_float(lines, config) abort
@@ -78,14 +79,6 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   if index(modes, mode) == -1
     return v:null
   endif
-  if !s:is_vim && !has('nvim-0.5.0') && mode ==# 'i'
-    " helps to fix undo issue, don't know why.
-    call feedkeys("\<C-g>u", 'n')
-  endif
-  if mode ==# 's' && has('patch-8.2.4969') && !has('patch-8.2.4996')
-    echohl WarningMsg | echon 'Popup not created to avoid issue #10466 on vim >= 8.2.4969' | echohl None
-    return v:null
-  endif
   let dimension = coc#dialog#get_config_cursor(a:lines, a:config)
   if empty(dimension)
     return v:null
@@ -114,9 +107,6 @@ endfunction
 
 " Use terminal buffer
 function! coc#dialog#_create_prompt_vim(title, default, opts) abort
-  if !has('patch-8.2.0750')
-    throw 'Input box not supported on vim < 8.2.0750'
-  endif
   execute 'hi link CocPopupTerminal '.get(a:opts, 'highlight', 'CocFloating')
   let node =  expand(get(g:, 'coc_node_path', 'node'))
   let placeHolder = get(a:opts, 'placeHolder', '')
@@ -174,7 +164,7 @@ function! coc#dialog#_create_prompt_nvim(title, default, opts) abort
     call feedkeys("\<esc>A", 'int')
   endif
   let placeHolder = get(a:opts, 'placeHolder', '')
-  if empty(a:default) && !empty(placeHolder) && has('nvim-0.5.0')
+  if empty(a:default) && !empty(placeHolder)
     let src_id = coc#highlight#create_namespace('input-box')
     call nvim_buf_set_extmark(bufnr, src_id, 0, 0, {
           \ 'virt_text': [[placeHolder, 'CocInputBoxVirtualText']],
@@ -182,9 +172,6 @@ function! coc#dialog#_create_prompt_nvim(title, default, opts) abort
           \ })
   endif
   call coc#util#do_autocmd('CocOpenFloatPrompt')
-  if !has('nvim-0.6.0')
-    redraw
-  endif
   let id = coc#float#get_related(winid, 'border')
   let pos = nvim_win_get_position(id)
   let dimension = [nvim_win_get_width(id), nvim_win_get_height(id), pos[0], pos[1]]
@@ -195,6 +182,24 @@ endfunction
 function! coc#dialog#create_prompt_win(title, default, opts) abort
   call s:close_auto_hide_wins()
   if s:is_vim
+    if !s:term_support
+      " use popup_menu or inputlist instead
+      let pickItems = get(a:opts, 'quickpick', [])
+      if len(pickItems) > 0
+        call coc#ui#quickpick(a:title, pickItems, {err, res -> s:on_quickpick_selected(err, res)})
+      else
+        call inputsave()
+        let value = input(a:title.':', a:default)
+        call inputrestore()
+        if empty(value)
+          " Cancel
+          call timer_start(50, { -> coc#rpc#notify('CocAutocmd', ['BufWinLeave', -1, -1])})
+        else
+          call timer_start(50, { -> coc#rpc#notify('PromptInsert', [value, -1])})
+        endif
+      endif
+      return [-1, -1, [0, 0, 0, 0]]
+    endif
     return coc#dialog#_create_prompt_vim(a:title, a:default, a:opts)
   endif
   return  coc#dialog#_create_prompt_nvim(a:title, a:default, a:opts)
@@ -202,6 +207,9 @@ endfunction
 
 " Create list window under target window
 function! coc#dialog#create_list(target, dimension, opts) abort
+  if a:target < 0
+    return [-1, -1]
+  endif
   let maxHeight = get(a:opts, 'maxHeight', 30)
   let height = get(a:opts, 'linecount', 1)
   let height = min([maxHeight, height, &lines - &cmdheight - 1 - a:dimension['row'] + a:dimension['height']])
@@ -521,6 +529,10 @@ function! coc#dialog#change_input_value(winid, bufnr, value) abort
     call win_gotoid(a:winid)
   endif
   if s:is_vim
+    if !s:term_support
+      " not supported
+      return
+    endif
     " call timer_start(3000, { -> term_sendkeys(bufnr, "\<C-u>\<C-k>abcd")})
     call term_sendkeys(a:bufnr, "\<C-u>\<C-k>".a:value)
   else
@@ -575,10 +587,8 @@ function! coc#dialog#change_loading(winid, loading) abort
             \ 'width': 3,
             \ 'height': 1,
             \ 'style': 'minimal',
+            \ 'zindex': 900,
             \ }
-        if has('nvim-0.5.1')
-          let opts['zindex'] = 900
-        endif
         let winid = nvim_open_win(bufnr, v:false, opts)
         call setwinvar(winid, '&winhl', getwinvar(a:winid, '&winhl'))
       endif
@@ -635,14 +645,16 @@ function! coc#dialog#check_scroll_vim(winid) abort
 endfunction
 
 function! coc#dialog#set_cursor(winid, bufnr, line) abort
-  if s:is_vim
-    call coc#compat#execute(a:winid, 'exe '.max([a:line, 1]), 'silent!')
-    call popup_setoptions(a:winid, {'cursorline' : 1})
-    call popup_setoptions(a:winid, {'cursorline' : 0})
-  else
-    call nvim_win_set_cursor(a:winid, [max([a:line, 1]), 0])
+  if a:winid >= 0
+    if s:is_vim
+      call coc#compat#execute(a:winid, 'exe '.max([a:line, 1]), 'silent!')
+      call popup_setoptions(a:winid, {'cursorline' : 1})
+      call popup_setoptions(a:winid, {'cursorline' : 0})
+    else
+      call nvim_win_set_cursor(a:winid, [max([a:line, 1]), 0])
+    endif
+    call coc#dialog#place_sign(a:bufnr, a:line)
   endif
-  call coc#dialog#place_sign(a:bufnr, a:line)
 endfunction
 
 function! coc#dialog#place_sign(bufnr, line) abort
@@ -753,4 +765,11 @@ function! s:change_loading_buf(bufnr, idx) abort
     let idx = a:idx == len(s:frames) - 1 ? 0 : a:idx + 1
     call timer_start(100, { -> s:change_loading_buf(a:bufnr, idx)})
   endif
+endfunction
+
+function! s:on_quickpick_selected(errMsg, res) abort
+  if !empty(a:errMsg)
+    throw a:errMsg
+  endif
+  call timer_start(50, { -> coc#rpc#notify('InputListSelect', [a:res - 1])})
 endfunction

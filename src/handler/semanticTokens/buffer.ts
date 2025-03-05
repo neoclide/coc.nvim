@@ -181,12 +181,11 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public get enabled(): boolean {
-    if (!this.configEnabled || !workspace.env.updateHighlight || !this.hasLegend) return false
+    if (!this.configEnabled || !this.hasLegend) return false
     return this.hasProvider
   }
 
   public checkState(): void {
-    if (!workspace.env.updateHighlight) throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
     if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`)
     if (!this.hasProvider || !this.hasLegend) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
   }
@@ -389,9 +388,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
-      let s = o[0]
-      o[0] = Math.max(0, Math.floor(s - height * 1.5))
-      o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5), s + height * 2)
+      o[0] = Math.max(0, Math.floor(o[0] - height))
+      o[1] = Math.min(lineCount, Math.ceil(o[1] + height))
     })
     for (let [start, end] of Regions.mergeSpans(spans)) {
       if (!skipCheck && regions.has(start, end)) continue
@@ -424,10 +422,10 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public async requestRangeHighlights(token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim, doc } = this
-    let region = await nvim.call('coc#window#visible_range', [this.bufnr]) as [number, number]
+    let region = await nvim.call('coc#window#visible_range') as [number, number]
     if (!region || token.isCancellationRequested) return null
     let endLine = Math.min(region[0] + workspace.env.lines * 2, region[1] + workspace.env.lines, doc.lineCount)
-    let range = Range.create(region[0] - 1, 0, endLine, 0)
+    let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0))
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)

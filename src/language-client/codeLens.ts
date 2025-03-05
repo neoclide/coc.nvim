@@ -5,7 +5,6 @@ import languages from '../languages'
 import { CodeLensProvider, ProviderResult } from '../provider'
 import { CodeLensRefreshRequest, Emitter, CodeLensRequest, CodeLensResolveRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideCodeLensesSignature {
@@ -58,7 +57,7 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
         const provideCodeLenses: ProvideCodeLensesSignature = (document, token) => {
           return this.sendRequest(
             CodeLensRequest.type,
-            cv.asCodeLensParams(document),
+            client.code2ProtocolConverter.asCodeLensParams(document),
             token
           )
         }

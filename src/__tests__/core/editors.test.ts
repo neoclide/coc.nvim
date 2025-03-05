@@ -142,12 +142,12 @@ describe('editors', () => {
         resolve(e)
       })
     })
-    await nvim.command('edit foo')
+    await nvim.command('edit editors')
     let editor = await promise
-    expect(editor.document.uri).toMatch('foo')
+    expect(editor.document.uri).toMatch('editors')
     await helper.waitValue(() => {
-      return n
-    }, 2)
+      return n >= 2
+    }, true)
   })
 
   it('should change active editor on window switch', async () => {

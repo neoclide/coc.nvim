@@ -4,6 +4,7 @@ let s:is_mac = has('mac')
 let s:sign_api = exists('*sign_getplaced') && exists('*sign_place')
 let s:sign_groups = []
 let s:outline_preview_bufnr = 0
+let s:is_win32unix = has('win32unix')
 
 " Check <Tab> and <CR>
 function! coc#ui#check_pum_keymappings(trigger) abort
@@ -53,7 +54,7 @@ function! coc#ui#quickpick(title, items, cb) abort
       call a:cb(v:exception)
     endtry
   else
-    let res = inputlist([a:title] + a:items)
+    let res = inputlist([a:title] + map(range(1, len(a:items)), 'v:val . ". " . a:items[v:val - 1]'))
     call a:cb(v:null, res)
   endif
 endfunction
@@ -175,30 +176,17 @@ endfunction
 function! coc#ui#open_files(files)
   let bufnrs = []
   " added on latest vim8
-  if exists('*bufadd') && exists('*bufload')
-    for file in a:files
-      let file = fnamemodify(file, ':.')
-      if bufloaded(file)
-        call add(bufnrs, bufnr(file))
-      else
-        let bufnr = bufadd(file)
-        call bufload(file)
-        call add(bufnrs, bufnr)
-        call setbufvar(bufnr, '&buflisted', 1)
-      endif
-    endfor
-  else
-    noa keepalt 1new +setl\ bufhidden=wipe
-    for file in a:files
-      let file = fnamemodify(file, ':.')
-      execute 'noa edit +setl\ bufhidden=hide '.fnameescape(file)
-      if &filetype ==# ''
-        filetype detect
-      endif
-      call add(bufnrs, bufnr('%'))
-    endfor
-    noa close
-  endif
+  for filepath in a:files
+    let file = fnamemodify(coc#util#node_to_win32unix(filepath), ':.')
+    if bufloaded(file)
+      call add(bufnrs, bufnr(file))
+    else
+      let bufnr = bufadd(file)
+      call bufload(file)
+      call add(bufnrs, bufnr)
+      call setbufvar(bufnr, '&buflisted', 1)
+    endif
+  endfor
   doautocmd BufEnter
   return bufnrs
 endfunction
@@ -351,18 +339,20 @@ function! coc#ui#open_url(url)
 endfunction
 
 function! coc#ui#rename_file(oldPath, newPath, write) abort
-  let bufnr = bufnr(a:oldPath)
+  let oldPath = coc#util#node_to_win32unix(a:oldPath)
+  let newPath =  coc#util#node_to_win32unix(a:newPath)
+  let bufnr = bufnr(oldPath)
   if bufnr == -1
-    throw 'Unable to get bufnr of '.a:oldPath
+    throw 'Unable to get bufnr of '.oldPath
   endif
-  if a:oldPath =~? a:newPath && (s:is_mac || s:is_win)
-    return coc#ui#safe_rename(bufnr, a:oldPath, a:newPath, a:write)
+  if oldPath =~? newPath && (s:is_mac || s:is_win || s:is_win32unix)
+    return coc#ui#safe_rename(bufnr, oldPath, newPath, a:write)
   endif
-  if bufloaded(a:newPath)
-    execute 'silent bdelete! '.bufnr(a:newPath)
+  if bufloaded(newPath)
+    execute 'silent bdelete! '.bufnr(newPath)
   endif
   let current = bufnr == bufnr('%')
-  let bufname = fnamemodify(a:newPath, ":~:.")
+  let bufname = fnamemodify(newPath, ":~:.")
   let filepath = fnamemodify(bufname(bufnr), '%:p')
   let winid = coc#compat#buf_win_id(bufnr)
   let curr = -1
@@ -485,7 +475,7 @@ endfunction
 function! coc#ui#safe_open(cmd, file) abort
   let bufname = fnameescape(a:file)
   try
-    execute a:cmd.' '.bufname
+    execute 'silent! '. a:cmd.' '.bufname
   catch /.*/
     if bufname('%') != bufname
       throw 'Error on open '. v:exception
@@ -495,13 +485,22 @@ endfunction
 
 " Use noa to setloclist, avoid BufWinEnter autocmd
 function! coc#ui#setloclist(nr, items, action, title) abort
+  let items = s:is_win32unix ? map(copy(a:items), 's:convert_qfitem(v:val)'): a:items
   if a:action ==# ' '
     let title = get(getloclist(a:nr, {'title': 1}), 'title', '')
     let action = title ==# a:title ? 'r' : ' '
-    noa call setloclist(a:nr, [], action, {'title': a:title, 'items': a:items})
+    noa call setloclist(a:nr, [], action, {'title': a:title, 'items': items})
   else
-    noa call setloclist(a:nr, [], a:action, {'title': a:title, 'items': a:items})
+    noa call setloclist(a:nr, [], a:action, {'title': a:title, 'items': items})
   endif
+endfunction
+
+function! s:convert_qfitem(item) abort
+  let result = copy(a:item)
+  if has_key(result, 'filename')
+    let result['filename'] = coc#util#node_to_win32unix(result['filename'])
+  endif
+  return result
 endfunction
 
 function! coc#ui#get_mouse() abort

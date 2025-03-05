@@ -3812,8 +3812,17 @@ declare module 'coc.nvim' {
   export interface NvimFloatOptions {
     standalone?: boolean
     focusable?: boolean
-    relative?: 'editor' | 'cursor' | 'win'
+    relative?: 'editor' | 'cursor' | 'win' | 'mouse'
     anchor?: 'NW' | 'NE' | 'SW' | 'SE'
+    border?: 'none' | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | string[]
+    style?: 'minimal'
+    title?: string
+    title_pos?: 'left' | 'center' | 'right'
+    footer?: string | [string, string][]
+    footer_pos?: 'left' | 'center' | 'right'
+    noautocmd?: boolean
+    fixed?: boolean
+    hide?: boolean
     height: number
     width: number
     row: number
@@ -6751,6 +6760,11 @@ declare module 'coc.nvim' {
     export function executeCommand(command: 'workbench.action.reloadWindow'): Promise<void>
 
     /**
+     * Open user's coc-settings.json configuration file.
+     */
+    export function executeCommand(command: 'workbench.action.openSettingsJson'): Promise<void>
+
+    /**
      * Insert snippet at range of current buffer.
      *
      * @param edit Contains snippet text and range to replace.
@@ -8260,7 +8274,7 @@ declare module 'coc.nvim' {
      */
     readonly runtimepath: string
     /**
-     * |virtualText| support in (neo)vim, needs nvim >= 0.5.0 or vim >= 9.0067
+     * |virtualText| support in (neo)vim
      */
     readonly virtualText: boolean
     /**
@@ -8320,7 +8334,7 @@ declare module 'coc.nvim' {
      */
     readonly isiTerm: boolean
     /**
-     * version of (neo)vim, on vim it's like: 8020750, on neoivm it's like: 0.5.0
+     * version of (neo)vim, on vim it's like: 8020750, on neoivm it's like
      */
     readonly version: string
     /**
@@ -8328,7 +8342,7 @@ declare module 'coc.nvim' {
      */
     readonly progpath: string
     /**
-     * Is true when dialog feature is supported, which need vim >= 8.2.750 or neovim >= 0.4.0
+     * Is true when dialog feature is supported
      */
     readonly dialog: boolean
     /**
@@ -8693,6 +8707,7 @@ declare module 'coc.nvim' {
 
   export namespace workspace {
     export const nvim: Neovim
+    export const isTrusted = true
     /**
      * Current buffer number, could be wrong since vim could not send autocmd as expected.
      *
@@ -8925,7 +8940,7 @@ declare module 'coc.nvim' {
     /**
      * Get created document by uri or bufnr.
      */
-    export function getDocument(uri: number | string): Document
+    export function getDocument(uri: number | string): Document | null | undefined
 
     /**
      * Apply WorkspaceEdit.
@@ -9546,6 +9561,24 @@ declare module 'coc.nvim' {
      */
     width: number | undefined
     /**
+     * Represents the input prompt box field of the quickpick element
+    **/
+    readonly inputBox: InputBox | undefined
+    /**
+     * The current selection index, can be used to act on an item with onDidFinish, even
+     * if the item is not selected. The index corresponds to the .items or .activeItems
+     * arrays, and can be used to index into them
+    **/
+    readonly currIndex: number
+    /**
+     * The buffer for the popup element of the quick pick containing the .items to be selected
+    **/
+    readonly buffer: number
+    /**
+     * The window for the popup element of the quick pick containing the .items to be selected
+    **/
+    readonly winid: number | undefined
+    /**
      * An event signaling when QuickPick closed, fired with selected items or null when canceled.
      */
     readonly onDidFinish: Event<T[] | null>
@@ -9802,6 +9835,11 @@ declare module 'coc.nvim' {
     cursorline?: boolean
     modes?: string[]
     excludeImages?: boolean
+    position?: "fixed" | "auto"
+    top?: number
+    bottom?: number
+    left?: number
+    right?: number
   }
 
   export interface FloatFactory {
@@ -10786,7 +10824,7 @@ declare module 'coc.nvim' {
      *
      * @param {string} snippet Textmate snippet string.
      * @param {boolean} select Not select first placeholder when false, default `true`.
-     * @param {Range} range Repalce range, insert to current cursor position when undefined.
+     * @param {Range} range Replace range, insert to current cursor position when undefined.
      * @returns {Promise<boolean>} true when insert success.
      */
     export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, ultisnip?: UltiSnippetOption | boolean): Promise<boolean>
@@ -11594,6 +11632,10 @@ declare module 'coc.nvim' {
     filter?(document: { uri: string, languageId: string }, mode: 'onType' | 'onSave'): boolean
   }
 
+  export interface URIConverter {
+    (value: Uri): string
+  }
+
   export interface LanguageClientOptions {
     ignoredRootPaths?: string[]
     disableSnippetCompletion?: boolean
@@ -11611,6 +11653,10 @@ declare module 'coc.nvim' {
      * to 'utf8' if omitted.
      */
     stdioEncoding?: string
+    // converter used to decode uri.
+    uriConverter?: {
+      code2Protocol: URIConverter
+    }
     initializationOptions?: any | (() => any)
     initializationFailedHandler?: InitializationFailedHandler
     progressOnInitialization?: boolean

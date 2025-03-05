@@ -97,9 +97,8 @@ export default class Source implements ISource<ExtendedCompleteItem> {
     return this.getConfig('firstMatch', true)
   }
 
-  // exists opitonnal function names for remote source
-  public get optionalFns(): string[] {
-    return this.defaults['optionalFns'] || []
+  public get remoteFns(): string[] {
+    return toArray(this.defaults.remoteFns)
   }
 
   public get shortcut(): string {

@@ -12,8 +12,8 @@ import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
 import Editors from './core/editors'
-import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
+import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from './core/files'
 import { callAsync, createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps, { LocalMode, MapMode } from './core/keymaps'
 import * as ui from './core/ui'
@@ -31,8 +31,8 @@ import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, DidChangeTextDocumentParams, Env, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
-import { APIVERSION, dataHome, pluginRoot, userConfigFile, VERSION, watchmanCommand } from './util/constants'
+import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
+import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
 import { IJSONSchema } from './util/jsonSchema'
 import { path } from './util/node'
@@ -74,6 +74,7 @@ export class Workspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  public readonly isTrusted = true
   public statusLine = new StatusLine()
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth
@@ -115,9 +116,17 @@ export class Workspace {
     this.onWillCreateFiles = this.files.onWillCreateFiles
     this.onWillRenameFiles = this.files.onWillRenameFiles
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
-    const preferences = configurations.initialConfiguration.get('coc.preferences') as any
-    const watchmanPath = preferences.watchmanPath ?? watchmanCommand
-    this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, watchmanPath)
+    // use global value only
+    let watchConfig = (configurations.initialConfiguration.inspect('fileSystemWatch').globalValue ?? {}) as Partial<FileWatchConfig>
+    let watchmanPath = watchConfig.watchmanPath ? watchConfig.watchmanPath : configurations.initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
+    if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
+    const config: FileWatchConfig = {
+      watchmanPath,
+      enable: watchConfig.enable == null ? true : !!watchConfig.enable,
+      ignoredFolders: (Array.isArray(watchConfig.ignoredFolders) ? watchConfig.ignoredFolders.filter(s => typeof s === 'string') : ["${tmpdir}", "/private/tmp", "/"]).map(p => this.expand(p))
+    }
+
+    this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config)
   }
 
   public get initialConfiguration(): WorkspaceConfiguration {
@@ -357,13 +366,13 @@ export class Workspace {
   /**
    * Get created document by uri or bufnr.
    */
-  public getDocument(uri: number | string): Document | null {
+  public getDocument(uri: number | string): Document | null | undefined {
     return this.documentsManager.getDocument(uri)
   }
 
   public hasDocument(uri: string, version?: number): boolean {
     let doc = this.documentsManager.getDocument(uri)
-    return doc != null && (version != null ? doc.version == version : true)
+    return doc && (version != null ? doc.version == version : true)
   }
 
   public getUri(bufnr: number, defaultValue = ''): string {
@@ -587,6 +596,10 @@ export class Workspace {
 
   public getRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
     return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace)
+  }
+
+  public asRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
+    return this.getRelativePath(pathOrUri, includeWorkspace)
   }
 
   public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {

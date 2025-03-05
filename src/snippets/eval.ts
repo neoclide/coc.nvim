@@ -68,7 +68,7 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
   let { range, context, line } = snip
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
-    `path = vim.eval('expand("%:p")') or ""`,
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
   if (context) {

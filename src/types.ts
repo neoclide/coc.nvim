@@ -21,6 +21,8 @@ declare global {
   }
 }
 
+export type HoverTarget = 'float' | 'preview' | 'echo'
+
 export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
   T,
   K
@@ -36,6 +38,12 @@ export interface Thenable<T> {
 export interface AnsiHighlight {
   span: [number, number]
   hlGroup: string
+}
+
+export interface FileWatchConfig {
+  readonly watchmanPath: string | null | undefined
+  readonly enable: boolean
+  readonly ignoredFolders: string[]
 }
 
 export interface LocationWithTarget extends Location {
@@ -142,12 +150,13 @@ export interface HighlightItem extends HighlightItemOption {
 
 export interface Env {
   runtimepath: string
-  readonly virtualText: boolean
+  readonly jumpAutocmd: boolean
   readonly guicursor: string
   readonly tabCount: number
   readonly mode: string
   readonly apiversion: number
   readonly pumwidth: number
+  readonly unixPrefix: string
   readonly ambiguousIsNarrow: boolean
   readonly floating: boolean
   readonly sign: boolean
@@ -169,7 +178,6 @@ export interface Env {
   readonly progpath: string
   readonly dialog: boolean
   readonly textprop: boolean
-  readonly updateHighlight: boolean
   readonly vimCommands: CommandConfig[]
   readonly semanticHighlights: string[]
 }
@@ -235,6 +243,13 @@ export interface KeymapOption {
   cancel?: boolean
   silent?: boolean
   repeat?: boolean
+}
+
+export interface JumpInfo {
+  // placeholder range
+  readonly range: Range
+  // character before current placeholder.
+  readonly charbefore: string
 }
 
 export interface Autocmd {

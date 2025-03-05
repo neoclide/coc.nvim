@@ -69,7 +69,7 @@ export function getWatchmanPath(configurations: Configurations): string | null {
 }
 
 export async function findUp(nvim: Neovim, cwd: string, filename: string | string[]): Promise<string | null> {
-  let filepath = await nvim.call('expand', '%:p') as string
+  let filepath = await nvim.call('coc#util#get_fullpath') as string
   filepath = path.normalize(filepath)
   let isFile = filepath && path.isAbsolute(filepath)
   if (isFile && !fs.isParentFolder(cwd, filepath, true)) {

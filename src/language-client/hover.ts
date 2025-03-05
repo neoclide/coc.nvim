@@ -5,7 +5,6 @@ import languages from '../languages'
 import { HoverProvider, ProviderResult } from '../provider'
 import { HoverRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideHoverSignature {
@@ -66,7 +65,7 @@ export class HoverFeature extends TextDocumentLanguageFeature<
         const provideHover: ProvideHoverSignature = (document, position, token) => {
           return this.sendRequest(
             HoverRequest.type,
-            cv.asTextDocumentPositionParams(document, position),
+            client.code2ProtocolConverter.asTextDocumentPositionParams(document, position),
             token
           )
         }

@@ -7,7 +7,7 @@ export function isEmpty(obj: object | null | undefined): boolean {
   return Object.keys(obj).length == 0
 }
 
-export function toObject<T>(obj: T | null | undefined): T | {} {
+export function toObject<T>(obj: T | null | undefined): Partial<T> {
   return obj == null ? {} : obj
 }
 

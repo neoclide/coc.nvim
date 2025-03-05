@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ImplementationProvider, ProviderResult } from '../provider'
 import { ImplementationRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export interface ProvideImplementationSignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
@@ -40,7 +39,7 @@ export class ImplementationFeature extends TextDocumentLanguageFeature<boolean |
       provideImplementation: (document, position, token) => {
         const client = this._client
         const provideImplementation: ProvideImplementationSignature = (document, position, token) =>
-          this.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token)
+          this.sendRequest(ImplementationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token)
         const middleware = client.middleware
         return middleware.provideImplementation
           ? middleware.provideImplementation(document, position, token, provideImplementation)

@@ -57,12 +57,12 @@ import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidClo
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
-import * as cv from './utils/converter'
 import { CloseAction, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
+import * as c2p from './utils/codeConverter'
 
 const logger = createLogger('language-client-client')
 
@@ -174,7 +174,6 @@ export type LanguageClientOptions = {
   rootPatterns?: string[]
   requireRootPattern?: boolean
   documentSelector?: DocumentSelector
-  separateDiagnostics?: boolean
   disableMarkdown?: boolean
   disableWorkspaceFolders?: boolean
   disableDiagnostics?: boolean
@@ -195,6 +194,9 @@ export type LanguageClientOptions = {
   progressOnInitialization?: boolean
   errorHandler?: ErrorHandler
   middleware?: Middleware
+  uriConverter?: {
+    code2Protocol: c2p.URIConverter
+  }
   connectionOptions?: ConnectionOptions
   markdown?: {
     isTrusted?: boolean
@@ -206,7 +208,6 @@ type ResolvedClientOptions = {
   disabledFeatures: string[]
   disableMarkdown: boolean
   disableDynamicRegister: boolean
-  separateDiagnostics: boolean
   rootPatterns?: string[]
   requireRootPattern?: boolean
   documentSelector: DocumentSelector
@@ -219,6 +220,9 @@ type ResolvedClientOptions = {
   progressOnInitialization: boolean
   errorHandler: ErrorHandler
   middleware: Middleware
+  uriConverter?: {
+    code2Protocol: c2p.URIConverter
+  }
   connectionOptions?: ConnectionOptions
   markdown: {
     isTrusted: boolean
@@ -265,6 +269,8 @@ export namespace MessageTransports {
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
+  public registeredExtensionName: string
+
   private _id: string
   private _name: string
   private _clientOptions: ResolvedClientOptions
@@ -299,6 +305,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _trace: Trace
   private _tracer: Tracer
   private _consoleDebug = false
+
+  private readonly _c2p: c2p.Converter
 
   public constructor(
     id: string,
@@ -342,6 +350,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       }
     }
+    this._c2p = c2p.createConverter(clientOptions.uriConverter ? clientOptions.uriConverter.code2Protocol : undefined)
     this._syncedDocuments = new Map<string, TextDocument>()
     this.registerBuiltinFeatures()
   }
@@ -382,15 +391,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       }
     }
-    let separateDiagnostics = clientOptions.separateDiagnostics
-    if (clientOptions.separateDiagnostics === undefined) {
-      separateDiagnostics = workspace.getConfiguration('diagnostic', clientOptions.workspaceFolder).get('separateRelatedInformationAsDiagnostics') as boolean
-    }
     return {
       disabledFeatures,
       disableMarkdown,
       disableSnippetCompletion,
-      separateDiagnostics,
       diagnosticPullOptions: pullOption,
       rootPatterns: clientOptions.rootPatterns ?? [],
       requireRootPattern: clientOptions.requireRootPattern,
@@ -446,6 +450,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public get middleware(): Middleware {
     return this._clientOptions.middleware
+  }
+
+  public get code2ProtocolConverter(): c2p.Converter {
+    return this._c2p
   }
 
   public getPublicState(): State {
@@ -984,7 +992,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
-      rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
+      rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),
@@ -1575,30 +1583,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
     if (!this._diagnostics) return
 
-    const separate = this.clientOptions.separateDiagnostics
-    // TODO make is async
-    if (separate && diagnostics.length > 0) {
-      const entries: Map<string, Diagnostic[]> = new Map()
-      entries.set(uri, diagnostics)
-      for (const diagnostic of diagnostics) {
-        if (diagnostic.relatedInformation?.length) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
-          for (const info of diagnostic.relatedInformation) {
-            const basename = path.basename(URI.parse(info.location.uri).fsPath)
-            const ln = info.location.range.start.line
-            message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`
-
-            const diags: Diagnostic[] = entries.get(info.location.uri) || []
-            diags.push(Diagnostic.create(info.location.range, info.message, DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source))
-            entries.set(info.location.uri, diags)
-          }
-          diagnostic.message = message
-        }
-        this._diagnostics.set(Array.from(entries))
-      }
-    } else {
-      this._diagnostics.set(uri, diagnostics)
-    }
+    this._diagnostics.set(uri, diagnostics)
   }
 
   private handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {

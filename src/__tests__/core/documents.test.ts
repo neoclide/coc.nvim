@@ -109,6 +109,13 @@ describe('documents', () => {
     expect(res).toBe('')
   })
 
+  it('should convert filepath', () => {
+    Object.assign((documents as any)._env, { isCygwin: true })
+    let filepath = documents.fixUnixPrefix('C:\\Users\\Local', '/cygdrive/')
+    expect(filepath).toBe('/cygdrive/c/Users/Local')
+    Object.assign((documents as any)._env, { isCygwin: false })
+  })
+
   it('should get QuickfixItem from location link', async () => {
     let doc = await helper.createDocument('quickfix')
     let loc = LocationLink.create(doc.uri, Range.create(0, 0, 3, 0), Range.create(0, 0, 0, 3))

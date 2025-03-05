@@ -56,8 +56,8 @@ export class Completion implements Disposable {
     this.pum = new PopupMenu(this.staticConfig, this._mru)
     this.floating = new Floating(this.staticConfig)
     this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE)
-    events.on('CursorMoved', () => {
-      this.stop(true)
+    events.on('CursorMoved', async () => {
+      this.cancelAndClose()
     }, null, this.disposables)
     events.on('PumNavigate', () => {
       this.complete?.cancel()
@@ -67,7 +67,7 @@ export class Completion implements Disposable {
       clearTimeout(this.triggerTimer)
     }, null, this.disposables)
     events.on('CompleteStop', async kind => {
-      await this.stopAwaitable(false, kind)
+      await this.stop(false, kind)
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
@@ -111,7 +111,7 @@ export class Completion implements Disposable {
         }
       }
     }
-    this.stop(true)
+    this.cancelAndClose()
   }
 
   public get option(): CompleteOption {
@@ -144,7 +144,7 @@ export class Completion implements Disposable {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
-      insertMode: suggest.get<InsertMode>('insertMode', InsertMode.Repalce),
+      insertMode: suggest.get<InsertMode>('insertMode', InsertMode.Replace),
       filterGraceful: suggest.get<boolean>('filterGraceful', true),
       enableFloat: suggest.get<boolean>('enableFloat', true),
       languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
@@ -214,7 +214,7 @@ export class Completion implements Disposable {
     let doc = workspace.getAttachedDocument(option.bufnr)
     option.filetype = doc.filetype
     logger.debug('trigger completion with', option)
-    this.stop(true)
+    this.cancelAndClose()
     this.pretext = byteSlice(option.line, 0, option.colnr - 1)
     sourceList = sourceList ?? sources.getSources(option)
     if (isFalsyOrEmpty(sourceList)) return
@@ -227,14 +227,14 @@ export class Completion implements Disposable {
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
-        this.stop(false)
+        this.cancel()
         return
       }
       if (this.inserted) return
       await this.filterResults()
     })
     let shouldStop = await complete.doComplete()
-    if (shouldStop) this.stop(false)
+    if (shouldStop) this.cancel()
   }
 
   private async onTextChangedP(_bufnr: number, info: InsertChange): Promise<void> {
@@ -270,7 +270,7 @@ export class Completion implements Disposable {
         return
       }
       if (shouldStop(bufnr, info, option) || (filterOnBackspace === false && info.pre.length < this.pretext.length)) {
-        this.stop(true)
+        this.cancelAndClose()
       }
     }
     if (info.pre === this.pretext) return
@@ -288,8 +288,9 @@ export class Completion implements Disposable {
       if (result && sources.shouldCommit(result.source, result.item, last)) {
         logger.debug('commit by commit character.')
         let startcol = byteIndex(this.option.line, resolvedItem.character) + 1
-        this.stop(true)
-        this.nvim.call('coc#pum#repalce', [startcol, resolvedItem.word + info.insertChar], true)
+        this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word + info.insertChar], true)
+        // confirm by commit character
+        await this.stop(true)
         return
       }
     }
@@ -360,11 +361,13 @@ export class Completion implements Disposable {
     }
   }
 
-  public stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): void {
-    void this.stopAwaitable(close, kind)
+  // Void CompleteDone logic
+  public cancelAndClose(): void {
+    this.cancel()
+    this.nvim.call('coc#pum#_close', [], true)
   }
 
-  public async stopAwaitable(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
+  public async stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
     let { complete } = this
     if (complete == null) return
     let inserted = kind === CompleteFinishKind.Confirm || (this.popupEvent?.inserted && kind != CompleteFinishKind.Cancel)
@@ -379,16 +382,14 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     doc._forceSync()
-    const completeDone = events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
+    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (resolved && inserted) {
       this._mru.add(line.slice(character, inputStart) + input, item)
     }
-    let confirmDone = Promise.resolve()
     if (kind == CompleteFinishKind.Confirm && resolved) {
-      confirmDone = this.confirmCompletion(resolved.source, resolved.item, option)
+      await this.confirmCompletion(resolved.source, resolved.item, option)
     }
-    await Promise.all([completeDone, confirmDone])
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {
@@ -419,8 +420,8 @@ export class Completion implements Disposable {
   private async filterResults(info?: InsertChange): Promise<void> {
     let { complete, option, pretext } = this
     let search = getResumeInput(option, pretext)
-    if (search == null) {
-      this.stop(true)
+    if (search == null || !complete) {
+      this.cancelAndClose()
       return
     }
     let items = await complete.filterResults(search)
@@ -438,7 +439,7 @@ export class Completion implements Disposable {
     if (items.length == 0) {
       let last = search.slice(-1)
       if (!complete.isCompleting || last.length === 0 || !doc.chars.isKeywordChar(last)) {
-        this.stop(true)
+        this.cancelAndClose()
       }
       return
     }

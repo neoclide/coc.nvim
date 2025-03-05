@@ -48,8 +48,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        pathReplace(args[0])
-        await plugin.init(args[1])
+        await plugin.init(args[0])
         break
       }
       case 'Log': {
@@ -68,6 +67,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
       case 'FloatBtnClick':
       case 'CompleteStop':
       case 'PumInsert':
+      case 'InputListSelect':
       case 'PumNavigate':
         logger.trace('Event: ', method, ...args)
         await events.fire(method, args)

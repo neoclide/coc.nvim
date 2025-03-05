@@ -81,7 +81,7 @@ export default class Symbols extends LocationList {
     let label = ''
     let ansiHighlights: AnsiHighlight[] = []
     // Normal Typedef Comment
-    let parts = [name, `[${kind}]`, file]
+    let parts = [name, `[${kind}]`, this.formatFilepath(file)]
     let highlights = ['Normal', 'Typedef', 'Comment']
     for (let index = 0; index < parts.length; index++) {
       const text = parts[index]

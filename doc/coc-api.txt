@@ -11,8 +11,8 @@ Debug extensions 				|coc-api-debug|
 
 ==============================================================================
 
-This is the guide for extend coc.nvim by create vim completion sources and
-coc.nvim extensions.
+The guide for extend coc.nvim by create vim completion sources and coc.nvim
+extensions.
 
 ------------------------------------------------------------------------------
 VIM SOURCES 					*coc-api-vim-source*
@@ -45,7 +45,24 @@ folder.  With code:
 `init` and `complete` are required functions for vim sources, error message
 will be shown when not exists.
 
-Source option:~
+vim9script can be also used on vim9 (not supported on neovim), the function
+first letter need to be uppercased, like:
+>
+  vim9script
+  export def Init(): dict<any>
+    return {
+      priority: 9,
+      shortcut: 'Email',
+      triggerCharacters: ['@']
+    }
+  enddef
+
+  export def Complete(option: dict<any>, Callback: func(list<any>))
+    const items = ['foo@gmail.com', 'bar@yahoo.com']
+    Callback(items)
+  enddef
+<
+Source option: ~
 
   The source option object is returned by `coc#source#{name}#init`
   function, available properties:
@@ -68,7 +85,7 @@ Source option:~
 
   All options are optional.
 
-Source configurations:~
+Source configurations: ~
 
   Vim sources register |coc-configuration| for allow the user to customize the
   source behavior.
@@ -81,7 +98,7 @@ Source configurations:~
   • `coc.source.${name}.shortcut` Default to "shortcut" of source option.
   • `coc.source.${name}.filetypes` Default to "filetypes" of source option.
 
-Complete function:~
+Complete function: ~
 
   The complete function is called with complete option as the first argument
   and a callback function as the second argument, the callback function should
@@ -117,8 +134,8 @@ Complete function:~
     items, word is used when not exists.
   • filterText: A string that should be used when filtering a set of
     complete items, word is used when not exists.
-  • insertText: The text to insert, could be snippet text, word is used when
-    not exists.
+  • insertText: The text to insert, could be textmate snippet text, word is
+    used when not exists.
   • isSnippet: The text to insert is snippet when is truthy value, when
     truthy and `on_complete` not provided by vim source, the `insertText` is
     expanded as textmate snippet when confirm completion.
@@ -127,7 +144,7 @@ Complete function:~
 
   Only the "word" property is mandatory for complete items.
 
-Optional functions:~
+Optional functions: ~
 
   The vim source could provide some optional functions which would be invoked
   by coc.nvim:
@@ -136,7 +153,7 @@ Optional functions:~
     completion, the returned col must <= current cursor col.
   • `coc#source#{name}#on_complete(item)` Called with selected complete item
     when user confirm the completion by |coc#pum#confirm()| or
-    |coc#_select_confirm()|. Normally used for apply nesessary edits to the
+    |coc#_select_confirm()|. Normally used for apply necessary edits to the
     buffer.
   • `coc#source#{name}#on_enter(option)` Called on |BufEnter| with option
     contains:
@@ -165,7 +182,7 @@ coc.nvim, for example:
 When `exports.deactivate` is exported from the JavaScript entry file as a
 function, it would be called on extension deactivate.
 
-Limitation of extension context:~
+Limitation of extension context: ~
 
 Some methods/properties provided by NodeJS can't be used inside extension
 context, including:
@@ -272,7 +289,7 @@ activated during coc.nvim initialize.  Other possible events:
     `"workspaceContains:**/package.json"`
 
 Optional `contributes` property contains the meta data that contributed to
-coc.nvim, inclduing:
+coc.nvim, including:
 
   • rootPatterns: The patterns to resolve |coc-workspace-folders| for
     associated filetype.
@@ -332,11 +349,11 @@ To manually create an extension, follow these step:
 Recommended steps:
 
   • Install types of NodeJS and coc.nvim by terminal command
-    `npm install @types/node@16.18 coc.nvim` in extension folder.
+    `npm install @types/node@latest coc.nvim` in extension folder.
   • Bundle the javascript files when using multiple node dependencies by
     esbuild to save the time of installation.  A typical build script looks
-    like:
->
+    like: >
+
       async function start() {
         await require('esbuild').build({
           entryPoints: ['src/index.ts'],
@@ -358,7 +375,7 @@ Recommended steps:
 ------------------------------------------------------------------------------
 DEBUG EXTENSIONS 				*coc-api-debug*
 
-Uncaught errors:~
+Uncaught errors: ~
 
 When an uncaught error raised on the NodeJS process, the error message would
 be send to vim through stderr, and echoed by vim (unless
@@ -369,9 +386,10 @@ The error messages are not stored by vim's message history, use
 
 When error happens on the vim side, the promise would be rejected when sending
 request to vim, for notifications, vim would send `nvim_error_event` to the
-NodeJS process, and the node-client would create error log for it.
+NodeJS process, and the node-client would create error log for it (could be
+opened by |:CocOpenLog|).
 
-Use the log file:~
+Use the log file: ~
 
 • Configure `NVIM_COC_LOG_LEVEL` to `trace` in vimrc:
   `let $NVIM_COC_LOG_LEVEL='trace'`
@@ -382,7 +400,7 @@ Use the log file:~
 code and compile the extension when needed.
 • Tail the log file by `tail` command and make the issue happen.
 
-Add source map support:~
+Add source map support: ~
 
 When the javascript code is bundled by esbuild, it would be useful to have
 correct source map support for the error stack.
@@ -391,12 +409,12 @@ correct source map support for the error stack.
 • Find out the npm root by `npm root -g`
 • Load source-map-support with coc.nvim by append arguments to node in vimrc:
   `let g:coc_node_args = ['-r', '/path/to/npm/root/source-map-support/register']`
-  Repalce the part `/path/to/npm/root` with result from `npm root -g` terminal
+  Replace the part `/path/to/npm/root` with result from `npm root -g` terminal
   command.
 
 Note: the source-map-support module slows down the coc.nvim initialization.
 
-Debug javascript code in chrome:~
+Debug javascript code with chrome: ~
 
 • Add `let g:coc_node_args = ['--nolazy', '--inspect-brk=5858']`
 • Open vim and you will get the error message indicate that the debugger is

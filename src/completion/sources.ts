@@ -7,7 +7,7 @@ import BufferSync from '../model/bufferSync'
 import type { CompletionItemProvider, DocumentSelector } from '../provider'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
-import { statAsync } from '../util/fs'
+import { readFileLines, statAsync } from '../util/fs'
 import * as Is from '../util/is'
 import { fs, path, promisify } from '../util/node'
 import { Disposable } from '../util/protocol'
@@ -17,7 +17,7 @@ import workspace from '../workspace'
 import { KeywordsBuffer } from './keywords'
 import Source from './source'
 import LanguageSource from './source-language'
-import VimSource from './source-vim'
+import VimSource, { getMethodName } from './source-vim'
 import { CompleteItem, CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from './types'
 import { getPriority } from './util'
 const logger = createLogger('sources')
@@ -129,12 +129,13 @@ export class Sources {
       let name = path.basename(filepath, '.vim')
       await nvim.command(`source ${filepath}`)
       let fns = await nvim.call('coc#_remote_fns', name) as string[]
+      let lowercased = fns.map(fn => fn[0].toLowerCase() + fn.slice(1))
       for (let fn of ['init', 'complete']) {
-        if (!fns.includes(fn)) {
+        if (!lowercased.includes(fn)) {
           throw new Error(`function "coc#source#${name}#${fn}" not found`)
         }
       }
-      let props = await nvim.call(`coc#source#${name}#init`, []) as VimSourceConfig
+      let props = await nvim.call(`coc#source#${name}#${getMethodName('init', fns)}`, []) as VimSourceConfig
       let packageJSON = {
         name: `coc-vim-source-${name}`,
         engines: {
@@ -198,7 +199,7 @@ export class Sources {
             isSnippet: props.isSnippet,
             sourceType: SourceType.Remote,
             triggerOnly: !!props.triggerOnly,
-            optionalFns: fns.filter(n => !['init', 'complete'].includes(n))
+            remoteFns: fns
           })
           this.addSource(source)
           return Promise.resolve()
@@ -212,7 +213,13 @@ export class Sources {
         this.removeSource(name)
       })
     } catch (e) {
+      if (!this.nvim.isVim) {
+        let lines = await readFileLines(filepath, 0, 1)
+        if (lines.length > 0 && lines[0].startsWith('vim9script')) return
+      }
       void window.showErrorMessage(`Error on create vim source from ${filepath}: ${e}`)
+      // logError(err)
+      logger.error(`Error on create vim source from ${filepath}`, e)
     }
   }
 

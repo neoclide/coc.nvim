@@ -127,6 +127,52 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " happens when using getchar() #3921
     return []
   endtry
+
+  " Calculate position when relative is editor
+  if get(a:config, 'relative', '') ==# 'editor'
+    let top = get(a:config, 'top', v:null)
+    let bottom = get(a:config, 'bottom', v:null)
+    let left = get(a:config, 'left', v:null)
+    let right = get(a:config, 'right', v:null)
+
+    if top isnot v:null || bottom isnot v:null || left isnot v:null || right isnot v:null
+      let height = &lines
+      let width = &columns
+
+      " Calculate row
+      let calc_row = a:config.row
+      if bottom isnot v:null
+        let calc_row = height - bottom - a:config.height - 2
+      elseif top isnot v:null
+        let calc_row = top
+      endif
+
+      " Calculate col
+      let calc_col = a:config.col
+      if right isnot v:null
+        let calc_col = width - right - a:config.width - 3
+      elseif left isnot v:null
+        let calc_col = left
+      endif
+
+      " Check if window would overlap cursor position
+      let pos = screenpos(0, line('.'), col('.'))
+      let currow = pos.row - 1
+      let curcol = pos.col - 1
+      let win_top = calc_row
+      let win_bottom = win_top + a:config.height + 2
+      let win_left = calc_col
+      let win_right = win_left + a:config.width + 3
+
+      " If window would overlap cursor, switch to cursor relative
+      if currow >= win_top && currow <= win_bottom && curcol >= win_left && curcol <= win_right
+        let a:config.relative = 'cursor'
+      else
+        let a:config.row = calc_row
+        let a:config.col = calc_col
+      endif
+    endif
+  endif
   let lnum = max([1, get(a:config, 'index', 0) + 1])
   let zindex = get(a:config, 'zindex', 50)
   " use exists
@@ -277,7 +323,7 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
   if has_key(a:config, 'zindex')
     let opt['zindex'] = a:config['zindex']
   endif
-  if has('nvim-0.5.0') && a:shadow && !a:hasbtn && a:border[2]
+  if a:shadow && !a:hasbtn && a:border[2]
     let opt['border'] = 'shadow'
   endif
   if winid
@@ -332,16 +378,13 @@ function! coc#float#nvim_right_pad(config, winid, shadow, related) abort
   if has_key(a:config, 'zindex')
     let config['zindex'] = a:config['zindex'] + 1
   endif
-  if has('nvim-0.5.0') && a:shadow
+  if a:shadow
     let config['border'] = 'shadow'
   endif
   if winid && nvim_win_is_valid(winid)
-    if has('nvim-0.5.0')
-      call nvim_win_set_config(winid, coc#dict#pick(config, ['relative', 'row', 'col']))
-      call nvim_win_set_height(winid, config['height'])
-      return
-    endif
-    noa call nvim_win_close(winid, 1)
+    call nvim_win_set_config(winid, coc#dict#pick(config, ['relative', 'row', 'col']))
+    call nvim_win_set_height(winid, config['height'])
+    return
   endif
   let s:pad_bufnr = bufloaded(s:pad_bufnr) ? s:pad_bufnr : coc#float#create_buf(0, repeat([''], &lines), 'hide')
   noa let winid = nvim_open_win(s:pad_bufnr, 0, config)
@@ -360,12 +403,10 @@ function! coc#float#nvim_buttons(config, winid, buttons, getchar, borderbottom, 
         \ 'relative': a:config['relative'],
         \ 'focusable': 1,
         \ 'style': 'minimal',
+        \ 'zindex': 300,
         \ }
-  if has('nvim-0.5.1')
-    let config['zindex'] = 300
-    if a:shadow
-      let config['border'] = 'shadow'
-    endif
+  if a:shadow
+    let config['border'] = 'shadow'
   endif
   if winid
     let bufnr = winbufnr(winid)
@@ -485,7 +526,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   if has_key(config, 'zindex')
     let opts['zindex'] = config['zindex'] + 2
   endif
-  if has('nvim-0.5.0') && s:has_shadow(config)
+  if s:has_shadow(config)
     let opts['border'] = 'shadow'
   endif
   if id
@@ -563,8 +604,10 @@ endfunction
 " Close float window by id
 function! coc#float#close(winid, ...) abort
   let noautocmd = get(a:, 1, 0)
-  call coc#float#close_related(a:winid)
-  call s:close_win(a:winid, noautocmd)
+  if a:winid >= 0
+    call coc#float#close_related(a:winid)
+    call s:close_win(a:winid, noautocmd)
+  endif
   return 1
 endfunction
 
@@ -646,9 +689,6 @@ function! coc#float#has_scroll() abort
 endfunction
 
 function! coc#float#scroll(forward, ...)
-  if !has('nvim-0.4.0') && !has('patch-8.2.0750')
-    throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
-  endif
   let amount = get(a:, 1, 0)
   let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val) && getwinvar(v:val,"kind","") !=# "pum"')
   if empty(winids)
@@ -768,9 +808,6 @@ endfunction
 " Show float window/popup for user confirm.
 " Create buttons popup on vim
 function! coc#float#vim_buttons(winid, config) abort
-  if !has('patch-8.2.0750')
-    return
-  endif
   let related = getwinvar(a:winid, 'related', [])
   let winid = coc#float#get_related(a:winid, 'buttons')
   let btns = get(a:config, 'buttons', [])
@@ -1061,14 +1098,12 @@ function! s:convert_config_nvim(config, create) abort
   else
     let result['width'] = float2nr(result['width'] + (get(a:config, 'nopad', 0) ? 0 : 1))
   endif
-  if has('nvim-0.5.0') && get(a:config, 'shadow', 0) && a:create
+  if get(a:config, 'shadow', 0) && a:create
     if empty(get(a:config, 'buttons', v:null)) && empty(get(border, 2, 0))
       let result['border'] = 'shadow'
     endif
   endif
-  if has('nvim-0.5.1')
-    let result['zindex'] = get(a:config, 'zindex', 50)
-  endif
+  let result['zindex'] = get(a:config, 'zindex', 50)
   let result['height'] = float2nr(result['height'])
   return result
 endfunction
@@ -1341,7 +1376,7 @@ function! s:set_float_defaults(winid, config) abort
   if exists('&statuscolumn')
     call setwinvar(a:winid, '&statuscolumn', '')
   endif
-  if !s:is_vim || !has("patch-8.2.3100")
+  if has('nvim')
     call setwinvar(a:winid, '&number', 0)
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&cursorline', 0)
@@ -1353,15 +1388,9 @@ function! s:set_float_defaults(winid, config) abort
   call setwinvar(a:winid, '&conceallevel', 0)
   call setwinvar(a:winid, '&list', 0)
   call setwinvar(a:winid, '&wrap', !get(a:config, 'cursorline', 0))
-  if s:is_vim || has('nvim-0.5.0')
-    call setwinvar(a:winid, '&scrolloff', 0)
-  endif
-  if has('nvim-0.6.0') || has("patch-8.1.2281")
-    call setwinvar(a:winid, '&showbreak', 'NONE')
-  endif
-  if exists('*win_execute')
-    call win_execute(a:winid, 'setl fillchars+=eob:\ ')
-  endif
+  call setwinvar(a:winid, '&scrolloff', 0)
+  call setwinvar(a:winid, '&showbreak', 'NONE')
+  call win_execute(a:winid, 'setl fillchars+=eob:\ ')
   if get(a:config, 'autohide', 0)
     call setwinvar(a:winid, 'autohide', 1)
   endif
@@ -1371,15 +1400,6 @@ endfunction
 function! s:nvim_add_related(winid, target, kind, winhl, related) abort
   if a:winid <= 0
     return
-  endif
-  " minimal not work
-  if !has('nvim-0.4.3')
-    call setwinvar(a:winid, '&colorcolumn', '')
-    call setwinvar(a:winid, '&number', 0)
-    call setwinvar(a:winid, '&relativenumber', 0)
-    call setwinvar(a:winid, '&foldcolumn', 0)
-    call setwinvar(a:winid, '&signcolumn', 0)
-    call setwinvar(a:winid, '&list', 0)
   endif
   if exists('&statuscolumn')
     call setwinvar(a:winid, '&statuscolumn', '')

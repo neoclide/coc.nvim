@@ -4,17 +4,16 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import Watchman from '../../core/watchman'
-import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import events from '../../events'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
-import { Registry } from '../../util/registry'
 import { disposeAll } from '../../util'
+import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import { writeJson } from '../../util/fs'
+import { deepIterate } from '../../util/object'
+import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { deepIterate } from '../../util/object'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -156,10 +155,11 @@ describe('ExtensionManager', () => {
       workspace.workspaceFolderControl.addWorkspaceFolder(__dirname, false)
       tmpfolder = createFolder()
       let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
+      let basename = path.basename(__filename)
       createExtension(tmpfolder, {
-        name: 'name',
+        name: 'FooBar',
         engines: { coc: '>= 0.0.80' },
-        activationEvents: ['workspaceContains:extensionManager.test.ts'],
+        activationEvents: ['workspaceContains:' + basename],
         contributes: {
           rootPatterns: [
             {
@@ -181,10 +181,10 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
-      let item = manager.getExtension('name')
+      let item = manager.getExtension('FooBar')
       expect(item.extension.isActive).toBe(true)
       expect(manager.all.length).toBe(1)
-      expect(manager.getExtensionState('name')).toBe('activated')
+      expect(manager.getExtensionState('FooBar')).toBe('activated')
       expect(item.extension.exports['abs']).toBeDefined()
     })
   })
@@ -643,8 +643,8 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       let res = await manager.loadExtension(extFolder)
       expect(res).toBe(true)
-      let spy = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
-        return ''
+      let spy = jest.spyOn(workspace.fileSystemWatchers, 'getWatchmanPath').mockImplementation(() => {
+        return Promise.reject('not found')
       })
       let fn = async () => {
         await manager.watchExtension('name')
@@ -658,6 +658,7 @@ describe('ExtensionManager', () => {
 
     it('should reload extension on file change', async () => {
       tmpfolder = createFolder()
+      workspace.fileSystemWatchers.disabled = false
       let extFolder = path.join(tmpfolder, 'node_modules', 'name')
       createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
       let manager = create(tmpfolder)
@@ -672,7 +673,7 @@ describe('ExtensionManager', () => {
         fn()
         return Promise.resolve()
       })
-      let spy = jest.spyOn(Watchman, 'createClient').mockImplementation(() => {
+      let spy = jest.spyOn(workspace.fileSystemWatchers, 'createClient').mockImplementation(() => {
         return {
           dispose: () => {},
           subscribe: (_key: string, cb: Function) => {

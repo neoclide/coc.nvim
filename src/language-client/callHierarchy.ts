@@ -7,7 +7,6 @@ import languages from '../languages'
 import { CallHierarchyPrepareRequest, CallHierarchyIncomingCallsRequest, CallHierarchyOutgoingCallsRequest } from '../util/protocol'
 import { CallHierarchyProvider, ProviderResult } from '../provider'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import { asTextDocumentPositionParams } from './utils/converter'
 
 export interface PrepareCallHierarchySignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
@@ -56,7 +55,7 @@ export class CallHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
       prepareCallHierarchy: (document: TextDocument, position: Position, token: CancellationToken) => {
         const client = this._client
         const prepareCallHierarchy: PrepareCallHierarchySignature = (document, position, token) => {
-          const params = asTextDocumentPositionParams(document, position)
+          const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position)
           return this.sendRequest(CallHierarchyPrepareRequest.type, params, token)
         }
 

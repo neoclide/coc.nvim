@@ -16,7 +16,6 @@ export default class InlayHintHandler {
   private disposables: Disposable[] = []
   constructor(nvim: Neovim, handler: HandlerDelegate) {
     this.buffers = workspace.registerBufferSync(doc => {
-      if (!workspace.env.virtualText) return
       return new InlayHintBuffer(nvim, doc)
     })
     this.disposables.push(this.buffers)
@@ -59,7 +58,7 @@ export default class InlayHintHandler {
       execute: (bufnr?: number) => {
         return this.toggle(bufnr ?? workspace.bufnr)
       },
-    }, false, 'toggle codeLens display of current buffer')
+    }, false, 'toggle inlayHint display of current buffer')
     commands.register({
       id: 'document.enableInlayHint',
       execute: (bufnr?: number) => {
@@ -72,7 +71,6 @@ export default class InlayHintHandler {
         return this.disable(bufnr ?? workspace.bufnr)
       },
     }, false, 'disable codeLens display of current buffer')
-
     handler.addDisposable(Disposable.create(() => {
       disposeAll(this.disposables)
     }))

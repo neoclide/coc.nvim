@@ -5,7 +5,6 @@ import languages from '../languages'
 import { DefinitionProvider, ProviderResult } from '../provider'
 import { DefinitionRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 export interface ProvideDefinitionSignature {
@@ -63,7 +62,7 @@ export class DefinitionFeature extends TextDocumentLanguageFeature<
         const provideDefinition: ProvideDefinitionSignature = (document, position, token) => {
           return this.sendRequest(
             DefinitionRequest.type,
-            cv.asTextDocumentPositionParams(document, position),
+            client.code2ProtocolConverter.asTextDocumentPositionParams(document, position),
             token
           )
         }

@@ -1,5 +1,5 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentSelector, Range, ServerCapabilities, ColorPresentationParams, DocumentColorParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
@@ -60,9 +60,9 @@ export class ColorProviderFeature extends TextDocumentLanguageFeature<
       provideColorPresentations: (color, context, token) => {
         const client = this._client
         const provideColorPresentations: ProvideColorPresentationSignature = (color, context, token) => {
-          const requestParams = {
+          const requestParams: ColorPresentationParams = {
             color,
-            textDocument: { uri: context.document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
             range: context.range
           }
           return this.sendRequest(ColorPresentationRequest.type, requestParams, token)
@@ -75,8 +75,8 @@ export class ColorProviderFeature extends TextDocumentLanguageFeature<
       provideDocumentColors: (document, token) => {
         const client = this._client
         const provideDocumentColors: ProvideDocumentColorsSignature = (document, token) => {
-          const requestParams = {
-            textDocument: { uri: document.uri }
+          const requestParams: DocumentColorParams = {
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
           }
           return this.sendRequest(DocumentColorRequest.type, requestParams, token)
         }

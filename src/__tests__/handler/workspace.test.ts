@@ -184,7 +184,7 @@ describe('Workspace handler', () => {
       await handler.openLocalConfig()
       await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
       await nvim.command('setf vim')
-      await handler.openLocalConfig()
+      await commands.executeCommand('workspace.openLocalConfig')
     })
 
     it('should open local config', async () => {
@@ -218,6 +218,21 @@ describe('Workspace handler', () => {
       let uri = URI.file(__dirname).toString()
       let find = folders.find(o => o.uri === uri)
       expect(find).toBeDefined()
+    })
+
+    it('should remove workspace folder', async () => {
+      expect(() => {
+        handler.addWorkspaceFolder(__filename)
+      }).toThrow(Error)
+      expect(() => {
+        handler.addWorkspaceFolder(__filename)
+      }).toThrow(Error)
+      await helper.plugin.cocAction('addWorkspaceFolder', __dirname)
+      await helper.plugin.cocAction('removeWorkspaceFolder', __dirname)
+      let folders = workspace.workspaceFolderControl.workspaceFolders
+      let uri = URI.file(__dirname).toString()
+      let find = folders.find(o => o.uri === uri)
+      expect(find).toBeUndefined()
     })
 
     it('should check env on vim resized', async () => {

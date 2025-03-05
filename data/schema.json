@@ -60,6 +60,28 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+        },
+        "position": {
+          "type": "string",
+          "default": "auto",
+          "description": "Controls how floating windows are positioned. When set to `'fixed'`, the window will be positioned according to the `top`, `bottom`, `left`, and `right` settings. When set to `'auto'`, the window follows the default position.",
+          "enum": ["fixed", "auto"]
+        },
+        "top": {
+          "type": "number",
+          "description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `bottom` is set."
+        },
+        "bottom": {
+          "type": "number",
+          "description": "Distance from the bottom of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `top` if both are set."
+        },
+        "left": {
+          "type": "number",
+          "description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `right` is set."
+        },
+        "right": {
+          "type": "number",
+          "description": "Distance from the right edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Takes precedence over `left` if both are set."
         }
       }
     },
@@ -576,7 +598,22 @@
       "scope": "application",
       "default": "never",
       "description": "Interval for check extension update, could be daily, weekly, never",
+      "deprecationMessage": "Use configuration 'extensions.updateCheck' instead.",
       "enum": ["daily", "weekly", "never"]
+    },
+    "coc.preferences.extensionUpdateUIInTab": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "deprecationMessage": "Use configuration 'extensions.updateUIInTab' instead.",
+      "description": "Display extension updating UI in new vim tab"
+    },
+    "coc.preferences.silentAutoupdate": {
+      "type": "boolean",
+      "description": "Not open split window with update status when performing auto update.",
+      "deprecationMessage": "Use configuration 'extensions.silentAutoupdate' instead.",
+      "scope": "application",
+      "default": true
     },
     "coc.preferences.floatActions": {
       "type": "boolean",
@@ -603,7 +640,7 @@
       "scope": "resource",
       "default": null,
       "description": "Filetypes that should run format on save.",
-      "deprecationMessage": "Use coc.preferences.formatOnSave as language override configuration instead, see :h coc-configuration-scope",
+      "deprecationMessage": "Use 'coc.preferences.formatOnSave' as language override configuration instead, see :h coc-configuration-scope",
       "items": {
         "type": "string"
       }
@@ -619,10 +656,16 @@
       "default": null,
       "scope": "resource",
       "description": "Filetypes that should run format on typing, only works when `coc.preferences.formatOnType` is `true`",
-      "deprecationMessage": "Use coc.preferences.formatOnType as language override configuration instead, see :h coc-configuration-scope",
+      "deprecationMessage": "Use 'coc.preferences.formatOnType' as language override configuration instead, see :h coc-configuration-scope",
       "items": {
         "type": "string"
       }
+    },
+    "coc.preferences.formatterExtension": {
+      "type": ["null", "string"],
+      "default": null,
+      "scope": "language-overridable",
+      "description": "Extension used for formatting documents. When set to null, the formatter with highest priority is used."
     },
     "coc.preferences.jumpCommand": {
       "anyOf": [
@@ -669,12 +712,6 @@
       "default": true,
       "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
     },
-    "coc.preferences.silentAutoupdate": {
-      "type": "boolean",
-      "description": "Not open split window with update status when performing auto update.",
-      "scope": "application",
-      "default": true
-    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "scope": "application",
@@ -684,6 +721,7 @@
     "coc.preferences.watchmanPath": {
       "type": "string",
       "scope": "application",
+      "deprecationMessage": "Use configuration \"fileSystemWatch.watchmanPath\" instead.",
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": null
     },
@@ -814,6 +852,12 @@
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
       "default": false
     },
+    "codeLens.display": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "default": true,
+      "description": "Display codeLens."
+    },
     "codeLens.position": {
       "type": "string",
       "scope": "language-overridable",
@@ -895,7 +939,13 @@
     "diagnostic.displayByAle": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
+      "description": "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
+      "default": false
+    },
+    "diagnostic.displayByVimDiagnostic": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Display diagnostics with nvim's `vim.diagnostic`. This setting will disable diagnostic display using coc's handler. A restart required on change. Neovim only.",
       "default": false
     },
     "diagnostic.enable": {
@@ -952,7 +1002,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "diagnostic.format": {
@@ -1033,12 +1088,6 @@
       "description": "Enable diagnostic refresh on insert mode, default false.",
       "default": false
     },
-    "diagnostic.separateRelatedInformationAsDiagnostics": {
-      "type": "boolean",
-      "default": false,
-      "scope": "application",
-      "description": "Separate related information as diagnostics."
-    },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,
@@ -1067,7 +1116,7 @@
     "diagnostic.virtualText": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use virtual text to display diagnostics, requires neovim >= 0.5.0 or vim >= 9.0.0067.",
+      "description": "Use virtual text to display diagnostics.",
       "default": false
     },
     "diagnostic.virtualTextAlign": {
@@ -1132,6 +1181,12 @@
       "scope": "application",
       "description": "Text of warning sign",
       "default": "⚠"
+    },
+    "diagnostic.showRelatedInformation": {
+      "type": "boolean",
+      "default": true,
+      "scope": "language-overridable",
+      "description": "Display related information in the diagnostic floating window."
     },
     "dialog.confirmKey": {
       "type": "string",
@@ -1207,6 +1262,27 @@
       "scope": "resource",
       "description": "Timeout for document highlight, in milliseconds."
     },
+    "fileSystemWatch.watchmanPath": {
+      "type": ["null", "string"],
+      "scope": "application",
+      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "default": null
+    },
+    "fileSystemWatch.enable": {
+      "type": "boolean",
+      "default": true,
+      "scope": "application",
+      "description": "Enable file system watch support for workspace folders."
+    },
+    "fileSystemWatch.ignoredFolders": {
+      "type": "array",
+      "default": ["/private/tmp", "/", "${tmpdir}"],
+      "scope": "application",
+      "description": "List of folders that should not be watched for file changes, environment variables and minimatch patterns can be used.",
+      "items": {
+        "type": "string"
+      }
+    },
     "floatFactory.floatConfig": {
       "type": "object",
       "scope": "application",
@@ -1224,7 +1300,12 @@
         "maxHeight": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "hover.autoHide": {
@@ -1250,7 +1331,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "hover.previewMaxHeight": {
@@ -1291,11 +1377,37 @@
       "default": true,
       "scope": "application"
     },
+    "extensions.updateCheck": {
+      "type": "string",
+      "scope": "application",
+      "default": "never",
+      "description": "Interval time for check extension update, could be daily, weekly, never",
+      "enum": ["daily", "weekly", "never"]
+    },
+    "extensions.silentAutoupdate": {
+      "type": "boolean",
+      "description": "Not open split window with update status when performing auto update.",
+      "scope": "application",
+      "default": true
+    },
+    "extensions.updateUIInTab": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "description": "Display extension updating UI in new vim tab"
+    },
     "inlayHint.enable": {
       "type": "boolean",
       "default": true,
       "scope": "language-overridable",
       "description": "Enable inlay hint support"
+    },
+    "inlayHint.position": {
+      "type": "string",
+      "default": "inline",
+      "scope": "language-overridable",
+      "description": "Controls where to show inlay hints: inline in the text, or at the end of the line",
+      "enum": ["inline", "eol"]
     },
     "inlayHint.enableParameter": {
       "type": "boolean",
@@ -1836,7 +1948,12 @@
         "maxWidth": {},
         "winblend": {},
         "focusable": {},
-        "shadow": {}
+        "shadow": {},
+        "position": {},
+        "top": {},
+        "bottom": {},
+        "left": {},
+        "right": {}
       }
     },
     "signature.hideOnTextChange": {
@@ -2189,7 +2306,7 @@
     "suggest.virtualText": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
+      "description": "Show virtual text for insert word of selected item",
       "default": false
     },
     "tree.closedIcon": {
@@ -2305,7 +2422,13 @@
     },
     "workspace.ignoredFolders": {
       "type": "array",
-      "default": ["$HOME"],
+      "default": [
+        "$HOME",
+        "$HOME/.cargo/**",
+        "$HOME/.rustup/**",
+        "$HOME/pkg/mod/**",
+        "$HOMEBREW_PREFIX/**"
+      ],
       "scope": "application",
       "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
       "items": {

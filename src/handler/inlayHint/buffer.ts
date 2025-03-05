@@ -16,10 +16,16 @@ import workspace from '../../workspace'
 
 export interface InlayHintConfig {
   enable: boolean
+  position: InlayHintPosition,
   display: boolean
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
+}
+
+export enum InlayHintPosition {
+  Inline = "inline",
+  Eol = "eol",
 }
 
 let srcId: number | undefined
@@ -70,6 +76,7 @@ export default class InlayHintBuffer implements SyncItem {
     let changed = this._config && this._config.enable != config.enable
     this._config = {
       enable: config.get<boolean>('enable'),
+      position: config.get<InlayHintPosition>('position'),
       display: config.get<boolean>('display', true),
       filetypes: config.get<string[]>('filetypes'),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
@@ -179,13 +186,13 @@ export default class InlayHintBuffer implements SyncItem {
     if ((events.insertMode && !this.config.refreshOnInsertMode) || !this.enabled) return
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
-    let res = await this.nvim.call('coc#window#visible_range', [this.doc.bufnr]) as [number, number]
+    let res = await this.nvim.call('coc#window#visible_range') as [number, number]
     if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return
     if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
     if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return
     const startLine = Math.max(0, res[0] - RenderRangeExtendSize)
     const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize)
-    let range = Range.create(startLine, 0, endLine, 0)
+    let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0))
     let inlayHints = await this.requestInlayHints(range, token)
     if (inlayHints == null || token.isCancellationRequested) return
     this.regions.add(res[0], res[1])
@@ -215,7 +222,13 @@ export default class InlayHintBuffer implements SyncItem {
       if (item.paddingRight) {
         chunks.push(nvim.isVim ? [' ', 'Normal'] : [' '])
       }
-      buffer.setVirtualText(srcId, position.line, chunks, { col, hl_mode: 'replace' })
+      if (this.config.position == InlayHintPosition.Eol) {
+        col = 0
+      }
+      // TODO right_gravity field is absent in VirtualTextOption
+      let opts: any = { col, hl_mode: 'replace' }
+      if (!nvim.isVim && item.kind == InlayHintKind.Parameter) { opts.right_gravity = false }
+      buffer.setVirtualText(srcId, position.line, chunks, opts)
     }
     nvim.resumeNotification(true, true)
     this._onDidRefresh.fire()

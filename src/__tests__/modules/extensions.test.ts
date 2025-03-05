@@ -8,6 +8,7 @@ import extensions, { Extensions, toUrl } from '../../extension'
 import { writeFile, writeJson } from '../../util/fs'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { ConfigurationUpdateTarget } from '../../configuration/types'
 
 let tmpfolder: string
 beforeAll(async () => {
@@ -38,20 +39,39 @@ describe('extensions', () => {
     expect(extensions.onDidActiveExtension).toBeDefined()
     expect(extensions.onDidUnloadExtension).toBeDefined()
     expect(extensions.schemes).toBeDefined()
-    expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
+    expect(extensions.createInstaller('npm', 'id')).toBeDefined()
   })
 
   it('should not throw with addSchemeProperty', async () => {
     extensions.addSchemeProperty('', null)
   })
 
+  it('should get update settings', async () => {
+    let settings = extensions.getUpdateSettings()
+    expect(settings.updateCheck).toBe('never')
+    expect(settings.updateUIInTab).toBe(false)
+    expect(settings.silentAutoupdate).toBe(true)
+    let config = workspace.getConfiguration('extensions')
+    await config.update('updateCheck', 'weekly', ConfigurationUpdateTarget.Global)
+    await config.update('updateUIInTab', true, ConfigurationUpdateTarget.Global)
+    await config.update('silentAutoupdate', false, ConfigurationUpdateTarget.Global)
+    settings = extensions.getUpdateSettings()
+    expect(settings.updateCheck).toBe('weekly')
+    expect(settings.updateUIInTab).toBe(true)
+    expect(settings.silentAutoupdate).toBe(false)
+    await config.update('updateCheck', undefined, ConfigurationUpdateTarget.Global)
+    await config.update('updateUIInTab', undefined, ConfigurationUpdateTarget.Global)
+    await config.update('silentAutoupdate', undefined, ConfigurationUpdateTarget.Global)
+  })
+
   it('should toggle auto update', async () => {
     await commands.executeCommand('extensions.toggleAutoUpdate')
-    let config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
-    expect(config).toBe('daily')
+    let config = workspace.getConfiguration('extensions')
+    expect(config.get('updateCheck')).toBe('daily')
     await commands.executeCommand('extensions.toggleAutoUpdate')
-    config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
-    expect(config).toBe('never')
+    config = workspace.getConfiguration('extensions')
+    expect(config.get('updateCheck')).toBe('never')
+    await config.update('extensions.updateCheck', undefined, ConfigurationUpdateTarget.Global)
   })
 
   it('should get extensions stat', async () => {
@@ -162,7 +182,7 @@ describe('extensions', () => {
   })
 
   it('should catch error when installExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -184,7 +204,7 @@ describe('extensions', () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         update: () => {
@@ -201,7 +221,7 @@ describe('extensions', () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -212,7 +232,7 @@ describe('extensions', () => {
         }
       } as any
     })
-    await extensions.updateExtensions()
+    await extensions.updateExtensions(true, true)
     spy.mockRestore()
     s.mockRestore()
   })
@@ -222,7 +242,7 @@ describe('extensions', () => {
       return [{ id: 'test', exotic: true, uri: 'http://example.com' }] as any
     })
     let called = false
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -262,7 +282,7 @@ describe('extensions', () => {
   it('should install global extension', async () => {
     expect(extensions.getExtensionById('coc-omni')).toBeUndefined()
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         install: async () => {

@@ -58,7 +58,7 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideFoldingRanges: ProvideFoldingRangeSignature = (document, _, token) => {
           const requestParams: FoldingRangeParams = {
-            textDocument: { uri: document.uri }
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
           }
           return this.sendRequest(FoldingRangeRequest.type, requestParams, token)
         }

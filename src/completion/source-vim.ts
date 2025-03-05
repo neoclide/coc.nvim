@@ -9,19 +9,33 @@ import Source from './source'
 import * as Is from '../util/is'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem } from './types'
 
+export function getMethodName(name: string, names: ReadonlyArray<string>): string | undefined {
+  if (names.includes(name)) return name
+  let key = name[0].toUpperCase() + name.slice(1)
+  if (names.includes(key)) return key
+  throw new Error(`${name} not exists`)
+}
+
+export function checkInclude(name: string, fns: ReadonlyArray<string>): boolean {
+  if (fns.includes(name)) return true
+  let key = name[0].toUpperCase() + name.slice(1)
+  return fns.includes(key)
+}
+
 export default class VimSource extends Source {
 
-  private async callOptionalFunc(fname: string, args: any[]): Promise<any> {
-    let exists = this.optionalFns.includes(fname)
+  private async callOptionalFunc(fname: string, args: any[], isNotify = false): Promise<any> {
+    let exists = checkInclude(fname, this.remoteFns)
     if (!exists) return null
-    let name = `coc#source#${this.name}#${fname}`
+    let name = `coc#source#${this.name}#${getMethodName(fname, this.remoteFns)}`
+    if (isNotify) return this.nvim.call(name, args, true)
     return await this.nvim.call(name, args)
   }
 
   public async checkComplete(opt: CompleteOption): Promise<boolean> {
     let shouldRun = await super.checkComplete(opt)
     if (!shouldRun) return false
-    if (!this.optionalFns.includes('should_complete')) return true
+    if (!checkInclude('should_complete', this.remoteFns)) return true
     let res = await this.callOptionalFunc('should_complete', [opt])
     return !!res
   }
@@ -41,24 +55,23 @@ export default class VimSource extends Source {
   }
 
   public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
-    if (this.optionalFns.includes('on_complete')) {
-      await this.callOptionalFunc('on_complete', [item])
+    if (checkInclude('on_complete', this.remoteFns)) {
+      await this.callOptionalFunc('on_complete', [item], true)
     } else if (item.isSnippet && item.insertText) {
       await this.insertSnippet(item.insertText, opt)
     }
   }
 
   public onEnter(bufnr: number): void {
-    if (!this.optionalFns.includes('on_enter')) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return
+    if (!doc || !checkInclude('on_enter', this.remoteFns)) return
     let { filetypes } = this
     if (filetypes && !filetypes.includes(doc.filetype)) return
     void this.callOptionalFunc('on_enter', [{
       bufnr,
       uri: doc.uri,
       languageId: doc.filetype
-    }])
+    }], true)
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem> | null> {
@@ -75,7 +88,8 @@ export default class VimSource extends Source {
         input
       })
     }
-    let vimItems = await this.nvim.callAsync('coc#_do_complete', [this.name, opt]) as (ExtendedCompleteItem | string)[]
+    const vim9 = this.remoteFns.includes('Complete')
+    let vimItems = await this.nvim.callAsync('coc#_do_complete', [this.name, { ...opt, vim9 }]) as (ExtendedCompleteItem | string)[]
     if (!vimItems || vimItems.length == 0 || token.isCancellationRequested) return null
     let checkFirst = this.firstMatch && input.length > 0
     let inputFirst = checkFirst ? input[0].toLowerCase() : ''

@@ -7,39 +7,21 @@ function! s:checkVersion() abort
   let l:unsupported = 0
   if get(g:, 'coc_disable_startup_warning', 0) != 1
     if has('nvim')
-      let l:unsupported = !has('nvim-0.4.0')
+      let l:unsupported = !has('nvim-0.8.0')
     else
-      let l:unsupported = !has('patch-8.1.1719')
+      let l:unsupported = !has('patch-9.0.0438')
     endif
 
     if l:unsupported == 1
       echohl Error
-      echom "coc.nvim requires at least Vim 8.1.1719 or Neovim 0.4.0, but you're using an older version."
+      echom "coc.nvim requires at least Vim 9.0.0438 or Neovim 0.8.0, but you're using an older version."
       echom "Please upgrade your (neo)vim."
       echom "You can add this to your vimrc to avoid this message:"
       echom "    let g:coc_disable_startup_warning = 1"
       echom "Note that some features may error out or behave incorrectly."
-      echom "Please do not report bugs unless you're using at least Vim 8.1.1719 or Neovim 0.4.0."
+      echom "Please do not report bugs unless you're using at least Vim 9.0.0438 or Neovim 0.8.0."
       echohl None
       sleep 2
-    else
-      if !has('nvim-0.5.0') && !has('patch-8.2.0750')
-        echohl WarningMsg
-        echom "coc.nvim works best on vim >= 8.2.0750 and neovim >= 0.5.0, consider upgrading vim."
-        echom "You can add this to your vimrc to avoid this message:"
-        echom "    let g:coc_disable_startup_warning = 1"
-        echom "Note that some features may behave incorrectly."
-        echohl None
-        sleep 2
-      elseif !has('nvim') && (!has('job') || !has('popupwin') || !has('textprop'))
-        echohl WarningMsg
-        echom "coc.nvim requires job, popupwin and textprop features of vim, consider recompile your vim."
-        echom "You can add this to your vimrc to avoid this message:"
-        echom "    let g:coc_disable_startup_warning = 1"
-        echom "Note that some features may behave incorrectly."
-        echohl None
-        sleep 2
-      endif
     endif
   endif
 endfunction
@@ -184,7 +166,7 @@ function! s:InstallOptions(...)abort
 endfunction
 
 function! s:OpenConfig()
-  let home = coc#util#get_config_home()
+  let home = coc#util#get_config_home(1)
   if !isdirectory(home)
     echohl MoreMsg
     echom 'Config directory "'.home.'" does not exist, create? (y/n)'
@@ -345,7 +327,7 @@ endfunction
 function! s:VimEnter() abort
   if coc#rpc#started()
     if !exists('$COC_NVIM_REMOTE_ADDRESS')
-      call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+      call coc#rpc#notify('VimEnter', [join(globpath(&runtimepath, "", 0, 1), ",")])
     endif
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
@@ -521,7 +503,7 @@ function! s:Highlight() abort
     hi default link CocListLine            CursorLine
   endif
 
-  if has('nvim-0.5.0')
+  if has('nvim')
     hi default CocCursorTransparent gui=strikethrough blend=100
   endif
 
@@ -717,8 +699,6 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
-augroup coc_dynamic_autocmd
-augroup END
 augroup coc_dynamic_content
 augroup END
 augroup coc_dynamic_option

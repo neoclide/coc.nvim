@@ -1,15 +1,15 @@
 import * as assert from 'assert'
 import cp from 'child_process'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
-import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
+import { MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
-import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
+import { CloseAction, ErrorAction } from '../../language-client'
 import { LSPCancellationError } from '../../language-client/features'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
@@ -253,18 +253,32 @@ describe('Client events', () => {
     await client.sendNotification('logMessage')
     await client.sendNotification('showMessage')
     let types = [MessageType.Error, MessageType.Warning, MessageType.Info, MessageType.Log]
+    let times = 0
+    const mockMessageFunctions = function(): Disposable {
+      let names = ['showErrorMessage', 'showWarningMessage', 'showInformationMessage']
+      let fns: Function[] = []
+      for (let name of names) {
+        let spy = jest.spyOn(window as any, name).mockImplementation(() => {
+          times++
+          return Promise.resolve(true)
+        })
+        fns.push(() => {
+          spy.mockRestore()
+        })
+      }
+      return Disposable.create(() => {
+        for (let fn of fns) {
+          fn()
+        }
+      })
+    }
+    disposables.push(mockMessageFunctions())
     for (const t of types) {
       await client.sendNotification('requestMessage', { type: t })
-      await helper.waitValue(async () => {
-        let m = await workspace.nvim.mode
-        return m.blocking
-      }, true)
-      if (t == MessageType.Error) {
-        await workspace.nvim.input('1')
-      } else {
-        await workspace.nvim.input('<cr>')
-      }
     }
+    await helper.waitValue(() => {
+      return times >= 3
+    }, true)
     let filename = path.join(os.tmpdir(), uuid())
     let uri = URI.file(filename)
     fs.writeFileSync(filename, 'foo', 'utf8')
@@ -596,51 +610,6 @@ describe('Client integration', () => {
     spy.mockRestore()
     await client.stop()
     expect(fn).toBeCalled()
-  })
-
-  it('should separate diagnostics', async () => {
-    async function startServer(disable?: boolean, handleDiagnostics?: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void): Promise<lsclient.LanguageClient> {
-      let clientOptions: lsclient.LanguageClientOptions = {
-        disableDiagnostics: disable,
-        separateDiagnostics: true,
-        initializationOptions: {},
-        middleware: {
-          handleDiagnostics
-        }
-      }
-      let serverModule = path.join(__dirname, './server/eventServer.js')
-      let serverOptions: lsclient.ServerOptions = {
-        module: serverModule,
-        transport: lsclient.TransportKind.stdio,
-      }
-      let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-      await client.start()
-      return client
-    }
-    let client = await startServer()
-    await client.sendNotification('diagnostics')
-    await helper.waitValue(() => {
-      let collection = client.diagnostics
-      let res = collection.get('lsptest:/2')
-      return res.length
-    }, 2)
-    await client.stop()
-    client = await startServer(true)
-    await client.sendNotification('diagnostics')
-    await helper.wait(50)
-    let collection = client.diagnostics
-    expect(collection).toBeUndefined()
-    await client.stop()
-    let called = false
-    client = await startServer(false, (uri, diagnostics, next) => {
-      called = true
-      next(uri, diagnostics)
-    })
-    await client.sendNotification('diagnostics')
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    await client.stop()
   })
 
   it('should check version on apply workspaceEdit', async () => {

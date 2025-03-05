@@ -47,6 +47,12 @@ export default class WorkspaceHandler {
       }
     }, true)
     commands.register({
+      id: 'workspace.openLocalConfig',
+      execute: async () => {
+        await this.openLocalConfig()
+      }
+    }, false, 'Open config file of current workspace folder')
+    commands.register({
       id: 'workspace.undo',
       execute: async () => {
         await workspace.files.undoWorkspaceEdit()
@@ -127,7 +133,7 @@ export default class WorkspaceHandler {
    * Open local config file
    */
   public async openLocalConfig(): Promise<void> {
-    let fsPath = await this.nvim.call('expand', ['%:p']) as string
+    let fsPath = await this.nvim.call('coc#util#get_fullpath', []) as string
     let filetype = await this.nvim.eval('&filetype') as string
     if (!fsPath || !path.isAbsolute(fsPath)) {
       void window.showWarningMessage(`Current buffer doesn't have valid file path.`)
@@ -156,7 +162,7 @@ export default class WorkspaceHandler {
 
   public async renameCurrent(): Promise<void> {
     let { nvim } = this
-    let oldPath = await nvim.call('expand', ['%:p']) as string
+    let oldPath = await nvim.call('coc#util#get_fullpath', []) as string
     let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
     newPath = newPath.trim()
     if (newPath === oldPath || !newPath) return
@@ -172,6 +178,13 @@ export default class WorkspaceHandler {
     folder = workspace.expand(folder)
     if (!isDirectory(folder)) throw directoryNotExists(folder)
     workspace.workspaceFolderControl.addWorkspaceFolder(folder, true)
+  }
+
+  public removeWorkspaceFolder(folder: string): void {
+    if (!Is.string(folder)) throw TypeError(`folder should be string`)
+    folder = workspace.expand(folder)
+    if (!isDirectory(folder)) throw directoryNotExists(folder)
+    workspace.workspaceFolderControl.removeWorkspaceFolder(folder)
   }
 
   public async bufferCheck(): Promise<void> {
@@ -205,7 +218,7 @@ export default class WorkspaceHandler {
     })
   }
 
-  public async doAutocmd(id: number, args: any[]): Promise<void> {
+  public async doAutocmd(id: string, args: any[]): Promise<void> {
     await workspace.autocmds.doAutocmd(id, args)
   }
 
@@ -224,8 +237,8 @@ export default class WorkspaceHandler {
     }
   }
 
-  public async ensureDocument(): Promise<boolean> {
-    let doc = await workspace.document
+  public async ensureDocument(bufnr?: number): Promise<boolean> {
+    let doc = bufnr ? workspace.getDocument(bufnr) : await workspace.document
     return doc && doc.attached
   }
 

@@ -29,6 +29,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
   public readonly sourceType = SourceType.Service
   private _enabled = true
   private itemDefaults: ItemDefaults = {}
+  private hasDefaultRange: boolean
   // cursor position on trigger
   private triggerContext: TriggerContext | undefined
   // Kept Promise for resolve
@@ -70,8 +71,9 @@ export default class LanguageSource implements ISource<CompletionItem> {
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items
     if (!completeItems || completeItems.length == 0) return null
-    let itemDefaults = this.itemDefaults = toObject(result['itemDefaults'])
+    let itemDefaults = this.itemDefaults = toObject<ItemDefaults>(result['itemDefaults'])
     let isIncomplete = Is.isCompletionList(result) ? result.isIncomplete === true : false
+    this.hasDefaultRange = Range.is(itemDefaults.editRange)
     return { isIncomplete, items: completeItems, itemDefaults }
   }
 
@@ -144,7 +146,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     let { character, line } = this.triggerContext
     let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
-    let { textEdit, insertText, label } = item
+    let { textEdit, textEditText, insertText, label } = item
     let range = getReplaceRange(item, this.itemDefaults, undefined, option.insertMode)
     if (!range) {
       // create default replace range
@@ -153,7 +155,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     }
     // replace range must contains cursor position.
     if (range.end.character < character) range.end.character = character
-    let newText = textEdit ? textEdit.newText : insertText ?? label
+    let newText = textEdit ? textEdit.newText : (textEditText && this.hasDefaultRange ? textEditText : insertText) ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, pos.text, range)
     // cursor moved count

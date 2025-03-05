@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
+import { Disposable, ParameterInformation, SignatureInformation, Range } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Signature from '../../handler/signature'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
+import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -121,7 +122,7 @@ describe('signatureHelp', () => {
   })
 
   describe('events', () => {
-    it('should trigger signature help', async () => {
+    function registProvider(): void {
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
@@ -131,8 +132,12 @@ describe('signatureHelp', () => {
           }
         }
       }, ['(', ',']))
+    }
+
+    it('should trigger signature help on TextInsert', async () => {
+      registProvider()
       await helper.createDocument()
-      await nvim.input('foo')
+      await nvim.input('ifoo')
       await nvim.input('(')
       await helper.waitValue(async () => {
         let win = await helper.getFloat()
@@ -141,6 +146,30 @@ describe('signatureHelp', () => {
       let win = await helper.getFloat()
       let lines = await helper.getWinLines(win.id)
       expect(lines[2]).toMatch('my signature')
+    })
+
+    it('should trigger signature help on PlaceholderJump', async () => {
+      let called = 0
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          called += 1
+          return {
+            signatures: [SignatureInformation.create('foo(x, y)', 'my signature')],
+            activeParameter: 0,
+            activeSignature: 0
+          }
+        }
+      }, ['(', ',']))
+      let doc = await helper.createDocument()
+      Object.assign((workspace as any)._env, { jumpAutocmd: true })
+      await events.fire('PlaceholderJump', [doc.bufnr, { charbefore: ' ', range: Range.create(0, 0, 0, 0) }])
+      Object.assign((workspace as any)._env, { jumpAutocmd: false })
+      await events.fire('PlaceholderJump', [doc.bufnr, { charbefore: '', range: Range.create(0, 0, 0, 0) }])
+      await events.fire('PlaceholderJump', [doc.bufnr + 1, { charbefore: '(', range: Range.create(0, 0, 0, 0) }])
+      expect(called).toBe(0)
+      await nvim.input('ifoo(b)')
+      await events.fire('PlaceholderJump', [doc.bufnr, { charbefore: '(', range: Range.create(0, 5, 0, 6) }])
+      expect(called).toBe(1)
     })
 
     it('should cancel trigger on InsertLeave', async () => {

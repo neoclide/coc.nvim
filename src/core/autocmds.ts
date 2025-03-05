@@ -1,63 +1,82 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Autocmd } from '../types'
-import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { Disposable } from '../util/protocol'
+import { crypto } from '../util/node'
 
 interface PartialEnv {
-  isCygwin: boolean
   isVim: boolean
   version: string
 }
 
-let autocmdMaxId = 0
-const groupName = 'coc_dynamic_autocmd'
+const groupPrefix = 'coc_dynamic_'
+
+export function getAutoCmdText(autocmd: Autocmd): string {
+  let { arglist, pattern, request, callback } = autocmd
+  let res = ''
+  res += Array.isArray(autocmd.event) ? autocmd.event.join(' ') + ' ' : autocmd.event + ' '
+  if (pattern) res += pattern + ' '
+  if (request) res += 'request '
+  if (Array.isArray(arglist)) res += arglist.join(' ') + ' '
+  res += callback.toString()
+  return res
+}
 
 export default class Autocmds implements Disposable {
-  public readonly autocmds: Map<number, Autocmd> = new Map()
+  public readonly autocmds: Map<string, Autocmd> = new Map()
   private nvim: Neovim
   private env: PartialEnv
-  private disposables: Disposable[] = []
 
   public attach(nvim: Neovim, env: PartialEnv): void {
     this.nvim = nvim
     this.env = env
   }
 
-  public async doAutocmd(id: number, args: any[]): Promise<void> {
+  // unique id for autocmd to create unique group name
+  public generateId(autocmd: Autocmd): string {
+    let text = getAutoCmdText(autocmd)
+    return groupPrefix + crypto.createHash('md5').update(text).digest('hex')
+  }
+
+  public async doAutocmd(id: string, args: any[]): Promise<void> {
     let autocmd = this.autocmds.get(id)
     if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
   }
 
   public registerAutocmd(autocmd: Autocmd): Disposable {
-    autocmdMaxId += 1
-    let id = autocmdMaxId
+    // Used as group name as well
+    let id = this.generateId(autocmd)
+    let { nvim } = this
     this.autocmds.set(id, autocmd)
-    this.nvim.command(createCommand(id, autocmd), true)
+    nvim.pauseNotification()
+    let cmd = createCommand(id, autocmd)
+    nvim.command('augroup ' + id, true)
+    nvim.command(`autocmd!`, true)
+    nvim.command(cmd, true)
+    nvim.command('augroup END', true)
+    nvim.resumeNotification(false, true)
     return Disposable.create(() => {
-      this.autocmds.delete(id)
-      this.resetDynamicAutocmd()
+      nvim.command(`autocmd! ${id}`, true)
     })
   }
 
   public resetDynamicAutocmd(): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command(`autocmd! ${groupName}`, true)
     for (let [id, autocmd] of this.autocmds.entries()) {
+      nvim.command(`autocmd! ${id}`, true)
       nvim.command(createCommand(id, autocmd), true)
     }
     nvim.resumeNotification(false, true)
   }
 
   public dispose(): void {
-    this.nvim.command(`autocmd! ${groupName}`, true)
-    disposeAll(this.disposables)
+    this.autocmds.clear()
   }
 }
 
-export function createCommand(id: number, autocmd: Autocmd): string {
+export function createCommand(id: string, autocmd: Autocmd): string {
   let args = isFalsyOrEmpty(autocmd.arglist) ? '' : ', ' + autocmd.arglist.join(', ')
   let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
   let pattern = autocmd.pattern != null ? autocmd.pattern : '*'
@@ -65,5 +84,5 @@ export function createCommand(id: number, autocmd: Autocmd): string {
     pattern = ''
   }
   let method = autocmd.request ? 'request' : 'notify'
-  return `autocmd ${groupName} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', [${id}${args}])`
+  return `autocmd ${id} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', ['${id}'${args}])`
 }

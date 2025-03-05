@@ -1,7 +1,4 @@
 let s:is_vim = !has('nvim')
-let s:virtual_text_support = has('nvim-0.5.0') || has('patch-9.0.0067')
-let s:text_options = has('patch-9.0.0121') || has('nvim-0.6.0')
-let s:vim_above = has('patch-9.0.0438')
 let s:n10 = has('nvim-0.10.0')
 
 " This function is called by buffer.setVirtualText
@@ -12,9 +9,6 @@ let s:n10 = has('nvim-0.10.0')
 " opts.text_wrap could be 'wrap' and 'truncate', vim9 only.
 " opts.indent add indent when using 'above' and 'below' as text_align
 function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
-  if !s:virtual_text_support
-    return
-  endif
   let align = get(a:opts, 'text_align', 'after')
   let column = get(a:opts, 'col', 0)
   let indent = ''
@@ -40,40 +34,34 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       let type = coc#api#create_type(a:src_id, hl, a:opts)
       let opts = extend({ 'text': text, 'type': type, 'bufnr': a:bufnr }, base)
       if first && !empty(indent)
-        let opts['text'] = indent . text
+        let opts['text_padding_left'] = s:calc_padding_size(indent)
       endif
       call prop_add(a:line + 1, column, opts)
       let first = 0
     endfor
   else
     let opts = { 'hl_mode': get(a:opts, 'hl_mode', 'combine') }
-    if s:text_options
-      if align ==# 'above' || align ==# 'below'
-        let blocks = empty(indent) ? a:blocks : [[indent, 'Normal']] + a:blocks
-        let opts['virt_lines'] = [blocks]
-        if align ==# 'above'
-          let opts['virt_lines_above'] = v:true
-        endif
-      else
-        let opts['virt_text'] = a:blocks
-        if s:n10 && column != 0
-          let opts['virt_text_pos'] = 'inline'
-        elseif align ==# 'right'
-          let opts['virt_text_pos'] = 'right_align'
-        else
-          if type(get(a:opts, 'virt_text_win_col', v:null)) == 0
-            let opts['virt_text_win_col'] = a:opts['virt_text_win_col']
-            let opts['virt_text_pos'] = 'overlay'
-          else
-            " default to 'after'
-            let opts['virt_text_pos'] = 'eol'
-          endif
-        endif
+    if align ==# 'above' || align ==# 'below'
+      let blocks = empty(indent) ? a:blocks : [[indent, 'Normal']] + a:blocks
+      let opts['virt_lines'] = [blocks]
+      if align ==# 'above'
+        let opts['virt_lines_above'] = v:true
       endif
     else
-      if has('nvim-0.5.1') && type(get(a:opts, 'virt_text_win_col', v:null)) == 0
-        let opts['virt_text_win_col'] = a:opts['virt_text_win_col']
-        let opts['virt_text_pos'] = 'overlay'
+      let opts['virt_text'] = a:blocks
+      if s:n10 && column != 0
+        let opts['virt_text_pos'] = 'inline'
+        let opts['right_gravity'] = get(a:opts, 'right_gravity', v:true)
+      elseif align ==# 'right'
+        let opts['virt_text_pos'] = 'right_align'
+      else
+        if type(get(a:opts, 'virt_text_win_col', v:null)) == 0
+          let opts['virt_text_win_col'] = a:opts['virt_text_win_col']
+          let opts['virt_text_pos'] = 'overlay'
+        else
+          " default to 'after'
+          let opts['virt_text_pos'] = 'eol'
+        endif
       endif
     endif
     let col = s:n10 ? column - 1 : 0
@@ -83,13 +71,25 @@ endfunction
 
 function! s:get_option_vim(align, column, wrap) abort
   let opts = {}
-  if s:text_options && a:column == 0
-    if a:align ==# 'top' && !s:vim_above
-      let opts['text_align'] = 'right'
-    else
-      let opts['text_align'] = a:align
-    endif
+  if a:column == 0
+    let opts['text_align'] = a:align
     let opts['text_wrap'] = a:wrap
   endif
   return opts
+endfunction
+
+function! s:calc_padding_size(indent) abort
+  let tabSize = &shiftwidth
+  if tabSize == 0
+    let tabSize = &tabstop
+  endif
+  let padding = 0
+  for c in a:indent
+    if c == "\t"
+      let padding += tabSize - (padding % tabSize)
+    else
+      let padding += 1
+    endif
+  endfor
+  return padding
 endfunction

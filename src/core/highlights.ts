@@ -24,7 +24,6 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 
 export class Highlights {
   public nvim: Neovim
-  public checkMarkers: boolean
 
   public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
     let args = [bufnr, ns]
@@ -33,7 +32,6 @@ export class Highlights {
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRemove = []
-    // let checkMarkers = this.workspace.has('nvim-0.5.1') || this.workspace.isVim
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0
@@ -67,33 +65,24 @@ export class Highlights {
         }
         if (added.length == 0) {
           if (exists.length > 0) {
-            if (this.checkMarkers) {
-              removeMarkers.push(...exists.map(o => o[4]))
-            } else {
-              linesToRemove.push(i)
-            }
+            removeMarkers.push(...exists.map(o => o[4]))
           }
         } else {
           if (exists.length == 0) {
             newItems.push(...added.map(o => convertHighlightItem(o)))
           } else {
-            if (this.checkMarkers) {
-              // skip same markers at beginning of exists and removeMarkers
-              let skip = 0
-              let min = Math.min(exists.length, added.length)
-              while (skip < min) {
-                if (isSame(added[skip], exists[skip])) {
-                  skip++
-                } else {
-                  break
-                }
+            // skip same markers at beginning of exists and removeMarkers
+            let skip = 0
+            let min = Math.min(exists.length, added.length)
+            while (skip < min) {
+              if (isSame(added[skip], exists[skip])) {
+                skip++
+              } else {
+                break
               }
-              removeMarkers.push(...exists.slice(skip).map(o => o[4]))
-              newItems.push(...added.slice(skip).map(o => convertHighlightItem(o)))
-            } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
-              linesToRemove.push(i)
-              newItems.push(...added.map(o => convertHighlightItem(o)))
             }
+            removeMarkers.push(...exists.slice(skip).map(o => o[4]))
+            newItems.push(...added.slice(skip).map(o => convertHighlightItem(o)))
           }
         }
       }

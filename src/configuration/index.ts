@@ -188,10 +188,10 @@ export default class Configurations {
     return undefined
   }
 
-  public parseConfigurationModel(filepath: string | undefined): ConfigurationModel {
+  public parseConfigurationModel(filepath: string | undefined, filecontents?: string): ConfigurationModel {
     if (!filepath || !fs.existsSync(filepath)) return new ConfigurationModel()
     let parser = new ConfigurationModelParser(filepath)
-    let content = fs.readFileSync(filepath, 'utf8')
+    let content = filecontents || fs.readFileSync(filepath, 'utf8')
     let uri = URI.file(filepath).toString()
     parser.parse(content)
     if (!isFalsyOrEmpty(parser.errors)) {
@@ -240,8 +240,14 @@ export default class Configurations {
   public addFolderFile(configFilePath: string, fromCwd = false, resource?: string): boolean {
     let folder = normalizeFilePath(path.resolve(configFilePath, '../..'))
     if (this._configuration.hasFolder(folder) || !fs.existsSync(configFilePath)) return false
+    let configFile: string
+    try {
+      configFile = fs.readFileSync(configFilePath, 'utf8')
+    } catch (_err) {
+      return false
+    }
     this.watchFile(configFilePath, ConfigurationTarget.WorkspaceFolder)
-    let model = this.parseConfigurationModel(configFilePath)
+    let model = this.parseConfigurationModel(configFilePath, configFile)
     this._configuration.addFolderConfiguration(folder, model, resource)
     logger.info(`Add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, configFilePath)
     return true

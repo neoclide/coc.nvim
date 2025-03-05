@@ -6,8 +6,7 @@ import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, On
 import {
   DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
 } from '../util/protocol'
-import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
+import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
 import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentFormattingEditsSignature {
@@ -108,7 +107,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideDocumentFormattingEdits: ProvideDocumentFormattingEditsSignature = (document, options, token) => {
           const params: DocumentFormattingParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             options
           }
           return this.sendRequest(DocumentFormattingRequest.type, params, token)
@@ -121,7 +120,8 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
     }
 
     return [
-      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority),
+      // We need to pass the originaly registered extension name to keep track of it.
+      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority, this._client.registeredExtensionName),
       provider
     ]
   }
@@ -163,7 +163,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
         const client = this._client
         const provideDocumentRangeFormattingEdits: ProvideDocumentRangeFormattingEditsSignature = (document, range, options, token) => {
           const params: DocumentRangeFormattingParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             range,
             options,
           }
@@ -176,7 +176,11 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
       }
     }
 
-    return [languages.registerDocumentRangeFormatProvider(options.documentSelector, provider), provider]
+    return [
+      // We need to pass the originaly registered extension name to keep track of it.
+      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined, this._client.registeredExtensionName),
+      provider
+    ]
   }
 }
 
@@ -209,7 +213,7 @@ export class DocumentOnTypeFormattingFeature extends TextDocumentLanguageFeature
         const client = this._client
         const provideOnTypeFormattingEdits: ProvideOnTypeFormattingEditsSignature = (document, position, ch, options, token) => {
           const params: DocumentOnTypeFormattingParams = {
-            textDocument: cv.asVersionedTextDocumentIdentifier(document),
+            textDocument: client.code2ProtocolConverter.asVersionedTextDocumentIdentifier(document),
             position,
             ch,
             options

@@ -631,6 +631,21 @@ describe('diagnostic manager', () => {
       await nvim.command('bd!')
       await helper.waitFor('eval', ['get(g:,"items",[])'], [])
     })
+
+    it('should send to vim.diagnostic', async () => {
+      helper.updateConfiguration('diagnostic.displayByVimDiagnostic', true)
+
+      let doc = await createDocument()
+      let buf = nvim.createBuffer(doc.bufnr)
+      let items = await buf.getVar('coc_diagnostic_map') as any
+      expect(items.length).toBe(5)
+
+      let res = await nvim.lua('return vim.diagnostic.get()') as any[]
+      expect(res.length).toBe(5)
+      expect(res[0].severity).toBe(1)
+      expect(res[0].message).toBe('error')
+      expect(res[1].source).toBe('test')
+    })
   })
 
   describe('severityLevel & getNameFromSeverity', () => {

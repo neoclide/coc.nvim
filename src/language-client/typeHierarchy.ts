@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, TypeHierarchyProvider } from '../provider'
 import { TypeHierarchyPrepareRequest, TypeHierarchySubtypesRequest, TypeHierarchySupertypesRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 
 export type PrepareTypeHierarchySignature = (this: void, document: TextDocument, position: Position, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
 export type TypeHierarchySupertypesSignature = (this: void, item: TypeHierarchyItem, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
@@ -46,7 +45,7 @@ export class TypeHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
     const provider = {
       prepareTypeHierarchy: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> => {
         const prepareTypeHierarchy: PrepareTypeHierarchySignature = (document, position, token) => {
-          const params = cv.asTextDocumentPositionParams(document, position)
+          const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position)
           return this.sendRequest(TypeHierarchyPrepareRequest.type, params, token)
         }
         const middleware = client.middleware!

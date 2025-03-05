@@ -527,11 +527,15 @@ describe('list sources', () => {
     })
 
     it('should do open action', async () => {
+      global.formatFilepath = function() {
+        return ''
+      }
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('open')
       let name = await nvim.eval('bufname("%")')
       expect(name).toMatch('sources.test.ts')
+      global.formatFilepath = undefined
     })
 
     it('should do quickfix action', async () => {
@@ -696,7 +700,7 @@ describe('list sources', () => {
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder1')
       jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
-        name : 'workspace-folder1',
+        name: 'workspace-folder1',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])
@@ -721,7 +725,7 @@ describe('list sources', () => {
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder4')
       jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
-        name : 'workspace-folder4',
+        name: 'workspace-folder4',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])

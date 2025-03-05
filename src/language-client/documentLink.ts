@@ -64,7 +64,7 @@ export class DocumentLinkFeature extends TextDocumentLanguageFeature<DocumentLin
         const provideDocumentLinks: ProvideDocumentLinksSignature = (document, token) => {
           return this.sendRequest(
             DocumentLinkRequest.type,
-            { textDocument: { uri: document.uri } },
+            client.code2ProtocolConverter.asDocumentLinkParams(document),
             token
           )
         }

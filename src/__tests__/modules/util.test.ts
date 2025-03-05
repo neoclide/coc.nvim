@@ -113,6 +113,33 @@ console.warn('warn')`, sandbox)
     expect(fn).toBeCalledTimes(5)
   })
 
+  it('should create console', () => {
+    let res = factory.createConsole({ x: 1 }, {} as any)
+    expect(res).toEqual({ x: 1 })
+    let called = false
+    let val = 1
+    res = factory.createConsole({
+      warn: () => {
+      },
+      custom: () => {
+        val = 2
+      }
+    }, {
+      warn: () => {
+        called = true
+      }
+    } as any)
+      ; (res as any).custom()
+      ; (res as Console).warn()
+    expect(val).toBe(1)
+    expect(called).toBe(true)
+  })
+
+  it('should copy properties', () => {
+    let obj = factory.copyGlobalProperties({} as any, global)
+    expect(typeof obj['fetch']).toBe('function')
+  })
+
   it('should not throw process.chdir', () => {
     const sandbox = factory.createSandbox(logfile, emptyLogger)
     let res = vm.runInContext(`process.chdir()`, sandbox)

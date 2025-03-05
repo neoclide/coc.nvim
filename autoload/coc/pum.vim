@@ -8,9 +8,6 @@ let s:pum_size = 0
 let s:inserted = 0
 let s:virtual_text = 0
 let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
-let s:ignore = s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
-let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
-let s:virtual_text_support = has('nvim-0.5.0') || has('patch-9.0.0067')
 " bufnr, &indentkeys
 let s:saved_indenetkeys = []
 let s:saved_textwidth = []
@@ -19,11 +16,15 @@ let s:reversed = 0
 let s:check_hl_group = 0
 let s:start_col = -1
 
-if s:is_vim && s:virtual_text_support
+if s:is_vim
   if empty(prop_type_get('CocPumVirtualText'))
     call prop_type_add('CocPumVirtualText', {'highlight': 'CocPumVirtualText'})
   endif
 endif
+
+function! coc#pum#has_item_selected() abort
+    return coc#pum#visible() && s:pum_index != -1
+endfunction
 
 function! coc#pum#visible() abort
   if s:pum_winid == -1
@@ -214,7 +215,7 @@ function! coc#pum#scroll(forward) abort
     endif
   endif
   " Required on old version vim/neovim.
-  return s:ignore
+  return "\<Ignore>"
 endfunction
 
 function! s:get_height(winid) abort
@@ -316,25 +317,20 @@ function! s:insert_word(word, finish) abort
     endif
     " should not be used on finish to have correct line.
     if s:is_vim && !a:finish
-      call coc#pum#repalce(s:start_col + 1, a:word, 1)
+      call coc#pum#replace(s:start_col + 1, a:word, 1)
     else
       let saved_completeopt = &completeopt
       noa set completeopt=menu
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
       " exit complete state
-      if s:hide_pum
-        call feedkeys("\<C-x>\<C-z>", 'in')
-      else
-        let g:coc_disable_space_report = 1
-        call feedkeys("\<space>\<bs>", 'in')
-      endif
+      call feedkeys("\<C-x>\<C-z>", 'in')
       execute 'noa set completeopt='.saved_completeopt
     endif
   endif
 endfunction
 
 " Replace from col to cursor col with new characters
-function! coc#pum#repalce(col, insert, ...) abort
+function! coc#pum#replace(col, insert, ...) abort
   let insert = a:insert
   let curr = getline('.')
   let removed = strpart(curr, a:col - 1, col('.') - a:col)
@@ -379,7 +375,7 @@ function! coc#pum#create(lines, opt, config) abort
     return
   endif
   let s:reversed = get(a:config, 'reverse', 0) && config['row'] < 0
-  let s:virtual_text = s:virtual_text_support && a:opt['virtualText']
+  let s:virtual_text = a:opt['virtualText']
   let s:pum_size = len(a:lines)
   let s:pum_index = a:opt['index']
   let lnum = s:index_to_lnum(s:pum_index)
@@ -593,14 +589,12 @@ function! s:insert_virtual_text() abort
 endfunction
 
 function! s:clear_virtual_text() abort
-  if s:virtual_text_support
-    if s:is_vim
-      if s:prop_id != 0
-        call prop_remove({'id': s:prop_id})
-      endif
-    else
-      call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
+  if s:is_vim
+    if s:prop_id != 0
+      call prop_remove({'id': s:prop_id})
     endif
+  else
+    call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
   endif
 endfunction
 

@@ -225,14 +225,12 @@ describe('codeLenes featrue', () => {
     await nvim.call('setline', [1, arr])
     await doc.synchronize()
     await codeLens.checkProvider()
-    await nvim.command('normal! gg')
-    await nvim.command('normal! G')
-    await helper.wait(100)
-    let buf = codeLens.buffers.getItem(doc.bufnr)
-    let codelens = buf.currentCodeLens
-    expect(codelens).toBeDefined()
-    expect(codelens[0].command).toBeDefined()
-    expect(codelens[1].command).toBeDefined()
+    await nvim.command('normal! ggG')
+    let bufnr = doc.bufnr
+    await helper.waitValue(() => {
+      let buf = codeLens.buffers.getItem(bufnr)
+      return buf && buf.currentCodeLens && buf.currentCodeLens[0].command != null
+    }, true)
   })
 
   it('should use picker for multiple codeLenses', async () => {

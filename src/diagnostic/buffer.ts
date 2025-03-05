@@ -1,17 +1,21 @@
 'use strict'
 import type { Buffer, Neovim, VirtualTextOption } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, Location, Position, TextEdit } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DiagnosticWithFileType, DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
 import { getConditionValue } from '../util'
+import { stripAnsiColoring } from '../util/ansiparse'
 import { isFalsyOrEmpty } from '../util/array'
+import { path } from '../util/node'
 import { lineInRange, positionInRange } from '../util/position'
 import { Emitter, Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
+import { DiagnosticItem } from './manager'
+import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -112,6 +116,7 @@ export class DiagnosticBuffer implements SyncItem {
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
+      displayByVimDiagnostic: config.get<boolean>('displayByVimDiagnostic', false),
       level: severityLevel(config.get<string>('level', 'hint')),
       locationlistLevel: severityLevel(config.get<string>('locationlistLevel')),
       signLevel: severityLevel(config.get<string>('signLevel')),
@@ -123,6 +128,7 @@ export class DiagnosticBuffer implements SyncItem {
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
+      showRelatedInformation: config.get<boolean>('showRelatedInformation', true),
     }
     if (this._config.virtualText && !virtualTextSrcId) {
       void this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
@@ -182,6 +188,10 @@ export class DiagnosticBuffer implements SyncItem {
 
   private get displayByAle(): boolean {
     return this._config.displayByAle
+  }
+
+  private get displayByVimDiagnostic(): boolean {
+    return this.nvim.isVim === false && this._config.displayByVimDiagnostic
   }
 
   public clearHighlight(collection: string): void {
@@ -283,7 +293,7 @@ export class DiagnosticBuffer implements SyncItem {
    */
   public async echoMessage(truncate = false, position: Position, target?: string): Promise<boolean> {
     const config = this.config
-    if (!config.enable || config.enableMessage === 'never' || config.displayByAle) return false
+    if (!config.enable || config.enableMessage === 'never' || this.displayByAle || this.displayByVimDiagnostic) return false
     if (!target) target = config.messageTarget
     let useFloat = target == 'float'
     let diagnostics = this.getDiagnosticsAtPosition(position)
@@ -351,10 +361,26 @@ export class DiagnosticBuffer implements SyncItem {
       } else {
         filetype = ft
       }
-      docs.push({ filetype, content: formatDiagnostic(config.format, diagnostic) })
-      if (diagnostic.codeDescription?.href) {
-        docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
+      let msg = diagnostic.message
+      let link = diagnostic.codeDescription?.href ?? ''
+      if (config.showRelatedInformation && diagnostic.relatedInformation?.length) {
+        msg = `${diagnostic.message}\n\nRelated information:\n`
+        for (const info of diagnostic.relatedInformation) {
+          const fsPath = URI.parse(info.location.uri).fsPath
+          const basename = path.basename(fsPath)
+          const line = info.location.range.start.line + 1
+          const column = info.location.range.start.character + 1
+          msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`
+        }
+        msg = msg + "\n\n"
       }
+      docs.push({
+        filetype, content: formatDiagnostic(config.format, {
+          ...diagnostic,
+          message: msg
+        })
+      })
+      if (link) docs.push({ filetype: 'txt', content: link })
     })
     await floatFactory.show(docs, this.config.floatConfig)
     return true
@@ -380,7 +406,7 @@ export class DiagnosticBuffer implements SyncItem {
    * Refresh changed diagnostics to UI.
    */
   private refresh(diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>>, info: DiagnosticInfo): void {
-    let { nvim, displayByAle } = this
+    let { nvim, displayByAle, displayByVimDiagnostic } = this
     for (let collection of diagnosticsMap.keys()) {
       this._dirties.delete(collection)
     }
@@ -389,6 +415,10 @@ export class DiagnosticBuffer implements SyncItem {
       for (let [collection, diagnostics] of diagnosticsMap.entries()) {
         this.refreshAle(collection, diagnostics)
       }
+      nvim.resumeNotification(true, true)
+    } else if (displayByVimDiagnostic) {
+      nvim.pauseNotification()
+      this.setDiagnosticInfo(true)
       nvim.resumeNotification(true, true)
     } else {
       let emptyCollections: string[] = []
@@ -453,9 +483,10 @@ export class DiagnosticBuffer implements SyncItem {
     this.nvim.call('coc#ui#update_signs', [this.bufnr, group, signs], true)
   }
 
-  public setDiagnosticInfo(): void {
+  public setDiagnosticInfo(full = false): void {
     let lnums = [0, 0, 0, 0]
     let info = { error: 0, warning: 0, information: 0, hint: 0, lnums }
+    let items: DiagnosticItem[] = []
     for (let diagnostics of this.diagnosticsMap.values()) {
       for (let diagnostic of diagnostics) {
         let lnum = diagnostic.range.start.line + 1
@@ -476,10 +507,28 @@ export class DiagnosticBuffer implements SyncItem {
             lnums[0] = lnums[0] ? Math.min(lnums[0], lnum) : lnum
             info.error = info.error + 1
         }
+
+        if (full) {
+          let { start, end } = diagnostic.range
+          items.push({
+            file: URI.parse(this.doc.uri).fsPath,
+            lnum: start.line + 1,
+            end_lnum: end.line + 1,
+            col: start.character + 1,
+            end_col: end.character + 1,
+            code: diagnostic.code,
+            source: diagnostic.source,
+            message: diagnostic.message,
+            severity: getSeverityName(diagnostic.severity),
+            level: diagnostic.severity ?? 0,
+            location: Location.create(this.doc.uri, diagnostic.range)
+          })
+        }
       }
     }
     let buf = this.nvim.createBuffer(this.bufnr)
     buf.setVar('coc_diagnostic_info', info, true)
+    buf.setVar('coc_diagnostic_map', items, true)
     this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
   }
 
@@ -515,10 +564,11 @@ export class DiagnosticBuffer implements SyncItem {
         .slice(0, this._config.virtualTextLines)
         .join(this._config.virtualTextLineSeparator)
       let arr = map.get(line) ?? []
-      arr.unshift([virtualTextPrefix + formatDiagnostic(this._config.virtualTextFormat, {
+      const formattedDiagnostic = formatDiagnostic(this._config.virtualTextFormat, {
         ...diagnostic,
         message: msg
-      }), highlight])
+      })
+      arr.unshift([virtualTextPrefix + stripAnsiColoring(formattedDiagnostic), highlight])
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {
@@ -559,8 +609,10 @@ export class DiagnosticBuffer implements SyncItem {
     let res: HighlightItem[] = []
     for (let i = 0; i < Math.min(this._config.highlightLimit, diagnostics.length); i++) {
       let diagnostic = diagnostics[i]
-      let hlGroup = getHighlightGroup(diagnostic)
-      this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      let hlGroups = getHighlightGroup(diagnostic)
+      for (const hlGroup of hlGroups) {
+        this.doc.addHighlights(res, hlGroup, diagnostic.range)
+      }
     }
     // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
@@ -586,6 +638,7 @@ export class DiagnosticBuffer implements SyncItem {
     } else {
       nvim.pauseNotification()
       this.buffer.deleteVar('coc_diagnostic_info')
+      this.buffer.deleteVar('coc_diagnostic_map')
       for (let collection of collections) {
         this.clearHighlight(collection)
         this.clearSigns(collection)

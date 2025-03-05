@@ -7,7 +7,6 @@ import { ProviderResult, RenameProvider } from '../provider'
 import * as Is from '../util/is'
 import { PrepareRenameRequest, PrepareSupportDefaultBehavior, RenameRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 interface DefaultBehavior {
@@ -81,7 +80,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
         const client = this._client
         const provideRenameEdits: ProvideRenameEditsSignature = (document, position, newName, token) => {
           const params: RenameParams = {
-            textDocument: { uri: document.uri },
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
             position,
             newName
           }
@@ -97,7 +96,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
           const client = this._client
           const prepareRename: PrepareRenameSignature = (document, position, token) => {
             const params: TextDocumentPositionParams = {
-              textDocument: cv.asTextDocumentIdentifier(document),
+              textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
               position
             }
             return this.sendRequest(PrepareRenameRequest.type, params, token).then(result => {
