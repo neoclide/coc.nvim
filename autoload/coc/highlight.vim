@@ -172,7 +172,6 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
     return
   endif
   let ns = coc#highlight#create_namespace(a:key)
-  let g:c = 1
   if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   else

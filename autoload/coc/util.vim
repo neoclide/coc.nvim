@@ -206,6 +206,17 @@ function! s:safer_open(cmd, file) abort
     exe 'keepjumps buffer ' . buf
   else
     if a:cmd =~# 'drop'
+      if a:cmd ==# 'tab drop' && bufexists(a:file)
+        let bufnr = bufnr(a:file)
+        if bufnr == bufnr('%')
+          return
+        endif
+        let winid = coc#window#buf_winid(bufnr)
+        if winid != -1
+          call win_gotoid(winid)
+          return
+        endif
+      endif
       let saved = &wildignore
       set wildignore=
       execute a:cmd.' '.fnameescape(a:file)
@@ -271,6 +282,7 @@ function! coc#util#vim_info()
         \ 'version': coc#util#version(),
         \ 'pumevent': 1,
         \ 'dialog': 1,
+        \ 'unixPrefix': s:win32unix_prefix,
         \ 'jumpAutocmd': coc#util#check_jump_autocmd(),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': s:is_win32unix ? v:true : v:false,
@@ -286,6 +298,7 @@ function! coc#util#vim_info()
         \ 'pumwidth': exists('&pumwidth') ? &pumwidth : 15,
         \ 'tabCount': tabpagenr('$'),
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
+        \ 'virtualText': v:true,
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') ? v:true : v:false,

@@ -24662,12 +24662,10 @@ function isHighlightGroupCharCode(code) {
 function isEmojiImprecise(x) {
   return x >= 127462 && x <= 127487 || x === 8986 || x === 8987 || x === 9200 || x === 9203 || x >= 9728 && x <= 10175 || x === 11088 || x === 11093 || x >= 127744 && x <= 128591 || x >= 128640 && x <= 128764 || x >= 128992 && x <= 129008 || x >= 129280 && x <= 129535 || x >= 129648 && x <= 129782;
 }
-function getCharIndexes(input, character) {
-  let res = [];
+function* iterateCharacter(input, character) {
   for (let i = 0; i < input.length; i++) {
-    if (input[i] == character) res.push(i);
+    if (input[i] == character) yield i;
   }
-  return res;
 }
 function isHighSurrogate(codePoint) {
   return codePoint >= 55296 && codePoint <= 56319;
@@ -44602,6 +44600,10 @@ var init_documents = __esm({
           }
         }
       }
+      fixUnixPrefix(filepath, prefix) {
+        if (!this._env.isCygwin || !/^\w:/.test(filepath)) return filepath;
+        return prefix + filepath[0].toLowerCase() + filepath.slice(2).replace(/\\/g, "/");
+      }
       /**
        * Convert location to quickfix item.
        */
@@ -44620,7 +44622,7 @@ var init_documents = __esm({
         let endLine = start.line == end.line ? text : await this.getLine(uri, end.line);
         let item = {
           uri,
-          filename: u.scheme == "file" ? u.fsPath : uri,
+          filename: u.scheme == "file" ? this.fixUnixPrefix(u.fsPath, this._env.unixPrefix) : uri,
           lnum: start.line + 1,
           end_lnum: end.line + 1,
           col: text ? byteIndex(text, start.character) + 1 : start.character + 1,
@@ -47983,6 +47985,7 @@ var init_workspace = __esm({
     ];
     Workspace = class {
       constructor() {
+        this.isTrusted = true;
         this.statusLine = new StatusLine();
         void initFuzzyWasm().then((api) => {
           this.fuzzyExports = api;
@@ -50425,18 +50428,26 @@ var init_parser3 = __esm({
         let ret = "";
         let backslashIndexes = [];
         for (const marker of this._children) {
+          let val = "";
+          let len = ret.length;
           if (marker instanceof FormatString) {
-            let val = marker.resolve(groups[marker.index] || "");
+            val = marker.resolve(groups[marker.index] ?? "");
             if (this.ultisnip && val.indexOf("\\") !== -1) {
-              let s = ret.length;
-              backslashIndexes.push(...getCharIndexes(val, "\\").map((i) => i + s));
+              for (let idx of iterateCharacter(val, "\\")) {
+                backslashIndexes.push(len + idx);
+              }
             }
-            ret += val;
           } else if (marker instanceof ConditionString) {
-            ret += marker.resolve(groups[marker.index]);
+            val = marker.resolve(groups[marker.index]);
+            if (this.ultisnip) {
+              val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
+                return groups[Number(args[1])] ?? "";
+              });
+            }
           } else {
-            ret += marker.toString();
+            val = marker.toString();
           }
+          ret += val;
         }
         if (this.ascii) ret = unidecode(ret);
         return this.ultisnip ? transformEscapes(ret, backslashIndexes) : ret;
@@ -52406,14 +52417,14 @@ var init_buffer = __esm({
     init_esm();
     init_events();
     init_util();
+    init_ansiparse();
     init_array();
+    init_node();
     init_position();
     init_protocol();
     init_window();
-    init_node();
     init_workspace();
     init_util4();
-    init_ansiparse();
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
     hlGroups = ["CocErrorHighlight", "CocWarningHighlight", "CocInfoHighlight", "CocHintHighlight", "CocDeprecatedHighlight", "CocUnusedHighlight"];
@@ -52717,13 +52728,14 @@ Related information:
             }
             msg = msg + "\n\n";
           }
-          docs.push({ filetype, content: formatDiagnostic(config.format, {
-            ...diagnostic,
-            message: msg
-          }) });
-          if (link) {
-            docs.push({ filetype: "txt", content: link });
-          }
+          docs.push({
+            filetype,
+            content: formatDiagnostic(config.format, {
+              ...diagnostic,
+              message: msg
+            })
+          });
+          if (link) docs.push({ filetype: "txt", content: link });
         });
         await floatFactory.show(docs, this.config.floatConfig);
         return true;
@@ -81829,6 +81841,7 @@ var init_complete = __esm({
         this.names = [];
         this.cid = 0;
         this.minCharacter = Number.MAX_SAFE_INTEGER;
+        this.completingSources = /* @__PURE__ */ new Set();
         this._onDidRefresh = new import_node3.Emitter();
         this.tokenSources = /* @__PURE__ */ new Set();
         this.tokensInfo = /* @__PURE__ */ new WeakMap();
@@ -81921,8 +81934,7 @@ var init_complete = __esm({
         const token = tokenSource.token;
         if (token.isCancellationRequested) return;
         this._completing = true;
-        const remains = /* @__PURE__ */ new Set();
-        sources.forEach((s) => remains.add(s.name));
+        const remains = new Set(sources.map((s) => s.name));
         let timer;
         let disposable;
         let tp = new Promise((resolve) => {
@@ -81942,8 +81954,8 @@ var init_complete = __esm({
         const range = this.getDefaultRange();
         let promises = sources.map((s) => this.completeSource(s, range, token).then((added) => {
           remains.delete(s.name);
-          if (token.isCancellationRequested || cid != 0 || this.cid > 0 && this._completing) return;
-          if (remains.size === 0) {
+          if (token.isCancellationRequested) return;
+          if (this.completingSources.size === 0) {
             this.fireRefresh(0);
           } else if (added) {
             this.fireRefresh(16);
@@ -81961,6 +81973,7 @@ var init_complete = __esm({
         const insertMode = this.config.insertMode;
         const sourceName = source.name;
         let added = false;
+        this.completingSources.add(sourceName);
         try {
           if (func(source.shouldComplete)) {
             let shouldRun = await Promise.resolve(source.shouldComplete(opt));
@@ -82008,13 +82021,13 @@ var init_complete = __esm({
         } catch (err) {
           logger45.error("Complete error:", source.name, err);
         }
+        this.completingSources.delete(sourceName);
         return added;
       }
       async completeInComplete(resumeInput) {
         let { document: document2 } = this;
         this.cancelInComplete();
         let tokenSource = this.createTokenSource(true);
-        let token = tokenSource.token;
         await document2.patchChange(true);
         let { input, colnr, linenr, followWord, position } = this.option;
         Object.assign(this.option, {
@@ -82029,8 +82042,6 @@ var init_complete = __esm({
         this.cid++;
         const sources = this.getIncompleteSources();
         await this.completeSources(sources, tokenSource, this.cid);
-        if (token.isCancellationRequested) return void 0;
-        return this.filterItems(resumeInput);
       }
       filterItems(input) {
         let { results, names, option, inputStart } = this;
@@ -82086,10 +82097,12 @@ var init_complete = __esm({
         return this.limitCompleteItems(arr.slice(0, maxItemCount));
       }
       async filterResults(input) {
-        clearTimeout(this.timer);
-        if (input !== this.option.input && this.hasInComplete) {
-          return await this.completeInComplete(input);
+        if (input.length > this.option.input.length && this.hasInComplete) {
+          this.fireRefresh(30);
+          void this.completeInComplete(input);
+          return void 0;
         }
+        clearTimeout(this.timer);
         return this.filterItems(input);
       }
       limitCompleteItems(items) {
@@ -82361,7 +82374,7 @@ var init_pum = __esm({
         }
         if (selectedIndex !== -1 && search.length > 0) {
           let item = items[selectedIndex];
-          if (!item.word.startsWith(search)) {
+          if (!item.word.startsWith(search) && !item.filterText.startsWith(search)) {
             selectedIndex = -1;
           }
         }
@@ -82603,8 +82616,8 @@ var init_completion2 = __esm({
         this.pum = new PopupMenu(this.staticConfig, this._mru);
         this.floating = new Floating(this.staticConfig);
         this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE);
-        events_default.on("CursorMoved", () => {
-          this.stop(true);
+        events_default.on("CursorMoved", async () => {
+          this.cancelAndClose();
         }, null, this.disposables);
         events_default.on("PumNavigate", () => {
           this.complete?.cancel();
@@ -82614,7 +82627,7 @@ var init_completion2 = __esm({
           clearTimeout(this.triggerTimer);
         }, null, this.disposables);
         events_default.on("CompleteStop", async (kind) => {
-          await this.stopAwaitable(false, kind);
+          await this.stop(false, kind);
         }, null, this.disposables);
         events_default.on("InsertEnter", this.onInsertEnter, this, this.disposables);
         events_default.on("TextChangedI", this.onTextChangedI, this, this.disposables);
@@ -82656,7 +82669,7 @@ var init_completion2 = __esm({
             }
           }
         }
-        this.stop(true);
+        this.cancelAndClose();
       }
       get option() {
         if (!this.complete) return null;
@@ -82750,7 +82763,7 @@ var init_completion2 = __esm({
         let doc = workspace_default.getAttachedDocument(option.bufnr);
         option.filetype = doc.filetype;
         logger47.debug("trigger completion with", option);
-        this.stop(true);
+        this.cancelAndClose();
         this.pretext = byteSlice(option.line, 0, option.colnr - 1);
         sourceList = sourceList ?? sources_default.getSources(option);
         if (isFalsyOrEmpty(sourceList)) return;
@@ -82764,14 +82777,14 @@ var init_completion2 = __esm({
         complete.onDidRefresh(async () => {
           clearTimeout(this.triggerTimer);
           if (complete.isEmpty) {
-            this.stop(false);
+            this.cancel();
             return;
           }
           if (this.inserted) return;
           await this.filterResults();
         });
         let shouldStop2 = await complete.doComplete();
-        if (shouldStop2) this.stop(false);
+        if (shouldStop2) this.cancel();
       }
       async onTextChangedP(_bufnr, info) {
         if (!info.insertChar && this.complete) {
@@ -82802,7 +82815,7 @@ var init_completion2 = __esm({
             return;
           }
           if (shouldStop(bufnr, info, option) || filterOnBackspace === false && info.pre.length < this.pretext.length) {
-            this.stop(true);
+            this.cancelAndClose();
           }
         }
         if (info.pre === this.pretext) return;
@@ -82819,8 +82832,8 @@ var init_completion2 = __esm({
           if (result && sources_default.shouldCommit(result.source, result.item, last)) {
             logger47.debug("commit by commit character.");
             let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
-            this.stop(true);
             this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word + info.insertChar], true);
+            await this.stop(true);
             return;
           }
         }
@@ -82883,10 +82896,12 @@ var init_completion2 = __esm({
           triggerCharacter: manual ? void 0 : toText(pre[pre.length - 1])
         };
       }
-      stop(close, kind = "" /* Normal */) {
-        void this.stopAwaitable(close, kind);
+      // Void CompleteDone logic
+      cancelAndClose() {
+        this.cancel();
+        this.nvim.call("coc#pum#_close", [], true);
       }
-      async stopAwaitable(close, kind = "" /* Normal */) {
+      async stop(close, kind = "" /* Normal */) {
         let { complete } = this;
         if (complete == null) return;
         let inserted = kind === "confirm" /* Confirm */ || this.popupEvent?.inserted && kind != "cancel" /* Cancel */;
@@ -82901,16 +82916,14 @@ var init_completion2 = __esm({
         events_default.completing = false;
         this.cancel();
         doc._forceSync();
-        const completeDone = events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item)]);
+        void events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item)]);
         if (close) this.nvim.call("coc#pum#_close", [], true);
         if (resolved && inserted) {
           this._mru.add(line.slice(character, inputStart) + input, item);
         }
-        let confirmDone = Promise.resolve();
         if (kind == "confirm" /* Confirm */ && resolved) {
-          confirmDone = this.confirmCompletion(resolved.source, resolved.item, option);
+          await this.confirmCompletion(resolved.source, resolved.item, option);
         }
-        await Promise.all([completeDone, confirmDone]);
       }
       async confirmCompletion(source, item, option) {
         await this.floating.resolveItem(source, item, option, false);
@@ -82937,8 +82950,8 @@ var init_completion2 = __esm({
       async filterResults(info) {
         let { complete, option, pretext } = this;
         let search = getResumeInput(option, pretext);
-        if (search == null) {
-          this.stop(true);
+        if (search == null || !complete) {
+          this.cancelAndClose();
           return;
         }
         let items = await complete.filterResults(search);
@@ -82954,7 +82967,7 @@ var init_completion2 = __esm({
         if (items.length == 0) {
           let last = search.slice(-1);
           if (!complete.isCompleting || last.length === 0 || !doc.chars.isKeywordChar(last)) {
-            this.stop(true);
+            this.cancelAndClose();
           }
           return;
         }
@@ -89629,7 +89642,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7b8be9ea 2025-03-03 17:38:45 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-7a756858 2025-03-05 14:06:49 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89760,6 +89773,12 @@ var init_handler = __esm({
           id: ["workbench.action.reloadWindow", "editor.action.restart"],
           execute: () => {
             this.nvim.command("CocRestart", true);
+          }
+        }, true);
+        commands_default.register({
+          id: "workbench.action.openSettingsJson",
+          execute: () => {
+            this.nvim.command("CocConfig", true);
           }
         }, true);
         this.register("vscode.open", async (url) => {
