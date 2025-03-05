@@ -176,6 +176,16 @@ function! coc#window#bufnrs() abort
   return uniq(map(winids, 'winbufnr(v:val)'))
 endfunction
 
+function! coc#window#buf_winid(bufnr) abort
+  let winids = map(getwininfo(), 'v:val["winid"]')
+  for winid in winids
+    if winbufnr(winid) == a:bufnr
+      return winid
+    endif
+  endfor
+  return -1
+endfunction
+
 " Avoid errors
 function! coc#window#close(winid) abort
   if empty(a:winid) || a:winid == -1

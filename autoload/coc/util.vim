@@ -206,6 +206,17 @@ function! s:safer_open(cmd, file) abort
     exe 'keepjumps buffer ' . buf
   else
     if a:cmd =~# 'drop'
+      if a:cmd ==# 'tab drop' && bufexists(a:file)
+        let bufnr = bufnr(a:file)
+        if bufnr == bufnr('%')
+          return
+        endif
+        let winid = coc#window#buf_winid(bufnr)
+        if winid != -1
+          call win_gotoid(winid)
+          return
+        endif
+      endif
       let saved = &wildignore
       set wildignore=
       execute a:cmd.' '.fnameescape(a:file)
