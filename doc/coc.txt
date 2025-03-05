@@ -872,13 +872,18 @@ Use |coc-config-signature| to change default signature help behavior.
 INLAY HINT 						*coc-inlayHint*
 
 Inlay hint is enabled for all filetypes by default.  Inlay hint uses virtual
-text which requires neovim >= 0.10.0 or vim >= 9.0.0067.
+text feature of vim.
 
 Note: you may need configure extension or languageserver to make inlay hint
 works.
 
-To temporarily toggle inlay hint of current buffer, use command
-`:CocCommand document.toggleInlayHint`
+To temporarily toggle inlay hint specific buffer, use command: >
+
+	:CocCommand document.enableInlayHint {bufnr}
+	:CocCommand document.disableInlayHint {bufnr}
+	:CocCommand document.toggleInlayHint {bufnr}
+<
+current bufnr is used when `{bufnr}` not specified.
 
 Change highlight group: ~
 

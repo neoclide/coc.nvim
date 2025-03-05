@@ -492,8 +492,7 @@ describe('Client integration', () => {
       fireRefresh = true
     })
     await client.sendNotification('fireCodeLensRefresh')
-    await helper.wait(50)
-    expect(fireRefresh).toBe(true)
+    await helper.waitValue(() => fireRefresh, true)
   })
 
   test('Progress', async () => {

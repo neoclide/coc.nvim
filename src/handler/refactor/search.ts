@@ -1,15 +1,16 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ChildProcess, spawn } from 'child_process'
+import type { ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 import { Range } from 'vscode-languageserver-types'
 import { createLogger } from '../../logger'
 import Highlighter from '../../model/highlighter'
 import { ansiparse } from '../../util/ansiparse'
 import { Mutex } from '../../util/mutex'
-import { path, readline } from '../../util/node'
+import { child_process, path, readline } from '../../util/node'
 import window from '../../window'
 import RefactorBuffer, { FileItem, FileItemDef } from './buffer'
+const { spawn } = child_process
 const logger = createLogger('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']

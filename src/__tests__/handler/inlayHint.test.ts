@@ -214,15 +214,15 @@ describe('InlayHint', () => {
     })
   })
 
-  describe('toggle inlayHint', () => {
+  describe('inlayHint setState', () => {
     it('should not throw when buffer not exists', async () => {
-      handler.toggle(9)
+      handler.setState('toggle', 9)
       await commands.executeCommand('document.toggleInlayHint', 9)
     })
 
     it('should show message when inlayHint not supported', async () => {
       let doc = await workspace.document
-      handler.toggle(doc.bufnr)
+      handler.setState('toggle', doc.bufnr)
       let cmdline = await helper.getCmdline()
       expect(cmdline).toMatch(/not\sfound/)
     })
@@ -232,7 +232,7 @@ describe('InlayHint', () => {
       let doc = await helper.createDocument()
       let disposable = await registerProvider('')
       disposables.push(disposable)
-      handler.toggle(doc.bufnr)
+      handler.setState('toggle', doc.bufnr)
       let cmdline = await helper.getCmdline()
       expect(cmdline).toMatch(/not\senabled/)
     })
@@ -241,8 +241,8 @@ describe('InlayHint', () => {
       let doc = await helper.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
-      handler.toggle(doc.bufnr)
-      handler.toggle(doc.bufnr)
+      handler.setState('toggle', doc.bufnr)
+      handler.setState('toggle', doc.bufnr)
       await helper.waitValue(async () => {
         let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
         return markers.length
