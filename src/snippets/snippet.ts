@@ -23,6 +23,7 @@ export interface CocSnippetPlaceholder {
   before: string
   // snippet text after
   after: string
+  nestCount: number
 }
 
 export class CocSnippet {
@@ -261,6 +262,7 @@ export class CocSnippet {
         character: position.line == 0 ? character + position.character : position.character
       }
       let index: number
+      let nestCount = 0
       if (p instanceof Snippets.Variable) {
         let key = p.name
         if (variableIndexMap.has(key)) {
@@ -272,12 +274,14 @@ export class CocSnippet {
         }
       } else {
         index = p.index
+        nestCount = p.nestedPlaceholderCount
       }
       const value = p.toString()
       const end = getEnd(position, value)
       let res: CocSnippetPlaceholder = {
         index,
         value,
+        nestCount,
         marker: p,
         transform: !!p.transform,
         range: Range.create(start, getEnd(start, value)),
@@ -459,7 +463,9 @@ export function shouldFormat(snippet: string): boolean {
   return false
 }
 
-export function comparePlaceholder(a: { primary: boolean, index: number }, b: { primary: boolean, index: number }): number {
+export function comparePlaceholder(a: { primary: boolean, index: number, nestCount: number }, b: { primary: boolean, index: number, nestCount: number }): number {
+  // check inner placeholder first
+  if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount
   if (a.primary !== b.primary) return a.primary ? -1 : 1
   if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1
   return a.index - b.index

@@ -334,6 +334,13 @@ export class Placeholder extends TransformableMarker {
       : undefined
   }
 
+  public get nestedPlaceholderCount(): number {
+    if (this.transform) return 0
+    return this._children.reduce((p, marker) => {
+      return p + (marker instanceof Placeholder ? 1 + marker.nestedPlaceholderCount : 0)
+    }, 0)
+  }
+
   public toTextmateString(): string {
     let transformString = ''
     if (this.transform) {

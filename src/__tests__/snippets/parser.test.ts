@@ -243,7 +243,6 @@ describe('SnippetParser', () => {
   test('Parser, TM text', () => {
     assertTextAndMarker('foo${1:bar}}', 'foobar}', Text, Placeholder, Text)
     assertTextAndMarker('foo${1:bar}${2:foo}}', 'foobarfoo}', Text, Placeholder, Placeholder, Text)
-
     assertTextAndMarker('foo${1:bar\\}${2:foo}}', 'foobar}foo', Text, Placeholder)
 
     let [, placeholder] = new SnippetParser().parse('foo${1:bar\\}${2:foo}}').children
@@ -1100,6 +1099,12 @@ describe('SnippetParser', () => {
   test('Snippet parser freeze #53144', function() {
     let snippet = new SnippetParser().parse('${1/(void$)|(.+)/${1:?-\treturn nil;}/}')
     assertMarker(snippet, Placeholder)
+  })
+
+  test('Placeholder nestedPlaceholderCount', function() {
+    let { children } = new SnippetParser().parse('${1:foo${2:bar}}')
+    let placeholder = children[0] as Placeholder
+    assert.equal(placeholder.nestedPlaceholderCount, 1)
   })
 
   test('snippets variable not resolved in JSON proposal #52931', function() {

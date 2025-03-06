@@ -295,8 +295,14 @@ describe('CocSnippet', () => {
     })
 
     it('should compares placeholders', () => {
-      expect(comparePlaceholder({ primary: false, index: 1 }, { primary: false, index: 0 })).toBe(-1)
-      expect(comparePlaceholder({ primary: true, index: 1 }, { primary: false, index: 1 })).toBe(-1)
+      let arr = [
+        { primary: false, index: 1, nestCount: 2 },
+        { primary: true, index: 2, nestCount: 1 },
+        { primary: false, index: 3, nestCount: 0 },
+      ]
+      arr.sort(comparePlaceholder)
+      let indexes = arr.map(p => p.index)
+      expect(indexes).toEqual([3, 2, 1])
     })
   })
 
