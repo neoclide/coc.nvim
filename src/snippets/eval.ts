@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Range } from '@chemzqm/neovim/lib/types'
-import { exec } from 'child_process'
+import { exec, ExecOptions } from 'child_process'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
 import { toText } from '../util/string'
@@ -40,7 +40,9 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr:
   }
 
   if (kind == 'shell') {
-    let res = await promisify(exec)(code)
+    let opts: ExecOptions = { windowsHide: true }
+    if (process.env.SHELL) opts.shell = process.env.shell
+    let res = await promisify(exec)(code, opts)
     return res.stdout.replace(/\s*$/, '')
   }
 

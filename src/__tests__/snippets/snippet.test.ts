@@ -4,7 +4,7 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { addPythonTryCatch, convertRegex, executePythonCode, getVariablesCode, UltiSnippetContext } from '../../snippets/eval'
+import { addPythonTryCatch, convertRegex, evalCode, executePythonCode, getVariablesCode, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet, Variable } from '../../snippets/parser'
 import { checkContentBefore, CocSnippet, comparePlaceholder, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -549,6 +549,17 @@ describe('CocSnippet', () => {
       let msg = await nvim.getVar('errmsg')
       expect(msg).toBeDefined()
       expect(msg).toMatch('INVALID_CODE')
+    })
+
+    it('should eval code', async () => {
+      let val = process.env.SHELL
+      process.env.SHELL = '/bin/sh'
+      let res = await evalCode(nvim, 'shell', 'echo foo', '')
+      expect(res).toBe('foo')
+      process.env.SHELL = undefined
+      res = await evalCode(nvim, 'shell', 'echo foo', '')
+      expect(res).toBe('foo')
+      process.env.SHELL = val
     })
 
     it('should parse comments', async () => {
