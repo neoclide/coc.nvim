@@ -18,7 +18,18 @@ describe('register handler', () => {
     expect(events.insertMode).toBe(true)
     await events.fire('CursorMoved', [1, [1, 1]])
     expect(events.insertMode).toBe(false)
-    expect(fn).toBeCalledTimes(2)
+    expect(fn).toHaveBeenCalledTimes(2)
+  })
+
+  it('should fire only once', async () => {
+    let fn = jest.fn()
+    events.once('ready', () => {
+      fn()
+    })
+    await events.fire('ready', [])
+    await events.fire('ready', [])
+    await events.fire('ready', [])
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should not add insertChar with TextChangedI after PumInsert', async () => {
@@ -50,7 +61,7 @@ describe('register handler', () => {
     spy.mockRestore()
     events.requesting = false
     events.timeout = 1000
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should on throw on handler error', async () => {

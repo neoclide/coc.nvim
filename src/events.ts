@@ -276,7 +276,7 @@ class Events {
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {
           let timer: NodeJS.Timeout
-          if (traceSlow) {
+          if (this.requesting || traceSlow) {
             timer = setTimeout(() => {
               console.error(`Slow "${event}" handler detected`, fn['stack'])
               logger.error(`Slow "${event}" handler detected`, fn['stack'])
@@ -285,8 +285,7 @@ class Events {
           try {
             await fn(args)
           } catch (e) {
-            let res = shouldIgnore(e)
-            if (!res) logger.error(`Error on event: ${event}`, e)
+            if (!shouldIgnore(e)) logger.error(`Error on event: ${event}`, e, fn['stack'])
           }
           clearTimeout(timer)
         }
@@ -326,26 +325,36 @@ class Events {
   public on(event: 'PlaceholderJump', handler: (bufnr: number, info: JumpInfo) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InputListSelect', handler: (index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: EmptyEvents, handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: AllEvents | AllEvents[], handler: (...args: unknown[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
+  public on(event: AllEvents | AllEvents[], handler: (...args: unknown[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable
+  public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable {
     if (Array.isArray(event)) {
-      let arr = disposables || []
+      let arr: Disposable[] = []
       for (let ev of event) {
         this.on(ev as any, handler, thisArg, arr)
       }
-      return Disposable.create(() => {
+      let dis = Disposable.create(() => {
         disposeAll(arr)
       })
+      if (Array.isArray(disposables)) {
+        disposables.push(dis)
+      }
+      return dis
     } else {
-      let arr = this.handlers.get(event) || []
+      let arr = this.handlers.get(event) ?? []
+      let onFinish = () => {
+        if (disposables === true && disposable) disposable.dispose()
+      }
       let wrappedhandler = args => new Promise((resolve, reject) => {
         try {
           Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
+            onFinish()
             resolve(undefined)
           }, e => {
+            onFinish()
             reject(e)
           })
         } catch (e) {
+          onFinish()
           reject(e)
         }
       })
@@ -363,6 +372,10 @@ class Events {
       }
       return disposable
     }
+  }
+
+  public once(event: AllEvents, handler: (...args: any[]) => Result, thisArg?: any): void {
+    this.on(event, handler, thisArg, true)
   }
 }
 
