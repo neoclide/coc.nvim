@@ -48139,6 +48139,9 @@ var init_workspace = __esm({
       get workspaceFolders() {
         return this.workspaceFolderControl.workspaceFolders;
       }
+      fixWin32unixFilepath(filepath) {
+        return this.documentsManager.fixUnixPrefix(filepath, this.env.unixPrefix);
+      }
       checkPatterns(patterns, folders) {
         return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns);
       }
@@ -50353,6 +50356,12 @@ var init_parser3 = __esm({
       }
       get choice() {
         return this._children.length === 1 && this._children[0] instanceof Choice ? this._children[0] : void 0;
+      }
+      get nestedPlaceholderCount() {
+        if (this.transform) return 0;
+        return this._children.reduce((p, marker) => {
+          return p + (marker instanceof _Placeholder ? 1 + marker.nestedPlaceholderCount : 0);
+        }, 0);
       }
       toTextmateString() {
         let transformString = "";
@@ -76946,6 +76955,7 @@ function shouldFormat(snippet) {
   return false;
 }
 function comparePlaceholder(a, b) {
+  if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount;
   if (a.primary !== b.primary) return a.primary ? -1 : 1;
   if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1;
   return a.index - b.index;
@@ -77168,6 +77178,7 @@ var init_snippet = __esm({
             character: position.line == 0 ? character + position.character : position.character
           };
           let index;
+          let nestCount = 0;
           if (p instanceof Variable) {
             let key = p.name;
             if (variableIndexMap.has(key)) {
@@ -77179,12 +77190,14 @@ var init_snippet = __esm({
             }
           } else {
             index = p.index;
+            nestCount = p.nestedPlaceholderCount;
           }
           const value = p.toString();
           const end = getEnd(position, value);
           let res = {
             index,
             value,
+            nestCount,
             marker: p,
             transform: !!p.transform,
             range: Range.create(start, getEnd(start, value)),
@@ -85596,16 +85609,26 @@ var init_buffer4 = __esm({
         if (Array.isArray(filetypes)) return filetypes.includes("*") || filetypes.includes(this.doc.filetype);
         return enable === true;
       }
-      toggle() {
+      enable() {
+        this.checkState();
+        this.config.display = true;
+        void this.renderRange();
+      }
+      disable() {
+        this.checkState();
+        this.config.display = false;
+        this.clearCache();
+        this.clearVirtualText();
+      }
+      checkState() {
         if (!languages_default.hasProvider("inlayHint" /* InlayHint */, this.doc.textDocument)) throw new Error("Inlay hint provider not found for current document");
         if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`);
+      }
+      toggle() {
         if (this.config.display) {
-          this.config.display = false;
-          this.clearCache();
-          this.clearVirtualText();
+          this.disable();
         } else {
-          this.config.display = true;
-          void this.renderRange();
+          this.enable();
         }
       }
       clearCache() {
@@ -85755,18 +85778,31 @@ var init_inlayHint2 = __esm({
         commands_default.register({
           id: "document.toggleInlayHint",
           execute: (bufnr) => {
-            return this.toggle(bufnr ?? workspace_default.bufnr);
+            this.setState("toggle", bufnr);
           }
         }, false, "toggle inlayHint display of current buffer");
+        commands_default.register({
+          id: "document.enableInlayHint",
+          execute: (bufnr) => {
+            this.setState("enable", bufnr);
+          }
+        }, false, "enable codeLens display of current buffer");
+        commands_default.register({
+          id: "document.disableInlayHint",
+          execute: (bufnr) => {
+            this.setState("disable", bufnr);
+          }
+        }, false, "disable codeLens display of current buffer");
         handler.addDisposable(import_node3.Disposable.create(() => {
           disposeAll(this.disposables);
         }));
       }
-      toggle(bufnr) {
-        let item = this.getItem(bufnr);
+      setState(method, bufnr) {
         try {
+          bufnr = bufnr ?? workspace_default.bufnr;
           workspace_default.getAttachedDocument(bufnr);
-          item.toggle();
+          let item = this.getItem(bufnr);
+          item[method]();
         } catch (e) {
           void window_default.showErrorMessage(e.message);
         }
@@ -86959,11 +86995,10 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_child_process2, import_events51, logger53, defaultArgs, controlCode2, Task2, Search;
+var import_events51, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
-    import_child_process2 = require("child_process");
     import_events51 = require("events");
     init_main();
     init_logger();
@@ -86972,12 +87007,13 @@ var init_search = __esm({
     init_mutex();
     init_node();
     init_window();
+    ({ spawn: spawn2 } = child_process);
     logger53 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
     Task2 = class extends import_events51.EventEmitter {
       start(cmd, args, cwd2) {
-        this.process = (0, import_child_process2.spawn)(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
+        this.process = spawn2(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
         this.process.on("error", (e) => {
           this.emit("error", e.message);
         });
@@ -89642,7 +89678,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7a756858 2025-03-05 14:06:49 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-130e60fc 2025-03-06 19:11:47 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

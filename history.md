@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2025-03-05
+
+- Export method `workspace.fixWin32unixFilepath` for filepath convert.
+- Add commands `document.enableInlayHint` and `document.disableInlayHint`.
+- Refresh popup menu when completing incomplete sources.
+
 ## 2025-03-04
 - Add VSCode command `workbench.action.openSettingsJson`.
 - Add `workspace.isTrusted` property.
