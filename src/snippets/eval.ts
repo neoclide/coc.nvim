@@ -28,6 +28,26 @@ export interface UltiSnippetContext {
    * Avoid python code eval when is true.
    */
   noPython?: boolean
+  /**
+   * Do not expand tabs
+   */
+  noExpand?: boolean
+  /**
+   * Trim all whitespaces from right side of snippet lines.
+   */
+  trimTrailingWhitespace?: boolean
+  /**
+   * Remove whitespace immediately before the cursor at the end of a line before jumping to the next tabstop
+   */
+  removeWhiteSpace?: boolean
+}
+
+export interface SnippetFormatOptions {
+  tabSize: number
+  insertSpaces: boolean
+  trimTrailingWhitespace?: boolean
+  // options from ultisnips context
+  noExpand?: boolean
 }
 
 /**

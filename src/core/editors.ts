@@ -206,7 +206,7 @@ export default class Editors {
   }
 
   private fromOptions(opts: EditorOption): TextEditor {
-    let { visibleRanges, bufnr } = opts
+    let { visibleRanges, bufnr, formatOptions } = opts
     let document = this.documents.getDocument(bufnr)
     return {
       id: `${opts.tabpageid}-${opts.winid}-${document.uri}`,
@@ -217,7 +217,7 @@ export default class Editors {
       bufnr: document.bufnr,
       document,
       visibleRanges: visibleRanges.map(o => Range.create(o[0] - 1, 0, o[1], 0)),
-      options: convertFormatOptions(opts.formatOptions)
+      options: convertFormatOptions(formatOptions)
     }
   }
 }

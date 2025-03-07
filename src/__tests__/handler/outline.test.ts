@@ -537,16 +537,14 @@ fun1() {}
 
     it('should auto hide outline on clicking', async () => {
       helper.updateConfiguration('outline.autoHide', true)
-
       await createBuffer()
       await symbols.showOutline()
       await helper.waitFor('getline', [3], '    m fun1 2')
       await nvim.command('exe 3')
       await nvim.input('<cr>')
-      await helper.wait(10)
-
-      let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      await helper.waitValue(async () => {
+        return await getOutlineBuffer()
+      }, undefined)
     })
 
     it('should not throw when outline does not exist', async () => {

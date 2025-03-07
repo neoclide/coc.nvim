@@ -533,6 +533,22 @@ describe('SnippetSession', () => {
       let col = await nvim.call('col', '.')
       expect(col).toBe(5)
     })
+
+    it('should remove white space on jump', async () => {
+      let session = await createSession()
+      let opts = {
+        removeWhiteSpace: true,
+        ...defaultContext
+      }
+      let res = await session.start('foo  $1\n${2:bar} $0', defaultRange, true, opts)
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('foo  ')
+      await session.nextPlaceholder()
+      expect(session.isActive).toBe(true)
+      let lines = await session.document.buffer.lines
+      expect(lines[0]).toBe('foo')
+    })
   })
 
   describe('previousPlaceholder()', () => {

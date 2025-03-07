@@ -12,7 +12,7 @@ import { Disposable } from '../util/protocol'
 import { Mutex } from '../util/mutex'
 import window from '../window'
 import workspace from '../workspace'
-import { UltiSnippetContext } from './eval'
+import { SnippetFormatOptions, UltiSnippetContext } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
@@ -41,7 +41,7 @@ export class SnippetManager {
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
       if (!this._statusItem) return
-      let session = this.getSession(e.document.bufnr)
+      let session = this.getSession(e.bufnr)
       if (session) {
         this.statusItem.show()
       } else {
@@ -99,7 +99,7 @@ export class SnippetManager {
       }
       const currentLine = doc.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
-      const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode)
+      const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip)
       if (ultisnip != null) {
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
         if (!emptyRange(range) && inserted.includes('`!p')) {
@@ -217,13 +217,17 @@ export class SnippetManager {
     return res
   }
 
-  public async normalizeInsertText(uri: string, snippetString: string, currentLine: string, insertTextMode: InsertTextMode): Promise<string> {
+  public async normalizeInsertText(uri: string, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
     let inserted = ''
     if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
       inserted = snippetString
     } else {
       const currentIndent = currentLine.match(/^\s*/)[0]
-      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(uri)
+      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(uri) as SnippetFormatOptions
+      let opts: Partial<UltiSnippetOption> = ultisnip ?? {}
+      // trim when option not exists
+      formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false
+      if (opts.noExpand) formatOptions.noExpand = true
       inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     }
     return inserted

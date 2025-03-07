@@ -1,18 +1,18 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { JumpInfo, TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
-import { equals } from '../util/object'
+import { deepClone, equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, rangeInRange } from '../util/position'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import events from '../events'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
@@ -37,6 +37,7 @@ export class SnippetSession {
   private tokenSource: CancellationTokenSource
   private disposable: Disposable
   public mutex = new Mutex()
+  private removeWhiteSpace = false
   private _applying = false
   private _isActive = false
   private _snippet: CocSnippet = null
@@ -59,6 +60,7 @@ export class SnippetSession {
     const { document } = this
     const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
+    if (context?.removeWhiteSpace) this.removeWhiteSpace = true
     if (placeholder) {
       // update all snippet.
       let r = this.snippet.range
@@ -146,6 +148,16 @@ export class SnippetSession {
     await this.forceSynchronize()
     let curr = this.placeholder
     if (!curr) return
+    if (this.removeWhiteSpace) {
+      const { before, after, range, value } = curr
+      let ms = before.match(/\s+$/)
+      if (value === '' && after.startsWith('\n') && ms) {
+        let startCharacter = range.start.character - ms[0].length
+        let textEdit = TextEdit.del(Range.create(Position.create(range.start.line, startCharacter), deepClone(range.start)))
+        await this.document.applyEdits([textEdit])
+        await this.forceSynchronize()
+      }
+    }
     let next = this.snippet.getNextPlaceholder(curr.index)
     if (next) await this.selectPlaceholder(next)
   }

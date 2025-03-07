@@ -267,6 +267,18 @@ export interface UltiSnippetOption {
   noPython?: boolean
   range?: Range
   line?: string
+  /**
+   * Do not expand tabs
+   */
+  noExpand?: boolean
+  /**
+   * Trim all whitespaces from right side of snippet lines.
+   */
+  trimTrailingWhitespace?: boolean
+  /**
+   * Remove whitespace immediately before the cursor at the end of a line before jumping to the next tabstop
+   */
+  removeWhiteSpace?: boolean
 }
 
 export interface TextDocumentMatch {

@@ -7,7 +7,7 @@ import { defaultValue } from '../util'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
-import { prepareMatchCode, preparePythonCodes, UltiSnippetContext } from './eval'
+import { prepareMatchCode, preparePythonCodes, SnippetFormatOptions, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 
@@ -446,20 +446,22 @@ export function getParts(text: string, range: Range, r: Range): [string, string]
   return [before.join('\n'), after.join('\n')]
 }
 
-export function normalizeSnippetString(snippet: string, indent: string, opts: { tabSize: number, insertSpaces: boolean }): string {
+export function normalizeSnippetString(snippet: string, indent: string, opts: SnippetFormatOptions): string {
   let lines = snippet.split(/\r?\n/)
   let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
   let tabSize = defaultValue(opts.tabSize, 2)
+  let noExpand = opts.noExpand
+  let trimTrailingWhitespace = opts.trimTrailingWhitespace
   lines = lines.map((line, idx) => {
     let space = line.match(/^\s*/)[0]
     let pre = space
     let isTab = space.startsWith('\t')
-    if (isTab && opts.insertSpaces) {
+    if (isTab && opts.insertSpaces && !noExpand) {
       pre = ind.repeat(space.length)
     } else if (!isTab && !opts.insertSpaces) {
       pre = ind.repeat(space.length / tabSize)
     }
-    return (idx == 0 || line.length == 0 ? '' : indent) + pre + line.slice(space.length)
+    return (idx == 0 || (trimTrailingWhitespace && line.length == 0) ? '' : indent) + pre + line.slice(space.length)
   })
   return lines.join('\n')
 }

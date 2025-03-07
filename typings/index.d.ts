@@ -6242,6 +6242,18 @@ declare module 'coc.nvim' {
      * When getting a text editor's options, this property will always be a boolean (resolved).
      */
     insertSpaces: boolean
+    /**
+     * Trim trailing whitespace on a line.
+     */
+    trimTrailingWhitespace?: boolean
+    /**
+     * Insert a newline character at the end of the file if one does not exist.
+     */
+    insertFinalNewline?: boolean
+    /**
+     * Trim all newlines after the final newline at the end of the file.
+     */
+    trimFinalNewlines?: boolean
   }
 
   /**

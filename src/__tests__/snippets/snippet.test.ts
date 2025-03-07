@@ -499,12 +499,21 @@ describe('CocSnippet', () => {
     it('should normalizeSnippetString', () => {
       expect(normalizeSnippetString('a\n\n\tb', '  ', {
         insertSpaces: true,
+        trimTrailingWhitespace: true,
         tabSize: 2
       })).toBe('a\n\n    b')
       expect(normalizeSnippetString('a\n\n  b', '\t', {
         insertSpaces: false,
+        trimTrailingWhitespace: true,
         tabSize: 2
       })).toBe('a\n\n\t\tb')
+      let res = normalizeSnippetString('a\n\n\tb', '\t', {
+        insertSpaces: false,
+        trimTrailingWhitespace: false,
+        noExpand: true,
+        tabSize: 2
+      })
+      expect(res).toBe('a\n\t\n\t\tb')
     })
 
     it('should throw for invalid regex', async () => {

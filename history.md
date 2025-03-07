@@ -5,6 +5,7 @@ Notable changes of coc.nvim:
 ## 2025-03-07
 
 - Support `extensions.recommendations` configuration.
+- Support for UltiSnip options `t` `m` `s`.
 
 ## 2025-03-05
 
