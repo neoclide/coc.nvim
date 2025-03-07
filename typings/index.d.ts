@@ -10744,11 +10744,26 @@ declare module 'coc.nvim' {
   }
 
   export interface UltiSnippetOption {
+    /**
+     * Regex text for regex snippet.
+     */
     regex?: string
+    /**
+     * Context code to execute.
+     */
     context?: string
-    noPython?: boolean
-    range?: Range
-    line?: string
+    /**
+     * Do not expand tabs.
+     */
+    noExpand?: boolean
+    /**
+     * Trim all whitespaces from right side of snippet lines.
+     */
+    trimTrailingWhitespace?: boolean
+    /**
+     * Remove whitespace immediately before the cursor at the end of a line before jumping to the next tabstop
+     */
+    removeWhiteSpace?: boolean
   }
 
   /**
