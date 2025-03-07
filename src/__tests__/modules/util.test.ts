@@ -621,20 +621,27 @@ describe('errors', () => {
     errors.onUnexpectedError(new errors.CancellationError())
     expect(() => {
       errors.onUnexpectedError(new Error('my error'))
-    }).toThrowError()
+    }).toThrow()
     expect(() => {
       errors.onUnexpectedError('error')
-    }).toThrowError()
+    }).toThrow()
     errors.assert(true)
     expect(() => {
       errors.assert(false)
-    }).toThrowError()
+    }).toThrow()
   })
 
   it('should check CancellationError', () => {
     let err = new Error('Canceled')
     err.name = 'Canceled'
     expect(errors.isCancellationError(err)).toBe(true)
+    expect(errors.shouldIgnore(err)).toBe(true)
+  })
+
+  it('should check shouldIgnore', async () => {
+    expect(errors.shouldIgnore(new errors.CancellationError())).toBe(true)
+    let err = new Error('transport disconnected')
+    expect(errors.shouldIgnore(err)).toBe(true)
   })
 })
 

@@ -323,7 +323,8 @@ describe('extensions', () => {
     tmpfolder = path.join(os.tmpdir(), uuid())
     let folder = path.join(tmpfolder, '.vim')
     fs.mkdirSync(folder, { recursive: true })
-    fs.mkdirSync(path.join(tmpfolder, '.git'), { recursive: true })
+
+    // fs.mkdirSync(path.join(tmpfolder, '.git'), { recursive: true })
     let jsonFile = path.join(folder, 'coc-settings.json')
     fs.writeFileSync(jsonFile, `{"extensions.recommendations": ["coc-abc", "coc-def"]}`)
     let returnValue
@@ -338,7 +339,8 @@ describe('extensions', () => {
       }
     })
     await helper.edit(jsonFile)
-    expect(calledTimes).toBe(1)
+    workspace.workspaceFolderControl.addWorkspaceFolder(tmpfolder, true)
+    await helper.waitValue(() => calledTimes, 1)
     let called = false
     let s = jest.spyOn(extensions, 'installExtensions').mockImplementation(() => {
       called = true

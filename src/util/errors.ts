@@ -44,9 +44,15 @@ export function isCancellationError(error: any): boolean {
   return error instanceof Error && error.name === canceledName && error.message === canceledName
 }
 
+export function shouldIgnore(err: any) {
+  if (isCancellationError(err)) return true
+  if (err instanceof Error && err.message.includes('transport disconnected')) return true
+  return false
+}
+
 export function onUnexpectedError(e: any): void {
   // ignore errors from cancelled promises
-  if (isCancellationError(e)) return
+  if (shouldIgnore(e)) return
   if (e.stack) {
     throw new Error(e.message + '\n\n' + e.stack)
   }

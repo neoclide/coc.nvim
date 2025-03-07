@@ -3,7 +3,7 @@ import type { CompleteDoneItem, CompleteFinishKind } from './completion/types'
 import { createLogger } from './logger'
 import { JumpInfo } from './types'
 import { disposeAll } from './util'
-import { CancellationError } from './util/errors'
+import { shouldIgnore } from './util/errors'
 import * as Is from './util/is'
 import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
@@ -377,11 +377,6 @@ class Events {
   public once(event: AllEvents, handler: (...args: any[]) => Result, thisArg?: any): void {
     this.on(event, handler, thisArg, true)
   }
-}
-
-function shouldIgnore(err: any): boolean {
-  if (err instanceof CancellationError || (err instanceof Error && err.message.includes('transport disconnected'))) return true
-  return false
 }
 
 export default new Events()

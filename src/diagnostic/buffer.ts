@@ -16,6 +16,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticItem } from './manager'
 import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
+import { onUnexpectedError } from '../util/errors'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -399,7 +400,7 @@ export class DiagnosticBuffer implements SyncItem {
       let disabledByInsert = events.insertMode && !refreshOnInsertMode
       if (disabledByInsert) return undefined
     }
-    return await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert]) as DiagnosticInfo | undefined
+    return await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert]).catch(onUnexpectedError) as DiagnosticInfo | undefined
   }
 
   /**
