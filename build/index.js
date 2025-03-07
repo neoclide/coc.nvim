@@ -16613,6 +16613,18 @@ function isCancellationError(error) {
   }
   return error instanceof Error && error.name === canceledName && error.message === canceledName;
 }
+function shouldIgnore(err) {
+  if (isCancellationError(err)) return true;
+  if (err instanceof Error && err.message.includes("transport disconnected")) return true;
+  return false;
+}
+function onUnexpectedError(e) {
+  if (shouldIgnore(e)) return;
+  if (e.stack) {
+    throw new Error(e.message + "\n\n" + e.stack);
+  }
+  throw e;
+}
 function notLoaded(uri) {
   return new Error(`File ${uri} not loaded`);
 }
@@ -24927,10 +24939,6 @@ var init_string = __esm({
 });
 
 // src/events.ts
-function shouldIgnore(err) {
-  if (err instanceof CancellationError || err instanceof Error && err.message.includes("transport disconnected")) return true;
-  return false;
-}
 var logger2, SYNC_AUTOCMDS, Events, events_default;
 var init_events = __esm({
   "src/events.ts"() {
@@ -25102,7 +25110,7 @@ var init_events = __esm({
         let cbs = this.handlers.get(event);
         if (cbs?.length) {
           let fns = cbs.slice();
-          let traceSlow = SYNC_AUTOCMDS.includes(event);
+          let traceSlow = this.requesting || SYNC_AUTOCMDS.includes(event);
           await Promise.allSettled(fns.map((fn) => {
             let promiseFn = async () => {
               let timer;
@@ -25115,8 +25123,7 @@ var init_events = __esm({
               try {
                 await fn(args);
               } catch (e) {
-                let res = shouldIgnore(e);
-                if (!res) logger2.error(`Error on event: ${event}`, e);
+                if (!shouldIgnore(e)) logger2.error(`Error on event: ${event}`, e, fn["stack"]);
               }
               clearTimeout(timer);
             };
@@ -25126,23 +25133,33 @@ var init_events = __esm({
       }
       on(event, handler, thisArg, disposables) {
         if (Array.isArray(event)) {
-          let arr = disposables || [];
+          let arr = [];
           for (let ev of event) {
             this.on(ev, handler, thisArg, arr);
           }
-          return import_node3.Disposable.create(() => {
+          let dis = import_node3.Disposable.create(() => {
             disposeAll(arr);
           });
+          if (Array.isArray(disposables)) {
+            disposables.push(dis);
+          }
+          return dis;
         } else {
-          let arr = this.handlers.get(event) || [];
+          let arr = this.handlers.get(event) ?? [];
+          let onFinish = () => {
+            if (disposables === true && disposable) disposable.dispose();
+          };
           let wrappedhandler = (args) => new Promise((resolve, reject) => {
             try {
               Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
+                onFinish();
                 resolve(void 0);
               }, (e) => {
+                onFinish();
                 reject(e);
               });
             } catch (e) {
+              onFinish();
               reject(e);
             }
           });
@@ -25160,6 +25177,9 @@ var init_events = __esm({
           }
           return disposable;
         }
+      }
+      once(event, handler, thisArg) {
+        this.on(event, handler, thisArg, true);
       }
     };
     events_default = new Events();
@@ -39237,6 +39257,15 @@ var init_schema = __esm({
           description: "Interval time for check extension update, could be daily, weekly, never",
           enum: ["daily", "weekly", "never"]
         },
+        "extensions.recommendations": {
+          type: "array",
+          scope: "resource",
+          description: "List of extensions recommended for installation in the current project",
+          default: [],
+          items: {
+            type: "string"
+          }
+        },
         "extensions.silentAutoupdate": {
           type: "boolean",
           description: "Not open split window with update status when performing auto update.",
@@ -49935,7 +49964,9 @@ async function evalCode(nvim, kind, code, curr) {
     return res2.toString();
   }
   if (kind == "shell") {
-    let res2 = await (0, import_util.promisify)(import_child_process.exec)(code);
+    let opts = { windowsHide: true };
+    if (process.env.SHELL) opts.shell = process.env.shell;
+    let res2 = await (0, import_util.promisify)(import_child_process.exec)(code, opts);
     return res2.stdout.replace(/\s*$/, "");
   }
   let lines = [`snip._reset("${escapeString(curr)}")`];
@@ -52434,6 +52465,7 @@ var init_buffer = __esm({
     init_window();
     init_workspace();
     init_util4();
+    init_errors();
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
     hlGroups = ["CocErrorHighlight", "CocWarningHighlight", "CocInfoHighlight", "CocHintHighlight", "CocDeprecatedHighlight", "CocUnusedHighlight"];
@@ -52762,7 +52794,7 @@ Related information:
           let disabledByInsert = events_default.insertMode && !refreshOnInsertMode;
           if (disabledByInsert) return void 0;
         }
-        return await nvim.call("coc#util#diagnostic_info", [bufnr, checkInsert]);
+        return await nvim.call("coc#util#diagnostic_info", [bufnr, checkInsert]).catch(onUnexpectedError);
       }
       /**
        * Refresh changed diagnostics to UI.
@@ -78736,7 +78768,7 @@ function loadJson2(filepath) {
     return {};
   }
 }
-var logger40, ONE_DAY, ExtensionStat;
+var logger40, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
 var init_stat = __esm({
   "src/extension/stat.ts"() {
     "use strict";
@@ -78748,6 +78780,7 @@ var init_stat = __esm({
     init_object();
     logger40 = createLogger("extension-stat");
     ONE_DAY = 24 * 60 * 60 * 1e3;
+    DISABLE_PROMPT_KEY = "disablePrompt";
     ExtensionStat = class {
       constructor(folder) {
         this.folder = folder;
@@ -78784,6 +78817,20 @@ var init_stat = __esm({
         if (changed) writeJson(this.jsonFile, curr);
         let ids = Object.keys(curr.dependencies ?? {});
         this.extensions = new Set(ids);
+      }
+      addNoPromptFolder(uri) {
+        let curr = loadJson2(this.jsonFile);
+        curr[DISABLE_PROMPT_KEY] = curr[DISABLE_PROMPT_KEY] ?? [];
+        curr[DISABLE_PROMPT_KEY].push(uri);
+        writeJson(this.jsonFile, curr);
+      }
+      shouldPrompt(uri) {
+        let curr = loadJson2(this.jsonFile);
+        let arr = curr[DISABLE_PROMPT_KEY] ?? [];
+        return !arr.includes(uri);
+      }
+      reset() {
+        writeJson(this.jsonFile, {});
       }
       *activated() {
         let { disabled } = this;
@@ -79735,6 +79782,7 @@ var init_extension = __esm({
     "use strict";
     init_commands();
     init_types();
+    init_events();
     init_logger();
     init_util();
     init_array();
@@ -79782,6 +79830,35 @@ var init_extension = __esm({
             await config.update("coc.preferences.extensionUpdateCheck", void 0, target);
           }
         }, false, "toggle auto update of extensions.");
+        events_default.once("ready", () => {
+          void this.checkRecommendation(workspace_default.workspaceFolders[0]);
+          workspace_default.onDidChangeWorkspaceFolders((e) => {
+            void this.checkRecommendation(e.added[0]);
+          });
+        });
+      }
+      async checkRecommendation(workspaceFolder) {
+        if (!workspaceFolder) return;
+        let config = workspace_default.getConfiguration("extensions", workspaceFolder);
+        let recommendations = toArray(config.inspect("recommendations").workspaceFolderValue);
+        const unInstalled = recommendations.filter((name2) => !this.states.hasExtension(name2));
+        let uri = workspaceFolder.uri;
+        if (!this.manager.states.shouldPrompt(uri) || unInstalled.length === 0) return;
+        let items = [{
+          title: `Install ${unInstalled.join(", ")}`,
+          index: 1
+        }, {
+          title: "Don't show again",
+          isCloseAffordance: true,
+          index: 2
+        }];
+        const item = await window_default.showInformationMessage(`Install recommend extensions?`, ...items);
+        if (!item) return;
+        if (item.index === 1) {
+          await this.installExtensions(unInstalled);
+        } else {
+          this.manager.states.addNoPromptFolder(uri);
+        }
       }
       getUpdateSettings() {
         let config = workspace_default.getConfiguration(null, null);
@@ -86995,11 +87072,11 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_events51, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
+var import_events52, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
-    import_events51 = require("events");
+    import_events52 = require("events");
     init_main();
     init_logger();
     init_highlighter();
@@ -87011,7 +87088,7 @@ var init_search = __esm({
     logger53 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
-    Task2 = class extends import_events51.EventEmitter {
+    Task2 = class extends import_events52.EventEmitter {
       start(cmd, args, cwd2) {
         this.process = spawn2(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
         this.process.on("error", (e) => {
@@ -89678,7 +89755,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-130e60fc 2025-03-06 19:11:47 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-100eb94e 2025-03-07 14:14:10 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

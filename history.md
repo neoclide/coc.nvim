@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-03-07
+
+- Support `extensions.recommendations` configuration.
+
 ## 2025-03-05
 
 - Export method `workspace.fixWin32unixFilepath` for filepath convert.
