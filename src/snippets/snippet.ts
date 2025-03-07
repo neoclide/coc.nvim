@@ -98,11 +98,18 @@ export class CocSnippet {
   }
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
-    let res = curr ? [curr] : []
-    let arr = this._placeholders.filter(o => o !== curr && !o.transform)
+    let finalPlaceholder: CocSnippetPlaceholder
+    const arr: CocSnippetPlaceholder[] = []
+    this._placeholders.forEach(p => {
+      if (p === curr || p.transform) return
+      if (p.index === 0) {
+        finalPlaceholder = p
+        return
+      }
+      arr.push(p)
+    })
     arr.sort(comparePlaceholder)
-    res.push(...arr)
-    return res
+    return [curr, ...arr, finalPlaceholder].filter(o => o != null)
   }
 
   public get hasPython(): boolean {
@@ -467,6 +474,5 @@ export function comparePlaceholder(a: { primary: boolean, index: number, nestCou
   // check inner placeholder first
   if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount
   if (a.primary !== b.primary) return a.primary ? -1 : 1
-  if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1
   return a.index - b.index
 }

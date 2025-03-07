@@ -934,6 +934,7 @@ export class TextmateSnippet extends Marker {
       let idx = p.index
       if (p.isFinalTabstop) {
         p.index = maxIndexAdded + index
+        p.primary = true
       } else {
         p.index = p.index + index
       }
