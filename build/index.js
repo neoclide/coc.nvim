@@ -17652,16 +17652,16 @@ var init_main = __esm({
       }
       CodeLens3.is = is;
     })(CodeLens || (CodeLens = {}));
-    (function(FormattingOptions4) {
+    (function(FormattingOptions6) {
       function create(tabSize, insertSpaces) {
         return { tabSize, insertSpaces };
       }
-      FormattingOptions4.create = create;
+      FormattingOptions6.create = create;
       function is(value) {
         let candidate = value;
         return Is.defined(candidate) && Is.uinteger(candidate.tabSize) && Is.boolean(candidate.insertSpaces);
       }
-      FormattingOptions4.is = is;
+      FormattingOptions6.is = is;
     })(FormattingOptions || (FormattingOptions = {}));
     (function(DocumentLink3) {
       function create(range, target, data) {
@@ -22583,18 +22583,18 @@ var require_main2 = __commonJS({
         }
         CodeLens4.is = is;
       })(CodeLens3 || (exports3.CodeLens = CodeLens3 = {}));
-      var FormattingOptions4;
-      (function(FormattingOptions5) {
+      var FormattingOptions6;
+      (function(FormattingOptions7) {
         function create(tabSize, insertSpaces) {
           return { tabSize, insertSpaces };
         }
-        FormattingOptions5.create = create;
+        FormattingOptions7.create = create;
         function is(value) {
           var candidate = value;
           return Is2.defined(candidate) && Is2.uinteger(candidate.tabSize) && Is2.boolean(candidate.insertSpaces);
         }
-        FormattingOptions5.is = is;
-      })(FormattingOptions4 || (exports3.FormattingOptions = FormattingOptions4 = {}));
+        FormattingOptions7.is = is;
+      })(FormattingOptions6 || (exports3.FormattingOptions = FormattingOptions6 = {}));
       var DocumentLink3;
       (function(DocumentLink4) {
         function create(range, target, data) {
@@ -44016,6 +44016,79 @@ var init_document = __esm({
   }
 });
 
+// src/util/convert.ts
+function convertFormatOptions(opts) {
+  let obj = { tabSize: opts.tabsize, insertSpaces: opts.expandtab == 1 };
+  if (opts.insertFinalNewline) obj.insertFinalNewline = true;
+  if (opts.trimTrailingWhitespace) obj.trimTrailingWhitespace = true;
+  if (opts.trimFinalNewlines) obj.trimFinalNewlines = true;
+  return obj;
+}
+function getSymbolKind(kind) {
+  switch (kind) {
+    case SymbolKind.File:
+      return "File";
+    case SymbolKind.Module:
+      return "Module";
+    case SymbolKind.Namespace:
+      return "Namespace";
+    case SymbolKind.Package:
+      return "Package";
+    case SymbolKind.Class:
+      return "Class";
+    case SymbolKind.Method:
+      return "Method";
+    case SymbolKind.Property:
+      return "Property";
+    case SymbolKind.Field:
+      return "Field";
+    case SymbolKind.Constructor:
+      return "Constructor";
+    case SymbolKind.Enum:
+      return "Enum";
+    case SymbolKind.Interface:
+      return "Interface";
+    case SymbolKind.Function:
+      return "Function";
+    case SymbolKind.Variable:
+      return "Variable";
+    case SymbolKind.Constant:
+      return "Constant";
+    case SymbolKind.String:
+      return "String";
+    case SymbolKind.Number:
+      return "Number";
+    case SymbolKind.Boolean:
+      return "Boolean";
+    case SymbolKind.Array:
+      return "Array";
+    case SymbolKind.Object:
+      return "Object";
+    case SymbolKind.Key:
+      return "Key";
+    case SymbolKind.Null:
+      return "Null";
+    case SymbolKind.EnumMember:
+      return "EnumMember";
+    case SymbolKind.Struct:
+      return "Struct";
+    case SymbolKind.Event:
+      return "Event";
+    case SymbolKind.Operator:
+      return "Operator";
+    case SymbolKind.TypeParameter:
+      return "TypeParameter";
+    default:
+      return "Unknown";
+  }
+}
+var init_convert = __esm({
+  "src/util/convert.ts"() {
+    "use strict";
+    init_main();
+  }
+});
+
 // node_modules/bytes/index.js
 var require_bytes = __commonJS({
   "node_modules/bytes/index.js"(exports2, module2) {
@@ -44121,6 +44194,7 @@ var init_documents = __esm({
     init_platform();
     init_protocol();
     init_string();
+    init_convert();
     logger10 = createLogger("core-documents");
     cwd = normalizeFilePath(process.cwd());
     Documents = class {
@@ -44411,15 +44485,14 @@ var init_documents = __esm({
        * Get format options
        */
       async getFormatOptions(uri) {
-        let doc;
-        if (uri) doc = this.getDocument(uri);
-        let bufnr = doc ? doc.bufnr : 0;
+        let bufnr = this.getBufnr(uri);
         let res = await this.nvim.call("coc#util#get_format_opts", [bufnr]);
-        let obj = { tabSize: res.tabsize, insertSpaces: res.expandtab == 1 };
-        obj.insertFinalNewline = res.insertFinalNewline == 1;
-        if (res.trimTrailingWhitespace) obj.trimTrailingWhitespace = true;
-        if (res.trimFinalNewlines) obj.trimFinalNewlines = true;
-        return obj;
+        return convertFormatOptions(res);
+      }
+      getBufnr(uri) {
+        if (!uri) return 0;
+        let doc = this.getDocument(uri);
+        return doc ? doc.bufnr : 0;
       }
       /**
        * Create document by bufnr.
@@ -44731,6 +44804,7 @@ var init_editors = __esm({
     init_logger();
     init_fs();
     init_protocol();
+    init_convert();
     logger11 = createLogger("core-editors");
     Editors = class {
       constructor(documents) {
@@ -44876,7 +44950,7 @@ var init_editors = __esm({
         return false;
       }
       fromOptions(opts) {
-        let { visibleRanges, bufnr } = opts;
+        let { visibleRanges, bufnr, formatOptions } = opts;
         let document2 = this.documents.getDocument(bufnr);
         return {
           id: `${opts.tabpageid}-${opts.winid}-${document2.uri}`,
@@ -44887,10 +44961,7 @@ var init_editors = __esm({
           bufnr: document2.bufnr,
           document: document2,
           visibleRanges: visibleRanges.map((o) => Range.create(o[0] - 1, 0, o[1], 0)),
-          options: {
-            tabSize: opts.tabSize,
-            insertSpaces: !!opts.insertSpaces
-          }
+          options: convertFormatOptions(formatOptions)
         };
       }
     };
@@ -50855,6 +50926,7 @@ var init_parser3 = __esm({
           let idx = p.index;
           if (p.isFinalTabstop) {
             p.index = maxIndexAdded + index;
+            p.primary = true;
           } else {
             p.index = p.index + index;
           }
@@ -69669,72 +69741,6 @@ var init_lists = __esm({
   }
 });
 
-// src/util/convert.ts
-function getSymbolKind(kind) {
-  switch (kind) {
-    case SymbolKind.File:
-      return "File";
-    case SymbolKind.Module:
-      return "Module";
-    case SymbolKind.Namespace:
-      return "Namespace";
-    case SymbolKind.Package:
-      return "Package";
-    case SymbolKind.Class:
-      return "Class";
-    case SymbolKind.Method:
-      return "Method";
-    case SymbolKind.Property:
-      return "Property";
-    case SymbolKind.Field:
-      return "Field";
-    case SymbolKind.Constructor:
-      return "Constructor";
-    case SymbolKind.Enum:
-      return "Enum";
-    case SymbolKind.Interface:
-      return "Interface";
-    case SymbolKind.Function:
-      return "Function";
-    case SymbolKind.Variable:
-      return "Variable";
-    case SymbolKind.Constant:
-      return "Constant";
-    case SymbolKind.String:
-      return "String";
-    case SymbolKind.Number:
-      return "Number";
-    case SymbolKind.Boolean:
-      return "Boolean";
-    case SymbolKind.Array:
-      return "Array";
-    case SymbolKind.Object:
-      return "Object";
-    case SymbolKind.Key:
-      return "Key";
-    case SymbolKind.Null:
-      return "Null";
-    case SymbolKind.EnumMember:
-      return "EnumMember";
-    case SymbolKind.Struct:
-      return "Struct";
-    case SymbolKind.Event:
-      return "Event";
-    case SymbolKind.Operator:
-      return "Operator";
-    case SymbolKind.TypeParameter:
-      return "TypeParameter";
-    default:
-      return "Unknown";
-  }
-}
-var init_convert = __esm({
-  "src/util/convert.ts"() {
-    "use strict";
-    init_main();
-  }
-});
-
 // src/list/source/outline.ts
 function symbolsToListItems(symbols, uri, filterKind) {
   let items = [];
@@ -76968,16 +76974,18 @@ function normalizeSnippetString(snippet, indent, opts) {
   let lines = snippet.split(/\r?\n/);
   let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
   let tabSize = defaultValue(opts.tabSize, 2);
+  let noExpand = opts.noExpand;
+  let trimTrailingWhitespace = opts.trimTrailingWhitespace;
   lines = lines.map((line, idx) => {
     let space = line.match(/^\s*/)[0];
     let pre = space;
     let isTab = space.startsWith("	");
-    if (isTab && opts.insertSpaces) {
+    if (isTab && opts.insertSpaces && !noExpand) {
       pre = ind.repeat(space.length);
     } else if (!isTab && !opts.insertSpaces) {
       pre = ind.repeat(space.length / tabSize);
     }
-    return (idx == 0 || line.length == 0 ? "" : indent) + pre + line.slice(space.length);
+    return (idx == 0 || trimTrailingWhitespace && line.length == 0 ? "" : indent) + pre + line.slice(space.length);
   });
   return lines.join("\n");
 }
@@ -76989,7 +76997,6 @@ function shouldFormat(snippet) {
 function comparePlaceholder(a, b) {
   if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount;
   if (a.primary !== b.primary) return a.primary ? -1 : 1;
-  if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1;
   return a.index - b.index;
 }
 var CocSnippet;
@@ -77067,11 +77074,18 @@ var init_snippet = __esm({
         return ranges.filter((r) => !emptyRange(r));
       }
       getSortedPlaceholders(curr) {
-        let res = curr ? [curr] : [];
-        let arr = this._placeholders.filter((o) => o !== curr && !o.transform);
+        let finalPlaceholder;
+        const arr = [];
+        this._placeholders.forEach((p) => {
+          if (p === curr || p.transform) return;
+          if (p.index === 0) {
+            finalPlaceholder = p;
+            return;
+          }
+          arr.push(p);
+        });
         arr.sort(comparePlaceholder);
-        res.push(...arr);
-        return res;
+        return [curr, ...arr, finalPlaceholder].filter((o) => o != null);
       }
       get hasPython() {
         return this.tmSnippet.pyBlocks.length > 0;
@@ -77409,6 +77423,7 @@ var init_session2 = __esm({
   "src/snippets/session.ts"() {
     "use strict";
     init_main();
+    init_events();
     init_logger();
     init_mutex();
     init_object();
@@ -77417,7 +77432,6 @@ var init_session2 = __esm({
     init_string();
     init_window();
     init_workspace();
-    init_events();
     init_parser3();
     init_snippet();
     init_variableResolve();
@@ -77429,6 +77443,7 @@ var init_session2 = __esm({
         this.document = document2;
         this.config = config;
         this.mutex = new Mutex();
+        this.removeWhiteSpace = false;
         this._applying = false;
         this._isActive = false;
         this._snippet = null;
@@ -77444,6 +77459,7 @@ var init_session2 = __esm({
         const { document: document2 } = this;
         const placeholder = this.getReplacePlaceholder(range);
         const edits = [];
+        if (context?.removeWhiteSpace) this.removeWhiteSpace = true;
         if (placeholder) {
           let r = this.snippet.range;
           let previous = document2.textDocument.getText(r);
@@ -77522,6 +77538,16 @@ var init_session2 = __esm({
         await this.forceSynchronize();
         let curr = this.placeholder;
         if (!curr) return;
+        if (this.removeWhiteSpace) {
+          const { before, after, range, value } = curr;
+          let ms = before.match(/\s+$/);
+          if (value === "" && after.startsWith("\n") && ms) {
+            let startCharacter = range.start.character - ms[0].length;
+            let textEdit = TextEdit.del(Range.create(Position.create(range.start.line, startCharacter), deepClone(range.start)));
+            await this.document.applyEdits([textEdit]);
+            await this.forceSynchronize();
+          }
+        }
         let next = this.snippet.getNextPlaceholder(curr.index);
         if (next) await this.selectPlaceholder(next);
       }
@@ -77876,7 +77902,7 @@ var init_manager4 = __esm({
         }, null, this.disposables);
         window_default.onDidChangeActiveTextEditor((e) => {
           if (!this._statusItem) return;
-          let session = this.getSession(e.document.bufnr);
+          let session = this.getSession(e.bufnr);
           if (session) {
             this.statusItem.show();
           } else {
@@ -77930,7 +77956,7 @@ var init_manager4 = __esm({
           }
           const currentLine = doc.getline(range.start.line);
           const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
-          const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode);
+          const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip);
           if (ultisnip != null) {
             context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip);
             if (!emptyRange(range) && inserted.includes("`!p")) {
@@ -78036,13 +78062,16 @@ var init_manager4 = __esm({
         this.resolving = false;
         return res;
       }
-      async normalizeInsertText(uri, snippetString, currentLine, insertTextMode) {
+      async normalizeInsertText(uri, snippetString, currentLine, insertTextMode, ultisnip) {
         let inserted = "";
         if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
           inserted = snippetString;
         } else {
           const currentIndent = currentLine.match(/^\s*/)[0];
           const formatOptions = window_default.activeTextEditor ? window_default.activeTextEditor.options : await workspace_default.getFormatOptions(uri);
+          let opts = ultisnip ?? {};
+          formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
+          if (opts.noExpand) formatOptions.noExpand = true;
           inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions);
         }
         return inserted;
@@ -89755,7 +89784,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-100eb94e 2025-03-07 14:14:10 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-1e245162 2025-03-07 19:48:30 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

@@ -415,18 +415,13 @@ function! coc#util#get_editoroption(winid) abort
   if buftype !=# '' && buftype !=# 'acwrite'
     return v:null
   endif
-  let tabSize = getbufvar(bufnr, '&shiftwidth')
-  if tabSize == 0
-    let tabSize = getbufvar(bufnr, '&tabstop')
-  endif
   return {
         \ 'bufnr': bufnr,
         \ 'winid': a:winid,
         \ 'tabpageid': coc#util#tabnr_id(info['tabnr']),
         \ 'winnr': winnr(),
         \ 'visibleRanges': s:visible_ranges(a:winid),
-        \ 'tabSize': tabSize,
-        \ 'insertSpaces': getbufvar(bufnr, '&expandtab') ? v:true : v:false
+        \ 'formatOptions': coc#util#get_format_opts(bufnr),
         \ }
 endfunction
 
