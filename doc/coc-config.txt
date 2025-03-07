@@ -150,6 +150,13 @@ EXTENSIONS
 
 	Scope: `application`, default: `false`
 
+"extensions.recommendations" 				*coc-config-extensions-recommendations*
+
+	List of extensions recommended for installation in the current project.
+	Only works as workspace folder configuration.
+
+	Scope: `resource`, default: `[]`
+
 ------------------------------------------------------------------------------
 PREFERENCES
 							*coc-config-preferences*

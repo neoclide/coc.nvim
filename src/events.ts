@@ -272,11 +272,11 @@ class Events {
     let cbs = this.handlers.get(event)
     if (cbs?.length) {
       let fns = cbs.slice()
-      let traceSlow = SYNC_AUTOCMDS.includes(event)
+      let traceSlow = this.requesting || SYNC_AUTOCMDS.includes(event)
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {
           let timer: NodeJS.Timeout
-          if (this.requesting || traceSlow) {
+          if (traceSlow) {
             timer = setTimeout(() => {
               console.error(`Slow "${event}" handler detected`, fn['stack'])
               logger.error(`Slow "${event}" handler detected`, fn['stack'])

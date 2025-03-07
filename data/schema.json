@@ -1384,6 +1384,15 @@
       "description": "Interval time for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
     },
+    "extensions.recommendations": {
+      "type": "array",
+      "scope": "resource",
+      "description": "List of extensions recommended for installation in the current project",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
     "extensions.silentAutoupdate": {
       "type": "boolean",
       "description": "Not open split window with update status when performing auto update.",

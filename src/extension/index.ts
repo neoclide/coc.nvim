@@ -1,10 +1,12 @@
 'use strict'
+import { WorkspaceFolder } from 'vscode-languageserver-types'
 import commands from '../commands'
 import { ConfigurationUpdateTarget } from '../configuration/types'
+import events from '../events'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
-import { distinct, isFalsyOrEmpty } from '../util/array'
+import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { VERSION, dataHome } from '../util/constants'
 import { isUrl } from '../util/is'
 import { fs, path, which } from '../util/node'
@@ -72,6 +74,36 @@ export class Extensions {
         await config.update('coc.preferences.extensionUpdateCheck', undefined, target)
       }
     }, false, 'toggle auto update of extensions.')
+    events.once('ready', () => {
+      void this.checkRecommendation(workspace.workspaceFolders[0])
+      workspace.onDidChangeWorkspaceFolders(e => {
+        void this.checkRecommendation(e.added[0])
+      })
+    })
+  }
+
+  public async checkRecommendation(workspaceFolder: WorkspaceFolder | undefined): Promise<void> {
+    if (!workspaceFolder) return
+    let config = workspace.getConfiguration('extensions', workspaceFolder)
+    let recommendations = toArray(config.inspect('recommendations').workspaceFolderValue) as string[]
+    const unInstalled = recommendations.filter(name => !this.states.hasExtension(name))
+    let uri = workspaceFolder.uri
+    if (!this.manager.states.shouldPrompt(uri) || unInstalled.length === 0) return
+    let items = [{
+      title: `Install ${unInstalled.join(', ')}`,
+      index: 1
+    }, {
+      title: 'Don\'t show again',
+      isCloseAffordance: true,
+      index: 2
+    }]
+    const item = await window.showInformationMessage(`Install recommend extensions?`, ...items)
+    if (!item) return
+    if (item.index === 1) {
+      await this.installExtensions(unInstalled)
+    } else {
+      this.manager.states.addNoPromptFolder(uri)
+    }
   }
 
   public getUpdateSettings(): UpdateSettings {

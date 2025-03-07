@@ -2,7 +2,7 @@ import { createLogger } from '../logger'
 import { toArray } from '../util/array'
 import { readFile, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
-import { fs, path, semver, promisify } from '../util/node'
+import { fs, path, promisify, semver } from '../util/node'
 import { toObject } from '../util/object'
 const logger = createLogger('extension-stat')
 
@@ -43,6 +43,7 @@ export enum ExtensionStatus {
 }
 
 const ONE_DAY = 24 * 60 * 60 * 1000
+const DISABLE_PROMPT_KEY = 'disablePrompt'
 
 /**
  * Stat for global extensions
@@ -83,6 +84,23 @@ export class ExtensionStat {
     if (changed) writeJson(this.jsonFile, curr)
     let ids = Object.keys(curr.dependencies ?? {})
     this.extensions = new Set(ids)
+  }
+
+  public addNoPromptFolder(uri: string): void {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    curr[DISABLE_PROMPT_KEY] = curr[DISABLE_PROMPT_KEY] ?? []
+    curr[DISABLE_PROMPT_KEY].push(uri)
+    writeJson(this.jsonFile, curr)
+  }
+
+  public shouldPrompt(uri: string): boolean {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    let arr = curr[DISABLE_PROMPT_KEY] as string[] ?? []
+    return !arr.includes(uri)
+  }
+
+  public reset(): void {
+    writeJson(this.jsonFile, {})
   }
 
   public *activated(): Iterable<string> {

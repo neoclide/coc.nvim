@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import events from '../../events'
 import { checkExtensionRoot, ExtensionStat, getExtensionName, getJsFiles, loadExtensionJson, loadGlobalJsonAsync, toInterval, validExtensionFolder } from '../../extension/stat'
 import { InstallBuffer, InstallChannel } from '../../extension/ui'
@@ -213,6 +214,15 @@ describe('ExtensionStat', () => {
     stat.addLocalExtension('name', folder)
     expect(stat.getFolder('name')).toBe(folder)
     expect(stat.getFolder('unknown')).toBeUndefined()
+  })
+
+  it('should addNoPromptFolder', async () => {
+    let [state, filepath] = create()
+    let uri = URI.file(path.dirname(filepath)).toString()
+    expect(state.shouldPrompt(uri)).toBe(true)
+    state.addNoPromptFolder(uri)
+    state.addNoPromptFolder(uri)
+    expect(state.shouldPrompt(uri)).toBe(false)
   })
 
   it('should iterate activated extensions', () => {

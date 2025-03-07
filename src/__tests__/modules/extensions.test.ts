@@ -2,15 +2,19 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
+import { URI } from 'vscode-uri'
 import which from 'which'
 import commands from '../../commands'
+import { ConfigurationUpdateTarget } from '../../configuration/types'
 import extensions, { Extensions, toUrl } from '../../extension'
+import { Disposable, disposeAll } from '../../util'
 import { writeFile, writeJson } from '../../util/fs'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { ConfigurationUpdateTarget } from '../../configuration/types'
 
 let tmpfolder: string
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
 })
@@ -24,6 +28,7 @@ afterEach(() => {
     fs.rmSync(tmpfolder, { force: true, recursive: true })
     tmpfolder = undefined
   }
+  disposeAll(disposables)
 })
 
 describe('extensions', () => {
@@ -311,5 +316,49 @@ describe('extensions', () => {
     await helper.doAction('uninstallExtension', 'coc-omni')
     item = extensions.getExtension('coc-omni')
     expect(item).toBeUndefined()
+  })
+
+  it('should checkRecommendation', async () => {
+    await extensions.checkRecommendation({ name: 'tmp', uri: URI.file(__dirname).toString() })
+    tmpfolder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(tmpfolder, '.vim')
+    fs.mkdirSync(folder, { recursive: true })
+    fs.mkdirSync(path.join(tmpfolder, '.git'), { recursive: true })
+    let jsonFile = path.join(folder, 'coc-settings.json')
+    fs.writeFileSync(jsonFile, `{"extensions.recommendations": ["coc-abc", "coc-def"]}`)
+    let returnValue
+    let calledTimes = 0
+    let spy = jest.spyOn(window, 'showInformationMessage').mockImplementation(() => {
+      calledTimes++
+      return Promise.resolve(returnValue)
+    })
+    disposables.push({
+      dispose: () => {
+        spy.mockRestore()
+      }
+    })
+    await helper.edit(jsonFile)
+    expect(calledTimes).toBe(1)
+    let called = false
+    let s = jest.spyOn(extensions, 'installExtensions').mockImplementation(() => {
+      called = true
+      return Promise.resolve(undefined)
+    })
+    disposables.push({
+      dispose: () => {
+        s.mockRestore()
+      }
+    })
+    returnValue = { index: 1 }
+    let uri = URI.file(tmpfolder).toString()
+    await extensions.checkRecommendation({ name: 'tmp', uri })
+    expect(called).toBe(true)
+    returnValue = { index: 2 }
+    await extensions.checkRecommendation({ name: 'tmp', uri })
+    expect(extensions.states.shouldPrompt(uri)).toBe(false)
+    let curr = calledTimes
+    await extensions.checkRecommendation({ name: 'tmp', uri })
+    expect(calledTimes).toBe(curr)
+    extensions.states.reset()
   })
 })
