@@ -1,5 +1,21 @@
 'use strict'
-import { SymbolKind } from 'vscode-languageserver-types'
+import { FormattingOptions, SymbolKind } from 'vscode-languageserver-types'
+
+export interface VimFormatOption {
+  tabsize: number
+  expandtab: number
+  insertFinalNewline: boolean
+  trimTrailingWhitespace: boolean
+  trimFinalNewlines: boolean
+}
+
+export function convertFormatOptions(opts: VimFormatOption): FormattingOptions {
+  let obj: FormattingOptions = { tabSize: opts.tabsize, insertSpaces: opts.expandtab == 1 }
+  if (opts.insertFinalNewline) obj.insertFinalNewline = true
+  if (opts.trimTrailingWhitespace) obj.trimTrailingWhitespace = true
+  if (opts.trimFinalNewlines) obj.trimFinalNewlines = true
+  return obj
+}
 
 export function getSymbolKind(kind: SymbolKind): string {
   switch (kind) {

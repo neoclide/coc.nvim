@@ -182,7 +182,9 @@ describe('ExtensionManager', () => {
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
       let item = manager.getExtension('FooBar')
-      expect(item.extension.isActive).toBe(true)
+      await helper.waitValue(() => {
+        return item.extension.isActive
+      }, true)
       expect(manager.all.length).toBe(1)
       expect(manager.getExtensionState('FooBar')).toBe('activated')
       expect(item.extension.exports['abs']).toBeDefined()

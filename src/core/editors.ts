@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Range } from 'vscode-languageserver-types'
+import { FormattingOptions, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { createLogger } from '../logger'
@@ -8,6 +8,7 @@ import type Document from '../model/document'
 import { sameFile } from '../util/fs'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import Documents from './documents'
+import { convertFormatOptions, VimFormatOption } from '../util/convert'
 const logger = createLogger('core-editors')
 
 interface EditorOption {
@@ -18,6 +19,7 @@ interface EditorOption {
   visibleRanges: [number, number][]
   tabSize: number
   insertSpaces: boolean
+  formatOptions: VimFormatOption
 }
 
 interface EditorInfo {
@@ -25,11 +27,6 @@ interface EditorInfo {
   readonly bufnr: number
   readonly tabid: number
   readonly fullpath: string
-}
-
-export interface TextEditorOptions {
-  tabSize: number
-  insertSpaces: boolean
 }
 
 export interface TextEditor {
@@ -41,7 +38,7 @@ export interface TextEditor {
   readonly visibleRanges: readonly Range[]
   readonly uri: string
   readonly bufnr: number
-  options: TextEditorOptions
+  readonly options: FormattingOptions
 }
 
 export function renamed(editor: TextEditor, info: EditorInfo): boolean {
@@ -220,10 +217,7 @@ export default class Editors {
       bufnr: document.bufnr,
       document,
       visibleRanges: visibleRanges.map(o => Range.create(o[0] - 1, 0, o[1], 0)),
-      options: {
-        tabSize: opts.tabSize,
-        insertSpaces: !!opts.insertSpaces
-      }
+      options: convertFormatOptions(opts.formatOptions)
     }
   }
 }

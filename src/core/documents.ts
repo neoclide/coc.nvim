@@ -17,6 +17,7 @@ import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/prot
 import { byteIndex } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
+import { convertFormatOptions, VimFormatOption } from '../util/convert'
 const logger = createLogger('core-documents')
 
 interface StateInfo {
@@ -353,15 +354,15 @@ export default class Documents implements Disposable {
    * Get format options
    */
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
-    let doc: Document
-    if (uri) doc = this.getDocument(uri)
-    let bufnr = doc ? doc.bufnr : 0
-    let res = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as any
-    let obj: FormattingOptions = { tabSize: res.tabsize, insertSpaces: res.expandtab == 1 }
-    obj.insertFinalNewline = res.insertFinalNewline == 1
-    if (res.trimTrailingWhitespace) obj.trimTrailingWhitespace = true
-    if (res.trimFinalNewlines) obj.trimFinalNewlines = true
-    return obj
+    let bufnr = this.getBufnr(uri)
+    let res = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as VimFormatOption
+    return convertFormatOptions(res)
+  }
+
+  public getBufnr(uri?: string): number {
+    if (!uri) return 0
+    let doc = this.getDocument(uri)
+    return doc ? doc.bufnr : 0
   }
 
   /**
