@@ -442,6 +442,8 @@ fun1() {}
       await nvim.input('p')
       let winid = await helper.waitFloat()
       await nvim.input('l')
+      // debounce for CursorMoved used
+      await helper.wait(50)
       await nvim.input('k')
       await helper.waitValue(async () => {
         let win = nvim.createWindow(winid)

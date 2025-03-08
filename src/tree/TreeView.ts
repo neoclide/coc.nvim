@@ -12,6 +12,7 @@ import { isFalsyOrEmpty, toArray } from '../util/array'
 import { fuzzyScoreGracefulAggressive } from '../util/filter'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
+import { debounce } from '../util/node'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
@@ -203,12 +204,16 @@ export default class BasicTreeView<T> implements TreeView<T> {
     events.on(['CursorMoved', 'BufEnter'], () => {
       this.cancelResolve()
     }, null, this.disposables)
-    events.on('CursorMoved', (bufnr: number, cursor: [number, number]) => {
-      if (bufnr == this.bufnr) {
-        let element = this.getElementByLnum(cursor[0] - 1)
-        this._onDidCursorMoved.fire(element)
-      }
-    }, null, this.disposables)
+    // vim may send unexpected CursorMoved when switch tab
+    let debounced = debounce((bufnr: number, cursor: [number, number]) => {
+      if (bufnr !== this.bufnr) return
+      let element = this.getElementByLnum(cursor[0] - 1)
+      this._onDidCursorMoved.fire(element)
+    }, 30)
+    this.disposables.push(Disposable.create(() => {
+      debounced.clear()
+    }))
+    events.on('CursorMoved', debounced, null, this.disposables)
     events.on('WinEnter', winid => {
       if (winid != this.windowId || !this.filtering) return
       let buf = this.nvim.createBuffer(this.bufnr)
