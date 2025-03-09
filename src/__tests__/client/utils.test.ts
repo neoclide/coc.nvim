@@ -49,16 +49,16 @@ test('DefaultErrorHandler', async () => {
     // ignore
   })
   const handler = new DefaultErrorHandler('test', 2)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 1)).toBe(ErrorAction.Continue)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 5)).toBe(ErrorAction.Shutdown)
+  expect(handler.error(new Error('test'), { jsonrpc: '' }, 1).action).toBe(ErrorAction.Continue)
+  expect(handler.error(new Error('test'), { jsonrpc: '' }, 5).action).toBe(ErrorAction.Shutdown)
   handler.closed()
   handler.milliseconds = 1
   await wait(10)
   let res = handler.closed()
-  expect(res).toBe(CloseAction.Restart)
+  expect(res.action).toBe(CloseAction.Restart)
   handler.milliseconds = 10 * 1000
   res = handler.closed()
-  expect(res).toBe(CloseAction.DoNotRestart)
+  expect(res.action).toBe(CloseAction.DoNotRestart)
   spy.mockRestore()
 })
 
