@@ -5,8 +5,8 @@ import { createLogger } from '../logger'
 import { FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
-import { isParentFolder, sameFile } from '../util/fs'
-import { minimatch, path, which, os } from '../util/node'
+import { isFolderIgnored, isParentFolder, sameFile } from '../util/fs'
+import { minimatch, path, which } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import Watchman, { FileChange } from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
@@ -16,15 +16,6 @@ const WATCHMAN_COMMAND = 'watchman'
 export interface RenameEvent {
   oldUri: URI
   newUri: URI
-}
-
-export function should_ignore(root: string, ignored: string[] | undefined): boolean {
-  for (let folder of ignored) {
-    if (sameFile(root, folder)) {
-      return true
-    }
-  }
-  return false
 }
 
 export class FileSystemWatcherManager {
@@ -82,7 +73,7 @@ export class FileSystemWatcherManager {
   }
 
   public async createClient(root: string, skipCheck = false): Promise<Watchman | false | undefined> {
-    if (!skipCheck && (this.disabled || should_ignore(root, this.config.ignoredFolders))) return
+    if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return
     if (this.has(root)) return this.waitClient(root)
     try {
       this.creating.add(root)

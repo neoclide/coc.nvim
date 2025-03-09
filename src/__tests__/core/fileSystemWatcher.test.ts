@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration/index'
-import { FileSystemWatcher, FileSystemWatcherManager, should_ignore } from '../../core/fileSystemWatcher'
+import { FileSystemWatcher, FileSystemWatcherManager } from '../../core/fileSystemWatcher'
 import Watchman, { FileChangeItem } from '../../core/watchman'
 import WorkspaceFolderController from '../../core/workspaceFolder'
 import RelativePattern from '../../model/relativePattern'
@@ -262,11 +262,6 @@ describe('fileSystemWatcher', () => {
   beforeAll(async () => {
     workspaceFolder.addWorkspaceFolder(cwd, true)
     await watcherManager.waitClient(cwd)
-  })
-
-  it('should check ignored folders', async () => {
-    expect(should_ignore('/', [])).toBe(false)
-    expect(should_ignore('/', ['/', 'a'])).toBe(true)
   })
 
   it('should use relative pattern #1', async () => {
