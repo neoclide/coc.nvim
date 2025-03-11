@@ -22,7 +22,6 @@ export function caseScore(input: number, curr: number, divide = 1): number {
  * - Follow strict 1, follow case 0.5
  * - Follow word start 1, follow word case 0.75
  * - First fuzzy strict 0.1, first fuzzy case 0.05
- *
  * @public
  * @param {string} word
  * @param {number[]} input

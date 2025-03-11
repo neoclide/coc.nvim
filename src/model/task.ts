@@ -16,7 +16,6 @@ export interface TaskOptions {
 /**
  * Controls long running task started by vim.
  * Useful to keep the task running after CocRestart.
- *
  * @public
  */
 export default class Task implements Disposable {
@@ -52,7 +51,6 @@ export default class Task implements Disposable {
 
   /**
    * Start task, task will be restarted when already running.
-   *
    * @param {TaskOptions} opts
    * @returns {Promise<boolean>}
    */

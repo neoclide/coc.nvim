@@ -175,14 +175,12 @@ export interface StaticFeature {
   readonly method: string
   /**
    * Called to fill the initialize params.
-   *
    * @params the initialize params.
    */
   fillInitializeParams?: (params: InitializeParams) => void
 
   /**
    * Called to fill in the client capabilities this feature implements.
-   *
    * @param capabilities The client capabilities to fill.
    */
   fillClientCapabilities(capabilities: ClientCapabilities): void
@@ -191,7 +189,6 @@ export interface StaticFeature {
    * A preflight where the server capabilities are shown to all features
    * before a feature is actually initialized. This allows feature to
    * capture some state if they are a pre-requisite for other features.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -203,7 +200,6 @@ export interface StaticFeature {
    * when the client has successfully received the initialize request from
    * the server and before the client sends the initialized notification
    * to the server.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -238,14 +234,12 @@ export interface DynamicFeature<RO> {
 
   /**
    * Called to fill the initialize params.
-   *
    * @params the initialize params.
    */
   fillInitializeParams?: (params: InitializeParams) => void
 
   /**
    * Called to fill in the client capabilities this feature implements.
-   *
    * @param capabilities The client capabilities to fill.
    */
   fillClientCapabilities(capabilities: ClientCapabilities): void
@@ -254,7 +248,6 @@ export interface DynamicFeature<RO> {
    * A preflight where the server capabilities are shown to all features
    * before a feature is actually initialized. This allows feature to
    * capture some state if they are a pre-requisite for other features.
-   *
    * @param capabilities the server capabilities
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -266,7 +259,6 @@ export interface DynamicFeature<RO> {
    * when the client has successfully received the initialize request from
    * the server and before the client sends the initialized notification
    * to the server.
-   *
    * @param capabilities the server capabilities.
    * @param documentSelector the document selector pass to the client's constructor.
    * May be `undefined` if the client was created without a selector.
@@ -285,14 +277,12 @@ export interface DynamicFeature<RO> {
 
   /**
    * Is called when the server send a register request for the given message.
-   *
    * @param data additional registration data as defined in the protocol.
    */
   register(data: RegistrationData<RO>): void
 
   /**
    * Is called when the server wants to unregister a feature.
-   *
    * @param id the id used when registering the feature.
    */
   unregister(id: string): void

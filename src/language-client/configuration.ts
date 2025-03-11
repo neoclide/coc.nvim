@@ -27,7 +27,6 @@ export interface SynchronizeOptions {
    * that allows servers to query settings scoped on resources. In this
    * model the client can only deliver an empty change event since the
    * actually setting value can vary on the provided resource scope.
-   *
    * @deprecated Use the new pull model (`workspace/configuration` request)
    */
   configurationSection?: string | string[]

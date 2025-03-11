@@ -12,7 +12,6 @@ export interface ProvideLinkedEditingRangeSignature {
 
 /**
  * Linked editing middleware
- *
  * @since 3.16.0
  */
 export interface LinkedEditingRangeMiddleware {

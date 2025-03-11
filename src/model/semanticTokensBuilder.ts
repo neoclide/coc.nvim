@@ -45,7 +45,6 @@ export class SemanticTokensBuilder {
 
   /**
    * Add another token.
-   *
    * @param line The token start line number (absolute value).
    * @param char The token start character (absolute value).
    * @param length The token length in characters.
@@ -55,7 +54,6 @@ export class SemanticTokensBuilder {
   public push(line: number, char: number, length: number, tokenType: number, tokenModifiers?: number): void
   /**
    * Add another token. Use only when providing a legend.
-   *
    * @param range The range of the token. Must be single-line.
    * @param tokenType The token type.
    * @param tokenModifiers The token modifiers.

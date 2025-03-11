@@ -24,7 +24,6 @@ export interface DocumentRangeSemanticTokensSignature {
 
 /**
  * The semantic token middleware
- *
  * @since 3.16.0
  */
 export interface SemanticTokensMiddleware {

@@ -8,7 +8,6 @@ export default class DB {
 
   /**
    * Get data by key.
-   *
    * @param {string} key unique key allows dot notation.
    * @returns {any}
    */
@@ -27,7 +26,6 @@ export default class DB {
 
   /**
    * Check if key exists
-   *
    * @param {string} key unique key allows dot notation.
    */
   public exists(key: string): boolean {
@@ -44,7 +42,6 @@ export default class DB {
 
   /**
    * Delete data by key
-   *
    * @param {string} key unique key allows dot notation.
    */
   public delete(key: string): void {
@@ -67,7 +64,6 @@ export default class DB {
 
   /**
    * Save data with key
-   *
    * @param {string} key unique string that allows dot notation.
    * @param {number|null|boolean|string|{[index} data saved data.
    */
