@@ -778,28 +778,26 @@ export class TextmateSnippet extends Marker {
         }
       })
     }))
-    if (pyBlocks.length) {
-      // run all python code by sequence
-      const variableCode = getVariablesCode(this.values)
-      await executePythonCode(nvim, [...prepareCodes, variableCode])
-      for (let block of pyBlocks) {
-        let pre = block.value
-        await block.resolve(nvim)
-        if (pre === block.value) continue
-        if (block.parent instanceof Placeholder) {
-          // update placeholder with same index
-          this.onPlaceholderUpdate(block.parent)
-          await executePythonCode(nvim, [getVariablesCode(this.values)])
-        }
+    // run all python code by sequence
+    const variableCode = getVariablesCode(this.values)
+    await executePythonCode(nvim, [...prepareCodes, variableCode])
+    for (let block of pyBlocks) {
+      let pre = block.value
+      await block.resolve(nvim)
+      if (pre === block.value) continue
+      if (block.parent instanceof Placeholder) {
+        // update placeholder with same index
+        this.onPlaceholderUpdate(block.parent)
+        await executePythonCode(nvim, [getVariablesCode(this.values)])
       }
-      for (let block of this.orderedPyIndexBlocks) {
-        await this.updatePyIndexBlock(nvim, block)
-      }
-      // update normal python block with related.
-      let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-      for (let block of filtered) {
-        await block.resolve(nvim)
-      }
+    }
+    for (let block of this.orderedPyIndexBlocks) {
+      await this.updatePyIndexBlock(nvim, block)
+    }
+    // update normal python block with related.
+    let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
+    for (let block of filtered) {
+      await block.resolve(nvim)
     }
   }
 

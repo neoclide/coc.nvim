@@ -154,12 +154,10 @@ describe('CocSnippet', () => {
       await assertPyxValue('fn', 't.js')
       await assertPyxValue('path', /t\.js$/)
       await assertPyxValue('t', [''])
-      await assertPyxValue('context', true)
       await createSnippet('`!p snip.rv = fn`', {
         regex: '[ab]',
         context: 'False'
       }, Range.create(0, 2, 0, 3), 'a b')
-      await assertPyxValue('context', false)
       await assertPyxValue('match.group(0)', 'b')
     })
 
@@ -168,7 +166,6 @@ describe('CocSnippet', () => {
         regex: '((\\d+)|(\\d*)(\\\\)?([A-Za-z]+)((\\^|_)(\\{\\d+\\}|\\d))*)/',
         context: 'True'
       }, Range.create(0, 0, 0, 3), '20/')
-      await assertPyxValue('context', true)
       await assertPyxValue('match.group(1)', '20')
       expect(c.text).toBe('\\frac{20}{}')
     })

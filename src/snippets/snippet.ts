@@ -3,11 +3,12 @@ import { Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
+import { TabStopInfo } from '../types'
 import { defaultValue } from '../util'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
-import { prepareMatchCode, preparePythonCodes, SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { hasPython, prepareMatchCode, preparePythonCodes, SnippetFormatOptions, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 
@@ -29,6 +30,7 @@ export interface CocSnippetPlaceholder {
 export class CocSnippet {
   private _placeholders: CocSnippetPlaceholder[]
   private _text: string | undefined
+  private _hasPython = false
   public tmSnippet: Snippets.TextmateSnippet
 
   constructor(private snippetString: string,
@@ -53,9 +55,9 @@ export class CocSnippet {
     if (resolver) {
       await snippet.resolveVariables(resolver)
     }
+    this._hasPython = hasPython(ultisnip) || snippet.hasPython
     if (ultisnip && ultisnip.noPython !== true) {
-      let pyCodes: string[] = []
-      if (snippet.hasPython) pyCodes = preparePythonCodes(ultisnip)
+      let pyCodes: string[] = this.hasPython ? preparePythonCodes(ultisnip) : []
       await snippet.evalCodeBlocks(nvim, pyCodes)
     }
   }
@@ -109,7 +111,7 @@ export class CocSnippet {
   }
 
   public get hasPython(): boolean {
-    return this.tmSnippet.pyBlocks.length > 0
+    return this._hasPython
   }
 
   public resetStartPosition(pos: Position): void {
@@ -247,6 +249,20 @@ export class CocSnippet {
     let succeed = this.tmSnippet.deleteText(offset, length)
     if (succeed) this.synchronize()
     return succeed
+  }
+
+  public getTabStopInfo(): TabStopInfo[] {
+    let res: TabStopInfo[] = []
+    this._placeholders.forEach(p => {
+      if (p.marker instanceof Snippets.Placeholder && (p.primary || p.index === 0)) {
+        res.push({
+          index: p.index,
+          range: [p.range.start.line, p.range.start.character, p.range.end.line, p.range.end.character],
+          text: p.value
+        })
+      }
+    })
+    return res
   }
 
   private synchronize(): void {
@@ -408,6 +424,17 @@ export function getEndPosition(position: Position, oldTextDocument: LinesTextDoc
     }
   }
   return end
+}
+
+export function equalToPosition(position: Position, oldTextDocument: LinesTextDocument, textDocument: LinesTextDocument): boolean {
+  let endLine = position.line
+  for (let i = 0; i < endLine; i++) {
+    if (oldTextDocument.lines[i] !== textDocument.lines[i]) return false
+  }
+  if (oldTextDocument.lines[endLine].slice(0, position.character) === textDocument.lines[endLine].slice(0, position.character)) {
+    return true
+  }
+  return false
 }
 
 /*

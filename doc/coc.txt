@@ -2802,7 +2802,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	You can bind your custom command like so: >
 
 	command! -nargs=0 OrganizeImport
-		\ :call CocActionAsync('runCommand', 'tsserver.organizeImports')
+		\ :call CocActionAsync('runCommand', 'editor.action.organizeImport')
 <
 "fold" {{kind}}						*CocAction('fold')*
 

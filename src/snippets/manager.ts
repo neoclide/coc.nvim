@@ -6,13 +6,13 @@ import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
 import { defaultValue } from '../util'
-import { deepClone } from '../util/object'
-import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
-import { Disposable } from '../util/protocol'
 import { Mutex } from '../util/mutex'
+import { deepClone } from '../util/object'
+import { emptyRange, rangeOverlap, toValidRange } from '../util/position'
+import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import { SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { executePythonCode, getAction, getContextCode, hasPython, SnippetFormatOptions, UltiSnippetContext } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
@@ -85,27 +85,48 @@ export class SnippetManager {
    */
   public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption, checkResolve = false): Promise<boolean> {
     if (checkResolve && this.resolving) return false
-    let { bufnr } = workspace
+    let { bufnr, nvim } = workspace
     let doc = workspace.getAttachedDocument(bufnr)
-    if (range && !rangeInRange(range, Range.create(0, 0, doc.lineCount + 1, 0))) {
-      throw new Error(`Unable to insert snippet, invalid range.`)
-    }
     let release = await this.mutex.acquire()
     try {
       let context: UltiSnippetContext
       if (!range) {
         let pos = await window.getCursorPosition()
         range = Range.create(pos, pos)
+      } else {
+        range = toValidRange(range)
       }
       const currentLine = doc.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
       const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip)
+      let usePy = false
       if (ultisnip != null) {
+        usePy = hasPython(ultisnip) || inserted.includes('`!p')
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
-        if (!emptyRange(range) && inserted.includes('`!p')) {
-          // same behavior as Ultisnips
-          this.nvim.call('coc#cursor#move_to', [range.start.line, range.start.character], true)
-          await doc.applyEdits([{ range, newText: '' }])
+        if (usePy) {
+          let codes = getContextCode(ultisnip.context)
+          await executePythonCode(nvim, codes)
+          let preExpand = getAction(ultisnip, 'preExpand')
+          if (preExpand) {
+            await executePythonCode(nvim, ['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand])
+            const [valid, pos] = await nvim.call('pyxeval', 'snip.getResult()') as [boolean, [number, number]]
+            // need remove the trigger
+            if (valid) {
+              let count = range.end.character - range.start.character
+              let end = Position.create(pos[0], pos[1])
+              let start = Position.create(pos[0], Math.max(0, pos[1] - count))
+              range = Range.create(start, end)
+            } else {
+              // trigger removed already
+              let start = Position.create(pos[0], pos[1])
+              range = Range.create(start, deepClone(start))
+            }
+          }
+        }
+        // same behavior as Ultisnips
+        this.nvim.call('coc#cursor#move_to', [range.start.line, range.start.character], true)
+        if (!emptyRange(range)) {
+          await doc.applyEdits([TextEdit.del(range)])
           range.end = Position.create(range.start.line, range.start.character)
         }
       }
@@ -115,11 +136,12 @@ export class SnippetManager {
         // current session could be canceled on synchronize.
         session = this.getSession(bufnr)
       } else {
-        await doc.patchChange(true)
+        await doc.patchChange(!usePy)
       }
       if (!session) {
         let config = this.getSnippetConfig(doc.uri)
         session = new SnippetSession(this.nvim, doc, config)
+        this.sessionMap.set(bufnr, session)
         session.onCancel(() => {
           this.sessionMap.delete(bufnr)
           this.statusItem.hide()
@@ -128,7 +150,6 @@ export class SnippetManager {
       let isActive = await session.start(inserted, range, select, context)
       if (isActive) {
         this.statusItem.show()
-        this.sessionMap.set(bufnr, session)
       } else {
         this.statusItem.hide()
         this.sessionMap.delete(bufnr)
