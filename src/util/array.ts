@@ -40,7 +40,6 @@ export function intable(n: number, table: ReadonlyArray<[number, number]>): bool
 
 /**
  * Performs a binary search algorithm over a sorted array.
- *
  * @param array The array being searched.
  * @param key The value we search for.
  * @param comparator A function that takes two array elements and returns zero
@@ -58,7 +57,6 @@ export function binarySearch<T>(array: ReadonlyArray<T>, key: T, comparator: (op
  * when we need to perform a binary search over something that isn't actually an
  * array, and converting data to an array would defeat the use of binary search
  * in the first place.
- *
  * @param length The collection length.
  * @param compareToKey A function that takes an index of an element in the
  * collection and returns zero if the value at this index is equal to the

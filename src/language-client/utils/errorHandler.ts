@@ -37,7 +37,6 @@ export enum ErrorAction {
 export interface ErrorHandler {
   /**
    * An error has occurred while writing or reading from the connection.
-   *
    * @param error - the error received
    * @param message - the message to be delivered to the server if know.
    * @param count - a count indicating how often an error is received. Will

@@ -93,7 +93,6 @@ class CommandManager implements Disposable {
    *
    * Registering a command with an existing command identifier twice
    * will cause an error.
-   *
    * @param command A unique identifier for the command.
    * @param impl A command handler function.
    * @param thisArg The `this` context used when invoking the handler function.
@@ -116,7 +115,6 @@ class CommandManager implements Disposable {
    * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`URI`](#URI) and [`Location`](#Location).
    * * *Note 2:* There are no restrictions when executing commands that have been contributed
    * by extensions.
-   *
    * @param command Identifier of the command to execute.
    * @param rest Parameters passed to the command function.
    * @return A promise that resolves to the returned value of the given command. `undefined` when

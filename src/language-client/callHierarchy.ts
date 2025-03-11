@@ -22,7 +22,6 @@ export interface CallHierarchyOutgoingCallsSignature {
 
 /**
  * Call hierarchy middleware
- *
  * @since 3.16.0
  */
 export interface CallHierarchyMiddleware {

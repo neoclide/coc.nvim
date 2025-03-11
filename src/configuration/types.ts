@@ -90,7 +90,6 @@ export interface IConfigurationData {
 export interface WorkspaceConfiguration {
   /**
    * Return a value from this configuration.
-   *
    * @param section Configuration name, supports _dotted_ names.
    * @return The value `section` denotes or `undefined`.
    */
@@ -98,7 +97,6 @@ export interface WorkspaceConfiguration {
 
   /**
    * Return a value from this configuration.
-   *
    * @param section Configuration name, supports _dotted_ names.
    * @param defaultValue A value should be returned when no value could be found, is `undefined`.
    * @return The value `section` denotes or the default.
@@ -107,7 +105,6 @@ export interface WorkspaceConfiguration {
 
   /**
    * Check if this configuration has a certain value.
-   *
    * @param section Configuration name, supports _dotted_ names.
    * @return `true` if the section doesn't resolve to `undefined`.
    */
@@ -120,15 +117,12 @@ export interface WorkspaceConfiguration {
    *
    * *Note:* The configuration name must denote a leaf in the configuration tree
    * (`editor.fontSize` vs `editor`) otherwise no result is returned.
-   *
    * @param section Configuration name, supports _dotted_ names.
    * @return Information about a configuration setting or `undefined`.
    */
   inspect<T>(section: string): ConfigurationInspect<T> | undefined
   /**
    * Update a configuration value. The updated configuration values are persisted.
-   *
-   *
    * @param section Configuration name, supports _dotted_ names.
    * @param value The new value.
    * @param isUser if true, always update user configuration

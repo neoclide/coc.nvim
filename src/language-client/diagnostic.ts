@@ -66,7 +66,6 @@ export interface DiagnosticPullOptions {
   /**
    * An optional filter method that is consulted when triggering a
    * diagnostic pull during document change or document save.
-   *
    * @param document the document that changes or got save
    * @param mode the mode
    */

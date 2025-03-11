@@ -12,7 +12,6 @@ export type TypeHierarchySubtypesSignature = (this: void, item: TypeHierarchyIte
 
 /**
  * Type hierarchy middleware
- *
  * @since 3.17.0
  */
 export interface TypeHierarchyMiddleware {

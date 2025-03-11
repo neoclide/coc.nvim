@@ -180,7 +180,6 @@ export interface TreeView<T> extends Disposable {
    *
    * **NOTE:**
    * **NOTE:** TreeView with same viewId in current tab would be disposed.
-   *
    * @param splitCommand The command to open TreeView window, default to 'belowright 30vs'
    */
   show(splitCommand?: string): Promise<boolean>
@@ -199,7 +198,6 @@ export interface TreeDataProvider<T> {
 
   /**
    * Get {@link TreeItem} representation of the `element`
-   *
    * @param element The element for which {@link TreeItem} representation is asked for.
    * @return {@link TreeItem} representation of the element
    */
@@ -207,7 +205,6 @@ export interface TreeDataProvider<T> {
 
   /**
    * Get the children of `element` or root if no element is passed.
-   *
    * @param element The element from which the provider gets children. Can be `undefined`.
    * @return Children of `element` or root if no element is passed.
    */
@@ -218,7 +215,6 @@ export interface TreeDataProvider<T> {
    * Return `null` or `undefined` if `element` is a child of root.
    *
    * **NOTE:** This method should be implemented in order to access {@link TreeView.reveal reveal} API.
-   *
    * @param element The element for which the parent has to be returned.
    * @return Parent of `element`.
    */
@@ -238,7 +234,6 @@ export interface TreeDataProvider<T> {
    * *Note* that this function is called when tree items are already showing in the UI.
    * Because of that, no property that changes the presentation (label, description, etc.)
    * can be changed.
-   *
    * @param item Undefined properties of `item` should be set then `item` should be returned.
    * @param element The object associated with the TreeItem.
    * @param token A cancellation token.
@@ -250,7 +245,6 @@ export interface TreeDataProvider<T> {
   /**
    * Called with current element to resolve actions.
    * Called when user press 'actions' key.
-   *
    * @param item Resolved item.
    * @param element The object under cursor.
    */

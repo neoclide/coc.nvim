@@ -130,7 +130,6 @@ export class Configuration {
 
   /**
    * Get folder configuration fsPath & model
-   *
    * @param uri folder or file uri
    */
   public getFolderConfigurationModelForResource(uri: string): ConfigurationModel | undefined {
