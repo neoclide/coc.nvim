@@ -5,7 +5,11 @@ import { exec, ExecOptions } from 'child_process'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
 import { toText } from '../util/string'
+import events from '../events'
+import { UltiSnippetOption, UltiSnipsActions } from '../types'
 export type EvalKind = 'vim' | 'python' | 'shell'
+
+export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
 
 export interface UltiSnippetContext {
   /**
@@ -40,6 +44,8 @@ export interface UltiSnippetContext {
    * Remove whitespace immediately before the cursor at the end of a line before jumping to the next tabstop
    */
   removeWhiteSpace?: boolean
+
+  actions?: UltiSnipsActions
 }
 
 export interface SnippetFormatOptions {
@@ -48,6 +54,11 @@ export interface SnippetFormatOptions {
   trimTrailingWhitespace?: boolean
   // options from ultisnips context
   noExpand?: boolean
+}
+
+export function getAction(opt: { actions?: { [key: string]: any } } | undefined, action: UltiSnipsAction): string | undefined {
+  if (!opt || !opt.actions) return undefined
+  return opt.actions[action]
 }
 
 /**
@@ -86,8 +97,28 @@ export function prepareMatchCode(snip: UltiSnippetContext): string {
   return pyCodes.join('\n')
 }
 
+export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolean {
+  if (!snip) return false
+  if (snip.context) return true
+  if (snip.actions && Object.keys(snip.actions).length > 0) return true
+  return false
+}
+
 export function preparePythonCodes(snip: UltiSnippetContext): string[] {
-  let { range, context, line } = snip
+  let { range, line } = snip
+  let pyCodes: string[] = [
+    'import re, os, vim, string, random',
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`,
+  ]
+  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
+  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
+  let indent = line.match(/^\s*/)[0]
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
+  return pyCodes
+}
+
+export function getContextCode(context?: string): string[] {
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
@@ -97,18 +128,24 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
     pyCodes.push(`snip = ContextSnippet()`)
     pyCodes.push(`context = ${context}`)
   } else {
-    pyCodes.push(`context = True`)
+    pyCodes.push(`context = None`)
   }
-  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
-  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
-  let indent = line.match(/^\s*/)[0]
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   return pyCodes
 }
 
-export async function executePythonCode(nvim: Neovim, codes: string[]) {
+export async function executePythonCode(nvim: Neovim, codes: string[], wrap = false) {
+  let lines = [...codes]
+  if (wrap) lines = [
+    '_snip = None',
+    'if "snip" in locals():',
+    '    _snip = snip',
+    ...codes,
+    `__snip = snip`,
+    `snip = _snip`
+  ]
+  lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)
   try {
-    await nvim.command(`pyx ${addPythonTryCatch(codes.join('\n'))}`)
+    await nvim.command(`pyx ${addPythonTryCatch(lines.join('\n'))}`)
   } catch (e: any) {
     let err = new Error(e.message)
     err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + e.stack
