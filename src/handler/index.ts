@@ -12,7 +12,7 @@ import { StatusBarItem } from '../model/status'
 import { TextDocumentMatch } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import { getSymbolKind } from '../util/convert'
-import { toObject } from '../util/object'
+import { hasOwnProperty, toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
 import { getRangesFromEdit } from '../util/textedit'
 import window from '../window'
@@ -263,9 +263,9 @@ export default class Handler implements HandlerDelegate {
   public getIcon(kind: SymbolKind): { text: string, hlGroup: string } {
     let { labels } = this
     let kindText = getSymbolKind(kind)
-    let text = labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    // it could be function like labels['constructor']
-    if (!Is.string(text)) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
+    const key = kindText[0].toLowerCase() + kindText.slice(1)
+    let text = hasOwnProperty(labels, key) ? labels[key] : undefined
+    if (!Is.string(text) || !text.length) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
     return {
       text,
       hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`

@@ -85,6 +85,10 @@ export class Scanner {
     return this.value.substr(token.pos, token.len)
   }
 
+  public isEnd(): boolean {
+    return this.pos >= this.value.length
+  }
+
   public next(): Token {
 
     if (this.pos >= this.value.length) {
@@ -1343,6 +1347,27 @@ export class SnippetParser {
     return true
   }
 
+  private _checkCulybrace(marker: Marker): boolean {
+    let count = 0
+    for (marker of marker.children) {
+      if (marker instanceof Text) {
+        let text = marker.value
+        for (let index = 0; index < text.length; index++) {
+          const ch = text[index]
+          if (ch === '\n') {
+            return true
+          }
+          if (ch === '{') {
+            count++
+          } else if (ch === '}') {
+            count--
+          }
+        }
+      }
+    }
+    return count <= 0
+  }
+
   // ${1:<children>}, ${1} -> placeholder
   private _parseComplexPlaceholder(parent: Marker): boolean {
     let index: string
@@ -1350,20 +1375,22 @@ export class SnippetParser {
     const match = this._accept(TokenType.Dollar)
       && this._accept(TokenType.CurlyOpen)
       && (index = this._accept(TokenType.Int, true))
-
     if (!match) {
       return this._backTo(token)
     }
-
     const placeholder = new Placeholder(Number(index))
-
     if (this._accept(TokenType.Colon)) {
       // ${1:<children>}
       // eslint-disable-next-line no-constant-condition
       while (true) {
-
+        const lastChar = this._scanner.isEnd()
         // ...} -> done
         if (this._accept(TokenType.CurlyClose)) {
+          // check if missed paried }
+          if (!this._checkCulybrace(placeholder) && !lastChar) {
+            placeholder.appendChild(new Text('}'))
+            continue
+          }
           parent.appendChild(placeholder)
           return true
         }

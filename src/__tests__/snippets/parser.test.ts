@@ -171,6 +171,28 @@ describe('SnippetParser', () => {
     s('ab$1chh', false)
   })
 
+  test('Parser, paried curly brace in placeholder', () => {
+    const getText = (text): string => {
+      const parser = new SnippetParser(false)
+      let snip = parser.parse(text)
+      let res: Text
+      snip.walk(marker => {
+        if (marker instanceof Text) {
+          res = marker
+        }
+        return true
+      })
+      return res ? res.value : undefined
+    }
+
+    let text = getText('${1:{foo}}')
+    expect(text).toBe('{foo}')
+    text = getText('${1:ab{foo}}')
+    expect(text).toBe('ab{foo}')
+    text = getText('${1:ab{foo}cd}')
+    expect(text).toBe('ab{foo}cd')
+  })
+
   test('Parser, first placeholder / variable', function() {
     const first = (input: string): Marker => {
       const p = new SnippetParser(false)
