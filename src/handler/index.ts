@@ -263,7 +263,7 @@ export default class Handler implements HandlerDelegate {
   public getIcon(kind: SymbolKind): { text: string, hlGroup: string } {
     let { labels } = this
     let kindText = getSymbolKind(kind)
-    let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
+    let text = labels[kindText[0].toLowerCase() + kindText.slice(1)]
     // it could be function like labels['constructor']
     if (!Is.string(text)) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
     return {
