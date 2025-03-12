@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
+import BufferSync from '../model/bufferSync'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
 import { defaultValue } from '../util'
@@ -18,9 +19,9 @@ import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
 
 export class SnippetManager {
-  private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
   private _statusItem: StatusBarItem
+  private bufferSync: BufferSync<SnippetSession>
   private resolving = false
   private mutex: Mutex = new Mutex()
 
@@ -35,19 +36,28 @@ export class SnippetManager {
       let session = this.getSession(bufnr)
       if (session) await session.checkPosition()
     }, null, this.disposables)
-    workspace.onDidCloseTextDocument(e => {
-      let session = this.getSession(e.bufnr)
-      if (session) session.deactivate()
-    }, null, this.disposables)
+
+    this.bufferSync = workspace.registerBufferSync(doc => {
+      let config = this.getSnippetConfig(doc.uri)
+      let session = new SnippetSession(this.nvim, doc, config)
+      session.onActiveChange(isActive => {
+        if (window.activeTextEditor?.bufnr !== session.bufnr) return
+        this.statusItem[isActive ? 'show' : 'hide']()
+      })
+      return session
+    })
+    this.disposables.push(this.bufferSync)
+
     window.onDidChangeActiveTextEditor(e => {
-      if (!this._statusItem) return
+      if (!this._statusItem || this.getSession(e.bufnr) == null) return
       let session = this.getSession(e.bufnr)
       if (session) {
-        this.statusItem.show()
+        this.statusItem[session.isActive ? 'show' : 'hide']()
       } else {
         this.statusItem.hide()
       }
     }, null, this.disposables)
+
     commands.register({
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption | true) => {
@@ -131,31 +141,11 @@ export class SnippetManager {
         }
       }
       let session = this.getSession(bufnr)
-      if (session) {
-        await session.forceSynchronize()
-        // current session could be canceled on synchronize.
-        session = this.getSession(bufnr)
-      } else {
-        await doc.patchChange(!usePy)
-      }
-      if (!session) {
-        let config = this.getSnippetConfig(doc.uri)
-        session = new SnippetSession(this.nvim, doc, config)
-        this.sessionMap.set(bufnr, session)
-        session.onCancel(() => {
-          this.sessionMap.delete(bufnr)
-          this.statusItem.hide()
-        })
-      }
-      let isActive = await session.start(inserted, range, select, context)
-      if (isActive) {
-        this.statusItem.show()
-      } else {
-        this.statusItem.hide()
-        this.sessionMap.delete(bufnr)
-      }
+      // could be buffer detach
+      if (!session) return false
+      await session.start(inserted, range, select, context)
       release()
-      return isActive
+      return session.isActive
     } catch (e) {
       release()
       throw e
@@ -173,7 +163,6 @@ export class SnippetManager {
       await session.nextPlaceholder()
     } else {
       this.nvim.call('coc#snippet#disable', [], true)
-      this.statusItem.hide()
     }
     return ''
   }
@@ -184,7 +173,6 @@ export class SnippetManager {
       await session.previousPlaceholder()
     } else {
       this.nvim.call('coc#snippet#disable', [], true)
-      this.statusItem.hide()
     }
     return ''
   }
@@ -193,7 +181,7 @@ export class SnippetManager {
     let session = this.getSession(workspace.bufnr)
     if (session) return session.deactivate()
     this.nvim.call('coc#snippet#disable', [], true)
-    if (this.statusItem) this.statusItem.hide()
+    this.statusItem.hide()
   }
 
   public get session(): SnippetSession {
@@ -201,7 +189,7 @@ export class SnippetManager {
   }
 
   public getSession(bufnr: number): SnippetSession {
-    return this.sessionMap.get(bufnr)
+    return this.bufferSync.getItem(bufnr)
   }
 
   public jumpable(): boolean {
@@ -224,7 +212,7 @@ export class SnippetManager {
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     if (ultisnip) {
       let session = this.getSession(workspace.bufnr)
-      if (session != null && session.snippet.hasPython) ultisnip.noPython = false
+      if (session && session.snippet?.hasPython) ultisnip.noPython = false
     }
     let res: string
     try {
