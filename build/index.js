@@ -50234,6 +50234,9 @@ var init_parser3 = __esm({
       tokenText(token) {
         return this.value.substr(token.pos, token.len);
       }
+      isEnd() {
+        return this.pos >= this.value.length;
+      }
       next() {
         if (this.pos >= this.value.length) {
           return { type: 14 /* EOF */, pos: this.pos, len: 0 };
@@ -51236,6 +51239,26 @@ var init_parser3 = __esm({
         }
         return true;
       }
+      _checkCulybrace(marker) {
+        let count = 0;
+        for (marker of marker.children) {
+          if (marker instanceof Text) {
+            let text = marker.value;
+            for (let index = 0; index < text.length; index++) {
+              const ch = text[index];
+              if (ch === "\n") {
+                return true;
+              }
+              if (ch === "{") {
+                count++;
+              } else if (ch === "}") {
+                count--;
+              }
+            }
+          }
+        }
+        return count <= 0;
+      }
       // ${1:<children>}, ${1} -> placeholder
       _parseComplexPlaceholder(parent) {
         let index;
@@ -51247,7 +51270,12 @@ var init_parser3 = __esm({
         const placeholder = new Placeholder(Number(index));
         if (this._accept(1 /* Colon */)) {
           while (true) {
+            const lastChar = this._scanner.isEnd();
             if (this._accept(4 /* CurlyClose */)) {
+              if (!this._checkCulybrace(placeholder) && !lastChar) {
+                placeholder.appendChild(new Text("}"));
+                continue;
+              }
               parent.appendChild(placeholder);
               return true;
             }
@@ -89748,7 +89776,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-fc5e3047 2025-03-12 14:00:54 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-dc5e68a5 2025-03-12 14:00:54 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89995,8 +90023,9 @@ var init_handler = __esm({
       getIcon(kind) {
         let { labels } = this;
         let kindText = getSymbolKind(kind);
-        let text = kindText == "Unknown" ? "" : labels[kindText[0].toLowerCase() + kindText.slice(1)];
-        if (!string(text)) text = string(labels["default"]) ? labels["default"] : kindText[0].toLowerCase();
+        const key = kindText[0].toLowerCase() + kindText.slice(1);
+        let text = hasOwnProperty(labels, key) ? labels[key] : void 0;
+        if (!string(text) || !text.length) text = string(labels["default"]) ? labels["default"] : kindText[0].toLowerCase();
         return {
           text,
           hlGroup: kindText == "Unknown" ? "CocSymbolDefault" : `CocSymbol${kindText}`
