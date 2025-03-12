@@ -631,7 +631,7 @@ export class Variable extends TransformableMarker {
           indent = lines[lines.length - 1].match(/^\s*/)[0]
         }
         return true
-      })
+      }, true)
       let lines = value.split('\n')
       let indents = lines.filter(s => s.length > 0).map(s => s.match(/^\s*/)[0])
       let minIndent = indents.reduce((p, c) => p < c.length ? p : c.length, 0)
@@ -682,10 +682,11 @@ export interface PlaceholderInfo {
   otherBlocks: CodeBlock[]
 }
 
-function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
+function walk(marker: Marker[], visitor: (marker: Marker) => boolean, ignoreChild = false): void {
   const stack = [...marker]
   while (stack.length > 0) {
     const marker = stack.shift()
+    if (ignoreChild && marker instanceof TextmateSnippet) continue
     const recurse = visitor(marker)
     if (!recurse) {
       break
@@ -886,7 +887,7 @@ export class TextmateSnippet extends Marker {
           }
         }
         return true
-      })
+      }, true)
       this._placeholders = { placeholders, pyBlocks, otherBlocks, variables }
     }
     return this._placeholders
@@ -925,6 +926,7 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
+  // TODO insert as child
   public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
     let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
     let [before, after] = parts
@@ -962,7 +964,7 @@ export class TextmateSnippet extends Marker {
           m.update(map)
         }
         return true
-      })
+      }, true)
     }
     const select = nested.first
     let children = nested.children.slice()
@@ -1063,7 +1065,7 @@ export class TextmateSnippet extends Marker {
       }
       pos += candidate.len()
       return true
-    })
+    }, true)
 
     if (!found) {
       return -1
@@ -1117,7 +1119,7 @@ export class TextmateSnippet extends Marker {
         items.push(candidate)
       }
       return true
-    })
+    }, true)
     if (items.length) {
       await Promise.all(items.map(o => o.resolve(resolver)))
       this.synchronizeParents(items)
@@ -1155,8 +1157,8 @@ export class TextmateSnippet extends Marker {
     return ret
   }
 
-  public walk(visitor: (marker: Marker) => boolean): void {
-    walk(this.children, visitor)
+  public walk(visitor: (marker: Marker) => boolean, ignoreChild = false): void {
+    walk(this.children, visitor, ignoreChild)
   }
 }
 
