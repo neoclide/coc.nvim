@@ -89748,7 +89748,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7f2d2918 2025-03-12 11:05:48 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-fc5e3047 2025-03-12 14:00:54 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89996,7 +89996,7 @@ var init_handler = __esm({
         let { labels } = this;
         let kindText = getSymbolKind(kind);
         let text = kindText == "Unknown" ? "" : labels[kindText[0].toLowerCase() + kindText.slice(1)];
-        if (!text) text = string(labels["default"]) ? labels["default"] : kindText[0].toLowerCase();
+        if (!string(text)) text = string(labels["default"]) ? labels["default"] : kindText[0].toLowerCase();
         return {
           text,
           hlGroup: kindText == "Unknown" ? "CocSymbolDefault" : `CocSymbol${kindText}`
