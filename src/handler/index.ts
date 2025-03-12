@@ -264,7 +264,8 @@ export default class Handler implements HandlerDelegate {
     let { labels } = this
     let kindText = getSymbolKind(kind)
     let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    if (!text) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
+    // it could be function like labels['constructor']
+    if (!Is.string(text)) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
     return {
       text,
       hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
