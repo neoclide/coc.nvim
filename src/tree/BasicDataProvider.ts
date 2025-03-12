@@ -184,7 +184,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
       item.icon = node.icon
     } else if (typeof this.opts.resolveIcon === 'function') {
       let res = this.opts.resolveIcon(node)
-      if (res) item.icon = res
+      if (res && isIcon(res)) item.icon = res
     }
     return item
   }

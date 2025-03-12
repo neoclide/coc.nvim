@@ -6,6 +6,7 @@ import commands from '../commands'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
+import * as Is from '../util/is'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
 import { TextDocumentMatch } from '../types'
@@ -262,9 +263,8 @@ export default class Handler implements HandlerDelegate {
   public getIcon(kind: SymbolKind): { text: string, hlGroup: string } {
     let { labels } = this
     let kindText = getSymbolKind(kind)
-    let defaultIcon = typeof labels['default'] === 'string' ? labels['default'] : kindText[0].toLowerCase()
     let text = kindText == 'Unknown' ? '' : labels[kindText[0].toLowerCase() + kindText.slice(1)]
-    if (!text) text = defaultIcon
+    if (!text) text = Is.string(labels['default']) ? labels['default'] : kindText[0].toLowerCase()
     return {
       text,
       hlGroup: kindText == 'Unknown' ? 'CocSymbolDefault' : `CocSymbol${kindText}`
