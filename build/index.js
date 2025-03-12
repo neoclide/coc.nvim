@@ -18901,15 +18901,15 @@ var require_disposable = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Disposable = void 0;
-    var Disposable37;
-    (function(Disposable38) {
+    var Disposable36;
+    (function(Disposable37) {
       function create(func2) {
         return {
           dispose: func2
         };
       }
-      Disposable38.create = create;
-    })(Disposable37 || (exports2.Disposable = Disposable37 = {}));
+      Disposable37.create = create;
+    })(Disposable36 || (exports2.Disposable = Disposable36 = {}));
   }
 });
 
@@ -21262,7 +21262,7 @@ var require_main = __commonJS({
     var ril_1 = require_ril();
     ril_1.default.install();
     var path3 = require("path");
-    var os3 = require("os");
+    var os2 = require("os");
     var crypto_1 = require("crypto");
     var net_1 = require("net");
     var api_1 = require_api2();
@@ -21399,7 +21399,7 @@ var require_main = __commonJS({
       if (XDG_RUNTIME_DIR) {
         result = path3.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
       } else {
-        result = path3.join(os3.tmpdir(), `vscode-${randomSuffix}.sock`);
+        result = path3.join(os2.tmpdir(), `vscode-${randomSuffix}.sock`);
       }
       const limit = safeIpcPathLengths.get(process.platform);
       if (limit !== void 0 && result.length > limit) {
@@ -27392,7 +27392,6 @@ var init_commands = __esm({
        *
        * Registering a command with an existing command identifier twice
        * will cause an error.
-       *
        * @param command A unique identifier for the command.
        * @param impl A command handler function.
        * @param thisArg The `this` context used when invoking the handler function.
@@ -27414,7 +27413,6 @@ var init_commands = __esm({
        * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`URI`](#URI) and [`Location`](#Location).
        * * *Note 2:* There are no restrictions when executing commands that have been contributed
        * by extensions.
-       *
        * @param command Identifier of the command to execute.
        * @param rest Parameters passed to the command function.
        * @return A promise that resolves to the returned value of the given command. `undefined` when
@@ -41205,7 +41203,6 @@ var init_configuration = __esm({
       }
       /**
        * Get folder configuration fsPath & model
-       *
        * @param uri folder or file uri
        */
       getFolderConfigurationModelForResource(uri) {
@@ -45295,10 +45292,10 @@ var require_bser = __commonJS({
   "node_modules/bser/index.js"(exports2) {
     var EE = require("events").EventEmitter;
     var util = require("util");
-    var os3 = require("os");
+    var os2 = require("os");
     var assert2 = require("assert");
     var Int64 = require_Int64();
-    var isBigEndian = os3.endianness() == "BE";
+    var isBigEndian = os2.endianness() == "BE";
     function nextPow2(size) {
       return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
     }
@@ -46151,14 +46148,6 @@ var init_watchman = __esm({
 });
 
 // src/core/fileSystemWatcher.ts
-function should_ignore(root, ignored) {
-  for (let folder of ignored) {
-    if (sameFile(root, folder)) {
-      return true;
-    }
-  }
-  return false;
-}
 var logger13, WATCHMAN_COMMAND, FileSystemWatcherManager, FileSystemWatcher;
 var init_fileSystemWatcher = __esm({
   "src/core/fileSystemWatcher.ts"() {
@@ -46225,7 +46214,7 @@ var init_fileSystemWatcher = __esm({
         });
       }
       async createClient(root, skipCheck = false) {
-        if (!skipCheck && (this.disabled || should_ignore(root, this.config.ignoredFolders))) return;
+        if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return;
         if (this.has(root)) return this.waitClient(root);
         try {
           this.creating.add(root);
@@ -47748,7 +47737,6 @@ var init_db = __esm({
       }
       /**
        * Get data by key.
-       *
        * @param {string} key unique key allows dot notation.
        * @returns {any}
        */
@@ -47766,7 +47754,6 @@ var init_db = __esm({
       }
       /**
        * Check if key exists
-       *
        * @param {string} key unique key allows dot notation.
        */
       exists(key) {
@@ -47782,7 +47769,6 @@ var init_db = __esm({
       }
       /**
        * Delete data by key
-       *
        * @param {string} key unique key allows dot notation.
        */
       delete(key) {
@@ -47804,7 +47790,6 @@ var init_db = __esm({
       }
       /**
        * Save data with key
-       *
        * @param {string} key unique string that allows dot notation.
        * @param {number|null|boolean|string|{[index} data saved data.
        */
@@ -47991,7 +47976,6 @@ var init_task = __esm({
       }
       /**
        * Start task, task will be restarted when already running.
-       *
        * @param {TaskOptions} opts
        * @returns {Promise<boolean>}
        */
@@ -48729,6 +48713,7 @@ var init_TreeView = __esm({
     init_filter();
     init_mutex();
     init_object();
+    init_node();
     init_protocol();
     init_string();
     init_window();
@@ -48871,12 +48856,15 @@ var init_TreeView = __esm({
         events_default.on(["CursorMoved", "BufEnter"], () => {
           this.cancelResolve();
         }, null, this.disposables);
-        events_default.on("CursorMoved", (bufnr, cursor) => {
-          if (bufnr == this.bufnr) {
-            let element = this.getElementByLnum(cursor[0] - 1);
-            this._onDidCursorMoved.fire(element);
-          }
-        }, null, this.disposables);
+        let debounced = debounce((bufnr, cursor) => {
+          if (bufnr !== this.bufnr) return;
+          let element = this.getElementByLnum(cursor[0] - 1);
+          this._onDidCursorMoved.fire(element);
+        }, 30);
+        this.disposables.push(import_node3.Disposable.create(() => {
+          debounced.clear();
+        }));
+        events_default.on("CursorMoved", debounced, null, this.disposables);
         events_default.on("WinEnter", (winid) => {
           if (winid != this.windowId || !this.filtering) return;
           let buf = this.nvim.createBuffer(this.bufnr);
@@ -49709,7 +49697,6 @@ var init_window = __esm({
       }
       /**
        * Run command in vim terminal for result
-       *
        * @param cmd Command to run.
        * @param cwd Cwd of terminal, default to result of |getcwd()|.
        */
@@ -49718,7 +49705,6 @@ var init_window = __esm({
       }
       /**
        * Open terminal window.
-       *
        * @param cmd Command to run.
        * @param opts Terminal option.
        * @returns number buffer number of terminal
@@ -49728,7 +49714,6 @@ var init_window = __esm({
       }
       /**
        * Reveal message with message type.
-       *
        * @param msg Message text to show.
        * @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
        */
@@ -49737,7 +49722,6 @@ var init_window = __esm({
       }
       /**
        * Create a new output channel
-       *
        * @param name Unique name of output channel.
        * @returns A new output channel.
        */
@@ -49746,7 +49730,6 @@ var init_window = __esm({
       }
       /**
        * Reveal buffer of output channel.
-       *
        * @param name Name of output channel.
        * @param cmd command for open output channel.
        * @param preserveFocus Preserve window focus when true.
@@ -49757,7 +49740,6 @@ var init_window = __esm({
       }
       /**
        * Echo lines at the bottom of vim.
-       *
        * @param lines Line list.
        * @param truncate Truncate the lines to avoid 'press enter to continue' when true
        */
@@ -49766,7 +49748,6 @@ var init_window = __esm({
       }
       /**
        * Get current cursor position (line, character both 0 based).
-       *
        * @returns Cursor position.
        */
       getCursorPosition() {
@@ -49774,7 +49755,6 @@ var init_window = __esm({
       }
       /**
        * Move cursor to position.
-       *
        * @param position LSP position.
        */
       async moveTo(position) {
@@ -49795,7 +49775,6 @@ var init_window = __esm({
       /**
        * Get current cursor character offset in document,
        * length of line break would always be 1.
-       *
        * @returns Character offset.
        */
       getOffset() {
@@ -49804,7 +49783,6 @@ var init_window = __esm({
       /**
        * Get screen position of current cursor(relative to editor),
        * both `row` and `col` are 0 based.
-       *
        * @returns Cursor screen position.
        */
       getCursorScreenPosition() {
@@ -49812,7 +49790,6 @@ var init_window = __esm({
       }
       /**
        * Create a {@link TreeView} instance.
-       *
        * @param viewId Id of the view, used as title of TreeView when title doesn't exist.
        * @param options Options for creating the {@link TreeView}
        * @returns a {@link TreeView}.
@@ -49823,7 +49800,6 @@ var init_window = __esm({
       }
       /**
        * Create statusbar item that would be included in `g:coc_status`.
-       *
        * @param priority Higher priority item would be shown right.
        * @param option
        * @return A new status bar item.
@@ -49834,7 +49810,6 @@ var init_window = __esm({
       /**
        * Get diff from highlight items and current highlights on vim.
        * Return null when buffer not loaded
-       *
        * @param bufnr Buffer number
        * @param ns Highlight namespace
        * @param items Highlight items
@@ -49847,7 +49822,6 @@ var init_window = __esm({
       }
       /**
        * Create a FloatFactory, user's configurations are respected.
-       *
        * @param {FloatWinConfig} conf - Float window configuration
        * @returns {FloatFactory}
        */
@@ -49859,7 +49833,6 @@ var init_window = __esm({
       }
       /**
        * Show quickpick for single item, use `window.menuPick` for menu at current current position.
-       *
        * @deprecated Use 'window.showMenuPicker()' or `window.showQuickPick` instead.
        * @param items Label list.
        * @param placeholder Prompt text, default to 'choose by number'.
@@ -49881,7 +49854,6 @@ var init_window = __esm({
        * Note that in many cases the more convenient {@link window.showQuickPick}
        * is easier to use. {@link window.createQuickPick} should be used
        * when {@link window.showQuickPick} does not offer the required flexibility.
-       *
        * @return A new {@link QuickPick}.
        */
       async createQuickPick(config = {}) {
@@ -49889,7 +49861,6 @@ var init_window = __esm({
       }
       /**
        * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-       *
        * @param items Array of texts.
        * @param option Options for menu.
        * @param token A token that can be used to signal cancellation.
@@ -49901,7 +49872,6 @@ var init_window = __esm({
       /**
        * Prompt user for confirm, a float/popup window would be used when possible,
        * use vim's |confirm()| function as callback.
-       *
        * @param title The prompt text.
        * @returns Result of confirm.
        */
@@ -49911,7 +49881,6 @@ var init_window = __esm({
       /**
        * Show dialog window at the center of screen.
        * Note that the dialog would always be closed after button click.
-       *
        * @param config Dialog configuration.
        * @returns Dialog or null when dialog can't work.
        */
@@ -49920,7 +49889,6 @@ var init_window = __esm({
       }
       /**
        * Request input from user
-       *
        * @param title Title text of prompt window.
        * @param value Default value of input, empty text by default.
        * @param {InputOptions} option for input window
@@ -49931,7 +49899,6 @@ var init_window = __esm({
       }
       /**
        * Creates and show a {@link InputBox} to let the user enter some text input.
-       *
        * @return A new {@link InputBox}.
        */
       async createInputBox(title, value, option) {
@@ -49943,7 +49910,6 @@ var init_window = __esm({
       /**
        * Show an information message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49955,7 +49921,6 @@ var init_window = __esm({
       /**
        * Show an warning message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49967,7 +49932,6 @@ var init_window = __esm({
       /**
        * Show an error message to users. Optionally provide an array of items which will be presented as
        * clickable buttons.
-       *
        * @param message The message to show.
        * @param items A set of items that will be rendered as actions in the message.
        * @return Promise that resolves to the selected item or `undefined` when being dismissed.
@@ -49992,7 +49956,6 @@ var init_window = __esm({
        *
        * Timer is used to add highlights when there're too many highlight items to add,
        * the highlight process won't be finished on that case.
-       *
        * @param {number} bufnr - Buffer name
        * @param {string} ns - Namespace
        * @param {number} priority
@@ -55640,7 +55603,7 @@ var require_has_flag = __commonJS({
 var require_supports_color = __commonJS({
   "node_modules/supports-color/index.js"(exports2, module2) {
     "use strict";
-    var os3 = require("os");
+    var os2 = require("os");
     var tty = require("tty");
     var hasFlag = require_has_flag();
     var { env } = process;
@@ -55688,7 +55651,7 @@ var require_supports_color = __commonJS({
         return min;
       }
       if (process.platform === "win32") {
-        const osRelease = os3.release().split(".");
+        const osRelease = os2.release().split(".");
         if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
           return Number(osRelease[2]) >= 14931 ? 3 : 2;
         }
@@ -82712,6 +82675,7 @@ var init_completion2 = __esm({
     init_sources2();
     init_types2();
     init_util3();
+    init_errors();
     logger47 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
     CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
@@ -83049,7 +83013,7 @@ var init_completion2 = __esm({
         if (!func(source.onCompleteDone)) return;
         let { insertMode, snippetsSupport } = this.config;
         let opt = Object.assign({ insertMode, snippetsSupport }, option);
-        await Promise.resolve(source.onCompleteDone(item, opt));
+        Promise.resolve(source.onCompleteDone(item, opt)).catch(onUnexpectedError);
       }
       async onInsertEnter(bufnr) {
         if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== "always") return;
@@ -88756,7 +88720,7 @@ var init_BasicDataProvider = __esm({
           item.icon = node.icon;
         } else if (typeof this.opts.resolveIcon === "function") {
           let res = this.opts.resolveIcon(node);
-          if (res) item.icon = res;
+          if (res && isIcon(res)) item.icon = res;
         }
         return item;
       }
@@ -89784,7 +89748,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-1e245162 2025-03-07 19:48:30 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-7f2d2918 2025-03-12 11:05:48 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -89822,6 +89786,7 @@ var init_handler = __esm({
     init_events();
     init_languages();
     init_logger();
+    init_is();
     init_util();
     init_convert();
     init_object();
@@ -90030,9 +89995,8 @@ var init_handler = __esm({
       getIcon(kind) {
         let { labels } = this;
         let kindText = getSymbolKind(kind);
-        let defaultIcon = typeof labels["default"] === "string" ? labels["default"] : kindText[0].toLowerCase();
         let text = kindText == "Unknown" ? "" : labels[kindText[0].toLowerCase() + kindText.slice(1)];
-        if (!text) text = defaultIcon;
+        if (!text) text = string(labels["default"]) ? labels["default"] : kindText[0].toLowerCase();
         return {
           text,
           hlGroup: kindText == "Unknown" ? "CocSymbolDefault" : `CocSymbol${kindText}`

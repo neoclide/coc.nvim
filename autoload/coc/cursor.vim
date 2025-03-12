@@ -53,6 +53,9 @@ function! coc#cursor#get_selection(char) abort
   let line = getline(el)
   let end_idx = coc#string#character_index(line, ec - 1)
   if m !=# 'char'
+    if &selection ==# 'exclusive' && !(sl == el && start_idx == end_idx)
+      let end_idx = end_idx - 1
+    endif
     let end_idx = end_idx == coc#string#character_length(line) ? end_idx : end_idx + 1
   endif
   return [sl - 1, start_idx, el - 1, end_idx]
