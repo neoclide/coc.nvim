@@ -6,8 +6,10 @@ import { SnippetConfig, SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { disposeAll, Disposable } from '../../util'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -20,13 +22,19 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
 async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
   let doc = await workspace.document
   let config: SnippetConfig = { highlight: enableHighlight, preferComplete, nextOnDelete }
-  return new SnippetSession(nvim, doc, config)
+  let session = new SnippetSession(nvim, doc, config)
+  disposables.push(session)
+  disposables.push(workspace.onDidChangeTextDocument(e => {
+    if (e.bufnr == session.bufnr) session.onChange(e)
+  }))
+  return session
 }
 
 describe('SnippetSession', () => {
@@ -269,7 +277,6 @@ describe('SnippetSession', () => {
       let spy = jest.spyOn(session.snippet.tmSnippet, 'updatePythonCodes').mockImplementation(() => {
         return new Promise(resolve => {
           session.cancel()
-          spy.mockRestore()
           setImmediate(() => {
             resolve()
             cancelled = true
@@ -278,6 +285,7 @@ describe('SnippetSession', () => {
       })
       await helper.waitValue(() => cancelled, true)
       expect(session.snippet.text).toBe(' ')
+      spy.mockRestore()
     })
 
     it('should cancel when change after snippet', async () => {

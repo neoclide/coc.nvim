@@ -56,7 +56,7 @@ describe('snippet provider', () => {
       await snippetManager.insertSnippet('${1:foo} $1 ')
       await nvim.input('<esc>A')
       await helper.wait(50)
-      expect(snippetManager.session).toBeUndefined()
+      expect(snippetManager.session.isActive).toBe(false)
     })
   })
 
@@ -80,8 +80,8 @@ describe('snippet provider', () => {
       await snippetManager.insertSnippet('foo')
       let line = await nvim.line
       expect(line).toBe('foo')
-      expect(snippetManager.session).toBe(undefined)
-      expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
+      expect(snippetManager.session.isActive).toBe(false)
+      expect(snippetManager.getSession(doc.bufnr).isActive).toBe(false)
     })
 
     it('should insert snippet by action', async () => {
@@ -133,9 +133,11 @@ describe('snippet provider', () => {
     })
 
     it('should remove keymap on nextPlaceholder when session not exits', async () => {
+      await nvim.command(`edit +setl\\ buftype=nofile foo`)
+      let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
       await snippetManager.nextPlaceholder()
-      let val = await doc.buffer.getVar('coc_snippet_active')
+      let val = await buf.getVar('coc_snippet_active')
       expect(val).toBe(0)
     })
 
@@ -162,9 +164,11 @@ describe('snippet provider', () => {
     })
 
     it('should remove keymap on previousPlaceholder when session not exits', async () => {
+      await nvim.command(`edit +setl\\ buftype=nofile foo`)
+      let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
       await snippetManager.previousPlaceholder()
-      let val = await doc.buffer.getVar('coc_snippet_active')
+      let val = await buf.getVar('coc_snippet_active')
       expect(val).toBe(0)
     })
   })
@@ -172,14 +176,12 @@ describe('snippet provider', () => {
   describe('cancel()', () => {
     it('should cancel snippet session', async () => {
       let buffer = doc.buffer
-      await nvim.call('coc#snippet#enable')
-      await helper.doAction('snippetCancel')
-      let val = await buffer.getVar('coc_snippet_active')
-      expect(val).toBe(0)
       let active = await snippetManager.insertSnippet('${1:foo}')
       expect(active).toBe(true)
-      snippetManager.cancel()
-      expect(snippetManager.session).toBeUndefined()
+      await helper.doAction('snippetCancel')
+      expect(snippetManager.session.isActive).toBe(false)
+      let val = await buffer.getVar('coc_snippet_active')
+      expect(val).toBe(0)
     })
   })
 
