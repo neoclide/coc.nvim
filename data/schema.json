@@ -621,6 +621,12 @@
       "description": "Set to false to disable float/popup support for actions menu.",
       "default": true
     },
+    "coc.preferences.autoApplySingleQuickfix": {
+      "type": "boolean",
+      "scope": "application",
+      "description": "Automatically apply the single quickfix action .",
+      "default": true
+    },
     "coc.preferences.formatOnSave": {
       "type": "boolean",
       "description": "Set to true to enable formatting on save.",

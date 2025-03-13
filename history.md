@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-03-13
+
+- Add `coc.preferences.autoApplySingleQuickfix` configuration
+
 ## 2025-03-07
 
 - Support `extensions.recommendations` configuration.
@@ -14,6 +18,7 @@ Notable changes of coc.nvim:
 - Refresh popup menu when completing incomplete sources.
 
 ## 2025-03-04
+
 - Add VSCode command `workbench.action.openSettingsJson`.
 - Add `workspace.isTrusted` property.
 
@@ -30,7 +35,7 @@ Notable changes of coc.nvim:
 
 - All global properties works with extensions #5222.
 - Return true or false for boolean option on vim (same as neovim).
-- Support completion sources using vim9sciprt module.
+- Support completion sources using vim9script module.
 
 ## 2025-02-22
 
@@ -841,7 +846,7 @@ Use `extensions` section for extension related configurations. Deprecated config
 - fix(language-client): configuration for configured server, closes #930
 - fix(diagnostic): clear diagnostics on filetype change
 - feat(plugin): add download & fetch modules
-- feat(plugin): add highligher module
+- feat(plugin): add highlighter module
 - feat(refactor): add `<Plug>(coc-refactor)` for refactor window
 - feat(extension): use mv module for folder rename
 - feat(extension): support install tagged extension
@@ -850,7 +855,7 @@ Use `extensions` section for extension related configurations. Deprecated config
 - feat(list): support `g:coc_quickfix_open_command`
 - feat(list): add eval action
 - feat(list): add --tab list option
-- feat(list): use highligher module for showHelp
+- feat(list): use highlighter module for showHelp
 - feat(terminal): add noa on window jump
 - feat(terminal): support vim8
 - feat(diagnostic): add diagnosticRelated support
