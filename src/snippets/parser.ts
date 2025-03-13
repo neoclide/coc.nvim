@@ -945,12 +945,40 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  // TODO insert as child
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
-    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
+  /**
+   * Inserted snippet is not resolved (variable, python, upper snippets)
+   * and the parents needs update as well.
+   */
+  public insertNestedSnippet(snippet: string, marker: Placeholder, parts: [string, string], ultisnip?: UltiSnippetContext): TextmateSnippet {
     let [before, after] = parts
     let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
     let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
+    // remove unnecessary final placeholder
+    let final = nested.placeholders.find(o => o.index === 0)
+    if (final) {
+      let children = final.parent.children
+      let idx = children.indexOf(final)
+      let prev = children[idx - 1]
+      if (prev && prev instanceof Placeholder && prev.primary) {
+        final.parent.children.splice(idx, 1)
+      }
+    }
+    // insert
+    const children: Marker[] = []
+    if (before.length > 0) children.push(new Text(before))
+    children.push(nested)
+    if (after.length > 0) children.push(new Text(after))
+    marker.replaceChildren(children)
+    return nested
+  }
+
+  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
+    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
+
+    let [before, after] = parts
+    let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
+    let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
+
     let maxIndexAdded = nested.maxIndexNumber + 1
     let changed: Map<number, number> = new Map()
     for (let p of nested.placeholders) {
@@ -985,6 +1013,7 @@ export class TextmateSnippet extends Marker {
         return true
       }, true)
     }
+
     const select = nested.first
     let children = nested.children.slice()
     if (before) children.unshift(new Text(before))
