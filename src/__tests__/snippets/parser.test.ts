@@ -439,9 +439,9 @@ describe('SnippetParser', () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
-    assert.equal(c('${1:`!p foo`}').hasPython, true)
-    assert.equal(c('`!p foo`').hasPython, true)
-    assert.equal(c('$1').hasPython, false)
+    assert.equal(c('${1:`!p foo`}').hasPythonBlock, true)
+    assert.equal(c('`!p foo`').hasPythonBlock, true)
+    assert.equal(c('$1').hasPythonBlock, false)
   })
 
   test('Parser, hasCodeBlock()', () => {
@@ -978,11 +978,14 @@ describe('SnippetParser', () => {
     assert.equal(enclosing.length, 1)
     assert.equal(enclosing[0].index, '1')
     let marker = snippet.placeholders.find(o => o.index == 2)
-    let nested = new SnippetParser().parse('ddd$1eee$0', true)
-    snippet.replace(marker, nested.children)
-
-    assert.equal(snippet.toString(), 'aaabbbdddeee')
-    assert.equal(snippet.placeholders.length, 5)
+    let nested = new SnippetParser().parse('ddd$1eee', false)
+    let err
+    try {
+      snippet.replace(marker, nested.children)
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
   })
 
   test('TextmateSnippet#replace 2/2', () => {
@@ -1007,17 +1010,20 @@ describe('SnippetParser', () => {
     expect(arr).toEqual([1, 2, 3, 4, 5, 0])
   })
 
-  test('TextmateSnippet#insertSnippet with variable', async () => {
-    let snippet = new SnippetParser().parse('|${foo} ${foo} ${u}|', true)
+  test('TextmateSnippet replace variable with placeholder', async () => {
+    let snippet = new SnippetParser().parse('|${1:${foo}} ${foo} $1 ${bar}|', true)
     await snippet.resolveVariables({
-      resolve: variable => {
-        if (variable.name == 'u') return undefined
-        return Promise.resolve(variable.name)
+      resolve: _variable => {
+        return undefined
       }
     })
-    let marker = snippet.variables[0]
-    snippet.insertSnippet('${1:bar}', marker, ['', ''])
-    assert.strictEqual(snippet.toString(), '|bar bar |')
+    let placeholders = snippet.placeholders
+    let indexes = placeholders.map(o => o.index)
+    expect(indexes).toEqual([1, 2, 2, 1, 3, 0])
+    let p = placeholders.find(o => o.index == 2 && o.primary)
+    p.setOnlyChild(new Text('x'))
+    snippet.onPlaceholderUpdate(p)
+    expect(snippet.toString()).toBe('|x x x bar|')
   })
 
   test('Maximum call stack size exceeded, #28983', () => {

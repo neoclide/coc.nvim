@@ -8,7 +8,9 @@ import { defaultValue } from '../util'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
-import { hasPython, prepareMatchCode, preparePythonCodes, SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { hasPython, prepareMatchCode, preparePythonCodes } from './eval'
+import { SnippetFormatOptions } from './util'
+import { UltiSnippetContext } from './util'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 
@@ -55,7 +57,7 @@ export class CocSnippet {
     if (resolver) {
       await snippet.resolveVariables(resolver)
     }
-    this._hasPython = hasPython(ultisnip) || snippet.hasPython
+    this._hasPython = hasPython(ultisnip) || snippet.hasPythonBlock
     if (ultisnip && ultisnip.noPython !== true) {
       let pyCodes: string[] = this.hasPython ? preparePythonCodes(ultisnip) : []
       await snippet.evalCodeBlocks(nvim, pyCodes)
@@ -500,4 +502,39 @@ export function comparePlaceholder(a: { primary: boolean, index: number, nestCou
   if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount
   if (a.primary !== b.primary) return a.primary ? -1 : 1
   return a.index - b.index
+}
+
+/**
+ * TODO test
+ */
+export function getNextTabstop(marker: Snippets.Placeholder, forward: boolean): Snippets.Placeholder | undefined {
+  let idx = marker.index
+  if (idx <= 0) return undefined
+  let arr: Snippets.Placeholder[] = []
+  let min_index: number
+  let max_index: number
+  const snippet = marker.snippet
+  snippet.walk(m => {
+    if (m instanceof Snippets.Placeholder && (m.primary || m.isFinalTabstop)) {
+      if (
+        (forward && (m.index > idx || m.isFinalTabstop)) ||
+        (!forward && (m.index < idx && !m.isFinalTabstop))
+      ) {
+        arr.push(m)
+        if (!m.isFinalTabstop) {
+          min_index = min_index === undefined ? m.index : Math.min(min_index, m.index)
+        }
+        max_index = max_index === undefined ? m.index : Math.max(max_index, m.index)
+      }
+    }
+    return true
+  }, true)
+  if (arr.length > 0) {
+    if (forward) return min_index === undefined ? arr[0] : arr.find(o => o.index === min_index)
+    return arr.find(o => o.index === max_index)
+  }
+  if (snippet.parent instanceof Snippets.Placeholder) {
+    return getNextTabstop(snippet.parent, forward)
+  }
+  return undefined
 }

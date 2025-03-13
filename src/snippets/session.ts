@@ -14,7 +14,9 @@ import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode, getAction, UltiSnippetContext } from './eval'
+import { executePythonCode } from './eval'
+import { UltiSnippetContext } from './util'
+import { getAction } from './util'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, equalToPosition, getEndPosition, getParts, reduceTextEdit } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"

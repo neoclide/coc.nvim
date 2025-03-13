@@ -145,7 +145,7 @@ export class SnippetVariableResolver implements VariableResolver {
     }
   }
 
-  public async resolve(variable: Variable): Promise<string> {
+  public async resolve(variable: Variable): Promise<string | undefined> {
     const name = variable.name
     let resolved = this._variableToValue[name]
     if (resolved != null) return resolved.toString()
@@ -158,7 +158,6 @@ export class SnippetVariableResolver implements VariableResolver {
       return value == null ? '' : value.toString()
     }
     if (variable.children.length) return variable.toString()
-    // VSCode behavior
-    return name
+    return undefined
   }
 }

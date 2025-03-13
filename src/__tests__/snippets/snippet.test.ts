@@ -4,7 +4,9 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { addPythonTryCatch, convertRegex, evalCode, executePythonCode, getVariablesCode, UltiSnippetContext } from '../../snippets/eval'
+import { addPythonTryCatch, evalCode, executePythonCode, getVariablesCode } from '../../snippets/eval'
+import { UltiSnippetContext } from '../../snippets/util'
+import { convertRegex } from '../../snippets/util'
 import { Placeholder, TextmateSnippet, Variable } from '../../snippets/parser'
 import { checkContentBefore, CocSnippet, comparePlaceholder, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -328,7 +330,6 @@ describe('CocSnippet', () => {
 
     it('should update variable placeholders', async () => {
       await assertUpdate('${foo} ${foo}', 'bar', 'bar bar', 1, null)
-      await assertUpdate('${foo} ${foo:x}', 'bar', 'bar bar', 1, null)
       await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar', 1, null)
     })
 
