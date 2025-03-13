@@ -47,12 +47,12 @@ export class CocSnippet {
     const parser = new Snippets.SnippetParser(!!ultisnip, matchCode)
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
-    await this.resolve(ultisnip)
+    await this.resolve(snippet, ultisnip)
     this.synchronize()
   }
 
-  private async resolve(ultisnip?: UltiSnippetContext): Promise<void> {
-    let { snippet } = this.tmSnippet
+  private async resolve(snippet: Snippets.TextmateSnippet, ultisnip?: UltiSnippetContext): Promise<void> {
+    // let { snippet } = this.tmSnippet
     let { resolver, nvim } = this
     if (resolver) {
       await snippet.resolveVariables(resolver)
@@ -207,7 +207,7 @@ export class CocSnippet {
       }, true)
     }
     let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
-    await this.resolve(ultisnip)
+    await this.resolve(this.tmSnippet, ultisnip)
     this.synchronize()
     return select
   }

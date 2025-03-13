@@ -7,6 +7,7 @@ import { toText } from '../util/string'
 import events from '../events'
 import { UltiSnippetOption } from '../types'
 import { UltiSnippetContext } from './util'
+import { Range } from 'vscode-languageserver-types'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
 /**
@@ -35,7 +36,7 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr:
 export function prepareMatchCode(snip: UltiSnippetContext): string {
   let { range, regex, line } = snip
   let pyCodes: string[] = []
-  if (regex && range != null) {
+  if (regex && Range.is(range)) {
     let trigger = line.slice(range.start.character, range.end.character)
     pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
     pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)

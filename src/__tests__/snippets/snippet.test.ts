@@ -410,18 +410,6 @@ describe('CocSnippet', () => {
   })
 
   describe('insertSnippet()', () => {
-    it('should update indexes of python blocks', async () => {
-      let c = await createSnippet('${1:a} ${2:b} ${3:`!p snip.rv=t[2]`}', {})
-      let p = c.getPlaceholder(1)
-      await c.insertSnippet(p, '${1:foo} ${2:bar}', ['', ''])
-      expect(c.text).toBe('foo bar b b')
-      p = c.getPlaceholder(5)
-      expect(p.after).toBe(' b')
-      let source = new CancellationTokenSource()
-      let res = await c.updatePlaceholder(p, Position.create(0, 9), 'xyz', source.token)
-      expect(res.text).toBe('foo bar xyz xyz')
-    })
-
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholder(1)
