@@ -73,7 +73,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     if (!completeItems || completeItems.length == 0) return null
     let itemDefaults = this.itemDefaults = toObject<ItemDefaults>(result['itemDefaults'])
     let isIncomplete = Is.isCompletionList(result) ? result.isIncomplete === true : false
-    this.hasDefaultRange = Range.is(itemDefaults.editRange)
+    this.hasDefaultRange = Is.isEditRange(itemDefaults.editRange)
     return { isIncomplete, items: completeItems, itemDefaults }
   }
 
@@ -147,7 +147,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let { textEdit, textEditText, insertText, label } = item
-    let range = getReplaceRange(item, this.itemDefaults, undefined, option.insertMode)
+    let range = getReplaceRange(item, this.itemDefaults?.editRange, undefined, option.insertMode)
     if (!range) {
       // create default replace range
       let end = character + (option.insertMode == InsertMode.Insert ? 0 : option.followWord.length)

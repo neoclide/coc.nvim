@@ -315,12 +315,12 @@ export function getWord(item: CompletionItem, itemDefaults: ItemDefaults): strin
   return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
 }
 
-export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character?: number, insertMode?: InsertMode): Range | undefined {
+export function getReplaceRange(item: CompletionItem, defaultRange: EditRange | undefined, character?: number, insertMode?: InsertMode): Range | undefined {
   let editRange: EditRange | undefined
   if (item.textEdit) {
     editRange = InsertReplaceEdit.is(item.textEdit) ? item.textEdit : item.textEdit.range
-  } else if (itemDefaults.editRange) {
-    editRange = itemDefaults.editRange
+  } else if (defaultRange) {
+    editRange = defaultRange
   }
   let range: Range | undefined
   if (editRange) {
@@ -447,7 +447,7 @@ export class Converter {
     const label = item.label.trim()
     const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
     const word = getWord(item, itemDefaults)
-    const range = getReplaceRange(item, itemDefaults, inputStart, this.option.insertMode) ?? option.range
+    const range = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range
     const character = range.start.character
     const data = toObject(item.data)
     const filterText = item.filterText ?? item.label

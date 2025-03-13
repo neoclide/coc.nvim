@@ -1,6 +1,7 @@
 'use strict'
 import { URL } from 'url'
-import { Command, CompletionItem, CompletionList, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
+import { Command, CompletionItem, CompletionList, Hover, InsertReplaceEdit, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
+import { EditRange } from '../completion/types'
 
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -23,6 +24,12 @@ export function isHover(value: any): value is Hover {
   ) && (
       value.range == null || Range.is(value.range)
     )
+}
+
+export function isEditRange(value: any): value is EditRange {
+  if (value == null) return false
+  if (Range.is(value)) return true
+  return Range.is(value.insert) || Range.is(value.replace)
 }
 
 export function isCommand(obj: any): obj is Command {

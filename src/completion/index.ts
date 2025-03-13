@@ -365,6 +365,7 @@ export class Completion implements Disposable {
   // Void CompleteDone logic
   public cancelAndClose(): void {
     this.cancel()
+    events.completing = false
     this.nvim.call('coc#pum#_close', [], true)
   }
 

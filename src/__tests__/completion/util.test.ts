@@ -215,37 +215,33 @@ describe('util functions', () => {
 
   it('should get replace range', () => {
     let item: CompletionItem = { label: 'foo' }
-    expect(getReplaceRange(item, {})).toBeUndefined()
-    expect(getReplaceRange(item, {}, 0)).toBeUndefined()
+    expect(getReplaceRange(item, undefined)).toBeUndefined()
+    expect(getReplaceRange(item, undefined, 0)).toBeUndefined()
+    expect(getReplaceRange(item, Range.create(0, 0, 0, 3), 0)).toEqual(Range.create(0, 0, 0, 3))
     expect(getReplaceRange(item, {
-      editRange: Range.create(0, 0, 0, 3)
-    }, 0)).toEqual(Range.create(0, 0, 0, 3))
+      insert: Range.create(0, 0, 0, 0),
+      replace: Range.create(0, 0, 0, 3),
+    }
+      , 0)).toEqual(Range.create(0, 0, 0, 3))
     expect(getReplaceRange(item, {
-      editRange: {
-        insert: Range.create(0, 0, 0, 0),
-        replace: Range.create(0, 0, 0, 3),
-      }
-    }, 0)).toEqual(Range.create(0, 0, 0, 3))
-    expect(getReplaceRange(item, {
-      editRange: {
-        insert: Range.create(0, 0, 0, 0),
-        replace: Range.create(0, 0, 0, 3),
-      }
-    }, 0, InsertMode.Insert)).toEqual(Range.create(0, 0, 0, 0))
+      insert: Range.create(0, 0, 0, 0),
+      replace: Range.create(0, 0, 0, 3),
+    }
+      , 0, InsertMode.Insert)).toEqual(Range.create(0, 0, 0, 0))
     item.textEdit = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
-    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
+    expect(getReplaceRange(item, undefined, 0)).toEqual(Range.create(0, 0, 0, 3))
     item.textEdit = {
       newText: 'foo',
       insert: Range.create(0, 0, 0, 0),
       replace: Range.create(0, 0, 0, 3),
     }
-    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
+    expect(getReplaceRange(item, undefined, 0)).toEqual(Range.create(0, 0, 0, 3))
     item.textEdit = {
       newText: 'foo',
       insert: Range.create(0, 1, 0, 0),
       replace: Range.create(0, 1, 0, 3),
     }
-    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
+    expect(getReplaceRange(item, undefined, 0)).toEqual(Range.create(0, 0, 0, 3))
   })
 
   describe('Converter', () => {
