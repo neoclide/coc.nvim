@@ -1,0 +1,41 @@
+name: Publish Release Task
+
+on:
+  schedule:
+    - cron: '0 16 * * *'  # UTC时间16:00（对应北京时间+8时区的0点）
+
+jobs:
+  publish-release:
+    env:
+      NODE_ENV: "production"
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup neovim
+        id: nvim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies and build
+        run: |
+          npm ci --ignore-scripts
+          node esbuild.js
+
+      - name: Execute release.sh
+        run: |
+          chmod +x ./release.sh
+          ./release.sh

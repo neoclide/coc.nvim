@@ -10,6 +10,5 @@ doc/tags
 typings/package.json
 node_modules
 publish.sh
-release.sh
 !src/__tests__/tags
 src/__tests__/extensions/db.json
