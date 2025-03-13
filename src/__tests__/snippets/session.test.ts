@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { UltiSnippetContext } from '../../snippets/eval'
+import { UltiSnippetContext } from '../../snippets/util'
 import { SnippetConfig, SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'

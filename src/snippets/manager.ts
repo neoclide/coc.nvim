@@ -13,10 +13,11 @@ import { emptyRange, rangeOverlap, toValidRange } from '../util/position'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode, getAction, getContextCode, hasPython, SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { executePythonCode, getContextCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
+import { getAction, SnippetFormatOptions, UltiSnippetContext } from './util'
 
 export class SnippetManager {
   private disposables: Disposable[] = []
