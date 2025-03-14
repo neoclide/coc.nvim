@@ -272,7 +272,7 @@ describe('SnippetSession', () => {
       await session.start('${1} `!p snip.rv = t[1]`', defaultRange, false, defaultContext)
       await nvim.setLine('b ')
       let cancelled = false
-      let spy = jest.spyOn(session.snippet.tmSnippet, 'updatePythonCodes').mockImplementation(() => {
+      let spy = jest.spyOn(session.snippet['_tmSnippet'], 'updatePythonCodes').mockImplementation(() => {
         return new Promise(resolve => {
           session.cancel()
           setImmediate(() => {
