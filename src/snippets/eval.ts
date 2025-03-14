@@ -33,19 +33,6 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr:
   return toText(res)
 }
 
-export function prepareMatchCode(snip: UltiSnippetContext): string {
-  let { range, regex, line } = snip
-  let pyCodes: string[] = []
-  if (regex && Range.is(range)) {
-    let trigger = line.slice(range.start.character, range.end.character)
-    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
-    pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
-  } else {
-    pyCodes.push(`match = None`)
-  }
-  return pyCodes.join('\n')
-}
-
 export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolean {
   if (!snip) return false
   if (snip.context) return true
@@ -67,18 +54,48 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
   return pyCodes
 }
 
-export function getContextCode(context?: string): string[] {
+export function prepareMatchCode(snip: UltiSnippetContext): string {
+  let { range, regex, line } = snip
+  let pyCodes: string[] = []
+  if (regex && Range.is(range)) {
+    let trigger = line.slice(range.start.character, range.end.character)
+    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
+    pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
+  } else {
+    pyCodes.push(`match = None`)
+  }
+  return pyCodes.join('\n')
+}
+
+/**
+ * Python code for specific snippet `context` and `match`
+ */
+export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
+  const pyCodes: string[] = []
+  let { range, regex, line } = context
+  if (context.context) {
+    pyCodes.push(`snip = ContextSnippet()`)
+    pyCodes.push(`context = ${context.context}`)
+  } else {
+    pyCodes.push(`context = None`)
+  }
+  if (regex && Range.is(range)) {
+    let trigger = line.slice(range.start.character, range.end.character)
+    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
+    pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
+  } else {
+    pyCodes.push(`match = None`)
+  }
+  return pyCodes
+}
+
+export function getInitialPythonCode(context: UltiSnippetContext): string[] {
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
-  if (context) {
-    pyCodes.push(`snip = ContextSnippet()`)
-    pyCodes.push(`context = ${context}`)
-  } else {
-    pyCodes.push(`context = None`)
-  }
+  pyCodes.push(...getSnippetPythonCode(context))
   return pyCodes
 }
 
