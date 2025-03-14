@@ -272,9 +272,7 @@ export class SnippetSession {
     this.nvim.pauseNotification()
     buf.clearNamespace(NAME_SPACE)
     let ranges = this.snippet.getRanges(placeholder)
-    if (ranges.length) {
-      buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
-    }
+    buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
     this.nvim.resumeNotification(redrawVim, true)
   }
 

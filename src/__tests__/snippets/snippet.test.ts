@@ -5,10 +5,9 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
 import { addPythonTryCatch, evalCode, executePythonCode, getVariablesCode } from '../../snippets/eval'
-import { UltiSnippetContext } from '../../snippets/util'
-import { convertRegex } from '../../snippets/util'
-import { Placeholder, TextmateSnippet, Variable } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, comparePlaceholder, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
+import { Placeholder, Variable } from '../../snippets/parser'
+import { checkContentBefore, CocSnippet, comparePlaceholder, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
+import { convertRegex, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
@@ -243,47 +242,10 @@ describe('CocSnippet', () => {
     })
   })
 
-  describe('getContentBefore()', () => {
-    it('should get text before marker', async () => {
-      let c = await createSnippet('${1:foo} ${2:bar}', {})
-      let markers = c.placeholders
-      let p = markers[0].parent
-      expect(p instanceof TextmateSnippet).toBe(true)
-      expect(getContentBefore(p)).toBe('')
-      expect(getContentBefore(markers[0])).toBe('')
-      expect(getContentBefore(markers[1])).toBe('foo ')
-    })
-
-    it('should get text before nested marker', async () => {
-      let c = await createSnippet('${1:foo} ${2:is nested with $4} $3 bar', {})
-      let markers = c.placeholders as Placeholder[]
-      let p = markers.find(o => o.index == 4)
-      expect(getContentBefore(p)).toBe('foo is nested with ')
-      p = markers.find(o => o.index == 0)
-      expect(getContentBefore(p)).toBe('foo is nested with   bar')
-    })
-
-    it('should consider normal line break', async () => {
-      let c = await createSnippet('${1:foo}\n${2:is nested with $4}', {})
-      let markers = c.placeholders as Placeholder[]
-      let p = markers.find(o => o.index == 4)
-      expect(getContentBefore(p)).toBe('is nested with ')
-    })
-
-    it('should consider line break after update', async () => {
-      let c = await createSnippet('${1:foo} ${2}', {})
-      let p = c.getPlaceholder(1)
-      await c.tmSnippet.update(nvim, p.marker, 'abc\ndef')
-      let markers = c.placeholders as Placeholder[]
-      let placeholder = markers.find(o => o.index == 2)
-      expect(getContentBefore(placeholder)).toBe('def ')
-    })
-  })
-
   describe('getSortedPlaceholders()', () => {
     it('should get sorted placeholders', async () => {
       const assert = (snip: CocSnippet, index: number | undefined, indexes: number[]) => {
-        let curr = index == null ? undefined : snip.getPlaceholder(index)
+        let curr = index == null ? undefined : snip.getPlaceholderByIndex(index)
         let res = snip.getSortedPlaceholders(curr)
         expect(res.map(o => o.index)).toEqual(indexes)
       }
@@ -308,12 +270,12 @@ describe('CocSnippet', () => {
   describe('getNewText()', () => {
     it('should getNewText for placeholder', async () => {
       let c = await createSnippet('before ${1:foo} after$2', {})
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       expect(c.getNewText(p, `fff`)).toBe(undefined)
       expect(c.getNewText(p, `before foo `)).toBe(undefined)
       expect(c.getNewText(p, `before foo afteralll`)).toBe(undefined)
       expect(c.getNewText(p, `before bar after`)).toBe('bar')
-      p = c.getPlaceholder(2)
+      p = c.getPlaceholderByIndex(2)
       expect(c.getNewText(p, `before foo afterbar`)).toBe('bar')
     })
   })
@@ -321,7 +283,7 @@ describe('CocSnippet', () => {
   describe('updatePlaceholder()', () => {
     async function assertUpdate(text: string, value: string, result: string, index = 1, ultisnip: UltiSnippetOption | null = {}): Promise<CocSnippet> {
       let c = await createSnippet(text, ultisnip)
-      let p = c.getPlaceholder(index)
+      let p = c.getPlaceholderByIndex(index)
       expect(p != null).toBe(true)
       await c.tmSnippet.update(nvim, p.marker, value)
       expect(c.tmSnippet.toString()).toBe(result)
@@ -348,7 +310,7 @@ describe('CocSnippet', () => {
       ].join('\n')
       let c = await createSnippet(code, {})
       let first = c.text.split('\n')[0]
-      let p = c.getPlaceholder(2)
+      let p = c.getPlaceholderByIndex(2)
       expect(p).toBeDefined()
       await c.tmSnippet.update(nvim, p.marker, 'foo')
       let t = c.tmSnippet.toString()
@@ -398,13 +360,11 @@ describe('CocSnippet', () => {
   describe('getRanges()', () => {
     it('should get ranges of placeholder', async () => {
       let c = await createSnippet('${2:${1:x} $1}\n$2', {})
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       let arr = c.getRanges(p)
-      expect(arr.length).toBe(4)
+      expect(arr.length).toBe(2)
       expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
       expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))
-      expect(arr[2]).toEqual(Range.create(1, 0, 1, 1))
-      expect(arr[3]).toEqual(Range.create(1, 2, 1, 3))
       expect(c.text).toBe('x x\nx x')
     })
   })
@@ -412,9 +372,9 @@ describe('CocSnippet', () => {
   describe('insertSnippet()', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       let marker = await c.insertSnippet(p, '${1:x} $1', ['', '']) as Placeholder
-      p = c.getPlaceholder(marker.index)
+      p = c.getPlaceholderByIndex(marker.index)
       let source = new CancellationTokenSource()
       let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
       expect(res.text).toBe('bar bar\nbar bar')
@@ -423,10 +383,10 @@ describe('CocSnippet', () => {
 
     it('should insert nested python snippet', async () => {
       let c = await createSnippet('${1:foo}\n`!p snip.rv = t[1]`', {})
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       let line = await nvim.line
       let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line, range: Range.create(0, 0, 0, 3) }) as Placeholder
-      p = c.getPlaceholder(marker.index)
+      p = c.getPlaceholderByIndex(marker.index)
       expect(c.text).toBe('x x\nx x')
       let source = new CancellationTokenSource()
       let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
@@ -438,10 +398,10 @@ describe('CocSnippet', () => {
 
     it('should insert python snippet to normal snippet', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(false)
       let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
-      p = c.getPlaceholder(marker.index)
+      p = c.getPlaceholderByIndex(marker.index)
       expect(c.text).toBe('x x\nx x')
       let source = new CancellationTokenSource()
       let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
@@ -453,7 +413,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('`!p snip.rv = match.group(1)` $1', {
         regex: '^(\\w+)'
       }, Range.create(0, 0, 0, 3), 'foo')
-      let p = c.getPlaceholder(1)
+      let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(true)
       expect(c.text).toBe('foo ')
       await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {

@@ -223,7 +223,7 @@ describe('SnippetSession', () => {
       await checkRanges('$1 $1', [])
       await checkRanges('${foo}', [Range.create(0, 0, 0, 3)])
       await checkRanges('${2:${1:foo}}', [Range.create(0, 0, 0, 3)])
-      await checkRanges('${2:${1:foo}} ${2/^_(.*)/$1/}', [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)])
+      await checkRanges('${2:${1:foo}} ${2/^_(.*)/$1/}', [Range.create(0, 0, 0, 3)])
     })
   })
 
@@ -577,6 +577,7 @@ describe('SnippetSession', () => {
       let ns = await nvim.call('coc#highlight#create_namespace', ['snippets']) as number
       let session = await createSession(true)
       await session.start('${2:bar ${1:foo}} $2', defaultRange)
+      await session.nextPlaceholder()
       let buf = nvim.createBuffer(workspace.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(2)
