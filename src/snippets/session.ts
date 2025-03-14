@@ -67,6 +67,7 @@ export class SnippetSession {
       let previous = document.textDocument.getText(r)
       let parts = getParts(placeholder.value, placeholder.range, range)
       this.current = await this.snippet.insertSnippet(placeholder, inserted, parts, context)
+      this.deleteVimGlobal()
       let edit = reduceTextEdit({
         range: r,
         newText: this.snippet.text
@@ -76,6 +77,7 @@ export class SnippetSession {
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
       let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
       await snippet.init(context)
+      this.deleteVimGlobal()
       this._snippet = snippet
       this.current = snippet.firstPlaceholder!.marker
       edits.push(TextEdit.replace(range, snippet.text))
@@ -115,6 +117,11 @@ export class SnippetSession {
     let placeholder = this.findPlaceholder(range)
     if (!placeholder || placeholder.index == 0) return undefined
     return placeholder
+  }
+
+  private deleteVimGlobal() {
+    this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
+    this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
   }
 
   private activate(): void {
@@ -408,7 +415,7 @@ export class SnippetSession {
     if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip)
     const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
     let snippet = new CocSnippet(snippetString, position, nvim, resolver)
-    await snippet.init(context, true)
+    await snippet.init(context)
     return snippet.text
   }
 }

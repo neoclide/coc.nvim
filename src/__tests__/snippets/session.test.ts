@@ -132,6 +132,8 @@ describe('SnippetSession', () => {
       expect(lines).toEqual([
         'fun', '  abc', '    def', 'end'
       ])
+      let val = await nvim.getVar('coc_selected_text')
+      expect(val).toBe(null)
     })
 
     it('should resolve VISUAL', async () => {

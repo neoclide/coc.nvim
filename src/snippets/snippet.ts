@@ -38,17 +38,13 @@ export class CocSnippet {
   ) {
   }
 
-  public async init(ultisnip?: UltiSnippetContext, isResolve = false): Promise<void> {
+  public async init(ultisnip?: UltiSnippetContext): Promise<void> {
     const matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
     const parser = new Snippets.SnippetParser(!!ultisnip, matchCode)
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
     this.synchronize()
-    if (!isResolve) {
-      this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
-      this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
-    }
   }
 
   private async resolve(ultisnip?: UltiSnippetContext): Promise<void> {
