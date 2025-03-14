@@ -29,6 +29,10 @@ export interface CocSnippetPlaceholder {
   nestCount: number
 }
 
+// The python global code for different snippets. Note: variable `t` not included
+// including `context` `match`
+const snippetsPythonGlobalCodes: WeakMap<Snippets.TextmateSnippet, string[]> = new WeakMap()
+
 export class CocSnippet {
   private _placeholders: CocSnippetPlaceholder[]
   private _text: string | undefined
@@ -207,6 +211,8 @@ export class CocSnippet {
       }, true)
     }
     let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
+    // TODO use insertNestedSnippet need synchronize upper snippet.
+
     await this.resolve(this.tmSnippet, ultisnip)
     this.synchronize()
     return select
