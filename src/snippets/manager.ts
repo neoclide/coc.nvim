@@ -13,7 +13,7 @@ import { emptyRange, rangeOverlap, toValidRange } from '../util/position'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode, getContextCode, hasPython } from './eval'
+import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
@@ -91,6 +91,12 @@ export class SnippetManager {
     }
   }
 
+  private async toRange(range: Range | undefined): Promise<Range> {
+    if (range) return toValidRange(range)
+    let pos = await window.getCursorPosition()
+    return Range.create(pos, pos)
+  }
+
   /**
    * Insert snippet at current cursor position
    */
@@ -101,12 +107,7 @@ export class SnippetManager {
     let release = await this.mutex.acquire()
     try {
       let context: UltiSnippetContext
-      if (!range) {
-        let pos = await window.getCursorPosition()
-        range = Range.create(pos, pos)
-      } else {
-        range = toValidRange(range)
-      }
+      range = await this.toRange(range)
       const currentLine = doc.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
       const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip)
@@ -115,8 +116,7 @@ export class SnippetManager {
         usePy = hasPython(ultisnip) || inserted.includes('`!p')
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
         if (usePy) {
-          let codes = getContextCode(ultisnip.context)
-          await executePythonCode(nvim, codes)
+          await executePythonCode(nvim, getInitialPythonCode(context))
           let preExpand = getAction(ultisnip, 'preExpand')
           if (preExpand) {
             await executePythonCode(nvim, ['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand])
@@ -191,6 +191,11 @@ export class SnippetManager {
 
   public getSession(bufnr: number): SnippetSession {
     return this.bufferSync.getItem(bufnr)
+  }
+
+  public isActivated(bufnr: number): boolean {
+    let session = this.bufferSync.getItem(bufnr)
+    return session && session.isActive
   }
 
   public jumpable(): boolean {
