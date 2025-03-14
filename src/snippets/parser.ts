@@ -383,9 +383,26 @@ export class Placeholder extends TransformableMarker {
     }
   }
 
+  public get parentSnippet(): TextmateSnippet | undefined {
+    let p = this.parent
+    let snippet: TextmateSnippet
+    while (p != null) {
+      if (p instanceof TextmateSnippet) {
+        snippet = p
+        break
+      }
+      p = p.parent
+    }
+    return snippet
+  }
 }
 
 export class Choice extends Marker {
+  private _index
+  constructor(index = 0) {
+    super()
+    this._index = index
+  }
 
   public readonly options: Text[] = []
 
@@ -398,7 +415,7 @@ export class Choice extends Marker {
   }
 
   public toString(): string {
-    return this.options[0].value
+    return this.options[this._index].value
   }
 
   public toTextmateString(): string {
@@ -408,11 +425,11 @@ export class Choice extends Marker {
   }
 
   public len(): number {
-    return this.options[0].len()
+    return this.options[this._index].len()
   }
 
   public clone(): Choice {
-    let ret = new Choice()
+    let ret = new Choice(this._index)
     for (let opt of this.options) {
       ret.appendChild(opt as any)
     }
@@ -689,7 +706,6 @@ export interface VariableResolver {
 
 export interface PlaceholderInfo {
   placeholders: Placeholder[]
-  variables: Variable[]
   pyBlocks: CodeBlock[]
   otherBlocks: CodeBlock[]
 }
@@ -885,7 +901,6 @@ export class TextmateSnippet extends Marker {
   }
 
   public get placeholderInfo(): PlaceholderInfo {
-    const variables = []
     const pyBlocks: CodeBlock[] = []
     const otherBlocks: CodeBlock[] = []
     // fill in placeholders
@@ -893,13 +908,6 @@ export class TextmateSnippet extends Marker {
     this.walk(candidate => {
       if (candidate instanceof Placeholder) {
         placeholders.push(candidate)
-      } else if (candidate instanceof Variable) {
-        // TODO, transform Variable to Placeholder
-        let first = candidate.name.charCodeAt(0)
-        // not jumpover for uppercase variable.
-        if (first < 65 || first > 90) {
-          variables.push(candidate)
-        }
       } else if (candidate instanceof CodeBlock) {
         if (candidate.kind === 'python') {
           pyBlocks.push(candidate)
@@ -909,7 +917,7 @@ export class TextmateSnippet extends Marker {
       }
       return true
     }, true)
-    return { placeholders, pyBlocks, otherBlocks, variables }
+    return { placeholders, pyBlocks, otherBlocks }
   }
 
   public get variables(): Variable[] {
@@ -924,7 +932,14 @@ export class TextmateSnippet extends Marker {
   }
 
   public get placeholders(): Placeholder[] {
-    return this.placeholderInfo.placeholders
+    let placeholders: Placeholder[] = []
+    this.walk(candidate => {
+      if (candidate instanceof Placeholder) {
+        placeholders.push(candidate)
+      }
+      return true
+    }, true)
+    return placeholders
   }
 
   public get pyBlocks(): CodeBlock[] {
@@ -940,15 +955,14 @@ export class TextmateSnippet extends Marker {
     return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0)
   }
 
-  public get first(): Placeholder | Variable {
-    let { placeholders, variables } = this
+  public get first(): Placeholder {
+    let { placeholders } = this
     let [normals, finals] = groupBy(placeholders.filter(p => !p.transform), v => v.index !== 0)
     if (normals.length) {
       let minIndex = Math.min.apply(null, normals.map(o => o.index))
       let arr = normals.filter(v => v.index == minIndex)
       return arr.find(p => p.primary) ?? arr[0]
     }
-    if (variables.length) return variables[0]
     return finals.find(o => o.primary) ?? finals[0]
   }
 

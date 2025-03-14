@@ -206,9 +206,7 @@ describe('SnippetParser', () => {
     assertPlaceholder(first('foo'), 0)
     assertPlaceholder(first('${1:foo}'), 1)
     assertPlaceholder(first('${2:foo}'), 2)
-    let f = first('$foo $bar') as Variable
-    assert.strictEqual(f instanceof Variable, true)
-    assert.strictEqual(f.name, 'foo')
+
     const p = new SnippetParser(false)
     let s = p.parse('${1/from/to/}', true)
     let placeholder = s.placeholders[0]
