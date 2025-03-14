@@ -114,14 +114,12 @@ describe('SnippetSession', () => {
       await helper.waitFor('mode', [], 's')
     })
 
-    it('should start with variable selected', async () => {
+    it('should use default variable value', async () => {
       let session = await createSession()
       let res = await session.start('${foo:bar}', defaultRange, false)
       expect(res).toBe(true)
       let line = await nvim.getLine()
       expect(line).toBe('bar')
-      await session.selectCurrentPlaceholder()
-      await helper.waitFor('mode', [], 's')
     })
 
     it('should select none transform placeholder', async () => {
