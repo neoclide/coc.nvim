@@ -81,7 +81,7 @@ describe('snippet provider', () => {
       let line = await nvim.line
       expect(line).toBe('foo')
       expect(snippetManager.session.isActive).toBe(false)
-      expect(snippetManager.getSession(doc.bufnr).isActive).toBe(false)
+      expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
     })
 
     it('should insert snippet by action', async () => {
@@ -302,7 +302,7 @@ describe('snippet provider', () => {
       await nvim.setLine('foo')
       await nvim.input('o')
       await snippetManager.insertSnippet('${1:foo} $1 ')
-      let res = await snippetManager.editsInsideSnippet([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
+      let res = await snippetManager.checkEditsInsideSnippet([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
       expect(res).toBe(false)
     })
   })

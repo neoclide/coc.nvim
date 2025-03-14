@@ -30,11 +30,11 @@ export class SnippetManager {
     events.on('InsertCharPre', (_, bufnr: number) => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
-      let session = this.getSession(bufnr)
+      let session = this.bufferSync.getItem(bufnr)
       if (session) session.cancel()
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
-      let session = this.getSession(bufnr)
+      let session = this.bufferSync.getItem(bufnr)
       if (session) await session.checkPosition()
     }, null, this.disposables)
 
@@ -50,8 +50,8 @@ export class SnippetManager {
     this.disposables.push(this.bufferSync)
 
     window.onDidChangeActiveTextEditor(e => {
-      if (!this._statusItem || this.getSession(e.bufnr) == null) return
-      let session = this.getSession(e.bufnr)
+      if (!this._statusItem) return
+      let session = this.bufferSync.getItem(e.bufnr)
       if (session) {
         this.statusItem[session.isActive ? 'show' : 'hide']()
       } else {
@@ -141,7 +141,7 @@ export class SnippetManager {
           range.end = Position.create(range.start.line, range.start.character)
         }
       }
-      let session = this.getSession(bufnr)
+      let session = this.bufferSync.getItem(bufnr)
       // could be buffer detach
       if (!session) return false
       await session.start(inserted, range, select, context)
@@ -179,18 +179,22 @@ export class SnippetManager {
   }
 
   public cancel(): void {
-    let session = this.getSession(workspace.bufnr)
+    let session = this.bufferSync.getItem(workspace.bufnr)
     if (session) return session.deactivate()
     this.nvim.call('coc#snippet#disable', [], true)
     this.statusItem.hide()
   }
 
   public get session(): SnippetSession {
-    return this.getSession(workspace.bufnr)
+    return this.bufferSync.getItem(workspace.bufnr)
   }
 
-  public getSession(bufnr: number): SnippetSession {
-    return this.bufferSync.getItem(bufnr)
+  /**
+   * exported method
+   */
+  public getSession(bufnr: number): SnippetSession | undefined {
+    let session = this.bufferSync.getItem(bufnr)
+    return session && session.isActive ? session : undefined
   }
 
   public isActivated(bufnr: number): boolean {
@@ -204,7 +208,7 @@ export class SnippetManager {
     return session.placeholder != null && session.placeholder.index != 0
   }
 
-  public async editsInsideSnippet(edits: TextEdit[]): Promise<boolean> {
+  public async checkEditsInsideSnippet(edits: TextEdit[]): Promise<boolean> {
     let session = this.getSession(workspace.bufnr)
     if (!session || !session.snippet) return false
     await session.forceSynchronize()
@@ -217,7 +221,7 @@ export class SnippetManager {
 
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     if (ultisnip) {
-      let session = this.getSession(workspace.bufnr)
+      let session = this.bufferSync.getItem(workspace.bufnr)
       if (session && session.snippet?.hasPython) ultisnip.noPython = false
     }
     let res: string
