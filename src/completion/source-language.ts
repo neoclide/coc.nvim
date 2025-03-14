@@ -122,7 +122,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     await doc.patchChange(true)
     let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits)
     if (additionalEdits) {
-      let shouldCancel = await snippetManager.editsInsideSnippet(item.additionalTextEdits)
+      let shouldCancel = await snippetManager.checkEditsInsideSnippet(item.additionalTextEdits)
       if (shouldCancel) snippetManager.cancel()
     }
     let version = doc.version
