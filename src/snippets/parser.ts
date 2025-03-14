@@ -913,7 +913,14 @@ export class TextmateSnippet extends Marker {
   }
 
   public get variables(): Variable[] {
-    return this.placeholderInfo.variables
+    const variables = []
+    this.walk(candidate => {
+      if (candidate instanceof Variable) {
+        variables.push(candidate)
+      }
+      return true
+    }, true)
+    return variables
   }
 
   public get placeholders(): Placeholder[] {
@@ -1064,7 +1071,7 @@ export class TextmateSnippet extends Marker {
     }
     for (let p of markers) {
       let newText = p.transform ? p.transform.resolve(val) : val
-      p.setOnlyChild(new Text(newText || ''))
+      p.setOnlyChild(new Text(toText(newText)))
     }
     this.synchronizeParents(markers)
   }
@@ -1153,53 +1160,76 @@ export class TextmateSnippet extends Marker {
   }
 
   public async resolveVariables(resolver: VariableResolver): Promise<void> {
-    let items: Variable[] = []
-    this.walk(candidate => {
-      if (candidate instanceof Variable && !candidate.resolved) {
-        items.push(candidate)
+    let variables = this.variables
+    if (variables.length === 0) return
+    let failed: Variable[] = []
+    let succeed: Variable[] = []
+    let promises: Promise<void>[] = []
+    for (let item of variables) {
+      promises.push(item.resolve(resolver).then(res => {
+        let arr = res ? succeed : failed
+        arr.push(item)
+      }, onUnexpectedError))
+    }
+    await Promise.allSettled(promises)
+    // convert resolved variables to text and merge
+    const converted: Text[] = []
+    for (const variable of succeed) {
+      let parent = variable.parent
+      let { children } = parent
+      let idx = children.indexOf(variable)
+      let start = idx
+      let end = idx
+      let newText = variable.toString()
+      for (let i = idx - 1; i >= 0; i--) {
+        if (!(children[i] instanceof Text)) break
+        start = i
+        newText = children[i].toString() + newText
       }
-      return true
-    }, true)
-    if (items.length) {
-      let failed: Variable[] = []
-      let promises: Promise<void>[] = []
-      let succeed: Variable[] = []
-      for (let item of items) {
-        promises.push(item.resolve(resolver).then(res => {
-          let arr = res ? succeed : failed
-          arr.push(item)
-        }, onUnexpectedError))
+      for (let i = idx + 1; i < children.length; i++) {
+        if (!(children[i] instanceof Text)) break
+        end = i
+        newText = newText + children[i].toString()
       }
-      await Promise.allSettled(promises)
-      this.synchronizeParents(succeed)
-      if (failed.length > 0) {
-        // convert to placeholders
-        let indexMap: Map<string, number> = new Map()
-        // create index for variables
-        let max = this.getMaxPlaceholderIndex()
-        let placeholders: Placeholder[] = []
-        for (let i = 0; i < failed.length; i++) {
-          const v = failed[i]
-          let idx = indexMap.get(v.name)
-          let exists = idx !== undefined
-          if (!exists) {
-            idx = ++max
-            indexMap.set(v.name, idx)
-          }
-          let placeholder = new Placeholder(idx)
-          if (!exists) placeholder.primary = true
-          placeholder.appendChild(new Text(v.name))
-          placeholders.push(placeholder)
-          let index = v.parent.children.indexOf(v)
-          v.parent.children.splice(index, 1, placeholder)
-          placeholder.parent = v.parent
+      let text = new Text(newText)
+      converted.push(text)
+      children.splice(start, end - start + 1, text)
+      text.parent = parent
+    }
+
+    const placeholders: Placeholder[] = []
+    if (failed.length > 0) {
+      // convert to placeholders
+      let indexMap: Map<string, number> = new Map()
+      const primarySet: Set<number> = new Set()
+      // create index for variables
+      let max = this.getMaxPlaceholderIndex()
+      for (let i = 0; i < failed.length; i++) {
+        const v = failed[i]
+        let idx = indexMap.get(v.name)
+        if (idx == null) {
+          idx = ++max
+          indexMap.set(v.name, idx)
         }
-        this.synchronizeParents(placeholders)
+        let p = new Placeholder(idx)
+        p.transform = v.transform
+        if (!p.transform && !primarySet.has(idx)) {
+          primarySet.add(idx)
+          p.primary = true
+        }
+        const { children } = v.parent
+        let newText = p.transform ? p.transform.resolve(v.name) : v.name
+        p.appendChild(new Text(toText(newText)))
+        placeholders.push(p)
+        p.parent = v.parent
+        let index = children.indexOf(v)
+        children.splice(index, 1, p)
       }
     }
+    this.synchronizeParents([...converted, ...placeholders])
   }
 
-  private getMaxPlaceholderIndex(): number {
+  public getMaxPlaceholderIndex(): number {
     let res = 0
     this.walk(candidate => {
       if (candidate instanceof Placeholder) {

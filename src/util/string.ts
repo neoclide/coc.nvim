@@ -22,7 +22,8 @@ export function toInteger(text: string): number | undefined {
   return isNaN(n) ? undefined : n
 }
 
-export function toText(text: string | null | undefined): string {
+export function toText(text: string | number | null | undefined): string {
+  if (typeof text === 'number') return text.toString()
   return text ?? ''
 }
 

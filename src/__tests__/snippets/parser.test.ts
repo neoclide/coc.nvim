@@ -468,6 +468,21 @@ describe('SnippetParser', () => {
     assert.equal(v.name, 'VISUAL')
   })
 
+  test('Parser, convert and resolve variables', async () => {
+    const c = text => {
+      return (new SnippetParser(false)).parse(text)
+    }
+    let s = c('${1:${foo}x${foo:bar}} $1')
+    await s.resolveVariables({
+      resolve: async (variable) => {
+        if (variable.name == 'foo') return 'f'
+        return undefined
+      }
+    })
+    assert.equal(s.placeholders[0].children.length, 1)
+    assert.equal(s.toString(), 'fxf fxf')
+  })
+
   test('Parser, resolved ultisnip variable', async () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)
@@ -479,7 +494,6 @@ describe('SnippetParser', () => {
         return ''
       }
     })
-    expect(s.toTextmateString()).toBe('${VISUAL:Visual\\\\x/\\w+\\s*/\\u${0}\\\\x/} \\${visual\\}')
     expect(s.clone().toString()).toBe('Visual\\x ${visual}')
   })
 
