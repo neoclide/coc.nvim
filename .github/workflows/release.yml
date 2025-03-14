@@ -6,9 +6,6 @@ on:
 
 jobs:
   publish-release:
-    env:
-      NODE_ENV: "production"
-
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,10 +27,10 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies and build
+      - name: Install Dependencies
         run: |
-          npm ci --ignore-scripts
-          node esbuild.js
+          npm ci
+          NODE_ENV=production node esbuild.js
 
       - name: Execute release.sh
         run: |
