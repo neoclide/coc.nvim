@@ -1,7 +1,7 @@
 'use strict'
 import type { Window } from '@chemzqm/neovim'
 import type { Disposable, Event } from 'vscode-languageserver-protocol'
-import type { CreateFile, DeleteFile, Diagnostic, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
+import type { CreateFile, DeleteFile, Diagnostic, Location, Position, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type RelativePattern from './model/relativePattern'
 
@@ -245,11 +245,25 @@ export interface KeymapOption {
   repeat?: boolean
 }
 
+export interface TabStopInfo {
+  // tabstop index
+  index: number
+  // 0 based line character
+  range: [number, number, number, number]
+  // current text
+  text: string
+}
+
 export interface JumpInfo {
+  readonly index: number
+  readonly forward: boolean
+  readonly tabstops: TabStopInfo[]
   // placeholder range
   readonly range: Range
   // character before current placeholder.
   readonly charbefore: string
+  readonly snippet_start: Position
+  readonly snippet_end: Position
 }
 
 export interface Autocmd {
@@ -261,12 +275,19 @@ export interface Autocmd {
   callback: Function
 }
 
+export interface UltiSnipsActions {
+  preExpand?: string
+  postExpand?: string
+  postJump?: string
+}
+
 export interface UltiSnippetOption {
   regex?: string
   context?: string
   noPython?: boolean
   range?: Range
   line?: string
+  actions?: UltiSnipsActions
   /**
    * Do not expand tabs
    */

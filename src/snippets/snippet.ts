@@ -3,17 +3,20 @@ import { Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
+import { TabStopInfo } from '../types'
 import { defaultValue } from '../util'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
-import { prepareMatchCode, preparePythonCodes, SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { getSnippetPythonCode, hasPython, prepareMatchCode, preparePythonCodes } from './eval'
+import { SnippetFormatOptions } from './util'
+import { UltiSnippetContext } from './util'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 
 export interface CocSnippetPlaceholder {
   index: number | undefined
-  marker: Snippets.Placeholder | Snippets.Variable
+  marker: Snippets.Placeholder
   value: string
   primary: boolean
   transform: boolean
@@ -26,71 +29,57 @@ export interface CocSnippetPlaceholder {
   nestCount: number
 }
 
+// The python global code for different snippets. Note: variable `t` not included
+// including `context` `match`
+// TODO save on insertNest and switch on snippet change
+const snippetsPythonGlobalCodes: WeakMap<Snippets.TextmateSnippet, string[]> = new WeakMap()
+
 export class CocSnippet {
   private _placeholders: CocSnippetPlaceholder[]
   private _text: string | undefined
-  public tmSnippet: Snippets.TextmateSnippet
+  private _hasPython = false
+  private _tmSnippet: Snippets.TextmateSnippet
 
-  constructor(private snippetString: string,
+  constructor(
+    private snippetString: string,
     private position: Position,
     private nvim: Neovim,
     private resolver?: VariableResolver,
   ) {
   }
 
+  public get tmSnippet(): Snippets.TextmateSnippet {
+    return this._tmSnippet
+  }
+
   public async init(ultisnip?: UltiSnippetContext): Promise<void> {
     const matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
     const parser = new Snippets.SnippetParser(!!ultisnip, matchCode)
     const snippet = parser.parse(this.snippetString, true)
-    this.tmSnippet = snippet
-    await this.resolve(ultisnip)
+    this._tmSnippet = snippet
+    if (ultisnip) snippetsPythonGlobalCodes.set(snippet, getSnippetPythonCode(ultisnip))
+    await this.resolve(snippet, ultisnip)
     this.synchronize()
   }
 
-  private async resolve(ultisnip?: UltiSnippetContext): Promise<void> {
-    let { snippet } = this.tmSnippet
+  private async resolve(snippet: Snippets.TextmateSnippet, ultisnip?: UltiSnippetContext): Promise<void> {
+    // let { snippet } = this.tmSnippet
     let { resolver, nvim } = this
     if (resolver) {
       await snippet.resolveVariables(resolver)
     }
+    this._hasPython = hasPython(ultisnip) || snippet.hasPythonBlock
     if (ultisnip && ultisnip.noPython !== true) {
-      let pyCodes: string[] = []
-      if (snippet.hasPython) pyCodes = preparePythonCodes(ultisnip)
+      let pyCodes: string[] = this.hasPython ? preparePythonCodes(ultisnip) : []
       await snippet.evalCodeBlocks(nvim, pyCodes)
     }
   }
 
   public getRanges(placeholder: CocSnippetPlaceholder): Range[] {
-    let marker = placeholder.marker
     if (placeholder.value.length == 0) return []
-    let placeholders = this._placeholders.filter(o => o.index == placeholder.index)
-    let ranges = placeholders.map(o => o.range)
-    let parents = this.tmSnippet.enclosingPlaceholders(marker)
-    let markers: Snippets.Marker[]
-    let p = marker.parent
-    if (marker instanceof Snippets.Placeholder) {
-      let index = marker.index
-      markers = this.tmSnippet.placeholders.filter(o => o.index == index && o.parent == p)
-    } else {
-      let name = marker.name
-      markers = this.tmSnippet.variables.filter(o => o.name == name && o.parent == p)
-    }
-    parents.forEach(p => {
-      let arr = this._placeholders.filter(o => o.index == p.index && o.marker !== p)
-      if (!arr.length) return
-      for (let m of markers) {
-        let before = this.tmSnippet.getTextBefore(m, p)
-        arr.forEach(item => {
-          if (item.transform) {
-            ranges.push(item.range)
-          } else {
-            let s = item.range.start
-            ranges.push(Range.create(getEnd(s, before), getEnd(s, before + m.toString())))
-          }
-        })
-      }
-    })
-    return ranges.filter(r => !emptyRange(r))
+    let tmSnippet = placeholder.marker.parentSnippet
+    let placeholders = this._placeholders.filter(o => o.index == placeholder.index && o.marker.parentSnippet === tmSnippet)
+    return placeholders.map(o => o.range).filter(r => !emptyRange(r))
   }
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
@@ -109,7 +98,7 @@ export class CocSnippet {
   }
 
   public get hasPython(): boolean {
-    return this.tmSnippet.pyBlocks.length > 0
+    return this._hasPython
   }
 
   public resetStartPosition(pos: Position): void {
@@ -145,14 +134,14 @@ export class CocSnippet {
         index = p.index
       }
     }
-    return this.getPlaceholder(index)
+    return this.getPlaceholderByIndex(index)
   }
 
   public getPlaceholderByMarker(marker: Snippets.Marker): CocSnippetPlaceholder {
     return this._placeholders.find(o => o.marker === marker)
   }
 
-  public getPlaceholder(index: number): CocSnippetPlaceholder {
+  public getPlaceholderByIndex(index: number): CocSnippetPlaceholder {
     let filtered = this._placeholders.filter(o => o.index == index && !o.transform)
     let find = filtered.find(o => o.primary)
     return defaultValue(find, filtered[0])
@@ -202,8 +191,9 @@ export class CocSnippet {
         end: { line: end.line, col: end.character, character: end.character }
       }, true)
     }
-    let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
-    await this.resolve(ultisnip)
+    let select = this._tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
+    // TODO use insertNestedSnippet need synchronize upper snippet.
+    await this.resolve(this._tmSnippet, ultisnip)
     this.synchronize()
     return select
   }
@@ -223,104 +213,86 @@ export class CocSnippet {
   public async updatePlaceholder(placeholder: CocSnippetPlaceholder, cursor: Position, newText: string, token: CancellationToken): Promise<{ text: string; delta: Position } | undefined> {
     let start = this.position
     let { marker, before } = placeholder
-    let cloned = this.tmSnippet.clone()
+    let cloned = this._tmSnippet.clone()
     token.onCancellationRequested(() => {
-      this.tmSnippet = cloned
+      this._tmSnippet = cloned
       this.synchronize()
     })
     // range before placeholder
     let r = Range.create(start, getEnd(start, before))
-    await this.tmSnippet.update(this.nvim, marker, newText)
+    await this._tmSnippet.update(this.nvim, marker, newText)
     if (token.isCancellationRequested) return undefined
     this.synchronize()
     let after = this.getTextBefore(marker, before)
     return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
   }
 
-  public getTextBefore(marker: Snippets.Placeholder | Snippets.Variable, defaultValue: string): string {
+  public getTextBefore(marker: Snippets.Placeholder, defaultValue: string): string {
     let placeholder = this._placeholders.find(o => o.marker == marker)
     if (placeholder) return placeholder.before
     return defaultValue
   }
 
   public removeText(offset: number, length: number): boolean {
-    let succeed = this.tmSnippet.deleteText(offset, length)
+    let succeed = this._tmSnippet.deleteText(offset, length)
     if (succeed) this.synchronize()
     return succeed
   }
 
+  public getTabStopInfo(): TabStopInfo[] {
+    let res: TabStopInfo[] = []
+    this._placeholders.forEach(p => {
+      if (p.marker instanceof Snippets.Placeholder && (p.primary || p.index === 0)) {
+        res.push({
+          index: p.index,
+          range: [p.range.start.line, p.range.start.character, p.range.end.line, p.range.end.character],
+          text: p.value
+        })
+      }
+    })
+    return res
+  }
+
+  /**
+   * Should be used after snippet resolved.
+   */
   private synchronize(): void {
-    const snippet = this.tmSnippet
+    const snippet = this._tmSnippet
     const { line, character } = this.position
     const document = TextDocument.create('untitled:/1', 'snippet', 0, snippet.toString())
-    let { placeholders, variables, maxIndexNumber } = snippet
-    const variableIndexMap: Map<string, number> = new Map()
-    let variableIndex = maxIndexNumber + 1
-
-    this._placeholders = [...placeholders, ...variables].map(p => {
-      const offset = snippet.offset(p)
-      const position = document.positionAt(offset)
-      const start: Position = {
-        line: line + position.line,
-        character: position.line == 0 ? character + position.character : position.character
-      }
-      let index: number
-      let nestCount = 0
-      if (p instanceof Snippets.Variable) {
-        let key = p.name
-        if (variableIndexMap.has(key)) {
-          index = variableIndexMap.get(key)
-        } else {
-          variableIndexMap.set(key, variableIndex)
-          index = variableIndex
-          variableIndex = variableIndex + 1
+    // let { placeholders, variables, maxIndexNumber } = snippet
+    const placeholders: CocSnippetPlaceholder[] = []
+    // all placeholders, including nested placeholder from snippet
+    let offset = 0
+    snippet.walk(marker => {
+      if (marker instanceof Snippets.Placeholder) {
+        const position = document.positionAt(offset)
+        const start: Position = {
+          line: line + position.line,
+          character: position.line == 0 ? character + position.character : position.character
         }
-      } else {
-        index = p.index
-        nestCount = p.nestedPlaceholderCount
+        const value = marker.toString()
+        const end = getEnd(position, value)
+        let placeholder: CocSnippetPlaceholder = {
+          index: marker.index,
+          value,
+          nestCount: marker.nestedPlaceholderCount,
+          marker,
+          transform: !!marker.transform,
+          range: Range.create(start, getEnd(start, value)),
+          // TODO not needed those
+          before: document.getText(Range.create(Position.create(0, 0), position)),
+          after: document.getText(Range.create(end, Position.create(document.lineCount, 0))),
+          primary: marker.primary === true
+        }
+        placeholders.push(placeholder)
       }
-      const value = p.toString()
-      const end = getEnd(position, value)
-      let res: CocSnippetPlaceholder = {
-        index,
-        value,
-        nestCount,
-        marker: p,
-        transform: !!p.transform,
-        range: Range.create(start, getEnd(start, value)),
-        before: document.getText(Range.create(Position.create(0, 0), position)),
-        after: document.getText(Range.create(end, Position.create(document.lineCount, 0))),
-        primary: p instanceof Snippets.Placeholder && p.primary === true
-      }
-      return res
-    })
-    this._text = this.tmSnippet.toString()
+      offset += marker.len()
+      return true
+    }, false)
+    this._text = this._tmSnippet.toString()
+    this._placeholders = placeholders
   }
-}
-
-/**
- * Current line text before marker
- */
-export function getContentBefore(marker: Snippets.Marker): string {
-  let res = ''
-  const calc = (m: Snippets.Marker): void => {
-    let p = m.parent
-    if (!p) return
-    let s = ''
-    for (let b of p.children) {
-      if (b === m) break
-      s = s + b.toString()
-    }
-    if (s.indexOf('\n') !== -1) {
-      let arr = s.split(/\n/)
-      res = arr[arr.length - 1] + res
-      return
-    }
-    res = s + res
-    calc(p)
-  }
-  calc(marker)
-  return res
 }
 
 /*
@@ -410,6 +382,17 @@ export function getEndPosition(position: Position, oldTextDocument: LinesTextDoc
   return end
 }
 
+export function equalToPosition(position: Position, oldTextDocument: LinesTextDocument, textDocument: LinesTextDocument): boolean {
+  let endLine = position.line
+  for (let i = 0; i < endLine; i++) {
+    if (oldTextDocument.lines[i] !== textDocument.lines[i]) return false
+  }
+  if (oldTextDocument.lines[endLine].slice(0, position.character) === textDocument.lines[endLine].slice(0, position.character)) {
+    return true
+  }
+  return false
+}
+
 /*
  * r in range, get text before and after
  */
@@ -473,4 +456,39 @@ export function comparePlaceholder(a: { primary: boolean, index: number, nestCou
   if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount
   if (a.primary !== b.primary) return a.primary ? -1 : 1
   return a.index - b.index
+}
+
+/**
+ * TODO test
+ */
+export function getNextPlaceholder(marker: Snippets.Placeholder, forward: boolean): Snippets.Placeholder | undefined {
+  let idx = marker.index
+  if (idx <= 0) return undefined
+  let arr: Snippets.Placeholder[] = []
+  let min_index: number
+  let max_index: number
+  const snippet = marker.snippet
+  snippet.walk(m => {
+    if (m instanceof Snippets.Placeholder && (m.primary || m.isFinalTabstop)) {
+      if (
+        (forward && (m.index > idx || m.isFinalTabstop)) ||
+        (!forward && (m.index < idx && !m.isFinalTabstop))
+      ) {
+        arr.push(m)
+        if (!m.isFinalTabstop) {
+          min_index = min_index === undefined ? m.index : Math.min(min_index, m.index)
+        }
+        max_index = max_index === undefined ? m.index : Math.max(max_index, m.index)
+      }
+    }
+    return true
+  }, true)
+  if (arr.length > 0) {
+    if (forward) return min_index === undefined ? arr[0] : arr.find(o => o.index === min_index)
+    return arr.find(o => o.index === max_index)
+  }
+  if (snippet.parent instanceof Snippets.Placeholder) {
+    return getNextPlaceholder(snippet.parent, forward)
+  }
+  return undefined
 }

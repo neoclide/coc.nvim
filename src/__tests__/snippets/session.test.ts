@@ -1,13 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { UltiSnippetContext } from '../../snippets/eval'
+import { UltiSnippetContext } from '../../snippets/util'
 import { SnippetConfig, SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { disposeAll, Disposable } from '../../util'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -20,13 +22,19 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
 async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
   let doc = await workspace.document
   let config: SnippetConfig = { highlight: enableHighlight, preferComplete, nextOnDelete }
-  return new SnippetSession(nvim, doc, config)
+  let session = new SnippetSession(nvim, doc, config)
+  disposables.push(session)
+  disposables.push(workspace.onDidChangeTextDocument(e => {
+    if (e.bufnr == session.bufnr) session.onChange(e)
+  }))
+  return session
 }
 
 describe('SnippetSession', () => {
@@ -106,14 +114,12 @@ describe('SnippetSession', () => {
       await helper.waitFor('mode', [], 's')
     })
 
-    it('should start with variable selected', async () => {
+    it('should use default variable value', async () => {
       let session = await createSession()
       let res = await session.start('${foo:bar}', defaultRange, false)
       expect(res).toBe(true)
       let line = await nvim.getLine()
       expect(line).toBe('bar')
-      await session.selectCurrentPlaceholder()
-      await helper.waitFor('mode', [], 's')
     })
 
     it('should select none transform placeholder', async () => {
@@ -217,7 +223,7 @@ describe('SnippetSession', () => {
       await checkRanges('$1 $1', [])
       await checkRanges('${foo}', [Range.create(0, 0, 0, 3)])
       await checkRanges('${2:${1:foo}}', [Range.create(0, 0, 0, 3)])
-      await checkRanges('${2:${1:foo}} ${2/^_(.*)/$1/}', [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)])
+      await checkRanges('${2:${1:foo}} ${2/^_(.*)/$1/}', [Range.create(0, 0, 0, 3)])
     })
   })
 
@@ -266,10 +272,9 @@ describe('SnippetSession', () => {
       await session.start('${1} `!p snip.rv = t[1]`', defaultRange, false, defaultContext)
       await nvim.setLine('b ')
       let cancelled = false
-      let spy = jest.spyOn(session.snippet.tmSnippet, 'updatePythonCodes').mockImplementation(() => {
+      let spy = jest.spyOn(session.snippet['_tmSnippet'], 'updatePythonCodes').mockImplementation(() => {
         return new Promise(resolve => {
           session.cancel()
-          spy.mockRestore()
           setImmediate(() => {
             resolve()
             cancelled = true
@@ -278,6 +283,7 @@ describe('SnippetSession', () => {
       })
       await helper.waitValue(() => cancelled, true)
       expect(session.snippet.text).toBe(' ')
+      spy.mockRestore()
     })
 
     it('should cancel when change after snippet', async () => {
@@ -571,6 +577,7 @@ describe('SnippetSession', () => {
       let ns = await nvim.call('coc#highlight#create_namespace', ['snippets']) as number
       let session = await createSession(true)
       await session.start('${2:bar ${1:foo}} $2', defaultRange)
+      await session.nextPlaceholder()
       let buf = nvim.createBuffer(workspace.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(2)
