@@ -15,7 +15,7 @@ if [ $? -ne 0 ]; then
   echo "eslint 检查未通过"
   exit 1
 fi
-npm test
+node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --forceExit
 
 if [ $? -eq 0 ]; then
   git config --global user.name "GitHub Actions"

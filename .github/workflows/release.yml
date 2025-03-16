@@ -14,6 +14,24 @@ jobs:
           ref: master
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup python3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install pynvim
+
+      - name: Setup vim
+        uses: rhysd/action-setup-vim@v1
+        id: vim
+        with:
+          version: v9.0.0815
+
       - name: Setup neovim
         id: nvim
         uses: rhysd/action-setup-vim@v1
@@ -21,16 +39,16 @@ jobs:
           neovim: true
           version: stable
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
       - name: Install Dependencies
         run: |
+          npm i -g bytes
           npm ci
           NODE_ENV=production node esbuild.js
+          sudo apt-get install -y ripgrep exuberant-ctags
+          rg --version
+          ctags --version
+          vim --version
+          nvim --version
 
       - name: Execute release.sh
         run: |
