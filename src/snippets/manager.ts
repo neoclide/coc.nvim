@@ -15,9 +15,9 @@ import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
-import { normalizeSnippetString, shouldFormat } from './snippet'
+import { normalizeSnippetString } from './util'
 import { SnippetString } from './string'
-import { getAction, SnippetFormatOptions, UltiSnippetContext } from './util'
+import { getAction, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
 
 export class SnippetManager {
   private disposables: Disposable[] = []
@@ -102,24 +102,36 @@ export class SnippetManager {
    */
   public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption, checkResolve = false): Promise<boolean> {
     if (checkResolve && this.resolving) return false
-    let { bufnr, nvim } = workspace
-    let doc = workspace.getAttachedDocument(bufnr)
+    let { nvim } = workspace
     let release = await this.mutex.acquire()
     try {
+      let document = workspace.getAttachedDocument(workspace.bufnr)
+      const session = this.bufferSync.getItem(document.bufnr)
       let context: UltiSnippetContext
       range = await this.toRange(range)
-      const currentLine = doc.getline(range.start.line)
+      const currentLine = document.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
-      const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip)
+      const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip)
       let usePy = false
       if (ultisnip != null) {
         usePy = hasPython(ultisnip) || inserted.includes('`!p')
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
         if (usePy) {
-          await executePythonCode(nvim, getInitialPythonCode(context))
+          if (session.placeholder) {
+            let { placeholder } = session
+            let { start, end } = placeholder.range
+            this.nvim.setVar('coc_last_placeholder', {
+              current_text: placeholder.value,
+              start: { line: start.line, col: start.character, character: start.character },
+              end: { line: end.line, col: end.character, character: end.character }
+            }, true)
+          } else {
+            this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
+          }
+          const codes = getInitialPythonCode(context)
           let preExpand = getAction(ultisnip, 'preExpand')
           if (preExpand) {
-            await executePythonCode(nvim, ['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand])
+            await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]))
             const [valid, pos] = await nvim.call('pyxeval', 'snip.getResult()') as [boolean, [number, number]]
             // need remove the trigger
             if (valid) {
@@ -132,18 +144,19 @@ export class SnippetManager {
               let start = Position.create(pos[0], pos[1])
               range = Range.create(start, deepClone(start))
             }
+          } else {
+            await executePythonCode(nvim, codes)
           }
         }
         // same behavior as Ultisnips
-        this.nvim.call('coc#cursor#move_to', [range.start.line, range.start.character], true)
+        const { start } = range
+        this.nvim.call('coc#cursor#move_to', [start.line, start.character], true)
         if (!emptyRange(range)) {
-          await doc.applyEdits([TextEdit.del(range)])
-          range.end = Position.create(range.start.line, range.start.character)
+          await document.applyEdits([TextEdit.del(range)])
+          await session.synchronize()
+          range.end = Position.create(start.line, start.character)
         }
       }
-      let session = this.bufferSync.getItem(bufnr)
-      // could be buffer detach
-      if (!session) return false
       await session.start(inserted, range, select, context)
       release()
       return session.isActive
@@ -185,7 +198,7 @@ export class SnippetManager {
     this.statusItem.hide()
   }
 
-  public get session(): SnippetSession {
+  public get session(): SnippetSession | undefined {
     return this.bufferSync.getItem(workspace.bufnr)
   }
 
@@ -236,13 +249,13 @@ export class SnippetManager {
     return res
   }
 
-  public async normalizeInsertText(uri: string, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
+  public async normalizeInsertText(bufnr: number, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
     let inserted = ''
     if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
       inserted = snippetString
     } else {
       const currentIndent = currentLine.match(/^\s*/)[0]
-      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(uri) as SnippetFormatOptions
+      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(bufnr) as SnippetFormatOptions
       let opts: Partial<UltiSnippetOption> = ultisnip ?? {}
       // trim when option not exists
       formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false

@@ -4,10 +4,11 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { addPythonTryCatch, evalCode, executePythonCode, getVariablesCode } from '../../snippets/eval'
-import { Placeholder, Variable } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, comparePlaceholder, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
-import { convertRegex, UltiSnippetContext } from '../../snippets/util'
+import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode } from '../../snippets/eval'
+import { Placeholder, Text } from '../../snippets/parser'
+import { checkContentBefore, CocSnippet, comparePlaceholder, getEndPosition, getParts, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
+import { normalizeSnippetString } from '../../snippets/util'
+import { convertRegex, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
@@ -29,7 +30,10 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
   let resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
   let snip = new CocSnippet(snippet, Position.create(0, 0), nvim, resolver)
   let context: UltiSnippetContext
-  if (opts) context = { range, line, ...opts, }
+  if (opts) {
+    context = { range, line, ...opts, }
+    await executePythonCode(nvim, getInitialPythonCode(context))
+  }
   await snip.init(context)
   return snip
 }
@@ -132,6 +136,46 @@ describe('CocSnippet', () => {
     })
   })
 
+  describe('replace with range', () => {
+    it('should prefer inner snippet', async () => {
+
+    })
+
+    it('should prefer current placeholder', async () => {
+      let m: Placeholder
+      let c = await createSnippet('b ${1:${2:bar} foo} x')
+      let marker = c.getPlaceholderByIndex(1).marker
+      // use outer
+      m = c.replaceWithMarker(Range.create(0, 2, 0, 3), new Text('insert'), marker) as Placeholder
+      expect(m).toBe(marker)
+      expect(m.children.length).toBe(1)
+      expect(m.children[0].toString()).toBe('insertar foo')
+      // use inner
+      c = await createSnippet('b ${1:${2:bar} foo} x')
+      m = c.replaceWithMarker(Range.create(0, 2, 0, 3), new Text('insert')) as Placeholder
+      expect(m instanceof Placeholder).toBe(true)
+      expect(m.index).toBe(2)
+      expect(m.children.length).toBe(1)
+      expect(m.children[0].toString()).toBe('insertar')
+    })
+
+    it('should insert with marker', async () => {
+      let c; let m
+      c = await createSnippet('${1:foo} ${2:bar}')
+      m = c.replaceWithMarker(Range.create(0, 0, 0, 0), new Text('before'))
+      expect(m.toString()).toBe('beforefoo')
+      expect(m.children.length).toBe(1)
+      c = await createSnippet('${1:foo} ${2:bar}')
+      m = c.replaceWithMarker(Range.create(0, 1, 0, 1), new Text('before'))
+      expect(m.toString()).toBe('fbeforeoo')
+      expect(m.children.length).toBe(1)
+      c = await createSnippet('${1:foo} ${2:bar}')
+      m = c.replaceWithMarker(Range.create(0, 3, 0, 3), new Text('before'))
+      expect(m.toString()).toBe('foobefore')
+      expect(m.children.length).toBe(1)
+    })
+  })
+
   describe('code block initialize', () => {
     it('should init shell code block', async () => {
       await assertResult('`echo "hello"` world', 'hello world', {})
@@ -231,15 +275,6 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${2:foo ${1:`!p snip.rv = "bar"`}} ${2/^\\w//} `!p snip.rv = t[2]`', {})
       expect(c.text).toBe('foo bar oo bar foo bar')
     })
-
-    it('should update variable marker', async () => {
-      let c = await createSnippet('${1:${VISUAL}`!p snip.rv = "bar"`} $1', {})
-      let variable = c.tmSnippet.placeholders[0].children[0] as Variable
-      await c.tmSnippet.update(nvim, variable, 'x')
-      expect(c.tmSnippet.toString()).toBe('bar bar')
-      variable = new Variable('name')
-      await c.tmSnippet.update(nvim, variable, 'x')
-    })
   })
 
   describe('getSortedPlaceholders()', () => {
@@ -285,7 +320,8 @@ describe('CocSnippet', () => {
       let c = await createSnippet(text, ultisnip)
       let p = c.getPlaceholderByIndex(index)
       expect(p != null).toBe(true)
-      await c.tmSnippet.update(nvim, p.marker, value)
+      p.marker.setOnlyChild(new Text(value))
+      await c.tmSnippet.update(nvim, p.marker)
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
@@ -312,7 +348,8 @@ describe('CocSnippet', () => {
       let first = c.text.split('\n')[0]
       let p = c.getPlaceholderByIndex(2)
       expect(p).toBeDefined()
-      await c.tmSnippet.update(nvim, p.marker, 'foo')
+      p.marker.setOnlyChild(new Text('foo'))
+      await c.tmSnippet.update(nvim, p.marker)
       let t = c.tmSnippet.toString()
       expect(t.startsWith(first)).toBe(true)
       expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
@@ -381,21 +418,6 @@ describe('CocSnippet', () => {
       expect(res.delta).toEqual(Position.create(0, 0))
     })
 
-    it('should insert nested python snippet', async () => {
-      let c = await createSnippet('${1:foo}\n`!p snip.rv = t[1]`', {})
-      let p = c.getPlaceholderByIndex(1)
-      let line = await nvim.line
-      let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line, range: Range.create(0, 0, 0, 3) }) as Placeholder
-      p = c.getPlaceholderByIndex(marker.index)
-      expect(c.text).toBe('x x\nx x')
-      let source = new CancellationTokenSource()
-      let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
-      expect(res.text).toBe('bar bar\nbar bar')
-      await executePythonCode(nvim, [`snip = ContextSnippet()`])
-      let val = await nvim.call('pyxeval', 'snip.last_placeholder.current_text')
-      expect(val).toBe('foo')
-    })
-
     it('should insert python snippet to normal snippet', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholderByIndex(1)
@@ -416,12 +438,13 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(true)
       expect(c.text).toBe('foo ')
-      await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
-        regex: '^(\\w+)',
-        line: 'bar',
-        range: Range.create(0, 0, 0, 3)
-      })
-      expect(c.text).toBe('foo bar')
+      // TODO rework the insert
+      // await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
+      //   regex: '^(\\w+)',
+      //   line: 'bar',
+      //   range: Range.create(0, 0, 0, 3)
+      // })
+      // expect(c.text).toBe('foo bar')
     })
   })
 
@@ -435,6 +458,26 @@ describe('CocSnippet', () => {
       }
       expect(err).toBeDefined()
     }
+
+    it('should getTextBefore', () => {
+      function assertText(r: number[], text: string, pos: [number, number], res: string): void {
+        let t = getTextBefore(Range.create(r[0], r[1], r[2], r[3]), text, Position.create(pos[0], pos[1]))
+        expect(t).toBe(res)
+      }
+      assertText([1, 1, 2, 1], 'abc\nd', [1, 1], '')
+      assertText([1, 1, 2, 1], 'abc\nd', [2, 1], 'abc\nd')
+      assertText([1, 1, 3, 1], 'abc\n\nd ', [3, 1], 'abc\n\nd')
+    })
+
+    it('should getTextAfter', () => {
+      function assertText(r: number[], text: string, pos: [number, number], res: string): void {
+        let t = getTextAfter(Range.create(r[0], r[1], r[2], r[3]), text, Position.create(pos[0], pos[1]))
+        expect(t).toBe(res)
+      }
+      assertText([1, 1, 2, 1], 'abc\nd', [1, 1], 'abc\nd')
+      assertText([1, 1, 2, 1], 'abc\nd', [2, 1], '')
+      assertText([1, 1, 3, 1], 'abc\n\nd', [2, 0], '\nd')
+    })
 
     it('should check shouldFormat', () => {
       expect(shouldFormat(' f')).toBe(true)

@@ -1,9 +1,10 @@
-import { Range } from '@chemzqm/neovim/lib/types'
+import { Range } from 'vscode-languageserver-types'
 import { UltiSnipsActions } from '../types'
-import * as Is from '../util/is'
-import type { Placeholder, TextmateSnippet } from './parser'
+import { defaultValue } from '../util'
 
 export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
+
+export type UltiSnipsOption = 'trimTrailingWhitespace' | 'removeWhiteSpace' | 'noExpand'
 
 export interface UltiSnippetContext {
   /**
@@ -94,14 +95,28 @@ export function getAction(opt: { actions?: { [key: string]: any } } | undefined,
   return opt.actions[action]
 }
 
-/**
- * Synchronize changed placeholder to all parent snippets.
- * TODO test 不能用，snippet 可能需要要执行完包含的 pyBlocks
- */
-export function synchronizeParentSnippets(snippet: TextmateSnippet): void {
-  if (!Is.number(snippet?.parentIndex)) return
-  let placeholder = snippet.parent as Placeholder
-  let s = placeholder.snippet
-  s.onPlaceholderUpdate(placeholder)
-  synchronizeParentSnippets(s)
+export function shouldFormat(snippet: string): boolean {
+  if (/^\s/.test(snippet)) return true
+  if (snippet.indexOf('\n') !== -1) return true
+  return false
+}
+
+export function normalizeSnippetString(snippet: string, indent: string, opts: SnippetFormatOptions): string {
+  let lines = snippet.split(/\r?\n/)
+  let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+  let tabSize = defaultValue(opts.tabSize, 2)
+  let noExpand = opts.noExpand
+  let trimTrailingWhitespace = opts.trimTrailingWhitespace
+  lines = lines.map((line, idx) => {
+    let space = line.match(/^\s*/)[0]
+    let pre = space
+    let isTab = space.startsWith('\t')
+    if (isTab && opts.insertSpaces && !noExpand) {
+      pre = ind.repeat(space.length)
+    } else if (!isTab && !opts.insertSpaces) {
+      pre = ind.repeat(space.length / tabSize)
+    }
+    return (idx == 0 || (trimTrailingWhitespace && line.length == 0) ? '' : indent) + pre + line.slice(space.length)
+  })
+  return lines.join('\n')
 }

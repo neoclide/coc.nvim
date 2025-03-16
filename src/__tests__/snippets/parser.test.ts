@@ -510,7 +510,8 @@ describe('SnippetParser', () => {
     let snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
     expect(snip.toString()).toBe('begin|tabular')
     let m = snip.placeholders.find(o => o.index == 1 && o.primary)
-    snip.resetMarker(m, 'a')
+    m.setOnlyChild(new Text('a'))
+    snip.onPlaceholderUpdate(m)
     expect(snip.toString()).toBe('begin|array')
   })
 
@@ -554,7 +555,8 @@ describe('SnippetParser', () => {
     let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')
     expect(snip.toString()).toBe('foo twooo')
     let m = snip.placeholders.find(o => o.index == 1 && o.primary)
-    snip.resetMarker(m, 'fb')
+    m.setOnlyChild(new Text('fb'))
+    snip.onPlaceholderUpdate(m)
     expect(snip.toString()).toBe('fb _')
   })
 
@@ -919,125 +921,6 @@ describe('SnippetParser', () => {
     assert.ok(first.parent === snippet.children[0])
   })
 
-  test('TextmateSnippet#enclosingPlaceholders', () => {
-    let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
-    let [first, second] = snippet.placeholders
-
-    assert.deepEqual(snippet.enclosingPlaceholders(first), [])
-    assert.deepEqual(snippet.enclosingPlaceholders(second), [first])
-  })
-
-  test('TextmateSnippet#getTextBefore', () => {
-    let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
-    expect(snippet.getTextBefore(snippet, undefined)).toBe('')
-    let [first, second] = snippet.placeholders
-    expect(snippet.getTextBefore(second, first)).toBe('is ')
-    snippet = new SnippetParser().parse('This ${1:foo ${2:is ${3:nested}}} $0', true)
-    let arr = snippet.placeholders
-    expect(snippet.getTextBefore(arr[2], arr[0])).toBe('foo is ')
-  })
-
-  test('TextmateSnippet#offset', () => {
-    let snippet = new SnippetParser().parse('te$1xt', true)
-    assert.equal(snippet.offset(snippet.children[0]), 0)
-    assert.equal(snippet.offset(snippet.children[1]), 2)
-    assert.equal(snippet.offset(snippet.children[2]), 2)
-
-    snippet = new SnippetParser().parse('${TM_SELECTED_TEXT:def}', true)
-    assert.equal(snippet.offset(snippet.children[0]), 0)
-    assert.equal(snippet.offset((<Variable>snippet.children[0]).children[0]), 0)
-
-    // forgein marker
-    assert.equal(snippet.offset(new Text('foo')), -1)
-  })
-
-  test('TextmateSnippet#deleteText', () => {
-    let snippet = new SnippetParser().parse('foo ${1:bar}', true)
-    let res = snippet.deleteText(2, 2)
-    expect(res).toBe(true)
-    expect(snippet.toString()).toBe('fobar')
-    res = snippet.deleteText(2, 5)
-    expect(res).toBe(false)
-  })
-
-  test('TextmateSnippet#placeholder', () => {
-    let snippet = new SnippetParser().parse('te$1xt$0', true)
-    let placeholders = snippet.placeholders
-    assert.equal(placeholders.length, 2)
-
-    snippet = new SnippetParser().parse('te$1xt$1$0', true)
-    placeholders = snippet.placeholders
-    assert.equal(placeholders.length, 3)
-
-
-    snippet = new SnippetParser().parse('te$1xt$2$0', true)
-    placeholders = snippet.placeholders
-    assert.equal(placeholders.length, 3)
-
-    snippet = new SnippetParser().parse('${1:bar${2:foo}bar}$0', true)
-    placeholders = snippet.placeholders
-    assert.equal(placeholders.length, 3)
-  })
-
-  test('TextmateSnippet#replace 1/2', function() {
-    let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
-
-    assert.equal(snippet.placeholders.length, 3)
-    const [, second] = snippet.placeholders
-    assert.equal(second.index, '2')
-
-    const enclosing = snippet.enclosingPlaceholders(second)
-    assert.equal(enclosing.length, 1)
-    assert.equal(enclosing[0].index, '1')
-    let marker = snippet.placeholders.find(o => o.index == 2)
-    let nested = new SnippetParser().parse('ddd$1eee', false)
-    let err
-    try {
-      snippet.replace(marker, nested.children)
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-  })
-
-  test('TextmateSnippet#replace 2/2', () => {
-    let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
-
-    assert.equal(snippet.placeholders.length, 3)
-    const [, second] = snippet.placeholders
-    assert.equal(second.index, '2')
-
-    let nested = new SnippetParser().parse('dddeee$0', true)
-    snippet.replace(second, nested.children)
-
-    assert.equal(snippet.toString(), 'aaabbbdddeee')
-    assert.equal(snippet.placeholders.length, 4)
-  })
-
-  test('TextmateSnippet#insertSnippet with placeholder', () => {
-    let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
-    let marker = snippet.placeholders.find(o => o.index == 1)
-    snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
-    let arr = snippet.placeholders.map(p => p.index)
-    expect(arr).toEqual([1, 2, 3, 4, 5, 0])
-  })
-
-  test('TextmateSnippet replace variable with placeholder', async () => {
-    let snippet = new SnippetParser().parse('|${1:${foo}} ${foo} $1 ${bar}|', true)
-    await snippet.resolveVariables({
-      resolve: _variable => {
-        return undefined
-      }
-    })
-    let placeholders = snippet.placeholders
-    let indexes = placeholders.map(o => o.index)
-    expect(indexes).toEqual([1, 2, 2, 1, 3, 0])
-    let p = placeholders.find(o => o.index == 2 && o.primary)
-    p.setOnlyChild(new Text('x'))
-    snippet.onPlaceholderUpdate(p)
-    expect(snippet.toString()).toBe('|x x x bar|')
-  })
-
   test('Maximum call stack size exceeded, #28983', () => {
     new SnippetParser().parse('${1:${foo:${1}}}')
   })
@@ -1175,5 +1058,130 @@ describe('SnippetParser', () => {
     }
     let [, , clone] = snippet.children
     assertParent(clone)
+  })
+})
+
+describe('TextmateSnippet', () => {
+  test('TextmateSnippet#enclosingPlaceholders', () => {
+    let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
+    let [first, second] = snippet.placeholders
+
+    assert.deepEqual(snippet.enclosingPlaceholders(first), [])
+    assert.deepEqual(snippet.enclosingPlaceholders(second), [first])
+  })
+
+  test('TextmateSnippet#getTextBefore', () => {
+    let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
+    expect(snippet.getTextBefore(snippet, undefined)).toBe('')
+    let [first, second] = snippet.placeholders
+    expect(snippet.getTextBefore(second, first)).toBe('is ')
+    snippet = new SnippetParser().parse('This ${1:foo ${2:is ${3:nested}}} $0', true)
+    let arr = snippet.placeholders
+    expect(snippet.getTextBefore(arr[2], arr[0])).toBe('foo is ')
+  })
+
+  test('TextmateSnippet#offset', () => {
+    let snippet = new SnippetParser().parse('te$1xt', true)
+    assert.equal(snippet.offset(snippet.children[0]), 0)
+    assert.equal(snippet.offset(snippet.children[1]), 2)
+    assert.equal(snippet.offset(snippet.children[2]), 2)
+
+    snippet = new SnippetParser().parse('${TM_SELECTED_TEXT:def}', true)
+    assert.equal(snippet.offset(snippet.children[0]), 0)
+    assert.equal(snippet.offset((<Variable>snippet.children[0]).children[0]), 0)
+
+    // forgein marker
+    assert.equal(snippet.offset(new Text('foo')), -1)
+  })
+
+  test('TextmateSnippet#placeholder', () => {
+    let snippet = new SnippetParser().parse('te$1xt$0', true)
+    let placeholders = snippet.placeholders
+    assert.equal(placeholders.length, 2)
+
+    snippet = new SnippetParser().parse('te$1xt$1$0', true)
+    placeholders = snippet.placeholders
+    assert.equal(placeholders.length, 3)
+
+
+    snippet = new SnippetParser().parse('te$1xt$2$0', true)
+    placeholders = snippet.placeholders
+    assert.equal(placeholders.length, 3)
+
+    snippet = new SnippetParser().parse('${1:bar${2:foo}bar}$0', true)
+    placeholders = snippet.placeholders
+    assert.equal(placeholders.length, 3)
+  })
+
+  test('TextmateSnippet#replace 1/2', function() {
+    let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
+
+    assert.equal(snippet.placeholders.length, 3)
+    const [, second] = snippet.placeholders
+    assert.equal(second.index, '2')
+
+    const enclosing = snippet.enclosingPlaceholders(second)
+    assert.equal(enclosing.length, 1)
+    assert.equal(enclosing[0].index, '1')
+    let marker = snippet.placeholders.find(o => o.index == 2)
+    let nested = new SnippetParser().parse('ddd$1eee', false)
+    let err
+    try {
+      snippet.replace(marker, nested.children)
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
+
+  test('TextmateSnippet#replace 2/2', () => {
+    let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
+
+    assert.equal(snippet.placeholders.length, 3)
+    const [, second] = snippet.placeholders
+    assert.equal(second.index, '2')
+
+    let nested = new SnippetParser().parse('dddeee$0', true)
+    snippet.replace(second, nested.children)
+
+    assert.equal(snippet.toString(), 'aaabbbdddeee')
+    assert.equal(snippet.placeholders.length, 4)
+  })
+
+  test('TextmateSnippet#insertSnippet with placeholder', () => {
+    let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
+    let marker = snippet.placeholders.find(o => o.index == 1)
+    snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
+    let arr = snippet.placeholders.map(p => p.index)
+    expect(arr).toEqual([1, 2, 3, 4, 5, 0])
+  })
+
+  test('TextmateSnippet replace variable with placeholder', async () => {
+    let snippet = new SnippetParser().parse('|${1:${foo}} ${foo} $1 ${bar}|', true)
+    await snippet.resolveVariables({
+      resolve: _variable => {
+        return undefined
+      }
+    })
+    let placeholders = snippet.placeholders
+    let indexes = placeholders.map(o => o.index)
+    expect(indexes).toEqual([1, 2, 2, 1, 3, 0])
+    let p = placeholders.find(o => o.index == 2 && o.primary)
+    p.setOnlyChild(new Text('x'))
+    snippet.onPlaceholderUpdate(p)
+    expect(snippet.toString()).toBe('|x x x bar|')
+  })
+
+  test('TextmateSnippet#removeUnnecessaryFinal', () => {
+    let snippet = new SnippetParser().parse('${1:foo} $0', true)
+    snippet.removeUnnecessaryFinal()
+    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
+    snippet = new SnippetParser().parse('${1:foo}$0', true)
+    snippet.removeUnnecessaryFinal()
+    expect(snippet.placeholders.find(o => o.index == 0)).toBeUndefined()
+    snippet = new SnippetParser().parse('${1:foo}$0 ', true)
+    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
+    snippet = new SnippetParser().parse('${1:foo}$0$2', true)
+    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
   })
 })

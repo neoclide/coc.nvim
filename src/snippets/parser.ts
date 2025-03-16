@@ -6,7 +6,7 @@ import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { unidecode } from '../util/node'
 import { iterateCharacter, toText } from '../util/string'
-import { evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode } from './eval'
+import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
 import { convertRegex, UltiSnippetContext } from './util'
 import { onUnexpectedError } from '../util/errors'
 const logger = createLogger('snippets-parser')
@@ -169,6 +169,7 @@ export abstract class Marker {
   }
 
   public setOnlyChild(child: Marker): void {
+    this._children.forEach(m => m.parent = undefined)
     child.parent = this
     this._children = [child]
   }
@@ -340,6 +341,7 @@ export class Placeholder extends TransformableMarker {
       : undefined
   }
 
+  // TODO remove this
   public get nestedPlaceholderCount(): number {
     if (this.transform) return 0
     return this._children.reduce((p, marker) => {
@@ -537,6 +539,7 @@ export class ConditionString extends Marker {
   }
 }
 
+// TODO ultisnip only, not used yet
 export class ConditionMarker extends Marker {
   constructor(
     public readonly index: number,
@@ -726,22 +729,23 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean, ignoreChil
 export class TextmateSnippet extends Marker {
 
   public readonly ultisnip: boolean
-  private _parentSnippet?: TextmateSnippet
-  constructor(ultisnip?: boolean, snippet?: TextmateSnippet) {
+  constructor(ultisnip?: boolean) {
     super()
     this.ultisnip = ultisnip === true
-    this._parentSnippet = snippet
   }
 
-  public get parentSnippet(): TextmateSnippet | undefined {
-    return this._parentSnippet
-  }
-
-  public get parentIndex(): number | undefined {
-    let p = this.parent as Placeholder
-    if (!p) return undefined
-    if (!(p instanceof Placeholder)) throw new Error(`Parent of TextmateSnippet should be Placeholder`)
-    return p.index
+  public removeUnnecessaryFinal(): void {
+    let { placeholders } = this
+    let final = placeholders[placeholders.length - 1]
+    if (final && final.index === 0) {
+      let children = final.parent.children
+      let idx = children.indexOf(final)
+      if (idx != children.length - 1) return
+      let prev = children[idx - 1]
+      if (prev && prev instanceof Placeholder && prev.primary) {
+        final.parent.children.splice(idx, 1)
+      }
+    }
   }
 
   public get hasPythonBlock(): boolean {
@@ -816,6 +820,7 @@ export class TextmateSnippet extends Marker {
         }
       })
     }))
+    if (this.pyBlocks.length === 0) return
     // run all python code by sequence
     const variableCode = getVariablesCode(this.values)
     await executePythonCode(nvim, [...prepareCodes, variableCode])
@@ -842,28 +847,16 @@ export class TextmateSnippet extends Marker {
   /**
    * Update python blocks after user change Placeholder with index
    */
-  public async updatePythonCodes(nvim: Neovim, marker: Marker): Promise<void> {
-    let index: number | undefined
-    if (marker instanceof Placeholder) {
-      index = marker.index
-    } else {
-      // variables of ultisnips can't be updated,
-      while (marker.parent) {
-        if (marker instanceof Placeholder) {
-          index = marker.index
-          break
-        }
-        marker = marker.parent
-      }
-      if (index === undefined) return
-    }
+  public async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
+    if (!this.hasPythonBlock) return
+    let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
     await executePythonCode(nvim, [getVariablesCode(this.values)])
     for (let block of blocks) {
       await this.updatePyIndexBlock(nvim, block)
     }
-    // update normal py codes.
+    // update normal pyBlocks.
     let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
     for (let block of filtered) {
       await block.resolve(nvim)
@@ -972,8 +965,9 @@ export class TextmateSnippet extends Marker {
    */
   public insertNestedSnippet(snippet: string, marker: Placeholder, parts: [string, string], ultisnip?: UltiSnippetContext): TextmateSnippet {
     let [before, after] = parts
-    let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
-    let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
+
+    let nested = new SnippetParser(!!ultisnip).parse(snippet, true)
+
     // remove unnecessary final placeholder
     let final = nested.placeholders.find(o => o.index === 0)
     if (final) {
@@ -993,12 +987,11 @@ export class TextmateSnippet extends Marker {
     return nested
   }
 
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
+  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder {
     let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
 
     let [before, after] = parts
-    let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
-    let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
+    let nested = new SnippetParser(!!ultisnip).parse(snippet, true)
 
     let maxIndexAdded = nested.maxIndexNumber + 1
     let changed: Map<number, number> = new Map()
@@ -1043,51 +1036,9 @@ export class TextmateSnippet extends Marker {
     return select
   }
 
-  public async update(nvim: Neovim, marker: Placeholder | Variable, value: string): Promise<void> {
-    this.resetMarker(marker, value)
-    if (this.hasPythonBlock) {
-      await this.updatePythonCodes(nvim, marker)
-    }
-  }
-
-  public deleteText(offset: number, length: number): boolean {
-    let pos = 0
-    let marker: Text | undefined
-    let end = offset + length
-    let start = 0
-    this.walk(candidate => {
-      let len = candidate.len()
-      if (candidate instanceof Text && offset >= pos && pos + len >= end) {
-        marker = candidate
-        start = offset - pos
-        return false
-      }
-      pos += len
-      return true
-    })
-    if (!marker) return false
-    let parent = marker.parent
-    let text = marker.value
-    let value = text.slice(0, start) + text.slice(start + length)
-    let children = parent.children.slice()
-    let idx = children.indexOf(marker)
-    children.splice(idx, 1, new Text(value))
-    parent.replaceChildren(children)
-    return true
-  }
-
-  public resetMarker(marker: Placeholder | Variable, val: string): void {
-    let markers: (Placeholder | Variable)[]
-    if (marker instanceof Placeholder) {
-      markers = this.placeholders.filter(o => o.index == marker.index)
-    } else {
-      markers = this.variables.filter(o => o.name == marker.name)
-    }
-    for (let p of markers) {
-      let newText = p.transform ? p.transform.resolve(val) : val
-      p.setOnlyChild(new Text(toText(newText)))
-    }
-    this.synchronizeParents(markers)
+  public async update(nvim: Neovim, marker: Placeholder): Promise<void> {
+    this.onPlaceholderUpdate(marker)
+    await this.updatePythonCodes(nvim, marker)
   }
 
   /**
@@ -1106,13 +1057,13 @@ export class TextmateSnippet extends Marker {
   }
 
   public synchronizeParents(markers: Marker[]): void {
-    let stops: Set<Placeholder> = new Set()
+    let parents: Set<Placeholder> = new Set()
     markers.forEach(m => {
       let p = m.parent
-      if (p instanceof Placeholder) stops.add(p)
+      if (p instanceof Placeholder) parents.add(p)
     })
-    for (let stop of stops) {
-      this.onPlaceholderUpdate(stop)
+    for (let p of parents) {
+      this.onPlaceholderUpdate(p)
     }
   }
 
@@ -1277,10 +1228,7 @@ export class TextmateSnippet extends Marker {
 }
 
 export class SnippetParser {
-  constructor(
-    private ultisnip?: boolean,
-    private matchCode?: string
-  ) {
+  constructor(private ultisnip?: boolean) {
   }
 
   public static escape(value: string): string {
@@ -1893,9 +1841,8 @@ export class SnippetParser {
       }
       if (text.startsWith('!p')) {
         let code = text.slice(2)
-        let pre = this.matchCode ? this.matchCode + '\n' : ''
         if (code.indexOf('\n') == -1) {
-          let marker = new CodeBlock(pre + code.trim(), 'python')
+          let marker = new CodeBlock(code.trim(), 'python')
           parent.appendChild(marker)
         } else {
           let codes = code.split(/\r?\n/)
@@ -1907,7 +1854,7 @@ export class SnippetParser {
             codes = codes.map(s => s.slice(ind.length))
           }
           if (ind == ' ' && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1)
-          let marker = new CodeBlock(pre + codes.join('\n'), 'python')
+          let marker = new CodeBlock(codes.join('\n'), 'python')
           parent.appendChild(marker)
         }
         return true

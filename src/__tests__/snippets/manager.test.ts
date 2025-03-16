@@ -287,7 +287,7 @@ describe('snippet provider', () => {
         configurable: true,
         enumerable: true
       })
-      let res = await snippetManager.normalizeInsertText(doc.uri, 'foo\nbar', '  ', InsertTextMode.adjustIndentation)
+      let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.adjustIndentation)
       expect(res).toBe('foo\n  bar')
       Object.defineProperty(window, 'activeTextEditor', {
         get: () => {

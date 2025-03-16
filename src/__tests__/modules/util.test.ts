@@ -1045,6 +1045,14 @@ describe('Position', () => {
     expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
   })
 
+  test('adjacentPosition', () => {
+    let pos = Position.create(0, 0)
+    expect(positions.adjacentPosition(pos, Range.create(0, 0, 0, 1))).toBe(true)
+    expect(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1))).toBe(false)
+    pos = Position.create(1, 1)
+    expect(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1))).toBe(true)
+  })
+
   test('equalsRange', () => {
     let r = Range.create(0, 0, 0, 1)
     expect(positions.equalsRange(r, r)).toBe(true)
@@ -1097,6 +1105,9 @@ describe('Position', () => {
   test('positionInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
+    expect(positions.positionInRange(pos, r)).toBe(0)
+    pos = Position.create(0, 1)
+    r = Range.create(0, 0, 0, 3)
     expect(positions.positionInRange(pos, r)).toBe(0)
   })
 

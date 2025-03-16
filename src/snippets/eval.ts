@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { exec, ExecOptions } from 'child_process'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
-import { toText } from '../util/string'
+import { byteLength, toText } from '../util/string'
 import events from '../events'
 import { UltiSnippetOption } from '../types'
 import { UltiSnippetContext } from './util'
@@ -47,24 +47,11 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
-  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
-  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
+  let start = `(${range.start.line},${byteLength(line, range.start.character)})`
+  let end = `(${range.start.line},${byteLength(line, range.end.character)})`
   let indent = line.match(/^\s*/)[0]
   pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
   return pyCodes
-}
-
-export function prepareMatchCode(snip: UltiSnippetContext): string {
-  let { range, regex, line } = snip
-  let pyCodes: string[] = []
-  if (regex && Range.is(range)) {
-    let trigger = line.slice(range.start.character, range.end.character)
-    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
-    pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
-  } else {
-    pyCodes.push(`match = None`)
-  }
-  return pyCodes.join('\n')
 }
 
 /**
@@ -106,7 +93,6 @@ export async function executePythonCode(nvim: Neovim, codes: string[], wrap = fa
     'if "snip" in locals():',
     '    _snip = snip',
     ...codes,
-    `__snip = snip`,
     `snip = _snip`
   ]
   lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)

@@ -349,6 +349,7 @@ describe('SnippetSession', () => {
 
     it('should adjust with removed text', async () => {
       let session = await createSession()
+      // TODO fix the fix
       await nvim.input('i')
       await session.start('${1:foo} bar$0', defaultRange)
       await nvim.input('<esc>')
@@ -543,6 +544,7 @@ describe('SnippetSession', () => {
     })
 
     it('should remove white space on jump', async () => {
+      // TODO fix the test
       let session = await createSession()
       let opts = {
         removeWhiteSpace: true,
