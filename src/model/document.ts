@@ -256,20 +256,21 @@ export default class Document {
     return !equals(this.lines, this.syncLines)
   }
 
+  /**
+   * Cursor position if document is current document
+   */
+  public get cursor(): Position | undefined {
+    let { cursor } = events
+    if (cursor.bufnr !== this.bufnr) return undefined
+    let content = this.lines[cursor.lnum - 1] ?? ''
+    return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
+  }
+
   private _fireContentChanges(edit?: TextEdit): void {
     if (this.lines === this.syncLines) return
     let textDocument = this._textDocument
     let changes: TextDocumentContentChange[] = []
-    if (!edit) {
-      let { cursor } = events
-      let pos: Position
-      // consider cursor position.
-      if (cursor.bufnr == this.bufnr) {
-        let content = this.lines[cursor.lnum - 1] ?? ''
-        pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
-      }
-      edit = getTextEdit(textDocument.lines, this.lines, pos, cursor.insert)
-    }
+    if (!edit) edit = getTextEdit(textDocument.lines, this.lines, this.cursor, events.cursor.insert)
     let original: string
     if (edit) {
       original = textDocument.getText(edit.range)
