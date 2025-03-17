@@ -535,39 +535,40 @@ function! s:funcs.buf_get_mark(bufnr, name)
   return [line("'" . a:name), col("'" . a:name) - 1]
 endfunction
 
-function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, ...) abort
-  if a:srcId == 0
-    let srcId = s:max_src_id + 1
-    let s:max_src_id = srcId
+def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, ...list: list<dict<any>>): any
+  var sourceId: number
+  if srcId == 0
+    sourceId = s:max_src_id + 1
+    s:max_src_id = sourceId
   else
-    let srcId = a:srcId
+    sourceId = srcId
   endif
-  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  let type = srcId == -1 ? a:hlGroup : a:hlGroup.'_'.srcId
-  let types = get(s:id_types, srcId, [])
-  if index(types, type) == -1
-    call add(types, type)
-    let s:id_types[srcId] = types
-    if empty(prop_type_get(type))
-      call prop_type_add(type, extend({'highlight': a:hlGroup}, get(a:, 1, {})))
+  const bufferNumber: number = bufnr == 0 ? bufnr('%') : bufnr
+  const propType: string = srcId == -1 ? hlGroup : $'{hlGroup}_{sourceId}'
+  final propTypes: list<string> = get(s:id_types, srcId, [])
+  if index(propTypes, propType) == -1
+    add(propTypes, propType)
+    s:id_types[srcId] = propTypes
+    if empty(prop_type_get(propType))
+      prop_type_add(propType, extend({'highlight': hlGroup}, get(list, 0, {})))
     endif
   endif
-  let end = a:colEnd == -1 ? strlen(get(getbufline(bufnr, a:line + 1), 0, '')) + 1 : a:colEnd + 1
-  if end < a:colStart + 1
-    return
+  const columnEnd: number = colEnd == -1 ? strlen(get(getbufline(bufferNumber, line + 1), 0, '')) + 1 : colEnd + 1
+  if columnEnd < colStart + 1
+    return 0 # Same as `:return` without expression in `:function`
   endif
-  let id = s:generate_id(a:bufnr)
+  const propId: number = s:generate_id(bufnr)
   try
-    call prop_add(a:line + 1, a:colStart + 1, {'bufnr': bufnr, 'type': type, 'id': id, 'end_col': end})
+    prop_add(line + 1, colStart + 1, {'bufnr': bufferNumber, 'type': propType, 'id': propId, 'end_col': columnEnd})
   catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
-    " ignore 967
+    # ignore 967
   endtry
-  if a:srcId == 0
-    " return generated srcId
-    return srcId
+  if srcId == 0
+    # return generated sourceId
+    return sourceId
   endif
   return v:null
-endfunction
+enddef
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
