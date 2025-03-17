@@ -251,10 +251,10 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
   endfor
 endfunction
 
-function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
-  let opts = get(a:, 1, {})
-  let priority = get(opts, 'priority', v:null)
-  if !s:is_vim
+if !s:is_vim
+  function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+    let opts = get(a:, 1, {})
+    let priority = get(opts, 'priority', v:null)
     if a:src_id == -1
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     else
@@ -272,13 +272,16 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
         " the end_col could be invalid, ignore this error
       endtry
     endif
-  else
-    if !hlexists(a:hl_group)
-      execute 'highlight '.a:hl_group.' ctermfg=NONE'
+  endfunction
+else
+  def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...list: list<dict<any>>)
+    const opts: dict<any> = get(list, 0, {})
+    if !hlexists(hl_group)
+      execute $'highlight {hl_group} ctermfg=NONE'
     endif
-    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
-  endif
-endfunction
+    coc#api#exec('buf_add_highlight', [bufnr, src_id, hl_group, line, col_start, col_end, opts])
+  enddef
+endif
 
 function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
