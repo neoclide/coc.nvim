@@ -44,3 +44,27 @@ export def Add_highlights(bufnr: number, ns: number, highlights: HighlightItemLi
     coc#highlight#add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
   endfor
 enddef
+
+export def Get_Highlights(bufnr: number, ns: number, start: number, end: number): list<any>
+  final res: list<list<any>> = []
+  const types: list<string> = coc#api#get_types(ns)
+  if empty(types)
+    return res
+  endif
+
+  const endLnum: number = end == -1 ? -1 : end + 1
+  for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
+    if prop['start'] == 0 || prop['end'] == 0
+      # multi line textprop are not supported, simply ignore it
+      continue
+    endif
+    const startCol: number = prop['col'] - 1
+    const endCol: number = startCol + prop['length']
+    add(res, [ Prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id'] ])
+  endfor
+  return res
+enddef
+
+def Prop_type_hlgroup(type: string): string
+  return substitute(type, '_\d\+$', '', '')
+enddef

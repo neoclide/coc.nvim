@@ -145,27 +145,10 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   let end = get(a:, 2, -1)
   if has('nvim')
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
+  else
+    let ns = s:namespace_map[a:key]
+    return s:vim9_coc_highlight.Get_Highlights(a:bufnr, ns, start, end)
   endif
-
-  let res = []
-  let ns = s:namespace_map[a:key]
-  let types = coc#api#get_types(ns)
-  if empty(types)
-    return res
-  endif
-
-  let endLnum = end == -1 ? -1 : end + 1
-  for prop in prop_list(start + 1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': endLnum})
-    if prop['start'] == 0 || prop['end'] == 0
-      " multi line textprop are not supported, simply ignore it
-      continue
-    endif
-    let startCol = prop['col'] - 1
-    let endCol = startCol + prop['length']
-    call add(res, [s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id']])
-  endfor
-
-  return res
 endfunction
 
 " Add multiple highlights to buffer.
@@ -179,9 +162,9 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   else
     if len(a:highlights) > g:coc_highlight_maximum_count
-      call vim9_coc_highlight.Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
+      call s:vim9_coc_highlight.Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
     else
-      call vim9_coc_highlight.Add_highlights(a:bufnr, ns, a:highlights, a:priority)
+      call s:vim9_coc_highlight.Add_highlights(a:bufnr, ns, a:highlights, a:priority)
     endif
   endif
 endfunction
@@ -620,10 +603,6 @@ endfunction
 
 function! coc#highlight#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
-endfunction
-
-function! s:prop_type_hlgroup(type) abort
-  return substitute(a:type, '_\d\+$', '', '')
 endfunction
 
 function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, idx) abort
