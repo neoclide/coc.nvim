@@ -15,15 +15,15 @@ if [ $? -ne 0 ]; then
   echo "eslint 检查未通过"
   exit 1
 fi
-node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --forceExit
+npm test
 
 if [ $? -eq 0 ]; then
   git config --global user.name "GitHub Actions"
   git config --global user.email "actions@github.com"
   git fetch origin release
-  commitmsg=$(git log head --oneline | head -1)
+  commitmsg=$(git log --oneline -1)
   mkdir -p .release
-  cp -r .github bin lua build autoload plugin history.md Readme.md doc .release
+  cp -r .github bin lua build autoload plugin history.md README.md doc .release
   git checkout release
   cp -r .release/* .
   nvim -c 'helptags doc|q'
