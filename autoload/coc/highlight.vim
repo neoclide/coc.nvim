@@ -1,5 +1,8 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
+if s:is_vim
+  import autoload '../../vim9/coc/highlight.vim' as vim9_coc_highlight
+endif
 let s:namespace_map = {}
 let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
@@ -176,9 +179,9 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   else
     if len(a:highlights) > g:coc_highlight_maximum_count
-      call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
+      call vim9_coc_highlight.Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
     else
-      call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
+      call vim9_coc_highlight.Add_highlights(a:bufnr, ns, a:highlights, a:priority)
     endif
   endif
 endfunction
@@ -639,37 +642,6 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, i
   if a:idx < len(a:groups) - 1
     call timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, a:groups, a:idx + 1)})
   endif
-endfunction
-
-function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
-  let lhl = len(a:highlights)
-  let maxc = g:coc_highlight_maximum_count
-  if maxc < lhl
-    let hls = a:highlights[:maxc-1]
-    let next = a:highlights[maxc:]
-  else
-    let hls = a:highlights[:]
-    let next = []
-  endif
-  call s:add_highlights(a:bufnr, a:ns, hls, a:priority)
-  if len(next)
-    call timer_start(30, {->s:add_highlights_timer(a:bufnr, a:ns, next, a:priority)})
-  endif
-endfunction
-
-function! s:add_highlights(bufnr, ns, highlights, priority) abort
-  if bufwinnr(a:bufnr) == -1 " check buffer exists
-    return
-  endif
-  for item in a:highlights
-    let opts = {
-          \ 'priority': a:priority,
-          \ 'combine': get(item, 4, 1) ? 1 : 0,
-          \ 'start_incl': get(item, 5, 0) ? 1 : 0,
-          \ 'end_incl':  get(item, 6, 0) ? 1 : 0,
-          \ }
-    call coc#highlight#add_highlight(a:bufnr, a:ns, item[0], item[1], item[2], item[3], opts)
-  endfor
 endfunction
 
 function! s:to_group(items) abort
