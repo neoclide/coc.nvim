@@ -98,12 +98,12 @@ function! s:tabnr_id(nr) abort
   return tid
 endfunction
 
-function! s:generate_id(bufnr) abort
-  let max = get(s:buffer_id, a:bufnr, s:prop_offset)
-  let id = max + 1
-  let s:buffer_id[a:bufnr] = id
+def s:generate_id(bufnr: number): number
+  const max: number = get(s:buffer_id, bufnr, s:prop_offset)
+  const id: number = max + 1
+  s:buffer_id[bufnr] = id
   return id
-endfunction
+enddef
 
 function! s:win_execute(winid, cmd, ...) abort
   let ref = get(a:000, 0, v:null)
