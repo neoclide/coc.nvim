@@ -6,7 +6,7 @@ import events from '../events'
 import BufferSync from '../model/bufferSync'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
-import { defaultValue } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { deepClone } from '../util/object'
 import { emptyRange, rangeOverlap, toValidRange } from '../util/position'
@@ -15,15 +15,13 @@ import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
-import { normalizeSnippetString } from './util'
 import { SnippetString } from './string'
-import { getAction, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
+import { getAction, normalizeSnippetString, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
 
 export class SnippetManager {
   private disposables: Disposable[] = []
   private _statusItem: StatusBarItem
   private bufferSync: BufferSync<SnippetSession>
-  private resolving = false
   private mutex: Mutex = new Mutex()
 
   public init() {
@@ -100,8 +98,7 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption, checkResolve = false): Promise<boolean> {
-    if (checkResolve && this.resolving) return false
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { nvim } = workspace
     let release = await this.mutex.acquire()
     try {
@@ -153,7 +150,6 @@ export class SnippetManager {
         this.nvim.call('coc#cursor#move_to', [start.line, start.character], true)
         if (!emptyRange(range)) {
           await document.applyEdits([TextEdit.del(range)])
-          await session.synchronize()
           range.end = Position.create(start.line, start.character)
         }
       }
@@ -232,21 +228,21 @@ export class SnippetManager {
     return false
   }
 
+  /**
+   * Exposed for snippet preview
+   */
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
-    if (ultisnip) {
-      let session = this.bufferSync.getItem(workspace.bufnr)
-      if (session && session.snippet?.hasPython) ultisnip.noPython = false
-    }
-    let res: string
+    let session = this.bufferSync.getItem(workspace.bufnr)
+    if (!session) return
+    let release = await this.mutex.acquire()
     try {
-      this.resolving = true
-      res = await SnippetSession.resolveSnippet(this.nvim, snippetString, ultisnip)
+      let res = await session.resolveSnippet(this.nvim, snippetString, ultisnip)
+      release()
+      return res
     } catch (e) {
-      this.resolving = false
+      release()
       throw e
     }
-    this.resolving = false
-    return res
   }
 
   public async normalizeInsertText(bufnr: number, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
@@ -267,9 +263,7 @@ export class SnippetManager {
 
   public dispose(): void {
     this.cancel()
-    for (let d of this.disposables) {
-      d.dispose()
-    }
+    disposeAll(this.disposables)
   }
 }
 

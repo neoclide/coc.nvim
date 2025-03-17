@@ -18,13 +18,6 @@ describe('SnippetParser', () => {
     assert.strictEqual((new Text('')).snippet, undefined)
   })
 
-  test('Empty CodeBlock', () => {
-    let b = new CodeBlock('', 'vim')
-    b.update(new Map())
-    b.resolve(undefined)
-    assert.strictEqual(b.value, '')
-  })
-
   test('Scanner', () => {
 
     const scanner = new Scanner()
@@ -1024,12 +1017,6 @@ describe('SnippetParser', () => {
     assertMarker(snippet, Placeholder)
   })
 
-  test('Placeholder nestedPlaceholderCount', function() {
-    let { children } = new SnippetParser().parse('${1:foo${2:bar}}')
-    let placeholder = children[0] as Placeholder
-    assert.equal(placeholder.nestedPlaceholderCount, 1)
-  })
-
   test('snippets variable not resolved in JSON proposal #52931', function() {
     assertTextAndMarker('FOO${1:/bin/bash}', 'FOO/bin/bash', Text, Placeholder)
   })
@@ -1146,14 +1133,6 @@ describe('TextmateSnippet', () => {
 
     assert.equal(snippet.toString(), 'aaabbbdddeee')
     assert.equal(snippet.placeholders.length, 4)
-  })
-
-  test('TextmateSnippet#insertSnippet with placeholder', () => {
-    let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
-    let marker = snippet.placeholders.find(o => o.index == 1)
-    snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
-    let arr = snippet.placeholders.map(p => p.index)
-    expect(arr).toEqual([1, 2, 3, 4, 5, 0])
   })
 
   test('TextmateSnippet replace variable with placeholder', async () => {

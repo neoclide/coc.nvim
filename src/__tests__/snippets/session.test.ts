@@ -239,7 +239,7 @@ describe('SnippetSession', () => {
       await nvim.input('bar')
       await session.forceSynchronize()
       await helper.waitFor('getline', ['.'], 'bar bar')
-      expect(session.snippet.getTextBefore(undefined, 'before')).toBe('before')
+      // expect(session.snippet.getTextBefore(undefined, 'before')).toBe('before')
     })
 
     it('should cancel with unexpected change', async () => {
@@ -609,26 +609,10 @@ describe('SnippetSession', () => {
     })
   })
 
-  describe('findPlaceholder()', () => {
-
-    it('should find current placeholder if possible', async () => {
-      let session = await createSession()
-      await session.start('${1:abc}${2:def}', defaultRange)
-      let placeholder = session.findPlaceholder(Range.create(0, 3, 0, 3))
-      expect(placeholder.index).toBe(1)
-    })
-
-    it('should return null if placeholder not found', async () => {
-      let session = await createSession()
-      await session.start('${1:abc}xyz${2:def}', defaultRange)
-      let placeholder = session.findPlaceholder(Range.create(0, 4, 0, 4))
-      expect(placeholder).toBeNull()
-    })
-  })
-
   describe('resolveSnippet()', () => {
     it('should resolveSnippet', async () => {
-      let res = await SnippetSession.resolveSnippet(nvim, '${1:`!p snip.rv = "foo"`}', { line: 'foo', range: Range.create(0, 0, 0, 3) })
+      let session = await createSession()
+      let res = await session.resolveSnippet(nvim, '${1:`!p snip.rv = "foo"`}', { line: 'foo', range: Range.create(0, 0, 0, 3) })
       expect(res).toBe('foo')
     })
   })

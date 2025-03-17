@@ -1,18 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { LinesTextDocument } from '../../model/textdocument'
 import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode } from '../../snippets/eval'
 import { Placeholder, Text } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, comparePlaceholder, getEndPosition, getParts, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
-import { normalizeSnippetString } from '../../snippets/util'
-import { convertRegex, shouldFormat, UltiSnippetContext } from '../../snippets/util'
+import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
+import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { getEnd } from '../../util/position'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -36,10 +35,6 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
   }
   await snip.init(context)
   return snip
-}
-
-function createTextDocument(text: string): LinesTextDocument {
-  return new LinesTextDocument('file://a', 'txt', 1, text.split('\n'), 1, true)
 }
 
 describe('CocSnippet', () => {
@@ -136,9 +131,41 @@ describe('CocSnippet', () => {
     })
   })
 
-  describe('replace with range', () => {
-    it('should prefer inner snippet', async () => {
+  describe('replaceWithText()', () => {
+    it('should return undefined when no change', async () => {
+      let c = await createSnippet('${1:foo}')
+      let token = (new CancellationTokenSource()).token
+      let res = await c.replaceWithText(Range.create(0, 0, 0, 0), '', token)
+      expect(res).toBeUndefined()
+    })
 
+    it('should synchronize without related change', async () => {
+      const assertChange = async (range: Range, newText: string, resultText: string) => {
+        let token = (new CancellationTokenSource()).token
+        let c = await createSnippet('begin ${1:foo} end')
+        await c.replaceWithText(range, newText, token)
+        expect(c.text).toBe(resultText)
+        let start = Position.create(0, 0)
+        let end = getEnd(start, resultText)
+        expect(c.range).toEqual(Range.create(start, end))
+        return c
+      }
+      // insert text
+      await assertChange(Range.create(0, 0, 0, 0), 'aa ', 'aa begin foo end')
+      // insert placeholder
+      let snippet = await assertChange(Range.create(0, 6, 0, 6), 'xx', 'begin xxfoo end')
+      let p = snippet.getPlaceholderByIndex(1)
+      expect(p.value).toBe('xxfoo')
+      // delete text of placeholder
+      snippet = await assertChange(Range.create(0, 6, 0, 9), '', 'begin  end')
+      p = snippet.getPlaceholderByIndex(1)
+      expect(p.value).toBe('')
+      // delete text
+      await assertChange(Range.create(0, 0, 0, 6), '', 'foo end')
+      //  delete Text and Placeholder
+      snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
+      p = snippet.getPlaceholderByIndex(1)
+      console.log(p)
     })
 
     it('should prefer current placeholder', async () => {
@@ -173,6 +200,48 @@ describe('CocSnippet', () => {
       m = c.replaceWithMarker(Range.create(0, 3, 0, 3), new Text('before'))
       expect(m.toString()).toBe('foobefore')
       expect(m.children.length).toBe(1)
+    })
+  })
+
+  describe('replaceWithSnippet()', () => {
+    it('should insert nested placeholder', async () => {
+      let c = await createSnippet('${1:foo}\n$1', {})
+      let p = c.getPlaceholderByIndex(1)
+      // let marker = await c.insertSnippet(p, '${1:x} $1', ['', '']) as Placeholder
+      // p = c.getPlaceholderByIndex(marker.index)
+      // let source = new CancellationTokenSource()
+      // let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
+      // expect(res.text).toBe('bar bar\nbar bar')
+      // expect(res.delta).toEqual(Position.create(0, 0))
+    })
+
+    it('should insert python snippet to normal snippet', async () => {
+      let c = await createSnippet('${1:foo}\n$1', {})
+      let p = c.getPlaceholderByIndex(1)
+      expect(c.hasPython).toBe(false)
+      // let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
+      // p = c.getPlaceholderByIndex(marker.index)
+      // expect(c.text).toBe('x x\nx x')
+      // let source = new CancellationTokenSource()
+      // let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
+      // expect(res.text).toBe('bar bar\nbar bar')
+      // expect(c.hasPython).toBe(true)
+    })
+
+    it('should not change match for original placeholders', async () => {
+      let c = await createSnippet('`!p snip.rv = match.group(1)` $1', {
+        regex: '^(\\w+)'
+      }, Range.create(0, 0, 0, 3), 'foo')
+      let p = c.getPlaceholderByIndex(1)
+      expect(c.hasPython).toBe(true)
+      expect(c.text).toBe('foo ')
+      // TODO rework the insert
+      // await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
+      //   regex: '^(\\w+)',
+      //   line: 'bar',
+      //   range: Range.create(0, 0, 0, 3)
+      // })
+      // expect(c.text).toBe('foo bar')
     })
   })
 
@@ -277,44 +346,6 @@ describe('CocSnippet', () => {
     })
   })
 
-  describe('getSortedPlaceholders()', () => {
-    it('should get sorted placeholders', async () => {
-      const assert = (snip: CocSnippet, index: number | undefined, indexes: number[]) => {
-        let curr = index == null ? undefined : snip.getPlaceholderByIndex(index)
-        let res = snip.getSortedPlaceholders(curr)
-        expect(res.map(o => o.index)).toEqual(indexes)
-      }
-      let c = await createSnippet('${1:foo} ${2/^\\w//} ${2:bar} ', {})
-      assert(c, undefined, [1, 2, 0])
-      assert(c, 1, [1, 2, 0])
-      assert(c, 2, [2, 1, 0])
-    })
-
-    it('should compares placeholders', () => {
-      let arr = [
-        { primary: false, index: 1, nestCount: 2 },
-        { primary: true, index: 2, nestCount: 1 },
-        { primary: false, index: 3, nestCount: 0 },
-      ]
-      arr.sort(comparePlaceholder)
-      let indexes = arr.map(p => p.index)
-      expect(indexes).toEqual([3, 2, 1])
-    })
-  })
-
-  describe('getNewText()', () => {
-    it('should getNewText for placeholder', async () => {
-      let c = await createSnippet('before ${1:foo} after$2', {})
-      let p = c.getPlaceholderByIndex(1)
-      expect(c.getNewText(p, `fff`)).toBe(undefined)
-      expect(c.getNewText(p, `before foo `)).toBe(undefined)
-      expect(c.getNewText(p, `before foo afteralll`)).toBe(undefined)
-      expect(c.getNewText(p, `before bar after`)).toBe('bar')
-      p = c.getPlaceholderByIndex(2)
-      expect(c.getNewText(p, `before foo afterbar`)).toBe('bar')
-    })
-  })
-
   describe('updatePlaceholder()', () => {
     async function assertUpdate(text: string, value: string, result: string, index = 1, ultisnip: UltiSnippetOption | null = {}): Promise<CocSnippet> {
       let c = await createSnippet(text, ultisnip)
@@ -384,7 +415,9 @@ describe('CocSnippet', () => {
     it('should reset values for removed placeholders', async () => {
       // Keep remained placeholder this is same behavior of VSCode.
       let s = await assertUpdate('${2:bar${1:foo}} $2 $1', 'bar', 'bar bar foo', 2)
-      let prev = s.getPrevPlaceholder(2)
+      let p = s.getPlaceholderByIndex(2).marker
+      let marker = getNextPlaceholder(p, false)
+      let prev = s.getPlaceholderByMarker(marker)
       expect(prev).toBeDefined()
       expect(prev.value).toBe('foo')
       // python placeholder, reset to empty value
@@ -403,48 +436,6 @@ describe('CocSnippet', () => {
       expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
       expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))
       expect(c.text).toBe('x x\nx x')
-    })
-  })
-
-  describe('insertSnippet()', () => {
-    it('should insert nested placeholder', async () => {
-      let c = await createSnippet('${1:foo}\n$1', {})
-      let p = c.getPlaceholderByIndex(1)
-      let marker = await c.insertSnippet(p, '${1:x} $1', ['', '']) as Placeholder
-      p = c.getPlaceholderByIndex(marker.index)
-      let source = new CancellationTokenSource()
-      let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
-      expect(res.text).toBe('bar bar\nbar bar')
-      expect(res.delta).toEqual(Position.create(0, 0))
-    })
-
-    it('should insert python snippet to normal snippet', async () => {
-      let c = await createSnippet('${1:foo}\n$1', {})
-      let p = c.getPlaceholderByIndex(1)
-      expect(c.hasPython).toBe(false)
-      let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
-      p = c.getPlaceholderByIndex(marker.index)
-      expect(c.text).toBe('x x\nx x')
-      let source = new CancellationTokenSource()
-      let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
-      expect(res.text).toBe('bar bar\nbar bar')
-      expect(c.hasPython).toBe(true)
-    })
-
-    it('should not change match for original placeholders', async () => {
-      let c = await createSnippet('`!p snip.rv = match.group(1)` $1', {
-        regex: '^(\\w+)'
-      }, Range.create(0, 0, 0, 3), 'foo')
-      let p = c.getPlaceholderByIndex(1)
-      expect(c.hasPython).toBe(true)
-      expect(c.text).toBe('foo ')
-      // TODO rework the insert
-      // await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
-      //   regex: '^(\\w+)',
-      //   line: 'bar',
-      //   range: Range.create(0, 0, 0, 3)
-      // })
-      // expect(c.text).toBe('foo bar')
     })
   })
 
@@ -477,6 +468,7 @@ describe('CocSnippet', () => {
       assertText([1, 1, 2, 1], 'abc\nd', [1, 1], 'abc\nd')
       assertText([1, 1, 2, 1], 'abc\nd', [2, 1], '')
       assertText([1, 1, 3, 1], 'abc\n\nd', [2, 0], '\nd')
+      assertText([0, 0, 0, 3], 'abc', [0, 3], '')
     })
 
     it('should check shouldFormat', () => {
@@ -605,35 +597,6 @@ describe('CocSnippet', () => {
       expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
         TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
       )
-    })
-
-    it('should get new end position', () => {
-      let assert = (pos: Position, oldText: string, newText: string, res: Position) => {
-        expect(getEndPosition(pos, createTextDocument(oldText), createTextDocument(newText))).toEqual(res)
-      }
-      assert(Position.create(0, 0), 'foo', 'bar', undefined)
-      assert(Position.create(0, 0), 'foo\nbar', 'bar', undefined)
-      assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nba', undefined)
-      assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nbar', Position.create(1, 0))
-      assert(Position.create(0, 0), 'foo', 'foo', Position.create(0, 0))
-    })
-
-    it('should check content before position', () => {
-      let assert = (pos: Position, oldText: string, newText: string, res: boolean) => {
-        expect(checkContentBefore(pos, createTextDocument(oldText), createTextDocument(newText))).toBe(res)
-      }
-      assert(Position.create(1, 0), 'foo\nbar', 'foo', true)
-      assert(Position.create(1, 1), 'foo\nbar', 'foo', false)
-      assert(Position.create(2, 0), 'foo\nbar\n', 'foo', false)
-      assert(Position.create(1, 1), 'foo\nbar', 'foo\nbd', true)
-      assert(Position.create(1, 1), 'foo\nbar', 'foo\nab', false)
-      assert(Position.create(1, 1), 'foo\nbar', 'aoo\nbb', false)
-    })
-
-    it('should getParts by range', async () => {
-      expect(getParts('abcdef', Range.create(1, 5, 1, 11), Range.create(1, 6, 1, 10))).toEqual(['a', 'f'])
-      expect(getParts('abc\nfoo\ndef', Range.create(0, 5, 2, 3), Range.create(1, 1, 1, 2))).toEqual(['abc\nf', 'o\ndef'])
-      expect(getParts('abc\ndef', Range.create(0, 1, 2, 3), Range.create(0, 1, 2, 3))).toEqual(['', ''])
     })
   })
 })

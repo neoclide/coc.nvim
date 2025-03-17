@@ -4,11 +4,11 @@ import { createLogger } from '../logger'
 import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
+import { onUnexpectedError } from '../util/errors'
 import { unidecode } from '../util/node'
 import { iterateCharacter, toText } from '../util/string'
 import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
-import { convertRegex, UltiSnippetContext } from './util'
-import { onUnexpectedError } from '../util/errors'
+import { convertRegex } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 
@@ -150,9 +150,7 @@ export class Scanner {
 }
 
 export abstract class Marker {
-
   public readonly _markerBrand: any
-
   public parent: Marker
   protected _children: Marker[] = []
 
@@ -266,18 +264,6 @@ export class CodeBlock extends Marker {
     return this._related
   }
 
-  public update(map: Map<number, number>): void {
-    if (this.kind !== 'python') return
-    let related: Set<number> = new Set()
-    this.code = this.code.replace(/\bt\[(\d+)\]/g, (_, p1) => {
-      let idx = Number(p1)
-      let id = map.has(idx) ? map.get(idx) : idx
-      related.add(id)
-      return `t[${id}]`
-    })
-    this._related = Array.from(related)
-  }
-
   public get index(): number | undefined {
     if (this.parent instanceof Placeholder) {
       return this.parent.index
@@ -341,14 +327,6 @@ export class Placeholder extends TransformableMarker {
       : undefined
   }
 
-  // TODO remove this
-  public get nestedPlaceholderCount(): number {
-    if (this.transform) return 0
-    return this._children.reduce((p, marker) => {
-      return p + (marker instanceof Placeholder ? 1 + marker.nestedPlaceholderCount : 0)
-    }, 0)
-  }
-
   public toTextmateString(): string {
     let transformString = ''
     if (this.transform) {
@@ -384,19 +362,6 @@ export class Placeholder extends TransformableMarker {
       p = p.parent
     }
   }
-
-  public get parentSnippet(): TextmateSnippet | undefined {
-    let p = this.parent
-    let snippet: TextmateSnippet
-    while (p != null) {
-      if (p instanceof TextmateSnippet) {
-        snippet = p
-        break
-      }
-      p = p.parent
-    }
-    return snippet
-  }
 }
 
 export class Choice extends Marker {
@@ -405,7 +370,6 @@ export class Choice extends Marker {
     super()
     this._index = index
   }
-
   public readonly options: Text[] = []
 
   public appendChild(marker: Marker): this {
@@ -957,83 +921,6 @@ export class TextmateSnippet extends Marker {
       return arr.find(p => p.primary) ?? arr[0]
     }
     return finals.find(o => o.primary) ?? finals[0]
-  }
-
-  /**
-   * Inserted snippet is not resolved (variable, python, upper snippets)
-   * and the parents needs update as well.
-   */
-  public insertNestedSnippet(snippet: string, marker: Placeholder, parts: [string, string], ultisnip?: UltiSnippetContext): TextmateSnippet {
-    let [before, after] = parts
-
-    let nested = new SnippetParser(!!ultisnip).parse(snippet, true)
-
-    // remove unnecessary final placeholder
-    let final = nested.placeholders.find(o => o.index === 0)
-    if (final) {
-      let children = final.parent.children
-      let idx = children.indexOf(final)
-      let prev = children[idx - 1]
-      if (prev && prev instanceof Placeholder && prev.primary) {
-        final.parent.children.splice(idx, 1)
-      }
-    }
-    // insert
-    const children: Marker[] = []
-    if (before.length > 0) children.push(new Text(before))
-    children.push(nested)
-    if (after.length > 0) children.push(new Text(after))
-    marker.replaceChildren(children)
-    return nested
-  }
-
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder {
-    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
-
-    let [before, after] = parts
-    let nested = new SnippetParser(!!ultisnip).parse(snippet, true)
-
-    let maxIndexAdded = nested.maxIndexNumber + 1
-    let changed: Map<number, number> = new Map()
-    for (let p of nested.placeholders) {
-      let idx = p.index
-      if (p.isFinalTabstop) {
-        p.index = maxIndexAdded + index
-        p.primary = true
-      } else {
-        p.index = p.index + index
-      }
-      changed.set(idx, p.index)
-    }
-    if (ultisnip) {
-      nested.pyBlocks.forEach(b => {
-        b.update(changed)
-      })
-    }
-    let map: Map<number, number> = new Map()
-    this.walk(m => {
-      if (m instanceof Placeholder && m.index > index) {
-        let idx = m.index
-        m.index = m.index + maxIndexAdded
-        map.set(idx, m.index)
-      }
-      return true
-    })
-    if (this.hasPythonBlock) {
-      this.walk(m => {
-        if (m instanceof CodeBlock) {
-          m.update(map)
-        }
-        return true
-      }, true)
-    }
-
-    const select = nested.first
-    let children = nested.children.slice()
-    if (before) children.unshift(new Text(before))
-    if (after) children.push(new Text(after))
-    this.replace(marker, children)
-    return select
   }
 
   public async update(nvim: Neovim, marker: Placeholder): Promise<void> {
