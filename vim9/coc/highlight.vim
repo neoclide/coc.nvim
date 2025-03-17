@@ -68,3 +68,9 @@ enddef
 def Prop_type_hlgroup(type: string): string
   return substitute(type, '_\d\+$', '', '')
 enddef
+
+def Del_markers(bufnr: number, ids: list<number>)
+  for id in ids
+    prop_remove({'bufnr': bufnr, 'id': id})
+  endfor
+enddef
