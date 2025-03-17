@@ -13,6 +13,7 @@ jobs:
         with:
           ref: master
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: Install Node.js
         uses: actions/setup-node@v4
