@@ -3,7 +3,7 @@ import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode } from '../../snippets/eval'
-import { Placeholder, Text } from '../../snippets/parser'
+import { Placeholder, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
 import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -131,6 +131,14 @@ describe('CocSnippet', () => {
     })
   })
 
+  describe('findParent()', () => {
+    it('should not use adjacent choice placeholder', async () => {
+      let c = await createSnippet('a\n${1|one,two,three|}\nb')
+      let res = c.findParent(Range.create(0, 0, 1, 0))
+      expect(res.marker instanceof TextmateSnippet).toBe(true)
+    })
+  })
+
   describe('replaceWithText()', () => {
     it('should return undefined when no change', async () => {
       let c = await createSnippet('${1:foo}')
@@ -165,7 +173,7 @@ describe('CocSnippet', () => {
       //  delete Text and Placeholder
       snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
       p = snippet.getPlaceholderByIndex(1)
-      console.log(p)
+      expect(p).toBeUndefined()
     })
 
     it('should prefer current placeholder', async () => {

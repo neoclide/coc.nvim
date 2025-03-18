@@ -7,8 +7,13 @@ import { defaultValue } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { executePythonCode, getSnippetPythonCode, hasPython, preparePythonCodes } from './eval'
-import { Marker, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
+import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
+
+export interface ParentInfo {
+  marker: TextmateSnippet | Placeholder
+  range: Range
+}
 
 export interface CocSnippetPlaceholder {
   index: number
@@ -21,6 +26,7 @@ export interface CocSnippetPlaceholder {
 
 export interface CocSnippetInfo {
   marker: TextmateSnippet
+  value: string
   range: Range
 }
 
@@ -71,11 +77,9 @@ export class CocSnippet {
     let marker = snip.parent
     if (marker) {
       let text = new Text(snip.toString())
-      let idx = marker.children.indexOf(snip)
-      marker.children.splice(idx, 1, text)
-      text.parent = marker
+      marker.replaceChild(snip, text)
+      this.synchronize()
     }
-    this.synchronize()
   }
 
   public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
@@ -133,16 +137,10 @@ export class CocSnippet {
     return placeholders.map(o => o.range).filter(r => !emptyRange(r))
   }
 
-  /**
-   * The change must happens with same marker parents, return the changed marker
-   */
-  public replaceWithMarker(range: Range, marker: Marker, current?: Placeholder): Marker | undefined {
-    // the range should already inside this.range
+  public findParent(range: Range, current?: Placeholder): ParentInfo | undefined {
     const isInsert = emptyRange(range)
-    if (isInsert && marker instanceof Text && marker.value == '') return
-    let parentMarker: Placeholder | TextmateSnippet
-    let parentRange: Range
-    // search placeholders & snippets from bottom to up
+    let marker: TextmateSnippet | Placeholder
+    let markerRange: Range
     const { _snippets, _placeholders } = this
     const seq = this._markerSeuqence.filter(o => o !== current)
     if (current) seq.push(current)
@@ -161,13 +159,25 @@ export class CocSnippet {
         ) {
           continue
         }
-        parentMarker = o.marker
-        parentRange = o.range
+        marker = o.marker
+        markerRange = o.range
         break
       }
     }
-    // Could be invalid range
-    if (!parentMarker) return undefined
+    return marker === undefined ? undefined : { marker, range: markerRange }
+  }
+
+  /**
+   * The change must happens with same marker parents, return the changed marker
+   */
+  public replaceWithMarker(range: Range, marker: Marker, current?: Placeholder): Marker | undefined {
+    // the range should already inside this.range
+    const isInsert = emptyRange(range)
+    if (isInsert && marker instanceof Text && marker.value == '') return
+    const p = this.findParent(range, current)
+    if (!p) return undefined
+    let parentMarker = p.marker
+    let parentRange = p.range
     // search children need to be replaced
     const children = parentMarker.children
     let pos = parentRange.start
@@ -210,35 +220,15 @@ export class CocSnippet {
       if (endMarker != null) break
       pos = e
     }
-    // TODO index for next is wrong
     if (marker instanceof Text) {
-      // try merge text before and after
-      let m = children[startIdx - 1]
-      if (m instanceof Text) {
-        startIdx -= 1
-        deleteCount += 1
-        preText = m.toString() + preText
-      }
-      m = children[startIdx + deleteCount]
-      if (m instanceof Text) {
-        deleteCount += 1
-        afterText = afterText + m.toString()
-      }
       let newText = new Text(preText + marker.value + afterText)
       // Placeholder have to contain empty Text
       parentMarker.children.splice(startIdx, deleteCount, newText)
       newText.parent = parentMarker
+      mergeTexts(parentMarker, 0)
     } else {
       let markers: Marker[] = []
-      if (preText) {
-        let m = children[startIdx - 1]
-        if (m instanceof Text) {
-          startIdx -= 1
-          deleteCount += 1
-          preText = m.value + preText
-        }
-        markers.push(new Text(preText))
-      }
+      if (preText) markers.push(new Text(preText))
       if (parentMarker instanceof TextmateSnippet) {
         // create a new Placeholder to make it selectable by jump
         let p = new Placeholder((current ? current.index : 0) + Math.random())
@@ -249,17 +239,12 @@ export class CocSnippet {
       } else {
         markers.push(marker)
       }
-      if (afterText) {
-        // try merge Text after
-        let m = children[startIdx + deleteCount]
-        if (m instanceof Text) {
-          deleteCount += 1
-          afterText = afterText + m.value
-        }
-        markers.push(new Text(afterText))
-      }
+      if (afterText) markers.push(new Text(afterText))
       children.splice(startIdx, deleteCount, ...markers)
       markers.forEach(m => m.parent = parentMarker)
+      if (preText.length > 0 || afterText.length > 0) {
+        mergeTexts(parentMarker, 0)
+      }
     }
     return parentMarker
   }
@@ -438,7 +423,7 @@ export class CocSnippet {
     const snippets: CocSnippetInfo[] = []
     const markerSeuqence = []
     const { start } = this
-    snippets.push({ range: Range.create(start, getEnd(start, snippetStr)), marker: snippet })
+    snippets.push({ range: Range.create(start, getEnd(start, snippetStr)), marker: snippet, value: snippetStr })
     markerSeuqence.push(snippet)
     // all placeholders, including nested placeholder from snippet
     let offset = 0
@@ -460,7 +445,8 @@ export class CocSnippet {
         const value = marker.toString()
         snippets.push({
           range: getNewRange(start, position, value),
-          marker
+          marker,
+          value
         })
       }
       offset += marker.len()

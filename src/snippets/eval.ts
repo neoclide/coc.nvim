@@ -1,13 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { exec, ExecOptions } from 'child_process'
+import { Range } from 'vscode-languageserver-types'
+import events from '../events'
+import { UltiSnippetOption } from '../types'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
 import { byteLength, toText } from '../util/string'
-import events from '../events'
-import { UltiSnippetOption } from '../types'
 import { UltiSnippetContext } from './util'
-import { Range } from 'vscode-languageserver-types'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
 /**

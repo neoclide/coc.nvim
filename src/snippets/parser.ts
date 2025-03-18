@@ -179,6 +179,14 @@ export abstract class Marker {
     this._children = children
   }
 
+  public replaceChild(oldMarker: Marker, newMarker: Marker): void {
+    let { children } = this
+    let idx = children.indexOf(oldMarker)
+    if (idx === -1) return
+    newMarker.parent = this
+    children.splice(idx, 1, newMarker)
+  }
+
   public get children(): Marker[] {
     return this._children
   }
@@ -1017,39 +1025,20 @@ export class TextmateSnippet extends Marker {
     let failed: Variable[] = []
     let succeed: Variable[] = []
     let promises: Promise<void>[] = []
+    const changedParents: Set<Marker> = new Set()
     for (let item of variables) {
       promises.push(item.resolve(resolver).then(res => {
+        changedParents.add(item.parent)
         let arr = res ? succeed : failed
         arr.push(item)
       }, onUnexpectedError))
     }
     await Promise.allSettled(promises)
-    // convert resolved variables to text and merge
-    const converted: Text[] = []
+    // convert resolved variables to text
     for (const variable of succeed) {
-      let parent = variable.parent
-      let { children } = parent
-      let idx = children.indexOf(variable)
-      let start = idx
-      let end = idx
-      let newText = variable.toString()
-      for (let i = idx - 1; i >= 0; i--) {
-        if (!(children[i] instanceof Text)) break
-        start = i
-        newText = children[i].toString() + newText
-      }
-      for (let i = idx + 1; i < children.length; i++) {
-        if (!(children[i] instanceof Text)) break
-        end = i
-        newText = newText + children[i].toString()
-      }
-      let text = new Text(newText)
-      converted.push(text)
-      children.splice(start, end - start + 1, text)
-      text.parent = parent
+      let text = new Text(variable.toString())
+      variable.parent.replaceChild(variable, text)
     }
-
-    const placeholders: Placeholder[] = []
     if (failed.length > 0) {
       // convert to placeholders
       let indexMap: Map<string, number> = new Map()
@@ -1069,16 +1058,15 @@ export class TextmateSnippet extends Marker {
           primarySet.add(idx)
           p.primary = true
         }
-        const { children } = v.parent
         let newText = p.transform ? p.transform.resolve(v.name) : v.name
-        p.appendChild(new Text(toText(newText)))
-        placeholders.push(p)
-        p.parent = v.parent
-        let index = children.indexOf(v)
-        children.splice(index, 1, p)
+        p.setOnlyChild(new Text(toText(newText)))
+        v.parent.replaceChild(v, p)
       }
     }
-    this.synchronizeParents([...converted, ...placeholders])
+    changedParents.forEach(marker => {
+      mergeTexts(marker, 0)
+      if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker)
+    })
   }
 
   public getMaxPlaceholderIndex(): number {
@@ -1821,4 +1809,35 @@ export function transformEscapes(input: string, backslashIndexes = []): string {
     i++
   }
   return res
+}
+
+// merge adjacent Texts of marker's children
+export function mergeTexts(marker: Marker, begin = 0): void {
+  let { children } = marker
+  let end: number | undefined
+  let start: number
+  for (let i = begin; i < children.length; i++) {
+    let m = children[i]
+    if (m instanceof Text) {
+      if (start !== undefined) {
+        end = i
+      } else {
+        start = i
+      }
+    } else {
+      if (end !== undefined) {
+        break
+      }
+      start = undefined
+    }
+  }
+  if (end === undefined) return
+  let newText = ''
+  for (let i = start; i <= end; i++) {
+    newText += children[i].toString()
+  }
+  let m = new Text(newText)
+  children.splice(start, end - start + 1, m)
+  m.parent = marker
+  return mergeTexts(marker, start + 1)
 }

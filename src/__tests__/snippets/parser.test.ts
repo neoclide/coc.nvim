@@ -1,7 +1,7 @@
 /* eslint-disable */
 import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
-import { Choice, CodeBlock, ConditionMarker, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
+import { Choice, mergeTexts, CodeBlock, ConditionMarker, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
 
 describe('SnippetParser', () => {
 
@@ -1162,5 +1162,24 @@ describe('TextmateSnippet', () => {
     expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
     snippet = new SnippetParser().parse('${1:foo}$0$2', true)
     expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
+  })
+
+  test('mergeTexts()', () => {
+    let m = new TextmateSnippet(false)
+    m.replaceChildren([
+      new Text('c'),
+      new Placeholder(1),
+      new Text('a'),
+      new Text('b'),
+      new Placeholder(2),
+      new Text('c'),
+      new Text(''),
+      new Text('d'),
+      new Text('e')
+    ])
+    mergeTexts(m, 0)
+    expect(m.children.length).toBe(5)
+    expect(m.children[2].toString()).toBe('ab')
+    expect(m.children[4].toString()).toBe('cde')
   })
 })
