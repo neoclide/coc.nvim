@@ -146,7 +146,8 @@ export class CocSnippet {
     let marker: TextmateSnippet | Placeholder
     let markerRange: Range
     const { _snippets, _placeholders, _markerSeuqence } = this
-    const seq = _markerSeuqence.filter(o => o !== current)
+    // avoid change final placeholder
+    const seq = _markerSeuqence.filter(o => o !== current && !(o instanceof Placeholder && o.index === 0))
     if (current && _markerSeuqence.includes(current)) seq.push(current)
     const list = seq.map(m => {
       return m instanceof TextmateSnippet ? _snippets.find(o => o.marker === m) : _placeholders.find(o => o.marker === m)
@@ -260,6 +261,7 @@ export class CocSnippet {
    * The cursor position should already adjusted before call this function.
    */
   public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position): Promise<ChangedInfo | undefined> {
+    let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
     if (!marker) return
@@ -271,7 +273,6 @@ export class CocSnippet {
     // Try keep relative position with marker, since no more change for marker.
     let sp = this.getMarkerPosition(marker)
     let keepCharacter = cursor && sp.line === cursor.line
-    let cloned = this._tmSnippet.clone()
     await this.onMarkerUpdate(marker)
     if (token.isCancellationRequested) {
       this._tmSnippet = cloned
