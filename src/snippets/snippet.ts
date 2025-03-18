@@ -7,7 +7,7 @@ import { defaultValue } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { executePythonCode, getSnippetPythonCode, hasPython, preparePythonCodes } from './eval'
-import { Choice, Marker, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
+import { Marker, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
 export interface CocSnippetPlaceholder {
@@ -63,6 +63,19 @@ export class CocSnippet {
 
   public get tmSnippet(): TextmateSnippet {
     return this._tmSnippet
+  }
+
+  public deactivateSnippet(snip: TextmateSnippet): void {
+    snippetsPythonGlobalCodes.delete(snip)
+    snippetsPythonContexts.delete(snip)
+    let marker = snip.parent
+    if (marker) {
+      let text = new Text(snip.toString())
+      let idx = marker.children.indexOf(snip)
+      marker.children.splice(idx, 1, text)
+      text.parent = marker
+    }
+    this.synchronize()
   }
 
   public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
@@ -197,16 +210,17 @@ export class CocSnippet {
       if (endMarker != null) break
       pos = e
     }
+    // TODO index for next is wrong
     if (marker instanceof Text) {
       // try merge text before and after
       let m = children[startIdx - 1]
-      if (m instanceof Text || m instanceof Choice) {
+      if (m instanceof Text) {
         startIdx -= 1
         deleteCount += 1
         preText = m.toString() + preText
       }
       m = children[startIdx + deleteCount]
-      if (m instanceof Text || m instanceof Choice) {
+      if (m instanceof Text) {
         deleteCount += 1
         afterText = afterText + m.toString()
       }

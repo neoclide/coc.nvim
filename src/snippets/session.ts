@@ -8,6 +8,7 @@ import { LinesTextDocument } from '../model/textdocument'
 import { DidChangeTextDocumentParams, JumpInfo, TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { getTextEdit } from '../util/diff'
 import { onUnexpectedError } from '../util/errors'
+import { omit } from '../util/lodash'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
@@ -20,7 +21,6 @@ import { Placeholder, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
 import { UltiSnippetContext } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
-import { omit } from '../util/lodash'
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
 
@@ -192,8 +192,13 @@ export class SnippetSession {
       void events.fire('PlaceholderJump', [document.bufnr, info])
     }
     if (placeholder.index == 0) {
-      logger.info('Jump to final placeholder, cancelling snippet session')
-      this.deactivate()
+      let snip = marker.snippet
+      if (snip === this.snippet.tmSnippet) {
+        logger.info('Jump to final placeholder, cancelling snippet session')
+        this.deactivate()
+      } else {
+        this.snippet.deactivateSnippet(snip)
+      }
     }
   }
 
