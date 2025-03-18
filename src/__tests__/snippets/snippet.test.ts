@@ -214,26 +214,25 @@ describe('CocSnippet', () => {
   describe('replaceWithSnippet()', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
-      let p = c.getPlaceholderByIndex(1)
-      // let marker = await c.insertSnippet(p, '${1:x} $1', ['', '']) as Placeholder
-      // p = c.getPlaceholderByIndex(marker.index)
-      // let source = new CancellationTokenSource()
-      // let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
-      // expect(res.text).toBe('bar bar\nbar bar')
-      // expect(res.delta).toEqual(Position.create(0, 0))
+      let res = await c.replaceWithSnippet(Range.create(0, 0, 0, 3), '${1:bar}')
+      expect(res.toString()).toBe('bar')
+      expect(res.parent.snippet.toString()).toBe('bar\nbar')
+      expect(c.text).toBe('bar\nbar')
     })
 
     it('should insert python snippet to normal snippet', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(false)
-      // let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
-      // p = c.getPlaceholderByIndex(marker.index)
-      // expect(c.text).toBe('x x\nx x')
-      // let source = new CancellationTokenSource()
-      // let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
-      // expect(res.text).toBe('bar bar\nbar bar')
-      // expect(c.hasPython).toBe(true)
+      let res = await c.replaceWithSnippet(p.range, '${1:x} `!p snip.rv = t[1]`', p.marker, { line: '', range: p.range })
+      expect(res.toString()).toBe('x x')
+      expect(c.text).toBe('x x\nx x')
+      let r = c.getPlaceholderByMarker(res.first)
+      let source = new CancellationTokenSource()
+      let result = await c.replaceWithText(r.range, 'bar', source.token)
+      expect(result.snippetText).toBe('bar x\nx x')
+      expect(c.text).toBe('bar bar\nbar bar')
+      expect(c.hasPython).toBe(true)
     })
 
     it('should not change match for original placeholders', async () => {
@@ -243,13 +242,17 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(true)
       expect(c.text).toBe('foo ')
-      // TODO rework the insert
-      // await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
-      //   regex: '^(\\w+)',
-      //   line: 'bar',
-      //   range: Range.create(0, 0, 0, 3)
-      // })
-      // expect(c.text).toBe('foo bar')
+      await executePythonCode(nvim, getInitialPythonCode({
+        regex: '^(\\w+)',
+        line: 'bar',
+        range: Range.create(0, 0, 0, 3)
+      }))
+      await c.replaceWithSnippet(p.range, '`!p snip.rv = match.group(1)`', p.marker, {
+        regex: '^(\\w+)',
+        line: 'bar',
+        range: Range.create(0, 0, 0, 3)
+      })
+      expect(c.text).toBe('foo bar')
     })
   })
 
@@ -392,10 +395,6 @@ describe('CocSnippet', () => {
       let t = c.tmSnippet.toString()
       expect(t.startsWith(first)).toBe(true)
       expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
-    })
-
-    it('should calculate delta', async () => {
-      // TODO
     })
 
     it('should update placeholder with code blocks', async () => {

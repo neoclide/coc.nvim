@@ -137,13 +137,17 @@ export class CocSnippet {
     return placeholders.map(o => o.range).filter(r => !emptyRange(r))
   }
 
+  public isValidPlaceholder(marker: Placeholder): boolean {
+    return this._markerSeuqence.includes(marker)
+  }
+
   public findParent(range: Range, current?: Placeholder): ParentInfo | undefined {
     const isInsert = emptyRange(range)
     let marker: TextmateSnippet | Placeholder
     let markerRange: Range
-    const { _snippets, _placeholders } = this
-    const seq = this._markerSeuqence.filter(o => o !== current)
-    if (current) seq.push(current)
+    const { _snippets, _placeholders, _markerSeuqence } = this
+    const seq = _markerSeuqence.filter(o => o !== current)
+    if (current && _markerSeuqence.includes(current)) seq.push(current)
     const list = seq.map(m => {
       return m instanceof TextmateSnippet ? _snippets.find(o => o.marker === m) : _placeholders.find(o => o.marker === m)
     })
@@ -195,8 +199,8 @@ export class CocSnippet {
       let s = Position.create(pos.line, pos.character)
       let e = getEnd(s, value)
       let r = Range.create(s, e)
-      // Not include position at the end of marker
-      if (startMarker == null && positionInRange(start, r) === 0 && !samePosition(start, e)) {
+      // Not include start position at the end of marker
+      if (startMarker === undefined && positionInRange(start, r) === 0 && !samePosition(start, e)) {
         startMarker = child
         startIdx = i
         preText = getTextBefore(Range.create(s, e), value, start)

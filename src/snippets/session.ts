@@ -56,17 +56,16 @@ export class SnippetSession {
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
     await this.forceSynchronize()
     let { document, snippet } = this
-    // const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
     if (inserted.length === 0) return this.isActive
-    if (snippet) {
+    if (snippet && rangeInRange(range, snippet.range)) {
       // update all snippet.
-      let range = snippet.range
-      let previous = document.textDocument.getText(range)
+      let oldRange = snippet.range
+      let previous = snippet.text
       let snip = await this.snippet.replaceWithSnippet(range, inserted, this.current, context)
       this.current = snip.first
       let edit = reduceTextEdit({
-        range,
+        range: oldRange,
         newText: this.snippet.text
       }, previous)
       edits.push(edit)
@@ -254,12 +253,15 @@ export class SnippetSession {
   }
 
   public async synchronize(change?: DocumentChange): Promise<void> {
+    const { document } = this
     await this.mutex.use(() => {
-      if (change && (this.document.version != change.version || change.version - this.version !== 1)) {
+      let textDocument = document.textDocument
+      if (!document.attached || !this.snippet) return
+      if (change && document.version !== change.version) return
+      if (change && change.version - this.version !== 1) {
         // can't be used any more
         change = undefined
       }
-      let textDocument = this.document.textDocument
       return this._synchronize(change).then(res => {
         if (res === true) this.textDocument = textDocument
       })
@@ -268,15 +270,12 @@ export class SnippetSession {
 
   public async _synchronize(documentChange?: DocumentChange): Promise<boolean> {
     let { document, textDocument, current } = this
-    if (!textDocument ||
-      !document.attached ||
-      !this.snippet ||
-      document.version !== documentChange.version) return false
-    const startTs = Date.now()
+    if (!textDocument) return false
     const newDocument = document.textDocument
     if (equals(textDocument.lines, newDocument.lines)) return true
-    let change = documentChange.change
-    if (change && documentChange.version - textDocument.version !== 1) {
+    const startTs = Date.now()
+    let change = documentChange?.change
+    if (!change) {
       let cursor = document.cursor
       let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
       if (!edit) return true
@@ -320,9 +319,15 @@ export class SnippetSession {
     let res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, this.current, document.cursor)
     tokenSource.dispose()
     if (!res || tokenSource.token.isCancellationRequested) return false
+    if (!this.snippet.isValidPlaceholder(current)) {
+      logger.info('Current placeholder destroyed, cancel snippet session')
+      this.deactivate()
+      return false
+    }
     let { snippetText, cursor } = res
     let rangeEnd = getEnd(start, snippetText)
     let changedRange = Range.create(start, rangeEnd)
+
     if (newDocument.getText(changedRange) !== snippetText) {
       logger.error(`something went wrong with the snippet implementation`, change, snippetText)
       this.deactivate()

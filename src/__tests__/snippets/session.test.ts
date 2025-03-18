@@ -170,32 +170,31 @@ describe('SnippetSession', () => {
       res = await session.start('${1:foo} ${2:bar}', defaultRange)
       expect(res).toBe(true)
       placeholder = session.placeholder
-      expect(placeholder.index).toBe(2)
+      expect(placeholder.value).toBe('foo')
+      expect(placeholder.index).toBe(1)
       line = await nvim.getLine()
       expect(line).toBe('foo bara b')
       expect(session.snippet.text).toBe('foo bara b')
       await session.nextPlaceholder()
       placeholder = session.placeholder
-      expect(placeholder.index).toBe(3)
+      expect(placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('bar')
       let col = await nvim.call('col', ['.'])
       expect(col).toBe(7)
       await session.nextPlaceholder()
-      await session.nextPlaceholder()
-      expect(session.placeholder.index).toBe(5)
+      expect(session.placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('b')
     })
 
     it('should start nest snippet without select', async () => {
       await nvim.command('startinsert')
       let session = await createSession()
-      let res = await session.start('${1:a} ${2:b}', defaultRange)
+      let res = await session.start('${1:a} $1', defaultRange)
       let line = await nvim.call('getline', ['.'])
-      let r = await getCursorRange()
-      res = await session.start('${1:foo} ${2:bar}', r, false)
+      res = await session.start('${1:foo}', Range.create(0, 0, 0, 1), false)
       expect(res).toBe(true)
       line = await nvim.line
-      expect(line).toBe('foo bara b')
+      expect(line).toBe('foo foo')
     })
 
     it('should not nested when range not contains', async () => {
