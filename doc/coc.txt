@@ -748,8 +748,10 @@ Check diagnostics ~
 
 Use |coc-list-diagnostics| to open |coc-list| with all available diagnostics.
 Use API |CocAction('diagnosticList')| to get list of all diagnostics.
+
 Use |:CocDiagnostics| to open vim's location list with diagnostics of current
-buffer.
+buffer. To automatically close the location list window, use autocmd
+|CocDiagnosticChange| with |CocAction('diagnosticList')|.
 
 ------------------------------------------------------------------------------
 PULL DIAGNOSTICS SUPPORT 				*coc-pullDiagnostics*

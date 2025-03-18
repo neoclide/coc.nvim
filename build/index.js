@@ -17420,16 +17420,16 @@ var init_main = __esm({
     (function(CompletionItemTag2) {
       CompletionItemTag2.Deprecated = 1;
     })(CompletionItemTag || (CompletionItemTag = {}));
-    (function(InsertReplaceEdit2) {
+    (function(InsertReplaceEdit3) {
       function create(newText, insert, replace) {
         return { newText, insert, replace };
       }
-      InsertReplaceEdit2.create = create;
+      InsertReplaceEdit3.create = create;
       function is(value) {
         const candidate = value;
         return candidate && Is.string(candidate.newText) && Range.is(candidate.insert) && Range.is(candidate.replace);
       }
-      InsertReplaceEdit2.is = is;
+      InsertReplaceEdit3.is = is;
     })(InsertReplaceEdit || (InsertReplaceEdit = {}));
     (function(InsertTextMode3) {
       InsertTextMode3.asIs = 1;
@@ -18059,6 +18059,11 @@ function isUrl(url) {
 function isHover(value) {
   let candidate = value;
   return !!candidate && objectLiteral(candidate) && (MarkupContent.is(candidate.contents) || MarkedString.is(candidate.contents) || typedArray(candidate.contents, MarkedString.is)) && (value.range == null || Range.is(value.range));
+}
+function isEditRange(value) {
+  if (value == null) return false;
+  if (Range.is(value)) return true;
+  return Range.is(value.insert) || Range.is(value.replace);
 }
 function isCommand(obj) {
   if (!obj || !string(obj.title) || !string(obj.command) || obj.command.length == 0) return false;
@@ -22326,18 +22331,18 @@ var require_main2 = __commonJS({
       (function(CompletionItemTag3) {
         CompletionItemTag3.Deprecated = 1;
       })(CompletionItemTag2 || (exports3.CompletionItemTag = CompletionItemTag2 = {}));
-      var InsertReplaceEdit2;
-      (function(InsertReplaceEdit3) {
+      var InsertReplaceEdit3;
+      (function(InsertReplaceEdit4) {
         function create(newText, insert, replace) {
           return { newText, insert, replace };
         }
-        InsertReplaceEdit3.create = create;
+        InsertReplaceEdit4.create = create;
         function is(value) {
           var candidate = value;
           return candidate && Is2.string(candidate.newText) && Range11.is(candidate.insert) && Range11.is(candidate.replace);
         }
-        InsertReplaceEdit3.is = is;
-      })(InsertReplaceEdit2 || (exports3.InsertReplaceEdit = InsertReplaceEdit2 = {}));
+        InsertReplaceEdit4.is = is;
+      })(InsertReplaceEdit3 || (exports3.InsertReplaceEdit = InsertReplaceEdit3 = {}));
       var InsertTextMode3;
       (function(InsertTextMode4) {
         InsertTextMode4.asIs = 1;
@@ -38492,6 +38497,12 @@ var init_schema = __esm({
           description: "Set to false to disable float/popup support for actions menu.",
           default: true
         },
+        "coc.preferences.autoApplySingleQuickfix": {
+          type: "boolean",
+          scope: "application",
+          description: "Automatically apply the single quickfix action .",
+          default: true
+        },
         "coc.preferences.formatOnSave": {
           type: "boolean",
           description: "Set to true to enable formatting on save.",
@@ -52134,12 +52145,12 @@ function getWord(item, itemDefaults) {
   if (!string(textToInsert)) return label;
   return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS);
 }
-function getReplaceRange(item, itemDefaults, character, insertMode) {
+function getReplaceRange(item, defaultRange, character, insertMode) {
   let editRange;
   if (item.textEdit) {
     editRange = InsertReplaceEdit.is(item.textEdit) ? item.textEdit : item.textEdit.range;
-  } else if (itemDefaults.editRange) {
-    editRange = itemDefaults.editRange;
+  } else if (defaultRange) {
+    editRange = defaultRange;
   }
   let range;
   if (editRange) {
@@ -52307,7 +52318,7 @@ var init_util3 = __esm({
         const label = item.label.trim();
         const itemDefaults = toObject(option.itemDefaults);
         const word = getWord(item, itemDefaults);
-        const range = getReplaceRange(item, itemDefaults, inputStart, this.option.insertMode) ?? option.range;
+        const range = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range;
         const character = range.start.character;
         const data = toObject(item.data);
         const filterText = item.filterText ?? item.label;
@@ -77008,17 +77019,13 @@ var init_snippet = __esm({
         this.nvim = nvim;
         this.resolver = resolver2;
       }
-      async init(ultisnip, isResolve = false) {
+      async init(ultisnip) {
         const matchCode = ultisnip ? prepareMatchCode(ultisnip) : void 0;
         const parser2 = new SnippetParser(!!ultisnip, matchCode);
         const snippet = parser2.parse(this.snippetString, true);
         this.tmSnippet = snippet;
         await this.resolve(ultisnip);
         this.synchronize();
-        if (!isResolve) {
-          this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
-          this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
-        }
       }
       async resolve(ultisnip) {
         let { snippet } = this.tmSnippet;
@@ -77456,6 +77463,7 @@ var init_session2 = __esm({
           let previous = document2.textDocument.getText(r);
           let parts = getParts(placeholder.value, placeholder.range, range);
           this.current = await this.snippet.insertSnippet(placeholder, inserted, parts, context);
+          this.deleteVimGlobal();
           let edit2 = reduceTextEdit({
             range: r,
             newText: this.snippet.text
@@ -77465,6 +77473,7 @@ var init_session2 = __esm({
           const resolver2 = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
           let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver2);
           await snippet.init(context);
+          this.deleteVimGlobal();
           this._snippet = snippet;
           this.current = snippet.firstPlaceholder.marker;
           edits.push(TextEdit.replace(range, snippet.text));
@@ -77501,6 +77510,10 @@ var init_session2 = __esm({
         let placeholder = this.findPlaceholder(range);
         if (!placeholder || placeholder.index == 0) return void 0;
         return placeholder;
+      }
+      deleteVimGlobal() {
+        this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
+        this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
       }
       activate() {
         if (this._isActive) return;
@@ -77767,7 +77780,7 @@ var init_session2 = __esm({
         if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip);
         const resolver2 = new SnippetVariableResolver(nvim, workspace_default.workspaceFolderControl);
         let snippet = new CocSnippet(snippetString, position, nvim, resolver2);
-        await snippet.init(context, true);
+        await snippet.init(context);
         return snippet.text;
       }
     };
@@ -80510,7 +80523,7 @@ var init_source_language = __esm({
         if (!completeItems || completeItems.length == 0) return null;
         let itemDefaults = this.itemDefaults = toObject(result["itemDefaults"]);
         let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
-        this.hasDefaultRange = Range.is(itemDefaults.editRange);
+        this.hasDefaultRange = isEditRange(itemDefaults.editRange);
         return { isIncomplete, items: completeItems, itemDefaults };
       }
       onCompleteResolve(item, opt, token) {
@@ -80579,7 +80592,7 @@ var init_source_language = __esm({
         let pos = await getLineAndPosition(workspace_default.nvim);
         if (pos.line != linenr - 1) return;
         let { textEdit, textEditText, insertText, label } = item;
-        let range = getReplaceRange(item, this.itemDefaults, void 0, option.insertMode);
+        let range = getReplaceRange(item, this.itemDefaults?.editRange, void 0, option.insertMode);
         if (!range) {
           let end = character + (option.insertMode == "insert" /* Insert */ ? 0 : option.followWord.length);
           range = Range.create(pos.line, characterIndex(line, col), pos.line, end);
@@ -83010,6 +83023,7 @@ var init_completion2 = __esm({
       // Void CompleteDone logic
       cancelAndClose() {
         this.cancel();
+        events_default.completing = false;
         this.nvim.call("coc#pum#_close", [], true);
       }
       async stop(close, kind = "" /* Normal */) {
@@ -84032,8 +84046,13 @@ var init_callHierarchy2 = __esm({
 // src/handler/codeActions.ts
 function shouldAutoApply(only) {
   if (!only) return false;
-  if (typeof only === "string" || only[0] === CodeActionKind.QuickFix || only[0] === CodeActionKind.SourceFixAll) return true;
+  if (typeof only === "string" || only[0] === CodeActionKind.QuickFix || only[0] === CodeActionKind.SourceFixAll) {
+    return workspace_default.initialConfiguration.get("coc.preferences.autoApplySingleQuickfix", true);
+  }
   return false;
+}
+function isQuickfix(codeAction) {
+  return codeAction.kind && codeAction.kind.startsWith("quickfix");
 }
 var CodeActions;
 var init_codeActions = __esm({
@@ -84099,6 +84118,10 @@ var init_codeActions = __esm({
           if (a.disabled && !b.disabled) return 1;
           if (b.disabled && !a.disabled) return -1;
           if (a.isPreferred != b.isPreferred) return boolToNumber(b.isPreferred) - boolToNumber(a.isPreferred);
+          if (!only) {
+            if (isQuickfix(a) && !isQuickfix(b)) return -1;
+            if (isQuickfix(b) && !isQuickfix(a)) return 1;
+          }
           return 0;
         });
         return codeActions;
@@ -89776,7 +89799,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-dc5e68a5 2025-03-12 14:00:54 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-75869207 2025-03-18 00:53:37 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90125,7 +90148,6 @@ var init_plugin = __esm({
         this.addAction("showInfo", () => this.handler.workspace.showInfo());
         this.addAction("hasProvider", (id, bufnr) => this.handler.hasProvider(id, bufnr));
         this.addAction("cursorsSelect", (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
-        this.addAction("fillDiagnostics", (bufnr) => manager_default.setLocationlist(bufnr));
         this.addAction("commandList", () => this.handler.commands.getCommandList());
         this.addAction("selectSymbolRange", (inner, visualmode, supportedSymbols) => this.handler.symbols.selectSymbolRange(inner, visualmode, supportedSymbols));
         this.addAction("openList", (...args) => manager_default2.start(args));
@@ -90152,6 +90174,7 @@ var init_plugin = __esm({
         this.addAction("sourceStat", () => sources_default.sourceStats());
         this.addAction("refreshSource", (name2) => sources_default.refresh(name2));
         this.addAction("toggleSource", (name2) => sources_default.toggleSource(name2));
+        this.addAction("fillDiagnostics", (bufnr) => manager_default.setLocationlist(bufnr));
         this.addAction("diagnosticRefresh", (bufnr) => manager_default.refresh(bufnr));
         this.addAction("diagnosticInfo", (target) => manager_default.echoCurrentMessage(target));
         this.addAction("diagnosticToggle", (enable) => manager_default.toggleDiagnostic(enable));
