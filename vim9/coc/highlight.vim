@@ -70,7 +70,8 @@ def Prop_type_hlgroup(type: string): string
 enddef
 
 export def Del_markers(bufnr: number, ids: list<number>)
+  const [winTopLine: number, winBottomLine: number] = coc#window#visible_range()
   for id in ids
-    prop_remove({'bufnr': bufnr, 'id': id})
+    prop_remove({'bufnr': bufnr, 'id': id}, winTopLine, winBottomLine)
   endfor
 enddef
