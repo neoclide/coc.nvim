@@ -131,5 +131,70 @@ export function getTextEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyA
   }
   let text = inserted.length > 0 ? inserted.join('\n') + '\n' : ''
   if (text.length === 0 && used === ol - e) return undefined
-  return TextEdit.replace(Range.create(used, 0, ol - e, 0), text)
+  let original = oldLines.slice(used, ol - e).join('\n') + '\n'
+  let edit = TextEdit.replace(Range.create(used, 0, ol - e, 0), text)
+  return reduceReplceEdit(edit, original, cursor)
+}
+
+export function getCommonSuffixLen(a: string, b: string, max: number): number {
+  if (max === 0) return 0
+  let al = a.length
+  let bl = b.length
+  let n = 0
+  for (let i = 0; i < max; i++) {
+    if (a[al - 1 - i] === b[bl - 1 - i]) {
+      n++
+    }
+  }
+  return n
+}
+
+export function getCommonPrefixLen(a: string, b: string, max: number): number {
+  if (max === 0) return 0
+  let n = 0
+  for (let i = 0; i < max; i++) {
+    if (a[i] === b[i]) {
+      n++
+    }
+  }
+  return n
+}
+
+export function reduceReplceEdit(edit: TextEdit, original: string, cursor?: Position): TextEdit {
+  let { newText, range } = edit
+  if (emptyRange(range) || newText === '') return edit
+  // let isAdd = newText.length > original.length
+  let endOffset: number | undefined
+  if (cursor) {
+    let newEnd = getEnd(range.start, newText)
+    if (positionInRange(cursor, Range.create(range.start, newEnd)) === 0) {
+      endOffset = 0
+      let lc = newEnd.line - cursor.line + 1
+      let lines = newText.split('\n')
+      let len = lines.length
+      for (let i = 0; i < lc; i++) {
+        let idx = len - i - 1
+        if (i == lc - 1) {
+          let s = idx === 0 ? range.start.character : 0
+          endOffset += lines[idx].slice(cursor.character - s).length
+        } else {
+          endOffset += lines[idx].length + 1
+        }
+      }
+    }
+  }
+  let sl: number
+  let pl: number
+  let min = Math.min(original.length, newText.length)
+  if (endOffset) {
+    sl = getCommonSuffixLen(original, newText, endOffset)
+    pl = getCommonPrefixLen(original, newText, min - sl)
+  } else {
+    pl = getCommonPrefixLen(original, newText, min)
+    sl = getCommonSuffixLen(original, newText, min - pl)
+  }
+  let s = pl === 0 ? range.start : getEnd(range.start, original.slice(0, pl))
+  let e = sl === 0 ? range.end : getEnd(range.start, original.slice(0, -sl))
+  let text = newText.slice(pl, sl === 0 ? undefined : -sl)
+  return TextEdit.replace(Range.create(s, e), text)
 }

@@ -1555,6 +1555,17 @@ describe('diff', () => {
       expect(res).toEqual(toEdit(2, 0, 2, 0, '\n\n'))
     })
 
+    it('should reduceTextEdit', () => {
+      let res = diff.reduceReplceEdit(TextEdit.replace(Range.create(0, 0, 3, 1), 'abd'), 'a\nb\nc\nd', Position.create(0, 1))
+      expect(res).toEqual(TextEdit.replace(Range.create(0, 1, 3, 0), 'b'))
+      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 9), ' '.repeat(5)), ' '.repeat(8), Position.create(3, 3))
+      expect(res).toEqual(TextEdit.replace(Range.create(3, 3, 3, 6), ''))
+      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), ' '.repeat(5)), ' '.repeat(3), Position.create(3, 3))
+      expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 1), '  '))
+      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)), ' '.repeat(3), Position.create(3, 3))
+      expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)))
+    })
+
     it('should get textedit for single line change', () => {
       let res = diff.getTextEdit(['foo', 'c'], ['', 'c'], Position.create(0, 0), false)
       expect(res).toEqual(toEdit(0, 0, 0, 3, ''))
