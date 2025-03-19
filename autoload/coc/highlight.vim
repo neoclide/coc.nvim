@@ -194,7 +194,7 @@ function! coc#highlight#del_markers(bufnr, key, ids) abort
     return
   endif
   if s:is_vim
-    call vim9_coc_highlight.Del_markers(a: bufnr, a:ids)
+    call vim9_coc_highlight.Del_markers(a:bufnr, a:ids)
   else
     let ns = coc#highlight#create_namespace(a:key)
     for id in a:ids
