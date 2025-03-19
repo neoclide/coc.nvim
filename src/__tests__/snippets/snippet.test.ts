@@ -140,11 +140,12 @@ describe('CocSnippet', () => {
   })
 
   describe('replaceWithText()', () => {
-    it('should return undefined when no change', async () => {
+    it('should not return undefined when no change', async () => {
       let c = await createSnippet('${1:foo}')
       let token = (new CancellationTokenSource()).token
       let res = await c.replaceWithText(Range.create(0, 0, 0, 0), '', token)
-      expect(res).toBeUndefined()
+      expect(res).toBeDefined()
+      expect(res.snippetText).toBe('foo')
     })
 
     it('should synchronize without related change', async () => {
@@ -438,7 +439,7 @@ describe('CocSnippet', () => {
     it('should get ranges of placeholder', async () => {
       let c = await createSnippet('${2:${1:x} $1}\n$2', {})
       let p = c.getPlaceholderByIndex(1)
-      let arr = c.getRanges(p)
+      let arr = c.getRanges(p.marker)
       expect(arr.length).toBe(2)
       expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
       expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))

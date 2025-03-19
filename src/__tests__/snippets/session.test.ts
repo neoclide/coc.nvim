@@ -214,7 +214,7 @@ describe('SnippetSession', () => {
         let session = await createSession()
         await session.start(snippet, defaultRange)
         let curr = session.placeholder
-        let res = session.snippet.getRanges(curr)
+        let res = session.snippet.getRanges(curr.marker)
         expect(res).toEqual(results)
         session.deactivate()
         await nvim.setLine('')
@@ -285,14 +285,14 @@ describe('SnippetSession', () => {
       spy.mockRestore()
     })
 
-    it('should cancel when change after snippet', async () => {
+    it('should not cancel when change after snippet', async () => {
       let session = await createSession()
       await nvim.setLine(' x')
       await nvim.input('i')
       await session.start('${1:foo }bar', defaultRange)
       await nvim.setLine('foo bar y')
       await session.forceSynchronize()
-      expect(session.isActive).toBe(false)
+      expect(session.isActive).toBe(true)
     })
 
     it('should cancel when change before and in snippet', async () => {
@@ -311,6 +311,8 @@ describe('SnippetSession', () => {
       await nvim.input('a')
       let r = await getCursorRange()
       await session.start('${1:foo} bar', r)
+      await nvim.call('coc#cursor#move_to', [0, 0])
+      await nvim.command('startinsert')
       await nvim.setLine('yfoo bar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(true)
@@ -328,13 +330,14 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(false)
     })
 
-    it('should cancel when unable to find placeholder', async () => {
+    it('should not cancel when change text', async () => {
       let session = await createSession()
       await nvim.input('i')
       await session.start('${1:foo} bar', defaultRange)
       await nvim.setLine('foodbar')
       await session.forceSynchronize()
-      expect(session.isActive).toBe(false)
+      expect(session.isActive).toBe(true)
+      expect(session.snippet.text).toBe('foodbar')
     })
 
     it('should cancel when unable to find removed Text', async () => {
@@ -348,7 +351,6 @@ describe('SnippetSession', () => {
 
     it('should adjust with removed text', async () => {
       let session = await createSession()
-      // TODO fix the fix
       await nvim.input('i')
       await session.start('${1:foo} bar$0', defaultRange)
       await nvim.input('<esc>')
@@ -397,18 +399,22 @@ describe('SnippetSession', () => {
       await nvim.input('a')
       await session.forceSynchronize()
       pos = await window.getCursorPosition()
+      let line = await nvim.line
+      expect(line).toEqual('ba ba')
       expect(pos).toEqual(Position.create(0, 5))
       await nvim.input('<backspace>')
       await session.forceSynchronize()
       pos = await window.getCursorPosition()
       expect(pos).toEqual(Position.create(0, 3))
+      line = await nvim.line
+      expect(line).toBe('b b')
     })
 
     it('should update cursor line after synchronize', async () => {
       let buf = await nvim.buffer
       let session = await createSession()
       await nvim.input('i')
-      await session.start('${1} ${1:foo}', defaultRange)
+      await session.start('${1} ${1:foo}x', defaultRange)
       await nvim.input('b')
       await session.forceSynchronize()
       let pos = await window.getCursorPosition()
@@ -418,7 +424,7 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(true)
       pos = await window.getCursorPosition()
       let lines = await buf.lines
-      expect(lines).toEqual(['b', ' b', ''])
+      expect(lines).toEqual(['b', ' b', 'x'])
       expect(pos).toEqual(Position.create(2, 0))
     })
 
@@ -431,7 +437,7 @@ describe('SnippetSession', () => {
       let line = await nvim.line
       expect(line).toBe('| |')
       let p = new Promise(resolve => {
-        doc.onDocumentChange(e => {
+        doc.onDocumentChange(_e => {
           resolve(undefined)
         })
       })
@@ -543,7 +549,6 @@ describe('SnippetSession', () => {
     })
 
     it('should remove white space on jump', async () => {
-      // TODO fix the test
       let session = await createSession()
       let opts = {
         removeWhiteSpace: true,

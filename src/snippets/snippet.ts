@@ -128,12 +128,12 @@ export class CocSnippet {
   }
 
   /**
-   * Same index and same in same snippet only
+   * Same index and in same snippet only
    */
-  public getRanges(placeholder: CocSnippetPlaceholder): Range[] {
-    if (placeholder.value.length == 0) return []
-    let tmSnippet = placeholder.marker.snippet
-    let placeholders = this._placeholders.filter(o => o.index == placeholder.index && o.marker.snippet === tmSnippet)
+  public getRanges(marker: Placeholder): Range[] {
+    if (marker.toString().length === 0 || !marker.snippet) return []
+    let tmSnippet = marker.snippet
+    let placeholders = this._placeholders.filter(o => o.index == marker.index && o.marker.snippet === tmSnippet)
     return placeholders.map(o => o.range).filter(r => !emptyRange(r))
   }
 
@@ -175,12 +175,11 @@ export class CocSnippet {
   /**
    * The change must happens with same marker parents, return the changed marker
    */
-  public replaceWithMarker(range: Range, marker: Marker, current?: Placeholder): Marker | undefined {
+  public replaceWithMarker(range: Range, marker: Marker, current?: Placeholder): Marker {
     // the range should already inside this.range
     const isInsert = emptyRange(range)
-    if (isInsert && marker instanceof Text && marker.value == '') return
     const p = this.findParent(range, current)
-    if (!p) return undefined
+    if (!p) throw new Error(`Unable to find parent marker`)
     let parentMarker = p.marker
     let parentRange = p.range
     // search children need to be replaced
@@ -264,7 +263,6 @@ export class CocSnippet {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
-    if (!marker) return
     // No need further action when only affect the top snippet.
     if (marker === this._tmSnippet) {
       this.synchronize()
@@ -272,7 +270,7 @@ export class CocSnippet {
     }
     // Try keep relative position with marker, since no more change for marker.
     let sp = this.getMarkerPosition(marker)
-    let keepCharacter = cursor && sp.line === cursor.line
+    let changeCharacter = cursor && sp.line === cursor.line
     await this.onMarkerUpdate(marker)
     if (token.isCancellationRequested) {
       this._tmSnippet = cloned
@@ -282,10 +280,9 @@ export class CocSnippet {
     let ep = this.getMarkerPosition(marker)
     let position: Position
     if (cursor && sp && ep) {
-      position = {
-        line: cursor.line + ep.line - sp.line,
-        character: cursor.character + (keepCharacter ? 0 : ep.character - sp.character)
-      }
+      let line = cursor.line + ep.line - sp.line
+      let character = cursor.character + (changeCharacter ? ep.character - sp.character : 0)
+      position = Position.create(line, character)
     }
     return { snippetText, marker, cursor: position }
   }

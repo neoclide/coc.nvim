@@ -2,6 +2,7 @@
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { fastDiff } from './node'
 import { byteLength } from './string'
+import { emptyRange, getEnd, positionInRange } from './position'
 
 export interface ChangedLines {
   start: number

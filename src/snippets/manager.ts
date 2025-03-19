@@ -26,10 +26,10 @@ export class SnippetManager {
 
   public init() {
     events.on('InsertCharPre', (_, bufnr: number) => {
-      // avoid update session when pumvisible
+      // avoid update session when completing
       // Update may cause completion unexpected terminated.
       let session = this.bufferSync.getItem(bufnr)
-      if (session) session.cancel()
+      if (session && events.completing) session.cancel()
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       let session = this.bufferSync.getItem(bufnr)
