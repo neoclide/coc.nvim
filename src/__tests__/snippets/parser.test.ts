@@ -1151,19 +1151,6 @@ describe('TextmateSnippet', () => {
     expect(snippet.toString()).toBe('|x x x bar|')
   })
 
-  test('TextmateSnippet#removeUnnecessaryFinal', () => {
-    let snippet = new SnippetParser().parse('${1:foo} $0', true)
-    snippet.removeUnnecessaryFinal()
-    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
-    snippet = new SnippetParser().parse('${1:foo}$0', true)
-    snippet.removeUnnecessaryFinal()
-    expect(snippet.placeholders.find(o => o.index == 0)).toBeUndefined()
-    snippet = new SnippetParser().parse('${1:foo}$0 ', true)
-    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
-    snippet = new SnippetParser().parse('${1:foo}$0$2', true)
-    expect(snippet.placeholders.find(o => o.index == 0)).toBeDefined()
-  })
-
   test('mergeTexts()', () => {
     let m = new TextmateSnippet(false)
     m.replaceChildren([

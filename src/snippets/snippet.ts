@@ -71,6 +71,10 @@ export class CocSnippet {
     return this._tmSnippet
   }
 
+  public get snippets(): TextmateSnippet[] {
+    return this._snippets.map(o => o.marker)
+  }
+
   public deactivateSnippet(snip: TextmateSnippet | undefined): void {
     if (!snip) return
     snippetsPythonGlobalCodes.delete(snip)
@@ -290,7 +294,6 @@ export class CocSnippet {
 
   public async replaceWithSnippet(range: Range, text: string, current?: Placeholder, ultisnip?: UltiSnippetContext): Promise<TextmateSnippet> {
     let snippet = new SnippetParser(!!ultisnip).parse(text, true)
-    snippet.removeUnnecessaryFinal()
     // no need to move cursor, there should be placeholder selection afterwards.
     let changed = this.replaceWithMarker(range, snippet, current)
     await this.resolve(snippet, ultisnip)
@@ -497,38 +500,40 @@ export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
 }
 
 /**
- * Next or previous placeholder TODO test
+ * Next or previous placeholder
  */
 export function getNextPlaceholder(marker: Placeholder, forward: boolean): Placeholder | undefined {
   let { snippet } = marker
   let idx = marker.index
-  if (idx <= 0 || !snippet) return undefined
+  if (idx < 0 || !snippet) return undefined
   let arr: Placeholder[] = []
   let min_index: number
   let max_index: number
-  snippet.walk(m => {
-    if (m instanceof Placeholder && !m.transform) {
-      if (
-        (forward && (m.index > idx || m.isFinalTabstop)) ||
-        (!forward && (m.index < idx && !m.isFinalTabstop))
-      ) {
-        arr.push(m)
-        if (!m.isFinalTabstop) {
-          min_index = min_index === undefined ? m.index : Math.min(min_index, m.index)
+  if (idx > 0) {
+    snippet.walk(m => {
+      if (m instanceof Placeholder && !m.transform) {
+        if (
+          (forward && (m.index > idx || m.isFinalTabstop)) ||
+          (!forward && (m.index < idx && !m.isFinalTabstop))
+        ) {
+          arr.push(m)
+          if (!m.isFinalTabstop) {
+            min_index = min_index === undefined ? m.index : Math.min(min_index, m.index)
+          }
+          max_index = max_index === undefined ? m.index : Math.max(max_index, m.index)
         }
-        max_index = max_index === undefined ? m.index : Math.max(max_index, m.index)
       }
+      return true
+    }, true)
+    if (arr.length > 0) {
+      arr.sort((a, b) => {
+        if (b.primary && !a.primary) return 1
+        if (a.primary && !b.primary) return -1
+        return 0
+      })
+      if (forward) return min_index === undefined ? arr[0] : arr.find(o => o.index === min_index)
+      return arr.find(o => o.index === max_index)
     }
-    return true
-  }, true)
-  if (arr.length > 0) {
-    arr.sort((a, b) => {
-      if (b.primary && !a.primary) return 1
-      if (a.primary && !b.primary) return -1
-      return 0
-    })
-    if (forward) return min_index === undefined ? arr[0] : arr.find(o => o.index === min_index)
-    return arr.find(o => o.index === max_index)
   }
   if (snippet.parent instanceof Placeholder) {
     return getNextPlaceholder(snippet.parent, forward)

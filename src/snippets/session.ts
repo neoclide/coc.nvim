@@ -146,7 +146,11 @@ export class SnippetSession {
     if (this.snippet.getUltiSnipOption(curr.marker, 'removeWhiteSpace')) {
       await this.removeWhiteSpaceBefore(curr)
     }
+    let snip = this.current.snippet
     const p = this.snippet.getPlaceholderOnJump(this.current, true)
+    if (p && p.marker.snippet !== snip) {
+      this.snippet.deactivateSnippet(snip)
+    }
     await this.selectPlaceholder(p, true)
   }
 
@@ -205,14 +209,9 @@ export class SnippetSession {
 
   private checkFinalPlaceholder(): void {
     let current = this.current
-    if (current && current.index === 0) {
-      let snip = current.snippet
-      if (snip === this.snippet.tmSnippet) {
-        logger.info('Jump or change final placeholder, cancelling snippet session')
-        this.deactivate()
-      } else {
-        this.snippet.deactivateSnippet(snip)
-      }
+    if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
+      logger.info('Jump or change final placeholder, cancelling snippet session')
+      this.deactivate()
     }
   }
 

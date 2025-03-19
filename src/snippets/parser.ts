@@ -706,20 +706,6 @@ export class TextmateSnippet extends Marker {
     this.ultisnip = ultisnip === true
   }
 
-  public removeUnnecessaryFinal(): void {
-    let { placeholders } = this
-    let final = placeholders[placeholders.length - 1]
-    if (final && final.index === 0) {
-      let children = final.parent.children
-      let idx = children.indexOf(final)
-      if (idx != children.length - 1) return
-      let prev = children[idx - 1]
-      if (prev && prev instanceof Placeholder && prev.primary) {
-        final.parent.children.splice(idx, 1)
-      }
-    }
-  }
-
   public get hasPythonBlock(): boolean {
     if (!this.ultisnip) return false
     return this.pyBlocks.length > 0
