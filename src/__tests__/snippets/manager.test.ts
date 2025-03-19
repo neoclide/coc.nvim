@@ -2,13 +2,13 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
+import events from '../../events'
 import Document from '../../model/document'
 import snippetManager, { SnippetManager } from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
-import events from '../../events'
 
 let nvim: Neovim
 let doc: Document
@@ -244,17 +244,17 @@ describe('snippet provider', () => {
       expect(col).toBe(6)
     })
 
-    it('should synchronize text on change final placeholder', async () => {
+    it('should not synchronize text on change final placeholder', async () => {
       let doc = await workspace.document
       await nvim.input('i')
-      let res = await snippetManager.insertSnippet('$0empty$0')
+      let res = await snippetManager.insertSnippet('$0e$1mpty$0')
       expect(res).toBe(true)
       await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 0, ['abc']])
       await doc.synchronize()
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       let line = await nvim.line
-      expect(line).toBe('abcemptyabc')
+      expect(line).toBe('abcempty')
     })
   })
 
@@ -439,7 +439,6 @@ describe('snippet provider', () => {
         expect(activated).toBe(true)
         await snippetManager.nextPlaceholder()
         await events.race(['PlaceholderJump'], 500)
-        await helper.wait(30)
         let lines = await buf.lines
         expect(lines).toEqual(['aa', 'bb', 'foo'])
         let positions = await nvim.getVar('positions')

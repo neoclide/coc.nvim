@@ -17,7 +17,7 @@ import { byteIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode } from './eval'
-import { Placeholder, TextmateSnippet } from './parser'
+import { Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
 import { UltiSnippetContext } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
@@ -41,7 +41,6 @@ export class SnippetSession {
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
   private _applying = false
-  private _actioning = false
   public snippet: CocSnippet = null
   private _onActiveChange = new Emitter<boolean>()
   public readonly onActiveChange: Event<boolean> = this._onActiveChange.event
@@ -101,24 +100,21 @@ export class SnippetSession {
 
   private async tryPostExpand(code: string): Promise<void> {
     const { start, end } = this.snippet.range
-    this._actioning = true
     let pos = `[${start.line},${start.character},${end.line},${end.character}]`
     let codes = [`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code]
+    this.cancel()
     await executePythonCode(this.nvim, codes, true)
     await this.forceSynchronize()
-    this._actioning = false
   }
 
-  private async tryPostJump(snip: TextmateSnippet, code: string, info: JumpInfo, bufnr: number): Promise<void> {
-    await this.nvim.setVar('coc_ultisnips_tabstops', info.tabstops)
-    await this.snippet.executeGlobalCode(snip)
+  private async tryPostJump(code: string, info: JumpInfo, bufnr: number): Promise<void> {
+    this.nvim.setVar('coc_ultisnips_tabstops', info.tabstops, true)
     const { snippet_start, snippet_end } = info
-    this._actioning = true
     let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`
     let codes = [`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code]
+    this.cancel()
     await executePythonCode(this.nvim, codes, true)
     await this.forceSynchronize()
-    this._actioning = false
     void events.fire('PlaceholderJump', [bufnr, info])
   }
 
@@ -199,14 +195,20 @@ export class SnippetSession {
     let code = this.snippet.getUltiSnipAction(marker, 'postJump')
     // make it async to allow insertSnippet request from python code
     if (code) {
-      this.tryPostJump(marker.snippet, code, info, document.bufnr).catch(onUnexpectedError)
+      this.snippet.executeGlobalCode(marker.snippet).catch(onUnexpectedError)
+      this.tryPostJump(code, info, document.bufnr).catch(onUnexpectedError)
     } else {
       void events.fire('PlaceholderJump', [document.bufnr, info])
     }
-    if (placeholder.index == 0) {
-      let snip = marker.snippet
+    this.checkFinalPlaceholder()
+  }
+
+  private checkFinalPlaceholder(): void {
+    let current = this.current
+    if (current && current.index === 0) {
+      let snip = current.snippet
       if (snip === this.snippet.tmSnippet) {
-        logger.info('Jump to final placeholder, cancelling snippet session')
+        logger.info('Jump or change final placeholder, cancelling snippet session')
         this.deactivate()
       } else {
         this.snippet.deactivateSnippet(snip)
@@ -268,7 +270,7 @@ export class SnippetSession {
   }
 
   public async _synchronize(documentChange?: DocumentChange): Promise<void> {
-    let { document, textDocument, current } = this
+    let { document, textDocument, current, snippet } = this
     const newDocument = document.textDocument
     if (equals(textDocument.lines, newDocument.lines)) {
       this.textDocument = newDocument
@@ -285,10 +287,10 @@ export class SnippetSession {
       }
       change = { range: edit.range, text: edit.newText }
     }
-    let { range } = this.snippet
+    const { range, start } = snippet
     let c = comparePosition(change.range.start, range.end)
     // consider insert at the end
-    let insertEnd = emptyRange(change.range) && this.snippet.hasEndPlaceholder
+    let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder
     // change after snippet, do nothing
     if (c > 0 || (c === 0 && !insertEnd)) {
       logger.info('Content change after snippet')
@@ -297,14 +299,13 @@ export class SnippetSession {
     }
     // consider insert at the beginning
     c = comparePosition(change.range.end, range.start)
-    let insertBeginning = emptyRange(change.range) && this.snippet.hasBeginningPlaceholder
-    const { start } = this.snippet
+    let insertBeginning = emptyRange(change.range) && snippet.hasBeginningPlaceholder
     if (c < 0 || (c === 0 && !insertBeginning)) {
       // change before beginning, reset position
       let changeEnd = change.range.end
       let checkCharacter = range.start.line === changeEnd.line
       let newLines = change.text.split(/\n/)
-      let lc = (change.range.start.line - changeEnd.line + 1) - newLines.length
+      let lc = newLines.length - (change.range.start.line - changeEnd.line + 1)
       let cc = 0
       if (checkCharacter) {
         if (newLines.length > 1) {
@@ -314,6 +315,7 @@ export class SnippetSession {
         }
       }
       this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc))
+      this.textDocument = newDocument
       logger.info('Content change before snippet, reset snippet position')
       return
     }
@@ -327,28 +329,32 @@ export class SnippetSession {
     let res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, this.current, document.cursor)
     this.tokenSource = undefined
     if (!res) return
+    this.textDocument = newDocument
     if (!this.snippet.isValidPlaceholder(current)) {
       logger.info('Current placeholder destroyed, cancel snippet session')
       this.deactivate()
       return
     }
     let { snippetText, cursor } = res
-    let rangeEnd = getEnd(start, snippetText)
-    let changedRange = Range.create(start, rangeEnd)
+    let changedRange = Range.create(start, getEnd(start, snippetText))
+    // check if snippet not changed as expected
     if (newDocument.getText(changedRange) !== snippetText) {
       logger.error(`Something went wrong with the snippet implementation`, change, snippetText)
       this.deactivate()
       return
     }
-    this.textDocument = newDocument
+    if (res.marker instanceof Placeholder) {
+      this.current = res.marker
+      this.checkFinalPlaceholder()
+      if (!this.isActive) return
+    }
     let newText = this.snippet.text
-    // further update caused by placeholders
+    // further update caused by placeholders or python CodeBlock change
     if (newText !== snippetText) {
       let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
       await this.applyEdits([edit])
       if (res.cursor) this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character], true)
     }
-    if (res.marker instanceof Placeholder) this.current = res.marker
     this.highlights(false)
     this.nvim.redrawVim()
     logger.debug('update cost:', Date.now() - startTs, res.cursor)
@@ -356,13 +362,14 @@ export class SnippetSession {
     return
   }
 
-  public async trySelectNextOnDelete(curr: Placeholder, placeholder: Placeholder | undefined): Promise<void> {
+  public async trySelectNextOnDelete(curr: Placeholder, next: Placeholder | undefined): Promise<void> {
     if (!this.config.nextOnDelete
+      || !this.snippet
       || !curr
       || (curr.snippet != null && curr.toString() != '')
-      || !placeholder
+      || !next
     ) return
-    let p = this.snippet.getPlaceholderByMarker(placeholder)
+    let p = this.snippet.getPlaceholderByMarker(next)
     // the placeholder could be removed
     if (p) await this.selectPlaceholder(p, true)
   }

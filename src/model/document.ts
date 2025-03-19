@@ -315,11 +315,7 @@ export default class Document {
     let isCurrent = events.bufnr == this.bufnr
     let col: number
     if (move && isCurrent && !isAppend) {
-      let pos = Position.is(move) ? move : undefined
-      if (!pos && this.bufnr === events.cursor.bufnr) {
-        let { col, lnum } = events.cursor
-        pos = Position.create(lnum - 1, characterIndex(this.lines[lnum - 1], col - 1))
-      }
+      let pos = Position.is(move) ? move : this.cursor
       if (pos) {
         let position = getPositionFromEdits(pos, edits)
         if (comparePosition(pos, position) !== 0) {

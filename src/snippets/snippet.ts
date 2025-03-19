@@ -71,7 +71,8 @@ export class CocSnippet {
     return this._tmSnippet
   }
 
-  public deactivateSnippet(snip: TextmateSnippet): void {
+  public deactivateSnippet(snip: TextmateSnippet | undefined): void {
+    if (!snip) return
     snippetsPythonGlobalCodes.delete(snip)
     snippetsPythonContexts.delete(snip)
     let marker = snip.parent
