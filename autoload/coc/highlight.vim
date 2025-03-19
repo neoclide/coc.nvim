@@ -673,11 +673,11 @@ if !s:is_vim
   " @workaround Prevent nvim running into the branch for vim below
   finish
 else
-  def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...list: list<dict<any>>)
-    const opts: dict<any> = get(list, 0, {})
+  def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
+    const opts: dict<any> = get(optionalArguments, 0, {})
     if !hlexists(hl_group)
       execute $'highlight {hl_group} ctermfg=NONE'
     endif
-    coc#api#exec('buf_add_highlight', [bufnr, src_id, hl_group, line, col_start, col_end, opts])
+    coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
   enddef
 endif

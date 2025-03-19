@@ -535,7 +535,12 @@ function! s:funcs.buf_get_mark(bufnr, name)
   return [line("'" . a:name), col("'" . a:name) - 1]
 endfunction
 
-def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, ...list: list<dict<any>>): any
+def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, ...optionalArguments: list<dict<any>>): any
+    const opts: dict<any> = get(optionalArguments, 0, {})
+    return coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+enddef
+" To be called directly for performance reason
+def coc#api#funcs_buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
   var sourceId: number
   if srcId == 0
     sourceId = s:max_src_id + 1
@@ -550,7 +555,7 @@ def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, lin
     add(propTypes, propType)
     s:id_types[srcId] = propTypes
     if empty(prop_type_get(propType))
-      prop_type_add(propType, extend({'highlight': hlGroup}, get(list, 0, {})))
+      prop_type_add(propType, extend({'highlight': hlGroup}, propTypeOpts))
     endif
   endif
   const columnEnd: number = colEnd == -1 ? strlen(get(getbufline(bufferNumber, line + 1), 0, '')) + 1 : colEnd + 1
