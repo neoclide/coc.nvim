@@ -1540,11 +1540,11 @@ describe('diff', () => {
       res = diff.getTextEdit(['a', 'b', 'c'], ['a'])
       expect(res).toEqual(toEdit(1, 0, 3, 0, ''))
       res = diff.getTextEdit(['a', 'b'], ['a', 'd'])
-      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\n'))
+      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd'))
       res = diff.getTextEdit(['a', 'b'], ['a', 'd', 'e'])
-      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\ne\n'))
+      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd\ne'))
       res = diff.getTextEdit(['a', 'b', 'e'], ['a', 'd', 'e'])
-      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\n'))
+      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd'))
       res = diff.getTextEdit(['a', 'b', 'e'], ['e'])
       expect(res).toEqual(toEdit(0, 0, 2, 0, ''))
       res = diff.getTextEdit(['a', 'b', 'e'], ['d', 'c', 'a', 'b', 'e'])
@@ -1564,6 +1564,8 @@ describe('diff', () => {
       expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 1), '  '))
       res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)), ' '.repeat(3), Position.create(3, 3))
       expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)))
+      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(1, 0, 2, 0), 'd\n'), 'b\n')
+      expect(res).toEqual(TextEdit.replace(Range.create(1, 0, 1, 1), 'd'))
     })
 
     it('should get textedit for single line change', () => {

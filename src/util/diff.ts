@@ -145,6 +145,8 @@ export function getCommonSuffixLen(a: string, b: string, max: number): number {
   for (let i = 0; i < max; i++) {
     if (a[al - 1 - i] === b[bl - 1 - i]) {
       n++
+    } else {
+      break
     }
   }
   return n
@@ -156,6 +158,8 @@ export function getCommonPrefixLen(a: string, b: string, max: number): number {
   for (let i = 0; i < max; i++) {
     if (a[i] === b[i]) {
       n++
+    } else {
+      break
     }
   }
   return n
