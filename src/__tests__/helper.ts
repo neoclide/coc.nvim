@@ -261,13 +261,15 @@ export class Helper extends EventEmitter {
     return str.trim()
   }
 
-  public updateConfiguration(key: string, value: any): () => void {
+  public updateConfiguration(key: string, value: any, disposables?: Disposable[]): () => void {
     let curr = this.workspace.getConfiguration(key)
     let { configurations } = this.workspace
     configurations.updateMemoryConfig({ [key]: value })
-    return () => {
+    let fn = () => {
       configurations.updateMemoryConfig({ [key]: curr })
     }
+    if (disposables) disposables.push(Disposable.create(fn))
+    return fn
   }
 
   public async mockFunction(name: string, result: string | number | any): Promise<void> {

@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode } from '../../snippets/eval'
+import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
 import { Placeholder, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
 import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
@@ -12,6 +12,7 @@ import workspace from '../../workspace'
 import helper from '../helper'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { getEnd } from '../../util/position'
+import events from '../../events'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -623,6 +624,22 @@ describe('CocSnippet', () => {
       expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
         TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
       )
+    })
+
+    it('should set request variable', async () => {
+      events.requesting = true
+      await executePythonCode(nvim, ['stat = __requesting'], false)
+      let res = await nvim.call('pyxeval', ['stat'])
+      expect(res).toBe(true)
+      events.requesting = false
+      await executePythonCode(nvim, ['stat = __requesting'], false)
+      res = await nvim.call('pyxeval', ['stat'])
+      expect(res).toBe(false)
+    })
+
+    it('should check hasPython', () => {
+      expect(hasPython(undefined)).toBe(false)
+      expect(hasPython({ context: 'context' })).toBe(true)
     })
   })
 })

@@ -779,6 +779,7 @@ describe('strings', () => {
   it('should convert to text', () => {
     expect(strings.toText(undefined)).toBe('')
     expect(strings.toText(null)).toBe('')
+    expect(strings.toText(3)).toBe('3')
   })
 
   it('should check isEmojiImprecise', () => {
@@ -1635,6 +1636,20 @@ describe('diff', () => {
         end: 3,
         replacement: ['d']
       })
+    })
+  })
+
+  describe('get common prefix & suffix', () => {
+    it('should getCommonPrefixLen', () => {
+      expect(diff.getCommonPrefixLen('aa', 'abc', 0)).toBe(0)
+      expect(diff.getCommonPrefixLen(' '.repeat(5), ' '.repeat(10), 4)).toBe(4)
+      expect(diff.getCommonPrefixLen('xy', 'dy', 2)).toBe(0)
+    })
+
+    it('should getCommonSuffixLen', () => {
+      expect(diff.getCommonSuffixLen('aa', 'aa', 0)).toBe(0)
+      expect(diff.getCommonSuffixLen('aa', 'ab', 2)).toBe(0)
+      expect(diff.getCommonSuffixLen(' '.repeat(3), ' '.repeat(5), 2)).toBe(2)
     })
   })
 
