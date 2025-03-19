@@ -13,7 +13,7 @@ import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
-import { byteIndex, toText } from '../util/string'
+import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode } from './eval'
@@ -119,9 +119,9 @@ export class SnippetSession {
   }
 
   public async removeWhiteSpaceBefore(placeholder: CocSnippetPlaceholder): Promise<void> {
-    if (placeholder.value.length > 0) return
+    if (!emptyRange(placeholder.range)) return
     let pos = placeholder.range.start
-    let line = toText(this.snippet.lineAt(pos.line))
+    let line = this.document.getline(pos.line)
     let ms = line.match(/\s+$/)
     if (ms && line.length === pos.character) {
       let startCharacter = pos.character - ms[0].length

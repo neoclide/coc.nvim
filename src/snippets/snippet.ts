@@ -56,7 +56,7 @@ export class CocSnippet {
   private _placeholders: CocSnippetPlaceholder[] = []
   // from upper to lower
   private _snippets: CocSnippetInfo[] = []
-  private _doc: LinesTextDocument
+  private _text: string
   private _tmSnippet: TextmateSnippet
 
   constructor(
@@ -363,16 +363,12 @@ export class CocSnippet {
   }
 
   public get range(): Range {
-    let doc = this._doc
-    let { character, line } = this.position
-    let { lineCount } = doc
-    let el = line + lineCount - 1
-    let ec = lineCount == 1 ? character + doc.lines[0].length : doc.lines[lineCount - 1].length
-    return Range.create(this.position, Position.create(el, ec))
+    let end = getEnd(this.position, this._text)
+    return Range.create(this.position, end)
   }
 
   public get text(): string {
-    return this._doc.getText()
+    return this._text
   }
 
   public get hasBeginningPlaceholder(): boolean {
@@ -383,10 +379,6 @@ export class CocSnippet {
   public get hasEndPlaceholder(): boolean {
     let position = this._snippets[0].range.end
     return this._placeholders.find(o => comparePosition(o.range.end, position) === 0) != null
-  }
-
-  public lineAt(line: number): string | undefined {
-    return this._doc.lines[line - this.start.line]
   }
 
   public getPlaceholderByMarker(marker: Marker): CocSnippetPlaceholder {
@@ -459,7 +451,7 @@ export class CocSnippet {
       return true
     }, false)
     this._snippets = snippets
-    this._doc = document
+    this._text = snippetStr
     this._placeholders = placeholders
     this._markerSeuqence = markerSeuqence
   }
