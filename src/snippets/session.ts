@@ -131,10 +131,10 @@ export class SnippetSession {
     }
   }
 
-  private async applyEdits(edits: TextEdit[]): Promise<void> {
+  private async applyEdits(edits: TextEdit[], joinundo = false): Promise<void> {
     let { document } = this
     this._applying = true
-    await document.applyEdits(edits, true)
+    await document.applyEdits(edits, joinundo)
     this._applying = false
     this.textDocument = document.textDocument
   }
@@ -356,7 +356,7 @@ export class SnippetSession {
     // further update caused by related placeholders or python CodeBlock change
     if (newText !== snippetText) {
       let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
-      await this.applyEdits([edit])
+      await this.applyEdits([edit], true)
       if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
     }
     this.highlights()
