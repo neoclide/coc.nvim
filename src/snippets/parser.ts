@@ -360,7 +360,11 @@ export class Placeholder extends TransformableMarker {
     }
     ret.id = this.id
     ret.primary = this.primary
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 
@@ -486,7 +490,11 @@ export class Transform extends Marker {
   public clone(): Transform {
     let ret = new Transform()
     ret.regexp = new RegExp(this.regexp.source, '' + (this.regexp.ignoreCase ? 'i' : '') + (this.regexp.global ? 'g' : ''))
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 
@@ -674,7 +682,11 @@ export class Variable extends TransformableMarker {
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 }
@@ -1083,7 +1095,11 @@ export class TextmateSnippet extends Marker {
 
   public clone(): TextmateSnippet {
     let ret = new TextmateSnippet(this.ultisnip)
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 
