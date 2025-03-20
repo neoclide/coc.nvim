@@ -64,7 +64,10 @@ export default class Complete {
   private fireRefresh(waitTime: number): void {
     clearTimeout(this.timer)
     if (!waitTime) {
-      this._onDidRefresh.fire()
+      // Needed to wait this._completing = false
+      process.nextTick(() => {
+        this._onDidRefresh.fire()
+      })
     } else {
       this.timer = setTimeout(() => {
         this._onDidRefresh.fire()
