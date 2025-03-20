@@ -371,6 +371,7 @@ export class Completion implements Disposable {
       let doc = workspace.getDocument(workspace.bufnr)
       if (doc) doc._forceSync()
       this.nvim.call('coc#pum#_close', [], true)
+      void events.fire('CompleteDone', [{}])
     }
   }
 
