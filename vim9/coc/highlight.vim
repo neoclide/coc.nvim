@@ -1,4 +1,6 @@
 vim9script
+# From `handler/semanticTokens/buffer.ts`
+const NAMESPACE_SEMANTIC_TOKENS = 'semanticTokens'
 
 # From `coc#highlight#set(`:
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
@@ -72,9 +74,16 @@ def Prop_type_hlgroup(type: string): string
   return substitute(type, '_\d\+$', '', '')
 enddef
 
-export def Del_markers(bufnr: number, ids: list<number>)
-  const [winTopLine: number, winBottomLine: number] = coc#window#visible_range()
+export def Del_markers(bufnr: number, ids: list<number>, namespaceKey: string)
+  if namespaceKey == NAMESPACE_SEMANTIC_TOKENS
+    const [winTopLine: number, winBottomLine: number] = coc#window#visible_range()
+    for id in ids
+      prop_remove({'bufnr': bufnr, 'id': id}, winTopLine, winBottomLine)
+    endfor
+    return
+  endif
+
   for id in ids
-    prop_remove({'bufnr': bufnr, 'id': id}, winTopLine, winBottomLine)
+    prop_remove({'bufnr': bufnr, 'id': id})
   endfor
 enddef
