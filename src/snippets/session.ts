@@ -215,16 +215,15 @@ export class SnippetSession {
     }
   }
 
-  private highlights(redrawVim = true): void {
-    let { current } = this
-    if (!current || !this.config.highlight) return
-    // this.checkPosition
+  private highlights(): void {
+    let { current, config } = this
+    if (!current || !config.highlight || events.bufnr !== this.bufnr) return
     let buf = this.document.buffer
     this.nvim.pauseNotification()
     buf.clearNamespace(NAME_SPACE)
     let ranges = this.snippet.getRanges(current)
     buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
-    this.nvim.resumeNotification(redrawVim, true)
+    this.nvim.resumeNotification(true, true)
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd: boolean): Promise<void> {
@@ -248,6 +247,10 @@ export class SnippetSession {
     }
   }
 
+  public onTextChange(): void {
+    this.cancel()
+  }
+
   public onChange(e: DidChangeTextDocumentParams): void {
     if (this._applying || !this.isActive) return
     let changes = e.contentChanges
@@ -259,7 +262,7 @@ export class SnippetSession {
     // if not cancel, applyEdits would change latest document lines, which could be wrong.
     this.cancel()
     await this.mutex.use(() => {
-      if (!document.attached || !this.textDocument || !this.snippet) return Promise.resolve()
+      if (!document.attached || document.dirty || !this.textDocument || !this.snippet) return Promise.resolve()
       if (change && (change.version - this.version !== 1 || document.version != change.version)) {
         // can't be used any more
         change = undefined
@@ -348,14 +351,13 @@ export class SnippetSession {
       if (!this.isActive) return
     }
     let newText = this.snippet.text
-    // further update caused by placeholders or python CodeBlock change
+    // further update caused by related placeholders or python CodeBlock change
     if (newText !== snippetText) {
       let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
       await this.applyEdits([edit])
-      if (res.cursor) this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character], true)
+      if (cursor) this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character], true)
     }
-    this.highlights(false)
-    this.nvim.redrawVim()
+    this.highlights()
     logger.debug('update cost:', Date.now() - startTs, res.cursor)
     this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError)
     return

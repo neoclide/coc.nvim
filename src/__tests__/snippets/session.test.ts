@@ -57,6 +57,10 @@ describe('SnippetSession', () => {
   }
 
   describe('start()', () => {
+    it('should not activate when insert empty snippet', async () => {
+      let res = await start('', defaultRange)
+      expect(res).toBe(false)
+    })
 
     it('should insert escaped text', async () => {
       let res = await start('\\`a\\` \\$ \\{\\}', Range.create(0, 0, 0, 0), false, defaultContext)
