@@ -1,18 +1,18 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import events from '../../events'
 import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
 import { Placeholder, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
 import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
+import { getEnd } from '../../util/position'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
-import { getEnd } from '../../util/position'
-import events from '../../events'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -191,6 +191,8 @@ describe('CocSnippet', () => {
       snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
       p = snippet.getPlaceholderByIndex(1)
       expect(p).toBeUndefined()
+      let marker = snippet.findPlaceholderById('NOT_EXISTS', 0)
+      expect(marker).toBeDefined()
     })
 
     it('should prefer current placeholder', async () => {

@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { v4 as uuid } from 'uuid'
 import { createLogger } from '../logger'
 import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
@@ -320,6 +321,7 @@ abstract class TransformableMarker extends Marker {
 
 export class Placeholder extends TransformableMarker {
   public primary = false
+  public id: string
 
   constructor(public index: number) {
     super()
@@ -356,6 +358,8 @@ export class Placeholder extends TransformableMarker {
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
+    ret.id = this.id
+    ret.primary = this.primary
     ret._children = this.children.map(child => child.clone())
     return ret
   }
@@ -1826,4 +1830,10 @@ export function mergeTexts(marker: Marker, begin = 0): void {
   children.splice(start, end - start + 1, m)
   m.parent = marker
   return mergeTexts(marker, start + 1)
+}
+
+export function getPlaceholderId(p: Placeholder): string {
+  if (p.id) return p.id
+  p.id = uuid()
+  return p.id
 }

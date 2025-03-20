@@ -396,6 +396,11 @@ export class CocSnippet {
     return defaultValue(find, filtered[0])
   }
 
+  public findPlaceholderById(id: string, index: number): Placeholder | undefined {
+    let p = this._tmSnippet.placeholders.find(o => o.id === id)
+    return p ? p : this.getPlaceholderByIndex(index).marker
+  }
+
   public getTabStopInfo(): TabStopInfo[] {
     let res: TabStopInfo[] = []
     this._placeholders.forEach(p => {

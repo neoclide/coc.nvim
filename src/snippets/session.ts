@@ -17,7 +17,7 @@ import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode } from './eval'
-import { Placeholder } from './parser'
+import { getPlaceholderId, Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
 import { UltiSnippetContext } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
@@ -325,9 +325,14 @@ export class SnippetSession {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     const nextPlaceholder = getNextPlaceholder(current, true)
     const { cursor } = document
-    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, this.current, cursor)
+    const id = getPlaceholderId(current)
+    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor)
     this.tokenSource = undefined
-    if (!res) return
+    if (!res) {
+      // find out the cloned placeholder
+      this.current = this.snippet.findPlaceholderById(id, current.index)
+      return
+    }
     this.textDocument = newDocument
     if (!this.snippet.isValidPlaceholder(current)) {
       logger.info('Current placeholder destroyed, cancel snippet session')

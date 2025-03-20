@@ -1,7 +1,7 @@
 /* eslint-disable */
 import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
-import { Choice, mergeTexts, CodeBlock, ConditionMarker, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
+import { Choice, mergeTexts, CodeBlock, ConditionMarker, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable, getPlaceholderId } from '../../snippets/parser'
 
 describe('SnippetParser', () => {
 
@@ -1168,5 +1168,12 @@ describe('TextmateSnippet', () => {
     expect(m.children.length).toBe(5)
     expect(m.children[2].toString()).toBe('ab')
     expect(m.children[4].toString()).toBe('cde')
+  })
+
+  test('getPlaceholderId', () => {
+    const p = new Placeholder(1)
+    let id = getPlaceholderId(p)
+    expect(typeof id).toBe('string')
+    expect(p.id).toBe(id)
   })
 })
