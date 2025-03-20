@@ -35,7 +35,7 @@ export interface ChangedInfo {
   marker: Marker
   // snippet text with only changed marker changed
   snippetText: string
-  cursor?: Position
+  delta?: Position
 }
 
 export interface CursorDelta {
@@ -276,20 +276,20 @@ export class CocSnippet {
     // Try keep relative position with marker, since no more change for marker.
     let sp = this.getMarkerPosition(marker)
     let changeCharacter = cursor && sp.line === cursor.line
-    await this.onMarkerUpdate(marker)
-    if (token.isCancellationRequested) {
+    token.onCancellationRequested(() => {
       this._tmSnippet = cloned
       this.synchronize()
-      return
-    }
+    })
+    await this.onMarkerUpdate(marker)
+    if (token.isCancellationRequested) return undefined
     let ep = this.getMarkerPosition(marker)
-    let position: Position
+    let delta: Position | undefined
     if (cursor && sp && ep) {
-      let line = cursor.line + ep.line - sp.line
-      let character = cursor.character + (changeCharacter ? ep.character - sp.character : 0)
-      position = Position.create(line, character)
+      let lc = ep.line - sp.line
+      let cc = (changeCharacter ? ep.character - sp.character : 0)
+      if (lc != 0 || cc != 0) delta = Position.create(lc, cc)
     }
-    return { snippetText, marker, cursor: position }
+    return { snippetText, marker, delta }
   }
 
   public async replaceWithSnippet(range: Range, text: string, current?: Placeholder, ultisnip?: UltiSnippetContext): Promise<TextmateSnippet> {

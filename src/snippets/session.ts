@@ -283,10 +283,6 @@ export class SnippetSession {
     if (!change) {
       let cursor = document.cursor
       let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
-      if (!edit) {
-        this.textDocument = newDocument
-        return
-      }
       change = { range: edit.range, text: edit.newText }
     }
     const { range, start } = snippet
@@ -328,7 +324,8 @@ export class SnippetSession {
     }
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     const nextPlaceholder = getNextPlaceholder(current, true)
-    let res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, this.current, document.cursor)
+    const { cursor } = document
+    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, this.current, cursor)
     this.tokenSource = undefined
     if (!res) return
     this.textDocument = newDocument
@@ -337,7 +334,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
-    let { snippetText, cursor } = res
+    let { snippetText, delta } = res
     let changedRange = Range.create(start, getEnd(start, snippetText))
     // check if snippet not changed as expected
     if (newDocument.getText(changedRange) !== snippetText) {
@@ -355,10 +352,10 @@ export class SnippetSession {
     if (newText !== snippetText) {
       let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
       await this.applyEdits([edit])
-      if (cursor) this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character], true)
+      if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
     }
     this.highlights()
-    logger.debug('update cost:', Date.now() - startTs, res.cursor)
+    logger.debug('update cost:', Date.now() - startTs, res.delta)
     this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError)
     return
   }

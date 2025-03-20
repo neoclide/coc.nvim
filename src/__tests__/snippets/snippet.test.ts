@@ -149,6 +149,14 @@ describe('CocSnippet', () => {
       expect(res.snippetText).toBe('foo')
     })
 
+    it('should return undefined when cursor not changed', async () => {
+      let doc = await workspace.document
+      let c = await createSnippet('${1:foo}')
+      let token = (new CancellationTokenSource()).token
+      let res = await c.replaceWithText(Range.create(0, 0, 0, 3), '', token, undefined, doc.cursor)
+      expect(res.delta).toBeUndefined()
+    })
+
     it('should synchronize without related change', async () => {
       const assertChange = async (range: Range, newText: string, resultText: string) => {
         let token = (new CancellationTokenSource()).token
