@@ -740,6 +740,7 @@ export class TextmateSnippet extends Marker {
     let values: { [index: number]: string } = {}
     let maxIndexNumber = 0
     this.placeholders.forEach(c => {
+      if (!Number.isInteger(c.index)) return
       maxIndexNumber = Math.max(c.index, maxIndexNumber)
       if (c.transform != null) return
       if (c.primary || values[c.index] === undefined) values[c.index] = c.toString()

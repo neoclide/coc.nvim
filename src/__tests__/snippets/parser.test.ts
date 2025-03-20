@@ -402,6 +402,8 @@ describe('SnippetParser', () => {
     assert.equal(arr[2].toString(), '_foo')
     assert.equal(arr[3].toString(), '_foo')
     assert.deepEqual(s.values, { '0': '', '1': '_foo', '2': 'bar', '3': '' })
+    arr[1].index = 1.1
+    assert.deepEqual(s.values, { '0': '', '1': '_foo', '2': 'bar', '3': '' })
     s = c('${1:`!p snip.rv = t[2]`} ${2:`!p snip.rv = t[1]`}')
     assert.deepEqual(s.orderedPyIndexBlocks, [])
   })
