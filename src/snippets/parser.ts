@@ -405,7 +405,7 @@ export class Choice extends Marker {
   public clone(): Choice {
     let ret = new Choice(this._index)
     for (let opt of this.options) {
-      ret.appendChild(opt as any)
+      ret.appendChild(opt)
     }
     return ret
   }

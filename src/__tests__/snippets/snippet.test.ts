@@ -149,6 +149,13 @@ describe('CocSnippet', () => {
       expect(res.snippetText).toBe('foo')
     })
 
+    it('should replace with Text for choice placeholder', async () => {
+      let c = await createSnippet(' ${1|one,two,three|} ')
+      let res = c.replaceWithMarker(Range.create(0, 2, 0, 4), new Text('bar'))
+      expect(res.children.length).toBe(1)
+      expect(res.children[0].toString()).toBe('obar')
+    })
+
     it('should return undefined when cursor not changed', async () => {
       let doc = await workspace.document
       let c = await createSnippet('${1:foo}')
