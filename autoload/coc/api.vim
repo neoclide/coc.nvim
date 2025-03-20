@@ -537,9 +537,9 @@ endfunction
 
 def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, ...optionalArguments: list<dict<any>>): any
     const opts: dict<any> = get(optionalArguments, 0, {})
-    return coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+    return coc#api#funcs_buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, opts)
 enddef
-" To be called directly for performance reason
+" To be called directly for better performance
 def coc#api#funcs_buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
   var sourceId: number
   if srcId == 0
