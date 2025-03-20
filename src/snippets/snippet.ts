@@ -9,6 +9,7 @@ import { CancellationToken } from '../util/protocol'
 import { executePythonCode, getSnippetPythonCode, hasPython, preparePythonCodes } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
+import events from '../events'
 
 export interface ParentInfo {
   marker: TextmateSnippet | Placeholder
@@ -276,10 +277,11 @@ export class CocSnippet {
     // Try keep relative position with marker, since no more change for marker.
     let sp = this.getMarkerPosition(marker)
     let changeCharacter = cursor && sp.line === cursor.line
-    token.onCancellationRequested(() => {
+    const reset = () => {
       this._tmSnippet = cloned
       this.synchronize()
-    })
+    }
+    token.onCancellationRequested(reset)
     await this.onMarkerUpdate(marker)
     if (token.isCancellationRequested) return undefined
     let ep = this.getMarkerPosition(marker)
@@ -288,6 +290,11 @@ export class CocSnippet {
       let lc = ep.line - sp.line
       let cc = (changeCharacter ? ep.character - sp.character : 0)
       if (lc != 0 || cc != 0) delta = Position.create(lc, cc)
+    }
+    if (delta && events.completing) {
+      // move the cursor can break the completion
+      reset()
+      return undefined
     }
     return { snippetText, marker, delta }
   }

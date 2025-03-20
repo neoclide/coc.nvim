@@ -25,11 +25,9 @@ export class SnippetManager {
   private mutex: Mutex = new Mutex()
 
   public init() {
-    events.on('InsertCharPre', (_, bufnr: number) => {
-      // avoid update session when completing
-      // Update may cause completion unexpected terminated.
-      // let session = this.bufferSync.getItem(bufnr)
-      // if (session && events.completing) session.cancel()
+    events.on('CompleteDone', async () => {
+      let session = this.getSession(workspace.bufnr)
+      if (session) await session.checkDocumentVersion()
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       let session = this.bufferSync.getItem(bufnr)

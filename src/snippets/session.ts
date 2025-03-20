@@ -382,6 +382,10 @@ export class SnippetSession {
     if (!this.isActive) return
     let release = await this.mutex.acquire()
     release()
+    await this.checkDocumentVersion()
+  }
+
+  public async checkDocumentVersion(): Promise<void> {
     // text change event may not fired
     if (this.document.version !== this.version) {
       await this.synchronize()
