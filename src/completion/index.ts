@@ -228,14 +228,14 @@ export class Completion implements Disposable {
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
-        this.cancel()
+        this.cancelAndClose(false)
         return
       }
       if (this.inserted) return
       await this.filterResults()
     })
     let shouldStop = await complete.doComplete()
-    if (shouldStop) this.cancel()
+    if (shouldStop) this.cancelAndClose(false)
   }
 
   private async onTextChangedP(_bufnr: number, info: InsertChange): Promise<void> {
@@ -363,14 +363,14 @@ export class Completion implements Disposable {
   }
 
   // Void CompleteDone logic
-  public cancelAndClose(): void {
+  public cancelAndClose(close = true): void {
     clearTimeout(this.triggerTimer)
     if (this.complete) {
       this.cancel()
       events.completing = false
       let doc = workspace.getDocument(workspace.bufnr)
       if (doc) doc._forceSync()
-      this.nvim.call('coc#pum#_close', [], true)
+      if (close) this.nvim.call('coc#pum#_close', [], true)
       void events.fire('CompleteDone', [{}])
     }
   }
