@@ -364,9 +364,14 @@ export class Completion implements Disposable {
 
   // Void CompleteDone logic
   public cancelAndClose(): void {
-    this.cancel()
-    events.completing = false
-    this.nvim.call('coc#pum#_close', [], true)
+    clearTimeout(this.triggerTimer)
+    if (this.complete) {
+      this.cancel()
+      events.completing = false
+      let doc = workspace.getDocument(workspace.bufnr)
+      if (doc) doc._forceSync()
+      this.nvim.call('coc#pum#_close', [], true)
+    }
   }
 
   public async stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {

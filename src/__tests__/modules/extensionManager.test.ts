@@ -36,7 +36,7 @@ afterAll(async () => {
 
 function createFolder(): string {
   let folder = path.join(os.tmpdir(), uuid())
-  fs.mkdirSync(folder)
+  fs.mkdirSync(folder, { recursive: true })
   return folder
 }
 
@@ -152,14 +152,15 @@ describe('ExtensionManager', () => {
     })
 
     it('should automatically activated', async () => {
-      workspace.workspaceFolderControl.addWorkspaceFolder(__dirname, false)
+      let folder = createFolder()
+      fs.writeFileSync(path.join(folder, 'base.js'), 'foo', 'utf8')
+      workspace.workspaceFolderControl.addWorkspaceFolder(folder, false)
       tmpfolder = createFolder()
       let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
-      let basename = path.basename(__filename)
       createExtension(tmpfolder, {
         name: 'FooBar',
         engines: { coc: '>= 0.0.80' },
-        activationEvents: ['workspaceContains:' + basename],
+        activationEvents: ['workspaceContains:base.js'],
         contributes: {
           rootPatterns: [
             {
@@ -168,12 +169,6 @@ describe('ExtensionManager', () => {
                 "package.json",
                 "jsconfig.json"
               ]
-            }
-          ],
-          commands: [
-            {
-              title: "Test",
-              command: "test.run"
             }
           ]
         }
