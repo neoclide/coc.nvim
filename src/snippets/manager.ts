@@ -9,7 +9,7 @@ import { UltiSnippetOption } from '../types'
 import { defaultValue, disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { deepClone } from '../util/object'
-import { emptyRange, rangeOverlap, toValidRange } from '../util/position'
+import { emptyRange, toValidRange } from '../util/position'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
@@ -213,17 +213,6 @@ export class SnippetManager {
     let { session } = this
     if (!session) return false
     return session.placeholder != null && session.placeholder.index != 0
-  }
-
-  public async checkEditsInsideSnippet(edits: TextEdit[]): Promise<boolean> {
-    let session = this.getSession(workspace.bufnr)
-    if (!session || !session.snippet) return false
-    await session.forceSynchronize()
-    let range = session.snippet.range
-    if (edits.some(e => rangeOverlap(e.range, range))) {
-      return true
-    }
-    return false
   }
 
   /**

@@ -297,16 +297,6 @@ describe('snippet provider', () => {
     })
   })
 
-  describe('editsInsideSnippet()', () => {
-    it('should check editsInsideSnippet', async () => {
-      await nvim.setLine('foo')
-      await nvim.input('o')
-      await snippetManager.insertSnippet('${1:foo} $1 ')
-      let res = await snippetManager.checkEditsInsideSnippet([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
-      expect(res).toBe(false)
-    })
-  })
-
   describe('insertSnippet command', () => {
     it('should insert ultisnips snippet', async () => {
       expect(SnippetManager).toBeDefined()
