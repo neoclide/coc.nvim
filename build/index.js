@@ -83022,9 +83022,14 @@ var init_completion2 = __esm({
       }
       // Void CompleteDone logic
       cancelAndClose() {
-        this.cancel();
-        events_default.completing = false;
-        this.nvim.call("coc#pum#_close", [], true);
+        clearTimeout(this.triggerTimer);
+        if (this.complete) {
+          this.cancel();
+          events_default.completing = false;
+          let doc = workspace_default.getDocument(workspace_default.bufnr);
+          if (doc) doc._forceSync();
+          this.nvim.call("coc#pum#_close", [], true);
+        }
       }
       async stop(close, kind = "" /* Normal */) {
         let { complete } = this;
@@ -89799,7 +89804,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-75869207 2025-03-18 00:53:37 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-298807bd 2025-03-20 11:50:27 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
