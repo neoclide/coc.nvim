@@ -9,7 +9,6 @@ import { CancellationToken } from '../util/protocol'
 import { executePythonCode, getSnippetPythonCode, hasPython, preparePythonCodes } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
-import events from '../events'
 
 export interface ParentInfo {
   marker: TextmateSnippet | Placeholder
@@ -265,7 +264,7 @@ export class CocSnippet {
    * Get new Cursor position for synchronize update only.
    * The cursor position should already adjusted before call this function.
    */
-  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position): Promise<ChangedInfo | undefined> {
+  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position, noMove = false): Promise<ChangedInfo | undefined> {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
@@ -291,7 +290,7 @@ export class CocSnippet {
       let cc = (changeCharacter ? ep.character - sp.character : 0)
       if (lc != 0 || cc != 0) delta = Position.create(lc, cc)
     }
-    if (delta && events.completing) {
+    if (delta && noMove) {
       // move the cursor can break the completion
       reset()
       return undefined
@@ -403,7 +402,7 @@ export class CocSnippet {
     return defaultValue(find, filtered[0])
   }
 
-  public findPlaceholderById(id: string, index: number): Placeholder | undefined {
+  public findPlaceholderById(id: number, index: number): Placeholder | undefined {
     let p = this._tmSnippet.placeholders.find(o => o.id === id)
     return p ? p : this.getPlaceholderByIndex(index).marker
   }

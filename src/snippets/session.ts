@@ -41,8 +41,10 @@ export class SnippetSession {
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
   private _applying = false
+  private _force = false
   public snippet: CocSnippet = null
   private _onActiveChange = new Emitter<boolean>()
+  private isStaled = false
   public readonly onActiveChange: Event<boolean> = this._onActiveChange.event
 
   constructor(
@@ -259,6 +261,7 @@ export class SnippetSession {
 
   public async synchronize(change?: DocumentChange): Promise<void> {
     const { document } = this
+    this.isStaled = false
     // if not cancel, applyEdits would change latest document lines, which could be wrong.
     this.cancel()
     await this.mutex.use(() => {
@@ -326,11 +329,15 @@ export class SnippetSession {
     const nextPlaceholder = getNextPlaceholder(current, true)
     const { cursor } = document
     const id = getPlaceholderId(current)
-    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor)
+    const noMove = events.completing && !this._force
+    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, noMove)
     this.tokenSource = undefined
     if (!res) {
-      // find out the cloned placeholder
-      this.current = this.snippet.findPlaceholderById(id, current.index)
+      if (this.snippet) {
+        this.isStaled = true
+        // find out the cloned placeholder
+        this.current = this.snippet.findPlaceholderById(id, current.index)
+      }
       return
     }
     this.textDocument = newDocument
@@ -378,14 +385,24 @@ export class SnippetSession {
   }
 
   public async forceSynchronize(): Promise<void> {
-    await this.document.patchChange()
     if (!this.isActive) return
+    this._force = true
+    await this.document.patchChange()
     let release = await this.mutex.acquire()
     release()
-    await this.checkDocumentVersion()
+    await this.checkVersion()
+    this._force = false
   }
 
-  public async checkDocumentVersion(): Promise<void> {
+  public async onCompleteDone(): Promise<void> {
+    if (this.isActive && this.isStaled) {
+      this.isStaled = false
+      await this.document.patchChange(true)
+      await this.checkVersion()
+    }
+  }
+
+  private async checkVersion(): Promise<void> {
     // text change event may not fired
     if (this.document.version !== this.version) {
       await this.synchronize()

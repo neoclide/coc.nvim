@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { v4 as uuid } from 'uuid'
 import { createLogger } from '../logger'
 import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
@@ -12,6 +11,7 @@ import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
 import { convertRegex } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
+let id = 0
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
 export const enum TokenType {
@@ -321,7 +321,7 @@ abstract class TransformableMarker extends Marker {
 
 export class Placeholder extends TransformableMarker {
   public primary = false
-  public id: string
+  public id: number
 
   constructor(public index: number) {
     super()
@@ -1849,8 +1849,8 @@ export function mergeTexts(marker: Marker, begin = 0): void {
   return mergeTexts(marker, start + 1)
 }
 
-export function getPlaceholderId(p: Placeholder): string {
-  if (p.id) return p.id
-  p.id = uuid()
+export function getPlaceholderId(p: Placeholder): number {
+  if (typeof p.id === 'number') return p.id
+  p.id = id++
   return p.id
 }

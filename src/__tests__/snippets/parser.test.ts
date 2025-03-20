@@ -1175,7 +1175,8 @@ describe('TextmateSnippet', () => {
   test('getPlaceholderId', () => {
     const p = new Placeholder(1)
     let id = getPlaceholderId(p)
-    expect(typeof id).toBe('string')
+    expect(typeof id).toBe('number')
     expect(p.id).toBe(id)
+    expect(getPlaceholderId(p)).toBe(id)
   })
 })

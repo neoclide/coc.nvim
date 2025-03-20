@@ -26,8 +26,8 @@ export class SnippetManager {
 
   public init() {
     events.on('CompleteDone', async () => {
-      let session = this.getSession(workspace.bufnr)
-      if (session) await session.checkDocumentVersion()
+      let session = this.bufferSync.getItem(workspace.bufnr)
+      if (session) await session.onCompleteDone()
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       let session = this.bufferSync.getItem(bufnr)

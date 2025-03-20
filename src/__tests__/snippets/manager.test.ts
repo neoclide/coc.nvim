@@ -60,6 +60,30 @@ describe('snippet provider', () => {
     })
   })
 
+  describe('synchronize position after completion', () => {
+    it('should synchronize on CompleteDone', async () => {
+      await helper.createDocument()
+      await nvim.call('cursor', [1, 1])
+      await nvim.setLine('foot')
+      await nvim.input('o')
+      let res = await snippetManager.insertSnippet('${1/(.*)/${1:/capitalize}/}$1', true, Range.create(1, 0, 1, 0))
+      expect(res).toBe(true)
+      await snippetManager.selectCurrentPlaceholder()
+      await nvim.input('f')
+      await helper.waitPopup()
+      let line = await nvim.line
+      expect(line).toBe('f')
+      await nvim.input('pz')
+      await helper.waitValue(() => {
+        return nvim.line
+      }, 'Fpzfpz')
+      await nvim.input('<backspace>')
+      await helper.waitValue(() => {
+        return nvim.line
+      }, 'Fpfp')
+    })
+  })
+
   describe('insertSnippet()', () => {
     it('should throw when buffer not attached', async () => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
