@@ -44,13 +44,17 @@ export def Add_highlights(bufnr: number, ns: number, highlights: HighlightItemLi
   endfor
 enddef
 
-export def Get_Highlights(bufnr: number, ns: number, start: number, end: number): list<list<any>>
+# From `src/core/highlights.ts`:
+#   type HighlightItemResult = [string, number, number, number, number?]
+type HighlightItemResult = list<any>
+
+export def Get_Highlights(bufnr: number, ns: number, start: number, end: number): list<HighlightItemResult>
   const types: list<string> = coc#api#get_types(ns)
   if empty(types)
     return []
   endif
 
-  final res: list<list<any>> = []
+  final res: list<HighlightItemResult> = []
   const endLnum: number = end == -1 ? -1 : end + 1
   for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
     if prop['start'] == 0 || prop['end'] == 0
