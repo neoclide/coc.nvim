@@ -433,18 +433,19 @@ describe('snippet provider', () => {
         await nvim.input('i')
         let line = await nvim.call('line', ['.']) as number
         let codes = [
-          'if snip.tabstop == 0: snip.buffer[0:0] = ["aa", "bb"];vim.vars["positions"] = [snip.snippet_start[0], snip.snippet_end[0]]',
+          'if snip.tabstop == 2: snip.buffer[0:0] = ["aa", "bb"];vim.vars["positions"] = [snip.snippet_start[0], snip.snippet_end[0]];vim.vars["direction"] = snip.jump_direction;',
         ]
-        let activated = await snippetManager.insertSnippet('${1:foo}$0', true, Range.create(line - 1, 0, line - 1, 0), undefined, {
+        let activated = await snippetManager.insertSnippet('${1:foo} ${2:bar} $0', true, Range.create(line - 1, 0, line - 1, 0), undefined, {
           actions: { postJump: codes.join(';') }
         })
         expect(activated).toBe(true)
         await snippetManager.nextPlaceholder()
         await events.race(['PlaceholderJump'], 500)
         let lines = await buf.lines
-        expect(lines).toEqual(['aa', 'bb', 'foo'])
+        expect(lines).toEqual(['aa', 'bb', 'foo bar '])
         let positions = await nvim.getVar('positions')
         expect(positions).toEqual([2, 2])
+        await snippetManager.previousPlaceholder()
       })
 
       it('should pass variables to snip', async () => {

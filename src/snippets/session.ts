@@ -90,9 +90,9 @@ export class SnippetSession {
     }
     await this.applyEdits(edits)
     this.activate(snippet)
-    let code = this.snippet ? this.snippet.getUltiSnipAction(this.current, 'postExpand') : undefined
-    if (code) await this.tryPostExpand(code)
+    let code = this.snippet.getUltiSnipAction(this.current, 'postExpand')
     // TODO later post expand?
+    if (code) await this.tryPostExpand(code)
     if (this.snippet && select && this.current) {
       let placeholder = this.snippet.getPlaceholderByMarker(this.current)
       await this.selectPlaceholder(placeholder, true)
@@ -161,7 +161,7 @@ export class SnippetSession {
     let curr = this.placeholder
     if (!curr) return
     const p = this.snippet.getPlaceholderOnJump(this.current, false)
-    await this.selectPlaceholder(p, true)
+    await this.selectPlaceholder(p, true, false)
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
@@ -201,7 +201,7 @@ export class SnippetSession {
     let code = this.snippet.getUltiSnipAction(marker, 'postJump')
     // make it async to allow insertSnippet request from python code
     if (code) {
-      this.snippet.executeGlobalCode(marker.snippet).catch(onUnexpectedError)
+      await this.snippet.executeGlobalCode(marker.snippet)
       this.tryPostJump(code, info, document.bufnr).catch(onUnexpectedError)
     } else {
       void events.fire('PlaceholderJump', [document.bufnr, info])
@@ -298,9 +298,11 @@ export class SnippetSession {
       this.textDocument = newDocument
       return
     }
-    // consider insert at the beginning
+    // consider insert at the beginning, exclude new lines before.
     c = comparePosition(change.range.end, range.start)
-    let insertBeginning = emptyRange(change.range) && snippet.hasBeginningPlaceholder
+    let insertBeginning = emptyRange(change.range)
+      && !(change.range.start.character === 0 && change.text.endsWith('\n'))
+      && snippet.hasBeginningPlaceholder
     if (c < 0 || (c === 0 && !insertBeginning)) {
       // change before beginning, reset position
       let changeEnd = change.range.end

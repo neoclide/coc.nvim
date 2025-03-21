@@ -584,6 +584,8 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(true)
       let lines = await session.document.buffer.lines
       expect(lines[0]).toBe('foo')
+      let p = session.placeholder
+      await session.removeWhiteSpaceBefore(p)
     })
   })
 
