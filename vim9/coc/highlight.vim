@@ -1,6 +1,4 @@
 vim9script
-# From `handler/semanticTokens/buffer.ts`
-const NAMESPACE_SEMANTIC_TOKENS = 'semanticTokens'
 
 # From `coc#highlight#set(`:
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
@@ -74,22 +72,7 @@ def Prop_type_hlgroup(type: string): string
   return substitute(type, '_\d\+$', '', '')
 enddef
 
-# Used in `src/handler/semanticTokens/buffer.ts highlightRegions(`
-# For better experience when scrolling
-const OFFSET_SEMANTIC_HIGHLIGHT_REGIONS: number = &lines
-export def Del_markers(bufnr: number, ids: list<number>, namespaceKey: string)
-  if namespaceKey == NAMESPACE_SEMANTIC_TOKENS
-    const winTopLine: number = winsaveview()['topline']
-    const winHeight: number = winheight(0)
-    const winBottomLine: number = winTopLine + winHeight - 1
-    const lineStart: number = winTopLine - OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
-    const lineEnd: number = winBottomLine + OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
-    for id in ids
-      prop_remove({'bufnr': bufnr, 'id': id}, max([ lineStart, 1 ]), lineEnd)
-    endfor
-    return
-  endif
-
+export def Del_markers(bufnr: number, ids: list<number>)
   for id in ids
     prop_remove({'bufnr': bufnr, 'id': id})
   endfor

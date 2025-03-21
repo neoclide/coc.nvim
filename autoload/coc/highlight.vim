@@ -208,9 +208,9 @@ function! coc#highlight#del_markers(bufnr, key, ids) abort
   let ns = coc#highlight#create_namespace(a:key)
   if s:is_vim
     if s:supports_import_well
-      call vim9_coc_highlight.Del_markers(a:bufnr, a:ids, a:key)
+      call vim9_coc_highlight.Del_markers(a:bufnr, a:ids)
     else
-      call s:del_markers(a:bufnr, a:ids, a:key)
+      call s:del_markers(a:bufnr, a:ids)
     endif
   else
     for id in a:ids
@@ -763,24 +763,7 @@ def s:prop_type_hlgroup(type: string): string
   return substitute(type, '_\d\+$', '', '')
 enddef
 
-def s:del_markers(bufnr: number, ids: list<number>, namespaceKey: string)
-
-  # Script local variables in "../../vim9/coc/highlight.vim"
-  const NAMESPACE_SEMANTIC_TOKENS = 'semanticTokens'
-  const OFFSET_SEMANTIC_HIGHLIGHT_REGIONS: number = &lines
-
-  if namespaceKey == NAMESPACE_SEMANTIC_TOKENS
-    const winTopLine: number = winsaveview()['topline']
-    const winHeight: number = winheight(0)
-    const winBottomLine: number = winTopLine + winHeight - 1
-    const lineStart: number = winTopLine - OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
-    const lineEnd: number = winBottomLine + OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
-    for id in ids
-      prop_remove({'bufnr': bufnr, 'id': id}, max([ lineStart, 1 ]), lineEnd)
-    endfor
-    return
-  endif
-
+def s:del_markers(bufnr: number, ids: list<number>)
   for id in ids
     prop_remove({'bufnr': bufnr, 'id': id})
   endfor
