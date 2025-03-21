@@ -82,7 +82,7 @@ export class CocSnippet {
     let marker = snip.parent
     if (marker) {
       let text = new Text(snip.toString())
-      marker.replaceChild(snip, text)
+      snip.replaceWith(text)
       this.synchronize()
     }
   }

@@ -14,6 +14,7 @@ const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 let id = 0
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
+const ultisnipSpecialEscape = ['u', 'l', 'U', 'L', 'E', 'n', 't']
 export const enum TokenType {
   Dollar,
   Colon,
@@ -180,12 +181,15 @@ export abstract class Marker {
     this._children = children
   }
 
-  public replaceChild(oldMarker: Marker, newMarker: Marker): void {
-    let { children } = this
-    let idx = children.indexOf(oldMarker)
-    if (idx === -1) return
-    newMarker.parent = this
-    children.splice(idx, 1, newMarker)
+  public replaceWith(newMarker: Marker): boolean {
+    if (!this.parent) return false
+    let p = this.parent
+    let idx = p.children.indexOf(this)
+    if (idx == -1) return false
+    this.parent = undefined
+    newMarker.parent = p
+    p.children.splice(idx, 1, newMarker)
+    return true
   }
 
   public get children(): Marker[] {
@@ -456,7 +460,7 @@ export class Transform extends Marker {
         val = marker.resolve(groups[marker.index])
         if (this.ultisnip) {
           val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
-            return groups[Number(args[1])] ?? ''
+            return toText(groups[Number(args[1])])
           })
         }
       } else {
@@ -478,7 +482,7 @@ export class Transform extends Marker {
     if (this.ultisnip) {
       // avoid bad escape of Text for ultisnip format
       format = format.replace(/\\\\(\w)/g, (match, ch) => {
-        if (['u', 'l', 'U', 'L', 'E', 'n', 't'].includes(ch)) {
+        if (ultisnipSpecialEscape.includes(ch)) {
           return '\\' + ch
         }
         return match
@@ -918,11 +922,6 @@ export class TextmateSnippet extends Marker {
     return this.placeholderInfo.otherBlocks
   }
 
-  public get maxIndexNumber(): number {
-    let { placeholders } = this
-    return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0)
-  }
-
   public get first(): Placeholder {
     let { placeholders } = this
     let [normals, finals] = groupBy(placeholders.filter(p => !p.transform), v => v.index !== 0)
@@ -1040,7 +1039,7 @@ export class TextmateSnippet extends Marker {
     // convert resolved variables to text
     for (const variable of succeed) {
       let text = new Text(variable.toString())
-      variable.parent.replaceChild(variable, text)
+      variable.replaceWith(text)
     }
     if (failed.length > 0) {
       // convert to placeholders
@@ -1063,11 +1062,11 @@ export class TextmateSnippet extends Marker {
         }
         let newText = p.transform ? p.transform.resolve(v.name) : v.name
         p.setOnlyChild(new Text(toText(newText)))
-        v.parent.replaceChild(v, p)
+        v.replaceWith(p)
       }
     }
     changedParents.forEach(marker => {
-      mergeTexts(marker, 0)
+      mergeTexts(marker)
       if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker)
     })
   }
@@ -1298,9 +1297,6 @@ export class SnippetParser {
         let text = marker.value
         for (let index = 0; index < text.length; index++) {
           const ch = text[index]
-          if (ch === '\n') {
-            return true
-          }
           if (ch === '{') {
             count++
           } else if (ch === '}') {
@@ -1330,6 +1326,7 @@ export class SnippetParser {
         const lastChar = this._scanner.isEnd()
         // ...} -> done
         if (this._accept(TokenType.CurlyClose)) {
+          // we should consider ${1:{}} with text as {}, like ultisnip.
           // check if missed paried }
           if (!this._checkCulybrace(placeholder) && !lastChar) {
             placeholder.appendChild(new Text('}'))

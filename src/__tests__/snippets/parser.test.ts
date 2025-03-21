@@ -450,7 +450,7 @@ describe('SnippetParser', () => {
     assert.strictEqual(len, 0)
   })
 
-  test('Parser, resolved variable', () => {
+  test('Parser, resolved variable', async () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
@@ -459,21 +459,41 @@ describe('SnippetParser', () => {
     assert.ok(s.children[0].children[0] instanceof Variable)
     let v = s.children[0].children[0] as Variable
     assert.equal(v.name, 'VISUAL')
+    {
+      let s = c('`!p`')
+      let m = s.children[0] as CodeBlock
+      await m.resolve(undefined as any)
+    }
   })
 
   test('Parser, convert and resolve variables', async () => {
     const c = text => {
       return (new SnippetParser(false)).parse(text)
     }
-    let s = c('${1:${foo}x${foo:bar}} $1')
-    await s.resolveVariables({
-      resolve: async (variable) => {
-        if (variable.name == 'foo') return 'f'
-        return undefined
-      }
-    })
-    assert.equal(s.placeholders[0].children.length, 1)
-    assert.equal(s.toString(), 'fxf fxf')
+    {
+      let s = c('${1:${foo}x${foo:bar}} $1')
+      await s.resolveVariables({
+        resolve: async (variable) => {
+          if (variable.name == 'foo') return 'f'
+          return undefined
+        }
+      })
+      assert.equal(s.placeholders[0].children.length, 1)
+      assert.equal(s.toString(), 'fxf fxf')
+    }
+    {
+      let s = c('${myname/(.*)$/${1:/capitalize}/}')
+      let variable = s.children[0] as Variable
+      variable.appendChild(new Text(''))
+      expect(s.toTextmateString()).toBe('${myname:/(.*)$/${1:/capitalize}/}')
+      s = s.clone()
+      await s.resolveVariables({
+        resolve: async (_variable) => {
+          return undefined
+        }
+      })
+      expect(s.toString()).toBe('Myname')
+    }
   })
 
   test('Parser, resolved ultisnip variable', async () => {
@@ -633,7 +653,7 @@ describe('SnippetParser', () => {
     assertTextAndMarker('console.log(${1|not\\, not, five, 5, 1   23|});', 'console.log(not, not);', Text, Placeholder, Text)
   })
 
-  test('Marker, toTextmateString()', function() {
+  test('Marker, basic toTextmateString', function() {
 
     function assertTextsnippetString(input: string, expected: string): void {
       const snippet = new SnippetParser().parse(input)
@@ -648,6 +668,11 @@ describe('SnippetParser', () => {
     assertTextsnippetString('this is text', 'this is text')
     assertTextsnippetString('this ${1:is ${2:nested with $var}}', 'this ${1:is ${2:nested with ${var}}}')
     assertTextsnippetString('this ${1:is ${2:nested with $var}}}', 'this ${1:is ${2:nested with ${var}}}\\}')
+    {
+      const snippet = new SnippetParser(true).parse('${1:Foo} ${1/^(\\w+)$/\\u$1/g}')
+      const actual = snippet.children[2].toTextmateString()
+      expect(actual).toBe('${1:Foo/^(\\w+)$/\\u${1}/g}')
+    }
   })
 
   test('Marker, toTextmateString() <-> identity', function() {
@@ -895,6 +920,15 @@ describe('SnippetParser', () => {
     assertLen('errorContext: `${1:err}`, error: $1$0', 15, 0, 3, 10, 0, 3, 0)
     assertLen('$TM_SELECTED_TEXT$0', 0, 0)
     assertLen('${TM_SELECTED_TEXT:def}$0', 0, 3, 0)
+  })
+
+  test('marker#replaceWith', () => {
+    let m = new Placeholder(1)
+    expect(m.replaceWith(new Text(''))).toBe(false)
+    let p = new Placeholder(2)
+    p.appendChild(m)
+    p.replaceChildren([])
+    expect(m.replaceWith(new Text(''))).toBe(false)
   })
 
   test('parser, parent node', function() {
