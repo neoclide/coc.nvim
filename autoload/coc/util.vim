@@ -545,25 +545,25 @@ function! coc#util#get_config_home(...)
       if has('nvim')
         let appname = empty($NVIM_APPNAME) ? 'nvim' : $NVIM_APPNAME
         if exists('$XDG_CONFIG_HOME')
-          let dir = resolve($XDG_CONFIG_HOME."/".appname)
+          let dir = s:resolve($XDG_CONFIG_HOME, appname)
         else
           if s:is_win
-            let dir = resolve($HOME.'/AppData/Local/'.appname)
+            let dir = s:resolve($HOME, 'AppData/Local/'.appname)
           else
-            let dir = resolve($HOME.'/.config/'.appname)
+            let dir = s:resolve($HOME, '.config/'.appname)
           endif
         endif
       else
         if s:is_win || s:is_win32unix
-          let dir = resolve($HOME."/vimfiles")
+          let dir = s:resolve($HOME, "vimfiles")
         else
-          if isdirectory(resolve($HOME.'/.vim'))
-            let dir = resolve($HOME.'/.vim')
+          if isdirectory(s:resolve($HOME, '.vim'))
+            let dir = s:resolve($HOME, '.vim')
           else
             if exists('$XDG_CONFIG_HOME') && isdirectory(resolve($XDG_CONFIG_HOME))
-              let dir = resolve($XDG_CONFIG_HOME.'/vim')
+              let dir = s:resolve($XDG_CONFIG_HOME, 'vim')
             else
-              let dir = resolve($HOME.'/.config/vim')
+              let dir = s:resolve($HOME, '.config/vim')
             endif
           endif
         endif
@@ -574,14 +574,14 @@ function! coc#util#get_config_home(...)
 endfunction
 
 function! coc#util#get_data_home()
-  if get(g:, 'coc_node_env', '') ==# 'test'
+  if get(g:, 'coc_node_env', '') ==# 'test' && !empty($COC_DATA_HOME)
     return coc#util#win32unix_to_node($COC_DATA_HOME)
   endif
   if !empty(get(g:, 'coc_data_home', ''))
     let dir = resolve(expand(g:coc_data_home))
   else
     if exists('$XDG_CONFIG_HOME') && isdirectory(resolve($XDG_CONFIG_HOME))
-      let dir = resolve($XDG_CONFIG_HOME."/coc")
+      let dir = s:resolve($XDG_CONFIG_HOME, 'coc')
     else
       if s:is_win || s:is_win32unix
         let dir = resolve(expand('~/AppData/Local/coc'))
@@ -719,4 +719,9 @@ function! s:visible_ranges(winid) abort
     endif
   endwhile
   return res
+endfunction
+
+" for avoid bug with vim&neovim https://github.com/neoclide/coc.nvim/discussions/5287
+function! s:resolve(path, part) abort
+  return resolve(a:path . '/' . a:part)
 endfunction
