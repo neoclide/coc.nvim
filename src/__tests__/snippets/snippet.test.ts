@@ -6,7 +6,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
-import { Placeholder, Text, TextmateSnippet } from '../../snippets/parser'
+import { Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
 import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -245,10 +245,25 @@ describe('CocSnippet', () => {
     })
   })
 
+  describe('getUltiSnipOption', () => {
+    it('should get snippets option', async () => {
+      let c = await createSnippet('${1:foo}', { noExpand: true })
+      let m = c.tmSnippet.children[0]
+      expect(c.getUltiSnipOption(m, 'noExpand')).toBe(true)
+    })
+  })
+
   describe('findParent()', () => {
+    it('should throw when not found', async () => {
+      let c = await createSnippet('f')
+      expect(() => {
+        c.findParent(Range.create(1, 0, 1, 0))
+      }).toThrow(Error)
+    })
+
     it('should not use adjacent choice placeholder', async () => {
       let c = await createSnippet('a\n${1|one,two,three|}\nb')
-      let res = c.findParent(Range.create(0, 0, 1, 0))
+      let res = c.findParent(Range.create(1, 0, 1, 0))
       expect(res.marker instanceof TextmateSnippet).toBe(true)
     })
   })
@@ -341,11 +356,21 @@ describe('CocSnippet', () => {
       expect(m.toString()).toBe('foobefore')
       expect(m.children.length).toBe(1)
     })
+
+    it('should insert inside text', async () => {
+      let c = await createSnippet('foo ${1:bar}')
+      let marker = (new SnippetParser()).parse('${1:a}', true)
+      let res = c.replaceWithMarker(Range.create(0, 1, 0, 2), marker)
+      expect(res).toBe(c.tmSnippet)
+      expect(c.tmSnippet.toString()).toBe('fao bar')
+    })
   })
 
   describe('replaceWithSnippet()', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
+      c.deactivateSnippet(undefined)
+      expect(c.getUltiSnipAction(undefined, 'postJump')).toBeUndefined()
       let res = await c.replaceWithSnippet(Range.create(0, 0, 0, 3), '${1:bar}')
       expect(res.toString()).toBe('bar')
       expect(res.parent.snippet.toString()).toBe('bar\nbar')
@@ -385,6 +410,28 @@ describe('CocSnippet', () => {
         range: Range.create(0, 0, 0, 3)
       })
       expect(c.text).toBe('foo bar')
+    })
+
+    it('should update with independent python global', async () => {
+      let c = await createSnippet('${1:foo} `!p snip.rv = t[1]`', {})
+      let range = Range.create(0, 0, 0, 3)
+      let line = await nvim.line
+      await c.replaceWithSnippet(range, '${1:bar} `!p snip.rv = t[1]`', undefined, { range, line })
+      expect(c.text).toBe('bar bar bar bar')
+      let token = (new CancellationTokenSource()).token
+      let res = await c.replaceWithText(Range.create(0, 0, 0, 3), 'xy', token)
+      expect(c.text).toBe('xy xy xy xy')
+      expect(res.delta).toBeUndefined()
+    })
+  })
+
+  describe('getMarkerPosition', () => {
+    it('should get position of marker', async () => {
+      let c = await createSnippet('${1:foo}')
+      expect(c.getMarkerPosition(new Placeholder(1))).toBeUndefined()
+      let cloned = c.tmSnippet.clone()
+      expect(c.getMarkerPosition(cloned)).toBeUndefined()
+      expect(c.getMarkerPosition(c.tmSnippet)).toBeDefined()
     })
   })
 
@@ -581,6 +628,11 @@ describe('CocSnippet', () => {
       next = getNextPlaceholder(next, true)
       expect(next.index).toBe(2)
       expect(next.toString()).toBe('b')
+    })
+
+    it('should not throw when next not exits', async () => {
+      expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
+      expect(getNextPlaceholder(undefined, true)).toBeUndefined()
     })
   })
 

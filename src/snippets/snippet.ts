@@ -75,6 +75,10 @@ export class CocSnippet {
     return this._snippets.map(o => o.marker)
   }
 
+  private getSnippet(marker: Marker): TextmateSnippet | undefined {
+    return marker instanceof TextmateSnippet ? marker : marker.snippet
+  }
+
   public deactivateSnippet(snip: TextmateSnippet | undefined): void {
     if (!snip) return
     snippetsPythonGlobalCodes.delete(snip)
@@ -89,13 +93,13 @@ export class CocSnippet {
 
   public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
     if (!marker) return undefined
-    let snip = marker instanceof TextmateSnippet ? marker : marker.snippet
+    let snip = this.getSnippet(marker)
     let context = snippetsPythonContexts.get(snip)
     return getAction(context, action)
   }
 
   public getUltiSnipOption(marker: Marker, key: UltiSnipsOption): boolean | undefined {
-    let snip = marker instanceof TextmateSnippet ? marker : marker.snippet
+    let snip = this.getSnippet(marker)
     let context = snippetsPythonContexts.get(snip)
     if (!context) return undefined
     return context[key]
@@ -126,8 +130,7 @@ export class CocSnippet {
     }
   }
 
-  public getPlaceholderOnJump(current: Placeholder, forward: boolean): CocSnippetPlaceholder | undefined {
-    if (!current) return undefined
+  public getPlaceholderOnJump(current: Placeholder | undefined, forward: boolean): CocSnippetPlaceholder | undefined {
     const p = getNextPlaceholder(current, forward)
     return p ? this.getPlaceholderByMarker(p) : undefined
   }
@@ -146,13 +149,16 @@ export class CocSnippet {
     return this._markerSeuqence.includes(marker)
   }
 
-  public findParent(range: Range, current?: Placeholder): ParentInfo | undefined {
+  /**
+   * Find the most possible marker contains range, throw error when not found
+   */
+  public findParent(range: Range, current?: Placeholder): ParentInfo {
     const isInsert = emptyRange(range)
     let marker: TextmateSnippet | Placeholder
     let markerRange: Range
     const { _snippets, _placeholders, _markerSeuqence } = this
     // avoid change final placeholder
-    const seq = _markerSeuqence.filter(o => o !== current && !(o instanceof Placeholder && o.index === 0))
+    const seq = _markerSeuqence.filter(o => o !== current)
     if (current && _markerSeuqence.includes(current)) seq.push(current)
     const list = seq.map(m => {
       return m instanceof TextmateSnippet ? _snippets.find(o => o.marker === m) : _placeholders.find(o => o.marker === m)
@@ -162,9 +168,9 @@ export class CocSnippet {
       if (rangeInRange(range, o.range)) {
         // not current placeholder and insert at beginning or end, check parents
         if (isInsert
-          && o instanceof Placeholder
-          && o.choice
-          && o !== current
+          && o.marker instanceof Placeholder
+          && o.marker.choice
+          && o.marker !== current
           && adjacentPosition(range.start, o.range)
         ) {
           continue
@@ -174,7 +180,8 @@ export class CocSnippet {
         break
       }
     }
-    return marker === undefined ? undefined : { marker, range: markerRange }
+    if (!marker) throw new Error(`Unable to find parent marker in range ${JSON.stringify(range, null, 2)}`)
+    return { marker, range: markerRange }
   }
 
   /**
@@ -183,10 +190,9 @@ export class CocSnippet {
   public replaceWithMarker(range: Range, marker: Marker, current?: Placeholder): Marker {
     // the range should already inside this.range
     const isInsert = emptyRange(range)
-    const p = this.findParent(range, current)
-    if (!p) throw new Error(`Unable to find parent marker`)
-    let parentMarker = p.marker
-    let parentRange = p.range
+    const result = this.findParent(range, current)
+    let parentMarker = result.marker
+    let parentRange = result.range
     // search children need to be replaced
     const children = parentMarker.children
     let pos = parentRange.start
@@ -243,7 +249,6 @@ export class CocSnippet {
         let p = new Placeholder((current ? current.index : 0) + Math.random())
         p.appendChild(marker)
         p.primary = true
-        marker.parent = p
         markers.push(p)
       } else {
         markers.push(marker)
@@ -391,11 +396,6 @@ export class CocSnippet {
     return this._placeholders.find(o => o.marker === marker)
   }
 
-  public get firstPlaceholder(): CocSnippetPlaceholder | undefined {
-    let marker = this.tmSnippet.first
-    return this.getPlaceholderByMarker(marker)
-  }
-
   public getPlaceholderByIndex(index: number): CocSnippetPlaceholder {
     let filtered = this._placeholders.filter(o => o.index == index && !o.marker.transform)
     let find = filtered.find(o => o.primary)
@@ -437,8 +437,10 @@ export class CocSnippet {
     // all placeholders, including nested placeholder from snippet
     let offset = 0
     snippet.walk(marker => {
-      if (marker instanceof Placeholder) {
-        markerSeuqence.push(marker)
+      if (marker instanceof Placeholder && marker.transform == null) {
+        if (marker.index != 0) {
+          markerSeuqence.push(marker)
+        }
         const position = document.positionAt(offset)
         const value = marker.toString()
         placeholders.push({
@@ -505,7 +507,8 @@ export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
 /**
  * Next or previous placeholder
  */
-export function getNextPlaceholder(marker: Placeholder, forward: boolean): Placeholder | undefined {
+export function getNextPlaceholder(marker: Placeholder | undefined, forward: boolean): Placeholder | undefined {
+  if (!marker) return undefined
   let { snippet } = marker
   let idx = marker.index
   if (idx < 0 || !snippet) return undefined
@@ -547,7 +550,7 @@ export function getNextPlaceholder(marker: Placeholder, forward: boolean): Place
 /**
  * Get range from base position and position, text
  */
-export function getNewRange(base: Position, pos: Position, value: string): Range {
+function getNewRange(base: Position, pos: Position, value: string): Range {
   const { line, character } = base
   const start: Position = {
     line: line + pos.line,

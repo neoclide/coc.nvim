@@ -179,7 +179,7 @@ export class SnippetSession {
     const tabstops = this.snippet.getTabStopInfo()
     const line = document.getline(start.line)
     const col = byteIndex(line, start.character) + 1
-    let marker = this.current = placeholder.marker
+    const marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       let sources = (await import('../completion/sources')).default
       sources.setWords(marker.choice.options.map(o => o.value), col - 1)
