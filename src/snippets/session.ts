@@ -386,9 +386,7 @@ export class SnippetSession {
     if (!this.isActive) return
     this._force = true
     await this.document.patchChange()
-    let release = await this.mutex.acquire()
-    release()
-    await this.checkVersion()
+    await this.waitSynchronize()
     this._force = false
   }
 
@@ -396,11 +394,13 @@ export class SnippetSession {
     if (this.isActive && this.isStaled) {
       this.isStaled = false
       await this.document.patchChange(true)
-      await this.checkVersion()
+      await this.waitSynchronize()
     }
   }
 
-  private async checkVersion(): Promise<void> {
+  private async waitSynchronize(): Promise<void> {
+    let release = await this.mutex.acquire()
+    release()
     // text change event may not fired
     if (this.document.version !== this.version) {
       await this.synchronize()

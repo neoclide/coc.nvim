@@ -620,8 +620,12 @@ describe('CocSnippet', () => {
     it('should get next placeholder', async () => {
       let c = await createSnippet('${1:a} ${2:b}')
       let p = c.getPlaceholderByIndex(1)
-      await c.replaceWithSnippet(p.range, '${1:foo} ${2:bar}')
+      let nested = await c.replaceWithSnippet(p.range, '${1:foo} ${2:bar}')
+      nested.placeholders.forEach(p => {
+        p.primary = false
+      })
       let snip = c.snippets[1]
+      expect(c.snippets[1]).toBe(nested)
       let marker = snip.first
       let next = getNextPlaceholder(marker, true)
       expect(next.index).toBe(2)

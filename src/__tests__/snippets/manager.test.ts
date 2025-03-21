@@ -72,14 +72,16 @@ describe('snippet provider', () => {
       await helper.waitPopup()
       let line = await nvim.line
       expect(line).toBe('f')
-      await nvim.input('pz')
-      await helper.waitValue(() => {
-        return nvim.line
-      }, 'Fpzfpz')
+      await nvim.input('p')
+      await helper.wait(10)
+      let s = snippetManager.session
+      await s.onCompleteDone()
+      line = await nvim.line
+      expect(line).toBe('Fpfp')
       await nvim.input('<backspace>')
       await helper.waitValue(() => {
         return nvim.line
-      }, 'Fpfp')
+      }, 'Ff')
     })
   })
 
@@ -151,7 +153,7 @@ describe('snippet provider', () => {
     })
 
     it('should respect preferCompleteThanJumpPlaceholder', async () => {
-      helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true)
+      let fn = helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true)
       let doc = await workspace.document
       await nvim.input('o')
       await snippetManager.insertSnippet('${1} ${2:bar} foot')
@@ -160,6 +162,7 @@ describe('snippet provider', () => {
       await helper.waitPopup()
       await nvim.call('coc#pum#select_confirm')
       await helper.waitFor('getline', ['.'], 'foot bar foot')
+      fn()
     })
   })
 

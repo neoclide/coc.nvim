@@ -290,6 +290,7 @@ describe('SnippetSession', () => {
       await helper.waitValue(() => cancelled, true)
       expect(session.snippet.text).toBe(' ')
       spy.mockRestore()
+      await session.onCompleteDone()
     })
 
     it('should not cancel when change after snippet', async () => {
@@ -455,6 +456,20 @@ describe('SnippetSession', () => {
       line = await nvim.line
       expect(line).toBe('| |')
     })
+
+    it('should deactivate when synchronize text is wrong', async () => {
+      let doc = await workspace.document
+      let session = await createSession()
+      let res = await session.start('${1:foo}', defaultRange)
+      expect(res).toBe(true)
+      let spy = jest.spyOn(session.snippet, 'replaceWithText').mockImplementation(() => {
+        return Promise.resolve({ snippetText: 'xy', marker: undefined })
+      })
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'p')])
+      await session.forceSynchronize()
+      spy.mockRestore()
+      expect(session.isActive).toBe(false)
+    })
   })
 
   describe('deactivate()', () => {
@@ -474,7 +489,7 @@ describe('SnippetSession', () => {
       let session = await createSession()
       session.deactivate()
       await session.start('${1:foo} $0', defaultRange)
-      await session.selectPlaceholder(undefined, true)
+      await session.selectPlaceholder(undefined)
       await session.forceSynchronize()
       await session.previousPlaceholder()
       await session.nextPlaceholder()
