@@ -5,7 +5,6 @@ import commandManager from '../../commands'
 import events from '../../events'
 import Document from '../../model/document'
 import snippetManager, { SnippetManager } from '../../snippets/manager'
-import { SnippetString } from '../../snippets/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -131,20 +130,6 @@ describe('snippet provider', () => {
       await nvim.input('<backspace>')
       let active = await snippetManager.insertSnippet('${1:x} $1')
       expect(active).toBe(true)
-    })
-
-    it('should insert snippetString', async () => {
-      let snippetString = new SnippetString()
-        .appendTabstop(1)
-        .appendText(' ')
-        .appendPlaceholder('bar', 2)
-      await snippetManager.insertSnippet(snippetString)
-      await nvim.input('$foo;')
-      snippetString = new SnippetString()
-        .appendVariable('foo', 'x')
-      await snippetManager.insertSnippet(snippetString, false, Range.create(0, 5, 0, 6))
-      let line = await nvim.line
-      expect(line).toBe('$foo;xbar')
     })
   })
 

@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import * as assert from 'assert'
 import path from 'path'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
@@ -13,6 +14,7 @@ import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { SnippetString } from '../../snippets/string'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -37,6 +39,117 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
   await snip.init(context)
   return snip
 }
+
+describe('SnippetString', () => {
+  it('should check SnippetString', () => {
+    expect(SnippetString.isSnippetString(null)).toBe(false)
+  })
+
+  it('should build snippet string', () => {
+    let snippetString: SnippetString
+
+    snippetString = new SnippetString()
+    assert.strictEqual(snippetString.appendText('I need $ and $').value, 'I need \\$ and \\$')
+
+    snippetString = new SnippetString()
+    assert.strictEqual(snippetString.appendText('I need \\$').value, 'I need \\\\\\$')
+
+    snippetString = new SnippetString()
+    snippetString.appendPlaceholder('fo$o}')
+    assert.strictEqual(snippetString.value, '${1:fo\\$o\\}}')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendTabstop(0).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo$0bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendTabstop().appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo$1bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendTabstop(42).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo$42bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendPlaceholder('farboo').appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1:farboo}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendPlaceholder('far$boo').appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1:far\\$boo}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendPlaceholder(b => b.appendText('abc').appendPlaceholder('nested')).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1:abc${2:nested}}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendVariable('foo')
+    assert.strictEqual(snippetString.value, '${foo}')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendVariable('TM_SELECTED_TEXT').appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${TM_SELECTED_TEXT}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendVariable('BAR', b => b.appendPlaceholder('ops'))
+    assert.strictEqual(snippetString.value, '${BAR:${1:ops}}')
+
+    snippetString = new SnippetString()
+    snippetString.appendVariable('BAR', b => {})
+    assert.strictEqual(snippetString.value, '${BAR}')
+
+    snippetString = new SnippetString()
+    snippetString.appendChoice(['b', 'a', 'r'])
+    assert.strictEqual(snippetString.value, '${1|b,a,r|}')
+
+    snippetString = new SnippetString()
+    snippetString.appendChoice(['b,1', 'a,2', 'r,3'])
+    assert.strictEqual(snippetString.value, '${1|b\\,1,a\\,2,r\\,3|}')
+
+    snippetString = new SnippetString()
+    snippetString.appendChoice(['b', 'a', 'r'], 0)
+    assert.strictEqual(snippetString.value, '${0|b,a,r|}')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendChoice(['far', 'boo']).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1|far,boo|}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendChoice(['far', '$boo']).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1|far,$boo|}bar')
+
+    snippetString = new SnippetString()
+    snippetString.appendText('foo').appendPlaceholder('farboo').appendChoice(['far', 'boo']).appendText('bar')
+    assert.strictEqual(snippetString.value, 'foo${1:farboo}${2|far,boo|}bar')
+  })
+
+  it('should escape/apply snippet choices correctly', () => {
+    {
+      const s = new SnippetString()
+      s.appendChoice(["aaa$aaa"])
+      s.appendText("bbb$bbb")
+      assert.strictEqual(s.value, '${1|aaa$aaa|}bbb\\$bbb')
+    }
+    {
+      const s = new SnippetString()
+      s.appendChoice(["aaa,aaa"])
+      s.appendText("bbb$bbb")
+      assert.strictEqual(s.value, '${1|aaa\\,aaa|}bbb\\$bbb')
+    }
+    {
+      const s = new SnippetString()
+      s.appendChoice(["aaa|aaa"])
+      s.appendText("bbb$bbb")
+      assert.strictEqual(s.value, '${1|aaa\\|aaa|}bbb\\$bbb')
+    }
+    {
+      const s = new SnippetString()
+      s.appendChoice(["aaa\\aaa"])
+      s.appendText("bbb$bbb")
+      assert.strictEqual(s.value, '${1|aaa\\\\aaa|}bbb\\$bbb')
+    }
+  })
+})
 
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string, opts?: UltiSnippetOption) {
