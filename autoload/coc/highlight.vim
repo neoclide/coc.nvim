@@ -147,7 +147,7 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
   else
     let ns = s:namespace_map[a:key]
-    return s:vim9_coc_highlight.Get_Highlights(a:bufnr, ns, start, end)
+    return s:vim9_coc_highlight.Get_highlights(a:bufnr, ns, start, end)
   endif
 endfunction
 

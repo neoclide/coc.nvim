@@ -50,7 +50,7 @@ enddef
 #   type HighlightItemResult = [string, number, number, number, number?]
 type HighlightItemResult = list<any>
 
-export def Get_Highlights(bufnr: number, ns: number, start: number, end: number): list<HighlightItemResult>
+export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<HighlightItemResult>
   const types: list<string> = coc#api#get_types(ns)
   if empty(types)
     return []
