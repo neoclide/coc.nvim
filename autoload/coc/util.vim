@@ -5,9 +5,13 @@ let s:is_vim = !has('nvim')
 let s:vim_api_version = 34
 let s:is_win32unix = has('win32unix')
 let s:win32unix_prefix = ''
+let s:win32unix_fix_home = 0
 if s:is_win32unix
   let home = expand('$HOME')
-  if strpart(home, 0, 3) =~# '^/\w/'
+  if strpart(home, 0, 6) ==# '/home/'
+    let s:win32unix_fix_home = 1
+    let s:win32unix_prefix = '/'
+  elseif strpart(home, 0, 3) =~# '^/\w/'
     let s:win32unix_prefix = '/'
   else
     let s:win32unix_prefix = matchstr(home, '^\/\w\+\/')
@@ -605,9 +609,16 @@ endfunction
 " /mnt/c/Users/YourName
 " /c/Users/YourName
 function! coc#util#win32unix_to_node(filepath) abort
-  if s:is_win32unix && strpart(a:filepath, 0, s:win32unix_prefix_len) ==# s:win32unix_prefix
-    let part = strpart(a:filepath, s:win32unix_prefix_len)
-    return toupper(part[0]) . ':' . substitute(part[1:], '/', '\', 'g')
+  if s:is_win32unix
+    let fullpath = a:filepath
+    " /home/YourName => /c/User/YourName
+    if s:win32unix_fix_home && strpart(a:filepath, 0, 6) ==# '/home/'
+      let fullpath = substitute(a:filepath, '^/home', '/c/User', '')
+    endif
+    if strpart(fullpath, 0, s:win32unix_prefix_len) ==# s:win32unix_prefix
+      let part = strpart(fullpath, s:win32unix_prefix_len)
+      return toupper(part[0]) . ':' . substitute(part[1:], '/', '\', 'g')
+    endif
   endif
   return a:filepath
 endfunction
