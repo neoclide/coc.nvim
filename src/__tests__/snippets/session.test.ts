@@ -429,9 +429,9 @@ describe('SnippetSession', () => {
       await nvim.input('<cr>')
       await session.forceSynchronize()
       expect(session.isActive).toBe(true)
-      pos = await window.getCursorPosition()
       let lines = await buf.lines
       expect(lines).toEqual(['b', ' b', 'x'])
+      pos = await window.getCursorPosition()
       expect(pos).toEqual(Position.create(2, 0))
     })
 

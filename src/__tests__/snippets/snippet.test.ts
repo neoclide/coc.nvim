@@ -191,7 +191,7 @@ describe('CocSnippet', () => {
       snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
       p = snippet.getPlaceholderByIndex(1)
       expect(p).toBeUndefined()
-      let marker = snippet.findPlaceholderById('NOT_EXISTS', 0)
+      let marker = snippet.findPlaceholderById(0.5, 0)
       expect(marker).toBeDefined()
     })
 
