@@ -1,6 +1,7 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-if s:is_vim
+let s:supports_import_well = has("patch-9.1.0000")
+if s:supports_import_well
   import autoload '../../vim9/coc/highlight.vim' as vim9_coc_highlight
 endif
 let s:namespace_map = {}
@@ -145,9 +146,13 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   let end = get(a:, 2, -1)
   if has('nvim')
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
-  else
-    let ns = s:namespace_map[a:key]
+  endif
+
+  let ns = s:namespace_map[a:key]
+  if s:supports_import_well
     return s:vim9_coc_highlight.Get_highlights(a:bufnr, ns, start, end)
+  else
+    return s:get_highlights(a:bufnr, ns, start, end)
   endif
 endfunction
 
@@ -160,13 +165,20 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   let ns = coc#highlight#create_namespace(a:key)
   if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
-  else
+  elseif s:supports_import_well
     if len(a:highlights) > g:coc_highlight_maximum_count
       call s:vim9_coc_highlight.Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
     else
       call s:vim9_coc_highlight.Add_highlights(a:bufnr, ns, a:highlights, a:priority)
     endif
+  else
+    if len(a:highlights) > g:coc_highlight_maximum_count
+      call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
+    else
+      call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
+    endif
   endif
+
 endfunction
 
 " Clear highlights by 0 based line numbers.
@@ -195,7 +207,11 @@ function! coc#highlight#del_markers(bufnr, key, ids) abort
   endif
   let ns = coc#highlight#create_namespace(a:key)
   if s:is_vim
-    call vim9_coc_highlight.Del_markers(a:bufnr, a:ids, a:key)
+    if s:supports_import_well
+      call vim9_coc_highlight.Del_markers(a:bufnr, a:ids, a:key)
+    else
+      call s:del_markers(a:bufnr, a:ids, a:key)
+    endif
   else
     for id in a:ids
       call nvim_buf_del_extmark(a:bufnr, ns, id)
@@ -672,12 +688,100 @@ if !s:is_vim
   endfunction
   " @workaround Prevent nvim running into the branch for vim below
   finish
-else
-  def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
-    const opts: dict<any> = get(optionalArguments, 0, {})
-    if !hlexists(hl_group)
-      execute $'highlight {hl_group} ctermfg=NONE'
-    endif
-    coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
-  enddef
 endif
+
+def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
+  const opts: dict<any> = get(optionalArguments, 0, {})
+  if !hlexists(hl_group)
+    execute $'highlight {hl_group} ctermfg=NONE'
+  endif
+  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+enddef
+
+if s:supports_import_well
+  finish
+endif
+" Ported from "../../vim9/coc/highlight.vim"
+
+def s:add_highlights_timer(bufnr: number, ns: number, highlights: list<list<any>>, priority: number)
+  const lengthOfHighlightItemList: number = len(highlights)
+  const maximumCount: number = g:coc_highlight_maximum_count
+  var highlightItemList: list<list<any>>
+  var next: list<list<any>>
+  if maximumCount < lengthOfHighlightItemList
+    highlightItemList = highlights[ : maximumCount - 1]
+    next = highlights[maximumCount : ]
+  else
+    highlightItemList = highlights[ : ]
+    next = []
+  endif
+  s:add_highlights(bufnr, ns, highlightItemList, priority)
+  if len(next) > 0
+    timer_start(30,  (_) => s:add_highlights_timer(bufnr, ns, next, priority))
+  endif
+enddef
+
+def s:add_highlights(bufnr: number, ns: number, highlights: list<list<any>>, priority: number)
+  if bufwinnr(bufnr) == -1 # check buffer exists
+    return
+  endif
+  for highlightItem in highlights
+    const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = highlightItem
+    const combine: number = get(highlightItem, 4, 1)
+    const start_incl: number = get(highlightItem, 5, 0)
+    const end_incl: number = get(highlightItem, 6, 0)
+    const opts: dict<any> = {
+      'priority': priority,
+      'combine': combine,
+      'start_incl': start_incl,
+      'end_incl':  end_incl,
+    }
+    coc#highlight#add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
+  endfor
+enddef
+
+def s:get_highlights(bufnr: number, ns: number, start: number, end: number): list<list<any>>
+  const types: list<string> = coc#api#get_types(ns)
+  if empty(types)
+    return []
+  endif
+
+  final res: list<list<any>> = []
+  const endLnum: number = end == -1 ? -1 : end + 1
+  for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
+    if prop['start'] == 0 || prop['end'] == 0
+      # multi line textprop are not supported, simply ignore it
+      continue
+    endif
+    const startCol: number = prop['col'] - 1
+    const endCol: number = startCol + prop['length']
+    add(res, [ s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id'] ])
+  endfor
+  return res
+enddef
+def s:prop_type_hlgroup(type: string): string
+  return substitute(type, '_\d\+$', '', '')
+enddef
+
+def s:del_markers(bufnr: number, ids: list<number>, namespaceKey: string)
+
+  # Script local variables in "../../vim9/coc/highlight.vim"
+  const NAMESPACE_SEMANTIC_TOKENS = 'semanticTokens'
+  const OFFSET_SEMANTIC_HIGHLIGHT_REGIONS: number = &lines
+
+  if namespaceKey == NAMESPACE_SEMANTIC_TOKENS
+    const winTopLine: number = winsaveview()['topline']
+    const winHeight: number = winheight(0)
+    const winBottomLine: number = winTopLine + winHeight - 1
+    const lineStart: number = winTopLine - OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
+    const lineEnd: number = winBottomLine + OFFSET_SEMANTIC_HIGHLIGHT_REGIONS
+    for id in ids
+      prop_remove({'bufnr': bufnr, 'id': id}, max([ lineStart, 1 ]), lineEnd)
+    endfor
+    return
+  endif
+
+  for id in ids
+    prop_remove({'bufnr': bufnr, 'id': id})
+  endfor
+enddef
