@@ -23,7 +23,6 @@ import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
 import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
-import { onUnexpectedError } from '../util/errors'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
 const CURSORMOVE_DEBOUNCE = getConditionValue(10, 0)
@@ -405,7 +404,7 @@ export class Completion implements Disposable {
     if (!Is.func(source.onCompleteDone)) return
     let { insertMode, snippetsSupport } = this.config
     let opt: CompleteDoneOption = Object.assign({ insertMode, snippetsSupport }, option)
-    Promise.resolve(source.onCompleteDone(item, opt)).catch(onUnexpectedError)
+    await source.onCompleteDone(item, opt)
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
