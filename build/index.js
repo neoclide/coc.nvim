@@ -81982,7 +81982,9 @@ var init_complete = __esm({
       fireRefresh(waitTime) {
         clearTimeout(this.timer);
         if (!waitTime) {
-          this._onDidRefresh.fire();
+          process.nextTick(() => {
+            this._onDidRefresh.fire();
+          });
         } else {
           this.timer = setTimeout(() => {
             this._onDidRefresh.fire();
@@ -82716,7 +82718,6 @@ var init_completion2 = __esm({
     init_sources2();
     init_types2();
     init_util3();
-    init_errors();
     logger47 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
     CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
@@ -82901,14 +82902,14 @@ var init_completion2 = __esm({
         complete.onDidRefresh(async () => {
           clearTimeout(this.triggerTimer);
           if (complete.isEmpty) {
-            this.cancel();
+            this.cancelAndClose(false);
             return;
           }
           if (this.inserted) return;
           await this.filterResults();
         });
         let shouldStop2 = await complete.doComplete();
-        if (shouldStop2) this.cancel();
+        if (shouldStop2) this.cancelAndClose(false);
       }
       async onTextChangedP(_bufnr, info) {
         if (!info.insertChar && this.complete) {
@@ -83021,14 +83022,15 @@ var init_completion2 = __esm({
         };
       }
       // Void CompleteDone logic
-      cancelAndClose() {
+      cancelAndClose(close = true) {
         clearTimeout(this.triggerTimer);
         if (this.complete) {
           this.cancel();
           events_default.completing = false;
           let doc = workspace_default.getDocument(workspace_default.bufnr);
           if (doc) doc._forceSync();
-          this.nvim.call("coc#pum#_close", [], true);
+          if (close) this.nvim.call("coc#pum#_close", [], true);
+          void events_default.fire("CompleteDone", [{}]);
         }
       }
       async stop(close, kind = "" /* Normal */) {
@@ -83060,7 +83062,7 @@ var init_completion2 = __esm({
         if (!func(source.onCompleteDone)) return;
         let { insertMode, snippetsSupport } = this.config;
         let opt = Object.assign({ insertMode, snippetsSupport }, option);
-        Promise.resolve(source.onCompleteDone(item, opt)).catch(onUnexpectedError);
+        await source.onCompleteDone(item, opt);
       }
       async onInsertEnter(bufnr) {
         if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== "always") return;
@@ -89804,7 +89806,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-298807bd 2025-03-20 11:50:27 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-48cad051 2025-03-21 10:48:02 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
