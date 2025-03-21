@@ -23,8 +23,15 @@ export class SnippetManager {
   private _statusItem: StatusBarItem
   private bufferSync: BufferSync<SnippetSession>
   private mutex: Mutex = new Mutex()
+  private config: SnippetConfig
 
   public init() {
+    this.synchronizeConfig()
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('snippet') || e.affectsConfiguration('suggest')) {
+        this.synchronizeConfig()
+      }
+    })
     events.on('CompleteDone', async () => {
       let session = this.bufferSync.getItem(workspace.bufnr)
       if (session) await session.onCompleteDone()
@@ -35,8 +42,7 @@ export class SnippetManager {
     }, null, this.disposables)
 
     this.bufferSync = workspace.registerBufferSync(doc => {
-      let config = this.getSnippetConfig(doc.uri)
-      let session = new SnippetSession(this.nvim, doc, config)
+      let session = new SnippetSession(this.nvim, doc, this.config)
       session.onActiveChange(isActive => {
         if (window.activeTextEditor?.bufnr !== session.bufnr) return
         this.statusItem[isActive ? 'show' : 'hide']()
@@ -76,14 +82,19 @@ export class SnippetManager {
     return this._statusItem
   }
 
-  private getSnippetConfig(resource: string): SnippetConfig {
-    let config = workspace.getConfiguration('coc.preferences', resource)
-    const snippetConfig = workspace.getConfiguration('snippet', resource)
-    const suggest = workspace.getConfiguration('suggest', resource)
-    return {
+  private synchronizeConfig(): void {
+    let config = workspace.getConfiguration('coc.preferences', null)
+    const snippetConfig = workspace.getConfiguration('snippet', null)
+    const suggest = workspace.getConfiguration('suggest', null)
+    let obj = {
       highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
       nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('nextPlaceholderOnDelete', false)),
       preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    }
+    if (this.config) {
+      Object.assign(this.config, obj)
+    } else {
+      this.config = obj
     }
   }
 

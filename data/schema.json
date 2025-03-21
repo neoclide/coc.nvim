@@ -2000,13 +2000,13 @@
     },
     "snippet.highlight": {
       "type": "boolean",
-      "scope": "resource",
+      "scope": "application",
       "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
       "default": false
     },
     "snippet.nextPlaceholderOnDelete": {
       "type": "boolean",
-      "scope": "resource",
+      "scope": "application",
       "description": "Automatically jump to the next placeholder when the current one is completely deleted.",
       "default": false
     },
