@@ -669,9 +669,9 @@ describe('SnippetParser', () => {
     assertTextsnippetString('this ${1:is ${2:nested with $var}}', 'this ${1:is ${2:nested with ${var}}}')
     assertTextsnippetString('this ${1:is ${2:nested with $var}}}', 'this ${1:is ${2:nested with ${var}}}\\}')
     {
-      const snippet = new SnippetParser(true).parse('${1:Foo} ${1/^(\\w+)$/\\u$1/g}')
+      const snippet = new SnippetParser(true).parse('${1:Foo} ${1/^(\\w+)$/\\x\\u$1/g}')
       const actual = snippet.children[2].toTextmateString()
-      expect(actual).toBe('${1:Foo/^(\\w+)$/\\u${1}/g}')
+      expect(actual).toBe('${1:\\\\xFoo/^(\\w+)$/\\\\x\\u${1}/g}')
     }
   })
 

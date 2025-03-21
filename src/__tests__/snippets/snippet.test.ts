@@ -43,6 +43,8 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
 describe('SnippetString', () => {
   it('should check SnippetString', () => {
     expect(SnippetString.isSnippetString(null)).toBe(false)
+    let snippetString = new SnippetString()
+    expect(SnippetString.isSnippetString(snippetString)).toBe(true)
   })
 
   it('should build snippet string', () => {
@@ -83,8 +85,8 @@ describe('SnippetString', () => {
     assert.strictEqual(snippetString.value, 'foo${1:abc${2:nested}}bar')
 
     snippetString = new SnippetString()
-    snippetString.appendVariable('foo')
-    assert.strictEqual(snippetString.value, '${foo}')
+    snippetString.appendVariable('foo', 'foo')
+    assert.strictEqual(snippetString.value, '${foo:foo}')
 
     snippetString = new SnippetString()
     snippetString.appendText('foo').appendVariable('TM_SELECTED_TEXT').appendText('bar')
@@ -250,6 +252,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${1:foo}', { noExpand: true })
       let m = c.tmSnippet.children[0]
       expect(c.getUltiSnipOption(m, 'noExpand')).toBe(true)
+      expect(c.getUltiSnipOption(c.tmSnippet, 'noExpand')).toBe(true)
     })
   })
 
@@ -319,7 +322,7 @@ describe('CocSnippet', () => {
       snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
       p = snippet.getPlaceholderByIndex(1)
       expect(p).toBeUndefined()
-      let marker = snippet.findPlaceholderById(0.5, 0)
+      let marker = snippet.getPlaceholderById(0.5, 0)
       expect(marker).toBeDefined()
     })
 
@@ -633,6 +636,14 @@ describe('CocSnippet', () => {
     it('should not throw when next not exits', async () => {
       expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
       expect(getNextPlaceholder(undefined, true)).toBeUndefined()
+    })
+
+    it('should prefer primary placeholder', async () => {
+      let c = await createSnippet('$1 $2 ${1:foo}')
+      let p = c.getPlaceholderByIndex(2)
+      let next = getNextPlaceholder(p.marker, false)
+      expect(next.index).toBe(1)
+      expect(next.primary).toBe(true)
     })
   })
 

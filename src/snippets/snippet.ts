@@ -146,7 +146,7 @@ export class CocSnippet {
   }
 
   public isValidPlaceholder(marker: Placeholder): boolean {
-    return this._markerSeuqence.includes(marker)
+    return this._placeholders.find(o => o.marker === marker) != null
   }
 
   /**
@@ -402,7 +402,7 @@ export class CocSnippet {
     return defaultValue(find, filtered[0])
   }
 
-  public findPlaceholderById(id: number, index: number): Placeholder | undefined {
+  public getPlaceholderById(id: number, index: number): Placeholder | undefined {
     let p = this._tmSnippet.placeholders.find(o => o.id === id)
     return p ? p : this.getPlaceholderByIndex(index).marker
   }
@@ -438,6 +438,7 @@ export class CocSnippet {
     let offset = 0
     snippet.walk(marker => {
       if (marker instanceof Placeholder && marker.transform == null) {
+        // No change for final, not keep
         if (marker.index != 0) {
           markerSeuqence.push(marker)
         }

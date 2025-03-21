@@ -531,8 +531,8 @@ export class ConditionString extends Marker {
 export class ConditionMarker extends Marker {
   constructor(
     public readonly index: number,
-    protected ifMarkers: Marker[] = [],
-    protected elseMarkers: Marker[] = []
+    protected ifMarkers: Marker[],
+    protected elseMarkers: Marker[],
   ) {
     super()
   }

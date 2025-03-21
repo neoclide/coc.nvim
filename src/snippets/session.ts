@@ -336,7 +336,7 @@ export class SnippetSession {
       if (this.snippet) {
         this.isStaled = true
         // find out the cloned placeholder
-        this.current = this.snippet.findPlaceholderById(id, current.index)
+        this.current = this.snippet.getPlaceholderById(id, current.index)
       }
       return
     }
@@ -356,8 +356,6 @@ export class SnippetSession {
     }
     if (res.marker instanceof Placeholder) {
       this.current = res.marker
-      this.checkFinalPlaceholder()
-      if (!this.isActive) return
     }
     let newText = this.snippet.text
     // further update caused by related placeholders or python CodeBlock change
@@ -413,10 +411,6 @@ export class SnippetSession {
     return this.textDocument ? this.textDocument.version : -1
   }
 
-  public get snippetRange(): Range | null {
-    return this.snippet?.range
-  }
-
   public get isActive(): boolean {
     return this.snippet != null
   }
@@ -466,7 +460,7 @@ export class SnippetSession {
 
   public async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     let context: UltiSnippetContext
-    let position = Range.is(ultisnip?.range) ? ultisnip.range.start : (this.document.cursor ?? Position.create(0, 0))
+    let position = Position.create(0, 0)
     if (ultisnip) {
       // avoid all actions
       ultisnip = omit(ultisnip, ['actions'])
