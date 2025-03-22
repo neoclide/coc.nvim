@@ -5070,7 +5070,7 @@ declare module 'coc.nvim' {
      */
     insertText?: string
     /**
-     * When `true` and onCompleteDone handler not exits on source, the snippet
+     * When `true` and onCompleteDone handler not exists on source, the snippet
      * would be expanded after confirm completion.
      */
     isSnippet?: boolean
@@ -9255,7 +9255,7 @@ declare module 'coc.nvim' {
     /**
      * The exit status of the terminal, this will be undefined while the terminal is active.
      *
-     * **Example:** Show a notification with the exit code when the terminal exits with a
+     * **Example:** Show a notification with the exit code when the terminal exists with a
      * non-zero exit code.
      * ```typescript
      * window.onDidCloseTerminal(t => {

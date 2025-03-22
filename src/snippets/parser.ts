@@ -831,6 +831,7 @@ export class TextmateSnippet extends Marker {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
+    // TODO execute prepare codes
     await executePythonCode(nvim, [getVariablesCode(this.values)])
     for (let block of blocks) {
       await this.updatePyIndexBlock(nvim, block)

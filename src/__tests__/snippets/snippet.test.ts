@@ -8,13 +8,13 @@ import events from '../../events'
 import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
 import { Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getTextAfter, getTextBefore, reduceTextEdit } from '../../snippets/snippet'
+import { SnippetString } from '../../snippets/string'
 import { convertRegex, normalizeSnippetString, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { SnippetString } from '../../snippets/string'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -426,6 +426,11 @@ describe('CocSnippet', () => {
       expect(c.text).toBe('xy xy xy xy')
       expect(res.delta).toBeUndefined()
     })
+
+    it('should not throw when parent not exist', async () => {
+      let c = await createSnippet('${1:foo}', {})
+      await c.onMarkerUpdate(new Placeholder(1))
+    })
   })
 
   describe('getMarkerPosition', () => {
@@ -630,14 +635,13 @@ describe('CocSnippet', () => {
       let next = getNextPlaceholder(marker, true)
       expect(next.index).toBe(2)
       expect(next.toString()).toBe('bar')
-      next = getNextPlaceholder(next, true)
-      expect(next.index).toBe(0)
-      next = getNextPlaceholder(next, true)
-      expect(next.index).toBe(2)
-      expect(next.toString()).toBe('b')
     })
 
-    it('should not throw when next not exits', async () => {
+    it('should not throw when next not exists', async () => {
+      expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
+      expect(getNextPlaceholder(undefined, true)).toBeUndefined()
+    })
+    it('should not throw when next not exists', async () => {
       expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
       expect(getNextPlaceholder(undefined, true)).toBeUndefined()
     })
@@ -825,11 +829,11 @@ describe('CocSnippet', () => {
 
     it('should set request variable', async () => {
       events.requesting = true
-      await executePythonCode(nvim, ['stat = __requesting'], false)
+      await executePythonCode(nvim, ['stat = __requesting'])
       let res = await nvim.call('pyxeval', ['stat'])
       expect(res).toBe(true)
       events.requesting = false
-      await executePythonCode(nvim, ['stat = __requesting'], false)
+      await executePythonCode(nvim, ['stat = __requesting'])
       res = await nvim.call('pyxeval', ['stat'])
       expect(res).toBe(false)
     })

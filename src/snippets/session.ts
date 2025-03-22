@@ -105,7 +105,7 @@ export class SnippetSession {
     let pos = `[${start.line},${start.character},${end.line},${end.character}]`
     let codes = [`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code]
     this.cancel()
-    await executePythonCode(this.nvim, codes, true)
+    await executePythonCode(this.nvim, codes)
     await this.forceSynchronize()
   }
 
@@ -115,7 +115,7 @@ export class SnippetSession {
     let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`
     let codes = [`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code]
     this.cancel()
-    await executePythonCode(this.nvim, codes, true)
+    await executePythonCode(this.nvim, codes)
     await this.forceSynchronize()
     void events.fire('PlaceholderJump', [bufnr, info])
   }

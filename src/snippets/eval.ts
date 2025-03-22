@@ -40,7 +40,7 @@ export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolea
   return false
 }
 
-export function preparePythonCodes(snip: UltiSnippetContext): string[] {
+export function getPyBlockCode(snip: UltiSnippetContext): string[] {
   let { range, line } = snip
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
@@ -57,7 +57,7 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
 /**
  * Python code for specific snippet `context` and `match`
  */
-export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
+export function getSnippetPythonCode(context: UltiSnippetContext, includeBlockCode = false): string[] {
   const pyCodes: string[] = []
   let { range, regex, line } = context
   if (context.context) {
@@ -73,6 +73,9 @@ export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
   } else {
     pyCodes.push(`match = None`)
   }
+  if (includeBlockCode) {
+    pyCodes.push(...getPyBlockCode(context))
+  }
   return pyCodes
 }
 
@@ -86,15 +89,8 @@ export function getInitialPythonCode(context: UltiSnippetContext): string[] {
   return pyCodes
 }
 
-export async function executePythonCode(nvim: Neovim, codes: string[], wrap = false) {
+export async function executePythonCode(nvim: Neovim, codes: string[]) {
   let lines = [...codes]
-  if (wrap) lines = [
-    '_snip = None',
-    'if "snip" in locals():',
-    '    _snip = snip',
-    ...codes,
-    `snip = _snip`
-  ]
   lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)
   try {
     await nvim.command(`pyx ${addPythonTryCatch(lines.join('\n'))}`)

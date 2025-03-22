@@ -54,8 +54,8 @@ export class SnippetManager {
     window.onDidChangeActiveTextEditor(e => {
       if (!this._statusItem) return
       let session = this.bufferSync.getItem(e.bufnr)
-      if (session) {
-        this.statusItem[session.isActive ? 'show' : 'hide']()
+      if (session && session.isActive) {
+        this.statusItem.show()
       } else {
         this.statusItem.hide()
       }

@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import events from '../../events'
 import Document from '../../model/document'
@@ -38,6 +38,7 @@ describe('snippet provider', () => {
       await snippetManager.insertSnippet('${1:foo} $1 ')
       let val = await nvim.getVar('coc_status')
       expect(val).toBeDefined()
+      expect(snippetManager.isActivated(doc.bufnr)).toBe(true)
       await nvim.command('edit bar')
       await helper.waitValue(async () => {
         let val = await nvim.getVar('coc_status') as string
@@ -51,20 +52,20 @@ describe('snippet provider', () => {
     })
 
     it('should check position on InsertEnter', async () => {
-      await nvim.input('ibar<left><left><left>')
-      await snippetManager.insertSnippet('${1:foo} $1 ')
-      await nvim.input('<esc>A')
-      await helper.wait(50)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
+      let isActive = await snippetManager.insertSnippet('${1:foo} $1 ', false, Range.create(0, 0, 0, 0))
+      expect(isActive).toBe(true)
+      let line = await nvim.line
+      await nvim.call('cursor', [1, line.length + 1])
+      await events.fire('InsertEnter', [doc.bufnr])
       expect(snippetManager.session.isActive).toBe(false)
     })
-  })
 
-  describe('synchronize position after completion', () => {
     it('should synchronize on CompleteDone', async () => {
-      await helper.createDocument()
-      await nvim.call('cursor', [1, 1])
-      await nvim.setLine('foot')
-      await nvim.input('o')
+      let doc = await helper.createDocument()
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foot\n')])
+      await nvim.call('cursor', [2, 1])
+      await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('${1/(.*)/${1:/capitalize}/}$1', true, Range.create(1, 0, 1, 0))
       expect(res).toBe(true)
       await snippetManager.selectCurrentPlaceholder()
@@ -73,7 +74,7 @@ describe('snippet provider', () => {
       let line = await nvim.line
       expect(line).toBe('f')
       await nvim.input('p')
-      await helper.wait(10)
+      doc._forceSync()
       let s = snippetManager.session
       await s.onCompleteDone()
       line = await nvim.line
@@ -143,7 +144,7 @@ describe('snippet provider', () => {
       expect(col).toBe(3)
     })
 
-    it('should remove keymap on nextPlaceholder when session not exits', async () => {
+    it('should remove keymap on nextPlaceholder when session not exists', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
@@ -175,7 +176,7 @@ describe('snippet provider', () => {
       expect(col).toBe(1)
     })
 
-    it('should remove keymap on previousPlaceholder when session not exits', async () => {
+    it('should remove keymap on previousPlaceholder when session not exists', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
@@ -213,6 +214,17 @@ describe('snippet provider', () => {
   })
 
   describe('synchronize text', () => {
+    it('should update placeholder on placeholder update', async () => {
+      let doc = await workspace.document
+      await nvim.command('startinsert')
+      await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a,b')])
+      let s = snippetManager.getSession(doc.bufnr)
+      await s.forceSynchronize()
+      let lines = await nvim.call('getline', [1, '$'])
+      expect(lines).toEqual(['a,b', 'a|b'])
+    })
+
     it('should synchronize when position changed and pum visible', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo')
@@ -226,18 +238,6 @@ describe('snippet provider', () => {
       await nvim.input('<C-e>')
       let s = snippetManager.getSession(doc.bufnr)
       expect(s).toBeDefined()
-    })
-
-    it('should update placeholder on placeholder update', async () => {
-      let doc = await workspace.document
-      await nvim.input('i')
-      await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
-      await nvim.input('a,b')
-      doc._forceSync()
-      let s = snippetManager.getSession(doc.bufnr)
-      await s.forceSynchronize()
-      let lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a,b', 'a|b'])
     })
 
     it('should adjust cursor position on update', async () => {

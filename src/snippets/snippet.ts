@@ -6,7 +6,7 @@ import { TabStopInfo } from '../types'
 import { defaultValue } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
-import { executePythonCode, getSnippetPythonCode, hasPython, preparePythonCodes } from './eval'
+import { executePythonCode, getSnippetPythonCode, hasPython, getPyBlockCode } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
@@ -123,8 +123,8 @@ export class CocSnippet {
       let pyCodes: string[] = []
       snippetsPythonContexts.set(snippet, ultisnip)
       if (ultisnip.noPython !== true && (snippet.hasCodeBlock || hasPython(ultisnip))) {
-        snippetsPythonGlobalCodes.set(snippet, getSnippetPythonCode(ultisnip))
-        pyCodes = snippet.hasPythonBlock ? preparePythonCodes(ultisnip) : []
+        snippetsPythonGlobalCodes.set(snippet, getSnippetPythonCode(ultisnip, true))
+        pyCodes = snippet.hasPythonBlock ? getPyBlockCode(ultisnip) : []
       }
       await snippet.evalCodeBlocks(nvim, pyCodes)
     }
@@ -324,29 +324,25 @@ export class CocSnippet {
     return o ? o.range.start : undefined
   }
 
-  private async onMarkerUpdate(marker: Marker): Promise<void> {
-    let snippet = marker instanceof TextmateSnippet ? marker : marker.snippet
-    let switched = false
+  public async onMarkerUpdate(marker: Marker): Promise<void> {
     while (marker != null) {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
         if (!snip) break
-        let succeed = await this.executeGlobalCode(snip)
-        if (succeed && snip !== snippet) switched = true
+        await this.executeGlobalCode(snip)
         await snip.update(this.nvim, marker)
         marker = snip.parent
       } else {
         marker = marker.parent
       }
     }
-    if (switched) await this.executeGlobalCode(snippet)
     this.synchronize()
   }
 
   public async executeGlobalCode(snip: TextmateSnippet | undefined): Promise<boolean> {
     let codes = snippetsPythonGlobalCodes.get(snip)
     if (codes) {
-      await executePythonCode(this.nvim, codes, true)
+      await executePythonCode(this.nvim, codes)
       return true
     }
     return false

@@ -867,7 +867,7 @@ describe('completion', () => {
       await create(['foo', 'fbi'], true)
       await nvim.input('fo')
       await helper.waitValue(() => completion.activeItems.length, 1)
-      await nvim.input('<bs>')
+      await nvim.input('<backspace>')
       await helper.waitValue(() => completion.activeItems.length, 2)
     })
   })
