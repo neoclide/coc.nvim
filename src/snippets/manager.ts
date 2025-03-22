@@ -105,9 +105,30 @@ export class SnippetManager {
   }
 
   /**
+   * Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
+   */
+  public async insertBufferSnippet(bufnr: number, snippet: string | SnippetString, range: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
+    let release = await this.mutex.acquire()
+    try {
+      let document = workspace.getAttachedDocument(bufnr)
+      const session = this.bufferSync.getItem(bufnr)
+      range = toValidRange(range)
+      const currentLine = document.getline(range.start.line)
+      const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+      const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode)
+      let isActive = await session.start(inserted, range, false)
+      release()
+      return isActive
+    } catch (e) {
+      release()
+      throw e
+    }
+  }
+
+  /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range | undefined, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { nvim } = workspace
     let release = await this.mutex.acquire()
     try {
@@ -126,11 +147,12 @@ export class SnippetManager {
           if (session.placeholder) {
             let { placeholder } = session
             let { start, end } = placeholder.range
-            this.nvim.setVar('coc_last_placeholder', {
+            let last = {
               current_text: placeholder.value,
               start: { line: start.line, col: start.character, character: start.character },
               end: { line: end.line, col: end.character, character: end.character }
-            }, true)
+            }
+            this.nvim.setVar('coc_last_placeholder', last, true)
           } else {
             this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
           }

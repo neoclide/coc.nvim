@@ -91,7 +91,7 @@ export class SnippetSession {
     await this.applyEdits(edits)
     this.activate(snippet)
     let code = this.snippet.getUltiSnipAction(this.current, 'postExpand')
-    // TODO later post expand?
+    // Not delay, avoid unexpected character insert
     if (code) await this.tryPostExpand(code)
     if (this.snippet && select && this.current) {
       let placeholder = this.snippet.getPlaceholderByMarker(this.current)
