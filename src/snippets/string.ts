@@ -1,5 +1,6 @@
 'use strict'
 export class SnippetString {
+
   public static isSnippetString(thing: any): thing is SnippetString {
     if (thing instanceof SnippetString) {
       return true
@@ -7,7 +8,7 @@ export class SnippetString {
     if (!thing) {
       return false
     }
-    return typeof thing.value === 'string'
+    return typeof (thing as SnippetString).value === 'string'
   }
 
   private static _escape(value: string): string {
@@ -33,10 +34,8 @@ export class SnippetString {
     return this
   }
 
-  public appendPlaceholder(
-    value: string | ((snippet: SnippetString) => any),
-    num: number = this._tabstop++
-  ): SnippetString {
+  public appendPlaceholder(value: string | ((snippet: SnippetString) => any), num: number = this._tabstop++): SnippetString {
+
     if (typeof value === 'function') {
       const nested = new SnippetString()
       nested._tabstop = this._tabstop
@@ -56,11 +55,8 @@ export class SnippetString {
     return this
   }
 
-  public appendChoice(
-    values: string[],
-    num: number = this._tabstop++
-  ): SnippetString {
-    const value = values.map(s => s.replace(/\$|}|\\|,/g, '\\$&')).join(',')
+  public appendChoice(values: string[], num: number = this._tabstop++): SnippetString {
+    const value = values.map(s => s.replaceAll(/[|\\,]/g, '\\$&')).join(',')
 
     this.value += '${'
     this.value += num
@@ -71,18 +67,17 @@ export class SnippetString {
     return this
   }
 
-  public appendVariable(
-    name: string,
-    defaultValue?: string | ((snippet: SnippetString) => any)
-  ): SnippetString {
+  public appendVariable(name: string, defaultValue?: string | ((snippet: SnippetString) => any)): SnippetString {
+
     if (typeof defaultValue === 'function') {
       const nested = new SnippetString()
       nested._tabstop = this._tabstop
       defaultValue(nested)
       this._tabstop = nested._tabstop
       defaultValue = nested.value
+
     } else if (typeof defaultValue === 'string') {
-      defaultValue = defaultValue.replace(/\$|}/g, '\\$&')
+      defaultValue = defaultValue.replace(/\$|}/g, '\\$&') // CodeQL [SM02383] I do not want to escape backslashes here
     }
 
     this.value += '${'

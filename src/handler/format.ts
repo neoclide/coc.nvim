@@ -111,7 +111,6 @@ export default class FormatHandler {
   public async tryFormatOnType(ch: string, doc: Document): Promise<boolean> {
     if (doc.getVar('disable_autoformat', 0)) return false
     if (!this.preferences.formatOnType) return false
-    if (snippetManager.getSession(doc.bufnr) != null) return false
     if (!ch || isAlphabet(ch.charCodeAt(0))) return false
     if (!this.shouldFormatOnType(doc.filetype)) return false
     if (!languages.hasProvider(ProviderName.FormatOnType, doc.textDocument)) {

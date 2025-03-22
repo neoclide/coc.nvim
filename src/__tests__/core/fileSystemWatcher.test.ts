@@ -275,7 +275,7 @@ describe('fileSystemWatcher', () => {
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
     await helper.wait(50)
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should use relative pattern #2', async () => {

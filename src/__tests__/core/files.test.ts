@@ -672,7 +672,7 @@ describe('getOriginalLine', () => {
       await expect(fn()).rejects.toThrow(Error)
     })
 
-    it('should throw when new path exits and not overwrite', async () => {
+    it('should throw when new path exists and not overwrite', async () => {
       await expect(async () => {
         await workspace.renameFile('/foo', __filename, {})
       }).rejects.toThrow(/exists/)

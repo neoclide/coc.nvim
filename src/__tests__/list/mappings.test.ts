@@ -470,12 +470,14 @@ describe('Default normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput(' ')
-    let selected = manager.session?.ui.selectedItems
-    expect(selected.length).toBe(1)
+    await helper.waitValue(() => {
+      return manager.session?.ui.selectedItems.length
+    }, 1)
     await helper.listInput('k')
     await helper.listInput(' ')
-    selected = manager.session?.ui.selectedItems
-    expect(selected.length).toBe(0)
+    await helper.waitValue(() => {
+      return manager.session?.ui.selectedItems.length
+    }, 0)
   })
 
   it('should change to insert mode by i, o, a', async () => {

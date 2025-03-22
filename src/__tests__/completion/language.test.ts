@@ -450,7 +450,7 @@ describe('language source', () => {
       expect(col).toBe(3)
     })
 
-    it('should cancel current snippet session when additionalTextEdits inside snippet', async () => {
+    it('should not cancel current snippet session when additionalTextEdits inside snippet', async () => {
       await nvim.input('i')
       snippetManager.cancel()
       let pos = await window.getCursorPosition()
@@ -470,8 +470,8 @@ describe('language source', () => {
       let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
-      await helper.waitFor('col', ['.'], 6)
       await helper.waitFor('getline', ['.'], '(bar(), )')
+      await helper.waitFor('col', ['.'], 6)
     })
   })
 
