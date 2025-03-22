@@ -256,16 +256,20 @@ export class SnippetSession {
   public onChange(e: DidChangeTextDocumentParams): void {
     if (this._applying || !this.isActive) return
     let changes = e.contentChanges
+    // if not cancel, applyEdits would change latest document lines, which could be wrong.
+    this.cancel()
     this.synchronize({ version: e.textDocument.version, change: changes[0] }).catch(onUnexpectedError)
   }
 
   public async synchronize(change?: DocumentChange): Promise<void> {
     const { document } = this
     this.isStaled = false
-    // if not cancel, applyEdits would change latest document lines, which could be wrong.
-    this.cancel()
     await this.mutex.use(() => {
-      if (!document.attached || document.dirty || !this.textDocument || !this.snippet) return Promise.resolve()
+      if (!document.attached
+        || document.dirty
+        || !this.snippet
+        || !this.textDocument
+        || document.version === this.version) return Promise.resolve()
       if (change && (change.version - this.version !== 1 || document.version != change.version)) {
         // can't be used any more
         change = undefined
@@ -388,7 +392,7 @@ export class SnippetSession {
     if (!this.isActive) return
     this._force = true
     await this.document.patchChange()
-    await this.waitSynchronize()
+    await this.synchronize()
     this._force = false
   }
 
@@ -396,15 +400,6 @@ export class SnippetSession {
     if (this.isActive && this.isStaled) {
       this.isStaled = false
       await this.document.patchChange(true)
-      await this.waitSynchronize()
-    }
-  }
-
-  private async waitSynchronize(): Promise<void> {
-    let release = await this.mutex.acquire()
-    release()
-    // text change event may not fired
-    if (this.document.version !== this.version) {
       await this.synchronize()
     }
   }

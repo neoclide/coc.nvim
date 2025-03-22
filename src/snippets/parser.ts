@@ -826,7 +826,7 @@ export class TextmateSnippet extends Marker {
   /**
    * Update python blocks after user change Placeholder with index
    */
-  private async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
+  public async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
