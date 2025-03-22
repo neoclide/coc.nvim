@@ -1,6 +1,6 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:supports_import_well = has("patch-9.1.0000")
+let s:supports_import_well = has("patch-9.0.2076")
 if s:supports_import_well
   import autoload '../../vim9/coc/highlight.vim' as vim9_coc_highlight
 endif
