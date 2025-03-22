@@ -7,7 +7,7 @@ import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getConditionValue, wait, waitNextTick } from '../util/index'
+import { disposeAll, getConditionValue, wait } from '../util/index'
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
@@ -48,6 +48,7 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _commandLine = false
+  private _applied = false
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -231,6 +232,11 @@ export default class Document {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
+        if (this._applied) {
+          this._applied = false
+          // not fire unnecessary events when it's caused by applyEdits
+          if (equals(this.lines, lines)) return
+        }
         this.lines = lines
         fireLinesChanged(buf.id)
         if (events.pumvisible) return
@@ -326,12 +332,13 @@ export default class Document {
         col = byteIndex(this.lines[pos.line], pos.character) + 1
       }
     }
-    this.nvim.pauseNotification()
     if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
+    this._applied = true
+    this.lines = newLines
     if (isAppend) {
-      this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true)
+      await this.buffer.setLines(changed.replacement, { start: -1, end: -1 })
     } else {
-      this.nvim.call('coc#ui#set_lines', [
+      await this.nvim.call('coc#ui#set_lines', [
         this.bufnr,
         this._changedtick,
         original,
@@ -341,12 +348,11 @@ export default class Document {
         changes,
         cursor,
         col
-      ], true)
+      ])
     }
-    this.nvim.resumeNotification(isCurrent, true)
+    // this.nvim.resumeNotification(isCurrent, true)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
-    await waitNextTick()
-    this.lines = newLines
+    // await waitNextTick()
     fireLinesChanged(this.bufnr)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
