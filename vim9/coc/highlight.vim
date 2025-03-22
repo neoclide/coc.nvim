@@ -1,4 +1,5 @@
 vim9script
+scriptencoding utf-8
 
 # From `coc#highlight#set(`:
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
