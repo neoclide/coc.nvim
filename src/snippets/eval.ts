@@ -6,7 +6,7 @@ import events from '../events'
 import { UltiSnippetOption } from '../types'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
-import { byteLength, toText } from '../util/string'
+import { toText } from '../util/string'
 import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
@@ -47,8 +47,8 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
-  let start = `(${range.start.line},${byteLength(line, range.start.character)})`
-  let end = `(${range.start.line},${byteLength(line, range.end.character)})`
+  let start = `(${range.start.line},${range.start.character})`
+  let end = `(${range.start.line},${range.end.character})`
   let indent = line.match(/^\s*/)[0]
   pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
   return pyCodes
