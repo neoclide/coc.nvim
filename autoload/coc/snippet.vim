@@ -49,13 +49,13 @@ function! coc#snippet#enable(...)
   endif
   if !empty(nextkey)
     if s:map_next
-      execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#snippet#jump(1, ".complete.")<cr>"
+      execute 'inoremap <buffer><nowait><silent>'.nextkey." <Cmd>=coc#snippet#jump(1, ".complete.")<cr>"
     endif
     execute 'snoremap <buffer><nowait><silent>'.nextkey." <Cmd>:call coc#snippet#jump(1, ".complete.")<cr>"
   endif
   if !empty(prevkey)
     if s:map_prev
-      execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#snippet#jump(0, ".complete.")<cr>"
+      execute 'inoremap <buffer><nowait><silent>'.prevkey." <Cmd>=coc#snippet#jump(0, ".complete.")<cr>"
     endif
     execute 'snoremap <buffer><nowait><silent>'.prevkey." <Cmd>:call coc#snippet#jump(0, ".complete.")<cr>"
   endif
