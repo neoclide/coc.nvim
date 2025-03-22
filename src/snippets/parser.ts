@@ -787,8 +787,8 @@ export class TextmateSnippet extends Marker {
     return res
   }
 
-  public async evalCodeBlocks(nvim: Neovim, prepareCodes: string[]): Promise<void> {
-    let { pyBlocks, otherBlocks } = this
+  public async evalCodeBlocks(nvim: Neovim, pyCodes: string[]): Promise<void> {
+    const { pyBlocks, otherBlocks } = this.placeholderInfo
     // update none python blocks
     await Promise.all(otherBlocks.map(block => {
       let pre = block.value
@@ -799,10 +799,10 @@ export class TextmateSnippet extends Marker {
         }
       })
     }))
-    if (this.pyBlocks.length === 0) return
+    if (pyCodes.length === 0) return
     // run all python code by sequence
     const variableCode = getVariablesCode(this.values)
-    await executePythonCode(nvim, [...prepareCodes, variableCode])
+    await executePythonCode(nvim, [...pyCodes, variableCode])
     for (let block of pyBlocks) {
       let pre = block.value
       await block.resolve(nvim)
@@ -826,12 +826,10 @@ export class TextmateSnippet extends Marker {
   /**
    * Update python blocks after user change Placeholder with index
    */
-  public async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
-    if (!this.hasPythonBlock) return
+  private async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
-    // TODO execute prepare codes
     await executePythonCode(nvim, [getVariablesCode(this.values)])
     for (let block of blocks) {
       await this.updatePyIndexBlock(nvim, block)
@@ -934,8 +932,9 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public async update(nvim: Neovim, marker: Placeholder): Promise<void> {
+  public async update(nvim: Neovim, marker: Placeholder, noPython: boolean): Promise<void> {
     this.onPlaceholderUpdate(marker)
+    if (noPython || !this.hasPythonBlock) return
     await this.updatePythonCodes(nvim, marker)
   }
 

@@ -57,7 +57,7 @@ export function getPyBlockCode(snip: UltiSnippetContext): string[] {
 /**
  * Python code for specific snippet `context` and `match`
  */
-export function getSnippetPythonCode(context: UltiSnippetContext, includeBlockCode = false): string[] {
+export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
   const pyCodes: string[] = []
   let { range, regex, line } = context
   if (context.context) {
@@ -72,9 +72,6 @@ export function getSnippetPythonCode(context: UltiSnippetContext, includeBlockCo
     pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
   } else {
     pyCodes.push(`match = None`)
-  }
-  if (includeBlockCode) {
-    pyCodes.push(...getPyBlockCode(context))
   }
   return pyCodes
 }

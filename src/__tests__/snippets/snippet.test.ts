@@ -550,7 +550,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(index)
       expect(p != null).toBe(true)
       p.marker.setOnlyChild(new Text(value))
-      await c.tmSnippet.update(nvim, p.marker)
+      await c.tmSnippet.update(nvim, p.marker, ultisnip?.noPython)
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
@@ -578,7 +578,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(2)
       expect(p).toBeDefined()
       p.marker.setOnlyChild(new Text('foo'))
-      await c.tmSnippet.update(nvim, p.marker)
+      await c.tmSnippet.update(nvim, p.marker, false)
       let t = c.tmSnippet.toString()
       expect(t.startsWith(first)).toBe(true)
       expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])

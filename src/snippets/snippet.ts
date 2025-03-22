@@ -121,11 +121,17 @@ export class CocSnippet {
     }
     if (ultisnip) {
       let pyCodes: string[] = []
+      // TODO test noPython
       snippetsPythonContexts.set(snippet, ultisnip)
-      if (ultisnip.noPython !== true && (snippet.hasCodeBlock || hasPython(ultisnip))) {
-        snippetsPythonGlobalCodes.set(snippet, getSnippetPythonCode(ultisnip, true))
-        pyCodes = snippet.hasPythonBlock ? getPyBlockCode(ultisnip) : []
+      if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
+        let globalCodes = getSnippetPythonCode(ultisnip)
+        if (snippet.hasPythonBlock) {
+          pyCodes = getPyBlockCode(ultisnip)
+          globalCodes.push(...pyCodes)
+        }
+        snippetsPythonGlobalCodes.set(snippet, globalCodes)
       }
+      // Code from getSnippetPythonCode already executed before snippet insert
       await snippet.evalCodeBlocks(nvim, pyCodes)
     }
   }
@@ -330,7 +336,8 @@ export class CocSnippet {
         let snip = marker.snippet
         if (!snip) break
         await this.executeGlobalCode(snip)
-        await snip.update(this.nvim, marker)
+        const config = snippetsPythonContexts.get(snip)
+        await snip.update(this.nvim, marker, config?.noPython)
         marker = snip.parent
       } else {
         marker = marker.parent
