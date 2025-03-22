@@ -8,6 +8,7 @@ import snippetManager, { SnippetManager } from '../../snippets/manager'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { SnippetString } from '../../snippets/string'
 
 let nvim: Neovim
 let doc: Document
@@ -145,7 +146,9 @@ describe('snippet provider', () => {
       await nvim.input('<esc>')
       await nvim.command('stopinsert')
       await nvim.input('A')
-      let active = await snippetManager.insertSnippet('${2:bar}')
+      let s = new SnippetString()
+      s.appendPlaceholder('bar')
+      let active = await snippetManager.insertSnippet(s)
       expect(active).toBe(true)
       let line = await nvim.getLine()
       expect(line).toBe('foo barbar')

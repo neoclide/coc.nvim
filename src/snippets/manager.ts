@@ -44,7 +44,7 @@ export class SnippetManager {
     this.bufferSync = workspace.registerBufferSync(doc => {
       let session = new SnippetSession(this.nvim, doc, this.config)
       session.onActiveChange(isActive => {
-        if (window.activeTextEditor?.bufnr !== session.bufnr) return
+        if (events.bufnr !== session.bufnr) return
         this.statusItem[isActive ? 'show' : 'hide']()
       })
       return session
