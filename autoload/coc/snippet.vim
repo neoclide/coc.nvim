@@ -28,7 +28,10 @@ endfunction
 
 function! coc#snippet#show_choices(lnum, col, position, input) abort
   call coc#snippet#move(a:position)
-  call CocActionAsync('startCompletion', { 'source': '$words' })
+  call CocActionAsync('startCompletion', {
+          \ 'source': '$words',
+          \ 'col': a:col
+          \ })
   redraw
 endfunction
 

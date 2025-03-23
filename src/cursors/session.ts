@@ -251,7 +251,6 @@ export default class CursorSession {
     let delta = getDelta(change)
     ranges.forEach(r => r.applyChange(change))
     let edits = ranges.filter(r => r !== textRange).map(o => o.textEdit)
-    // logger.debug('edits:', JSON.stringify(edits, null, 2))
     this.changing = true
     await doc.applyEdits(edits, true, true)
     this.changing = false

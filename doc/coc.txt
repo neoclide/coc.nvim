@@ -2104,6 +2104,7 @@ coc#start([{option}]) 					*coc#start()*
 	Start completion with optional {option}.  Option could contains:
 
 		- `source` specific completion source name.
+		- `col` the start column of completion (1 based).
 
 	Example:  >
 

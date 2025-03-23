@@ -196,17 +196,16 @@ export class Completion implements Disposable {
     this.loadLocalConfig(doc)
   }
 
-  public async startCompletion(opt?: { source?: string }): Promise<void> {
+  public async startCompletion(opt?: { source?: string, col?: number }): Promise<void> {
     clearTimeout(this.triggerTimer)
     let sourceList: ISource[]
     if (Is.string(opt.source)) {
       sourceList = toArray(sources.getSource(opt.source))
     }
-    let bufnr = await this.nvim.call('bufnr', ['%']) as number
-    let doc = workspace.getAttachedDocument(bufnr)
+    let doc = workspace.getAttachedDocument(events.bufnr)
     let info = await this.nvim.call('coc#util#change_info') as InsertChange
     info.pre = byteSlice(info.line, 0, info.col - 1)
-    const option = this.getCompleteOption(doc, info, true)
+    const option = this.getCompleteOption(doc, info, true, opt.col)
     await this._startCompletion(option, sourceList)
   }
 
@@ -340,9 +339,14 @@ export class Completion implements Disposable {
     return true
   }
 
-  private getCompleteOption(doc: Document, info: InsertChange, manual = false): CompleteOption {
+  private getCompleteOption(doc: Document, info: InsertChange, manual = false, col?: number): CompleteOption {
     let { pre } = info
-    let input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
+    let input: string
+    if (Is.number(col)) {
+      input = byteSlice(info.line, col - 1, info.col - 1)
+    } else {
+      input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
+    }
     let followWord = doc.getStartWord(info.line.slice(info.pre.length))
     return {
       input,
