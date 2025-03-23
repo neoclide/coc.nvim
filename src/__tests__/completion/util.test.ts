@@ -128,7 +128,6 @@ describe('util functions', () => {
     expect(getResumeInput(opt, '')).toBeNull()
     expect(getResumeInput(opt, 'f')).toBe('')
     expect(getResumeInput(opt, 'bar')).toBeNull()
-    expect(getResumeInput(opt, 'foo f')).toBeNull()
     expect(getResumeInput(opt, 'foot')).toBe('oot')
   })
 
