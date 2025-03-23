@@ -31,7 +31,11 @@ export class SnippetManager {
       if (e.affectsConfiguration('snippet') || e.affectsConfiguration('suggest')) {
         this.synchronizeConfig()
       }
-    })
+    }, null, this.disposables)
+    events.on(['InsertCharPre', 'Enter'], () => {
+      let session = this.session
+      if (session) session.cancel()
+    }, null, this.disposables)
     events.on('CompleteDone', async () => {
       let session = this.bufferSync.getItem(workspace.bufnr)
       if (session) await session.onCompleteDone()

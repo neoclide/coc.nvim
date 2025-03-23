@@ -309,8 +309,7 @@ describe('semanticTokens', () => {
       let newLine = 'l\n'
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: `${newLine.repeat(1000)}` }])
       await item.doHighlight()
-      await waitRefresh(item)
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
       let buf = nvim.createBuffer(doc.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       let len = markers.length

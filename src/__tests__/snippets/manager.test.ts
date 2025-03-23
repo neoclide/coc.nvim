@@ -180,6 +180,7 @@ describe('snippet provider', () => {
 
     it('should remove keymap on nextPlaceholder when session not exists', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
+      await events.fire('Enter', [])
       let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
       await snippetManager.nextPlaceholder()

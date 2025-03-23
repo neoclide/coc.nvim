@@ -305,7 +305,7 @@ export class SnippetSession {
     // consider insert at the beginning, exclude new lines before.
     c = comparePosition(change.range.end, range.start)
     let insertBeginning = emptyRange(change.range)
-      && !(change.range.start.character === 0 && change.text.endsWith('\n'))
+      && !change.text.endsWith('\n')
       && snippet.hasBeginningPlaceholder
     if (c < 0 || (c === 0 && !insertBeginning)) {
       // change before beginning, reset position
