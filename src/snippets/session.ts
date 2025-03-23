@@ -178,13 +178,13 @@ export class SnippetSession {
     const range = this.snippet.range
     const tabstops = this.snippet.getTabStopInfo()
     const line = document.getline(start.line)
-    const col = byteIndex(line, start.character) + 1
     const marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
+      const col = byteIndex(line, start.character) + 1
       wordsSource.words = marker.choice.options.map(o => o.value)
       wordsSource.startcol = col - 1
-      console.log(wordsSource.startcol)
-      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
+      // pum not work when use request during request.
+      nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value], true)
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
       await this.select(placeholder, triggerAutocmd)
