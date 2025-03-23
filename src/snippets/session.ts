@@ -470,7 +470,7 @@ export class SnippetSession {
         range: Range.create(position, position),
         line: ''
       }, ultisnip)
-      if (!ultisnip.noPython) {
+      if (ultisnip.noPython !== true && snippetString.includes('`!p')) {
         await executePythonCode(nvim, getInitialPythonCode(context))
       }
     }

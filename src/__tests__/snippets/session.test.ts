@@ -245,7 +245,6 @@ describe('SnippetSession', () => {
       await nvim.input('bar')
       await session.forceSynchronize()
       await helper.waitFor('getline', ['.'], 'bar bar')
-      // expect(session.snippet.getTextBefore(undefined, 'before')).toBe('before')
     })
 
     it('should cancel with unexpected change', async () => {
