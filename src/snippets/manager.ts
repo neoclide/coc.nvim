@@ -83,12 +83,11 @@ export class SnippetManager {
   }
 
   private synchronizeConfig(): void {
-    let config = workspace.getConfiguration('coc.preferences', null)
     const snippetConfig = workspace.getConfiguration('snippet', null)
     const suggest = workspace.getConfiguration('suggest', null)
     let obj = {
-      highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
-      nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('nextPlaceholderOnDelete', false)),
+      highlight: defaultValue(snippetConfig.inspect('highlight').globalValue, false) as boolean,
+      nextOnDelete: defaultValue(snippetConfig.inspect('nextPlaceholderOnDelete').globalValue, false) as boolean,
       preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     }
     if (this.config) {
