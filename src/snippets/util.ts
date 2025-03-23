@@ -1,6 +1,7 @@
 import { Range } from 'vscode-languageserver-types'
 import { UltiSnipsActions } from '../types'
 import { defaultValue } from '../util'
+import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completion/types'
 
 export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
 
@@ -120,3 +121,26 @@ export function normalizeSnippetString(snippet: string, indent: string, opts: Sn
   })
   return lines.join('\n')
 }
+
+/**
+ * For static words, must be triggered by source option.
+ * Used for completion of snippet choices.
+ */
+export class WordsSource implements ISource<ExtendedCompleteItem> {
+  public readonly name = '$words'
+  public readonly shortcut = ''
+  public readonly triggerOnly = true
+  public words: string[] = []
+  public startcol: number | undefined
+
+  public doComplete(opt: CompleteOption) {
+    return {
+      startcol: this.startcol,
+      items: this.words.map(s => {
+        return { word: s, filterText: opt.input }
+      })
+    }
+  }
+}
+
+export const wordsSource = new WordsSource()

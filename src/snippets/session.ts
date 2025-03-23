@@ -19,7 +19,7 @@ import workspace from '../workspace'
 import { executePythonCode } from './eval'
 import { getPlaceholderId, Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
-import { UltiSnippetContext } from './util'
+import { UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
@@ -181,8 +181,9 @@ export class SnippetSession {
     const col = byteIndex(line, start.character) + 1
     const marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-      let sources = (await import('../completion/sources')).default
-      sources.setWords(marker.choice.options.map(o => o.value), col - 1)
+      wordsSource.words = marker.choice.options.map(o => o.value)
+      wordsSource.startcol = col - 1
+      console.log(wordsSource.startcol)
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
@@ -199,9 +200,9 @@ export class SnippetSession {
       charbefore: start.character == 0 ? '' : line.slice(start.character - 1, start.character)
     }
     let code = this.snippet.getUltiSnipAction(marker, 'postJump')
-    // make it async to allow insertSnippet request from python code
     if (code) {
       await this.snippet.executeGlobalCode(marker.snippet)
+      // make it async to allow insertSnippet request from python code
       this.tryPostJump(code, info, document.bufnr).catch(onUnexpectedError)
     } else {
       void events.fire('PlaceholderJump', [document.bufnr, info])

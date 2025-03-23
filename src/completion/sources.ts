@@ -5,6 +5,7 @@ import extensions from '../extension'
 import { createLogger } from '../logger'
 import BufferSync from '../model/bufferSync'
 import type { CompletionItemProvider, DocumentSelector } from '../provider'
+import type { WordsSource } from '../snippets/util'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { readFileLines, statAsync } from '../util/fs'
@@ -18,7 +19,7 @@ import { KeywordsBuffer } from './keywords'
 import Source from './source'
 import LanguageSource from './source-language'
 import VimSource, { getMethodName } from './source-vim'
-import { CompleteItem, CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from './types'
+import { CompleteItem, CompleteOption, ISource, SourceConfig, SourceStat, SourceType } from './types'
 import { getPriority } from './util'
 const logger = createLogger('sources')
 
@@ -32,33 +33,12 @@ interface VimSourceConfig {
   triggerOnly?: boolean
 }
 
-/**
- * For static words, must be triggered by source option.
- * Used for completion of snippet choices.
- */
-class WordsSource implements ISource<ExtendedCompleteItem> {
-  public readonly name = '$words'
-  public readonly shortcut = ''
-  public readonly triggerOnly = true
-  public words: string[] = []
-  public startcol: number | undefined
-
-  public doComplete(opt: CompleteOption) {
-    return {
-      startcol: this.startcol,
-      items: this.words.map(s => {
-        return { word: s, filterText: opt.input }
-      })
-    }
-  }
-}
-
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
   public keywords: BufferSync<KeywordsBuffer>
-  private wordsSource = new WordsSource()
+  private wordsSource: WordsSource
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
@@ -89,8 +69,8 @@ export class Sources {
   }
 
   private createNativeSources(): void {
-    this.sourceMap.set(this.wordsSource.name, this.wordsSource)
     void Promise.all([
+      import('../snippets/util').then(m => this.sourceMap.set(m.wordsSource.name, m.wordsSource)),
       import('./native/around').then(module => { module.register(this.sourceMap, this.keywords) }),
       import('./native/buffer').then(module => { module.register(this.sourceMap, this.keywords) }),
       import('./native/file').then(module => { module.register(this.sourceMap) })
