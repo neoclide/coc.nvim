@@ -373,7 +373,7 @@ export class SnippetSession {
       if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
     }
     this.highlights()
-    logger.debug('update cost:', Date.now() - startTs, res.delta === null)
+    logger.debug('update cost:', Date.now() - startTs, res.delta)
     this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError)
     return
   }

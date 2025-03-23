@@ -132,7 +132,7 @@ function! coc#snippet#select(start, end, text) abort
     let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
     let cmd .= "o\<C-g>"
   endif
-  call feedkeys(cmd, 'n')
+  call feedkeys(cmd, 'nt')
 endfunction
 
 function! coc#snippet#move(position) abort
