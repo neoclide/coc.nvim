@@ -459,7 +459,7 @@ export class SnippetSession {
 
   public async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     let context: UltiSnippetContext
-    let position = Position.create(0, 0)
+    let position = ultisnip?.range ? ultisnip.range.start : Position.create(0, 0)
     if (ultisnip) {
       // avoid all actions
       ultisnip = omit(ultisnip, ['actions'])
@@ -467,7 +467,7 @@ export class SnippetSession {
         ultisnip.noPython = true
       }
       context = Object.assign({
-        range: Range.create(position, position),
+        range: Range.create(0, 0, 0, 0),
         line: ''
       }, ultisnip)
       if (ultisnip.noPython !== true && snippetString.includes('`!p')) {
