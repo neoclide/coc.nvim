@@ -318,7 +318,7 @@ export default class Document {
       changes = toTextChanges(lines, edits)
     }
     let cursor: [number, number]
-    let isCurrent = events.bufnr == this.bufnr
+    let isCurrent = events.bufnr === this.bufnr
     let col: number
     if (move && isCurrent && !isAppend) {
       let pos = Position.is(move) ? move : this.cursor
@@ -332,13 +332,14 @@ export default class Document {
         col = byteIndex(this.lines[pos.line], pos.character) + 1
       }
     }
-    if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
     this._applied = true
     this.lines = newLines
+    this.nvim.pauseNotification()
+    if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
     if (isAppend) {
-      await this.buffer.setLines(changed.replacement, { start: -1, end: -1 })
+      this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true)
     } else {
-      await this.nvim.call('coc#ui#set_lines', [
+      this.nvim.call('coc#ui#set_lines', [
         this.bufnr,
         this._changedtick,
         original,
@@ -348,9 +349,9 @@ export default class Document {
         changes,
         cursor,
         col
-      ])
+      ], true)
     }
-    // this.nvim.resumeNotification(isCurrent, true)
+    await this.nvim.resumeNotification(isCurrent)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     // await waitNextTick()
     fireLinesChanged(this.bufnr)

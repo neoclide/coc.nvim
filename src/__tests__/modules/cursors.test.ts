@@ -372,7 +372,9 @@ describe('cursors', () => {
       })
       await p
       await nvim.command('undo')
-      await helper.wait(50)
+      await helper.waitValue(() => {
+        return nvim.getLine()
+      }, 'foo foo foo')
       expect(session.currentRanges).toEqual(ranges)
     })
 
