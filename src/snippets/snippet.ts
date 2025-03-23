@@ -121,7 +121,6 @@ export class CocSnippet {
     }
     if (ultisnip) {
       let pyCodes: string[] = []
-      // TODO test noPython
       snippetsPythonContexts.set(snippet, ultisnip)
       if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
         let globalCodes = getSnippetPythonCode(ultisnip)

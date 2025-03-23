@@ -226,7 +226,7 @@ describe('codeLenes featrue', () => {
     await nvim.call('setline', [1, arr])
     await doc.synchronize()
     await codeLens.checkProvider()
-    await nvim.command('normal! ggG')
+    nvim.call('cursor', [190, 1], true)
     let bufnr = doc.bufnr
     await helper.waitValue(() => {
       let buf = codeLens.buffers.getItem(bufnr)

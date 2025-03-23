@@ -16,7 +16,7 @@ import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode } from './eval'
+import { executePythonCode, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
 import { UltiSnippetContext, wordsSource } from './util'
@@ -466,8 +466,13 @@ export class SnippetSession {
       if (this.snippet?.hasPython) {
         ultisnip.noPython = true
       }
-      let line = ultisnip && typeof ultisnip.line === 'string' ? ultisnip.line : this.document.getline(position.line)
-      context = Object.assign({ range: Range.create(position, position), line }, ultisnip)
+      context = Object.assign({
+        range: Range.create(position, position),
+        line: ''
+      }, ultisnip)
+      if (!ultisnip.noPython) {
+        await executePythonCode(nvim, getInitialPythonCode(context))
+      }
     }
     const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
     let snippet = new CocSnippet(snippetString, position, nvim, resolver)
