@@ -71,12 +71,13 @@ export class SnippetSession {
       }, previous)
       edits.push(edit)
     } else {
+      this.deactivate()
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
       snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
       await snippet.init(context)
       this.current = snippet.tmSnippet.first
       edits.push(TextEdit.replace(range, snippet.text))
-      // try fix indent of remain text
+      // try fix indent of text after snippet when insert new line
       if (inserted.replace(/\$0$/, '').endsWith('\n')) {
         const currentLine = document.getline(range.start.line)
         const remain = currentLine.slice(range.end.character)
