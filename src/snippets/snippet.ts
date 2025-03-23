@@ -387,12 +387,12 @@ export class CocSnippet {
 
   public get hasBeginningPlaceholder(): boolean {
     let { position } = this
-    return this._placeholders.find(o => comparePosition(o.range.start, position) === 0) != null
+    return this._placeholders.find(o => o.index !== 0 && comparePosition(o.range.start, position) === 0) != null
   }
 
   public get hasEndPlaceholder(): boolean {
     let position = this._snippets[0].range.end
-    return this._placeholders.find(o => comparePosition(o.range.end, position) === 0) != null
+    return this._placeholders.find(o => o.index !== 0 && comparePosition(o.range.end, position) === 0) != null
   }
 
   public getPlaceholderByMarker(marker: Marker): CocSnippetPlaceholder {
