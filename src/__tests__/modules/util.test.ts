@@ -1531,6 +1531,11 @@ describe('diff', () => {
       return diff.diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
     }
 
+    it('should consider new line insert on insert mode', async () => {
+      let res = diff.getTextEdit(['abc', ''], ['abc', '', ''], Position.create(1, 0), true)
+      expect(res).toEqual(toEdit(0, 3, 0, 3, '\n'))
+    })
+
     it('should get textedit without cursor', () => {
       let res = diff.getTextEdit(['a', 'b'], ['a', 'b'])
       expect(res).toBeUndefined()

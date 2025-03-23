@@ -76,7 +76,13 @@ export function patchLine(from: string, to: string, fill = ' '): string {
 export function getTextEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>, cursor?: Position, insertMode?: boolean): TextEdit | undefined {
   let ol = oldLines.length
   let nl = newLines.length
-  let n = cursor ? cursor.line : Math.min(ol, nl)
+  let n: number
+  if (cursor) {
+    // consider new line insert
+    n = nl > ol && insertMode && cursor.line > 0 ? cursor.line - 1 : cursor.line
+  } else {
+    n = Math.min(ol, nl)
+  }
   let used = 0
   for (let i = 0; i < n; i++) {
     if (newLines[i] === oldLines[i]) {
