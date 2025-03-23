@@ -319,9 +319,10 @@ describe('completion', () => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '\nfoo\nfoobar')])
       await create(['foo', 'foobar'], true)
+      await helper.confirmCompletion(0)
     })
 
-    it('should not not preview window when enableFloat is disabled', async () => {
+    it('should not show preview window when enableFloat is disabled', async () => {
       helper.updateConfiguration('suggest.enableFloat', false, disposables)
       let resolved = false
       disposables.push(sources.createSource({
@@ -331,7 +332,7 @@ describe('completion', () => {
           resolved = true
         }
       }))
-      await nvim.input('i')
+      await nvim.command('startinsert')
       triggerCompletion('info')
       await helper.waitPopup()
       let floatWin = await helper.getFloat('pumdetail')
