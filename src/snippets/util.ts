@@ -1,7 +1,8 @@
-import { Range } from 'vscode-languageserver-types'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { UltiSnipsActions } from '../types'
 import { defaultValue } from '../util'
 import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completion/types'
+import { getEnd } from '../util/position'
 
 export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
 
@@ -144,3 +145,83 @@ export class WordsSource implements ISource<ExtendedCompleteItem> {
 }
 
 export const wordsSource = new WordsSource()
+
+/**
+ * Get range from base position and position, text
+ */
+export function getNewRange(base: Position, pos: Position, value: string): Range {
+  const { line, character } = base
+  const start: Position = {
+    line: line + pos.line,
+    character: pos.line == 0 ? character + pos.character : pos.character
+  }
+  return Range.create(start, getEnd(start, value))
+}
+/*
+ * Avoid change unnecessary range of text.
+ */
+export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
+  let { range, newText } = edit
+  let ol = oldText.length
+  let nl = newText.length
+  if (ol === 0 || nl === 0) return edit
+  let { start, end } = range
+  let bo = 0
+  for (let i = 1; i <= Math.min(nl, ol); i++) {
+    if (newText[i - 1] === oldText[i - 1]) {
+      bo = i
+    } else {
+      break
+    }
+  }
+  let eo = 0
+  let t = Math.min(nl - bo, ol - bo)
+  if (t > 0) {
+    for (let i = 1; i <= t; i++) {
+      if (newText[nl - i] === oldText[ol - i]) {
+        eo = i
+      } else {
+        break
+      }
+    }
+  }
+  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo)
+  if (bo > 0) start = getEnd(start, newText.slice(0, bo))
+  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo))
+  return TextEdit.replace(Range.create(start, end), text)
+}
+
+export function getTextBefore(range: Range, text: string, pos: Position): string {
+  let newLines = []
+  let { line, character } = range.start
+  let n = pos.line - line
+  const lines = text.split('\n')
+  for (let i = 0; i <= n; i++) {
+    let line = lines[i]
+    if (i == n) {
+      newLines.push(line.slice(0, i == 0 ? pos.character - character : pos.character))
+    } else {
+      newLines.push(line)
+    }
+  }
+  return newLines.join('\n')
+}
+
+export function getTextAfter(range: Range, text: string, pos: Position): string {
+  let newLines = []
+  let n = range.end.line - pos.line
+  const lines = text.split('\n')
+  let len = lines.length
+  for (let i = 0; i <= n; i++) {
+    let idx = len - i - 1
+    let line = lines[idx]
+    if (i == n) {
+      let sc = range.start.character
+      let from = idx == 0 ? pos.character - sc : pos.character
+      newLines.unshift(line.slice(from))
+    } else {
+      newLines.unshift(line)
+    }
+  }
+  return newLines.join('\n')
+}

@@ -18,7 +18,8 @@ import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder } from './parser'
-import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, reduceTextEdit } from "./snippet"
+import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
+import { reduceTextEdit } from './util'
 import { UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
