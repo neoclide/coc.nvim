@@ -234,6 +234,16 @@ describe('SnippetSession', () => {
   })
 
   describe('synchronize()', () => {
+    it('should cancel when before and body changed', async () => {
+      let session = await createSession()
+      await nvim.setLine('x')
+      await nvim.input('a')
+      await session.start('${1:foo }bar', defaultRange)
+      await nvim.setLine('yfoo  bar')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(false)
+    })
+
     it('should synchronize content change', async () => {
       let session = await createSession(true)
       await session.checkPosition()
@@ -308,31 +318,6 @@ describe('SnippetSession', () => {
       await nvim.input('i')
       await session.start('${1:foo }bar', defaultRange)
       await nvim.setLine('afoobar')
-      await session.forceSynchronize()
-      expect(session.isActive).toBe(false)
-    })
-
-    it('should reset position when change before snippet', async () => {
-      let session = await createSession()
-      await nvim.setLine('x')
-      await nvim.input('a')
-      let r = await getCursorRange()
-      await session.start('${1:foo} bar', r)
-      await nvim.call('coc#cursor#move_to', [0, 0])
-      await nvim.command('startinsert')
-      await nvim.setLine('yfoo bar')
-      await session.forceSynchronize()
-      expect(session.isActive).toBe(true)
-      let start = session.snippet.start
-      expect(start).toEqual(Position.create(0, 1))
-    })
-
-    it('should cancel when before and body changed', async () => {
-      let session = await createSession()
-      await nvim.setLine('x')
-      await nvim.input('a')
-      await session.start('${1:foo }bar', defaultRange)
-      await nvim.setLine('yfoo  bar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
     })
@@ -468,6 +453,22 @@ describe('SnippetSession', () => {
       await session.forceSynchronize()
       spy.mockRestore()
       expect(session.isActive).toBe(false)
+    })
+
+    it('should reset position when change before snippet', async () => {
+      let session = await createSession()
+      await nvim.setLine('x')
+      await nvim.input('a')
+      let r = await getCursorRange()
+      await session.start('${1:foo} bar', r)
+      await nvim.call('coc#cursor#move_to', [0, 0])
+      await nvim.command('startinsert')
+      await nvim.setLine('yfoo bar')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      let start = session.snippet.start
+      expect(start).toEqual(Position.create(0, 1))
+      session.deactivate()
     })
   })
 
