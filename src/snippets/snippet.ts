@@ -247,6 +247,14 @@ export class CocSnippet {
       parentMarker.children.splice(startIdx, deleteCount, newText)
       newText.parent = parentMarker
       mergeTexts(parentMarker, 0)
+      // Placeholder should not have line break at the beginning
+      if (parentMarker instanceof Placeholder && parentMarker.children[0] instanceof Text) {
+        let text = parentMarker.children[0]
+        if (text.value.startsWith('\n')) {
+          text.replaceWith(new Text(text.value.slice(1)))
+          parentMarker.insertBefore('\n')
+        }
+      }
     } else {
       let markers: Marker[] = []
       if (preText) markers.push(new Text(preText))

@@ -287,6 +287,15 @@ describe('CocSnippet', () => {
       expect(res.children[0].toString()).toBe('obar')
     })
 
+    it('should not insert line break at the start of placeholder', async () => {
+      let c = await createSnippet(' ${1:bar} ')
+      let p = c.getPlaceholderByIndex(1).marker
+      let res = c.replaceWithMarker(Range.create(0, 1, 0, 1), new Text('\n'), p)
+      let text = c.tmSnippet.children[0] as Text
+      expect(text.value).toBe(' \n')
+      expect(res.toString()).toBe('bar')
+    })
+
     it('should return undefined when cursor not changed', async () => {
       let doc = await workspace.document
       let c = await createSnippet('${1:foo}')

@@ -437,6 +437,31 @@ describe('SnippetParser', () => {
     assert.equal(c('$1').hasPythonBlock, false)
   })
 
+  test('Parser, insertBefore', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let m = new Placeholder(2)
+    m.insertBefore('\n')
+    let p = new Placeholder(1)
+    m.parent = p
+    m.insertBefore('\n')
+    {
+      let s = c('start ${1:foo}')
+      p = s.children[1] as Placeholder
+      p.insertBefore('\n')
+      let t = s.children[0] as Text
+      assert.equal(t.value, 'start \n')
+    }
+    {
+      let s = c('${1:foo} end')
+      p = s.children[0] as Placeholder
+      p.insertBefore('\n')
+      let t = s.children[0] as Text
+      assert.equal(t.value, '\n')
+    }
+  })
+
   test('Parser, hasCodeBlock()', () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)

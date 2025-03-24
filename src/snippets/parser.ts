@@ -192,6 +192,22 @@ export abstract class Marker {
     return true
   }
 
+  public insertBefore(text: string): void {
+    if (!this.parent) return
+    let p = this.parent
+    let idx = p.children.indexOf(this)
+    if (idx == -1) return
+    let prev = p.children[idx - 1]
+    if (prev instanceof Text) {
+      let v = prev.value
+      prev.replaceWith(new Text(v + text))
+    } else {
+      let marker = new Text(text)
+      marker.parent = p
+      p.children.splice(idx, 0, marker)
+    }
+  }
+
   public get children(): Marker[] {
     return this._children
   }
