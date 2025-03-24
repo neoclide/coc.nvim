@@ -655,7 +655,7 @@ describe('CocSnippet', () => {
     })
   })
 
-  describe('getRanges()', () => {
+  describe('getRanges getSnippetPlaceholders getTabStops', () => {
     it('should get ranges of placeholder', async () => {
       let c = await createSnippet('${2:${1:x} $1}\n$2', {})
       let p = c.getPlaceholderByIndex(1)
@@ -664,6 +664,24 @@ describe('CocSnippet', () => {
       expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
       expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))
       expect(c.text).toBe('x x\nx x')
+    })
+
+    it('should get range of marker snippet', async () => {
+      let c = await createSnippet('${1:foo}', {})
+      let p = new Placeholder(1)
+      expect(c.getSnippetRange(p)).toBeUndefined()
+      let snip = (new SnippetParser()).parse('${1:a}', true)
+      expect(c.getSnippetRange(snip.children[0])).toBeUndefined()
+      let range = c.getSnippetRange(c.tmSnippet.children[0])
+      expect(range).toEqual(Range.create(0, 0, 0, 3))
+    })
+
+    it('should get snippet tabstops', async () => {
+      let c = await createSnippet('${1:foo}', {})
+      let p = new Placeholder(1)
+      expect(c.getSnippetTabstops(p)).toEqual([])
+      let tabstops = c.getSnippetTabstops(c.tmSnippet.children[0])
+      expect(tabstops.length).toBe(2)
     })
   })
 

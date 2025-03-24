@@ -19,8 +19,7 @@ import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
-import { reduceTextEdit } from './util'
-import { UltiSnippetContext, wordsSource } from './util'
+import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
@@ -177,21 +176,21 @@ export class SnippetSession {
     let { nvim, document } = this
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
-    const range = this.snippet.range
-    const tabstops = this.snippet.getTabStopInfo()
     const line = document.getline(start.line)
     const marker = this.current = placeholder.marker
+    const range = this.snippet.getSnippetRange(marker)
+    const tabstops = this.snippet.getSnippetTabstops(marker)
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       const col = byteIndex(line, start.character) + 1
       wordsSource.words = marker.choice.options.map(o => o.value)
       wordsSource.startcol = col - 1
       // pum not work when use request during request.
       nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value], true)
-      if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
-      await this.select(placeholder, triggerAutocmd)
+      await this.select(placeholder)
       this.highlights()
     }
+    if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     let info: JumpInfo = {
       forward,
       tabstops,
@@ -231,7 +230,7 @@ export class SnippetSession {
     this.nvim.resumeNotification(true, true)
   }
 
-  private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd: boolean): Promise<void> {
+  private async select(placeholder: CocSnippetPlaceholder): Promise<void> {
     let { range, value } = placeholder
     let { nvim } = this
     if (value.length > 0) {
@@ -239,7 +238,6 @@ export class SnippetSession {
     } else {
       await nvim.call('coc#snippet#move', [range.start])
     }
-    if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     nvim.redrawVim()
   }
 
@@ -349,6 +347,9 @@ export class SnippetSession {
       return
     }
     this.textDocument = newDocument
+    if (res.marker instanceof Placeholder) {
+      this.current = res.marker
+    }
     if (!this.snippet.isValidPlaceholder(current)) {
       logger.info('Current placeholder destroyed, cancel snippet session')
       this.deactivate()
@@ -361,9 +362,6 @@ export class SnippetSession {
       logger.error(`Something went wrong with the snippet implementation`, change, snippetText)
       this.deactivate()
       return
-    }
-    if (res.marker instanceof Placeholder) {
-      this.current = res.marker
     }
     let newText = this.snippet.text
     // further update caused by related placeholders or python CodeBlock change

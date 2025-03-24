@@ -330,6 +330,33 @@ export class CocSnippet {
     return o ? o.range.start : undefined
   }
 
+  public getSnippetRange(marker: Marker): Range | undefined {
+    let snip = marker.snippet
+    if (!snip) return undefined
+    let info = this._snippets.find(o => o.marker === snip)
+    return info ? info.range : undefined
+  }
+
+  /**
+   * Get TabStops of same snippet.
+   */
+  public getSnippetTabstops(marker: Marker): TabStopInfo[] {
+    let snip = marker.snippet
+    if (!snip) return []
+    let res: TabStopInfo[] = []
+    this._placeholders.forEach(p => {
+      const { start, end } = p.range
+      if (p.marker.snippet === snip && (p.primary || p.index === 0)) {
+        res.push({
+          index: p.index,
+          range: [start.line, start.character, end.line, end.character],
+          text: p.value
+        })
+      }
+    })
+    return res
+  }
+
   public async onMarkerUpdate(marker: Marker): Promise<void> {
     while (marker != null) {
       if (marker instanceof Placeholder) {
@@ -408,20 +435,6 @@ export class CocSnippet {
   public getPlaceholderById(id: number, index: number): Placeholder | undefined {
     let p = this._tmSnippet.placeholders.find(o => o.id === id)
     return p ? p : this.getPlaceholderByIndex(index).marker
-  }
-
-  public getTabStopInfo(): TabStopInfo[] {
-    let res: TabStopInfo[] = []
-    this._placeholders.forEach(p => {
-      if (p.marker instanceof Placeholder && (p.primary || p.index === 0)) {
-        res.push({
-          index: p.index,
-          range: [p.range.start.line, p.range.start.character, p.range.end.line, p.range.end.character],
-          text: p.value
-        })
-      }
-    })
-    return res
   }
 
   /**
