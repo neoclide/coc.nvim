@@ -7,7 +7,7 @@ import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getConditionValue, wait } from '../util/index'
+import { disposeAll, getConditionValue, wait, waitNextTick } from '../util/index'
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
@@ -349,19 +349,14 @@ export default class Document {
       ], true)
     }
     this.nvim.resumeNotification(isCurrent, true)
-    this.lines = newLines
-    // wait lines change event
     this._applied = true
-    await events.race(['LinesChanged'], 50)
-    if (this.lines === newLines || equals(this.lines, newLines)) {
-      let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
-      this.fireContentChanges.clear()
-      this._fireContentChanges(textEdit)
-      let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
-      return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
-    } else {
-      this._forceSync()
-    }
+    this.lines = newLines
+    await waitNextTick()
+    let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
+    this.fireContentChanges.clear()
+    this._fireContentChanges(textEdit)
+    let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
+    return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
