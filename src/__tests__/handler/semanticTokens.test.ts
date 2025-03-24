@@ -314,13 +314,13 @@ describe('semanticTokens', () => {
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       let len = markers.length
       expect(len).toBeLessThan(400)
-      nvim.command('normal! gg', true)
+      await nvim.call('cursor', [1, 1])
       await item.onCursorMoved()
       await helper.waitValue(async () => {
         let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
         return markers.length > 100
       }, true)
-      nvim.command('normal! 200G', true)
+      await nvim.call('cursor', [200, 1])
       await item.onCursorMoved()
       await helper.waitValue(async () => {
         let markers = await buf.getExtMarks(ns, 0, -1, { details: true })

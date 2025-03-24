@@ -51,7 +51,7 @@ async function create(items: string[] | VimCompleteItem[], trigger = true): Prom
   }))
   let mode = await nvim.mode
   if (mode.mode !== 'i') {
-    await nvim.input('i')
+    await nvim.command('startinsert')
   }
   if (trigger) {
     triggerCompletion(name)
