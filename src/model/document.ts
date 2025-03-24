@@ -222,23 +222,22 @@ export default class Document {
   public attach(): void {
     if (isVim) return
     let lines = this.lines
+    const id = this.buffer.id
     this.buffer.attach(true).then(res => {
       if (!res) fireDetach(this.bufnr)
     }, _e => {
       fireDetach(this.bufnr)
     })
-    this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
+    this.buffer.listen('lines', (_buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (tick && tick > this._changedtick) {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
-        if (this._applied) {
-          this._applied = false
-          // not fire unnecessary events when it's caused by applyEdits
-          if (equals(this.lines, lines)) return
+        if (!this._applied || !equals(this.lines, lines)) {
+          this.lines = lines
         }
-        this.lines = lines
-        fireLinesChanged(buf.id)
+        this._applied = false
+        fireLinesChanged(id)
         if (events.pumvisible) return
         this.fireContentChanges()
       }
@@ -332,8 +331,6 @@ export default class Document {
         col = byteIndex(this.lines[pos.line], pos.character) + 1
       }
     }
-    this._applied = true
-    this.lines = newLines
     this.nvim.pauseNotification()
     if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
     if (isAppend) {
@@ -351,14 +348,20 @@ export default class Document {
         col
       ], true)
     }
-    await this.nvim.resumeNotification(isCurrent)
-    let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
-    // await waitNextTick()
-    fireLinesChanged(this.bufnr)
-    this.fireContentChanges.clear()
-    this._fireContentChanges(textEdit)
-    let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
-    return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
+    this.nvim.resumeNotification(isCurrent, true)
+    this.lines = newLines
+    // wait lines change event
+    this._applied = true
+    await events.race(['LinesChanged'], 50)
+    if (equals(this.lines, newLines)) {
+      let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
+      this.fireContentChanges.clear()
+      this._fireContentChanges(textEdit)
+      let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
+      return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
+    } else {
+      this._forceSync()
+    }
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
