@@ -353,7 +353,7 @@ export default class Document {
     // wait lines change event
     this._applied = true
     await events.race(['LinesChanged'], 50)
-    if (equals(this.lines, newLines)) {
+    if (this.lines === newLines || equals(this.lines, newLines)) {
       let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
       this.fireContentChanges.clear()
       this._fireContentChanges(textEdit)
