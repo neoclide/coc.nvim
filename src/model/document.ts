@@ -233,10 +233,13 @@ export default class Document {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
-        if (!this._applied || !equals(this.lines, lines)) {
-          this.lines = lines
+        if (this._applied) {
+          this._applied = false
+          if (equals(this.lines, lines)) {
+            return
+          }
         }
-        this._applied = false
+        this.lines = lines
         fireLinesChanged(id)
         if (events.pumvisible) return
         this.fireContentChanges()
