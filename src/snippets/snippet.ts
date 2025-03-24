@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
+import events from '../events'
 import { defaultValue } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
@@ -274,7 +275,7 @@ export class CocSnippet {
    * Get new Cursor position for synchronize update only.
    * The cursor position should already adjusted before call this function.
    */
-  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position, noMove = false): Promise<ChangedInfo | undefined> {
+  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position, force = false): Promise<ChangedInfo | undefined> {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
@@ -300,7 +301,7 @@ export class CocSnippet {
       let cc = (changeCharacter ? ep.character - sp.character : 0)
       if (lc != 0 || cc != 0) delta = Position.create(lc, cc)
     }
-    if (delta && noMove) {
+    if (delta && events.completing && !force) {
       // move the cursor can break the completion
       reset()
       return undefined

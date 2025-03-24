@@ -337,8 +337,7 @@ export class SnippetSession {
     const nextPlaceholder = getNextPlaceholder(current, true)
     const { cursor } = document
     const id = getPlaceholderId(current)
-    const noMove = events.completing && !this._force
-    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, noMove)
+    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force)
     this.tokenSource = undefined
     if (!res) {
       if (this.snippet) {
