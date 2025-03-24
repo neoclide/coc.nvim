@@ -394,7 +394,6 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     doc._forceSync()
-    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (resolved && inserted) {
       this._mru.add(line.slice(character, inputStart) + input, item)
@@ -402,6 +401,7 @@ export class Completion implements Disposable {
     if (kind == CompleteFinishKind.Confirm && resolved) {
       await this.confirmCompletion(resolved.source, resolved.item, option)
     }
+    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {
@@ -409,7 +409,7 @@ export class Completion implements Disposable {
     if (!Is.func(source.onCompleteDone)) return
     let { insertMode, snippetsSupport } = this.config
     let opt: CompleteDoneOption = Object.assign({ insertMode, snippetsSupport }, option)
-    Promise.resolve(source.onCompleteDone(item, opt)).catch(onUnexpectedError)
+    await Promise.resolve(source.onCompleteDone(item, opt))
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
