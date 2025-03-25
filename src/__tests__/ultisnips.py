@@ -2,14 +2,11 @@ __requesting = True
 def coc_UltiSnips_create():
     import re, vim, os, sys
     from collections import defaultdict, namedtuple
-    try:
-        import asyncio
-    except ImportError:
-        asyncio = None
 
     _Placeholder = namedtuple("_Placeholder", ["current_text", "start", "end"])
     _VisualContent = namedtuple("_VisualContent", ["mode", "text"])
     _Position = namedtuple("_Position", ["line", "col"])
+    # is_vim = vim.eval('has("nvim")') == '0'
 
     def byte2col(line, nbyte):
         """Convert a column into a byteidx suitable for a mark or cursor
@@ -54,33 +51,25 @@ def coc_UltiSnips_create():
             text += _vim_line_with_eol(el - 1)[: ec + 1]
         return text
 
-    def _expand_anon(value, trigger="", pos = None):
-        if pos is None:
-            pos = vim.eval('coc#cursor#position()')
+    def _expand_anon(value, trigger=""):
+        pos = vim.eval('coc#cursor#position()')
         line = int(pos[0])
         character = int(pos[1])
-        code = r'coc#rpc#request("snippetInsert", [{"start":{"line":%d,"character":%d},"end":{"line":%d,"character":%d}}, "%s", v:null, {}])' % (line, character - len(trigger), line, character, re.sub(r'"', r'\\"', value.replace('\\', '\\\\')))
-        vim.eval(code)
-        vim.command('redraw')
-        return True
-
-    if asyncio is not None:
-        async def _expand_anon_async(value, trigger="", cursor = None, pos = None):
-            await asyncio.sleep(0.1)
-            _expand_anon(value, trigger, pos)
-            if cursor is not None:
-                cursor.preserve()
+        args = r'[{"start":{"line":%d,"character":%d},"end":{"line":%d,"character":%d}}, "%s", v:null, {}]' % (line, character - len(trigger), line, character, re.sub(r'"', r'\\"', value.replace('\\', '\\\\')))
+        # Python of vim doesn't have event loop, use vim's timer
+        if __requesting:
+            vim.eval(r'coc#util#timer("coc#rpc#notify",["snippetInsert", %s])' % (args))
+        else:
+            code = r'coc#rpc#request("snippetInsert", %s)' % (args)
+            vim.eval(code)
+            vim.command('redraw')
 
     def expand_anon(value, trigger="", cursor = None):
         if len(value) == 0:
             return
-        if not __requesting or asyncio is None:
-            _expand_anon(value, trigger)
-            if cursor is not None:
-                cursor.preserve()
-        else:
-            pos = vim.eval('coc#cursor#position()')
-            asyncio.create_task(_expand_anon_async(value, trigger, cursor, pos))
+        _expand_anon(value, trigger)
+        if cursor is not None:
+            cursor.preserve()
 
     class Position:
         """Represents a Position in a text file: (0 based line index, 0 based column
