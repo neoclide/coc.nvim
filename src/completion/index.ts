@@ -23,7 +23,6 @@ import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
 import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
-import { onUnexpectedError } from '../util/errors'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
 const CURSORMOVE_DEBOUNCE = getConditionValue(10, 0)
