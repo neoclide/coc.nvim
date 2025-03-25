@@ -644,6 +644,11 @@ describe('CocSnippet', () => {
       let next = getNextPlaceholder(marker, true)
       expect(next.index).toBe(2)
       expect(next.toString()).toBe('bar')
+      {
+        let m = nested.placeholders.find(o => o.index === 0)
+        let next = getNextPlaceholder(m, false)
+        expect(next.toString()).toBe('foo bar')
+      }
     })
 
     it('should not throw when next not exists', async () => {

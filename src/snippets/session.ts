@@ -221,7 +221,7 @@ export class SnippetSession {
   private checkFinalPlaceholder(): void {
     let current = this.current
     if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
-      logger.info('Jump or change final placeholder, cancelling snippet session')
+      logger.info('Jump to final placeholder, cancelling snippet session')
       this.deactivate()
     }
   }

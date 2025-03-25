@@ -498,7 +498,7 @@ export class CocSnippet {
 /**
  * Next or previous placeholder
  */
-export function getNextPlaceholder(marker: Placeholder | undefined, forward: boolean): Placeholder | undefined {
+export function getNextPlaceholder(marker: Placeholder | undefined, forward: boolean, nested = false): Placeholder | undefined {
   if (!marker) return undefined
   let { snippet } = marker
   let idx = marker.index
@@ -533,7 +533,8 @@ export function getNextPlaceholder(marker: Placeholder | undefined, forward: boo
     }
   }
   if (snippet.parent instanceof Placeholder) {
-    return getNextPlaceholder(snippet.parent, forward)
+    return getNextPlaceholder(snippet.parent, forward, true)
   }
+  if (nested) return marker
   return undefined
 }
