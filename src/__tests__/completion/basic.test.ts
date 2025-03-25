@@ -842,6 +842,14 @@ describe('completion', () => {
   })
 
   describe('TextChangedI', () => {
+    it('should filter on backspace', async () => {
+      await create(['foo', 'fbi'], true)
+      await nvim.input('fo')
+      await helper.waitValue(() => completion.activeItems.length, 1)
+      await nvim.input('<backspace>')
+      await helper.waitValue(() => completion.activeItems.length, 2)
+    })
+
     it('should respect commitCharacter on TextChangedI', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
       let source: ISource = {
@@ -862,14 +870,6 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('o.')
       await helper.waitFor('getline', ['.'], 'foo.')
-    })
-
-    it('should filter on backspace', async () => {
-      await create(['foo', 'fbi'], true)
-      await nvim.input('fo')
-      await helper.waitValue(() => completion.activeItems.length, 1)
-      await nvim.input('<backspace>')
-      await helper.waitValue(() => completion.activeItems.length, 2)
     })
   })
 

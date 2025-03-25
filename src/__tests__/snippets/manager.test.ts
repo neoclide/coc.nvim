@@ -74,12 +74,16 @@ describe('snippet provider', () => {
       await helper.waitPopup()
       let line = await nvim.line
       expect(line).toBe('f')
-      await nvim.input('p')
-      doc._forceSync()
+      await nvim.input('t')
       let s = snippetManager.session
+      await doc.patchChange(true)
+      await helper.waitValue(() => {
+        return s.staled
+      }, true)
+      events.completing = false
       await s.onCompleteDone()
       line = await nvim.line
-      expect(line).toBe('Fpfp')
+      expect(line).toBe('Ftft')
       await nvim.input('<backspace>')
       await helper.waitValue(() => {
         return nvim.line
