@@ -21,6 +21,7 @@ import { getPlaceholderId, Placeholder } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
 import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
+import { waitNextTick } from '../util'
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
 
@@ -115,6 +116,8 @@ export class SnippetSession {
   }
 
   private async tryPostJump(code: string, info: JumpInfo, bufnr: number): Promise<void> {
+    // make events.requesting = false
+    await waitNextTick()
     this.nvim.setVar('coc_ultisnips_tabstops', info.tabstops, true)
     const { snippet_start, snippet_end } = info
     let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`
