@@ -646,7 +646,7 @@ export default class Document {
       let prev = this._applyQueque.shift()
       if (!prev) fireLinesChanged(this.bufnr)
       this._noFetch = false
-      void this._fetchContent()
+      this.fetchContent()
       return
     }
     let { line, changedtick, lnum } = change
