@@ -396,11 +396,14 @@ export class SnippetSession {
   }
 
   public async forceSynchronize(): Promise<void> {
-    if (!this.isActive) return
-    this._force = true
-    await this.document.patchChange()
-    await this.synchronize()
-    this._force = false
+    if (this.isActive) {
+      this._force = true
+      await this.document.patchChange()
+      await this.synchronize()
+      this._force = false
+    } else {
+      await this.document.patchChange()
+    }
   }
 
   public async onCompleteDone(): Promise<void> {
