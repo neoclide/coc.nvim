@@ -48,7 +48,7 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _commandLine = false
-  private _applied = false
+  private _applyQueque = []
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -233,11 +233,9 @@ export default class Document {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
-        if (this._applied) {
-          this._applied = false
-          if (equals(this.lines, lines)) {
-            return
-          }
+        let prev = this._applyQueque.shift()
+        if (prev && equals(prev, lines)) {
+          return
         }
         this.lines = lines
         fireLinesChanged(id)
@@ -352,7 +350,7 @@ export default class Document {
       ], true)
     }
     this.nvim.resumeNotification(isCurrent, true)
-    this._applied = true
+    this._applyQueque.push(newLines)
     this.lines = newLines
     await waitNextTick()
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
@@ -644,10 +642,9 @@ export default class Document {
    * Used by vim8 to fetch lines.
    */
   public onTextChange(event: string, change: InsertChange): void {
-    if (event === 'TextChanged'
-      || event === 'TextChangedI'
-      || !this._noFetch) {
-      fireLinesChanged(this.bufnr)
+    if (event === 'TextChanged' || event === 'TextChangedI' || !this._noFetch) {
+      let prev = this._applyQueque.shift()
+      if (!prev) fireLinesChanged(this.bufnr)
       this._noFetch = false
       void this._fetchContent()
       return

@@ -57,7 +57,7 @@ describe('Commands', () => {
         fn()
       })
       await commandManager.executeCommand('editor.action.restart')
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
     })
 
     it('should throw when command not found', async () => {
