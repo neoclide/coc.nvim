@@ -9,6 +9,7 @@ if has('nvim')
 endif
 
 scriptencoding utf-8
+let s:listener_map = {}
 let s:funcs = {}
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_id = 1
@@ -42,10 +43,11 @@ function! s:check_bufnr(bufnr) abort
   endif
 endfunction
 
-" TextChanged not fired when using channel on vim.
+" TextChanged and callback not fired when using channel on vim.
 function! s:on_textchange(bufnr) abort
   let event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
   exe 'doautocmd <nomodeline> '.event.' '.bufname(a:bufnr)
+  call listener_flush(a:bufnr)
 endfunction
 
 " execute command for bufnr
@@ -595,8 +597,40 @@ function! s:funcs.buf_line_count(bufnr) abort
 endfunction
 
 function! s:funcs.buf_attach(...)
-  " not supported
-  return 1
+  let bufnr = get(a:, 1, 0)
+  " listener not remove on e!
+  let id = get(s:listener_map, bufnr, 0)
+  if id
+    call listener_remove(id)
+  endif
+  let result = listener_add('s:on_buf_change', bufnr)
+  if result
+    let s:listener_map[bufnr] = result
+    return v:true
+  endif
+  return v:false
+endfunction
+
+function! s:on_buf_change(bufnr, start, end, added, changes) abort
+  let result = []
+  for item in a:changes
+    let start = item['lnum'] - 1
+    " Delete lines
+    if item['added'] < 0
+      " include start line, which needed for undo
+      let lines = getbufline(a:bufnr, item['lnum'])
+      call add(result, [start, 0 - item['added'] + 1, lines])
+    " Add lines
+    elseif item['added'] > 0
+      let lines = getbufline(a:bufnr, item['lnum'], item['lnum'] + item['added'])
+      call add(result, [start, 1, lines])
+    " Change lines
+    else
+      let lines = getbufline(a:bufnr, item['lnum'], item['end'] - 1)
+      call add(result, [start, item['end'] - item['lnum'], lines])
+    endif
+  endfor
+  call coc#rpc#notify('vim_buf_change_event', [a:bufnr, getbufvar(a:bufnr, 'changedtick'), result])
 endfunction
 
 function! s:funcs.buf_detach()

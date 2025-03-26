@@ -658,21 +658,6 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-" used by vim
-function! coc#util#get_buf_lines(bufnr, changedtick)
-  if !bufloaded(a:bufnr)
-    return v:null
-  endif
-  let changedtick = getbufvar(a:bufnr, 'changedtick')
-  if changedtick == a:changedtick
-    return v:null
-  endif
-  return {
-        \ 'lines': getbufline(a:bufnr, 1, '$'),
-        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
-        \ }
-endfunction
-
 " used for TextChangedI with InsertCharPre
 function! coc#util#get_changeinfo(bufnr)
   if bufnr('%') == a:bufnr
