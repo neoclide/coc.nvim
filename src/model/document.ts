@@ -198,7 +198,7 @@ export default class Document {
     this.eol = opts.eol == 1
     this._uri = getUri(opts.fullpath, this.bufnr, buftype)
     if (Array.isArray(opts.lines)) {
-      this.lines = opts.lines.map(line => line == null ? '' : line)
+      this.lines = opts.lines.map(line => toText(line))
       this._attached = true
       this.attach()
     } else {
@@ -622,7 +622,7 @@ export default class Document {
         return
       }
       let { lnum, line, changedtick } = change
-      let curr = this.getline(lnum - 1)
+      let curr = this.lines[lnum - 1]
       this._changedtick = changedtick
       if (curr == line) {
         this._forceSync()
@@ -635,7 +635,8 @@ export default class Document {
       }
     } else {
       // changedtick from buffer events could be not latest. #3003
-      this._changedtick = await this.buffer.getVar('changedtick') as number
+      this._changedtick = await this.nvim.call('coc#util#get_changedtick', [this.bufnr]) as number
+      // .buffer.getVar('changedtick') as number
       this._forceSync()
     }
   }

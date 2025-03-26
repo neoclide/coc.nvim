@@ -1,23 +1,57 @@
 process.env.VIM_NODE_RPC = '1'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
-import { CompleteResult, ExtendedCompleteItem } from '../completion/types'
+import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
+import type { Disposable } from 'vscode-languageserver-protocol'
 import { sameFile } from '../util/fs'
-import type { Helper } from './helper'
-import Document from '../model/document'
+import { type Helper } from './helper'
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import util from 'util'
+import { v4 as uuid } from 'uuid'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
 
+function disposeAll(disposables: Disposable[]): void {
+  while (disposables.length) {
+    const item = disposables.pop()
+    item?.dispose()
+  }
+}
+
+const disposables: Disposable[] = []
 let nvim: Neovim
 beforeAll(async () => {
   await helper.setupVim()
   nvim = helper.workspace.nvim
 })
 
+afterEach(() => {
+  disposeAll(disposables)
+})
+
 afterAll(async () => {
   await helper.shutdown()
 })
 
+async function createTmpFile(content: string, disposables?: Disposable[]): Promise<string> {
+  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
+  if (!fs.existsSync(tmpFolder)) {
+    fs.mkdirSync(tmpFolder)
+  }
+  let fsPath = path.join(tmpFolder, uuid())
+  await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
+  if (disposables) {
+    disposables.push({
+      dispose: () => {
+        if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+      }
+    })
+  }
+  return fsPath
+}
 describe('vim api', () => {
+
   it('should start server', async () => {
     await nvim.setLine('foobar')
     let buf = await nvim.buffer
@@ -602,17 +636,44 @@ describe('notify', () => {
 })
 
 describe('document', () => {
-  async function shouldEqual(doc: Document): Promise<void> {
-    let lines = doc.getLines()
+  async function shouldEqual(doc, synced = false): Promise<void> {
+    let lines = synced ? doc.textDocument.lines : doc.getLines()
     let cur = await doc.buffer.lines
     expect(lines).toEqual(cur)
   }
+
+  it('should synchronize changes', async () => {
+    let lines = []
+    for (let i = 1; i < 8; i++) {
+      lines.push(`line ${i}`)
+    }
+    let filepath = await createTmpFile(lines.join('\n'), disposables)
+    let doc = await helper.createDocument(filepath)
+    let bufnr = doc.buffer.id
+    // remove first line
+    nvim.pauseNotification()
+    nvim.call('deletebufline', [bufnr, 1, 3], true)
+    nvim.call('appendbufline', [bufnr, 0, ['3', '4', '5']], true)
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+    await doc.patchChange(true)
+  })
+
+  it('should patch change of current line', async () => {
+    let doc = await helper.createDocument()
+    nvim.call('setline', ['.', 'foo'], true)
+    await doc.patchChange(true)
+    await shouldEqual(doc, true)
+    nvim.call('setline', ['.', 'foo'], true)
+    await doc.patchChange(true)
+    await shouldEqual(doc, true)
+  })
 
   it('should patch change', async () => {
     let doc = await helper.workspace.document
     // synchronize after user input
     await nvim.input('o')
-    await doc.patchChange()
+    await doc.patchChange(true)
     let buf = doc.buffer
     // synchronize after api
     buf.setLines(['aa', 'bb'], {

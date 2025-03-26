@@ -598,7 +598,7 @@ endfunction
 
 function! s:funcs.buf_attach(...)
   let bufnr = get(a:, 1, 0)
-  " listener not remove on e!
+  " listener not removed on e!
   let id = get(s:listener_map, bufnr, 0)
   if id
     call listener_remove(id)

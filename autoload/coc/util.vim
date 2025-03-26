@@ -2,7 +2,7 @@ scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:vim_api_version = 34
+let s:vim_api_version = 35
 let s:is_win32unix = has('win32unix')
 let s:win32unix_prefix = ''
 let s:win32unix_fix_home = 0
@@ -674,6 +674,13 @@ function! coc#util#get_changeinfo(bufnr)
     return ref
   endif
   return v:null
+endfunction
+
+function! coc#util#get_changedtick(bufnr) abort
+  if s:is_vim
+    call listener_flush(a:bufnr)
+  endif
+  return getbufvar(a:bufnr, 'changedtick')
 endfunction
 
 " Get the valid position from line, character of current buffer
