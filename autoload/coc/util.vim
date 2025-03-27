@@ -658,8 +658,9 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-" used for TextChangedI with InsertCharPre
+" Used for TextChangedI with InsertCharPre, vim only
 function! coc#util#get_changeinfo(bufnr)
+  call listener_flush(a:bufnr)
   if bufnr('%') == a:bufnr
     return {
           \ 'lnum': line('.'),
