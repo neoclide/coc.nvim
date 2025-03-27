@@ -1,13 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
+import events from '../events'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
-import events from '../events'
-import { defaultValue, waitNextTick, waitWithToken } from '../util'
+import { defaultValue, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
-import { executePythonCode, getSnippetPythonCode, hasPython, getPyBlockCode } from './eval'
+import { executePythonCode, getPyBlockCode, getSnippetPythonCode, hasPython } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, getNewRange, getTextAfter, getTextBefore, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
@@ -163,7 +163,6 @@ export class CocSnippet {
     let marker: TextmateSnippet | Placeholder
     let markerRange: Range
     const { _snippets, _placeholders, _markerSeuqence } = this
-    // avoid change final placeholder
     const seq = _markerSeuqence.filter(o => o !== current)
     if (current && _markerSeuqence.includes(current)) seq.push(current)
     const list = seq.map(m => {
@@ -172,10 +171,10 @@ export class CocSnippet {
     for (let index = list.length - 1; index >= 0; index--) {
       const o = list[index]
       if (rangeInRange(range, o.range)) {
-        // not current placeholder and insert at beginning or end, check parents
+        // Gives choice and final placeholder lower priority for text insert
         if (isInsert
           && o.marker instanceof Placeholder
-          && o.marker.choice
+          && (o.marker.choice || o.marker.index === 0)
           && o.marker !== current
           && adjacentPosition(range.start, o.range)
         ) {
@@ -450,7 +449,7 @@ export class CocSnippet {
   /**
    * Should be used after snippet resolved.
    */
-  private synchronize(): void {
+  public synchronize(): void {
     const snippet = this._tmSnippet
     const snippetStr = snippet.toString()
     const document = new LinesTextDocument('/', '', 0, snippetStr.split(/\n/), 0, false)
@@ -464,10 +463,7 @@ export class CocSnippet {
     let offset = 0
     snippet.walk(marker => {
       if (marker instanceof Placeholder && marker.transform == null) {
-        // No change for final, not keep
-        if (marker.index != 0) {
-          markerSeuqence.push(marker)
-        }
+        markerSeuqence.push(marker)
         const position = document.positionAt(offset)
         const value = marker.toString()
         placeholders.push({

@@ -376,6 +376,16 @@ describe('CocSnippet', () => {
       expect(res).toBe(c.tmSnippet)
       expect(c.tmSnippet.toString()).toBe('fao bar')
     })
+
+    it('should change final placeholder', async () => {
+      let c = await createSnippet('${1:foo} ${0:bar}')
+      let changed = c.replaceWithMarker(Range.create(0, 4, 0, 4), new Text(' '))
+      expect(changed.toString()).toBe('foo  bar')
+      c.synchronize()
+      changed = c.replaceWithMarker(Range.create(0, 5, 0, 6), new Text(''))
+      expect(changed['index']).toBe(0)
+      expect(changed.toString()).toBe('ar')
+    })
   })
 
   describe('replaceWithSnippet()', () => {

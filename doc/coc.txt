@@ -181,7 +181,7 @@ https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
 ==============================================================================
 EXTENSIONS						*coc-extensions*
 
-Comprae to |coc-config-languageserver| extensions are more powerful since they
+Compare to |coc-config-languageserver| extensions are more powerful since they
 could contribute json schemes, commands, and use middleware methods of
 languageserver to provide better results.  Extensions could provide more
 features by make use of NodeJS and coc.nvim's API.

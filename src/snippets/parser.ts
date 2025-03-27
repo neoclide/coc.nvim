@@ -169,7 +169,6 @@ export abstract class Marker {
   }
 
   public setOnlyChild(child: Marker): void {
-    this._children.forEach(m => m.parent = undefined)
     child.parent = this
     this._children = [child]
   }
@@ -186,7 +185,6 @@ export abstract class Marker {
     let p = this.parent
     let idx = p.children.indexOf(this)
     if (idx == -1) return false
-    this.parent = undefined
     newMarker.parent = p
     p.children.splice(idx, 1, newMarker)
     return true
