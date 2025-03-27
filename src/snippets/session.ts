@@ -354,9 +354,6 @@ export class SnippetSession {
       return
     }
     this.textDocument = newDocument
-    if (res.marker instanceof Placeholder) {
-      this.current = res.marker
-    }
     if (!this.snippet.isValidPlaceholder(current)) {
       logger.info('Current placeholder destroyed, cancel snippet session')
       this.deactivate()

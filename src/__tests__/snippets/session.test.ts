@@ -368,7 +368,7 @@ describe('SnippetSession', () => {
       }, 5)
     })
 
-    it('should prefer range contains current cursor', async () => {
+    it('should changed none current placeholder', async () => {
       let session = await createSession()
       await nvim.input('i')
       await session.start('$1 $2', defaultRange)
@@ -376,8 +376,10 @@ describe('SnippetSession', () => {
       await nvim.input(' ')
       await session.forceSynchronize()
       expect(session.isActive).toBe(true)
+      let placeholder = session.snippet.getPlaceholderByIndex(2)
+      expect(placeholder.value).toBe(' ')
       let p = session.placeholder
-      expect(p.index).toBe(2)
+      expect(p.index).toBe(1)
     })
 
     it('should update cursor column after synchronize', async () => {
