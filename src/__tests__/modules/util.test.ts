@@ -833,6 +833,16 @@ describe('strings', () => {
     expect(strings.upperFirst('abC')).toBe('AbC')
     expect(strings.upperFirst(undefined)).toBe('')
   })
+
+  it('should getUnicodeClass', () => {
+    expect(strings.getUnicodeClass(null)).toBe('other')
+    expect(strings.getUnicodeClass('')).toBe('other')
+    expect(strings.getUnicodeClass('\0')).toBe('other')
+    expect(strings.getUnicodeClass('\x1b')).toBe('punctuation')
+    expect(strings.getUnicodeClass('，')).toBe('punctuation')
+    expect(strings.getUnicodeClass('你')).toBe('cjkideograph')
+    expect(strings.getUnicodeClass('😘')).toBe('other')
+  })
 })
 
 describe('getSymbolKind()', () => {

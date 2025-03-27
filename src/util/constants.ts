@@ -12,4 +12,3 @@ export const configHome = defaultValue<string>(process.env.COC_VIMCONFIG, path.j
 export const dataHome = defaultValue<string>(process.env.COC_DATA_HOME, path.join(os.homedir(), '.config/coc'))
 export const userConfigFile = path.join(path.normalize(configHome), CONFIG_FILE_NAME)
 export const pluginRoot = getConditionValue(path.dirname(__dirname), path.resolve(__dirname, '../..'))
-export const watchmanCommand = 'watchman'

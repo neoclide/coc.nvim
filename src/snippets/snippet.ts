@@ -431,7 +431,7 @@ export class CocSnippet {
     return this._placeholders.find(o => o.index !== 0 && comparePosition(o.range.end, position) === 0) != null
   }
 
-  public getPlaceholderByMarker(marker: Marker): CocSnippetPlaceholder {
+  public getPlaceholderByMarker(marker: Marker): CocSnippetPlaceholder | undefined {
     return this._placeholders.find(o => o.marker === marker)
   }
 

@@ -332,12 +332,14 @@ describe('SnippetSession', () => {
       expect(session.snippet.text).toBe('foodbar')
     })
 
-    it('should cancel when unable to find removed Text', async () => {
+    it('should able to jump when current placeholder destroyed', async () => {
       let session = await createSession()
       await nvim.input('i')
       await session.start('${1:foo} bar', defaultRange)
       await nvim.setLine('fobar')
       await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      await session.nextPlaceholder()
       expect(session.isActive).toBe(false)
     })
 

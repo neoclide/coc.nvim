@@ -17,7 +17,7 @@ import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode } from './eval'
-import { getPlaceholderId, Placeholder } from './parser'
+import { getPlaceholderId, Placeholder, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
 import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
@@ -63,13 +63,13 @@ export class SnippetSession {
     await this.forceSynchronize()
     let { document, snippet } = this
     const edits: TextEdit[] = []
+    let textmateSnippet: TextmateSnippet
     if (inserted.length === 0) return this.isActive
     if (snippet && rangeInRange(range, snippet.range)) {
       // update all snippet.
       let oldRange = snippet.range
       let previous = snippet.text
-      let snip = await this.snippet.replaceWithSnippet(range, inserted, this.current, context)
-      this.current = snip.first
+      textmateSnippet = await this.snippet.replaceWithSnippet(range, inserted, this.current, context)
       let edit = reduceTextEdit({
         range: oldRange,
         newText: this.snippet.text
@@ -80,7 +80,7 @@ export class SnippetSession {
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
       snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
       await snippet.init(context)
-      this.current = snippet.tmSnippet.first
+      textmateSnippet = snippet.tmSnippet
       edits.push(TextEdit.replace(range, snippet.text))
       // try fix indent of text after snippet when insert new line
       if (inserted.replace(/\$0$/, '').endsWith('\n')) {
@@ -94,9 +94,10 @@ export class SnippetSession {
         }
       }
     }
+    this.current = textmateSnippet.first
     await this.applyEdits(edits)
     this.activate(snippet)
-    let code = this.snippet.getUltiSnipAction(this.current, 'postExpand')
+    let code = this.snippet.getUltiSnipAction(textmateSnippet, 'postExpand')
     // Not delay, avoid unexpected character insert
     if (code) await this.tryPostExpand(code)
     if (this.snippet && select && this.current) {
@@ -151,13 +152,14 @@ export class SnippetSession {
 
   public async nextPlaceholder(): Promise<void> {
     await this.forceSynchronize()
-    let curr = this.placeholder
-    if (!curr) return
-    if (this.snippet.getUltiSnipOption(curr.marker, 'removeWhiteSpace')) {
-      await this.removeWhiteSpaceBefore(curr)
+    if (!this.current) return
+    let marker = this.current
+    if (this.snippet.getUltiSnipOption(marker, 'removeWhiteSpace')) {
+      let { placeholder } = this
+      if (placeholder) await this.removeWhiteSpaceBefore(placeholder)
     }
-    let snip = this.current.snippet
-    const p = this.snippet.getPlaceholderOnJump(this.current, true)
+    let snip = marker.snippet
+    const p = this.snippet.getPlaceholderOnJump(marker, true)
     if (p && p.marker.snippet !== snip) {
       this.snippet.deactivateSnippet(snip)
     }
@@ -166,16 +168,14 @@ export class SnippetSession {
 
   public async previousPlaceholder(): Promise<void> {
     await this.forceSynchronize()
-    let curr = this.placeholder
-    if (!curr) return
+    if (!this.current) return
     const p = this.snippet.getPlaceholderOnJump(this.current, false)
     await this.selectPlaceholder(p, true, false)
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
     await this.forceSynchronize()
-    if (!this.snippet) return
-    let placeholder = this.snippet.getPlaceholderByMarker(this.current)
+    let { placeholder } = this
     if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd)
   }
 
@@ -354,11 +354,6 @@ export class SnippetSession {
       return
     }
     this.textDocument = newDocument
-    if (!this.snippet.isValidPlaceholder(current)) {
-      logger.info('Current placeholder destroyed, cancel snippet session')
-      this.deactivate()
-      return
-    }
     let { snippetText, delta } = res
     let changedRange = Range.create(start, getEnd(start, snippetText))
     // check if snippet not changed as expected

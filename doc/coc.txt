@@ -1111,8 +1111,7 @@ A snippet session would be deactivated under the following conditions:
 
   • The change affects the snippet and code outside.
   • Autocmd |InsertEnter| triggered outside snippet.
-  • Jump to or change the final placeholder.
-  • Current placeholder becomes invalid.
+  • Jump to the final placeholder.
 
 Use |CocOpenLog| to checkout the cancel reason.
 Use |CocAction('snippetCancel')| for cancel snippet session manually.
