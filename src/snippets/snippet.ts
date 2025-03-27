@@ -372,6 +372,7 @@ export class CocSnippet {
         await this.executeGlobalCode(snip)
         const config = snippetsPythonContexts.get(snip)
         await snip.update(this.nvim, marker, config?.noPython)
+        if (token.isCancellationRequested) return
         marker = snip.parent
       } else {
         marker = marker.parent
@@ -379,6 +380,7 @@ export class CocSnippet {
     }
     // Avoid document change fired during document change event, which may cause unexpected behavior.
     await waitWithToken(16, token)
+    if (token.isCancellationRequested) return
     this.synchronize()
   }
 

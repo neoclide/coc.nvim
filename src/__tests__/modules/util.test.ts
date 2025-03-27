@@ -1168,6 +1168,8 @@ describe('utility', () => {
     tokenSource.cancel()
     res = await p
     expect(res).toBe(true)
+    res = await waitWithToken(10, CancellationToken.Cancelled)
+    expect(res).toBe(true)
   })
 
   it('should check executable', () => {
