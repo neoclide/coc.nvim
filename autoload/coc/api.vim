@@ -957,7 +957,11 @@ function! coc#api#call(method, args) abort
   let err = v:null
   let res = v:null
   try
+    let tick = b:changedtick
     let res = call(s:funcs[a:method], a:args)
+    if b:changedtick != tick
+      call listener_flush(bufnr('%'))
+    endif
   catch /.*/
     let err = v:exception .' on api "'.a:method.'" '.json_encode(a:args)
   endtry
@@ -970,6 +974,7 @@ endfunction
 
 function! coc#api#notify(method, args) abort
   try
+    let tick = b:changedtick
     " vim throw error with return when vim9 function has no return value.
     if a:method ==# 'call_function'
       call call(a:args[0], a:args[1])
@@ -981,6 +986,9 @@ function! coc#api#notify(method, args) abort
       endif
     else
       call call(s:funcs[a:method], a:args)
+    endif
+    if b:changedtick != tick
+      call listener_flush(bufnr('%'))
     endif
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])

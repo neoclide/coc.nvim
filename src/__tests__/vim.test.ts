@@ -1,14 +1,14 @@
 process.env.VIM_NODE_RPC = '1'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
-import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
-import type { Disposable } from 'vscode-languageserver-protocol'
-import { sameFile } from '../util/fs'
-import { type Helper } from './helper'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
+import { type Disposable } from 'vscode-languageserver-protocol'
+import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
+import { sameFile } from '../util/fs'
+import { type Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
 
@@ -641,6 +641,13 @@ describe('document', () => {
     let cur = await doc.buffer.lines
     expect(lines).toEqual(cur)
   }
+
+  it('should synchronize current buffer when call vim function', async () => {
+    let doc = await helper.createDocument()
+    await nvim.call('appendbufline', [doc.bufnr, 0, ['3', '4', '5']])
+    await nvim.call('setbufline', [doc.bufnr, 1, 'txt'])
+    await shouldEqual(doc)
+  })
 
   it('should synchronize changes', async () => {
     let lines = []
