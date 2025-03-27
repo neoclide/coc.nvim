@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as assert from 'assert'
 import path from 'path'
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../../events'
@@ -438,7 +438,7 @@ describe('CocSnippet', () => {
 
     it('should not throw when parent not exist', async () => {
       let c = await createSnippet('${1:foo}', {})
-      await c.onMarkerUpdate(new Placeholder(1))
+      await c.onMarkerUpdate(new Placeholder(1), CancellationToken.None)
     })
   })
 

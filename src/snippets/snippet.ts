@@ -4,7 +4,7 @@ import { Position, Range } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
 import events from '../events'
-import { defaultValue } from '../util'
+import { defaultValue, waitNextTick, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { executePythonCode, getSnippetPythonCode, hasPython, getPyBlockCode } from './eval'
@@ -300,7 +300,7 @@ export class CocSnippet {
       this.synchronize()
     }
     token.onCancellationRequested(reset)
-    await this.onMarkerUpdate(marker)
+    await this.onMarkerUpdate(marker, token)
     if (token.isCancellationRequested) return undefined
     let ep = this.getMarkerPosition(marker)
     let delta: Position | undefined
@@ -320,9 +320,9 @@ export class CocSnippet {
   public async replaceWithSnippet(range: Range, text: string, current?: Placeholder, ultisnip?: UltiSnippetContext): Promise<TextmateSnippet> {
     let snippet = new SnippetParser(!!ultisnip).parse(text, true)
     // no need to move cursor, there should be placeholder selection afterwards.
-    let changed = this.replaceWithMarker(range, snippet, current)
+    let marker = this.replaceWithMarker(range, snippet, current)
     await this.resolve(snippet, ultisnip)
-    await this.onMarkerUpdate(changed)
+    await this.onMarkerUpdate(marker, CancellationToken.None)
     return snippet
   }
 
@@ -365,7 +365,7 @@ export class CocSnippet {
     return res
   }
 
-  public async onMarkerUpdate(marker: Marker): Promise<void> {
+  public async onMarkerUpdate(marker: Marker, token: CancellationToken): Promise<void> {
     while (marker != null) {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
@@ -378,6 +378,8 @@ export class CocSnippet {
         marker = marker.parent
       }
     }
+    // Avoid document change fired during document change event, which may cause unexpected behavior.
+    await waitWithToken(16, token)
     this.synchronize()
   }
 
