@@ -1,54 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Range } from '@chemzqm/neovim/lib/types'
 import { exec, ExecOptions } from 'child_process'
+import { Range } from 'vscode-languageserver-types'
+import events from '../events'
+import { UltiSnippetOption } from '../types'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
 import { toText } from '../util/string'
+import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
-
-export interface UltiSnippetContext {
-  /**
-   * line on insert
-   */
-  line: string
-  /**
-   * Range to replace, start.line should equal end.line
-   */
-  range: Range
-  /**
-   * Context python code.
-   */
-  context?: string
-  /**
-   * Regex trigger (python code)
-   */
-  regex?: string
-  /**
-   * Avoid python code eval when is true.
-   */
-  noPython?: boolean
-  /**
-   * Do not expand tabs
-   */
-  noExpand?: boolean
-  /**
-   * Trim all whitespaces from right side of snippet lines.
-   */
-  trimTrailingWhitespace?: boolean
-  /**
-   * Remove whitespace immediately before the cursor at the end of a line before jumping to the next tabstop
-   */
-  removeWhiteSpace?: boolean
-}
-
-export interface SnippetFormatOptions {
-  tabSize: number
-  insertSpaces: boolean
-  trimTrailingWhitespace?: boolean
-  // options from ultisnips context
-  noExpand?: boolean
-}
 
 /**
  * Eval code for code placeholder.
@@ -73,42 +33,64 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr:
   return toText(res)
 }
 
-export function prepareMatchCode(snip: UltiSnippetContext): string {
-  let { range, regex, line } = snip
-  let pyCodes: string[] = []
-  if (regex && range != null) {
+export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolean {
+  if (!snip) return false
+  if (snip.context) return true
+  if (snip.actions && Object.keys(snip.actions).length > 0) return true
+  return false
+}
+
+export function getPyBlockCode(snip: UltiSnippetContext): string[] {
+  let { range, line } = snip
+  let pyCodes: string[] = [
+    'import re, os, vim, string, random',
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`,
+  ]
+  let start = `(${range.start.line},${range.start.character})`
+  let end = `(${range.start.line},${range.end.character})`
+  let indent = line.match(/^\s*/)[0]
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
+  return pyCodes
+}
+
+/**
+ * Python code for specific snippet `context` and `match`
+ */
+export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
+  const pyCodes: string[] = []
+  let { range, regex, line } = context
+  if (context.context) {
+    pyCodes.push(`snip = ContextSnippet()`)
+    pyCodes.push(`context = ${context.context}`)
+  } else {
+    pyCodes.push(`context = None`)
+  }
+  if (regex && Range.is(range)) {
     let trigger = line.slice(range.start.character, range.end.character)
     pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
     pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
   } else {
     pyCodes.push(`match = None`)
   }
-  return pyCodes.join('\n')
+  return pyCodes
 }
 
-export function preparePythonCodes(snip: UltiSnippetContext): string[] {
-  let { range, context, line } = snip
+export function getInitialPythonCode(context: UltiSnippetContext): string[] {
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
-  if (context) {
-    pyCodes.push(`snip = ContextSnippet()`)
-    pyCodes.push(`context = ${context}`)
-  } else {
-    pyCodes.push(`context = True`)
-  }
-  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
-  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
-  let indent = line.match(/^\s*/)[0]
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
+  pyCodes.push(...getSnippetPythonCode(context))
   return pyCodes
 }
 
 export async function executePythonCode(nvim: Neovim, codes: string[]) {
+  let lines = [...codes]
+  lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)
   try {
-    await nvim.command(`pyx ${addPythonTryCatch(codes.join('\n'))}`)
+    await nvim.command(`pyx ${addPythonTryCatch(lines.join('\n'))}`)
   } catch (e: any) {
     let err = new Error(e.message)
     err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + e.stack
@@ -150,40 +132,4 @@ function escapeString(input: string): string {
     .replace(/"/g, '\\"')
     .replace(/\t/g, '\\t')
     .replace(/\n/g, '\\n')
-}
-
-const stringStartRe = /\\A/
-const conditionRe = /\(\?\(\w+\).+\|/
-const commentRe = /\(\?#.*?\)/
-const namedCaptureRe = /\(\?P<\w+>.*?\)/
-const namedReferenceRe = /\(\?P=(\w+)\)/
-const regex = new RegExp(`${commentRe.source}|${stringStartRe.source}|${namedCaptureRe.source}|${namedReferenceRe.source}`, 'g')
-
-/**
- * Convert python regex to javascript regex,
- * throw error when unsupported pattern found
- */
-export function convertRegex(str: string): string {
-  if (str.indexOf('\\z') !== -1) {
-    throw new Error('pattern \\z not supported')
-  }
-  if (str.indexOf('(?s)') !== -1) {
-    throw new Error('pattern (?s) not supported')
-  }
-  if (str.indexOf('(?x)') !== -1) {
-    throw new Error('pattern (?x) not supported')
-  }
-  if (str.indexOf('\n') !== -1) {
-    throw new Error('pattern \\n not supported')
-  }
-  if (conditionRe.test(str)) {
-    throw new Error('pattern (?id/name)yes-pattern|no-pattern not supported')
-  }
-  return str.replace(regex, (match, p1) => {
-    if (match.startsWith('(?#')) return ''
-    if (match.startsWith('(?P<')) return '(?' + match.slice(3)
-    if (match.startsWith('(?P=')) return `\\k<${p1}>`
-    // if (match == '\\A') return '^'
-    return '^'
-  })
 }

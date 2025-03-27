@@ -17,8 +17,9 @@ beforeAll(async () => {
   terminals = new Terminals()
 })
 
-afterEach(() => {
+afterEach(async () => {
   terminals.reset()
+  await helper.reset()
 })
 
 afterAll(async () => {

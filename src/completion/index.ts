@@ -195,17 +195,16 @@ export class Completion implements Disposable {
     this.loadLocalConfig(doc)
   }
 
-  public async startCompletion(opt?: { source?: string }): Promise<void> {
+  public async startCompletion(opt?: { source?: string, col?: number }): Promise<void> {
     clearTimeout(this.triggerTimer)
     let sourceList: ISource[]
     if (Is.string(opt.source)) {
       sourceList = toArray(sources.getSource(opt.source))
     }
-    let bufnr = await this.nvim.call('bufnr', ['%']) as number
-    let doc = workspace.getAttachedDocument(bufnr)
+    let doc = workspace.getAttachedDocument(events.bufnr)
     let info = await this.nvim.call('coc#util#change_info') as InsertChange
     info.pre = byteSlice(info.line, 0, info.col - 1)
-    const option = this.getCompleteOption(doc, info, true)
+    const option = this.getCompleteOption(doc, info, true, opt.col)
     await this._startCompletion(option, sourceList)
   }
 
@@ -339,9 +338,14 @@ export class Completion implements Disposable {
     return true
   }
 
-  private getCompleteOption(doc: Document, info: InsertChange, manual = false): CompleteOption {
+  private getCompleteOption(doc: Document, info: InsertChange, manual = false, col?: number): CompleteOption {
     let { pre } = info
-    let input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
+    let input: string
+    if (Is.number(col)) {
+      input = byteSlice(info.line, col - 1, info.col - 1)
+    } else {
+      input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
+    }
     let followWord = doc.getStartWord(info.line.slice(info.pre.length))
     return {
       input,
@@ -389,7 +393,6 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     doc._forceSync()
-    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (resolved && inserted) {
       this._mru.add(line.slice(character, inputStart) + input, item)
@@ -397,6 +400,7 @@ export class Completion implements Disposable {
     if (kind == CompleteFinishKind.Confirm && resolved) {
       await this.confirmCompletion(resolved.source, resolved.item, option)
     }
+    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {
@@ -404,7 +408,7 @@ export class Completion implements Disposable {
     if (!Is.func(source.onCompleteDone)) return
     let { insertMode, snippetsSupport } = this.config
     let opt: CompleteDoneOption = Object.assign({ insertMode, snippetsSupport }, option)
-    await source.onCompleteDone(item, opt)
+    await Promise.resolve(source.onCompleteDone(item, opt))
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {

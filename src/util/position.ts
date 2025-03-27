@@ -14,6 +14,10 @@ export function samePosition(one: Position, two: Position): boolean {
   return one.line === two.line && one.character === two.character
 }
 
+export function adjacentPosition(pos: Position, range: Range) {
+  return samePosition(pos, range.start) || samePosition(pos, range.end)
+}
+
 /**
  * A function that compares ranges, useful for sorting ranges
  * It will first compare ranges on the startPosition and then on the endPosition

@@ -454,7 +454,7 @@ export class Workspace {
     }
   }
 
-  public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
+  public async getFormatOptions(uri?: string | number): Promise<FormattingOptions> {
     return this.documentsManager.getFormatOptions(uri)
   }
 

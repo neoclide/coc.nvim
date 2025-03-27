@@ -3,7 +3,6 @@ import type Documents from '../core/documents'
 import events from '../events'
 import { DidChangeTextDocumentParams } from '../types'
 import { disposeAll } from '../util'
-import { isVim } from '../util/constants'
 import { Disposable } from '../util/protocol'
 import type Document from './document'
 
@@ -46,7 +45,8 @@ export default class BufferSync<T extends SyncItem> {
     return Array.from(this.itemsMap.values()).map(x => x.item)
   }
 
-  public getItem(bufnr: number | string): T | undefined {
+  public getItem(bufnr: number | string | undefined): T | undefined {
+    if (bufnr == null) return undefined
     if (typeof bufnr === 'number') {
       return this.itemsMap.get(bufnr)?.item
     }

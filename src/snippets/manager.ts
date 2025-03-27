@@ -3,51 +3,68 @@ import { Neovim } from '@chemzqm/neovim'
 import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
+import BufferSync from '../model/bufferSync'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
-import { defaultValue } from '../util'
-import { deepClone } from '../util/object'
-import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
-import { Disposable } from '../util/protocol'
+import { defaultValue, disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
+import { deepClone } from '../util/object'
+import { emptyRange, toValidRange } from '../util/position'
+import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import { SnippetFormatOptions, UltiSnippetContext } from './eval'
+import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
-import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
+import { getAction, normalizeSnippetString, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
 
 export class SnippetManager {
-  private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
   private _statusItem: StatusBarItem
-  private resolving = false
+  private bufferSync: BufferSync<SnippetSession>
   private mutex: Mutex = new Mutex()
+  private config: SnippetConfig
 
   public init() {
-    events.on('InsertCharPre', (_, bufnr: number) => {
-      // avoid update session when pumvisible
-      // Update may cause completion unexpected terminated.
-      let session = this.getSession(bufnr)
+    this.synchronizeConfig()
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('snippet') || e.affectsConfiguration('suggest')) {
+        this.synchronizeConfig()
+      }
+    }, null, this.disposables)
+    events.on(['InsertCharPre', 'Enter'], () => {
+      let session = this.session
       if (session) session.cancel()
     }, null, this.disposables)
+    events.on('CompleteDone', async () => {
+      let session = this.bufferSync.getItem(workspace.bufnr)
+      if (session) await session.onCompleteDone()
+    }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
-      let session = this.getSession(bufnr)
+      let session = this.bufferSync.getItem(bufnr)
       if (session) await session.checkPosition()
     }, null, this.disposables)
-    workspace.onDidCloseTextDocument(e => {
-      let session = this.getSession(e.bufnr)
-      if (session) session.deactivate()
-    }, null, this.disposables)
+
+    this.bufferSync = workspace.registerBufferSync(doc => {
+      let session = new SnippetSession(this.nvim, doc, this.config)
+      session.onActiveChange(isActive => {
+        if (events.bufnr !== session.bufnr) return
+        this.statusItem[isActive ? 'show' : 'hide']()
+      })
+      return session
+    })
+    this.disposables.push(this.bufferSync)
+
     window.onDidChangeActiveTextEditor(e => {
       if (!this._statusItem) return
-      let session = this.getSession(e.bufnr)
-      if (session) {
+      let session = this.bufferSync.getItem(e.bufnr)
+      if (session && session.isActive) {
         this.statusItem.show()
       } else {
         this.statusItem.hide()
       }
     }, null, this.disposables)
+
     commands.register({
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption | true) => {
@@ -69,72 +86,110 @@ export class SnippetManager {
     return this._statusItem
   }
 
-  private getSnippetConfig(resource: string): SnippetConfig {
-    let config = workspace.getConfiguration('coc.preferences', resource)
-    const snippetConfig = workspace.getConfiguration('snippet', resource)
-    const suggest = workspace.getConfiguration('suggest', resource)
-    return {
-      highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
-      nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('nextPlaceholderOnDelete', false)),
+  private synchronizeConfig(): void {
+    const snippetConfig = workspace.getConfiguration('snippet', null)
+    const suggest = workspace.getConfiguration('suggest', null)
+    let obj = {
+      highlight: defaultValue(snippetConfig.inspect('highlight').globalValue, false) as boolean,
+      nextOnDelete: defaultValue(snippetConfig.inspect('nextPlaceholderOnDelete').globalValue, false) as boolean,
       preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    }
+    if (this.config) {
+      Object.assign(this.config, obj)
+    } else {
+      this.config = obj
+    }
+  }
+
+  private async toRange(range: Range | undefined): Promise<Range> {
+    if (range) return toValidRange(range)
+    let pos = await window.getCursorPosition()
+    return Range.create(pos, pos)
+  }
+
+  /**
+   * Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
+   */
+  public async insertBufferSnippet(bufnr: number, snippet: string | SnippetString, range: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
+    let release = await this.mutex.acquire()
+    try {
+      let document = workspace.getAttachedDocument(bufnr)
+      const session = this.bufferSync.getItem(bufnr)
+      range = toValidRange(range)
+      const currentLine = document.getline(range.start.line)
+      const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+      const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode)
+      let isActive = await session.start(inserted, range, false)
+      release()
+      return isActive
+    } catch (e) {
+      release()
+      throw e
     }
   }
 
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption, checkResolve = false): Promise<boolean> {
-    if (checkResolve && this.resolving) return false
-    let { bufnr } = workspace
-    let doc = workspace.getAttachedDocument(bufnr)
-    if (range && !rangeInRange(range, Range.create(0, 0, doc.lineCount + 1, 0))) {
-      throw new Error(`Unable to insert snippet, invalid range.`)
-    }
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range | undefined, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
+    let { nvim } = workspace
     let release = await this.mutex.acquire()
     try {
+      let document = workspace.getAttachedDocument(workspace.bufnr)
+      const session = this.bufferSync.getItem(document.bufnr)
       let context: UltiSnippetContext
-      if (!range) {
-        let pos = await window.getCursorPosition()
-        range = Range.create(pos, pos)
-      }
-      const currentLine = doc.getline(range.start.line)
+      range = await this.toRange(range)
+      const currentLine = document.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
-      const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip)
+      const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip)
+      let usePy = false
       if (ultisnip != null) {
+        usePy = hasPython(ultisnip) || inserted.includes('`!p')
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
-        if (!emptyRange(range) && inserted.includes('`!p')) {
-          // same behavior as Ultisnips
-          this.nvim.call('coc#cursor#move_to', [range.start.line, range.start.character], true)
-          await doc.applyEdits([{ range, newText: '' }])
-          range.end = Position.create(range.start.line, range.start.character)
+        if (usePy) {
+          if (session.placeholder) {
+            let { placeholder } = session
+            let { start, end } = placeholder.range
+            let last = {
+              current_text: placeholder.value,
+              start: { line: start.line, col: start.character, character: start.character },
+              end: { line: end.line, col: end.character, character: end.character }
+            }
+            this.nvim.setVar('coc_last_placeholder', last, true)
+          } else {
+            this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
+          }
+          const codes = getInitialPythonCode(context)
+          let preExpand = getAction(ultisnip, 'preExpand')
+          if (preExpand) {
+            await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]))
+            const [valid, pos] = await nvim.call('pyxeval', 'snip.getResult()') as [boolean, [number, number]]
+            // need remove the trigger
+            if (valid) {
+              let count = range.end.character - range.start.character
+              let end = Position.create(pos[0], pos[1])
+              let start = Position.create(pos[0], Math.max(0, pos[1] - count))
+              range = Range.create(start, end)
+            } else {
+              // trigger removed already
+              let start = Position.create(pos[0], pos[1])
+              range = Range.create(start, deepClone(start))
+            }
+          } else {
+            await executePythonCode(nvim, codes)
+          }
+        }
+        // same behavior as Ultisnips
+        const { start } = range
+        this.nvim.call('coc#cursor#move_to', [start.line, start.character], true)
+        if (!emptyRange(range)) {
+          await document.applyEdits([TextEdit.del(range)])
+          range.end = Position.create(start.line, start.character)
         }
       }
-      let session = this.getSession(bufnr)
-      if (session) {
-        await session.forceSynchronize()
-        // current session could be canceled on synchronize.
-        session = this.getSession(bufnr)
-      } else {
-        await doc.patchChange(true)
-      }
-      if (!session) {
-        let config = this.getSnippetConfig(doc.uri)
-        session = new SnippetSession(this.nvim, doc, config)
-        session.onCancel(() => {
-          this.sessionMap.delete(bufnr)
-          this.statusItem.hide()
-        })
-      }
-      let isActive = await session.start(inserted, range, select, context)
-      if (isActive) {
-        this.statusItem.show()
-        this.sessionMap.set(bufnr, session)
-      } else {
-        this.statusItem.hide()
-        this.sessionMap.delete(bufnr)
-      }
+      await session.start(inserted, range, select, context)
       release()
-      return isActive
+      return session.isActive
     } catch (e) {
       release()
       throw e
@@ -152,7 +207,6 @@ export class SnippetManager {
       await session.nextPlaceholder()
     } else {
       this.nvim.call('coc#snippet#disable', [], true)
-      this.statusItem.hide()
     }
     return ''
   }
@@ -163,24 +217,32 @@ export class SnippetManager {
       await session.previousPlaceholder()
     } else {
       this.nvim.call('coc#snippet#disable', [], true)
-      this.statusItem.hide()
     }
     return ''
   }
 
   public cancel(): void {
-    let session = this.getSession(workspace.bufnr)
+    let session = this.bufferSync.getItem(workspace.bufnr)
     if (session) return session.deactivate()
     this.nvim.call('coc#snippet#disable', [], true)
-    if (this.statusItem) this.statusItem.hide()
+    this.statusItem.hide()
   }
 
-  public get session(): SnippetSession {
-    return this.getSession(workspace.bufnr)
+  public get session(): SnippetSession | undefined {
+    return this.bufferSync.getItem(workspace.bufnr)
   }
 
-  public getSession(bufnr: number): SnippetSession {
-    return this.sessionMap.get(bufnr)
+  /**
+   * exported method
+   */
+  public getSession(bufnr: number): SnippetSession | undefined {
+    let session = this.bufferSync.getItem(bufnr)
+    return session && session.isActive ? session : undefined
+  }
+
+  public isActivated(bufnr: number): boolean {
+    let session = this.bufferSync.getItem(bufnr)
+    return session && session.isActive
   }
 
   public jumpable(): boolean {
@@ -189,41 +251,30 @@ export class SnippetManager {
     return session.placeholder != null && session.placeholder.index != 0
   }
 
-  public async editsInsideSnippet(edits: TextEdit[]): Promise<boolean> {
-    let session = this.getSession(workspace.bufnr)
-    if (!session || !session.snippet) return false
-    await session.forceSynchronize()
-    let range = session.snippet.range
-    if (edits.some(e => rangeOverlap(e.range, range))) {
-      return true
-    }
-    return false
-  }
-
+  /**
+   * Exposed for snippet preview
+   */
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
-    if (ultisnip) {
-      let session = this.getSession(workspace.bufnr)
-      if (session != null && session.snippet.hasPython) ultisnip.noPython = false
-    }
-    let res: string
+    let session = this.bufferSync.getItem(workspace.bufnr)
+    if (!session) return
+    let release = await this.mutex.acquire()
     try {
-      this.resolving = true
-      res = await SnippetSession.resolveSnippet(this.nvim, snippetString, ultisnip)
+      let res = await session.resolveSnippet(this.nvim, snippetString, ultisnip)
+      release()
+      return res
     } catch (e) {
-      this.resolving = false
+      release()
       throw e
     }
-    this.resolving = false
-    return res
   }
 
-  public async normalizeInsertText(uri: string, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
+  public async normalizeInsertText(bufnr: number, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
     let inserted = ''
     if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
       inserted = snippetString
     } else {
       const currentIndent = currentLine.match(/^\s*/)[0]
-      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(uri) as SnippetFormatOptions
+      const formatOptions = window.activeTextEditor ? window.activeTextEditor.options : await workspace.getFormatOptions(bufnr) as SnippetFormatOptions
       let opts: Partial<UltiSnippetOption> = ultisnip ?? {}
       // trim when option not exists
       formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false
@@ -235,9 +286,7 @@ export class SnippetManager {
 
   public dispose(): void {
     this.cancel()
-    for (let d of this.disposables) {
-      d.dispose()
-    }
+    disposeAll(this.disposables)
   }
 }
 

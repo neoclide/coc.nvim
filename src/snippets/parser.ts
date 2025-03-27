@@ -4,13 +4,17 @@ import { createLogger } from '../logger'
 import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
+import { onUnexpectedError } from '../util/errors'
 import { unidecode } from '../util/node'
 import { iterateCharacter, toText } from '../util/string'
-import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
+import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
+import { convertRegex } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
+let id = 0
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
+const ultisnipSpecialEscape = ['u', 'l', 'U', 'L', 'E', 'n', 't']
 export const enum TokenType {
   Dollar,
   Colon,
@@ -148,9 +152,7 @@ export class Scanner {
 }
 
 export abstract class Marker {
-
   public readonly _markerBrand: any
-
   public parent: Marker
   protected _children: Marker[] = []
 
@@ -176,6 +178,32 @@ export abstract class Marker {
       child.parent = this
     }
     this._children = children
+  }
+
+  public replaceWith(newMarker: Marker): boolean {
+    if (!this.parent) return false
+    let p = this.parent
+    let idx = p.children.indexOf(this)
+    if (idx == -1) return false
+    newMarker.parent = p
+    p.children.splice(idx, 1, newMarker)
+    return true
+  }
+
+  public insertBefore(text: string): void {
+    if (!this.parent) return
+    let p = this.parent
+    let idx = p.children.indexOf(this)
+    if (idx == -1) return
+    let prev = p.children[idx - 1]
+    if (prev instanceof Text) {
+      let v = prev.value
+      prev.replaceWith(new Text(v + text))
+    } else {
+      let marker = new Text(text)
+      marker.parent = p
+      p.children.splice(idx, 0, marker)
+    }
   }
 
   public get children(): Marker[] {
@@ -263,18 +291,6 @@ export class CodeBlock extends Marker {
     return this._related
   }
 
-  public update(map: Map<number, number>): void {
-    if (this.kind !== 'python') return
-    let related: Set<number> = new Set()
-    this.code = this.code.replace(/\bt\[(\d+)\]/g, (_, p1) => {
-      let idx = Number(p1)
-      let id = map.has(idx) ? map.get(idx) : idx
-      related.add(id)
-      return `t[${id}]`
-    })
-    this._related = Array.from(related)
-  }
-
   public get index(): number | undefined {
     if (this.parent instanceof Placeholder) {
       return this.parent.index
@@ -323,6 +339,7 @@ abstract class TransformableMarker extends Marker {
 
 export class Placeholder extends TransformableMarker {
   public primary = false
+  public id: number
 
   constructor(public index: number) {
     super()
@@ -336,13 +353,6 @@ export class Placeholder extends TransformableMarker {
     return this._children.length === 1 && this._children[0] instanceof Choice
       ? this._children[0] as Choice
       : undefined
-  }
-
-  public get nestedPlaceholderCount(): number {
-    if (this.transform) return 0
-    return this._children.reduce((p, marker) => {
-      return p + (marker instanceof Placeholder ? 1 + marker.nestedPlaceholderCount : 0)
-    }, 0)
   }
 
   public toTextmateString(): string {
@@ -366,13 +376,34 @@ export class Placeholder extends TransformableMarker {
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
-    ret._children = this.children.map(child => child.clone())
+    ret.id = this.id
+    ret.primary = this.primary
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
+  }
+
+  public checkParentPlaceHolders(): void {
+    let idx = this.index
+    let p = this.parent
+    while (p != null && !(p instanceof TextmateSnippet)) {
+      if (p instanceof Placeholder && p.index == idx) {
+        throw new Error(`Parent placeholder has same index: ${idx}`)
+      }
+      p = p.parent
+    }
   }
 }
 
 export class Choice extends Marker {
-
+  private _index
+  constructor(index = 0) {
+    super()
+    this._index = index
+  }
   public readonly options: Text[] = []
 
   public appendChild(marker: Marker): this {
@@ -384,7 +415,7 @@ export class Choice extends Marker {
   }
 
   public toString(): string {
-    return this.options[0].value
+    return this.options[this._index].value
   }
 
   public toTextmateString(): string {
@@ -394,13 +425,13 @@ export class Choice extends Marker {
   }
 
   public len(): number {
-    return this.options[0].len()
+    return this.options[this._index].len()
   }
 
   public clone(): Choice {
-    let ret = new Choice()
+    let ret = new Choice(this._index)
     for (let opt of this.options) {
-      ret.appendChild(opt as any)
+      ret.appendChild(opt)
     }
     return ret
   }
@@ -443,7 +474,7 @@ export class Transform extends Marker {
         val = marker.resolve(groups[marker.index])
         if (this.ultisnip) {
           val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
-            return groups[Number(args[1])] ?? ''
+            return toText(groups[Number(args[1])])
           })
         }
       } else {
@@ -465,7 +496,7 @@ export class Transform extends Marker {
     if (this.ultisnip) {
       // avoid bad escape of Text for ultisnip format
       format = format.replace(/\\\\(\w)/g, (match, ch) => {
-        if (['u', 'l', 'U', 'L', 'E', 'n', 't'].includes(ch)) {
+        if (ultisnipSpecialEscape.includes(ch)) {
           return '\\' + ch
         }
         return match
@@ -477,7 +508,11 @@ export class Transform extends Marker {
   public clone(): Transform {
     let ret = new Transform()
     ret.regexp = new RegExp(this.regexp.source, '' + (this.regexp.ignoreCase ? 'i' : '') + (this.regexp.global ? 'g' : ''))
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 
@@ -506,11 +541,12 @@ export class ConditionString extends Marker {
   }
 }
 
+// TODO ultisnip only, not used yet
 export class ConditionMarker extends Marker {
   constructor(
     public readonly index: number,
-    protected ifMarkers: Marker[] = [],
-    protected elseMarkers: Marker[] = []
+    protected ifMarkers: Marker[],
+    protected elseMarkers: Marker[],
   ) {
     super()
   }
@@ -631,7 +667,7 @@ export class Variable extends TransformableMarker {
           indent = lines[lines.length - 1].match(/^\s*/)[0]
         }
         return true
-      })
+      }, true)
       let lines = value.split('\n')
       let indents = lines.filter(s => s.length > 0).map(s => s.match(/^\s*/)[0])
       let minIndent = indents.reduce((p, c) => p < c.length ? p : c.length, 0)
@@ -639,14 +675,12 @@ export class Variable extends TransformableMarker {
         indent + s.slice(minIndent))
       value = newLines.join('\n')
     }
+    if (typeof value !== 'string') return false
     if (this.transform) {
       value = this.transform.resolve(toText(value))
     }
-    if (value != null) {
-      this._children = [new Text(value.toString())]
-      return true
-    }
-    return false
+    this._children = [new Text(value.toString())]
+    return true
   }
 
   public toTextmateString(): string {
@@ -666,7 +700,11 @@ export class Variable extends TransformableMarker {
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 }
@@ -677,15 +715,15 @@ export interface VariableResolver {
 
 export interface PlaceholderInfo {
   placeholders: Placeholder[]
-  variables: Variable[]
   pyBlocks: CodeBlock[]
   otherBlocks: CodeBlock[]
 }
 
-function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
+function walk(marker: Marker[], visitor: (marker: Marker) => boolean, ignoreChild = false): void {
   const stack = [...marker]
   while (stack.length > 0) {
     const marker = stack.shift()
+    if (ignoreChild && marker instanceof TextmateSnippet) continue
     const recurse = visitor(marker)
     if (!recurse) {
       break
@@ -697,14 +735,12 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 export class TextmateSnippet extends Marker {
 
   public readonly ultisnip: boolean
-  private _placeholders?: PlaceholderInfo
-  private _values?: { [index: number]: string }
   constructor(ultisnip?: boolean) {
     super()
     this.ultisnip = ultisnip === true
   }
 
-  public get hasPython(): boolean {
+  public get hasPythonBlock(): boolean {
     if (!this.ultisnip) return false
     return this.pyBlocks.length > 0
   }
@@ -719,10 +755,10 @@ export class TextmateSnippet extends Marker {
    * Values for each placeholder index
    */
   public get values(): { [index: number]: string } {
-    if (this._values) return this._values
     let values: { [index: number]: string } = {}
     let maxIndexNumber = 0
     this.placeholders.forEach(c => {
+      if (!Number.isInteger(c.index)) return
       maxIndexNumber = Math.max(c.index, maxIndexNumber)
       if (c.transform != null) return
       if (c.primary || values[c.index] === undefined) values[c.index] = c.toString()
@@ -730,7 +766,6 @@ export class TextmateSnippet extends Marker {
     for (let i = 0; i <= maxIndexNumber; i++) {
       if (values[i] === undefined) values[i] = ''
     }
-    this._values = values
     return values
   }
 
@@ -766,8 +801,8 @@ export class TextmateSnippet extends Marker {
     return res
   }
 
-  public async evalCodeBlocks(nvim: Neovim, prepareCodes: string[]): Promise<void> {
-    let { pyBlocks, otherBlocks } = this
+  public async evalCodeBlocks(nvim: Neovim, pyCodes: string[]): Promise<void> {
+    const { pyBlocks, otherBlocks } = this.placeholderInfo
     // update none python blocks
     await Promise.all(otherBlocks.map(block => {
       let pre = block.value
@@ -778,56 +813,42 @@ export class TextmateSnippet extends Marker {
         }
       })
     }))
-    if (pyBlocks.length) {
-      // run all python code by sequence
-      const variableCode = getVariablesCode(this.values)
-      await executePythonCode(nvim, [...prepareCodes, variableCode])
-      for (let block of pyBlocks) {
-        let pre = block.value
-        await block.resolve(nvim)
-        if (pre === block.value) continue
-        if (block.parent instanceof Placeholder) {
-          // update placeholder with same index
-          this.onPlaceholderUpdate(block.parent)
-          await executePythonCode(nvim, [getVariablesCode(this.values)])
-        }
+    if (pyCodes.length === 0) return
+    // run all python code by sequence
+    const variableCode = getVariablesCode(this.values)
+    await executePythonCode(nvim, [...pyCodes, variableCode])
+    for (let block of pyBlocks) {
+      let pre = block.value
+      await block.resolve(nvim)
+      if (pre === block.value) continue
+      if (block.parent instanceof Placeholder) {
+        // update placeholder with same index
+        this.onPlaceholderUpdate(block.parent)
+        await executePythonCode(nvim, [getVariablesCode(this.values)])
       }
-      for (let block of this.orderedPyIndexBlocks) {
-        await this.updatePyIndexBlock(nvim, block)
-      }
-      // update normal python block with related.
-      let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-      for (let block of filtered) {
-        await block.resolve(nvim)
-      }
+    }
+    for (let block of this.orderedPyIndexBlocks) {
+      await this.updatePyIndexBlock(nvim, block)
+    }
+    // update normal python block with related.
+    let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
+    for (let block of filtered) {
+      await block.resolve(nvim)
     }
   }
 
   /**
    * Update python blocks after user change Placeholder with index
    */
-  public async updatePythonCodes(nvim: Neovim, marker: Marker): Promise<void> {
-    let index: number | undefined
-    if (marker instanceof Placeholder) {
-      index = marker.index
-    } else {
-      // variables of ultisnips can't be updated,
-      while (marker.parent) {
-        if (marker instanceof Placeholder) {
-          index = marker.index
-          break
-        }
-        marker = marker.parent
-      }
-      if (index === undefined) return
-    }
+  public async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
+    let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
     await executePythonCode(nvim, [getVariablesCode(this.values)])
     for (let block of blocks) {
       await this.updatePyIndexBlock(nvim, block)
     }
-    // update normal py codes.
+    // update normal pyBlocks.
     let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
     for (let block of filtered) {
       await block.resolve(nvim)
@@ -865,41 +886,45 @@ export class TextmateSnippet extends Marker {
   }
 
   public get placeholderInfo(): PlaceholderInfo {
-    if (!this._placeholders) {
-      const variables = []
-      const pyBlocks: CodeBlock[] = []
-      const otherBlocks: CodeBlock[] = []
-      // fill in placeholders
-      let placeholders: Placeholder[] = []
-      this.walk(candidate => {
-        if (candidate instanceof Placeholder) {
-          placeholders.push(candidate)
-        } else if (candidate instanceof Variable) {
-          let first = candidate.name.charCodeAt(0)
-          // not jumpover for uppercase variable.
-          if (first < 65 || first > 90) {
-            variables.push(candidate)
-          }
-        } else if (candidate instanceof CodeBlock) {
-          if (candidate.kind === 'python') {
-            pyBlocks.push(candidate)
-          } else {
-            otherBlocks.push(candidate)
-          }
+    const pyBlocks: CodeBlock[] = []
+    const otherBlocks: CodeBlock[] = []
+    // fill in placeholders
+    let placeholders: Placeholder[] = []
+    this.walk(candidate => {
+      if (candidate instanceof Placeholder) {
+        placeholders.push(candidate)
+      } else if (candidate instanceof CodeBlock) {
+        if (candidate.kind === 'python') {
+          pyBlocks.push(candidate)
+        } else {
+          otherBlocks.push(candidate)
         }
-        return true
-      })
-      this._placeholders = { placeholders, pyBlocks, otherBlocks, variables }
-    }
-    return this._placeholders
+      }
+      return true
+    }, true)
+    return { placeholders, pyBlocks, otherBlocks }
   }
 
   public get variables(): Variable[] {
-    return this.placeholderInfo.variables
+    const variables = []
+    this.walk(candidate => {
+      if (candidate instanceof Variable) {
+        variables.push(candidate)
+      }
+      return true
+    }, true)
+    return variables
   }
 
   public get placeholders(): Placeholder[] {
-    return this.placeholderInfo.placeholders
+    let placeholders: Placeholder[] = []
+    this.walk(candidate => {
+      if (candidate instanceof Placeholder) {
+        placeholders.push(candidate)
+      }
+      return true
+    }, true)
+    return placeholders
   }
 
   public get pyBlocks(): CodeBlock[] {
@@ -910,131 +935,31 @@ export class TextmateSnippet extends Marker {
     return this.placeholderInfo.otherBlocks
   }
 
-  public get maxIndexNumber(): number {
+  public get first(): Placeholder {
     let { placeholders } = this
-    return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0)
-  }
-
-  public get first(): Placeholder | Variable {
-    let { placeholders, variables } = this
     let [normals, finals] = groupBy(placeholders.filter(p => !p.transform), v => v.index !== 0)
     if (normals.length) {
       let minIndex = Math.min.apply(null, normals.map(o => o.index))
       let arr = normals.filter(v => v.index == minIndex)
       return arr.find(p => p.primary) ?? arr[0]
     }
-    if (variables.length) return variables[0]
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
-    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
-    let [before, after] = parts
-    let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
-    let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
-    let maxIndexAdded = nested.maxIndexNumber + 1
-    let changed: Map<number, number> = new Map()
-    for (let p of nested.placeholders) {
-      let idx = p.index
-      if (p.isFinalTabstop) {
-        p.index = maxIndexAdded + index
-        p.primary = true
-      } else {
-        p.index = p.index + index
-      }
-      changed.set(idx, p.index)
-    }
-    if (ultisnip) {
-      nested.pyBlocks.forEach(b => {
-        b.update(changed)
-      })
-    }
-    let map: Map<number, number> = new Map()
-    this.walk(m => {
-      if (m instanceof Placeholder && m.index > index) {
-        let idx = m.index
-        m.index = m.index + maxIndexAdded
-        map.set(idx, m.index)
-      }
-      return true
-    })
-    if (this.hasPython) {
-      this.walk(m => {
-        if (m instanceof CodeBlock) {
-          m.update(map)
-        }
-        return true
-      })
-    }
-    const select = nested.first
-    let children = nested.children.slice()
-    if (before) children.unshift(new Text(before))
-    if (after) children.push(new Text(after))
-    this.replace(marker, children)
-    return select
-  }
-
-  public async update(nvim: Neovim, marker: Placeholder | Variable, value: string): Promise<void> {
-    this.resetMarker(marker, value)
-    if (this.hasPython) {
-      await this.updatePythonCodes(nvim, marker)
-    }
-  }
-
-  public deleteText(offset: number, length: number): boolean {
-    let pos = 0
-    let marker: Text | undefined
-    let end = offset + length
-    let start = 0
-    this.walk(candidate => {
-      let len = candidate.len()
-      if (candidate instanceof Text && offset >= pos && pos + len >= end) {
-        marker = candidate
-        start = offset - pos
-        return false
-      }
-      pos += len
-      return true
-    })
-    if (!marker) return false
-    let parent = marker.parent
-    let text = marker.value
-    let value = text.slice(0, start) + text.slice(start + length)
-    let children = parent.children.slice()
-    let idx = children.indexOf(marker)
-    children.splice(idx, 1, new Text(value))
-    parent.replaceChildren(children)
-    return true
-  }
-
-  public resetMarker(marker: Placeholder | Variable, val: string): void {
-    let markers: (Placeholder | Variable)[]
-    if (marker instanceof Placeholder) {
-      markers = this.placeholders.filter(o => o.index == marker.index)
-    } else {
-      markers = this.variables.filter(o => o.name == marker.name)
-    }
-    for (let p of markers) {
-      let newText = p.transform ? p.transform.resolve(val) : val
-      p.setOnlyChild(new Text(newText || ''))
-    }
-    this.synchronizeParents(markers)
-    this.reset()
+  public async update(nvim: Neovim, marker: Placeholder, noPython: boolean): Promise<void> {
+    this.onPlaceholderUpdate(marker)
+    if (noPython || !this.hasPythonBlock) return
+    await this.updatePythonCodes(nvim, marker)
   }
 
   /**
    * Reflact changes for related markers.
    */
-  public onPlaceholderUpdate(marker: Placeholder | Variable): void {
+  public onPlaceholderUpdate(marker: Placeholder): void {
     let val = marker.toString()
-    let markers: Placeholder[] | Variable[]
-    if (marker instanceof Placeholder) {
-      this.values[marker.index] = val
-      markers = this.placeholders.filter(o => o.index == marker.index)
-    } else {
-      markers = this.variables.filter(o => o.name == marker.name)
-    }
+    let markers = this.placeholders.filter(o => o.index == marker.index)
     for (let p of markers) {
+      p.checkParentPlaceHolders()
       if (p === marker) continue
       let newText = p.transform ? p.transform.resolve(val) : val
       p.setOnlyChild(new Text(toText(newText)))
@@ -1043,16 +968,14 @@ export class TextmateSnippet extends Marker {
   }
 
   public synchronizeParents(markers: Marker[]): void {
-    let arr: Placeholder[] = []
+    let parents: Set<Placeholder> = new Set()
     markers.forEach(m => {
       let p = m.parent
-      if (p instanceof Placeholder && !arr.includes(p)) {
-        arr.push(p)
-      }
+      if (p instanceof Placeholder) parents.add(p)
     })
-    arr.forEach(p => {
+    for (let p of parents) {
       this.onPlaceholderUpdate(p)
-    })
+    }
   }
 
   public offset(marker: Marker): number {
@@ -1065,7 +988,7 @@ export class TextmateSnippet extends Marker {
       }
       pos += candidate.len()
       return true
-    })
+    }, true)
 
     if (!found) {
       return -1
@@ -1113,38 +1036,71 @@ export class TextmateSnippet extends Marker {
   }
 
   public async resolveVariables(resolver: VariableResolver): Promise<void> {
-    let items: Variable[] = []
-    this.walk(candidate => {
-      if (candidate instanceof Variable && !candidate.resolved) {
-        items.push(candidate)
-      }
-      return true
-    })
-    if (items.length) {
-      await Promise.all(items.map(o => o.resolve(resolver)))
-      this.synchronizeParents(items)
+    let variables = this.variables
+    if (variables.length === 0) return
+    let failed: Variable[] = []
+    let succeed: Variable[] = []
+    let promises: Promise<void>[] = []
+    const changedParents: Set<Marker> = new Set()
+    for (let item of variables) {
+      promises.push(item.resolve(resolver).then(res => {
+        changedParents.add(item.parent)
+        let arr = res ? succeed : failed
+        arr.push(item)
+      }, onUnexpectedError))
     }
+    await Promise.allSettled(promises)
+    // convert resolved variables to text
+    for (const variable of succeed) {
+      let text = new Text(variable.toString())
+      variable.replaceWith(text)
+    }
+    if (failed.length > 0) {
+      // convert to placeholders
+      let indexMap: Map<string, number> = new Map()
+      const primarySet: Set<number> = new Set()
+      // create index for variables
+      let max = this.getMaxPlaceholderIndex()
+      for (let i = 0; i < failed.length; i++) {
+        const v = failed[i]
+        let idx = indexMap.get(v.name)
+        if (idx == null) {
+          idx = ++max
+          indexMap.set(v.name, idx)
+        }
+        let p = new Placeholder(idx)
+        p.transform = v.transform
+        if (!p.transform && !primarySet.has(idx)) {
+          primarySet.add(idx)
+          p.primary = true
+        }
+        let newText = p.transform ? p.transform.resolve(v.name) : v.name
+        p.setOnlyChild(new Text(toText(newText)))
+        v.replaceWith(p)
+      }
+    }
+    changedParents.forEach(marker => {
+      mergeTexts(marker)
+      if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker)
+    })
   }
 
-  public appendChild(child: Marker): this {
-    this.reset()
-    return super.appendChild(child)
+  public getMaxPlaceholderIndex(): number {
+    let res = 0
+    this.walk(candidate => {
+      if (candidate instanceof Placeholder) {
+        res = Math.max(res, candidate.index)
+      }
+      return true
+    }, true)
+    return res
   }
 
   public replace(marker: Marker, children: Marker[]): void {
     marker.replaceChildren(children)
-    if (marker instanceof Placeholder || marker instanceof Variable) {
+    if (marker instanceof Placeholder) {
       this.onPlaceholderUpdate(marker)
     }
-    this.reset()
-  }
-
-  /**
-   * Used on replace happens.
-   */
-  public reset(): void {
-    this._placeholders = undefined
-    this._values = undefined
   }
 
   public toTextmateString(): string {
@@ -1153,20 +1109,21 @@ export class TextmateSnippet extends Marker {
 
   public clone(): TextmateSnippet {
     let ret = new TextmateSnippet(this.ultisnip)
-    ret._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => {
+      let m = child.clone()
+      m.parent = ret
+      return m
+    })
     return ret
   }
 
-  public walk(visitor: (marker: Marker) => boolean): void {
-    walk(this.children, visitor)
+  public walk(visitor: (marker: Marker) => boolean, ignoreChild = false): void {
+    walk(this.children, visitor, ignoreChild)
   }
 }
 
 export class SnippetParser {
-  constructor(
-    private ultisnip?: boolean,
-    private matchCode?: string
-  ) {
+  constructor(private ultisnip?: boolean) {
   }
 
   public static escape(value: string): string {
@@ -1354,9 +1311,6 @@ export class SnippetParser {
         let text = marker.value
         for (let index = 0; index < text.length; index++) {
           const ch = text[index]
-          if (ch === '\n') {
-            return true
-          }
           if (ch === '{') {
             count++
           } else if (ch === '}') {
@@ -1386,6 +1340,7 @@ export class SnippetParser {
         const lastChar = this._scanner.isEnd()
         // ...} -> done
         if (this._accept(TokenType.CurlyClose)) {
+          // we should consider ${1:{}} with text as {}, like ultisnip.
           // check if missed paried }
           if (!this._checkCulybrace(placeholder) && !lastChar) {
             placeholder.appendChild(new Text('}'))
@@ -1779,9 +1734,8 @@ export class SnippetParser {
       }
       if (text.startsWith('!p')) {
         let code = text.slice(2)
-        let pre = this.matchCode ? this.matchCode + '\n' : ''
         if (code.indexOf('\n') == -1) {
-          let marker = new CodeBlock(pre + code.trim(), 'python')
+          let marker = new CodeBlock(code.trim(), 'python')
           parent.appendChild(marker)
         } else {
           let codes = code.split(/\r?\n/)
@@ -1793,7 +1747,7 @@ export class SnippetParser {
             codes = codes.map(s => s.slice(ind.length))
           }
           if (ind == ' ' && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1)
-          let marker = new CodeBlock(pre + codes.join('\n'), 'python')
+          let marker = new CodeBlock(codes.join('\n'), 'python')
           parent.appendChild(marker)
         }
         return true
@@ -1873,4 +1827,41 @@ export function transformEscapes(input: string, backslashIndexes = []): string {
     i++
   }
   return res
+}
+
+// merge adjacent Texts of marker's children
+export function mergeTexts(marker: Marker, begin = 0): void {
+  let { children } = marker
+  let end: number | undefined
+  let start: number
+  for (let i = begin; i < children.length; i++) {
+    let m = children[i]
+    if (m instanceof Text) {
+      if (start !== undefined) {
+        end = i
+      } else {
+        start = i
+      }
+    } else {
+      if (end !== undefined) {
+        break
+      }
+      start = undefined
+    }
+  }
+  if (end === undefined) return
+  let newText = ''
+  for (let i = start; i <= end; i++) {
+    newText += children[i].toString()
+  }
+  let m = new Text(newText)
+  children.splice(start, end - start + 1, m)
+  m.parent = marker
+  return mergeTexts(marker, start + 1)
+}
+
+export function getPlaceholderId(p: Placeholder): number {
+  if (typeof p.id === 'number') return p.id
+  p.id = id++
+  return p.id
 }

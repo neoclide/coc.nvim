@@ -158,7 +158,7 @@ describe('ExtensionManager', () => {
       tmpfolder = createFolder()
       let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
       createExtension(tmpfolder, {
-        name: 'FooBar',
+        name: 'auto',
         engines: { coc: '>= 0.0.80' },
         activationEvents: ['workspaceContains:base.js'],
         contributes: {
@@ -176,13 +176,14 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
-      let item = manager.getExtension('FooBar')
+      let item = manager.getExtension('auto')
       await helper.waitValue(() => {
         return item.extension.isActive
       }, true)
       expect(manager.all.length).toBe(1)
-      expect(manager.getExtensionState('FooBar')).toBe('activated')
+      expect(manager.getExtensionState('auto')).toBe('activated')
       expect(item.extension.exports['abs']).toBeDefined()
+      fs.rmSync(folder, { recursive: true, force: true })
     })
   })
 

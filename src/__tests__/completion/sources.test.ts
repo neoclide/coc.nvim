@@ -15,6 +15,7 @@ import { disposeAll } from '../../util'
 import extensions from '../../extension'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
+import { WordsSource } from '../../snippets/util'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -488,11 +489,12 @@ describe('native sources', () => {
     let stats = sources.sourceStats()
     let find = stats.find(o => o.name === '$words')
     expect(find).toBeUndefined()
-    let s = sources.getSource('$words')
+    let s = sources.getSource('$words') as WordsSource
     expect(s.name).toBe('$words')
     expect(s.shortcut).toBe('')
     expect(s.triggerOnly).toBe(true)
-    sources.setWords(['foo', 'bar'], 1)
+    s.words = ['foo', 'bar']
+    s.startcol = 1
     await nvim.setLine('longwords')
     await nvim.input('A')
     nvim.call('coc#start', { source: '$words' }, true)

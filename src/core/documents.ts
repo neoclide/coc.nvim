@@ -353,8 +353,8 @@ export default class Documents implements Disposable {
   /**
    * Get format options
    */
-  public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
-    let bufnr = this.getBufnr(uri)
+  public async getFormatOptions(uri?: string | number): Promise<FormattingOptions> {
+    let bufnr = typeof uri === 'number' ? uri : this.getBufnr(uri)
     let res = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as VimFormatOption
     return convertFormatOptions(res)
   }

@@ -227,7 +227,7 @@ describe('format handler', () => {
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines
       expect(lines).toEqual(['  a', '  b', '  c'])
-      let options = await workspace.getFormatOptions(doc.uri)
+      let options = await workspace.getFormatOptions(doc.bufnr)
       let token = (new CancellationTokenSource()).token
       let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
       expect(edits.length).toBeGreaterThan(0)

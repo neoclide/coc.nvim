@@ -28,7 +28,10 @@ endfunction
 
 function! coc#snippet#show_choices(lnum, col, position, input) abort
   call coc#snippet#move(a:position)
-  call CocActionAsync('startCompletion', { 'source': '$words' })
+  call CocActionAsync('startCompletion', {
+          \ 'source': '$words',
+          \ 'col': a:col
+          \ })
   redraw
 endfunction
 
@@ -49,15 +52,15 @@ function! coc#snippet#enable(...)
   endif
   if !empty(nextkey)
     if s:map_next
-      execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#snippet#jump(1, ".complete.")<cr>"
+      execute 'inoremap <buffer><nowait><silent>'.nextkey." <Cmd>:call coc#snippet#jump(1, ".complete.")<cr>"
     endif
-    execute 'snoremap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#snippet#jump(1, ".complete.")<cr>"
+    execute 'snoremap <buffer><nowait><silent>'.nextkey." <Cmd>:call coc#snippet#jump(1, ".complete.")<cr>"
   endif
   if !empty(prevkey)
     if s:map_prev
-      execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#snippet#jump(0, ".complete.")<cr>"
+      execute 'inoremap <buffer><nowait><silent>'.prevkey." <Cmd>:call coc#snippet#jump(0, ".complete.")<cr>"
     endif
-    execute 'snoremap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#snippet#jump(0, ".complete.")<cr>"
+    execute 'snoremap <buffer><nowait><silent>'.prevkey." <Cmd>:call coc#snippet#jump(0, ".complete.")<cr>"
   endif
 endfunction
 
@@ -84,6 +87,7 @@ function! coc#snippet#jump(direction, complete) abort
       return ''
     endif
   endif
+  call coc#pum#close()
   call coc#rpc#request(a:direction == 1 ? 'snippetNext' : 'snippetPrev', [])
   return ''
 endfunction
@@ -128,7 +132,7 @@ function! coc#snippet#select(start, end, text) abort
     let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
     let cmd .= "o\<C-g>"
   endif
-  call feedkeys(cmd, 'n')
+  call feedkeys(cmd, 'nt')
 endfunction
 
 function! coc#snippet#move(position) abort

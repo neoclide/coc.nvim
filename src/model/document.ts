@@ -48,6 +48,7 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _commandLine = false
+  private _applyQueque = []
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -221,18 +222,23 @@ export default class Document {
   public attach(): void {
     if (isVim) return
     let lines = this.lines
+    const id = this.buffer.id
     this.buffer.attach(true).then(res => {
       if (!res) fireDetach(this.bufnr)
     }, _e => {
       fireDetach(this.bufnr)
     })
-    this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
+    this.buffer.listen('lines', (_buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (tick && tick > this._changedtick) {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
+        let prev = this._applyQueque.shift()
+        if (prev && equals(prev, lines)) {
+          return
+        }
         this.lines = lines
-        fireLinesChanged(buf.id)
+        fireLinesChanged(id)
         if (events.pumvisible) return
         this.fireContentChanges()
       }
@@ -256,20 +262,21 @@ export default class Document {
     return !equals(this.lines, this.syncLines)
   }
 
+  /**
+   * Cursor position if document is current document
+   */
+  public get cursor(): Position | undefined {
+    let { cursor } = events
+    if (cursor.bufnr !== this.bufnr) return undefined
+    let content = this.lines[cursor.lnum - 1] ?? ''
+    return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
+  }
+
   private _fireContentChanges(edit?: TextEdit): void {
     if (this.lines === this.syncLines) return
     let textDocument = this._textDocument
     let changes: TextDocumentContentChange[] = []
-    if (!edit) {
-      let { cursor } = events
-      let pos: Position
-      // consider cursor position.
-      if (cursor.bufnr == this.bufnr) {
-        let content = this.lines[cursor.lnum - 1] ?? ''
-        pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
-      }
-      edit = getTextEdit(textDocument.lines, this.lines, pos, cursor.insert)
-    }
+    if (!edit) edit = getTextEdit(textDocument.lines, this.lines, this.cursor, events.cursor.insert)
     let original: string
     if (edit) {
       original = textDocument.getText(edit.range)
@@ -311,14 +318,10 @@ export default class Document {
       changes = toTextChanges(lines, edits)
     }
     let cursor: [number, number]
-    let isCurrent = events.bufnr == this.bufnr
+    let isCurrent = events.bufnr === this.bufnr
     let col: number
     if (move && isCurrent && !isAppend) {
-      let pos = Position.is(move) ? move : undefined
-      if (!pos && this.bufnr === events.cursor.bufnr) {
-        let { col, lnum } = events.cursor
-        pos = Position.create(lnum - 1, characterIndex(this.lines[lnum - 1], col - 1))
-      }
+      let pos = Position.is(move) ? move : this.cursor
       if (pos) {
         let position = getPositionFromEdits(pos, edits)
         if (comparePosition(pos, position) !== 0) {
@@ -347,10 +350,10 @@ export default class Document {
       ], true)
     }
     this.nvim.resumeNotification(isCurrent, true)
-    let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
-    await waitNextTick()
+    this._applyQueque.push(newLines)
     this.lines = newLines
-    fireLinesChanged(this.bufnr)
+    await waitNextTick()
+    let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
     let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
@@ -639,10 +642,9 @@ export default class Document {
    * Used by vim8 to fetch lines.
    */
   public onTextChange(event: string, change: InsertChange): void {
-    if (event === 'TextChanged'
-      || event === 'TextChangedI'
-      || !this._noFetch) {
-      fireLinesChanged(this.bufnr)
+    if (event === 'TextChanged' || event === 'TextChangedI' || !this._noFetch) {
+      let prev = this._applyQueque.shift()
+      if (!prev) fireLinesChanged(this.bufnr)
       this._noFetch = false
       void this._fetchContent()
       return

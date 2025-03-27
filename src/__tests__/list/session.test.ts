@@ -171,7 +171,7 @@ describe('list session', () => {
       await manager.cancel(true)
       let ses = manager.getSession('reload')
       await ses.reloadItems()
-      expect(fn).toBeCalledTimes(1)
+      expect(fn).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -319,7 +319,7 @@ describe('chooseAction()', () => {
     await helper.wait(50)
     await nvim.input('a')
     await p
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should choose action by menu picker', async () => {
