@@ -156,11 +156,11 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   else
-    if len(a:highlights) > g:coc_highlight_maximum_count
-      call coc#vim9#Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
-    else
-      call coc#vim9#Add_highlights(a:bufnr, ns, a:highlights, a:priority)
-    endif
+    try
+      call coc#vim9#Set_highlights(a:bufnr, ns, a:highlights, a:priority)
+    catch /.*/
+     let g:e = v:exception
+    endtry
   endif
 endfunction
 

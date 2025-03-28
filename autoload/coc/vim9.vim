@@ -9,25 +9,37 @@ scriptencoding utf-8
 # type HighlightItemList = list<HighlightItem>
 # NOTE: Can't use type on vim9.0.0438
 
-export def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: number)
+export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number)
+  const maxCount = g:coc_highlight_maximum_count
+  if len(highlights) > maxCount
+    const changedtick = getbufvar(bufnr, 'changedtick', 0)
+    Add_highlights_timer(bufnr, ns, highlights, priority, changedtick, maxCount)
+  else
+    Add_highlights(bufnr, ns, highlights, priority)
+  endif
+enddef
+
+def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: number, changedtick: number, maxCount: number)
+  if getbufvar(bufnr, 'changedtick') != changedtick
+    return
+  endif
   const lengthOfHighlightItemList: number = len(highlights)
-  const maximumCount: number = g:coc_highlight_maximum_count
   var highlightItemList: list<any>
   var next: list<any>
-  if maximumCount < lengthOfHighlightItemList
-    highlightItemList = highlights[ : maximumCount - 1]
-    next = highlights[maximumCount : ]
+  if maxCount < lengthOfHighlightItemList
+    highlightItemList = highlights[ : maxCount - 1]
+    next = highlights[maxCount : ]
   else
     highlightItemList = highlights[ : ]
     next = []
   endif
   Add_highlights(bufnr, ns, highlightItemList, priority)
   if len(next) > 0
-    timer_start(30,  (_) => Add_highlights_timer(bufnr, ns, next, priority))
+    timer_start(30,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, maxCount))
   endif
 enddef
 
-export def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
+def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
   if bufwinnr(bufnr) == -1 # check buffer exists
     return
   endif
@@ -73,13 +85,9 @@ export def Get_highlights(bufnr: number, ns: number, start: number, end: number)
     endif
     const startCol: number = prop['col'] - 1
     const endCol: number = startCol + prop['length']
-    add(res, [ Prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id'] ])
+    add(res, [ substitute(prop['type'], '_\d\+$', '', ''), prop['lnum'] - 1, startCol, endCol, prop['id'] ])
   endfor
   return res
-enddef
-
-def Prop_type_hlgroup(type: string): string
-  return substitute(type, '_\d\+$', '', '')
 enddef
 
 export def Del_markers(bufnr: number, ids: list<number>)
@@ -87,3 +95,5 @@ export def Del_markers(bufnr: number, ids: list<number>)
     prop_remove({'bufnr': bufnr, 'id': id})
   endfor
 enddef
+
+defcompile
