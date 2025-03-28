@@ -1,5 +1,9 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
+let s:supports_import_well = has("patch-9.0.2076")
+if s:supports_import_well
+  import autoload '../../vim9/coc/highlight.vim' as vim9_coc_highlight
+endif
 let s:namespace_map = {}
 let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
@@ -144,25 +148,12 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
   endif
 
-  let res = []
   let ns = s:namespace_map[a:key]
-  let types = coc#api#get_types(ns)
-  if empty(types)
-    return res
+  if s:supports_import_well
+    return s:vim9_coc_highlight.Get_highlights(a:bufnr, ns, start, end)
+  else
+    return s:get_highlights(a:bufnr, ns, start, end)
   endif
-
-  let endLnum = end == -1 ? -1 : end + 1
-  for prop in prop_list(start + 1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': endLnum})
-    if prop['start'] == 0 || prop['end'] == 0
-      " multi line textprop are not supported, simply ignore it
-      continue
-    endif
-    let startCol = prop['col'] - 1
-    let endCol = startCol + prop['length']
-    call add(res, [s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id']])
-  endfor
-
-  return res
 endfunction
 
 " Add multiple highlights to buffer.
@@ -174,6 +165,12 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   let ns = coc#highlight#create_namespace(a:key)
   if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
+  elseif s:supports_import_well
+    if len(a:highlights) > g:coc_highlight_maximum_count
+      call s:vim9_coc_highlight.Add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
+    else
+      call s:vim9_coc_highlight.Add_highlights(a:bufnr, ns, a:highlights, a:priority)
+    endif
   else
     if len(a:highlights) > g:coc_highlight_maximum_count
       call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
@@ -181,6 +178,7 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
       call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
     endif
   endif
+
 endfunction
 
 " Clear highlights by 0 based line numbers.
@@ -208,13 +206,17 @@ function! coc#highlight#del_markers(bufnr, key, ids) abort
     return
   endif
   let ns = coc#highlight#create_namespace(a:key)
-  for id in a:ids
-    if s:is_vim
-      call prop_remove({'bufnr': a:bufnr, 'id': id})
+  if s:is_vim
+    if s:supports_import_well
+      call vim9_coc_highlight.Del_markers(a:bufnr, a:ids)
     else
-      call nvim_buf_del_extmark(a:bufnr, ns, id)
+      call s:del_markers(a:bufnr, a:ids)
     endif
-  endfor
+  else
+    for id in a:ids
+      call nvim_buf_del_extmark(a:bufnr, ns, id)
+    endfor
+  endif
 endfunction
 
 " highlight LSP range, opts contains 'combine' 'priority' 'start_incl' 'end_incl'
@@ -249,35 +251,6 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
       call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd, opts)
     endfor
   endfor
-endfunction
-
-function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
-  let opts = get(a:, 1, {})
-  let priority = get(opts, 'priority', v:null)
-  if !s:is_vim
-    if a:src_id == -1
-      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
-    else
-      " get(opts, 'start_incl', 0) ? v:true : v:false,
-      try
-        call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
-              \ 'end_col': a:col_end,
-              \ 'hl_group': a:hl_group,
-              \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-              \ 'right_gravity': v:true,
-              \ 'end_right_gravity': v:false,
-              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
-              \ })
-      catch /^Vim\%((\a\+)\)\=:E5555/
-        " the end_col could be invalid, ignore this error
-      endtry
-    endif
-  else
-    if !hlexists(a:hl_group)
-      execute 'highlight '.a:hl_group.' ctermfg=NONE'
-    endif
-    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
-  endif
 endfunction
 
 function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
@@ -616,10 +589,6 @@ function! coc#highlight#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction
 
-function! s:prop_type_hlgroup(type) abort
-  return substitute(a:type, '_\d\+$', '', '')
-endfunction
-
 function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, idx) abort
   if getbufvar(a:bufnr, 'changedtick', 0) != a:changedtick
     return
@@ -636,37 +605,6 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, i
   if a:idx < len(a:groups) - 1
     call timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, a:groups, a:idx + 1)})
   endif
-endfunction
-
-function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
-  let lhl = len(a:highlights)
-  let maxc = g:coc_highlight_maximum_count
-  if maxc < lhl
-    let hls = a:highlights[:maxc-1]
-    let next = a:highlights[maxc:]
-  else
-    let hls = a:highlights[:]
-    let next = []
-  endif
-  call s:add_highlights(a:bufnr, a:ns, hls, a:priority)
-  if len(next)
-    call timer_start(30, {->s:add_highlights_timer(a:bufnr, a:ns, next, a:priority)})
-  endif
-endfunction
-
-function! s:add_highlights(bufnr, ns, highlights, priority) abort
-  if bufwinnr(a:bufnr) == -1 " check buffer exists
-    return
-  endif
-  for item in a:highlights
-    let opts = {
-          \ 'priority': a:priority,
-          \ 'combine': get(item, 4, 1) ? 1 : 0,
-          \ 'start_incl': get(item, 5, 0) ? 1 : 0,
-          \ 'end_incl':  get(item, 6, 0) ? 1 : 0,
-          \ }
-    call coc#highlight#add_highlight(a:bufnr, a:ns, item[0], item[1], item[2], item[3], opts)
-  endfor
 endfunction
 
 function! s:to_group(items) abort
@@ -725,3 +663,108 @@ function! s:group_hls(hls, linecount) abort
   call add(groups, {'start': start, 'end': a:linecount, 'highlights': highlights})
   return groups
 endfunction
+
+if !s:is_vim
+  function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+    let opts = get(a:, 1, {})
+    let priority = get(opts, 'priority', v:null)
+    if a:src_id == -1
+      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
+    else
+      " get(opts, 'start_incl', 0) ? v:true : v:false,
+      try
+        call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
+              \ 'end_col': a:col_end,
+              \ 'hl_group': a:hl_group,
+              \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
+              \ 'right_gravity': v:true,
+              \ 'end_right_gravity': v:false,
+              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
+              \ })
+      catch /^Vim\%((\a\+)\)\=:E5555/
+        " the end_col could be invalid, ignore this error
+      endtry
+    endif
+  endfunction
+  " @workaround Prevent nvim running into the branch for vim below
+  finish
+endif
+
+def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
+  const opts: dict<any> = get(optionalArguments, 0, {})
+  if !hlexists(hl_group)
+    execute $'highlight {hl_group} ctermfg=NONE'
+  endif
+  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+enddef
+
+if s:supports_import_well
+  finish
+endif
+" Ported from "../../vim9/coc/highlight.vim"
+
+def s:add_highlights_timer(bufnr: number, ns: number, highlights: list<list<any>>, priority: number)
+  const lengthOfHighlightItemList: number = len(highlights)
+  const maximumCount: number = g:coc_highlight_maximum_count
+  var highlightItemList: list<list<any>>
+  var next: list<list<any>>
+  if maximumCount < lengthOfHighlightItemList
+    highlightItemList = highlights[ : maximumCount - 1]
+    next = highlights[maximumCount : ]
+  else
+    highlightItemList = highlights[ : ]
+    next = []
+  endif
+  s:add_highlights(bufnr, ns, highlightItemList, priority)
+  if len(next) > 0
+    timer_start(30,  (_) => s:add_highlights_timer(bufnr, ns, next, priority))
+  endif
+enddef
+
+def s:add_highlights(bufnr: number, ns: number, highlights: list<list<any>>, priority: number)
+  if bufwinnr(bufnr) == -1 # check buffer exists
+    return
+  endif
+  for highlightItem in highlights
+    const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = highlightItem
+    const combine: number = get(highlightItem, 4, 1)
+    const start_incl: number = get(highlightItem, 5, 0)
+    const end_incl: number = get(highlightItem, 6, 0)
+    const opts: dict<any> = {
+      'priority': priority,
+      'combine': combine,
+      'start_incl': start_incl,
+      'end_incl':  end_incl,
+    }
+    coc#highlight#add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
+  endfor
+enddef
+
+def s:get_highlights(bufnr: number, ns: number, start: number, end: number): list<list<any>>
+  const types: list<string> = coc#api#get_types(ns)
+  if empty(types)
+    return []
+  endif
+
+  final res: list<list<any>> = []
+  const endLnum: number = end == -1 ? -1 : end + 1
+  for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
+    if prop['start'] == 0 || prop['end'] == 0
+      # multi line textprop are not supported, simply ignore it
+      continue
+    endif
+    const startCol: number = prop['col'] - 1
+    const endCol: number = startCol + prop['length']
+    add(res, [ s:prop_type_hlgroup(prop['type']), prop['lnum'] - 1, startCol, endCol, prop['id'] ])
+  endfor
+  return res
+enddef
+def s:prop_type_hlgroup(type: string): string
+  return substitute(type, '_\d\+$', '', '')
+enddef
+
+def s:del_markers(bufnr: number, ids: list<number>)
+  for id in ids
+    prop_remove({'bufnr': bufnr, 'id': id})
+  endfor
+enddef
