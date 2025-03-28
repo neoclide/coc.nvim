@@ -181,7 +181,7 @@ https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
 ==============================================================================
 EXTENSIONS						*coc-extensions*
 
-Comprae to |coc-config-languageserver| extensions are more powerful since they
+Compare to |coc-config-languageserver| extensions are more powerful since they
 could contribute json schemes, commands, and use middleware methods of
 languageserver to provide better results.  Extensions could provide more
 features by make use of NodeJS and coc.nvim's API.
@@ -1091,7 +1091,7 @@ SNIPPETS SUPPORT 					*coc-snippets*
 Snippets engine of coc.nvim support both VSCode snippets and ultisnips
 snippets format.
 
-The completion item with snippet format has label ends with
+The completion items with snippet format has label ends with
 |coc-config-suggest-snippetIndicator| (`~` by default).
 
 Select the complete item and confirm the completion by |coc#pum#confirm()| or
@@ -1109,16 +1109,22 @@ Deactivate snippet session: ~
 
 A snippet session would be deactivated under the following conditions:
 
-  • |InsertEnter| triggered outside snippet.
-  • Jump to final placeholder.
-  • Content change detected after snippet.
-  • Content changed in a snippet outside placeholder (except for deletion of
-  plain text).
+  • The change affects the snippet and code outside.
+  • Autocmd |InsertEnter| triggered outside snippet.
+  • Jump to the final placeholder.
 
+Use |CocOpenLog| to checkout the cancel reason.
 Use |CocAction('snippetCancel')| for cancel snippet session manually.
 
-To load and expand custom snippets, install `coc-snippets` extension is
-recommended.
+To load and expand custom snippets, install `coc-snippets` extension by
+command: >
+
+	:CocInstall coc-snippets
+<
+Nested snippets: ~
+
+Snippets can be nested, when jump to tabstop of parent snippet, it's not
+possible to jump back again (works like UltiSnip).
 
 Related configurations: ~
 
@@ -1142,8 +1148,9 @@ Related functions: ~
 Related variables, highlights and autocmds: ~
 
   • |b:coc_snippet_active| Check if snippet session is activated.
-  • |CocSnippetVisual| For highlight of current placeholders.
-  • |CocJumpPlaceholder| AutocmdS triggered after placeholder jump.
+  • |CocJumpPlaceholder| Autocmds triggered after placeholder jump.
+  • |CocSnippetVisual| For highlight of current placeholders when the
+    highlight is enabled.
 
 ------------------------------------------------------------------------------
 WORKSPACE SUPPORT 					*coc-workspace*
@@ -2104,6 +2111,7 @@ coc#start([{option}]) 					*coc#start()*
 	Start completion with optional {option}.  Option could contains:
 
 		- `source` specific completion source name.
+		- `col` the start column of completion (1 based).
 
 	Example:  >
 
@@ -2802,7 +2810,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	You can bind your custom command like so: >
 
 	command! -nargs=0 OrganizeImport
-		\ :call CocActionAsync('runCommand', 'tsserver.organizeImports')
+		\ :call CocActionAsync('runCommand', 'editor.action.organizeImport')
 <
 "fold" {{kind}}						*CocAction('fold')*
 

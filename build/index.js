@@ -7383,14 +7383,14 @@ var require_semver = __commonJS({
         if (!m[4]) {
           this.prerelease = [];
         } else {
-          this.prerelease = m[4].split(".").map((id) => {
-            if (/^[0-9]+$/.test(id)) {
-              const num = +id;
+          this.prerelease = m[4].split(".").map((id2) => {
+            if (/^[0-9]+$/.test(id2)) {
+              const num = +id2;
               if (num >= 0 && num < MAX_SAFE_INTEGER) {
                 return num;
               }
             }
-            return id;
+            return id2;
           });
         }
         this.build = m[5] ? m[5].split(".") : [];
@@ -8157,7 +8157,7 @@ var require_range = __commonJS({
       debug("stars", comp);
       return comp;
     };
-    var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
+    var isX = (id2) => !id2 || id2.toLowerCase() === "x" || id2 === "*";
     var replaceTildes = (comp, options2) => {
       return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options2)).join(" ");
     };
@@ -11943,8 +11943,10 @@ function wait(ms) {
   });
 }
 function waitWithToken(ms, token) {
+  if (token.isCancellationRequested) return Promise.resolve(true);
   return new Promise((resolve) => {
     let disposable = token.onCancellationRequested(() => {
+      disposable.dispose();
       clearTimeout(timer);
       resolve(true);
     });
@@ -14016,8 +14018,8 @@ var require_Base = __commonJS({
       }
       getArgsByPrefix(args) {
         if (this.prefix !== "nvim_" && args[0] !== this) {
-          let id = this.transport.isVim ? this.data : this;
-          return [id, ...args];
+          let id2 = this.transport.isVim ? this.data : this;
+          return [id2, ...args];
         }
         return args;
       }
@@ -14169,10 +14171,10 @@ var require_Buffer = __commonJS({
        * @param {number} ns_id - Namespace id
        * @param {number} id - Extmark id
        */
-      deleteExtMark(ns_id, id) {
+      deleteExtMark(ns_id, id2) {
         this.notify(`${this.prefix}del_extmark`, [
           ns_id,
-          id
+          id2
         ]);
       }
       /**
@@ -14183,8 +14185,8 @@ var require_Buffer = __commonJS({
        * @param {Object} opts - Optional parameters.
        * @returns {Promise<[] | [number, number] | [number, number, ExtmarkDetails]>}
        */
-      async getExtMarkById(ns_id, id, opts = {}) {
-        return this.request(`${this.prefix}get_extmark_by_id`, [ns_id, id, opts]);
+      async getExtMarkById(ns_id, id2, opts = {}) {
+        return this.request(`${this.prefix}get_extmark_by_id`, [ns_id, id2, opts]);
       }
       /**
        * Gets extmarks in "traversal order" from a |charwise| region defined by
@@ -15029,10 +15031,10 @@ var require_nvim = __commonJS({
           let method = msg[2].toString();
           this.emit("request", method, msg[3], this.createResponse(method, msg[1]));
         } else if (msgType === 1) {
-          const id = msg[1];
-          const handler = this.pending.get(id);
+          const id2 = msg[1];
+          const handler = this.pending.get(id2);
           if (handler) {
-            this.pending.delete(id);
+            this.pending.delete(id2);
             let err = msg[2];
             if (err && err.length != 2) {
               err = [0, err.toString()];
@@ -15047,9 +15049,9 @@ var require_nvim = __commonJS({
       }
       setupCodec() {
         const codec = msgpack.createCodec();
-        types_1.Metadata.forEach(({ constructor }, id) => {
-          codec.addExtPacker(id, constructor, (obj) => msgpack.encode(obj.data));
-          codec.addExtUnpacker(id, (data) => new constructor({
+        types_1.Metadata.forEach(({ constructor }, id2) => {
+          codec.addExtPacker(id2, constructor, (obj) => msgpack.encode(obj.data));
+          codec.addExtUnpacker(id2, (data) => new constructor({
             client: this.client,
             data: msgpack.decode(data)
           }));
@@ -15080,15 +15082,15 @@ var require_nvim = __commonJS({
       request(method, args, cb) {
         if (!this.attached)
           return cb([0, "transport disconnected"]);
-        let id = this.nextRequestId;
+        let id2 = this.nextRequestId;
         this.nextRequestId = this.nextRequestId + 1;
         let startTs = Date.now();
-        this.debug("request to nvim:", id, method, args);
-        this.encodeStream.write(msgpack.encode([0, id, method, args], {
+        this.debug("request to nvim:", id2, method, args);
+        this.encodeStream.write(msgpack.encode([0, id2, method, args], {
           codec: this.codec
         }));
-        this.pending.set(id, (err, res) => {
-          this.debug("response of nvim:", id, Date.now() - startTs, res, err);
+        this.pending.set(id2, (err, res) => {
+          this.debug("response of nvim:", id2, Date.now() - startTs, res, err);
           cb(err, res);
         });
       }
@@ -15205,16 +15207,16 @@ var require_connection = __commonJS({
           console.error(`Invalid data from vim: ${str}`);
           return;
         }
-        let [id, obj] = arr;
-        if (id > 0) {
-          logger59.debug("received request:", id, obj);
-          this.emit("request", id, obj);
-        } else if (id == 0) {
+        let [id2, obj] = arr;
+        if (id2 > 0) {
+          logger59.debug("received request:", id2, obj);
+          this.emit("request", id2, obj);
+        } else if (id2 == 0) {
           logger59.debug("received notification:", obj);
           this.emit("notification", obj);
         } else {
-          logger59.debug("received response:", id, obj);
-          this.emit("response", id, obj);
+          logger59.debug("received response:", id2, obj);
+          this.emit("response", id2, obj);
         }
       }
       response(requestId, data) {
@@ -15263,10 +15265,10 @@ var require_request = __commonJS({
     var constants_1 = require_constants2();
     var func2 = constants_1.isCocNvim ? "coc#api#call" : "nvim#api#call";
     var Request = class {
-      constructor(connection, cb, id) {
+      constructor(connection, cb, id2) {
         this.connection = connection;
         this.cb = cb;
-        this.id = id;
+        this.id = id2;
       }
       request(method, args = []) {
         this.method = method;
@@ -15331,18 +15333,18 @@ var require_vim = __commonJS({
         let connection = this.connection = new connection_1.default(reader, writer);
         this.attached = true;
         this.client = client;
-        connection.on("request", (id, obj) => {
+        connection.on("request", (id2, obj) => {
           let [method, args] = obj;
-          this.emit("request", method, args, this.createResponse(method, id));
+          this.emit("request", method, args, this.createResponse(method, id2));
         });
         connection.on("notification", (obj) => {
           let [event, args] = obj;
           this.emit("notification", event.toString(), args);
         });
-        connection.on("response", (id, obj) => {
-          let req = this.pending.get(id);
+        connection.on("response", (id2, obj) => {
+          let req = this.pending.get(id2);
           if (req) {
-            this.pending.delete(id);
+            this.pending.delete(id2);
             let err = null;
             let result = null;
             if (!Array.isArray(obj)) {
@@ -15374,12 +15376,12 @@ var require_vim = __commonJS({
       request(method, args, cb) {
         if (!this.attached)
           return cb([0, "transport disconnected"]);
-        let id = this.nextRequestId;
+        let id2 = this.nextRequestId;
         this.nextRequestId = this.nextRequestId - 1;
         let req = new request_1.default(this.connection, (err, res) => {
           cb(err, res);
-        }, id);
-        this.pending.set(id, req);
+        }, id2);
+        this.pending.set(id2, req);
         req.request(method, args);
       }
       notify(method, args) {
@@ -15593,8 +15595,8 @@ var require_Neovim = __commonJS({
       getHighlightByName(name2, isRgb = true) {
         return this.request(`${this.prefix}get_hl_by_name`, [name2, isRgb]);
       }
-      getHighlightById(id, isRgb = true) {
-        return this.request(`${this.prefix}get_hl_by_id`, [id, isRgb]);
+      getHighlightById(id2, isRgb = true) {
+        return this.request(`${this.prefix}get_hl_by_id`, [id2, isRgb]);
       }
       /** Delete current line in buffer */
       deleteCurrentLine() {
@@ -15961,21 +15963,21 @@ var require_client = __commonJS({
           return;
         this.logger.error(msg, ...args);
       }
-      createBuffer(id) {
+      createBuffer(id2) {
         return new Buffer_1.Buffer({
-          data: id,
+          data: id2,
           client: this
         });
       }
-      createWindow(id) {
+      createWindow(id2) {
         return new Window_1.Window({
-          data: id,
+          data: id2,
           client: this
         });
       }
-      createTabpage(id) {
+      createTabpage(id2) {
         return new Tabpage_1.Tabpage({
-          data: id,
+          data: id2,
           client: this
         });
       }
@@ -16023,50 +16025,59 @@ var require_client = __commonJS({
         this.emit("request", method, args, resp);
       }
       sendAsyncRequest(method, args) {
-        let id = this.requestId;
-        this.requestId = id + 1;
-        this.notify("nvim_call_function", ["coc#rpc#async_request", [id, method, args || []]]);
+        let id2 = this.requestId;
+        this.requestId = id2 + 1;
+        this.notify("nvim_call_function", ["coc#rpc#async_request", [id2, method, args || []]]);
         return new Promise((resolve, reject) => {
-          let response = new AsyncResponse(id, (err, res) => {
+          let response = new AsyncResponse(id2, (err, res) => {
             if (err)
               return reject(err);
             resolve(res);
           });
-          this.responses.set(id, response);
+          this.responses.set(id2, response);
         });
       }
       handleNotification(method, args) {
         if (method.endsWith("_event")) {
+          if (method == "vim_buf_change_event") {
+            const id2 = args[0];
+            if (!this.attachedBuffers.has(id2))
+              return;
+            const bufferMap = this.attachedBuffers.get(id2);
+            const cbs = bufferMap.get("vim_lines") || [];
+            cbs.forEach((cb) => cb(...args));
+            return;
+          }
           if (method.startsWith("nvim_buf_")) {
             const shortName = method.replace(/nvim_buf_(.*)_event/, "$1");
-            const { id } = args[0];
-            if (!this.attachedBuffers.has(id))
+            const { id: id2 } = args[0];
+            if (!this.attachedBuffers.has(id2))
               return;
-            const bufferMap = this.attachedBuffers.get(id);
+            const bufferMap = this.attachedBuffers.get(id2);
             const cbs = bufferMap.get(shortName) || [];
             cbs.forEach((cb) => cb(...args));
             if (shortName === "detach") {
-              this.attachedBuffers.delete(id);
+              this.attachedBuffers.delete(id2);
             }
             return;
           }
           if (method == "nvim_async_request_event") {
-            const [id, method2, arr] = args;
+            const [id2, method2, arr] = args;
             this.handleRequest(method2, arr, {
               send: (resp, isError) => {
-                this.notify("nvim_call_function", ["coc#rpc#async_response", [id, resp, isError]]);
+                this.notify("nvim_call_function", ["coc#rpc#async_response", [id2, resp, isError]]);
               }
             });
             return;
           }
           if (method == "nvim_async_response_event") {
-            const [id, err, res] = args;
-            const response = this.responses.get(id);
+            const [id2, err, res] = args;
+            const response = this.responses.get(id2);
             if (!response) {
-              this.logError(`Response not found for request ${id}`);
+              this.logError(`Response not found for request ${id2}`);
               return;
             }
-            this.responses.delete(id);
+            this.responses.delete(id2);
             response.finish(err, res);
             return;
           }
@@ -16704,7 +16715,7 @@ var init_main = __esm({
       }
       uinteger3.is = is;
     })(uinteger || (uinteger = {}));
-    (function(Position9) {
+    (function(Position10) {
       function create(line, character) {
         if (line === Number.MAX_VALUE) {
           line = uinteger.MAX_VALUE;
@@ -16714,12 +16725,12 @@ var init_main = __esm({
         }
         return { line, character };
       }
-      Position9.create = create;
+      Position10.create = create;
       function is(value) {
         let candidate = value;
         return Is.objectLiteral(candidate) && Is.uinteger(candidate.line) && Is.uinteger(candidate.character);
       }
-      Position9.is = is;
+      Position10.is = is;
     })(Position || (Position = {}));
     (function(Range11) {
       function create(one, two, three, four) {
@@ -16908,24 +16919,24 @@ var init_main = __esm({
       }
       Command3.is = is;
     })(Command || (Command = {}));
-    (function(TextEdit10) {
+    (function(TextEdit9) {
       function replace(range, newText) {
         return { range, newText };
       }
-      TextEdit10.replace = replace;
+      TextEdit9.replace = replace;
       function insert(position, newText) {
         return { range: { start: position, end: position }, newText };
       }
-      TextEdit10.insert = insert;
+      TextEdit9.insert = insert;
       function del(range) {
         return { range, newText: "" };
       }
-      TextEdit10.del = del;
+      TextEdit9.del = del;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.string(candidate.newText) && Range.is(candidate.range);
       }
-      TextEdit10.is = is;
+      TextEdit9.is = is;
     })(TextEdit || (TextEdit = {}));
     (function(ChangeAnnotation5) {
       function create(label, needsConfirmation, description) {
@@ -17066,56 +17077,56 @@ var init_main = __esm({
       }
       insert(position, newText, annotation) {
         let edit2;
-        let id;
+        let id2;
         if (annotation === void 0) {
           edit2 = TextEdit.insert(position, newText);
         } else if (ChangeAnnotationIdentifier.is(annotation)) {
-          id = annotation;
+          id2 = annotation;
           edit2 = AnnotatedTextEdit.insert(position, newText, annotation);
         } else {
           this.assertChangeAnnotations(this.changeAnnotations);
-          id = this.changeAnnotations.manage(annotation);
-          edit2 = AnnotatedTextEdit.insert(position, newText, id);
+          id2 = this.changeAnnotations.manage(annotation);
+          edit2 = AnnotatedTextEdit.insert(position, newText, id2);
         }
         this.edits.push(edit2);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
       replace(range, newText, annotation) {
         let edit2;
-        let id;
+        let id2;
         if (annotation === void 0) {
           edit2 = TextEdit.replace(range, newText);
         } else if (ChangeAnnotationIdentifier.is(annotation)) {
-          id = annotation;
+          id2 = annotation;
           edit2 = AnnotatedTextEdit.replace(range, newText, annotation);
         } else {
           this.assertChangeAnnotations(this.changeAnnotations);
-          id = this.changeAnnotations.manage(annotation);
-          edit2 = AnnotatedTextEdit.replace(range, newText, id);
+          id2 = this.changeAnnotations.manage(annotation);
+          edit2 = AnnotatedTextEdit.replace(range, newText, id2);
         }
         this.edits.push(edit2);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
       delete(range, annotation) {
         let edit2;
-        let id;
+        let id2;
         if (annotation === void 0) {
           edit2 = TextEdit.del(range);
         } else if (ChangeAnnotationIdentifier.is(annotation)) {
-          id = annotation;
+          id2 = annotation;
           edit2 = AnnotatedTextEdit.del(range, annotation);
         } else {
           this.assertChangeAnnotations(this.changeAnnotations);
-          id = this.changeAnnotations.manage(annotation);
-          edit2 = AnnotatedTextEdit.del(range, id);
+          id2 = this.changeAnnotations.manage(annotation);
+          edit2 = AnnotatedTextEdit.del(range, id2);
         }
         this.edits.push(edit2);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
       add(edit2) {
@@ -17146,22 +17157,22 @@ var init_main = __esm({
         return this._size;
       }
       manage(idOrAnnotation, annotation) {
-        let id;
+        let id2;
         if (ChangeAnnotationIdentifier.is(idOrAnnotation)) {
-          id = idOrAnnotation;
+          id2 = idOrAnnotation;
         } else {
-          id = this.nextId();
+          id2 = this.nextId();
           annotation = idOrAnnotation;
         }
-        if (this._annotations[id] !== void 0) {
-          throw new Error(`Id ${id} is already in use.`);
+        if (this._annotations[id2] !== void 0) {
+          throw new Error(`Id ${id2} is already in use.`);
         }
         if (annotation === void 0) {
-          throw new Error(`No annotation provided for id ${id}`);
+          throw new Error(`No annotation provided for id ${id2}`);
         }
-        this._annotations[id] = annotation;
+        this._annotations[id2] = annotation;
         this._size++;
-        return id;
+        return id2;
       }
       nextId() {
         this._counter++;
@@ -17265,16 +17276,16 @@ var init_main = __esm({
           options2 = optionsOrAnnotation;
         }
         let operation;
-        let id;
+        let id2;
         if (annotation === void 0) {
           operation = CreateFile.create(uri, options2);
         } else {
-          id = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-          operation = CreateFile.create(uri, options2, id);
+          id2 = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+          operation = CreateFile.create(uri, options2, id2);
         }
         this._workspaceEdit.documentChanges.push(operation);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
       renameFile(oldUri, newUri, optionsOrAnnotation, options2) {
@@ -17289,16 +17300,16 @@ var init_main = __esm({
           options2 = optionsOrAnnotation;
         }
         let operation;
-        let id;
+        let id2;
         if (annotation === void 0) {
           operation = RenameFile.create(oldUri, newUri, options2);
         } else {
-          id = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-          operation = RenameFile.create(oldUri, newUri, options2, id);
+          id2 = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+          operation = RenameFile.create(oldUri, newUri, options2, id2);
         }
         this._workspaceEdit.documentChanges.push(operation);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
       deleteFile(uri, optionsOrAnnotation, options2) {
@@ -17313,16 +17324,16 @@ var init_main = __esm({
           options2 = optionsOrAnnotation;
         }
         let operation;
-        let id;
+        let id2;
         if (annotation === void 0) {
           operation = DeleteFile.create(uri, options2);
         } else {
-          id = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-          operation = DeleteFile.create(uri, options2, id);
+          id2 = ChangeAnnotationIdentifier.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+          operation = DeleteFile.create(uri, options2, id2);
         }
         this._workspaceEdit.documentChanges.push(operation);
-        if (id !== void 0) {
-          return id;
+        if (id2 !== void 0) {
+          return id2;
         }
       }
     };
@@ -18906,15 +18917,15 @@ var require_disposable = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Disposable = void 0;
-    var Disposable36;
-    (function(Disposable37) {
+    var Disposable35;
+    (function(Disposable36) {
       function create(func2) {
         return {
           dispose: func2
         };
       }
-      Disposable37.create = create;
-    })(Disposable36 || (exports2.Disposable = Disposable36 = {}));
+      Disposable36.create = create;
+    })(Disposable35 || (exports2.Disposable = Disposable35 = {}));
   }
 });
 
@@ -19187,16 +19198,16 @@ var require_sharedArrayCancellation = __commonJS({
         this.buffers.set(request2.id, buffer);
         request2.$cancellationData = buffer;
       }
-      async sendCancellation(_conn, id) {
-        const buffer = this.buffers.get(id);
+      async sendCancellation(_conn, id2) {
+        const buffer = this.buffers.get(id2);
         if (buffer === void 0) {
           return;
         }
         const data = new Int32Array(buffer, 0, 1);
         Atomics.store(data, 0, CancellationState.Cancelled);
       }
-      cleanup(id) {
-        this.buffers.delete(id);
+      cleanup(id2) {
+        this.buffers.delete(id2);
       }
       dispose() {
         this.buffers.clear();
@@ -19935,8 +19946,8 @@ var require_connection2 = __commonJS({
     var CancellationSenderStrategy;
     (function(CancellationSenderStrategy2) {
       CancellationSenderStrategy2.Message = Object.freeze({
-        sendCancellation(conn, id) {
-          return conn.sendNotification(CancelNotification.type, { id });
+        sendCancellation(conn, id2) {
+          return conn.sendNotification(CancelNotification.type, { id: id2 });
         },
         cleanup(_) {
         }
@@ -20008,17 +20019,17 @@ var require_connection2 = __commonJS({
       const unhandledProgressEmitter = new events_1.Emitter();
       const disposeEmitter = new events_1.Emitter();
       const cancellationStrategy = options2 && options2.cancellationStrategy ? options2.cancellationStrategy : CancellationStrategy.Message;
-      function createRequestQueueKey(id) {
-        if (id === null) {
+      function createRequestQueueKey(id2) {
+        if (id2 === null) {
           throw new Error(`Can't send requests with id null since the response can't be correlated.`);
         }
-        return "req-" + id.toString();
+        return "req-" + id2.toString();
       }
-      function createResponseQueueKey(id) {
-        if (id === null) {
+      function createResponseQueueKey(id2) {
+        if (id2 === null) {
           return "res-unknown-" + (++unknownResponseSequenceNumber).toString();
         } else {
-          return "res-" + id.toString();
+          return "res-" + id2.toString();
         }
       }
       function createNotificationQueueKey() {
@@ -20722,24 +20733,24 @@ ${JSON.stringify(message, null, 4)}`);
             const numberOfParams = type.numberOfParams;
             token = cancellation_1.CancellationToken.is(params[numberOfParams]) ? params[numberOfParams] : void 0;
           }
-          const id = sequenceNumber++;
+          const id2 = sequenceNumber++;
           let disposable;
           if (token) {
             disposable = token.onCancellationRequested(() => {
-              const p = cancellationStrategy.sender.sendCancellation(connection, id);
+              const p = cancellationStrategy.sender.sendCancellation(connection, id2);
               if (p === void 0) {
-                logger59.log(`Received no promise from cancellation strategy when cancelling id ${id}`);
+                logger59.log(`Received no promise from cancellation strategy when cancelling id ${id2}`);
                 return Promise.resolve();
               } else {
                 return p.catch(() => {
-                  logger59.log(`Sending cancellation messages for id ${id} failed`);
+                  logger59.log(`Sending cancellation messages for id ${id2} failed`);
                 });
               }
             });
           }
           const requestMessage = {
             jsonrpc: version2,
-            id,
+            id: id2,
             method,
             params: messageParams
           };
@@ -20750,18 +20761,18 @@ ${JSON.stringify(message, null, 4)}`);
           return new Promise(async (resolve, reject) => {
             const resolveWithCleanup = (r) => {
               resolve(r);
-              cancellationStrategy.sender.cleanup(id);
+              cancellationStrategy.sender.cleanup(id2);
               disposable?.dispose();
             };
             const rejectWithCleanup = (r) => {
               reject(r);
-              cancellationStrategy.sender.cleanup(id);
+              cancellationStrategy.sender.cleanup(id2);
               disposable?.dispose();
             };
             const responsePromise = { method, timerStart: Date.now(), resolve: resolveWithCleanup, reject: rejectWithCleanup };
             try {
               await messageWriter.write(requestMessage);
-              responsePromises.set(id, responsePromise);
+              responsePromises.set(id2, responsePromise);
             } catch (error) {
               logger59.error(`Sending request failed.`);
               responsePromise.reject(new messages_1.ResponseError(messages_1.ErrorCodes.MessageWriteError, error.message ? error.message : "Unknown reason"));
@@ -21556,8 +21567,8 @@ var require_main2 = __commonJS({
         }
         uinteger4.is = is;
       })(uinteger3 || (exports3.uinteger = uinteger3 = {}));
-      var Position9;
-      (function(Position10) {
+      var Position10;
+      (function(Position11) {
         function create(line, character) {
           if (line === Number.MAX_VALUE) {
             line = uinteger3.MAX_VALUE;
@@ -21567,19 +21578,19 @@ var require_main2 = __commonJS({
           }
           return { line, character };
         }
-        Position10.create = create;
+        Position11.create = create;
         function is(value) {
           var candidate = value;
           return Is2.objectLiteral(candidate) && Is2.uinteger(candidate.line) && Is2.uinteger(candidate.character);
         }
-        Position10.is = is;
-      })(Position9 || (exports3.Position = Position9 = {}));
+        Position11.is = is;
+      })(Position10 || (exports3.Position = Position10 = {}));
       var Range11;
       (function(Range12) {
         function create(one, two, three, four) {
           if (Is2.uinteger(one) && Is2.uinteger(two) && Is2.uinteger(three) && Is2.uinteger(four)) {
-            return { start: Position9.create(one, two), end: Position9.create(three, four) };
-          } else if (Position9.is(one) && Position9.is(two)) {
+            return { start: Position10.create(one, two), end: Position10.create(three, four) };
+          } else if (Position10.is(one) && Position10.is(two)) {
             return { start: one, end: two };
           } else {
             throw new Error("Range#create called with invalid arguments[".concat(one, ", ").concat(two, ", ").concat(three, ", ").concat(four, "]"));
@@ -21588,7 +21599,7 @@ var require_main2 = __commonJS({
         Range12.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Position9.is(candidate.start) && Position9.is(candidate.end);
+          return Is2.objectLiteral(candidate) && Position10.is(candidate.start) && Position10.is(candidate.end);
         }
         Range12.is = is;
       })(Range11 || (exports3.Range = Range11 = {}));
@@ -21660,7 +21671,7 @@ var require_main2 = __commonJS({
         ColorPresentation4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.undefined(candidate.textEdit) || TextEdit10.is(candidate)) && (Is2.undefined(candidate.additionalTextEdits) || Is2.typedArray(candidate.additionalTextEdits, TextEdit10.is));
+          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.undefined(candidate.textEdit) || TextEdit9.is(candidate)) && (Is2.undefined(candidate.additionalTextEdits) || Is2.typedArray(candidate.additionalTextEdits, TextEdit9.is));
         }
         ColorPresentation4.is = is;
       })(ColorPresentation3 || (exports3.ColorPresentation = ColorPresentation3 = {}));
@@ -21779,26 +21790,26 @@ var require_main2 = __commonJS({
         }
         Command4.is = is;
       })(Command3 || (exports3.Command = Command3 = {}));
-      var TextEdit10;
-      (function(TextEdit11) {
+      var TextEdit9;
+      (function(TextEdit10) {
         function replace(range, newText) {
           return { range, newText };
         }
-        TextEdit11.replace = replace;
+        TextEdit10.replace = replace;
         function insert(position, newText) {
           return { range: { start: position, end: position }, newText };
         }
-        TextEdit11.insert = insert;
+        TextEdit10.insert = insert;
         function del(range) {
           return { range, newText: "" };
         }
-        TextEdit11.del = del;
+        TextEdit10.del = del;
         function is(value) {
           var candidate = value;
           return Is2.objectLiteral(candidate) && Is2.string(candidate.newText) && Range11.is(candidate.range);
         }
-        TextEdit11.is = is;
-      })(TextEdit10 || (exports3.TextEdit = TextEdit10 = {}));
+        TextEdit10.is = is;
+      })(TextEdit9 || (exports3.TextEdit = TextEdit9 = {}));
       var ChangeAnnotation5;
       (function(ChangeAnnotation6) {
         function create(label, needsConfirmation, description) {
@@ -21842,7 +21853,7 @@ var require_main2 = __commonJS({
         AnnotatedTextEdit3.del = del;
         function is(value) {
           var candidate = value;
-          return TextEdit10.is(candidate) && (ChangeAnnotation5.is(candidate.annotationId) || ChangeAnnotationIdentifier2.is(candidate.annotationId));
+          return TextEdit9.is(candidate) && (ChangeAnnotation5.is(candidate.annotationId) || ChangeAnnotationIdentifier2.is(candidate.annotationId));
         }
         AnnotatedTextEdit3.is = is;
       })(AnnotatedTextEdit2 || (exports3.AnnotatedTextEdit = AnnotatedTextEdit2 = {}));
@@ -21948,56 +21959,56 @@ var require_main2 = __commonJS({
           }
           TextEditChangeImpl3.prototype.insert = function(position, newText, annotation) {
             var edit2;
-            var id;
+            var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit10.insert(position, newText);
+              edit2 = TextEdit9.insert(position, newText);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id = annotation;
+              id2 = annotation;
               edit2 = AnnotatedTextEdit2.insert(position, newText, annotation);
             } else {
               this.assertChangeAnnotations(this.changeAnnotations);
-              id = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.insert(position, newText, id);
+              id2 = this.changeAnnotations.manage(annotation);
+              edit2 = AnnotatedTextEdit2.insert(position, newText, id2);
             }
             this.edits.push(edit2);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           TextEditChangeImpl3.prototype.replace = function(range, newText, annotation) {
             var edit2;
-            var id;
+            var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit10.replace(range, newText);
+              edit2 = TextEdit9.replace(range, newText);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id = annotation;
+              id2 = annotation;
               edit2 = AnnotatedTextEdit2.replace(range, newText, annotation);
             } else {
               this.assertChangeAnnotations(this.changeAnnotations);
-              id = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.replace(range, newText, id);
+              id2 = this.changeAnnotations.manage(annotation);
+              edit2 = AnnotatedTextEdit2.replace(range, newText, id2);
             }
             this.edits.push(edit2);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           TextEditChangeImpl3.prototype.delete = function(range, annotation) {
             var edit2;
-            var id;
+            var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit10.del(range);
+              edit2 = TextEdit9.del(range);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id = annotation;
+              id2 = annotation;
               edit2 = AnnotatedTextEdit2.del(range, annotation);
             } else {
               this.assertChangeAnnotations(this.changeAnnotations);
-              id = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.del(range, id);
+              id2 = this.changeAnnotations.manage(annotation);
+              edit2 = AnnotatedTextEdit2.del(range, id2);
             }
             this.edits.push(edit2);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           TextEditChangeImpl3.prototype.add = function(edit2) {
@@ -22036,22 +22047,22 @@ var require_main2 = __commonJS({
             configurable: true
           });
           ChangeAnnotations3.prototype.manage = function(idOrAnnotation, annotation) {
-            var id;
+            var id2;
             if (ChangeAnnotationIdentifier2.is(idOrAnnotation)) {
-              id = idOrAnnotation;
+              id2 = idOrAnnotation;
             } else {
-              id = this.nextId();
+              id2 = this.nextId();
               annotation = idOrAnnotation;
             }
-            if (this._annotations[id] !== void 0) {
-              throw new Error("Id ".concat(id, " is already in use."));
+            if (this._annotations[id2] !== void 0) {
+              throw new Error("Id ".concat(id2, " is already in use."));
             }
             if (annotation === void 0) {
-              throw new Error("No annotation provided for id ".concat(id));
+              throw new Error("No annotation provided for id ".concat(id2));
             }
-            this._annotations[id] = annotation;
+            this._annotations[id2] = annotation;
             this._size++;
-            return id;
+            return id2;
           };
           ChangeAnnotations3.prototype.nextId = function() {
             this._counter++;
@@ -22164,16 +22175,16 @@ var require_main2 = __commonJS({
               options2 = optionsOrAnnotation;
             }
             var operation;
-            var id;
+            var id2;
             if (annotation === void 0) {
               operation = CreateFile2.create(uri, options2);
             } else {
-              id = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = CreateFile2.create(uri, options2, id);
+              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+              operation = CreateFile2.create(uri, options2, id2);
             }
             this._workspaceEdit.documentChanges.push(operation);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           WorkspaceChange3.prototype.renameFile = function(oldUri, newUri, optionsOrAnnotation, options2) {
@@ -22188,16 +22199,16 @@ var require_main2 = __commonJS({
               options2 = optionsOrAnnotation;
             }
             var operation;
-            var id;
+            var id2;
             if (annotation === void 0) {
               operation = RenameFile2.create(oldUri, newUri, options2);
             } else {
-              id = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = RenameFile2.create(oldUri, newUri, options2, id);
+              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+              operation = RenameFile2.create(oldUri, newUri, options2, id2);
             }
             this._workspaceEdit.documentChanges.push(operation);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           WorkspaceChange3.prototype.deleteFile = function(uri, optionsOrAnnotation, options2) {
@@ -22212,16 +22223,16 @@ var require_main2 = __commonJS({
               options2 = optionsOrAnnotation;
             }
             var operation;
-            var id;
+            var id2;
             if (annotation === void 0) {
               operation = DeleteFile2.create(uri, options2);
             } else {
-              id = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = DeleteFile2.create(uri, options2, id);
+              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
+              operation = DeleteFile2.create(uri, options2, id2);
             }
             this._workspaceEdit.documentChanges.push(operation);
-            if (id !== void 0) {
-              return id;
+            if (id2 !== void 0) {
+              return id2;
             }
           };
           return WorkspaceChange3;
@@ -22752,7 +22763,7 @@ var require_main2 = __commonJS({
         InlayHint4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Position9.is(candidate.position) && (Is2.string(candidate.label) || Is2.typedArray(candidate.label, InlayHintLabelPart2.is)) && (candidate.kind === void 0 || InlayHintKind2.is(candidate.kind)) && candidate.textEdits === void 0 || Is2.typedArray(candidate.textEdits, TextEdit10.is) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is2.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is2.boolean(candidate.paddingRight));
+          return Is2.objectLiteral(candidate) && Position10.is(candidate.position) && (Is2.string(candidate.label) || Is2.typedArray(candidate.label, InlayHintLabelPart2.is)) && (candidate.kind === void 0 || InlayHintKind2.is(candidate.kind)) && candidate.textEdits === void 0 || Is2.typedArray(candidate.textEdits, TextEdit9.is) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is2.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is2.boolean(candidate.paddingRight));
         }
         InlayHint4.is = is;
       })(InlayHint3 || (exports3.InlayHint = InlayHint3 = {}));
@@ -22941,7 +22952,7 @@ var require_main2 = __commonJS({
             var lineOffsets = this.getLineOffsets();
             var low = 0, high = lineOffsets.length;
             if (high === 0) {
-              return Position9.create(0, offset);
+              return Position10.create(0, offset);
             }
             while (low < high) {
               var mid = Math.floor((low + high) / 2);
@@ -22952,7 +22963,7 @@ var require_main2 = __commonJS({
               }
             }
             var line = low - 1;
-            return Position9.create(line, offset - lineOffsets[line]);
+            return Position10.create(line, offset - lineOffsets[line]);
           };
           FullTextDocument4.prototype.offsetAt = function(position) {
             var lineOffsets = this.getLineOffsets();
@@ -24667,6 +24678,7 @@ function toInteger(text) {
   return isNaN(n) ? void 0 : n;
 }
 function toText(text) {
+  if (typeof text === "number") return text.toString();
   return text ?? "";
 }
 function toBase64(text) {
@@ -27170,17 +27182,17 @@ var init_registry = __esm({
       constructor() {
         this.data = /* @__PURE__ */ new Map();
       }
-      add(id, data) {
-        assert(typeof id === "string");
+      add(id2, data) {
+        assert(typeof id2 === "string");
         assert(objectLiteral(data));
-        assert(!this.data.has(id));
-        this.data.set(id, data);
+        assert(!this.data.has(id2));
+        this.data.set(id2, data);
       }
-      knows(id) {
-        return this.data.has(id);
+      knows(id2) {
+        return this.data.has(id2);
       }
-      as(id) {
-        return this.data.get(id) || null;
+      as(id2) {
+        return this.data.get(id2) || null;
       }
     };
     Registry = new RegistryImpl();
@@ -27276,10 +27288,10 @@ var init_extensionRegistry = __esm({
         }
         return res;
       }
-      getCommandTitle(id) {
+      getCommandTitle(id2) {
         for (let item of this.extensionsById.values()) {
           for (let cmd of toArray(item.commands)) {
-            if (cmd.command === id) return cmd.title;
+            if (cmd.command === id2) return cmd.title;
           }
         }
         return void 0;
@@ -27300,14 +27312,14 @@ var init_extensionRegistry = __esm({
         }
         return res;
       }
-      unregistExtension(id) {
-        this.extensionsById.delete(id);
+      unregistExtension(id2) {
+        this.extensionsById.delete(id2);
       }
-      registerExtension(id, info) {
-        this.extensionsById.set(id, info);
+      registerExtension(id2, info) {
+        this.extensionsById.set(id2, info);
       }
-      getExtension(id) {
-        return this.extensionsById.get(id);
+      getExtension(id2) {
+        return this.extensionsById.get(id2);
       }
       getExtensions() {
         return { extensions: this.extensionsById.values() };
@@ -27333,8 +27345,8 @@ var init_commands = __esm({
     init_string();
     logger4 = createLogger("commands");
     CommandItem = class {
-      constructor(id, impl, thisArg, internal) {
-        this.id = id;
+      constructor(id2, impl, thisArg, internal) {
+        this.id = id2;
         this.impl = impl;
         this.thisArg = thisArg;
         this.internal = internal;
@@ -27359,9 +27371,9 @@ var init_commands = __esm({
         let res = [];
         for (let item of this.commands.values()) {
           if (!item.internal) {
-            let { id } = item;
-            let title = this.titles.get(id) ?? extensionRegistry2.getCommandTitle(id);
-            res.push({ id, title: toText(title) });
+            let { id: id2 } = item;
+            let title = this.titles.get(id2) ?? extensionRegistry2.getCommandTitle(id2);
+            res.push({ id: id2, title: toText(title) });
           }
         }
         return res;
@@ -27376,20 +27388,20 @@ var init_commands = __esm({
         return this.executeCommand(command.command, ...command.arguments ?? []);
       }
       register(command, internal, description) {
-        for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
-          this.registerCommand(id, command.execute, command, internal);
-          if (description) this.titles.set(id, description);
+        for (const id2 of Array.isArray(command.id) ? command.id : [command.id]) {
+          this.registerCommand(id2, command.execute, command, internal);
+          if (description) this.titles.set(id2, description);
         }
         return command;
       }
-      has(id) {
-        return this.commands.has(id);
+      has(id2) {
+        return this.commands.has(id2);
       }
-      unregister(id) {
-        let item = this.commands.get(id);
+      unregister(id2) {
+        let item = this.commands.get(id2);
         if (!item) return;
         item.dispose();
-        this.commands.delete(id);
+        this.commands.delete(id2);
       }
       /**
        * Registers a command that can be invoked via a keyboard shortcut,
@@ -27402,12 +27414,12 @@ var init_commands = __esm({
        * @param thisArg The `this` context used when invoking the handler function.
        * @return Disposable which unregisters this command on disposal.
        */
-      registerCommand(id, impl, thisArg, internal = false) {
-        if (id.startsWith("_")) internal = true;
-        if (this.commands.has(id)) logger4.warn(`Command ${id} already registered`);
-        this.commands.set(id, new CommandItem(id, impl, thisArg, internal));
+      registerCommand(id2, impl, thisArg, internal = false) {
+        if (id2.startsWith("_")) internal = true;
+        if (this.commands.has(id2)) logger4.warn(`Command ${id2} already registered`);
+        this.commands.set(id2, new CommandItem(id2, impl, thisArg, internal));
         return import_node3.Disposable.create(() => {
-          this.commands.delete(id);
+          this.commands.delete(id2);
         });
       }
       /**
@@ -27431,12 +27443,12 @@ var init_commands = __esm({
       /**
        * Used for user invoked command.
        */
-      async fireCommand(id, ...args) {
-        await events_default.fire("Command", [id]);
+      async fireCommand(id2, ...args) {
+        await events_default.fire("Command", [id2]);
         let start = Date.now();
-        let res = await this.executeCommand(id, ...args);
+        let res = await this.executeCommand(id2, ...args);
         if (args.length == 0) {
-          await this.addRecent(id, events_default.lastChangeTs > start);
+          await this.addRecent(id2, events_default.lastChangeTs > start);
         }
         return res;
       }
@@ -34613,8 +34625,8 @@ ${quote}</blockquote>
       }
       heading(text, level2, raw, slugger) {
         if (this.options.headerIds) {
-          const id = this.options.headerPrefix + slugger.slug(raw);
-          return `<h${level2} id="${id}">${text}</h${level2}>
+          const id2 = this.options.headerPrefix + slugger.slug(raw);
+          return `<h${level2} id="${id2}">${text}</h${level2}>
 `;
         }
         return `<h${level2}>${text}</h${level2}>
@@ -39876,13 +39888,13 @@ var init_schema = __esm({
         },
         "snippet.highlight": {
           type: "boolean",
-          scope: "resource",
+          scope: "application",
           description: "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
           default: false
         },
         "snippet.nextPlaceholderOnDelete": {
           type: "boolean",
-          scope: "resource",
+          scope: "application",
           description: "Automatically jump to the next placeholder when the current one is completely deleted.",
           default: false
         },
@@ -42242,7 +42254,7 @@ function getAutoCmdText(autocmd) {
   res += callback.toString();
   return res;
 }
-function createCommand(id, autocmd) {
+function createCommand(id2, autocmd) {
   let args = isFalsyOrEmpty(autocmd.arglist) ? "" : ", " + autocmd.arglist.join(", ");
   let event = Array.isArray(autocmd.event) ? autocmd.event.join(",") : autocmd.event;
   let pattern = autocmd.pattern != null ? autocmd.pattern : "*";
@@ -42250,7 +42262,7 @@ function createCommand(id, autocmd) {
     pattern = "";
   }
   let method = autocmd.request ? "request" : "notify";
-  return `autocmd ${id} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', ['${id}'${args}])`;
+  return `autocmd ${id2} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', ['${id2}'${args}])`;
 }
 var groupPrefix, Autocmds;
 var init_autocmds = __esm({
@@ -42273,31 +42285,31 @@ var init_autocmds = __esm({
         let text = getAutoCmdText(autocmd);
         return groupPrefix + crypto.createHash("md5").update(text).digest("hex");
       }
-      async doAutocmd(id, args) {
-        let autocmd = this.autocmds.get(id);
+      async doAutocmd(id2, args) {
+        let autocmd = this.autocmds.get(id2);
         if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args));
       }
       registerAutocmd(autocmd) {
-        let id = this.generateId(autocmd);
+        let id2 = this.generateId(autocmd);
         let { nvim } = this;
-        this.autocmds.set(id, autocmd);
+        this.autocmds.set(id2, autocmd);
         nvim.pauseNotification();
-        let cmd = createCommand(id, autocmd);
-        nvim.command("augroup " + id, true);
+        let cmd = createCommand(id2, autocmd);
+        nvim.command("augroup " + id2, true);
         nvim.command(`autocmd!`, true);
         nvim.command(cmd, true);
         nvim.command("augroup END", true);
         nvim.resumeNotification(false, true);
         return import_node3.Disposable.create(() => {
-          nvim.command(`autocmd! ${id}`, true);
+          nvim.command(`autocmd! ${id2}`, true);
         });
       }
       resetDynamicAutocmd() {
         let { nvim } = this;
         nvim.pauseNotification();
-        for (let [id, autocmd] of this.autocmds.entries()) {
-          nvim.command(`autocmd! ${id}`, true);
-          nvim.command(createCommand(id, autocmd), true);
+        for (let [id2, autocmd] of this.autocmds.entries()) {
+          nvim.command(`autocmd! ${id2}`, true);
+          nvim.command(createCommand(id2, autocmd), true);
         }
         nvim.resumeNotification(false, true);
       }
@@ -42395,136 +42407,6 @@ var init_contentProvider = __esm({
   }
 });
 
-// src/util/diff.ts
-function diffLines(oldLines, newLines, startLine) {
-  let endOffset = 0;
-  let startOffset = 0;
-  let parts = oldLines.slice(startLine + 1);
-  for (let i = 0; i < Math.min(parts.length, newLines.length); i++) {
-    if (parts[parts.length - 1 - i] == newLines[newLines.length - 1 - i]) {
-      endOffset = endOffset + 1;
-    } else {
-      break;
-    }
-  }
-  for (let i = 0; i <= Math.min(startLine, newLines.length - 1 - endOffset); i++) {
-    if (oldLines[i] == newLines[i]) {
-      startOffset = startOffset + 1;
-    } else {
-      break;
-    }
-  }
-  let replacement = newLines.slice(startOffset, newLines.length - endOffset);
-  let end = oldLines.length - endOffset;
-  if (end > startOffset && replacement.length) {
-    let offset = 0;
-    for (let i = 0; i < Math.min(replacement.length, end - startOffset); i++) {
-      if (replacement[i] == oldLines[startOffset + i]) {
-        offset = offset + 1;
-      } else {
-        break;
-      }
-    }
-    if (offset) {
-      return {
-        start: startOffset + offset,
-        end,
-        replacement: replacement.slice(offset)
-      };
-    }
-  }
-  return {
-    start: startOffset,
-    end,
-    replacement
-  };
-}
-function patchLine(from, to, fill = " ") {
-  if (from == to) return to;
-  let idx = to.indexOf(from);
-  if (idx !== -1) return fill.repeat(byteLength(to.substring(0, idx))) + from;
-  let result = fastDiff(from, to);
-  let str = "";
-  for (let item of result) {
-    if (item[0] == fastDiff.DELETE) {
-      return to;
-    } else if (item[0] == fastDiff.INSERT) {
-      str = str + fill.repeat(byteLength(item[1]));
-    } else {
-      str = str + item[1];
-    }
-  }
-  return str;
-}
-function getTextEdit(oldLines, newLines, cursor, insertMode) {
-  let ol = oldLines.length;
-  let nl = newLines.length;
-  let n = cursor ? cursor.line : Math.min(ol, nl);
-  let used = 0;
-  for (let i = 0; i < n; i++) {
-    if (newLines[i] === oldLines[i]) {
-      used += 1;
-    } else {
-      break;
-    }
-  }
-  if (ol == nl && used == ol) return void 0;
-  let delta = nl - ol;
-  let r = Math.min(ol - used, nl - used);
-  let e = 0;
-  for (let i = 0; i < r; i++) {
-    if (newLines[nl - i - 1] === oldLines[ol - i - 1]) {
-      e += 1;
-    } else {
-      break;
-    }
-  }
-  let inserted = e == 0 ? newLines.slice(used) : newLines.slice(used, -e);
-  if (delta == 0 && cursor && inserted.length == 1) {
-    let newLine = newLines[used];
-    let oldLine = oldLines[used];
-    let nl2 = newLine.length;
-    let ol2 = oldLine.length;
-    if (nl2 === 0) return TextEdit.del(Range.create(used, 0, used, ol2));
-    if (ol2 === 0) return TextEdit.insert(Position.create(used, 0), newLine);
-    let character = Math.min(cursor.character, nl2);
-    if (!insertMode && nl2 >= ol2 && character !== nl2) {
-      character += 1;
-    }
-    let r2 = 0;
-    for (let i = 0; i < nl2 - character; i++) {
-      let idx = ol2 - 1 - i;
-      if (idx === -1) break;
-      if (newLine[nl2 - 1 - i] === oldLine[idx]) {
-        r2 += 1;
-      } else {
-        break;
-      }
-    }
-    let l = 0;
-    for (let i = 0; i < Math.min(ol2 - r2, nl2 - r2); i++) {
-      if (newLine[i] === oldLine[i]) {
-        l += 1;
-      } else {
-        break;
-      }
-    }
-    let newText = r2 === 0 ? newLine.slice(l) : newLine.slice(l, -r2);
-    return TextEdit.replace(Range.create(used, l, used, ol2 - r2), newText);
-  }
-  let text = inserted.length > 0 ? inserted.join("\n") + "\n" : "";
-  if (text.length === 0 && used === ol - e) return void 0;
-  return TextEdit.replace(Range.create(used, 0, ol - e, 0), text);
-}
-var init_diff = __esm({
-  "src/util/diff.ts"() {
-    "use strict";
-    init_main();
-    init_node();
-    init_string();
-  }
-});
-
 // src/util/position.ts
 function rangeInRange(r, range) {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0;
@@ -42535,6 +42417,9 @@ function equalsRange(r, range) {
 }
 function samePosition(one, two) {
   return one.line === two.line && one.character === two.character;
+}
+function adjacentPosition(pos, range) {
+  return samePosition(pos, range.start) || samePosition(pos, range.end);
 }
 function compareRangesUsingStarts(a, b) {
   const aStartLineNumber = a.start.line | 0;
@@ -42626,9 +42511,6 @@ function comparePosition(position, other) {
   if (other.line == position.line && position.character == other.character) return 0;
   return -1;
 }
-function isSingleLine(range) {
-  return range.start.line == range.end.line;
-}
 function getEnd(start, content) {
   const lines = content.split(/\r?\n/);
   const len = lines.length;
@@ -42640,6 +42522,207 @@ var init_position = __esm({
   "src/util/position.ts"() {
     "use strict";
     init_main();
+  }
+});
+
+// src/util/diff.ts
+function diffLines(oldLines, newLines, startLine) {
+  let endOffset = 0;
+  let startOffset = 0;
+  let parts = oldLines.slice(startLine + 1);
+  for (let i = 0; i < Math.min(parts.length, newLines.length); i++) {
+    if (parts[parts.length - 1 - i] == newLines[newLines.length - 1 - i]) {
+      endOffset = endOffset + 1;
+    } else {
+      break;
+    }
+  }
+  for (let i = 0; i <= Math.min(startLine, newLines.length - 1 - endOffset); i++) {
+    if (oldLines[i] == newLines[i]) {
+      startOffset = startOffset + 1;
+    } else {
+      break;
+    }
+  }
+  let replacement = newLines.slice(startOffset, newLines.length - endOffset);
+  let end = oldLines.length - endOffset;
+  if (end > startOffset && replacement.length) {
+    let offset = 0;
+    for (let i = 0; i < Math.min(replacement.length, end - startOffset); i++) {
+      if (replacement[i] == oldLines[startOffset + i]) {
+        offset = offset + 1;
+      } else {
+        break;
+      }
+    }
+    if (offset) {
+      return {
+        start: startOffset + offset,
+        end,
+        replacement: replacement.slice(offset)
+      };
+    }
+  }
+  return {
+    start: startOffset,
+    end,
+    replacement
+  };
+}
+function patchLine(from, to, fill = " ") {
+  if (from == to) return to;
+  let idx = to.indexOf(from);
+  if (idx !== -1) return fill.repeat(byteLength(to.substring(0, idx))) + from;
+  let result = fastDiff(from, to);
+  let str = "";
+  for (let item of result) {
+    if (item[0] == fastDiff.DELETE) {
+      return to;
+    } else if (item[0] == fastDiff.INSERT) {
+      str = str + fill.repeat(byteLength(item[1]));
+    } else {
+      str = str + item[1];
+    }
+  }
+  return str;
+}
+function getTextEdit(oldLines, newLines, cursor, insertMode) {
+  let ol = oldLines.length;
+  let nl = newLines.length;
+  let n;
+  if (cursor) {
+    n = nl > ol && insertMode && cursor.line > 0 ? cursor.line - 1 : cursor.line;
+  } else {
+    n = Math.min(ol, nl);
+  }
+  let used = 0;
+  for (let i = 0; i < n; i++) {
+    if (newLines[i] === oldLines[i]) {
+      used += 1;
+    } else {
+      break;
+    }
+  }
+  if (ol == nl && used == ol) return void 0;
+  let delta = nl - ol;
+  let r = Math.min(ol - used, nl - used);
+  let e = 0;
+  for (let i = 0; i < r; i++) {
+    if (newLines[nl - i - 1] === oldLines[ol - i - 1]) {
+      e += 1;
+    } else {
+      break;
+    }
+  }
+  let inserted = e == 0 ? newLines.slice(used) : newLines.slice(used, -e);
+  if (delta == 0 && cursor && inserted.length == 1) {
+    let newLine = newLines[used];
+    let oldLine = oldLines[used];
+    let nl2 = newLine.length;
+    let ol2 = oldLine.length;
+    if (nl2 === 0) return TextEdit.del(Range.create(used, 0, used, ol2));
+    if (ol2 === 0) return TextEdit.insert(Position.create(used, 0), newLine);
+    let character = Math.min(cursor.character, nl2);
+    if (!insertMode && nl2 >= ol2 && character !== nl2) {
+      character += 1;
+    }
+    let r2 = 0;
+    for (let i = 0; i < nl2 - character; i++) {
+      let idx = ol2 - 1 - i;
+      if (idx === -1) break;
+      if (newLine[nl2 - 1 - i] === oldLine[idx]) {
+        r2 += 1;
+      } else {
+        break;
+      }
+    }
+    let l = 0;
+    for (let i = 0; i < Math.min(ol2 - r2, nl2 - r2); i++) {
+      if (newLine[i] === oldLine[i]) {
+        l += 1;
+      } else {
+        break;
+      }
+    }
+    let newText = r2 === 0 ? newLine.slice(l) : newLine.slice(l, -r2);
+    return TextEdit.replace(Range.create(used, l, used, ol2 - r2), newText);
+  }
+  let text = inserted.length > 0 ? inserted.join("\n") + "\n" : "";
+  if (text.length === 0 && used === ol - e) return void 0;
+  let original = oldLines.slice(used, ol - e).join("\n") + "\n";
+  let edit2 = TextEdit.replace(Range.create(used, 0, ol - e, 0), text);
+  return reduceReplceEdit(edit2, original, cursor);
+}
+function getCommonSuffixLen(a, b, max) {
+  if (max === 0) return 0;
+  let al = a.length;
+  let bl = b.length;
+  let n = 0;
+  for (let i = 0; i < max; i++) {
+    if (a[al - 1 - i] === b[bl - 1 - i]) {
+      n++;
+    } else {
+      break;
+    }
+  }
+  return n;
+}
+function getCommonPrefixLen(a, b, max) {
+  if (max === 0) return 0;
+  let n = 0;
+  for (let i = 0; i < max; i++) {
+    if (a[i] === b[i]) {
+      n++;
+    } else {
+      break;
+    }
+  }
+  return n;
+}
+function reduceReplceEdit(edit2, original, cursor) {
+  let { newText, range } = edit2;
+  if (emptyRange(range) || newText === "") return edit2;
+  let endOffset;
+  if (cursor) {
+    let newEnd = getEnd(range.start, newText);
+    if (positionInRange(cursor, Range.create(range.start, newEnd)) === 0) {
+      endOffset = 0;
+      let lc = newEnd.line - cursor.line + 1;
+      let lines = newText.split("\n");
+      let len = lines.length;
+      for (let i = 0; i < lc; i++) {
+        let idx = len - i - 1;
+        if (i == lc - 1) {
+          let s2 = idx === 0 ? range.start.character : 0;
+          endOffset += lines[idx].slice(cursor.character - s2).length;
+        } else {
+          endOffset += lines[idx].length + 1;
+        }
+      }
+    }
+  }
+  let sl;
+  let pl;
+  let min = Math.min(original.length, newText.length);
+  if (endOffset) {
+    sl = getCommonSuffixLen(original, newText, endOffset);
+    pl = getCommonPrefixLen(original, newText, min - sl);
+  } else {
+    pl = getCommonPrefixLen(original, newText, min);
+    sl = getCommonSuffixLen(original, newText, min - pl);
+  }
+  let s = pl === 0 ? range.start : getEnd(range.start, original.slice(0, pl));
+  let e = sl === 0 ? range.end : getEnd(range.start, original.slice(0, -sl));
+  let text = newText.slice(pl, sl === 0 ? void 0 : -sl);
+  return TextEdit.replace(Range.create(s, e), text);
+}
+var init_diff = __esm({
+  "src/util/diff.ts"() {
+    "use strict";
+    init_main();
+    init_node();
+    init_string();
+    init_position();
   }
 });
 
@@ -43415,12 +43498,12 @@ function fireDetach(bufnr) {
 function fireLinesChanged(bufnr) {
   void events_default.fire("LinesChanged", [bufnr]);
 }
-function getUri(fullpath, id, buftype) {
-  if (!fullpath) return `untitled:${id}`;
+function getUri(fullpath, id2, buftype) {
+  if (!fullpath) return `untitled:${id2}`;
   if (path.isAbsolute(fullpath)) return URI.file(path.normalize(fullpath)).toString();
   if (isUrl(fullpath)) return URI.parse(fullpath).toString();
-  if (buftype != "") return `${buftype}:${id}`;
-  return `unknown:${id}`;
+  if (buftype != "") return `${buftype}:${id2}`;
+  return `unknown:${id2}`;
 }
 function getNotAttachReason(buftype, enabled, size) {
   if (!["", "acwrite"].includes(buftype)) {
@@ -43465,6 +43548,7 @@ var init_document = __esm({
         this._previewwindow = false;
         this._winid = -1;
         this._commandLine = false;
+        this._applyQueque = [];
         this.disposables = [];
         // real current lines
         this.lines = [];
@@ -43606,18 +43690,23 @@ var init_document = __esm({
       attach() {
         if (isVim) return;
         let lines = this.lines;
+        const id2 = this.buffer.id;
         this.buffer.attach(true).then((res) => {
           if (!res) fireDetach(this.bufnr);
         }, (_e) => {
           fireDetach(this.bufnr);
         });
-        this.buffer.listen("lines", (buf, tick, firstline, lastline, linedata) => {
+        this.buffer.listen("lines", (_buf, tick, firstline, lastline, linedata) => {
           if (tick && tick > this._changedtick) {
             this._changedtick = tick;
             lines = [...lines.slice(0, firstline), ...linedata, ...lastline == -1 ? [] : lines.slice(lastline)];
             if (lines.length == 0) lines = [""];
+            let prev = this._applyQueque.shift();
+            if (prev && equals(prev, lines)) {
+              return;
+            }
             this.lines = lines;
-            fireLinesChanged(buf.id);
+            fireLinesChanged(id2);
             if (events_default.pumvisible) return;
             this.fireContentChanges();
           }
@@ -43636,19 +43725,20 @@ var init_document = __esm({
         if (!this.dirty) return false;
         return !equals(this.lines, this.syncLines);
       }
+      /**
+       * Cursor position if document is current document
+       */
+      get cursor() {
+        let { cursor } = events_default;
+        if (cursor.bufnr !== this.bufnr) return void 0;
+        let content = this.lines[cursor.lnum - 1] ?? "";
+        return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1));
+      }
       _fireContentChanges(edit2) {
         if (this.lines === this.syncLines) return;
         let textDocument = this._textDocument;
         let changes = [];
-        if (!edit2) {
-          let { cursor } = events_default;
-          let pos;
-          if (cursor.bufnr == this.bufnr) {
-            let content = this.lines[cursor.lnum - 1] ?? "";
-            pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1));
-          }
-          edit2 = getTextEdit(textDocument.lines, this.lines, pos, cursor.insert);
-        }
+        if (!edit2) edit2 = getTextEdit(textDocument.lines, this.lines, this.cursor, events_default.cursor.insert);
         let original;
         if (edit2) {
           original = textDocument.getText(edit2.range);
@@ -43682,14 +43772,10 @@ var init_document = __esm({
           changes = toTextChanges(lines, edits);
         }
         let cursor;
-        let isCurrent = events_default.bufnr == this.bufnr;
+        let isCurrent = events_default.bufnr === this.bufnr;
         let col;
         if (move && isCurrent && !isAppend) {
-          let pos = Position.is(move) ? move : void 0;
-          if (!pos && this.bufnr === events_default.cursor.bufnr) {
-            let { col: col2, lnum } = events_default.cursor;
-            pos = Position.create(lnum - 1, characterIndex(this.lines[lnum - 1], col2 - 1));
-          }
+          let pos = Position.is(move) ? move : this.cursor;
           if (pos) {
             let position = getPositionFromEdits(pos, edits);
             if (comparePosition(pos, position) !== 0) {
@@ -43718,10 +43804,10 @@ var init_document = __esm({
           ], true);
         }
         this.nvim.resumeNotification(isCurrent, true);
-        let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
-        await waitNextTick();
+        this._applyQueque.push(newLines);
         this.lines = newLines;
-        fireLinesChanged(this.bufnr);
+        await waitNextTick();
+        let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
         this.fireContentChanges.clear();
         this._fireContentChanges(textEdit);
         let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0);
@@ -43987,7 +44073,8 @@ var init_document = __esm({
        */
       onTextChange(event, change) {
         if (event === "TextChanged" || event === "TextChangedI" || !this._noFetch) {
-          fireLinesChanged(this.bufnr);
+          let prev = this._applyQueque.shift();
+          if (!prev) fireLinesChanged(this.bufnr);
           this._noFetch = false;
           void this._fetchContent();
           return;
@@ -44493,7 +44580,7 @@ var init_documents = __esm({
        * Get format options
        */
       async getFormatOptions(uri) {
-        let bufnr = this.getBufnr(uri);
+        let bufnr = typeof uri === "number" ? uri : this.getBufnr(uri);
         let res = await this.nvim.call("coc#util#get_format_opts", [bufnr]);
         return convertFormatOptions(res);
       }
@@ -44840,9 +44927,9 @@ var init_editors = __esm({
         return false;
       }
       onChangeCurrent(editor) {
-        let id = editor.id;
-        if (id === this.previousId) return;
-        this.previousId = id;
+        let id2 = editor.id;
+        if (id2 === this.previousId) return;
+        this.previousId = id2;
         this._onDidChangeActiveTextEditor.fire(editor);
       }
       async attach(nvim) {
@@ -44889,8 +44976,8 @@ var init_editors = __esm({
             this.editors.delete(editor.winid);
           }
         }
-        for (let id of Array.from(this.tabIds)) {
-          if (!ids.includes(id)) this._onDidTabClose.fire(id);
+        for (let id2 of Array.from(this.tabIds)) {
+          if (!ids.includes(id2)) this._onDidTabClose.fire(id2);
         }
         this.tabIds = new Set(ids);
         if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
@@ -46522,8 +46609,8 @@ function getOriginalLine(item, change) {
 function grouByAnnotation(changes, annotations) {
   let map = /* @__PURE__ */ new Map();
   for (let change of changes) {
-    let id = getAnnotationKey(change) ?? null;
-    let key = id ? annotations[id]?.label : null;
+    let id2 = getAnnotationKey(change) ?? null;
+    let key = id2 ? annotations[id2]?.label : null;
     let arr = map.get(key);
     if (arr) {
       arr.push(change);
@@ -46567,9 +46654,9 @@ var init_editInspect = __esm({
       }
       async show(state) {
         let { nvim } = this;
-        let id = global_id++;
+        let id2 = global_id++;
         nvim.pauseNotification();
-        nvim.command(`tabe +setl\\ buftype=nofile CocWorkspaceEdit${id}`, true);
+        nvim.command(`tabe +setl\\ buftype=nofile CocWorkspaceEdit${id2}`, true);
         nvim.command(`setl bufhidden=wipe nolist`, true);
         nvim.command("setl nobuflisted wrap undolevels=-1 filetype=cocedits noswapfile", true);
         await nvim.resumeNotification(true);
@@ -47253,13 +47340,13 @@ var init_keymaps = __esm({
       }
       registerExprKeymap(mode, lhs, fn, buffer = false, cancel = true) {
         let bufnr = getBufnr(buffer);
-        let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ""}`;
+        let id2 = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ""}`;
         let { nvim } = this;
         let rhs;
         if (mode == "i") {
-          rhs = `coc#_insert_key('request', '${id}', ${cancel ? "1" : "0"})`;
+          rhs = `coc#_insert_key('request', '${id2}', ${cancel ? "1" : "0"})`;
         } else {
-          rhs = `coc#rpc#request('doKeymap', ['${id}'])`;
+          rhs = `coc#rpc#request('doKeymap', ['${id2}'])`;
         }
         let opts = { noremap: true, silent: true, expr: true, nowait: true };
         if (buffer) {
@@ -47267,9 +47354,9 @@ var init_keymaps = __esm({
         } else {
           nvim.setKeymap(mode, lhs, rhs, opts);
         }
-        this.keymaps.set(id, [fn, false]);
+        this.keymaps.set(id2, [fn, false]);
         return import_node3.Disposable.create(() => {
-          this.keymaps.delete(id);
+          this.keymaps.delete(id2);
           if (buffer) {
             nvim.createBuffer(bufnr).deleteKeymap(mode, lhs);
           } else {
@@ -47280,17 +47367,17 @@ var init_keymaps = __esm({
       registerLocalKeymap(bufnr, mode, lhs, fn, notify) {
         let { nvim } = this;
         let buffer = nvim.createBuffer(bufnr);
-        let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`;
-        this.keymaps.set(id, [fn, false]);
+        let id2 = `local-${bufnr}-${mode}-${toBase64(lhs)}`;
+        this.keymaps.set(id2, [fn, false]);
         let method = notify ? "notify" : "request";
         let modify2 = getKeymapModifier(mode);
-        buffer.setKeymap(mode, lhs, `:${modify2}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
+        buffer.setKeymap(mode, lhs, `:${modify2}call coc#rpc#${method}('doKeymap', ['${id2}'])<CR>`, {
           silent: true,
           nowait: true,
           noremap: true
         });
         return import_node3.Disposable.create(() => {
-          this.keymaps.delete(id);
+          this.keymaps.delete(id2);
           buffer.deleteKeymap(mode, lhs);
         });
       }
@@ -47690,6 +47777,7 @@ var init_bufferSync = __esm({
         return Array.from(this.itemsMap.values()).map((x) => x.item);
       }
       getItem(bufnr) {
+        if (bufnr == null) return void 0;
         if (typeof bufnr === "number") {
           return this.itemsMap.get(bufnr)?.item;
         }
@@ -47916,8 +48004,8 @@ var init_status = __esm({
         let idx = Math.floor(d.getMilliseconds() / 100);
         let text = "";
         let items = [];
-        for (let [id, item] of this.items) {
-          if (this.shownIds.has(id)) {
+        for (let [id2, item] of this.items) {
+          if (this.shownIds.has(id2)) {
             items.push(item);
           }
         }
@@ -47959,9 +48047,9 @@ var init_task = __esm({
        * @param {Neovim} nvim
        * @param {string} id unique id
        */
-      constructor(nvim, id) {
+      constructor(nvim, id2) {
         this.nvim = nvim;
-        this.id = id;
+        this.id = id2;
         this.disposables = [];
         this._onExit = new import_node3.Emitter();
         this._onStderr = new import_node3.Emitter();
@@ -47969,18 +48057,18 @@ var init_task = __esm({
         this.onExit = this._onExit.event;
         this.onStdout = this._onStdout.event;
         this.onStderr = this._onStderr.event;
-        events_default.on("TaskExit", (id2, code) => {
-          if (id2 == this.id) {
+        events_default.on("TaskExit", (id3, code) => {
+          if (id3 == this.id) {
             this._onExit.fire(code);
           }
         }, null, this.disposables);
-        events_default.on("TaskStderr", (id2, lines) => {
-          if (id2 == this.id) {
+        events_default.on("TaskStderr", (id3, lines) => {
+          if (id3 == this.id) {
             this._onStderr.fire(lines);
           }
         }, null, this.disposables);
-        events_default.on("TaskStdout", (id2, lines) => {
-          if (id2 == this.id) {
+        events_default.on("TaskStdout", (id3, lines) => {
+          if (id3 == this.id) {
             this._onStdout.fire(lines);
           }
         }, null, this.disposables);
@@ -48448,8 +48536,8 @@ var init_workspace = __esm({
       /**
        * Create Task instance that runs in vim.
        */
-      createTask(id) {
-        return new Task(this.nvim, id);
+      createTask(id2) {
+        return new Task(this.nvim, id2);
       }
       /**
        * Create DB instance at extension root.
@@ -48770,9 +48858,9 @@ var init_TreeView = __esm({
         if (opts.enableFilter) {
           this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke]);
         }
-        let id = globalId;
+        let id2 = globalId;
         globalId = globalId + 1;
-        this.bufname = `CocTree${id}`;
+        this.bufname = `CocTree${id2}`;
         this.tooltipFactory = window_default.createFloatFactory({ modes: ["n"] });
         this.provider = opts.treeDataProvider;
         this.leafIndent = opts.disableLeafIndent !== true;
@@ -48855,8 +48943,8 @@ var init_TreeView = __esm({
             this._onDidChangeVisibility.fire({ visible: false });
           }
         }, null, this.disposables);
-        window_default.onDidTabClose((id2) => {
-          if (this._targetTabId === id2) {
+        window_default.onDidTabClose((id3) => {
+          if (this._targetTabId === id3) {
             this.dispose();
           }
         }, null, this.disposables);
@@ -50020,40 +50108,57 @@ async function evalCode(nvim, kind, code, curr) {
   let res = await nvim.call(`pyxeval`, "str(snip.rv)");
   return toText(res);
 }
-function prepareMatchCode(snip) {
-  let { range, regex: regex2, line } = snip;
-  let pyCodes = [];
-  if (regex2 && range != null) {
+function hasPython(snip) {
+  if (!snip) return false;
+  if (snip.context) return true;
+  if (snip.actions && Object.keys(snip.actions).length > 0) return true;
+  return false;
+}
+function getPyBlockCode(snip) {
+  let { range, line } = snip;
+  let pyCodes = [
+    "import re, os, vim, string, random",
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`
+  ];
+  let start = `(${range.start.line},${range.start.character})`;
+  let end = `(${range.start.line},${range.end.character})`;
+  let indent = line.match(/^\s*/)[0];
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`);
+  return pyCodes;
+}
+function getSnippetPythonCode(context) {
+  const pyCodes = [];
+  let { range, regex: regex2, line } = context;
+  if (context.context) {
+    pyCodes.push(`snip = ContextSnippet()`);
+    pyCodes.push(`context = ${context.context}`);
+  } else {
+    pyCodes.push(`context = None`);
+  }
+  if (regex2 && Range.is(range)) {
     let trigger = line.slice(range.start.character, range.end.character);
     pyCodes.push(`pattern = re.compile("${escapeString(regex2)}")`);
     pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`);
   } else {
     pyCodes.push(`match = None`);
   }
-  return pyCodes.join("\n");
+  return pyCodes;
 }
-function preparePythonCodes(snip) {
-  let { range, context, line } = snip;
+function getInitialPythonCode(context) {
   let pyCodes = [
     "import re, os, vim, string, random",
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`
   ];
-  if (context) {
-    pyCodes.push(`snip = ContextSnippet()`);
-    pyCodes.push(`context = ${context}`);
-  } else {
-    pyCodes.push(`context = True`);
-  }
-  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`;
-  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`;
-  let indent = line.match(/^\s*/)[0];
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`);
+  pyCodes.push(...getSnippetPythonCode(context));
   return pyCodes;
 }
 async function executePythonCode(nvim, codes) {
+  let lines = [...codes];
+  lines.unshift(`__requesting = ${events_default.requesting ? "True" : "False"}`);
   try {
-    await nvim.command(`pyx ${addPythonTryCatch(codes.join("\n"))}`);
+    await nvim.command(`pyx ${addPythonTryCatch(lines.join("\n"))}`);
   } catch (e) {
     let err = new Error(e.message);
     err.stack = `Error on execute python code:
@@ -50087,6 +50192,33 @@ function addPythonTryCatch(code, force = false) {
 function escapeString(input) {
   return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\t/g, "\\t").replace(/\n/g, "\\n");
 }
+var import_child_process;
+var init_eval = __esm({
+  "src/snippets/eval.ts"() {
+    "use strict";
+    import_child_process = require("child_process");
+    init_main();
+    init_events();
+    init_constants();
+    init_node();
+    init_string();
+  }
+});
+
+// src/snippets/util.ts
+var util_exports = {};
+__export(util_exports, {
+  WordsSource: () => WordsSource,
+  convertRegex: () => convertRegex,
+  getAction: () => getAction,
+  getNewRange: () => getNewRange,
+  getTextAfter: () => getTextAfter,
+  getTextBefore: () => getTextBefore,
+  normalizeSnippetString: () => normalizeSnippetString,
+  reduceTextEdit: () => reduceTextEdit,
+  shouldFormat: () => shouldFormat,
+  wordsSource: () => wordsSource
+});
 function convertRegex(str) {
   if (str.indexOf("\\z") !== -1) {
     throw new Error("pattern \\z not supported");
@@ -50110,28 +50242,144 @@ function convertRegex(str) {
     return "^";
   });
 }
-var import_child_process, stringStartRe, conditionRe, commentRe, namedCaptureRe, namedReferenceRe, regex;
-var init_eval = __esm({
-  "src/snippets/eval.ts"() {
+function getAction(opt, action) {
+  if (!opt || !opt.actions) return void 0;
+  return opt.actions[action];
+}
+function shouldFormat(snippet) {
+  if (/^\s/.test(snippet)) return true;
+  if (snippet.indexOf("\n") !== -1) return true;
+  return false;
+}
+function normalizeSnippetString(snippet, indent, opts) {
+  let lines = snippet.split(/\r?\n/);
+  let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
+  let tabSize = defaultValue(opts.tabSize, 2);
+  let noExpand = opts.noExpand;
+  let trimTrailingWhitespace = opts.trimTrailingWhitespace;
+  lines = lines.map((line, idx) => {
+    let space = line.match(/^\s*/)[0];
+    let pre = space;
+    let isTab = space.startsWith("	");
+    if (isTab && opts.insertSpaces && !noExpand) {
+      pre = ind.repeat(space.length);
+    } else if (!isTab && !opts.insertSpaces) {
+      pre = ind.repeat(space.length / tabSize);
+    }
+    return (idx == 0 || trimTrailingWhitespace && line.length == 0 ? "" : indent) + pre + line.slice(space.length);
+  });
+  return lines.join("\n");
+}
+function getNewRange(base, pos, value) {
+  const { line, character } = base;
+  const start = {
+    line: line + pos.line,
+    character: pos.line == 0 ? character + pos.character : pos.character
+  };
+  return Range.create(start, getEnd(start, value));
+}
+function reduceTextEdit(edit2, oldText) {
+  let { range, newText } = edit2;
+  let ol = oldText.length;
+  let nl = newText.length;
+  if (ol === 0 || nl === 0) return edit2;
+  let { start, end } = range;
+  let bo = 0;
+  for (let i = 1; i <= Math.min(nl, ol); i++) {
+    if (newText[i - 1] === oldText[i - 1]) {
+      bo = i;
+    } else {
+      break;
+    }
+  }
+  let eo = 0;
+  let t = Math.min(nl - bo, ol - bo);
+  if (t > 0) {
+    for (let i = 1; i <= t; i++) {
+      if (newText[nl - i] === oldText[ol - i]) {
+        eo = i;
+      } else {
+        break;
+      }
+    }
+  }
+  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo);
+  if (bo > 0) start = getEnd(start, newText.slice(0, bo));
+  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo));
+  return TextEdit.replace(Range.create(start, end), text);
+}
+function getTextBefore(range, text, pos) {
+  let newLines = [];
+  let { line, character } = range.start;
+  let n = pos.line - line;
+  const lines = text.split("\n");
+  for (let i = 0; i <= n; i++) {
+    let line2 = lines[i];
+    if (i == n) {
+      newLines.push(line2.slice(0, i == 0 ? pos.character - character : pos.character));
+    } else {
+      newLines.push(line2);
+    }
+  }
+  return newLines.join("\n");
+}
+function getTextAfter(range, text, pos) {
+  let newLines = [];
+  let n = range.end.line - pos.line;
+  const lines = text.split("\n");
+  let len = lines.length;
+  for (let i = 0; i <= n; i++) {
+    let idx = len - i - 1;
+    let line = lines[idx];
+    if (i == n) {
+      let sc = range.start.character;
+      let from = idx == 0 ? pos.character - sc : pos.character;
+      newLines.unshift(line.slice(from));
+    } else {
+      newLines.unshift(line);
+    }
+  }
+  return newLines.join("\n");
+}
+var stringStartRe, conditionRe, commentRe, namedCaptureRe, namedReferenceRe, regex, WordsSource, wordsSource;
+var init_util3 = __esm({
+  "src/snippets/util.ts"() {
     "use strict";
-    import_child_process = require("child_process");
-    init_constants();
-    init_node();
-    init_string();
+    init_main();
+    init_util();
+    init_position();
     stringStartRe = /\\A/;
     conditionRe = /\(\?\(\w+\).+\|/;
     commentRe = /\(\?#.*?\)/;
     namedCaptureRe = /\(\?P<\w+>.*?\)/;
     namedReferenceRe = /\(\?P=(\w+)\)/;
     regex = new RegExp(`${commentRe.source}|${stringStartRe.source}|${namedCaptureRe.source}|${namedReferenceRe.source}`, "g");
+    WordsSource = class {
+      constructor() {
+        this.name = "$words";
+        this.shortcut = "";
+        this.triggerOnly = true;
+        this.words = [];
+      }
+      doComplete(opt) {
+        return {
+          startcol: this.startcol,
+          items: this.words.map((s) => {
+            return { word: s, filterText: opt.input };
+          })
+        };
+      }
+    };
+    wordsSource = new WordsSource();
   }
 });
 
 // src/snippets/parser.ts
-function walk(marker, visitor) {
+function walk(marker, visitor, ignoreChild = false) {
   const stack = [...marker];
   while (stack.length > 0) {
     const marker2 = stack.shift();
+    if (ignoreChild && marker2 instanceof TextmateSnippet) continue;
     const recurse = visitor(marker2);
     if (!recurse) {
       break;
@@ -50195,7 +50443,41 @@ function transformEscapes(input, backslashIndexes = []) {
   }
   return res;
 }
-var logger20, ULTISNIP_VARIABLES, knownRegexOptions, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+function mergeTexts(marker, begin = 0) {
+  let { children } = marker;
+  let end;
+  let start;
+  for (let i = begin; i < children.length; i++) {
+    let m2 = children[i];
+    if (m2 instanceof Text) {
+      if (start !== void 0) {
+        end = i;
+      } else {
+        start = i;
+      }
+    } else {
+      if (end !== void 0) {
+        break;
+      }
+      start = void 0;
+    }
+  }
+  if (end === void 0) return;
+  let newText = "";
+  for (let i = start; i <= end; i++) {
+    newText += children[i].toString();
+  }
+  let m = new Text(newText);
+  children.splice(start, end - start + 1, m);
+  m.parent = marker;
+  return mergeTexts(marker, start + 1);
+}
+function getPlaceholderId(p) {
+  if (typeof p.id === "number") return p.id;
+  p.id = id++;
+  return p.id;
+}
+var logger20, ULTISNIP_VARIABLES, id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser3 = __esm({
   "src/snippets/parser.ts"() {
     "use strict";
@@ -50203,12 +50485,16 @@ var init_parser3 = __esm({
     init_util();
     init_array();
     init_charCode();
+    init_errors();
     init_node();
     init_string();
     init_eval();
+    init_util3();
     logger20 = createLogger("snippets-parser");
     ULTISNIP_VARIABLES = ["VISUAL", "YANK", "UUID"];
+    id = 0;
     knownRegexOptions = ["d", "g", "i", "m", "s", "u", "y"];
+    ultisnipSpecialEscape = ["u", "l", "U", "L", "E", "n", "t"];
     Scanner = class _Scanner {
       static {
         this._table = {
@@ -50310,6 +50596,30 @@ var init_parser3 = __esm({
         }
         this._children = children;
       }
+      replaceWith(newMarker) {
+        if (!this.parent) return false;
+        let p = this.parent;
+        let idx = p.children.indexOf(this);
+        if (idx == -1) return false;
+        newMarker.parent = p;
+        p.children.splice(idx, 1, newMarker);
+        return true;
+      }
+      insertBefore(text) {
+        if (!this.parent) return;
+        let p = this.parent;
+        let idx = p.children.indexOf(this);
+        if (idx == -1) return;
+        let prev = p.children[idx - 1];
+        if (prev instanceof Text) {
+          let v = prev.value;
+          prev.replaceWith(new Text(v + text));
+        } else {
+          let marker = new Text(text);
+          marker.parent = p;
+          p.children.splice(idx, 0, marker);
+        }
+      }
       get children() {
         return this._children;
       }
@@ -50376,17 +50686,6 @@ var init_parser3 = __esm({
       get related() {
         return this._related;
       }
-      update(map) {
-        if (this.kind !== "python") return;
-        let related = /* @__PURE__ */ new Set();
-        this.code = this.code.replace(/\bt\[(\d+)\]/g, (_, p1) => {
-          let idx = Number(p1);
-          let id = map.has(idx) ? map.get(idx) : idx;
-          related.add(id);
-          return `t[${id}]`;
-        });
-        this._related = Array.from(related);
-      }
       get index() {
         if (this.parent instanceof Placeholder) {
           return this.parent.index;
@@ -50436,12 +50735,6 @@ var init_parser3 = __esm({
       get choice() {
         return this._children.length === 1 && this._children[0] instanceof Choice ? this._children[0] : void 0;
       }
-      get nestedPlaceholderCount() {
-        if (this.transform) return 0;
-        return this._children.reduce((p, marker) => {
-          return p + (marker instanceof _Placeholder ? 1 + marker.nestedPlaceholderCount : 0);
-        }, 0);
-      }
       toTextmateString() {
         let transformString = "";
         if (this.transform) {
@@ -50462,14 +50755,31 @@ var init_parser3 = __esm({
         if (this.transform) {
           ret.transform = this.transform.clone();
         }
-        ret._children = this.children.map((child) => child.clone());
+        ret.id = this.id;
+        ret.primary = this.primary;
+        ret._children = this.children.map((child) => {
+          let m = child.clone();
+          m.parent = ret;
+          return m;
+        });
         return ret;
+      }
+      checkParentPlaceHolders() {
+        let idx = this.index;
+        let p = this.parent;
+        while (p != null && !(p instanceof TextmateSnippet)) {
+          if (p instanceof _Placeholder && p.index == idx) {
+            throw new Error(`Parent placeholder has same index: ${idx}`);
+          }
+          p = p.parent;
+        }
       }
     };
     Choice = class _Choice extends Marker {
-      constructor() {
-        super(...arguments);
+      constructor(index = 0) {
+        super();
         this.options = [];
+        this._index = index;
       }
       appendChild(marker) {
         if (marker instanceof Text) {
@@ -50479,16 +50789,16 @@ var init_parser3 = __esm({
         return this;
       }
       toString() {
-        return this.options[0].value;
+        return this.options[this._index].value;
       }
       toTextmateString() {
         return this.options.map((option) => option.value.replace(/\||,/g, "\\$&")).join(",");
       }
       len() {
-        return this.options[0].len();
+        return this.options[this._index].len();
       }
       clone() {
-        let ret = new _Choice();
+        let ret = new _Choice(this._index);
         for (let opt of this.options) {
           ret.appendChild(opt);
         }
@@ -50529,7 +50839,7 @@ var init_parser3 = __esm({
             val = marker.resolve(groups[marker.index]);
             if (this.ultisnip) {
               val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
-                return groups[Number(args[1])] ?? "";
+                return toText(groups[Number(args[1])]);
               });
             }
           } else {
@@ -50547,7 +50857,7 @@ var init_parser3 = __esm({
         let format3 = this.children.map((c) => c.toTextmateString()).join("");
         if (this.ultisnip) {
           format3 = format3.replace(/\\\\(\w)/g, (match, ch) => {
-            if (["u", "l", "U", "L", "E", "n", "t"].includes(ch)) {
+            if (ultisnipSpecialEscape.includes(ch)) {
               return "\\" + ch;
             }
             return match;
@@ -50558,7 +50868,11 @@ var init_parser3 = __esm({
       clone() {
         let ret = new _Transform();
         ret.regexp = new RegExp(this.regexp.source, (this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : ""));
-        ret._children = this.children.map((child) => child.clone());
+        ret._children = this.children.map((child) => {
+          let m = child.clone();
+          m.parent = ret;
+          return m;
+        });
         return ret;
       }
     };
@@ -50655,21 +50969,19 @@ var init_parser3 = __esm({
               indent = lines2[lines2.length - 1].match(/^\s*/)[0];
             }
             return true;
-          });
+          }, true);
           let lines = value.split("\n");
           let indents = lines.filter((s) => s.length > 0).map((s) => s.match(/^\s*/)[0]);
           let minIndent = indents.reduce((p, c) => p < c.length ? p : c.length, 0);
           let newLines = lines.map((s, i) => i == 0 || s.length == 0 || !s.startsWith(" ".repeat(minIndent)) ? s : indent + s.slice(minIndent));
           value = newLines.join("\n");
         }
+        if (typeof value !== "string") return false;
         if (this.transform) {
           value = this.transform.resolve(toText(value));
         }
-        if (value != null) {
-          this._children = [new Text(value.toString())];
-          return true;
-        }
-        return false;
+        this._children = [new Text(value.toString())];
+        return true;
       }
       toTextmateString() {
         let transformString = "";
@@ -50687,7 +50999,11 @@ var init_parser3 = __esm({
         if (this.transform) {
           ret.transform = this.transform.clone();
         }
-        ret._children = this.children.map((child) => child.clone());
+        ret._children = this.children.map((child) => {
+          let m = child.clone();
+          m.parent = ret;
+          return m;
+        });
         return ret;
       }
     };
@@ -50696,7 +51012,7 @@ var init_parser3 = __esm({
         super();
         this.ultisnip = ultisnip === true;
       }
-      get hasPython() {
+      get hasPythonBlock() {
         if (!this.ultisnip) return false;
         return this.pyBlocks.length > 0;
       }
@@ -50709,10 +51025,10 @@ var init_parser3 = __esm({
        * Values for each placeholder index
        */
       get values() {
-        if (this._values) return this._values;
         let values = {};
         let maxIndexNumber = 0;
         this.placeholders.forEach((c) => {
+          if (!Number.isInteger(c.index)) return;
           maxIndexNumber = Math.max(c.index, maxIndexNumber);
           if (c.transform != null) return;
           if (c.primary || values[c.index] === void 0) values[c.index] = c.toString();
@@ -50720,7 +51036,6 @@ var init_parser3 = __esm({
         for (let i = 0; i <= maxIndexNumber; i++) {
           if (values[i] === void 0) values[i] = "";
         }
-        this._values = values;
         return values;
       }
       get orderedPyIndexBlocks() {
@@ -50752,8 +51067,8 @@ var init_parser3 = __esm({
         }
         return res;
       }
-      async evalCodeBlocks(nvim, prepareCodes) {
-        let { pyBlocks, otherBlocks } = this;
+      async evalCodeBlocks(nvim, pyCodes) {
+        const { pyBlocks, otherBlocks } = this.placeholderInfo;
         await Promise.all(otherBlocks.map((block2) => {
           let pre = block2.value;
           return block2.resolve(nvim).then(() => {
@@ -50762,44 +51077,31 @@ var init_parser3 = __esm({
             }
           });
         }));
-        if (pyBlocks.length) {
-          const variableCode = getVariablesCode(this.values);
-          await executePythonCode(nvim, [...prepareCodes, variableCode]);
-          for (let block2 of pyBlocks) {
-            let pre = block2.value;
-            await block2.resolve(nvim);
-            if (pre === block2.value) continue;
-            if (block2.parent instanceof Placeholder) {
-              this.onPlaceholderUpdate(block2.parent);
-              await executePythonCode(nvim, [getVariablesCode(this.values)]);
-            }
+        if (pyCodes.length === 0) return;
+        const variableCode = getVariablesCode(this.values);
+        await executePythonCode(nvim, [...pyCodes, variableCode]);
+        for (let block2 of pyBlocks) {
+          let pre = block2.value;
+          await block2.resolve(nvim);
+          if (pre === block2.value) continue;
+          if (block2.parent instanceof Placeholder) {
+            this.onPlaceholderUpdate(block2.parent);
+            await executePythonCode(nvim, [getVariablesCode(this.values)]);
           }
-          for (let block2 of this.orderedPyIndexBlocks) {
-            await this.updatePyIndexBlock(nvim, block2);
-          }
-          let filtered = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
-          for (let block2 of filtered) {
-            await block2.resolve(nvim);
-          }
+        }
+        for (let block2 of this.orderedPyIndexBlocks) {
+          await this.updatePyIndexBlock(nvim, block2);
+        }
+        let filtered = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
+        for (let block2 of filtered) {
+          await block2.resolve(nvim);
         }
       }
       /**
        * Update python blocks after user change Placeholder with index
        */
       async updatePythonCodes(nvim, marker) {
-        let index;
-        if (marker instanceof Placeholder) {
-          index = marker.index;
-        } else {
-          while (marker.parent) {
-            if (marker instanceof Placeholder) {
-              index = marker.index;
-              break;
-            }
-            marker = marker.parent;
-          }
-          if (index === void 0) return;
-        }
+        let index = marker.index;
         let blocks = this.getDependentPyIndexBlocks(index);
         await executePythonCode(nvim, [getVariablesCode(this.values)]);
         for (let block2 of blocks) {
@@ -50839,37 +51141,42 @@ var init_parser3 = __esm({
         await executePythonCode(nvim, [getVariablesCode(this.values)]);
       }
       get placeholderInfo() {
-        if (!this._placeholders) {
-          const variables = [];
-          const pyBlocks = [];
-          const otherBlocks = [];
-          let placeholders = [];
-          this.walk((candidate) => {
-            if (candidate instanceof Placeholder) {
-              placeholders.push(candidate);
-            } else if (candidate instanceof Variable) {
-              let first = candidate.name.charCodeAt(0);
-              if (first < 65 || first > 90) {
-                variables.push(candidate);
-              }
-            } else if (candidate instanceof CodeBlock) {
-              if (candidate.kind === "python") {
-                pyBlocks.push(candidate);
-              } else {
-                otherBlocks.push(candidate);
-              }
+        const pyBlocks = [];
+        const otherBlocks = [];
+        let placeholders = [];
+        this.walk((candidate) => {
+          if (candidate instanceof Placeholder) {
+            placeholders.push(candidate);
+          } else if (candidate instanceof CodeBlock) {
+            if (candidate.kind === "python") {
+              pyBlocks.push(candidate);
+            } else {
+              otherBlocks.push(candidate);
             }
-            return true;
-          });
-          this._placeholders = { placeholders, pyBlocks, otherBlocks, variables };
-        }
-        return this._placeholders;
+          }
+          return true;
+        }, true);
+        return { placeholders, pyBlocks, otherBlocks };
       }
       get variables() {
-        return this.placeholderInfo.variables;
+        const variables = [];
+        this.walk((candidate) => {
+          if (candidate instanceof Variable) {
+            variables.push(candidate);
+          }
+          return true;
+        }, true);
+        return variables;
       }
       get placeholders() {
-        return this.placeholderInfo.placeholders;
+        let placeholders = [];
+        this.walk((candidate) => {
+          if (candidate instanceof Placeholder) {
+            placeholders.push(candidate);
+          }
+          return true;
+        }, true);
+        return placeholders;
       }
       get pyBlocks() {
         return this.placeholderInfo.pyBlocks;
@@ -50877,125 +51184,29 @@ var init_parser3 = __esm({
       get otherBlocks() {
         return this.placeholderInfo.otherBlocks;
       }
-      get maxIndexNumber() {
-        let { placeholders } = this;
-        return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0);
-      }
       get first() {
-        let { placeholders, variables } = this;
+        let { placeholders } = this;
         let [normals, finals] = groupBy(placeholders.filter((p) => !p.transform), (v) => v.index !== 0);
         if (normals.length) {
           let minIndex = Math.min.apply(null, normals.map((o) => o.index));
           let arr = normals.filter((v) => v.index == minIndex);
           return arr.find((p) => p.primary) ?? arr[0];
         }
-        if (variables.length) return variables[0];
         return finals.find((o) => o.primary) ?? finals[0];
       }
-      insertSnippet(snippet, marker, parts, ultisnip) {
-        let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1;
-        let [before, after] = parts;
-        let matchCode = ultisnip ? prepareMatchCode(ultisnip) : void 0;
-        let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true);
-        let maxIndexAdded = nested.maxIndexNumber + 1;
-        let changed = /* @__PURE__ */ new Map();
-        for (let p of nested.placeholders) {
-          let idx = p.index;
-          if (p.isFinalTabstop) {
-            p.index = maxIndexAdded + index;
-            p.primary = true;
-          } else {
-            p.index = p.index + index;
-          }
-          changed.set(idx, p.index);
-        }
-        if (ultisnip) {
-          nested.pyBlocks.forEach((b) => {
-            b.update(changed);
-          });
-        }
-        let map = /* @__PURE__ */ new Map();
-        this.walk((m) => {
-          if (m instanceof Placeholder && m.index > index) {
-            let idx = m.index;
-            m.index = m.index + maxIndexAdded;
-            map.set(idx, m.index);
-          }
-          return true;
-        });
-        if (this.hasPython) {
-          this.walk((m) => {
-            if (m instanceof CodeBlock) {
-              m.update(map);
-            }
-            return true;
-          });
-        }
-        const select = nested.first;
-        let children = nested.children.slice();
-        if (before) children.unshift(new Text(before));
-        if (after) children.push(new Text(after));
-        this.replace(marker, children);
-        return select;
-      }
-      async update(nvim, marker, value) {
-        this.resetMarker(marker, value);
-        if (this.hasPython) {
-          await this.updatePythonCodes(nvim, marker);
-        }
-      }
-      deleteText(offset, length) {
-        let pos = 0;
-        let marker;
-        let end = offset + length;
-        let start = 0;
-        this.walk((candidate) => {
-          let len = candidate.len();
-          if (candidate instanceof Text && offset >= pos && pos + len >= end) {
-            marker = candidate;
-            start = offset - pos;
-            return false;
-          }
-          pos += len;
-          return true;
-        });
-        if (!marker) return false;
-        let parent = marker.parent;
-        let text = marker.value;
-        let value = text.slice(0, start) + text.slice(start + length);
-        let children = parent.children.slice();
-        let idx = children.indexOf(marker);
-        children.splice(idx, 1, new Text(value));
-        parent.replaceChildren(children);
-        return true;
-      }
-      resetMarker(marker, val) {
-        let markers;
-        if (marker instanceof Placeholder) {
-          markers = this.placeholders.filter((o) => o.index == marker.index);
-        } else {
-          markers = this.variables.filter((o) => o.name == marker.name);
-        }
-        for (let p of markers) {
-          let newText = p.transform ? p.transform.resolve(val) : val;
-          p.setOnlyChild(new Text(newText || ""));
-        }
-        this.synchronizeParents(markers);
-        this.reset();
+      async update(nvim, marker, noPython) {
+        this.onPlaceholderUpdate(marker);
+        if (noPython || !this.hasPythonBlock) return;
+        await this.updatePythonCodes(nvim, marker);
       }
       /**
        * Reflact changes for related markers.
        */
       onPlaceholderUpdate(marker) {
         let val = marker.toString();
-        let markers;
-        if (marker instanceof Placeholder) {
-          this.values[marker.index] = val;
-          markers = this.placeholders.filter((o) => o.index == marker.index);
-        } else {
-          markers = this.variables.filter((o) => o.name == marker.name);
-        }
+        let markers = this.placeholders.filter((o) => o.index == marker.index);
         for (let p of markers) {
+          p.checkParentPlaceHolders();
           if (p === marker) continue;
           let newText = p.transform ? p.transform.resolve(val) : val;
           p.setOnlyChild(new Text(toText(newText)));
@@ -51003,16 +51214,14 @@ var init_parser3 = __esm({
         this.synchronizeParents(markers);
       }
       synchronizeParents(markers) {
-        let arr = [];
+        let parents = /* @__PURE__ */ new Set();
         markers.forEach((m) => {
           let p = m.parent;
-          if (p instanceof Placeholder && !arr.includes(p)) {
-            arr.push(p);
-          }
+          if (p instanceof Placeholder) parents.add(p);
         });
-        arr.forEach((p) => {
+        for (let p of parents) {
           this.onPlaceholderUpdate(p);
-        });
+        }
       }
       offset(marker) {
         let pos = 0;
@@ -51024,7 +51233,7 @@ var init_parser3 = __esm({
           }
           pos += candidate.len();
           return true;
-        });
+        }, true);
         if (!found) {
           return -1;
         }
@@ -51067,52 +51276,86 @@ var init_parser3 = __esm({
         return ret;
       }
       async resolveVariables(resolver2) {
-        let items = [];
+        let variables = this.variables;
+        if (variables.length === 0) return;
+        let failed = [];
+        let succeed = [];
+        let promises = [];
+        const changedParents = /* @__PURE__ */ new Set();
+        for (let item of variables) {
+          promises.push(item.resolve(resolver2).then((res) => {
+            changedParents.add(item.parent);
+            let arr = res ? succeed : failed;
+            arr.push(item);
+          }, onUnexpectedError));
+        }
+        await Promise.allSettled(promises);
+        for (const variable of succeed) {
+          let text = new Text(variable.toString());
+          variable.replaceWith(text);
+        }
+        if (failed.length > 0) {
+          let indexMap = /* @__PURE__ */ new Map();
+          const primarySet = /* @__PURE__ */ new Set();
+          let max = this.getMaxPlaceholderIndex();
+          for (let i = 0; i < failed.length; i++) {
+            const v = failed[i];
+            let idx = indexMap.get(v.name);
+            if (idx == null) {
+              idx = ++max;
+              indexMap.set(v.name, idx);
+            }
+            let p = new Placeholder(idx);
+            p.transform = v.transform;
+            if (!p.transform && !primarySet.has(idx)) {
+              primarySet.add(idx);
+              p.primary = true;
+            }
+            let newText = p.transform ? p.transform.resolve(v.name) : v.name;
+            p.setOnlyChild(new Text(toText(newText)));
+            v.replaceWith(p);
+          }
+        }
+        changedParents.forEach((marker) => {
+          mergeTexts(marker);
+          if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker);
+        });
+      }
+      getMaxPlaceholderIndex() {
+        let res = 0;
         this.walk((candidate) => {
-          if (candidate instanceof Variable && !candidate.resolved) {
-            items.push(candidate);
+          if (candidate instanceof Placeholder) {
+            res = Math.max(res, candidate.index);
           }
           return true;
-        });
-        if (items.length) {
-          await Promise.all(items.map((o) => o.resolve(resolver2)));
-          this.synchronizeParents(items);
-        }
-      }
-      appendChild(child) {
-        this.reset();
-        return super.appendChild(child);
+        }, true);
+        return res;
       }
       replace(marker, children) {
         marker.replaceChildren(children);
-        if (marker instanceof Placeholder || marker instanceof Variable) {
+        if (marker instanceof Placeholder) {
           this.onPlaceholderUpdate(marker);
         }
-        this.reset();
-      }
-      /**
-       * Used on replace happens.
-       */
-      reset() {
-        this._placeholders = void 0;
-        this._values = void 0;
       }
       toTextmateString() {
         return this.children.reduce((prev, cur) => prev + cur.toTextmateString(), "");
       }
       clone() {
         let ret = new _TextmateSnippet(this.ultisnip);
-        ret._children = this.children.map((child) => child.clone());
+        ret._children = this.children.map((child) => {
+          let m = child.clone();
+          m.parent = ret;
+          return m;
+        });
         return ret;
       }
-      walk(visitor) {
-        walk(this.children, visitor);
+      walk(visitor, ignoreChild = false) {
+        walk(this.children, visitor, ignoreChild);
       }
     };
     SnippetParser = class _SnippetParser {
-      constructor(ultisnip, matchCode) {
+      constructor(ultisnip) {
         this.ultisnip = ultisnip;
-        this.matchCode = matchCode;
         this._scanner = new Scanner();
       }
       static escape(value) {
@@ -51257,9 +51500,6 @@ var init_parser3 = __esm({
             let text = marker.value;
             for (let index = 0; index < text.length; index++) {
               const ch = text[index];
-              if (ch === "\n") {
-                return true;
-              }
               if (ch === "{") {
                 count++;
               } else if (ch === "}") {
@@ -51583,9 +51823,8 @@ var init_parser3 = __esm({
           }
           if (text.startsWith("!p")) {
             let code = text.slice(2);
-            let pre = this.matchCode ? this.matchCode + "\n" : "";
             if (code.indexOf("\n") == -1) {
-              let marker = new CodeBlock(pre + code.trim(), "python");
+              let marker = new CodeBlock(code.trim(), "python");
               parent.appendChild(marker);
             } else {
               let codes = code.split(/\r?\n/);
@@ -51596,7 +51835,7 @@ var init_parser3 = __esm({
                 codes = codes.map((s) => s.slice(ind.length));
               }
               if (ind == " " && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1);
-              let marker = new CodeBlock(pre + codes.join("\n"), "python");
+              let marker = new CodeBlock(codes.join("\n"), "python");
               parent.appendChild(marker);
             }
             return true;
@@ -52026,12 +52265,8 @@ function getResumeInput(option, pretext) {
   const start = characterIndex(line, col);
   const pl = pretext.length;
   if (pl < start) return null;
-  for (let i = 0; i < pl; i++) {
-    if (i < start) {
-      if (pretext.charCodeAt(i) !== line.charCodeAt(i)) {
-        return null;
-      }
-    } else if (pretext.charCodeAt(i) === 32 /* Space */) {
+  for (let i = 0; i < start; i++) {
+    if (pretext.charCodeAt(i) !== line.charCodeAt(i)) {
       return null;
     }
   }
@@ -52170,7 +52405,7 @@ function toItemKey(item) {
   return `${label}|${source}|${kind}`;
 }
 var INVALID_WORD_CHARS, DollarSign, QuestionMark, MAX_CODE_POINT, MAX_MRU_ITEMS, DEFAULT_HL_GROUP, highlightsMap, Converter, MruLoader;
-var init_util3 = __esm({
+var init_util4 = __esm({
   "src/completion/util.ts"() {
     "use strict";
     init_main();
@@ -52512,7 +52747,7 @@ function adjustDiagnostics(diagnostics, edit2) {
   }
   return res;
 }
-var init_util4 = __esm({
+var init_util5 = __esm({
   "src/diagnostic/util.ts"() {
     "use strict";
     init_main();
@@ -52538,7 +52773,7 @@ var init_buffer = __esm({
     init_protocol();
     init_window();
     init_workspace();
-    init_util4();
+    init_util5();
     init_errors();
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
@@ -52618,8 +52853,8 @@ var init_buffer = __esm({
           showRelatedInformation: config.get("showRelatedInformation", true)
         };
         if (this._config.virtualText && !virtualTextSrcId) {
-          void this.nvim.createNamespace("coc-diagnostic-virtualText").then((id) => {
-            virtualTextSrcId = id;
+          void this.nvim.createNamespace("coc-diagnostic-virtualText").then((id2) => {
+            virtualTextSrcId = id2;
           });
         }
         if (changed) {
@@ -53256,7 +53491,7 @@ var init_manager = __esm({
     init_workspace();
     init_buffer();
     init_collection();
-    init_util4();
+    init_util5();
     DiagnosticManager = class {
       constructor() {
         this._onDidRefresh = new import_node3.Emitter();
@@ -53763,8 +53998,8 @@ var init_manager2 = __esm({
         }
         return providerItem;
       }
-      getProviderById(id) {
-        let item = Array.from(this.providers).find((o) => o.id == id);
+      getProviderById(id2) {
+        let item = Array.from(this.providers).find((o) => o.id == id2);
         return item ? item.provider : null;
       }
       getProviders(document2) {
@@ -53869,7 +54104,7 @@ var init_codeActionManager = __esm({
         let res = [];
         const titles = [];
         let results = await Promise.allSettled(providers.map((item) => {
-          let { provider, id } = item;
+          let { provider, id: id2 } = item;
           let fn = async () => {
             let actions = await Promise.resolve(provider.provideCodeActions(document2, range, context, token));
             if (isFalsyOrEmpty(actions)) return;
@@ -53879,11 +54114,11 @@ var init_codeActionManager = __esm({
                 let codeAction = {
                   title: action.title,
                   command: action,
-                  providerId: id
+                  providerId: id2
                 };
                 res.push(codeAction);
               } else {
-                res.push(Object.assign({ providerId: id }, action));
+                res.push(Object.assign({ providerId: id2 }, action));
               }
               titles.push(action.title);
             }
@@ -53925,11 +54160,11 @@ var init_codeLensManager = __esm({
         let providers = this.getProviders(document2);
         let codeLens = [];
         let results = await Promise.allSettled(providers.map((item) => {
-          let { provider, id } = item;
+          let { provider, id: id2 } = item;
           return Promise.resolve(provider.provideCodeLenses(document2, token)).then((res) => {
             if (Array.isArray(res)) {
               for (let item2 of res) {
-                codeLens.push(Object.assign({ source: id }, item2));
+                codeLens.push(Object.assign({ source: id2 }, item2));
               }
             }
           });
@@ -54049,13 +54284,13 @@ var init_documentColorManager = __esm({
         let items = this.getProviders(document2);
         let colors = [];
         const results = await Promise.allSettled(items.map((item) => {
-          let { id } = item;
+          let { id: id2 } = item;
           return Promise.resolve(item.provider.provideDocumentColors(document2, token)).then((arr) => {
             let noCheck = colors.length == 0;
             if (Array.isArray(arr)) {
               for (let color of arr) {
                 if (noCheck || !colors.some((o) => equals(o.range, color.range))) {
-                  colors.push(Object.assign({ source: id }, color));
+                  colors.push(Object.assign({ source: id2 }, color));
                 }
               }
             }
@@ -54134,7 +54369,7 @@ var init_documentLinkManager = __esm({
         const links2 = [];
         const seenRanges = /* @__PURE__ */ new Set();
         const results = await Promise.allSettled(items.map(async (item) => {
-          let { id, provider } = item;
+          let { id: id2, provider } = item;
           const arr = await provider.provideDocumentLinks(document2, token);
           if (Array.isArray(arr)) {
             let check = links2.length > 0;
@@ -54143,11 +54378,11 @@ var init_documentLinkManager = __esm({
                 const rangeString = rangeToString(link.range);
                 if (!seenRanges.has(rangeString)) {
                   seenRanges.add(rangeString);
-                  links2.push(Object.assign({ source: id }, link));
+                  links2.push(Object.assign({ source: id2 }, link));
                 }
               } else {
                 if (items.length > 1) seenRanges.add(rangeToString(link.range));
-                links2.push(Object.assign({ source: id }, link));
+                links2.push(Object.assign({ source: id2 }, link));
               }
             });
           }
@@ -54528,14 +54763,14 @@ var init_inlayHintManager = __esm({
         let items = this.getProviders(document2);
         let inlayHints = [];
         await Promise.all(items.map((item) => {
-          let { id, provider } = item;
+          let { id: id2, provider } = item;
           return Promise.resolve(provider.provideInlayHints(document2, range, token)).then((hints) => {
             if (!Array.isArray(hints) || token.isCancellationRequested) return;
             let noCheck = inlayHints.length == 0;
             for (let hint of hints) {
               if (!isValidInlayHint(hint, range)) continue;
               if (!noCheck && inlayHints.findIndex((o) => sameHint(o, hint)) != -1) continue;
-              inlayHints.push({ providerId: id, ...hint });
+              inlayHints.push({ providerId: id2, ...hint });
             }
           });
         }));
@@ -54974,14 +55209,14 @@ var init_typeHierarchyManager = __esm({
         const items = this.getProviders(document2);
         let hierarchyItems = [];
         let results = await Promise.allSettled(items.map((item) => {
-          let { provider, id } = item;
+          let { provider, id: id2 } = item;
           return (async () => {
             let arr = await Promise.resolve(provider.prepareTypeHierarchy(document2, position, token));
             if (Array.isArray(arr)) {
               let noCheck = hierarchyItems.length === 0;
               arr.forEach((item2) => {
                 if (noCheck || hierarchyItems.every((o) => o.name !== item2.name)) {
-                  hierarchyItems.push(Object.assign({ source: id }, item2));
+                  hierarchyItems.push(Object.assign({ source: id2 }, item2));
                 }
               });
             }
@@ -55039,10 +55274,10 @@ var init_workspaceSymbolsManager = __esm({
         let entries = Array.from(this.providers);
         let infos = [];
         let results = await Promise.allSettled(entries.map((o) => {
-          let { id, provider } = o;
+          let { id: id2, provider } = o;
           return Promise.resolve(provider.provideWorkspaceSymbols(query, token)).then((list2) => {
             if (Array.isArray(list2)) {
-              infos.push(...list2.map((item) => Object.assign({ source: id }, item)));
+              infos.push(...list2.map((item) => Object.assign({ source: id2 }, item)));
             }
           });
         }));
@@ -66204,13 +66439,13 @@ function isSymbolicLink(folder) {
   return false;
 }
 function getDependencies(obj) {
-  return Object.keys(obj.dependencies ?? {}).filter((id) => !local_dependencies.includes(id));
+  return Object.keys(obj.dependencies ?? {}).filter((id2) => !local_dependencies.includes(id2));
 }
-var import_events29, import_url3, logger28, local_dependencies, Installer;
+var import_events30, import_url3, logger28, local_dependencies, Installer;
 var init_installer = __esm({
   "src/extension/installer.ts"() {
     "use strict";
-    import_events29 = require("events");
+    import_events30 = require("events");
     import_url3 = require("url");
     init_esm_node();
     init_logger();
@@ -66222,7 +66457,7 @@ var init_installer = __esm({
     init_workspace();
     logger28 = createLogger("extension-installer");
     local_dependencies = ["coc.nvim", "esbuild", "webpack", "@types/node"];
-    Installer = class extends import_events29.EventEmitter {
+    Installer = class extends import_events30.EventEmitter {
       constructor(root, npm, def) {
         super();
         this.root = root;
@@ -66446,31 +66681,31 @@ var init_memos = __esm({
         writeJson(this.filepath, current);
         fs.unlinkSync(filepath);
       }
-      fetchContent(id, key) {
+      fetchContent(id2, key) {
         let res = loadJson(this.filepath);
-        let obj = res[id];
+        let obj = res[id2];
         if (!obj) return void 0;
         return obj[key];
       }
-      async update(id, key, value) {
+      async update(id2, key, value) {
         let { filepath } = this;
         let current = loadJson(filepath);
-        current[id] = current[id] || {};
+        current[id2] = current[id2] || {};
         if (value !== void 0) {
-          current[id][key] = deepClone(value);
+          current[id2][key] = deepClone(value);
         } else {
-          delete current[id][key];
+          delete current[id2][key];
         }
         writeJson(filepath, current);
       }
-      createMemento(id) {
+      createMemento(id2) {
         return {
           get: (key, defaultValue2) => {
-            let res = this.fetchContent(id, key);
+            let res = this.fetchContent(id2, key);
             return res === void 0 ? defaultValue2 : res;
           },
           update: async (key, value) => {
-            await this.update(id, key, value);
+            await this.update(id2, key, value);
           }
         };
       }
@@ -66479,18 +66714,18 @@ var init_memos = __esm({
 });
 
 // src/list/commandTask.ts
-var import_events30, spawn, logger29, CommandTask;
+var import_events31, spawn, logger29, CommandTask;
 var init_commandTask = __esm({
   "src/list/commandTask.ts"() {
     "use strict";
-    import_events30 = require("events");
+    import_events31 = require("events");
     init_logger();
     init_util();
     init_node();
     init_workspace();
     spawn = child_process.spawn;
     logger29 = createLogger("list-commandTask");
-    CommandTask = class extends import_events30.EventEmitter {
+    CommandTask = class extends import_events31.EventEmitter {
       constructor(opt) {
         super();
         this.opt = opt;
@@ -69247,14 +69482,14 @@ var init_commands2 = __esm({
         let mruList = await this.mru.load();
         let ids = /* @__PURE__ */ new Set();
         for (const obj of extensionRegistry4.onCommands.concat(commands_default.commandList)) {
-          let { id, title } = obj;
-          if (ids.has(id)) continue;
-          ids.add(id);
+          let { id: id2, title } = obj;
+          if (ids.has(id2)) continue;
+          ids.add(id2);
           let desc = toText(title);
           items.push({
-            label: [id, desc],
-            filterText: id + " " + desc,
-            data: { cmd: id, score: score2(mruList, id) }
+            label: [id2, desc],
+            filterText: id2 + " " + desc,
+            data: { cmd: id2, score: score2(mruList, id2) }
           });
         }
         items.sort((a, b) => b.data.score - a.data.score);
@@ -69500,12 +69735,12 @@ var init_extensions = __esm({
         this.description = "manage coc extensions";
         this.name = "extensions";
         this.addAction("toggle", async (item) => {
-          let { id, state } = item.data;
+          let { id: id2, state } = item.data;
           if (state == "disabled") return;
           if (state == "activated") {
-            await this.manager.deactivate(id);
+            await this.manager.deactivate(id2);
           } else {
-            await this.manager.activate(id);
+            await this.manager.activate(id2);
           }
           await wait(delay3);
         }, { persist: true, reload: true, parallel: true });
@@ -69523,16 +69758,16 @@ var init_extensions = __esm({
           workspace_default.nvim.call("coc#ui#open_url", [root], true);
         });
         this.addAction("disable", async (item) => {
-          let { id, state } = item.data;
-          if (state !== "disabled") await this.manager.toggleExtension(id);
+          let { id: id2, state } = item.data;
+          if (state !== "disabled") await this.manager.toggleExtension(id2);
         }, { persist: true, reload: true, parallel: true });
         this.addAction("enable", async (item) => {
-          let { id, state } = item.data;
-          if (state == "disabled") await this.manager.toggleExtension(id);
+          let { id: id2, state } = item.data;
+          if (state == "disabled") await this.manager.toggleExtension(id2);
         }, { persist: true, reload: true, parallel: true });
         this.addAction("lock", async (item) => {
-          let { id } = item.data;
-          this.manager.states.setLocked(id, true);
+          let { id: id2 } = item.data;
+          this.manager.states.setLocked(id2, true);
         }, { persist: true, reload: true });
         this.addAction("help", async (item) => {
           let { root } = item.data;
@@ -69541,8 +69776,8 @@ var init_extensions = __esm({
           if (file) await workspace_default.jumpTo(URI.file(path.join(root, file)));
         });
         this.addAction("reload", async (item) => {
-          let { id } = item.data;
-          await this.manager.reloadExtension(id);
+          let { id: id2 } = item.data;
+          await this.manager.reloadExtension(id2);
         }, { persist: true, reload: true });
         this.addMultipleAction("uninstall", async (items) => {
           let ids = [];
@@ -70012,8 +70247,8 @@ var init_features = __esm({
       notificationSent(data, type, params) {
         this._onNotificationSent.fire({ original: data, type, params });
       }
-      unregister(id) {
-        this._selectors.delete(id);
+      unregister(id2) {
+        this._selectors.delete(id2);
       }
       dispose() {
         this._selectors.clear();
@@ -70064,8 +70299,8 @@ var init_features = __esm({
         let registration = this.registerLanguageProvider(data.registerOptions, data.id);
         this._registrations.set(data.id, { disposable: registration[0], data, provider: registration[1] });
       }
-      unregister(id) {
-        let registration = this._registrations.get(id);
+      unregister(id2) {
+        let registration = this._registrations.get(id2);
         if (registration !== void 0) {
           registration.disposable.dispose();
         }
@@ -70082,13 +70317,13 @@ var init_features = __esm({
           return [generateUuid(), { documentSelector }];
         }
         if (import_node3.TextDocumentRegistrationOptions.is(capability)) {
-          const id = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+          const id2 = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
           const selector = capability.documentSelector ?? documentSelector;
-          return [id, Object.assign({}, capability, { documentSelector: selector })];
+          return [id2, Object.assign({}, capability, { documentSelector: selector })];
         }
         if (import_node3.WorkDoneProgressOptions.is(capability)) {
-          const id = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
-          return [id, Object.assign({}, capability, { documentSelector })];
+          const id2 = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+          return [id2, Object.assign({}, capability, { documentSelector })];
         }
         return [void 0, void 0];
       }
@@ -70136,11 +70371,11 @@ var init_callHierarchy = __esm({
         capability.dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.callHierarchyProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.callHierarchyProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -70228,7 +70463,7 @@ var init_codeAction = __esm({
         });
       }
       registerLanguageProvider(options2) {
-        const registerCommand = (id) => {
+        const registerCommand = (id2) => {
           const client = this._client;
           const executeCommand = (command, args) => {
             const params = {
@@ -70238,8 +70473,8 @@ var init_codeAction = __esm({
             return client.sendRequest(import_node3.ExecuteCommandRequest.type, params);
           };
           const middleware = client.middleware;
-          this.disposables.push(commands_default.registerCommand(id, (...args) => {
-            return middleware.executeCommand ? middleware.executeCommand(id, args, executeCommand) : executeCommand(id, args);
+          this.disposables.push(commands_default.registerCommand(id2, (...args) => {
+            return middleware.executeCommand ? middleware.executeCommand(id2, args, executeCommand) : executeCommand(id2, args);
           }, null, true));
         };
         const provider = {
@@ -70366,11 +70601,11 @@ var init_colorProvider = __esm({
         ensure(ensure(capabilities, "textDocument"), "colorProvider").dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
-        let [id, options2] = this.getRegistration(documentSelector, capabilities.colorProvider);
-        if (!id || !options2) {
+        let [id2, options2] = this.getRegistration(documentSelector, capabilities.colorProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -70482,7 +70717,7 @@ var init_completion = __esm({
           registerOptions: options2
         });
       }
-      registerLanguageProvider(options2, id) {
+      registerLanguageProvider(options2, id2) {
         let triggerCharacters = options2.triggerCharacters || [];
         let allCommitCharacters = options2.allCommitCharacters || [];
         const provider = {
@@ -70511,7 +70746,7 @@ var init_completion = __esm({
             return middleware.resolveCompletionItem ? middleware.resolveCompletionItem(item, token, resolveCompletionItem) : resolveCompletionItem(item, token);
           } : void 0
         };
-        let name2 = this._client.id + (this.registrationLength == 0 ? "" : "-" + id);
+        let name2 = this._client.id + (this.registrationLength == 0 ? "" : "-" + id2);
         const disposable = languages_default.registerCompletionItemProvider(
           name2,
           "LS",
@@ -70608,9 +70843,9 @@ var init_configuration4 = __esm({
       initialize() {
         let section2 = this._client.clientOptions.synchronize?.configurationSection;
         if (section2 !== void 0) {
-          let id = this.configuredUID = generateUuid();
+          let id2 = this.configuredUID = generateUuid();
           this.register({
-            id,
+            id: id2,
             registerOptions: {
               section: section2
             }
@@ -70628,10 +70863,10 @@ var init_configuration4 = __esm({
           this.onDidChangeConfiguration(section2, void 0);
         }
       }
-      unregister(id) {
-        let disposable = this._listeners.get(id);
+      unregister(id2) {
+        let disposable = this._listeners.get(id2);
         if (disposable) {
-          this._listeners.delete(id);
+          this._listeners.delete(id2);
           disposable.dispose();
         }
       }
@@ -70723,11 +70958,11 @@ var init_declaration = __esm({
         declarationSupport.linkSupport = true;
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.declarationProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.declarationProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -71272,9 +71507,9 @@ var init_diagnostic = __esm({
             provider.onDidChangeDiagnosticsEmitter.fire();
           }
         });
-        let [id, options2] = this.getRegistration(documentSelector, capabilities.diagnosticProvider);
-        if (!id || !options2) return;
-        this.register({ id, registerOptions: options2 });
+        let [id2, options2] = this.getRegistration(documentSelector, capabilities.diagnosticProvider);
+        if (!id2 || !options2) return;
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = new DiagnosticFeatureProviderImpl(this._client, options2);
@@ -71532,8 +71767,8 @@ var init_executeCommand = __esm({
           this._commands.set(data.id, disposables);
         }
       }
-      unregister(id) {
-        let disposables = this._commands.get(id);
+      unregister(id2) {
+        let disposables = this._commands.get(id2);
         if (disposables) {
           disposables.forEach((disposable) => disposable.dispose());
         }
@@ -71617,8 +71852,8 @@ var init_fileOperations = __esm({
         });
         this._filters.set(data.id, minimatchFilter);
       }
-      unregister(id) {
-        this._filters.delete(id);
+      unregister(id2) {
+        this._filters.delete(id2);
       }
       dispose() {
         this._filters.clear();
@@ -72015,13 +72250,13 @@ var init_fileSystemWatcher2 = __esm({
           );
         }
       }
-      unregister(id) {
-        let disposables = this._watchers.get(id);
+      unregister(id2) {
+        let disposables = this._watchers.get(id2);
         if (disposables) {
           for (let disposable of disposables) {
             disposable.dispose();
           }
-          this._watchers.delete(id);
+          this._watchers.delete(id2);
         }
       }
       dispose() {
@@ -72059,11 +72294,11 @@ var init_foldingRange = __esm({
         capability.foldingRange = { collapsedText: false };
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -72291,11 +72526,11 @@ var init_implementation = __esm({
         implementationSupport.linkSupport = true;
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.implementationProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.implementationProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -72338,11 +72573,11 @@ var init_inlayHint = __esm({
             provider.onDidChangeInlayHints.fire();
           }
         });
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.inlayHintProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.inlayHintProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const eventEmitter = new import_node3.Emitter();
@@ -72398,11 +72633,11 @@ var init_inlineValue = __esm({
             provider.onDidChangeInlineValues.fire();
           }
         });
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.inlineValueProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.inlineValueProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const eventEmitter = new import_node3.Emitter();
@@ -72446,11 +72681,11 @@ var init_linkedEditingRange = __esm({
         linkedEditingSupport.dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
-        let [id, options2] = this.getRegistration(documentSelector, capabilities.linkedEditingRangeProvider);
-        if (!id || !options2) {
+        let [id2, options2] = this.getRegistration(documentSelector, capabilities.linkedEditingRangeProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -72765,11 +73000,11 @@ var init_selectionRange = __esm({
         capability.dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
-        let [id, options2] = this.getRegistration(documentSelector, capabilities.selectionRangeProvider);
-        if (!id || !options2) {
+        let [id2, options2] = this.getRegistration(documentSelector, capabilities.selectionRangeProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -72866,11 +73101,11 @@ var init_semanticTokens = __esm({
             provider.onDidChangeSemanticTokensEmitter.fire();
           }
         });
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.semanticTokensProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.semanticTokensProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const fullProvider = boolean(options2.full) ? options2.full : options2.full !== void 0;
@@ -73069,10 +73304,10 @@ var init_textSynchronization = __esm({
         super.notificationSent(textDocument, type, params);
         this._syncedDocuments.delete(textDocument.uri.toString());
       }
-      unregister(id) {
-        let selector = this._selectors.get(id);
+      unregister(id2) {
+        let selector = this._selectors.get(id2);
         if (!selector) return;
-        super.unregister(id);
+        super.unregister(id2);
         let selectors = this._selectors.values();
         this._syncedDocuments.forEach((textDocument) => {
           if (workspace_default.match(selector, textDocument) > 0 && !this._selectorFilter(selectors, textDocument)) {
@@ -73174,8 +73409,8 @@ var init_textSynchronization = __esm({
       notificationSent(changeEvent, type, params) {
         this._onNotificationSent.fire({ original: changeEvent, type, params });
       }
-      unregister(id) {
-        this._changeData.delete(id);
+      unregister(id2) {
+        this._changeData.delete(id2);
       }
       dispose() {
         this._changeData.clear();
@@ -73277,8 +73512,8 @@ var init_textSynchronization = __esm({
           );
         }
       }
-      unregister(id) {
-        this._selectors.delete(id);
+      unregister(id2) {
+        this._selectors.delete(id2);
         if (this._selectors.size === 0 && this._listener) {
           this._listener.dispose();
           this._listener = void 0;
@@ -73346,11 +73581,11 @@ var init_typeDefinition = __esm({
         typeDefinitionSupport.linkSupport = true;
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.typeDefinitionProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.typeDefinitionProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const provider = {
@@ -73384,11 +73619,11 @@ var init_typeHierarchy = __esm({
         capability.dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
-        const [id, options2] = this.getRegistration(documentSelector, capabilities.typeHierarchyProvider);
-        if (!id || !options2) {
+        const [id2, options2] = this.getRegistration(documentSelector, capabilities.typeHierarchyProvider);
+        if (!id2 || !options2) {
           return;
         }
-        this.register({ id, registerOptions: options2 });
+        this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
         const client = this._client;
@@ -73635,15 +73870,15 @@ var init_workspaceFolders = __esm({
           return middleware?.workspaceFolders ? middleware.workspaceFolders(token, workspaceFolders) : workspaceFolders(token);
         });
         const value = access2(access2(access2(capabilities, "workspace"), "workspaceFolders"), "changeNotifications");
-        let id;
+        let id2;
         if (typeof value === "string") {
-          id = value;
+          id2 = value;
         } else if (value) {
-          id = generateUuid();
+          id2 = generateUuid();
         }
-        if (id) {
+        if (id2) {
           this.register({
-            id,
+            id: id2,
             registerOptions: void 0
           });
         }
@@ -73677,7 +73912,7 @@ var init_workspaceFolders = __esm({
         }
       }
       register(data) {
-        let id = data.id;
+        let id2 = data.id;
         let client = this._client;
         if (this._listeners.size > 0) return;
         let disposable = workspace_default.onDidChangeWorkspaceFolders((event) => {
@@ -73692,11 +73927,11 @@ var init_workspaceFolders = __esm({
             });
           }
         });
-        this._listeners.set(id, disposable);
+        this._listeners.set(id2, disposable);
         let workspaceFolders = this.getValidWorkspaceFolders();
         this.sendInitialEvent(workspaceFolders);
       }
-      unregister(id) {
+      unregister(id2) {
       }
       dispose() {
         for (let disposable of this._listeners.values()) {
@@ -73739,8 +73974,8 @@ var init_workspaceSymbol = __esm({
         const registration = this.registerLanguageProvider(data.registerOptions);
         this._registrations.set(data.id, { disposable: registration[0], provider: registration[1] });
       }
-      unregister(id) {
-        const registration = this._registrations.get(id);
+      unregister(id2) {
+        const registration = this._registrations.get(id2);
         if (registration) registration.disposable.dispose();
       }
       dispose() {
@@ -74116,11 +74351,11 @@ var init_client = __esm({
       MessageTransports2.is = is;
     })(MessageTransports || (MessageTransports = {}));
     BaseLanguageClient = class _BaseLanguageClient {
-      constructor(id, name2, clientOptions) {
+      constructor(id2, name2, clientOptions) {
         this._consoleDebug = false;
         this._features = [];
         this._dynamicFeatures = /* @__PURE__ */ new Map();
-        this._id = id;
+        this._id = id2;
         this._name = name2;
         if (clientOptions.outputChannel) {
           this._outputChannel = clientOptions.outputChannel;
@@ -75357,25 +75592,25 @@ var init_language_client = __esm({
     })(ChildProcessInfo || (ChildProcessInfo = {}));
     LanguageClient = class extends BaseLanguageClient {
       constructor(arg1, arg2, arg3, arg4, arg5) {
-        let id;
+        let id2;
         let name2;
         let serverOptions;
         let clientOptions;
         let forceDebug;
         if (string(arg2)) {
-          id = arg1;
+          id2 = arg1;
           name2 = arg2;
           serverOptions = arg3;
           clientOptions = arg4;
           forceDebug = !!arg5;
         } else {
-          id = arg1.toLowerCase();
+          id2 = arg1.toLowerCase();
           name2 = arg1;
           serverOptions = arg2;
           clientOptions = arg3;
           forceDebug = arg4;
         }
-        super(id, name2, clientOptions);
+        super(id2, name2, clientOptions);
         this._serverOptions = serverOptions;
         this._forceDebug = !!forceDebug;
         this._isInDebugMode = !!forceDebug;
@@ -75627,7 +75862,7 @@ function documentSelectorToLanguageIds(documentSelector) {
   res = res.filter((s) => typeof s == "string");
   return Array.from(new Set(res));
 }
-function getLanguageServerOptions(id, name2, config, folder) {
+function getLanguageServerOptions(id2, name2, config, folder) {
   let { command, module: module2, port, args, filetypes } = config;
   args = args || [];
   if (!filetypes) {
@@ -75662,7 +75897,7 @@ function getLanguageServerOptions(id, name2, config, folder) {
     serverOptions = () => new Promise((resolve, reject) => {
       let client = new net.Socket();
       let host = config.host ?? "127.0.0.1";
-      logger36.info(`languageserver "${id}" connecting to ${host}:${port}`);
+      logger36.info(`languageserver "${id2}" connecting to ${host}:${port}`);
       client.connect(port, host, () => {
         resolve({
           reader: client,
@@ -75670,7 +75905,7 @@ function getLanguageServerOptions(id, name2, config, folder) {
         });
       });
       client.on("error", (e) => {
-        reject(new Error(`Connection error for ${id}: ${e.message}`));
+        reject(new Error(`Connection error for ${id2}: ${e.message}`));
       });
     });
   }
@@ -75696,10 +75931,10 @@ function getLanguageServerOptions(id, name2, config, folder) {
     documentSelector: getDocumentSelector(config.filetypes, config.additionalSchemes),
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
-      configurationSection: `${id}.settings`
+      configurationSection: `${id2}.settings`
     },
     diagnosticCollectionName: name2,
-    outputChannelName: id,
+    outputChannelName: id2,
     stdioEncoding: config.stdioEncoding,
     progressOnInitialization: config.progressOnInitialization === true,
     initializationOptions: config.initializationOptions ?? {}
@@ -75883,17 +76118,17 @@ var init_services = __esm({
         this.registerClientsByConfig(config, uri);
       }
       register(service) {
-        let { id } = service;
-        if (this.registered.get(id)) return;
-        this.registered.set(id, service);
+        let { id: id2 } = service;
+        if (this.registered.get(id2)) return;
+        this.registered.set(id2, service);
         this.tryStartService(service);
         service.onServiceReady(() => {
-          logger36.info(`service ${id} started`);
+          logger36.info(`service ${id2} started`);
         }, null, this.disposables);
         return import_node3.Disposable.create(() => {
-          if (!this.registered.has(id)) return;
+          if (!this.registered.has(id2)) return;
           service.dispose();
-          this.registered.delete(id);
+          this.registered.delete(id2);
         });
       }
       tryStartService(service) {
@@ -75908,9 +76143,9 @@ var init_services = __esm({
           void service.start();
         }
       }
-      getService(id) {
-        let service = this.registered.get(id);
-        if (!service) service = this.registered.get(`languageserver.${id}`);
+      getService(id2) {
+        let service = this.registered.get(id2);
+        if (!service) service = this.registered.get(`languageserver.${id2}`);
         return service;
       }
       shouldStart(service) {
@@ -75934,13 +76169,13 @@ var init_services = __esm({
           return service.start();
         }));
       }
-      stop(id) {
-        let service = this.registered.get(id);
+      stop(id2) {
+        let service = this.registered.get(id2);
         if (service) return Promise.resolve(service.stop());
       }
-      async toggle(id) {
-        let service = this.registered.get(id);
-        if (!service) throw new Error(`Service ${id} not found`);
+      async toggle(id2) {
+        let service = this.registered.get(id2);
+        if (!service) throw new Error(`Service ${id2} not found`);
         let { state } = service;
         if (state == 3 /* Running */) {
           await Promise.resolve(service.stop());
@@ -75952,9 +76187,9 @@ var init_services = __esm({
       }
       getServiceStats() {
         let res = [];
-        for (let [id, service] of this.registered) {
+        for (let [id2, service] of this.registered) {
           res.push({
-            id,
+            id: id2,
             languageIds: documentSelectorToLanguageIds(service.selector),
             state: getStateName(service.state)
           });
@@ -75970,55 +76205,55 @@ var init_services = __esm({
           this.registerLanguageClient(key, config, folder);
         }
       }
-      async getLanguageClient(id) {
-        let service = this.getService(id);
+      async getLanguageClient(id2) {
+        let service = this.getService(id2);
         if (!service) await wait(100);
-        service = this.getService(id);
+        service = this.getService(id2);
         if (!service || !service.client) {
-          throw new Error(`Language server ${id} not found`);
+          throw new Error(`Language server ${id2} not found`);
         }
         return service.client;
       }
-      async sendNotification(id, method, params) {
-        let client = await this.getLanguageClient(id);
+      async sendNotification(id2, method, params) {
+        let client = await this.getLanguageClient(id2);
         await Promise.resolve(client.sendNotification(method, params));
       }
-      async sendRequest(id, method, params, token) {
-        let client = await this.getLanguageClient(id);
+      async sendRequest(id2, method, params, token) {
+        let client = await this.getLanguageClient(id2);
         token = token ?? import_node3.CancellationToken.None;
         return await Promise.resolve(client.sendRequest(method, params, token));
       }
-      registerNotification(id, method) {
-        let service = this.getService(id);
+      registerNotification(id2, method) {
+        let service = this.getService(id2);
         if (service && service.client) {
           service.client.onNotification(method, async (result) => {
-            this.sendNotificationVim(id, method, result);
+            this.sendNotificationVim(id2, method, result);
           });
         }
-        let arr = this.pendingNotifications.get(id) ?? [];
-        arr.push({ id, method });
-        this.pendingNotifications.set(id, arr);
+        let arr = this.pendingNotifications.get(id2) ?? [];
+        arr.push({ id: id2, method });
+        this.pendingNotifications.set(id2, arr);
       }
-      getRegisteredNotifications(id) {
-        id = id.startsWith("languageserver") ? id.slice("languageserver.".length) : id;
-        return this.pendingNotifications.get(id) ?? [];
+      getRegisteredNotifications(id2) {
+        id2 = id2.startsWith("languageserver") ? id2.slice("languageserver.".length) : id2;
+        return this.pendingNotifications.get(id2) ?? [];
       }
-      sendNotificationVim(id, method, result) {
-        workspace_default.nvim.call("coc#do_notify", [id, method, result], true);
+      sendNotificationVim(id2, method, result) {
+        workspace_default.nvim.call("coc#do_notify", [id2, method, result], true);
       }
       registerLanguageClient(name2, config, folder) {
         const registeredExtensionName = parseExtensionName(Error().stack);
-        let id = typeof name2 === "string" ? `languageserver.${name2}` : name2.id;
+        let id2 = typeof name2 === "string" ? `languageserver.${name2}` : name2.id;
         let disposables = [];
         let onDidServiceReady = new import_node3.Emitter();
         let client = typeof name2 === "string" ? null : name2;
-        if (this.registered.has(id)) return import_node3.Disposable.create(() => {
+        if (this.registered.has(id2)) return import_node3.Disposable.create(() => {
         });
         if (client && typeof client.dispose === "function") disposables.push(client);
         if (client) client.registeredExtensionName = registeredExtensionName;
         let created = false;
         let service = {
-          id,
+          id: id2,
           client,
           name: typeof name2 === "string" ? name2 : name2.name,
           selector: typeof name2 === "string" ? getDocumentSelector(config.filetypes, config.additionalSchemes) : name2.clientOptions.documentSelector,
@@ -76028,16 +76263,16 @@ var init_services = __esm({
             if (!created) {
               if (typeof name2 == "string" && !client) {
                 let config2 = workspace_default.getConfiguration(void 0, folder).get(`languageserver.${name2}`, {});
-                let opts = getLanguageServerOptions(id, name2, config2, folder);
+                let opts = getLanguageServerOptions(id2, name2, config2, folder);
                 if (!opts || config2.enable === false) return;
-                client = new LanguageClient(id, name2, opts[1], opts[0]);
+                client = new LanguageClient(id2, name2, opts[1], opts[0]);
                 client.registeredExtensionName = registeredExtensionName;
                 service.selector = opts[0].documentSelector;
                 service.client = client;
                 disposables.push(client);
               }
               created = true;
-              for (let item of this.getRegisteredNotifications(id)) {
+              for (let item of this.getRegisteredNotifications(id2)) {
                 service.client.onNotification(item.method, async (result) => {
                   this.sendNotificationVim(item.id, item.method, result);
                 });
@@ -76055,13 +76290,13 @@ var init_services = __esm({
                 service.state = convertState(client.state);
               } else {
                 service.state = 1 /* Starting */;
-                logger36.debug(`starting service: ${id}`);
+                logger36.debug(`starting service: ${id2}`);
                 await client.start();
                 onDidServiceReady.fire(void 0);
               }
             } catch (e) {
-              void window_default.showErrorMessage(`Server ${id} failed to start: ${e}`);
-              logger36.error(`Server ${id} failed to start:`, e);
+              void window_default.showErrorMessage(`Server ${id2} failed to start: ${e}`);
+              logger36.error(`Server ${id2} failed to start:`, e);
               service.state = 2 /* StartFailed */;
             }
           },
@@ -76112,8 +76347,8 @@ var init_services2 = __esm({
         this.description = "registered services of coc.nvim";
         this.name = "services";
         this.addAction("toggle", async (item) => {
-          let { id } = item.data;
-          await services_default.toggle(id);
+          let { id: id2 } = item.data;
+          await services_default.toggle(id2);
           await wait(50);
         }, { persist: true, reload: true });
       }
@@ -76340,7 +76575,7 @@ var init_symbols = __esm({
 });
 
 // src/list/manager.ts
-function createConfigurationNode(name2, interactive, id) {
+function createConfigurationNode(name2, interactive, id2) {
   let properties = {};
   properties[`list.source.${name2}.defaultAction`] = {
     type: "string",
@@ -76384,7 +76619,7 @@ function createConfigurationNode(name2, interactive, id) {
     scope: 1 /* APPLICATION */,
     properties
   };
-  if (id) node.extensionInfo = { id };
+  if (id2) node.extensionInfo = { id: id2 };
   return node;
 }
 var logger37, mouseKeys, winleaveDalay, ListManager, manager_default2;
@@ -76513,9 +76748,9 @@ var init_manager3 = __esm({
         return null;
       }
       async getCurrentSession() {
-        let { id } = await this.nvim.window;
+        let { id: id2 } = await this.nvim.window;
         for (let session of this.sessionsMap.values()) {
-          if (session && session.winid == id) {
+          if (session && session.winid == id2) {
             this.lastSession = session;
             return session;
           }
@@ -76772,11 +77007,11 @@ var init_manager3 = __esm({
       }
       registerList(list2, internal = false) {
         let { name: name2, interactive } = list2;
-        let id;
-        if (!internal) id = getConditionValue(parseExtensionName(Error().stack), void 0);
+        let id2;
+        if (!internal) id2 = getConditionValue(parseExtensionName(Error().stack), void 0);
         let removed = this.deregisterList(name2);
         this.listMap.set(name2, list2);
-        const configNode = createConfigurationNode(name2, interactive, id);
+        const configNode = createConfigurationNode(name2, interactive, id2);
         if (!removed) workspace_default.configurations.updateConfigurations([configNode]);
         return import_node3.Disposable.create(() => {
           this.deregisterList(name2);
@@ -76873,385 +77108,442 @@ var init_manager3 = __esm({
 });
 
 // src/snippets/snippet.ts
-function reduceTextEdit(edit2, oldText) {
-  let { range, newText } = edit2;
-  let ol = oldText.length;
-  let nl = newText.length;
-  if (ol === 0 || nl === 0) return edit2;
-  let { start, end } = range;
-  let bo = 0;
-  for (let i = 1; i <= Math.min(nl, ol); i++) {
-    if (newText[i - 1] === oldText[i - 1]) {
-      bo = i;
-    } else {
-      break;
-    }
-  }
-  let eo = 0;
-  let t = Math.min(nl - bo, ol - bo);
-  if (t > 0) {
-    for (let i = 1; i <= t; i++) {
-      if (newText[nl - i] === oldText[ol - i]) {
-        eo = i;
-      } else {
-        break;
+function getNextPlaceholder(marker, forward, nested = false) {
+  if (!marker) return void 0;
+  let { snippet } = marker;
+  let idx = marker.index;
+  if (idx < 0 || !snippet) return void 0;
+  let arr = [];
+  let min_index;
+  let max_index;
+  if (idx > 0) {
+    snippet.walk((m) => {
+      if (m instanceof Placeholder && !m.transform) {
+        if (forward && (m.index > idx || m.isFinalTabstop) || !forward && (m.index < idx && !m.isFinalTabstop)) {
+          arr.push(m);
+          if (!m.isFinalTabstop) {
+            min_index = min_index === void 0 ? m.index : Math.min(min_index, m.index);
+          }
+          max_index = max_index === void 0 ? m.index : Math.max(max_index, m.index);
+        }
       }
+      return true;
+    }, true);
+    if (arr.length > 0) {
+      arr.sort((a, b) => {
+        if (b.primary && !a.primary) return 1;
+        if (a.primary && !b.primary) return -1;
+        return 0;
+      });
+      if (forward) return min_index === void 0 ? arr[0] : arr.find((o) => o.index === min_index);
+      return arr.find((o) => o.index === max_index);
     }
   }
-  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo);
-  if (bo > 0) start = getEnd(start, newText.slice(0, bo));
-  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo));
-  return TextEdit.replace(Range.create(start, end), text);
-}
-function checkCursor(start, cursor, newText) {
-  let r = Range.create(start, getEnd(start, newText));
-  return positionInRange(cursor, r) == 0;
-}
-function checkContentBefore(position, oldTextDocument, textDocument) {
-  let lines = textDocument.lines;
-  if (lines.length < position.line) return false;
-  let checked = true;
-  for (let i = position.line; i >= 0; i--) {
-    let newLine = textDocument.lines[i] ?? "";
-    if (i === position.line) {
-      let before = oldTextDocument.lines[i].slice(0, position.character);
-      if (!newLine.startsWith(before)) {
-        checked = false;
-        break;
-      }
-    } else if (newLine !== oldTextDocument.lines[i]) {
-      checked = false;
-      break;
-    }
+  if (snippet.parent instanceof Placeholder) {
+    return getNextPlaceholder(snippet.parent, forward, true);
   }
-  return checked;
+  if (nested) return marker;
+  return void 0;
 }
-function getEndPosition(position, oldTextDocument, textDocument) {
-  let total = oldTextDocument.lines.length;
-  if (textDocument.lines.length < total - position.line) return void 0;
-  let end;
-  let cl = textDocument.lines.length - total;
-  for (let i = position.line; i < total; i++) {
-    let newLine = textDocument.lines[i + cl];
-    if (i == position.line) {
-      let text = oldTextDocument.lines[i].slice(position.character);
-      if (text.length && !newLine.endsWith(text)) break;
-      end = Position.create(i + cl, newLine.length - text.length);
-    } else if (newLine !== oldTextDocument.lines[i]) {
-      end = void 0;
-      break;
-    }
-  }
-  return end;
-}
-function getParts(text, range, r) {
-  let before = [];
-  let after = [];
-  let lines = text.split("\n");
-  let d = r.start.line - range.start.line;
-  for (let i = 0; i <= d; i++) {
-    let s = defaultValue(lines[i], "");
-    if (i == d) {
-      before.push(i == 0 ? s.substring(0, r.start.character - range.start.character) : s.substring(0, r.start.character));
-    } else {
-      before.push(s);
-    }
-  }
-  d = range.end.line - r.end.line;
-  for (let i = 0; i <= d; i++) {
-    let s = lines[r.end.line - range.start.line + i] ?? "";
-    if (i == 0) {
-      if (d == 0) {
-        after.push(range.end.character == r.end.character ? "" : s.slice(r.end.character - range.end.character));
-      } else {
-        after.push(s.substring(r.end.character));
-      }
-    } else {
-      after.push(s);
-    }
-  }
-  return [before.join("\n"), after.join("\n")];
-}
-function normalizeSnippetString(snippet, indent, opts) {
-  let lines = snippet.split(/\r?\n/);
-  let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
-  let tabSize = defaultValue(opts.tabSize, 2);
-  let noExpand = opts.noExpand;
-  let trimTrailingWhitespace = opts.trimTrailingWhitespace;
-  lines = lines.map((line, idx) => {
-    let space = line.match(/^\s*/)[0];
-    let pre = space;
-    let isTab = space.startsWith("	");
-    if (isTab && opts.insertSpaces && !noExpand) {
-      pre = ind.repeat(space.length);
-    } else if (!isTab && !opts.insertSpaces) {
-      pre = ind.repeat(space.length / tabSize);
-    }
-    return (idx == 0 || trimTrailingWhitespace && line.length == 0 ? "" : indent) + pre + line.slice(space.length);
-  });
-  return lines.join("\n");
-}
-function shouldFormat(snippet) {
-  if (/^\s/.test(snippet)) return true;
-  if (snippet.indexOf("\n") !== -1) return true;
-  return false;
-}
-function comparePlaceholder(a, b) {
-  if (a.nestCount !== b.nestCount) return a.nestCount - b.nestCount;
-  if (a.primary !== b.primary) return a.primary ? -1 : 1;
-  return a.index - b.index;
-}
-var CocSnippet;
+var snippetsPythonGlobalCodes, snippetsPythonContexts, CocSnippet;
 var init_snippet = __esm({
   "src/snippets/snippet.ts"() {
     "use strict";
-    init_main3();
     init_main();
+    init_events();
+    init_textdocument();
     init_util();
     init_position();
-    init_textedit();
+    init_protocol();
     init_eval();
     init_parser3();
+    init_util3();
+    snippetsPythonGlobalCodes = /* @__PURE__ */ new WeakMap();
+    snippetsPythonContexts = /* @__PURE__ */ new WeakMap();
     CocSnippet = class {
       constructor(snippetString, position, nvim, resolver2) {
         this.snippetString = snippetString;
         this.position = position;
         this.nvim = nvim;
         this.resolver = resolver2;
+        // placeholders and snippets from top to bottom
+        this._markerSeuqence = [];
+        this._placeholders = [];
+        // from upper to lower
+        this._snippets = [];
+      }
+      get tmSnippet() {
+        return this._tmSnippet;
+      }
+      get snippets() {
+        return this._snippets.map((o) => o.marker);
+      }
+      getSnippet(marker) {
+        return marker instanceof TextmateSnippet ? marker : marker.snippet;
+      }
+      deactivateSnippet(snip) {
+        if (!snip) return;
+        snippetsPythonGlobalCodes.delete(snip);
+        snippetsPythonContexts.delete(snip);
+        let marker = snip.parent;
+        if (marker) {
+          let text = new Text(snip.toString());
+          snip.replaceWith(text);
+          this.synchronize();
+        }
+      }
+      getUltiSnipAction(marker, action) {
+        if (!marker) return void 0;
+        let snip = this.getSnippet(marker);
+        let context = snippetsPythonContexts.get(snip);
+        return getAction(context, action);
+      }
+      getUltiSnipOption(marker, key) {
+        let snip = this.getSnippet(marker);
+        let context = snippetsPythonContexts.get(snip);
+        if (!context) return void 0;
+        return context[key];
       }
       async init(ultisnip) {
-        const matchCode = ultisnip ? prepareMatchCode(ultisnip) : void 0;
-        const parser2 = new SnippetParser(!!ultisnip, matchCode);
+        const parser2 = new SnippetParser(!!ultisnip);
         const snippet = parser2.parse(this.snippetString, true);
-        this.tmSnippet = snippet;
-        await this.resolve(ultisnip);
+        this._tmSnippet = snippet;
+        await this.resolve(snippet, ultisnip);
         this.synchronize();
       }
-      async resolve(ultisnip) {
-        let { snippet } = this.tmSnippet;
+      async resolve(snippet, ultisnip) {
         let { resolver: resolver2, nvim } = this;
         if (resolver2) {
           await snippet.resolveVariables(resolver2);
+          this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
         }
-        if (ultisnip && ultisnip.noPython !== true) {
+        if (ultisnip) {
           let pyCodes = [];
-          if (snippet.hasPython) pyCodes = preparePythonCodes(ultisnip);
+          snippetsPythonContexts.set(snippet, ultisnip);
+          if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
+            let globalCodes = getSnippetPythonCode(ultisnip);
+            if (snippet.hasPythonBlock) {
+              pyCodes = getPyBlockCode(ultisnip);
+              globalCodes.push(...pyCodes);
+            }
+            snippetsPythonGlobalCodes.set(snippet, globalCodes);
+          }
           await snippet.evalCodeBlocks(nvim, pyCodes);
         }
       }
-      getRanges(placeholder) {
-        let marker = placeholder.marker;
-        if (placeholder.value.length == 0) return [];
-        let placeholders = this._placeholders.filter((o) => o.index == placeholder.index);
-        let ranges = placeholders.map((o) => o.range);
-        let parents = this.tmSnippet.enclosingPlaceholders(marker);
-        let markers;
-        let p = marker.parent;
-        if (marker instanceof Placeholder) {
-          let index = marker.index;
-          markers = this.tmSnippet.placeholders.filter((o) => o.index == index && o.parent == p);
-        } else {
-          let name2 = marker.name;
-          markers = this.tmSnippet.variables.filter((o) => o.name == name2 && o.parent == p);
+      getPlaceholderOnJump(current, forward) {
+        const p = getNextPlaceholder(current, forward);
+        return p ? this.getPlaceholderByMarker(p) : void 0;
+      }
+      /**
+       * Same index and in same snippet only
+       */
+      getRanges(marker) {
+        if (marker.toString().length === 0 || !marker.snippet) return [];
+        let tmSnippet = marker.snippet;
+        let placeholders = this._placeholders.filter((o) => o.index == marker.index && o.marker.snippet === tmSnippet);
+        return placeholders.map((o) => o.range).filter((r) => !emptyRange(r));
+      }
+      isValidPlaceholder(marker) {
+        return this._placeholders.find((o) => o.marker === marker) != null;
+      }
+      /**
+       * Find the most possible marker contains range, throw error when not found
+       */
+      findParent(range, current) {
+        const isInsert = emptyRange(range);
+        let marker;
+        let markerRange;
+        const { _snippets, _placeholders, _markerSeuqence } = this;
+        const seq = _markerSeuqence.filter((o) => o !== current);
+        if (current && _markerSeuqence.includes(current)) seq.push(current);
+        const list2 = seq.map((m) => {
+          return m instanceof TextmateSnippet ? _snippets.find((o) => o.marker === m) : _placeholders.find((o) => o.marker === m);
+        });
+        for (let index = list2.length - 1; index >= 0; index--) {
+          const o = list2[index];
+          if (rangeInRange(range, o.range)) {
+            if (isInsert && o.marker instanceof Placeholder && (o.marker.choice || o.marker.index === 0) && o.marker !== current && adjacentPosition(range.start, o.range)) {
+              continue;
+            }
+            marker = o.marker;
+            markerRange = o.range;
+            break;
+          }
         }
-        parents.forEach((p2) => {
-          let arr = this._placeholders.filter((o) => o.index == p2.index && o.marker !== p2);
-          if (!arr.length) return;
-          for (let m of markers) {
-            let before = this.tmSnippet.getTextBefore(m, p2);
-            arr.forEach((item) => {
-              if (item.transform) {
-                ranges.push(item.range);
-              } else {
-                let s = item.range.start;
-                ranges.push(Range.create(getEnd(s, before), getEnd(s, before + m.toString())));
-              }
+        if (!marker) throw new Error(`Unable to find parent marker in range ${JSON.stringify(range, null, 2)}`);
+        return { marker, range: markerRange };
+      }
+      /**
+       * The change must happens with same marker parents, return the changed marker
+       */
+      replaceWithMarker(range, marker, current) {
+        const isInsert = emptyRange(range);
+        const result = this.findParent(range, current);
+        let parentMarker = result.marker;
+        let parentRange = result.range;
+        const children = parentMarker.children;
+        let pos = parentRange.start;
+        let startIdx = 0;
+        let deleteCount = 0;
+        const { start, end } = range;
+        let startMarker;
+        let endMarker;
+        let preText = "";
+        let afterText = "";
+        let len = children.length;
+        for (let i = 0; i < len; i++) {
+          let child = children[i];
+          let value = child.toString();
+          let s = Position.create(pos.line, pos.character);
+          let e = getEnd(s, value);
+          let r = Range.create(s, e);
+          if (startMarker === void 0 && positionInRange(start, r) === 0 && !samePosition(start, e)) {
+            startMarker = child;
+            startIdx = i;
+            preText = getTextBefore(Range.create(s, e), value, start);
+            if (isInsert && samePosition(end, s)) {
+              endMarker = child;
+              break;
+            }
+          }
+          if (startMarker != null) {
+            let val = positionInRange(end, r);
+            if (val === 0) {
+              endMarker = child;
+              afterText = getTextAfter(Range.create(s, e), value, end);
+            }
+            deleteCount += 1;
+          } else if (i == len - 1 && samePosition(start, e)) {
+            startIdx = len;
+          }
+          if (endMarker != null) break;
+          pos = e;
+        }
+        if (marker instanceof Text) {
+          let newText = new Text(preText + marker.value + afterText);
+          parentMarker.children.splice(startIdx, deleteCount, newText);
+          newText.parent = parentMarker;
+          mergeTexts(parentMarker, 0);
+          if (parentMarker instanceof Placeholder && parentMarker.children[0] instanceof Text) {
+            let text = parentMarker.children[0];
+            if (text.value.startsWith("\n")) {
+              text.replaceWith(new Text(text.value.slice(1)));
+              parentMarker.insertBefore("\n");
+            }
+          }
+        } else {
+          let markers = [];
+          if (preText) markers.push(new Text(preText));
+          if (parentMarker instanceof TextmateSnippet) {
+            let p = new Placeholder((current ? current.index : 0) + Math.random());
+            p.appendChild(marker);
+            p.primary = true;
+            markers.push(p);
+          } else {
+            markers.push(marker);
+          }
+          if (afterText) markers.push(new Text(afterText));
+          children.splice(startIdx, deleteCount, ...markers);
+          markers.forEach((m) => m.parent = parentMarker);
+          if (preText.length > 0 || afterText.length > 0) {
+            mergeTexts(parentMarker, 0);
+          }
+        }
+        return parentMarker;
+      }
+      /**
+       * Replace range with text, return new Cursor position when cursor provided
+       *
+       * Get new Cursor position for synchronize update only.
+       * The cursor position should already adjusted before call this function.
+       */
+      async replaceWithText(range, text, token, current, cursor, force = false) {
+        let cloned = this._tmSnippet.clone();
+        let marker = this.replaceWithMarker(range, new Text(text), current);
+        let snippetText = this._tmSnippet.toString();
+        if (marker === this._tmSnippet) {
+          this.synchronize();
+          return { snippetText, marker };
+        }
+        let sp = this.getMarkerPosition(marker);
+        let changeCharacter = cursor && sp.line === cursor.line;
+        const reset = () => {
+          this._tmSnippet = cloned;
+          this.synchronize();
+        };
+        token.onCancellationRequested(reset);
+        await this.onMarkerUpdate(marker, token);
+        if (token.isCancellationRequested) return void 0;
+        let ep = this.getMarkerPosition(marker);
+        let delta;
+        if (cursor && sp && ep) {
+          let lc = ep.line - sp.line;
+          let cc = changeCharacter ? ep.character - sp.character : 0;
+          if (lc != 0 || cc != 0) delta = Position.create(lc, cc);
+        }
+        if (delta && events_default.completing && !force) {
+          reset();
+          return void 0;
+        }
+        return { snippetText, marker, delta };
+      }
+      async replaceWithSnippet(range, text, current, ultisnip) {
+        let snippet = new SnippetParser(!!ultisnip).parse(text, true);
+        let marker = this.replaceWithMarker(range, snippet, current);
+        await this.resolve(snippet, ultisnip);
+        await this.onMarkerUpdate(marker, import_node3.CancellationToken.None);
+        return snippet;
+      }
+      /**
+       * Get placeholder or snippet start position in current document
+       */
+      getMarkerPosition(marker) {
+        if (marker instanceof Placeholder) {
+          let p = this._placeholders.find((o2) => o2.marker === marker);
+          return p ? p.range.start : void 0;
+        }
+        let o = this._snippets.find((o2) => o2.marker === marker);
+        return o ? o.range.start : void 0;
+      }
+      getSnippetRange(marker) {
+        let snip = marker.snippet;
+        if (!snip) return void 0;
+        let info = this._snippets.find((o) => o.marker === snip);
+        return info ? info.range : void 0;
+      }
+      /**
+       * Get TabStops of same snippet.
+       */
+      getSnippetTabstops(marker) {
+        let snip = marker.snippet;
+        if (!snip) return [];
+        let res = [];
+        this._placeholders.forEach((p) => {
+          const { start, end } = p.range;
+          if (p.marker.snippet === snip && (p.primary || p.index === 0)) {
+            res.push({
+              index: p.index,
+              range: [start.line, start.character, end.line, end.character],
+              text: p.value
             });
           }
         });
-        return ranges.filter((r) => !emptyRange(r));
+        return res;
       }
-      getSortedPlaceholders(curr) {
-        let finalPlaceholder;
-        const arr = [];
-        this._placeholders.forEach((p) => {
-          if (p === curr || p.transform) return;
-          if (p.index === 0) {
-            finalPlaceholder = p;
-            return;
+      async onMarkerUpdate(marker, token) {
+        while (marker != null) {
+          if (marker instanceof Placeholder) {
+            let snip = marker.snippet;
+            if (!snip) break;
+            await this.executeGlobalCode(snip);
+            const config = snippetsPythonContexts.get(snip);
+            await snip.update(this.nvim, marker, config?.noPython);
+            if (token.isCancellationRequested) return;
+            marker = snip.parent;
+          } else {
+            marker = marker.parent;
           }
-          arr.push(p);
-        });
-        arr.sort(comparePlaceholder);
-        return [curr, ...arr, finalPlaceholder].filter((o) => o != null);
+        }
+        await waitWithToken(16, token);
+        if (token.isCancellationRequested) return;
+        this.synchronize();
+      }
+      async executeGlobalCode(snip) {
+        let codes = snippetsPythonGlobalCodes.get(snip);
+        if (codes) {
+          await executePythonCode(this.nvim, codes);
+          return true;
+        }
+        return false;
+      }
+      usePython(snip) {
+        return snip.hasCodeBlock || hasPython(snippetsPythonContexts.get(snip));
       }
       get hasPython() {
-        return this.tmSnippet.pyBlocks.length > 0;
+        for (const info of this._snippets) {
+          let snip = info.marker;
+          if (this.usePython(snip)) return true;
+        }
+        return false;
       }
       resetStartPosition(pos) {
         this.position = pos;
         this.synchronize();
       }
       get start() {
-        return Object.assign({}, this.position);
+        return Position.create(this.position.line, this.position.character);
       }
       get range() {
-        return Range.create(this.position, getEnd(this.position, this._text));
+        let end = getEnd(this.position, this._text);
+        return Range.create(this.position, end);
       }
       get text() {
         return this._text;
       }
-      get finalCount() {
-        return this._placeholders.filter((o) => o.index == 0).length;
+      get hasBeginningPlaceholder() {
+        let { position } = this;
+        return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.start, position) === 0) != null;
       }
-      get placeholders() {
-        return this._placeholders.map((o) => o.marker);
-      }
-      get firstPlaceholder() {
-        let index = 0;
-        for (let p of this._placeholders) {
-          if (p.index == 0 || p.transform) continue;
-          if (index == 0 || p.index < index) {
-            index = p.index;
-          }
-        }
-        return this.getPlaceholder(index);
+      get hasEndPlaceholder() {
+        let position = this._snippets[0].range.end;
+        return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.end, position) === 0) != null;
       }
       getPlaceholderByMarker(marker) {
         return this._placeholders.find((o) => o.marker === marker);
       }
-      getPlaceholder(index) {
-        let filtered = this._placeholders.filter((o) => o.index == index && !o.transform);
+      getPlaceholderByIndex(index) {
+        let filtered = this._placeholders.filter((o) => o.index == index && !o.marker.transform);
         let find = filtered.find((o) => o.primary);
         return defaultValue(find, filtered[0]);
       }
-      getPrevPlaceholder(index) {
-        if (index <= 1) return void 0;
-        let placeholders = this._placeholders.filter((o) => o.index < index && o.index != 0 && !o.transform);
-        let find;
-        while (index > 1) {
-          index = index - 1;
-          let arr = placeholders.filter((o) => o.index == index);
-          if (arr.length) {
-            find = defaultValue(arr.find((o) => o.primary), arr[0]);
-            break;
-          }
-        }
-        return find;
-      }
-      getNextPlaceholder(index) {
-        let placeholders = this._placeholders.filter((o) => !o.transform);
-        let find;
-        let indexes = placeholders.map((o) => o.index);
-        let max = Math.max.apply(null, indexes);
-        for (let i = index + 1; i <= max + 1; i++) {
-          let idx = i == max + 1 ? 0 : i;
-          let arr = placeholders.filter((o) => o.index == idx);
-          if (arr.length) {
-            find = arr.find((o) => o.primary) || arr[0];
-            break;
-          }
-        }
-        return find;
-      }
-      getPlaceholderByRange(range) {
-        return this._placeholders.find((o) => rangeInRange(range, o.range));
-      }
-      async insertSnippet(placeholder, snippet, parts, ultisnip) {
-        if (ultisnip) {
-          let { start, end } = placeholder.range;
-          this.nvim.setVar("coc_last_placeholder", {
-            current_text: placeholder.value,
-            start: { line: start.line, col: start.character, character: start.character },
-            end: { line: end.line, col: end.character, character: end.character }
-          }, true);
-        }
-        let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip);
-        await this.resolve(ultisnip);
-        this.synchronize();
-        return select;
+      getPlaceholderById(id2, index) {
+        let p = this._tmSnippet.placeholders.find((o) => o.id === id2);
+        return p ? p : this.getPlaceholderByIndex(index).marker;
       }
       /**
-       * Check newText for placeholder.
+       * Should be used after snippet resolved.
        */
-      getNewText(placeholder, inserted) {
-        let { before, after } = placeholder;
-        if (!inserted.startsWith(before)) return void 0;
-        if (inserted.length < before.length + after.length) return void 0;
-        if (!inserted.endsWith(after)) return void 0;
-        if (!after.length) return inserted.slice(before.length);
-        return inserted.slice(before.length, -after.length);
-      }
-      async updatePlaceholder(placeholder, cursor, newText, token) {
-        let start = this.position;
-        let { marker, before } = placeholder;
-        let cloned = this.tmSnippet.clone();
-        token.onCancellationRequested(() => {
-          this.tmSnippet = cloned;
-          this.synchronize();
-        });
-        let r = Range.create(start, getEnd(start, before));
-        await this.tmSnippet.update(this.nvim, marker, newText);
-        if (token.isCancellationRequested) return void 0;
-        this.synchronize();
-        let after = this.getTextBefore(marker, before);
-        return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) };
-      }
-      getTextBefore(marker, defaultValue2) {
-        let placeholder = this._placeholders.find((o) => o.marker == marker);
-        if (placeholder) return placeholder.before;
-        return defaultValue2;
-      }
-      removeText(offset, length) {
-        let succeed = this.tmSnippet.deleteText(offset, length);
-        if (succeed) this.synchronize();
-        return succeed;
-      }
       synchronize() {
-        const snippet = this.tmSnippet;
-        const { line, character } = this.position;
-        const document2 = TextDocument2.create("untitled:/1", "snippet", 0, snippet.toString());
-        let { placeholders, variables, maxIndexNumber } = snippet;
-        const variableIndexMap = /* @__PURE__ */ new Map();
-        let variableIndex = maxIndexNumber + 1;
-        this._placeholders = [...placeholders, ...variables].map((p) => {
-          const offset = snippet.offset(p);
-          const position = document2.positionAt(offset);
-          const start = {
-            line: line + position.line,
-            character: position.line == 0 ? character + position.character : position.character
-          };
-          let index;
-          let nestCount = 0;
-          if (p instanceof Variable) {
-            let key = p.name;
-            if (variableIndexMap.has(key)) {
-              index = variableIndexMap.get(key);
-            } else {
-              variableIndexMap.set(key, variableIndex);
-              index = variableIndex;
-              variableIndex = variableIndex + 1;
-            }
-          } else {
-            index = p.index;
-            nestCount = p.nestedPlaceholderCount;
+        const snippet = this._tmSnippet;
+        const snippetStr = snippet.toString();
+        const document2 = new LinesTextDocument("/", "", 0, snippetStr.split(/\n/), 0, false);
+        const placeholders = [];
+        const snippets = [];
+        const markerSeuqence = [];
+        const { start } = this;
+        snippets.push({ range: Range.create(start, getEnd(start, snippetStr)), marker: snippet, value: snippetStr });
+        markerSeuqence.push(snippet);
+        let offset = 0;
+        snippet.walk((marker) => {
+          if (marker instanceof Placeholder && marker.transform == null) {
+            markerSeuqence.push(marker);
+            const position = document2.positionAt(offset);
+            const value = marker.toString();
+            placeholders.push({
+              index: marker.index,
+              value,
+              marker,
+              range: getNewRange(start, position, value),
+              primary: marker.primary === true
+            });
+          } else if (marker instanceof TextmateSnippet) {
+            markerSeuqence.push(marker);
+            const position = document2.positionAt(offset);
+            const value = marker.toString();
+            snippets.push({
+              range: getNewRange(start, position, value),
+              marker,
+              value
+            });
           }
-          const value = p.toString();
-          const end = getEnd(position, value);
-          let res = {
-            index,
-            value,
-            nestCount,
-            marker: p,
-            transform: !!p.transform,
-            range: Range.create(start, getEnd(start, value)),
-            before: document2.getText(Range.create(Position.create(0, 0), position)),
-            after: document2.getText(Range.create(end, Position.create(document2.lineCount, 0))),
-            primary: p instanceof Placeholder && p.primary === true
-          };
-          return res;
-        });
-        this._text = this.tmSnippet.toString();
+          offset += marker.len();
+          return true;
+        }, false);
+        this._snippets = snippets;
+        this._text = snippetStr;
+        this._placeholders = placeholders;
+        this._markerSeuqence = markerSeuqence;
       }
     };
   }
@@ -77409,7 +77701,7 @@ var init_variableResolve = __esm({
           return value == null ? "" : value.toString();
         }
         if (variable.children.length) return variable.toString();
-        return name2;
+        return void 0;
       }
     };
   }
@@ -77423,6 +77715,9 @@ var init_session2 = __esm({
     init_main();
     init_events();
     init_logger();
+    init_diff();
+    init_errors();
+    init_lodash();
     init_mutex();
     init_object();
     init_position();
@@ -77430,9 +77725,12 @@ var init_session2 = __esm({
     init_string();
     init_window();
     init_workspace();
+    init_eval();
     init_parser3();
     init_snippet();
+    init_util3();
     init_variableResolve();
+    init_util();
     logger38 = createLogger("snippets-session");
     NAME_SPACE2 = "snippets";
     SnippetSession = class {
@@ -77441,41 +77739,37 @@ var init_session2 = __esm({
         this.document = document2;
         this.config = config;
         this.mutex = new Mutex();
-        this.removeWhiteSpace = false;
         this._applying = false;
-        this._isActive = false;
-        this._snippet = null;
-        this._onCancelEvent = new import_node3.Emitter();
-        this.onCancel = this._onCancelEvent.event;
-        this.disposable = document2.onDocumentChange(async (e) => {
-          if (this._applying || !this._isActive) return;
-          let changes = e.contentChanges;
-          await this.synchronize({ version: e.textDocument.version, change: changes[0] });
-        });
+        this._force = false;
+        this.snippet = null;
+        this._onActiveChange = new import_node3.Emitter();
+        this.isStaled = false;
+        this.onActiveChange = this._onActiveChange.event;
+      }
+      get staled() {
+        return this.isStaled;
       }
       async start(inserted, range, select = true, context) {
-        const { document: document2 } = this;
-        const placeholder = this.getReplacePlaceholder(range);
+        await this.forceSynchronize();
+        let { document: document2, snippet } = this;
         const edits = [];
-        if (context?.removeWhiteSpace) this.removeWhiteSpace = true;
-        if (placeholder) {
-          let r = this.snippet.range;
-          let previous = document2.textDocument.getText(r);
-          let parts = getParts(placeholder.value, placeholder.range, range);
-          this.current = await this.snippet.insertSnippet(placeholder, inserted, parts, context);
-          this.deleteVimGlobal();
+        let textmateSnippet;
+        if (inserted.length === 0) return this.isActive;
+        if (snippet && rangeInRange(range, snippet.range)) {
+          let oldRange = snippet.range;
+          let previous = snippet.text;
+          textmateSnippet = await this.snippet.replaceWithSnippet(range, inserted, this.current, context);
           let edit2 = reduceTextEdit({
-            range: r,
+            range: oldRange,
             newText: this.snippet.text
           }, previous);
           edits.push(edit2);
         } else {
+          this.deactivate();
           const resolver2 = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
-          let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver2);
+          snippet = new CocSnippet(inserted, range.start, this.nvim, resolver2);
           await snippet.init(context);
-          this.deleteVimGlobal();
-          this._snippet = snippet;
-          this.current = snippet.firstPlaceholder.marker;
+          textmateSnippet = snippet.tmSnippet;
           edits.push(TextEdit.replace(range, snippet.text));
           if (inserted.replace(/\$0$/, "").endsWith("\n")) {
             const currentLine = document2.getline(range.start.line);
@@ -77488,129 +77782,135 @@ var init_session2 = __esm({
             }
           }
         }
+        this.current = textmateSnippet.first;
         await this.applyEdits(edits);
-        this.textDocument = document2.textDocument;
-        this.activate();
-        if (select && this.current) {
-          let placeholder2 = this.snippet.getPlaceholderByMarker(this.current);
-          await this.selectPlaceholder(placeholder2, true);
+        this.activate(snippet);
+        let code = this.snippet.getUltiSnipAction(textmateSnippet, "postExpand");
+        if (code) await this.tryPostExpand(code);
+        if (this.snippet && select && this.current) {
+          let placeholder = this.snippet.getPlaceholderByMarker(this.current);
+          await this.selectPlaceholder(placeholder, true);
         }
-        return this._isActive;
+        return this.isActive;
       }
-      async applyEdits(edits) {
-        this._applying = true;
-        await this.document.applyEdits(edits);
-        this._applying = false;
-      }
-      /**
-       * Get valid placeholder to insert
-       */
-      getReplacePlaceholder(range) {
-        if (!this.snippet) return void 0;
-        let placeholder = this.findPlaceholder(range);
-        if (!placeholder || placeholder.index == 0) return void 0;
-        return placeholder;
-      }
-      deleteVimGlobal() {
-        this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
-        this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
-      }
-      activate() {
-        if (this._isActive) return;
-        this._isActive = true;
-        this.nvim.call("coc#snippet#enable", [this.config.preferComplete ? 1 : 0], true);
-      }
-      deactivate() {
+      async tryPostExpand(code) {
+        const { start, end } = this.snippet.range;
+        let pos = `[${start.line},${start.character},${end.line},${end.character}]`;
+        let codes = [`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code];
         this.cancel();
-        if (!this._isActive) return;
-        this.disposable.dispose();
-        this._isActive = false;
-        this._snippet = void 0;
-        this.current = null;
-        this.nvim.call("coc#snippet#disable", [], true);
-        if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [this.bufnr, NAME_SPACE2, 0, -1], true);
-        this._onCancelEvent.fire(void 0);
-        logger38.debug(`session ${this.bufnr} cancelled`);
+        await executePythonCode(this.nvim, codes);
+        await this.forceSynchronize();
       }
-      get isActive() {
-        return this._isActive;
+      async tryPostJump(code, info, bufnr) {
+        await waitNextTick();
+        this.nvim.setVar("coc_ultisnips_tabstops", info.tabstops, true);
+        const { snippet_start, snippet_end } = info;
+        let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`;
+        let codes = [`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code];
+        this.cancel();
+        await executePythonCode(this.nvim, codes);
+        await this.forceSynchronize();
+        void events_default.fire("PlaceholderJump", [bufnr, info]);
       }
-      get bufnr() {
-        return this.document.bufnr;
+      async removeWhiteSpaceBefore(placeholder) {
+        if (!emptyRange(placeholder.range)) return;
+        let pos = placeholder.range.start;
+        let line = this.document.getline(pos.line);
+        let ms = line.match(/\s+$/);
+        if (ms && line.length === pos.character) {
+          let startCharacter = pos.character - ms[0].length;
+          let textEdit = TextEdit.del(Range.create(pos.line, startCharacter, pos.line, pos.character));
+          await this.document.applyEdits([textEdit]);
+          await this.forceSynchronize();
+        }
+      }
+      async applyEdits(edits, joinundo = false) {
+        let { document: document2 } = this;
+        this._applying = true;
+        await document2.applyEdits(edits, joinundo);
+        this._applying = false;
+        this.textDocument = document2.textDocument;
       }
       async nextPlaceholder() {
         await this.forceSynchronize();
-        let curr = this.placeholder;
-        if (!curr) return;
-        if (this.removeWhiteSpace) {
-          const { before, after, range, value } = curr;
-          let ms = before.match(/\s+$/);
-          if (value === "" && after.startsWith("\n") && ms) {
-            let startCharacter = range.start.character - ms[0].length;
-            let textEdit = TextEdit.del(Range.create(Position.create(range.start.line, startCharacter), deepClone(range.start)));
-            await this.document.applyEdits([textEdit]);
-            await this.forceSynchronize();
-          }
+        if (!this.current) return;
+        let marker = this.current;
+        if (this.snippet.getUltiSnipOption(marker, "removeWhiteSpace")) {
+          let { placeholder } = this;
+          if (placeholder) await this.removeWhiteSpaceBefore(placeholder);
         }
-        let next = this.snippet.getNextPlaceholder(curr.index);
-        if (next) await this.selectPlaceholder(next);
+        let snip = marker.snippet;
+        const p = this.snippet.getPlaceholderOnJump(marker, true);
+        if (p && p.marker.snippet !== snip) {
+          this.snippet.deactivateSnippet(snip);
+        }
+        await this.selectPlaceholder(p, true);
       }
       async previousPlaceholder() {
         await this.forceSynchronize();
-        let curr = this.placeholder;
-        if (!curr) return;
-        let prev = this.snippet.getPrevPlaceholder(curr.index);
-        if (prev) await this.selectPlaceholder(prev);
+        if (!this.current) return;
+        const p = this.snippet.getPlaceholderOnJump(this.current, false);
+        await this.selectPlaceholder(p, true, false);
       }
       async selectCurrentPlaceholder(triggerAutocmd = true) {
         await this.forceSynchronize();
-        if (!this.snippet) return;
-        let placeholder = this.snippet.getPlaceholderByMarker(this.current);
+        let { placeholder } = this;
         if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd);
       }
-      async selectPlaceholder(placeholder, triggerAutocmd = true) {
+      async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true) {
         let { nvim, document: document2 } = this;
         if (!document2 || !placeholder) return;
         let { start, end } = placeholder.range;
         const line = document2.getline(start.line);
-        const col = byteIndex(line, start.character) + 1;
-        let marker = this.current = placeholder.marker;
+        const marker = this.current = placeholder.marker;
+        const range = this.snippet.getSnippetRange(marker);
+        const tabstops = this.snippet.getSnippetTabstops(marker);
         if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-          let sources = (await Promise.resolve().then(() => (init_sources2(), sources_exports))).default;
-          sources.setWords(marker.choice.options.map((o) => o.value), col - 1);
-          await nvim.call("coc#snippet#show_choices", [start.line + 1, col, end, placeholder.value]);
-          if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
+          const col = byteIndex(line, start.character) + 1;
+          wordsSource.words = marker.choice.options.map((o) => o.value);
+          wordsSource.startcol = col - 1;
+          nvim.call("coc#snippet#show_choices", [start.line + 1, col, end, placeholder.value], true);
         } else {
-          let finalCount = this.snippet.finalCount;
-          await this.select(placeholder, triggerAutocmd);
-          this.highlights(placeholder);
-          if (placeholder.index == 0) {
-            if (finalCount == 1) {
-              logger38.info("Jump to final placeholder, cancelling snippet session");
-              this.deactivate();
-            } else {
-              nvim.call("coc#snippet#disable", [], true);
-            }
-          }
+          await this.select(placeholder);
+          this.highlights();
         }
+        if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
         let info = {
+          forward,
+          tabstops,
+          snippet_start: range.start,
+          snippet_end: range.end,
+          index: placeholder.index,
           range: placeholder.range,
           charbefore: start.character == 0 ? "" : line.slice(start.character - 1, start.character)
         };
-        void events_default.fire("PlaceholderJump", [document2.bufnr, info]);
+        let code = this.snippet.getUltiSnipAction(marker, "postJump");
+        if (code) {
+          await this.snippet.executeGlobalCode(marker.snippet);
+          this.tryPostJump(code, info, document2.bufnr).catch(onUnexpectedError);
+        } else {
+          void events_default.fire("PlaceholderJump", [document2.bufnr, info]);
+        }
+        this.checkFinalPlaceholder();
       }
-      highlights(placeholder, redrawVim = true) {
-        if (!this.config.highlight) return;
+      checkFinalPlaceholder() {
+        let current = this.current;
+        if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
+          logger38.info("Jump to final placeholder, cancelling snippet session");
+          this.deactivate();
+        }
+      }
+      highlights() {
+        let { current, config } = this;
+        if (!current || !config.highlight || events_default.bufnr !== this.bufnr) return;
         let buf = this.document.buffer;
         this.nvim.pauseNotification();
         buf.clearNamespace(NAME_SPACE2);
-        let ranges = this.snippet.getRanges(placeholder);
-        if (ranges.length) {
-          buf.highlightRanges(NAME_SPACE2, "CocSnippetVisual", ranges);
-        }
-        this.nvim.resumeNotification(redrawVim, true);
+        let ranges = this.snippet.getRanges(current);
+        buf.highlightRanges(NAME_SPACE2, "CocSnippetVisual", ranges);
+        this.nvim.resumeNotification(true, true);
       }
-      async select(placeholder, triggerAutocmd) {
+      async select(placeholder) {
         let { range, value } = placeholder;
         let { nvim } = this;
         if (value.length > 0) {
@@ -77618,7 +77918,6 @@ var init_session2 = __esm({
         } else {
           await nvim.call("coc#snippet#move", [range.start]);
         }
-        if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
         nvim.redrawVim();
       }
       async checkPosition() {
@@ -77629,135 +77928,155 @@ var init_session2 = __esm({
           this.deactivate();
         }
       }
-      findPlaceholder(range) {
-        let { placeholder } = this;
-        if (placeholder && rangeInRange(range, placeholder.range)) return placeholder;
-        return this.snippet.getPlaceholderByRange(range) || null;
+      onTextChange() {
+        this.cancel();
       }
-      get version() {
-        return this.textDocument ? this.textDocument.version : -1;
+      onChange(e) {
+        if (this._applying || !this.isActive) return;
+        let changes = e.contentChanges;
+        this.cancel();
+        this.synchronize({ version: e.textDocument.version, change: changes[0] }).catch(onUnexpectedError);
       }
       async synchronize(change) {
+        const { document: document2 } = this;
+        this.isStaled = false;
         await this.mutex.use(() => {
-          if (change && (this.document.version != change.version || change.version - this.version !== 1)) {
+          if (!document2.attached || document2.dirty || !this.snippet || !this.textDocument || document2.version === this.version) return Promise.resolve();
+          if (change && (change.version - this.version !== 1 || document2.version != change.version)) {
             change = void 0;
           }
-          return this._synchronize(change ? change.change : void 0);
+          return this._synchronize(change);
         });
       }
-      async _synchronize(change) {
-        let { document: document2, textDocument } = this;
-        if (!document2.attached || !this._isActive) return;
-        let start = Date.now();
-        let d = document2.textDocument;
-        if (d.version == textDocument.version || equals(textDocument.lines, d.lines)) return;
-        let { range, text } = this.snippet;
-        if (change && !rangeInRange(change.range, range)) change = void 0;
-        let end = getEndPosition(range.end, textDocument, d);
-        if (!end) {
-          logger38.info("Content change after snippet, cancel snippet session");
-          this.deactivate();
+      async _synchronize(documentChange) {
+        let { document: document2, textDocument, current, snippet } = this;
+        const newDocument = document2.textDocument;
+        if (equals(textDocument.lines, newDocument.lines)) {
+          this.textDocument = newDocument;
           return;
         }
-        let checked = checkContentBefore(range.start, textDocument, d);
-        if (!checked) {
-          let content = d.getText(Range.create(Position.create(0, 0), end));
-          if (content.endsWith(text)) {
-            let pos = d.positionAt(content.length - text.length);
-            this.snippet.resetStartPosition(pos);
-            this.textDocument = d;
-            logger38.info("Content change before snippet, reset snippet position");
-            return;
+        const startTs = Date.now();
+        let change = documentChange?.change;
+        if (!change) {
+          let cursor2 = document2.cursor;
+          let edit2 = getTextEdit(textDocument.lines, newDocument.lines, cursor2, events_default.insertMode);
+          change = { range: edit2.range, text: edit2.newText };
+        }
+        const { range, start } = snippet;
+        let c = comparePosition(change.range.start, range.end);
+        let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
+        if (c > 0 || c === 0 && !insertEnd) {
+          logger38.info("Content change after snippet");
+          this.textDocument = newDocument;
+          return;
+        }
+        c = comparePosition(change.range.end, range.start);
+        let insertBeginning = emptyRange(change.range) && !change.text.endsWith("\n") && snippet.hasBeginningPlaceholder;
+        if (c < 0 || c === 0 && !insertBeginning) {
+          let changeEnd = change.range.end;
+          let checkCharacter = range.start.line === changeEnd.line;
+          let newLines = change.text.split(/\n/);
+          let lc = newLines.length - (change.range.start.line - changeEnd.line + 1);
+          let cc = 0;
+          if (checkCharacter) {
+            if (newLines.length > 1) {
+              cc = newLines[newLines.length - 1].length - changeEnd.character;
+            } else {
+              cc = change.range.start.character + change.text.length - changeEnd.character;
+            }
           }
+          this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
+          this.textDocument = newDocument;
+          logger38.info("Content change before snippet, reset snippet position");
+          return;
+        }
+        if (!rangeInRange(change.range, range)) {
           logger38.info("Before and snippet body changed, cancel snippet session");
           this.deactivate();
           return;
         }
         let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
-        let cursor = await window_default.getCursorPosition();
-        if (tokenSource.token.isCancellationRequested || document2.hasChanged) return;
-        let placeholder;
-        let newText;
-        let inserted = d.getText(Range.create(range.start, end));
-        let curr = this.placeholder;
-        if (change) {
-          for (let p of this.snippet.getSortedPlaceholders(curr)) {
-            if (rangeInRange(change.range, p.range)) {
-              placeholder = p;
-              newText = this.snippet.getNewText(p, inserted);
-              break;
-            }
+        const nextPlaceholder = getNextPlaceholder(current, true);
+        const { cursor } = document2;
+        const id2 = getPlaceholderId(current);
+        const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force);
+        this.tokenSource = void 0;
+        if (!res) {
+          if (this.snippet) {
+            this.isStaled = true;
+            this.current = this.snippet.getPlaceholderById(id2, current.index);
           }
-          if (!placeholder && change.text.length == 0 && !emptyRange(change.range) && isSingleLine(change.range)) {
-            let length = change.range.end.character - change.range.start.character;
-            let offset = d.getText(Range.create(range.start, change.range.start)).length;
-            if (this.snippet.removeText(offset, length)) {
-              this.textDocument = d;
-              return;
-            }
-          }
-        } else {
-          for (let p of this.snippet.getSortedPlaceholders(curr)) {
-            if (comparePosition(cursor, p.range.start) < 0) continue;
-            newText = this.snippet.getNewText(p, inserted);
-            if (newText != null && checkCursor(p.range.start, cursor, newText)) {
-              placeholder = p;
-              break;
-            }
-          }
-        }
-        if (!placeholder && inserted.endsWith(text)) {
-          let pos = getEnd(range.start, inserted.slice(0, -text.length));
-          this.snippet.resetStartPosition(pos);
-          this.textDocument = d;
-          logger38.info("Content change before snippet, reset snippet position");
           return;
         }
-        if (!placeholder) {
-          logger38.info("Unable to find changed placeholder, cancel snippet session");
+        this.textDocument = newDocument;
+        let { snippetText, delta } = res;
+        let changedRange = Range.create(start, getEnd(start, snippetText));
+        if (newDocument.getText(changedRange) !== snippetText) {
+          logger38.error(`Something went wrong with the snippet implementation`, change, snippetText);
           this.deactivate();
           return;
         }
-        let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token);
-        if (res == null || tokenSource.token.isCancellationRequested) return;
-        if (document2.dirty || !equals(document2.textDocument.lines, d.lines)) {
-          tokenSource.cancel();
-          tokenSource.dispose();
-          return;
+        let newText = this.snippet.text;
+        if (newText !== snippetText) {
+          let edit2 = reduceTextEdit({ range: changedRange, newText }, snippetText);
+          await this.applyEdits([edit2], true);
+          if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
         }
-        tokenSource.dispose();
-        this.current = placeholder.marker;
-        if (res.text !== inserted) {
-          let edit2 = reduceTextEdit({
-            range: Range.create(this.snippet.start, end),
-            newText: res.text
-          }, inserted);
-          await this.applyEdits([edit2]);
-          let { delta } = res;
-          if (delta.line != 0 || delta.character != 0) {
-            this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
-          }
-          this.highlights(placeholder, false);
-          this.nvim.redrawVim();
-        } else {
-          this.highlights(placeholder);
-        }
-        logger38.debug("update cost:", Date.now() - start, res.delta);
-        this.textDocument = this.document.textDocument;
-        if (this.config.nextOnDelete) {
-          if (curr && curr.value.length > 0 && placeholder.marker.toString() === "") {
-            let next = this.snippet.getNextPlaceholder(placeholder.index);
-            if (next) await this.selectPlaceholder(next);
-          }
-        }
+        this.highlights();
+        logger38.debug("update cost:", Date.now() - startTs, res.delta);
+        this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
+        return;
+      }
+      async trySelectNextOnDelete(curr, next) {
+        if (!this.config.nextOnDelete || !this.snippet || !curr || curr.snippet != null && curr.toString() != "" || !next) return;
+        let p = this.snippet.getPlaceholderByMarker(next);
+        if (p) await this.selectPlaceholder(p, true);
       }
       async forceSynchronize() {
-        await this.document.patchChange();
-        let release = await this.mutex.acquire();
-        release();
-        if (this.document.version !== this.version) {
+        if (this.isActive) {
+          this._force = true;
+          await this.document.patchChange();
+          await this.synchronize();
+          this._force = false;
+        } else {
+          await this.document.patchChange();
+        }
+      }
+      async onCompleteDone() {
+        if (this.isActive && this.isStaled) {
+          this.isStaled = false;
+          await this.document.patchChange(true);
           await this.synchronize();
         }
+      }
+      get version() {
+        return this.textDocument ? this.textDocument.version : -1;
+      }
+      get isActive() {
+        return this.snippet != null;
+      }
+      get bufnr() {
+        return this.document.bufnr;
+      }
+      activate(snippet) {
+        if (this.isActive) return;
+        this.snippet = snippet;
+        this.nvim.call("coc#snippet#enable", [this.config.preferComplete ? 1 : 0], true);
+        this._onActiveChange.fire(true);
+      }
+      deactivate() {
+        this.cancel();
+        if (!this.isActive) return;
+        this.snippet = null;
+        this.current = null;
+        this.nvim.call("coc#snippet#disable", [], true);
+        if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [this.bufnr, NAME_SPACE2, 0, -1], true);
+        this._onActiveChange.fire(false);
+        logger38.debug(`session ${this.bufnr} deactivate`);
+      }
+      get placeholder() {
+        if (!this.snippet || !this.current) return void 0;
+        return this.snippet.getPlaceholderByMarker(this.current);
       }
       cancel() {
         if (this.tokenSource) {
@@ -77766,18 +78085,29 @@ var init_session2 = __esm({
           this.tokenSource = null;
         }
       }
-      get placeholder() {
-        if (!this.snippet || !this.current) return void 0;
-        return this.snippet.getPlaceholderByMarker(this.current);
+      dispose() {
+        this.cancel();
+        this._onActiveChange.dispose();
+        this.snippet = null;
+        this.current = null;
+        this.textDocument = void 0;
       }
-      get snippet() {
-        return this._snippet;
-      }
-      static async resolveSnippet(nvim, snippetString, ultisnip) {
-        let position = ultisnip && Range.is(ultisnip.range) ? ultisnip.range.start : await window_default.getCursorPosition();
-        let line = ultisnip && typeof ultisnip.line === "string" ? ultisnip.line : await nvim.line;
+      async resolveSnippet(nvim, snippetString, ultisnip) {
         let context;
-        if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip);
+        let position = ultisnip?.range ? ultisnip.range.start : Position.create(0, 0);
+        if (ultisnip) {
+          ultisnip = omit(ultisnip, ["actions"]);
+          if (this.snippet?.hasPython) {
+            ultisnip.noPython = true;
+          }
+          context = Object.assign({
+            range: Range.create(0, 0, 0, 0),
+            line: ""
+          }, ultisnip);
+          if (ultisnip.noPython !== true && snippetString.includes("`!p")) {
+            await executePythonCode(nvim, getInitialPythonCode(context));
+          }
+        }
         const resolver2 = new SnippetVariableResolver(nvim, workspace_default.workspaceFolderControl);
         let snippet = new CocSnippet(snippetString, position, nvim, resolver2);
         await snippet.init(context);
@@ -77836,7 +78166,7 @@ var init_string2 = __esm({
         return this;
       }
       appendChoice(values, num = this._tabstop++) {
-        const value = values.map((s) => s.replace(/\$|}|\\|,/g, "\\$&")).join(",");
+        const value = values.map((s) => s.replaceAll(/[|\\,]/g, "\\$&")).join(",");
         this.value += "${";
         this.value += num;
         this.value += "|";
@@ -77876,38 +78206,52 @@ var init_manager4 = __esm({
     init_commands();
     init_events();
     init_util();
+    init_mutex();
     init_object();
     init_position();
-    init_mutex();
     init_window();
     init_workspace();
+    init_eval();
     init_session2();
-    init_snippet();
     init_string2();
+    init_util3();
     SnippetManager = class {
       constructor() {
-        this.sessionMap = /* @__PURE__ */ new Map();
         this.disposables = [];
-        this.resolving = false;
         this.mutex = new Mutex();
       }
       init() {
-        events_default.on("InsertCharPre", (_, bufnr) => {
-          let session = this.getSession(bufnr);
+        this.synchronizeConfig();
+        workspace_default.onDidChangeConfiguration((e) => {
+          if (e.affectsConfiguration("snippet") || e.affectsConfiguration("suggest")) {
+            this.synchronizeConfig();
+          }
+        }, null, this.disposables);
+        events_default.on(["InsertCharPre", "Enter"], () => {
+          let session = this.session;
           if (session) session.cancel();
         }, null, this.disposables);
+        events_default.on("CompleteDone", async () => {
+          let session = this.bufferSync.getItem(workspace_default.bufnr);
+          if (session) await session.onCompleteDone();
+        }, null, this.disposables);
         events_default.on("InsertEnter", async (bufnr) => {
-          let session = this.getSession(bufnr);
+          let session = this.bufferSync.getItem(bufnr);
           if (session) await session.checkPosition();
         }, null, this.disposables);
-        workspace_default.onDidCloseTextDocument((e) => {
-          let session = this.getSession(e.bufnr);
-          if (session) session.deactivate();
-        }, null, this.disposables);
+        this.bufferSync = workspace_default.registerBufferSync((doc) => {
+          let session = new SnippetSession(this.nvim, doc, this.config);
+          session.onActiveChange((isActive) => {
+            if (events_default.bufnr !== session.bufnr) return;
+            this.statusItem[isActive ? "show" : "hide"]();
+          });
+          return session;
+        });
+        this.disposables.push(this.bufferSync);
         window_default.onDidChangeActiveTextEditor((e) => {
           if (!this._statusItem) return;
-          let session = this.getSession(e.bufnr);
-          if (session) {
+          let session = this.bufferSync.getItem(e.bufnr);
+          if (session && session.isActive) {
             this.statusItem.show();
           } else {
             this.statusItem.hide();
@@ -77931,69 +78275,104 @@ var init_manager4 = __esm({
         statusItem.text = defaultValue(snippetConfig.statusText, "");
         return this._statusItem;
       }
-      getSnippetConfig(resource) {
-        let config = workspace_default.getConfiguration("coc.preferences", resource);
-        const snippetConfig = workspace_default.getConfiguration("snippet", resource);
-        const suggest = workspace_default.getConfiguration("suggest", resource);
-        return {
-          highlight: config.get("snippetHighlight", snippetConfig.get("highlight", false)),
-          nextOnDelete: config.get("nextPlaceholderOnDelete", snippetConfig.get("nextPlaceholderOnDelete", false)),
+      synchronizeConfig() {
+        const snippetConfig = workspace_default.getConfiguration("snippet", null);
+        const suggest = workspace_default.getConfiguration("suggest", null);
+        let obj = {
+          highlight: defaultValue(snippetConfig.inspect("highlight").globalValue, false),
+          nextOnDelete: defaultValue(snippetConfig.inspect("nextPlaceholderOnDelete").globalValue, false),
           preferComplete: suggest.get("preferCompleteThanJumpPlaceholder", false)
         };
+        if (this.config) {
+          Object.assign(this.config, obj);
+        } else {
+          this.config = obj;
+        }
+      }
+      async toRange(range) {
+        if (range) return toValidRange(range);
+        let pos = await window_default.getCursorPosition();
+        return Range.create(pos, pos);
+      }
+      /**
+       * Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
+       */
+      async insertBufferSnippet(bufnr, snippet, range, insertTextMode) {
+        let release = await this.mutex.acquire();
+        try {
+          let document2 = workspace_default.getAttachedDocument(bufnr);
+          const session = this.bufferSync.getItem(bufnr);
+          range = toValidRange(range);
+          const currentLine = document2.getline(range.start.line);
+          const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+          const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode);
+          let isActive = await session.start(inserted, range, false);
+          release();
+          return isActive;
+        } catch (e) {
+          release();
+          throw e;
+        }
       }
       /**
        * Insert snippet at current cursor position
        */
-      async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip, checkResolve = false) {
-        if (checkResolve && this.resolving) return false;
-        let { bufnr } = workspace_default;
-        let doc = workspace_default.getAttachedDocument(bufnr);
-        if (range && !rangeInRange(range, Range.create(0, 0, doc.lineCount + 1, 0))) {
-          throw new Error(`Unable to insert snippet, invalid range.`);
-        }
+      async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip) {
+        let { nvim } = workspace_default;
         let release = await this.mutex.acquire();
         try {
+          let document2 = workspace_default.getAttachedDocument(workspace_default.bufnr);
+          const session = this.bufferSync.getItem(document2.bufnr);
           let context;
-          if (!range) {
-            let pos = await window_default.getCursorPosition();
-            range = Range.create(pos, pos);
-          }
-          const currentLine = doc.getline(range.start.line);
+          range = await this.toRange(range);
+          const currentLine = document2.getline(range.start.line);
           const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
-          const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode, ultisnip);
+          const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
+          let usePy = false;
           if (ultisnip != null) {
+            usePy = hasPython(ultisnip) || inserted.includes("`!p");
             context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip);
-            if (!emptyRange(range) && inserted.includes("`!p")) {
-              this.nvim.call("coc#cursor#move_to", [range.start.line, range.start.character], true);
-              await doc.applyEdits([{ range, newText: "" }]);
-              range.end = Position.create(range.start.line, range.start.character);
+            if (usePy) {
+              if (session.placeholder) {
+                let { placeholder } = session;
+                let { start: start2, end } = placeholder.range;
+                let last = {
+                  current_text: placeholder.value,
+                  start: { line: start2.line, col: start2.character, character: start2.character },
+                  end: { line: end.line, col: end.character, character: end.character }
+                };
+                this.nvim.setVar("coc_last_placeholder", last, true);
+              } else {
+                this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
+              }
+              const codes = getInitialPythonCode(context);
+              let preExpand = getAction(ultisnip, "preExpand");
+              if (preExpand) {
+                await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]));
+                const [valid, pos] = await nvim.call("pyxeval", "snip.getResult()");
+                if (valid) {
+                  let count = range.end.character - range.start.character;
+                  let end = Position.create(pos[0], pos[1]);
+                  let start2 = Position.create(pos[0], Math.max(0, pos[1] - count));
+                  range = Range.create(start2, end);
+                } else {
+                  let start2 = Position.create(pos[0], pos[1]);
+                  range = Range.create(start2, deepClone(start2));
+                }
+              } else {
+                await executePythonCode(nvim, codes);
+              }
+            }
+            const { start } = range;
+            this.nvim.call("coc#cursor#move_to", [start.line, start.character], true);
+            if (!emptyRange(range)) {
+              await document2.applyEdits([TextEdit.del(range)]);
+              range.end = Position.create(start.line, start.character);
             }
           }
-          let session = this.getSession(bufnr);
-          if (session) {
-            await session.forceSynchronize();
-            session = this.getSession(bufnr);
-          } else {
-            await doc.patchChange(true);
-          }
-          if (!session) {
-            let config = this.getSnippetConfig(doc.uri);
-            session = new SnippetSession(this.nvim, doc, config);
-            session.onCancel(() => {
-              this.sessionMap.delete(bufnr);
-              this.statusItem.hide();
-            });
-          }
-          let isActive = await session.start(inserted, range, select, context);
-          if (isActive) {
-            this.statusItem.show();
-            this.sessionMap.set(bufnr, session);
-          } else {
-            this.statusItem.hide();
-            this.sessionMap.delete(bufnr);
-          }
+          await session.start(inserted, range, select, context);
           release();
-          return isActive;
+          return session.isActive;
         } catch (e) {
           release();
           throw e;
@@ -78009,7 +78388,6 @@ var init_manager4 = __esm({
           await session.nextPlaceholder();
         } else {
           this.nvim.call("coc#snippet#disable", [], true);
-          this.statusItem.hide();
         }
         return "";
       }
@@ -78019,60 +78397,57 @@ var init_manager4 = __esm({
           await session.previousPlaceholder();
         } else {
           this.nvim.call("coc#snippet#disable", [], true);
-          this.statusItem.hide();
         }
         return "";
       }
       cancel() {
-        let session = this.getSession(workspace_default.bufnr);
+        let session = this.bufferSync.getItem(workspace_default.bufnr);
         if (session) return session.deactivate();
         this.nvim.call("coc#snippet#disable", [], true);
-        if (this.statusItem) this.statusItem.hide();
+        this.statusItem.hide();
       }
       get session() {
-        return this.getSession(workspace_default.bufnr);
+        return this.bufferSync.getItem(workspace_default.bufnr);
       }
+      /**
+       * exported method
+       */
       getSession(bufnr) {
-        return this.sessionMap.get(bufnr);
+        let session = this.bufferSync.getItem(bufnr);
+        return session && session.isActive ? session : void 0;
+      }
+      isActivated(bufnr) {
+        let session = this.bufferSync.getItem(bufnr);
+        return session && session.isActive;
       }
       jumpable() {
         let { session } = this;
         if (!session) return false;
         return session.placeholder != null && session.placeholder.index != 0;
       }
-      async editsInsideSnippet(edits) {
-        let session = this.getSession(workspace_default.bufnr);
-        if (!session || !session.snippet) return false;
-        await session.forceSynchronize();
-        let range = session.snippet.range;
-        if (edits.some((e) => rangeOverlap(e.range, range))) {
-          return true;
-        }
-        return false;
-      }
+      /**
+       * Exposed for snippet preview
+       */
       async resolveSnippet(snippetString, ultisnip) {
-        if (ultisnip) {
-          let session = this.getSession(workspace_default.bufnr);
-          if (session != null && session.snippet.hasPython) ultisnip.noPython = false;
-        }
-        let res;
+        let session = this.bufferSync.getItem(workspace_default.bufnr);
+        if (!session) return;
+        let release = await this.mutex.acquire();
         try {
-          this.resolving = true;
-          res = await SnippetSession.resolveSnippet(this.nvim, snippetString, ultisnip);
+          let res = await session.resolveSnippet(this.nvim, snippetString, ultisnip);
+          release();
+          return res;
         } catch (e) {
-          this.resolving = false;
+          release();
           throw e;
         }
-        this.resolving = false;
-        return res;
       }
-      async normalizeInsertText(uri, snippetString, currentLine, insertTextMode, ultisnip) {
+      async normalizeInsertText(bufnr, snippetString, currentLine, insertTextMode, ultisnip) {
         let inserted = "";
         if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
           inserted = snippetString;
         } else {
           const currentIndent = currentLine.match(/^\s*/)[0];
-          const formatOptions = window_default.activeTextEditor ? window_default.activeTextEditor.options : await workspace_default.getFormatOptions(uri);
+          const formatOptions = window_default.activeTextEditor ? window_default.activeTextEditor.options : await workspace_default.getFormatOptions(bufnr);
           let opts = ultisnip ?? {};
           formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
           if (opts.noExpand) formatOptions.noExpand = true;
@@ -78082,9 +78457,7 @@ var init_manager4 = __esm({
       }
       dispose() {
         this.cancel();
-        for (let d of this.disposables) {
-          d.dispose();
-        }
+        disposeAll(this.disposables);
       }
     };
     manager_default3 = new SnippetManager();
@@ -78615,17 +78988,17 @@ function createSandbox(filename, logger59, name2, noExport = false) {
   };
   return sandbox;
 }
-function getLogger(useConsole, id) {
-  return useConsole ? consoleLogger : createLogger(`extension:${id}`);
+function getLogger(useConsole, id2) {
+  return useConsole ? consoleLogger : createLogger(`extension:${id2}`);
 }
-function createExtension(id, filename, isEmpty2) {
+function createExtension(id2, filename, isEmpty2) {
   if (isEmpty2 || !fs.existsSync(filename)) return {
     activate: () => {
     },
     deactivate: null
   };
-  const logger59 = getLogger(!global.__isMain && true, id);
-  const sandbox = createSandbox(filename, logger59, id);
+  const logger59 = getLogger(!global.__isMain && true, id2);
+  const sandbox = createSandbox(filename, logger59, id2);
   delete Module._cache[require.resolve(filename)];
   const defaultImport = sandbox.require(filename);
   const activate = defaultImport && defaultImport.activate || defaultImport;
@@ -78882,38 +79255,38 @@ var init_stat = __esm({
       }
       getExtensionsStat() {
         let res = {};
-        for (let id of this.extensions) {
-          if (this.disabled.has(id)) {
-            res[id] = 1 /* Disabled */;
-          } else if (this.locked.has(id)) {
-            res[id] = 2 /* Locked */;
+        for (let id2 of this.extensions) {
+          if (this.disabled.has(id2)) {
+            res[id2] = 1 /* Disabled */;
+          } else if (this.locked.has(id2)) {
+            res[id2] = 2 /* Locked */;
           } else {
-            res[id] = 0 /* Normal */;
+            res[id2] = 0 /* Normal */;
           }
         }
         return res;
       }
-      hasExtension(id) {
-        return this.extensions.has(id);
+      hasExtension(id2) {
+        return this.extensions.has(id2);
       }
-      addExtension(id, val) {
+      addExtension(id2, val) {
         let curr = loadJson2(this.jsonFile);
         curr.dependencies = curr.dependencies ?? {};
-        curr.dependencies[id] = val;
-        this.extensions.add(id);
+        curr.dependencies[id2] = val;
+        this.extensions.add(id2);
         writeJson(this.jsonFile, curr);
       }
-      removeExtension(id) {
+      removeExtension(id2) {
         let curr = loadJson2(this.jsonFile);
-        if (curr.disabled) curr.disabled = curr.disabled.filter((key) => key !== id);
-        if (curr.locked) curr.locked = curr.locked.filter((key) => key !== id);
+        if (curr.disabled) curr.disabled = curr.disabled.filter((key) => key !== id2);
+        if (curr.locked) curr.locked = curr.locked.filter((key) => key !== id2);
         curr.dependencies = curr.dependencies ?? {};
-        delete curr.dependencies[id];
-        this.extensions.delete(id);
+        delete curr.dependencies[id2];
+        this.extensions.delete(id2);
         writeJson(this.jsonFile, curr);
       }
-      isDisabled(id) {
-        return this.disabled.has(id);
+      isDisabled(id2) {
+        return this.disabled.has(id2);
       }
       get lockedExtensions() {
         return Array.from(this.locked);
@@ -78925,19 +79298,19 @@ var init_stat = __esm({
         let curr = loadJson2(this.jsonFile);
         return curr.dependencies ?? {};
       }
-      setDisable(id, disable) {
+      setDisable(id2, disable) {
         if (disable) {
-          this.disabled.add(id);
+          this.disabled.add(id2);
         } else {
-          this.disabled.delete(id);
+          this.disabled.delete(id2);
         }
         this.update("disabled", Array.from(this.disabled));
       }
-      setLocked(id, locked) {
+      setLocked(id2, locked) {
         if (locked) {
-          this.locked.add(id);
+          this.locked.add(id2);
         } else {
-          this.locked.delete(id);
+          this.locked.delete(id2);
         }
         this.update("locked", Array.from(this.disabled));
       }
@@ -79174,7 +79547,7 @@ var init_manager5 = __esm({
       async cleanExtensions() {
         let { globalIds } = this.states;
         await remove(this.modulesFolder);
-        return globalIds.filter((id) => !this.states.isDisabled(id));
+        return globalIds.filter((id2) => !this.states.isDisabled(id2));
       }
       tryActivateExtensions(event, check) {
         for (let item of this.extensions.values()) {
@@ -79218,11 +79591,11 @@ var init_manager5 = __esm({
         }
         return false;
       }
-      has(id) {
-        return this.extensions.has(id);
+      has(id2) {
+        return this.extensions.has(id2);
       }
-      getExtension(id) {
-        return this.extensions.get(id);
+      getExtension(id2) {
+        return this.extensions.get(id2);
       }
       get loadedExtensions() {
         return Array.from(this.extensions.keys());
@@ -79234,16 +79607,16 @@ var init_manager5 = __esm({
        * Activate extension, throw error if disabled or doesn't exist.
        * Returns true if extension successfully activated.
        */
-      async activate(id) {
-        let item = this.extensions.get(id);
-        if (!item) throw new Error(`Extension ${id} not registered!`);
+      async activate(id2) {
+        let item = this.extensions.get(id2);
+        if (!item) throw new Error(`Extension ${id2} not registered!`);
         let { extension } = item;
         if (extension.isActive) return true;
         await Promise.resolve(extension.activate());
         return extension.isActive === true;
       }
-      async deactivate(id) {
-        let item = this.extensions.get(id);
+      async deactivate(id2) {
+        let item = this.extensions.get(id2);
         if (!item || !item.extension.isActive) return;
         await Promise.resolve(item.deactivate());
       }
@@ -79274,18 +79647,18 @@ var init_manager5 = __esm({
       /**
        * Deactivate & unregist extension
        */
-      async unloadExtension(id) {
-        let item = this.extensions.get(id);
+      async unloadExtension(id2) {
+        let item = this.extensions.get(id2);
         if (item) {
-          await this.deactivate(id);
-          this.extensions.delete(id);
-          this._onDidUnloadExtension.fire(id);
+          await this.deactivate(id2);
+          this.extensions.delete(id2);
+          this._onDidUnloadExtension.fire(id2);
         }
       }
-      async reloadExtension(id) {
-        let item = this.extensions.get(id);
+      async reloadExtension(id2) {
+        let item = this.extensions.get(id2);
         if (!item || item.type == 3 /* Internal */) {
-          throw new Error(`Extension ${id} not registered`);
+          throw new Error(`Extension ${id2} not registered`);
         }
         if (item.type == 2 /* SingleFile */) {
           await this.loadExtensionFile(item.filepath);
@@ -79293,20 +79666,20 @@ var init_manager5 = __esm({
           await this.loadExtension(item.directory);
         }
       }
-      async call(id, method, args) {
-        let item = this.extensions.get(id);
-        if (!item) throw new Error(`extension ${id} not registered`);
+      async call(id2, method, args) {
+        let item = this.extensions.get(id2);
+        if (!item) throw new Error(`extension ${id2} not registered`);
         let { extension } = item;
         if (!extension.isActive) {
-          await this.activate(id);
+          await this.activate(id2);
         }
         let { exports: exports2 } = extension;
         if (!exports2 || typeof exports2[method] !== "function") {
-          throw new Error(`method ${method} not found on extension ${id}`);
+          throw new Error(`method ${method} not found on extension ${id2}`);
         }
         return await Promise.resolve(exports2[method].apply(null, args));
       }
-      registContribution(id, packageJSON, directory, filepath) {
+      registContribution(id2, packageJSON, directory, filepath) {
         let { contributes, activationEvents } = packageJSON;
         let { configuration: configuration2, rootPatterns, commands } = contributes ?? {};
         let definitions;
@@ -79314,7 +79687,7 @@ var init_manager5 = __esm({
         if (!isEmpty(props)) {
           let properties = convertProperties(props, 2 /* WINDOW */);
           if (objectLiteral(configuration2.definitions)) {
-            let prefix = id.replace(/[^\w]/g, "");
+            let prefix = id2.replace(/[^\w]/g, "");
             const addPrefix = (obj, key) => {
               if (key == "$ref") {
                 let val = obj[key];
@@ -79332,11 +79705,11 @@ var init_manager5 = __esm({
               }
             });
           }
-          let node = { properties, extensionInfo: { id, displayName: packageJSON.displayName } };
+          let node = { properties, extensionInfo: { id: id2, displayName: packageJSON.displayName } };
           this.configurationNodes.push(node);
           if (this.activated) {
             let toRemove = [];
-            let idx = this.configurationNodes.findIndex((o) => o.extensionInfo.id === id);
+            let idx = this.configurationNodes.findIndex((o) => o.extensionInfo.id === id2);
             if (idx !== -1) {
               toRemove.push(this.configurationNodes[idx]);
               this.configurationNodes.splice(idx, 1);
@@ -79344,8 +79717,8 @@ var init_manager5 = __esm({
             workspace_default.configurations.updateConfigurations([node], toRemove);
           }
         }
-        extensionRegistry5.registerExtension(id, {
-          name: id,
+        extensionRegistry5.registerExtension(id2, {
+          name: id2,
           directory,
           filepath,
           commands,
@@ -79354,20 +79727,20 @@ var init_manager5 = __esm({
           onCommands: getOnCommandList(activationEvents)
         });
       }
-      getExtensionState(id) {
-        let disabled = this.states.isDisabled(id);
+      getExtensionState(id2) {
+        let disabled = this.states.isDisabled(id2);
         if (disabled) return "disabled";
-        let item = this.getExtension(id);
+        let item = this.getExtension(id2);
         if (!item) return "unknown";
         let { extension } = item;
         return extension.isActive ? "activated" : "loaded";
       }
-      async autoActivate(id, extension) {
+      async autoActivate(id2, extension) {
         try {
           let checked = await this.checkAutoActivate(extension.packageJSON);
           if (checked) await Promise.resolve(extension.activate());
         } catch (e) {
-          logger41.error(`Error on activate ${id}`, e);
+          logger41.error(`Error on activate ${id2}`, e);
         }
       }
       async loadExtensionFile(filepath, noActive = false) {
@@ -79398,8 +79771,8 @@ var init_manager5 = __esm({
         }
       }
       async registerExtension(root, packageJSON, extensionType, noActive = false) {
-        let id = packageJSON.name;
-        if (this.states.isDisabled(id)) return;
+        let id2 = packageJSON.name;
+        if (this.states.isDisabled(id2)) return;
         let isActive = false;
         let result;
         let filename = path.join(root, packageJSON.main || "index.js");
@@ -79407,7 +79780,7 @@ var init_manager5 = __esm({
         let exports2;
         let ext;
         let subscriptions = [];
-        const timing = createTiming(`activate ${id}`, 5e3);
+        const timing = createTiming(`activate ${id2}`, 5e3);
         let extension = {
           activate: () => {
             if (result) return result;
@@ -79415,15 +79788,15 @@ var init_manager5 = __esm({
               timing.start();
               try {
                 let isEmpty2 = typeof packageJSON.engines.coc === "undefined";
-                ext = createExtension(id, filename, isEmpty2);
+                ext = createExtension(id2, filename, isEmpty2);
                 let context = {
                   subscriptions,
                   extensionPath,
-                  globalState: memos.createMemento(`${id}|global`),
-                  workspaceState: memos.createMemento(`${id}|${workspace_default.rootPath}`),
+                  globalState: memos.createMemento(`${id2}|global`),
+                  workspaceState: memos.createMemento(`${id2}|${workspace_default.rootPath}`),
                   asAbsolutePath: (relativePath) => path.join(root, relativePath),
-                  storagePath: path.join(this.folder, `${id}-data`),
-                  logger: createLogger(`extension:${id}`)
+                  storagePath: path.join(this.folder, `${id2}-data`),
+                  logger: createLogger(`extension:${id2}`)
                 };
                 let res = await Promise.resolve(ext.activate(context));
                 isActive = true;
@@ -79432,13 +79805,13 @@ var init_manager5 = __esm({
                 timing.stop();
                 resolve(res);
               } catch (e) {
-                logger41.error(`Error on active extension ${id}:`, e);
+                logger41.error(`Error on active extension ${id2}:`, e);
                 reject(e);
               }
             });
             return result;
           },
-          id,
+          id: id2,
           packageJSON,
           extensionPath,
           get isActive() {
@@ -79448,13 +79821,13 @@ var init_manager5 = __esm({
             return ext;
           },
           get exports() {
-            if (!isActive) throw new Error(`Invalid access to exports, extension "${id}" not activated`);
+            if (!isActive) throw new Error(`Invalid access to exports, extension "${id2}" not activated`);
             return exports2;
           }
         };
         Object.freeze(extension);
-        this.extensions.set(id, {
-          id,
+        this.extensions.set(id2, {
+          id: id2,
           type: extensionType,
           isLocal: extensionType == 1 /* Local */,
           extension,
@@ -79472,18 +79845,18 @@ var init_manager5 = __esm({
                 await Promise.resolve(ext.deactivate());
                 ext = void 0;
               } catch (e) {
-                logger41.error(`Error on ${id} deactivate: `, e);
+                logger41.error(`Error on ${id2} deactivate: `, e);
               }
             }
           }
         });
-        this.registContribution(id, packageJSON, root, filename);
+        this.registContribution(id2, packageJSON, root, filename);
         this._onDidLoadExtension.fire(extension);
-        if (this.activated && !noActive) await this.autoActivate(id, extension);
+        if (this.activated && !noActive) await this.autoActivate(id2, extension);
       }
-      unregistContribution(id) {
-        let idx = this.configurationNodes.findIndex((o) => o.extensionInfo.id === id);
-        extensionRegistry5.unregistExtension(id);
+      unregistContribution(id2) {
+        let idx = this.configurationNodes.findIndex((o) => o.extensionInfo.id === id2);
+        extensionRegistry5.unregistExtension(id2);
         if (idx !== -1) {
           let node = this.configurationNodes[idx];
           this.configurationNodes.splice(idx, 1);
@@ -79491,9 +79864,9 @@ var init_manager5 = __esm({
         }
       }
       async registerInternalExtension(extension, deactivate) {
-        let { id, packageJSON } = extension;
-        this.extensions.set(id, {
-          id,
+        let { id: id2, packageJSON } = extension;
+        this.extensions.set(id2, {
+          id: id2,
           directory: __dirname,
           type: 3 /* Internal */,
           events: getEvents(packageJSON.activationEvents),
@@ -79501,20 +79874,20 @@ var init_manager5 = __esm({
           deactivate,
           isLocal: true
         });
-        this.registContribution(id, packageJSON, __dirname);
+        this.registContribution(id2, packageJSON, __dirname);
         this._onDidLoadExtension.fire(extension);
-        await this.autoActivate(id, extension);
+        await this.autoActivate(id2, extension);
       }
       /**
        * Only global extensions can be uninstalled
        */
       async uninstallExtensions(ids) {
-        let [globals, filtered] = splitArray(ids, (id) => this.states.hasExtension(id));
-        for (let id of globals) {
-          await this.unloadExtension(id);
-          this.states.removeExtension(id);
-          extensionRegistry5.unregistExtension(id);
-          await remove(path.join(this.modulesFolder, id));
+        let [globals, filtered] = splitArray(ids, (id2) => this.states.hasExtension(id2));
+        for (let id2 of globals) {
+          await this.unloadExtension(id2);
+          this.states.removeExtension(id2);
+          extensionRegistry5.unregistExtension(id2);
+          await remove(path.join(this.modulesFolder, id2));
         }
         if (filtered.length > 0) {
           void window_default.showWarningMessage(`Global extensions ${filtered.join(", ")} not found`);
@@ -79523,44 +79896,44 @@ var init_manager5 = __esm({
           void window_default.showInformationMessage(`Removed extensions: ${globals.join(" ")}`);
         }
       }
-      async toggleExtension(id) {
-        let state = this.getExtensionState(id);
-        if (state == "activated") await this.deactivate(id);
+      async toggleExtension(id2) {
+        let state = this.getExtensionState(id2);
+        if (state == "activated") await this.deactivate(id2);
         if (state != "disabled") {
-          this.states.setDisable(id, true);
-          this.unregistContribution(id);
-          await this.unloadExtension(id);
+          this.states.setDisable(id2, true);
+          this.unregistContribution(id2);
+          await this.unloadExtension(id2);
         } else {
-          this.states.setDisable(id, false);
-          if (id.startsWith("single-")) {
-            let filepath = path.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
+          this.states.setDisable(id2, false);
+          if (id2.startsWith("single-")) {
+            let filepath = path.join(this.singleExtensionsRoot, `${id2.replace(/^single-/, "")}.js`);
             await this.loadExtensionFile(filepath);
           } else {
-            let folder = this.states.getFolder(id);
+            let folder = this.states.getFolder(id2);
             if (folder) {
               await this.loadExtension(folder);
             } else {
-              void window_default.showWarningMessage(`Extension ${id} not found`);
+              void window_default.showWarningMessage(`Extension ${id2} not found`);
             }
           }
         }
       }
-      async watchExtension(id) {
-        let item = this.getExtension(id);
-        if (!item) throw new Error(`extension ${id} not found`);
-        if (id.startsWith("single-")) {
+      async watchExtension(id2) {
+        let item = this.getExtension(id2);
+        if (!item) throw new Error(`extension ${id2} not found`);
+        if (id2.startsWith("single-")) {
           void window_default.showInformationMessage(`watching ${item.filepath}`);
           this.disposables.push(watchFile(item.filepath, async () => {
             await this.loadExtensionFile(item.filepath);
-            void window_default.showInformationMessage(`reloaded ${id}`);
+            void window_default.showInformationMessage(`reloaded ${id2}`);
           }, false));
         } else {
           let client = await workspace_default.fileSystemWatchers.createClient(item.directory, true);
           if (!client) throw new Error("watchman not found");
           void window_default.showInformationMessage(`watching ${item.directory}`);
           await client.subscribe("**/*.js", async () => {
-            await this.reloadExtension(id);
-            void window_default.showInformationMessage(`reloaded ${id}`);
+            await this.reloadExtension(id2);
+            void window_default.showInformationMessage(`reloaded ${id2}`);
           });
         }
       }
@@ -79944,11 +80317,11 @@ var init_extension = __esm({
       get all() {
         return this.manager.all;
       }
-      has(id) {
-        return this.manager.has(id);
+      has(id2) {
+        return this.manager.has(id2);
       }
-      getExtension(id) {
-        return this.manager.getExtension(id);
+      getExtension(id2) {
+        return this.manager.getExtension(id2);
       }
       getExtensionById(extensionId) {
         let item = this.manager.getExtension(extensionId);
@@ -79968,15 +80341,15 @@ var init_extension = __esm({
       /**
        * @public Get state of extension
        */
-      getExtensionState(id) {
-        return this.manager.getExtensionState(id);
+      getExtensionState(id2) {
+        return this.manager.getExtensionState(id2);
       }
-      isActivated(id) {
-        let item = this.manager.getExtension(id);
+      isActivated(id2) {
+        let item = this.manager.getExtension(id2);
         return item != null && item.extension.isActive;
       }
-      async call(id, method, args) {
-        return await this.manager.call(id, method, args);
+      async call(id2, method, args) {
+        return await this.manager.call(id2, method, args);
       }
       get npm() {
         let npm = workspace_default.initialConfiguration.get("npm.binPath");
@@ -80043,22 +80416,22 @@ var init_extension = __esm({
         let installBuffer = this.createInstallerUI(true, silent, updateUIInTab);
         await Promise.resolve(installBuffer.start(stats.map((o) => o.id)));
         let fn = async (stat) => {
-          let { id } = stat;
+          let { id: id2 } = stat;
           try {
-            installBuffer.startProgress(id);
+            installBuffer.startProgress(id2);
             let url = stat.exotic ? stat.uri : null;
-            let installer = this.createInstaller(npm, id);
+            let installer = this.createInstaller(npm, id2);
             installer.on("message", (msg, isProgress) => {
-              installBuffer.addMessage(id, msg, isProgress);
+              installBuffer.addMessage(id2, msg, isProgress);
             });
             let directory = await installer.update(url);
-            installBuffer.finishProgress(id, true);
+            installBuffer.finishProgress(id2, true);
             if (directory) await this.manager.loadExtension(directory);
           } catch (err) {
-            installBuffer.addMessage(id, err.message);
-            installBuffer.finishProgress(id, false);
-            void window_default.showErrorMessage(`Error on update ${id}: ${err}`);
-            logger42.error(`Error on update ${id}`, err);
+            installBuffer.addMessage(id2, err.message);
+            installBuffer.finishProgress(id2, false);
+            void window_default.showErrorMessage(`Error on update ${id2}: ${err}`);
+            logger42.error(`Error on update ${id2}`, err);
           }
         };
         await concurrent(stats, fn, silent ? 1 : 3);
@@ -80481,7 +80854,7 @@ var init_source_language = __esm({
     init_string();
     init_workspace();
     init_types2();
-    init_util3();
+    init_util4();
     logger43 = createLogger("source-language");
     LanguageSource = class {
       constructor(name2, shortcut, provider, documentSelector, triggerCharacters, allCommitCharacters, priority) {
@@ -80568,10 +80941,6 @@ var init_source_language = __esm({
         let doc = workspace_default.getDocument(opt.bufnr);
         await doc.patchChange(true);
         let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits);
-        if (additionalEdits) {
-          let shouldCancel = await manager_default3.editsInsideSnippet(item.additionalTextEdits);
-          if (shouldCancel) manager_default3.cancel();
-        }
         let version2 = doc.version;
         let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt);
         if (additionalEdits) {
@@ -81013,7 +81382,7 @@ function getSourceType(sourceType) {
   if (sourceType === 1 /* Remote */) return "remote";
   return "service";
 }
-var logger44, WordsSource, Sources, sources_default;
+var logger44, Sources, sources_default;
 var init_sources2 = __esm({
   "src/completion/sources.ts"() {
     "use strict";
@@ -81034,30 +81403,13 @@ var init_sources2 = __esm({
     init_source_language();
     init_source_vim();
     init_types2();
-    init_util3();
+    init_util4();
     logger44 = createLogger("sources");
-    WordsSource = class {
-      constructor() {
-        this.name = "$words";
-        this.shortcut = "";
-        this.triggerOnly = true;
-        this.words = [];
-      }
-      doComplete(opt) {
-        return {
-          startcol: this.startcol,
-          items: this.words.map((s) => {
-            return { word: s, filterText: opt.input };
-          })
-        };
-      }
-    };
     Sources = class {
       constructor() {
         this.sourceMap = /* @__PURE__ */ new Map();
         this.disposables = [];
         this.remoteSourcePaths = [];
-        this.wordsSource = new WordsSource();
       }
       init() {
         this.keywords = workspace_default.registerBufferSync((doc) => {
@@ -81084,8 +81436,8 @@ var init_sources2 = __esm({
         this.wordsSource.words = words;
       }
       createNativeSources() {
-        this.sourceMap.set(this.wordsSource.name, this.wordsSource);
         void Promise.all([
+          Promise.resolve().then(() => (init_util3(), util_exports)).then((m) => this.sourceMap.set(m.wordsSource.name, m.wordsSource)),
           Promise.resolve().then(() => (init_around(), around_exports)).then((module2) => {
             module2.register(this.sourceMap, this.keywords);
           }),
@@ -81773,8 +82125,8 @@ var init_languages = __esm({
           emitter.fire(selector);
         });
       }
-      hasProvider(id, document2) {
-        switch (id) {
+      hasProvider(id2, document2) {
+        switch (id2) {
           case "onTypeEdit" /* OnTypeEdit */:
           case "formatOnType" /* FormatOnType */:
             return this.onTypeFormatManager.hasProvider(document2);
@@ -81943,7 +82295,7 @@ var init_complete = __esm({
     init_string();
     init_workspace();
     init_types2();
-    init_util3();
+    init_util4();
     init_wordDistance();
     logger45 = createLogger("completion-complete");
     MAX_DISTANCE = 2 << 20;
@@ -82299,7 +82651,7 @@ var init_floating = __esm({
     init_is();
     init_protocol();
     init_workspace();
-    init_util3();
+    init_util4();
     logger46 = createLogger("completion-floating");
     RESOLVE_TIMEOUT = getConditionValue(500, 50);
     Floating = class {
@@ -82427,7 +82779,7 @@ var init_pum = __esm({
     init_numbers();
     init_string();
     init_workspace();
-    init_util3();
+    init_util4();
     PopupMenu = class {
       constructor(config, mruLoader) {
         this.config = config;
@@ -82717,7 +83069,7 @@ var init_completion2 = __esm({
     init_pum();
     init_sources2();
     init_types2();
-    init_util3();
+    init_util4();
     logger47 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
     CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
@@ -82876,11 +83228,10 @@ var init_completion2 = __esm({
         if (string(opt.source)) {
           sourceList = toArray(sources_default.getSource(opt.source));
         }
-        let bufnr = await this.nvim.call("bufnr", ["%"]);
-        let doc = workspace_default.getAttachedDocument(bufnr);
+        let doc = workspace_default.getAttachedDocument(events_default.bufnr);
         let info = await this.nvim.call("coc#util#change_info");
         info.pre = byteSlice(info.line, 0, info.col - 1);
-        const option = this.getCompleteOption(doc, info, true);
+        const option = this.getCompleteOption(doc, info, true, opt.col);
         await this._startCompletion(option, sourceList);
       }
       async _startCompletion(option, sourceList) {
@@ -83000,9 +83351,14 @@ var init_completion2 = __esm({
         await this._startCompletion(option, sources);
         return true;
       }
-      getCompleteOption(doc, info, manual = false) {
+      getCompleteOption(doc, info, manual = false, col) {
         let { pre } = info;
-        let input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly);
+        let input;
+        if (number(col)) {
+          input = byteSlice(info.line, col - 1, info.col - 1);
+        } else {
+          input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly);
+        }
         let followWord = doc.getStartWord(info.line.slice(info.pre.length));
         return {
           input,
@@ -83048,7 +83404,6 @@ var init_completion2 = __esm({
         events_default.completing = false;
         this.cancel();
         doc._forceSync();
-        void events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item)]);
         if (close) this.nvim.call("coc#pum#_close", [], true);
         if (resolved && inserted) {
           this._mru.add(line.slice(character, inputStart) + input, item);
@@ -83056,13 +83411,14 @@ var init_completion2 = __esm({
         if (kind == "confirm" /* Confirm */ && resolved) {
           await this.confirmCompletion(resolved.source, resolved.item, option);
         }
+        void events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item)]);
       }
       async confirmCompletion(source, item, option) {
         await this.floating.resolveItem(source, item, option, false);
         if (!func(source.onCompleteDone)) return;
         let { insertMode, snippetsSupport } = this.config;
         let opt = Object.assign({ insertMode, snippetsSupport }, option);
-        await source.onCompleteDone(item, opt);
+        await Promise.resolve(source.onCompleteDone(item, opt));
       }
       async onInsertEnter(bufnr) {
         if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== "always") return;
@@ -83196,7 +83552,7 @@ function getBeforeCount(textRange, ranges, exclude) {
   }
   return n;
 }
-var init_util5 = __esm({
+var init_util6 = __esm({
   "src/cursors/util.ts"() {
     "use strict";
     init_main();
@@ -83213,7 +83569,7 @@ var init_textRange = __esm({
     init_main();
     init_position();
     init_textedit();
-    init_util5();
+    init_util6();
     TextRange = class {
       constructor(line, character, text) {
         this.start = Position.create(line, character);
@@ -83310,7 +83666,7 @@ var init_session3 = __esm({
     init_window();
     init_workspace();
     init_textRange();
-    init_util5();
+    init_util6();
     logger48 = createLogger("cursors-session");
     CursorSession = class {
       constructor(nvim, doc, config) {
@@ -83646,7 +84002,7 @@ var init_cursors = __esm({
     init_workspace();
     init_commands();
     init_session3();
-    init_util5();
+    init_util6();
     Cursors = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -84213,7 +84569,7 @@ function toDocumentation(doc) {
   };
 }
 var logger49;
-var init_util6 = __esm({
+var init_util7 = __esm({
   "src/handler/util.ts"() {
     "use strict";
     init_logger();
@@ -84256,7 +84612,7 @@ var init_buffer3 = __esm({
     init_protocol();
     init_window();
     init_workspace();
-    init_util6();
+    init_util7();
     logger50 = createLogger("codelens-buffer");
     debounceTime7 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
@@ -84902,12 +85258,12 @@ var init_commands3 = __esm({
       }
       addVimCommand(cmd) {
         if (!validCommand(cmd)) return;
-        let id = `vim.${cmd.id}`;
-        commands_default.registerCommand(id, () => {
+        let id2 = `vim.${cmd.id}`;
+        commands_default.registerCommand(id2, () => {
           this.nvim.command(cmd.cmd, true);
           this.nvim.redrawVim();
         });
-        if (cmd.title) commands_default.titles.set(id, cmd.title);
+        if (cmd.title) commands_default.titles.set(id2, cmd.title);
       }
       getCommandList() {
         return commands_default.commandList.map((o) => o.id);
@@ -84915,8 +85271,8 @@ var init_commands3 = __esm({
       async repeat() {
         await commands_default.repeatCommand();
       }
-      async runCommand(id, ...args) {
-        if (id) return await commands_default.fireCommand(id, ...args);
+      async runCommand(id2, ...args) {
+        if (id2) return await commands_default.fireCommand(id2, ...args);
         await manager_default2.start(["commands"]);
       }
     };
@@ -84973,7 +85329,6 @@ var init_format2 = __esm({
     init_events();
     init_languages();
     init_logger();
-    init_manager4();
     init_array();
     init_util();
     init_protocol();
@@ -85060,7 +85415,6 @@ var init_format2 = __esm({
       async tryFormatOnType(ch, doc) {
         if (doc.getVar("disable_autoformat", 0)) return false;
         if (!this.preferences.formatOnType) return false;
-        if (manager_default3.getSession(doc.bufnr) != null) return false;
         if (!ch || isAlphabet(ch.charCodeAt(0))) return false;
         if (!this.shouldFormatOnType(doc.filetype)) return false;
         if (!languages_default.hasProvider("formatOnType" /* FormatOnType */, doc.textDocument)) {
@@ -85953,7 +86307,7 @@ var init_linkedEditing = __esm({
     "use strict";
     init_main();
     init_textRange();
-    init_util5();
+    init_util6();
     init_events();
     init_languages();
     init_util();
@@ -86435,14 +86789,14 @@ var init_locations = __esm({
       /**
        * Send custom request for locations to services.
        */
-      async findLocations(id, method, params, openCommand = false) {
+      async findLocations(id2, method, params, openCommand = false) {
         let { doc, position } = await this.handler.getCurrentState();
         params = params || {};
         Object.assign(params, {
           textDocument: { uri: doc.uri },
           position
         });
-        let res = await services_default.sendRequest(id, method, params);
+        let res = await services_default.sendRequest(id2, method, params);
         let locations = this.toLocations(res);
         await this.handleLocations(locations, openCommand);
         return locations.length > 0;
@@ -87038,7 +87392,7 @@ var init_buffer5 = __esm({
             nvim.call("coc#highlight#clear_matches", [winid, Array.from(this.matchIds)], true);
             this.matchIds.clear();
           }
-          let id = 2e3;
+          let id2 = 2e3;
           for (let item of fileItems) {
             let filename = `${cwd2 ? path.relative(cwd2, item.filepath) : item.filepath}`;
             let col = byteLength(filename) + 1;
@@ -87047,10 +87401,10 @@ var init_buffer5 = __esm({
               let text = `:${range.start + 1}:${end}`;
               for (let i = 0; i < text.length; i++) {
                 let ch = text[i];
-                this.matchIds.add(id);
+                this.matchIds.add(id2);
                 info[range.lnum] = [range.start + 1, end];
-                nvim.call("matchaddpos", ["Conceal", [[range.lnum, col + i]], 99, id, { conceal: ch, window: winid }], true);
-                id++;
+                nvim.call("matchaddpos", ["Conceal", [[range.lnum, col + i]], 99, id2, { conceal: ch, window: winid }], true);
+                id2++;
               }
             }
           }
@@ -87123,11 +87477,11 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_events52, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
+var import_events54, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
-    import_events52 = require("events");
+    import_events54 = require("events");
     init_main();
     init_logger();
     init_highlighter();
@@ -87139,7 +87493,7 @@ var init_search = __esm({
     logger53 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
-    Task2 = class extends import_events52.EventEmitter {
+    Task2 = class extends import_events54.EventEmitter {
       start(cmd, args, cwd2) {
         this.process = spawn2(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
         this.process.on("error", (e) => {
@@ -88326,7 +88680,7 @@ var init_signature = __esm({
     init_string();
     init_window();
     init_workspace();
-    init_util6();
+    init_util7();
     debounceTime12 = getConditionValue(100, 10);
     Signature = class {
       constructor(nvim, handler) {
@@ -88572,7 +88926,7 @@ var init_buffer7 = __esm({
     init_util();
     init_node();
     init_protocol();
-    init_util6();
+    init_util7();
     logger55 = createLogger("symbols-buffer");
     DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
     SymbolsBuffer = class {
@@ -89256,7 +89610,7 @@ function addDocumentSymbol(res, sym, level2) {
     }
   }
 }
-var init_util7 = __esm({
+var init_util8 = __esm({
   "src/handler/symbols/util.ts"() {
     "use strict";
     init_main();
@@ -89284,7 +89638,7 @@ var init_symbols2 = __esm({
     init_workspace();
     init_buffer7();
     init_outline2();
-    init_util7();
+    init_util8();
     Symbols2 = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -89770,8 +90124,8 @@ var init_workspace2 = __esm({
           highlights: hi.highlights
         });
       }
-      async doAutocmd(id, args) {
-        await workspace_default.autocmds.doAutocmd(id, args);
+      async doAutocmd(id2, args) {
+        await workspace_default.autocmds.doAutocmd(id2, args);
       }
       async getConfiguration(key) {
         let document2 = await workspace_default.document;
@@ -89806,7 +90160,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-48cad051 2025-03-21 10:48:02 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-7a5b7710 2025-03-27 22:35:21 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90007,9 +90361,9 @@ var init_handler = __esm({
       /**
        * Throw error when provider doesn't exist.
        */
-      checkProvider(id, document2) {
-        if (!languages_default.hasProvider(id, document2)) {
-          throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`);
+      checkProvider(id2, document2) {
+        if (!languages_default.hasProvider(id2, document2)) {
+          throw new Error(`${id2} provider not found for current buffer, your language server doesn't support it.`);
         }
       }
       async withRequestToken(name2, fn, checkEmpty) {
@@ -90068,11 +90422,11 @@ var init_handler = __esm({
       async applyCodeAction(action) {
         await this.codeActions.applyCodeAction(action);
       }
-      async hasProvider(id, bufnr) {
+      async hasProvider(id2, bufnr) {
         if (!bufnr) bufnr = await this.nvim.call("bufnr", "%");
         let doc = workspace_default.getDocument(bufnr);
         if (!doc || !doc.attached) return false;
-        return languages_default.hasProvider(id, doc.textDocument);
+        return languages_default.hasProvider(id2, doc.textDocument);
       }
       dispose() {
         if (this.requestTimer) {
@@ -90139,21 +90493,21 @@ var init_plugin = __esm({
         this.addAction("addWorkspaceFolder", (folder) => this.handler.workspace.addWorkspaceFolder(folder));
         this.addAction("removeWorkspaceFolder", (folder) => this.handler.workspace.removeWorkspaceFolder(folder));
         this.addAction("getConfig", (key) => this.handler.workspace.getConfiguration(key));
-        this.addAction("doAutocmd", (id, ...args) => this.handler.workspace.doAutocmd(id, args));
+        this.addAction("doAutocmd", (id2, ...args) => this.handler.workspace.doAutocmd(id2, args));
         this.addAction("openLog", () => this.handler.workspace.openLog());
         this.addAction("attach", () => workspace_default.attach());
         this.addAction("detach", () => workspace_default.detach());
         this.addAction("doKeymap", (key, defaultReturn) => this.handler.workspace.doKeymap(key, defaultReturn));
         this.addAction("registerExtensions", (...folders) => extension_default.manager.loadExtension(folders), "registExtensions");
         this.addAction("snippetCheck", (checkExpand, checkJump) => this.handler.workspace.snippetCheck(checkExpand, checkJump));
-        this.addAction("snippetInsert", (range, newText, mode, ultisnip) => manager_default3.insertSnippet(newText, true, range, mode, ultisnip, true));
+        this.addAction("snippetInsert", (range, newText, mode, ultisnip) => manager_default3.insertSnippet(newText, true, range, mode, ultisnip));
         this.addAction("snippetNext", () => manager_default3.nextPlaceholder());
         this.addAction("snippetPrev", () => manager_default3.previousPlaceholder());
         this.addAction("snippetCancel", () => manager_default3.cancel());
         this.addAction("openLocalConfig", () => this.handler.workspace.openLocalConfig());
         this.addAction("bufferCheck", () => this.handler.workspace.bufferCheck());
         this.addAction("showInfo", () => this.handler.workspace.showInfo());
-        this.addAction("hasProvider", (id, bufnr) => this.handler.hasProvider(id, bufnr));
+        this.addAction("hasProvider", (id2, bufnr) => this.handler.hasProvider(id2, bufnr));
         this.addAction("cursorsSelect", (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
         this.addAction("commandList", () => this.handler.commands.getCommandList());
         this.addAction("selectSymbolRange", (inner, visualmode, supportedSymbols) => this.handler.symbols.selectSymbolRange(inner, visualmode, supportedSymbols));
@@ -90167,9 +90521,9 @@ var init_plugin = __esm({
         this.addAction("listNext", (name2) => manager_default2.next(name2));
         this.addAction("listFirst", (name2) => manager_default2.first(name2));
         this.addAction("listLast", (name2) => manager_default2.last(name2));
-        this.addAction("sendRequest", (id, method, params) => services_default.sendRequest(id, method, params));
-        this.addAction("sendNotification", (id, method, params) => services_default.sendNotification(id, method, params));
-        this.addAction("registerNotification", (id, method) => services_default.registerNotification(id, method), "registNotification");
+        this.addAction("sendRequest", (id2, method, params) => services_default.sendRequest(id2, method, params));
+        this.addAction("sendNotification", (id2, method, params) => services_default.sendNotification(id2, method, params));
+        this.addAction("registerNotification", (id2, method) => services_default.registerNotification(id2, method), "registNotification");
         this.addAction("updateConfig", (section2, val) => workspace_default.configurations.updateMemoryConfig({ [section2]: val }));
         this.addAction("links", () => this.handler.links.getLinks());
         this.addAction("openLink", () => this.handler.links.openCurrentLink());
@@ -90191,7 +90545,7 @@ var init_plugin = __esm({
         this.addAction("diagnosticPreview", () => manager_default.preview());
         this.addAction("diagnosticList", () => manager_default.getDiagnosticList());
         this.addAction("diagnosticRelatedInformation", () => manager_default.relatedInformation());
-        this.addAction("findLocations", (id, method, params, openCommand) => this.handler.locations.findLocations(id, method, params, openCommand));
+        this.addAction("findLocations", (id2, method, params, openCommand) => this.handler.locations.findLocations(id2, method, params, openCommand));
         this.addAction("getTagList", () => this.handler.locations.getTagList());
         this.addAction("definitions", () => this.handler.locations.definitions());
         this.addAction("declarations", () => this.handler.locations.declarations());
@@ -90237,7 +90591,7 @@ var init_plugin = __esm({
         this.addAction("updateExtensions", (silent) => extension_default.updateExtensions(silent, extension_default.getUpdateSettings().updateUIInTab));
         this.addAction("extensionStats", () => extension_default.getExtensionStates());
         this.addAction("loadedExtensions", () => extension_default.manager.loadedExtensions);
-        this.addAction("watchExtension", (id) => extension_default.manager.watchExtension(id));
+        this.addAction("watchExtension", (id2) => extension_default.manager.watchExtension(id2));
         this.addAction("activeExtension", (name2) => extension_default.manager.activate(name2));
         this.addAction("deactivateExtension", (name2) => extension_default.manager.deactivate(name2));
         this.addAction("reloadExtension", (name2) => extension_default.manager.reloadExtension(name2));
