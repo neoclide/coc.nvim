@@ -35,7 +35,7 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
   endif
   Add_highlights(bufnr, ns, highlightItemList, priority)
   if len(next) > 0
-    timer_start(30,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, maxCount))
+    timer_start(10,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, maxCount))
   endif
 enddef
 
