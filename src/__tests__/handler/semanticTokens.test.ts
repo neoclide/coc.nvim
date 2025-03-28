@@ -717,9 +717,9 @@ describe('semanticTokens', () => {
       await createRustBuffer()
       const doc = await workspace.document
       await nvim.call('CocAction', 'semanticHighlight')
-      const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens']) as any[]
+      const highlights = await doc.buffer.getHighlights('semanticTokens')
       expect(highlights.length).toBeGreaterThan(0)
-      expect(highlights[0][0]).toBe('CocSemTypeKeyword')
+      expect(highlights[0].hlGroup).toBe('CocSemTypeKeyword')
     })
   })
 

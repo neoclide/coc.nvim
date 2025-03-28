@@ -539,6 +539,7 @@ def s:funcs.buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, lin
     const opts: dict<any> = get(optionalArguments, 0, {})
     return coc#api#funcs_buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, opts)
 enddef
+
 " To be called directly for better performance
 def coc#api#funcs_buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
   var sourceId: number
@@ -585,13 +586,12 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
     endif
     call prop_clear(start, end, {'bufnr' : bufnr})
   else
-    for type in get(s:id_types, a:srcId, [])
-      try
-        call prop_remove({'bufnr': bufnr, 'all': 1, 'type': type}, start, end)
-      catch /^Vim\%((\a\+)\)\=:E968/
-        " ignore 968
-      endtry
-    endfor
+    let types = get(s:id_types, a:srcId, [])
+    try
+      call prop_remove({'bufnr': bufnr, 'all': 1, 'types': types}, start, end)
+    catch /^Vim\%((\a\+)\)\=:E968/
+      " ignore 968
+    endtry
   endif
   return v:null
 endfunction
