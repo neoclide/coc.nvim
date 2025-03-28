@@ -5,14 +5,15 @@ scriptencoding utf-8
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 # From `src/core/highlights.ts`:
 #   type HighlightItemDef = [string, number, number, number, number?, number?, number?]
-type HighlightItem = list<any>
-type HighlightItemList = list<HighlightItem>
+# type HighlightItem = list<any>
+# type HighlightItemList = list<HighlightItem>
+# NOTE: Can't use type on vim9.0.0438
 
-export def Add_highlights_timer(bufnr: number, ns: number, highlights: HighlightItemList, priority: number)
+export def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: number)
   const lengthOfHighlightItemList: number = len(highlights)
   const maximumCount: number = g:coc_highlight_maximum_count
-  var highlightItemList: HighlightItemList
-  var next: HighlightItemList
+  var highlightItemList: list<any>
+  var next: list<any>
   if maximumCount < lengthOfHighlightItemList
     highlightItemList = highlights[ : maximumCount - 1]
     next = highlights[maximumCount : ]
@@ -26,7 +27,7 @@ export def Add_highlights_timer(bufnr: number, ns: number, highlights: Highlight
   endif
 enddef
 
-export def Add_highlights(bufnr: number, ns: number, highlights: HighlightItemList, priority: number)
+export def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
   if bufwinnr(bufnr) == -1 # check buffer exists
     return
   endif
@@ -41,21 +42,29 @@ export def Add_highlights(bufnr: number, ns: number, highlights: HighlightItemLi
       'start_incl': start_incl,
       'end_incl':  end_incl,
     }
-    coc#highlight#add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
+    Add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
   endfor
+enddef
+
+export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
+  const opts: dict<any> = get(optionalArguments, 0, {})
+  if !hlexists(hl_group)
+    execute $'highlight {hl_group} ctermfg=NONE'
+  endif
+  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
 enddef
 
 # From `src/core/highlights.ts`:
 #   type HighlightItemResult = [string, number, number, number, number?]
-type HighlightItemResult = list<any>
+# type HighlightItemResult = list<any>
 
-export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<HighlightItemResult>
+export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
   const types: list<string> = coc#api#get_types(ns)
   if empty(types)
     return []
   endif
 
-  final res: list<HighlightItemResult> = []
+  final res: list<any> = []
   const endLnum: number = end == -1 ? -1 : end + 1
   for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
     if prop['start'] == 0 || prop['end'] == 0
