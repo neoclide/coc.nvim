@@ -635,6 +635,7 @@ describe('semanticTokens', () => {
     it('should do range highlight after cursor moved', async () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       let doc = await helper.createDocument('t.vim')
+      await nvim.call('cursor', [1, 1])
       let r: Range
       expect(doc.filetype).toBe('vim')
       await nvim.call('setline', [2, (new Array(200).fill(''))])
@@ -643,6 +644,8 @@ describe('semanticTokens', () => {
         r = range
         return []
       }))
+      let item = semanticTokens.getItem(doc.bufnr)
+      item.cancel()
       await nvim.command('normal! G')
       await helper.waitValue(() => {
         return r && r.end.line == 201
@@ -700,6 +703,18 @@ describe('semanticTokens', () => {
       await helper.wait(10)
       item.cancel(true)
       await p
+      expect(rangeCancelled).toBe(true)
+    })
+
+    it('should get highlight span', async () => {
+      let doc = await helper.createDocument('t.vim')
+      await nvim.call('setline', [doc.bufnr, (new Array(200).fill(''))])
+      let item = semanticTokens.getItem(doc.bufnr)
+      item.regions.add(0, 30)
+      let res = item.getHighlightSpan(20, 40)
+      expect(res[0]).toBe(20)
+      res = item.getHighlightSpan(150, 200)
+      expect(res[1]).toBe(200)
     })
   })
 

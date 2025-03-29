@@ -70,7 +70,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   private _config: SemanticTokensConfig
   private _dirty = false
   private _version: number | undefined
-  private regions = new Regions()
+  public readonly regions = new Regions()
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
   private previousResults: SemanticTokensPreviousResult | undefined
@@ -378,6 +378,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (diff && !token.isCancellationRequested) {
       const priority = this.config.highlightPriority
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
+      this.regions.add(start, end)
       this._dirty = true
     }
   }
@@ -430,6 +431,29 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!token.isCancellationRequested) this.rangeTokenSource = undefined
   }
 
+  public getHighlightSpan(start: number, end: number): [number, number] | undefined {
+    let delta = workspace.env.lines
+    let startLine = start
+    if (start != 0) {
+      let s = Math.max(0, startLine - delta)
+      if (!this.regions.has(s, startLine)) {
+        startLine = s
+      }
+    }
+    let endLine = end
+    let linecount = this.doc.lineCount
+    if (end < linecount) {
+      let e = Math.min(end + delta, linecount)
+      if (!this.regions.has(endLine, e)) {
+        endLine = e
+      }
+    }
+    if (this.regions.has(start, end) && startLine === start && endLine === end) {
+      return undefined
+    }
+    return [startLine, endLine]
+  }
+
   /**
    * Request highlights for visible range of winid.
    */
@@ -437,14 +461,18 @@ export default class SemanticTokensBuffer implements SyncItem {
     let { nvim, doc } = this
     let region = await nvim.call('coc#window#visible_range', [winid]) as [number, number]
     if (!region || token.isCancellationRequested) return null
-    let endLine = Math.min(region[0] + workspace.env.lines * 2, region[1] + workspace.env.lines, doc.lineCount)
-    let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0))
+    // convert to 0 based
+    let span = this.getHighlightSpan(region[0] - 1, region[1] - 1)
+    if (!span) return null
+    const startLine = span[0]
+    const endLine = span[1]
+    let range = doc.textDocument.intersectWith(Range.create(startLine, 0, endLine + 1, 0))
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)
     let highlights = await this.getTokenRanges(res.data, legend, token)
     if (!highlights) return null
-    return { highlights, start: region[0] - 1, end: region[1] }
+    return { highlights, start: startLine, end: endLine }
   }
 
   /**
