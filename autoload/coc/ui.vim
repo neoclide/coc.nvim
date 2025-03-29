@@ -288,7 +288,7 @@ function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end
   else
     call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   endif
-  if !empty(a:cursor)
+  if !empty(a:cursor) && a:bufnr == bufnr('%')
     call cursor(a:cursor[0], a:cursor[1] + delta)
   endif
 endfunction

@@ -1,22 +1,57 @@
 process.env.VIM_NODE_RPC = '1'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
-import { CompleteResult, ExtendedCompleteItem } from '../completion/types'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+import util from 'util'
+import { v4 as uuid } from 'uuid'
+import { type Disposable } from 'vscode-languageserver-protocol'
+import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import { sameFile } from '../util/fs'
-import type { Helper } from './helper'
+import { type Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
 
+function disposeAll(disposables: Disposable[]): void {
+  while (disposables.length) {
+    const item = disposables.pop()
+    item?.dispose()
+  }
+}
+
+const disposables: Disposable[] = []
 let nvim: Neovim
 beforeAll(async () => {
   await helper.setupVim()
   nvim = helper.workspace.nvim
 })
 
+afterEach(() => {
+  disposeAll(disposables)
+})
+
 afterAll(async () => {
   await helper.shutdown()
 })
 
+async function createTmpFile(content: string, disposables?: Disposable[]): Promise<string> {
+  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
+  if (!fs.existsSync(tmpFolder)) {
+    fs.mkdirSync(tmpFolder)
+  }
+  let fsPath = path.join(tmpFolder, uuid())
+  await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
+  if (disposables) {
+    disposables.push({
+      dispose: () => {
+        if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+      }
+    })
+  }
+  return fsPath
+}
 describe('vim api', () => {
+
   it('should start server', async () => {
     await nvim.setLine('foobar')
     let buf = await nvim.buffer
@@ -71,58 +106,6 @@ describe('vim api', () => {
     await nvim.command('normal! gg')
     let res = await funcs.callAsync(nvim, 'line', ['.'])
     expect(res).toBe(1)
-  })
-})
-
-describe('document', () => {
-  it('should patch change', async () => {
-    let doc = await helper.createDocument('foo')
-    await nvim.command('enew')
-    // undefined change
-    await doc.patchChange(true)
-    await nvim.command(`b ${doc.bufnr}`)
-    // no change
-    await doc.patchChange(true)
-    await nvim.setLine('foo')
-    // changed
-    await doc.patchChange(true)
-    let curr = doc.getline(0, false)
-    expect(curr).toBe('foo')
-    await nvim.setLine('bar')
-    await doc.patchChange()
-    await doc.patchChange()
-    curr = doc.getline(0, false)
-    expect(curr).toBe('bar')
-    await nvim.command(`bd! ${doc.bufnr}`)
-    expect(doc.attached).toBe(false)
-    await doc.patchChange()
-    await nvim.command('silent! %bwipeout!')
-  })
-
-  it('should fetch content', async () => {
-    let doc = await helper.workspace.document
-    await nvim.setLine('foo')
-    await helper.waitValue(() => doc.getline(0, false), 'foo')
-    await nvim.command('silent! %bwipeout!')
-    doc.detach()
-    await doc._fetchContent()
-  })
-
-  it('should synchronize on TextChangedI', async () => {
-    let doc = await helper.workspace.document
-    await nvim.feedKeys('ifoo', 'int', false)
-    await helper.waitValue(() => doc.getline(0, false), 'foo')
-    await nvim.command('doautocmd <nomodeline> TextChangedP')
-    await nvim.setLine('foo foot f')
-    await nvim.eval(`feedkeys("\\<end>", 'int')`)
-    await nvim.eval(`feedkeys("\\<C-n>", 'int')`)
-    await doc.patchChange()
-    await nvim.eval(`feedkeys("\\<C-n>", 'int')`)
-    await nvim.eval(`feedkeys("\\<esc>", 'int')`)
-    await helper.wait(20)
-    let line = await nvim.line
-    await helper.waitValue(() => doc.getline(0, false), line)
-    await nvim.command('silent! %bwipeout!')
   })
 })
 
@@ -648,6 +631,70 @@ describe('notify', () => {
     await helper.waitValue(async () => {
       return await nvim.call('getline', [curr])
     }, 'foo')
+    await nvim.command('normal! dd')
+  })
+})
+
+describe('document', () => {
+  async function shouldEqual(doc, synced = false): Promise<void> {
+    let lines = synced ? doc.textDocument.lines : doc.getLines()
+    let cur = await doc.buffer.lines
+    expect(lines).toEqual(cur)
+  }
+
+  it('should synchronize current buffer when call vim function', async () => {
+    let doc = await helper.createDocument()
+    await nvim.call('appendbufline', [doc.bufnr, 0, ['3', '4', '5']])
+    await nvim.call('setbufline', [doc.bufnr, 1, 'txt'])
+    await shouldEqual(doc)
+  })
+
+  it('should synchronize changes', async () => {
+    let lines = []
+    for (let i = 1; i < 8; i++) {
+      lines.push(`line ${i}`)
+    }
+    let filepath = await createTmpFile(lines.join('\n'), disposables)
+    let doc = await helper.createDocument(filepath)
+    let bufnr = doc.buffer.id
+    // remove first line
+    nvim.pauseNotification()
+    nvim.call('deletebufline', [bufnr, 1, 3], true)
+    nvim.call('appendbufline', [bufnr, 0, ['3', '4', '5']], true)
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+    await doc.patchChange(true)
+  })
+
+  it('should patch change of current line', async () => {
+    let doc = await helper.createDocument()
+    nvim.call('setline', ['.', 'foo'], true)
+    await doc.patchChange(true)
+    await shouldEqual(doc, true)
+    nvim.call('setline', ['.', 'foo'], true)
+    await doc.patchChange(true)
+    await shouldEqual(doc, true)
+  })
+
+  it('should patch change', async () => {
+    let doc = await helper.workspace.document
+    // synchronize after user input
+    await nvim.input('o')
+    await doc.patchChange(true)
+    let buf = doc.buffer
+    // synchronize after api
+    buf.setLines(['aa', 'bb'], {
+      start: 0,
+      end: 1,
+      strictIndexing: false
+    }, true)
+    await doc.patchChange()
+    await shouldEqual(doc)
+    await nvim.deleteCurrentLine()
+    await shouldEqual(doc)
+    await nvim.setLine('foo')
+    await shouldEqual(doc)
+    await nvim.command('stopinsert')
     await nvim.command('normal! dd')
   })
 })

@@ -9,6 +9,7 @@ if has('nvim')
 endif
 
 scriptencoding utf-8
+let s:listener_map = {}
 let s:funcs = {}
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_id = 1
@@ -42,10 +43,11 @@ function! s:check_bufnr(bufnr) abort
   endif
 endfunction
 
-" TextChanged not fired when using channel on vim.
+" TextChanged and callback not fired when using channel on vim.
 function! s:on_textchange(bufnr) abort
   let event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
   exe 'doautocmd <nomodeline> '.event.' '.bufname(a:bufnr)
+  call listener_flush(a:bufnr)
 endfunction
 
 " execute command for bufnr
@@ -601,8 +603,40 @@ function! s:funcs.buf_line_count(bufnr) abort
 endfunction
 
 function! s:funcs.buf_attach(...)
-  " not supported
-  return 1
+  let bufnr = get(a:, 1, 0)
+  " listener not removed on e!
+  let id = get(s:listener_map, bufnr, 0)
+  if id
+    call listener_remove(id)
+  endif
+  let result = listener_add('s:on_buf_change', bufnr)
+  if result
+    let s:listener_map[bufnr] = result
+    return v:true
+  endif
+  return v:false
+endfunction
+
+function! s:on_buf_change(bufnr, start, end, added, changes) abort
+  let result = []
+  for item in a:changes
+    let start = item['lnum'] - 1
+    " Delete lines
+    if item['added'] < 0
+      " include start line, which needed for undo
+      let lines = getbufline(a:bufnr, item['lnum'])
+      call add(result, [start, 0 - item['added'] + 1, lines])
+    " Add lines
+    elseif item['added'] > 0
+      let lines = getbufline(a:bufnr, item['lnum'], item['lnum'] + item['added'])
+      call add(result, [start, 1, lines])
+    " Change lines
+    else
+      let lines = getbufline(a:bufnr, item['lnum'], item['end'] - 1)
+      call add(result, [start, item['end'] - item['lnum'], lines])
+    endif
+  endfor
+  call coc#rpc#notify('vim_buf_change_event', [a:bufnr, getbufvar(a:bufnr, 'changedtick'), result])
 endfunction
 
 function! s:funcs.buf_detach()
@@ -929,7 +963,11 @@ function! coc#api#call(method, args) abort
   let err = v:null
   let res = v:null
   try
+    let tick = b:changedtick
     let res = call(s:funcs[a:method], a:args)
+    if b:changedtick != tick
+      call listener_flush(bufnr('%'))
+    endif
   catch /.*/
     let err = v:exception .' on api "'.a:method.'" '.json_encode(a:args)
   endtry
@@ -942,6 +980,7 @@ endfunction
 
 function! coc#api#notify(method, args) abort
   try
+    let tick = b:changedtick
     " vim throw error with return when vim9 function has no return value.
     if a:method ==# 'call_function'
       call call(a:args[0], a:args[1])
@@ -953,6 +992,9 @@ function! coc#api#notify(method, args) abort
       endif
     else
       call call(s:funcs[a:method], a:args)
+    endif
+    if b:changedtick != tick
+      call listener_flush(bufnr('%'))
     endif
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])

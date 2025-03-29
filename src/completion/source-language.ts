@@ -119,7 +119,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
 
   public async onCompleteDone(item: CompletionItem, opt: CompleteDoneOption): Promise<void> {
     let doc = workspace.getDocument(opt.bufnr)
-    await doc.patchChange(true)
+    await doc.patchChange()
     let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits)
     let version = doc.version
     let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt)
