@@ -395,14 +395,6 @@ function! coc#highlight#get_hl_command(id, key, cterm, gui) abort
   return cmd
 endfunction
 
-function! coc#highlight#reversed(id) abort
-  let gui = has('gui_running') || &termguicolors == 1
-  if synIDattr(synIDtrans(a:id), 'reverse', gui ? 'gui' : 'cterm') == '1'
-    return 1
-  endif
-  return 0
-endfunction
-
 function! coc#highlight#get_contrast(group1, group2) abort
   let normal = coc#highlight#get_hex_color(synIDtrans(hlID('Normal')), 'bg', '#000000')
   let bg1 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group1)), 'bg', normal)
@@ -564,10 +556,6 @@ function! coc#highlight#create_namespace(key) abort
   return s:namespace_map[a:key]
 endfunction
 
-function! coc#highlight#get_syntax_name(lnum, col)
-  return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
-endfunction
-
 function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, idx) abort
   if getbufvar(a:bufnr, 'changedtick', 0) != a:changedtick
     return
@@ -643,14 +631,15 @@ function! s:group_hls(hls, linecount) abort
   return groups
 endfunction
 
-if !s:is_vim
-  function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+  if s:is_vim
+    call coc#vim9#Add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, get(a:, 1, {}))
+  else
     let opts = get(a:, 1, {})
     let priority = get(opts, 'priority', v:null)
     if a:src_id == -1
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     else
-      " get(opts, 'start_incl', 0) ? v:true : v:false,
       try
         call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
               \ 'end_col': a:col_end,
@@ -664,15 +653,5 @@ if !s:is_vim
         " the end_col could be invalid, ignore this error
       endtry
     endif
-    " @workaround Prevent nvim running into the branch for vim below
-  endfunction
-  finish
-endif
-
-def coc#highlight#add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
-  const opts: dict<any> = get(optionalArguments, 0, {})
-  if !hlexists(hl_group)
-    execute $'highlight {hl_group} ctermfg=NONE'
   endif
-  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
-enddef
+endfunction
