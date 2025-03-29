@@ -88,13 +88,13 @@ export default class SemanticTokens {
         }
       }
     }, null, this.disposables)
-    events.on('BufWinEnter', async bufnr => {
+    events.on('BufWinEnter', async (bufnr: number, winid: number) => {
       let item = this.highlighters.getItem(bufnr)
-      if (item) await item.onShown()
+      if (item) await item.onShown(winid)
     }, null, this.disposables)
-    events.on('CursorMoved', async bufnr => {
+    events.on('WinScrolled', async (winid: number, bufnr: number) => {
       let item = this.highlighters.getItem(bufnr)
-      if (item) await item.onCursorMoved()
+      if (item) await item.onWinScroll(winid)
     }, null, this.disposables)
   }
 

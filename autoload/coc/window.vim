@@ -204,12 +204,12 @@ function! coc#window#close(winid) abort
   endif
 endfunction
 
-function! coc#window#visible_range() abort
-  let winid = win_getid()
-  if winid == 0
+function! coc#window#visible_range(winid) abort
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  let info = get(getwininfo(winid), 0, v:null)
+  if empty(info)
     return v:null
   endif
-  let info = getwininfo(winid)[0]
   return [info['topline'], info['botline']]
 endfunction
 

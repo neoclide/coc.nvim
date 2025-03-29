@@ -315,13 +315,14 @@ describe('semanticTokens', () => {
       let len = markers.length
       expect(len).toBeLessThan(400)
       await nvim.call('cursor', [1, 1])
-      await item.onCursorMoved()
+      let winid = await nvim.call('win_getid') as number
+      await item.onWinScroll(winid)
       await helper.waitValue(async () => {
         let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
         return markers.length > 100
       }, true)
       await nvim.call('cursor', [200, 1])
-      await item.onCursorMoved()
+      await item.onWinScroll(winid)
       await helper.waitValue(async () => {
         let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
         return markers.length > 200
@@ -417,8 +418,9 @@ describe('semanticTokens', () => {
       let spy = jest.spyOn(window, 'diffHighlights').mockImplementation(() => {
         return Promise.resolve(null)
       })
-      await item.doHighlight(false, true)
-      await item.doHighlight(false, true)
+      let winid = await nvim.call('win_getid') as number
+      await item.doHighlight(false, winid)
+      await item.doHighlight(false, winid)
       spy.mockRestore()
       expect(item.highlights).toBeDefined()
       await helper.edit('bar')
@@ -484,8 +486,9 @@ describe('semanticTokens', () => {
       await item.doHighlight(true)
       expect(item.highlights).toBeUndefined()
       disposable.dispose()
+      let winid = await nvim.call('win_getid') as number
       await item.doHighlight(true)
-      await item.onCursorMoved()
+      await item.onWinScroll(winid)
     })
   })
 
@@ -500,7 +503,8 @@ describe('semanticTokens', () => {
       await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
       let doc = await workspace.document
       let item = await semanticTokens.getCurrentItem()
-      await item.highlightRegions(CancellationToken.None)
+      let winid = await nvim.call('win_getid') as number
+      await item.highlightRegions(winid, CancellationToken.None)
       await doc.synchronize()
       expect(item.enabled).toBe(false)
       await nvim.command('edit bar')
@@ -509,14 +513,16 @@ describe('semanticTokens', () => {
       await nvim.command(`b ${buf.id}`)
       await waitRefresh(item)
       expect(item.highlights).toBeDefined()
+      await item.highlightRegions(9999, CancellationToken.None)
     })
 
     it('should not highlight same region', async () => {
       let buf = await createRustBuffer()
       let item = semanticTokens.getItem(buf.id)
+      let winid = await nvim.call('win_getid') as number
       await item.doHighlight()
-      await item.highlightRegions(CancellationToken.None)
-      await item.highlightRegions(CancellationToken.None)
+      await item.highlightRegions(winid, CancellationToken.None)
+      await item.highlightRegions(winid, CancellationToken.None)
     })
 
     it('should cancel region highlight', async () => {
@@ -528,7 +534,8 @@ describe('semanticTokens', () => {
         tokenSource.cancel()
         return Promise.resolve(null)
       })
-      await item.highlightRegions(tokenSource.token)
+      let winid = await nvim.call('win_getid') as number
+      await item.highlightRegions(winid, tokenSource.token)
       spy.mockRestore()
     })
   })
@@ -537,7 +544,8 @@ describe('semanticTokens', () => {
     it('should return null when canceled', async () => {
       let doc = await workspace.document
       let item = semanticTokens.getItem(doc.bufnr)
-      let res = await item.requestRangeHighlights(CancellationToken.Cancelled)
+      let winid = await nvim.call('win_getid') as number
+      let res = await item.requestRangeHighlights(winid, CancellationToken.Cancelled)
       expect(res).toBeNull()
       let tokenSource = new CancellationTokenSource()
       disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
@@ -546,7 +554,7 @@ describe('semanticTokens', () => {
           return { data: [] }
         }
       }, legend))
-      res = await item.requestRangeHighlights(tokenSource.token)
+      res = await item.requestRangeHighlights(winid, tokenSource.token)
       expect(res).toBeNull()
     })
 
@@ -562,7 +570,8 @@ describe('semanticTokens', () => {
       let spy = jest.spyOn(item, 'getTokenRanges').mockImplementation(() => {
         return Promise.resolve(null)
       })
-      let res = await item.requestRangeHighlights(tokenSource.token)
+      let winid = await nvim.call('win_getid') as number
+      let res = await item.requestRangeHighlights(winid, tokenSource.token)
       expect(res).toBeNull()
       spy.mockRestore()
     })
@@ -619,7 +628,8 @@ describe('semanticTokens', () => {
       await helper.waitValue(() => {
         return typeof r !== 'undefined'
       }, true)
-      await item.onCursorMoved()
+      let winid = await nvim.call('win_getid') as number
+      await item.onWinScroll(winid)
     })
 
     it('should do range highlight after cursor moved', async () => {
@@ -650,7 +660,8 @@ describe('semanticTokens', () => {
         }
       }, legend))
       let item = semanticTokens.getItem(doc.bufnr)
-      await item.doRangeHighlight(CancellationToken.None)
+      let winid = await nvim.call('win_getid') as number
+      await item.doRangeHighlight(winid, CancellationToken.None)
       expect(called).toBe(true)
     })
 
@@ -775,7 +786,8 @@ describe('semanticTokens', () => {
           }
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
-      await item.onShown()
+      let winid = await nvim.call('win_getid') as number
+      await item.onShown(winid)
       expect(item.enabled).toBe(false)
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       expect(item.enabled).toBe(false)
