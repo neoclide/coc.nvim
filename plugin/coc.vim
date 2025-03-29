@@ -292,7 +292,17 @@ function! s:HandleWinScrolled(winid, event) abort
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
   endif
-  call s:Autocmd('WinScrolled', a:winid, winbufnr(a:winid))
+  if !empty(a:event)
+    for key in keys(a:event)
+      let winid = str2nr(key)
+      if winid != 0
+        call s:Autocmd('WinScrolled', winid, winbufnr(winid))
+      endif
+    endfor
+  else
+    " v:event not exists on old version vim9
+    call s:Autocmd('WinScrolled', a:winid, winbufnr(a:winid))
+  endif
 endfunction
 
 function! s:HandleWinClosed(winid) abort
