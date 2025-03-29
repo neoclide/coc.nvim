@@ -351,7 +351,7 @@ export default class SemanticTokensBuffer implements SyncItem {
    * Perform range highlight request and update.
    */
   public async doRangeHighlight(token: CancellationToken): Promise<void> {
-    let { version } = this.doc
+    const { version } = this.doc
     let res = await this.sendRequest(() => {
       return this.requestRangeHighlights(token)
     }, token)
@@ -369,9 +369,9 @@ export default class SemanticTokensBuffer implements SyncItem {
         }
       })
     }
-    const items = this.toHighlightItems(highlights)
+    const items = this.toHighlightItems(highlights, start, end + 1)
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
-    if (diff) {
+    if (diff && !token.isCancellationRequested) {
       const priority = this.config.highlightPriority
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
       this._dirty = true
@@ -393,12 +393,12 @@ export default class SemanticTokensBuffer implements SyncItem {
     })
     for (let [start, end] of Regions.mergeSpans(spans)) {
       if (!skipCheck && regions.has(start, end)) continue
-      let items = this.toHighlightItems(highlights, start, end)
+      let items = this.toHighlightItems(highlights, start, end + 1)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
       if (token.isCancellationRequested) break
       regions.add(start, end)
       let priority = config.highlightPriority
-      if (diff) void window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
+      if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
     }
   }
 
