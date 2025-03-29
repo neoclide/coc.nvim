@@ -37383,23 +37383,23 @@ function convertHighlightItem(item) {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0];
 }
 function isSame(item, curr) {
-  let arr = [item.hlGroup, item.lnum, item.colStart, item.colEnd];
-  return equals(arr, curr.slice(0, 4));
+  return curr[0] == item.hlGroup && curr[1] === item.lnum && curr[2] === item.colStart && curr[3] === item.colEnd;
 }
 var Highlights;
 var init_highlights = __esm({
   "src/core/highlights.ts"() {
     "use strict";
     init_util();
-    init_object();
     Highlights = class {
       async diffHighlights(bufnr, ns, items, region, token) {
-        let args = [bufnr, ns];
-        if (Array.isArray(region)) args.push(region[0], region[1] - 1);
+        let args = [bufnr, ns, Array.isArray(region) ? region[0] : 0, Array.isArray(region) ? region[1] : -1];
         let curr = await this.nvim.call("coc#highlight#get_highlights", args);
         if (!curr || token?.isCancellationRequested) return null;
-        items.sort((a, b) => a.lnum - b.lnum);
-        let linesToRemove = [];
+        items.sort((a, b) => {
+          if (a.lnum != b.lnum) return a.lnum - b.lnum;
+          if (a.colStart != b.colStart) return a.colStart - b.colStart;
+          return a.hlGroup > b.hlGroup ? 1 : -1;
+        });
         let removeMarkers = [];
         let newItems = [];
         let itemIndex = 0;
@@ -37419,6 +37419,10 @@ var init_highlights = __esm({
           let start = Array.isArray(region) ? region[0] : 0;
           for (let i = start; i <= maxLnum; i++) {
             let exists = defaultValue(map.get(i), []);
+            exists.sort((a, b) => {
+              if (a[2] != b[2]) return a[2] - b[2];
+              return a[0] > b[0] ? 1 : -1;
+            });
             let added = [];
             for (let j = itemIndex; j <= maxIndex; j++) {
               let o = items[j];
@@ -37431,9 +37435,7 @@ var init_highlights = __esm({
               }
             }
             if (added.length == 0) {
-              if (exists.length > 0) {
-                removeMarkers.push(...exists.map((o) => o[4]));
-              }
+              removeMarkers.push(...exists.map((o) => o[4]));
             } else {
               if (exists.length == 0) {
                 newItems.push(...added.map((o) => convertHighlightItem(o)));
@@ -37447,7 +37449,8 @@ var init_highlights = __esm({
                     break;
                   }
                 }
-                removeMarkers.push(...exists.slice(skip).map((o) => o[4]));
+                let toRemove = exists.slice(skip).map((o) => o[4]);
+                removeMarkers.push(...toRemove);
                 newItems.push(...added.slice(skip).map((o) => convertHighlightItem(o)));
               }
             }
@@ -37456,21 +37459,21 @@ var init_highlights = __esm({
         for (let i = itemIndex; i <= maxIndex; i++) {
           newItems.push(convertHighlightItem(items[i]));
         }
-        return { remove: linesToRemove, add: newItems, removeMarkers };
+        return { remove: [], add: newItems, removeMarkers };
       }
       async applyDiffHighlights(bufnr, ns, priority, diff, notify) {
         let { nvim } = this;
         let { remove: remove2, add, removeMarkers } = diff;
         if (remove2.length === 0 && add.length === 0 && removeMarkers.length === 0) return;
         nvim.pauseNotification();
-        if (removeMarkers.length) {
-          nvim.call("coc#highlight#del_markers", [bufnr, ns, removeMarkers], true);
-        }
         if (remove2.length) {
           nvim.call("coc#highlight#clear", [bufnr, ns, remove2], true);
         }
         if (add.length) {
           nvim.call("coc#highlight#set", [bufnr, ns, add, priority], true);
+        }
+        if (removeMarkers.length) {
+          nvim.call("coc#highlight#del_markers", [bufnr, ns, removeMarkers], true);
         }
         if (notify) {
           nvim.resumeNotification(true, true);
@@ -44925,6 +44928,13 @@ var init_editors = __esm({
           if (editor.bufnr == bufnr) return true;
         }
         return false;
+      }
+      getBufWinids(bufnr) {
+        let winids = [];
+        for (let editor of this.editors.values()) {
+          if (editor.bufnr == bufnr) winids.push(editor.winid);
+        }
+        return winids;
       }
       onChangeCurrent(editor) {
         let id2 = editor.id;
@@ -86147,22 +86157,26 @@ var init_buffer4 = __esm({
         if (events_default.insertMode && !this.config.refreshOnInsertMode || !this.enabled) return;
         this.tokenSource = new import_node3.CancellationTokenSource();
         let token = this.tokenSource.token;
-        let res = await this.nvim.call("coc#window#visible_range");
-        if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return;
+        const { doc } = this;
+        let res = await this.nvim.call("coc#window#visible_ranges", [doc.bufnr]);
+        if (!Array.isArray(res) || res.length < 0 || token.isCancellationRequested) return;
         if (!srcId2) srcId2 = await this.nvim.createNamespace("coc-inlayHint");
-        if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return;
-        const startLine = Math.max(0, res[0] - RenderRangeExtendSize);
-        const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize);
-        let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0));
-        let inlayHints = await this.requestInlayHints(range, token);
-        if (inlayHints == null || token.isCancellationRequested) return;
-        this.regions.add(res[0], res[1]);
-        if (!this.config.enableParameter) {
-          inlayHints = inlayHints.filter((o) => o.kind !== InlayHintKind.Parameter);
+        for (const [topline, botline] of Regions.mergeSpans(res)) {
+          if (token.isCancellationRequested) break;
+          if (this.regions.has(topline, botline)) continue;
+          const startLine = Math.max(0, topline - RenderRangeExtendSize);
+          const endLine = Math.min(this.doc.lineCount, botline + RenderRangeExtendSize);
+          let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0));
+          let inlayHints = await this.requestInlayHints(range, token);
+          if (inlayHints == null || token.isCancellationRequested) break;
+          this.regions.add(topline, botline);
+          if (!this.config.enableParameter) {
+            inlayHints = inlayHints.filter((o) => o.kind !== InlayHintKind.Parameter);
+          }
+          this.currentHints = this.currentHints.filter((o) => positionInRange(o.position, range) !== 0);
+          this.currentHints.push(...inlayHints);
+          this.setVirtualText(range, inlayHints);
         }
-        this.currentHints = this.currentHints.filter((o) => positionInRange(o.position, range) !== 0);
-        this.currentHints.push(...inlayHints);
-        this.setVirtualText(range, inlayHints);
       }
       setVirtualText(range, inlayHints) {
         let { nvim, doc } = this;
@@ -88119,11 +88133,11 @@ var init_buffer6 = __esm({
         this.cancel();
         await this.doHighlight(true);
       }
-      async onShown() {
+      async onShown(winid) {
         if (this.shouldRangeHighlight) return;
         const { doc } = this;
         if (doc.dirty || doc.version === this._version) return;
-        await this.doHighlight(false, true);
+        await this.doHighlight(false, winid);
       }
       get hasProvider() {
         return languages_default.hasProvider("semanticTokens" /* SemanticTokens */, this.doc) || languages_default.hasProvider("semanticTokensRange" /* SemanticTokensRange */, this.doc);
@@ -88239,16 +88253,20 @@ var init_buffer6 = __esm({
         }
         return res;
       }
-      async doHighlight(forceFull = false, onShown = false) {
+      async doHighlight(forceFull = false, winid) {
         this.cancel();
-        if (!this.enabled || !onShown && !workspace_default.editors.isVisible(this.bufnr)) return;
+        const winids = winid == null ? workspace_default.editors.getBufWinids(this.bufnr) : [winid];
+        if (!this.enabled || winids.length === 0) return;
         let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
         let token = tokenSource.token;
         if (this.shouldRangeHighlight) {
           let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
           let rangeToken = rangeTokenSource.token;
-          await this.doRangeHighlight(rangeToken);
-          if (!rangeToken.isCancellationRequested) this.rangeTokenSource = void 0;
+          for (const win of winids) {
+            await this.doRangeHighlight(win, rangeToken);
+            if (rangeToken.isCancellationRequested) break;
+          }
+          this.rangeTokenSource = void 0;
           if (rangeToken.isCancellationRequested && this.rangeProviderOnly) return;
         }
         if (token.isCancellationRequested) return;
@@ -88270,7 +88288,7 @@ var init_buffer6 = __esm({
         }
         if (token.isCancellationRequested || !tokenRanges) return;
         this._highlights = [version2, tokenRanges];
-        if (!this._dirty || tokenRanges.length < 200) {
+        if (!this._dirty || tokenRanges.length < 500) {
           let items = this.toHighlightItems(tokenRanges);
           let diff = await window_default.diffHighlights(this.bufnr, NAMESPACE4, items, void 0, token);
           if (token.isCancellationRequested || !diff) return;
@@ -88280,7 +88298,7 @@ var init_buffer6 = __esm({
           await window_default.applyDiffHighlights(this.bufnr, NAMESPACE4, priority, diff);
         } else {
           this.regions.clear();
-          await this.highlightRegions(token);
+          await this.highlightRegions(winid, token);
         }
         if (!token.isCancellationRequested) this.tokenSource = void 0;
         this._onDidRefresh.fire();
@@ -88302,10 +88320,10 @@ var init_buffer6 = __esm({
       /**
        * Perform range highlight request and update.
        */
-      async doRangeHighlight(token) {
-        let { version: version2 } = this.doc;
+      async doRangeHighlight(winid, token) {
+        const { version: version2 } = this.doc;
         let res = await this.sendRequest(() => {
-          return this.requestRangeHighlights(token);
+          return this.requestRangeHighlights(winid, token);
         }, token);
         if (res == null || token.isCancellationRequested) return;
         const { highlights, start, end } = res;
@@ -88321,38 +88339,48 @@ var init_buffer6 = __esm({
             }
           });
         }
-        const items = this.toHighlightItems(highlights);
+        const items = this.toHighlightItems(highlights, start, end + 1);
         let diff = await window_default.diffHighlights(this.bufnr, NAMESPACE4, items, [start, end], token);
-        if (diff) {
+        if (diff && !token.isCancellationRequested) {
           const priority = this.config.highlightPriority;
           await window_default.applyDiffHighlights(this.bufnr, NAMESPACE4, priority, diff, true);
+          this.regions.add(start, end);
           this._dirty = true;
         }
       }
       /**
-       * highlight current visible regions
+       * highlight current visible regions, highlight all associated winids when winid is undefined
        */
-      async highlightRegions(token, skipCheck = false) {
+      async highlightRegions(winid, token, skipCheck = false) {
         let { regions, highlights, config, lineCount, bufnr } = this;
         if (!highlights) return;
-        let spans = await this.nvim.call("coc#window#visible_ranges", [bufnr]);
-        if (token.isCancellationRequested || spans.length === 0) return;
-        let height = workspace_default.env.lines;
-        spans.forEach((o) => {
-          o[0] = Math.max(0, Math.floor(o[0] - height));
-          o[1] = Math.min(lineCount, Math.ceil(o[1] + height));
-        });
-        for (let [start, end] of Regions.mergeSpans(spans)) {
+        let spans;
+        if (winid == null) {
+          spans = await this.nvim.call("coc#window#visible_ranges", [bufnr]);
+          if (spans.length === 0) return;
+          let height = workspace_default.env.lines;
+          spans.forEach((o) => {
+            o[0] = Math.max(0, Math.floor(o[0] - height));
+            o[1] = Math.min(lineCount, Math.ceil(o[1] + height));
+          });
+          spans = Regions.mergeSpans(spans);
+        } else {
+          let span = await this.nvim.call("coc#window#visible_range", [winid]);
+          if (!span) return;
+          spans = [span];
+        }
+        if (token.isCancellationRequested) return;
+        for (let [start, end] of spans) {
           if (!skipCheck && regions.has(start, end)) continue;
-          let items = this.toHighlightItems(highlights, start, end);
+          let items = this.toHighlightItems(highlights, start, end + 1);
           let diff = await window_default.diffHighlights(bufnr, NAMESPACE4, items, [start, end], token);
           if (token.isCancellationRequested) break;
           regions.add(start, end);
           let priority = config.highlightPriority;
-          if (diff) void window_default.applyDiffHighlights(bufnr, NAMESPACE4, priority, diff, true);
+          if (diff) await window_default.applyDiffHighlights(bufnr, NAMESPACE4, priority, diff, true);
         }
       }
-      async onCursorMoved() {
+      async onWinScroll(winid) {
         this.cancel(true);
         if (!this.enabled || this.doc.dirty) return;
         let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
@@ -88360,27 +88388,52 @@ var init_buffer6 = __esm({
         await wait(debounceInterval2);
         if (token.isCancellationRequested) return;
         if (this.shouldRangeHighlight) {
-          await this.doRangeHighlight(token);
+          await this.doRangeHighlight(winid, token);
         } else {
-          await this.highlightRegions(token);
+          await this.highlightRegions(winid, token);
         }
         if (!token.isCancellationRequested) this.rangeTokenSource = void 0;
       }
+      getHighlightSpan(start, end) {
+        let delta = workspace_default.env.lines;
+        let startLine = start;
+        if (start != 0) {
+          let s = Math.max(0, startLine - delta);
+          if (!this.regions.has(s, startLine)) {
+            startLine = s;
+          }
+        }
+        let endLine = end;
+        let linecount = this.doc.lineCount;
+        if (end < linecount) {
+          let e = Math.min(end + delta, linecount);
+          if (!this.regions.has(endLine, e)) {
+            endLine = e;
+          }
+        }
+        if (this.regions.has(start, end) && startLine === start && endLine === end) {
+          return void 0;
+        }
+        return [startLine, endLine];
+      }
       /**
-       * Request highlights for visible range.
+       * Request highlights for visible range of winid.
        */
-      async requestRangeHighlights(token) {
+      async requestRangeHighlights(winid, token) {
         let { nvim, doc } = this;
-        let region = await nvim.call("coc#window#visible_range");
+        let region = await nvim.call("coc#window#visible_range", [winid]);
         if (!region || token.isCancellationRequested) return null;
-        let endLine = Math.min(region[0] + workspace_default.env.lines * 2, region[1] + workspace_default.env.lines, doc.lineCount);
-        let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0));
+        let span = this.getHighlightSpan(region[0] - 1, region[1] - 1);
+        if (!span) return null;
+        const startLine = span[0];
+        const endLine = span[1];
+        let range = doc.textDocument.intersectWith(Range.create(startLine, 0, endLine + 1, 0));
         let res = await languages_default.provideDocumentRangeSemanticTokens(doc.textDocument, range, token);
         if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null;
         let legend = languages_default.getLegend(doc.textDocument, true);
         let highlights = await this.getTokenRanges(res.data, legend, token);
         if (!highlights) return null;
-        return { highlights, start: region[0] - 1, end: region[1] };
+        return { highlights, start: startLine, end: endLine };
       }
       /**
        * Request highlights from provider, return undefined when can't request or request cancelled
@@ -88527,13 +88580,13 @@ var init_semanticTokens2 = __esm({
             }
           }
         }, null, this.disposables);
-        events_default.on("BufWinEnter", async (bufnr) => {
+        events_default.on("BufWinEnter", async (bufnr, winid) => {
           let item = this.highlighters.getItem(bufnr);
-          if (item) await item.onShown();
+          if (item) await item.onShown(winid);
         }, null, this.disposables);
-        events_default.on("CursorMoved", async (bufnr) => {
+        events_default.on("WinScrolled", async (winid, bufnr) => {
           let item = this.highlighters.getItem(bufnr);
-          if (item) await item.onCursorMoved();
+          if (item) await item.onWinScroll(winid);
         }, null, this.disposables);
       }
       async inspectSemanticToken() {
@@ -90160,7 +90213,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7a5b7710 2025-03-27 22:35:21 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-d1ae7678 2025-03-30 00:03:08 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
