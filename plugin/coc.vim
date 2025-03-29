@@ -288,11 +288,11 @@ function! s:HandleInsertLeave(bufnr) abort
   call s:Autocmd('InsertLeave', a:bufnr)
 endfunction
 
-function! s:HandleWinScrolled(winid) abort
+function! s:HandleWinScrolled(winid, event) abort
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
   endif
-  call s:Autocmd('WinScrolled', a:winid)
+  call s:Autocmd('WinScrolled', a:winid, winbufnr(a:winid))
 endfunction
 
 function! s:HandleWinClosed(winid) abort
@@ -379,9 +379,7 @@ function! s:Enable(initialize)
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
     endif
-    if exists('##WinScrolled')
-      autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
-    endif
+    autocmd WinScrolled         * call s:HandleWinScrolled(+expand('<amatch>'), v:event)
     autocmd TabNew              * call s:Autocmd('TabNew', coc#util#tabnr_id(tabpagenr()))
     autocmd TabClosed           * call s:Autocmd('TabClosed', coc#util#tabpages())
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())

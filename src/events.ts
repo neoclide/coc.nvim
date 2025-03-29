@@ -67,13 +67,13 @@ export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
-export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed' | 'WinScrolled'
+export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
 
 export type TabEvents = 'TabNew' | 'TabClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
   | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
-  | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
+  | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress'
 
@@ -299,6 +299,7 @@ class Events {
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'WinScrolled', handler: (winid: number, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabClosed', handler: (tabids: number[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabNew', handler: (tabid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -6834,8 +6834,8 @@ declare module 'coc.nvim' {
   type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet'
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
-  type WindowEvents = 'WinLeave' | 'WinEnter'
-  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress'
+  type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
+  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled'
   type OptionValue = string | number | boolean
   type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
@@ -6955,6 +6955,10 @@ declare module 'coc.nvim' {
      * Attach handler to window event.
      */
     export function on(event: WindowEvents, handler: (winid: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Attach handler to window scroll event.
+     */
+    export function on(event: WindowEvents, handler: (winid: number, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to float button click.
      */
