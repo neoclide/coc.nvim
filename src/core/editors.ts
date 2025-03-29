@@ -80,6 +80,14 @@ export default class Editors {
     return false
   }
 
+  public getBufWinids(bufnr: number): number[] {
+    let winids: number[] = []
+    for (let editor of this.editors.values()) {
+      if (editor.bufnr == bufnr) winids.push(editor.winid)
+    }
+    return winids
+  }
+
   private onChangeCurrent(editor: TextEditor | undefined): void {
     let id = editor.id
     if (id === this.previousId) return
