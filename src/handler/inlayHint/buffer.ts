@@ -189,22 +189,26 @@ export default class InlayHintBuffer implements SyncItem {
     if ((events.insertMode && !this.config.refreshOnInsertMode) || !this.enabled) return
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
-    let res = await this.nvim.call('coc#window#visible_range') as [number, number]
-    if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return
+    const { doc } = this
+    let res = await this.nvim.call('coc#window#visible_ranges', [doc.bufnr]) as [number, number][]
+    if (!Array.isArray(res) || res.length < 0 || token.isCancellationRequested) return
     if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
-    if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return
-    const startLine = Math.max(0, res[0] - RenderRangeExtendSize)
-    const endLine = Math.min(this.doc.lineCount, res[1] + RenderRangeExtendSize)
-    let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0))
-    let inlayHints = await this.requestInlayHints(range, token)
-    if (inlayHints == null || token.isCancellationRequested) return
-    this.regions.add(res[0], res[1])
-    if (!this.config.enableParameter) {
-      inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
+    for (const [topline, botline] of Regions.mergeSpans(res)) {
+      if (token.isCancellationRequested) break
+      if (this.regions.has(topline, botline)) continue
+      const startLine = Math.max(0, topline - RenderRangeExtendSize)
+      const endLine = Math.min(this.doc.lineCount, botline + RenderRangeExtendSize)
+      let range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine, 0))
+      let inlayHints = await this.requestInlayHints(range, token)
+      if (inlayHints == null || token.isCancellationRequested) break
+      this.regions.add(topline, botline)
+      if (!this.config.enableParameter) {
+        inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
+      }
+      this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
+      this.currentHints.push(...inlayHints)
+      this.setVirtualText(range, inlayHints)
     }
-    this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
-    this.currentHints.push(...inlayHints)
-    this.setVirtualText(range, inlayHints)
   }
 
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
