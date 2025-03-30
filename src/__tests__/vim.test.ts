@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid'
 import { type Disposable } from 'vscode-languageserver-protocol'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import { sameFile } from '../util/fs'
+import events from '../events'
 import { type Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
@@ -333,6 +334,27 @@ describe('Buffer API', () => {
   let buffer: Buffer
   beforeEach(async () => {
     buffer = await nvim.buffer
+  })
+
+  afterEach(async () => {
+    await nvim.command('bd!')
+  })
+
+  it('should checkLines on CursorHold', async () => {
+    let doc = await helper.createDocument()
+    let buffer = doc.buffer
+    await buffer.setLines(['1', '2'], {})
+    await events.fire('CursorHold', [buffer.id, [1, 1]])
+    let called = false
+    events.on('LinesChanged', bufnr => {
+      if (bufnr == buffer.id) {
+        called = true
+      }
+    }, null, disposables)
+    Object.assign(doc, { lines: [''] })
+    await events.fire('CursorHold', [buffer.id, [1, 1]])
+    expect(called).toBe(true)
+    expect(doc.getLines()).toEqual(['1', '2'])
   })
 
   it('should set buffer option', async () => {

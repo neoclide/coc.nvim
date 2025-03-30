@@ -4,12 +4,13 @@ import { FormattingOptions, Location, LocationLink, TextEdit } from 'vscode-lang
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import { IConfigurationChangeEvent } from '../configuration/types'
-import events, { InsertChange } from '../events'
+import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
+import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
@@ -17,7 +18,7 @@ import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/prot
 import { byteIndex } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
-import { convertFormatOptions, VimFormatOption } from '../util/convert'
+import { isVim } from '../util/constants'
 const logger = createLogger('core-documents')
 
 interface StateInfo {
@@ -77,6 +78,12 @@ export default class Documents implements Disposable {
     let { bufnrs, bufnr } = await this.nvim.call('coc#util#all_state') as StateInfo
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
+    if (isVim) {
+      events.on('CursorHold', async bufnr => {
+        let doc = this.getDocument(bufnr)
+        if (doc && doc.attached) await doc.checkLines()
+      }, null, this.disposables)
+    }
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
     events.on('BufRename', async bufnr => {
       this.detachBuffer(bufnr)

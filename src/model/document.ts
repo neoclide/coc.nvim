@@ -16,7 +16,9 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
-import { LinesTextDocument } from './textdocument'
+import { firstDiffLine, LinesTextDocument } from './textdocument'
+import { createLogger } from '../logger'
+const logger = createLogger('document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
 export type VimBufferChange = [number, number, string[]]
@@ -638,6 +640,17 @@ export default class Document {
       this._changedtick = await this.nvim.call('coc#util#get_changedtick', [this.bufnr]) as number
       // .buffer.getVar('changedtick') as number
       this._forceSync()
+    }
+  }
+
+  public async checkLines(): Promise<void> {
+    let lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$']) as ReadonlyArray<string>
+    let diff = firstDiffLine(this.lines, lines)
+    if (diff) {
+      this.lines = lines
+      fireLinesChanged(this.bufnr)
+      this.fireContentChanges()
+      logger.error(`Buffer ${this.bufnr} not synchronized on line ${diff[0]}\nExpected:${diff[2]}\nCurrent:${diff[1]}`)
     }
   }
 }

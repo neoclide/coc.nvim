@@ -16,6 +16,21 @@ export function computeLinesOffsets(lines: ReadonlyArray<string>, eol: boolean):
 }
 
 /**
+ * Get the first different line
+ */
+export function firstDiffLine(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>): [number, string, string] | undefined {
+  let m = Math.max(oldLines.length, newLines.length)
+  for (let i = 0; i < m; i++) {
+    let oldLine = oldLines[i]
+    let newLine = newLines[i]
+    if (oldLine !== newLine) {
+      return [i + 1, oldLine ?? '', newLine ?? '']
+    }
+  }
+  return undefined
+}
+
+/**
  * Text document that created with readonly lines.
  *
  * Created for save memory since we could reuse readonly lines.

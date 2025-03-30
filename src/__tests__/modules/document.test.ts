@@ -5,7 +5,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Document, { getNotAttachReason, getUri } from '../../model/document'
-import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
+import { computeLinesOffsets, firstDiffLine, LinesTextDocument } from '../../model/textdocument'
 import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
 import workspace from '../../workspace'
@@ -23,6 +23,25 @@ async function setLines(doc: Document, lines: string[]): Promise<void> {
 }
 
 describe('LinesTextDocument', () => {
+  it('should get first diff line ', async () => {
+    {
+      let res = firstDiffLine(['a', 'b'], ['a', 'b'])
+      expect(res).toBeUndefined()
+    }
+    {
+      let res = firstDiffLine(['a', 'c'], ['a', 'b'])
+      expect(res).toEqual([2, 'c', 'b'])
+    }
+    {
+      let res = firstDiffLine(['a'], ['a', 'b'])
+      expect(res).toEqual([2, '', 'b'])
+    }
+    {
+      let res = firstDiffLine(['a', 'b'], ['a'])
+      expect(res).toEqual([2, 'b', ''])
+    }
+  })
+
   it('should apply edits', () => {
     let textDocument = new LinesTextDocument('', '', 1, [
       'use std::io::Result;'
