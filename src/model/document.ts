@@ -291,6 +291,7 @@ export default class Document {
       original,
       originalLines: textDocument.lines,
       textDocument: { version: created.version, uri: this.uri },
+      document: created,
       contentChanges: changes
     }))
   }

@@ -8236,6 +8236,10 @@ declare module 'coc.nvim' {
       uri: string
     }
     /**
+     * The affected document.
+     */
+    readonly document: LinesTextDocument
+    /**
      * The actual content changes. The content changes describe single state changes
      * to the document. So if there are two content changes c1 (at array index 0) and
      * c2 (at array index 1) for a document in state S then c1 moves the document from

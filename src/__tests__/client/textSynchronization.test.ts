@@ -176,7 +176,14 @@ describe('TextDocumentSynchronization', () => {
       expect(res.text).toBe('bar\n')
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
-      await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })
+      await provider.send({
+        contentChanges: [],
+        textDocument: { uri: doc.uri, version: doc.version },
+        bufnr: doc.bufnr,
+        original: '',
+        document: doc.textDocument,
+        originalLines: []
+      })
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
     })
