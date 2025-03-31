@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import type { DocumentSelector, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import type { DocumentFilter, DocumentSelector, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CreateFileOptions, DeleteFileOptions, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -337,7 +337,7 @@ export class Workspace {
   /**
    * Check if selector match document.
    */
-  public match(selector: DocumentSelector, document: TextDocumentMatch): number {
+  public match(selector: DocumentSelector | DocumentFilter | string, document: TextDocumentMatch): number {
     return score(selector, document.uri, document.languageId)
   }
 
