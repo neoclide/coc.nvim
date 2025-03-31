@@ -47,7 +47,6 @@ export interface DiagnosticProviderShape {
    * @param document The document to forget.
    */
   forget(document: TextDocument): void
-  knows: (kind: PullState, textDocument: TextDocument) => boolean
 }
 
 export enum DiagnosticPullMode {

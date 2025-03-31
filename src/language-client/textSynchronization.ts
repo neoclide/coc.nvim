@@ -54,6 +54,10 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     ensure(ensure(capabilities, 'textDocument')!, 'synchronization')!.dynamicRegistration = true
   }
 
+  public get openDocuments(): IterableIterator<TextDocument> {
+    return this._syncedDocuments.values()
+  }
+
   public initialize(
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector

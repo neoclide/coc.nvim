@@ -50,6 +50,8 @@ describe('TextDocumentSynchronization', () => {
       feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
       let res = await client.sendRequest('getLastOpen')
       expect(res).toBe(null)
+      let docs = feature.openDocuments
+      expect(docs).toBeDefined()
       await client.stop()
     })
 

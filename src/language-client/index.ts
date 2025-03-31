@@ -303,8 +303,10 @@ export class LanguageClient extends BaseLanguageClient {
     if (runDebug.run || runDebug.debug) {
       if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode(process.execArgv)) {
         json = runDebug.debug
+        this._isInDebugMode = true
       } else {
         json = runDebug.run
+        this._isInDebugMode = false
       }
     } else {
       json = server as NodeModule | Executable
