@@ -32,14 +32,28 @@ export interface DiagnosticProviderMiddleware {
 }
 
 export interface DiagnosticProviderShape {
+  /**
+   * An event that signals that the diagnostics should be refreshed for
+   * all documents.
+   */
   onDidChangeDiagnosticsEmitter: Emitter<void>
-  knows: (kind: PullState, textDocument: TextDocument) => boolean
+  /**
+   * The provider of diagnostics.
+   */
   diagnostics: DiagnosticProvider
+  /**
+   * Forget the given document and remove all diagnostics.
+   *
+   * @param document The document to forget.
+   */
+  forget(document: TextDocument): void
+  knows: (kind: PullState, textDocument: TextDocument) => boolean
 }
 
 export enum DiagnosticPullMode {
   onType = 'onType',
-  onSave = 'onSave'
+  onSave = 'onSave',
+  onFocus = 'onFocus'
 }
 
 export interface DiagnosticPullOptions {
@@ -55,6 +69,11 @@ export interface DiagnosticPullOptions {
   onSave?: boolean
 
   /**
+  * Whether to pull for diagnostics on editor focus.
+  */
+  onFocus?: boolean
+
+  /**
    * Whether to pull workspace diagnostics.
    */
   workspace?: boolean
@@ -64,12 +83,27 @@ export interface DiagnosticPullOptions {
   ignored?: string[]
 
   /**
-   * An optional filter method that is consulted when triggering a
-   * diagnostic pull during document change or document save.
+   * An optional filter method that is consulted when triggering a diagnostic pull during document change or document
+   * save or editor focus.
+   *
+   * The document gets filtered if the method returns `true`.
+   *
    * @param document the document that changes or got save
    * @param mode the mode
    */
   filter?(document: TextDocumentMatch, mode: DiagnosticPullMode): boolean
+  /**
+   * An optional match method that is consulted when pulling for diagnostics
+   * when only a URI is known (e.g. for not instantiated tabs)
+   *
+   * The method should return `true` if the document selector matches the
+   * given resource. See also the `vscode.languages.match` function.
+   *
+   * @param documentSelector The document selector.
+   * @param resource The resource.
+   * @returns whether the resource is matched by the given document selector.
+   */
+  match?(documentSelector: DocumentSelector, resource: URI): boolean
 }
 
 export interface $DiagnosticPullOptions {
@@ -106,11 +140,13 @@ export enum PullState {
   workspace = 2
 }
 
-interface Requestor {
-  pull: (document: TextDocument, cb?: () => void) => void
+namespace DocumentOrUri {
+  export function asKey(document: TextDocument | URI): string {
+    return document instanceof URI ? document.toString() : document.uri
+  }
 }
 
-const pullDebounce = getConditionValue(3000, 10)
+const workdpacePullDebounce = getConditionValue(3000, 10)
 
 export class DocumentPullStateTracker {
   private readonly documentPullStates: Map<string, DocumentPullState>
@@ -243,7 +279,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     })
   }
 
-  private async pullAsync(document: TextDocument): Promise<void> {
+  public async pullAsync(document: TextDocument): Promise<void> {
     if (this.isDisposed) return
     const uri = document.uri
     const version = document.version
@@ -336,7 +372,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.pullWorkspaceAsync().then(() => {
       this.workspaceTimeout = RAL().timer.setTimeout(() => {
         this.pullWorkspace()
-      }, pullDebounce)
+      }, workdpacePullDebounce)
     }, error => {
       if (!(error instanceof LSPCancellationError) && !DiagnosticServerCancellationData.is(error.data)) {
         this.client.error(`Workspace diagnostic pull failed.`, error)
@@ -345,7 +381,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       if (this.workspaceErrorCounter <= 5) {
         this.workspaceTimeout = RAL().timer.setTimeout(() => {
           this.pullWorkspace()
-        }, pullDebounce)
+        }, workdpacePullDebounce)
       }
     })
   }
@@ -410,7 +446,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     }
     if (this.options.workspaceDiagnostics) {
       provider.provideWorkspaceDiagnostics = (resultIds, token, resultReporter): ProviderResult<WorkspaceDiagnosticReport> => {
-        const provideWorkspaceDiagnostics: ProvideWorkspaceDiagnosticSignature = (resultIds, token): ProviderResult<WorkspaceDiagnosticReport> => {
+        const provideWorkspaceDiagnostics: ProvideWorkspaceDiagnosticSignature = (resultIds, token, resultReporter): ProviderResult<WorkspaceDiagnosticReport> => {
           const partialResultToken = uuid()
           const disposable = this.client.onProgress(WorkspaceDiagnosticRequest.partialResult, partialResultToken, partialResult => {
             if (partialResult == undefined) {
@@ -455,23 +491,42 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
   }
 }
 
+const timeoutDebounce = getConditionValue(500, 10)
+
 export class BackgroundScheduler implements Disposable {
 
-  private readonly diagnosticRequestor: Requestor
-  private endDocument: TextDocument | undefined
+  private readonly client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>
+  private readonly diagnosticRequestor: DiagnosticRequestor
+  private lastDocumentToPull: TextDocument | URI | undefined
   private readonly documents: LinkedMap<string, TextDocument>
-  private intervalHandle: Disposable | undefined
+  private timeoutHandle: Disposable | undefined
+  // The problem is that there could be outstanding diagnostic requests
+  // when we shutdown which when we receive the result will trigger a
+  // reschedule. So we remember if the background scheduler got disposed
+  // and ignore those re-schedules
+  private isDisposed: boolean
 
-  public constructor(diagnosticRequestor: Requestor) {
+  public constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>, diagnosticRequestor: DiagnosticRequestor) {
+    this.client = client
     this.diagnosticRequestor = diagnosticRequestor
     this.documents = new LinkedMap()
+    this.isDisposed = false
   }
 
   public add(document: TextDocument): void {
+    if (this.isDisposed === true) {
+      return
+    }
     const key = document.uri
-    if (this.documents.has(key)) return
+    if (this.documents.has(key)) {
+      return
+    }
     this.documents.set(key, document, Touch.AsNew)
-    this.trigger()
+    // Make sure we run up to that document. We could
+    // consider inserting it after the current last
+    // document for performance reasons but it might not catch
+    // all interfile dependencies.
+    this.lastDocumentToPull = document
   }
 
   public remove(document: TextDocument): void {
@@ -484,42 +539,79 @@ export class BackgroundScheduler implements Disposable {
     // No more documents. Stop background activity.
     if (this.documents.size === 0) {
       this.stop()
-    } else if (document.uri === this.endDocument?.uri) {
-      // Make sure we have a correct last document. It could have
-      this.endDocument = this.documents.last
+      return
+    }
+    if (document.uri === this.lastDocumentToPullKey()) {
+      // The remove document was the one we would run up to. So
+      // take the one before it.
+      const before = this.documents.before(key)
+      if (before === undefined) {
+        this.stop()
+      } else {
+        this.lastDocumentToPull = before
+      }
     }
   }
 
   public trigger(): void {
-    // We have a round running. So simply make sure we run up to the
-    // last document
-    if (this.intervalHandle !== undefined) {
-      this.endDocument = this.documents.last
+    this.lastDocumentToPull = this.documents.last
+    this.runLoop()
+  }
+
+  private runLoop(): void {
+    if (this.isDisposed === true) {
       return
     }
-    this.endDocument = this.documents.last
-    this.intervalHandle = RAL().timer.setInterval(() => {
+
+    // We have an empty background list. Make sure we stop
+    // background activity.
+    if (this.documents.size === 0) {
+      this.stop()
+      return
+    }
+
+    // We have no last document anymore so stop the loop
+    if (this.lastDocumentToPull === undefined) {
+      return
+    }
+
+    // We have a timeout in the loop. So we should not schedule
+    // another run.
+    if (this.timeoutHandle !== undefined) {
+      return
+    }
+    this.timeoutHandle = RAL().timer.setTimeout(() => {
       const document = this.documents.first
-      if (document !== undefined) {
-        const key = document.uri
-        this.diagnosticRequestor.pull(document)
-        this.documents.set(key, document, Touch.AsNew)
-        if (document === this.endDocument) {
-          this.stop()
-        }
+      if (document === undefined) {
+        return
       }
-    }, 200)
+      const key = DocumentOrUri.asKey(document)
+      this.diagnosticRequestor.pullAsync(document).catch((error) => {
+        this.client.error(`Document pull failed for text document ${key}`, error, false)
+      }).finally(() => {
+        this.timeoutHandle = undefined
+        this.documents.set(key, document, Touch.Last)
+        if (key !== this.lastDocumentToPullKey()) {
+          this.runLoop()
+        }
+      })
+    }, timeoutDebounce)
   }
 
   public dispose(): void {
     this.stop()
     this.documents.clear()
+    this.lastDocumentToPull = undefined
   }
 
   private stop(): void {
-    this.intervalHandle?.dispose()
-    this.intervalHandle = undefined
-    this.endDocument = undefined
+    this.timeoutHandle?.dispose()
+    this.timeoutHandle = undefined
+    this.lastDocumentToPull = undefined
+  }
+
+  private lastDocumentToPullKey(): string | undefined {
+    return this.lastDocumentToPull !== undefined ? DocumentOrUri.asKey(this.lastDocumentToPull) : undefined
   }
 }
 
@@ -530,23 +622,36 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
   private readonly backgroundScheduler: BackgroundScheduler
 
   constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>, options: DiagnosticRegistrationOptions) {
-    const diagnosticPullOptions = client.clientOptions.diagnosticPullOptions!
-    const documentSelector = options.documentSelector!
+    const diagnosticPullOptions = Object.assign({ onChange: false, onSave: false, onFocus: false }, client.clientOptions.diagnosticPullOptions)
+
+    const selector = options.documentSelector ?? []
     const disposables: Disposable[] = []
     const ignored = diagnosticPullOptions.ignored ?? []
 
     const matches = (document: TextDocument): boolean => {
-      if (workspace.match(documentSelector, document) <= 0) return false
+      if (diagnosticPullOptions.match !== undefined) {
+        return diagnosticPullOptions.match(selector, URI.parse(document.uri))
+      }
+      if (workspace.match(selector, document) <= 0) return false
       const visible = window.visibleTextEditors.some(editor => editor.document.uri === document.uri)
       if (!visible) return false
       if (ignored.length > 0 && ignored.some(p => minimatch(URI.parse(document.uri).fsPath, p, { dot: true }))) return false
       return true
     }
 
+    const isActiveDocument = (document: TextDocument): boolean => {
+      return document.uri === this.activeTextDocument?.uri
+    }
+
+    const considerDocument = (textDocument: TextDocument, mode: DiagnosticPullMode): boolean => {
+      return (diagnosticPullOptions.filter === undefined || !diagnosticPullOptions.filter(textDocument, mode))
+        && this.diagnosticRequestor.knows(PullState.document, textDocument)
+    }
+
     this.diagnosticRequestor = new DiagnosticRequestor(client, options)
-    this.backgroundScheduler = new BackgroundScheduler(this.diagnosticRequestor)
+    this.backgroundScheduler = new BackgroundScheduler(client, this.diagnosticRequestor)
     const addToBackgroundIfNeeded = (document: TextDocument): void => {
-      if (!matches(document) || !options.interFileDependencies || this.activeTextDocument?.uri === document.uri) return
+      if (!matches(document) || !options.interFileDependencies || isActiveDocument(document) || diagnosticPullOptions.onChange === false) return
       this.backgroundScheduler.add(document)
     }
 
@@ -557,7 +662,12 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       if (oldActive !== undefined) {
         addToBackgroundIfNeeded(oldActive)
       }
-      if (textDocument != null) this.backgroundScheduler.remove(textDocument)
+      if (textDocument != null) {
+        this.backgroundScheduler.remove(textDocument)
+        if (diagnosticPullOptions.onFocus === true && matches(this.activeTextDocument) && considerDocument(this.activeTextDocument, DiagnosticPullMode.onFocus)) {
+          this.diagnosticRequestor.pull(textDocument)
+        }
+      }
     }, null, disposables)
 
     // We always pull on open.
@@ -569,18 +679,18 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       }
     }))
 
-    const shouldPull = (textDocument: TextDocument, mode: DiagnosticPullMode): boolean => {
-      if (diagnosticPullOptions.filter && diagnosticPullOptions.filter(textDocument, mode)) return false
-      if (!this.diagnosticRequestor.knows(PullState.document, textDocument)) return false
-      return true
+    // Pull all diagnostics for documents that are already open
+    for (const textDocument of workspace.textDocuments) {
+      if (matches(textDocument)) {
+        this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
+      }
     }
 
     if (diagnosticPullOptions.onChange === true) {
       const changeFeature = client.getFeature(DidChangeTextDocumentNotification.method)
       disposables.push(changeFeature.onNotificationSent(async event => {
         const textDocument = workspace.getDocument(event.original.bufnr).textDocument
-        if (event.original.contentChanges.length == 0) return
-        if (shouldPull(textDocument, DiagnosticPullMode.onType)) {
+        if (considerDocument(textDocument, DiagnosticPullMode.onType)) {
           this.diagnosticRequestor.pull(textDocument, () => { this.backgroundScheduler.trigger() })
         }
       }))
@@ -590,8 +700,8 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       const saveFeature = client.getFeature(DidSaveTextDocumentNotification.method)
       disposables.push(saveFeature.onNotificationSent(event => {
         const textDocument = event.original
-        if (shouldPull(textDocument, DiagnosticPullMode.onSave)) {
-          this.diagnosticRequestor.pull(event.original, () => { this.backgroundScheduler.trigger() })
+        if (considerDocument(textDocument, DiagnosticPullMode.onSave)) {
+          this.diagnosticRequestor.pull(event.original)
         }
       }))
     }
@@ -634,7 +744,6 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       this.diagnosticRequestor.pullWorkspace()
     }
 
-    // disposables.push(languages.registerDiagnosticsProvider(options.documentSelector, this.diagnosticRequestor.provider))
     this.disposable = Disposable.create(() => [...disposables, this.backgroundScheduler, this.diagnosticRequestor].forEach(d => d.dispose()))
   }
 
@@ -650,10 +759,14 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     return this.diagnosticRequestor.knows(kind, textDocument)
   }
 
+  public forget(document: TextDocument): void {
+    this.cleanUpDocument(document)
+  }
+
   private cleanUpDocument(document: TextDocument): void {
+    this.backgroundScheduler.remove(document)
     if (this.diagnosticRequestor.knows(PullState.document, document)) {
       this.diagnosticRequestor.forgetDocument(document)
-      this.backgroundScheduler.remove(document)
     }
   }
 }
@@ -666,6 +779,10 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(ensure(capabilities, 'textDocument')!, 'diagnostic')!
+    // capability.relatedInformation = true;
+    // capability.tagSupport = { valueSet: [ DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated ] };
+    // capability.codeDescriptionSupport = true;
+    // capability.dataSupport = true;
     capability.dynamicRegistration = true
     capability.relatedDocumentSupport = true
 

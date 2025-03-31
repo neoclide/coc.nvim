@@ -31,7 +31,7 @@ import { $CompletionOptions, CompletionItemFeature, CompletionMiddleware } from 
 import { $ConfigurationOptions, ConfigurationMiddleware, DidChangeConfigurationMiddleware, PullConfigurationFeature, SyncConfigurationFeature } from './configuration'
 import { DeclarationFeature, DeclarationMiddleware } from './declaration'
 import { DefinitionFeature, DefinitionMiddleware } from './definition'
-import { $DiagnosticPullOptions, DiagnosticFeature, DiagnosticProviderMiddleware, DiagnosticProviderShape } from './diagnostic'
+import { $DiagnosticPullOptions, DiagnosticFeature, DiagnosticProviderMiddleware, DiagnosticProviderShape, DiagnosticPullMode } from './diagnostic'
 import { DocumentHighlightFeature, DocumentHighlightMiddleware } from './documentHighlight'
 import { DocumentLinkFeature, DocumentLinkMiddleware } from './documentLink'
 import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbol'
@@ -66,7 +66,7 @@ import * as c2p from './utils/codeConverter'
 
 const logger = createLogger('language-client-client')
 
-export { ErrorAction, CloseAction, NullLogger }
+export { ErrorAction, DiagnosticPullMode, CloseAction, NullLogger }
 
 interface ConnectionErrorHandler {
   (error: Error, message: Message | undefined, count: number | undefined): void

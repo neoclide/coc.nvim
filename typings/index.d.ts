@@ -11678,12 +11678,23 @@ declare module 'coc.nvim' {
     maxRestartCount?: number
   }
 
+  export enum DiagnosticPullMode {
+    onType = 'onType',
+    onSave = 'onSave',
+    onFocus = 'onFocus'
+  }
+
   export interface DiagnosticPullOptions {
     /**
      * Whether to pull for diagnostics on document change.
      * Default to "pullDiagnostic.onChange" configuration.
      */
     onChange?: boolean
+
+    /**
+    * Whether to pull for diagnostics on editor focus.
+    */
+    onFocus?: boolean
 
     /**
      * Whether to pull for diagnostics on document save.
@@ -11706,10 +11717,25 @@ declare module 'coc.nvim' {
      * An optional filter method that is consulted when triggering a
      * diagnostic pull during document change or document save.
      *
+     * The document gets filtered if the method returns `true`.
+     *
      * @param document the document that changes or got save
      * @param mode the mode
      */
     filter?(document: { uri: string, languageId: string }, mode: 'onType' | 'onSave'): boolean
+
+    /**
+     * An optional match method that is consulted when pulling for diagnostics
+     * when only a URI is known (e.g. for not instantiated tabs)
+     *
+     * The method should return `true` if the document selector matches the
+     * given resource. See also the `vscode.languages.match` function.
+     *
+     * @param documentSelector The document selector.
+     * @param resource The resource.
+     * @returns whether the resource is matched by the given document selector.
+     */
+    match?(documentSelector: DocumentSelector, resource: Uri): boolean
   }
 
   export interface URIConverter {
@@ -12397,7 +12423,7 @@ declare module 'coc.nvim' {
     /**
      * Log failed request to outputChannel and throw error when necessary.
      */
-    handleFailedRequest<T, P extends { kind: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T)
+    handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T
 
     /**
      * Create a default error handler.

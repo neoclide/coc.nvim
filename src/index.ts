@@ -47,6 +47,7 @@ import workspace from './workspace'
 import {
   ClientState,
   CloseAction,
+  DiagnosticPullMode,
   ErrorAction, LanguageClient,
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
@@ -200,6 +201,7 @@ module.exports = {
   extensions,
   listManager,
   TreeItemCollapsibleState,
+  DiagnosticPullMode,
   terminate,
   fetch,
   download,
