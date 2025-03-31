@@ -174,6 +174,12 @@ describe('ExtensionManager', () => {
         }
       }, code)
       let manager = create(tmpfolder)
+      let spy = jest.spyOn(workspace, 'checkPatterns').mockImplementation(() => {
+        return Promise.resolve(true)
+      })
+      disposables.push(Disposable.create(() => {
+        spy.mockRestore()
+      }))
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
       let item = manager.getExtension('auto')
