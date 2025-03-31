@@ -9482,7 +9482,7 @@ declare module 'coc.nvim' {
     /**
      * Placeholder text that shown when input value is empty.
      */
-    placeholder?: string
+    placeHolder?: string
     /**
      * An optional flag to include the description when filtering the picks.
      */
