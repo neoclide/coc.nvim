@@ -12398,6 +12398,11 @@ declare module 'coc.nvim' {
      * Log failed request to outputChannel and throw error when necessary.
      */
     handleFailedRequest<T, P extends { kind: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T)
+
+    /**
+     * Create a default error handler.
+     */
+    createDefaultErrorHandler(maxRestartCount?: number): ErrorHandler
   }
 
   /**
