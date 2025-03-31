@@ -12461,6 +12461,11 @@ declare module 'coc.nvim' {
      */
     forget(document: TextDocument): void
   }
+
+  export interface DiagnosticFeatureShape {
+    refresh(): void
+  }
+
   /**
    * A language server for manage a language server.
    * It's recommended to use `services.registerLanguageClient` to register language client to serviers,
@@ -12636,7 +12641,7 @@ declare module 'coc.nvim' {
     getFeature(request: 'textDocument/prepareTypeHierarchy'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
     getFeature(request: 'textDocument/inlineValue'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
     getFeature(request: 'textDocument/inlayHint'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
-    getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> | undefined
+    getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
   }
 
   /**

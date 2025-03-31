@@ -771,7 +771,11 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
   }
 }
 
-export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOptions, DiagnosticRegistrationOptions, DiagnosticProviderShape, DiagnosticProviderMiddleware> {
+export interface DiagnosticFeatureShape {
+  refresh(): void
+}
+
+export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOptions, DiagnosticRegistrationOptions, DiagnosticProviderShape, DiagnosticProviderMiddleware> implements DiagnosticFeatureShape {
 
   constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>) {
     super(client, DocumentDiagnosticRequest.type)
@@ -804,5 +808,11 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
   protected registerLanguageProvider(options: DiagnosticRegistrationOptions): [Disposable, DiagnosticProviderShape] {
     const provider = new DiagnosticFeatureProviderImpl(this._client, options)
     return [provider.disposable, provider]
+  }
+
+  public refresh(): void {
+    for (const provider of this.getAllProviders()) {
+      provider.onDidChangeDiagnosticsEmitter.fire()
+    }
   }
 }

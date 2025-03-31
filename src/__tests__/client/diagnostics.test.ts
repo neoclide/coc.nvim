@@ -243,6 +243,7 @@ describe('DiagnosticFeature', () => {
     let d = await workspace.loadFile(getUri('filtered'), 'tabe')
     await d.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     await helper.wait(30)
+    feature.refresh()
     await nvim.command(`bd! ${doc.bufnr}`)
     await client.stop()
   })

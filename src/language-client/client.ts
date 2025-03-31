@@ -31,7 +31,7 @@ import { $CompletionOptions, CompletionItemFeature, CompletionMiddleware } from 
 import { $ConfigurationOptions, ConfigurationMiddleware, DidChangeConfigurationMiddleware, PullConfigurationFeature, SyncConfigurationFeature } from './configuration'
 import { DeclarationFeature, DeclarationMiddleware } from './declaration'
 import { DefinitionFeature, DefinitionMiddleware } from './definition'
-import { $DiagnosticPullOptions, DiagnosticFeature, DiagnosticProviderMiddleware, DiagnosticProviderShape, DiagnosticPullMode } from './diagnostic'
+import { $DiagnosticPullOptions, DiagnosticFeature, DiagnosticFeatureShape, DiagnosticProviderMiddleware, DiagnosticProviderShape, DiagnosticPullMode } from './diagnostic'
 import { DocumentHighlightFeature, DocumentHighlightMiddleware } from './documentHighlight'
 import { DocumentLinkFeature, DocumentLinkMiddleware } from './documentLink'
 import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbol'
@@ -1416,7 +1416,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public getFeature(request: typeof InlineValueRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
   public getFeature(request: typeof InlayHintRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
   public getFeature(request: typeof WorkspaceSymbolRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>
-  public getFeature(request: typeof DocumentDiagnosticRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> | undefined
+  public getFeature(request: typeof DocumentDiagnosticRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
   public getFeature(request: string): DynamicFeature<any> | undefined {
     return this._dynamicFeatures.get(request)
   }
