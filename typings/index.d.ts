@@ -12518,15 +12518,15 @@ declare module 'coc.nvim' {
     /**
      * Append info to outputChannel
      */
-    info(message: string, data?: any): void
+    info(message: string, data?: any, showNotification?: boolean): void
     /**
      * Append warning to outputChannel
      */
-    warn(message: string, data?: any): void
+    warn(message: string, data?: any, showNotification?: boolean): void
     /**
      * append error to outputChannel
      */
-    error(message: string, data?: any): void
+    error(message: string, data?: any, showNotification?: boolean | 'force'): void
 
     readonly state: State
     readonly middleware: Middleware
@@ -12575,7 +12575,7 @@ declare module 'coc.nvim' {
     /**
      * Restart language client.
      */
-    restart(): void
+    restart(): Promise<void>
 
     dispose(): Promise<void>
     /**
