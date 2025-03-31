@@ -10411,6 +10411,11 @@ declare module 'coc.nvim' {
     readonly extensionPath: string
 
     /**
+     * The uri of the directory containing the extension.
+     */
+    readonly extensionUri: Uri
+
+    /**
      * `true` if the extension has been activated.
      */
     readonly isActive: boolean
