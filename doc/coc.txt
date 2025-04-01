@@ -2530,6 +2530,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	Add {folder} to workspace folders, {folder} should be exists directory
 	on file system.
 
+"removeWorkspaceFolder" {folder}			*CocAction('removeWorkspaceFolder')*
+
+	Remove workspace fold {folder}, {folder} should be exists directory on
+	file system.
+
 "ensureDocument" [{bufnr}] 				*CocAction('ensureDocument')*
 
 	Ensure current or specified document is attached to coc.nvim
@@ -3013,6 +3018,17 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	{visualmode} should be result of {visualmode} or "" for current cursor
 	position.
 	{forward} select backward when it's falsy value.
+
+"sendRequest" {id} {method} [{params}]		 	*CocAction('sendRequest')*
+
+	Send LSP request with {method} and {params} to the language server of
+	{id} (check the id by `:CocList services`).
+	Checkout the LSP specification at
+	https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+
+"sendNotification" {id} {method} [{params}]		*CocAction('sendNotification')*
+
+	Send LSP notification to language server with {id}.
 
 --------------------------------------------------------------------------------
 COMMANDS						*coc-commands*

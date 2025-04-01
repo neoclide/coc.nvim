@@ -7,6 +7,7 @@ Core features
 	File system watch 			|coc-config-fileSystemWatch|
 	Extensions 				|coc-config-extensions|
 	Preferences 				|coc-config-preferences|
+	Editor 					|coc-config-editor|
 	Float factory 				|coc-config-floatFactory|
 	Float 					|coc-config-float|
 	Tree 					|coc-config-tree|
@@ -103,6 +104,13 @@ WORKSPACE
 	patterns resolved.
 
 	Scope: `application`, default: `true`
+
+"workspace.removeEmptyWorkspaceFolder"			*coc-config-workspace-removeEmptyWorkspaceFolder*
+
+	Automatically remove the workspace folder when no buffer associated
+	with it.
+
+	Scope: `application`, default: `false`
 
 ------------------------------------------------------------------------------
 FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
@@ -306,6 +314,19 @@ PREFERENCES
 
 	The timeout of CocTagFunc.
 	Scope: `application`, default: `0`
+
+------------------------------------------------------------------------------
+EDITOR
+							*coc-config-editor*
+							*coc-config-editor-codeActionsOnSave*
+
+"editor.codeActionsOnSave"
+
+	Run Code Actions for the buffer on save, normally source actions,
+	Example: `\"source.organizeImports\": \"always\"`,
+	|coc-preferences-willSaveHandlerTimeout| is used for timeout control.
+
+	Scope: `language-overridable`, default: `{}`
 
 ------------------------------------------------------------------------------
 FLOATfACTORY
