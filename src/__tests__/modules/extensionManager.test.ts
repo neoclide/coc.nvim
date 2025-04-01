@@ -174,6 +174,12 @@ describe('ExtensionManager', () => {
         }
       }, code)
       let manager = create(tmpfolder)
+      let spy = jest.spyOn(workspace, 'checkPatterns').mockImplementation(() => {
+        return Promise.resolve(true)
+      })
+      disposables.push(Disposable.create(() => {
+        spy.mockRestore()
+      }))
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
       let item = manager.getExtension('auto')
@@ -548,6 +554,7 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow()
       fn = async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         item.extension.exports
       }
       await expect(fn()).rejects.toThrow()
@@ -642,7 +649,7 @@ describe('ExtensionManager', () => {
       let res = await manager.loadExtension(extFolder)
       expect(res).toBe(true)
       let spy = jest.spyOn(workspace.fileSystemWatchers, 'getWatchmanPath').mockImplementation(() => {
-        return Promise.reject('not found')
+        return Promise.reject(new Error('not found'))
       })
       let fn = async () => {
         await manager.watchExtension('name')

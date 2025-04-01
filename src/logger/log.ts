@@ -218,7 +218,9 @@ export class FileLogger extends AbstractLogger {
         }
         return fn()
       }).catch(err => {
-        !global.REVISION && console.error(err)
+        if (!global.REVISION) {
+          console.error(err)
+        }
       })
     }
   }

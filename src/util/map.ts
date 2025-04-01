@@ -6,11 +6,16 @@ interface Item<K, V> {
   value: V
 }
 
-export const enum Touch {
-  None = 0,
-  AsOld = 1,
-  AsNew = 2
+export namespace Touch {
+  export const None = 0
+  export const First = 1
+  export const AsOld = First
+  export const Last = 2
+  export const AsNew: 2 = Last
 }
+
+// eslint-disable-next-line no-redeclare
+export type Touch = 0 | 1 | 2
 
 export class LinkedMap<K, V> implements Map<K, V> {
 
@@ -23,7 +28,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 
   private _state: number
 
-  constructor() {
+  public constructor() {
     this._map = new Map<K, Item<K, V>>()
     this._head = undefined
     this._tail = undefined
@@ -55,6 +60,16 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return this._tail?.value
   }
 
+  public before(key: K): V | undefined {
+    const item = this._map.get(key)
+    return item ? item.previous?.value : undefined
+  }
+
+  public after(key: K): V | undefined {
+    const item = this._map.get(key)
+    return item ? item.next?.value : undefined
+  }
+
   public has(key: K): boolean {
     return this._map.has(key)
   }
@@ -83,10 +98,10 @@ export class LinkedMap<K, V> implements Map<K, V> {
         case Touch.None:
           this.addItemLast(item)
           break
-        case Touch.AsOld:
+        case Touch.First:
           this.addItemFirst(item)
           break
-        case Touch.AsNew:
+        case Touch.Last:
           this.addItemLast(item)
           break
         default:
@@ -118,6 +133,9 @@ export class LinkedMap<K, V> implements Map<K, V> {
     if (!this._head && !this._tail) {
       return undefined
     }
+    if (!this._head || !this._tail) {
+      throw new Error('Invalid list')
+    }
     const item = this._head
     this._map.delete(item.key)
     this.removeItem(item)
@@ -142,16 +160,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
   }
 
   public keys(): IterableIterator<K> {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const map = this
     const state = this._state
     let current = this._head
     const iterator: IterableIterator<K> = {
-      [Symbol.iterator]() {
+      [Symbol.iterator]: () => {
         return iterator
       },
-      next(): IteratorResult<K> {
-        if (map._state !== state) {
+      next: (): IteratorResult<K> => {
+        if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
         }
         if (current) {
@@ -167,16 +183,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
   }
 
   public values(): IterableIterator<V> {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const map = this
     const state = this._state
     let current = this._head
     const iterator: IterableIterator<V> = {
-      [Symbol.iterator]() {
+      [Symbol.iterator]: () => {
         return iterator
       },
-      next(): IteratorResult<V> {
-        if (map._state !== state) {
+      next: (): IteratorResult<V> => {
+        if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
         }
         if (current) {
@@ -192,16 +206,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
   }
 
   public entries(): IterableIterator<[K, V]> {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const map = this
     const state = this._state
     let current = this._head
     const iterator: IterableIterator<[K, V]> = {
-      [Symbol.iterator]() {
+      [Symbol.iterator]: () => {
         return iterator
       },
-      next(): IteratorResult<[K, V]> {
-        if (map._state !== state) {
+      next: (): IteratorResult<[K, V]> => {
+        if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
         }
         if (current) {
@@ -220,7 +232,10 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return this.entries()
   }
 
-  public trimOld(newSize: number) {
+  public trimOld(newSize: number): void {
+    if (newSize >= this.size) {
+      return
+    }
     if (newSize === 0) {
       this.clear()
       return
@@ -244,6 +259,8 @@ export class LinkedMap<K, V> implements Map<K, V> {
     // First time Insert
     if (!this._head && !this._tail) {
       this._tail = item
+    } else if (!this._head) {
+      throw new Error('Invalid list')
     } else {
       item.next = this._head
       this._head.previous = item
@@ -256,6 +273,8 @@ export class LinkedMap<K, V> implements Map<K, V> {
     // First time Insert
     if (!this._head && !this._tail) {
       this._head = item
+    } else if (!this._tail) {
+      throw new Error('Invalid list')
     } else {
       item.previous = this._tail
       this._tail.next = item
@@ -270,16 +289,29 @@ export class LinkedMap<K, V> implements Map<K, V> {
       this._tail = undefined
     }
     else if (item === this._head) {
+      // This can only happened if size === 1 which is handle
+      // by the case above.
+      if (!item.next) {
+        throw new Error('Invalid list')
+      }
       item.next.previous = undefined
       this._head = item.next
     }
     else if (item === this._tail) {
+      // This can only happened if size === 1 which is handle
+      // by the case above.
+      if (!item.previous) {
+        throw new Error('Invalid list')
+      }
       item.previous.next = undefined
       this._tail = item.previous
     }
     else {
       const next = item.next
       const previous = item.previous
+      if (!next || !previous) {
+        throw new Error('Invalid list')
+      }
       next.previous = previous
       previous.next = next
     }
@@ -289,11 +321,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
   }
 
   private touch(item: Item<K, V>, touch: Touch): void {
-    if ((touch !== Touch.AsOld && touch !== Touch.AsNew)) {
+    if (!this._head || !this._tail) {
+      throw new Error('Invalid list')
+    }
+    if ((touch !== Touch.First && touch !== Touch.Last)) {
       return
     }
 
-    if (touch === Touch.AsOld) {
+    if (touch === Touch.First) {
       if (item === this._head) {
         return
       }
@@ -320,7 +355,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
       this._head.previous = item
       this._head = item
       this._state++
-    } else {
+    } else if (touch === Touch.Last) {
       if (item === this._tail) {
         return
       }
@@ -371,7 +406,7 @@ export class LRUCache<K, V> extends LinkedMap<K, V> {
   private _limit: number
   private _ratio: number
 
-  constructor(limit: number, ratio = 1) {
+  public constructor(limit: number, ratio = 1) {
     super()
     this._limit = limit
     this._ratio = Math.min(Math.max(0, ratio), 1)
@@ -395,7 +430,7 @@ export class LRUCache<K, V> extends LinkedMap<K, V> {
     this.checkTrim()
   }
 
-  public override get(key: K, touch: Touch = Touch.AsNew): V | undefined {
+  public get(key: K, touch: Touch = Touch.AsNew): V | undefined {
     return super.get(key, touch)
   }
 
@@ -403,8 +438,8 @@ export class LRUCache<K, V> extends LinkedMap<K, V> {
     return super.get(key, Touch.None)
   }
 
-  public override set(key: K, value: V): this {
-    super.set(key, value, Touch.AsNew)
+  public set(key: K, value: V): this {
+    super.set(key, value, Touch.Last)
     this.checkTrim()
     return this
   }

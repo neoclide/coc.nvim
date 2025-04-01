@@ -71,6 +71,7 @@ export type ExtensionToLoad = Pick<Readonly<ExtensionInfo>, 'root' | 'packageJSO
 export interface Extension<T> {
   readonly id: string
   readonly extensionPath: string
+  readonly extensionUri: URI
   readonly isActive: boolean
   readonly packageJSON: ExtensionJson
   readonly exports: T
@@ -467,7 +468,7 @@ export class ExtensionManager {
             resolve(res)
           } catch (e) {
             logger.error(`Error on active extension ${id}:`, e)
-            reject(e)
+            reject(e as Error)
           }
         })
         return result
@@ -475,6 +476,7 @@ export class ExtensionManager {
       id,
       packageJSON,
       extensionPath,
+      extensionUri: URI.parse(extensionPath),
       get isActive() {
         return isActive
       },

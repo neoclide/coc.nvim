@@ -59,7 +59,7 @@ export class DiagnosticBuffer implements SyncItem {
   private _dirties: Set<string> = new Set()
   private _refreshing = false
   private _config: DiagnosticConfig
-  public refreshHighlights: Function & { clear(): void }
+  public refreshHighlights: (() => void) & { clear(): void }
   private readonly _onDidRefresh = new Emitter<ReadonlyArray<Diagnostic>>()
   public readonly onDidRefresh: Event<ReadonlyArray<Diagnostic>> = this._onDidRefresh.event
   constructor(

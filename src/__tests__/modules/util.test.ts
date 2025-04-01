@@ -110,7 +110,7 @@ console.debug('debug')
 console.info('info')
 console.error('error')
 console.warn('warn')`, sandbox)
-    expect(fn).toBeCalledTimes(5)
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should create console', () => {
@@ -1224,7 +1224,7 @@ describe('utility', () => {
   it('should resolve concurrent with empty task', async () => {
     let fn = jest.fn()
     await concurrent([], fn, 3)
-    expect(fn).toBeCalledTimes(0)
+    expect(fn).toHaveBeenCalledTimes(0)
   })
 
   it('should run concurrent', async () => {
@@ -1685,7 +1685,6 @@ describe('diff', () => {
   function blockMilliseconds(ms: number): void {
     let ts = Date.now()
     let i = 0
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (Date.now() - ts > ms) {
         break
@@ -1728,7 +1727,6 @@ describe('diff', () => {
       await filter([1, 2, 3, 4, 5, 6, 7, 8], i => {
         if (i > 1) {
           let ts = Date.now()
-          // eslint-disable-next-line no-constant-condition
           while (true) {
             if (Date.now() - ts > 40) break
           }

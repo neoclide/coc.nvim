@@ -108,6 +108,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
       } catch (e) {
         invalid = true
         this.resolving.delete(item)
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         reject(e)
       }
     })

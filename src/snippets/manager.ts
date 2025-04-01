@@ -131,7 +131,7 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range | undefined, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { nvim } = workspace
     let release = await this.mutex.acquire()
     try {

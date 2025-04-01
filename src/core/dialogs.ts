@@ -34,7 +34,7 @@ export interface QuickPickConfig<T extends QuickPickItem> {
  */
 export interface QuickPickOptions {
 
-  placeholder?: string
+  placeHolder?: string
   /**
    * An optional string that represents the title of the quick pick.
    */
@@ -129,7 +129,7 @@ export class Dialogs {
         let quickpick = new QuickPick<QuickPickItem>(this.nvim, this.dialogPreference)
         quickpick.items = items.map(o => typeof o === 'string' ? { label: o } : o)
         quickpick.title = toText(options.title)
-        quickpick.placeholder = options.placeholder
+        quickpick.placeholder = options.placeHolder ?? options['placeholder']
         quickpick.canSelectMany = !!options.canPickMany
         quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {

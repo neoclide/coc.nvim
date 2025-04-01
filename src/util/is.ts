@@ -1,6 +1,6 @@
 'use strict'
 import { URL } from 'url'
-import { Command, CompletionItem, CompletionList, Hover, InsertReplaceEdit, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
+import { Command, CompletionItem, CompletionList, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
 import { EditRange } from '../completion/types'
 
 /* eslint-disable id-blacklist */
@@ -68,6 +68,7 @@ export function array(array: any): array is any[] {
   return Array.isArray(array)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export function func(value: any): value is Function {
   return typeof value == 'function'
 }

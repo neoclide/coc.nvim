@@ -493,7 +493,7 @@ export class ListManager implements Disposable {
         resolve(items)
       })
       task.on('error', msg => {
-        reject(msg)
+        reject(msg instanceof Error ? msg : new Error(msg))
         task.dispose()
       })
     })

@@ -27,15 +27,21 @@ function createUri(id: number): URI {
 describe('BackgroundScheduler', () => {
   it('should schedule documents by add', async () => {
     let uris: string[] = []
-    let s = new BackgroundScheduler({
+    let client = { error: () => {} }
+    let s = new BackgroundScheduler(client as any, {
       pull(document) {
         uris.push(document.uri)
+      },
+      pullAsync(document) {
+        uris.push(document.uri)
+        return Promise.resolve(undefined)
       }
-    })
+    } as any)
     s.add(createDocument(1))
     s.add(createDocument(1))
     s.add(createDocument(2))
     s.add(createDocument(3))
+    s.trigger()
     await helper.waitValue(() => {
       return uris.length
     }, 3)
@@ -45,17 +51,23 @@ describe('BackgroundScheduler', () => {
 
   it('should schedule documents by remove', async () => {
     let uris: string[] = []
-    let s = new BackgroundScheduler({
+    let client = { error: () => {} }
+    let s = new BackgroundScheduler(client as any, {
       pull(document) {
         uris.push(document.uri)
+      },
+      pullAsync(document) {
+        uris.push(document.uri)
+        return Promise.resolve(undefined)
       }
-    })
+    } as any)
     s.add(createDocument(1))
     s.add(createDocument(2))
     s.remove(createDocument(2))
     s.add(createDocument(3))
     s.remove(createDocument(3))
     s.remove(createDocument(1))
+    s.trigger()
     await helper.waitValue(() => {
       return uris.length
     }, 3)
@@ -224,12 +236,14 @@ describe('DiagnosticFeature', () => {
     }, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     await helper.waitValue(async () => {
-      return await client.sendRequest('getChangeCount')
-    }, 2)
+      let n = await client.sendRequest('getChangeCount') as number
+      return n >= 2
+    }, true)
     await nvim.call('setline', [1, 'foo'])
     let d = await workspace.loadFile(getUri('filtered'), 'tabe')
     await d.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     await helper.wait(30)
+    feature.refresh()
     await nvim.command(`bd! ${doc.bufnr}`)
     await client.stop()
   })

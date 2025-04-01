@@ -100,7 +100,7 @@ export function getDetail(item: CompletionItem, filetype: string): { filetype: s
   return undefined
 }
 
-export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, item: CompleteItem | undefined): CompleteDoneItem | {} {
+export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, item: CompleteItem | undefined): CompleteDoneItem | object {
   if (!item || !selected) return {}
   return Object.assign({
     word: selected.word,

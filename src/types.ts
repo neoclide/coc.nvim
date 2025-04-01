@@ -4,6 +4,7 @@ import type { Disposable, Event } from 'vscode-languageserver-protocol'
 import type { CreateFile, DeleteFile, Diagnostic, Location, Position, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type RelativePattern from './model/relativePattern'
+import type { LinesTextDocument } from './model/textdocument'
 
 export type { IConfigurationChangeEvent } from './configuration/types'
 
@@ -272,6 +273,7 @@ export interface Autocmd {
   arglist?: string[]
   request?: boolean
   thisArg?: any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   callback: Function
 }
 
@@ -375,6 +377,8 @@ export interface DidChangeTextDocumentParams {
     version: number
     uri: string
   }
+
+  readonly document: LinesTextDocument
   /**
    * The actual content changes. The content changes describe single state changes
    * to the document. So if there are two content changes c1 (at array index 0) and

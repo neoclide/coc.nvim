@@ -70,7 +70,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   private _config: SemanticTokensConfig
   private _dirty = false
   private _version: number | undefined
-  private regions = new Regions()
+  public readonly regions = new Regions()
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
   private previousResults: SemanticTokensPreviousResult | undefined
@@ -136,12 +136,12 @@ export default class SemanticTokensBuffer implements SyncItem {
     await this.doHighlight(true)
   }
 
-  public async onShown(): Promise<void> {
+  public async onShown(winid: number): Promise<void> {
     // Should be refreshed by onCursorMoved
     if (this.shouldRangeHighlight) return
     const { doc } = this
     if (doc.dirty || doc.version === this._version) return
-    await this.doHighlight(false, true)
+    await this.doHighlight(false, winid)
   }
 
   public get hasProvider(): boolean {
@@ -282,16 +282,20 @@ export default class SemanticTokensBuffer implements SyncItem {
     return res
   }
 
-  public async doHighlight(forceFull = false, onShown = false): Promise<void> {
+  public async doHighlight(forceFull = false, winid?: number): Promise<void> {
     this.cancel()
-    if (!this.enabled || (!onShown && !workspace.editors.isVisible(this.bufnr))) return
+    const winids = winid == null ? workspace.editors.getBufWinids(this.bufnr) : [winid]
+    if (!this.enabled || winids.length === 0) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     if (this.shouldRangeHighlight) {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       let rangeToken = rangeTokenSource.token
-      await this.doRangeHighlight(rangeToken)
-      if (!rangeToken.isCancellationRequested) this.rangeTokenSource = undefined
+      for (const win of winids) {
+        await this.doRangeHighlight(win, rangeToken)
+        if (rangeToken.isCancellationRequested) break
+      }
+      this.rangeTokenSource = undefined
       if (rangeToken.isCancellationRequested && this.rangeProviderOnly) return
     }
     if (token.isCancellationRequested) return
@@ -316,7 +320,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     // request cancelled or can't work
     if (token.isCancellationRequested || !tokenRanges) return
     this._highlights = [version, tokenRanges]
-    if (!this._dirty || tokenRanges.length < 200) {
+    if (!this._dirty || tokenRanges.length < 500) {
       let items = this.toHighlightItems(tokenRanges)
       let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, undefined, token)
       if (token.isCancellationRequested || !diff) return
@@ -326,7 +330,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
     } else {
       this.regions.clear()
-      await this.highlightRegions(token)
+      await this.highlightRegions(winid, token)
     }
     if (!token.isCancellationRequested) this.tokenSource = undefined
     this._onDidRefresh.fire()
@@ -350,10 +354,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Perform range highlight request and update.
    */
-  public async doRangeHighlight(token: CancellationToken): Promise<void> {
-    let { version } = this.doc
+  public async doRangeHighlight(winid: number, token: CancellationToken): Promise<void> {
+    const { version } = this.doc
     let res = await this.sendRequest(() => {
-      return this.requestRangeHighlights(token)
+      return this.requestRangeHighlights(winid, token)
     }, token)
     if (res == null || token.isCancellationRequested) return
     const { highlights, start, end } = res
@@ -369,40 +373,50 @@ export default class SemanticTokensBuffer implements SyncItem {
         }
       })
     }
-    const items = this.toHighlightItems(highlights)
+    const items = this.toHighlightItems(highlights, start, end + 1)
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
-    if (diff) {
+    if (diff && !token.isCancellationRequested) {
       const priority = this.config.highlightPriority
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
+      this.regions.add(start, end)
       this._dirty = true
     }
   }
 
   /**
-   * highlight current visible regions
+   * highlight current visible regions, highlight all associated winids when winid is undefined
    */
-  public async highlightRegions(token: CancellationToken, skipCheck = false): Promise<void> {
+  public async highlightRegions(winid: number | undefined, token: CancellationToken, skipCheck = false): Promise<void> {
     let { regions, highlights, config, lineCount, bufnr } = this
     if (!highlights) return
-    let spans = await this.nvim.call('coc#window#visible_ranges', [bufnr]) as [number, number][]
-    if (token.isCancellationRequested || spans.length === 0) return
-    let height = workspace.env.lines
-    spans.forEach(o => {
-      o[0] = Math.max(0, Math.floor(o[0] - height))
-      o[1] = Math.min(lineCount, Math.ceil(o[1] + height))
-    })
-    for (let [start, end] of Regions.mergeSpans(spans)) {
+    let spans: [number, number][]
+    if (winid == null) {
+      spans = await this.nvim.call('coc#window#visible_ranges', [bufnr]) as [number, number][]
+      if (spans.length === 0) return
+      let height = workspace.env.lines
+      spans.forEach(o => {
+        o[0] = Math.max(0, Math.floor(o[0] - height))
+        o[1] = Math.min(lineCount, Math.ceil(o[1] + height))
+      })
+      spans = Regions.mergeSpans(spans)
+    } else {
+      let span = await this.nvim.call('coc#window#visible_range', [winid]) as [number, number] | null
+      if (!span) return
+      spans = [span]
+    }
+    if (token.isCancellationRequested) return
+    for (let [start, end] of spans) {
       if (!skipCheck && regions.has(start, end)) continue
-      let items = this.toHighlightItems(highlights, start, end)
+      let items = this.toHighlightItems(highlights, start, end + 1)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
       if (token.isCancellationRequested) break
       regions.add(start, end)
       let priority = config.highlightPriority
-      if (diff) void window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
+      if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
     }
   }
 
-  public async onCursorMoved(): Promise<void> {
+  public async onWinScroll(winid: number): Promise<void> {
     this.cancel(true)
     if (!this.enabled || this.doc.dirty) return
     let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
@@ -410,28 +424,55 @@ export default class SemanticTokensBuffer implements SyncItem {
     await wait(debounceInterval)
     if (token.isCancellationRequested) return
     if (this.shouldRangeHighlight) {
-      await this.doRangeHighlight(token)
+      await this.doRangeHighlight(winid, token)
     } else {
-      await this.highlightRegions(token)
+      await this.highlightRegions(winid, token)
     }
     if (!token.isCancellationRequested) this.rangeTokenSource = undefined
   }
 
+  public getHighlightSpan(start: number, end: number): [number, number] | undefined {
+    let delta = workspace.env.lines
+    let startLine = start
+    if (start != 0) {
+      let s = Math.max(0, startLine - delta)
+      if (!this.regions.has(s, startLine)) {
+        startLine = s
+      }
+    }
+    let endLine = end
+    let linecount = this.doc.lineCount
+    if (end < linecount) {
+      let e = Math.min(end + delta, linecount)
+      if (!this.regions.has(endLine, e)) {
+        endLine = e
+      }
+    }
+    if (this.regions.has(start, end) && startLine === start && endLine === end) {
+      return undefined
+    }
+    return [startLine, endLine]
+  }
+
   /**
-   * Request highlights for visible range.
+   * Request highlights for visible range of winid.
    */
-  public async requestRangeHighlights(token: CancellationToken): Promise<RangeHighlights | null> {
+  public async requestRangeHighlights(winid: number, token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim, doc } = this
-    let region = await nvim.call('coc#window#visible_range') as [number, number]
+    let region = await nvim.call('coc#window#visible_range', [winid]) as [number, number]
     if (!region || token.isCancellationRequested) return null
-    let endLine = Math.min(region[0] + workspace.env.lines * 2, region[1] + workspace.env.lines, doc.lineCount)
-    let range = doc.textDocument.intersectWith(Range.create(region[0] - 1, 0, endLine, 0))
+    // convert to 0 based
+    let span = this.getHighlightSpan(region[0] - 1, region[1] - 1)
+    if (!span) return null
+    const startLine = span[0]
+    const endLine = span[1]
+    let range = doc.textDocument.intersectWith(Range.create(startLine, 0, endLine + 1, 0))
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)
     let highlights = await this.getTokenRanges(res.data, legend, token)
     if (!highlights) return null
-    return { highlights, start: region[0] - 1, end: region[1] }
+    return { highlights, start: startLine, end: endLine }
   }
 
   /**

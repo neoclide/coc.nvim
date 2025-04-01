@@ -218,9 +218,9 @@ class Renderer {
     this.transform = this.compose(undoColon, this.unescape)
   }
   public static hooks: MarkedOptions['hooks'] = {
-      preprocess: str => str,
-      postprocess: str => {
-        return str.replace(new RegExp(SPECIAL_SPACE, 'g'), SPACE)
+    preprocess: str => str,
+    postprocess: str => {
+      return str.replace(new RegExp(SPECIAL_SPACE, 'g'), SPACE)
     }
   }
 
@@ -352,6 +352,7 @@ class Renderer {
     return out + '](' + href + ')'
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   public compose(...funcs: Function[]): any {
     return (...args: any[]) => {
       for (let i = funcs.length; i-- > 0;) {

@@ -3123,11 +3123,18 @@ declare module 'coc.nvim' {
   }
 
   /**
-   * A document selector is the combination of one or many document filters.
-   *
-   * @sample `let sel:DocumentSelector = [{ language: 'typescript' }, { language: 'json', pattern: '**∕tsconfig.json' }]`;
-   */
-  export type DocumentSelector = (string | DocumentFilter)[]
+    * A language selector is the combination of one or many language identifiers
+    * and {@link DocumentFilter language filters}.
+    *
+    * *Note* that a document selector that is just a language identifier selects *all*
+    * documents, even those that are not saved on disk. Only use such selectors when
+    * a feature works without further context, e.g. without the need to resolve related
+    * 'files'.
+    *
+    * @example
+    * let sel:DocumentSelector = { scheme: 'file', language: 'typescript' };
+    */
+  export type DocumentSelector = DocumentFilter | string | ReadonlyArray<DocumentFilter | string>
 
   /**
    * How a signature help was triggered.
@@ -6028,6 +6035,39 @@ declare module 'coc.nvim' {
      */
     provideTypeHierarchySubtypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]>
   }
+
+  /**
+   * The inline values provider interface defines the contract between extensions and the editor's debugger inline values feature.
+   * In this contract the provider returns inline value information for a given document range
+   * and the editor shows this information in the editor at the end of lines.
+   */
+  export interface InlineValuesProvider {
+
+    /**
+     * An optional event to signal that inline values have changed.
+     * @see {@link EventEmitter}
+     */
+    onDidChangeInlineValues?: Event<void> | undefined
+
+    /**
+     * Provide "inline value" information for a given document and range.
+     * The editor calls this method whenever debugging stops in the given document.
+     * The returned inline values information is rendered in the editor at the end of lines.
+     * @param document The document for which the inline values information is needed.
+     * @param viewPort The visible document range for which inline values should be computed.
+     * @param context A bag containing contextual information like the current location.
+     * @param token A cancellation token.
+     * @return An array of InlineValueDescriptors or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined` or `null`.
+     */
+    provideInlineValues(document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken): ProviderResult<InlineValue[]>
+  }
+
+  export interface DiagnosticProvider {
+    onDidChangeDiagnostics: Event<void> | undefined
+    provideDiagnostics(document: TextDocument | Uri, previousResultId: string | undefined, token: CancellationToken): ProviderResult<DocumentDiagnosticReport>
+    provideWorkspaceDiagnostics?(resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter): ProviderResult<WorkspaceDiagnosticReport>
+  }
   // }}
 
   // Classes {{
@@ -6834,8 +6874,8 @@ declare module 'coc.nvim' {
   type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet'
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
-  type WindowEvents = 'WinLeave' | 'WinEnter'
-  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress'
+  type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
+  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled'
   type OptionValue = string | number | boolean
   type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
@@ -6955,6 +6995,10 @@ declare module 'coc.nvim' {
      * Attach handler to window event.
      */
     export function on(event: WindowEvents, handler: (winid: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Attach handler to window scroll event.
+     */
+    export function on(event: WindowEvents, handler: (winid: number, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to float button click.
      */
@@ -8225,6 +8269,10 @@ declare module 'coc.nvim' {
       uri: string
     }
     /**
+     * The affected document.
+     */
+    readonly document: LinesTextDocument
+    /**
      * The actual content changes. The content changes describe single state changes
      * to the document. So if there are two content changes c1 (at array index 0) and
      * c2 (at array index 1) for a document in state S then c1 moves the document from
@@ -8259,7 +8307,7 @@ declare module 'coc.nvim' {
      */
     event: string | string[]
     /**
-     * Callback functions that called with evaled arguments.
+     * Callback functions that called with evaled arglist as arguments.
      */
     callback: Function
     /**
@@ -9478,7 +9526,7 @@ declare module 'coc.nvim' {
     /**
      * Placeholder text that shown when input value is empty.
      */
-    placeholder?: string
+    placeHolder?: string
     /**
      * An optional flag to include the description when filtering the picks.
      */
@@ -10405,6 +10453,11 @@ declare module 'coc.nvim' {
      * The absolute file path of the directory containing this extension.
      */
     readonly extensionPath: string
+
+    /**
+     * The uri of the directory containing the extension.
+     */
+    readonly extensionUri: Uri
 
     /**
      * `true` if the extension has been activated.
@@ -11658,12 +11711,23 @@ declare module 'coc.nvim' {
     maxRestartCount?: number
   }
 
+  export enum DiagnosticPullMode {
+    onType = 'onType',
+    onSave = 'onSave',
+    onFocus = 'onFocus'
+  }
+
   export interface DiagnosticPullOptions {
     /**
      * Whether to pull for diagnostics on document change.
      * Default to "pullDiagnostic.onChange" configuration.
      */
     onChange?: boolean
+
+    /**
+    * Whether to pull for diagnostics on editor focus.
+    */
+    onFocus?: boolean
 
     /**
      * Whether to pull for diagnostics on document save.
@@ -11686,10 +11750,25 @@ declare module 'coc.nvim' {
      * An optional filter method that is consulted when triggering a
      * diagnostic pull during document change or document save.
      *
+     * The document gets filtered if the method returns `true`.
+     *
      * @param document the document that changes or got save
      * @param mode the mode
      */
     filter?(document: { uri: string, languageId: string }, mode: 'onType' | 'onSave'): boolean
+
+    /**
+     * An optional match method that is consulted when pulling for diagnostics
+     * when only a URI is known (e.g. for not instantiated tabs)
+     *
+     * The method should return `true` if the document selector matches the
+     * given resource. See also the `vscode.languages.match` function.
+     *
+     * @param documentSelector The document selector.
+     * @param resource The resource.
+     * @returns whether the resource is matched by the given document selector.
+     */
+    match?(documentSelector: DocumentSelector, resource: Uri): boolean
   }
 
   export interface URIConverter {
@@ -12264,6 +12343,130 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * Including the registration options from languageserver protocol package could be too complicated
+   * and the options can be changed from time to time.
+   */
+  export interface GeneralRegistrationOptions {
+    [key: string]: any
+  }
+
+  export interface DidChangeWatchedFilesRegistrationOptions {
+    /**
+     * The watchers to register.
+     */
+    watchers: FileSystemWatcher[]
+  }
+
+  export interface DidChangeConfigurationRegistrationOptions {
+    section?: string | string[]
+  }
+
+  interface TextDocumentRegistrationOptions {
+    /**
+    * A document selector to identify the scope of the registration. If set to null
+    * the document selector provided on the client side will be used.
+    */
+    documentSelector: DocumentSelector | null
+  }
+
+  interface TextDocumentChangeRegistrationOptions {
+    /**
+     * How documents are synced to the server.
+     */
+    syncKind: 0 | 1 | 2
+  }
+
+  interface TextDocumentSendFeature<T extends Function> {
+    /**
+    * Returns a provider for the given text document.
+    */
+    getProvider(document: TextDocument): { send: T } | undefined
+  }
+
+  interface NotificationSendEvent<E, P> {
+    original: E
+    type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>
+    params: P
+  }
+
+  interface DidOpenTextDocumentParams {
+    /**
+     * The document that was opened.
+     */
+    textDocument: TextDocumentItem
+  }
+
+  interface NotifyingFeature<E, P> {
+    onNotificationSent: Event<NotificationSendEvent<E, P>>
+  }
+
+  export interface DidOpenTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, DidOpenTextDocumentParams> {
+    openDocuments: Iterable<TextDocument>
+  }
+
+  export interface DidChangeTextDocumentFeatureShape extends DynamicFeature<TextDocumentChangeRegistrationOptions>, TextDocumentSendFeature<(event: DidChangeTextDocumentParams) => Promise<void>>, NotifyingFeature<DidChangeTextDocumentParams, Pick<DidChangeTextDocumentParams, 'textDocument' | 'contentChanges'>> {
+  }
+
+  export interface DidSaveTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, { textDocument: { uri: string }, text?: string }> {}
+
+  export interface DidCloseTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, { textDocument: { uri: string } }> {}
+
+  export interface WorkspaceProviderFeature<PR> {
+    getProviders(): PR[] | undefined
+  }
+
+  export interface TextDocumentProviderFeature<T> {
+    readonly registrationLength: number
+    /**
+    * Triggers the corresponding RPC method.
+    */
+    getProvider(textDocument: TextDocument): T | undefined
+  }
+
+  export interface CodeLensProviderShape {
+    provider?: CodeLensProvider
+    onDidChangeCodeLensEmitter: Emitter<void>
+  }
+
+  export interface SemanticTokensProviderShape {
+    range?: DocumentRangeSemanticTokensProvider
+    full?: DocumentSemanticTokensProvider
+    onDidChangeSemanticTokensEmitter: Emitter<void>
+  }
+
+  export interface InlineValueProviderShape {
+    provider: InlineValuesProvider
+    onDidChangeInlineValues: Emitter<void>
+  }
+
+  export interface InlayHintsProviderShape {
+    provider: InlayHintsProvider
+    onDidChangeInlayHints: Emitter<void>
+  }
+
+  export interface DiagnosticProviderShape {
+    /**
+     * An event that signals that the diagnostics should be refreshed for
+     * all documents.
+     */
+    onDidChangeDiagnosticsEmitter: Emitter<void>
+    /**
+     * The provider of diagnostics.
+     */
+    diagnostics: DiagnosticProvider
+    /**
+     * Forget the given document and remove all diagnostics.
+     *
+     * @param document The document to forget.
+     */
+    forget(document: TextDocument): void
+  }
+
+  export interface DiagnosticFeatureShape {
+    refresh(): void
+  }
+
+  /**
    * A language server for manage a language server.
    * It's recommended to use `services.registerLanguageClient` to register language client to serviers,
    * you can have language client listed in `CocList services` and services could start the language client
@@ -12320,17 +12523,18 @@ declare module 'coc.nvim' {
     /**
      * Append info to outputChannel
      */
-    info(message: string, data?: any): void
+    info(message: string, data?: any, showNotification?: boolean): void
     /**
      * Append warning to outputChannel
      */
-    warn(message: string, data?: any): void
+    warn(message: string, data?: any, showNotification?: boolean): void
     /**
      * append error to outputChannel
      */
-    error(message: string, data?: any): void
-    getPublicState(): State
+    error(message: string, data?: any, showNotification?: boolean | 'force'): void
 
+    readonly state: State
+    readonly middleware: Middleware
     readonly initializeResult: InitializeResult | undefined
     readonly clientOptions: LanguageClientOptions
     readonly outputChannel: OutputChannel
@@ -12345,6 +12549,10 @@ declare module 'coc.nvim' {
     readonly serviceState: ServiceStat
     readonly started: boolean
     /**
+     * The server is running in debug mode by forceDebug or debug arguments of NodeJS.
+     */
+    readonly isInDebugMode: boolean
+    /**
      * Check if server could start.
      */
     needsStart(): boolean
@@ -12354,6 +12562,11 @@ declare module 'coc.nvim' {
     needsStop(): boolean
     onReady(): Promise<void>
     set trace(value: Trace)
+
+    /**
+     * Return true when the client is running.
+     */
+    isRunning(): boolean
 
     /**
      * Stop language server.
@@ -12367,8 +12580,9 @@ declare module 'coc.nvim' {
     /**
      * Restart language client.
      */
-    restart(): void
+    restart(): Promise<void>
 
+    dispose(): Promise<void>
     /**
      * Register custom feature.
      */
@@ -12377,7 +12591,57 @@ declare module 'coc.nvim' {
     /**
      * Log failed request to outputChannel and throw error when necessary.
      */
-    handleFailedRequest<T, P extends { kind: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T)
+    handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T
+
+    /**
+     * Create a default error handler.
+     */
+    createDefaultErrorHandler(maxRestartCount?: number): ErrorHandler
+
+    getFeature(request: 'workspace/executeCommand'): DynamicFeature<GeneralRegistrationOptions>
+    getFeature(request: 'workspace/didChangeWorkspaceFolders'): DynamicFeature<void>
+    getFeature(request: 'workspace/didChangeWatchedFiles'): DynamicFeature<DidChangeWatchedFilesRegistrationOptions>
+    getFeature(request: 'workspace/didChangeConfiguration'): DynamicFeature<DidChangeConfigurationRegistrationOptions>
+    getFeature(request: 'textDocument/didOpen'): DidOpenTextDocumentFeatureShape
+    getFeature(request: 'textDocument/didChange'): DidChangeTextDocumentFeatureShape
+    getFeature(request: 'textDocument/willSave'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocumentWillSaveEvent) => Promise<void>>
+    getFeature(request: 'textDocument/willSaveWaitUntil'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocument) => ProviderResult<TextEdit[]>>
+    getFeature(request: 'textDocument/didSave'): DidSaveTextDocumentFeatureShape
+    getFeature(request: 'textDocument/didClose'): DidCloseTextDocumentFeatureShape
+    getFeature(request: 'workspace/didCreateFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileCreateEvent) => Promise<void> }
+    getFeature(request: 'workspace/didRenameFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileRenameEvent) => Promise<void> }
+    getFeature(request: 'workspace/didDeleteFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileDeleteEvent) => Promise<void> }
+    getFeature(request: 'workspace/willCreateFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillCreateEvent) => Promise<void> }
+    getFeature(request: 'workspace/willRenameFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillRenameEvent) => Promise<void> }
+    getFeature(request: 'workspace/willDeleteFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillDeleteEvent) => Promise<void> }
+    getFeature(request: 'workspace/symbol'): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>
+    getFeature(request: 'textDocument/completion'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CompletionItemProvider>
+    getFeature(request: 'textDocument/hover'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<HoverProvider>
+    getFeature(request: 'textDocument/signatureHelp'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SignatureHelpProvider>
+    getFeature(request: 'textDocument/definition'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DefinitionProvider>
+    getFeature(request: 'textDocument/references'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<ReferenceProvider>
+    getFeature(request: 'textDocument/documentHighlight'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentHighlightProvider>
+    getFeature(request: 'textDocument/codeAction'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CodeActionProvider>
+    getFeature(request: 'textDocument/codeLens'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CodeLensProviderShape>
+    getFeature(request: 'textDocument/formatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentFormattingEditProvider>
+    getFeature(request: 'textDocument/rangeFormatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentRangeFormattingEditProvider>
+    getFeature(request: 'textDocument/onTypeFormatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<OnTypeFormattingEditProvider>
+    getFeature(request: 'textDocument/rename'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<RenameProvider>
+    getFeature(request: 'textDocument/documentSymbol'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentSymbolProvider>
+    getFeature(request: 'textDocument/documentLink'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentLinkProvider>
+    getFeature(request: 'textDocument/documentColor'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentColorProvider>
+    getFeature(request: 'textDocument/declaration'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DeclarationProvider>
+    getFeature(request: 'textDocument/foldingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<FoldingRangeProvider>
+    getFeature(request: 'textDocument/implementation'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<ImplementationProvider>
+    getFeature(request: 'textDocument/selectionRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SelectionRangeProvider>
+    getFeature(request: 'textDocument/typeDefinition'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeDefinitionProvider>
+    getFeature(request: 'textDocument/prepareCallHierarchy'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CallHierarchyProvider>
+    getFeature(request: 'textDocument/semanticTokens'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviderShape>
+    getFeature(request: 'textDocument/linkedEditingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
+    getFeature(request: 'textDocument/prepareTypeHierarchy'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+    getFeature(request: 'textDocument/inlineValue'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
+    getFeature(request: 'textDocument/inlayHint'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
+    getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
   }
 
   /**

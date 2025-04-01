@@ -66,7 +66,6 @@ export function asDocumentSymbolTree(infos: SymbolInformation[]): DocumentSymbol
       element.tags.push(SymbolTag.Deprecated)
     }
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (parentStack.length === 0) {
         parentStack.push(element)

@@ -633,7 +633,7 @@ function adjustRange(range: Range, offset: number): Range {
 }
 
 export function fixChangeParams(e: DidChangeTextDocumentParams): DidChangeTextDocumentParams {
-  let { contentChanges, bufnr, textDocument, original, originalLines } = e
+  let { contentChanges, bufnr, textDocument, original, originalLines, document } = e
   let { range, text } = contentChanges[0]
   let changes: TextDocumentContentChange[] = [{ range, text }]
   if (!original) {
@@ -669,5 +669,5 @@ export function fixChangeParams(e: DidChangeTextDocumentParams): DidChangeTextDo
       changes[0].range = Range.create(start.line - 1, 0, end.line - 1, 0)
     }
   }
-  return { contentChanges: changes, bufnr, textDocument, original, originalLines }
+  return { contentChanges: changes, bufnr, textDocument, document, original, originalLines }
 }

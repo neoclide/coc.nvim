@@ -119,7 +119,6 @@ export default class Highlighter {
 
   // default to replace
   public render(buffer: Buffer, start = 0, end = -1): void {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this._highlights) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises

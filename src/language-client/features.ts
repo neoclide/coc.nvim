@@ -22,8 +22,8 @@ import { CancellationError } from '../util/errors'
 import * as c2p from './utils/codeConverter'
 
 export class LSPCancellationError extends CancellationError {
-  public readonly data: object | Object
-  constructor(data: object | Object) {
+  public readonly data: object
+  constructor(data: object) {
     super()
     this.data = data
   }
@@ -352,6 +352,7 @@ export abstract class DynamicDocumentFeature<RO, MW, CO = object> extends BaseFe
  * A mixin type that allows to send notification or requests using a registered
  * provider.
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export interface TextDocumentSendFeature<T extends Function> {
   /**
    * Returns a provider for the given text document.

@@ -149,7 +149,7 @@ class LinkBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource | undefined
   private _config: LinkConfig | undefined
   public links: DocumentLink[] = []
-  public fetchLinks: Function & { clear(): void }
+  public fetchLinks: (() => void) & { clear(): void }
   // last highlight version
   constructor(public readonly doc: Document) {
     this.fetchLinks = debounce(() => {

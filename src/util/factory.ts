@@ -24,7 +24,7 @@ export interface ILogger {
 export interface IModule {
   new(name: string, parent?: boolean): any
   _resolveFilename: (file: string, context: any, isMain: boolean, options: any) => string
-  _extensions: {}
+  _extensions: object
   _cache: { [file: string]: any }
   _compile: (content: string, filename: string) => any
   wrap: (content: string) => string
@@ -99,6 +99,7 @@ export interface ISandbox {
   process: NodeJS.Process
   module: NodeModule
   require: (p: string) => any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   console: { [key in keyof Console]?: Function }
   Buffer: any
   Reflect: any
@@ -108,6 +109,7 @@ export interface ISandbox {
 }
 
 // find correct Module since jest use a fake Module object that extends Module
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export function getProtoWithCompile(mod: Function): IModule {
   if (hasOwnProperty(mod.prototype, '_compile')) return mod.prototype
   if (hasOwnProperty(mod.prototype.__proto__, '_compile')) return mod.prototype.__proto__
@@ -127,7 +129,7 @@ export function copyGlobalProperties(sandbox: ISandbox, globalObj: any): ISandbo
   return sandbox
 }
 
-export function createConsole(con: Object, logger: ILogger): Object {
+export function createConsole(con: object, logger: ILogger): object {
   let result: any = {}
   let methods = ['debug', 'log', 'info', 'error', 'warn']
   for (let key of Object.keys(con)) {

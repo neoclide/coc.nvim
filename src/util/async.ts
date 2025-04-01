@@ -64,7 +64,11 @@ export async function filter<P>(items: ReadonlyArray<P>, isValid: (item: P) => b
     for (let i = start; i < len; i++) {
       let item = items[i]
       let res = isValid(item)
-      if (res) typeof res === 'boolean' ? result.push(item) : result.push(Object.assign({}, item, res))
+      if (res === true) {
+        result.push(item)
+      } else if (res) {
+        result.push(Object.assign({}, item, res))
+      }
       if (timer.shouldYield()) {
         let done = i === len - 1
         onFilter(result, done)

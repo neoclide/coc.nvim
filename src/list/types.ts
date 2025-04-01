@@ -79,6 +79,7 @@ export interface ListAction {
   parallel?: boolean
   multiple?: boolean
   tabPersist?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   execute: Function
 }
 

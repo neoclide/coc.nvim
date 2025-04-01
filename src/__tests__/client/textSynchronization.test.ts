@@ -50,6 +50,8 @@ describe('TextDocumentSynchronization', () => {
       feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
       let res = await client.sendRequest('getLastOpen')
       expect(res).toBe(null)
+      let docs = feature.openDocuments
+      expect(docs).toBeDefined()
       await client.stop()
     })
 
@@ -176,7 +178,14 @@ describe('TextDocumentSynchronization', () => {
       expect(res.text).toBe('bar\n')
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
-      await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })
+      await provider.send({
+        contentChanges: [],
+        textDocument: { uri: doc.uri, version: doc.version },
+        bufnr: doc.bufnr,
+        original: '',
+        document: doc.textDocument,
+        originalLines: []
+      })
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
     })

@@ -2474,6 +2474,12 @@
       "scope": "application",
       "description": "Use current working directory as workspace folder when no root patterns resolved."
     },
+    "workspace.removeEmptyWorkspaceFolder": {
+      "type": "boolean",
+      "default": false,
+      "scope": "application",
+      "description": "Automatically remove the workspace folder when no buffer associated with it."
+    },
     "languageserver": {
       "type": "object",
       "default": {},

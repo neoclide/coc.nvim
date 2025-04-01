@@ -149,6 +149,7 @@ describe('registerLocalKeymap', () => {
     let called = false
     let disposable = keymaps.registerLocalKeymap(bufnr, 'n', 'n', () => {
       called = true
+      return ''
     }, true)
     let res = await nvim.exec('nmap n', true)
     await nvim.input('n')

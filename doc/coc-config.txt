@@ -104,6 +104,13 @@ WORKSPACE
 
 	Scope: `application`, default: `true`
 
+"workspace.removeEmptyWorkspaceFolder"			*coc-config-workspace-removeEmptyWorkspaceFolder*
+
+	Automatically remove the workspace folder when no buffer associated
+	with it.
+
+	Scope: `application`, default: `false`
+
 ------------------------------------------------------------------------------
 FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 

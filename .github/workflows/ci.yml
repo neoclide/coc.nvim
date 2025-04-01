@@ -17,9 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        neovim:
-          - "stable"
-          - "nightly"
+        versions:
+          - neovim: "stable"
+            vim: "v9.0.0815"
+          - neovim: "nightly"
+            vim: "v9.0.2076"
         node:
           - "20"
         include:
@@ -52,14 +54,14 @@ jobs:
         uses: rhysd/action-setup-vim@v1
         id: vim
         with:
-          version: v9.0.0815
+          version: ${{ matrix.versions.vim }}
 
       - name: Setup neovim
         id: nvim
         uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
-          version: ${{ matrix.neovim }}
+          version: ${{ matrix.versions.neovim }}
 
       - name: Install Dependencies
         run: |

@@ -69,7 +69,7 @@ local function addHighlightTimer(bufnr, ns, highlights, priority, maxCount)
   if #next > 0 then
     vim.defer_fn(function()
       addHighlightTimer(bufnr, ns, next, priority, maxCount)
-    end, 30)
+    end, 10)
   end
 end
 

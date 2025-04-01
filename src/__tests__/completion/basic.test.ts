@@ -85,11 +85,11 @@ describe('completion', () => {
       await helper.waitPopup()
     })
 
-    it('should use insert range without replace', async () => {
+    it('should use insert range instead of replace', async () => {
       helper.updateConfiguration('suggest.insertMode', 'insert', disposables)
       await nvim.setLine('ffoo')
       let name = await create(['foo'], false)
-      await nvim.input('<right>')
+      await nvim.call('cursor', [1, 2])
       await commands.executeCommand('editor.action.triggerSuggest', name)
       await helper.waitPopup()
       await helper.confirmCompletion(0)
@@ -306,12 +306,11 @@ describe('completion', () => {
       await nvim.input('if.')
       await helper.wait(20)
       expect(fn).toHaveBeenCalledTimes(0)
-      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      helper.updateConfiguration('suggest.autoTrigger', 'trigger', disposables)
       await nvim.input('f')
       await helper.wait(20)
       await nvim.input('.')
       await helper.waitPopup()
-      helper.updateConfiguration('suggest.autoTrigger', 'always')
     })
 
     it('should disable localityBonus', async () => {
@@ -846,12 +845,13 @@ describe('completion', () => {
       await create(['foo', 'fbi'], true)
       await nvim.input('fo')
       await helper.waitValue(() => completion.activeItems.length, 1)
-      await nvim.input('<backspace>')
+      let res = await nvim.input('<backspace>')
+      expect(res).toBe(11)
       await helper.waitValue(() => completion.activeItems.length, 2)
     })
 
     it('should respect commitCharacter on TextChangedI', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
       let source: ISource = {
         enable: true,
         name: 'commit',
@@ -918,7 +918,7 @@ describe('completion', () => {
 
   describe('onCompleteResolve', () => {
     beforeEach(() => {
-      helper.updateConfiguration('coc.source.resolve.triggerCharacters', ['.'])
+      helper.updateConfiguration('coc.source.resolve.triggerCharacters', ['.'], disposables)
     })
 
     it('should do resolve for complete item', async () => {
@@ -1004,7 +1004,7 @@ describe('completion', () => {
 
   describe('InsertEnter', () => {
     beforeEach(() => {
-      helper.updateConfiguration('suggest.triggerAfterInsertEnter', true)
+      helper.updateConfiguration('suggest.triggerAfterInsertEnter', true, disposables)
     })
 
     it('should trigger completion if triggerAfterInsertEnter is true', async () => {
@@ -1300,7 +1300,7 @@ describe('completion', () => {
 
   describe('completion results', () => {
     it('should limit results for low priority source', async () => {
-      helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
+      helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2, disposables)
       await create(['filename', 'filepath', 'find', 'filter', 'findIndex'], true)
       let items = await helper.items()
       expect(items.length).toBe(2)
@@ -1313,7 +1313,7 @@ describe('completion', () => {
     })
 
     it('should limit result for high priority source', async () => {
-      helper.updateConfiguration('suggest.highPrioritySourceLimit', 2)
+      helper.updateConfiguration('suggest.highPrioritySourceLimit', 2, disposables)
       let source: ISource = {
         name: 'high',
         priority: 90,
@@ -1332,8 +1332,8 @@ describe('completion', () => {
     })
 
     it('should truncate label of complete items', async () => {
-      helper.updateConfiguration('suggest.formatItems', ['abbr'])
-      helper.updateConfiguration('suggest.labelMaxLength', 10)
+      helper.updateConfiguration('suggest.formatItems', ['abbr'], disposables)
+      helper.updateConfiguration('suggest.labelMaxLength', 10, disposables)
       let source: ISource = {
         name: 'high',
         priority: 90,
@@ -1355,8 +1355,8 @@ describe('completion', () => {
     })
 
     it('should render labelDetails', async () => {
-      helper.updateConfiguration('suggest.formatItems', ['abbr'])
-      helper.updateConfiguration('suggest.labelMaxLength', 10)
+      helper.updateConfiguration('suggest.formatItems', ['abbr'], disposables)
+      helper.updateConfiguration('suggest.labelMaxLength', 10, disposables)
       disposables.push(sources.createSource({
         name: 'test',
         doComplete: (_opt: CompleteOption) => new Promise(resolve => {
@@ -1496,7 +1496,7 @@ describe('completion', () => {
     })
 
     it('should not trigger completion after indent change with reTriggerAfterIndent = false', async () => {
-      helper.updateConfiguration('suggest.reTriggerAfterIndent', false)
+      helper.updateConfiguration('suggest.reTriggerAfterIndent', false, disposables)
       await helper.createDocument('t')
       let source: ISource = {
         name: 'source1',
@@ -1544,7 +1544,7 @@ describe('completion', () => {
 
   describe('Navigate list', () => {
     it('should navigate completion list', async () => {
-      helper.updateConfiguration('suggest.noselect', true)
+      helper.updateConfiguration('suggest.noselect', true, disposables)
       await create(['foo', 'foot'], true)
       await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitValue(() => {

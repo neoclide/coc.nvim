@@ -77,6 +77,11 @@ describe('editors', () => {
     workspace.editors.checkUnloadedBuffers([])
   })
 
+  it('should get winids of bufnr', () => {
+    let res = workspace.editors.getBufWinids(1000)
+    expect(res).toEqual([])
+  })
+
   it('should create editor not created', async () => {
     await nvim.command(`edit +setl\\ buftype=nofile foo`)
     let doc = await workspace.document

@@ -219,6 +219,7 @@ export interface ReferenceProvider {
 /**
  * Folding context (for future use)
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface FoldingContext {}
 
 /**

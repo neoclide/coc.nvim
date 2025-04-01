@@ -110,8 +110,8 @@ describe('documents', () => {
   })
 
   it('should convert filepath', () => {
-    Object.assign((documents as any)._env, { isCygwin: true })
-    let filepath = documents.fixUnixPrefix('C:\\Users\\Local', '/cygdrive/')
+    Object.assign((documents as any)._env, { isCygwin: true, unixPrefix: '/cygdrive/' })
+    let filepath = documents.fixUnixPrefix('C:\\Users\\Local')
     expect(filepath).toBe('/cygdrive/c/Users/Local')
     Object.assign((documents as any)._env, { isCygwin: false })
   })

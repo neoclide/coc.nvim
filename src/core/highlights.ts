@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '../types'
 import { defaultValue } from '../util'
-import { equals } from '../util/object'
 import { CancellationToken } from '../util/protocol'
 
 export type HighlightItemResult = [string, number, number, number, number?]
@@ -18,20 +17,21 @@ export function convertHighlightItem(item: HighlightItem): HighlightItemDef {
 }
 
 function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
-  let arr = [item.hlGroup, item.lnum, item.colStart, item.colEnd]
-  return equals(arr, curr.slice(0, 4))
+  return curr[0] == item.hlGroup && curr[1] === item.lnum && curr[2] === item.colStart && curr[3] === item.colEnd
 }
 
 export class Highlights {
   public nvim: Neovim
 
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
-    let args = [bufnr, ns]
-    if (Array.isArray(region)) args.push(region[0], region[1] - 1)
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number], token?: CancellationToken): Promise<HighlightDiff | null> {
+    let args = [bufnr, ns, Array.isArray(region) ? region[0] : 0, Array.isArray(region) ? region[1] : -1]
     let curr = await this.nvim.call('coc#highlight#get_highlights', args) as HighlightItemResult[]
     if (!curr || token?.isCancellationRequested) return null
-    items.sort((a, b) => a.lnum - b.lnum)
-    let linesToRemove = []
+    items.sort((a, b) => {
+      if (a.lnum != b.lnum) return a.lnum - b.lnum
+      if (a.colStart != b.colStart) return a.colStart - b.colStart
+      return a.hlGroup > b.hlGroup ? 1 : -1
+    })
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0
@@ -52,6 +52,10 @@ export class Highlights {
       let start = Array.isArray(region) ? region[0] : 0
       for (let i = start; i <= maxLnum; i++) {
         let exists = defaultValue(map.get(i), [])
+        exists.sort((a, b) => {
+          if (a[2] != b[2]) return a[2] - b[2]
+          return a[0] > b[0] ? 1 : -1
+        })
         let added: HighlightItem[] = []
         for (let j = itemIndex; j <= maxIndex; j++) {
           let o = items[j]
@@ -64,9 +68,7 @@ export class Highlights {
           }
         }
         if (added.length == 0) {
-          if (exists.length > 0) {
-            removeMarkers.push(...exists.map(o => o[4]))
-          }
+          removeMarkers.push(...exists.map(o => o[4]))
         } else {
           if (exists.length == 0) {
             newItems.push(...added.map(o => convertHighlightItem(o)))
@@ -81,7 +83,8 @@ export class Highlights {
                 break
               }
             }
-            removeMarkers.push(...exists.slice(skip).map(o => o[4]))
+            let toRemove = exists.slice(skip).map(o => o[4])
+            removeMarkers.push(...toRemove)
             newItems.push(...added.slice(skip).map(o => convertHighlightItem(o)))
           }
         }
@@ -90,7 +93,7 @@ export class Highlights {
     for (let i = itemIndex; i <= maxIndex; i++) {
       newItems.push(convertHighlightItem(items[i]))
     }
-    return { remove: linesToRemove, add: newItems, removeMarkers }
+    return { remove: [], add: newItems, removeMarkers }
   }
 
   public async applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify: boolean): Promise<void> {
@@ -98,14 +101,14 @@ export class Highlights {
     let { remove, add, removeMarkers } = diff
     if (remove.length === 0 && add.length === 0 && removeMarkers.length === 0) return
     nvim.pauseNotification()
-    if (removeMarkers.length) {
-      nvim.call('coc#highlight#del_markers', [bufnr, ns, removeMarkers], true)
-    }
     if (remove.length) {
       nvim.call('coc#highlight#clear', [bufnr, ns, remove], true)
     }
     if (add.length) {
       nvim.call('coc#highlight#set', [bufnr, ns, add, priority], true)
+    }
+    if (removeMarkers.length) {
+      nvim.call('coc#highlight#del_markers', [bufnr, ns, removeMarkers], true)
     }
     if (notify) {
       nvim.resumeNotification(true, true)

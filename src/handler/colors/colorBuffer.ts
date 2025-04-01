@@ -30,7 +30,7 @@ const debounceTime = getConditionValue(200, 10)
 export default class ColorBuffer implements SyncItem {
   private _colors: ColorInformation[] = []
   private tokenSource: CancellationTokenSource | undefined
-  public highlight: Function & { clear(): void }
+  public highlight: (() => void) & { clear(): void }
   private _enable: boolean | undefined
   // last highlight version
   constructor(

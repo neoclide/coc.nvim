@@ -83,7 +83,7 @@ export class Sources {
     selector: DocumentSelector | null,
     provider: CompletionItemProvider,
     triggerCharacters: string[],
-    priority?: number | undefined,
+    priority?: number,
     allCommitCharacters?: string[]
   ): Disposable {
     let source = new LanguageSource(
