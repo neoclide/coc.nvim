@@ -449,6 +449,8 @@ export default class Documents implements Disposable {
     this._onDidCloseDocument.fire(doc.textDocument)
     this.buffers.delete(bufnr)
     doc.detach()
+    const uris = this.textDocuments.map(o => URI.parse(o.uri))
+    this.workspaceFolder.onDocumentDetach(uris)
   }
 
   private async onBufWritePost(bufnr: number, changedtick: number): Promise<void> {

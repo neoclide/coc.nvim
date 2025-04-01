@@ -218,6 +218,24 @@ export default class WorkspaceFolderController {
     })
   }
 
+  public onDocumentDetach(uris: URI[]): void {
+    let shouldCheck = this.configurations.initialConfiguration.get('workspace.removeEmptyWorkspaceFolder', false)
+    if (!shouldCheck) return
+    let filepaths: string[] = []
+    for (const uri of uris) {
+      if (uri.scheme === 'file') {
+        filepaths.push(uri.fsPath)
+      }
+    }
+    for (const item of this.workspaceFolders) {
+      const folder = URI.parse(item.uri).fsPath
+      if (!filepaths.some(f => isParentFolder(folder, f))) {
+        this.removeWorkspaceFolder(folder)
+        return
+      }
+    }
+  }
+
   public getRootPatterns(document: Document, patternType: PatternType): ReadonlyArray<string> {
     if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
     if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)

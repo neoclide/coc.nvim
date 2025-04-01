@@ -9,7 +9,7 @@ const logger = createLogger('core-keymaps')
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
 export type LocalMode = 'n' | 'i' | 'v' | 's' | 'x'
-export type KeymapCallback = () => Promise<string> | string
+export type KeymapCallback = () => Promise<string> | string | void | Promise<void>
 
 export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
@@ -39,7 +39,8 @@ export default class Keymaps {
     let [fn, repeat] = keymap
     let res = await Promise.resolve(fn())
     if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
-    return res ?? defaultReturn
+    if (res == null) return defaultReturn
+    return res as string
   }
 
   /**

@@ -312,4 +312,18 @@ describe('WorkspaceFolderController', () => {
       expect(res).toBe(false)
     })
   })
+
+  describe('onDocumentDetach()', () => {
+    it('should check uris', async () => {
+      updateConfiguration('workspace.removeEmptyWorkspaceFolder', true, false)
+      let folder = os.tmpdir()
+      workspaceFolder.addWorkspaceFolder(folder, false)
+      workspaceFolder.onDocumentDetach([URI.parse('untitled:/1'), URI.parse('file:///foo/bar')])
+      expect(workspaceFolder.workspaceFolders.length).toBe(0)
+      workspaceFolder.addWorkspaceFolder(folder, false)
+      workspaceFolder.onDocumentDetach([URI.parse('untitled:/1'), URI.file(path.join(os.tmpdir(), 'foo'))])
+      expect(workspaceFolder.workspaceFolders.length).toBe(1)
+    })
+
+  })
 })
