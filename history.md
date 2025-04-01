@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-01
+
+- Add configuration `workspace.removeEmptyWorkspaceFolder` default to `false`.
+- Add configuration `editor.codeActionsOnSave` , similar to VSCode.
+
 ## 2025-03-31
 
 - Change `placeHolder`to `placeholder` for `QuickPickOptions` like VSCode (old

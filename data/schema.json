@@ -1268,6 +1268,16 @@
       "scope": "resource",
       "description": "Timeout for document highlight, in milliseconds."
     },
+    "editor.codeActionsOnSave": {
+      "additionalProperties": {
+        "type": ["string", "boolean"],
+        "enum": ["always", "never", true, false]
+      },
+      "type": "object",
+      "default": {},
+      "scope": "language-overridable",
+      "description": "Run Code Actions for the buffer on save, normally source actions, Example: `\"source.organizeImports\": \"always\""
+    },
     "fileSystemWatch.watchmanPath": {
       "type": ["null", "string"],
       "scope": "application",

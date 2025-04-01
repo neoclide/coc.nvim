@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions, Location, LocationLink, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../commands'
 import Configurations from '../configuration'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events, { InsertChange } from '../events'
@@ -10,14 +11,15 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
+import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
+import { emptyObject } from '../util/is'
 import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
 import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
-import { convertFormatOptions, VimFormatOption } from '../util/convert'
 const logger = createLogger('core-documents')
 
 interface StateInfo {
@@ -522,6 +524,22 @@ export default class Documents implements Disposable {
       let edits = await promise
       if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr)
     }
+    await this.tryCodeActionsOnSave(doc)
+  }
+
+  public async tryCodeActionsOnSave(doc: Document): Promise<boolean> {
+    let editorConfig = this.configurations.getConfiguration('editor', doc.textDocument)
+    let conf = editorConfig.get('codeActionsOnSave', {})
+    if (emptyObject(conf)) return false
+    const actions: string[] = []
+    for (const key of Object.keys(conf)) {
+      if (conf[key] === true || conf[key] === 'always') {
+        actions.push(key)
+      }
+    }
+    if (actions.length === 0) return false
+    await commands.executeCommand('editor.action.executeCodeActions', doc, undefined, actions, this.config.willSaveHandlerTimeout)
+    return true
   }
 
   private onFileTypeChange(filetype: string, bufnr: number): void {

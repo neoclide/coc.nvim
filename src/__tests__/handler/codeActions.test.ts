@@ -487,4 +487,54 @@ describe('handler codeActions', () => {
       expect(called).toBe('normal! $')
     })
   })
+
+  it('should execute code action with timeout', async () => {
+    disposeAll(disposables)
+    let doc = await helper.createDocument('t.js')
+    let called = false
+    disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+      provideCodeActions: (
+        _document: TextDocument,
+        _range: Range,
+        _context: CodeActionContext,
+        _token: CancellationToken
+      ) => currActions,
+      resolveCodeAction: (
+        _action: CodeAction,
+        token: CancellationToken
+      ): ProviderResult<CodeAction> => {
+        return new Promise(resolve => {
+          token.onCancellationRequested(() => {
+            called = true
+            resolve(undefined)
+            clearTimeout(timer)
+          })
+          let timer = setTimeout(() => {
+            resolve(resolvedAction)
+          }, 200)
+        })
+      }
+    }, undefined))
+    let action = CodeAction.create('fix all', undefined, CodeActionKind.SourceFixAll)
+    currActions = [action]
+    let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceFixAll], 50)
+    expect(res).toEqual([])
+    expect(called).toBe(true)
+  })
+
+  it('should execute organizeImport code action', async () => {
+    let doc = await workspace.document
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
+    let action = CodeAction.create('organize import', undefined, CodeActionKind.SourceOrganizeImports)
+    currActions = [action]
+    let edits: TextEdit[] = []
+    edits.push(TextEdit.replace(Range.create(0, 0, 0, 3), 'bar'))
+    let obj = Object.assign({}, action)
+    obj.edit = { changes: { [doc.uri]: edits } }
+    resolvedAction = obj
+    let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports], 50)
+    expect(res).toEqual([CodeActionKind.SourceOrganizeImports])
+    let line = doc.getline(0)
+    expect(line).toBe('bar')
+  })
 })
