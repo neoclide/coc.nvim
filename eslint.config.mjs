@@ -112,6 +112,7 @@ export default defineConfig([
       "require-yield": ["error"],
       "use-isnan": "error",
       "valid-typeof": "off",
+      "jsdoc/tag-lines": "off",
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "off",
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/prefer-string-starts-ends-with": "off",

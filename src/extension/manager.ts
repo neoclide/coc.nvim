@@ -468,7 +468,7 @@ export class ExtensionManager {
             resolve(res)
           } catch (e) {
             logger.error(`Error on active extension ${id}:`, e)
-            reject(e)
+            reject(e as Error)
           }
         })
         return result

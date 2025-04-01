@@ -234,7 +234,7 @@ export default class Complete {
             this.results.delete(sourceName)
           }
           resolve()
-        }, err => {
+        }, (err: Error) => {
           reject(err)
         })
       })

@@ -8307,7 +8307,7 @@ declare module 'coc.nvim' {
      */
     event: string | string[]
     /**
-     * Callback functions that called with evaled arguments.
+     * Callback functions that called with evaled arglist as arguments.
      */
     callback: Function
     /**

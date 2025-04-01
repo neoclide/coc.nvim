@@ -5,7 +5,7 @@ export interface IProcessEnvironment {
 }
 
 interface INodeProcess {
-  nextTick: Function
+  nextTick: () => void
   platform: string
   env: IProcessEnvironment
   getuid(): number

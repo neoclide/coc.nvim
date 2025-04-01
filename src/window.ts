@@ -233,7 +233,7 @@ export class Window {
    * @param token CancellationToken
    * @returns {Promise<HighlightDiff | null>}
    */
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number], token?: CancellationToken): Promise<HighlightDiff | null> {
     return this.highlights.diffHighlights(bufnr, ns, items, region, token)
   }
 

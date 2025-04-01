@@ -231,7 +231,6 @@ describe('client API', () => {
   })
 
   it('should call dict function', async () => {
-    // eslint-disable-next-line @typescript-eslint/await-thenable
     let res = await nvim.callDictFunction({ key: 1 }, 'DictAdd')
     expect(res).toBe(2)
   })

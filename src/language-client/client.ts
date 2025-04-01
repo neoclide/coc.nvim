@@ -1,7 +1,7 @@
 'use strict'
 import type { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import DiagnosticCollection from '../diagnostic/collection'
@@ -15,7 +15,7 @@ import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { sameFile } from '../util/fs'
 import * as Is from '../util/is'
-import { os, path } from '../util/node'
+import { os } from '../util/node'
 import { comparePosition } from '../util/position'
 import {
   ApplyWorkspaceEditRequest, createProtocolConnection, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, InitializedNotification, InitializeRequest, InlayHintRequest, LogMessageNotification, LSPErrorCodes, MessageReader, MessageType, MessageWriter, PositionEncodingKind, PublishDiagnosticsNotification, RegistrationRequest, ResourceOperationKind, ResponseError, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRequest, ShowDocumentRequest, ShowMessageNotification, ShowMessageRequest, ShutdownRequest, TextDocumentSyncKind, Trace, TraceFormat, UnregistrationRequest, WorkDoneProgress
@@ -57,16 +57,16 @@ import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidClo
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
+import * as c2p from './utils/codeConverter'
 import { CloseAction, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
-import * as c2p from './utils/codeConverter'
 
 const logger = createLogger('language-client-client')
 
-export { ErrorAction, DiagnosticPullMode, CloseAction, NullLogger }
+export { CloseAction, DiagnosticPullMode, ErrorAction, NullLogger }
 
 interface ConnectionErrorHandler {
   (error: Error, message: Message | undefined, count: number | undefined): void
@@ -693,12 +693,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private traceData(data: any, error = false): void {
     this.outputChannel.appendLine(data2String(data))
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     if (this._consoleDebug) error ? console.error(redOpen + data2String(data) + redClose) : console.log(parseTraceData(data))
   }
 
   private consoleMessage(prefix: string, message: string, error = false): void {
     if (this._consoleDebug) {
       let msg = prefix + ' ' + message
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       error ? console.error(redOpen + msg + redClose) : console.log(msg)
     }
   }
@@ -1013,7 +1015,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       return this.doInitialize(connection, initParams).then(result => {
         part.done()
         return result
-      }, error => {
+      }, (error: Error) => {
         part.done()
         return Promise.reject(error)
       })
@@ -1161,7 +1163,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       throw error
     }).finally(() => {
       this.$state = ClientState.Stopped
-      mode === 'stop' && this.cleanUpChannel()
+      if (mode === 'stop') {
+        this.cleanUpChannel()
+      }
       this._onStart = undefined
       this._onStop = undefined
       this._connection = undefined

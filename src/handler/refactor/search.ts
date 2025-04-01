@@ -169,6 +169,7 @@ export default class Search {
             nvim.resumeNotification(false, true)
           }
         } catch (e) {
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
           reject(e)
           return
         }

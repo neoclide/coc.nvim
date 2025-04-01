@@ -34,7 +34,9 @@ export class ProgressPart {
           break
         case 'end':
           this.done(value.message)
-          done && done(this)
+          if (done) {
+            done(this)
+          }
           break
       }
     }))

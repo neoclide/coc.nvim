@@ -7,18 +7,19 @@ interface Item<K, V> {
 }
 
 export namespace Touch {
-  export const None: 0 = 0
-  export const First: 1 = 1
-  export const AsOld: 1 = Touch.First
-  export const Last: 2 = 2
-  export const AsNew: 2 = Touch.Last
+  export const None = 0
+  export const First = 1
+  export const AsOld = First
+  export const Last = 2
+  export const AsNew: 2 = Last
 }
 
+// eslint-disable-next-line no-redeclare
 export type Touch = 0 | 1 | 2
 
 export class LinkedMap<K, V> implements Map<K, V> {
 
-  readonly [Symbol.toStringTag] = 'LinkedMap';
+  public readonly [Symbol.toStringTag] = 'LinkedMap'
 
   private _map: Map<K, Item<K, V>>
   private _head: Item<K, V> | undefined
@@ -405,7 +406,7 @@ export class LRUCache<K, V> extends LinkedMap<K, V> {
   private _limit: number
   private _ratio: number
 
-  public constructor(limit: number, ratio: number = 1) {
+  public constructor(limit: number, ratio = 1) {
     super()
     this._limit = limit
     this._ratio = Math.min(Math.max(0, ratio), 1)

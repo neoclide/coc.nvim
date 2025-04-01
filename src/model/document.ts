@@ -56,8 +56,8 @@ export default class Document {
   private _textDocument: LinesTextDocument
   // real current lines
   private lines: ReadonlyArray<string> = []
-  public fireContentChanges: Function & { clear(): void }
-  public fetchContent: Function & { clear(): void }
+  public fireContentChanges: (() => void) & { clear(): void } & { flush(): void }
+  public fetchContent: (() => void) & { clear(): void } & { flush(): void }
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(

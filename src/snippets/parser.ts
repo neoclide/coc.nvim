@@ -213,7 +213,6 @@ export abstract class Marker {
   public get snippet(): TextmateSnippet | undefined {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let candidate: Marker = this
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (!candidate) {
         return undefined
@@ -276,7 +275,6 @@ export class CodeBlock extends Marker {
       let { _related } = this
       let arr
       let re = /\bt\[(\d+)\]/g
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         arr = re.exec(code)
         if (arr == null) break
@@ -1335,7 +1333,6 @@ export class SnippetParser {
     const placeholder = new Placeholder(Number(index))
     if (this._accept(TokenType.Colon)) {
       // ${1:<children>}
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const lastChar = this._scanner.isEnd()
         // ...} -> done
@@ -1363,7 +1360,6 @@ export class SnippetParser {
       // ${1|one,two,three|}
       const choice = new Choice()
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         if (this._parseChoiceElement(choice)) {
 
@@ -1411,7 +1407,6 @@ export class SnippetParser {
     const token = this._token
     const values: string[] = []
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this._token.type === TokenType.Comma || this._token.type === TokenType.Pipe) {
         break
@@ -1462,7 +1457,6 @@ export class SnippetParser {
     const variable = new Variable(name)
     if (this._accept(TokenType.Colon)) {
       // ${foo:<children>}
-      // eslint-disable-next-line no-constant-condition
       while (true) {
 
         // ...} -> done
@@ -1511,7 +1505,6 @@ export class SnippetParser {
     let regexOptions = ''
 
     // (1) /regex
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this._accept(TokenType.Forwardslash)) {
         break
@@ -1533,7 +1526,6 @@ export class SnippetParser {
     }
 
     // (2) /format
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this._accept(TokenType.Forwardslash)) {
         break
@@ -1554,7 +1546,6 @@ export class SnippetParser {
 
     let ascii = false
     // (3) /option
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this._accept(TokenType.CurlyClose)) {
         break

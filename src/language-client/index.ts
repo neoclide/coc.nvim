@@ -398,7 +398,7 @@ export class LanguageClient extends BaseLanguageClient {
         this._isDetached = !!options.detached
         return Promise.resolve({ reader: new StreamMessageReader(serverProcess.stdout), writer: new StreamMessageWriter(serverProcess.stdin) })
       }
-      return Promise.reject<MessageTransports>(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`)
+      return Promise.reject<MessageTransports>(new Error(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`))
     })
   }
 

@@ -23,7 +23,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 export class Highlights {
   public nvim: Neovim
 
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number], token?: CancellationToken): Promise<HighlightDiff | null> {
     let args = [bufnr, ns, Array.isArray(region) ? region[0] : 0, Array.isArray(region) ? region[1] : -1]
     let curr = await this.nvim.call('coc#highlight#get_highlights', args) as HighlightItemResult[]
     if (!curr || token?.isCancellationRequested) return null

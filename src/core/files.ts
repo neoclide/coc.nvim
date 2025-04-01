@@ -11,7 +11,7 @@ import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
-import { crypto, fs, glob, minimatch, os, path, promisify } from '../util/node'
+import { crypto, fs, glob, minimatch, os, path } from '../util/node'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
@@ -371,20 +371,26 @@ export default class Files {
           curr = path.dirname(curr)
         }
         fs.mkdirSync(dir, { recursive: true })
-        recovers && recovers.push(() => {
-          fs.rmSync(folder, { force: true, recursive: true })
-        })
+        if (Array.isArray(recovers)) {
+          recovers.push(() => {
+            fs.rmSync(folder, { force: true, recursive: true })
+          })
+        }
       }
       fs.writeFileSync(filepath, '', 'utf8')
-      recovers && recovers.push(() => {
-        fs.rmSync(filepath, { force: true, recursive: true })
-      })
+      if (Array.isArray(recovers)) {
+        recovers.push(() => {
+          fs.rmSync(filepath, { force: true, recursive: true })
+        })
+      }
       let doc = await this.loadResource(filepath)
       let bufnr = doc.bufnr
-      recovers && recovers.push(() => {
-        void events.fire('BufUnload', [bufnr])
-        return nvim.command(`silent! bd! ${bufnr}`)
-      })
+      if (Array.isArray(recovers)) {
+        recovers.push(() => {
+          void events.fire('BufUnload', [bufnr])
+          return nvim.command(`silent! bd! ${bufnr}`)
+        })
+      }
       this._onDidCreateFiles.fire({ files: [URI.file(filepath)] })
     }
   }
@@ -407,9 +413,11 @@ export default class Files {
       if (bufnr) {
         void events.fire('BufUnload', [bufnr])
         await this.nvim.command(`silent! bwipeout ${bufnr}`)
-        recovers && recovers.push(() => {
-          return this.loadResource(uri.toString())
-        })
+        if (Array.isArray(recovers)) {
+          recovers.push(() => {
+            return this.loadResource(uri.toString())
+          })
+        }
       }
     }
     let folder = path.join(os.tmpdir(), 'coc-' + process.pid)
@@ -419,23 +427,29 @@ export default class Files {
       let dest = path.join(folder, md5)
       let dir = path.dirname(filepath)
       fs.renameSync(filepath, dest)
-      recovers && recovers.push(async () => {
-        fs.mkdirSync(dir, { recursive: true })
-        fs.renameSync(dest, filepath)
-      })
+      if (Array.isArray(recovers)) {
+        recovers.push(async () => {
+          fs.mkdirSync(dir, { recursive: true })
+          fs.renameSync(dest, filepath)
+        })
+      }
     } else if (isDir) {
       fs.rmdirSync(filepath)
-      recovers && recovers.push(() => {
-        fs.mkdirSync(filepath)
-      })
+      if (Array.isArray(recovers)) {
+        recovers.push(() => {
+          fs.mkdirSync(filepath)
+        })
+      }
     } else {
       let dest = path.join(folder, md5)
       let dir = path.dirname(filepath)
       fs.renameSync(filepath, dest)
-      recovers && recovers.push(() => {
-        fs.mkdirSync(dir, { recursive: true })
-        fs.renameSync(dest, filepath)
-      })
+      if (Array.isArray(recovers)) {
+        recovers.push(() => {
+          fs.mkdirSync(dir, { recursive: true })
+          fs.renameSync(dest, filepath)
+        })
+      }
     }
     this._onDidDeleteFiles.fire({ files: [uri] })
   }
@@ -471,9 +485,11 @@ export default class Files {
       }
       fs.renameSync(oldPath, newPath)
     }
-    recovers && recovers.push(() => {
-      return this.renameFile(newPath, oldPath, { skipEvent: true })
-    })
+    if (Array.isArray(recovers)) {
+      recovers.push(() => {
+        return this.renameFile(newPath, oldPath, { skipEvent: true })
+      })
+    }
     if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] })
   }
 

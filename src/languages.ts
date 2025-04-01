@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 'use strict'
 import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -519,10 +520,12 @@ class Languages {
     disposables.push(Disposable.create(() => {
       clearTimeout(timer)
     }))
-    Is.func(provider[key]) && disposables.push(provider[key](() => {
-      clearTimeout(timer)
-      emitter.fire(selector)
-    }))
+    if (Is.func(provider[key])) {
+      disposables.push(provider[key](() => {
+        clearTimeout(timer)
+        emitter.fire(selector)
+      }))
+    }
     disposables.push(manager.register(selector, provider, extra))
     return Disposable.create(() => {
       disposeAll(disposables)

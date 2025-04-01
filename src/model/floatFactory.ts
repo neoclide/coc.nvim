@@ -52,6 +52,7 @@ export default class FloatFactoryImpl implements Disposable {
   private mutex: Mutex = new Mutex()
   private disposables: Disposable[] = []
   private cursor: [number, number]
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private onCursorMoved: Function & { clear(): void }
   constructor(private nvim: Neovim) {
     this.onCursorMoved = debounce(this._onCursorMoved.bind(this), debounceTime)

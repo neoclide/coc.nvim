@@ -47,13 +47,13 @@ describe('fs', () => {
   describe('stat()', () => {
     it('fs statAsync', async () => {
       let res = await statAsync(__filename)
-      expect(res).toBeDefined
+      expect(res).toBeDefined()
       expect(res.isFile()).toBe(true)
     })
 
     it('fs statAsync #1', async () => {
       let res = await statAsync(path.join(__dirname, 'file_not_exist'))
-      expect(res).toBeNull
+      expect(res).toBeNull()
     })
   })
 

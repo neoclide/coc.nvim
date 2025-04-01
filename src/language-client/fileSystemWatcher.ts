@@ -44,7 +44,7 @@ function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
 export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatchedFilesRegistrationOptions> {
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
   private _fileEventsMap: Map<string, FileEvent> = new Map()
-  public debouncedFileNotify: Function & { clear(): void }
+  public debouncedFileNotify: (() => void) & { clear(): void }
 
   constructor(private _client: FeatureClient<_FileSystemWatcherMiddleware, $FileEventOptions>) {
     this.debouncedFileNotify = debounce(() => {

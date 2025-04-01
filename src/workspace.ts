@@ -15,7 +15,7 @@ import Editors from './core/editors'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from './core/files'
 import { callAsync, createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
-import Keymaps, { LocalMode, MapMode } from './core/keymaps'
+import Keymaps, { KeymapCallback, LocalMode, MapMode } from './core/keymaps'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
@@ -255,7 +255,7 @@ export class Workspace {
   }
 
   public fixWin32unixFilepath(filepath: string): string {
-    return this.documentsManager.fixUnixPrefix(filepath, this.env.unixPrefix)
+    return this.documentsManager.fixUnixPrefix(filepath)
   }
 
   public checkPatterns(patterns: string[], folders?: WorkspaceFolder[]): Promise<boolean> {
@@ -487,15 +487,15 @@ export class Workspace {
     return this.contentProvider.registerTextDocumentContentProvider(scheme, provider)
   }
 
-  public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
+  public registerKeymap(modes: MapMode[], key: string, fn: KeymapCallback, opts: Partial<KeymapOption> = {}): Disposable {
     return this.keymaps.registerKeymap(modes, key, fn, opts)
   }
 
-  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false, cancel = true): Disposable {
+  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: KeymapCallback, buffer = false, cancel = true): Disposable {
     return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel)
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: KeymapCallback, notify = false): Disposable {
     if (typeof arguments[0] === 'string') {
       bufnr = this.bufnr
       mode = arguments[0] as LocalMode

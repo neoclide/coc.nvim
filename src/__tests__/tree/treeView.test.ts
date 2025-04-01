@@ -176,7 +176,7 @@ describe('TreeView', () => {
       return new Promise((resolve, reject) => {
         let timer = setTimeout(() => {
           disposable.dispose()
-          reject('event not fired after 2s')
+          reject(new Error('event not fired after 2s'))
         }, 2000)
         let disposable = treeView.onDidChangeVisibility(e => {
           clearTimeout(timer)

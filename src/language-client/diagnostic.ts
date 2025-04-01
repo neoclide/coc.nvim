@@ -43,7 +43,6 @@ export interface DiagnosticProviderShape {
   diagnostics: DiagnosticProvider
   /**
    * Forget the given document and remove all diagnostics.
-   *
    * @param document The document to forget.
    */
   forget(document: TextDocument): void
@@ -69,8 +68,8 @@ export interface DiagnosticPullOptions {
   onSave?: boolean
 
   /**
-  * Whether to pull for diagnostics on editor focus.
-  */
+   * Whether to pull for diagnostics on editor focus.
+   */
   onFocus?: boolean
 
   /**
@@ -85,9 +84,7 @@ export interface DiagnosticPullOptions {
   /**
    * An optional filter method that is consulted when triggering a diagnostic pull during document change or document
    * save or editor focus.
-   *
    * The document gets filtered if the method returns `true`.
-   *
    * @param document the document that changes or got save
    * @param mode the mode
    */
@@ -98,7 +95,6 @@ export interface DiagnosticPullOptions {
    *
    * The method should return `true` if the document selector matches the
    * given resource. See also the `vscode.languages.match` function.
-   *
    * @param documentSelector The document selector.
    * @param resource The resource.
    * @returns whether the resource is matched by the given document selector.
@@ -159,7 +155,7 @@ export class DocumentPullStateTracker {
 
   public track(kind: PullState, textDocument: TextDocument): DocumentPullState
   public track(kind: PullState, uri: URI, version: number | undefined): DocumentPullState
-  public track(kind: PullState, document: TextDocument | URI, arg1?: number | undefined): DocumentPullState {
+  public track(kind: PullState, document: TextDocument | URI, arg1?: number): DocumentPullState {
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
     const [key, uri, version] = document instanceof URI
       ? [document.toString(), document, arg1 as number | undefined]
@@ -174,7 +170,7 @@ export class DocumentPullStateTracker {
 
   public update(kind: PullState, textDocument: TextDocument, resultId: string | undefined): void
   public update(kind: PullState, uri: URI, version: number | undefined, resultId: string | undefined): void
-  public update(kind: PullState, document: TextDocument | URI, arg1: string | number | undefined, arg2?: string | undefined): void {
+  public update(kind: PullState, document: TextDocument | URI, arg1: string | number | undefined, arg2?: string): void {
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
     const [key, uri, version, resultId] = document instanceof URI
       ? [document.toString(), document, arg1 as number | undefined, arg2]
@@ -586,7 +582,7 @@ export class BackgroundScheduler implements Disposable {
         return
       }
       const key = DocumentOrUri.asKey(document)
-      this.diagnosticRequestor.pullAsync(document).catch((error) => {
+      this.diagnosticRequestor.pullAsync(document).catch(error => {
         this.client.error(`Document pull failed for text document ${key}`, error, false)
       }).finally(() => {
         this.timeoutHandle = undefined

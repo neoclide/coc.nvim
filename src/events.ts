@@ -313,7 +313,7 @@ class Events {
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem | {}) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem | object) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteStop', handler: (kind: CompleteFinishKind) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -350,13 +350,13 @@ class Events {
           Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
             onFinish()
             resolve(undefined)
-          }, e => {
+          }, (e: Error) => {
             onFinish()
             reject(e)
           })
         } catch (e) {
           onFinish()
-          reject(e)
+          reject(e as Error)
         }
       })
       Error.captureStackTrace(wrappedhandler)

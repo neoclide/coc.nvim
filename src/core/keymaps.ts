@@ -9,6 +9,7 @@ const logger = createLogger('core-keymaps')
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
 export type LocalMode = 'n' | 'i' | 'v' | 's' | 'x'
+export type KeymapCallback = () => Promise<string> | string
 
 export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
@@ -22,7 +23,7 @@ export function getBufnr(buffer: number | boolean): number {
 }
 
 export default class Keymaps {
-  private readonly keymaps: Map<string, [Function, boolean]> = new Map()
+  private readonly keymaps: Map<string, [KeymapCallback, boolean]> = new Map()
   private nvim: Neovim
 
   public attach(nvim: Neovim): void {
@@ -44,7 +45,7 @@ export default class Keymaps {
   /**
    * Register global <Plug>(coc-${key}) key mapping.
    */
-  public registerKeymap(modes: MapMode[], name: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
+  public registerKeymap(modes: MapMode[], name: string, fn: KeymapCallback, opts: Partial<KeymapOption> = {}): Disposable {
     if (!name) throw new Error(`Invalid key ${name} of registerKeymap`)
     let key = `coc-${name}`
     if (this.keymaps.has(key)) throw new Error(`${name} already exists.`)
@@ -76,7 +77,7 @@ export default class Keymaps {
     })
   }
 
-  public registerExprKeymap(mode: MapMode, lhs: string, fn: Function, buffer: number | boolean = false, cancel = true): Disposable {
+  public registerExprKeymap(mode: MapMode, lhs: string, fn: KeymapCallback, buffer: number | boolean = false, cancel = true): Disposable {
     let bufnr = getBufnr(buffer)
     let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ''}`
     let { nvim } = this
@@ -103,7 +104,7 @@ export default class Keymaps {
     })
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: Function, notify: boolean): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: KeymapCallback, notify: boolean): Disposable {
     let { nvim } = this
     let buffer = nvim.createBuffer(bufnr)
     let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`

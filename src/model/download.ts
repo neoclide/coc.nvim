@@ -108,7 +108,11 @@ export default function download(urlInput: string | URL, options: DownloadOption
           if (hash) hash.update(chunk)
           if (hasTotal) {
             let percent = (cur / total * 100).toFixed(1)
-            typeof onProgress === 'function' ? onProgress(percent) : logger.info(`Download ${url} progress ${percent}%`)
+            if (typeof onProgress === 'function') {
+              onProgress(percent)
+            } else {
+              logger.info(`Download ${url} progress ${percent}%`)
+            }
           }
         })
         res.on('end', () => {
