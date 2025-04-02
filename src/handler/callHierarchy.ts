@@ -193,7 +193,7 @@ export default class CallHierarchyHandler {
       return
     }
     let provider = this.createProvider(rootItems, doc.textDocument, winid, kind)
-    let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
+    let treeView = new BasicTreeView('CALLS', { treeDataProvider: provider })
     treeView.title = getTitle(kind)
     provider.onDidChangeTreeData(e => {
       if (!e) treeView.title = getTitle(provider.meta)

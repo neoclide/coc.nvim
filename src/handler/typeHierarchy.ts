@@ -130,7 +130,7 @@ export default class TypeHierarchyHandler {
       return
     }
     let provider = this.createProvider(rootItems, winid, kind)
-    let treeView = new BasicTreeView('types', { treeDataProvider: provider })
+    let treeView = new BasicTreeView('TYPES', { treeDataProvider: provider })
     treeView.title = getTitle(kind)
     provider.onDidChangeTreeData(e => {
       if (!e) treeView.title = getTitle(provider.meta)
