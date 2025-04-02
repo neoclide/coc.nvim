@@ -705,17 +705,6 @@ describe('semanticTokens', () => {
       await p
       expect(rangeCancelled).toBe(true)
     })
-
-    it('should get highlight span', async () => {
-      let doc = await helper.createDocument('t.vim')
-      await nvim.call('setline', [doc.bufnr, (new Array(200).fill(''))])
-      let item = semanticTokens.getItem(doc.bufnr)
-      item.regions.add(0, 30)
-      let res = item.getHighlightSpan(20, 40)
-      expect(res[0]).toBe(20)
-      res = item.getHighlightSpan(150, 200)
-      expect(res[1]).toBe(200)
-    })
   })
 
   describe('triggerSemanticTokens', () => {

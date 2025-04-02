@@ -301,7 +301,7 @@ describe('InlayHint', () => {
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(3)
       let item = handler.getItem(buf.id)
-      await item.renderRange()
+      await item.render()
       expect(item.current.length).toBe(3)
     })
 
@@ -331,12 +331,12 @@ describe('InlayHint', () => {
       expect(markers.length).toBe(0)
       let item = handler.getItem(buf.id)
       expect(item.current.length).toBe(0)
-      await item.renderRange()
+      await item.render()
       expect(item.current.length).toBe(0)
     })
 
     it('should refresh on scroll', async () => {
-      let arr = new Array(200)
+      let arr = new Array(workspace.env.lines * 5)
       let content = arr.fill('foo').join('\n')
       let buf = await nvim.buffer
       let disposable = await registerProvider(content)
@@ -358,8 +358,8 @@ describe('InlayHint', () => {
       disposables.push(disposable)
       await waitRefresh(buf.id)
       let item = handler.getItem(buf.id)
-      await item.renderRange()
-      await item.renderRange()
+      await item.render()
+      await item.render()
       expect(item.current.length).toBe(1)
     })
 

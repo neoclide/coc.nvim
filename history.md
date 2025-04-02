@@ -4,7 +4,8 @@ Notable changes of coc.nvim:
 
 ## 2025-04-02
 
-- Change `w:cocViewId` to upper case letters, see `:h w:cocViewId`
+- Add method `window.getVisibleRanges()` to typings.
+- Break change: set `w:cocViewId` to upper case letters, see `:h w:cocViewId`
 
 ## 2025-04-01
 
