@@ -161,7 +161,7 @@ export default class FormatHandler {
     await this.tryFormatOnType('\n', doc)
     if (bracketEnterImprove) {
       let line = (await nvim.call('line', '.') as number) - 1
-      await doc._fetchContent(false)
+      await doc.patchChange()
       let pre = doc.getline(line - 1)
       let curr = doc.getline(line)
       let firstLine = doc.getline(0)

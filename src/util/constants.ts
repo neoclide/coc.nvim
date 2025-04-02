@@ -5,7 +5,7 @@ import { path, os } from './node'
 export const ASCII_END = 128
 export const VERSION = version
 export const isVim = process.env.VIM_NODE_RPC == '1'
-export const APIVERSION = 34
+export const APIVERSION = 35
 export const floatHighlightGroup = 'CocFloating'
 export const CONFIG_FILE_NAME = 'coc-settings.json'
 export const configHome = defaultValue<string>(process.env.COC_VIMCONFIG, path.join(os.homedir(), '.vim'))

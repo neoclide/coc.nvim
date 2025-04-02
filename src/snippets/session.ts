@@ -401,7 +401,7 @@ export class SnippetSession {
   public async onCompleteDone(): Promise<void> {
     if (this.isActive && this.isStaled) {
       this.isStaled = false
-      await this.document.patchChange(true)
+      await this.document.patchChange()
       await this.synchronize()
     }
   }

@@ -176,12 +176,12 @@ describe('InlayHint', () => {
 
   describe('env & options', () => {
     it('should not enabled when disabled by configuration', async () => {
-      helper.updateConfiguration('inlayHint.filetypes', [])
+      helper.updateConfiguration('inlayHint.filetypes', [], disposables)
       let doc = await workspace.document
       let item = handler.getItem(doc.bufnr)
       item.clearVirtualText()
       expect(item.enabled).toBe(false)
-      helper.updateConfiguration('inlayHint.filetypes', ['dos'])
+      helper.updateConfiguration('inlayHint.filetypes', ['dos'], disposables)
       doc = await helper.createDocument()
       item = handler.getItem(doc.bufnr)
       expect(item.enabled).toBe(false)
@@ -190,7 +190,7 @@ describe('InlayHint', () => {
 
   describe('configuration', () => {
     it('should refresh on insert mode', async () => {
-      helper.updateConfiguration('inlayHint.refreshOnInsertMode', true)
+      helper.updateConfiguration('inlayHint.refreshOnInsertMode', true, disposables)
       let doc = await helper.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
@@ -204,13 +204,25 @@ describe('InlayHint', () => {
     })
 
     it('should disable parameter inlayHint', async () => {
-      helper.updateConfiguration('inlayHint.enableParameter', false)
+      helper.updateConfiguration('inlayHint.enableParameter', false, disposables)
       let doc = await helper.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(1)
+    })
+
+    it('should enable & disable inlayHint', async () => {
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      await waitRefresh(doc.bufnr)
+      helper.updateConfiguration('inlayHint.enable', false)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(0)
+      helper.updateConfiguration('inlayHint.enable', true)
+
     })
   })
 
@@ -247,6 +259,16 @@ describe('InlayHint', () => {
         let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
         return markers.length
       }, 2)
+    })
+
+    it('should enable & disable inlayHint', async () => {
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      await commands.executeCommand('document.disableInlayHint')
+      await commands.executeCommand('document.enableInlayHint')
+      let item = handler.getItem(doc.bufnr)
+      expect(item.enabled).toBe(true)
     })
   })
 

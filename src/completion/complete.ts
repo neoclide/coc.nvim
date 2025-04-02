@@ -250,7 +250,7 @@ export default class Complete {
     let { document } = this
     this.cancelInComplete()
     let tokenSource = this.createTokenSource(true)
-    await document.patchChange(true)
+    await document.patchChange()
     let { input, colnr, linenr, followWord, position } = this.option
     Object.assign(this.option, {
       word: resumeInput + followWord,

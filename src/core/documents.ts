@@ -5,12 +5,13 @@ import { URI } from 'vscode-uri'
 import commands from '../commands'
 import Configurations from '../configuration'
 import { IConfigurationChangeEvent } from '../configuration/types'
-import events, { InsertChange } from '../events'
+import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
+import { isVim } from '../util/constants'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { emptyObject } from '../util/is'
@@ -79,6 +80,12 @@ export default class Documents implements Disposable {
     let { bufnrs, bufnr } = await this.nvim.call('coc#util#all_state') as StateInfo
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
+    if (isVim) {
+      events.on('CursorHold', async bufnr => {
+        let doc = this.getDocument(bufnr)
+        if (doc && doc.attached) await doc.checkLines()
+      }, null, this.disposables)
+    }
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
     events.on('BufRename', async bufnr => {
       this.detachBuffer(bufnr)
@@ -103,14 +110,6 @@ export default class Documents implements Disposable {
     events.on('BufEnter', (bufnr: number) => {
       void this.createDocument(bufnr)
     }, null, this.disposables)
-    if (this._env.isVim) {
-      ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
-        events.on(event as any, (bufnr: number, info?: InsertChange) => {
-          let doc = this.buffers.get(bufnr)
-          if (doc && doc.attached) doc.onTextChange(event, info)
-        }, null, this.disposables)
-      })
-    }
   }
 
   private getConfiguration(e?: IConfigurationChangeEvent): void {
@@ -428,6 +427,8 @@ export default class Documents implements Disposable {
     if (doc) {
       let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
       if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
+      // The buffer could be hidden before, lines may not synchronized, invoke listener_flush
+      if (isVim) void doc.patchChange()
     }
   }
 
