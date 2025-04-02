@@ -43,6 +43,7 @@ Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
   Variables					|coc-variables|
     Buffer variables 				|coc-buffer-variables|
+    Window variables 				|coc-window-variables|
     Global variables 				|coc-global-variables|
   Functions					|coc-functions|
   Commands					|coc-commands|
@@ -1279,7 +1280,7 @@ Outline is a split window with current document symbols rendered as
 To show and hide outline of current window, use |CocAction('showOutline')| and
 |CocAction('hideOutline')|.
 
-Outline view has Window variable `cocViewId` set to `OUTLINE`.
+Outline view has |w:cocViewId| set to "OUTLINE".
 
 Following outline features are supported:
 
@@ -1300,6 +1301,8 @@ configurations.
 Checkout |CocTree| and |CocSymbol| for customize highlights.
 
 Use configuration `"suggest.completionItemKindLabels"` for custom icons.
+
+							*coc-outline-example*
 
 To show outline for each tab automatically, use |autocmd|:
 >
@@ -1339,7 +1342,8 @@ A call hierarchy is a split |coc-tree| window with locations for incoming or
 outgoing calls of function under cursor position.
 
 Call hierarchy window is opened by |CocAction('showIncomingCalls')| and
-|CocAction('showOutgoingCalls')|.
+|CocAction('showOutgoingCalls')|.  The tree view window has |w:cocViewId| set
+to "CALLS".
 
 Call hierarchy is configured by |CocSymbol|, |coc-config-callHierarchy| and
 |coc-config-tree|.
@@ -1364,7 +1368,8 @@ A type hierarchy is a split |coc-tree| window with locations for super types
 or sub types from types at current position.
 
 Type hierarchy window is opened by |CocAction('showSuperTypes')| and
-|CocAction('showSubTypes')|.
+|CocAction('showSubTypes')|.  The tree view window has |w:cocViewId| set to
+"TYPES".
 
 Type hierarchy is configured by |CocSymbol|, |coc-config-typeHierarchy| and
 |coc-config-tree|.
@@ -1656,14 +1661,14 @@ Visual mode key-mappings: ~
 
 *<Plug>(coc-cursors-range)* Add selection to cursors session.
 
---------------------------------------------------------------------------------
+==============================================================================
 VARIABLES						*coc-variables*
 
-User defined variables: ~
+The Variables used by coc.nvim.
 
 --------------------------------------------------------------------------------
 
-Buffer variables 					*coc-buffer-variables*
+BUFFER VARIABLES					*coc-buffer-variables*
 
 b:coc_enabled						*b:coc_enabled*
 
@@ -1745,7 +1750,22 @@ b:coc_trim_final_newlines 				*b:coc_trim_final_newlines*
 
 --------------------------------------------------------------------------------
 
-Global variables 					*coc-global-variables*
+WINDOW VARIABLES 					*coc-window-variables*
+
+w:cocViewId 						*w:cocViewId*
+
+	Exists with tree view window to identify the kind of tree view.
+
+	Builtin in kinds:
+	- 'OUTLINE' for outline tree view.
+	- 'CALLS' for incoming calls and outgoing calls tree view.
+	- 'TYPES' for type hierarchy tree view.
+	
+	Extensions could contribute other kinds of tree view.
+
+--------------------------------------------------------------------------------
+
+GLOBAL VARIABLES 					*coc-global-variables*
 
 g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
 

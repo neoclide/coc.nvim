@@ -288,30 +288,19 @@ function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end
   else
     call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   endif
-  if !empty(a:cursor)
+  if !empty(a:cursor) && a:bufnr == bufnr('%')
     call cursor(a:cursor[0], a:cursor[1] + delta)
   endif
 endfunction
 
 function! coc#ui#change_lines(bufnr, list) abort
-  if !bufloaded(a:bufnr) | return v:null | endif
-  undojoin
-  if exists('*setbufline')
-    for [lnum, line] in a:list
-      call setbufline(a:bufnr, lnum + 1, line)
-    endfor
-  elseif a:bufnr == bufnr('%')
-    for [lnum, line] in a:list
-      call setline(lnum + 1, line)
-    endfor
-  else
-    let bufnr = bufnr('%')
-    exe 'noa buffer '.a:bufnr
-    for [lnum, line] in a:list
-      call setline(lnum + 1, line)
-    endfor
-    exe 'noa buffer '.bufnr
+  if !bufloaded(a:bufnr)
+    return v:null
   endif
+  undojoin
+  for [lnum, line] in a:list
+    call setbufline(a:bufnr, lnum + 1, line)
+  endfor
 endfunction
 
 function! coc#ui#open_url(url)
