@@ -10357,6 +10357,16 @@ declare module 'coc.nvim' {
      * @returns {Promise<void>}
      */
     export function applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify?: boolean): Promise<void>
+
+    /**
+     * Get visible ranges of bufnr, when winid specified, only visible range of winid returned.
+     * Return empty array when buffer is hidden or window with winid not exists.
+     *
+     * @param {number} bufnr - Buffer number
+     * @param {number} winid - Window ID.
+     * @returns {Promise<[number, number][]>} List with [topline, botline], both 1 based and inclusive (returned by getwininfo()).
+     */
+    export function getVisibleRanges(bufnr: number, winid?: number): Promise<[number, number][]>
   }
   // }}
 

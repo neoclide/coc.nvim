@@ -409,6 +409,13 @@ export class Window {
     return this.highlights.applyDiffHighlights(bufnr, ns, priority, diff, notify)
   }
 
+  /**
+   * Get visible ranges of bufnr with optional winid
+   */
+  public async getVisibleRanges(bufnr: number, winid?: number): Promise<[number, number][]> {
+    return await ui.getVisibleRanges(this.nvim, bufnr, winid)
+  }
+
   private get configuration(): WorkspaceConfiguration {
     return this.workspace.initialConfiguration
   }

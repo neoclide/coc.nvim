@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
+import Regions from '../model/regions'
 import { Documentation, FloatConfig, FloatFactory, FloatOptions } from '../types'
 import { isVim } from '../util/constants'
 import { byteIndex, byteLength } from '../util/string'
@@ -24,6 +25,16 @@ export async function getCursorPosition(nvim: Neovim): Promise<Position> {
   // vim can't count utf16
   let [line, content] = await nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
   return Position.create(line, content.length)
+}
+
+export async function getVisibleRanges(nvim: Neovim, bufnr: number, winid?: number): Promise<[number, number][]> {
+  if (winid == null) {
+    const spans = await nvim.call('coc#window#visible_ranges', [bufnr]) as [number, number][]
+    if (spans.length === 0) return []
+    return Regions.mergeSpans(spans)
+  }
+  const span = await nvim.call('coc#window#visible_range', [winid]) as [number, number] | null
+  return span == null ? [] : [span]
 }
 
 export async function getLineAndPosition(nvim: Neovim): Promise<{ text: string, line: number, character: number }> {
