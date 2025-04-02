@@ -164,10 +164,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.hasProvider(ProviderName.SemanticTokensRange, textDocument) && this.previousResults == null
   }
 
-  private get lineCount(): number {
-    return this.doc.lineCount
-  }
-
   /**
    * Get current highlight items
    */
@@ -386,27 +382,15 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * highlight current visible regions, highlight all associated winids when winid is undefined
    */
-  public async highlightRegions(winid: number | undefined, token: CancellationToken, skipCheck = false): Promise<void> {
-    let { regions, highlights, config, lineCount, bufnr } = this
+  public async highlightRegions(winid: number | undefined, token: CancellationToken): Promise<void> {
+    let { regions, highlights, doc, config, bufnr } = this
     if (!highlights) return
-    let spans: [number, number][]
-    if (winid == null) {
-      spans = await this.nvim.call('coc#window#visible_ranges', [bufnr]) as [number, number][]
-      if (spans.length === 0) return
-      let height = workspace.env.lines
-      spans.forEach(o => {
-        o[0] = Math.max(0, Math.floor(o[0] - height))
-        o[1] = Math.min(lineCount, Math.ceil(o[1] + height))
-      })
-      spans = Regions.mergeSpans(spans)
-    } else {
-      let span = await this.nvim.call('coc#window#visible_range', [winid]) as [number, number] | null
-      if (!span) return
-      spans = [span]
-    }
+    let spans = await window.getVisibleRanges(bufnr, winid)
     if (token.isCancellationRequested) return
-    for (let [start, end] of spans) {
-      if (!skipCheck && regions.has(start, end)) continue
+    for (let lines of spans) {
+      let span = regions.toUncoveredSpan([lines[0] - 1, lines[1] - 1], workspace.env.lines, doc.lineCount)
+      if (!span) return
+      const [start, end] = span
       let items = this.toHighlightItems(highlights, start, end + 1)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
       if (token.isCancellationRequested) break
@@ -462,7 +446,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let region = await nvim.call('coc#window#visible_range', [winid]) as [number, number]
     if (!region || token.isCancellationRequested) return null
     // convert to 0 based
-    let span = this.getHighlightSpan(region[0] - 1, region[1] - 1)
+    let span = this.regions.toUncoveredSpan([region[0] - 1, region[1] - 1], workspace.env.lines, doc.lineCount)
     if (!span) return null
     const startLine = span[0]
     const endLine = span[1]

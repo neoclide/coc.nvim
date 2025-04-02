@@ -21,6 +21,32 @@ export default class Regions {
     this.ranges = []
   }
 
+  public getRange(line: number): [number, number] | undefined {
+    for (const [start, end] of this.ranges) {
+      if (line >= start && line <= end) return [start, end]
+    }
+    return undefined
+  }
+
+  /**
+   * Get the span that not covered yet, all 0 based
+   */
+  public toUncoveredSpan(span: [number, number], delta: number, max: number): [number, number] | undefined {
+    let [start, end] = span
+    start = Math.max(0, start - delta)
+    end = Math.min(max, end + delta)
+    let r = this.getRange(start)
+    start = r ? r[1] : start
+    let s = this.getRange(end)
+    // start, end in the same range
+    if (s && r && s[0] === r[0] && s[1] === r[1]) return undefined
+    end = s ? s[0] : end
+    return [start, end]
+  }
+
+  /**
+   * start, end 0 based, both inclusive
+   */
   public add(start: number, end: number): void {
     if (start > end) {
       [start, end] = [end, start]
@@ -36,7 +62,8 @@ export default class Regions {
       let removedIndexes: number[] = []
       for (let i = 0; i < ranges.length; i++) {
         let r = ranges[i]
-        if (r[1] < start || r[0] > end) continue
+        if (r[1] < start - 1) continue
+        if (r[0] > end + 1) break
         removedIndexes.push(i)
         if (s == null) s = Math.min(start, r[0])
         e = Math.max(end, r[1])

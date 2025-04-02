@@ -133,9 +133,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
     if (!this._head && !this._tail) {
       return undefined
     }
-    if (!this._head || !this._tail) {
-      throw new Error('Invalid list')
-    }
     const item = this._head
     this._map.delete(item.key)
     this.removeItem(item)
@@ -259,8 +256,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
     // First time Insert
     if (!this._head && !this._tail) {
       this._tail = item
-    } else if (!this._head) {
-      throw new Error('Invalid list')
     } else {
       item.next = this._head
       this._head.previous = item
@@ -273,8 +268,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
     // First time Insert
     if (!this._head && !this._tail) {
       this._head = item
-    } else if (!this._tail) {
-      throw new Error('Invalid list')
     } else {
       item.previous = this._tail
       this._tail.next = item
@@ -289,29 +282,16 @@ export class LinkedMap<K, V> implements Map<K, V> {
       this._tail = undefined
     }
     else if (item === this._head) {
-      // This can only happened if size === 1 which is handle
-      // by the case above.
-      if (!item.next) {
-        throw new Error('Invalid list')
-      }
       item.next.previous = undefined
       this._head = item.next
     }
     else if (item === this._tail) {
-      // This can only happened if size === 1 which is handle
-      // by the case above.
-      if (!item.previous) {
-        throw new Error('Invalid list')
-      }
       item.previous.next = undefined
       this._tail = item.previous
     }
     else {
       const next = item.next
       const previous = item.previous
-      if (!next || !previous) {
-        throw new Error('Invalid list')
-      }
       next.previous = previous
       previous.next = next
     }
@@ -321,9 +301,6 @@ export class LinkedMap<K, V> implements Map<K, V> {
   }
 
   private touch(item: Item<K, V>, touch: Touch): void {
-    if (!this._head || !this._tail) {
-      throw new Error('Invalid list')
-    }
     if ((touch !== Touch.First && touch !== Touch.Last)) {
       return
     }

@@ -33,7 +33,7 @@ export default class InlayHintHandler {
         if (workspace.match(e, item.doc.textDocument)) {
           item.clearCache()
           if (languages.hasProvider(ProviderName.InlayHint, item.doc.textDocument)) {
-            item.render()
+            await item.render()
           } else {
             item.clearVirtualText()
           }
@@ -48,12 +48,9 @@ export default class InlayHintHandler {
       let item = this.buffers.getItem(bufnr)
       if (item) item.onInsertEnter()
     }, null, this.disposables)
-    events.on('CursorMoved', bufnr => {
-      this.refresh(bufnr)
-    }, null, this.disposables)
-    events.on('WinScrolled', async winid => {
-      let bufnr = await nvim.call('winbufnr', [winid]) as number
-      if (bufnr != -1) this.refresh(bufnr)
+    events.on('WinScrolled', async (winid, bufnr) => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf) await buf.render(winid)
     }, null, this.disposables)
     commands.register({
       id: 'document.toggleInlayHint',
@@ -91,10 +88,5 @@ export default class InlayHintHandler {
 
   public getItem(bufnr: number): InlayHintBuffer {
     return this.buffers.getItem(bufnr)
-  }
-
-  public refresh(bufnr: number): void {
-    let buf = this.buffers.getItem(bufnr)
-    if (buf) buf.render()
   }
 }

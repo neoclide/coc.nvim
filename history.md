@@ -2,18 +2,28 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-02
+
+- Add method `window.getVisibleRanges()` to typings.
+- Break change: set `w:cocViewId` to upper case letters, see `:h w:cocViewId`
+
+## 2025-04-01
+
+- Add configuration `workspace.removeEmptyWorkspaceFolder` default to `false`.
+- Add configuration `editor.codeActionsOnSave` , similar to VSCode.
+
 ## 2025-03-31
 
 - Change `placeHolder`to `placeholder` for `QuickPickOptions` like VSCode (old
   option still works).
 - Change interface `DocumentSelector`, could also be `DocumentFilter` or
-- Add `context.extensionUri` like VSCode.
   `string`, not only array of them.
+- Add `context.extensionUri` like VSCode.
 - Add `document` property to `DidChangeTextDocumentParams`, like VSCode.
 - Add `before()` and `after()` methods to `LinkedMap`, same as VSCode.
 - Add `onFocus` and `match()` to `DiagnosticPullOptions`.
 - Add `onFocus` to `DiagnosticPullMode` and export `DiagnosticPullMode`
-- Add interface `InlineValuesProvider`, `DiagnosticProvider`.
+- Add interface `InlineValuesProvider`, `DiagnosticProvider` to typings.
 - Add missing properties to `LanguageClient` class, including
   `createDefaultErrorHandler()`, `state` `middleware` `isInDebugMode`
   `isRunning()` `dispose()` `getFeature()`

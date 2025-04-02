@@ -4,13 +4,16 @@ import { CodeAction, CodeActionContext, CodeActionKind, CodeActionTriggerKind, R
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { isFalsyOrEmpty } from '../util/array'
 import { boolToNumber } from '../util/numbers'
-import { CancellationTokenSource } from '../util/protocol'
+import { CancellationToken, CancellationTokenSource } from '../util/protocol'
+import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
+const logger = createLogger('handler-codeActions')
 
 /**
  * Handle codeActions related methods.
@@ -25,6 +28,44 @@ export default class CodeActions {
       if (!succeed) void window.showWarningMessage(`Organize import action not found`)
     }))
     commandManager.titles.set('editor.action.organizeImport', 'Run organize import code action, show warning when not exists')
+
+    handler.addDisposable(commandManager.registerCommand('editor.action.executeCodeActions', async (doc: Document, range: Range | undefined, actionKinds: CodeActionKind[], timeout: number) => {
+      await this.executeCodeActions(doc, range, actionKinds, timeout)
+    }, this, true))
+  }
+
+  public async executeCodeActions(doc: Document, range: Range | undefined, actionKinds: CodeActionKind[], timeout: number): Promise<string[]> {
+    let timing = createTiming('Execute code action', timeout)
+    let applied: string[] = []
+    for (const kind of actionKinds) {
+      let codeActions = await this.getCodeActions(doc, range, [kind])
+      let codeAction = codeActions.find(o => !o.disabled)
+      if (codeAction) {
+        logger.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`)
+        timing.start(`"${kind}"`)
+        let tokenSource = new CancellationTokenSource()
+        let timer: NodeJS.Timeout
+        let _resolve: (value: any) => void
+        const tp = new Promise<undefined>(c => {
+          timer = setTimeout(() => {
+            logger.warn(`Apply code action "${kind}" timeout after ${timeout}ms`)
+            tokenSource.cancel()
+            c(undefined)
+          }, timeout)
+          _resolve = c
+        })
+        await Promise.race([tp, this.applyCodeAction(codeAction, tokenSource.token)])
+        if (!tokenSource.token.isCancellationRequested) {
+          applied.push(kind)
+        }
+        timing.stop()
+        clearTimeout(timer)
+        _resolve(undefined)
+        tokenSource.dispose()
+        await doc.synchronize()
+      }
+    }
+    return applied
   }
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
@@ -139,13 +180,13 @@ export default class CodeActions {
     this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`, true)
   }
 
-  public async applyCodeAction(action: CodeAction): Promise<void> {
+  public async applyCodeAction(action: CodeAction, token?: CancellationToken): Promise<void> {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
     }
-    let tokenSource = new CancellationTokenSource()
-    let resolved = await languages.resolveCodeAction(action, tokenSource.token)
-    if (!resolved) return
+    token = token == null ? CancellationToken.None : token
+    let resolved = await languages.resolveCodeAction(action, token)
+    if (!resolved || token.isCancellationRequested) return
     let { edit, command } = resolved
     if (edit) await workspace.applyEdit(edit)
     if (command) await commandManager.execute(command)

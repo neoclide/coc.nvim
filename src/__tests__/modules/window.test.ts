@@ -268,6 +268,20 @@ describe('window', () => {
       let res = await window.showPickerDialog(['foo', 'bar'], 'select', token)
       expect(res).toBeUndefined()
     })
+
+    it('should get visible ranges of bufnr', async () => {
+      let buf = await helper.edit('not_exists')
+      let range = await window.getVisibleRanges(buf.id)
+      expect(range.length).toBe(1)
+      let winid = await nvim.call('win_getid') as number
+      range = await window.getVisibleRanges(buf.id, winid)
+      expect(range.length).toBe(1)
+      range = await window.getVisibleRanges(buf.id, 9999)
+      expect(range.length).toBe(0)
+      await nvim.command('enew')
+      range = await window.getVisibleRanges(buf.id)
+      expect(range.length).toBe(0)
+    })
   })
 
   describe('window showMessage', () => {

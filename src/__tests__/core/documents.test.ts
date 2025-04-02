@@ -3,16 +3,19 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Documents from '../../core/documents'
 import events from '../../events'
 import BufferSync from '../../model/bufferSync'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let documents: Documents
 let nvim: Neovim
+let disposables: Disposable[] = []
 
 beforeAll(async () => {
   await helper.setup()
@@ -21,6 +24,7 @@ beforeAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -187,5 +191,18 @@ describe('documents', () => {
     expect(await workspace.computeWordRanges('file:///1', Range.create(0, 0, 1, 0))).toBeNull()
     let doc = await workspace.document
     expect(await workspace.computeWordRanges(doc.uri, Range.create(0, 0, 1, 0))).toBeDefined()
+  })
+
+  it('should try code actions', async () => {
+    helper.updateConfiguration('editor.codeActionsOnSave', { 'source.fixAll': false }, disposables)
+    let doc = await workspace.document
+    let res = await documents.tryCodeActionsOnSave(doc)
+    expect(res).toBe(false)
+    helper.updateConfiguration('editor.codeActionsOnSave', {
+      'source.fixAll.eslint': true,
+      'source.organizeImports': 'always'
+    }, disposables)
+    res = await documents.tryCodeActionsOnSave(doc)
+    expect(res).toBe(true)
   })
 })

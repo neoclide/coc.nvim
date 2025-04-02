@@ -40,7 +40,7 @@ describe('Regions', () => {
     let r = new Regions()
     r.add(1, 2)
     r.add(3, 5)
-    expect(r.current).toEqual([1, 2, 3, 5])
+    expect(r.current).toEqual([1, 5])
     r.add(1, 8)
     expect(r.current).toEqual([1, 8])
   })
@@ -61,6 +61,27 @@ describe('Regions', () => {
     r.add(1, 5)
     expect(r.has(3, 5)).toBe(true)
     expect(r.has(3, 6)).toBe(false)
+    r.add(6, 8)
+    expect(r.has(1, 8)).toBe(true)
+  })
+
+  it('should get range', async () => {
+    let r = new Regions()
+    r.add(1, 2)
+    r.add(1, 5)
+    expect(r.getRange(8)).toBeUndefined()
+    expect(r.getRange(9)).toBeUndefined()
+    expect(r.getRange(1)).toEqual([1, 5])
+    expect(r.getRange(5)).toEqual([1, 5])
+  })
+
+  it('should get uncovered range', async () => {
+    let r = new Regions()
+    expect(r.toUncoveredSpan([1, 2], 3, 10)).toEqual([0, 5])
+    r.add(0, 5)
+    expect(r.toUncoveredSpan([1, 2], 3, 10)).toBeUndefined()
+    r.add(8, 10)
+    expect(r.toUncoveredSpan([4, 6], 3, 20)).toEqual([5, 8])
   })
 
   it('should merge spans', async () => {
