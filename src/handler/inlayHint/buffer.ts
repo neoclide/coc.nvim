@@ -68,7 +68,7 @@ export default class InlayHintBuffer implements SyncItem {
 
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('inlayHint', this.doc)
-    let changed = this._config && this._config.enable != config.enable
+    let changed = this._config && this._config.enable !== config.enable
     this._config = {
       enable: config.get<boolean>('enable'),
       position: config.get<InlayHintPosition>('position'),
@@ -79,11 +79,11 @@ export default class InlayHintBuffer implements SyncItem {
     }
     if (changed) {
       let { enable, display } = this._config
-      if (enable) {
+      if (enable && display) {
+        void this.render(0)
+      } else {
         this.clearCache()
         this.clearVirtualText()
-      } else if (display) {
-        void this.render()
       }
     }
   }
