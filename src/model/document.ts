@@ -4,6 +4,7 @@ import { Buffer as NodeBuffer } from 'buffer'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../events'
+import { createLogger } from '../logger'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
@@ -17,7 +18,6 @@ import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../uti
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { firstDiffLine, LinesTextDocument } from './textdocument'
-import { createLogger } from '../logger'
 const logger = createLogger('document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -384,7 +384,9 @@ export default class Document {
     if (!filtered.length) return
     this.nvim.call('coc#ui#change_lines', [this.bufnr, filtered], true)
     this.nvim.redrawVim()
+    this._applyQueque.push(newLines)
     this.lines = newLines
+    await waitNextTick()
     fireLinesChanged(this.bufnr)
     this._forceSync()
   }
@@ -617,32 +619,11 @@ export default class Document {
   /**
    * Synchronize buffer change
    */
-  public async patchChange(currentLine?: boolean): Promise<void> {
+  public async patchChange(): Promise<void> {
     if (!this._attached) return
-    if (isVim && currentLine) {
-      let change = await this.nvim.call('coc#util#get_changeinfo', [this.bufnr]) as ChangeInfo
-      if (!change || change.changedtick <= this._changedtick) {
-        this._forceSync()
-        return
-      }
-      let { lnum, line, changedtick } = change
-      let curr = this.lines[lnum - 1]
-      this._changedtick = changedtick
-      if (curr == line) {
-        this._forceSync()
-      } else {
-        let newLines = this.lines.slice()
-        newLines[lnum - 1] = line
-        this.lines = newLines
-        fireLinesChanged(this.bufnr)
-        this._forceSync()
-      }
-    } else {
-      // changedtick from buffer events could be not latest. #3003
-      this._changedtick = await this.nvim.call('coc#util#get_changedtick', [this.bufnr]) as number
-      // .buffer.getVar('changedtick') as number
-      this._forceSync()
-    }
+    // changedtick from buffer events could be not latest. #3003
+    this._changedtick = await this.nvim.call('coc#util#get_changedtick', [this.bufnr]) as number
+    this._forceSync()
   }
 
   public async checkLines(): Promise<void> {

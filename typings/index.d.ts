@@ -6188,6 +6188,10 @@ declare module 'coc.nvim' {
     readonly uri: string
     readonly version: number
     /**
+     * Current lines of buffer
+     */
+    readonly lines: ReadonlyArray<string>
+    /**
      * Apply text edits to document. `nvim_buf_set_text()` is used when possible
      *
      * @param {TextEdit[]} edits
@@ -6260,7 +6264,7 @@ declare module 'coc.nvim' {
     fixStartcol(position: Position, valids: string[]): number
 
     /**
-     * Get current content text.
+     * Get current content text, consider eol option.
      */
     getDocumentContent(): string
   }

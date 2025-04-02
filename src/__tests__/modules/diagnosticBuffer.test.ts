@@ -1,8 +1,8 @@
-import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
-import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position, TextEdit } from 'vscode-languageserver-types'
 import workspace from '../../workspace'
+import helper from '../helper'
 
 let nvim: Neovim
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
@@ -111,7 +111,7 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let doc = workspace.getDocument(buf.bufnr)
       await nvim.setLine('abc')
-      await doc.patchChange(true)
+      await doc.patchChange()
       nvim.pauseNotification()
       buf.updateHighlights('', [
         createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error),
@@ -135,7 +135,7 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let doc = workspace.getDocument(buf.bufnr)
       await nvim.setLine('foo')
-      await doc.patchChange(true)
+      await doc.patchChange()
       nvim.pauseNotification()
       buf.updateHighlights('', [diagnostic])
       await nvim.resumeNotification()
@@ -163,7 +163,7 @@ describe('diagnostic buffer', () => {
       buf.updateHighlights('', [diagnostic])
       await nvim.resumeNotification()
       await nvim.setLine('foo')
-      await doc.patchChange(true)
+      await doc.patchChange()
       doc._forceSync()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)

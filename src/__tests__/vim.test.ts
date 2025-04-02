@@ -5,10 +5,10 @@ import os from 'os'
 import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
-import { type Disposable } from 'vscode-languageserver-protocol'
+import { Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
-import { sameFile } from '../util/fs'
 import events from '../events'
+import { sameFile } from '../util/fs'
 import { type Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
@@ -684,16 +684,16 @@ describe('document', () => {
     nvim.call('appendbufline', [bufnr, 0, ['3', '4', '5']], true)
     await nvim.resumeNotification(true)
     await shouldEqual(doc)
-    await doc.patchChange(true)
+    await doc.patchChange()
   })
 
   it('should patch change of current line', async () => {
     let doc = await helper.createDocument()
     nvim.call('setline', ['.', 'foo'], true)
-    await doc.patchChange(true)
+    await doc.patchChange()
     await shouldEqual(doc, true)
     nvim.call('setline', ['.', 'foo'], true)
-    await doc.patchChange(true)
+    await doc.patchChange()
     await shouldEqual(doc, true)
   })
 
@@ -701,7 +701,7 @@ describe('document', () => {
     let doc = await helper.workspace.document
     // synchronize after user input
     await nvim.input('o')
-    await doc.patchChange(true)
+    await doc.patchChange()
     let buf = doc.buffer
     // synchronize after api
     buf.setLines(['aa', 'bb'], {
@@ -717,5 +717,28 @@ describe('document', () => {
     await shouldEqual(doc)
     await nvim.command('stopinsert')
     await nvim.command('normal! dd')
+  })
+
+  it('should synchronize after changeLines', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines(['a', 'b', 'c', 'd'])
+    await doc.synchronize()
+    await doc.changeLines([
+      [0, 'd'],
+      [1, 'c'],
+      [2, 'b'],
+      [3, 'a'],
+    ])
+    await shouldEqual(doc)
+  })
+
+  it('should synchronize hidden buffer after replace lines', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines(['a', 'b', 'c', 'd'])
+    await nvim.command('enew')
+    await shouldEqual(doc)
+    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 4, 0), 'c\nb\na')])
+    await doc.patchChange()
+    await shouldEqual(doc)
   })
 })

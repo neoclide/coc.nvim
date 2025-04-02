@@ -11,6 +11,7 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
+import { isVim } from '../util/constants'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { emptyObject } from '../util/is'
@@ -20,7 +21,6 @@ import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/prot
 import { byteIndex } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
-import { isVim } from '../util/constants'
 const logger = createLogger('core-documents')
 
 interface StateInfo {
@@ -427,7 +427,7 @@ export default class Documents implements Disposable {
     if (doc) {
       let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
       if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
-      // The buffer could be hidden before lines may not synchronized, invoke listener_flush
+      // The buffer could be hidden before, lines may not synchronized, invoke listener_flush
       if (isVim) void doc.patchChange()
     }
   }

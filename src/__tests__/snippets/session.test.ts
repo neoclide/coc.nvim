@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { UltiSnippetContext } from '../../snippets/util'
 import { SnippetConfig, SnippetSession } from '../../snippets/session'
+import { UltiSnippetContext } from '../../snippets/util'
+import { Disposable, disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { disposeAll, Disposable } from '../../util'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -273,7 +273,7 @@ describe('SnippetSession', () => {
       await nvim.input('i')
       await session.start('${2:foo} ${1}', defaultRange)
       await nvim.setLine('bfoo ')
-      await doc.patchChange(true)
+      await doc.patchChange()
       await nvim.setLine('xfoo ')
       await nvim.call('cursor', [1, 1])
       await session.forceSynchronize()

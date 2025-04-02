@@ -5,10 +5,10 @@ import commandManager from '../../commands'
 import events from '../../events'
 import Document from '../../model/document'
 import snippetManager, { SnippetManager } from '../../snippets/manager'
+import { SnippetString } from '../../snippets/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { SnippetString } from '../../snippets/string'
 
 let nvim: Neovim
 let doc: Document
@@ -76,7 +76,7 @@ describe('snippet provider', () => {
       expect(line).toBe('f')
       await nvim.input('t')
       let s = snippetManager.session
-      await doc.patchChange(true)
+      await doc.patchChange()
       await helper.waitValue(() => {
         return s.staled
       }, true)
