@@ -9,7 +9,7 @@ import { createLogger } from '../logger'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { defaultValue, pariedCharacters } from '../util/index'
+import { pariedCharacters } from '../util/index'
 import { CancellationTokenSource } from '../util/protocol'
 import { isAlphabet } from '../util/string'
 import window from '../window'
@@ -123,7 +123,9 @@ export default class FormatHandler {
       await doc.synchronize()
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token)
     })
-    await doc.applyEdits(defaultValue(edits, []), false, true)
+    if (edits.length === 0) return true
+    await doc.applyEdits(edits, false, true)
+    logger.info(`Buffer ${doc.bufnr} formatted by format on type`)
     return true
   }
 
