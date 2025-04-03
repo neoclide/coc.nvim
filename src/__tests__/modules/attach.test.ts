@@ -1,11 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
+import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
-import helper from '../helper'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import { pathReplace } from '../../attach'
-import { URI } from 'vscode-uri'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
+
 beforeAll(async () => {
   let plugin = await helper.setup(false)
   nvim = plugin.nvim
@@ -16,6 +18,10 @@ beforeAll(async () => {
   })
   await plugin.init('')
   spy.mockRestore()
+})
+
+afterEach(() => {
+  disposeAll(disposables)
 })
 
 afterAll(async () => {
@@ -86,6 +92,28 @@ describe('request', () => {
     await helper.waitValue(() => {
       return typeof err === 'string'
     }, true)
+  })
+
+  it('should echo error instead of throw for autocmds request', async () => {
+    workspace.registerAutocmd({
+      event: 'BufWritePre',
+      request: true,
+      callback: () => {
+        throw new Error('Bad request')
+      }
+    }, disposables)
+    let file = await createTmpFile('', disposables)
+    await helper.createDocument(file)
+    await nvim.setLine('foo')
+    let spy = jest.spyOn(nvim, 'echoError').mockImplementation(() => {
+      called = true
+    })
+    nvim.command('wa', true)
+    let called = false
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    spy.mockRestore()
   })
 })
 

@@ -1,7 +1,6 @@
 'use strict'
 import type { CompleteDoneItem, CompleteFinishKind } from './completion/types'
 import { createLogger } from './logger'
-import type Document from './model/document'
 import { JumpInfo } from './types'
 import { disposeAll } from './util'
 import { shouldIgnore } from './util/errors'

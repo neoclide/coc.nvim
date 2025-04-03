@@ -17,6 +17,7 @@ const logger = createLogger('attach')
 const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 const semVer = semver.parse(VERSION)
 let pendingNotifications: [string, any[]][] = []
+const NO_ERROR_REQUEST = ['doAutocmd', 'CocAutocmd']
 
 export function pathReplace(patterns: object | undefined): void {
   if (objectLiteral(patterns)) {
@@ -120,7 +121,13 @@ export default (opts: Attach, requestApi = false): Plugin => {
       events.requesting = false
     } catch (e) {
       events.requesting = false
-      resp.send(toErrorText(e), true)
+      // Avoid autocmd request failure
+      if (NO_ERROR_REQUEST.includes(method)) {
+        nvim.echoError(new Error(`Request "${method}" failed`))
+        resp.send('')
+      } else {
+        resp.send(toErrorText(e), true)
+      }
       logger.error(`Request error:`, method, args, e)
     }
     timing.stop()
