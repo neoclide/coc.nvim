@@ -1,6 +1,6 @@
 import { version } from '../../package.json'
-import { getConditionValue, defaultValue } from './index'
-import { path, os } from './node'
+import { defaultValue, getConditionValue } from './index'
+import { os, path } from './node'
 
 export const ASCII_END = 128
 export const VERSION = version
