@@ -11827,7 +11827,7 @@ var init_log = __esm({
         return format(args, depth, color, showHidden);
       }
       createLogger(scope) {
-        let logger61 = this.loggers.has(scope) ? this.loggers.get(scope) : {
+        let logger59 = this.loggers.has(scope) ? this.loggers.get(scope) : {
           category: scope,
           mark: () => {
           },
@@ -11876,8 +11876,8 @@ var init_log = __esm({
             return this.promise;
           }
         };
-        this.loggers.set(scope, logger61);
-        return logger61;
+        this.loggers.set(scope, logger59);
+        return logger59;
       }
       async initialize() {
         return Promise.resolve();
@@ -14888,11 +14888,11 @@ var require_base = __commonJS({
     var events_1 = require("events");
     var logger_1 = require_logger();
     var debug = logger_1.level === "debug";
-    var logger61 = (0, logger_1.createLogger)("transport");
+    var logger59 = (0, logger_1.createLogger)("transport");
     var Transport3 = class extends events_1.EventEmitter {
-      constructor(logger62, isVim2) {
+      constructor(logger60, isVim2) {
         super();
-        this.logger = logger62;
+        this.logger = logger60;
         this.isVim = isVim2;
         this.pauseLevel = 0;
         this.paused = /* @__PURE__ */ new Map();
@@ -14900,22 +14900,22 @@ var require_base = __commonJS({
       debug(key, ...meta) {
         if (!debug)
           return;
-        logger61.debug(key, ...meta);
+        logger59.debug(key, ...meta);
       }
       info(key, ...meta) {
-        logger61.info(key, ...meta);
+        logger59.info(key, ...meta);
       }
       debugMessage(msg) {
         if (!debug)
           return;
         const msgType = msg[0];
         if (msgType == 0) {
-          logger61.debug("receive request:", msg.slice(1));
+          logger59.debug("receive request:", msg.slice(1));
         } else if (msgType == 1) {
         } else if (msgType == 2) {
-          logger61.debug("receive notification:", msg.slice(1));
+          logger59.debug("receive notification:", msg.slice(1));
         } else {
-          logger61.debug("unknown message:", msg);
+          logger59.debug("unknown message:", msg);
         }
       }
       pauseNotification() {
@@ -15010,8 +15010,8 @@ var require_nvim = __commonJS({
     var buffered_1 = __importDefault(require_buffered());
     var base_1 = __importDefault(require_base());
     var NvimTransport = class extends base_1.default {
-      constructor(logger61) {
-        super(logger61, false);
+      constructor(logger59) {
+        super(logger59, false);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = 1;
         this.attached = false;
@@ -15154,7 +15154,7 @@ var require_connection = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     var events_1 = __importDefault(require("events"));
     var logger_1 = require_logger();
-    var logger61 = (0, logger_1.createLogger)("connection");
+    var logger59 = (0, logger_1.createLogger)("connection");
     var NR_CODE = 10;
     var Connection2 = class extends events_1.default {
       constructor(readable, writeable) {
@@ -15191,7 +15191,7 @@ var require_connection = __commonJS({
         };
         readable.on("data", onData);
         let onClose = () => {
-          logger61.warn("readable stream closed.");
+          logger59.warn("readable stream closed.");
         };
         readable.on("close", onClose);
         this.clean = () => {
@@ -15211,13 +15211,13 @@ var require_connection = __commonJS({
         }
         let [id2, obj] = arr;
         if (id2 > 0) {
-          logger61.debug("received request:", id2, obj);
+          logger59.debug("received request:", id2, obj);
           this.emit("request", id2, obj);
         } else if (id2 == 0) {
-          logger61.debug("received notification:", obj);
+          logger59.debug("received notification:", obj);
           this.emit("notification", obj);
         } else {
-          logger61.debug("received response:", id2, obj);
+          logger59.debug("received response:", id2, obj);
           this.emit("response", id2, obj);
         }
       }
@@ -15228,7 +15228,7 @@ var require_connection = __commonJS({
         this.send([0, [event, data || null]]);
       }
       send(arr) {
-        logger61.debug("send to vim:", arr);
+        logger59.debug("send to vim:", arr);
         this.writeable.write(JSON.stringify(arr) + "\n");
       }
       redraw(force) {
@@ -15322,8 +15322,8 @@ var require_vim = __commonJS({
     var connection_1 = __importDefault(require_connection());
     var request_1 = __importDefault(require_request());
     var VimTransport = class extends base_1.default {
-      constructor(logger61) {
-        super(logger61, true);
+      constructor(logger59) {
+        super(logger59, true);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = -1;
         this.attached = false;
@@ -15932,14 +15932,14 @@ var require_client = __commonJS({
       });
     }
     var NeovimClient = class extends Neovim_1.Neovim {
-      constructor(logger61, isVim2) {
+      constructor(logger59, isVim2) {
         super({});
-        this.logger = logger61;
+        this.logger = logger59;
         this.isVim = isVim2;
         this.requestId = 1;
         this.responses = /* @__PURE__ */ new Map();
         this.attachedBuffers = /* @__PURE__ */ new Map();
-        this._transport = isVim2 ? new vim_1.VimTransport(logger61) : new nvim_1.NvimTransport(logger61);
+        this._transport = isVim2 ? new vim_1.VimTransport(logger59) : new nvim_1.NvimTransport(logger59);
         this.handleRequest = this.handleRequest.bind(this);
         this.handleNotification = this.handleNotification.bind(this);
       }
@@ -16176,12 +16176,12 @@ var require_attach = __commonJS({
     var net_1 = require("net");
     var client_1 = require_client();
     var logger_1 = require_logger();
-    function attach2({ reader: _reader, writer: _writer, proc, socket }, logger61 = null, requestApi = true) {
+    function attach2({ reader: _reader, writer: _writer, proc, socket }, logger59 = null, requestApi = true) {
       let writer;
       let reader;
       let neovim;
-      if (!logger61)
-        logger61 = logger_1.nullLogger;
+      if (!logger59)
+        logger59 = logger_1.nullLogger;
       if (socket) {
         const client = (0, net_1.createConnection)(socket);
         writer = client;
@@ -16205,7 +16205,7 @@ var require_attach = __commonJS({
         }
       });
       if (writer && reader) {
-        neovim = new client_1.NeovimClient(logger61, process.env.VIM_NODE_RPC == "1");
+        neovim = new client_1.NeovimClient(logger59, process.env.VIM_NODE_RPC == "1");
         neovim.attach({
           writer,
           reader
@@ -20008,7 +20008,7 @@ var require_connection2 = __commonJS({
       ConnectionState2[ConnectionState2["Disposed"] = 4] = "Disposed";
     })(ConnectionState || (ConnectionState = {}));
     function createMessageConnection(messageReader, messageWriter, _logger, options2) {
-      const logger61 = _logger !== void 0 ? _logger : exports2.NullLogger;
+      const logger59 = _logger !== void 0 ? _logger : exports2.NullLogger;
       let sequenceNumber = 0;
       let notificationSequenceNumber = 0;
       let unknownResponseSequenceNumber = 0;
@@ -20136,7 +20136,7 @@ var require_connection2 = __commonJS({
                 requestTokens.delete(cancelId);
                 response.id = toCancel.id;
                 traceSendingResponse(response, message.method, Date.now());
-                messageWriter.write(response).catch(() => logger61.error(`Sending response for canceled message failed.`));
+                messageWriter.write(response).catch(() => logger59.error(`Sending response for canceled message failed.`));
                 return;
               }
             }
@@ -20169,7 +20169,7 @@ var require_connection2 = __commonJS({
             message.result = resultOrError === void 0 ? null : resultOrError;
           }
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
         }
         function replyError(error, method, startTime2) {
           const message = {
@@ -20178,7 +20178,7 @@ var require_connection2 = __commonJS({
             error: error.toJson()
           };
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
         }
         function replySuccess(result, method, startTime2) {
           if (result === void 0) {
@@ -20190,7 +20190,7 @@ var require_connection2 = __commonJS({
             result
           };
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger61.error(`Sending response failed.`));
+          messageWriter.write(message).catch(() => logger59.error(`Sending response failed.`));
         }
         traceReceivedRequest(requestMessage);
         const element = requestHandlers.get(requestMessage.method);
@@ -20277,10 +20277,10 @@ var require_connection2 = __commonJS({
         }
         if (responseMessage.id === null) {
           if (responseMessage.error) {
-            logger61.error(`Received response message without id: Error is: 
+            logger59.error(`Received response message without id: Error is: 
 ${JSON.stringify(responseMessage.error, void 0, 4)}`);
           } else {
-            logger61.error(`Received response message without id. No further error information provided.`);
+            logger59.error(`Received response message without id. No further error information provided.`);
           }
         } else {
           const key = responseMessage.id;
@@ -20299,9 +20299,9 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               }
             } catch (error) {
               if (error.message) {
-                logger61.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
+                logger59.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
               } else {
-                logger61.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
+                logger59.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
               }
             }
           }
@@ -20332,7 +20332,7 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               if (message.params === void 0) {
                 if (type !== void 0) {
                   if (type.numberOfParams !== 0 && type.parameterStructures !== messages_1.ParameterStructures.byName) {
-                    logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
+                    logger59.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
                   }
                 }
                 notificationHandler();
@@ -20343,17 +20343,17 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
                 } else {
                   if (type !== void 0) {
                     if (type.parameterStructures === messages_1.ParameterStructures.byName) {
-                      logger61.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
+                      logger59.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
                     }
                     if (type.numberOfParams !== message.params.length) {
-                      logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
+                      logger59.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
                     }
                   }
                   notificationHandler(...params);
                 }
               } else {
                 if (type !== void 0 && type.parameterStructures === messages_1.ParameterStructures.byPosition) {
-                  logger61.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
+                  logger59.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
                 }
                 notificationHandler(message.params);
               }
@@ -20362,9 +20362,9 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
             }
           } catch (error) {
             if (error.message) {
-              logger61.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
+              logger59.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
             } else {
-              logger61.error(`Notification handler '${message.method}' failed unexpectedly.`);
+              logger59.error(`Notification handler '${message.method}' failed unexpectedly.`);
             }
           }
         } else {
@@ -20373,10 +20373,10 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
       }
       function handleInvalidMessage(message) {
         if (!message) {
-          logger61.error("Received empty message.");
+          logger59.error("Received empty message.");
           return;
         }
-        logger61.error(`Received message which is neither a response nor a notification message:
+        logger59.error(`Received message which is neither a response nor a notification message:
 ${JSON.stringify(message, null, 4)}`);
         const responseMessage = message;
         if (Is2.string(responseMessage.id) || Is2.number(responseMessage.id)) {
@@ -20661,7 +20661,7 @@ ${JSON.stringify(message, null, 4)}`);
           };
           traceSendingNotification(notificationMessage);
           return messageWriter.write(notificationMessage).catch((error) => {
-            logger61.error(`Sending notification failed.`);
+            logger59.error(`Sending notification failed.`);
             throw error;
           });
         },
@@ -20753,11 +20753,11 @@ ${JSON.stringify(message, null, 4)}`);
             disposable = token.onCancellationRequested(() => {
               const p = cancellationStrategy.sender.sendCancellation(connection, id2);
               if (p === void 0) {
-                logger61.log(`Received no promise from cancellation strategy when cancelling id ${id2}`);
+                logger59.log(`Received no promise from cancellation strategy when cancelling id ${id2}`);
                 return Promise.resolve();
               } else {
                 return p.catch(() => {
-                  logger61.log(`Sending cancellation messages for id ${id2} failed`);
+                  logger59.log(`Sending cancellation messages for id ${id2} failed`);
                 });
               }
             });
@@ -20788,7 +20788,7 @@ ${JSON.stringify(message, null, 4)}`);
               await messageWriter.write(requestMessage);
               responsePromises.set(id2, responsePromise);
             } catch (error) {
-              logger61.error(`Sending request failed.`);
+              logger59.error(`Sending request failed.`);
               responsePromise.reject(new messages_1.ResponseError(messages_1.ErrorCodes.MessageWriteError, error.message ? error.message : "Unknown reason"));
               throw error;
             }
@@ -21512,16 +21512,16 @@ var require_main = __commonJS({
       const candidate = value;
       return candidate.write !== void 0 && candidate.addListener !== void 0;
     }
-    function createMessageConnection(input, output, logger61, options2) {
-      if (!logger61) {
-        logger61 = api_1.NullLogger;
+    function createMessageConnection(input, output, logger59, options2) {
+      if (!logger59) {
+        logger59 = api_1.NullLogger;
       }
       const reader = isReadableStream(input) ? new StreamMessageReader2(input) : input;
       const writer = isWritableStream(output) ? new StreamMessageWriter2(output) : output;
       if (api_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, api_1.createMessageConnection)(reader, writer, logger61, options2);
+      return (0, api_1.createMessageConnection)(reader, writer, logger59, options2);
     }
     exports2.createMessageConnection = createMessageConnection;
   }
@@ -24478,11 +24478,11 @@ var require_connection3 = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.createProtocolConnection = void 0;
     var vscode_jsonrpc_1 = require_main();
-    function createProtocolConnection2(input, output, logger61, options2) {
+    function createProtocolConnection2(input, output, logger59, options2) {
       if (vscode_jsonrpc_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger61, options2);
+      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger59, options2);
     }
     exports2.createProtocolConnection = createProtocolConnection2;
   }
@@ -24555,8 +24555,8 @@ var require_main3 = __commonJS({
     var node_1 = require_node();
     __exportStar(require_node(), exports2);
     __exportStar(require_api3(), exports2);
-    function createProtocolConnection2(input, output, logger61, options2) {
-      return (0, node_1.createMessageConnection)(input, output, logger61, options2);
+    function createProtocolConnection2(input, output, logger59, options2) {
+      return (0, node_1.createMessageConnection)(input, output, logger59, options2);
     }
     exports2.createProtocolConnection = createProtocolConnection2;
   }
@@ -27243,21 +27243,23 @@ function getProperties(configuration2) {
   return obj;
 }
 function parseExtensionName(stack, level2 = 2) {
-  let line = stack.split(/\r?\n/).slice(level2)[0];
-  if (!line) return void 0;
-  line = line.replace(/^\s*at\s*/, "");
-  let filepath;
-  if (line.endsWith(")")) {
-    let ms = line.match(/(\((.*?):\d+:\d+\))$/);
-    if (ms) filepath = ms[2];
-  } else {
-    let ms = line.match(/(.*?):\d+:\d+$/);
-    if (ms) filepath = ms[1];
+  let lines = toText(stack).split(/\r?\n/).slice(level2);
+  if (lines.length === 0) return void 0;
+  for (let line of lines) {
+    let filepath;
+    line = line.replace(/^\s*at\s*/, "");
+    if (line.endsWith(")")) {
+      let ms = line.match(/(\((.*?):\d+:\d+\))$/);
+      if (ms) filepath = ms[2];
+    } else {
+      let ms = line.match(/(.*?):\d+:\d+$/);
+      if (ms) filepath = ms[1];
+    }
+    if (!filepath || isParentFolder(pluginRoot, filepath)) continue;
+    let find = extensionRegistry.resolveExtension(filepath);
+    if (find) return find.name;
   }
-  if (!filepath) return void 0;
-  let find = extensionRegistry.resolveExtension(filepath);
-  if (find) return find.name;
-  if (isParentFolder(pluginRoot, filepath)) return "coc.nvim";
+  return "coc.nvim";
 }
 var Extensions, ExtensionRegistry, extensionRegistry;
 var init_extensionRegistry = __esm({
@@ -27266,10 +27268,11 @@ var init_extensionRegistry = __esm({
     init_array();
     init_constants();
     init_fs();
-    init_node();
     init_is();
+    init_node();
     init_object();
     init_registry();
+    init_string();
     Extensions = {
       ExtensionContribution: "base.contributions.extensions"
     };
@@ -44806,6 +44809,7 @@ var init_documents = __esm({
         let firing = true;
         let thenables = [];
         let event = {
+          bufnr: doc.bufnr,
           document: doc.textDocument,
           reason: import_node3.TextDocumentSaveReason.Manual,
           waitUntil: (thenable) => {
@@ -48539,12 +48543,14 @@ var init_workspace = __esm({
       /**
        * Register autocmd on vim.
        */
-      registerAutocmd(autocmd) {
+      registerAutocmd(autocmd, disposables) {
         if (autocmd.request && autocmd.event !== "BufWritePre") {
           let name2 = parseExtensionName(Error().stack);
           logger19.warn(`Extension "${name2}" registered synchronized autocmd "${autocmd.event}", which could be slow.`);
         }
-        return this.autocmds.registerAutocmd(autocmd);
+        let disposable = this.autocmds.registerAutocmd(autocmd);
+        if (disposables) disposables.push(disposable);
+        return disposable;
       }
       /**
        * Watch for option change.
@@ -54153,8 +54159,10 @@ var init_manager2 = __esm({
     "use strict";
     init_main();
     init_logger();
+    init_extensionRegistry();
     init_object();
     init_protocol();
+    init_string();
     init_workspace();
     logger22 = createLogger("provider-manager");
     Manager = class {
@@ -54165,6 +54173,18 @@ var init_manager2 = __esm({
         return this.getProvider(document2) != null;
       }
       addProvider(item) {
+        if (!item.provider.hasOwnProperty("__extensionName")) {
+          Error.captureStackTrace(item);
+          let name2;
+          Object.defineProperty(item.provider, "__extensionName", {
+            get: () => {
+              if (name2) return name2;
+              name2 = parseExtensionName(toText(item["stack"]));
+              return name2;
+            },
+            enumerable: true
+          });
+        }
         this.providers.add(item);
         return import_node3.Disposable.create(() => {
           this.providers.delete(item);
@@ -54192,6 +54212,18 @@ var init_manager2 = __esm({
           providerItem = item;
         }
         return providerItem;
+      }
+      getFormatProvider(document2) {
+        const userChoice = workspace_default.getConfiguration("coc.preferences", document2).get("formatterExtension");
+        if (userChoice) {
+          for (let item of this.providers) {
+            if (item.provider["__extensionName"] === userChoice) {
+              return item;
+            }
+          }
+          logger22.warn(`User-specified formatter not found for ${document2.languageId}:`, userChoice);
+        }
+        return this.getProvider(document2);
       }
       getProviderById(id2) {
         let item = Array.from(this.providers).find((o) => o.id == id2);
@@ -54302,6 +54334,7 @@ var init_codeActionManager = __esm({
           let { provider, id: id2 } = item;
           let fn = async () => {
             let actions = await Promise.resolve(provider.provideCodeActions(document2, range, context, token));
+            let extensionName = provider["__extensionName"];
             if (isFalsyOrEmpty(actions)) return;
             for (let action of actions) {
               if (titles.includes(action.title) || !checkAction(only, action)) continue;
@@ -54309,7 +54342,8 @@ var init_codeActionManager = __esm({
                 let codeAction = {
                   title: action.title,
                   command: action,
-                  providerId: id2
+                  providerId: id2,
+                  extensionName
                 };
                 res.push(codeAction);
               } else {
@@ -54744,68 +54778,51 @@ var init_foldingRangeManager = __esm({
 });
 
 // src/provider/formatManager.ts
-var logger23, FormatManager;
+var FormatManager;
 var init_formatManager = __esm({
   "src/provider/formatManager.ts"() {
     "use strict";
     init_esm_node();
-    init_logger();
-    init_workspace();
     init_manager2();
-    logger23 = createLogger("provider-formatManager");
     FormatManager = class extends Manager {
-      register(extensionName, selector, provider, priority) {
+      register(selector, provider, priority) {
         return this.addProvider({
           id: v4_default(),
           selector,
           priority,
-          provider,
-          extensionName
+          provider
         });
       }
       async provideDocumentFormattingEdits(document2, options2, token) {
-        let item = this.getProvider(document2);
+        let item = this.getFormatProvider(document2);
         if (!item) return null;
-        logger23.info("Format by:", item.extensionName);
         let { provider } = item;
-        return await Promise.resolve(provider.provideDocumentFormattingEdits(document2, options2, token));
-      }
-      getProvider(document2) {
-        const userChoice = workspace_default.getConfiguration("coc.preferences", document2).get("formatterExtension");
-        if (userChoice) {
-          const items = this.getProviders(document2);
-          const userChoiceProvider = items.find((item) => item.extensionName === userChoice);
-          if (userChoiceProvider) {
-            logger23.info("Using user-specified formatter:", userChoice);
-            return userChoiceProvider;
-          }
-          logger23.error("User-specified formatter not found:", userChoice);
-          return null;
+        let res = await Promise.resolve(provider.provideDocumentFormattingEdits(document2, options2, token));
+        if (Array.isArray(res)) {
+          Object.defineProperty(res, "__extensionName", {
+            get: () => item.provider["__extensionName"]
+          });
         }
-        return super.getProvider(document2);
+        return res;
       }
     };
   }
 });
 
 // src/provider/formatRangeManager.ts
-var logger24, FormatRangeManager;
+var FormatRangeManager;
 var init_formatRangeManager = __esm({
   "src/provider/formatRangeManager.ts"() {
     "use strict";
     init_esm_node();
-    init_logger();
-    init_workspace();
     init_manager2();
-    logger24 = createLogger("provider-formatRangeManager");
     FormatRangeManager = class extends Manager {
-      register(extensionName, selector, provider, priority) {
+      register(selector, provider, priority) {
         return this.addProvider({
           id: v4_default(),
           selector,
           provider,
-          priority,
-          extensionName
+          priority
         });
       }
       /**
@@ -54814,25 +54831,16 @@ var init_formatRangeManager = __esm({
        * of the selected provider will cause a failure of the whole operation.
        */
       async provideDocumentRangeFormattingEdits(document2, range, options2, token) {
-        let item = this.getProvider(document2);
+        let item = this.getFormatProvider(document2);
         if (!item) return null;
-        logger24.info("Range format by:", item.extensionName);
         let { provider } = item;
-        return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document2, range, options2, token));
-      }
-      getProvider(document2) {
-        const userChoice = workspace_default.getConfiguration("coc.preferences", document2).get("formatterExtension");
-        if (userChoice) {
-          const items = this.getProviders(document2);
-          const userChoiceProvider = items.find((item) => item.extensionName === userChoice);
-          if (userChoiceProvider) {
-            logger24.info("Using user-specified range formatter:", userChoice);
-            return userChoiceProvider;
-          }
-          logger24.error("User-specified range formatter not found:", userChoice);
-          return null;
+        let res = await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document2, range, options2, token));
+        if (Array.isArray(res)) {
+          Object.defineProperty(res, "__extensionName", {
+            get: () => item.provider["__extensionName"]
+          });
         }
-        return super.getProvider(document2);
+        return res;
       }
     };
   }
@@ -54915,11 +54923,11 @@ function isInlayHint(obj) {
 }
 function isValidInlayHint(hint, range) {
   if (hint.label.length === 0 || Array.isArray(hint.label) && hint.label.every((part) => part.value.length === 0)) {
-    logger25.warn("INVALID inlay hint, empty label", hint);
+    logger23.warn("INVALID inlay hint, empty label", hint);
     return false;
   }
   if (!isInlayHint(hint)) {
-    logger25.warn("INVALID inlay hint", hint);
+    logger23.warn("INVALID inlay hint", hint);
     return false;
   }
   if (range && positionInRange(hint.position, range) !== 0) {
@@ -54931,7 +54939,7 @@ function getLabel(hint) {
   if (typeof hint.label === "string") return hint.label;
   return hint.label.map((o) => o.value).join("");
 }
-var logger25, InlayHintManger;
+var logger23, InlayHintManger;
 var init_inlayHintManager = __esm({
   "src/provider/inlayHintManager.ts"() {
     "use strict";
@@ -54940,7 +54948,7 @@ var init_inlayHintManager = __esm({
     init_logger();
     init_position();
     init_manager2();
-    logger25 = createLogger("inlayHintManger");
+    logger23 = createLogger("inlayHintManger");
     InlayHintManger = class extends Manager {
       register(selector, provider) {
         return this.addProvider({
@@ -55025,14 +55033,14 @@ var init_inlineValueManager = __esm({
 });
 
 // src/provider/linkedEditingRangeManager.ts
-var logger26, LinkedEditingRangeManager;
+var logger24, LinkedEditingRangeManager;
 var init_linkedEditingRangeManager = __esm({
   "src/provider/linkedEditingRangeManager.ts"() {
     "use strict";
     init_esm_node();
     init_logger();
     init_manager2();
-    logger26 = createLogger("linkedEditingManager");
+    logger24 = createLogger("linkedEditingManager");
     LinkedEditingRangeManager = class extends Manager {
       register(selector, provider) {
         return this.addProvider({
@@ -57589,7 +57597,7 @@ function getAgent(endpoint, options2) {
       auth: proxyURL.username ? `${proxyURL.username}:${toText(proxyURL.password)}` : void 0,
       rejectUnauthorized: typeof options2.proxyStrictSSL === "boolean" ? options2.proxyStrictSSL : true
     };
-    logger27.info(`Using proxy ${proxy} from ${options2.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
+    logger25.info(`Using proxy ${proxy} from ${options2.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
     return endpoint.protocol === "http:" ? (0, import_http_proxy_agent.default)(opts) : (0, import_https_proxy_agent.default)(opts);
   }
   return null;
@@ -57703,7 +57711,7 @@ function fetch(urlInput, options2 = {}, token) {
   let url = toURL(urlInput);
   let opts = resolveRequestOptions(url, options2);
   return request(url, options2.data, opts, token).catch((err) => {
-    logger27.error(`Fetch error for ${url}:`, opts, err);
+    logger25.error(`Fetch error for ${url}:`, opts, err);
     if (opts.agent && opts.agent.proxy) {
       let { proxy } = opts.agent;
       throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`);
@@ -57712,7 +57720,7 @@ function fetch(urlInput, options2 = {}, token) {
     }
   });
 }
-var import_decompress_response, import_follow_redirects, import_http_proxy_agent, import_https_proxy_agent, import_querystring, import_url2, logger27, timeout;
+var import_decompress_response, import_follow_redirects, import_http_proxy_agent, import_https_proxy_agent, import_querystring, import_url2, logger25, timeout;
 var init_fetch = __esm({
   "src/model/fetch.ts"() {
     "use strict";
@@ -57729,7 +57737,7 @@ var init_fetch = __esm({
     init_workspace();
     init_string();
     init_util();
-    logger27 = createLogger("model-fetch");
+    logger25 = createLogger("model-fetch");
     timeout = getConditionValue(500, 50);
   }
 });
@@ -66537,14 +66545,14 @@ function download(urlInput, options2, token) {
             if (typeof onProgress === "function") {
               onProgress(percent);
             } else {
-              logger28.info(`Download ${url} progress ${percent}%`);
+              logger26.info(`Download ${url} progress ${percent}%`);
             }
           }
         });
         res.on("end", () => {
           clearTimeout(timer);
           timer = void 0;
-          logger28.info("Download completed:", url);
+          logger26.info("Download completed:", url);
         });
         let stream;
         if (extract === "untar") {
@@ -66564,7 +66572,7 @@ function download(urlInput, options2, token) {
               return;
             }
           }
-          logger28.info(`Downloaded ${url} => ${dest}`);
+          logger26.info(`Downloaded ${url} => ${dest}`);
           setTimeout(() => {
             resolve(dest);
           }, 100);
@@ -66597,7 +66605,7 @@ function download(urlInput, options2, token) {
     req.end();
   });
 }
-var logger28;
+var logger26;
 var init_download = __esm({
   "src/model/download.ts"() {
     "use strict";
@@ -66605,7 +66613,7 @@ var init_download = __esm({
     init_logger();
     init_node();
     init_fetch();
-    logger28 = createLogger("model-download");
+    logger26 = createLogger("model-download");
   }
 });
 
@@ -66626,7 +66634,7 @@ function registryUrl(home = os.homedir()) {
       }
       if (uri) res = new import_url3.URL(uri);
     } catch (e) {
-      logger29.debug("Error on parse .npmrc:", e);
+      logger27.debug("Error on parse .npmrc:", e);
     }
   }
   return res ?? new import_url3.URL("https://registry.npmjs.org");
@@ -66655,7 +66663,7 @@ function isSymbolicLink(folder) {
 function getDependencies(obj) {
   return Object.keys(obj.dependencies ?? {}).filter((id2) => !local_dependencies.includes(id2));
 }
-var import_events30, import_url3, logger29, local_dependencies, Installer;
+var import_events30, import_url3, logger27, local_dependencies, Installer;
 var init_installer = __esm({
   "src/extension/installer.ts"() {
     "use strict";
@@ -66669,7 +66677,7 @@ var init_installer = __esm({
     init_node();
     init_string();
     init_workspace();
-    logger29 = createLogger("extension-installer");
+    logger27 = createLogger("extension-installer");
     local_dependencies = ["coc.nvim", "esbuild", "webpack", "@types/node"];
     Installer = class extends import_events30.EventEmitter {
       constructor(root, npm, def) {
@@ -66740,7 +66748,7 @@ var init_installer = __esm({
       async install() {
         this.log(`Using npm from: ${this.npm}`);
         let info = await this.getInfo();
-        logger29.info(`Fetched info of ${this.def}`, info);
+        logger27.info(`Fetched info of ${this.def}`, info);
         let { name: name2, version: version2 } = info;
         let required = toText(info["engines.coc"]).replace(/^\^/, ">=");
         if (required && !semver.satisfies(workspace_default.version, required)) {
@@ -66928,7 +66936,7 @@ var init_memos = __esm({
 });
 
 // src/list/commandTask.ts
-var import_events31, spawn, logger30, CommandTask;
+var import_events31, spawn, logger28, CommandTask;
 var init_commandTask = __esm({
   "src/list/commandTask.ts"() {
     "use strict";
@@ -66938,7 +66946,7 @@ var init_commandTask = __esm({
     init_node();
     init_workspace();
     spawn = child_process.spawn;
-    logger30 = createLogger("list-commandTask");
+    logger28 = createLogger("list-commandTask");
     CommandTask = class extends import_events31.EventEmitter {
       constructor(opt) {
         super();
@@ -66958,7 +66966,7 @@ var init_commandTask = __esm({
           this.emit("error", e.message);
         });
         proc.stderr.on("data", (chunk) => {
-          logger30.error(`[${cmd} Error]`, chunk.toString("utf8"));
+          logger28.error(`[${cmd} Error]`, chunk.toString("utf8"));
         });
         const rl = readline.createInterface(proc.stdout);
         rl.on("line", (line) => {
@@ -67363,7 +67371,7 @@ var init_fuzzy = __esm({
 });
 
 // src/list/db.ts
-var logger31, DB_PATH, DataBase, db_default;
+var logger29, DB_PATH, DataBase, db_default;
 var init_db2 = __esm({
   "src/list/db.ts"() {
     "use strict";
@@ -67371,7 +67379,7 @@ var init_db2 = __esm({
     init_logger();
     init_string();
     init_constants();
-    logger31 = createLogger("list-db");
+    logger29 = createLogger("list-db");
     DB_PATH = path.join(dataHome, "list_history.dat");
     DataBase = class {
       constructor() {
@@ -67382,7 +67390,7 @@ var init_db2 = __esm({
         try {
           this.load();
         } catch (e) {
-          logger31.error(`Error on load db`, e);
+          logger29.error(`Error on load db`, e);
         }
       }
       get currItems() {
@@ -67488,7 +67496,7 @@ var init_db2 = __esm({
 });
 
 // src/list/history.ts
-var logger32, InputHistory;
+var logger30, InputHistory;
 var init_history = __esm({
   "src/list/history.ts"() {
     "use strict";
@@ -67498,7 +67506,7 @@ var init_history = __esm({
     init_fuzzy();
     init_db2();
     init_string();
-    logger32 = createLogger("list-history");
+    logger30 = createLogger("list-history");
     InputHistory = class {
       constructor(prompt, name2, db, cwd2) {
         this.prompt = prompt;
@@ -67541,7 +67549,7 @@ var init_history = __esm({
           });
           db.save();
         } catch (e) {
-          logger32.error(`Error on migrate history:`, e);
+          logger30.error(`Error on migrate history:`, e);
         }
       }
       get curr() {
@@ -68774,7 +68782,7 @@ function parseInput(input) {
   }
   return res.map((s) => s.replace(/\\\s/g, " ").trim()).filter((s) => s.length > 0);
 }
-var logger33, controlCode, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
+var logger31, controlCode, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esm({
   "src/list/worker.ts"() {
     "use strict";
@@ -68790,7 +68798,7 @@ var init_worker = __esm({
     init_string();
     init_workspace();
     init_configuration3();
-    logger33 = createLogger("list-worker");
+    logger31 = createLogger("list-worker");
     controlCode = "\x1B";
     WHITE_SPACE_CHARS = [32, 9];
     SEARCH_HL_GROUP = "CocListSearch";
@@ -68912,7 +68920,7 @@ var init_worker = __esm({
             clearInterval(interval2);
             workspace_default.nvim.call("coc#prompt#stop_prompt", ["list"], true);
             workspace_default.nvim.echoError(`Task error: ${error.toString()}`);
-            logger33.error("List task error:", error);
+            logger31.error("List task error:", error);
           });
           task.on("end", onEnd);
         }
@@ -70353,11 +70361,11 @@ var LSPCancellationError, BaseFeature, StaticFeature, DynamicFeature, DynamicDoc
 var init_features = __esm({
   "src/language-client/features.ts"() {
     "use strict";
-    init_protocol();
+    init_errors();
     init_is();
+    init_protocol();
     init_workspace();
     init_uuid();
-    init_errors();
     LSPCancellationError = class extends CancellationError {
       constructor(data) {
         super();
@@ -70623,6 +70631,7 @@ var init_callHierarchy = __esm({
             return middleware.provideCallHierarchyOutgoingCalls ? middleware.provideCallHierarchyOutgoingCalls(item, token, provideCallHierarchyOutgoingCalls) : provideCallHierarchyOutgoingCalls(item, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerCallHierarchyProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -70726,6 +70735,7 @@ var init_codeAction = __esm({
             return middleware.resolveCodeAction ? middleware.resolveCodeAction(item, token, resolveCodeAction) : resolveCodeAction(item, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerCodeActionProvider(options2.documentSelector, provider, this._client.id, options2.codeActionKinds), provider];
       }
       dispose() {
@@ -70797,6 +70807,7 @@ var init_codeLens = __esm({
             return middleware.resolveCodeLens ? middleware.resolveCodeLens(codeLens, token, resolveCodeLens) : resolveCodeLens(codeLens, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerCodeLensProvider(options2.documentSelector, provider), { provider, onDidChangeCodeLensEmitter: emitter }];
       }
     };
@@ -70852,6 +70863,7 @@ var init_colorProvider = __esm({
             return middleware.provideDocumentColors ? middleware.provideDocumentColors(document2, token, provideDocumentColors) : provideDocumentColors(document2, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDocumentColorProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -70964,6 +70976,7 @@ var init_completion = __esm({
             return middleware.resolveCompletionItem ? middleware.resolveCompletionItem(item, token, resolveCompletionItem) : resolveCompletionItem(item, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         let name2 = this._client.id + (this.registrationLength == 0 ? "" : "-" + id2);
         const disposable = languages_default.registerCompletionItemProvider(
           name2,
@@ -71191,6 +71204,7 @@ var init_declaration = __esm({
             return middleware.provideDeclaration ? middleware.provideDeclaration(document2, position, token, provideDeclaration) : provideDeclaration(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDeclarationProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -71240,6 +71254,7 @@ var init_definition = __esm({
             return middleware.provideDefinition ? middleware.provideDefinition(document2, position, token, provideDefinition) : provideDefinition(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDefinitionProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -71251,17 +71266,17 @@ var DiagnosticPullMode, DocumentOrUri, workdpacePullDebounce, DocumentPullStateT
 var init_diagnostic = __esm({
   "src/language-client/diagnostic.ts"() {
     "use strict";
-    init_node();
     init_esm_node();
     init_esm();
     init_languages();
+    init_util();
     init_errors();
     init_map();
+    init_node();
     init_protocol();
     init_window();
     init_workspace();
     init_features();
-    init_util();
     DiagnosticPullMode = /* @__PURE__ */ ((DiagnosticPullMode2) => {
       DiagnosticPullMode2["onType"] = "onType";
       DiagnosticPullMode2["onSave"] = "onSave";
@@ -71850,6 +71865,7 @@ var init_documentHighlight = __esm({
             return middleware.provideDocumentHighlights ? middleware.provideDocumentHighlights(document2, position, token, _provideDocumentHighlights) : _provideDocumentHighlights(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDocumentHighlightProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -71907,6 +71923,7 @@ var init_documentLink = __esm({
             return middleware.resolveDocumentLink ? middleware.resolveDocumentLink(link, token, resolveDocumentLink) : resolveDocumentLink(link, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDocumentLinkProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -71996,6 +72013,7 @@ var init_documentSymbol = __esm({
             return middleware.provideDocumentSymbols ? middleware.provideDocumentSymbols(document2, token, _provideDocumentSymbols) : _provideDocumentSymbols(document2, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerDocumentSymbolProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -72601,6 +72619,7 @@ var init_foldingRange = __esm({
             return middleware.provideFoldingRanges ? middleware.provideFoldingRanges(document2, context, token, provideFoldingRanges) : provideFoldingRanges(document2, context, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerFoldingRangeProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -72651,9 +72670,9 @@ var init_formatting2 = __esm({
             return middleware.provideDocumentFormattingEdits ? middleware.provideDocumentFormattingEdits(document2, options3, token, provideDocumentFormattingEdits) : provideDocumentFormattingEdits(document2, options3, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [
-          // We need to pass the originaly registered extension name to keep track of it.
-          languages_default.registerDocumentFormatProvider(options2.documentSelector, provider, this._client.clientOptions.formatterPriority, this._client.registeredExtensionName),
+          languages_default.registerDocumentFormatProvider(options2.documentSelector, provider, this._client.clientOptions.formatterPriority),
           provider
         ];
       }
@@ -72694,9 +72713,9 @@ var init_formatting2 = __esm({
             return middleware.provideDocumentRangeFormattingEdits ? middleware.provideDocumentRangeFormattingEdits(document2, range, options3, token, provideDocumentRangeFormattingEdits) : provideDocumentRangeFormattingEdits(document2, range, options3, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [
-          // We need to pass the originaly registered extension name to keep track of it.
-          languages_default.registerDocumentRangeFormatProvider(options2.documentSelector, provider, void 0, this._client.registeredExtensionName),
+          languages_default.registerDocumentRangeFormatProvider(options2.documentSelector, provider, void 0),
           provider
         ];
       }
@@ -72735,6 +72754,7 @@ var init_formatting2 = __esm({
             return middleware.provideOnTypeFormattingEdits ? middleware.provideOnTypeFormattingEdits(document2, position, ch, options3, token, provideOnTypeFormattingEdits) : provideOnTypeFormattingEdits(document2, position, ch, options3, token);
           }
         };
+        this._client.attachExtensionName(provider);
         const moreTriggerCharacter = options2.moreTriggerCharacter || [];
         const characters = [options2.firstTriggerCharacter, ...moreTriggerCharacter];
         return [languages_default.registerOnTypeFormattingEditProvider(options2.documentSelector, provider, characters), provider];
@@ -72789,6 +72809,7 @@ var init_hover = __esm({
             return middleware.provideHover ? middleware.provideHover(document2, position, token, provideHover) : provideHover(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerHoverProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -72828,6 +72849,7 @@ var init_implementation = __esm({
             return middleware.provideImplementation ? middleware.provideImplementation(document2, position, token, provideImplementation) : provideImplementation(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerImplementationProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -72892,6 +72914,7 @@ var init_inlayHint = __esm({
           return middleware.resolveInlayHint ? middleware.resolveInlayHint(hint, token, resolveInlayHint) : resolveInlayHint(hint, token);
         } : void 0;
         const selector = options2.documentSelector;
+        this._client.attachExtensionName(provider);
         return [languages_default.registerInlayHintsProvider(selector, provider), { provider, onDidChangeInlayHints: eventEmitter }];
       }
     };
@@ -72944,6 +72967,7 @@ var init_inlineValue = __esm({
             return middleware.provideInlineValues ? middleware.provideInlineValues(document2, viewPort, context, token, provideInlineValues) : provideInlineValues(document2, viewPort, context, token);
           }
         };
+        this._client.attachExtensionName(provider);
         const selector = options2.documentSelector;
         return [languages_default.registerInlineValuesProvider(selector, provider), { provider, onDidChangeInlineValues: eventEmitter }];
       }
@@ -72986,6 +73010,7 @@ var init_linkedEditingRange = __esm({
             return middleware.provideLinkedEditingRange ? middleware.provideLinkedEditingRange(document2, position, token, provideLinkedEditing) : provideLinkedEditing(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerLinkedEditingRangeProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -73181,6 +73206,7 @@ var init_reference = __esm({
             return middleware.provideReferences ? middleware.provideReferences(document2, position, options3, token, _providerReferences) : _providerReferences(document2, position, options3, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerReferencesProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -73262,6 +73288,7 @@ var init_rename = __esm({
             return middleware.prepareRename ? middleware.prepareRename(document2, position, token, prepareRename) : prepareRename(document2, position, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerRenameProvider(options2.documentSelector, provider), provider];
       }
       isDefaultBehavior(value) {
@@ -73310,6 +73337,7 @@ var init_selectionRange = __esm({
             return middleware.provideSelectionRanges ? middleware.provideSelectionRanges(document2, positions, token, provideSelectionRanges) : provideSelectionRanges(document2, positions, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerSelectionRangeProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -73443,9 +73471,11 @@ var init_semanticTokens = __esm({
         } : void 0;
         const disposables = [];
         if (documentProvider !== void 0) {
+          this._client.attachExtensionName(documentProvider);
           disposables.push(languages_default.registerDocumentSemanticTokensProvider(options2.documentSelector, documentProvider, options2.legend));
         }
         if (rangeProvider !== void 0) {
+          this._client.attachExtensionName(rangeProvider);
           disposables.push(languages_default.registerDocumentRangeSemanticTokensProvider(options2.documentSelector, rangeProvider, options2.legend));
         }
         return [import_node3.Disposable.create(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
@@ -73502,6 +73532,7 @@ var init_signatureHelp = __esm({
             return middleware.provideSignatureHelp ? middleware.provideSignatureHelp(document2, position, context, token, providerSignatureHelp) : providerSignatureHelp(document2, position, context, token);
           }
         };
+        this._client.attachExtensionName(provider);
         const disposable = languages_default.registerSignatureHelpProvider(options2.documentSelector, provider, options2.triggerCharacters);
         return [disposable, provider];
       }
@@ -73888,6 +73919,7 @@ var init_typeDefinition = __esm({
             return middleware.provideTypeDefinition ? middleware.provideTypeDefinition(document2, position, token, provideTypeDefinition) : provideTypeDefinition(document2, position, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerTypeDefinitionProvider(options2.documentSelector, provider), provider];
       }
     };
@@ -73944,6 +73976,7 @@ var init_typeHierarchy = __esm({
             return middleware.provideTypeHierarchySubtypes ? middleware.provideTypeHierarchySubtypes(item, token, provideTypeHierarchySubtypes) : provideTypeHierarchySubtypes(item, token);
           }
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerTypeHierarchyProvider(selector, provider), provider];
       }
     };
@@ -74236,24 +74269,24 @@ var init_errorHandler = __esm({
 });
 
 // src/language-client/utils/logger.ts
-var logger34, ConsoleLogger, NullLogger;
+var logger32, ConsoleLogger, NullLogger;
 var init_logger2 = __esm({
   "src/language-client/utils/logger.ts"() {
     "use strict";
     init_logger();
-    logger34 = createLogger("language-client");
+    logger32 = createLogger("language-client");
     ConsoleLogger = class {
       error(message) {
-        logger34.error(message);
+        logger32.error(message);
       }
       warn(message) {
-        logger34.warn(message);
+        logger32.warn(message);
       }
       info(message) {
-        logger34.info(message);
+        logger32.info(message);
       }
       log(message) {
-        logger34.log(message);
+        logger32.log(message);
       }
     };
     NullLogger = class {
@@ -74506,6 +74539,7 @@ var init_workspaceSymbol = __esm({
             return middleware.resolveWorkspaceSymbol ? middleware.resolveWorkspaceSymbol(item, token, resolveWorkspaceSymbol) : resolveWorkspaceSymbol(item, token);
           } : void 0
         };
+        this._client.attachExtensionName(provider);
         return [languages_default.registerWorkspaceSymbolProvider(provider), provider];
       }
     };
@@ -74514,8 +74548,8 @@ var init_workspaceSymbol = __esm({
 
 // src/language-client/client.ts
 function createConnection(input, output, errorHandler, closeHandler, options2) {
-  let logger61 = new ConsoleLogger();
-  let connection = (0, import_node3.createProtocolConnection)(input, output, logger61, options2);
+  let logger59 = new ConsoleLogger();
+  let connection = (0, import_node3.createProtocolConnection)(input, output, logger59, options2);
   connection.onError((data) => {
     errorHandler(data[0], data[1], data[2]);
   });
@@ -74551,7 +74585,7 @@ function createConnection(input, output, errorHandler, closeHandler, options2) {
   };
   return result;
 }
-var logger35, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, BaseLanguageClient, ProposedFeatures;
+var logger33, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, BaseLanguageClient, ProposedFeatures;
 var init_client = __esm({
   "src/language-client/client.ts"() {
     "use strict";
@@ -74562,6 +74596,7 @@ var init_client = __esm({
     init_util();
     init_array();
     init_errors();
+    init_extensionRegistry();
     init_fs();
     init_is();
     init_node();
@@ -74610,7 +74645,7 @@ var init_client = __esm({
     init_uuid();
     init_workspaceFolders();
     init_workspaceSymbol();
-    logger35 = createLogger("language-client-client");
+    logger33 = createLogger("language-client-client");
     redOpen = "\x1B[31m";
     redClose = "\x1B[39m";
     RevealOutputChannelOn = /* @__PURE__ */ ((RevealOutputChannelOn2) => {
@@ -74685,6 +74720,7 @@ var init_client = __esm({
         this._c2p = createConverter(clientOptions.uriConverter ? clientOptions.uriConverter.code2Protocol : void 0);
         this._syncedDocuments = /* @__PURE__ */ new Map();
         this.registerBuiltinFeatures();
+        Error.captureStackTrace(this);
       }
       switchConsole() {
         this._consoleDebug = !this._consoleDebug;
@@ -74713,7 +74749,7 @@ var init_client = __esm({
         for (let key of ["disableCompletion", "disableWorkspaceFolders", "disableDiagnostics"]) {
           if (typeof clientOptions[key] === "boolean") {
             let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-            logger35.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
+            logger33.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
             if (clientOptions[key] === true) {
               let s = key.slice(7);
               disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
@@ -75338,7 +75374,7 @@ var init_client = __esm({
           } else {
             void window_default.showErrorMessage(toText(error.message));
             this.error("Server initialization failed.", error);
-            logger35.error(`Server ${this.id} initialization failed.`, error);
+            logger33.error(`Server ${this.id} initialization failed.`, error);
             cb(false);
           }
           throw error;
@@ -75461,7 +75497,7 @@ var init_client = __esm({
       }
       handleConnectionClosed() {
         if (this.$state === 5 /* Stopped */) {
-          logger35.debug(`client ${this._id} normal closed`);
+          logger33.debug(`client ${this._id} normal closed`);
           return;
         }
         try {
@@ -75771,6 +75807,29 @@ var init_client = __esm({
         }
         this.error(`Request ${type.method} failed.`, error);
       }
+      /**
+       * Return extension name or id.
+       */
+      getExtensionName() {
+        if (this.__extensionName) return this.__extensionName;
+        let name2 = parseExtensionName(toText(this["stack"]));
+        if (name2 && name2 !== "coc.nvim") {
+          this.__extensionName = name2;
+          return name2;
+        }
+        return this._id;
+      }
+      /**
+       * Add __extensionName property to provider
+       */
+      attachExtensionName(provider) {
+        if (!provider.hasOwnProperty("__extensionName")) {
+          Object.defineProperty(provider, "__extensionName", {
+            get: () => this.getExtensionName(),
+            enumerable: true
+          });
+        }
+      }
     };
     ProposedFeatures = {
       createAll: (_client) => {
@@ -75827,7 +75886,7 @@ function startedInDebugMode(args) {
   }
   return false;
 }
-var logger36, debugStartWith, debugEquals, STOP_TIMEOUT, Executable, TransportKind, Transport, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
+var logger34, debugStartWith, debugEquals, STOP_TIMEOUT, Executable, TransportKind, Transport, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esm({
   "src/language-client/index.ts"() {
     "use strict";
@@ -75840,7 +75899,7 @@ var init_language_client = __esm({
     init_workspace();
     init_client();
     init_client();
-    logger36 = createLogger("language-client-index");
+    logger34 = createLogger("language-client-index");
     debugStartWith = ["--debug=", "--debug-brk=", "--inspect=", "--inspect-brk="];
     debugEquals = ["--debug", "--debug-brk", "--inspect", "--inspect-brk"];
     STOP_TIMEOUT = getConditionValue(2e3, 100);
@@ -76046,7 +76105,7 @@ var init_language_client = __esm({
                 let sp = child_process.fork(node.module, args || [], options2);
                 assertStdio(sp);
                 this._serverProcess = sp;
-                logger36.info(`Language server "${this.id}" started with ${sp.pid}`);
+                logger34.info(`Language server "${this.id}" started with ${sp.pid}`);
                 sp.stderr.on("data", logMessage);
                 if (transport === 1 /* ipc */) {
                   sp.stdout.on("data", logMessage);
@@ -76058,7 +76117,7 @@ var init_language_client = __esm({
                 return (0, import_node3.createClientPipeTransport)(pipeName).then((transport2) => {
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
-                  logger36.info(`Language server "${this.id}" started with ${sp.pid}`);
+                  logger34.info(`Language server "${this.id}" started with ${sp.pid}`);
                   this._serverProcess = sp;
                   sp.stderr.on("data", logMessage);
                   sp.stdout.on("data", logMessage);
@@ -76071,7 +76130,7 @@ var init_language_client = __esm({
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
                   this._serverProcess = sp;
-                  logger36.info(`Language server "${this.id}" started with ${sp.pid}`);
+                  logger34.info(`Language server "${this.id}" started with ${sp.pid}`);
                   sp.stderr.on("data", logMessage);
                   sp.stdout.on("data", logMessage);
                   void transport2.onConnected().then((protocol2) => {
@@ -76095,7 +76154,7 @@ var init_language_client = __esm({
             if (!serverProcess || !serverProcess.pid) {
               return Promise.reject(new Error(`Launching server "${this.id}" using command ${command.command} failed.`));
             }
-            logger36.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
+            logger34.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
             serverProcess.on("exit", (code) => {
               if (code != 0) this.error(`${command.command} exited with code: ${code}`);
             });
@@ -76193,7 +76252,7 @@ function getLanguageServerOptions(id2, name2, config, folder) {
     serverOptions = () => new Promise((resolve, reject) => {
       let client = new net.Socket();
       let host = config.host ?? "127.0.0.1";
-      logger37.info(`languageserver "${id2}" connecting to ${host}:${port}`);
+      logger35.info(`languageserver "${id2}" connecting to ${host}:${port}`);
       client.connect(port, host, () => {
         resolve({
           reader: client,
@@ -76208,7 +76267,7 @@ function getLanguageServerOptions(id2, name2, config, folder) {
   let disabledFeatures = Array.from(config.disabledFeatures || []);
   for (let key of ["disableWorkspaceFolders", "disableCompletion", "disableDiagnostics"]) {
     if (config[key] === true) {
-      logger37.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
+      logger35.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
       let s = key.slice(7);
       disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
     }
@@ -76259,7 +76318,7 @@ function isValidServerConfig(key, config) {
     errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`);
   }
   if (errors.length) {
-    logger37.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
+    logger35.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
     return false;
   }
   return true;
@@ -76351,7 +76410,7 @@ function getStateName(state) {
       return "unknown";
   }
 }
-var logger37, ServiceStat, ServiceManager, services_default;
+var logger35, ServiceStat, ServiceManager, services_default;
 var init_services = __esm({
   "src/services.ts"() {
     "use strict";
@@ -76366,8 +76425,7 @@ var init_services = __esm({
     init_protocol();
     init_window();
     init_workspace();
-    init_extensionRegistry();
-    logger37 = createLogger("services");
+    logger35 = createLogger("services");
     ServiceStat = /* @__PURE__ */ ((ServiceStat2) => {
       ServiceStat2[ServiceStat2["Initial"] = 0] = "Initial";
       ServiceStat2[ServiceStat2["Starting"] = 1] = "Starting";
@@ -76419,7 +76477,7 @@ var init_services = __esm({
         this.registered.set(id2, service);
         this.tryStartService(service);
         service.onServiceReady(() => {
-          logger37.info(`service ${id2} started`);
+          logger35.info(`service ${id2} started`);
         }, null, this.disposables);
         return import_node3.Disposable.create(() => {
           if (!this.registered.has(id2)) return;
@@ -76538,7 +76596,6 @@ var init_services = __esm({
         workspace_default.nvim.call("coc#do_notify", [id2, method, result], true);
       }
       registerLanguageClient(name2, config, folder) {
-        const registeredExtensionName = parseExtensionName(Error().stack);
         let id2 = typeof name2 === "string" ? `languageserver.${name2}` : name2.id;
         let disposables = [];
         let onDidServiceReady = new import_node3.Emitter();
@@ -76546,7 +76603,6 @@ var init_services = __esm({
         if (this.registered.has(id2)) return import_node3.Disposable.create(() => {
         });
         if (client && typeof client.dispose === "function") disposables.push(client);
-        if (client) client.registeredExtensionName = registeredExtensionName;
         let created = false;
         let service = {
           id: id2,
@@ -76562,7 +76618,6 @@ var init_services = __esm({
                 let opts = getLanguageServerOptions(id2, name2, config2, folder);
                 if (!opts || config2.enable === false) return;
                 client = new LanguageClient(id2, name2, opts[1], opts[0]);
-                client.registeredExtensionName = registeredExtensionName;
                 service.selector = opts[0].documentSelector;
                 service.client = client;
                 disposables.push(client);
@@ -76578,7 +76633,7 @@ var init_services = __esm({
                 service.state = convertState(newState);
                 let oldStr = stateString(oldState);
                 let newStr = stateString(newState);
-                logger37.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
+                logger35.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
               }, null, disposables);
             }
             try {
@@ -76586,13 +76641,13 @@ var init_services = __esm({
                 service.state = convertState(client.state);
               } else {
                 service.state = 1 /* Starting */;
-                logger37.debug(`starting service: ${id2}`);
+                logger35.debug(`starting service: ${id2}`);
                 await client.start();
                 onDidServiceReady.fire(void 0);
               }
             } catch (e) {
               void window_default.showErrorMessage(`Server ${id2} failed to start: ${e}`);
-              logger37.error(`Server ${id2} failed to start:`, e);
+              logger35.error(`Server ${id2} failed to start:`, e);
               service.state = 2 /* StartFailed */;
             }
           },
@@ -76918,7 +76973,7 @@ function createConfigurationNode(name2, interactive, id2) {
   if (id2) node.extensionInfo = { id: id2 };
   return node;
 }
-var logger38, mouseKeys, winleaveDalay, ListManager, manager_default2;
+var logger36, mouseKeys, winleaveDalay, ListManager, manager_default2;
 var init_manager3 = __esm({
   "src/list/manager.ts"() {
     "use strict";
@@ -76953,7 +77008,7 @@ var init_manager3 = __esm({
     init_services2();
     init_sources();
     init_symbols();
-    logger38 = createLogger("list-manager");
+    logger36 = createLogger("list-manager");
     mouseKeys = ["<LeftMouse>", "<LeftDrag>", "<LeftRelease>", "<2-LeftMouse>"];
     winleaveDalay = isVim ? 50 : 0;
     ListManager = class {
@@ -77031,7 +77086,7 @@ var init_manager3 = __esm({
           if (isCancellationError(e)) return;
           void window_default.showErrorMessage(`Error on "CocList ${name2}": ${toErrorText(e)}`);
           this.nvim.redrawVim();
-          logger38.error(`Error on load ${name2} list:`, e);
+          logger36.error(`Error on load ${name2} list:`, e);
         }
       }
       getSessionByWinid(winid) {
@@ -77795,7 +77850,9 @@ var init_snippet = __esm({
       }
       getPlaceholderById(id2, index) {
         let p = this._tmSnippet.placeholders.find((o) => o.id === id2);
-        return p ? p : this.getPlaceholderByIndex(index).marker;
+        if (p) return p;
+        let placeholder = this.getPlaceholderByIndex(index);
+        return placeholder ? placeholder.marker : void 0;
       }
       /**
        * Should be used after snippet resolved.
@@ -78004,13 +78061,14 @@ var init_variableResolve = __esm({
 });
 
 // src/snippets/session.ts
-var logger39, NAME_SPACE2, SnippetSession;
+var logger37, NAME_SPACE2, SnippetSession;
 var init_session2 = __esm({
   "src/snippets/session.ts"() {
     "use strict";
     init_main();
     init_events();
     init_logger();
+    init_util();
     init_diff();
     init_errors();
     init_lodash();
@@ -78026,8 +78084,7 @@ var init_session2 = __esm({
     init_snippet();
     init_util3();
     init_variableResolve();
-    init_util();
-    logger39 = createLogger("snippets-session");
+    logger37 = createLogger("snippets-session");
     NAME_SPACE2 = "snippets";
     SnippetSession = class {
       constructor(nvim, document2, config) {
@@ -78192,7 +78249,7 @@ var init_session2 = __esm({
       checkFinalPlaceholder() {
         let current = this.current;
         if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
-          logger39.info("Jump to final placeholder, cancelling snippet session");
+          logger37.info("Jump to final placeholder, cancelling snippet session");
           this.deactivate();
         }
       }
@@ -78220,7 +78277,7 @@ var init_session2 = __esm({
         if (!this.isActive) return;
         let position = await window_default.getCursorPosition();
         if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
-          logger39.info("Cursor insert out of range, cancelling snippet session");
+          logger37.info("Cursor insert out of range, cancelling snippet session");
           this.deactivate();
         }
       }
@@ -78262,7 +78319,7 @@ var init_session2 = __esm({
         let c = comparePosition(change.range.start, range.end);
         let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
         if (c > 0 || c === 0 && !insertEnd) {
-          logger39.info("Content change after snippet");
+          logger37.info("Content change after snippet");
           this.textDocument = newDocument;
           return;
         }
@@ -78283,11 +78340,11 @@ var init_session2 = __esm({
           }
           this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
           this.textDocument = newDocument;
-          logger39.info("Content change before snippet, reset snippet position");
+          logger37.info("Content change before snippet, reset snippet position");
           return;
         }
         if (!rangeInRange(change.range, range)) {
-          logger39.info("Before and snippet body changed, cancel snippet session");
+          logger37.info("Before and snippet body changed, cancel snippet session");
           this.deactivate();
           return;
         }
@@ -78300,7 +78357,8 @@ var init_session2 = __esm({
         if (!res) {
           if (this.snippet) {
             this.isStaled = true;
-            this.current = this.snippet.getPlaceholderById(id2, current.index);
+            let marker = this.snippet.getPlaceholderById(id2, current.index);
+            this.current = marker ?? this.snippet.tmSnippet.first;
           }
           return;
         }
@@ -78308,7 +78366,7 @@ var init_session2 = __esm({
         let { snippetText, delta } = res;
         let changedRange = Range.create(start, getEnd(start, snippetText));
         if (newDocument.getText(changedRange) !== snippetText) {
-          logger39.error(`Something went wrong with the snippet implementation`, change, snippetText);
+          logger37.error(`Something went wrong with the snippet implementation`, change, snippetText);
           this.deactivate();
           return;
         }
@@ -78319,7 +78377,7 @@ var init_session2 = __esm({
           if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
         }
         this.highlights();
-        logger39.debug("update cost:", Date.now() - startTs, res.delta);
+        logger37.debug("update cost:", Date.now() - startTs, res.delta);
         this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
         return;
       }
@@ -78368,7 +78426,7 @@ var init_session2 = __esm({
         this.nvim.call("coc#snippet#disable", [], true);
         if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [this.bufnr, NAME_SPACE2, 0, -1], true);
         this._onActiveChange.fire(false);
-        logger39.debug(`session ${this.bufnr} deactivate`);
+        logger37.debug(`session ${this.bufnr} deactivate`);
       }
       get placeholder() {
         if (!this.snippet || !this.current) return void 0;
@@ -79225,19 +79283,19 @@ function copyGlobalProperties(sandbox, globalObj) {
   }
   return sandbox;
 }
-function createConsole(con, logger61) {
+function createConsole(con, logger59) {
   let result = {};
   let methods2 = ["debug", "log", "info", "error", "warn"];
   for (let key of Object.keys(con)) {
     if (methods2.includes(key)) {
       result[key] = (...args) => {
-        logger61[key].apply(logger61, args);
+        logger59[key].apply(logger59, args);
       };
     } else {
       let fn = con[key];
       if (typeof fn === "function") {
         result[key] = () => {
-          logger61.warn(`function console.${key} not supported`);
+          logger59.warn(`function console.${key} not supported`);
         };
       } else {
         result[key] = fn;
@@ -79246,7 +79304,7 @@ function createConsole(con, logger61) {
   }
   return result;
 }
-function createSandbox(filename, logger61, name2, noExport = false) {
+function createSandbox(filename, logger59, name2, noExport = false) {
   const module2 = new Module(filename);
   module2.paths = Module._nodeModulePaths(filename);
   const sandbox = vm.createContext({
@@ -79254,7 +79312,7 @@ function createSandbox(filename, logger61, name2, noExport = false) {
     Buffer,
     URL: globalThis.URL,
     WebAssembly: globalThis.WebAssembly,
-    console: createConsole(console, logger61)
+    console: createConsole(console, logger59)
   }, { name: name2 });
   copyGlobalProperties(sandbox, global);
   let cocExports = noExport ? void 0 : require_src3();
@@ -79294,8 +79352,8 @@ function createExtension(id2, filename, isEmpty2) {
     },
     deactivate: null
   };
-  const logger61 = getLogger(!global.__isMain && true, id2);
-  const sandbox = createSandbox(filename, logger61, id2);
+  const logger59 = getLogger(!global.__isMain && true, id2);
+  const sandbox = createSandbox(filename, logger59, id2);
   delete Module._cache[require.resolve(filename)];
   const defaultImport = sandbox.require(filename);
   const activate = defaultImport && defaultImport.activate || defaultImport;
@@ -79350,23 +79408,23 @@ function createTiming(name2, timeout2) {
       clearTimeout(timer);
       if (timeout2) {
         timer = setTimeout(() => {
-          logger40.error(`${name2} timeout after ${timeout2}ms`);
+          logger38.error(`${name2} timeout after ${timeout2}ms`);
         }, timeout2);
         timer.unref();
       }
     },
     stop() {
       clearTimeout(timer);
-      logger40.trace(`${name2}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
+      logger38.trace(`${name2}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
     }
   };
 }
-var logger40;
+var logger38;
 var init_timing = __esm({
   "src/util/timing.ts"() {
     "use strict";
     init_logger();
-    logger40 = createLogger("timing");
+    logger38 = createLogger("timing");
   }
 });
 
@@ -79442,7 +79500,7 @@ function checkExtensionRoot(root) {
     }
     let stat = fs.statSync(root);
     if (!stat.isDirectory()) {
-      logger41.info(`Trying to delete ${root}`);
+      logger39.info(`Trying to delete ${root}`);
       fs.unlinkSync(root);
       fs.mkdirSync(root, { recursive: true });
     }
@@ -79467,11 +79525,11 @@ function loadJson2(filepath) {
     let data = JSON.parse(text);
     return toObject(data);
   } catch (e) {
-    logger41.error(`Error on parse json file ${filepath}`, e);
+    logger39.error(`Error on parse json file ${filepath}`, e);
     return {};
   }
 }
-var logger41, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
+var logger39, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
 var init_stat = __esm({
   "src/extension/stat.ts"() {
     "use strict";
@@ -79481,7 +79539,7 @@ var init_stat = __esm({
     init_is();
     init_node();
     init_object();
-    logger41 = createLogger("extension-stat");
+    logger39 = createLogger("extension-stat");
     ONE_DAY = 24 * 60 * 60 * 1e3;
     DISABLE_PROMPT_KEY = "disablePrompt";
     ExtensionStat = class {
@@ -79494,7 +79552,7 @@ var init_stat = __esm({
         try {
           this.migrate();
         } catch (e) {
-          logger41.error(`Error on update package.json at ${folder}`, e);
+          logger39.error(`Error on update package.json at ${folder}`, e);
         }
       }
       migrate() {
@@ -79730,7 +79788,7 @@ function toWorkspaceContainsPatterns(activationEvents) {
   }
   return patterns;
 }
-var logger42, extensionRegistry5, memos, configurationRegistry2, ExtensionManager;
+var logger40, extensionRegistry5, memos, configurationRegistry2, ExtensionManager;
 var init_manager5 = __esm({
   "src/extension/manager.ts"() {
     "use strict";
@@ -79756,7 +79814,7 @@ var init_manager5 = __esm({
     init_window();
     init_workspace();
     init_stat();
-    logger42 = createLogger("extensions-manager");
+    logger40 = createLogger("extensions-manager");
     extensionRegistry5 = Registry.as(Extensions.ExtensionContribution);
     memos = new Memos(path.resolve(dataHome, "memos.json"));
     memos.merge(path.resolve(dataHome, "../memos.json"));
@@ -80037,7 +80095,7 @@ var init_manager5 = __esm({
           let checked = await this.checkAutoActivate(extension.packageJSON);
           if (checked) await Promise.resolve(extension.activate());
         } catch (e) {
-          logger42.error(`Error on activate ${id2}`, e);
+          logger40.error(`Error on activate ${id2}`, e);
         }
       }
       async loadExtensionFile(filepath, noActive = false) {
@@ -80063,7 +80121,7 @@ var init_manager5 = __esm({
             let extensionType = stat.isLocal ? 1 /* Local */ : 0 /* Global */;
             void this.registerExtension(stat.root, stat.packageJSON, extensionType);
           } catch (e) {
-            logger42.error(`Error on regist extension from ${stat.root}: `, e);
+            logger40.error(`Error on regist extension from ${stat.root}: `, e);
           }
         }
       }
@@ -80102,7 +80160,7 @@ var init_manager5 = __esm({
                 timing.stop();
                 resolve(res);
               } catch (e) {
-                logger42.error(`Error on active extension ${id2}:`, e);
+                logger40.error(`Error on active extension ${id2}:`, e);
                 reject(e);
               }
             });
@@ -80143,7 +80201,7 @@ var init_manager5 = __esm({
                 await Promise.resolve(ext.deactivate());
                 ext = void 0;
               } catch (e) {
-                logger42.error(`Error on ${id2} deactivate: `, e);
+                logger40.error(`Error on ${id2} deactivate: `, e);
               }
             }
           }
@@ -80480,7 +80538,7 @@ var init_ui3 = __esm({
 function toUrl(val) {
   return isUrl(val) ? val.replace(/\.git(#master|#main)?$/, "") : "";
 }
-var logger43, EXTENSIONS_FOLDER, Extensions4, extension_default;
+var logger41, EXTENSIONS_FOLDER, Extensions4, extension_default;
 var init_extension = __esm({
   "src/extension/index.ts"() {
     "use strict";
@@ -80501,7 +80559,7 @@ var init_extension = __esm({
     init_manager5();
     init_stat();
     init_ui3();
-    logger43 = createLogger("extensions-index");
+    logger41 = createLogger("extensions-index");
     EXTENSIONS_FOLDER = path.join(dataHome, "extensions");
     Extensions4 = class {
       constructor() {
@@ -80513,7 +80571,7 @@ var init_extension = __esm({
           id: "extensions.forceUpdateAll",
           execute: async () => {
             let arr = await this.manager.cleanExtensions();
-            logger43.info(`Force update extensions: ${arr}`);
+            logger41.info(`Force update extensions: ${arr}`);
             await this.installExtensions(arr);
           }
         }, false, "remove all global extensions and install them");
@@ -80584,7 +80642,7 @@ var init_extension = __esm({
       async activateExtensions() {
         await this.manager.activateExtensions();
         if (process.env.COC_NO_PLUGINS == "1") {
-          logger43.warn("Extensions disabled by env COC_NO_PLUGINS");
+          logger41.warn("Extensions disabled by env COC_NO_PLUGINS");
           return;
         }
         let names = this.states.filterGlobalExtensions(workspace_default.env.globalExtensions);
@@ -80690,7 +80748,7 @@ var init_extension = __esm({
             installBuffer.addMessage(key, err.message);
             installBuffer.finishProgress(key, false);
             void window_default.showErrorMessage(`Error on install ${key}: ${err}`);
-            logger43.error(`Error on install ${key}`, err);
+            logger41.error(`Error on install ${key}`, err);
           }
         };
         await concurrent(list2, fn);
@@ -80729,7 +80787,7 @@ var init_extension = __esm({
             installBuffer.addMessage(id2, err.message);
             installBuffer.finishProgress(id2, false);
             void window_default.showErrorMessage(`Error on update ${id2}: ${err}`);
-            logger43.error(`Error on update ${id2}`, err);
+            logger41.error(`Error on update ${id2}`, err);
           }
         };
         await concurrent(stats, fn, silent ? 1 : 3);
@@ -80752,7 +80810,7 @@ var init_extension = __esm({
             let json = await loadGlobalJsonAsync(root, VERSION);
             res.push({ root, isLocal: false, packageJSON: json });
           } catch (err) {
-            logger43.error(`Error on load package.json of ${key}`, err);
+            logger41.error(`Error on load package.json of ${key}`, err);
           }
         }
         return res;
@@ -80783,7 +80841,7 @@ var init_extension = __esm({
             packageJSON: obj
           });
         });
-        logger43.debug("globalExtensionStats:", infos.length);
+        logger41.debug("globalExtensionStats:", infos.length);
         return infos;
       }
       runtimeExtensionStats(runtimepath) {
@@ -81134,7 +81192,7 @@ function fixTextEdit(character, edit2) {
   }
   return edit2;
 }
-var logger44, LanguageSource;
+var logger42, LanguageSource;
 var init_source_language = __esm({
   "src/completion/source-language.ts"() {
     "use strict";
@@ -81153,7 +81211,7 @@ var init_source_language = __esm({
     init_workspace();
     init_types2();
     init_util4();
-    logger44 = createLogger("source-language");
+    logger42 = createLogger("source-language");
     LanguageSource = class {
       constructor(name2, shortcut, provider, documentSelector, triggerCharacters, allCommitCharacters, priority) {
         this.name = name2;
@@ -81249,7 +81307,7 @@ var init_source_language = __esm({
           if (commands_default.has(item.command.command)) {
             void commands_default.execute(item.command);
           } else {
-            logger44.warn(`Command "${item.command.command}" not registered to coc.nvim`);
+            logger42.warn(`Command "${item.command.command}" not registered to coc.nvim`);
           }
         }
       }
@@ -81673,14 +81731,14 @@ __export(sources_exports, {
   logError: () => logError
 });
 function logError(err) {
-  logger45.error("Error on source create", err);
+  logger43.error("Error on source create", err);
 }
 function getSourceType(sourceType) {
   if (sourceType === 0 /* Native */) return "native";
   if (sourceType === 1 /* Remote */) return "remote";
   return "service";
 }
-var logger45, Sources, sources_default;
+var logger43, Sources, sources_default;
 var init_sources2 = __esm({
   "src/completion/sources.ts"() {
     "use strict";
@@ -81702,7 +81760,7 @@ var init_sources2 = __esm({
     init_source_vim();
     init_types2();
     init_util4();
-    logger45 = createLogger("sources");
+    logger43 = createLogger("sources");
     Sources = class {
       constructor() {
         this.sourceMap = /* @__PURE__ */ new Map();
@@ -81757,7 +81815,7 @@ var init_sources2 = __esm({
           toArray(allCommitCharacters),
           priority
         );
-        logger45.trace("created service source", name2);
+        logger43.trace("created service source", name2);
         this.sourceMap.set(name2, source);
         return {
           dispose: () => {
@@ -81860,7 +81918,7 @@ var init_sources2 = __esm({
             if (lines.length > 0 && lines[0].startsWith("vim9script")) return;
           }
           void window_default.showErrorMessage(`Error on create vim source from ${filepath}: ${e}`);
-          logger45.error(`Error on create vim source from ${filepath}`, e);
+          logger43.error(`Error on create vim source from ${filepath}`, e);
         }
       }
       createRemoteSources() {
@@ -81950,7 +82008,7 @@ var init_sources2 = __esm({
       addSource(source) {
         let { name: name2 } = source;
         if (this.names.includes(name2)) {
-          logger45.warn(`Recreate source ${name2}`);
+          logger43.warn(`Recreate source ${name2}`);
         }
         this.sourceMap.set(name2, source);
         return import_node3.Disposable.create(() => {
@@ -82006,7 +82064,7 @@ var init_sources2 = __esm({
       }
       createSource(config) {
         if (typeof config.name !== "string" || typeof config.doComplete !== "function") {
-          logger45.error(`Bad config for createSource:`, config);
+          logger43.error(`Bad config for createSource:`, config);
           throw new TypeError(`name and doComplete required for createSource`);
         }
         let source = new Source(Object.assign({ sourceType: 2 /* Service */ }, config));
@@ -82055,7 +82113,6 @@ var init_languages = __esm({
     init_typeHierarchyManager();
     init_workspaceSymbolsManager();
     init_util();
-    init_extensionRegistry();
     init_is();
     init_protocol();
     init_string();
@@ -82217,17 +82274,11 @@ var init_languages = __esm({
         }
         return this.workspaceSymbolsManager.register(provider);
       }
-      // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
-      // within coc.nvim. It does not meant to be explicitly specified by extension authors.
-      registerDocumentFormatProvider(selector, provider, priority = 0, extensionName) {
-        extensionName = extensionName ?? parseExtensionName(Error().stack);
-        return this.formatManager.register(extensionName, selector, provider, priority);
+      registerDocumentFormatProvider(selector, provider, priority = 0) {
+        return this.formatManager.register(selector, provider, priority);
       }
-      // NOTE: The last `extensionName` parameter is not exposed in the index.d.ts since it is only for the internal use
-      // within coc.nvim. It does not meant to be explicitly specified by extension authors.
-      registerDocumentRangeFormatProvider(selector, provider, priority = 0, extensionName) {
-        extensionName = extensionName ?? parseExtensionName(Error().stack);
-        return this.formatRangeManager.register(extensionName, selector, provider, priority);
+      registerDocumentRangeFormatProvider(selector, provider, priority = 0) {
+        return this.formatRangeManager.register(selector, provider, priority);
       }
       registerCallHierarchyProvider(selector, provider) {
         return this.callHierarchyManager.register(selector, provider);
@@ -82580,7 +82631,7 @@ function sortItems(emptyInput, defaultSortMethod, a, b) {
       return a.filterText.length - b.filterText.length;
   }
 }
-var logger46, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
+var logger44, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
 var init_complete = __esm({
   "src/completion/complete.ts"() {
     "use strict";
@@ -82597,7 +82648,7 @@ var init_complete = __esm({
     init_types2();
     init_util4();
     init_wordDistance();
-    logger46 = createLogger("completion-complete");
+    logger44 = createLogger("completion-complete");
     MAX_DISTANCE = 2 << 20;
     MIN_TIMEOUT = 50;
     MAX_TIMEOUT = 15e3;
@@ -82687,18 +82738,18 @@ var init_complete = __esm({
         this.option.synname = res[0];
         let variables = res[1];
         if (variables.disable) {
-          logger46.warn("suggest cancelled by b:coc_suggest_disable");
+          logger44.warn("suggest cancelled by b:coc_suggest_disable");
           return true;
         }
         if (!isFalsyOrEmpty(variables.disabled_sources)) {
           this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
           if (this.sources.length === 0) {
-            logger46.warn("suggest cancelled by b:coc_disabled_sources");
+            logger44.warn("suggest cancelled by b:coc_disabled_sources");
             return true;
           }
         }
         if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
-          logger46.warn("suggest cancelled by b:coc_suggest_blacklist");
+          logger44.warn("suggest cancelled by b:coc_suggest_blacklist");
           return true;
         }
         void WordDistance.create(this.config.localityBonus, this.option, token).then((instance2) => {
@@ -82723,7 +82774,7 @@ var init_complete = __esm({
             let names = Array.from(remains);
             disposable.dispose();
             tokenSource.cancel();
-            logger46.warn(`Completion timeout after ${this.timeout}ms`, names);
+            logger44.warn(`Completion timeout after ${this.timeout}ms`, names);
             this.nvim.setVar(`coc_timeout_sources`, names, true);
             resolve();
           }, this.timeout);
@@ -82765,7 +82816,7 @@ var init_complete = __esm({
                 return;
               }
               let len = result ? result.items.length : 0;
-              logger46.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
+              logger44.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
               if (len > 0) {
                 if (number(result.startcol)) {
                   let line = opt.linenr - 1;
@@ -82777,7 +82828,7 @@ var init_complete = __esm({
                 const items = result.items.reduce((items2, item) => {
                   let completeItem = converter.convertToDurationItem(item);
                   if (!completeItem) {
-                    logger46.error(`Unexpected completion item from ${sourceName}:`, item);
+                    logger44.error(`Unexpected completion item from ${sourceName}:`, item);
                     return items2;
                   }
                   map.set(completeItem, item);
@@ -82796,7 +82847,7 @@ var init_complete = __esm({
             });
           });
         } catch (err) {
-          logger46.error("Complete error:", source.name, err);
+          logger44.error("Complete error:", source.name, err);
         }
         this.completingSources.delete(sourceName);
         return added;
@@ -82940,7 +82991,7 @@ var init_complete = __esm({
 });
 
 // src/completion/floating.ts
-var logger47, RESOLVE_TIMEOUT, Floating;
+var logger45, RESOLVE_TIMEOUT, Floating;
 var init_floating = __esm({
   "src/completion/floating.ts"() {
     "use strict";
@@ -82952,7 +83003,7 @@ var init_floating = __esm({
     init_protocol();
     init_workspace();
     init_util4();
-    logger47 = createLogger("completion-floating");
+    logger45 = createLogger("completion-floating");
     RESOLVE_TIMEOUT = getConditionValue(500, 50);
     Floating = class {
       constructor(config) {
@@ -82967,7 +83018,7 @@ var init_floating = __esm({
             });
           } catch (e) {
             if (isCancellationError(e)) return;
-            logger47.error(`Error on resolve complete item from ${source.name}:`, item, e);
+            logger45.error(`Error on resolve complete item from ${source.name}:`, item, e);
             return;
           }
         }
@@ -83346,7 +83397,7 @@ var init_pum = __esm({
 });
 
 // src/completion/index.ts
-var logger48, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
+var logger46, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
 var init_completion2 = __esm({
   "src/completion/index.ts"() {
     "use strict";
@@ -83370,7 +83421,7 @@ var init_completion2 = __esm({
     init_sources2();
     init_types2();
     init_util4();
-    logger48 = createLogger("completion");
+    logger46 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
     CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
     Completion = class {
@@ -83538,7 +83589,7 @@ var init_completion2 = __esm({
         this._debounced.clear();
         let doc = workspace_default.getAttachedDocument(option.bufnr);
         option.filetype = doc.filetype;
-        logger48.debug("trigger completion with", option);
+        logger46.debug("trigger completion with", option);
         this.cancelAndClose();
         this.pretext = byteSlice(option.line, 0, option.colnr - 1);
         sourceList = sourceList ?? sources_default.getSources(option);
@@ -83606,7 +83657,7 @@ var init_completion2 = __esm({
           let resolvedItem = this.selectedItem;
           let result = this.complete.resolveItem(resolvedItem);
           if (result && sources_default.shouldCommit(result.source, result.item, last)) {
-            logger48.debug("commit by commit character.");
+            logger46.debug("commit by commit character.");
             let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
             this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word + info.insertChar], true);
             await this.stop(true);
@@ -83644,7 +83695,7 @@ var init_completion2 = __esm({
         if (!sources && !this.shouldTrigger(doc, pre)) return false;
         const option = this.getCompleteOption(doc, info);
         if (sources == null && option.input.length < minTriggerInputLength) {
-          logger48.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
+          logger46.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
           return false;
         }
         if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false;
@@ -83951,7 +84002,7 @@ function surrondChanges(changes, len) {
   if (end !== len) return false;
   return true;
 }
-var logger49, CursorSession;
+var logger47, CursorSession;
 var init_session3 = __esm({
   "src/cursors/session.ts"() {
     "use strict";
@@ -83967,7 +84018,7 @@ var init_session3 = __esm({
     init_workspace();
     init_textRange();
     init_util6();
-    logger49 = createLogger("cursors-session");
+    logger47 = createLogger("cursors-session");
     CursorSession = class {
       constructor(nvim, doc, config) {
         this.nvim = nvim;
@@ -84074,20 +84125,20 @@ var init_session3 = __esm({
           affected = affected.slice(0, 1);
         }
         if (affected.length == 0) {
-          logger49.debug("no affected ranges");
+          logger47.debug("no affected ranges");
           this.ranges.forEach((r) => {
             r.adjustFromEdit({ range, newText: text });
           });
           this.doHighlights();
         } else if (affected.length == 1 && rangeInRange(range, affected[0].range)) {
-          logger49.debug("affected single range");
+          logger47.debug("affected single range");
           if (text.includes("\n")) {
             this.cancel();
             return;
           }
           await this.applySingleEdit(affected[0], { range, newText: text });
         } else if (!text.length || !this.validChange(range, text)) {
-          logger49.debug("filter affected ranges.");
+          logger47.debug("filter affected ranges.");
           let ranges = this.ranges.filter((r) => !affected.includes(r));
           if (ranges.length > 0) {
             this.ranges = ranges;
@@ -84099,7 +84150,7 @@ var init_session3 = __esm({
             this.cancel();
           }
         } else {
-          logger49.debug("Check undo & redo");
+          logger47.debug("Check undo & redo");
           let first = this.ranges[0];
           let last = this.ranges[this.ranges.length - 1];
           let originalLines = e.originalLines.slice(first.line, last.line + 1);
@@ -84147,7 +84198,7 @@ var init_session3 = __esm({
        */
       cancel() {
         if (!this.activated) return;
-        logger49.debug("cursors cancel");
+        logger47.debug("cursors cancel");
         let buffer = this.doc.buffer;
         this.activated = false;
         this.ranges = [];
@@ -84717,7 +84768,7 @@ function shouldAutoApply(only) {
 function isQuickfix(codeAction) {
   return codeAction.kind && codeAction.kind.startsWith("quickfix");
 }
-var logger50, CodeActions;
+var logger48, CodeActions;
 var init_codeActions = __esm({
   "src/handler/codeActions.ts"() {
     "use strict";
@@ -84732,7 +84783,7 @@ var init_codeActions = __esm({
     init_timing();
     init_window();
     init_workspace();
-    logger50 = createLogger("handler-codeActions");
+    logger48 = createLogger("handler-codeActions");
     CodeActions = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -84753,14 +84804,14 @@ var init_codeActions = __esm({
           let codeActions = await this.getCodeActions(doc, range, [kind]);
           let codeAction = codeActions.find((o) => !o.disabled);
           if (codeAction) {
-            logger50.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`);
+            logger48.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`);
             timing.start(`"${kind}"`);
             let tokenSource = new import_node3.CancellationTokenSource();
             let timer;
             let _resolve;
             const tp = new Promise((c) => {
               timer = setTimeout(() => {
-                logger50.warn(`Apply code action "${kind}" timeout after ${timeout2}ms`);
+                logger48.warn(`Apply code action "${kind}" timeout after ${timeout2}ms`);
                 tokenSource.cancel();
                 c(void 0);
               }, timeout2);
@@ -84899,7 +84950,7 @@ var init_codeActions = __esm({
 
 // src/handler/util.ts
 function handleError(e) {
-  logger51.error(`Error on handler: `, toErrorText(e));
+  logger49.error(`Error on handler: `, toErrorText(e));
 }
 function toDocumentation(doc) {
   return {
@@ -84907,14 +84958,14 @@ function toDocumentation(doc) {
     filetype: isMarkdown(doc) ? "markdown" : "txt"
   };
 }
-var logger51;
+var logger49;
 var init_util7 = __esm({
   "src/handler/util.ts"() {
     "use strict";
     init_logger();
     init_is();
     init_string();
-    logger51 = createLogger("handler-util");
+    logger49 = createLogger("handler-util");
   }
 });
 
@@ -84937,7 +84988,7 @@ function getCommands(line, codeLenses) {
   }
   return commands;
 }
-var logger52, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
+var logger50, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer3 = __esm({
   "src/handler/codelens/buffer.ts"() {
     "use strict";
@@ -84952,7 +85003,7 @@ var init_buffer3 = __esm({
     init_window();
     init_workspace();
     init_util7();
-    logger52 = createLogger("codelens-buffer");
+    logger50 = createLogger("codelens-buffer");
     debounceTime7 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
     NORMAL_HL = "Normal";
@@ -85659,7 +85710,7 @@ var init_fold = __esm({
 });
 
 // src/handler/format.ts
-var logger53, FormatHandler;
+var logger51, FormatHandler;
 var init_format2 = __esm({
   "src/handler/format.ts"() {
     "use strict";
@@ -85674,7 +85725,7 @@ var init_format2 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger53 = createLogger("handler-format");
+    logger51 = createLogger("handler-format");
     FormatHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -85688,7 +85739,7 @@ var init_format2 = __esm({
           if (this.shouldFormatOnSave(event.document)) {
             let willSaveWaitUntil = async () => {
               if (!languages_default.hasFormatProvider(event.document)) {
-                logger53.warn(`Format provider not found for ${event.document.uri}`);
+                logger51.warn(`Format provider not found for ${event.document.uri}`);
                 return void 0;
               }
               let options2 = await workspace_default.getFormatOptions(event.document.uri);
@@ -85697,7 +85748,7 @@ var init_format2 = __esm({
               let tokenSource = new import_node3.CancellationTokenSource();
               const tp = new Promise((c) => {
                 timer = setTimeout(() => {
-                  logger53.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
+                  logger51.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
                   tokenSource.cancel();
                   c(void 0);
                 }, formatOnSaveTimeout);
@@ -85705,6 +85756,7 @@ var init_format2 = __esm({
               const provideEdits = languages_default.provideDocumentFormattingEdits(event.document, options2, tokenSource.token);
               let textEdits = await Promise.race([tp, provideEdits]);
               clearTimeout(timer);
+              this.logProvider(event.bufnr, textEdits);
               return Array.isArray(textEdits) ? textEdits : void 0;
             };
             event.waitUntil(willSaveWaitUntil());
@@ -85757,7 +85809,7 @@ var init_format2 = __esm({
         if (!ch || isAlphabet(ch.charCodeAt(0))) return false;
         if (!this.shouldFormatOnType(doc.filetype)) return false;
         if (!languages_default.hasProvider("formatOnType" /* FormatOnType */, doc.textDocument)) {
-          logger53.warn(`Format on type provider not found for buffer: ${doc.uri}`);
+          logger51.warn(`Format on type provider not found for buffer: ${doc.uri}`);
           return false;
         }
         if (!languages_default.canFormatOnType(ch, doc.textDocument)) return false;
@@ -85767,7 +85819,9 @@ var init_format2 = __esm({
           await doc.synchronize();
           return await languages_default.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token);
         });
-        await doc.applyEdits(defaultValue(edits, []), false, true);
+        if (edits.length === 0) return true;
+        await doc.applyEdits(edits, false, true);
+        this.logProvider(doc.bufnr, edits);
         return true;
       }
       async formatCurrentBuffer() {
@@ -85789,6 +85843,7 @@ var init_format2 = __esm({
         });
         if (textEdits && textEdits.length > 0) {
           await doc.applyEdits(textEdits, false, true);
+          this.logProvider(doc.bufnr, textEdits);
           return true;
         }
         return false;
@@ -85828,6 +85883,11 @@ var init_format2 = __esm({
           }
         }
       }
+      logProvider(bufnr, edits) {
+        if (!Array.isArray(edits) || edits.length === 0) return;
+        let extensionName = edits["__extensionName"];
+        if (extensionName) logger51.info(`Format buffer ${bufnr} by ${extensionName}`);
+      }
       async documentRangeFormat(doc, mode) {
         this.handler.checkProvider("formatRange" /* FormatRange */, doc.textDocument);
         await doc.synchronize();
@@ -85846,6 +85906,7 @@ var init_format2 = __esm({
         });
         if (!isFalsyOrEmpty(textEdits)) {
           await doc.applyEdits(textEdits, false, true);
+          this.logProvider(doc.bufnr, textEdits);
           return 0;
         }
         return -1;
@@ -87199,7 +87260,7 @@ function fixChangeParams(e) {
   }
   return { contentChanges: changes, bufnr, textDocument, document: document2, original, originalLines };
 }
-var logger54, SEPARATOR, RefactorBuffer;
+var logger52, SEPARATOR, RefactorBuffer;
 var init_buffer5 = __esm({
   "src/handler/refactor/buffer.ts"() {
     "use strict";
@@ -87220,7 +87281,7 @@ var init_buffer5 = __esm({
     init_window();
     init_workspace();
     init_changes();
-    logger54 = createLogger("handler-refactorBuffer");
+    logger52 = createLogger("handler-refactorBuffer");
     SEPARATOR = "\u3000";
     RefactorBuffer = class {
       constructor(bufnr, srcId4, nvim, config, opts) {
@@ -87561,7 +87622,7 @@ var init_buffer5 = __esm({
           await window_default.cursors.addRanges(hlRanges);
         } catch (e) {
           this.changing = false;
-          logger54.error(`Error on add file item:`, e);
+          logger52.error(`Error on add file item:`, e);
         }
         release();
       }
@@ -87743,7 +87804,7 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_events54, spawn2, logger55, defaultArgs, controlCode2, Task2, Search;
+var import_events54, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
@@ -87756,7 +87817,7 @@ var init_search = __esm({
     init_node();
     init_window();
     ({ spawn: spawn2 } = child_process);
-    logger55 = createLogger("handler-search");
+    logger53 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
     Task2 = class extends import_events54.EventEmitter {
@@ -87857,7 +87918,7 @@ var init_search = __esm({
           try {
             await refactorBuf.addFileItems(items);
           } catch (e) {
-            logger55.error(e);
+            logger53.error(e);
           }
           release();
         };
@@ -88305,7 +88366,7 @@ function toHighlightPart(token) {
   highlightGroupMap.set(token, part);
   return part;
 }
-var logger56, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
+var logger54, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
 var init_buffer6 = __esm({
   "src/handler/semanticTokens/buffer.ts"() {
     "use strict";
@@ -88322,7 +88383,7 @@ var init_buffer6 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger56 = createLogger("semanticTokens-buffer");
+    logger54 = createLogger("semanticTokens-buffer");
     yieldEveryMilliseconds = getConditionValue(15, 5);
     HLGROUP_PREFIX = "CocSem";
     NAMESPACE4 = "semanticTokens";
@@ -88560,7 +88621,7 @@ var init_buffer6 = __esm({
             if (e instanceof CancellationError) {
               this.highlight(requestDelay2);
             } else {
-              logger56.error("Error on request semanticTokens: ", e);
+              logger54.error("Error on request semanticTokens: ", e);
             }
           }
           return void 0;
@@ -89207,7 +89268,7 @@ var init_signature = __esm({
 });
 
 // src/handler/symbols/buffer.ts
-var logger57, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
+var logger55, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
 var init_buffer7 = __esm({
   "src/handler/symbols/buffer.ts"() {
     "use strict";
@@ -89217,7 +89278,7 @@ var init_buffer7 = __esm({
     init_node();
     init_protocol();
     init_util7();
-    logger57 = createLogger("symbols-buffer");
+    logger55 = createLogger("symbols-buffer");
     DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
     SymbolsBuffer = class {
       constructor(doc, autoUpdateBufnrs) {
@@ -90450,7 +90511,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-1e9ecad 2025-04-02 23:44:59 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-5866164 2025-04-03 21:20:47 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90479,7 +90540,7 @@ var init_workspace2 = __esm({
 });
 
 // src/handler/index.ts
-var logger58, requestTimeout, Handler;
+var logger56, requestTimeout, Handler;
 var init_handler = __esm({
   "src/handler/index.ts"() {
     "use strict";
@@ -90517,7 +90578,7 @@ var init_handler = __esm({
     init_symbols2();
     init_typeHierarchy2();
     init_workspace2();
-    logger58 = createLogger("Handler");
+    logger56 = createLogger("Handler");
     requestTimeout = getConditionValue(500, 10);
     Handler = class {
       constructor(nvim) {
@@ -90679,7 +90740,7 @@ var init_handler = __esm({
         try {
           res = await Promise.resolve(fn(token));
         } catch (e) {
-          logger58.error(`Error on request ${name2}`, e);
+          logger56.error(`Error on request ${name2}`, e);
           this.nvim.errWriteLine(`Error on ${name2}: ${e}`);
         }
         if (this.requestTokenSource) {
@@ -90729,7 +90790,7 @@ var init_handler = __esm({
 });
 
 // src/plugin.ts
-var logger59, Plugin;
+var logger57, Plugin;
 var init_plugin = __esm({
   "src/plugin.ts"() {
     "use strict";
@@ -90749,7 +90810,7 @@ var init_plugin = __esm({
     init_util();
     init_window();
     init_workspace();
-    logger59 = createLogger("plugin");
+    logger57 = createLogger("plugin");
     Plugin = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -90940,7 +91001,7 @@ var init_plugin = __esm({
         nvim.setVar("coc_service_initialized", 1, true);
         nvim.call("coc#util#do_autocmd", ["CocNvimInit"], true);
         nvim.resumeNotification(false, true);
-        logger59.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
+        logger57.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
         this.ready = true;
         await events_default.fire("ready", []);
       }
@@ -90991,7 +91052,7 @@ function pathReplace(patterns) {
     };
   }
 }
-var import_neovim, logger60, ACTIONS_NO_WAIT, semVer, pendingNotifications, attach_default;
+var import_neovim, logger58, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
 var init_attach = __esm({
   "src/attach.ts"() {
     "use strict";
@@ -91005,10 +91066,11 @@ var init_attach = __esm({
     init_node();
     init_string();
     init_timing();
-    logger60 = createLogger("attach");
+    logger58 = createLogger("attach");
     ACTIONS_NO_WAIT = ["installExtensions", "updateExtensions"];
     semVer = semver.parse(VERSION);
     pendingNotifications = [];
+    NO_ERROR_REQUEST = ["doAutocmd", "CocAutocmd"];
     attach_default = (opts, requestApi = false) => {
       const nvim = (0, import_neovim.attach)(opts, createLogger("node-client"), requestApi);
       nvim.setVar("coc_process_pid", process.pid, true);
@@ -91019,7 +91081,7 @@ var init_attach = __esm({
         for (let [method, args] of pendingNotifications) {
           plugin.cocAction(method, ...args).catch((e) => {
             console.error(`Error on notification "${method}": ${e}`);
-            logger60.error(`Error on notification ${method}`, e);
+            logger58.error(`Error on notification ${method}`, e);
           });
         }
         pendingNotifications = [];
@@ -91031,7 +91093,7 @@ var init_attach = __esm({
             break;
           }
           case "Log": {
-            logger60.debug("Vim log", ...args);
+            logger58.debug("Vim log", ...args);
             break;
           }
           case "TaskExit":
@@ -91048,18 +91110,18 @@ var init_attach = __esm({
           case "PumInsert":
           case "InputListSelect":
           case "PumNavigate":
-            logger60.trace("Event: ", method, ...args);
+            logger58.trace("Event: ", method, ...args);
             await events_default.fire(method, args);
             break;
           case "CocAutocmd":
-            logger60.trace("Notification autocmd:", ...args);
+            logger58.trace("Notification autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             break;
           case "redraw":
             break;
           default: {
             try {
-              logger60.info("receive notification:", method, args);
+              logger58.info("receive notification:", method, args);
               if (!plugin.isReady) {
                 pendingNotifications.push([method, args]);
                 return;
@@ -91067,7 +91129,7 @@ var init_attach = __esm({
               await plugin.cocAction(method, ...args);
             } catch (e) {
               console.error(`Error on notification "${method}": ${toErrorText(e)}`);
-              logger60.error(`Error on notification ${method}`, e);
+              logger58.error(`Error on notification ${method}`, e);
             }
           }
         }
@@ -91078,19 +91140,19 @@ var init_attach = __esm({
         try {
           events_default.requesting = true;
           if (method == "CompleteStop") {
-            logger60.trace("Event: ", method, ...args);
+            logger58.trace("Event: ", method, ...args);
             await events_default.fire(method, args);
             resp.send(void 0);
           } else if (method == "CocAutocmd") {
-            logger60.trace("Request autocmd:", ...args);
+            logger58.trace("Request autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             resp.send(void 0);
           } else {
             if (!plugin.isReady && !ACTIONS_NO_WAIT.includes(method)) {
-              logger60.warn(`Plugin not ready on request "${method}"`, args);
+              logger58.warn(`Plugin not ready on request "${method}"`, args);
               resp.send("Plugin not ready", true);
             } else {
-              logger60.info("Request action:", method, args);
+              logger58.info("Request action:", method, args);
               let res = await plugin.cocAction(method, ...args);
               resp.send(res);
             }
@@ -91098,8 +91160,13 @@ var init_attach = __esm({
           events_default.requesting = false;
         } catch (e) {
           events_default.requesting = false;
-          resp.send(toErrorText(e), true);
-          logger60.error(`Request error:`, method, args, e);
+          if (NO_ERROR_REQUEST.includes(method)) {
+            nvim.echoError(new Error(`Request "${method}" failed`));
+            resp.send("");
+          } else {
+            resp.send(toErrorText(e), true);
+          }
+          logger58.error(`Request error:`, method, args, e);
         }
         timing.stop();
       });
@@ -91112,15 +91179,15 @@ var init_attach = __esm({
 if (global.__isMain) {
   Object.defineProperty(console, "log", {
     value() {
-      if (logger61) logger61.info(...arguments);
+      if (logger59) logger59.info(...arguments);
     }
   });
   const { createLogger: createLogger2 } = (init_logger(), __toCommonJS(logger_exports));
-  const logger61 = createLogger2("server");
+  const logger59 = createLogger2("server");
   process.on("uncaughtException", function(err) {
     let msg = "Uncaught exception: " + err.message;
     console.error(msg);
-    logger61.error("uncaughtException", err.stack);
+    logger59.error("uncaughtException", err.stack);
   });
   process.on("unhandledRejection", function(reason, p) {
     if (reason instanceof Error) {
@@ -91137,15 +91204,15 @@ if (global.__isMain) {
     } else {
       console.error("UnhandledRejection: " + reason);
     }
-    logger61.error("unhandledRejection ", p, reason);
+    logger59.error("unhandledRejection ", p, reason);
   });
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
   attach2({ reader: process.stdin, writer: process.stdout });
 } else {
   const exports2 = require_src3();
-  const logger61 = (init_logger(), __toCommonJS(logger_exports)).logger;
+  const logger59 = (init_logger(), __toCommonJS(logger_exports)).logger;
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
-  module.exports = { attach: attach2, exports: exports2, logger: logger61, loadExtension: (filepath, active) => {
+  module.exports = { attach: attach2, exports: exports2, logger: logger59, loadExtension: (filepath, active) => {
     return exports2.extensions.manager.load(filepath, active);
   } };
 }
