@@ -311,12 +311,14 @@ export class Workspace {
   /**
    * Register autocmd on vim.
    */
-  public registerAutocmd(autocmd: Autocmd): Disposable {
+  public registerAutocmd(autocmd: Autocmd, disposables?: Disposable[]): Disposable {
     if (autocmd.request && autocmd.event !== 'BufWritePre') {
       let name = parseExtensionName(Error().stack)
       logger.warn(`Extension "${name}" registered synchronized autocmd "${autocmd.event}", which could be slow.`)
     }
-    return this.autocmds.registerAutocmd(autocmd)
+    let disposable = this.autocmds.registerAutocmd(autocmd)
+    if (disposables) disposables.push(disposable)
+    return disposable
   }
 
   /**

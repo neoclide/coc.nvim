@@ -378,7 +378,7 @@ describe('workspace utility', () => {
     let event: any
     let eventCount = 0
     let disposables = []
-    disposables.push(workspace.registerAutocmd({
+    workspace.registerAutocmd({
       event: 'TextYankPost',
       request: true,
       arglist: ['v:event'],
@@ -386,7 +386,7 @@ describe('workspace utility', () => {
         eventCount += 1
         event = ev
       }
-    }))
+    }, disposables)
     await nvim.setLine('foo')
     await nvim.command('normal! yy')
     await helper.wait(30)

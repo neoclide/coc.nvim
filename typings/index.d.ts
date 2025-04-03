@@ -8971,7 +8971,7 @@ declare module 'coc.nvim' {
      * Note: avoid request autocmd when possible since vim could be blocked
      * forever when request triggered during request.
      */
-    export function registerAutocmd(autocmd: Autocmd): Disposable
+    export function registerAutocmd(autocmd: Autocmd, disposables?: Disposable[]): Disposable
 
     /**
      * Watch for vim's global option change.

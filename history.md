@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-03
+
+- Add `disposables` argument to `workspace.registerAutocmd()`
+- Change behavior for failure autocmd request, echo message instead of throw.
+
 ## 2025-04-02
 
 - Add method `window.getVisibleRanges()` to typings.
