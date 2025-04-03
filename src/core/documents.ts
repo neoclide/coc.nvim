@@ -480,6 +480,7 @@ export default class Documents implements Disposable {
     let firing = true
     let thenables: Thenable<TextEdit[] | any>[] = []
     let event: TextDocumentWillSaveEvent = {
+      bufnr: doc.bufnr,
       document: doc.textDocument,
       reason: TextDocumentSaveReason.Manual,
       waitUntil: (thenable: Thenable<any>) => {

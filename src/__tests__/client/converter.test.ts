@@ -30,7 +30,7 @@ describe('converter', () => {
 
   it('should asWillSaveTextDocumentParams', () => {
     const cv = c2p.createConverter()
-    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
+    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), bufnr: 1, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
     expect(res.textDocument).toBeDefined()
     expect(res.reason).toBeDefined()
   })

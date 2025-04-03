@@ -36,7 +36,7 @@ export interface LinesChange {
  * that resolves to an array of [text edits](#TextEdit).
  */
 export interface TextDocumentWillSaveEvent {
-
+  bufnr: number
   /**
    * The document that will be saved.
    */

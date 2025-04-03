@@ -231,7 +231,7 @@ describe('TextDocumentSynchronization', () => {
       let feature = client.getFeature(WillSaveTextDocumentNotification.method)
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
-      await provider.send({ document: doc.textDocument, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
+      await provider.send({ document: doc.textDocument, bufnr: doc.bufnr, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
       let res = await client.sendRequest('getLastWillSave') as any
       expect(res.uri).toBe(doc.uri)
       await client.stop()
