@@ -2,11 +2,12 @@
 import { isFalsyOrEmpty, toArray } from './array'
 import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
-import { fs } from './node'
 import * as Is from './is'
 import type { IJSONSchema } from './jsonSchema'
+import { fs } from './node'
 import { toObject } from './object'
 import { Registry } from './registry'
+import { toText } from './string'
 
 export type IStringDictionary<V> = Record<string, V>
 
@@ -201,19 +202,21 @@ export function getProperties(configuration: object): IStringDictionary<IJSONSch
  * Get extension name from error stack
  */
 export function parseExtensionName(stack: string, level = 2): string | undefined {
-  let line = stack.split(/\r?\n/).slice(level)[0]
-  if (!line) return undefined
-  line = line.replace(/^\s*at\s*/, '')
-  let filepath: string
-  if (line.endsWith(')')) {
-    let ms = line.match(/(\((.*?):\d+:\d+\))$/)
-    if (ms) filepath = ms[2]
-  } else {
-    let ms = line.match(/(.*?):\d+:\d+$/)
-    if (ms) filepath = ms[1]
+  let lines = toText(stack).split(/\r?\n/).slice(level)
+  if (lines.length === 0) return undefined
+  for (let line of lines) {
+    let filepath: string | undefined
+    line = line.replace(/^\s*at\s*/, '')
+    if (line.endsWith(')')) {
+      let ms = line.match(/(\((.*?):\d+:\d+\))$/)
+      if (ms) filepath = ms[2]
+    } else {
+      let ms = line.match(/(.*?):\d+:\d+$/)
+      if (ms) filepath = ms[1]
+    }
+    if (!filepath || isParentFolder(pluginRoot, filepath)) continue
+    let find = extensionRegistry.resolveExtension(filepath)
+    if (find) return find.name
   }
-  if (!filepath) return undefined
-  let find = extensionRegistry.resolveExtension(filepath)
-  if (find) return find.name
-  if (isParentFolder(pluginRoot, filepath)) return 'coc.nvim'
+  return 'coc.nvim'
 }
