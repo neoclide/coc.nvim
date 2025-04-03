@@ -11,15 +11,15 @@ import type {
   SignatureHelpRequest, TextEdit, Trace, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest,
   WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkspaceSymbolRequest
 } from 'vscode-languageserver-protocol'
-import { Emitter, Event, WorkDoneProgressOptions, TextDocumentRegistrationOptions, StaticRegistrationOptions } from '../util/protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
-import * as Is from '../util/is'
-import workspace from '../workspace'
-import * as UUID from './utils/uuid'
+import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { CancellationError } from '../util/errors'
+import * as Is from '../util/is'
+import { Emitter, Event, StaticRegistrationOptions, TextDocumentRegistrationOptions, WorkDoneProgressOptions } from '../util/protocol'
+import workspace from '../workspace'
 import * as c2p from './utils/codeConverter'
+import * as UUID from './utils/uuid'
 
 export class LSPCancellationError extends CancellationError {
   public readonly data: object
@@ -591,7 +591,6 @@ import { DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeatureShape, Di
 import { WorkspaceProviderFeature } from './workspaceSymbol'
 
 export interface FeatureClient<M, CO = object> {
-  registeredExtensionName: string
   clientOptions: CO
   middleware: M
   readonly id: string
@@ -604,6 +603,7 @@ export interface FeatureClient<M, CO = object> {
   isRunning(): boolean
   stop(): Promise<void>
   forceDocumentSync(): Promise<void>
+  attachExtensionName<T extends object>(provider: T): void
 
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
   sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>

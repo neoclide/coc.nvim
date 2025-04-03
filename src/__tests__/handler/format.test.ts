@@ -385,4 +385,22 @@ describe('format handler', () => {
       expect(lines).toEqual(['  {', '  ', '  }'])
     })
   })
+
+  describe('logProvider()', () => {
+    it('should log provider', () => {
+      format.logProvider(1, [])
+      format.logProvider(1, null)
+      let edits = [TextEdit.insert(Position.create(1, 1), 'foo')]
+      format.logProvider(1, edits)
+      let called = false
+      Object.defineProperty(edits, '__extensionName', {
+        get: () => {
+          called = true
+          return 'name'
+        }
+      })
+      format.logProvider(1, edits)
+      expect(called).toBe(true)
+    })
+  })
 })

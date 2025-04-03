@@ -56,6 +56,7 @@ export default class FormatHandler {
           const provideEdits = languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
           let textEdits = await Promise.race([tp, provideEdits])
           clearTimeout(timer)
+          this.logProvider(event.bufnr, textEdits)
           return Array.isArray(textEdits) ? textEdits : undefined
         }
         event.waitUntil(willSaveWaitUntil())
@@ -125,7 +126,7 @@ export default class FormatHandler {
     })
     if (edits.length === 0) return true
     await doc.applyEdits(edits, false, true)
-    logger.info(`Buffer ${doc.bufnr} formatted by format on type`)
+    this.logProvider(doc.bufnr, edits)
     return true
   }
 
@@ -150,6 +151,7 @@ export default class FormatHandler {
     })
     if (textEdits && textEdits.length > 0) {
       await doc.applyEdits(textEdits, false, true)
+      this.logProvider(doc.bufnr, textEdits)
       return true
     }
     return false
@@ -192,6 +194,12 @@ export default class FormatHandler {
     }
   }
 
+  public logProvider(bufnr: number, edits: TextEdit[] | undefined): void {
+    if (!Array.isArray(edits) || edits.length === 0) return
+    let extensionName = edits['__extensionName']
+    if (extensionName) logger.info(`Format buffer ${bufnr} by ${extensionName}`)
+  }
+
   public async documentRangeFormat(doc: Document, mode?: string): Promise<number> {
     this.handler.checkProvider(ProviderName.FormatRange, doc.textDocument)
     await doc.synchronize()
@@ -211,6 +219,7 @@ export default class FormatHandler {
     })
     if (!isFalsyOrEmpty(textEdits)) {
       await doc.applyEdits(textEdits, false, true)
+      this.logProvider(doc.bufnr, textEdits)
       return 0
     }
     return -1

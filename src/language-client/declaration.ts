@@ -46,6 +46,7 @@ export class DeclarationFeature extends TextDocumentLanguageFeature<boolean | De
       }
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerDeclarationProvider(options.documentSelector, provider), provider]
   }
 }

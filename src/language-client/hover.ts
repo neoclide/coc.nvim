@@ -76,6 +76,7 @@ export class HoverFeature extends TextDocumentLanguageFeature<
           : provideHover(document, position, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerHoverProvider(options.documentSelector!, provider), provider]
   }
 }

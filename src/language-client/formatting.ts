@@ -118,10 +118,9 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
           : provideDocumentFormattingEdits(document, options, token)
       }
     }
-
+    this._client.attachExtensionName(provider)
     return [
-      // We need to pass the originaly registered extension name to keep track of it.
-      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority, this._client.registeredExtensionName),
+      languages.registerDocumentFormatProvider(options.documentSelector!, provider, this._client.clientOptions.formatterPriority),
       provider
     ]
   }
@@ -175,10 +174,9 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
           : provideDocumentRangeFormattingEdits(document, range, options, token)
       }
     }
-
+    this._client.attachExtensionName(provider)
     return [
-      // We need to pass the originaly registered extension name to keep track of it.
-      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined, this._client.registeredExtensionName),
+      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined),
       provider
     ]
   }
@@ -227,6 +225,7 @@ export class DocumentOnTypeFormattingFeature extends TextDocumentLanguageFeature
       }
     }
 
+    this._client.attachExtensionName(provider)
     const moreTriggerCharacter = options.moreTriggerCharacter || []
     const characters = [options.firstTriggerCharacter, ...moreTriggerCharacter]
     return [languages.registerOnTypeFormattingEditProvider(options.documentSelector!, provider, characters), provider]

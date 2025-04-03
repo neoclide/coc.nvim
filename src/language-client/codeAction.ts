@@ -145,6 +145,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
         }
         : undefined
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerCodeActionProvider(options.documentSelector, provider, this._client.id, options.codeActionKinds), provider]
   }
 

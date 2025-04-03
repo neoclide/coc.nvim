@@ -14,6 +14,8 @@ import { LSPCancellationError } from '../../language-client/features'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
+import * as extension from '../../util/extensionRegistry'
+import { Registry } from '../../util/registry'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -114,6 +116,8 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let name = client.getExtensionName()
+    expect(name).toBe('html')
     let n = 0
     let disposable = client.onRequest('customRequest', () => {
       n++
@@ -718,5 +722,24 @@ describe('Client integration', () => {
       await client.stop()
     }).rejects.toThrow(Error)
     spy.mockRestore()
+  })
+
+  it('should attach extension name', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {}
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.ipc
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+    let filepath = path.join(os.tmpdir(), 'single')
+    registry.registerExtension('single', { name: 'single', directory: os.tmpdir(), filepath })
+    client['stack'] = `\n\n${filepath}:1:1`
+    let obj = {}
+    client.attachExtensionName(obj)
+    expect(obj['__extensionName']).toBe('single')
+    registry.unregistExtension('single')
+    await client.dispose()
   })
 })

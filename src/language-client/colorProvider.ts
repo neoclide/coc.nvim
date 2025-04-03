@@ -1,5 +1,5 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentSelector, Range, ServerCapabilities, ColorPresentationParams, DocumentColorParams } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationParams, Disposable, DocumentColorOptions, DocumentColorParams, DocumentColorRegistrationOptions, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
@@ -87,6 +87,7 @@ export class ColorProviderFeature extends TextDocumentLanguageFeature<
       }
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerDocumentColorProvider(options.documentSelector, provider), provider]
   }
 }

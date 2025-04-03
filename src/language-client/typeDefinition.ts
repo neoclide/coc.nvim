@@ -56,6 +56,7 @@ export class TypeDefinitionFeature extends TextDocumentLanguageFeature<boolean |
           : provideTypeDefinition(document, position, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerTypeDefinitionProvider(options.documentSelector, provider), provider]
   }
 }

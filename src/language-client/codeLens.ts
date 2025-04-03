@@ -3,7 +3,7 @@ import type { CancellationToken, ClientCapabilities, CodeLens, CodeLensOptions, 
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { CodeLensProvider, ProviderResult } from '../provider'
-import { CodeLensRefreshRequest, Emitter, CodeLensRequest, CodeLensResolveRequest } from '../util/protocol'
+import { CodeLensRefreshRequest, CodeLensRequest, CodeLensResolveRequest, Emitter } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as UUID from './utils/uuid'
 
@@ -84,6 +84,7 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
         }
         : undefined
     }
+    this._client.attachExtensionName(provider)
 
     return [languages.registerCodeLensProvider(options.documentSelector, provider), { provider, onDidChangeCodeLensEmitter: emitter }]
   }

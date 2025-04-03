@@ -122,6 +122,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
         : undefined
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerRenameProvider(options.documentSelector, provider), provider]
   }
 

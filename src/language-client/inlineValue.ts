@@ -64,6 +64,7 @@ export class InlineValueFeature extends TextDocumentLanguageFeature<
 
       }
     }
+    this._client.attachExtensionName(provider)
     const selector = options.documentSelector!
     return [languages.registerInlineValuesProvider(selector, provider), { provider, onDidChangeInlineValues: eventEmitter }]
   }

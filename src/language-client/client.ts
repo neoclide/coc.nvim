@@ -13,6 +13,7 @@ import { OutputChannel, Thenable } from '../types'
 import { defaultValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
+import { parseExtensionName } from '../util/extensionRegistry'
 import { sameFile } from '../util/fs'
 import * as Is from '../util/is'
 import { os } from '../util/node'
@@ -269,8 +270,6 @@ export namespace MessageTransports {
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
-  public registeredExtensionName: string
-
   private _id: string
   private _name: string
   private _clientOptions: ResolvedClientOptions
@@ -305,6 +304,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _trace: Trace
   private _tracer: Tracer
   private _consoleDebug = false
+  private __extensionName: string
 
   private readonly _c2p: c2p.Converter
 
@@ -353,6 +353,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._c2p = c2p.createConverter(clientOptions.uriConverter ? clientOptions.uriConverter.code2Protocol : undefined)
     this._syncedDocuments = new Map<string, TextDocument>()
     this.registerBuiltinFeatures()
+    Error.captureStackTrace(this)
   }
 
   public switchConsole(): void {
@@ -1660,6 +1661,31 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       return
     }
     this.error(`Request ${type.method} failed.`, error)
+  }
+
+  /**
+   * Return extension name or id.
+   */
+  public getExtensionName(): string {
+    if (this.__extensionName) return this.__extensionName
+    let name = parseExtensionName(toText(this['stack']))
+    if (name && name !== 'coc.nvim') {
+      this.__extensionName = name
+      return name
+    }
+    return this._id
+  }
+
+  /**
+   * Add __extensionName property to provider
+   */
+  public attachExtensionName<T extends object>(provider: T): void {
+    if (!provider.hasOwnProperty('__extensionName')) {
+      Object.defineProperty(provider, '__extensionName', {
+        get: () => this.getExtensionName(),
+        enumerable: true
+      })
+    }
   }
 }
 

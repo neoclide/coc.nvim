@@ -49,6 +49,7 @@ export class SelectionRangeFeature extends TextDocumentLanguageFeature<boolean |
           : provideSelectionRanges(document, positions, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerSelectionRangeProvider(options.documentSelector, provider), provider]
   }
 }

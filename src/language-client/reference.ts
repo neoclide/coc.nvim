@@ -75,6 +75,7 @@ export class ReferencesFeature extends TextDocumentLanguageFeature<
           : _providerReferences(document, position, options, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerReferencesProvider(options.documentSelector!, provider), provider]
   }
 }

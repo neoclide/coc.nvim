@@ -129,6 +129,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
         }
         : undefined
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerWorkspaceSymbolProvider(provider), provider]
   }
 }

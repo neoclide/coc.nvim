@@ -83,6 +83,7 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
       }
       : undefined
     const selector = options.documentSelector!
+    this._client.attachExtensionName(provider)
     return [languages.registerInlayHintsProvider(selector, provider), { provider, onDidChangeInlayHints: eventEmitter }]
   }
 }

@@ -173,9 +173,11 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
 
     const disposables: Disposable[] = []
     if (documentProvider !== undefined) {
+      this._client.attachExtensionName(documentProvider)
       disposables.push(languages.registerDocumentSemanticTokensProvider(options.documentSelector!, documentProvider, options.legend))
     }
     if (rangeProvider !== undefined) {
+      this._client.attachExtensionName(rangeProvider)
       disposables.push(languages.registerDocumentRangeSemanticTokensProvider(options.documentSelector!, rangeProvider, options.legend))
     }
 

@@ -149,6 +149,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
             : resolveCompletionItem(item, token)
         } : undefined
     }
+    this._client.attachExtensionName(provider)
     // index is needed since one language server could create many sources.
     let name = this._client.id + (this.registrationLength == 0 ? '' : '-' + id)
     const disposable = languages.registerCompletionItemProvider(

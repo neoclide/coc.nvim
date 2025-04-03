@@ -2,20 +2,22 @@
 import { Location, LocationLink } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
+import { parseExtensionName } from '../util/extensionRegistry'
 import { equals } from '../util/object'
 import { Disposable } from '../util/protocol'
-import { DocumentSelector } from './index'
+import { toText } from '../util/string'
 import workspace from '../workspace'
+import { DocumentSelector } from './index'
 const logger = createLogger('provider-manager')
 
-export type ProviderItem<T, P = object> = {
+export type ProviderItem<T extends object, P = object> = {
   id: string
   selector: DocumentSelector
   provider: T
   priority?: number
 } & P
 
-export default class Manager<T, P = object> {
+export default class Manager<T extends object, P = object> {
   protected providers: Set<ProviderItem<T, P>> = new Set()
 
   public hasProvider(document: TextDocumentMatch): boolean {
@@ -23,6 +25,18 @@ export default class Manager<T, P = object> {
   }
 
   protected addProvider(item: ProviderItem<T, P>): Disposable {
+    if (!item.provider.hasOwnProperty('__extensionName')) {
+      Error.captureStackTrace(item)
+      let name: string
+      Object.defineProperty(item.provider, '__extensionName', {
+        get: () => {
+          if (name) return name
+          name = parseExtensionName(toText(item['stack']))
+          return name
+        },
+        enumerable: true
+      })
+    }
     this.providers.add(item)
     return Disposable.create(() => {
       this.providers.delete(item)
@@ -52,6 +66,20 @@ export default class Manager<T, P = object> {
       providerItem = item
     }
     return providerItem
+  }
+
+  protected getFormatProvider(document: TextDocumentMatch): ProviderItem<T, P> {
+    // Prefer user choice
+    const userChoice = workspace.getConfiguration('coc.preferences', document).get<string>('formatterExtension')
+    if (userChoice) {
+      for (let item of this.providers) {
+        if (item.provider['__extensionName'] === userChoice) {
+          return item
+        }
+      }
+      logger.warn(`User-specified formatter not found for ${document.languageId}:`, userChoice)
+    }
+    return this.getProvider(document)
   }
 
   protected getProviderById(id: string): T {

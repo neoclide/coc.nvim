@@ -19,6 +19,7 @@ interface ProviderMeta {
  */
 export interface ExtendedCodeAction extends CodeAction {
   providerId?: string
+  extensionName?: string
 }
 
 function codeActionContains(kinds: CodeActionKind[], kind: CodeActionKind): boolean {
@@ -64,6 +65,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
       let { provider, id } = item
       let fn = async () => {
         let actions = await Promise.resolve(provider.provideCodeActions(document, range, context, token))
+        let extensionName = provider['__extensionName']
         if (isFalsyOrEmpty(actions)) return
         for (let action of actions) {
           if (titles.includes(action.title) || !checkAction(only, action)) continue
@@ -71,7 +73,8 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
             let codeAction: ExtendedCodeAction = {
               title: action.title,
               command: action,
-              providerId: id
+              providerId: id,
+              extensionName,
             }
             res.push(codeAction)
           } else {

@@ -73,6 +73,7 @@ export class DefinitionFeature extends TextDocumentLanguageFeature<
       }
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerDefinitionProvider(options.documentSelector!, provider), provider]
   }
 }

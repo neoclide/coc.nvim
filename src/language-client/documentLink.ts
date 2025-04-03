@@ -87,6 +87,7 @@ export class DocumentLinkFeature extends TextDocumentLanguageFeature<DocumentLin
         : undefined
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerDocumentLinkProvider(options.documentSelector, provider), provider]
   }
 }

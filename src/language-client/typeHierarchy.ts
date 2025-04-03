@@ -71,6 +71,7 @@ export class TypeHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
           : provideTypeHierarchySubtypes(item, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerTypeHierarchyProvider(selector, provider), provider]
   }
 }

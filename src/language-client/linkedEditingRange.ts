@@ -51,6 +51,7 @@ export class LinkedEditingFeature extends TextDocumentLanguageFeature<boolean | 
           : provideLinkedEditing(document, position, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerLinkedEditingRangeProvider(options.documentSelector!, provider), provider]
   }
 }

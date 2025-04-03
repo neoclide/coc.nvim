@@ -46,7 +46,7 @@ export class ImplementationFeature extends TextDocumentLanguageFeature<boolean |
           : provideImplementation(document, position, token)
       }
     }
-
+    this._client.attachExtensionName(provider)
     return [languages.registerImplementationProvider(options.documentSelector, provider), provider]
   }
 }

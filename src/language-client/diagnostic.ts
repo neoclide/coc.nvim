@@ -1,5 +1,4 @@
 'use strict'
-import { minimatch } from '../util/node'
 import { v4 as uuid } from 'uuid'
 import type {
   CancellationToken, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRegistrationOptions, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentSelector, PreviousResultId, ServerCapabilities, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult
@@ -10,13 +9,14 @@ import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
 import { TextDocumentMatch } from '../types'
+import { getConditionValue } from '../util'
 import { CancellationError } from '../util/errors'
 import { LinkedMap, Touch } from '../util/map'
+import { minimatch } from '../util/node'
 import { CancellationTokenSource, DiagnosticRefreshRequest, DiagnosticServerCancellationData, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, Emitter, RAL, WorkspaceDiagnosticRequest } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { BaseFeature, ensure, FeatureClient, LSPCancellationError, TextDocumentLanguageFeature } from './features'
-import { getConditionValue } from '../util'
 
 interface HandleDiagnosticsSignature {
   (this: void, uri: string, diagnostics: Diagnostic[]): void

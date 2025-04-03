@@ -69,6 +69,7 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
       }
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerFoldingRangeProvider(options.documentSelector, provider), provider]
   }
 }

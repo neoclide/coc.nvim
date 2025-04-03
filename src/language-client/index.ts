@@ -1,6 +1,6 @@
 'use strict'
 /* eslint-disable no-redeclare */
-import { ChildProcess, ChildProcessWithoutNullStreams, ForkOptions as CForkOptions } from 'child_process'
+import { ForkOptions as CForkOptions, ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
 import { createLogger } from '../logger'
 import { disposeAll, getConditionValue } from '../util'
 import * as Is from '../util/is'

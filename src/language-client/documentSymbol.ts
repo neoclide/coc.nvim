@@ -1,5 +1,5 @@
 'use strict'
-import type { ClientCapabilities, DocumentSymbolOptions, DocumentSelector, DocumentSymbolRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { ClientCapabilities, DocumentSelector, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { DocumentSymbol, SymbolInformation, SymbolKind, SymbolTag } from 'vscode-languageserver-types'
 import languages from '../languages'
@@ -108,6 +108,7 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
           : _provideDocumentSymbols(document, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider), provider]
   }
 }

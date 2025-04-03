@@ -4,8 +4,8 @@ import type {
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
-import { CallHierarchyPrepareRequest, CallHierarchyIncomingCallsRequest, CallHierarchyOutgoingCallsRequest } from '../util/protocol'
 import { CallHierarchyProvider, ProviderResult } from '../provider'
+import { CallHierarchyIncomingCallsRequest, CallHierarchyOutgoingCallsRequest, CallHierarchyPrepareRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export interface PrepareCallHierarchySignature {
@@ -88,6 +88,7 @@ export class CallHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
       }
     }
 
+    this._client.attachExtensionName(provider)
     return [languages.registerCallHierarchyProvider(options.documentSelector, provider), provider]
   }
 }
