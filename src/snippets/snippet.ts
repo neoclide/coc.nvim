@@ -445,7 +445,9 @@ export class CocSnippet {
 
   public getPlaceholderById(id: number, index: number): Placeholder | undefined {
     let p = this._tmSnippet.placeholders.find(o => o.id === id)
-    return p ? p : this.getPlaceholderByIndex(index).marker
+    if (p) return p
+    let placeholder = this.getPlaceholderByIndex(index)
+    return placeholder ? placeholder.marker : undefined
   }
 
   /**

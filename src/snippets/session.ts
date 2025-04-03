@@ -6,6 +6,7 @@ import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { DidChangeTextDocumentParams, JumpInfo, TextDocumentContentChange, UltiSnippetOption } from '../types'
+import { waitNextTick } from '../util'
 import { getTextEdit } from '../util/diff'
 import { onUnexpectedError } from '../util/errors'
 import { omit } from '../util/lodash'
@@ -21,7 +22,6 @@ import { getPlaceholderId, Placeholder, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
 import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
-import { waitNextTick } from '../util'
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
 
@@ -349,7 +349,9 @@ export class SnippetSession {
       if (this.snippet) {
         this.isStaled = true
         // find out the cloned placeholder
-        this.current = this.snippet.getPlaceholderById(id, current.index)
+        let marker = this.snippet.getPlaceholderById(id, current.index)
+        // the current could be invalid, so not able to find a cloned placeholder.
+        this.current = marker ?? this.snippet.tmSnippet.first
       }
       return
     }

@@ -333,6 +333,8 @@ describe('CocSnippet', () => {
       expect(p).toBeUndefined()
       let marker = snippet.getPlaceholderById(0.5, 0)
       expect(marker).toBeDefined()
+      marker = snippet.getPlaceholderById(10, 9)
+      expect(marker).toBeUndefined()
     })
 
     it('should prefer current placeholder', async () => {
