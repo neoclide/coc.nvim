@@ -9,7 +9,7 @@ scriptencoding utf-8
 # type HighlightItemList = list<HighlightItem>
 # NOTE: Can't use type on vim9.0.0438
 
-export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number)
+export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number): void
   const maxCount = g:coc_highlight_maximum_count
   if len(highlights) > maxCount
     const changedtick = getbufvar(bufnr, 'changedtick', 0)
@@ -19,7 +19,7 @@ export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, prio
   endif
 enddef
 
-def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: number, changedtick: number, maxCount: number)
+def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: number, changedtick: number, maxCount: number): void
   if getbufvar(bufnr, 'changedtick') != changedtick
     return
   endif
@@ -39,7 +39,7 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
   endif
 enddef
 
-def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
+def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): void
   if bufwinnr(bufnr) == -1 # check buffer exists
     return
   endif
@@ -58,8 +58,7 @@ def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
   endfor
 enddef
 
-export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, ...optionalArguments: list<dict<any>>)
-  const opts: dict<any> = get(optionalArguments, 0, {})
+export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, opts: dict<any> = {}): void
   if !hlexists(hl_group)
     execute $'highlight {hl_group} ctermfg=NONE'
   endif
@@ -67,7 +66,7 @@ export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: 
 enddef
 
 # From `src/core/highlights.ts`:
-#   type HighlightItemResult = [string, number, number, number, number?]
+# type HighlightItemResult = [string, number, number, number, number?]
 # type HighlightItemResult = list<any>
 
 export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
@@ -90,7 +89,7 @@ export def Get_highlights(bufnr: number, ns: number, start: number, end: number)
   return res
 enddef
 
-export def Del_markers(bufnr: number, ids: list<number>)
+export def Del_markers(bufnr: number, ids: list<number>): void
   for id in ids
     prop_remove({'bufnr': bufnr, 'id': id})
   endfor
