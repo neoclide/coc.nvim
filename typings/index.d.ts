@@ -3989,21 +3989,29 @@ declare module 'coc.nvim' {
 
   export interface VirtualTextOption {
     /**
-     * Only works on vim9 yet.
+     * Used on vim9 and neovim >= 0.10.0.
      */
     col?: number
     /**
-     * highlight mode
+     * Add line indent when text_align is below or above.
+     */
+    indent?: boolean
+    /**
+     * highlight mode, blend is neovim only (replace is used on vim when specified).
      */
     hl_mode?: 'combine' | 'replace' | 'blend'
+    /**
+     * neovim and vim.
+     */
+    text_align?: 'after' | 'right' | 'below' | 'above'
+    /**
+     * neovim only, right_gravity of nvim_buf_set_extmark.
+     */
+    right_gravity?: boolean
     /**
      * neovim only
      */
     virt_text_win_col?: number
-    /**
-     * vim9 only
-     */
-    text_align?: 'after' | 'right' | 'below'
     /**
      * vim9 only
      */
