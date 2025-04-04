@@ -26127,39 +26127,39 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
       const token = _scanner.scan();
       switch (_scanner.getTokenError()) {
         case 4:
-          handleError2(
+          handleError(
             14
             /* ParseErrorCode.InvalidUnicode */
           );
           break;
         case 5:
-          handleError2(
+          handleError(
             15
             /* ParseErrorCode.InvalidEscapeCharacter */
           );
           break;
         case 3:
-          handleError2(
+          handleError(
             13
             /* ParseErrorCode.UnexpectedEndOfNumber */
           );
           break;
         case 1:
           if (!disallowComments) {
-            handleError2(
+            handleError(
               11
               /* ParseErrorCode.UnexpectedEndOfComment */
             );
           }
           break;
         case 2:
-          handleError2(
+          handleError(
             12
             /* ParseErrorCode.UnexpectedEndOfString */
           );
           break;
         case 6:
-          handleError2(
+          handleError(
             16
             /* ParseErrorCode.InvalidCharacter */
           );
@@ -26169,7 +26169,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
         case 12:
         case 13:
           if (disallowComments) {
-            handleError2(
+            handleError(
               10
               /* ParseErrorCode.InvalidCommentToken */
             );
@@ -26178,7 +26178,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
           }
           break;
         case 16:
-          handleError2(
+          handleError(
             1
             /* ParseErrorCode.InvalidSymbol */
           );
@@ -26191,7 +26191,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
       }
     }
   }
-  function handleError2(error, skipUntilAfter = [], skipUntil = []) {
+  function handleError(error, skipUntilAfter = [], skipUntil = []) {
     onError(error);
     if (skipUntilAfter.length + skipUntil.length > 0) {
       let token = _scanner.getToken();
@@ -26223,7 +26223,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
         const tokenValue = _scanner.getTokenValue();
         let value = Number(tokenValue);
         if (isNaN(value)) {
-          handleError2(
+          handleError(
             2
             /* ParseErrorCode.InvalidNumberFormat */
           );
@@ -26248,7 +26248,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
   }
   function parseProperty() {
     if (_scanner.getToken() !== 10) {
-      handleError2(3, [], [
+      handleError(3, [], [
         2,
         5
         /* SyntaxKind.CommaToken */
@@ -26260,14 +26260,14 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
       onSeparator(":");
       scanNext();
       if (!parseValue()) {
-        handleError2(4, [], [
+        handleError(4, [], [
           2,
           5
           /* SyntaxKind.CommaToken */
         ]);
       }
     } else {
-      handleError2(5, [], [
+      handleError(5, [], [
         2,
         5
         /* SyntaxKind.CommaToken */
@@ -26283,7 +26283,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
     while (_scanner.getToken() !== 2 && _scanner.getToken() !== 17) {
       if (_scanner.getToken() === 5) {
         if (!needsComma) {
-          handleError2(4, [], []);
+          handleError(4, [], []);
         }
         onSeparator(",");
         scanNext();
@@ -26291,10 +26291,10 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
           break;
         }
       } else if (needsComma) {
-        handleError2(6, [], []);
+        handleError(6, [], []);
       }
       if (!parseProperty()) {
-        handleError2(4, [], [
+        handleError(4, [], [
           2,
           5
           /* SyntaxKind.CommaToken */
@@ -26304,7 +26304,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
     }
     onObjectEnd();
     if (_scanner.getToken() !== 2) {
-      handleError2(7, [
+      handleError(7, [
         2
         /* SyntaxKind.CloseBraceToken */
       ], []);
@@ -26321,7 +26321,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
     while (_scanner.getToken() !== 4 && _scanner.getToken() !== 17) {
       if (_scanner.getToken() === 5) {
         if (!needsComma) {
-          handleError2(4, [], []);
+          handleError(4, [], []);
         }
         onSeparator(",");
         scanNext();
@@ -26329,7 +26329,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
           break;
         }
       } else if (needsComma) {
-        handleError2(6, [], []);
+        handleError(6, [], []);
       }
       if (isFirstElement) {
         _jsonPath.push(0);
@@ -26338,7 +26338,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
         _jsonPath[_jsonPath.length - 1]++;
       }
       if (!parseValue()) {
-        handleError2(4, [], [
+        handleError(4, [], [
           4,
           5
           /* SyntaxKind.CommaToken */
@@ -26351,7 +26351,7 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
       _jsonPath.pop();
     }
     if (_scanner.getToken() !== 4) {
-      handleError2(8, [
+      handleError(8, [
         4
         /* SyntaxKind.CloseBracketToken */
       ], []);
@@ -26377,15 +26377,15 @@ function visit(text, visitor, options2 = ParseOptions.DEFAULT) {
     if (options2.allowEmptyContent) {
       return true;
     }
-    handleError2(4, [], []);
+    handleError(4, [], []);
     return false;
   }
   if (!parseValue()) {
-    handleError2(4, [], []);
+    handleError(4, [], []);
     return false;
   }
   if (_scanner.getToken() !== 17) {
-    handleError2(9, [], []);
+    handleError(9, [], []);
   }
   return true;
 }
@@ -38883,7 +38883,7 @@ var init_schema = __esm({
           type: "string",
           scope: "language-overridable",
           enum: ["top", "eol", "right_align"],
-          description: "Position of codeLens, requires nvim >= 0.6.0",
+          description: "Display position of codeLens virtual text.",
           default: "top"
         },
         "codeLens.separator": {
@@ -84948,27 +84948,6 @@ var init_codeActions = __esm({
   }
 });
 
-// src/handler/util.ts
-function handleError(e) {
-  logger49.error(`Error on handler: `, toErrorText(e));
-}
-function toDocumentation(doc) {
-  return {
-    content: typeof doc === "string" ? doc : doc.value,
-    filetype: isMarkdown(doc) ? "markdown" : "txt"
-  };
-}
-var logger49;
-var init_util7 = __esm({
-  "src/handler/util.ts"() {
-    "use strict";
-    init_logger();
-    init_is();
-    init_string();
-    logger49 = createLogger("handler-util");
-  }
-});
-
 // src/handler/codelens/buffer.ts
 function getTextAlign(position) {
   if (position == "top") return "above" /* Above */;
@@ -84988,7 +84967,7 @@ function getCommands(line, codeLenses) {
   }
   return commands;
 }
-var logger50, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
+var logger49, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer3 = __esm({
   "src/handler/codelens/buffer.ts"() {
     "use strict";
@@ -84997,13 +84976,13 @@ var init_buffer3 = __esm({
     init_logger();
     init_util();
     init_array();
+    init_errors();
     init_is();
     init_node();
     init_protocol();
     init_window();
     init_workspace();
-    init_util7();
-    logger50 = createLogger("codelens-buffer");
+    logger49 = createLogger("codelens-buffer");
     debounceTime7 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
     NORMAL_HL = "Normal";
@@ -85012,10 +84991,10 @@ var init_buffer3 = __esm({
         this.nvim = nvim;
         this.document = document2;
         this.resolveCodeLens = debounce(() => {
-          this._resolveCodeLenses().catch(handleError);
+          this._resolveCodeLenses().catch(onUnexpectedError);
         }, debounceTime7);
         this.debounceFetch = debounce(() => {
-          this.fetchCodeLenses().catch(handleError);
+          this.fetchCodeLenses().catch(onUnexpectedError);
         }, debounceTime7);
         if (this.hasProvider) this.debounceFetch();
       }
@@ -85051,7 +85030,7 @@ var init_buffer3 = __esm({
       onChange(e) {
         if (e.contentChanges.length === 0 && this.codeLenses != null) {
           this.resolveCodeLens.clear();
-          this._resolveCodeLenses().catch(handleError);
+          this._resolveCodeLenses().catch(onUnexpectedError);
         } else {
           this.cancel();
           this.debounceFetch();
@@ -85710,7 +85689,7 @@ var init_fold = __esm({
 });
 
 // src/handler/format.ts
-var logger51, FormatHandler;
+var logger50, FormatHandler;
 var init_format2 = __esm({
   "src/handler/format.ts"() {
     "use strict";
@@ -85725,7 +85704,7 @@ var init_format2 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger51 = createLogger("handler-format");
+    logger50 = createLogger("handler-format");
     FormatHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -85739,7 +85718,7 @@ var init_format2 = __esm({
           if (this.shouldFormatOnSave(event.document)) {
             let willSaveWaitUntil = async () => {
               if (!languages_default.hasFormatProvider(event.document)) {
-                logger51.warn(`Format provider not found for ${event.document.uri}`);
+                logger50.warn(`Format provider not found for ${event.document.uri}`);
                 return void 0;
               }
               let options2 = await workspace_default.getFormatOptions(event.document.uri);
@@ -85748,7 +85727,7 @@ var init_format2 = __esm({
               let tokenSource = new import_node3.CancellationTokenSource();
               const tp = new Promise((c) => {
                 timer = setTimeout(() => {
-                  logger51.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
+                  logger50.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`);
                   tokenSource.cancel();
                   c(void 0);
                 }, formatOnSaveTimeout);
@@ -85809,7 +85788,7 @@ var init_format2 = __esm({
         if (!ch || isAlphabet(ch.charCodeAt(0))) return false;
         if (!this.shouldFormatOnType(doc.filetype)) return false;
         if (!languages_default.hasProvider("formatOnType" /* FormatOnType */, doc.textDocument)) {
-          logger51.warn(`Format on type provider not found for buffer: ${doc.uri}`);
+          logger50.warn(`Format on type provider not found for buffer: ${doc.uri}`);
           return false;
         }
         if (!languages_default.canFormatOnType(ch, doc.textDocument)) return false;
@@ -85886,7 +85865,7 @@ var init_format2 = __esm({
       logProvider(bufnr, edits) {
         if (!Array.isArray(edits) || edits.length === 0) return;
         let extensionName = edits["__extensionName"];
-        if (extensionName) logger51.info(`Format buffer ${bufnr} by ${extensionName}`);
+        if (extensionName) logger50.info(`Format buffer ${bufnr} by ${extensionName}`);
       }
       async documentRangeFormat(doc, mode) {
         this.handler.checkProvider("formatRange" /* FormatRange */, doc.textDocument);
@@ -86347,7 +86326,6 @@ var init_buffer4 = __esm({
     init_regions();
     init_inlayHintManager();
     init_util();
-    init_constants();
     init_errors();
     init_position();
     init_protocol();
@@ -86518,7 +86496,7 @@ var init_buffer4 = __esm({
             col = 0;
           }
           let opts = { col, hl_mode: "replace" };
-          if (!isVim && item.kind == InlayHintKind.Parameter) {
+          if (item.kind == InlayHintKind.Parameter) {
             opts.right_gravity = false;
           }
           buffer.setVirtualText(srcId2, position.line, chunks, opts);
@@ -87260,7 +87238,7 @@ function fixChangeParams(e) {
   }
   return { contentChanges: changes, bufnr, textDocument, document: document2, original, originalLines };
 }
-var logger52, SEPARATOR, RefactorBuffer;
+var logger51, SEPARATOR, RefactorBuffer;
 var init_buffer5 = __esm({
   "src/handler/refactor/buffer.ts"() {
     "use strict";
@@ -87281,7 +87259,7 @@ var init_buffer5 = __esm({
     init_window();
     init_workspace();
     init_changes();
-    logger52 = createLogger("handler-refactorBuffer");
+    logger51 = createLogger("handler-refactorBuffer");
     SEPARATOR = "\u3000";
     RefactorBuffer = class {
       constructor(bufnr, srcId4, nvim, config, opts) {
@@ -87622,7 +87600,7 @@ var init_buffer5 = __esm({
           await window_default.cursors.addRanges(hlRanges);
         } catch (e) {
           this.changing = false;
-          logger52.error(`Error on add file item:`, e);
+          logger51.error(`Error on add file item:`, e);
         }
         release();
       }
@@ -87804,7 +87782,7 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_events54, spawn2, logger53, defaultArgs, controlCode2, Task2, Search;
+var import_events54, spawn2, logger52, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
@@ -87817,7 +87795,7 @@ var init_search = __esm({
     init_node();
     init_window();
     ({ spawn: spawn2 } = child_process);
-    logger53 = createLogger("handler-search");
+    logger52 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
     Task2 = class extends import_events54.EventEmitter {
@@ -87918,7 +87896,7 @@ var init_search = __esm({
           try {
             await refactorBuf.addFileItems(items);
           } catch (e) {
-            logger53.error(e);
+            logger52.error(e);
           }
           release();
         };
@@ -88366,7 +88344,7 @@ function toHighlightPart(token) {
   highlightGroupMap.set(token, part);
   return part;
 }
-var logger54, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
+var logger53, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
 var init_buffer6 = __esm({
   "src/handler/semanticTokens/buffer.ts"() {
     "use strict";
@@ -88383,7 +88361,7 @@ var init_buffer6 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger54 = createLogger("semanticTokens-buffer");
+    logger53 = createLogger("semanticTokens-buffer");
     yieldEveryMilliseconds = getConditionValue(15, 5);
     HLGROUP_PREFIX = "CocSem";
     NAMESPACE4 = "semanticTokens";
@@ -88621,7 +88599,7 @@ var init_buffer6 = __esm({
             if (e instanceof CancellationError) {
               this.highlight(requestDelay2);
             } else {
-              logger54.error("Error on request semanticTokens: ", e);
+              logger53.error("Error on request semanticTokens: ", e);
             }
           }
           return void 0;
@@ -89017,6 +88995,24 @@ Highlight group: ${toText(highlight.hlGroup)}`,
   }
 });
 
+// src/handler/util.ts
+function toDocumentation(doc) {
+  return {
+    content: typeof doc === "string" ? doc : doc.value,
+    filetype: isMarkdown(doc) ? "markdown" : "txt"
+  };
+}
+var logger54;
+var init_util7 = __esm({
+  "src/handler/util.ts"() {
+    "use strict";
+    init_logger();
+    init_is();
+    init_string();
+    logger54 = createLogger("handler-util");
+  }
+});
+
 // src/handler/signature.ts
 var debounceTime12, Signature;
 var init_signature = __esm({
@@ -89275,9 +89271,9 @@ var init_buffer7 = __esm({
     init_languages();
     init_logger();
     init_util();
+    init_errors();
     init_node();
     init_protocol();
-    init_util7();
     logger55 = createLogger("symbols-buffer");
     DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
     SymbolsBuffer = class {
@@ -89288,7 +89284,7 @@ var init_buffer7 = __esm({
         this._onDidUpdate = new import_node3.Emitter();
         this.onDidUpdate = this._onDidUpdate.event;
         this.fetchSymbols = debounce(() => {
-          this._fetchSymbols().catch(handleError);
+          this._fetchSymbols().catch(onUnexpectedError);
         }, DEBEBOUNCE_INTERVAL);
       }
       /**
@@ -90511,7 +90507,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-5866164 2025-04-03 21:20:47 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-1987448 2025-04-04 20:34:25 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

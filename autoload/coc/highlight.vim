@@ -5,7 +5,6 @@ let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 " Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 500)
-let s:term = &termguicolors == 0 && !has('gui_running')
 
 " Update buffer region by region.
 function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
@@ -410,16 +409,17 @@ function! coc#highlight#create_bg_command(group, amount) abort
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
 
   let ctermbg = coc#color#rgb2term(strpart(hex, 1))
-  if s:term && !s:check_ctermbg(id, ctermbg) && abs(a:amount) < 20.0
+  if s:use_term_colors() && !s:check_ctermbg(id, ctermbg) && abs(a:amount) < 20.0
     return coc#highlight#create_bg_command(a:group, a:amount * 2)
   endif
   return 'ctermbg=' . ctermbg.' guibg=' . hex
 endfunction
 
 function! coc#highlight#get_hex_color(id, kind, fallback) abort
-  let attr = coc#highlight#get_color(a:id, a:kind, s:term ? 'cterm' : 'gui')
-  let hex = s:to_hex_color(attr, s:term)
-  if empty(hex) && !s:term
+  let term_colors = s:use_term_colors()
+  let attr = coc#highlight#get_color(a:id, a:kind, term_colors ? 'cterm' : 'gui')
+  let hex = s:to_hex_color(attr, term_colors)
+  if empty(hex) && !term_colors
     let attr = coc#highlight#get_color(a:id, a:kind, 'cterm')
     let hex = s:to_hex_color(attr, 1)
   endif
@@ -654,4 +654,8 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       endtry
     endif
   endif
+endfunction
+
+function! s:use_term_colors() abort
+  return &termguicolors == 0 && !has('gui_running')
 endfunction
