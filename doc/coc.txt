@@ -1445,8 +1445,6 @@ Selection range function: ~
 CODE LENS 						*coc-code-lens*
 
 Code lens feature shows additional information above or after specific lines.
-Works best on nvim >= 0.8.0 and vim >= 9.0.0438. On older vim, some
-configurations may not work.
 
 CodeLens are not shown by default, use |coc-config-codeLens-enable| to enable,
 you may also need enable codeLens feature by configure extension or

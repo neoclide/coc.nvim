@@ -722,7 +722,7 @@ CODELENS
 
 "codeLens.position"					*coc-config-codeLens-position*
 
-	Position of codeLens, requires nvim >= 0.6.0.
+	Display position of codeLens virtual text.
 
 	Scope: `resource`, default: `"top"`
 

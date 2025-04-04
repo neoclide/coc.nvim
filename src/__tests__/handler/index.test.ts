@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, SymbolKind } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import Handler from '../../handler/index'
-import { handleError, toDocumentation } from '../../handler/util'
+import { toDocumentation } from '../../handler/util'
 import { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import helper from '../helper'
@@ -31,10 +31,6 @@ afterEach(async () => {
 
 describe('Handler', () => {
   describe('util', () => {
-    it('should handleError', () => {
-      handleError(new Error('error'))
-    })
-
     it('should to documentation', () => {
       expect(toDocumentation('doc')).toEqual({ content: 'doc', filetype: 'txt' })
       expect(toDocumentation({ kind: 'markdown', value: 'doc' })).toEqual({ content: 'doc', filetype: 'markdown' })

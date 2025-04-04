@@ -868,7 +868,7 @@
       "type": "string",
       "scope": "language-overridable",
       "enum": ["top", "eol", "right_align"],
-      "description": "Position of codeLens, requires nvim >= 0.6.0",
+      "description": "Display position of codeLens virtual text.",
       "default": "top"
     },
     "codeLens.separator": {

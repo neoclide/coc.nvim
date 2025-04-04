@@ -6,9 +6,9 @@ import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams } from '../../types'
 import { disposeAll, getConditionValue } from '../../util'
+import { onUnexpectedError } from '../../util/errors'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../../util/protocol'
-import { handleError } from '../util'
 const logger = createLogger('symbols-buffer')
 
 const DEBEBOUNCE_INTERVAL = getConditionValue(500, 10)
@@ -23,7 +23,7 @@ export default class SymbolsBuffer implements SyncItem {
   public readonly onDidUpdate: Event<DocumentSymbol[]> = this._onDidUpdate.event
   constructor(public readonly doc: Document, private autoUpdateBufnrs: Set<number>) {
     this.fetchSymbols = debounce(() => {
-      this._fetchSymbols().catch(handleError)
+      this._fetchSymbols().catch(onUnexpectedError)
     }, DEBEBOUNCE_INTERVAL)
   }
 

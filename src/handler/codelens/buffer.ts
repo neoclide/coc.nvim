@@ -9,12 +9,12 @@ import Document from '../../model/document'
 import { DidChangeTextDocumentParams } from '../../types'
 import { defaultValue, getConditionValue } from '../../util'
 import { isFalsyOrEmpty } from '../../util/array'
+import { onUnexpectedError } from '../../util/errors'
 import { isCommand } from '../../util/is'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
-import { handleError } from '../util'
 const logger = createLogger('codelens-buffer')
 
 export interface CodeLensInfo {
@@ -57,10 +57,10 @@ export default class CodeLensBuffer implements SyncItem {
     public readonly document: Document
   ) {
     this.resolveCodeLens = debounce(() => {
-      this._resolveCodeLenses().catch(handleError)
+      this._resolveCodeLenses().catch(onUnexpectedError)
     }, debounceTime)
     this.debounceFetch = debounce(() => {
-      this.fetchCodeLenses().catch(handleError)
+      this.fetchCodeLenses().catch(onUnexpectedError)
     }, debounceTime)
     if (this.hasProvider) this.debounceFetch()
   }
@@ -101,7 +101,7 @@ export default class CodeLensBuffer implements SyncItem {
   public onChange(e: DidChangeTextDocumentParams): void {
     if (e.contentChanges.length === 0 && this.codeLenses != null) {
       this.resolveCodeLens.clear()
-      this._resolveCodeLenses().catch(handleError)
+      this._resolveCodeLenses().catch(onUnexpectedError)
     } else {
       this.cancel()
       this.debounceFetch()
