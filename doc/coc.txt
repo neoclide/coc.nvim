@@ -875,7 +875,8 @@ Use |coc-config-signature| to change default signature help behavior.
 INLAY HINT 						*coc-inlayHint*
 
 Inlay hint is enabled for all filetypes by default.  Inlay hint uses virtual
-text feature of vim.
+text feature of vim.  Vim9 or neovim >= 0.10 required to insert the virtual
+text at correct position.
 
 Note: you may need configure extension or languageserver to make inlay hint
 works.

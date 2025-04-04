@@ -928,7 +928,9 @@ def coc#api#create_type(src_id: number, hl_group: string, opts: dict<any>): stri
     s:id_types[src_id] = types
     if empty(prop_type_get(type))
       final type_option: dict<any> = {'highlight': hl_group}
-      if get(opts, 'hl_mode', 'combine') !=# 'combine'
+      const hl_mode: string = get(opts, 'hl_mode', 'combine')
+      if hl_mode !=# 'combine'
+        type_option['override'] = 1
         type_option['combine'] = 0
       endif
       # vim not throw for unknown properties

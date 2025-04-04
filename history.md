@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-04
+
+- Add `right_gravity` property to `VirtualTextOption`.
+
 ## 2025-04-03
 
 - Add `disposables` argument to `workspace.registerAutocmd()`

@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, VirtualTextOption } from '@chemzqm/neovim'
 import { InlayHintKind, Range } from 'vscode-languageserver-types'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'
@@ -8,7 +8,6 @@ import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
 import { getConditionValue, waitWithToken } from '../../util'
-import { isVim } from '../../util/constants'
 import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
@@ -230,9 +229,10 @@ export default class InlayHintBuffer implements SyncItem {
       if (this.config.position == InlayHintPosition.Eol) {
         col = 0
       }
-      // TODO right_gravity field is absent in VirtualTextOption
-      let opts: any = { col, hl_mode: 'replace' }
-      if (!isVim && item.kind == InlayHintKind.Parameter) { opts.right_gravity = false }
+      let opts: VirtualTextOption = { col, hl_mode: 'replace' }
+      if (item.kind == InlayHintKind.Parameter) {
+        opts.right_gravity = false
+      }
       buffer.setVirtualText(srcId, position.line, chunks, opts)
     }
     nvim.resumeNotification(true, true)

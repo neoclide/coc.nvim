@@ -2,18 +2,22 @@ let s:is_vim = !has('nvim')
 let s:n10 = has('nvim-0.10.0')
 
 " This function is called by buffer.setVirtualText
-" opts.hl_mode default to 'combine'.
-" opts.col vim & nvim > 0.10.0, default to 0.
-" opts.virt_text_win_col neovim only.
-" opts.text_align could be 'after' 'right' 'below' 'above', converted on neovim.
-" opts.text_wrap could be 'wrap' and 'truncate', vim9 only.
-" opts.indent add indent when using 'above' and 'below' as text_align
+" bufnr - The buffer number
+" src_id - Id created by coc#highlight#create_namespace()
+" line - Zero based line number
+" blocks - List with [text, hl_group]
+" opts.hl_mode - Default to 'combine'.
+" opts.col - vim & nvim >= 0.10.0, default to 0.
+" opts.virt_text_win_col - neovim only.
+" opts.text_align - Could be 'after' 'right' 'below' 'above', converted on neovim.
+" opts.text_wrap - Could be 'wrap' and 'truncate', vim9 only.
+" opts.indent - add indent when using 'above' and 'below' as text_align
 function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
   let align = get(a:opts, 'text_align', 'after')
   let column = get(a:opts, 'col', 0)
   let indent = ''
   if get(a:opts, 'indent', 0)
-    let indent = matchstr(getline(a:line + 1), '^\s\+')
+    let indent = matchstr(get(getbufline(a:bufnr, a:line + 1), 0, ''), '^\s\+')
   endif
   if s:is_vim
     if !has_key(a:opts, 'col') && align ==# 'after'
@@ -49,9 +53,9 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       endif
     else
       let opts['virt_text'] = a:blocks
+      let opts['right_gravity'] = get(a:opts, 'right_gravity', v:true)
       if s:n10 && column != 0
         let opts['virt_text_pos'] = 'inline'
-        let opts['right_gravity'] = get(a:opts, 'right_gravity', v:true)
       elseif align ==# 'right'
         let opts['virt_text_pos'] = 'right_align'
       else
