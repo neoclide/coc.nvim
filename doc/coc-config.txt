@@ -355,7 +355,7 @@ following properties are supported:
 	  `"CocFloating"`.
 	- "title": Title text used by float window, default: `""`.
 	- "borderhighlight": Border highlight group of float window, default:
-	  `"CocFloating"`.
+	  `"CocFloatBorder"`.
 	- "close": Set to `true` to draw close icon.
 	- "maxWidth": Maximum width of float window, contains border.
 	- "maxHeight": Maximum height of float window, contains border.

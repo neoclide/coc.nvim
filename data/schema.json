@@ -27,7 +27,7 @@
         },
         "borderhighlight": {
           "type": "string",
-          "default": "CocFloating",
+          "default": "CocFloatBorder",
           "description": "Border highlight group of float window."
         },
         "close": {
