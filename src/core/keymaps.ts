@@ -7,15 +7,16 @@ import { Disposable } from '../util/protocol'
 import { toBase64 } from '../util/string'
 const logger = createLogger('core-keymaps')
 
-export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!' | 't' | 'c' | 'l'
 export type LocalMode = 'n' | 'i' | 'v' | 's' | 'x'
 export type KeymapCallback = () => Promise<string> | string | void | Promise<void>
 
-export function getKeymapModifier(mode: MapMode): string {
+export function getKeymapModifier(mode: MapMode, cmd?: boolean): string {
+  if (cmd) return '<Cmd>'
   if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
   if (mode == 'i') return '<C-o>'
   if (mode == 's') return '<Esc>'
-  return ''
+  return '<Cmd>'
 }
 
 export function getBufnr(buffer: number | boolean): number {
@@ -49,22 +50,22 @@ export default class Keymaps {
   public registerKeymap(modes: MapMode[], name: string, fn: KeymapCallback, opts: Partial<KeymapOption> = {}): Disposable {
     if (!name) throw new Error(`Invalid key ${name} of registerKeymap`)
     let key = `coc-${name}`
-    if (this.keymaps.has(key)) throw new Error(`${name} already exists.`)
-    let lhs = `<Plug>(${key})`
+    if (this.keymaps.has(key)) throw new Error(`keymap: "${name}" already exists.`)
+    const lhs = `<Plug>(${key})`
     opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts)
     let { nvim } = this
     this.keymaps.set(key, [fn, !!opts.repeat])
     let method = opts.sync ? 'request' : 'notify'
-    let cancel = opts.cancel ? 1 : 0
     for (let mode of modes) {
       if (mode == 'i') {
+        const cancel = opts.cancel ? 1 : 0
         nvim.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${key}', ${cancel})`, {
           expr: true,
           noremap: true,
           silent: opts.silent
         })
       } else {
-        nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
+        nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode, opts.cmd)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
           noremap: true,
           silent: opts.silent
         })
@@ -90,7 +91,7 @@ export default class Keymaps {
     }
     let opts = { noremap: true, silent: true, expr: true, nowait: true }
     if (buffer) {
-      nvim.createBuffer(bufnr).setKeymap(mode, lhs, rhs, opts)
+      nvim.call('coc#compat#buf_add_keymap', [bufnr, mode, lhs, rhs, opts], true)
     } else {
       nvim.setKeymap(mode, lhs, rhs, opts)
     }
@@ -98,25 +99,36 @@ export default class Keymaps {
     return Disposable.create(() => {
       this.keymaps.delete(id)
       if (buffer) {
-        nvim.createBuffer(bufnr).deleteKeymap(mode, lhs)
+        nvim.call('coc#compat#buf_del_keymap', [bufnr, mode, lhs], true)
       } else {
         nvim.deleteKeymap(mode, lhs)
       }
     })
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: KeymapCallback, notify: boolean): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: KeymapCallback, notify: boolean | KeymapOption): Disposable {
     let { nvim } = this
     let buffer = nvim.createBuffer(bufnr)
     let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`
-    this.keymaps.set(id, [fn, false])
-    let method = notify ? 'notify' : 'request'
-    let modify = getKeymapModifier(mode)
-    buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
-      silent: true,
-      nowait: true,
-      noremap: true
-    })
+    const conf = typeof notify == 'boolean' ? { sync: !notify } : notify
+    const opts: KeymapOption = Object.assign({ sync: true, cancel: true, silent: true }, conf)
+    this.keymaps.set(id, [fn, !!opts.repeat])
+    let method = opts.sync ? 'request' : 'notify'
+    if (mode == 'i') {
+      const cancel = opts.cancel ? 1 : 0
+      buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id}', ${cancel})`, {
+        expr: true,
+        noremap: true,
+        silent: opts.silent
+      })
+    } else {
+      const modify = getKeymapModifier(mode, opts.cmd)
+      buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
+        silent: opts.silent,
+        nowait: true,
+        noremap: true
+      })
+    }
     return Disposable.create(() => {
       this.keymaps.delete(id)
       buffer.deleteKeymap(mode, lhs)

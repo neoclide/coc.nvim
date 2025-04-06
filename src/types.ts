@@ -239,7 +239,10 @@ export interface OutputChannel {
 }
 
 export interface KeymapOption {
-  desc?: string
+  /**
+   * Use `<Cmd>` prefix
+   */
+  cmd?: boolean
   sync?: boolean
   cancel?: boolean
   silent?: boolean

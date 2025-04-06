@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import workspace from '../../workspace'
-import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
-import helper from '../helper'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../../util'
+import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
 import events from '../../events'
+import { disposeAll } from '../../util'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let nvim: Neovim
 let keymaps: Keymaps
@@ -49,10 +49,11 @@ describe('registerKeymap()', () => {
   })
 
   it('should getKeymapModifier', () => {
+    expect(getKeymapModifier('i', true)).toBe('<Cmd>')
     expect(getKeymapModifier('i')).toBe('<C-o>')
     expect(getKeymapModifier('s')).toBe('<Esc>')
     expect(getKeymapModifier('x')).toBe('<C-U>')
-    expect(getKeymapModifier('t' as any)).toBe('')
+    expect(getKeymapModifier('t')).toBe('<Cmd>')
   })
 
   it('should throw for invalid key', () => {
@@ -157,5 +158,41 @@ describe('registerLocalKeymap', () => {
     disposable.dispose()
     res = await nvim.exec('nmap n', true)
     expect(res).toMatch('No mapping found')
+  })
+
+  it('should regist insert mode keymap', async () => {
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    await nvim.command('startinsert')
+    let called = false
+    let disposable = keymaps.registerLocalKeymap(bufnr, 'i', '<C-i>', () => {
+      called = true
+    }, { cancel: true })
+    disposables.push(disposable)
+    await nvim.input('<C-i>')
+    await helper.waitValue(() => called, true)
+    called = false
+    disposable = keymaps.registerLocalKeymap(bufnr, 'i', '<C-o>', () => {
+      called = true
+    }, { cancel: false })
+    disposables.push(disposable)
+    await nvim.input('<C-o>')
+    await helper.waitValue(() => called, true)
+  })
+
+  it('should regist cmd keymap', async () => {
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    let called = false
+    let disposable = keymaps.registerLocalKeymap(bufnr, 'x', '<C-i>', async () => {
+      called = true
+    }, { cmd: true })
+    disposables.push(disposable)
+    await nvim.setLine('foo')
+    await nvim.command('normal! v$')
+    let m = await nvim.mode
+    expect(m.mode).toBe('v')
+    await nvim.input('<C-i>')
+    await helper.waitValue(() => called, true)
+    m = await nvim.mode
+    expect(m.mode).toBe('c')
   })
 })

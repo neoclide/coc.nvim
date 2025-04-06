@@ -8253,19 +8253,23 @@ declare module 'coc.nvim' {
 
   export interface KeymapOption {
     /**
-     * Use request instead of notify, default true
+     * Use <Cmd> as rhs command prefix, ignored on insert mode (<expr> is used on insert mode), see `:h map-cmd`.
+     */
+    cmd?: boolean
+    /**
+     * When invoke the callback, send request to NodeJS instead of notification, default `true`.
      */
     sync?: boolean
     /**
-     * Cancel completion before invoke callback, default true
+     * Cancel completion before invoke callback, default `true`, insert mode only.
      */
     cancel?: boolean
     /**
-     * Use <silent> for keymap, default true.
+     * Use <silent> for keymap, default `true`.
      */
     silent?: boolean
     /**
-     * Enable repeat support for repeat.vim, default false
+     * Enable repeat support for repeat.vim, default `false`.
      */
     repeat?: boolean
   }
@@ -8311,7 +8315,7 @@ declare module 'coc.nvim' {
     position: Position
   }
 
-  export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
+  export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!' | 't' | 'c' | 'l'
 
   export interface Autocmd {
     /**
@@ -9131,13 +9135,13 @@ declare module 'coc.nvim' {
      * Register unique global key-mapping with `<Plug>(coc-{key})` as lhs.
      * 'noremap' is always used, Throw error when {key} already exists.
      *
-     * @param {MapMode[]} modes - array of 'n' | 'i' | 'v' | 'x' | 's' | 'o'
-     * @param {string} key - unique name, should only use alphabetical characters and '-'.
-     * @param {Function} fn - callback function.
-     * @param {Partial} opts - Optional option.
+     * @param {MapMode[]} modes - Array of map mode short-name.
+     * @param {string} key - Unique name, should only use alphabetical characters and '-'.
+     * @param {Function} fn - Callback function.
+     * @param {KeymapOption} opts - Optional option.
      * @returns {Disposable}
      */
-    export function registerKeymap(modes: MapMode[], key: string, fn: () => ProviderResult<any>, opts?: Partial<KeymapOption>): Disposable
+    export function registerKeymap(modes: MapMode[], key: string, fn: () => ProviderResult<any>, opts?: KeymapOption): Disposable
 
     /**
      * Register expr mapping global or local to buffer.
@@ -9160,16 +9164,16 @@ declare module 'coc.nvim' {
      *
      * Unlike :map, space in {lhs} is accepted as part of the {lhs}, keycodes
      * are replaced are usual.
-     * 'noremap' and map arguments <silent>, <nowait> are always used.
+     * 'noremap' and map arguments <nowait> are always used.
      *
      * @param {number} bufnr - buffer number, use 0 for current buffer.
      * @param {'n' | 'i' | 'v' | 's' | 'x'} mode - mode short-name.
      * @param {string} lhs - lhs of key-mapping.
      * @param {Function} fn - callback function.
-     * @param {boolean} notify - send notification instead of request from vim when inovke callback, default to `false`.
+     * @param {KeymapOption | boolean} opts - Optional option, when it's boolean value, indicate use notification or not.
      * @returns {Disposable}
      */
-    export function registerLocalKeymap(bufnr: number, mode: 'n' | 'i' | 'v' | 's' | 'x', lhs: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
+    export function registerLocalKeymap(bufnr: number, mode: 'n' | 'i' | 'v' | 's' | 'x', lhs: string, fn: () => ProviderResult<any>, opts?: KeymapOption | boolean): Disposable
 
     /**
      * Register for buffer sync objects, created item should be disposable

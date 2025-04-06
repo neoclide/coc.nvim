@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-06
+
+- Add `cmd` option to interface `KeymapOption`.
+- Add `KeymapOption` support to `workspace.registerLocalKeymap()`
+
 ## 2025-04-04
 
 - Add `right_gravity` property to `VirtualTextOption`.

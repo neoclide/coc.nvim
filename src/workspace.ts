@@ -497,7 +497,7 @@ export class Workspace {
     return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel)
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: KeymapCallback, notify = false): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: KeymapCallback, notify: KeymapOption | boolean = false): Disposable {
     if (typeof arguments[0] === 'string') {
       bufnr = this.bufnr
       mode = arguments[0] as LocalMode
