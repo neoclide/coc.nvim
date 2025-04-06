@@ -49,7 +49,7 @@ export interface DialogConfig {
    */
   highlights?: ReadonlyArray<HighlightItem>
   /**
-   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFloating'
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFloatBorder'
    */
   borderhighlight?: string
   /**

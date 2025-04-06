@@ -119,7 +119,7 @@ export default class PopupMenu {
     if (pumFloatConfig.border) {
       obj.border = [1, 1, 1, 1]
       obj.rounded = pumFloatConfig.rounded ? 1 : 0
-      obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloating'
+      obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloatBorder'
     }
     obj.reverse = reversePumAboveCursor === true
     this._pumConfig = obj
