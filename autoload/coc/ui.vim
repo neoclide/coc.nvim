@@ -340,6 +340,7 @@ function! coc#ui#rename_file(oldPath, newPath, write) abort
   if bufloaded(newPath)
     execute 'silent bdelete! '.bufnr(newPath)
   endif
+  " TODO use nvim_buf_set_name instead
   let current = bufnr == bufnr('%')
   let bufname = fnamemodify(newPath, ":~:.")
   let filepath = fnamemodify(bufname(bufnr), '%:p')

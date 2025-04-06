@@ -20,40 +20,19 @@ function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
 endfunction
 
 function! coc#compat#buf_line_count(bufnr) abort
+  if !bufloaded(a:bufnr)
+    return 0
+  endif
   if exists('*nvim_buf_line_count')
     return nvim_buf_line_count(a:bufnr)
   endif
-  if bufnr('%') == a:bufnr
-    return line('$')
-  endif
-  if exists('*getbufinfo')
-    let info = getbufinfo(a:bufnr)
-    if empty(info)
-      return 0
-    endif
-    " vim 8.1 has getbufinfo but no linecount
-    if has_key(info[0], 'linecount')
-      return info[0]['linecount']
-    endif
-  endif
-  if exists('*getbufline')
-    let lines = getbufline(a:bufnr, 1, '$')
-    return len(lines)
-  endif
-  let curr = bufnr('%')
-  execute 'noa buffer '.a:bufnr
-  let n = line('$')
-  execute 'noa buffer '.curr
-  return n
+  let info = getbufinfo(a:bufnr)
+  return empty(info) ? 0 : info[0]['linecount']
 endfunction
 
 function! coc#compat#prepend_lines(bufnr, replacement) abort
-  if exists('*appendbufline')
+  if bufloaded(a:bufnr)
     call appendbufline(a:bufnr, 0, a:replacement)
-  elseif !s:is_vim
-    call nvim_buf_set_lines(a:bufnr, 0, 0, 0, a:replacement)
-  else
-    throw 'appendbufline() required for prepend lines.'
   endif
 endfunction
 
@@ -68,20 +47,7 @@ function! coc#compat#clear_matches(winid) abort
   if !coc#compat#win_is_valid(a:winid)
     return
   endif
-  let curr = win_getid()
-  if curr == a:winid
-    call clearmatches()
-    return
-  endif
-  if s:is_vim
-    call clearmatches(a:winid)
-  else
-    if exists('*nvim_set_current_win')
-      noa call nvim_set_current_win(a:winid)
-      call clearmatches()
-      noa call nvim_set_current_win(curr)
-    endif
-  endif
+  call clearmatches(a:winid)
 endfunction
 
 function! coc#compat#matchaddpos(group, pos, priority, winid) abort
@@ -93,21 +59,6 @@ function! coc#compat#matchaddpos(group, pos, priority, winid) abort
   endif
 endfunction
 
-" Not throw error version
-function! coc#compat#buf_del_var(bufnr, name) abort
-  if !bufloaded(a:bufnr)
-    return
-  endif
-  if exists('*nvim_buf_del_var')
-    silent! call nvim_buf_del_var(a:bufnr, a:name)
-  else
-    let winid = coc#compat#buf_win_id(a:bufnr)
-    if winid != -1
-      call win_execute(winid, 'unlet! b:'.a:name)
-    endif
-  endif
-endfunction
-
 " hlGroup, pos, priority
 function! coc#compat#matchaddgroups(winid, groups) abort
   for group in a:groups
@@ -115,32 +66,48 @@ function! coc#compat#matchaddgroups(winid, groups) abort
   endfor
 endfunction
 
+" Delete var, not throw version.
 function! coc#compat#del_var(name) abort
-  if exists('*nvim_del_var')
-    silent! call nvim_del_var(a:name)
-  else
+  if s:is_vim
     execute 'unlet! '.a:name
+  else
+    silent! call nvim_del_var(a:name)
   endif
 endfunction
 
-" remove keymap for specific buffer
+" Not throw version
+function! coc#compat#buf_del_var(bufnr, name) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  if exists('*nvim_buf_del_var')
+    silent! call nvim_buf_del_var(a:bufnr, a:name)
+  else
+    let bufvars = getbufvar(a:bufnr, '')
+    if has_key(bufvars, a:name)
+      call remove(bufvars, a:name)
+    endif
+  endif
+endfunction
+
+" remove keymap for bufnr, not throw error
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)
     return
   endif
-  if exists('*nvim_buf_del_keymap')
+  if s:is_vim
+    try
+      call coc#api#exec('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
+    catch /E31/
+      " ignore keymap doesn't exist
+    endtry
+  else
     try
       call nvim_buf_del_keymap(a:bufnr, a:mode, a:lhs)
     catch /^Vim\%((\a\+)\)\=:E5555/
       " ignore keymap doesn't exist
     endtry
-    return
   endif
-  try
-    call coc#api#exec('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
-  catch /E31/
-    " ignore keymap doesn't exist
-  endtry
 endfunction
 
 function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
