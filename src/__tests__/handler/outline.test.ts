@@ -515,15 +515,17 @@ fun1() {}
       let doc = workspace.getDocument(bufnr)
       uri = doc.uri
       await symbols.showOutline(0)
-      await helper.wait(200)
+      await helper.waitValue(async () => {
+        let id = await nvim.eval('get(w:,"cocViewId",v:null)')
+        return id != null
+      }, true)
       await nvim.command('exe 3')
       await nvim.input('<tab>')
-      await helper.wait(50)
+      await helper.waitFloat()
       await nvim.input('<cr>')
-      await helper.wait(200)
-      let buf = await nvim.buffer
-      let lines = await buf.lines
-      expect(lines[0]).toBe(' myClass {')
+      await helper.waitValue(async () => {
+        return await nvim.eval('getline(1)')
+      }, ' myClass {')
     })
   })
 

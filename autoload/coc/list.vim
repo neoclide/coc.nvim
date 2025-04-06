@@ -202,15 +202,7 @@ function! coc#list#scroll_preview(dir, floatPreview) abort
     endif
     return
   endif
-
-  if exists('*win_execute')
-    call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
-  else
-    let id = win_getid()
-    noa call win_gotoid(winid)
-    execute "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>")
-    noa call win_gotoid(id)
-  endif
+  call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
 endfunction
 
 function! coc#list#close_preview(...) abort

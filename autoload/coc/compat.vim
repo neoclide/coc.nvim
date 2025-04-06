@@ -93,6 +93,7 @@ function! coc#compat#matchaddpos(group, pos, priority, winid) abort
   endif
 endfunction
 
+" Not throw error version
 function! coc#compat#buf_del_var(bufnr, name) abort
   if !bufloaded(a:bufnr)
     return
@@ -100,13 +101,9 @@ function! coc#compat#buf_del_var(bufnr, name) abort
   if exists('*nvim_buf_del_var')
     silent! call nvim_buf_del_var(a:bufnr, a:name)
   else
-    if a:bufnr == bufnr('%')
-      execute 'unlet! b:'.a:name
-    elseif exists('*win_execute')
-      let winid = coc#compat#buf_win_id(a:bufnr)
-      if winid != -1
-        call win_execute(winid, 'unlet! b:'.a:name)
-      endif
+    let winid = coc#compat#buf_win_id(a:bufnr)
+    if winid != -1
+      call win_execute(winid, 'unlet! b:'.a:name)
     endif
   endif
 endfunction
@@ -150,10 +147,10 @@ function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
   if !bufloaded(a:bufnr)
     return
   endif
-  if exists('*nvim_buf_set_keymap')
-    call nvim_buf_set_keymap(a:bufnr, a:mode, a:lhs, a:rhs, a:opts)
-  else
+  if s:is_vim
     call coc#api#exec('buf_set_keymap', [a:bufnr, a:mode, a:lhs, a:rhs, a:opts])
+  else
+    call nvim_buf_set_keymap(a:bufnr, a:mode, a:lhs, a:rhs, a:opts)
   endif
 endfunction
 
@@ -162,35 +159,13 @@ function! coc#compat#execute(winid, command, ...) abort
   if a:winid < 0
     return
   endif
-  if exists('*win_execute')
-    if type(a:command) == v:t_string
-      keepalt call win_execute(a:winid, a:command, get(a:, 1, ''))
-    elseif type(a:command) == v:t_list
-      keepalt call win_execute(a:winid, join(a:command, "\n"), get(a:, 1, ''))
-    endif
-  elseif has('nvim')
-    if !nvim_win_is_valid(a:winid)
-      return
-    endif
-    let curr = nvim_get_current_win()
-    noa keepalt call nvim_set_current_win(a:winid)
-    if type(a:command) == v:t_string
-      exe get(a:, 1, '').' '.a:command
-    elseif type(a:command) == v:t_list
-      for cmd in a:command
-        exe get(a:, 1, '').' '.cmd
-      endfor
-    endif
-    noa keepalt call nvim_set_current_win(curr)
-  else
-    throw 'win_execute does not exist, please upgrade vim.'
+  if type(a:command) == v:t_string
+    keepalt call win_execute(a:winid, a:command, get(a:, 1, ''))
+  elseif type(a:command) == v:t_list
+    keepalt call win_execute(a:winid, join(a:command, "\n"), get(a:, 1, ''))
   endif
 endfunc
 
 function! coc#compat#trim(str)
-  if exists('*trim')
-    return trim(a:str)
-  endif
-  " TODO trim from beginning
-  return substitute(a:str, '\s\+$', '', '')
+  return trim(a:str)
 endfunction

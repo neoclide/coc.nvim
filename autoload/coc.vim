@@ -77,7 +77,7 @@ function! coc#status(...)
   if get(a:, 1, 0)
     let status = substitute(status, '%', '%%', 'g')
   endif
-  return coc#compat#trim(join(msgs, ' ') . ' ' . status)
+  return trim(join(msgs, ' ') . ' ' . status)
 endfunction
 
 function! coc#config(section, value)
