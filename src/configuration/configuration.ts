@@ -1,10 +1,10 @@
 'use strict'
 import { URI } from 'vscode-uri'
-import { ConfigurationTarget, IConfigurationChange, IConfigurationData, IConfigurationModel, IConfigurationOverrides } from './types'
 import { distinct } from '../util/array'
 import { isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
 import { equals } from '../util/object'
 import { ConfigurationModel } from './model'
+import { ConfigurationTarget, IConfigurationChange, IConfigurationData, IConfigurationModel, IConfigurationOverrides } from './types'
 import { compareConfigurationContents, IConfigurationCompareResult, overrideIdentifiersFromKey } from './util'
 
 export interface IConfigurationValue<T> {
@@ -340,7 +340,7 @@ export class Configuration {
   }
 
   public toData(): IConfigurationData {
-    let { _defaultConfiguration, _userConfiguration, _workspaceConfiguration, _folderConfigurations } = this
+    let { _defaultConfiguration, _memoryConfiguration, _userConfiguration, _workspaceConfiguration, _folderConfigurations } = this
     let folders: [string, IConfigurationModel][] = []
     _folderConfigurations.forEach((model, fsPath) => {
       folders.push([fsPath, model.toJSON()])
@@ -349,7 +349,8 @@ export class Configuration {
       defaults: _defaultConfiguration.toJSON(),
       user: _userConfiguration.toJSON(),
       workspace: _workspaceConfiguration.toJSON(),
-      folders
+      folders,
+      memory: _memoryConfiguration.toJSON()
     }
   }
 
@@ -358,10 +359,11 @@ export class Configuration {
     const userConfiguration = this.parseConfigurationModel(data.user)
     const workspaceConfiguration = this.parseConfigurationModel(data.workspace)
     const folderConfigurations: FolderConfigutions = new FolderConfigutions()
+    const memoryConfiguration = this.parseConfigurationModel(data.memory)
     data.folders.forEach(value => {
       folderConfigurations.set(value[0], this.parseConfigurationModel(value[1]))
     })
-    return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folderConfigurations)
+    return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folderConfigurations, memoryConfiguration)
   }
 
   private static parseConfigurationModel(model: IConfigurationModel): ConfigurationModel {

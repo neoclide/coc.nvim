@@ -82,6 +82,7 @@ export interface IConfigurationModel {
 
 export interface IConfigurationData {
   defaults: IConfigurationModel
+  memory: IConfigurationModel
   user: IConfigurationModel
   workspace: IConfigurationModel
   folders: [string, IConfigurationModel][]

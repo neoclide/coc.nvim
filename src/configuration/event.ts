@@ -1,8 +1,8 @@
 'use strict'
-import type { ConfigurationResourceScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from './types'
 import { equals } from '../util/object'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
+import type { ConfigurationResourceScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from './types'
 import { scopeToOverrides, toValuesTree } from './util'
 
 export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
