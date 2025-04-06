@@ -27,7 +27,7 @@ let s:boolean_options = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'a
 " helper {{
 " Create a window with bufnr for execute win_execute
 function! s:create_popup(bufnr) abort
-  noa let id = popup_create(1, {
+  noa let id = popup_create(a:bufnr, {
       \ 'line': 1,
       \ 'col': &columns,
       \ 'maxwidth': 1,

@@ -38042,7 +38042,7 @@ var init_schema = __esm({
             },
             borderhighlight: {
               type: "string",
-              default: "CocFloating",
+              default: "CocFloatBorder",
               description: "Border highlight group of float window."
             },
             close: {
@@ -41269,11 +41269,11 @@ var init_configuration = __esm({
   "src/configuration/configuration.ts"() {
     "use strict";
     init_esm();
-    init_types();
     init_array();
     init_fs();
     init_object();
     init_model();
+    init_types();
     init_util2();
     FolderConfigutions = class {
       constructor() {
@@ -41554,7 +41554,7 @@ var init_configuration = __esm({
         return [...keys.values()];
       }
       toData() {
-        let { _defaultConfiguration, _userConfiguration, _workspaceConfiguration, _folderConfigurations } = this;
+        let { _defaultConfiguration, _memoryConfiguration, _userConfiguration, _workspaceConfiguration, _folderConfigurations } = this;
         let folders = [];
         _folderConfigurations.forEach((model, fsPath2) => {
           folders.push([fsPath2, model.toJSON()]);
@@ -41563,7 +41563,8 @@ var init_configuration = __esm({
           defaults: _defaultConfiguration.toJSON(),
           user: _userConfiguration.toJSON(),
           workspace: _workspaceConfiguration.toJSON(),
-          folders
+          folders,
+          memory: _memoryConfiguration.toJSON()
         };
       }
       static parse(data) {
@@ -41571,10 +41572,11 @@ var init_configuration = __esm({
         const userConfiguration = this.parseConfigurationModel(data.user);
         const workspaceConfiguration = this.parseConfigurationModel(data.workspace);
         const folderConfigurations = new FolderConfigutions();
+        const memoryConfiguration = this.parseConfigurationModel(data.memory);
         data.folders.forEach((value) => {
           folderConfigurations.set(value[0], this.parseConfigurationModel(value[1]));
         });
-        return new _Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folderConfigurations);
+        return new _Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folderConfigurations, memoryConfiguration);
       }
       static parseConfigurationModel(model) {
         return new ConfigurationModel(model.contents, model.keys, model.overrides).freeze();
@@ -47426,11 +47428,12 @@ var init_files = __esm({
 });
 
 // src/core/keymaps.ts
-function getKeymapModifier(mode) {
+function getKeymapModifier(mode, cmd) {
+  if (cmd) return "<Cmd>";
   if (mode == "n" || mode == "o" || mode == "x" || mode == "v") return "<C-U>";
   if (mode == "i") return "<C-o>";
   if (mode == "s") return "<Esc>";
-  return "";
+  return "<Cmd>";
 }
 function getBufnr(buffer) {
   return typeof buffer === "number" ? buffer : events_default.bufnr;
@@ -47469,22 +47472,22 @@ var init_keymaps = __esm({
       registerKeymap(modes, name2, fn, opts = {}) {
         if (!name2) throw new Error(`Invalid key ${name2} of registerKeymap`);
         let key = `coc-${name2}`;
-        if (this.keymaps.has(key)) throw new Error(`${name2} already exists.`);
-        let lhs = `<Plug>(${key})`;
+        if (this.keymaps.has(key)) throw new Error(`keymap: "${name2}" already exists.`);
+        const lhs = `<Plug>(${key})`;
         opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts);
         let { nvim } = this;
         this.keymaps.set(key, [fn, !!opts.repeat]);
         let method = opts.sync ? "request" : "notify";
-        let cancel = opts.cancel ? 1 : 0;
         for (let mode of modes) {
           if (mode == "i") {
+            const cancel = opts.cancel ? 1 : 0;
             nvim.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${key}', ${cancel})`, {
               expr: true,
               noremap: true,
               silent: opts.silent
             });
           } else {
-            nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
+            nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode, opts.cmd)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
               noremap: true,
               silent: opts.silent
             });
@@ -47509,7 +47512,7 @@ var init_keymaps = __esm({
         }
         let opts = { noremap: true, silent: true, expr: true, nowait: true };
         if (buffer) {
-          nvim.createBuffer(bufnr).setKeymap(mode, lhs, rhs, opts);
+          nvim.call("coc#compat#buf_add_keymap", [bufnr, mode, lhs, rhs, opts], true);
         } else {
           nvim.setKeymap(mode, lhs, rhs, opts);
         }
@@ -47517,7 +47520,7 @@ var init_keymaps = __esm({
         return import_node3.Disposable.create(() => {
           this.keymaps.delete(id2);
           if (buffer) {
-            nvim.createBuffer(bufnr).deleteKeymap(mode, lhs);
+            nvim.call("coc#compat#buf_del_keymap", [bufnr, mode, lhs], true);
           } else {
             nvim.deleteKeymap(mode, lhs);
           }
@@ -47527,14 +47530,25 @@ var init_keymaps = __esm({
         let { nvim } = this;
         let buffer = nvim.createBuffer(bufnr);
         let id2 = `local-${bufnr}-${mode}-${toBase64(lhs)}`;
-        this.keymaps.set(id2, [fn, false]);
-        let method = notify ? "notify" : "request";
-        let modify2 = getKeymapModifier(mode);
-        buffer.setKeymap(mode, lhs, `:${modify2}call coc#rpc#${method}('doKeymap', ['${id2}'])<CR>`, {
-          silent: true,
-          nowait: true,
-          noremap: true
-        });
+        const conf = typeof notify == "boolean" ? { sync: !notify } : notify;
+        const opts = Object.assign({ sync: true, cancel: true, silent: true }, conf);
+        this.keymaps.set(id2, [fn, !!opts.repeat]);
+        let method = opts.sync ? "request" : "notify";
+        if (mode == "i") {
+          const cancel = opts.cancel ? 1 : 0;
+          buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id2}', ${cancel})`, {
+            expr: true,
+            noremap: true,
+            silent: opts.silent
+          });
+        } else {
+          const modify2 = getKeymapModifier(mode, opts.cmd);
+          buffer.setKeymap(mode, lhs, `:${modify2}call coc#rpc#${method}('doKeymap', ['${id2}'])<CR>`, {
+            silent: opts.silent,
+            nowait: true,
+            noremap: true
+          });
+        }
         return import_node3.Disposable.create(() => {
           this.keymaps.delete(id2);
           buffer.deleteKeymap(mode, lhs);
@@ -52969,13 +52983,13 @@ var init_buffer = __esm({
     init_util();
     init_ansiparse();
     init_array();
+    init_errors();
     init_node();
     init_position();
     init_protocol();
     init_window();
     init_workspace();
     init_util5();
-    init_errors();
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
     hlGroups = ["CocErrorHighlight", "CocWarningHighlight", "CocInfoHighlight", "CocHintHighlight", "CocDeprecatedHighlight", "CocUnusedHighlight"];
@@ -86352,7 +86366,8 @@ var init_buffer4 = __esm({
       }
       loadConfiguration() {
         let config = workspace_default.getConfiguration("inlayHint", this.doc);
-        let changed = this._config && this._config.enable !== config.enable;
+        let changeEnable = this._config && this._config.enable !== config.enable;
+        let changeDisplay = this._config && this._config.display !== config.display;
         this._config = {
           enable: config.get("enable"),
           position: config.get("position"),
@@ -86361,7 +86376,7 @@ var init_buffer4 = __esm({
           refreshOnInsertMode: config.get("refreshOnInsertMode"),
           enableParameter: config.get("enableParameter")
         };
-        if (changed) {
+        if (changeEnable || changeDisplay) {
           let { enable, display } = this._config;
           if (enable && display) {
             void this.render(0);
@@ -90507,7 +90522,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-1987448 2025-04-04 20:34:25 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-63e808a 2025-04-06 21:53:03 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

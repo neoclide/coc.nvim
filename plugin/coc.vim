@@ -504,6 +504,11 @@ function! s:Highlight() abort
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
+  if has('nvim') && hlexists('FloatBorder')
+    hi default link CocFloatBorder FloatBorder
+  else
+    hi default link CocFloatBorder CocFloating
+  endif
   if coc#highlight#get_contrast('Normal', 'CursorLine') < 1.3
     " Avoid color too close
     exe 'hi default CocListLine '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
