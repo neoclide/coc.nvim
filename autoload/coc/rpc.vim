@@ -41,7 +41,7 @@ function! coc#rpc#start_server()
           let s:client['chan_id'] = chan_id
         endif
       catch /connection\ refused/
-        " ignroe
+        " ignore
       endtry
     endif
     if !s:client['running']
