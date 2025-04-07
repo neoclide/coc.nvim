@@ -1445,7 +1445,7 @@ function! s:scroll_win(winid, forward, amount) abort
 endfunction
 
 function! s:get_borderhighlight(config) abort
-  let hlgroup = get(a:config, 'highlight',  'CocFloating')
+  let hlgroup = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', v:null)
   if empty(borderhighlight)
     return hlgroup

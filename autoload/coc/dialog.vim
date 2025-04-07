@@ -674,7 +674,7 @@ function! s:create_prompt_win(bufnr, title, default, opts) abort
         \ 'title': a:title,
         \ 'lines': s:is_vim ? v:null : [a:default],
         \ 'highlight': get(a:opts, 'highlight', 'CocFloating'),
-        \ 'borderhighlight': [get(a:opts, 'borderhighlight', 'CocFloating')],
+        \ 'borderhighlight': [get(a:opts, 'borderhighlight', 'CocFloatBorder')],
         \ }))
 endfunction
 

@@ -142,7 +142,7 @@ export default class InputBox implements Disposable {
 
   public async show(title: string, preferences: InputPreference): Promise<boolean> {
     this.title = title
-    this.borderhighlight = preferences.borderhighlight ?? 'CocFloating'
+    this.borderhighlight = preferences.borderhighlight ?? 'CocFloatBorder'
     this.loading = false
     if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
       this.clear = true

@@ -1204,7 +1204,7 @@
       "type": ["string", "null"],
       "default": null,
       "scope": "application",
-      "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
+      "description": "Highlight group for border of dialog window/popup, default to 'CocFloatBorder'"
     },
     "dialog.floatHighlight": {
       "type": ["string", "null"],
