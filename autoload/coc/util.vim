@@ -679,7 +679,7 @@ endfunction
 
 function! coc#util#get_changedtick(bufnr) abort
   if s:is_vim
-    call listener_flush(a:bufnr)
+    call listener_flush(bufname(a:bufnr))
   endif
   return getbufvar(a:bufnr, 'changedtick')
 endfunction
