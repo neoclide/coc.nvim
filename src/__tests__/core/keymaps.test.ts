@@ -168,6 +168,10 @@ describe('registerLocalKeymap', () => {
       called = true
     }, { cancel: true })
     disposables.push(disposable)
+    await helper.waitValue(async () => {
+      let out = await nvim.exec('imap <C-i>', true)
+      return out.includes('coc#_insert_key')
+    }, true)
     await nvim.input('<C-i>')
     await helper.waitValue(() => called, true)
     called = false
@@ -175,6 +179,10 @@ describe('registerLocalKeymap', () => {
       called = true
     }, { cancel: false })
     disposables.push(disposable)
+    await helper.waitValue(async () => {
+      let out = await nvim.exec('imap <C-o>', true)
+      return out.includes('coc#_insert_key')
+    }, true)
     await nvim.input('<C-o>')
     await helper.waitValue(() => called, true)
   })

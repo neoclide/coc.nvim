@@ -519,7 +519,7 @@ fun1() {}
         let id = await nvim.eval('get(w:,"cocViewId",v:null)')
         return id != null
       }, true)
-      await nvim.command('exe 3')
+      await nvim.call('cursor', [3, 1])
       await nvim.input('<tab>')
       await helper.waitFloat()
       await nvim.input('<cr>')
