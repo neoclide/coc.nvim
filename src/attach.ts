@@ -1,11 +1,9 @@
 'use strict'
 import { attach, Attach, Neovim } from '@chemzqm/neovim'
-import { URI } from 'vscode-uri'
 import events from './events'
 import { createLogger } from './logger'
 import Plugin from './plugin'
 import { VERSION } from './util/constants'
-import { objectLiteral } from './util/is'
 import { semver } from './util/node'
 import { toErrorText } from './util/string'
 import { createTiming } from './util/timing'
@@ -18,17 +16,6 @@ const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 const semVer = semver.parse(VERSION)
 let pendingNotifications: [string, any[]][] = []
 const NO_ERROR_REQUEST = ['doAutocmd', 'CocAutocmd']
-
-export function pathReplace(patterns: object | undefined): void {
-  if (objectLiteral(patterns)) {
-    const old_uri = URI.file
-    URI.file = (path): URI => {
-      path = path.replace(/\\/g, '/')
-      Object.keys(patterns).forEach(k => path = path.replace(new RegExp('^' + k), patterns[k]))
-      return old_uri(path)
-    }
-  }
-}
 
 export default (opts: Attach, requestApi = false): Plugin => {
   const nvim: Neovim = attach(opts, createLogger('node-client'), requestApi)
