@@ -427,8 +427,6 @@ export default class Documents implements Disposable {
     if (doc) {
       let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
       if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
-      // The buffer could be hidden before, lines may not synchronized, invoke listener_flush
-      if (isVim) void doc.patchChange()
     }
   }
 

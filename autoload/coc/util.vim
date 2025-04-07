@@ -664,27 +664,8 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-" Used for TextChangedI with InsertCharPre, vim only
-function! coc#util#get_changeinfo(bufnr)
-  call listener_flush(a:bufnr)
-  if bufnr('%') == a:bufnr
-    return {
-          \ 'lnum': line('.'),
-          \ 'line': getline('.'),
-          \ 'changedtick': b:changedtick,
-          \}
-  endif
-  let winid = bufwinid(a:bufnr)
-  if winid != -1
-    let ref = {}
-    call win_execute(winid, 'let ref = {"lnum": line("."), "line": getline("."), "changedtick": b:changedtick}')
-    return ref
-  endif
-  return v:null
-endfunction
-
 function! coc#util#get_changedtick(bufnr) abort
-  if s:is_vim
+  if s:is_vim && bufloaded(a:bufnr)
     call listener_flush(a:bufnr)
   endif
   return getbufvar(a:bufnr, 'changedtick')

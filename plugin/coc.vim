@@ -263,15 +263,17 @@ function! s:Autocmd(...) abort
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
+function! s:HandleBufEnter(bufnr) abort
+  if s:is_vim
+      "" The buffer could be hidden before, lines may not synchronized
+    call listener_flush(a:bufnr)
+  endif
+  call s:Autocmd('BufEnter', a:bufnr)
+endfunction
+
 function! s:HandleCharInsert(char, bufnr) abort
   if get(g:, 'coc_feeding_keys', 0)
     return
-  endif
-  if get(g:, 'coc_disable_space_report', 0)
-    let g:coc_disable_space_report = 0
-    if a:char ==# ' '
-      return
-    endif
   endif
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
@@ -403,9 +405,9 @@ function! s:Enable(initialize)
     endif
     autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
     autocmd InsertLeave         * call s:HandleInsertLeave(+expand('<abuf>'))
+    autocmd BufEnter            * call s:HandleBufEnter(+expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
-    autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])

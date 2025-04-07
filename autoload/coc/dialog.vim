@@ -530,11 +530,9 @@ function! coc#dialog#change_input_value(winid, bufnr, value) abort
   endif
   if s:is_vim
     if !s:term_support
-      " not supported
-      return
+      call term_sendkeys(a:bufnr, "\<C-u>\<C-k>".a:value)
     endif
     " call timer_start(3000, { -> term_sendkeys(bufnr, "\<C-u>\<C-k>abcd")})
-    call term_sendkeys(a:bufnr, "\<C-u>\<C-k>".a:value)
   else
     let mode = mode()
     if mode ==# 'i'
@@ -548,12 +546,7 @@ function! coc#dialog#change_input_value(winid, bufnr, value) abort
       noa set completeopt=menu
     endif
     noa call complete(1, [{ 'empty': 1, 'word': a:value }])
-    if has('nvim-0.6.1')
-      call feedkeys("\<C-x>\<C-z>", 'in')
-    else
-      let g:coc_disable_space_report = 1
-      call feedkeys("\<space>\<bs>", 'in')
-    endif
+    call feedkeys("\<C-x>\<C-z>", 'in')
     execute 'noa set completeopt='.saved_completeopt
   endif
 endfunction
