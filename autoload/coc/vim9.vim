@@ -40,7 +40,7 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
 enddef
 
 def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): void
-  if bufwinnr(bufnr) == -1 # check buffer exists
+  if !bufloaded(bufnr)
     return
   endif
   for highlightItem in highlights

@@ -373,7 +373,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
     if (diff && !token.isCancellationRequested) {
       const priority = this.config.highlightPriority
-      await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
+      await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
       this.regions.add(start, end)
       this._dirty = true
     }
