@@ -391,7 +391,9 @@ function! s:Enable(initialize)
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
     endif
-    autocmd WinScrolled         * call s:HandleWinScrolled(+expand('<amatch>'), v:event)
+    if exists('##WinScrolled')
+      autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'), v:event)
+    endif
     autocmd TabNew              * call s:Autocmd('TabNew', coc#util#tabnr_id(tabpagenr()))
     autocmd TabClosed           * call s:Autocmd('TabClosed', coc#util#tabpages())
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
