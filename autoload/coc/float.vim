@@ -540,7 +540,16 @@ function! coc#float#nvim_scrollbar(winid) abort
   if !scrollinside
     call coc#float#nvim_scroll_adjust(a:winid)
   endif
-  let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
+  " The min with height - 1 ensures that the scrollbar never takes up the full height.
+  " If ch <= height we never reach this point, so we always want an actual scrollbar here.
+  " The height of the scrollbar needs to be an integer to conform to the terminal grid.
+  " Rounding down could result in gaps appearing when using coc#float#scroll(1),
+  " meaning a situation where the lower end of the scrollbar is above a certain position,
+  " and after calling coc#float#scroll(1) the upper end of the scrollbar is below this position,
+  " so the position is never part of the scrollbar,
+  " giving the appearance that some of the text in the float is skipped.
+  " Rounding up ensures that no such gaps can appear.
+  let thumb_height = min([height - 1, float2nr(ceil(height * (height + 0.0)/ch))])
   let wininfo = getwininfo(a:winid)[0]
   let start = 0
   if wininfo['topline'] != 1
