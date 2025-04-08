@@ -1455,10 +1455,7 @@ endfunction
 
 function! s:get_borderhighlight(config) abort
   let hlgroup = get(a:config, 'highlight', 'CocFloating')
-  let borderhighlight = get(a:config, 'borderhighlight', v:null)
-  if empty(borderhighlight)
-    return hlgroup
-  endif
+  let borderhighlight = get(a:config, 'borderhighlight', 'CocFloatBorder')
   let highlight = type(borderhighlight) == 3 ? borderhighlight[0] : borderhighlight
   return coc#highlight#compose_hlgroup(highlight, hlgroup)
 endfunction
