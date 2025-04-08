@@ -162,7 +162,7 @@ describe('client API', () => {
     let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
     expect(output).toBe('foo\nbar')
     output = await nvim.exec(`let g:x = '5'\nunlet g:x`)
-    expect(output).toBeNull()
+    expect(output).toBe('')
   })
 
   it('should create new buffer', async () => {
@@ -212,6 +212,8 @@ describe('client API', () => {
       nvim.call('abc', [], true)
       await nvim.resumeNotification()
     }).rejects.toThrow(Error)
+    let res = await nvim.getVvar('errmsg')
+    expect(res).toBe('')
   })
 
   it('should call dict function', async () => {
@@ -280,9 +282,8 @@ describe('client API', () => {
   })
 
   it('should get vvar', async () => {
-    await nvim.command('let v:errmsg = "foo"')
-    let res = await nvim.getVvar('errmsg')
-    expect(res).toBe('foo')
+    let res = await nvim.getVvar('progpath')
+    expect(res).toMatch('vim')
   })
 
   it('should get current buffer, window, tabpage', async () => {
@@ -545,12 +546,17 @@ describe('Window API', () => {
     await expect(async () => {
       await win.getOption('not_exists')
     }).rejects.toThrow('Invalid option name')
+    await expect(async () => {
+      await win.setOption('not_exists', '')
+    }).rejects.toThrow('Invalid option name')
   })
 
   it('should get and set var', async () => {
     await win.setVar('foo', 'bar')
     let curr = await win.getVar('foo')
     expect(curr).toBe('bar')
+    let res = await win.getVar('not_exists')
+    expect(res).toBeNull()
     win.deleteVar('foo')
     curr = await win.getVar('foo')
     expect(curr).toBe(null)

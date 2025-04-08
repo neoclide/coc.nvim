@@ -91,7 +91,7 @@ function! coc#window#restview(winid, lnum, topline) abort
     call popup_setoptions(a:winid, {'firstline': a:topline})
     return
   endif
-  call coc#compat#execute(a:winid, ['noa call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})'])
+  call coc#compat#win_execute(a:winid, ['noa call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})'])
 endfunction
 
 function! coc#window#set_height(winid, height) abort
@@ -115,7 +115,7 @@ function! coc#window#adjust_width(winid) abort
     let maxwidth = 0
     let lines = getbufline(bufnr, 1, '$')
     if len(lines) > 2
-      call coc#compat#execute(a:winid, 'setl nowrap')
+      call coc#compat#win_execute(a:winid, 'setl nowrap')
       for line in lines
         let w = strwidth(line)
         if w > maxwidth
@@ -124,7 +124,7 @@ function! coc#window#adjust_width(winid) abort
       endfor
     endif
     if maxwidth > winwidth(a:winid)
-      call coc#compat#execute(a:winid, 'vertical resize '.min([maxwidth, g:coc_max_treeview_width]))
+      call coc#compat#win_execute(a:winid, 'vertical resize '.min([maxwidth, g:coc_max_treeview_width]))
     endif
   endif
 endfunction

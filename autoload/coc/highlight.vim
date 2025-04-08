@@ -163,26 +163,6 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   endif
 endfunction
 
-" Clear highlights by 0 based line numbers.
-function! coc#highlight#clear(bufnr, key, lnums) abort
-  if !bufloaded(a:bufnr) || empty(a:lnums)
-    return
-  endif
-  let ns = coc#highlight#create_namespace(a:key)
-  for lnum in a:lnums
-    if has('nvim')
-      call nvim_buf_clear_namespace(a:bufnr, ns, lnum, lnum + 1)
-    else
-      call coc#api#exec('buf_clear_namespace', [a:bufnr, ns, lnum, lnum + 1])
-    endif
-  endfor
-  " clear highlights in invalid line.
-  if has('nvim')
-    let linecount = nvim_buf_line_count(a:bufnr)
-    call nvim_buf_clear_namespace(a:bufnr, ns, linecount, -1)
-  endif
-endfunction
-
 function! coc#highlight#del_markers(bufnr, key, ids) abort
   if !bufloaded(a:bufnr)
     return
@@ -236,12 +216,8 @@ function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
   if !bufloaded(bufnr)
     return
   endif
-  let src_id = coc#highlight#create_namespace(a:key)
-  if has('nvim')
-    call nvim_buf_clear_namespace(a:bufnr, src_id, a:start_line, a:end_line)
-  else
-    call coc#api#exec('buf_clear_namespace', [a:bufnr, src_id, a:start_line, a:end_line])
-  endif
+  let ns = coc#highlight#create_namespace(a:key)
+  call coc#compat#call('buf_clear_namespace', [bufnr, ns, a:start_line, a:end_line])
 endfunction
 
 " highlight buffer in winid with CodeBlock &HighlightItems
@@ -262,7 +238,7 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
     call setwinvar(a:winid, 'highlights', a:highlights)
   endif
   " clear highlights
-  call coc#compat#execute(a:winid, 'syntax clear')
+  call win_execute(a:winid, 'syntax clear')
   let bufnr = winbufnr(a:winid)
   call coc#highlight#clear_highlight(bufnr, -1, 0, -1)
   if !empty(a:codes)
@@ -314,7 +290,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
     endif
   endfor
   if !empty(cmds)
-    call coc#compat#execute(a:winid, cmds, 'silent!')
+    call win_execute(a:winid, cmds, 'silent!')
   endif
 endfunction
 
@@ -531,11 +507,7 @@ endfunction
 function! coc#highlight#clear_all() abort
   for src_id in values(s:namespace_map)
     for bufnr in map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
-      if has('nvim')
-        call nvim_buf_clear_namespace(bufnr, src_id, 0, -1)
-      else
-        call coc#api#exec('buf_clear_namespace', [bufnr, src_id, 0, -1])
-      endif
+      call coc#compat#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
     endfor
   endfor
 endfunction

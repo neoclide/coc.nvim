@@ -62,7 +62,7 @@ export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: 
   if !hlexists(hl_group)
     execute $'highlight {hl_group} ctermfg=NONE'
   endif
-  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+  coc#api#Buf_add_highlight1(bufnr, src_id, hl_group, line, col_start, col_end, opts)
 enddef
 
 # From `src/core/highlights.ts`:
@@ -70,7 +70,7 @@ enddef
 # type HighlightItemResult = list<any>
 
 export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
-  const types: list<string> = coc#api#get_types(ns)
+  const types: list<string> = coc#api#GetNamespaceTypes(ns)
   if empty(types)
     return []
   endif

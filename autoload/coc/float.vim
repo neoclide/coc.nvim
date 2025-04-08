@@ -1342,10 +1342,10 @@ endfunction
 
 function! s:win_setview(winid, topline, lnum) abort
   if has('nvim')
-    call coc#compat#execute(a:winid, 'call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})')
+    call win_execute(a:winid, 'call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})')
     call timer_start(10, { -> coc#float#nvim_refresh_scrollbar(a:winid) })
   else
-    call coc#compat#execute(a:winid, 'exe '.a:lnum)
+    call win_execute(a:winid, 'exe '.a:lnum)
     call popup_setoptions(a:winid, {
           \ 'firstline': a:topline,
           \ })
