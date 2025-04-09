@@ -191,7 +191,8 @@ export function getOriginalLine(item: ChangedFileItem, change: TextDocumentEdit 
   if (typeof item.lnum !== 'number') return undefined
   let lnum = item.lnum
   if (change) {
-    let edits = mergeSortEdits(change.edits)
+    // TODO: filter SnippetTextEdit for now
+    let edits = mergeSortEdits(change.edits.filter(edit => 'newText' in edit))
     let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
     lnum = pos.line + 1
   }

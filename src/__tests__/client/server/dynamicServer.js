@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver')
+const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver/node')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -66,12 +66,12 @@ connection.onInitialize((params) => {
 })
 
 connection.onInitialized(() => {
-  connection.client.register(RenameRequest.type, {
+  void connection.client.register(RenameRequest.type, {
     prepareProvider: options.prepareRename
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(WorkspaceSymbolRequest.type, {
+  void connection.client.register(WorkspaceSymbolRequest.type, {
     resolveProvider: true
   }).then(d => {
     disposables.push(d)
@@ -80,7 +80,7 @@ connection.onInitialized(() => {
   if (options.delta) {
     full = {delta: true}
   }
-  connection.client.register(SemanticTokensRegistrationType.method, {
+  void connection.client.register(SemanticTokensRegistrationType.method, {
     full,
     range: options.rangeTokens,
     legend: {
@@ -88,21 +88,21 @@ connection.onInitialized(() => {
       tokenModifiers: []
     },
   })
-  connection.client.register(CodeActionRequest.method, {
+  void connection.client.register(CodeActionRequest.method, {
     resolveProvider: false
   })
-  connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
-  connection.client.register(ExecuteCommandRequest.type, {
+  void connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
+  void connection.client.register(ExecuteCommandRequest.type, {
     commands: ['test_command']
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
+  void connection.client.register(CompletionRequest.type, {
     documentSelector: [{language: 'vim'}]
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
+  void connection.client.register(CompletionRequest.type, {
     triggerCharacters: ['/'],
   }).then(d => {
     disposables.push(d)
@@ -185,7 +185,7 @@ connection.onRequest('getFoldersEvent', () => {
 })
 
 connection.onNotification('fireInlineValueRefresh', () => {
-  connection.sendRequest(InlineValueRefreshRequest.type)
+  void connection.sendRequest(InlineValueRefreshRequest.type)
 })
 
 connection.onNotification('requestFolders', async () => {

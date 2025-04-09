@@ -167,7 +167,8 @@ export default class Refactor {
       for (let change of documentChanges || []) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
-          changes[textDocument.uri] = edits
+          // TODO: filter SnippetTextEdit for now
+          changes[textDocument.uri] = edits.filter(edit => 'newText' in edit)
         }
       }
     }
