@@ -33,15 +33,15 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
     highlightItemList = highlights[ : ]
     next = []
   endif
-  Add_highlights(bufnr, ns, highlightItemList, priority)
-  if len(next) > 0
+  const succeed = Add_highlights(bufnr, ns, highlightItemList, priority)
+  if succeed && len(next) > 0
     timer_start(10,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, maxCount))
   endif
 enddef
 
-def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): void
+def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): bool
   if !bufloaded(bufnr)
-    return
+    return v:false
   endif
   for highlightItem in highlights
     const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = highlightItem
@@ -56,6 +56,7 @@ def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
     }
     Add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
   endfor
+  return v:true
 enddef
 
 export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, opts: dict<any> = {}): void
@@ -70,6 +71,9 @@ enddef
 # type HighlightItemResult = list<any>
 
 export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
+  if !bufloaded(bufnr)
+    return []
+  endif
   const types: list<string> = coc#api#get_types(ns)
   if empty(types)
     return []
