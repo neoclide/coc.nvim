@@ -87,18 +87,15 @@ def s:get_option(text_align: string, column: number, text_wrap: string): dict<an
   return {}
 enddef
 
-function! s:calc_padding_size(indent) abort
-  let tabSize = &shiftwidth
-  if tabSize == 0
-    let tabSize = &tabstop
-  endif
-  let padding = 0
-  for c in a:indent
-    if c == "\t"
-      let padding += tabSize - (padding % tabSize)
+def s:calc_padding_size(indent: string): number
+  const tabSize: number = &shiftwidth ?? &tabstop
+  var padding: number = 0
+  for character in indent
+    if character == "\t"
+      padding += tabSize - (padding % tabSize)
     else
-      let padding += 1
+      padding += 1
     endif
   endfor
   return padding
-endfunction
+enddef
