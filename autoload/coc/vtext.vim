@@ -33,7 +33,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       let column = 0
     endif
     let first = 1
-    let base = s:get_option_vim(align, column, get(a:opts, 'text_wrap', 'truncate'))
+    let base = s:get_option(align, column, get(a:opts, 'text_wrap', 'truncate'))
     for [text, hl] in blocks
       let type = coc#api#create_type(a:src_id, hl, a:opts)
       let opts = extend({ 'text': text, 'type': type, 'bufnr': a:bufnr }, base)
@@ -73,14 +73,19 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
   endif
 endfunction
 
-function! s:get_option_vim(align, column, wrap) abort
-  let opts = {}
-  if a:column == 0
-    let opts['text_align'] = a:align
-    let opts['text_wrap'] = a:wrap
+if !s:is_vim
+  finish
+endif
+
+def s:get_option(text_align: string, column: number, text_wrap: string): dict<any>
+  if column == 0
+    return {
+      'text_align': text_align,
+      'text_wrap': text_wrap,
+    }
   endif
-  return opts
-endfunction
+  return {}
+enddef
 
 function! s:calc_padding_size(indent) abort
   let tabSize = &shiftwidth
