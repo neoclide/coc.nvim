@@ -20,29 +20,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
     let indent = matchstr(get(getbufline(a:bufnr, a:line + 1), 0, ''), '^\s\+')
   endif
   if s:is_vim
-    if !has_key(a:opts, 'col') && align ==# 'after'
-      " add a whitespace, same as neovim.
-      let indent = ' '
-    endif
-    let blocks = a:blocks
-    if !empty(a:blocks) && (align ==# 'above' || align ==# 'below')
-      " only first highlight can be used
-      let hl = a:blocks[0][1]
-      let text = join(map(copy(a:blocks), "v:val[0]"), '')
-      let blocks = [[text, hl]]
-      let column = 0
-    endif
-    let first = 1
-    let base = s:get_option(align, column, get(a:opts, 'text_wrap', 'truncate'))
-    for [text, hl] in blocks
-      let type = coc#api#create_type(a:src_id, hl, a:opts)
-      let opts = extend({ 'text': text, 'type': type, 'bufnr': a:bufnr }, base)
-      if first && !empty(indent)
-        let opts['text_padding_left'] = s:calc_padding_size(indent)
-      endif
-      call prop_add(a:line + 1, column, opts)
-      let first = 0
-    endfor
+    call s:vtext_add(a:bufnr, a:src_id, a:line, a:blocks, a:opts, align, column, indent)
   else
     let opts = { 'hl_mode': get(a:opts, 'hl_mode', 'combine') }
     if align ==# 'above' || align ==# 'below'
@@ -76,6 +54,37 @@ endfunction
 if !s:is_vim
   finish
 endif
+
+def s:vtext_add(
+  bufnr: number, src_id: number, line: number, blocks: list<list<string>>, opts: dict<any>,
+  align: string, column: number, indent: string
+): void
+  var propColumn: number = column
+  var propIndent: string = indent
+  if !has_key(opts, 'col') && align ==# 'after'
+    # add a whitespace, same as neovim.
+    propIndent = ' '
+  endif
+  var blockList: list<list<string>> = blocks
+  if !empty(blocks) && (align ==# 'above' || align ==# 'below')
+    # only first highlight can be used
+    const highlightGroup: string = blocks[0][1]
+    const text: string = blocks->mapnew((_, block: list<string>): string => block[0])->join('')
+    blockList = [[text, highlightGroup]]
+    propColumn = 0
+  endif
+  var first: bool = true
+  const base: dict<any> = s:get_option(align, propColumn, get(opts, 'text_wrap', 'truncate'))
+  for [text, highlightGroup] in blockList
+    const type: string = coc#api#create_type(src_id, highlightGroup, opts)
+    final propOpts: dict<any> = extend({ 'text': text, 'type': type, 'bufnr': bufnr }, base)
+    if first && !empty(propIndent)
+      propOpts['text_padding_left'] = s:calc_padding_size(propIndent)
+    endif
+    prop_add(line + 1, propColumn, propOpts)
+    first = false
+  endfor
+enddef
 
 def s:get_option(text_align: string, column: number, text_wrap: string): dict<any>
   if column == 0
