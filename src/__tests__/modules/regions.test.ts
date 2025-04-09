@@ -69,6 +69,7 @@ describe('Regions', () => {
     let r = new Regions()
     r.add(1, 2)
     r.add(1, 5)
+    expect(r.isEmpty).toBe(false)
     expect(r.getRange(8)).toBeUndefined()
     expect(r.getRange(9)).toBeUndefined()
     expect(r.getRange(1)).toEqual([1, 5])
