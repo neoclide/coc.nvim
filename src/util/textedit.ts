@@ -1,5 +1,5 @@
 'use strict'
-import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, SnippetTextEdit, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { isFalsyOrEmpty } from './array'
@@ -126,7 +126,7 @@ export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, ch
   return keys
 }
 
-export function isDeniedEdit(edit: TextEdit | AnnotatedTextEdit, denied: string[]): boolean {
+export function isDeniedEdit(edit: TextEdit | AnnotatedTextEdit | SnippetTextEdit, denied: string[]): boolean {
   if (AnnotatedTextEdit.is(edit) && denied.includes(edit.annotationId)) return true
   return false
 }
