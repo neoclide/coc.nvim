@@ -40,7 +40,7 @@ import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import { toText } from './util/string'
 
-const eventDebounce = getConditionValue(500, 10)
+const eventDebounce = getConditionValue(100, 10)
 
 type withKey<K extends string> = {
   [k in K]?: Event<void>

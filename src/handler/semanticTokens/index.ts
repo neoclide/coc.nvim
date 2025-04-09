@@ -77,14 +77,8 @@ export default class SemanticTokens {
     languages.onDidSemanticTokensRefresh(async selector => {
       let visibleBufs = window.visibleTextEditors.map(o => o.document.bufnr)
       for (let item of this.highlighters.items) {
-        if (!workspace.match(selector, item.doc)) continue
-        if (!item.hasProvider) {
-          item.clearHighlight()
-        } else {
-          item.abandonResult()
-          if (visibleBufs.includes(item.bufnr)) {
-            item.highlight()
-          }
+        if (workspace.match(selector, item.doc) && visibleBufs.includes(item.bufnr)) {
+          item.onProviderChange()
         }
       }
     }, null, this.disposables)

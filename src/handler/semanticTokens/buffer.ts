@@ -7,10 +7,10 @@ import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { HighlightItem } from '../../types'
-import { delay, getConditionValue } from '../../util'
+import { getConditionValue, waitWithToken } from '../../util'
 import { toArray } from '../../util/array'
-import { CancellationError } from '../../util/errors'
-import { wait, waitImmediate } from '../../util/index'
+import { CancellationError, onUnexpectedError } from '../../util/errors'
+import { waitImmediate } from '../../util/index'
 import { toNumber } from '../../util/numbers'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
 import { bytes, isHighlightGroupCharCode, toText } from '../../util/string'
@@ -77,12 +77,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
-  public highlight: ((ms?: number) => void) & { clear: () => void }
   constructor(private nvim: Neovim, public readonly doc: Document, private staticConfig: StaticConfig) {
-    this.highlight = delay(() => {
-      void this.doHighlight()
-    }, debounceInterval)
-    if (this.hasProvider) this.highlight()
+    if (this.hasProvider) this.doHighlight().catch(onUnexpectedError)
   }
 
   public get config(): SemanticTokensConfig {
@@ -102,7 +98,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     if (changed) {
       if (this._config.enable) {
-        this.highlight()
+        this.forceHighlight().catch(onUnexpectedError)
       } else {
         this.clearHighlight()
       }
@@ -123,25 +119,36 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public onChange(): void {
     // need debounce for document synchronize
-    this.highlight()
+    this.doHighlight().catch(onUnexpectedError)
   }
 
   public onTextChange(): void {
+    this._version = undefined
     this.cancel()
   }
 
   public async forceHighlight(): Promise<void> {
     this.clearHighlight()
-    this.cancel()
-    await this.doHighlight(true)
+    await this.doHighlight(true, 0)
   }
 
   public async onShown(winid: number): Promise<void> {
-    // Should be refreshed by onCursorMoved
-    if (this.shouldRangeHighlight) return
-    const { doc } = this
-    if (doc.dirty || doc.version === this._version) return
-    await this.doHighlight(false, winid)
+    if (!this.shouldHighlight) return
+    await this.doHighlight(false, debounceInterval, winid)
+  }
+
+  public async onWinScroll(winid: number): Promise<void> {
+    if (!this.shouldHighlight) return
+    this.cancel(true)
+    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
+    let token = rangeTokenSource.token
+    await waitWithToken(debounceInterval, token)
+    if (token.isCancellationRequested) return
+    if (this.shouldRangeHighlight) {
+      await this.doRangeHighlight(winid, token)
+    } else {
+      await this.highlightRegions(winid, token)
+    }
   }
 
   public get hasProvider(): boolean {
@@ -179,6 +186,13 @@ export default class SemanticTokensBuffer implements SyncItem {
   public get enabled(): boolean {
     if (!this.configEnabled || !this.hasLegend) return false
     return this.hasProvider
+  }
+
+  private get shouldHighlight(): boolean {
+    if (!this.enabled) return false
+    const { doc } = this
+    if (doc.dirty || doc.version === this._version) return false
+    return true
   }
 
   public checkState(): void {
@@ -254,14 +268,14 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
   }
 
-  private toHighlightItems(highlights: ReadonlyArray<SemanticTokenRange>, startLine?: number, endLine?: number): HighlightItem[] {
+  private toHighlightItems(highlights: ReadonlyArray<SemanticTokenRange>, span?: [number, number]): HighlightItem[] {
     let { incrementTypes } = this.config
-    let filter = typeof startLine === 'number' && typeof endLine === 'number'
+    let filter = Array.isArray(span)
     let res: HighlightItem[] = []
     for (let hi of highlights) {
       if (!hi.hlGroup) continue
       let lnum = hi.range[0]
-      if (filter && (lnum < startLine || lnum >= endLine)) continue
+      if (filter && (lnum < span[0] || lnum > span[1])) continue
       let item: HighlightItem = {
         lnum,
         hlGroup: hi.hlGroup,
@@ -278,23 +292,25 @@ export default class SemanticTokensBuffer implements SyncItem {
     return res
   }
 
-  public async doHighlight(forceFull = false, winid?: number): Promise<void> {
+  public async doHighlight(forceFull = false, wait: number = debounceInterval, winid?: number): Promise<void> {
     this.cancel()
-    const winids = winid == null ? workspace.editors.getBufWinids(this.bufnr) : [winid]
-    if (!this.enabled || winids.length === 0) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
+    await waitWithToken(wait, token)
+    if (token.isCancellationRequested) return
+    const winids = winid == null ? workspace.editors.getBufWinids(this.bufnr) : [winid]
+    if (!this.enabled || winids.length === 0) return
     if (this.shouldRangeHighlight) {
+      this.cancel(true)
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       let rangeToken = rangeTokenSource.token
       for (const win of winids) {
         await this.doRangeHighlight(win, rangeToken)
         if (rangeToken.isCancellationRequested) break
       }
-      this.rangeTokenSource = undefined
-      if (rangeToken.isCancellationRequested && this.rangeProviderOnly) return
     }
-    if (token.isCancellationRequested) return
+    if (token.isCancellationRequested || this.rangeProviderOnly) return
+    this.cancel(true)
     const { doc } = this
     const version = doc.version
     let tokenRanges: SemanticTokenRange[] | undefined
@@ -316,20 +332,31 @@ export default class SemanticTokensBuffer implements SyncItem {
     // request cancelled or can't work
     if (token.isCancellationRequested || !tokenRanges) return
     this._highlights = [version, tokenRanges]
+    // Full highlight when no highlight added before or token length < 500
     if (!this._dirty || tokenRanges.length < 500) {
-      let items = this.toHighlightItems(tokenRanges)
-      let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, undefined, token)
-      if (token.isCancellationRequested || !diff) return
-      this._dirty = true
-      this._version = version
-      const priority = this.config.highlightPriority
-      await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
+      let succeed = await this.addHighlights(tokenRanges, undefined, token)
+      if (succeed) this._version = version
     } else {
       this.regions.clear()
       await this.highlightRegions(winid, token)
     }
-    if (!token.isCancellationRequested) this.tokenSource = undefined
     this._onDidRefresh.fire()
+  }
+
+  private async addHighlights(highlights: ReadonlyArray<SemanticTokenRange>, span: [number, number] | undefined, token: CancellationToken): Promise<boolean> {
+    const { bufnr, regions, doc, config } = this
+    let items = this.toHighlightItems(highlights, span)
+    let diff = await window.diffHighlights(bufnr, NAMESPACE, items, span, token)
+    if (!diff || token.isCancellationRequested) return false
+    const priority = config.highlightPriority
+    await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
+    this._dirty = true
+    if (span) {
+      regions.add(span[0], span[1])
+    } else {
+      regions.add(0, doc.lineCount)
+    }
+    return true
   }
 
   private async sendRequest<R>(fn: () => Promise<R>, token: CancellationToken): Promise<R | undefined> {
@@ -337,8 +364,9 @@ export default class SemanticTokensBuffer implements SyncItem {
       return await fn()
     } catch (e) {
       if (!token.isCancellationRequested) {
+        // Retry on server cancel
         if (e instanceof CancellationError) {
-          this.highlight(requestDelay)
+          this.doHighlight(true, requestDelay).catch(onUnexpectedError)
         } else {
           logger.error('Error on request semanticTokens: ', e)
         }
@@ -369,73 +397,21 @@ export default class SemanticTokensBuffer implements SyncItem {
         }
       })
     }
-    const items = this.toHighlightItems(highlights, start, end + 1)
-    let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
-    if (diff && !token.isCancellationRequested) {
-      const priority = this.config.highlightPriority
-      await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
-      this.regions.add(start, end)
-      this._dirty = true
-    }
+    await this.addHighlights(highlights, [start, end], token)
   }
 
   /**
    * highlight current visible regions, highlight all associated winids when winid is undefined
    */
   public async highlightRegions(winid: number | undefined, token: CancellationToken): Promise<void> {
-    let { regions, highlights, doc, config, bufnr } = this
+    let { regions, highlights, doc, bufnr } = this
     if (!highlights) return
     let spans = await window.getVisibleRanges(bufnr, winid)
     if (token.isCancellationRequested) return
     for (let lines of spans) {
       let span = regions.toUncoveredSpan([lines[0] - 1, lines[1] - 1], workspace.env.lines, doc.lineCount)
-      if (!span) return
-      const [start, end] = span
-      let items = this.toHighlightItems(highlights, start, end + 1)
-      let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
-      if (token.isCancellationRequested) break
-      regions.add(start, end)
-      let priority = config.highlightPriority
-      if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
+      if (span) await this.addHighlights(highlights, span, token)
     }
-  }
-
-  public async onWinScroll(winid: number): Promise<void> {
-    this.cancel(true)
-    if (!this.enabled || this.doc.dirty) return
-    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
-    let token = rangeTokenSource.token
-    await wait(debounceInterval)
-    if (token.isCancellationRequested) return
-    if (this.shouldRangeHighlight) {
-      await this.doRangeHighlight(winid, token)
-    } else {
-      await this.highlightRegions(winid, token)
-    }
-    if (!token.isCancellationRequested) this.rangeTokenSource = undefined
-  }
-
-  public getHighlightSpan(start: number, end: number): [number, number] | undefined {
-    let delta = workspace.env.lines
-    let startLine = start
-    if (start != 0) {
-      let s = Math.max(0, startLine - delta)
-      if (!this.regions.has(s, startLine)) {
-        startLine = s
-      }
-    }
-    let endLine = end
-    let linecount = this.doc.lineCount
-    if (end < linecount) {
-      let e = Math.min(end + delta, linecount)
-      if (!this.regions.has(endLine, e)) {
-        endLine = e
-      }
-    }
-    if (this.regions.has(start, end) && startLine === start && endLine === end) {
-      return undefined
-    }
-    return [startLine, endLine]
   }
 
   /**
@@ -490,14 +466,18 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public clearHighlight(): void {
-    this.previousResults = undefined
-    this._highlights = undefined
-    this.regions.clear()
+    this.reset()
     this.buffer.clearNamespace(NAMESPACE)
   }
 
-  public abandonResult(): void {
-    this.previousResults = undefined
+  public onProviderChange(): void {
+    if (!this.hasProvider) {
+      this.cancel()
+      this.clearHighlight()
+    } else {
+      this.reset()
+      this.doHighlight(true, 0).catch(onUnexpectedError)
+    }
   }
 
   public cancel(rangeOnly = false): void {
@@ -507,16 +487,22 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     if (rangeOnly) return
     this.regions.clear()
-    this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource = null
     }
   }
 
+  private reset(): void {
+    this.previousResults = undefined
+    this._highlights = undefined
+    this._version = undefined
+    this.regions.clear()
+  }
+
   public dispose(): void {
     this.cancel()
-    this.clearHighlight()
+    this.reset()
     this._onDidRefresh.dispose()
   }
 }
