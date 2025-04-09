@@ -34,7 +34,7 @@ describe('ProgressPart', () => {
       },
       onProgress<ProgressType>(_, __, handler: NotificationHandler<ProgressType>) {
         return onDidProgress(ev => {
-          handler(ev as any)
+          void handler(ev as any)
         })
       },
       sendNotification(_, params) {

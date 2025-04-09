@@ -1,5 +1,5 @@
 'use strict'
-import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-protocol'
+import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol, InlineCompletionContext, InlineCompletionItem, InlineCompletionList } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 
@@ -85,6 +85,34 @@ export interface CompletionItemProvider {
     item: CompletionItem,
     token: CancellationToken
   ): ProviderResult<CompletionItem>
+}
+
+/**
+ * The inline completion item provider interface defines the contract between extensions and
+ * the inline completion feature.
+ *
+ * Providers are asked for completions either explicitly by a user gesture or implicitly when typing.
+ */
+export interface InlineCompletionItemProvider {
+
+  /**
+   * Provides inline completion items for the given position and document.
+   * If inline completions are enabled, this method will be called whenever the user stopped typing.
+   * It will also be called when the user explicitly triggers inline completions or explicitly asks for the next or previous inline completion.
+   * In that case, all available inline completions should be returned.
+   * `context.triggerKind` can be used to distinguish between these scenarios.
+   * @param document The document inline completions are requested for.
+   * @param position The position inline completions are requested for.
+   * @param context A context object with additional information.
+   * @param token A cancellation token.
+   * @returns An array of completion items or a thenable that resolves to an array of completion items.
+   */
+  provideInlineCompletionItems(
+    document: TextDocument,
+    position: Position,
+    context: InlineCompletionContext,
+    token: CancellationToken
+  ): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
 }
 
 /**

@@ -2,11 +2,9 @@
 Object.defineProperty(exports, "__esModule", {value: true})
 const tslib_1 = require("tslib")
 const assert = tslib_1.__importStar(require("assert"))
-const vscode_languageserver_1 = require("vscode-languageserver")
+const vscode_languageserver_1 = require("vscode-languageserver/node")
 let connection = vscode_languageserver_1.createConnection()
 
-let documents = new vscode_languageserver_1.TextDocuments()
-documents.listen(connection)
 connection.onInitialize((params) => {
   assert.equal(params.capabilities.workspace.applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
@@ -30,7 +28,7 @@ connection.onInitialize((params) => {
   return {capabilities, customResults: {"hello": "world"}}
 })
 connection.onInitialized(() => {
-  connection.sendDiagnostics({uri: "uri:/test.ts", diagnostics: []})
+  void connection.sendDiagnostics({uri: "uri:/test.ts", diagnostics: []})
 })
 // Listen on the connection
 connection.listen()

@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ResponseError, LSPErrorCodes, DiagnosticRefreshRequest, DocumentDiagnosticReportKind, Diagnostic, Range, DiagnosticSeverity, TextDocuments, TextDocumentSyncKind} = require('vscode-languageserver')
+const {createConnection, ResponseError, LSPErrorCodes, DiagnosticRefreshRequest, DocumentDiagnosticReportKind, Diagnostic, Range, DiagnosticSeverity, TextDocuments, TextDocumentSyncKind} = require('vscode-languageserver/node')
 const {TextDocument} = require('vscode-languageserver-textdocument')
 let documents = new TextDocuments(TextDocument)
 
@@ -100,7 +100,7 @@ connection.languages.diagnostics.onWorkspace((params, _, __, reporter) => {
 })
 
 connection.onNotification('fireRefresh', () => {
-  connection.sendRequest(DiagnosticRefreshRequest.type)
+  void connection.sendRequest(DiagnosticRefreshRequest.type)
 })
 
 connection.onRequest('getChangeCount', () => {
