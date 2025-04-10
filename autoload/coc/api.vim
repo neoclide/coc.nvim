@@ -111,7 +111,7 @@ def BufLineCount(bufnr: number): number
   endif
   const info = get(getbufinfo(bufnr), 0, v:null)
   if empty(info)
-    throw "Invalid buffer id: " .. string(bufnr)
+    throw "Invalid buffer id: " .. bufnr
   endif
   if info['loaded'] == 0
     return 0
@@ -176,7 +176,7 @@ export def GetNamespaceTypes(ns: number): list<string>
 enddef
 
 export def CreateType(ns: number, hl: string, opts: dict<any>): string
-  const type: string = hl .. '_' .. string(ns)
+  const type: string = $'{hl}_{ns}'
   final types: list<string> = get(id_types, ns, [])
   if index(types, type) == -1
     add(types, type)
@@ -269,7 +269,7 @@ export def Set_option(name: string, value: any): any
       execute 'set no' .. name
     endif
   else
-    execute 'set ' .. name .. '=' .. value
+    execute $'set {name}=${value}'
   endif
   return v:null
 enddef
@@ -280,7 +280,7 @@ enddef
 
 export def Set_current_buf(bufnr: number): any
   CheckBufnr(bufnr)
-  execute 'buffer ' .. string(bufnr)
+  execute 'buffer ' .. bufnr
   return v:null
 enddef
 
@@ -292,7 +292,7 @@ enddef
 
 export def Set_current_tabpage(tid: number): any
   const nr = TabIdNr(tid)
-  execute 'normal! ' .. string(nr) .. 'gt'
+  execute $'normal! {nr}gt'
   return v:null
 enddef
 
@@ -311,7 +311,7 @@ export def Call_atomic(calls: list<any>): list<any>
       ThrowOnError()
       add(results, result)
     catch /.*/
-      return [results, [i, "VimException(" .. InspectType(v:exception) .. ")", v:exception .. ' on function coc#api#' .. name]]
+      return [results, [i, $'VimException({InspectType(v:exception)})', $'{v:exception} on function coc#api#{name}']]
     endtry
   endfor
   return [results, v:null]
@@ -403,7 +403,7 @@ enddef
 # Queues raw user-input, <" is special. To input a literal "<", send <LT>.
 export def Input(keys: string): any
   const escaped: string = substitute(keys, '<', '\\<', 'g')
-  feedkeys(coc#compat#eval('"' .. escaped .. '"'), 'n')
+  feedkeys(eval($'"{escaped}"'), 'n')
   return v:null
 enddef
 
@@ -465,7 +465,7 @@ enddef
 
 export def Get_mode(): dict<any>
   const m: string = mode()
-  return {'blocking': m ==# 'r' ? v:true : v:false, 'mode': m}
+  return {'blocking': m =~# '^r' ? v:true : v:false, 'mode': m}
 enddef
 
 export def Strwidth(str: string): number
@@ -506,17 +506,22 @@ export def Create_namespace(name: string): number
   return id
 enddef
 
+export def Get_namespaces(): dict<any>
+  return deepcopy(namespace_cache)
+enddef
+
 export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): any
   const modekey: string = CreateModePrefix(mode, opts)
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  execute coc#compat#execute(modekey .. ' ' .. arguments .. ' ' .. EscapeSpace(lhs) .. ' ' .. escaped)
+  execute coc#compat#execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
   return v:null
 enddef
 
 export def Del_keymap(mode: string, lhs: string): any
   const escaped = substitute(lhs, ' ', '<space>', 'g')
-  execute 'silent ' .. mode .. 'unmap ' .. escaped
+  execute $'silent {mode}unmap {escaped}'
+  IgnoreOnError('E31')
   return v:null
 enddef
 
@@ -599,7 +604,7 @@ export def Buf_get_mark(bufnr: number, name: string): list<number>
   CheckBufnr(bufnr)
   const marks: list<any> = getmarklist(bufnr)
   for item in marks
-    if item['mark'] ==# "'" .. name
+    if item['mark'] ==# $"'{name}"
       const pos: list<number> = item['pos']
       return [pos[1], pos[2] - 1]
     endif
@@ -729,7 +734,7 @@ enddef
 
 export def Buf_set_name(id: number, name: string): any
   const bufnr: number = id == 0 ? bufnr('%') : id
-  BufExecute(bufnr, ['silent noa 0file', 'file ' .. fnameescape(name)], v:true)
+  BufExecute(bufnr, ['silent noa 0file', $'file {fnameescape(name)}'], v:true)
   return v:null
 enddef
 
@@ -772,14 +777,14 @@ export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, op
   const prefix = CreateModePrefix(mode, opts)
   const arguments = CreateArguments(opts)
   const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  BufExecute(bufnr, [prefix .. ' ' .. arguments .. '<buffer> ' .. EscapeSpace(lhs) .. ' ' .. escaped], v:true)
+  BufExecute(bufnr, [$'{prefix} {arguments}<buffer> {EscapeSpace(lhs)} {escaped}'], v:true)
   return v:null
 enddef
 
 export def Buf_del_keymap(id: number, mode: string, lhs: string): any
   const bufnr: number = id == 0 ? bufnr('%') : id
   const escaped = substitute(lhs, ' ', '<space>', 'g')
-  BufExecute(bufnr, ['silent! ' .. mode .. 'unmap <buffer> ' .. escaped], v:false)
+  BufExecute(bufnr, [$'silent! {mode}unmap <buffer> {escaped}'], v:false)
   return v:null
 enddef
 # }}
@@ -814,7 +819,7 @@ export def Win_set_height(id: number, height: number): any
   if IsPopup(winid)
     popup_move(winid, {'maxheight': height, 'minheight': height})
   else
-    win_execute(winid, 'resize ' .. height)
+    win_execute(winid, $'resize {height}')
   endif
   return v:null
 enddef
@@ -834,7 +839,7 @@ export def Win_set_width(id: number, width: number): any
   if IsPopup(winid)
     popup_move(winid, {'maxwidth': width, 'minwidth': width})
   else
-    win_execute(winid, 'vertical resize ' .. width)
+    win_execute(winid, $'vertical resize {width}')
   endif
   return v:null
 enddef
@@ -870,9 +875,9 @@ export def Win_set_option(id: number, name: string, value: any): any
   const tabnr: number = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '&')
   if !has_key(vars, name)
-    throw "Invalid option name: " .. name
+    throw $"Invalid option name: {name}"
   endif
-  settabwinvar(tabnr, winid, '&' .. name, value)
+  settabwinvar(tabnr, winid, $'&{name}', value)
   return v:null
 enddef
 
@@ -881,7 +886,7 @@ export def Win_get_option(id: number, name: string, ..._): any
   const tabnr: number = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '&')
   if !has_key(vars, name)
-    throw "Invalid option name: " .. name
+    throw $"Invalid option name: {name}"
   endif
   const result: any = gettabwinvar(tabnr, winid, '&' .. name)
   return result
@@ -892,7 +897,7 @@ export def Win_get_var(id: number, name: string, ..._): any
   const tabnr = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '')
   if !has_key(vars, name)
-    throw 'Key not found: ' .. name
+    throw $'Key not found: {name}'
   endif
   return vars[name]
 enddef
@@ -909,7 +914,7 @@ export def Win_del_var(id: number, name: string): any
   const tabnr = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '')
   if !has_key(vars, name)
-    throw 'Key not found: ' .. name
+    throw $'Key not found: {name}'
   endif
   win_execute(winid, 'remove(w:, "' .. name .. '")')
   return v:null
@@ -963,7 +968,7 @@ export def Tabpage_get_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   const dict = gettabvar(nr, '')
   if !has_key(dict, name)
-    throw 'Key not found: ' .. name
+    throw $'Key not found: {name}'
   endif
   return dict[name]
 enddef
@@ -978,7 +983,7 @@ export def Tabpage_del_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   final dict = gettabvar(nr, '')
   if !has_key(dict, name)
-    throw 'Key not found: ' .. name
+    throw $'Key not found: {name}'
   endif
   remove(dict, name)
   return v:null
@@ -1009,7 +1014,7 @@ export def Call(method: string, args: list<any>): list<any>
     listener_flush()
     ThrowOnError()
   catch /.*/
-    err = v:exception .. ' on request api "' .. method .. '" ' .. json_encode(args)
+    err =  $'{v:exception} on request api "{method}" {json_encode(args)}'
     # vim9 return 0 for error on channel.
     result = v:null
   endtry
@@ -1035,7 +1040,7 @@ export def Notify(method: string, args: list<any>): any
     listener_flush()
     ThrowOnError()
   catch /.*/
-    coc#rpc#notify('nvim_error_event', [0, v:exception .. ' on notify api "' .. method .. '" ' .. json_encode(args)])
+    coc#rpc#notify('nvim_error_event', [0, $'{v:exception} on notify api "{method}" {json_encode(args)}'])
   endtry
   return v:null
 enddef

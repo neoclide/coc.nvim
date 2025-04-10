@@ -1,7 +1,5 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:namespace_map = {}
-let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 " Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 500)
@@ -134,15 +132,12 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   if !bufloaded(a:bufnr)
     return v:null
   endif
-  if !has_key(s:namespace_map, a:key)
-    return []
-  endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
   if has('nvim')
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
   endif
-  return coc#vim9#Get_highlights(a:bufnr, s:namespace_map[a:key], start, end)
+  return coc#vim9#Get_highlights(a:bufnr, a:key, start, end)
 endfunction
 
 " Add multiple highlights to buffer.
@@ -291,6 +286,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   endfor
   if !empty(cmds)
     call win_execute(a:winid, cmds, 'silent!')
+    let v:errmsg = ''
   endif
 endfunction
 
@@ -505,27 +501,21 @@ function! coc#highlight#clear_matches(winid, ids)
 endfunction
 
 function! coc#highlight#clear_all() abort
-  for src_id in values(s:namespace_map)
-    for bufnr in map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
-      call coc#compat#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
-    endfor
+  let dict = coc#compat#call('get_namespaces', [])
+  for [key, src_id] in items(dict)
+    if key =~# '^coc-'
+      for bufnr in map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
+        call coc#compat#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
+      endfor
+    endif
   endfor
 endfunction
 
 function! coc#highlight#create_namespace(key) abort
-  if type(a:key) == 0
+  if type(a:key) == v:t_number
     return a:key
   endif
-  if has_key(s:namespace_map, a:key)
-    return s:namespace_map[a:key]
-  endif
-  if has('nvim')
-    let s:namespace_map[a:key] = nvim_create_namespace('coc-'.a:key)
-  else
-    let s:namespace_map[a:key] = s:ns_id
-    let s:ns_id = s:ns_id + 1
-  endif
-  return s:namespace_map[a:key]
+  return coc#compat#call('create_namespace', ['coc-'. a:key])
 endfunction
 
 function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, idx) abort
@@ -604,27 +594,24 @@ function! s:group_hls(hls, linecount) abort
 endfunction
 
 function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+  let src_id = a:src_id == -1 ? coc#compat#call('create_namespace', ['']) : a:src_id
+  let opts = get(a:, 1, {})
   if s:is_vim
-    call coc#vim9#Add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, get(a:, 1, {}))
+    call coc#api#Buf_add_highlight(a:bufnr, src_id, a:hl_group, a:line, a:col_start, a:col_end, opts)
   else
-    let opts = get(a:, 1, {})
     let priority = get(opts, 'priority', v:null)
-    if a:src_id == -1
-      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
-    else
-      try
-        call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
-              \ 'end_col': a:col_end,
-              \ 'hl_group': a:hl_group,
-              \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-              \ 'right_gravity': v:true,
-              \ 'end_right_gravity': v:false,
-              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
-              \ })
-      catch /^Vim\%((\a\+)\)\=:E5555/
-        " the end_col could be invalid, ignore this error
-      endtry
-    endif
+    try
+      call nvim_buf_set_extmark(a:bufnr, src_id, a:line, a:col_start, {
+            \ 'end_col': a:col_end,
+            \ 'hl_group': a:hl_group,
+            \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
+            \ 'right_gravity': v:true,
+            \ 'end_right_gravity': v:false,
+            \ 'priority': type(priority) == v:t_number ?  min([priority, 4096]) : 4096,
+            \ })
+    catch /^Vim\%((\a\+)\)\=:E5555/
+      " the end_col could be invalid, ignore this error
+    endtry
   endif
 endfunction
 

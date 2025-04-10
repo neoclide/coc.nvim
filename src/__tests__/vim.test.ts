@@ -217,7 +217,12 @@ describe('client API', () => {
   })
 
   it('should call dict function', async () => {
-    let res = await nvim.callDictFunction({ key: 1 }, 'DictAdd')
+    await nvim.exec([
+      'function g:DictAdd() dict',
+      '  return self.key + 1',
+      'endfunction'
+    ].join('\n'), false)
+    let res = await nvim.callDictFunction({ key: 1 }, 'g:DictAdd')
     expect(res).toBe(2)
   })
 

@@ -69,7 +69,8 @@ enddef
 # type HighlightItemResult = [string, number, number, number, number?]
 # type HighlightItemResult = list<any>
 
-export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
+export def Get_highlights(bufnr: number, key: string, start: number, end: number): list<any>
+  const ns = coc#api#Create_namespace($'coc-{key}')
   const types: list<string> = coc#api#GetNamespaceTypes(ns)
   if empty(types)
     return []

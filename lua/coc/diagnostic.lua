@@ -1,6 +1,6 @@
 local M = {}
 
-local ns = vim.api.nvim_create_namespace('coc_diagnostic')
+local ns = vim.api.nvim_create_namespace('coc-diagnostic')
 
 function M.refresh()
   vim.diagnostic.reset(ns)
