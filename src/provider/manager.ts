@@ -2,6 +2,7 @@
 import { Location, LocationLink } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
+import { shouldIgnore } from '../util/errors'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { equals } from '../util/object'
 import { Disposable } from '../util/protocol'
@@ -45,7 +46,7 @@ export default class Manager<T extends object, P = object> {
 
   protected handleResults(results: PromiseSettledResult<void>[], name: string): void {
     results.forEach(res => {
-      if (res.status === 'rejected') {
+      if (res.status === 'rejected' && !shouldIgnore(res.reason)) {
         logger.error(`Provider error on ${name}:`, res.reason)
       }
     })
