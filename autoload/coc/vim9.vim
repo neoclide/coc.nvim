@@ -8,7 +8,6 @@ scriptencoding utf-8
 # type HighlightItem = list<any>
 # type HighlightItemList = list<HighlightItem>
 # NOTE: Can't use type on vim9.0.0438
-
 export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number): void
   const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   if len(highlights) > maxCount

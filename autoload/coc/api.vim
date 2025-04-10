@@ -38,12 +38,12 @@ enddef
 # TextChanged and callback not fired when using channel on vim.
 def OnTextChange(bufnr: number): void
   const event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
-  execute 'doautocmd <nomodeline> ' .. event .. ' ' .. bufname(bufnr)
+  execute 'legacy doautocmd <nomodeline> ' .. event .. ' ' .. bufname(bufnr)
   listener_flush(bufnr)
 enddef
 
 # execute command for bufnr
-def BufExecute(bufnr: number, cmds: list<string>, legacy: bool): void
+def BufExecute(bufnr: number, cmds: list<string>): void
   CheckBufnr(bufnr)
   var winid = get(win_findbuf(bufnr), 0, -1)
   var need_close: bool = v:false
@@ -51,11 +51,7 @@ def BufExecute(bufnr: number, cmds: list<string>, legacy: bool): void
     winid = CreatePopup(bufnr)
     need_close = v:true
   endif
-  if legacy
-    coc#compat#win_execute(winid, cmds, 'silent')
-  else
-    win_execute(winid, cmds, 'silent')
-  endif
+  win_execute(winid, cmds, 'silent')
   if need_close
     noa popup_close(winid)
   endif
@@ -63,7 +59,7 @@ enddef
 
 def CheckWinid(winid: number): void
   if winid < 0 || empty(getwininfo(winid)) == 1
-    throw 'Invalid window id: ' .. winid
+    throw $'Invalid window id: {winid}'
   endif
 enddef
 
@@ -82,7 +78,7 @@ def TabIdNr(tid: number): number
     endif
   endfor
   if type(result) == v:t_none
-    throw 'Invalid tabpage id: ' .. string(tid)
+    throw $'Invalid tabpage id: {tid}'
   endif
   return result
 enddef
@@ -100,7 +96,7 @@ enddef
 def WinTabnr(winid: number): number
   const info = getwininfo(winid)
   if empty(info) == 1
-    throw 'Invalid window id: ' .. winid
+    throw $'Invalid window id: {winid}'
   endif
   return info[0]['tabnr']
 enddef
@@ -111,7 +107,7 @@ def BufLineCount(bufnr: number): number
   endif
   const info = get(getbufinfo(bufnr), 0, v:null)
   if empty(info)
-    throw "Invalid buffer id: " .. bufnr
+    throw $'Invalid buffer id: {bufnr}'
   endif
   if info['loaded'] == 0
     return 0
@@ -119,12 +115,15 @@ def BufLineCount(bufnr: number): number
   return info['linecount']
 enddef
 
-def Execute(cmd: string): void
-  if cmd =~# '^echo'
-    execute cmd
-  else
-    silent! execute cmd
-  endif
+def DeferExecute(cmd: string): void
+  def RunExecute(): void
+    if cmd =~# '^echo'
+      execute cmd
+    else
+      silent! execute $'legacy {cmd}'
+    endif
+  enddef
+  timer_start(0, (..._) => RunExecute())
 enddef
 
 def InspectType(v: any): string
@@ -139,14 +138,14 @@ def CreateModePrefix(mode: string, opts: dict<any>): string
   if mode ==# '!'
     return 'map!'
   endif
-  return get(opts, 'noremap', 0) ?  mode .. 'noremap' : mode .. 'map'
+  return get(opts, 'noremap', 0) ?  $'{mode}noremap' : $'{mode}map'
 enddef
 
 def CreateArguments(opts: dict<any>): string
   var arguments = ''
   for key in keys(opts)
     if !!type(opts[key]) && index(keymap_arguments, key) != -1
-      arguments = arguments .. '<' .. key .. '>'
+      arguments ..= $'<{key}>'
     endif
   endfor
   return arguments
@@ -227,24 +226,25 @@ export def DetachListener(bufnr: number): bool
   return v:false
 enddef
 
-def ThrowOnError(): void
-  if empty(v:errmsg) == 0
-    const msg = v:errmsg
-    v:errmsg = ''
-    throw msg
-  endif
-enddef
+# Use the legacy eval, could be called by Call, must export
+export function Eval(expr) abort
+  legacy return eval(a:expr)
+endfunction
 
-def IgnoreOnError(expr: string): void
-  if empty(v:errmsg) == 0 && v:errmsg =~# expr
-    v:errmsg = ''
-  endif
-enddef
+# Call the legacy execute, use silent to avoid vim block
+function Execute(command, ...) abort
+  legacy return execute(a:command, get(a:, 1, 'silent'))
+endfunction
+
+# Call the legacy win_execute, use silent to avoid vim block
+function Win_execute(winid, cmds, ...) abort
+  legacy return win_execute(a:winid, a:cmds, get(a:, 1, 'silent'))
+endfunction
 # }}"
 
 # nvim client methods {{
 export def Set_current_dir(dir: string): any
-  execute 'cd ' .. fnameescape(dir)
+  execute 'legacy cd ' .. fnameescape(dir)
   return v:null
 enddef
 
@@ -264,12 +264,12 @@ enddef
 export def Set_option(name: string, value: any): any
   if index(boolean_options, name) != -1
     if !!value
-      execute 'set ' .. name
+      execute $'legacy set {name}'
     else
-      execute 'set no' .. name
+      execute $'legacy set no{name}'
     endif
   else
-    execute $'set {name}=${value}'
+    execute $'legacy set {name}={value}'
   endif
   return v:null
 enddef
@@ -280,7 +280,8 @@ enddef
 
 export def Set_current_buf(bufnr: number): any
   CheckBufnr(bufnr)
-  execute 'buffer ' .. bufnr
+  # autocmd could fail when not use legacy.
+  execute 'legacy buffer ' .. bufnr
   return v:null
 enddef
 
@@ -292,7 +293,7 @@ enddef
 
 export def Set_current_tabpage(tid: number): any
   const nr = TabIdNr(tid)
-  execute $'normal! {nr}gt'
+  execute $'legacy normal! {nr}gt'
   return v:null
 enddef
 
@@ -306,9 +307,7 @@ export def Call_atomic(calls: list<any>): list<any>
     const key: string = calls[i][0]
     const name: string = toupper(key[5]) .. key[6 : ]
     try
-      v:errmsg = ''
       const result = call(name, get(calls[i], 1, []))
-      ThrowOnError()
       add(results, result)
     catch /.*/
       return [results, [i, $'VimException({InspectType(v:exception)})', $'{v:exception} on function coc#api#{name}']]
@@ -332,13 +331,23 @@ export def Unsubscribe(..._): any
   return v:null
 enddef
 
-export def Call_function(method: string, args: list<any>): any
-  return call(method, args)
-enddef
+export function Call_function(method, args) abort
+  if index(['execute', 'eval', 'win_execute'], a:method) != -1
+    legacy return call(a:method, a:args)
+  endif
+  let result = v:null
+  try
+    let result = call(a:method, a:args)
+  catch /^Vim\%((\a\+)\)\=:E1031/
+    " v:exception like: Vim(let):E1031: Cannot use void value
+    " The function code is executed when the error raised.
+  endtry
+  return result
+endfunction
 
 export def Call_dict_function(dict: any, method: string, args: list<any>): any
   if type(dict) == v:t_string
-    return call(method, args, coc#compat#eval(dict))
+    return call(method, args, Eval(dict))
   endif
   return call(method, args, dict)
 enddef
@@ -346,24 +355,22 @@ enddef
 export def Command(command: string): any
   # command that could cause cursor vanish
   if command =~# '^\(echo\|redraw\|sign\)'
-    timer_start(0, (..._) => Execute(command))
+    DeferExecute(command)
   else
     # Command could be using legacy syntax
-    coc#compat#execute(command)
+    Execute(command)
+    # Use legacy not work for command like autocmd
+    # execute $'legacy {command}'
     # The error is set by python script, since vim not give error on python command failure
-    if command =~# '^py'
+    if strpart(command, 0, 2) ==# 'py'
       const err: string = get(g:, 'errmsg', '')
-      if empty(err) == 0
+      if !empty(err)
         remove(g:, 'errmsg')
         throw 'Python error ' .. err
       endif
     endif
   endif
   return v:null
-enddef
-
-export def Eval(expr: string): any
-  return coc#compat#eval(expr)
 enddef
 
 export def Get_api_info(): any
@@ -389,14 +396,14 @@ export def List_runtime_paths(): list<string>
 enddef
 
 export def Command_output(cmd: string): string
-  return trim(coc#compat#execute(cmd, 'silent'), "\r\n")
+  return trim(Execute(cmd, 'silent'), "\r\n")
 enddef
 
 export def Exec(code: string, output: any): string
   if !!output
     return Command_output(code)
   endif
-  Command(code)
+  Execute(code)
   return ''
 enddef
 
@@ -474,12 +481,12 @@ enddef
 
 export def Out_write(str: string): any
   echon str
-  timer_start(0, (..._) => Execute('redraw'))
+  DeferExecute('redraw')
   return v:null
 enddef
 
 export def Err_write(str: string): any
-  # Not used
+  # Err_write texts are cached by node-client
   return v:null
 enddef
 
@@ -487,7 +494,7 @@ export def Err_writeln(str: string): any
   echohl ErrorMsg
   echom str
   echohl None
-  timer_start(0, (..._) => Execute('redraw'))
+  DeferExecute('redraw')
   return v:null
 enddef
 
@@ -514,14 +521,13 @@ export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): 
   const modekey: string = CreateModePrefix(mode, opts)
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  execute coc#compat#execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
+  execute $'legacy {modekey} {arguments} {EscapeSpace(lhs)} {escaped}'
   return v:null
 enddef
 
 export def Del_keymap(mode: string, lhs: string): any
   const escaped = substitute(lhs, ' ', '<space>', 'g')
-  execute $'silent {mode}unmap {escaped}'
-  IgnoreOnError('E31')
+  execute $'legacy silent {mode}unmap {escaped}'
   return v:null
 enddef
 
@@ -637,7 +643,6 @@ export def Buf_add_highlight1(bufnr: number, srcId: number, hlGroup: string, lin
   const propId: number = GeneratePropId(bufnr)
   try
     prop_add(line + 1, colStart + 1, {'bufnr': bufnr, 'type': propType, 'id': propId, 'end_col': columnEnd})
-    IgnoreOnError('\(E967\|E964\)')
   catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
     # ignore 967
   endtry
@@ -657,7 +662,6 @@ export def Buf_clear_namespace(id: number, srcId: number, startLine: number, end
     if empty(types) == 0
       try
         prop_remove({'bufnr': bufnr, 'all': v:true, 'types': types}, start, end)
-        IgnoreOnError('E968')
       catch /^Vim\%((\a\+)\)\=:E968/
         # ignore 968
       endtry
@@ -734,7 +738,7 @@ enddef
 
 export def Buf_set_name(id: number, name: string): any
   const bufnr: number = id == 0 ? bufnr('%') : id
-  BufExecute(bufnr, ['silent noa 0file', $'file {fnameescape(name)}'], v:true)
+  BufExecute(bufnr, ['legacy silent noa 0file', $'legacy file {fnameescape(name)}'])
   return v:null
 enddef
 
@@ -777,14 +781,14 @@ export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, op
   const prefix = CreateModePrefix(mode, opts)
   const arguments = CreateArguments(opts)
   const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  BufExecute(bufnr, [$'{prefix} {arguments}<buffer> {EscapeSpace(lhs)} {escaped}'], v:true)
+  BufExecute(bufnr, [$'legacy {prefix} {arguments}<buffer> {EscapeSpace(lhs)} {escaped}'])
   return v:null
 enddef
 
 export def Buf_del_keymap(id: number, mode: string, lhs: string): any
   const bufnr: number = id == 0 ? bufnr('%') : id
   const escaped = substitute(lhs, ' ', '<space>', 'g')
-  BufExecute(bufnr, [$'silent! {mode}unmap <buffer> {escaped}'], v:false)
+  BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
   return v:null
 enddef
 # }}
@@ -800,7 +804,7 @@ export def Win_set_buf(id: number, bufnr: number): any
   const winid = id == 0 ? win_getid() : id
   CheckWinid(winid)
   CheckBufnr(bufnr)
-  win_execute(winid, 'buffer ' .. bufnr)
+  win_execute(winid, $'legacy buffer {bufnr}')
   return v:null
 enddef
 
@@ -819,7 +823,7 @@ export def Win_set_height(id: number, height: number): any
   if IsPopup(winid)
     popup_move(winid, {'maxheight': height, 'minheight': height})
   else
-    win_execute(winid, $'resize {height}')
+    win_execute(winid, $'legacy resize {height}')
   endif
   return v:null
 enddef
@@ -839,7 +843,7 @@ export def Win_set_width(id: number, width: number): any
   if IsPopup(winid)
     popup_move(winid, {'maxwidth': width, 'minwidth': width})
   else
-    win_execute(winid, $'vertical resize {width}')
+    win_execute(winid, $'legacy vertical resize {width}')
   endif
   return v:null
 enddef
@@ -856,7 +860,7 @@ enddef
 export def Win_set_cursor(id: number, pos: list<number>): any
   const winid = id == 0 ? win_getid() : id
   CheckWinid(winid)
-  win_execute(winid, 'cursor(' .. pos[0] .. ', ' .. (pos[1] + 1) .. ')')
+  win_execute(winid, $'cursor({pos[0]}, {pos[1] + 1})')
   return v:null
 enddef
 
@@ -948,7 +952,7 @@ export def Win_close(id: number, force: bool = v:false): any
   if IsPopup(winid)
     popup_close(winid)
   else
-    win_execute(winid, 'close' .. (force ? '!' : ''))
+    win_execute(winid, $'legacy close{force ? '!' : ''}')
   endif
   return v:null
 enddef
@@ -1002,48 +1006,6 @@ export def Tabpage_get_win(tid: number): number
   const nr = TabIdNr(tid)
   return win_getid(tabpagewinnr(nr), nr)
 enddef
-# }}
-
-# Used by node-client request
-export def Call(method: string, args: list<any>): list<any>
-  var err: any = v:null
-  var result: any = v:null
-  try
-    v:errmsg = ''
-    result = call(method, args)
-    listener_flush()
-    ThrowOnError()
-  catch /.*/
-    err =  $'{v:exception} on request api "{method}" {json_encode(args)}'
-    # vim9 return 0 for error on channel.
-    result = v:null
-  endtry
-  return [err, result]
-enddef
-
-# Used by node-client notification
-export def Notify(method: string, args: list<any>): any
-  try
-    v:errmsg = ''
-    # vim throw error with return when vim9 function has no return value.
-    if method ==# 'call_function'
-      call(args[0], args[1])
-    elseif method ==# 'call_dict_function'
-      if type(args[0]) == v:t_string
-        call(args[1], args[2], coc#compat#eval(args[0]))
-      else
-        call(args[1], args[2], args[0])
-      endif
-    else
-      call(toupper(method[0]) .. method[1 : ], args)
-    endif
-    listener_flush()
-    ThrowOnError()
-  catch /.*/
-    coc#rpc#notify('nvim_error_event', [0, $'{v:exception} on notify api "{method}" {json_encode(args)}'])
-  endtry
-  return v:null
-enddef
 
 export def Tabpage_ids(): void
   for nr in range(1, tabpagenr('$'))
@@ -1053,9 +1015,43 @@ export def Tabpage_ids(): void
     endif
   endfor
 enddef
+# }}
 
-# Note: .. must be used
-legacy execute "function! coc#api#call(method, args) abort\n  let err = v:null\n  let res = v:null\n  try\n    let res = call('coc#api#' .. toupper(a:method[0]) .. a:method[1:], a:args)\n  catch /.*/\n    let err = v:exception\n  endtry\n  return [err, res]\nendfunction"
+# Used by node-client request, function needed to catch error
+export function Call(method, args) abort
+  let err = v:null
+  let result = v:null
+  try
+    let fname = toupper(a:method[0]) .. a:method[1 : ]
+    let result = call(fname, a:args)
+    call listener_flush()
+  catch /.*/
+    let err =  v:exception .. ' - on request ' .. a:method .. ' ' .. json_encode(a:args)
+    let result = v:null
+  endtry
+  return [err, result]
+endfunction
+
+# Used by node-client notification, function needed to catch error
+export function Notify(method, args) abort
+  try
+    let fname = toupper(a:method[0]) .. a:method[1 : ]
+    call call(fname, a:args)
+    call listener_flush()
+  catch /.*/
+    call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on notification "' .. a:method .. '" ' .. json_encode(a:args)])
+  endtry
+  return v:null
+endfunction
+
+# Could be called by other plguin
+const call_function = [
+  'function! coc#api#call(method, args) abort',
+  '  return coc#api#Call(a:method, a:args)',
+  'endfunction'
+]
+
+execute $'legacy execute "{join(call_function, '\n')}"'
 
 defcompile
 # vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:

@@ -371,20 +371,20 @@ function! s:preview_highlights(winid, bufnr, config, float) abort
   endif
   " highlights
   let sign_group = s:is_vim && a:float ? s:sign_popup_range : s:sign_range
-  call coc#compat#win_execute(a:winid, ['syntax clear', 'call clearmatches()'])
+  call win_execute(a:winid, ['syntax clear', 'call clearmatches()'])
   call sign_unplace(sign_group, {'buffer': a:bufnr})
   let lnum = get(a:config, 'lnum', 1)
   if !empty(filetype)
     if get(g:, 'coc_list_preview_filetype', 0)
-      call coc#compat#win_execute(a:winid, 'setf '.filetype)
+      call win_execute(a:winid, 'setf '.filetype)
     else
       let start = max([0, lnum - 300])
       let end = min([coc#compat#buf_line_count(a:bufnr), lnum + 300])
       call coc#highlight#highlight_lines(a:winid, [{'filetype': filetype, 'startLine': start, 'endLine': end}])
-      call coc#compat#win_execute(a:winid, 'syn sync fromstart')
+      call win_execute(a:winid, 'syn sync fromstart')
     endif
   else
-    call coc#compat#win_execute(a:winid, 'filetype detect')
+    call win_execute(a:winid, 'filetype detect')
     let ft = getbufvar(a:bufnr, '&filetype', '')
     if !empty(extname) && !empty(ft)
       let s:filetype_map[extname] = ft
@@ -449,7 +449,7 @@ function! s:save_views(exclude) abort
   for nr in range(1, winnr('$'))
     let winid = win_getid(nr)
     if winid != a:exclude && getwinvar(nr, 'previewwindow', 0) == 0 && !coc#window#is_float(winid)
-      call coc#compat#win_execute(winid, 'let w:coc_list_saved_view = winsaveview()')
+      call win_execute(winid, 'let w:coc_list_saved_view = winsaveview()')
     endif
   endfor
 endfunction
@@ -462,7 +462,7 @@ function! s:restore_views() abort
     let saved = getwinvar(nr, 'coc_list_saved_view', v:null)
     if !empty(saved)
       let winid = win_getid(nr)
-      call coc#compat#win_execute(winid, 'noa call winrestview(w:coc_list_saved_view) | unlet w:coc_list_saved_view')
+      call win_execute(winid, 'noa call winrestview(w:coc_list_saved_view) | unlet w:coc_list_saved_view')
     endif
   endfor
 endfunction

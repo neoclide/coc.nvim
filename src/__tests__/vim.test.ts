@@ -110,6 +110,40 @@ describe('vim api', () => {
   })
 })
 
+describe('call_function', () => {
+  beforeAll(async () => {
+    let folder = path.resolve(__dirname)
+    await nvim.command(`set runtimepath+=${folder}`)
+  })
+
+  it('should call vim9 void function', async () => {
+    let res = await nvim.call('vim9#Execute', ['g:x = $"abc"'])
+    expect(res).toBeNull()
+    let x = await nvim.getVar('x')
+    expect(x).toBe('abc')
+  })
+
+  it('should call dict function', async () => {
+    let res = await nvim.callDictFunction({ key: 1 }, 'legacy#dict_add')
+    expect(res).toBe(2)
+  })
+
+  it('should not throw for win_execute', async () => {
+    // old style syntax
+    await nvim.call('execute', ['let g:y = "a"."b"'])
+    let y = await nvim.getVar('y')
+    expect(y).toBe('ab')
+    // new style syntax in vim9 function
+    let res = await nvim.call('vim9#WinExecute', [])
+    expect(res).toBe(true)
+    // old style syntax win_execute in legacy function
+    await nvim.call('legacy#win_execute', [])
+    let win = await nvim.window
+    let val = await win.getVar('foo')
+    expect(val).toBe('ab')
+  })
+})
+
 describe('client API', () => {
   it('should set current dir', async () => {
     await nvim.setDirectory(__dirname)
@@ -216,16 +250,6 @@ describe('client API', () => {
     expect(res).toBe('')
   })
 
-  it('should call dict function', async () => {
-    await nvim.exec([
-      'function g:DictAdd() dict',
-      '  return self.key + 1',
-      'endfunction'
-    ].join('\n'), false)
-    let res = await nvim.callDictFunction({ key: 1 }, 'g:DictAdd')
-    expect(res).toBe(2)
-  })
-
   it('should execute command', async () => {
     await nvim.command('sp')
     let wins = await nvim.windows
@@ -235,9 +259,22 @@ describe('client API', () => {
     expect(wins.length).toBe(1)
   })
 
-  it('should eval', async () => {
-    let res = await nvim.eval('1 + 1')
-    expect(res).toBe(2)
+  it('should allow legacy script on command', async () => {
+    await nvim.command('let g:x = v:argv[0]." bar"')
+    let res = await nvim.getVar('x')
+    expect(res).toMatch('bar')
+  })
+
+  it('should not throw for silent error command', async () => {
+    await expect(async () => {
+      await nvim.command('abcdefg')
+    }).rejects.toThrow(/E492/)
+    await nvim.command('silent! abcdefg')
+  })
+
+  it('should use legacy eval', async () => {
+    let res = await nvim.eval('"a"."b"')
+    expect(res).toBe('ab')
   })
 
   it('should get api info', async () => {
@@ -264,8 +301,11 @@ describe('client API', () => {
   })
 
   it('should get command output', async () => {
-    let res = await nvim.commandOutput('version')
-    expect(res).toMatch(/VIM/)
+    let res = await nvim.commandOutput('echo "foo"."bar"')
+    expect(res).toMatch(/foobar/)
+    await expect(async () => {
+      await nvim.commandOutput('echonot_exists')
+    }).rejects.toThrow(/E492/)
   })
 
   it('should get line & set line', async () => {

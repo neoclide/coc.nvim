@@ -409,7 +409,7 @@ function! coc#pum#create(lines, opt, config) abort
   if s:is_vim
     call popup_setoptions(s:pum_winid, { 'firstline': firstline })
   else
-    call coc#compat#win_execute(s:pum_winid, 'call winrestview({"lnum":'.lnum.',"topline":'.firstline.'})')
+    call win_execute(s:pum_winid, 'call winrestview({"lnum":'.lnum.',"topline":'.firstline.'})')
   endif
   call coc#dialog#place_sign(s:pum_bufnr, s:pum_index == -1 ? 0 : lnum)
   " content before col and content after cursor
@@ -542,7 +542,7 @@ function! s:select_line(winid, line) abort
   let s:pum_index = s:reversed ? (a:line == 0 ? -1 : s:pum_size - a:line) : a:line - 1
   let lnum = s:reversed ? (a:line == 0 ? s:pum_size : a:line) : max([1, a:line])
   if s:is_vim
-    call coc#compat#win_execute(a:winid, 'exe '.lnum)
+    call win_execute(a:winid, 'exe '.lnum)
   else
     call nvim_win_set_cursor(a:winid, [lnum, 0])
   endif

@@ -32,7 +32,7 @@ function! coc#compat#prepend_lines(bufnr, replacement) abort
 endfunction
 
 function! coc#compat#win_is_valid(winid) abort
-  return coc#compat#call('win_id_valid', [a:winid])
+  return coc#compat#call('win_is_valid', [a:winid])
 endfunction
 
 function! coc#compat#clear_matches(winid) abort
@@ -76,14 +76,6 @@ function! coc#compat#buf_del_var(bufnr, name) abort
   endtry
 endfunction
 
-function! coc#compat#ignore_error(expr) abort
-  if s:is_vim
-    if empty(v:errmsg) == 0 && v:errmsg =~# a:expr
-      v:errmsg = ''
-    endif
-  endif
-endfunction
-
 " remove keymap for bufnr, not throw error
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)
@@ -91,9 +83,7 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   endif
   try
     call coc#compat#call('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
-    " ignore keymap doesn't exist
-    call coc#compat#ignore_error('E31')
-  catch /^Vim\%((\a\+)\)\=:E5555/
+  catch /^Vim\%((\a\+)\)\=:E31/
     " ignore keymap doesn't exist
   endtry
 endfunction
@@ -131,17 +121,5 @@ function! coc#compat#win_execute(winid, command, ...) abort
   endif
   let winid = a:winid == 0 ? win_getid() : a:winid
   keepalt call win_execute(winid, a:command, get(a:, 1, ''))
-endfunc
-
-" Can't be defined in api.vim, the command would still be considered as vim9
-" format when it's using command like execute.
-function! coc#compat#execute(command, ...) abort
-  return execute(a:command, get(a:, 1, ''))
 endfunction
-
-" Used by api.vim for legacy eval
-function! coc#compat#eval(text) abort
-  return eval(a:text)
-endfunction
-
 " vim: set sw=2 ts=2 sts=2 et tw=78 foldlevel=0:
