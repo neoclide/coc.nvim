@@ -131,20 +131,20 @@ endfunction
 function! coc#highlight#get_highlights(bufnr, key, ...) abort
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
-  if has('nvim')
-    return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
+  if s:is_vim
+    return coc#vim9#Get_highlights(a:bufnr, a:key, start, end)
   endif
-  return coc#vim9#Get_highlights(a:bufnr, a:key, start, end)
+  return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
 endfunction
 
 " Add multiple highlights to buffer.
 " type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 function! coc#highlight#set(bufnr, key, highlights, priority) abort
   let ns = coc#highlight#create_namespace(a:key)
-  if has('nvim')
-    call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
-  else
+  if s:is_vim
     call coc#vim9#Set_highlights(a:bufnr, ns, a:highlights, a:priority)
+  else
+    call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   endif
 endfunction
 
