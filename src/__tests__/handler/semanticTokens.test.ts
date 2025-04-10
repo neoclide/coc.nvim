@@ -278,9 +278,9 @@ describe('semanticTokens', () => {
 
   describe('highlightCurrent()', () => {
     it('should only highlight limited range on update', async () => {
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       let doc = await helper.createDocument('t.vim')
       let fn = jest.fn()
-      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: (doc, token) => {
           let text = doc.getText()
@@ -305,12 +305,12 @@ describe('semanticTokens', () => {
         }
       }, legend))
       let item = await semanticTokens.getCurrentItem()
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
       let newLine = 'l\n'
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: `${newLine.repeat(1000)}` }])
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
       expect(fn).toHaveBeenCalled()
-      let buf = nvim.createBuffer(doc.bufnr)
+      let buf = doc.buffer
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       let len = markers.length
       expect(len).toBeLessThan(400)
@@ -378,8 +378,8 @@ describe('semanticTokens', () => {
       await helper.waitValue(() => {
         return times
       }, 1)
-      await item.doHighlight()
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
+      await item.doHighlight(false, 0)
       expect(times).toBe(1)
     })
 
@@ -413,19 +413,17 @@ describe('semanticTokens', () => {
         }
       }, legend))
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
       cancel = false
       let spy = jest.spyOn(window, 'diffHighlights').mockImplementation(() => {
         return Promise.resolve(null)
       })
       let winid = await nvim.call('win_getid') as number
-      await item.doHighlight(false, winid)
-      await item.doHighlight(false, winid)
+      await item.doHighlight(false, 10, winid)
+      await item.doHighlight(false, 0, winid)
       spy.mockRestore()
       expect(item.highlights).toBeDefined()
       await helper.edit('bar')
-      await helper.wait(20)
-      await item.doHighlight()
     })
 
     it('should highlight hidden buffer on shown', async () => {
@@ -483,7 +481,7 @@ describe('semanticTokens', () => {
         }
       }, legend)
       helper.updateConfiguration('semanticTokens.filetypes', ['*'])
-      await item.doHighlight(true)
+      await item.doHighlight(true, 0)
       expect(item.highlights).toBeUndefined()
       disposable.dispose()
       let winid = await nvim.call('win_getid') as number
@@ -520,7 +518,7 @@ describe('semanticTokens', () => {
       let buf = await createRustBuffer()
       let item = semanticTokens.getItem(buf.id)
       let winid = await nvim.call('win_getid') as number
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
       await item.highlightRegions(winid, CancellationToken.None)
       await item.highlightRegions(winid, CancellationToken.None)
     })
@@ -528,7 +526,7 @@ describe('semanticTokens', () => {
     it('should cancel region highlight', async () => {
       let buf = await createRustBuffer()
       let item = semanticTokens.getItem(buf.id)
-      await item.doHighlight()
+      await item.doHighlight(false, 0)
       let tokenSource = new CancellationTokenSource()
       let spy = jest.spyOn(window, 'diffHighlights').mockImplementation(() => {
         tokenSource.cancel()
@@ -699,7 +697,7 @@ describe('semanticTokens', () => {
       let item = await semanticTokens.getCurrentItem()
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       item.cancel()
-      let p = item.doHighlight()
+      let p = item.doHighlight(false, 0)
       await helper.wait(10)
       item.cancel(true)
       await p

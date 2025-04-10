@@ -38,6 +38,9 @@ function M.getHighlights(bufnr, key, s, e)
 end
 
 local function addHighlights(bufnr, ns, highlights, priority)
+  if not api.nvim_buf_is_loaded(bufnr) then
+    return false
+  end
   for _, items in ipairs(highlights) do
     local hlGroup = items[1]
     local line = items[2]
@@ -53,9 +56,13 @@ local function addHighlights(bufnr, ns, highlights, priority)
           priority = type(priority) == 'number' and math.min(priority, 4096) or 4096
     })
   end
+  return true
 end
 
-local function addHighlightTimer(bufnr, ns, highlights, priority, maxCount)
+local function addHighlightTimer(bufnr, ns, highlights, priority, changedtick, maxCount)
+  if api.nvim_buf_get_var(bufnr, 'changedtick') > changedtick then
+    return nil
+  end
   local hls = {}
   local next = {}
   for i, v in ipairs(highlights) do
@@ -65,10 +72,10 @@ local function addHighlightTimer(bufnr, ns, highlights, priority, maxCount)
       table.insert(next, v)
     end
   end
-  addHighlights(bufnr, ns, hls, priority)
-  if #next > 0 then
+  local succeed = addHighlights(bufnr, ns, hls, priority)
+  if succeed and #next > 0 then
     vim.defer_fn(function()
-      addHighlightTimer(bufnr, ns, next, priority, maxCount)
+      addHighlightTimer(bufnr, ns, next, priority, changedtick, maxCount)
     end, 10)
   end
 end
@@ -76,7 +83,8 @@ end
 function M.set(bufnr, ns, highlights, priority)
   local maxCount = vim.g.coc_highlight_maximum_count
   if #highlights > maxCount then
-    addHighlightTimer(bufnr, ns, highlights, priority, maxCount)
+    local changedtick = api.nvim_buf_get_var(bufnr, 'changedtick')
+    addHighlightTimer(bufnr, ns, highlights, priority, changedtick, maxCount)
   else
     addHighlights(bufnr, ns, highlights, priority)
   end

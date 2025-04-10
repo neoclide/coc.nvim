@@ -15,7 +15,7 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
   endif
   let priority = get(a:, 1, v:null)
   let changedtick = getbufvar(a:bufnr, 'changedtick', 0)
-  if type(get(a:, 2, v:null)) == 0 && changedtick > a:2
+  if type(get(a:, 2, v:null)) == v:t_number && changedtick > a:2
     return
   endif
   let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3],'combine':get(v:val,4,1),'start_incl':get(v:val,5,0),'end_incl':get(v:val,6,0)}")
@@ -129,9 +129,6 @@ endfunction
 " 0 based line, start_col and end_col
 " 0 based start & end line, end inclusive.
 function! coc#highlight#get_highlights(bufnr, key, ...) abort
-  if !bufloaded(a:bufnr)
-    return v:null
-  endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
   if has('nvim')
@@ -143,18 +140,11 @@ endfunction
 " Add multiple highlights to buffer.
 " type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 function! coc#highlight#set(bufnr, key, highlights, priority) abort
-  if !bufloaded(a:bufnr)
-    return
-  endif
   let ns = coc#highlight#create_namespace(a:key)
   if has('nvim')
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
   else
-    try
-      call coc#vim9#Set_highlights(a:bufnr, ns, a:highlights, a:priority)
-    catch /.*/
-     let g:e = v:exception
-    endtry
+    call coc#vim9#Set_highlights(a:bufnr, ns, a:highlights, a:priority)
   endif
 endfunction
 

@@ -87,6 +87,7 @@ describe('completion', () => {
 
     it('should use insert range instead of replace', async () => {
       helper.updateConfiguration('suggest.insertMode', 'insert', disposables)
+      await helper.createDocument()
       await nvim.setLine('ffoo')
       let name = await create(['foo'], false)
       await nvim.call('cursor', [1, 2])

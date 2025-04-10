@@ -32,7 +32,7 @@ export function wait(ms: number): Promise<void> {
 }
 
 export function waitWithToken(ms: number, token: CancellationToken): Promise<boolean> {
-  if (token.isCancellationRequested) return Promise.resolve(true)
+  if (token.isCancellationRequested || !ms) return Promise.resolve(true)
   return new Promise<boolean>(resolve => {
     let disposable = token.onCancellationRequested(() => {
       disposable.dispose()

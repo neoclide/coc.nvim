@@ -10,7 +10,7 @@ scriptencoding utf-8
 # NOTE: Can't use type on vim9.0.0438
 
 export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number): void
-  const maxCount = g:coc_highlight_maximum_count
+  const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   if len(highlights) > maxCount
     const changedtick = getbufvar(bufnr, 'changedtick', 0)
     Add_highlights_timer(bufnr, ns, highlights, priority, changedtick, maxCount)
@@ -33,15 +33,15 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
     highlightItemList = highlights[ : ]
     next = []
   endif
-  Add_highlights(bufnr, ns, highlightItemList, priority)
-  if len(next) > 0
+  const succeed = Add_highlights(bufnr, ns, highlightItemList, priority)
+  if succeed && len(next) > 0
     timer_start(10,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, maxCount))
   endif
 enddef
 
-def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): void
-  if bufwinnr(bufnr) == -1 # check buffer exists
-    return
+def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): bool
+  if !bufloaded(bufnr)
+    return v:false
   endif
   for highlightItem in highlights
     const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = highlightItem
@@ -56,6 +56,7 @@ def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number)
     }
     Add_highlight(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
   endfor
+  return v:true
 enddef
 
 export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: number, col_start: number, col_end: number, opts: dict<any> = {}): void
@@ -70,6 +71,9 @@ enddef
 # type HighlightItemResult = list<any>
 
 export def Get_highlights(bufnr: number, key: string, start: number, end: number): list<any>
+  if !bufloaded(bufnr)
+    return []
+  endif
   const ns = coc#api#Create_namespace($'coc-{key}')
   const types: list<string> = coc#api#GetNamespaceTypes(ns)
   if empty(types)

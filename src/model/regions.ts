@@ -17,6 +17,10 @@ export default class Regions {
     return res
   }
 
+  public get isEmpty(): boolean {
+    return this.ranges.length === 0
+  }
+
   public clear(): void {
     this.ranges = []
   }
