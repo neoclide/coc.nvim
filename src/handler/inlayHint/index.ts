@@ -57,19 +57,19 @@ export default class InlayHintHandler {
       execute: (bufnr?: number) => {
         this.setState('toggle', bufnr)
       },
-    }, false, 'toggle inlayHint display of current buffer')
+    }, false, 'Toggle inlayHint display of current buffer')
     commands.register({
       id: 'document.enableInlayHint',
       execute: (bufnr?: number) => {
         this.setState('enable', bufnr)
       },
-    }, false, 'enable codeLens display of current buffer')
+    }, false, 'Enable inlayHint display of current buffer')
     commands.register({
       id: 'document.disableInlayHint',
       execute: (bufnr?: number) => {
         this.setState('disable', bufnr)
       },
-    }, false, 'disable codeLens display of current buffer')
+    }, false, 'Disable inlayHint display of current buffer')
     handler.addDisposable(Disposable.create(() => {
       disposeAll(this.disposables)
     }))
