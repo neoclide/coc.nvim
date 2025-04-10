@@ -2,14 +2,15 @@
 import type { CompleteDoneItem, CompleteFinishKind } from './completion/types'
 import { createLogger } from './logger'
 import { JumpInfo } from './types'
-import { disposeAll } from './util'
-import { shouldIgnore } from './util/errors'
+import { disposeAll, getConditionValue } from './util'
+import { onUnexpectedError, shouldIgnore } from './util/errors'
 import * as Is from './util/is'
 import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
 import { byteLength, byteSlice } from './util/string'
 const logger = createLogger('events')
 const SYNC_AUTOCMDS = ['BufWritePre']
+const debounceTime = getConditionValue(100, 10)
 
 export type Result = void | Promise<void>
 
@@ -55,6 +56,9 @@ export enum EventName {
   TextChangedI = 'TextChangedI',
   TextChangedP = 'TextChangedP',
   TextInsert = 'TextInsert',
+  BufWinEnter = 'BufWinEnter',
+  WinScrolled = 'WinScrolled',
+  WinClosed = 'WinClosed'
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
@@ -75,7 +79,7 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
 export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
@@ -101,6 +105,7 @@ export class Events {
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
   private _bufnr = 1
+  private timeoutMap: Map<number, NodeJS.Timeout> = new Map()
   // bufnr & character
   private _recentInserts: [number, string][] = []
   private _lastChange = 0
@@ -124,6 +129,23 @@ export class Events {
 
   public get ready(): boolean {
     return this._ready
+  }
+
+  private fireVisibleEvent(winid: number, bufnr: number): void {
+    let timer = this.timeoutMap.get(winid)
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      this.fire('WindowVisible', [winid, bufnr]).catch(onUnexpectedError)
+    }, debounceTime)
+    this.timeoutMap.set(winid, timer)
+  }
+
+  private clearVisibleTimer(winid: number): void {
+    let timer = this.timeoutMap.get(winid)
+    if (timer) {
+      this.timeoutMap.delete(winid)
+      clearTimeout(timer)
+    }
   }
 
   public set completing(completing: boolean) {
@@ -255,6 +277,14 @@ export class Events {
     } else if (event == EventName.PumInsert) {
       this._last_pum_insert = args[0]
       return
+    } else if (event == EventName.BufWinEnter) {
+      const [bufnr, winid] = args
+      this.fireVisibleEvent(winid, bufnr)
+    } else if (event == EventName.WinScrolled) {
+      const [winid, bufnr] = args
+      this.fireVisibleEvent(winid, bufnr)
+    } else if (event == EventName.WinClosed) {
+      this.clearVisibleTimer(args[0])
     }
     if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
@@ -299,7 +329,7 @@ export class Events {
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'WinScrolled', handler: (winid: number, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'WinScrolled' | 'WindowVisible', handler: (winid: number, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabClosed', handler: (tabids: number[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabNew', handler: (tabid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

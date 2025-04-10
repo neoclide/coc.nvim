@@ -201,13 +201,13 @@ export default class InlayHintBuffer implements SyncItem {
     const range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine + 1, 0))
     let inlayHints = await this.requestInlayHints(range, token)
     if (inlayHints == null || token.isCancellationRequested) return
-    this.regions.add(startLine, endLine)
     if (!this.config.enableParameter) {
       inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
     }
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
     this.currentHints.push(...inlayHints)
     this.setVirtualText(range, inlayHints)
+    this.regions.add(startLine, endLine)
   }
 
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
@@ -236,7 +236,7 @@ export default class InlayHintBuffer implements SyncItem {
       }
       buffer.setVirtualText(srcId, position.line, chunks, opts)
     }
-    nvim.resumeNotification(true, true)
+    nvim.resumeNotification(false, true)
     this._onDidRefresh.fire()
   }
 
