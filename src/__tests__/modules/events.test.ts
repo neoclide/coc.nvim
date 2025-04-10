@@ -32,6 +32,32 @@ describe('register handler', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
+  it('should fire visible event once', async () => {
+    let fn = jest.fn()
+    let args
+    events.once('WindowVisible', (winid, bufnr) => {
+      args = [winid, bufnr]
+      fn()
+    })
+    await events.fire('BufWinEnter', [1, 1000])
+    await events.fire('WinScrolled', [1000, 2])
+    await wait(20)
+    await events.fire('WinClosed', [1000])
+    expect(fn).toHaveBeenCalledTimes(1)
+    expect(args).toEqual([1000, 2])
+  })
+
+  it('should cancel visible event', async () => {
+    let fn = jest.fn()
+    events.once('WindowVisible', () => {
+      fn()
+    })
+    await events.fire('BufWinEnter', [1, 1000])
+    await events.fire('WinClosed', [1000])
+    await wait(10)
+    expect(fn).toHaveBeenCalledTimes(0)
+  })
+
   it('should not add insertChar with TextChangedI after PumInsert', async () => {
     await events.fire('PumInsert', ['foo'])
     let pre: string
