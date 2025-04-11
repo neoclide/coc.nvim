@@ -331,7 +331,7 @@ export def Unsubscribe(..._): any
   return v:null
 enddef
 
-export function Call_function(method, args) abort
+export function Call_function(method, args, ...) abort
   if index(['execute', 'eval', 'win_execute'], a:method) != -1
     legacy return call(a:method, a:args)
   endif
@@ -341,6 +341,10 @@ export function Call_function(method, args) abort
   catch /^Vim\%((\a\+)\)\=:E1031/
     " v:exception like: Vim(let):E1031: Cannot use void value
     " The function code is executed when the error raised.
+    " Send the error to client when it's request
+    if !get(a:, 1)
+      call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on function call "' .. a:method .. '"'])
+    endif
   endtry
   return result
 endfunction
@@ -1036,7 +1040,11 @@ endfunction
 export function Notify(method, args) abort
   try
     let fname = toupper(a:method[0]) .. a:method[1 : ]
-    call call(fname, a:args)
+    if fname ==# 'Call_function'
+      call call(fname, a:args + [v:true])
+    else
+      call call(fname, a:args)
+    endif
     call listener_flush()
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on notification "' .. a:method .. '" ' .. json_encode(a:args)])

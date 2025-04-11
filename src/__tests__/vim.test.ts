@@ -117,8 +117,17 @@ describe('call_function', () => {
   })
 
   it('should call vim9 void function', async () => {
-    let res = await nvim.call('vim9#Execute', ['g:x = $"abc"'])
+    let err = null
+    helper.reportError = false
+    nvim.once('vim_error', e => {
+      err = e
+    })
+    let res = await nvim.call('vim9#Execute', ['g:x = $"foo"'])
     expect(res).toBeNull()
+    expect(err).toBeDefined()
+    helper.reportError = true
+    // should not report error
+    nvim.call('vim9#Execute', ['g:x = $"abc"'], true)
     let x = await nvim.getVar('x')
     expect(x).toBe('abc')
   })
