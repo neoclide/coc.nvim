@@ -599,10 +599,10 @@ describe('Window API', () => {
     await win.setOption('relativenumber', false)
     await expect(async () => {
       await win.getOption('not_exists')
-    }).rejects.toThrow('Invalid option name')
+    }).rejects.toThrow('Invalid')
     await expect(async () => {
       await win.setOption('not_exists', '')
-    }).rejects.toThrow('Invalid option name')
+    }).rejects.toThrow('Invalid')
   })
 
   it('should get and set var', async () => {

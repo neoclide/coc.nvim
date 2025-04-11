@@ -13,52 +13,55 @@ final listener_map: dict<any> = {}
 const prop_offset: number = get(g:, 'coc_text_prop_offset', 1000)
 const keymap_arguments: list<string> = ['nowait', 'silent', 'script', 'expr', 'unique']
 const known_types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'None', 'Job', 'Channel', 'Blob']
+const scopes = ['global', 'local']
 # Boolean options of vim 9.1.1134
 const boolean_options: list<string> = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'autoindent', 'autoread', 'autoshelldir', 'autowrite', 'autowriteall', 'backup', 'balloonevalterm', 'binary', 'bomb', 'breakindent', 'buflisted', 'cdhome', 'cindent', 'compatible', 'confirm', 'copyindent', 'cursorbind', 'cursorcolumn', 'cursorline', 'delcombine', 'diff', 'digraph', 'edcompatible', 'emoji', 'endoffile', 'endofline', 'equalalways', 'errorbells', 'esckeys', 'expandtab', 'exrc', 'fileignorecase', 'fixendofline', 'foldenable', 'fsync', 'gdefault', 'hidden', 'hkmap', 'hkmapp', 'hlsearch', 'icon', 'ignorecase', 'imcmdline', 'imdisable', 'incsearch', 'infercase', 'insertmode', 'joinspaces', 'langnoremap', 'langremap', 'lazyredraw', 'linebreak', 'lisp', 'list', 'loadplugins', 'magic', 'modeline', 'modelineexpr', 'modifiable', 'modified', 'more', 'number', 'paste', 'preserveindent', 'previewwindow', 'prompt', 'readonly', 'relativenumber', 'remap', 'revins', 'rightleft', 'ruler', 'scrollbind', 'secure', 'shelltemp', 'shiftround', 'shortname', 'showcmd', 'showfulltag', 'showmatch', 'showmode', 'smartcase', 'smartindent', 'smarttab', 'smoothscroll', 'spell', 'splitbelow', 'splitright', 'startofline', 'swapfile', 'tagbsearch', 'tagrelative', 'tagstack', 'termbidi', 'termguicolors', 'terse', 'textauto', 'textmode', 'tildeop', 'timeout', 'title', 'ttimeout', 'ttybuiltin', 'ttyfast', 'undofile', 'visualbell', 'warn', 'weirdinvert', 'wildignorecase', 'wildmenu', 'winfixbuf', 'winfixheight', 'winfixwidth', 'wrap', 'wrapscan', 'write', 'writeany', 'writebackup', 'xtermcodes']
+const window_options = keys(getwinvar(0, '&'))
+const buffer_options = keys(getbufvar(bufnr('%'), '&'))
 
 const API_FUNCTIONS = [
-  'set_current_dir',
-  'set_var',
-  'del_var',
-  'set_option',
-  'get_option',
-  'set_current_buf',
-  'set_current_win',
-  'set_current_tabpage',
-  'list_wins',
-  'call_atomic',
-  'call_function',
-  'call_dict_function',
   'eval',
   'command',
-  'get_api_info',
-  'list_bufs',
   'feedkeys',
-  'list_runtime_paths',
   'command_output',
   'exec',
   'input',
   'create_buf',
-  'get_current_line',
+  'strwidth',
+  'out_write',
+  'err_write',
+  'err_writeln',
+  'set_option',
+  'set_var',
+  'set_keymap',
+  'set_option_value',
   'set_current_line',
-  'del_current_line',
+  'set_current_dir',
+  'set_current_buf',
+  'set_current_win',
+  'set_current_tabpage',
+  'get_option',
+  'get_api_info',
+  'get_current_line',
   'get_var',
   'get_vvar',
   'get_current_buf',
   'get_current_win',
   'get_current_tabpage',
-  'list_tabpages',
   'get_mode',
-  'strwidth',
-  'out_write',
-  'err_write',
-  'err_writeln',
-  'create_namespace',
   'get_namespaces',
-  'set_keymap',
-  'del_keymap',
-  'set_option_value',
   'get_option_value',
+  'del_var',
+  'del_keymap',
+  'del_current_line',
+  'list_wins',
+  'list_bufs',
+  'list_runtime_paths',
+  'list_tabpages',
+  'call_atomic',
+  'call_function',
+  'call_dict_function',
+  'create_namespace',
   'buf_set_option',
   'buf_get_option',
   'buf_get_changedtick',
@@ -221,6 +224,39 @@ def EscapeSpace(text: string): string
   return substitute(text, ' ', '<space>', 'g')
 enddef
 
+# See :h option-backslash
+export def EscapeOptionValue(value: any): string
+  if type(value) == v:t_string
+    return substitute(value, '\( \|\\\)', '\\\1', 'g')
+  endif
+  return string(value)
+enddef
+
+# Check the type like nvim, currently bool option only
+def CheckOptionValue(name: string, value: any): void
+  if index(boolean_options, name) != -1 && type(value) != v:t_bool
+    throw $"Invalid value for option '{name}': expected boolean, got {tolower(InspectType(value))} {value}"
+  endif
+enddef
+
+def CheckScopeOption(opts: dict<any>): void
+  if has_key(opts, 'scope') && has_key(opts, 'buf')
+    throw "Can't use both scope and buf"
+  endif
+  if has_key(opts, 'buf') && has_key(opts, 'win')
+    throw "Can't use both buf and win"
+  endif
+  if has_key(opts, 'scope') && index(scopes, opts.scope) == -1
+    throw "Invalid 'scope': expected 'local' or 'global'"
+  endif
+  if has_key(opts, 'buf') && type(opts.buf) != v:t_number
+    throw $"Invalid 'buf': expected Number, got {InspectType(opts.buf)}"
+  endif
+  if has_key(opts, 'win') && type(opts.win) != v:t_number
+    throw $"Invalid 'win': expected Number, got {InspectType(opts.win)}"
+  endif
+enddef
+
 def CreateModePrefix(mode: string, opts: dict<any>): string
   if mode ==# '!'
     return 'map!'
@@ -239,9 +275,6 @@ def CreateArguments(opts: dict<any>): string
 enddef
 
 def CheckOptionArgs(scope: string, win: number, buf: number): void
-  if scope !=# 'global' && scope !=# 'local'
-    throw "Invalid 'scope': expected 'local' or 'global'"
-  endif
   if win != 0
     CheckWinid(win)
   endif
@@ -343,15 +376,18 @@ export def Del_var(name: string): any
   return v:null
 enddef
 
-export def Set_option(name: string, value: any): any
+export def Set_option(name: string, value: any, local: bool = v:false): any
   if index(boolean_options, name) != -1
-    if !!value
-      execute $'legacy set {name}'
+    if type(value) != v:t_bool
+      throw $"Invalid value for option '{name}': expected boolean, got {tolower(InspectType(value))} {value}"
+    endif
+    if value
+      execute $'legacy set{local ? 'l' : ''} {name}'
     else
-      execute $'legacy set no{name}'
+      execute $'legacy set{local ? 'l' : ''} no{name}'
     endif
   else
-    execute $'legacy set {name}={value}'
+    execute $"legacy set{local ? 'l' : ''} {name}={EscapeOptionValue(value)}"
   endif
   return v:null
 enddef
@@ -622,44 +658,37 @@ export def Del_keymap(mode: string, lhs: string): any
 enddef
 
 export def Set_option_value(name: string, value: any, opts: dict<any>): any
-  const winid: number = get(opts, 'win', 0)
-  const bufnr: number = get(opts, 'buf', 0)
-  if has_key(opts, 'scope') && has_key(opts, 'buf')
-    throw "Can't use both scope and buf"
-  endif
+  CheckScopeOption(opts)
+  const winid: number = get(opts, 'win', -1)
+  const bufnr: number = get(opts, 'buf', -1)
   const scope: string = get(opts, 'scope', 'global')
-  CheckOptionArgs(scope, winid, bufnr)
-  if bufnr != 0
+  if bufnr != -1
     Buf_set_option(bufnr, name, value)
-  elseif winid != 0
+  elseif winid != -1
     Win_set_option(winid, name, value)
   else
     if scope ==# 'global'
       Set_option(name, value)
     else
-      Win_set_option(win_getid(), name, value)
-      Buf_set_option(bufnr('%'), name, value)
+      Set_option(name, value, v:true)
     endif
   endif
   return v:null
 enddef
 
 export def Get_option_value(name: string, opts: dict<any> = {}): any
-  const winid: number = get(opts, 'win', 0)
-  const bufnr: number = get(opts, 'buf', 0)
-  if has_key(opts, 'scope') && has_key(opts, 'buf')
-    throw "Can't use both scope and buf"
-  endif
+  CheckScopeOption(opts)
+  const winid: number = get(opts, 'win', -1)
+  const bufnr: number = get(opts, 'buf', -1)
   const scope: string = get(opts, 'scope', 'global')
-  CheckOptionArgs(scope, winid, bufnr)
   var result: any = v:null
-  if bufnr != 0
+  if bufnr != -1
     result = Buf_get_option(bufnr, name)
-  elseif winid != 0
+  elseif winid != -1
     result = Win_get_option(winid, name)
   else
     if scope ==# 'global'
-      result = eval('&' .. name)
+      result = eval($'&{name}')
     else
       result = gettabwinvar(tabpagenr(), 0, '&' .. name, v:null)
       if type(result) == v:t_none
@@ -672,14 +701,21 @@ enddef
 # }}
 
 # buffer methods {{
-export def Buf_set_option(bufnr: number, name: string, val: any): any
+export def Buf_set_option(bufnr: number, name: string, value: any): any
+  CheckOptionValue(name, value)
   CheckBufnr(bufnr)
-  setbufvar(bufnr, '&' .. name, val)
+  if index(buffer_options, name) == -1
+    throw $"Invalid buffer option name: {name}"
+  endif
+  setbufvar(bufnr, '&' .. name, value)
   return v:null
 enddef
 
 export def Buf_get_option(bufnr: number, name: string): any
   CheckBufnr(bufnr)
+  if index(buffer_options, name) == -1
+    throw $"Invalid buffer option name: {name}"
+  endif
   return getbufvar(bufnr, '&' .. name)
 enddef
 
@@ -970,11 +1006,11 @@ export def Win_get_cursor(id: number): list<number>
 enddef
 
 export def Win_set_option(id: number, name: string, value: any): any
+  CheckOptionValue(name, value)
   const winid = id == 0 ? win_getid() : id
   const tabnr: number = WinTabnr(winid)
-  const vars = gettabwinvar(tabnr, winid, '&')
-  if !has_key(vars, name)
-    throw $"Invalid option name: {name}"
+  if index(window_options, name) == -1
+    throw $"Invalid window option name: {name}"
   endif
   settabwinvar(tabnr, winid, $'&{name}', value)
   return v:null
@@ -983,12 +1019,10 @@ enddef
 export def Win_get_option(id: number, name: string, ..._): any
   const winid = id == 0 ? win_getid() : id
   const tabnr: number = WinTabnr(winid)
-  const vars = gettabwinvar(tabnr, winid, '&')
-  if !has_key(vars, name)
-    throw $"Invalid option name: {name}"
+  if index(window_options, name) == -1
+    throw $"Invalid window option name: {name}"
   endif
-  const result: any = gettabwinvar(tabnr, winid, '&' .. name)
-  return result
+  return gettabwinvar(tabnr, winid, '&' .. name)
 enddef
 
 export def Win_get_var(id: number, name: string, ..._): any
