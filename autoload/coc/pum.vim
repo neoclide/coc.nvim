@@ -219,10 +219,10 @@ function! coc#pum#scroll(forward) abort
 endfunction
 
 function! s:get_height(winid) abort
-  if has('nvim')
-    return nvim_win_get_height(a:winid)
+  if s:is_vim
+    return get(popup_getpos(a:winid), 'core_height', 0)
   endif
-  return get(popup_getpos(a:winid), 'core_height', 0)
+  return nvim_win_get_height(a:winid)
 endfunction
 
 function! s:scroll_pum(forward, height, size) abort
@@ -254,13 +254,12 @@ function! s:scroll_pum(forward, height, size) abort
 endfunction
 
 function! s:get_topline(winid) abort
-  if has('nvim')
-    let info = getwininfo(a:winid)[0]
-    return info['topline']
-  else
+  if s:is_vim
     let pos = popup_getpos(a:winid)
     return pos['firstline']
   endif
+  let info = getwininfo(a:winid)[0]
+  return info['topline']
 endfunction
 
 function! coc#pum#_navigate(next, insert) abort
