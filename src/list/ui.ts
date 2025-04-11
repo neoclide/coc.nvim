@@ -388,7 +388,7 @@ export default class ListUI {
     if (reversed) {
       let replacement = lines.reverse()
       if (append) {
-        nvim.call('coc#compat#prepend_lines', [buffer.id, replacement], true)
+        nvim.call('appendbufline', [buffer.id, 0, replacement], true)
       } else {
         buffer.setLines(replacement, { start: 0, end: -1, strictIndexing: false }, true)
       }

@@ -11,8 +11,8 @@ import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { fuzzyScoreGracefulAggressive } from '../util/filter'
 import { Mutex } from '../util/mutex'
-import { equals } from '../util/object'
 import { debounce } from '../util/node'
+import { equals } from '../util/object'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
@@ -612,7 +612,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.opts.canSelectMany || forceSingle) {
       buf.unplaceSign({ group: 'CocTree' })
     }
-    nvim.call('coc#compat#execute', [this.winid, `normal! ${row + 1}G`], true)
+    nvim.call('win_execute', [this.winid, `normal! ${row + 1}G`], true)
     buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     if (!noRedraw) this.redraw()
     nvim.resumeNotification(false, true)
@@ -633,7 +633,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.winid) return
     let lnum = this.getItemLnum(element)
     if (lnum == null) return
-    this.nvim.call('coc#compat#execute', [this.winid, `exe ${lnum + 1}`], true)
+    this.nvim.call('win_execute', [this.winid, `exe ${lnum + 1}`], true)
   }
 
   private getElementByLnum(lnum: number): T | undefined {

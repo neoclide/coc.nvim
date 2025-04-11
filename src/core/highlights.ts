@@ -101,9 +101,6 @@ export class Highlights {
     let { remove, add, removeMarkers } = diff
     if (remove.length === 0 && add.length === 0 && removeMarkers.length === 0) return
     nvim.pauseNotification()
-    if (remove.length) {
-      nvim.call('coc#highlight#clear', [bufnr, ns, remove], true)
-    }
     if (add.length) {
       nvim.call('coc#highlight#set', [bufnr, ns, add, priority], true)
     }

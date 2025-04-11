@@ -120,7 +120,7 @@ export class Extensions {
     if (process.env.COC_NO_PLUGINS == '1') return
     let stats = await this.globalPromise
     this.manager.registerExtensions(stats)
-    let localStats = this.runtimeExtensionStats(runtimepath)
+    let localStats = this.runtimeExtensionStats(runtimepath.split(','))
     this.manager.registerExtensions(localStats)
     void this.manager.loadFileExtensions()
   }
@@ -303,8 +303,8 @@ export class Extensions {
    * Get all extension states
    */
   public async getExtensionStates(): Promise<ExtensionInfo[]> {
-    let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
-    let localStats = this.runtimeExtensionStats(runtimepath)
+    let runtimepaths = await workspace.nvim.runtimePaths
+    let localStats = this.runtimeExtensionStats(runtimepaths)
     let globalStats = this.globalExtensionStats()
     return localStats.concat(globalStats)
   }
@@ -354,12 +354,11 @@ export class Extensions {
     return infos
   }
 
-  public runtimeExtensionStats(runtimepath: string): ExtensionInfo[] {
+  public runtimeExtensionStats(runtimepaths: string[]): ExtensionInfo[] {
     let lockedExtensions = this.states.lockedExtensions
-    let paths = runtimepath.split(',')
     let infos: ExtensionInfo[] = []
     let localIds: Set<string> = new Set()
-    paths.map(root => {
+    runtimepaths.map(root => {
       let errors: string[] = []
       let obj = loadExtensionJson(root, workspace.version, errors)
       if (errors.length > 0) return

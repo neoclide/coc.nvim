@@ -5,10 +5,10 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import { createLogger } from '../logger'
 import type Document from '../model/document'
+import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { sameFile } from '../util/fs'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import Documents from './documents'
-import { convertFormatOptions, VimFormatOption } from '../util/convert'
 const logger = createLogger('core-editors')
 
 interface EditorOption {

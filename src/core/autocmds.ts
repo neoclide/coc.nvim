@@ -2,8 +2,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Autocmd } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { Disposable } from '../util/protocol'
 import { crypto } from '../util/node'
+import { Disposable } from '../util/protocol'
 
 interface PartialEnv {
   isVim: boolean

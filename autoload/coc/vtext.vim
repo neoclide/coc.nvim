@@ -76,7 +76,7 @@ def s:vtext_add(
   var first: bool = true
   const base: dict<any> = s:get_option(align, propColumn, get(opts, 'text_wrap', 'truncate'))
   for [text, highlightGroup] in blockList
-    const type: string = coc#api#create_type(src_id, highlightGroup, opts)
+    const type: string = coc#api#CreateType(src_id, highlightGroup, opts)
     final propOpts: dict<any> = extend({ 'text': text, 'type': type, 'bufnr': bufnr }, base)
     if first && !empty(propIndent)
       propOpts['text_padding_left'] = s:calc_padding_size(propIndent)

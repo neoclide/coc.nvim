@@ -117,7 +117,7 @@ describe('registerExprKeymap()', () => {
     await helper.waitValue(() => called, true)
   })
 
-  it('should register insert key mapping', async () => {
+  it('should register expr insert key mapping', async () => {
     let buf = await nvim.buffer
     let called = false
     let fn = () => {
