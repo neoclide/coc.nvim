@@ -49,7 +49,7 @@ function! coc#rpc#start_server()
     elseif !test
       let logfile = exists('$NVIM_COC_LOG_FILE') ? $NVIM_COC_LOG_FILE : ''
       let loglevel = exists('$NVIM_COC_LOG_LEVEL') ? $NVIM_COC_LOG_LEVEL : ''
-      let runtimepath = join(globpath(&runtimepath, "", 0, 1), ",")
+      let runtimepath = join(coc#compat#list_runtime_paths(), ",")
       let data = [coc#util#win32unix_to_node(s:root), coc#util#get_data_home(), coc#util#get_config_home(), logfile, loglevel, runtimepath]
       if s:is_vim
         call ch_sendraw(s:client['channel'], json_encode(data)."\n")
@@ -220,7 +220,7 @@ endfunction
 
 function! s:check_vim_enter() abort
   if s:client['running'] && v:vim_did_enter
-    call coc#rpc#notify('VimEnter', [join(globpath(&runtimepath, "", 0, 1), ",")])
+    call coc#rpc#notify('VimEnter', [join(coc#compat#list_runtime_paths, ",")])
   endif
 endfunction
 

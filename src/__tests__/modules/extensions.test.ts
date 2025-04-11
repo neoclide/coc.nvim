@@ -131,7 +131,7 @@ describe('extensions', () => {
     writeJson(path.join(f2, 'package.json'), { name: 'folder', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(f2, 'index.js'), '')
     extensions.states.addExtension('folder', '0.0.1')
-    let res = extensions.runtimeExtensionStats(`${f1},${f2}`)
+    let res = extensions.runtimeExtensionStats([f1, f2])
     expect(res.length).toBe(1)
     expect(res[0].id).toBe('name')
     extensions.states.removeExtension('folder')

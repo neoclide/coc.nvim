@@ -79,6 +79,10 @@ function! coc#compat#tabnr_id(tabnr) abort
   return nvim_list_tabpages()[a:tabnr - 1]
 endfunction
 
+function! coc#compat#list_runtime_paths() abort
+  return coc#compat#call('list_runtime_paths', [])
+endfunction
+
 " call api function on vim or neovim
 function! coc#compat#call(fname, args) abort
   if s:is_vim

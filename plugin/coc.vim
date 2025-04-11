@@ -339,7 +339,7 @@ endfunction
 function! s:VimEnter() abort
   if coc#rpc#started()
     if !exists('$COC_NVIM_REMOTE_ADDRESS')
-      call coc#rpc#notify('VimEnter', [join(globpath(&runtimepath, "", 0, 1), ",")])
+      call coc#rpc#notify('VimEnter', [join(coc#compat#list_runtime_paths(), ",")])
     endif
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
