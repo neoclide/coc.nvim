@@ -16,6 +16,96 @@ const known_types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float
 # Boolean options of vim 9.1.1134
 const boolean_options: list<string> = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'autoindent', 'autoread', 'autoshelldir', 'autowrite', 'autowriteall', 'backup', 'balloonevalterm', 'binary', 'bomb', 'breakindent', 'buflisted', 'cdhome', 'cindent', 'compatible', 'confirm', 'copyindent', 'cursorbind', 'cursorcolumn', 'cursorline', 'delcombine', 'diff', 'digraph', 'edcompatible', 'emoji', 'endoffile', 'endofline', 'equalalways', 'errorbells', 'esckeys', 'expandtab', 'exrc', 'fileignorecase', 'fixendofline', 'foldenable', 'fsync', 'gdefault', 'hidden', 'hkmap', 'hkmapp', 'hlsearch', 'icon', 'ignorecase', 'imcmdline', 'imdisable', 'incsearch', 'infercase', 'insertmode', 'joinspaces', 'langnoremap', 'langremap', 'lazyredraw', 'linebreak', 'lisp', 'list', 'loadplugins', 'magic', 'modeline', 'modelineexpr', 'modifiable', 'modified', 'more', 'number', 'paste', 'preserveindent', 'previewwindow', 'prompt', 'readonly', 'relativenumber', 'remap', 'revins', 'rightleft', 'ruler', 'scrollbind', 'secure', 'shelltemp', 'shiftround', 'shortname', 'showcmd', 'showfulltag', 'showmatch', 'showmode', 'smartcase', 'smartindent', 'smarttab', 'smoothscroll', 'spell', 'splitbelow', 'splitright', 'startofline', 'swapfile', 'tagbsearch', 'tagrelative', 'tagstack', 'termbidi', 'termguicolors', 'terse', 'textauto', 'textmode', 'tildeop', 'timeout', 'title', 'ttimeout', 'ttybuiltin', 'ttyfast', 'undofile', 'visualbell', 'warn', 'weirdinvert', 'wildignorecase', 'wildmenu', 'winfixbuf', 'winfixheight', 'winfixwidth', 'wrap', 'wrapscan', 'write', 'writeany', 'writebackup', 'xtermcodes']
 
+const API_FUNCTIONS = [
+  'set_current_dir',
+  'set_var',
+  'del_var',
+  'set_option',
+  'get_option',
+  'set_current_buf',
+  'set_current_win',
+  'set_current_tabpage',
+  'list_wins',
+  'call_atomic',
+  'call_function',
+  'call_dict_function',
+  'eval',
+  'command',
+  'get_api_info',
+  'list_bufs',
+  'feedkeys',
+  'list_runtime_paths',
+  'command_output',
+  'exec',
+  'input',
+  'create_buf',
+  'get_current_line',
+  'set_current_line',
+  'del_current_line',
+  'get_var',
+  'get_vvar',
+  'get_current_buf',
+  'get_current_win',
+  'get_current_tabpage',
+  'list_tabpages',
+  'get_mode',
+  'strwidth',
+  'out_write',
+  'err_write',
+  'err_writeln',
+  'create_namespace',
+  'get_namespaces',
+  'set_keymap',
+  'del_keymap',
+  'set_option_value',
+  'get_option_value',
+  'buf_set_option',
+  'buf_get_option',
+  'buf_get_changedtick',
+  'buf_is_valid',
+  'buf_is_loaded',
+  'buf_get_mark',
+  'buf_add_highlight',
+  'buf_clear_namespace',
+  'buf_line_count',
+  'buf_attach',
+  'buf_detach',
+  'buf_get_lines',
+  'buf_set_lines',
+  'buf_set_name',
+  'buf_get_name',
+  'buf_get_var',
+  'buf_set_var',
+  'buf_del_var',
+  'buf_set_keymap',
+  'buf_del_keymap',
+  'win_get_buf',
+  'win_set_buf',
+  'win_get_position',
+  'win_set_height',
+  'win_get_height',
+  'win_set_width',
+  'win_get_width',
+  'win_set_cursor',
+  'win_get_cursor',
+  'win_set_option',
+  'win_get_option',
+  'win_get_var',
+  'win_set_var',
+  'win_del_var',
+  'win_is_valid',
+  'win_get_number',
+  'win_get_tabpage',
+  'win_close',
+  'tabpage_get_number',
+  'tabpage_list_wins',
+  'tabpage_get_var',
+  'tabpage_set_var',
+  'tabpage_del_var',
+  'tabpage_is_valid',
+  'tabpage_get_win',
+]
+
 # helper {{
 # Create a window with bufnr for execute win_execute
 def CreatePopup(bufnr: number): number
@@ -58,7 +148,7 @@ def BufExecute(bufnr: number, cmds: list<string>): void
 enddef
 
 def CheckWinid(winid: number): void
-  if winid < 0 || empty(getwininfo(winid)) == 1
+  if winid < 0 || empty(getwininfo(winid))
     throw $'Invalid window id: {winid}'
   endif
 enddef
@@ -95,21 +185,18 @@ enddef
 
 def WinTabnr(winid: number): number
   const info = getwininfo(winid)
-  if empty(info) == 1
+  if empty(info)
     throw $'Invalid window id: {winid}'
   endif
   return info[0]['tabnr']
 enddef
 
 def BufLineCount(bufnr: number): number
-  if bufnr == 0
-    return line('$')
-  endif
   const info = get(getbufinfo(bufnr), 0, v:null)
   if empty(info)
     throw $'Invalid buffer id: {bufnr}'
   endif
-  if info['loaded'] == 0
+  if !info['loaded']
     return 0
   endif
   return info['linecount']
@@ -144,7 +231,7 @@ enddef
 def CreateArguments(opts: dict<any>): string
   var arguments = ''
   for key in keys(opts)
-    if !!type(opts[key]) && index(keymap_arguments, key) != -1
+    if opts[key] == v:true && index(keymap_arguments, key) != -1
       arguments ..= $'<{key}>'
     endif
   endfor
@@ -180,7 +267,7 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   if index(types, type) == -1
     add(types, type)
     id_types[ns] = types
-    if empty(prop_type_get(type)) == 1
+    if empty(prop_type_get(type))
       final type_option: dict<any> = {'highlight': hl}
       const hl_mode: string = get(opts, 'hl_mode', 'combine')
       if hl_mode !=# 'combine'
@@ -225,11 +312,6 @@ export def DetachListener(bufnr: number): bool
   endif
   return v:false
 enddef
-
-# Use the legacy eval, could be called by Call, must export
-export function Eval(expr) abort
-  legacy return eval(a:expr)
-endfunction
 
 # Call the legacy execute, use silent to avoid vim block
 function Execute(command, ...) abort
@@ -356,15 +438,19 @@ export def Call_dict_function(dict: any, method: string, args: list<any>): any
   return call(method, args, dict)
 enddef
 
+# Use the legacy eval, could be called by Call, must export
+export function Eval(expr) abort
+  legacy return eval(a:expr)
+endfunction
+
 export def Command(command: string): any
   # command that could cause cursor vanish
   if command =~# '^\(echo\|redraw\|sign\)'
     DeferExecute(command)
   else
-    # Command could be using legacy syntax
-    Execute(command)
     # Use legacy not work for command like autocmd
     # execute $'legacy {command}'
+    Execute(command)
     # The error is set by python script, since vim not give error on python command failure
     if strpart(command, 0, 2) ==# 'py'
       const err: string = get(g:, 'errmsg', '')
@@ -378,12 +464,12 @@ export def Command(command: string): any
 enddef
 
 export def Get_api_info(): any
-  # const names = func_names()
+  const functions: list<string> = map(copy(API_FUNCTIONS), (_, val) => $'nvim_{val}')
   const channel: any = coc#rpc#get_channel()
-  if empty(channel) == 1
+  if empty(channel)
     throw 'Unable to get channel'
   endif
-  return [ch_info(channel)['id'], {'functions': []}]
+  return [ch_info(channel)['id'], {'functions': functions}]
 enddef
 
 export def List_bufs(): list<number>
@@ -396,15 +482,15 @@ export def Feedkeys(keys: string, mode: string, escape_csi: any = v:false): any
 enddef
 
 export def List_runtime_paths(): list<string>
-  return globpath(&runtimepath, '', 0, 1)
+  return map(globpath(&runtimepath, '', 0, 1), (_, val) => coc#util#win32unix_to_node(val))
 enddef
 
 export def Command_output(cmd: string): string
   return trim(Execute(cmd, 'silent'), "\r\n")
 enddef
 
-export def Exec(code: string, output: any): string
-  if !!output
+export def Exec(code: string, output: bool): string
+  if output
     return Command_output(code)
   endif
   Execute(code)
@@ -418,10 +504,10 @@ export def Input(keys: string): any
   return v:null
 enddef
 
-export def Create_buf(listed: any, scratch: any): number
+export def Create_buf(listed: any, scratch: bool): number
   const bufnr: number = bufadd('')
   setbufvar(bufnr, '&buflisted', listed ? 1 : 0)
-  if !!scratch
+  if scratch
     setbufvar(bufnr, '&modeline', 0)
     setbufvar(bufnr, '&buftype', 'nofile')
     setbufvar(bufnr, '&swapfile', 0)
@@ -503,7 +589,7 @@ export def Err_writeln(str: string): any
 enddef
 
 export def Create_namespace(name: string): number
-  if empty(name) == 1
+  if empty(name)
     const id = namespace_id
     namespace_id += 1
     return id
@@ -663,7 +749,7 @@ export def Buf_clear_namespace(id: number, srcId: number, startLine: number, end
     prop_clear(start, end, {'bufnr': bufnr})
   else
     const types = get(id_types, srcId, [])
-    if empty(types) == 0
+    if !empty(types)
       try
         prop_remove({'bufnr': bufnr, 'all': v:true, 'types': types}, start, end)
       catch /^Vim\%((\a\+)\)\=:E968/
@@ -675,6 +761,9 @@ export def Buf_clear_namespace(id: number, srcId: number, startLine: number, end
 enddef
 
 export def Buf_line_count(bufnr: number): number
+  if bufnr == 0
+    return line('$')
+  endif
   return BufLineCount(bufnr)
 enddef
 
@@ -695,27 +784,27 @@ export def Buf_detach(id: number): bool
   return DetachListener(bufnr)
 enddef
 
-export def Buf_get_lines(id: number, start: number, end: number, strict: any = v:false): list<string>
+export def Buf_get_lines(id: number, start: number, end: number, strict: bool = v:false): list<string>
   const bufnr: number = id == 0 ? bufnr('%') : id
   CheckBufnr(bufnr)
   const len = BufLineCount(bufnr)
   const s = start < 0 ? len + start + 2 : start + 1
   const e = end < 0 ? len + end + 1 : end
-  if !!strict && e > len
+  if strict && e > len
     throw 'Index out of bounds ' .. end
   endif
   return getbufline(bufnr, s, e)
 enddef
 
-export def Buf_set_lines(id: number, start: number, end: number, strict: any, replacement: list<string> = []): any
+export def Buf_set_lines(id: number, start: number, end: number, strict: bool = v:false, replacement: list<string> = []): any
   const bufnr: number = id == 0 ? bufnr('%') : id
   CheckBufnr(bufnr)
   const len = BufLineCount(bufnr)
   var startLnum = start < 0 ? len + start + 2 : start + 1
   var endLnum = end < 0 ? len + end + 1 : end
   if endLnum > len
-    if !!strict
-      throw 'Index out of bounds ' .. end
+    if strict
+      throw $'Index out of bounds {end}'
     else
       endLnum = len
     endif
@@ -782,6 +871,7 @@ enddef
 
 export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, opts: dict<any>): any
   const bufnr: number = id == 0 ? bufnr('%') : id
+  CheckBufnr(bufnr)
   const prefix = CreateModePrefix(mode, opts)
   const arguments = CreateArguments(opts)
   const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
@@ -791,6 +881,7 @@ enddef
 
 export def Buf_del_keymap(id: number, mode: string, lhs: string): any
   const bufnr: number = id == 0 ? bufnr('%') : id
+  CheckBufnr(bufnr)
   const escaped = substitute(lhs, ' ', '<space>', 'g')
   BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
   return v:null
@@ -935,12 +1026,9 @@ enddef
 
 export def Win_get_number(id: number): number
   const winid = id == 0 ? win_getid() : id
-  # Not work for popup
-  if IsPopup(winid)
-    return 0
-  endif
   CheckWinid(winid)
   const info = getwininfo(winid)
+  # Vim return 0 for popup
   return info[0]['winnr']
 enddef
 
