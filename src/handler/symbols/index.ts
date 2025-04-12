@@ -38,6 +38,7 @@ export default class Symbols {
     })
     this.outline = new Outline(nvim, this.buffers, handler)
     const debounceTime = workspace.initialConfiguration.get<number>('coc.preferences.currentFunctionSymbolDebounceTime', 300)
+    let prev = ''
     let debounced = debounce(async (bufnr: number, cursor: [number, number]) => {
       if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return
       let doc = workspace.getDocument(bufnr)
@@ -45,14 +46,18 @@ export default class Symbols {
       let pos = Position.create(cursor[0] - 1, character)
       let func = await this.getFunctionSymbol(bufnr, pos)
       let buffer = nvim.createBuffer(bufnr)
-      buffer.setVar('coc_current_function', func ?? '', true)
-      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
+      if (func != prev) {
+        prev = func
+        buffer.setVar('coc_current_function', func, true)
+        this.nvim.callTimer('coc#util#do_autocmd', ['CocStatusChange'], true)
+      }
     }, getConditionValue(debounceTime, 0))
     events.on('CursorMoved', debounced, this, this.disposables)
     this.disposables.push(Disposable.create(() => {
       debounced.clear()
     }))
     events.on('InsertEnter', (bufnr: number) => {
+      debounced.clear()
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.cancel()
     }, null, this.disposables)
@@ -94,12 +99,7 @@ export default class Symbols {
 
   public async getFunctionSymbol(bufnr: number, position: Position): Promise<string> {
     let symbols = await this.getDocumentSymbols(bufnr)
-    let buffer = this.nvim.createBuffer(bufnr)
-    if (!symbols || symbols.length === 0) {
-      buffer.setVar('coc_current_function', '', true)
-      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-      return ''
-    }
+    if (!symbols || symbols.length === 0) return ''
     symbols = symbols.filter(s => [
       'Class',
       'Method',
