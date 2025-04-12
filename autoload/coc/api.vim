@@ -958,7 +958,7 @@ function! coc#api#call(method, args) abort
     let tick = b:changedtick
     let res = call(s:funcs[a:method], a:args)
     if b:changedtick != tick
-      call listener_flush(bufnr('%'))
+      call listener_flush()
     endif
   catch /.*/
     let err = v:exception .' on api "'.a:method.'" '.json_encode(a:args)
@@ -986,7 +986,7 @@ function! coc#api#notify(method, args) abort
       call call(s:funcs[a:method], a:args)
     endif
     if b:changedtick != tick
-      call listener_flush(bufnr('%'))
+      call listener_flush()
     endif
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])

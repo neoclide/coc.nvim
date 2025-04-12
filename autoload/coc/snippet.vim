@@ -132,7 +132,11 @@ function! coc#snippet#select(start, end, text) abort
     let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
     let cmd .= "o\<C-g>"
   endif
-  call feedkeys(cmd, 'nt')
+  if s:is_vim
+    call feedkeys(cmd, 'n')
+  else
+    call nvim_input(cmd)
+  endif
 endfunction
 
 function! coc#snippet#move(position) abort

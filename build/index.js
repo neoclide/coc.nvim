@@ -11945,7 +11945,7 @@ function wait(ms) {
   });
 }
 function waitWithToken(ms, token) {
-  if (token.isCancellationRequested) return Promise.resolve(true);
+  if (token.isCancellationRequested || !ms) return Promise.resolve(true);
   return new Promise((resolve) => {
     let disposable = token.onCancellationRequested(() => {
       disposable.dispose();
@@ -11972,24 +11972,6 @@ function waitImmediate() {
       resolve(void 0);
     });
   });
-}
-function delay(func2, defaultDelay) {
-  let timer;
-  let fn = (ms) => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      func2();
-    }, ms ?? defaultDelay);
-    timer.unref();
-  };
-  Object.defineProperty(fn, "clear", {
-    get: () => {
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-  });
-  return fn;
 }
 function concurrent(arr, fn, limit = 3) {
   if (arr.length == 0) return Promise.resolve();
@@ -16273,347 +16255,6 @@ var require_lib2 = __commonJS({
   }
 });
 
-// node_modules/vscode-uri/lib/esm/index.mjs
-var LIB, URI, Utils;
-var init_esm = __esm({
-  "node_modules/vscode-uri/lib/esm/index.mjs"() {
-    (() => {
-      "use strict";
-      var t = { 470: (t2) => {
-        function e2(t3) {
-          if ("string" != typeof t3) throw new TypeError("Path must be a string. Received " + JSON.stringify(t3));
-        }
-        function r2(t3, e3) {
-          for (var r3, n3 = "", i = 0, o = -1, s = 0, h = 0; h <= t3.length; ++h) {
-            if (h < t3.length) r3 = t3.charCodeAt(h);
-            else {
-              if (47 === r3) break;
-              r3 = 47;
-            }
-            if (47 === r3) {
-              if (o === h - 1 || 1 === s) ;
-              else if (o !== h - 1 && 2 === s) {
-                if (n3.length < 2 || 2 !== i || 46 !== n3.charCodeAt(n3.length - 1) || 46 !== n3.charCodeAt(n3.length - 2)) {
-                  if (n3.length > 2) {
-                    var a = n3.lastIndexOf("/");
-                    if (a !== n3.length - 1) {
-                      -1 === a ? (n3 = "", i = 0) : i = (n3 = n3.slice(0, a)).length - 1 - n3.lastIndexOf("/"), o = h, s = 0;
-                      continue;
-                    }
-                  } else if (2 === n3.length || 1 === n3.length) {
-                    n3 = "", i = 0, o = h, s = 0;
-                    continue;
-                  }
-                }
-                e3 && (n3.length > 0 ? n3 += "/.." : n3 = "..", i = 2);
-              } else n3.length > 0 ? n3 += "/" + t3.slice(o + 1, h) : n3 = t3.slice(o + 1, h), i = h - o - 1;
-              o = h, s = 0;
-            } else 46 === r3 && -1 !== s ? ++s : s = -1;
-          }
-          return n3;
-        }
-        var n2 = { resolve: function() {
-          for (var t3, n3 = "", i = false, o = arguments.length - 1; o >= -1 && !i; o--) {
-            var s;
-            o >= 0 ? s = arguments[o] : (void 0 === t3 && (t3 = process.cwd()), s = t3), e2(s), 0 !== s.length && (n3 = s + "/" + n3, i = 47 === s.charCodeAt(0));
-          }
-          return n3 = r2(n3, !i), i ? n3.length > 0 ? "/" + n3 : "/" : n3.length > 0 ? n3 : ".";
-        }, normalize: function(t3) {
-          if (e2(t3), 0 === t3.length) return ".";
-          var n3 = 47 === t3.charCodeAt(0), i = 47 === t3.charCodeAt(t3.length - 1);
-          return 0 !== (t3 = r2(t3, !n3)).length || n3 || (t3 = "."), t3.length > 0 && i && (t3 += "/"), n3 ? "/" + t3 : t3;
-        }, isAbsolute: function(t3) {
-          return e2(t3), t3.length > 0 && 47 === t3.charCodeAt(0);
-        }, join: function() {
-          if (0 === arguments.length) return ".";
-          for (var t3, r3 = 0; r3 < arguments.length; ++r3) {
-            var i = arguments[r3];
-            e2(i), i.length > 0 && (void 0 === t3 ? t3 = i : t3 += "/" + i);
-          }
-          return void 0 === t3 ? "." : n2.normalize(t3);
-        }, relative: function(t3, r3) {
-          if (e2(t3), e2(r3), t3 === r3) return "";
-          if ((t3 = n2.resolve(t3)) === (r3 = n2.resolve(r3))) return "";
-          for (var i = 1; i < t3.length && 47 === t3.charCodeAt(i); ++i) ;
-          for (var o = t3.length, s = o - i, h = 1; h < r3.length && 47 === r3.charCodeAt(h); ++h) ;
-          for (var a = r3.length - h, c = s < a ? s : a, f = -1, u = 0; u <= c; ++u) {
-            if (u === c) {
-              if (a > c) {
-                if (47 === r3.charCodeAt(h + u)) return r3.slice(h + u + 1);
-                if (0 === u) return r3.slice(h + u);
-              } else s > c && (47 === t3.charCodeAt(i + u) ? f = u : 0 === u && (f = 0));
-              break;
-            }
-            var l = t3.charCodeAt(i + u);
-            if (l !== r3.charCodeAt(h + u)) break;
-            47 === l && (f = u);
-          }
-          var g = "";
-          for (u = i + f + 1; u <= o; ++u) u !== o && 47 !== t3.charCodeAt(u) || (0 === g.length ? g += ".." : g += "/..");
-          return g.length > 0 ? g + r3.slice(h + f) : (h += f, 47 === r3.charCodeAt(h) && ++h, r3.slice(h));
-        }, _makeLong: function(t3) {
-          return t3;
-        }, dirname: function(t3) {
-          if (e2(t3), 0 === t3.length) return ".";
-          for (var r3 = t3.charCodeAt(0), n3 = 47 === r3, i = -1, o = true, s = t3.length - 1; s >= 1; --s) if (47 === (r3 = t3.charCodeAt(s))) {
-            if (!o) {
-              i = s;
-              break;
-            }
-          } else o = false;
-          return -1 === i ? n3 ? "/" : "." : n3 && 1 === i ? "//" : t3.slice(0, i);
-        }, basename: function(t3, r3) {
-          if (void 0 !== r3 && "string" != typeof r3) throw new TypeError('"ext" argument must be a string');
-          e2(t3);
-          var n3, i = 0, o = -1, s = true;
-          if (void 0 !== r3 && r3.length > 0 && r3.length <= t3.length) {
-            if (r3.length === t3.length && r3 === t3) return "";
-            var h = r3.length - 1, a = -1;
-            for (n3 = t3.length - 1; n3 >= 0; --n3) {
-              var c = t3.charCodeAt(n3);
-              if (47 === c) {
-                if (!s) {
-                  i = n3 + 1;
-                  break;
-                }
-              } else -1 === a && (s = false, a = n3 + 1), h >= 0 && (c === r3.charCodeAt(h) ? -1 == --h && (o = n3) : (h = -1, o = a));
-            }
-            return i === o ? o = a : -1 === o && (o = t3.length), t3.slice(i, o);
-          }
-          for (n3 = t3.length - 1; n3 >= 0; --n3) if (47 === t3.charCodeAt(n3)) {
-            if (!s) {
-              i = n3 + 1;
-              break;
-            }
-          } else -1 === o && (s = false, o = n3 + 1);
-          return -1 === o ? "" : t3.slice(i, o);
-        }, extname: function(t3) {
-          e2(t3);
-          for (var r3 = -1, n3 = 0, i = -1, o = true, s = 0, h = t3.length - 1; h >= 0; --h) {
-            var a = t3.charCodeAt(h);
-            if (47 !== a) -1 === i && (o = false, i = h + 1), 46 === a ? -1 === r3 ? r3 = h : 1 !== s && (s = 1) : -1 !== r3 && (s = -1);
-            else if (!o) {
-              n3 = h + 1;
-              break;
-            }
-          }
-          return -1 === r3 || -1 === i || 0 === s || 1 === s && r3 === i - 1 && r3 === n3 + 1 ? "" : t3.slice(r3, i);
-        }, format: function(t3) {
-          if (null === t3 || "object" != typeof t3) throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof t3);
-          return function(t4, e3) {
-            var r3 = e3.dir || e3.root, n3 = e3.base || (e3.name || "") + (e3.ext || "");
-            return r3 ? r3 === e3.root ? r3 + n3 : r3 + "/" + n3 : n3;
-          }(0, t3);
-        }, parse: function(t3) {
-          e2(t3);
-          var r3 = { root: "", dir: "", base: "", ext: "", name: "" };
-          if (0 === t3.length) return r3;
-          var n3, i = t3.charCodeAt(0), o = 47 === i;
-          o ? (r3.root = "/", n3 = 1) : n3 = 0;
-          for (var s = -1, h = 0, a = -1, c = true, f = t3.length - 1, u = 0; f >= n3; --f) if (47 !== (i = t3.charCodeAt(f))) -1 === a && (c = false, a = f + 1), 46 === i ? -1 === s ? s = f : 1 !== u && (u = 1) : -1 !== s && (u = -1);
-          else if (!c) {
-            h = f + 1;
-            break;
-          }
-          return -1 === s || -1 === a || 0 === u || 1 === u && s === a - 1 && s === h + 1 ? -1 !== a && (r3.base = r3.name = 0 === h && o ? t3.slice(1, a) : t3.slice(h, a)) : (0 === h && o ? (r3.name = t3.slice(1, s), r3.base = t3.slice(1, a)) : (r3.name = t3.slice(h, s), r3.base = t3.slice(h, a)), r3.ext = t3.slice(s, a)), h > 0 ? r3.dir = t3.slice(0, h - 1) : o && (r3.dir = "/"), r3;
-        }, sep: "/", delimiter: ":", win32: null, posix: null };
-        n2.posix = n2, t2.exports = n2;
-      } }, e = {};
-      function r(n2) {
-        var i = e[n2];
-        if (void 0 !== i) return i.exports;
-        var o = e[n2] = { exports: {} };
-        return t[n2](o, o.exports, r), o.exports;
-      }
-      r.d = (t2, e2) => {
-        for (var n2 in e2) r.o(e2, n2) && !r.o(t2, n2) && Object.defineProperty(t2, n2, { enumerable: true, get: e2[n2] });
-      }, r.o = (t2, e2) => Object.prototype.hasOwnProperty.call(t2, e2), r.r = (t2) => {
-        "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(t2, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(t2, "__esModule", { value: true });
-      };
-      var n = {};
-      (() => {
-        let t2;
-        if (r.r(n), r.d(n, { URI: () => f, Utils: () => P }), "object" == typeof process) t2 = "win32" === process.platform;
-        else if ("object" == typeof navigator) {
-          let e3 = navigator.userAgent;
-          t2 = e3.indexOf("Windows") >= 0;
-        }
-        const e2 = /^\w[\w\d+.-]*$/, i = /^\//, o = /^\/\//;
-        function s(t3, r2) {
-          if (!t3.scheme && r2) throw new Error(`[UriError]: Scheme is missing: {scheme: "", authority: "${t3.authority}", path: "${t3.path}", query: "${t3.query}", fragment: "${t3.fragment}"}`);
-          if (t3.scheme && !e2.test(t3.scheme)) throw new Error("[UriError]: Scheme contains illegal characters.");
-          if (t3.path) {
-            if (t3.authority) {
-              if (!i.test(t3.path)) throw new Error('[UriError]: If a URI contains an authority component, then the path component must either be empty or begin with a slash ("/") character');
-            } else if (o.test(t3.path)) throw new Error('[UriError]: If a URI does not contain an authority component, then the path cannot begin with two slash characters ("//")');
-          }
-        }
-        const h = "", a = "/", c = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
-        class f {
-          static isUri(t3) {
-            return t3 instanceof f || !!t3 && "string" == typeof t3.authority && "string" == typeof t3.fragment && "string" == typeof t3.path && "string" == typeof t3.query && "string" == typeof t3.scheme && "string" == typeof t3.fsPath && "function" == typeof t3.with && "function" == typeof t3.toString;
-          }
-          scheme;
-          authority;
-          path;
-          query;
-          fragment;
-          constructor(t3, e3, r2, n2, i2, o2 = false) {
-            "object" == typeof t3 ? (this.scheme = t3.scheme || h, this.authority = t3.authority || h, this.path = t3.path || h, this.query = t3.query || h, this.fragment = t3.fragment || h) : (this.scheme = /* @__PURE__ */ function(t4, e4) {
-              return t4 || e4 ? t4 : "file";
-            }(t3, o2), this.authority = e3 || h, this.path = function(t4, e4) {
-              switch (t4) {
-                case "https":
-                case "http":
-                case "file":
-                  e4 ? e4[0] !== a && (e4 = a + e4) : e4 = a;
-              }
-              return e4;
-            }(this.scheme, r2 || h), this.query = n2 || h, this.fragment = i2 || h, s(this, o2));
-          }
-          get fsPath() {
-            return m(this, false);
-          }
-          with(t3) {
-            if (!t3) return this;
-            let { scheme: e3, authority: r2, path: n2, query: i2, fragment: o2 } = t3;
-            return void 0 === e3 ? e3 = this.scheme : null === e3 && (e3 = h), void 0 === r2 ? r2 = this.authority : null === r2 && (r2 = h), void 0 === n2 ? n2 = this.path : null === n2 && (n2 = h), void 0 === i2 ? i2 = this.query : null === i2 && (i2 = h), void 0 === o2 ? o2 = this.fragment : null === o2 && (o2 = h), e3 === this.scheme && r2 === this.authority && n2 === this.path && i2 === this.query && o2 === this.fragment ? this : new l(e3, r2, n2, i2, o2);
-          }
-          static parse(t3, e3 = false) {
-            const r2 = c.exec(t3);
-            return r2 ? new l(r2[2] || h, C(r2[4] || h), C(r2[5] || h), C(r2[7] || h), C(r2[9] || h), e3) : new l(h, h, h, h, h);
-          }
-          static file(e3) {
-            let r2 = h;
-            if (t2 && (e3 = e3.replace(/\\/g, a)), e3[0] === a && e3[1] === a) {
-              const t3 = e3.indexOf(a, 2);
-              -1 === t3 ? (r2 = e3.substring(2), e3 = a) : (r2 = e3.substring(2, t3), e3 = e3.substring(t3) || a);
-            }
-            return new l("file", r2, e3, h, h);
-          }
-          static from(t3) {
-            const e3 = new l(t3.scheme, t3.authority, t3.path, t3.query, t3.fragment);
-            return s(e3, true), e3;
-          }
-          toString(t3 = false) {
-            return y(this, t3);
-          }
-          toJSON() {
-            return this;
-          }
-          static revive(t3) {
-            if (t3) {
-              if (t3 instanceof f) return t3;
-              {
-                const e3 = new l(t3);
-                return e3._formatted = t3.external, e3._fsPath = t3._sep === u ? t3.fsPath : null, e3;
-              }
-            }
-            return t3;
-          }
-        }
-        const u = t2 ? 1 : void 0;
-        class l extends f {
-          _formatted = null;
-          _fsPath = null;
-          get fsPath() {
-            return this._fsPath || (this._fsPath = m(this, false)), this._fsPath;
-          }
-          toString(t3 = false) {
-            return t3 ? y(this, true) : (this._formatted || (this._formatted = y(this, false)), this._formatted);
-          }
-          toJSON() {
-            const t3 = { $mid: 1 };
-            return this._fsPath && (t3.fsPath = this._fsPath, t3._sep = u), this._formatted && (t3.external = this._formatted), this.path && (t3.path = this.path), this.scheme && (t3.scheme = this.scheme), this.authority && (t3.authority = this.authority), this.query && (t3.query = this.query), this.fragment && (t3.fragment = this.fragment), t3;
-          }
-        }
-        const g = { 58: "%3A", 47: "%2F", 63: "%3F", 35: "%23", 91: "%5B", 93: "%5D", 64: "%40", 33: "%21", 36: "%24", 38: "%26", 39: "%27", 40: "%28", 41: "%29", 42: "%2A", 43: "%2B", 44: "%2C", 59: "%3B", 61: "%3D", 32: "%20" };
-        function d(t3, e3, r2) {
-          let n2, i2 = -1;
-          for (let o2 = 0; o2 < t3.length; o2++) {
-            const s2 = t3.charCodeAt(o2);
-            if (s2 >= 97 && s2 <= 122 || s2 >= 65 && s2 <= 90 || s2 >= 48 && s2 <= 57 || 45 === s2 || 46 === s2 || 95 === s2 || 126 === s2 || e3 && 47 === s2 || r2 && 91 === s2 || r2 && 93 === s2 || r2 && 58 === s2) -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), void 0 !== n2 && (n2 += t3.charAt(o2));
-            else {
-              void 0 === n2 && (n2 = t3.substr(0, o2));
-              const e4 = g[s2];
-              void 0 !== e4 ? (-1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), n2 += e4) : -1 === i2 && (i2 = o2);
-            }
-          }
-          return -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2))), void 0 !== n2 ? n2 : t3;
-        }
-        function p(t3) {
-          let e3;
-          for (let r2 = 0; r2 < t3.length; r2++) {
-            const n2 = t3.charCodeAt(r2);
-            35 === n2 || 63 === n2 ? (void 0 === e3 && (e3 = t3.substr(0, r2)), e3 += g[n2]) : void 0 !== e3 && (e3 += t3[r2]);
-          }
-          return void 0 !== e3 ? e3 : t3;
-        }
-        function m(e3, r2) {
-          let n2;
-          return n2 = e3.authority && e3.path.length > 1 && "file" === e3.scheme ? `//${e3.authority}${e3.path}` : 47 === e3.path.charCodeAt(0) && (e3.path.charCodeAt(1) >= 65 && e3.path.charCodeAt(1) <= 90 || e3.path.charCodeAt(1) >= 97 && e3.path.charCodeAt(1) <= 122) && 58 === e3.path.charCodeAt(2) ? r2 ? e3.path.substr(1) : e3.path[1].toLowerCase() + e3.path.substr(2) : e3.path, t2 && (n2 = n2.replace(/\//g, "\\")), n2;
-        }
-        function y(t3, e3) {
-          const r2 = e3 ? p : d;
-          let n2 = "", { scheme: i2, authority: o2, path: s2, query: h2, fragment: c2 } = t3;
-          if (i2 && (n2 += i2, n2 += ":"), (o2 || "file" === i2) && (n2 += a, n2 += a), o2) {
-            let t4 = o2.indexOf("@");
-            if (-1 !== t4) {
-              const e4 = o2.substr(0, t4);
-              o2 = o2.substr(t4 + 1), t4 = e4.lastIndexOf(":"), -1 === t4 ? n2 += r2(e4, false, false) : (n2 += r2(e4.substr(0, t4), false, false), n2 += ":", n2 += r2(e4.substr(t4 + 1), false, true)), n2 += "@";
-            }
-            o2 = o2.toLowerCase(), t4 = o2.lastIndexOf(":"), -1 === t4 ? n2 += r2(o2, false, true) : (n2 += r2(o2.substr(0, t4), false, true), n2 += o2.substr(t4));
-          }
-          if (s2) {
-            if (s2.length >= 3 && 47 === s2.charCodeAt(0) && 58 === s2.charCodeAt(2)) {
-              const t4 = s2.charCodeAt(1);
-              t4 >= 65 && t4 <= 90 && (s2 = `/${String.fromCharCode(t4 + 32)}:${s2.substr(3)}`);
-            } else if (s2.length >= 2 && 58 === s2.charCodeAt(1)) {
-              const t4 = s2.charCodeAt(0);
-              t4 >= 65 && t4 <= 90 && (s2 = `${String.fromCharCode(t4 + 32)}:${s2.substr(2)}`);
-            }
-            n2 += r2(s2, true, false);
-          }
-          return h2 && (n2 += "?", n2 += r2(h2, false, false)), c2 && (n2 += "#", n2 += e3 ? c2 : d(c2, false, false)), n2;
-        }
-        function v(t3) {
-          try {
-            return decodeURIComponent(t3);
-          } catch {
-            return t3.length > 3 ? t3.substr(0, 3) + v(t3.substr(3)) : t3;
-          }
-        }
-        const b = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
-        function C(t3) {
-          return t3.match(b) ? t3.replace(b, (t4) => v(t4)) : t3;
-        }
-        var A = r(470);
-        const w = A.posix || A, x = "/";
-        var P;
-        !function(t3) {
-          t3.joinPath = function(t4, ...e3) {
-            return t4.with({ path: w.join(t4.path, ...e3) });
-          }, t3.resolvePath = function(t4, ...e3) {
-            let r2 = t4.path, n2 = false;
-            r2[0] !== x && (r2 = x + r2, n2 = true);
-            let i2 = w.resolve(r2, ...e3);
-            return n2 && i2[0] === x && !t4.authority && (i2 = i2.substring(1)), t4.with({ path: i2 });
-          }, t3.dirname = function(t4) {
-            if (0 === t4.path.length || t4.path === x) return t4;
-            let e3 = w.dirname(t4.path);
-            return 1 === e3.length && 46 === e3.charCodeAt(0) && (e3 = ""), t4.with({ path: e3 });
-          }, t3.basename = function(t4) {
-            return w.basename(t4.path);
-          }, t3.extname = function(t4) {
-            return w.extname(t4.path);
-          };
-        }(P || (P = {}));
-      })(), LIB = n;
-    })();
-    ({ URI, Utils } = LIB);
-  }
-});
-
 // src/util/errors.ts
 function assert(condition) {
   if (!condition) {
@@ -16685,7 +16326,7 @@ var init_errors = __esm({
 });
 
 // node_modules/vscode-languageserver-types/lib/esm/main.js
-var DocumentUri, URI2, integer, uinteger, Position, Range, Location, LocationLink, Color, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, TextDocument, FullTextDocument, Is;
+var DocumentUri, URI, integer, uinteger, Position, Range, Location, LocationLink, Color, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, TextDocument, FullTextDocument, Is;
 var init_main = __esm({
   "node_modules/vscode-languageserver-types/lib/esm/main.js"() {
     "use strict";
@@ -16700,7 +16341,7 @@ var init_main = __esm({
         return typeof value === "string";
       }
       URI3.is = is;
-    })(URI2 || (URI2 = {}));
+    })(URI || (URI = {}));
     (function(integer2) {
       integer2.MIN_VALUE = -2147483648;
       integer2.MAX_VALUE = 2147483647;
@@ -17857,7 +17498,7 @@ var init_main = __esm({
     (function(WorkspaceFolder2) {
       function is(value) {
         const candidate = value;
-        return Is.objectLiteral(candidate) && URI2.is(candidate.uri) && Is.string(candidate.name);
+        return Is.objectLiteral(candidate) && URI.is(candidate.uri) && Is.string(candidate.name);
       }
       WorkspaceFolder2.is = is;
     })(WorkspaceFolder || (WorkspaceFolder = {}));
@@ -24970,7 +24611,7 @@ var init_string = __esm({
 });
 
 // src/events.ts
-var logger2, SYNC_AUTOCMDS, Events, events_default;
+var logger2, SYNC_AUTOCMDS, debounceTime, Events, events_default;
 var init_events = __esm({
   "src/events.ts"() {
     "use strict";
@@ -24983,10 +24624,12 @@ var init_events = __esm({
     init_string();
     logger2 = createLogger("events");
     SYNC_AUTOCMDS = ["BufWritePre"];
+    debounceTime = getConditionValue(100, 10);
     Events = class {
       constructor() {
         this.handlers = /* @__PURE__ */ new Map();
         this._bufnr = 1;
+        this.timeoutMap = /* @__PURE__ */ new Map();
         // bufnr & character
         this._recentInserts = [];
         this._lastChange = 0;
@@ -25007,6 +24650,21 @@ var init_events = __esm({
       }
       get ready() {
         return this._ready;
+      }
+      fireVisibleEvent(winid, bufnr) {
+        let timer = this.timeoutMap.get(winid);
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          this.fire("WindowVisible", [winid, bufnr]).catch(onUnexpectedError);
+        }, debounceTime);
+        this.timeoutMap.set(winid, timer);
+      }
+      clearVisibleTimer(winid) {
+        let timer = this.timeoutMap.get(winid);
+        if (timer) {
+          this.timeoutMap.delete(winid);
+          clearTimeout(timer);
+        }
       }
       set completing(completing) {
         this._completing = completing;
@@ -25125,6 +24783,14 @@ var init_events = __esm({
         } else if (event == "PumInsert" /* PumInsert */) {
           this._last_pum_insert = args[0];
           return;
+        } else if (event == "BufWinEnter" /* BufWinEnter */) {
+          const [bufnr, winid] = args;
+          this.fireVisibleEvent(winid, bufnr);
+        } else if (event == "WinScrolled" /* WinScrolled */) {
+          const [winid, bufnr] = args;
+          this.fireVisibleEvent(winid, bufnr);
+        } else if (event == "WinClosed" /* WinClosed */) {
+          this.clearVisibleTimer(args[0]);
         }
         if (event == "CursorMoved" /* CursorMoved */ || event == "CursorMovedI" /* CursorMovedI */) {
           args.push(this._recentInserts.length > 0);
@@ -26693,6 +26359,347 @@ var init_main2 = __esm({
   }
 });
 
+// node_modules/vscode-uri/lib/esm/index.mjs
+var LIB, URI2, Utils;
+var init_esm = __esm({
+  "node_modules/vscode-uri/lib/esm/index.mjs"() {
+    (() => {
+      "use strict";
+      var t = { 470: (t2) => {
+        function e2(t3) {
+          if ("string" != typeof t3) throw new TypeError("Path must be a string. Received " + JSON.stringify(t3));
+        }
+        function r2(t3, e3) {
+          for (var r3, n3 = "", i = 0, o = -1, s = 0, h = 0; h <= t3.length; ++h) {
+            if (h < t3.length) r3 = t3.charCodeAt(h);
+            else {
+              if (47 === r3) break;
+              r3 = 47;
+            }
+            if (47 === r3) {
+              if (o === h - 1 || 1 === s) ;
+              else if (o !== h - 1 && 2 === s) {
+                if (n3.length < 2 || 2 !== i || 46 !== n3.charCodeAt(n3.length - 1) || 46 !== n3.charCodeAt(n3.length - 2)) {
+                  if (n3.length > 2) {
+                    var a = n3.lastIndexOf("/");
+                    if (a !== n3.length - 1) {
+                      -1 === a ? (n3 = "", i = 0) : i = (n3 = n3.slice(0, a)).length - 1 - n3.lastIndexOf("/"), o = h, s = 0;
+                      continue;
+                    }
+                  } else if (2 === n3.length || 1 === n3.length) {
+                    n3 = "", i = 0, o = h, s = 0;
+                    continue;
+                  }
+                }
+                e3 && (n3.length > 0 ? n3 += "/.." : n3 = "..", i = 2);
+              } else n3.length > 0 ? n3 += "/" + t3.slice(o + 1, h) : n3 = t3.slice(o + 1, h), i = h - o - 1;
+              o = h, s = 0;
+            } else 46 === r3 && -1 !== s ? ++s : s = -1;
+          }
+          return n3;
+        }
+        var n2 = { resolve: function() {
+          for (var t3, n3 = "", i = false, o = arguments.length - 1; o >= -1 && !i; o--) {
+            var s;
+            o >= 0 ? s = arguments[o] : (void 0 === t3 && (t3 = process.cwd()), s = t3), e2(s), 0 !== s.length && (n3 = s + "/" + n3, i = 47 === s.charCodeAt(0));
+          }
+          return n3 = r2(n3, !i), i ? n3.length > 0 ? "/" + n3 : "/" : n3.length > 0 ? n3 : ".";
+        }, normalize: function(t3) {
+          if (e2(t3), 0 === t3.length) return ".";
+          var n3 = 47 === t3.charCodeAt(0), i = 47 === t3.charCodeAt(t3.length - 1);
+          return 0 !== (t3 = r2(t3, !n3)).length || n3 || (t3 = "."), t3.length > 0 && i && (t3 += "/"), n3 ? "/" + t3 : t3;
+        }, isAbsolute: function(t3) {
+          return e2(t3), t3.length > 0 && 47 === t3.charCodeAt(0);
+        }, join: function() {
+          if (0 === arguments.length) return ".";
+          for (var t3, r3 = 0; r3 < arguments.length; ++r3) {
+            var i = arguments[r3];
+            e2(i), i.length > 0 && (void 0 === t3 ? t3 = i : t3 += "/" + i);
+          }
+          return void 0 === t3 ? "." : n2.normalize(t3);
+        }, relative: function(t3, r3) {
+          if (e2(t3), e2(r3), t3 === r3) return "";
+          if ((t3 = n2.resolve(t3)) === (r3 = n2.resolve(r3))) return "";
+          for (var i = 1; i < t3.length && 47 === t3.charCodeAt(i); ++i) ;
+          for (var o = t3.length, s = o - i, h = 1; h < r3.length && 47 === r3.charCodeAt(h); ++h) ;
+          for (var a = r3.length - h, c = s < a ? s : a, f = -1, u = 0; u <= c; ++u) {
+            if (u === c) {
+              if (a > c) {
+                if (47 === r3.charCodeAt(h + u)) return r3.slice(h + u + 1);
+                if (0 === u) return r3.slice(h + u);
+              } else s > c && (47 === t3.charCodeAt(i + u) ? f = u : 0 === u && (f = 0));
+              break;
+            }
+            var l = t3.charCodeAt(i + u);
+            if (l !== r3.charCodeAt(h + u)) break;
+            47 === l && (f = u);
+          }
+          var g = "";
+          for (u = i + f + 1; u <= o; ++u) u !== o && 47 !== t3.charCodeAt(u) || (0 === g.length ? g += ".." : g += "/..");
+          return g.length > 0 ? g + r3.slice(h + f) : (h += f, 47 === r3.charCodeAt(h) && ++h, r3.slice(h));
+        }, _makeLong: function(t3) {
+          return t3;
+        }, dirname: function(t3) {
+          if (e2(t3), 0 === t3.length) return ".";
+          for (var r3 = t3.charCodeAt(0), n3 = 47 === r3, i = -1, o = true, s = t3.length - 1; s >= 1; --s) if (47 === (r3 = t3.charCodeAt(s))) {
+            if (!o) {
+              i = s;
+              break;
+            }
+          } else o = false;
+          return -1 === i ? n3 ? "/" : "." : n3 && 1 === i ? "//" : t3.slice(0, i);
+        }, basename: function(t3, r3) {
+          if (void 0 !== r3 && "string" != typeof r3) throw new TypeError('"ext" argument must be a string');
+          e2(t3);
+          var n3, i = 0, o = -1, s = true;
+          if (void 0 !== r3 && r3.length > 0 && r3.length <= t3.length) {
+            if (r3.length === t3.length && r3 === t3) return "";
+            var h = r3.length - 1, a = -1;
+            for (n3 = t3.length - 1; n3 >= 0; --n3) {
+              var c = t3.charCodeAt(n3);
+              if (47 === c) {
+                if (!s) {
+                  i = n3 + 1;
+                  break;
+                }
+              } else -1 === a && (s = false, a = n3 + 1), h >= 0 && (c === r3.charCodeAt(h) ? -1 == --h && (o = n3) : (h = -1, o = a));
+            }
+            return i === o ? o = a : -1 === o && (o = t3.length), t3.slice(i, o);
+          }
+          for (n3 = t3.length - 1; n3 >= 0; --n3) if (47 === t3.charCodeAt(n3)) {
+            if (!s) {
+              i = n3 + 1;
+              break;
+            }
+          } else -1 === o && (s = false, o = n3 + 1);
+          return -1 === o ? "" : t3.slice(i, o);
+        }, extname: function(t3) {
+          e2(t3);
+          for (var r3 = -1, n3 = 0, i = -1, o = true, s = 0, h = t3.length - 1; h >= 0; --h) {
+            var a = t3.charCodeAt(h);
+            if (47 !== a) -1 === i && (o = false, i = h + 1), 46 === a ? -1 === r3 ? r3 = h : 1 !== s && (s = 1) : -1 !== r3 && (s = -1);
+            else if (!o) {
+              n3 = h + 1;
+              break;
+            }
+          }
+          return -1 === r3 || -1 === i || 0 === s || 1 === s && r3 === i - 1 && r3 === n3 + 1 ? "" : t3.slice(r3, i);
+        }, format: function(t3) {
+          if (null === t3 || "object" != typeof t3) throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof t3);
+          return function(t4, e3) {
+            var r3 = e3.dir || e3.root, n3 = e3.base || (e3.name || "") + (e3.ext || "");
+            return r3 ? r3 === e3.root ? r3 + n3 : r3 + "/" + n3 : n3;
+          }(0, t3);
+        }, parse: function(t3) {
+          e2(t3);
+          var r3 = { root: "", dir: "", base: "", ext: "", name: "" };
+          if (0 === t3.length) return r3;
+          var n3, i = t3.charCodeAt(0), o = 47 === i;
+          o ? (r3.root = "/", n3 = 1) : n3 = 0;
+          for (var s = -1, h = 0, a = -1, c = true, f = t3.length - 1, u = 0; f >= n3; --f) if (47 !== (i = t3.charCodeAt(f))) -1 === a && (c = false, a = f + 1), 46 === i ? -1 === s ? s = f : 1 !== u && (u = 1) : -1 !== s && (u = -1);
+          else if (!c) {
+            h = f + 1;
+            break;
+          }
+          return -1 === s || -1 === a || 0 === u || 1 === u && s === a - 1 && s === h + 1 ? -1 !== a && (r3.base = r3.name = 0 === h && o ? t3.slice(1, a) : t3.slice(h, a)) : (0 === h && o ? (r3.name = t3.slice(1, s), r3.base = t3.slice(1, a)) : (r3.name = t3.slice(h, s), r3.base = t3.slice(h, a)), r3.ext = t3.slice(s, a)), h > 0 ? r3.dir = t3.slice(0, h - 1) : o && (r3.dir = "/"), r3;
+        }, sep: "/", delimiter: ":", win32: null, posix: null };
+        n2.posix = n2, t2.exports = n2;
+      } }, e = {};
+      function r(n2) {
+        var i = e[n2];
+        if (void 0 !== i) return i.exports;
+        var o = e[n2] = { exports: {} };
+        return t[n2](o, o.exports, r), o.exports;
+      }
+      r.d = (t2, e2) => {
+        for (var n2 in e2) r.o(e2, n2) && !r.o(t2, n2) && Object.defineProperty(t2, n2, { enumerable: true, get: e2[n2] });
+      }, r.o = (t2, e2) => Object.prototype.hasOwnProperty.call(t2, e2), r.r = (t2) => {
+        "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(t2, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(t2, "__esModule", { value: true });
+      };
+      var n = {};
+      (() => {
+        let t2;
+        if (r.r(n), r.d(n, { URI: () => f, Utils: () => P }), "object" == typeof process) t2 = "win32" === process.platform;
+        else if ("object" == typeof navigator) {
+          let e3 = navigator.userAgent;
+          t2 = e3.indexOf("Windows") >= 0;
+        }
+        const e2 = /^\w[\w\d+.-]*$/, i = /^\//, o = /^\/\//;
+        function s(t3, r2) {
+          if (!t3.scheme && r2) throw new Error(`[UriError]: Scheme is missing: {scheme: "", authority: "${t3.authority}", path: "${t3.path}", query: "${t3.query}", fragment: "${t3.fragment}"}`);
+          if (t3.scheme && !e2.test(t3.scheme)) throw new Error("[UriError]: Scheme contains illegal characters.");
+          if (t3.path) {
+            if (t3.authority) {
+              if (!i.test(t3.path)) throw new Error('[UriError]: If a URI contains an authority component, then the path component must either be empty or begin with a slash ("/") character');
+            } else if (o.test(t3.path)) throw new Error('[UriError]: If a URI does not contain an authority component, then the path cannot begin with two slash characters ("//")');
+          }
+        }
+        const h = "", a = "/", c = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+        class f {
+          static isUri(t3) {
+            return t3 instanceof f || !!t3 && "string" == typeof t3.authority && "string" == typeof t3.fragment && "string" == typeof t3.path && "string" == typeof t3.query && "string" == typeof t3.scheme && "string" == typeof t3.fsPath && "function" == typeof t3.with && "function" == typeof t3.toString;
+          }
+          scheme;
+          authority;
+          path;
+          query;
+          fragment;
+          constructor(t3, e3, r2, n2, i2, o2 = false) {
+            "object" == typeof t3 ? (this.scheme = t3.scheme || h, this.authority = t3.authority || h, this.path = t3.path || h, this.query = t3.query || h, this.fragment = t3.fragment || h) : (this.scheme = /* @__PURE__ */ function(t4, e4) {
+              return t4 || e4 ? t4 : "file";
+            }(t3, o2), this.authority = e3 || h, this.path = function(t4, e4) {
+              switch (t4) {
+                case "https":
+                case "http":
+                case "file":
+                  e4 ? e4[0] !== a && (e4 = a + e4) : e4 = a;
+              }
+              return e4;
+            }(this.scheme, r2 || h), this.query = n2 || h, this.fragment = i2 || h, s(this, o2));
+          }
+          get fsPath() {
+            return m(this, false);
+          }
+          with(t3) {
+            if (!t3) return this;
+            let { scheme: e3, authority: r2, path: n2, query: i2, fragment: o2 } = t3;
+            return void 0 === e3 ? e3 = this.scheme : null === e3 && (e3 = h), void 0 === r2 ? r2 = this.authority : null === r2 && (r2 = h), void 0 === n2 ? n2 = this.path : null === n2 && (n2 = h), void 0 === i2 ? i2 = this.query : null === i2 && (i2 = h), void 0 === o2 ? o2 = this.fragment : null === o2 && (o2 = h), e3 === this.scheme && r2 === this.authority && n2 === this.path && i2 === this.query && o2 === this.fragment ? this : new l(e3, r2, n2, i2, o2);
+          }
+          static parse(t3, e3 = false) {
+            const r2 = c.exec(t3);
+            return r2 ? new l(r2[2] || h, C(r2[4] || h), C(r2[5] || h), C(r2[7] || h), C(r2[9] || h), e3) : new l(h, h, h, h, h);
+          }
+          static file(e3) {
+            let r2 = h;
+            if (t2 && (e3 = e3.replace(/\\/g, a)), e3[0] === a && e3[1] === a) {
+              const t3 = e3.indexOf(a, 2);
+              -1 === t3 ? (r2 = e3.substring(2), e3 = a) : (r2 = e3.substring(2, t3), e3 = e3.substring(t3) || a);
+            }
+            return new l("file", r2, e3, h, h);
+          }
+          static from(t3) {
+            const e3 = new l(t3.scheme, t3.authority, t3.path, t3.query, t3.fragment);
+            return s(e3, true), e3;
+          }
+          toString(t3 = false) {
+            return y(this, t3);
+          }
+          toJSON() {
+            return this;
+          }
+          static revive(t3) {
+            if (t3) {
+              if (t3 instanceof f) return t3;
+              {
+                const e3 = new l(t3);
+                return e3._formatted = t3.external, e3._fsPath = t3._sep === u ? t3.fsPath : null, e3;
+              }
+            }
+            return t3;
+          }
+        }
+        const u = t2 ? 1 : void 0;
+        class l extends f {
+          _formatted = null;
+          _fsPath = null;
+          get fsPath() {
+            return this._fsPath || (this._fsPath = m(this, false)), this._fsPath;
+          }
+          toString(t3 = false) {
+            return t3 ? y(this, true) : (this._formatted || (this._formatted = y(this, false)), this._formatted);
+          }
+          toJSON() {
+            const t3 = { $mid: 1 };
+            return this._fsPath && (t3.fsPath = this._fsPath, t3._sep = u), this._formatted && (t3.external = this._formatted), this.path && (t3.path = this.path), this.scheme && (t3.scheme = this.scheme), this.authority && (t3.authority = this.authority), this.query && (t3.query = this.query), this.fragment && (t3.fragment = this.fragment), t3;
+          }
+        }
+        const g = { 58: "%3A", 47: "%2F", 63: "%3F", 35: "%23", 91: "%5B", 93: "%5D", 64: "%40", 33: "%21", 36: "%24", 38: "%26", 39: "%27", 40: "%28", 41: "%29", 42: "%2A", 43: "%2B", 44: "%2C", 59: "%3B", 61: "%3D", 32: "%20" };
+        function d(t3, e3, r2) {
+          let n2, i2 = -1;
+          for (let o2 = 0; o2 < t3.length; o2++) {
+            const s2 = t3.charCodeAt(o2);
+            if (s2 >= 97 && s2 <= 122 || s2 >= 65 && s2 <= 90 || s2 >= 48 && s2 <= 57 || 45 === s2 || 46 === s2 || 95 === s2 || 126 === s2 || e3 && 47 === s2 || r2 && 91 === s2 || r2 && 93 === s2 || r2 && 58 === s2) -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), void 0 !== n2 && (n2 += t3.charAt(o2));
+            else {
+              void 0 === n2 && (n2 = t3.substr(0, o2));
+              const e4 = g[s2];
+              void 0 !== e4 ? (-1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), n2 += e4) : -1 === i2 && (i2 = o2);
+            }
+          }
+          return -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2))), void 0 !== n2 ? n2 : t3;
+        }
+        function p(t3) {
+          let e3;
+          for (let r2 = 0; r2 < t3.length; r2++) {
+            const n2 = t3.charCodeAt(r2);
+            35 === n2 || 63 === n2 ? (void 0 === e3 && (e3 = t3.substr(0, r2)), e3 += g[n2]) : void 0 !== e3 && (e3 += t3[r2]);
+          }
+          return void 0 !== e3 ? e3 : t3;
+        }
+        function m(e3, r2) {
+          let n2;
+          return n2 = e3.authority && e3.path.length > 1 && "file" === e3.scheme ? `//${e3.authority}${e3.path}` : 47 === e3.path.charCodeAt(0) && (e3.path.charCodeAt(1) >= 65 && e3.path.charCodeAt(1) <= 90 || e3.path.charCodeAt(1) >= 97 && e3.path.charCodeAt(1) <= 122) && 58 === e3.path.charCodeAt(2) ? r2 ? e3.path.substr(1) : e3.path[1].toLowerCase() + e3.path.substr(2) : e3.path, t2 && (n2 = n2.replace(/\//g, "\\")), n2;
+        }
+        function y(t3, e3) {
+          const r2 = e3 ? p : d;
+          let n2 = "", { scheme: i2, authority: o2, path: s2, query: h2, fragment: c2 } = t3;
+          if (i2 && (n2 += i2, n2 += ":"), (o2 || "file" === i2) && (n2 += a, n2 += a), o2) {
+            let t4 = o2.indexOf("@");
+            if (-1 !== t4) {
+              const e4 = o2.substr(0, t4);
+              o2 = o2.substr(t4 + 1), t4 = e4.lastIndexOf(":"), -1 === t4 ? n2 += r2(e4, false, false) : (n2 += r2(e4.substr(0, t4), false, false), n2 += ":", n2 += r2(e4.substr(t4 + 1), false, true)), n2 += "@";
+            }
+            o2 = o2.toLowerCase(), t4 = o2.lastIndexOf(":"), -1 === t4 ? n2 += r2(o2, false, true) : (n2 += r2(o2.substr(0, t4), false, true), n2 += o2.substr(t4));
+          }
+          if (s2) {
+            if (s2.length >= 3 && 47 === s2.charCodeAt(0) && 58 === s2.charCodeAt(2)) {
+              const t4 = s2.charCodeAt(1);
+              t4 >= 65 && t4 <= 90 && (s2 = `/${String.fromCharCode(t4 + 32)}:${s2.substr(3)}`);
+            } else if (s2.length >= 2 && 58 === s2.charCodeAt(1)) {
+              const t4 = s2.charCodeAt(0);
+              t4 >= 65 && t4 <= 90 && (s2 = `${String.fromCharCode(t4 + 32)}:${s2.substr(2)}`);
+            }
+            n2 += r2(s2, true, false);
+          }
+          return h2 && (n2 += "?", n2 += r2(h2, false, false)), c2 && (n2 += "#", n2 += e3 ? c2 : d(c2, false, false)), n2;
+        }
+        function v(t3) {
+          try {
+            return decodeURIComponent(t3);
+          } catch {
+            return t3.length > 3 ? t3.substr(0, 3) + v(t3.substr(3)) : t3;
+          }
+        }
+        const b = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
+        function C(t3) {
+          return t3.match(b) ? t3.replace(b, (t4) => v(t4)) : t3;
+        }
+        var A = r(470);
+        const w = A.posix || A, x = "/";
+        var P;
+        !function(t3) {
+          t3.joinPath = function(t4, ...e3) {
+            return t4.with({ path: w.join(t4.path, ...e3) });
+          }, t3.resolvePath = function(t4, ...e3) {
+            let r2 = t4.path, n2 = false;
+            r2[0] !== x && (r2 = x + r2, n2 = true);
+            let i2 = w.resolve(r2, ...e3);
+            return n2 && i2[0] === x && !t4.authority && (i2 = i2.substring(1)), t4.with({ path: i2 });
+          }, t3.dirname = function(t4) {
+            if (0 === t4.path.length || t4.path === x) return t4;
+            let e3 = w.dirname(t4.path);
+            return 1 === e3.length && 46 === e3.charCodeAt(0) && (e3 = ""), t4.with({ path: e3 });
+          }, t3.basename = function(t4) {
+            return w.basename(t4.path);
+          }, t3.extname = function(t4) {
+            return w.extname(t4.path);
+          };
+        }(P || (P = {}));
+      })(), LIB = n;
+    })();
+    ({ URI: URI2, Utils } = LIB);
+  }
+});
+
 // src/util/platform.ts
 function getPlatform(process2) {
   let { platform: platform2 } = process2;
@@ -26983,7 +26990,7 @@ function readFileLine(fullpath, count) {
   });
 }
 async function lineToLocation(fsPath2, match, text) {
-  let uri = URI.file(fsPath2).toString();
+  let uri = URI2.file(fsPath2).toString();
   if (!fs.existsSync(fsPath2)) return Location.create(uri, Range.create(0, 0, 0, 0));
   const rl = readline.createInterface({
     input: fs.createReadStream(fsPath2, { encoding: "utf8" })
@@ -27032,7 +27039,7 @@ function isFile(uri) {
   return uri.startsWith("file:");
 }
 function normalizeFilePath(filepath) {
-  return URI.file(path.resolve(path.normalize(filepath))).fsPath;
+  return URI2.file(path.resolve(path.normalize(filepath))).fsPath;
 }
 function isParentFolder(folder, filepath, checkEqual = false) {
   let pdir = normalizeFilePath(folder);
@@ -27841,7 +27848,7 @@ var init_input = __esm({
       }
       async show(title, preferences) {
         this.title = title;
-        this.borderhighlight = preferences.borderhighlight ?? "CocFloating";
+        this.borderhighlight = preferences.borderhighlight ?? "CocFloatBorder";
         this.loading = false;
         if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
           this.clear = true;
@@ -33151,7 +33158,7 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
       return 0;
     }
   } else if (selector && import_node3.TextDocumentFilter.is(selector)) {
-    let u = URI.parse(uri);
+    let u = URI2.parse(uri);
     const { language, pattern, scheme } = selector;
     let ret = 0;
     if (scheme) {
@@ -36910,7 +36917,7 @@ var init_markdown = __esm({
 });
 
 // src/model/floatFactory.ts
-var debounceTime, FloatFactoryImpl;
+var debounceTime2, FloatFactoryImpl;
 var init_floatFactory = __esm({
   "src/model/floatFactory.ts"() {
     "use strict";
@@ -36923,7 +36930,7 @@ var init_floatFactory = __esm({
     init_object();
     init_protocol();
     init_constants();
-    debounceTime = getConditionValue(100, 10);
+    debounceTime2 = getConditionValue(100, 10);
     FloatFactoryImpl = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -36931,7 +36938,7 @@ var init_floatFactory = __esm({
         this._bufnr = 0;
         this.mutex = new Mutex();
         this.disposables = [];
-        this.onCursorMoved = debounce(this._onCursorMoved.bind(this), debounceTime);
+        this.onCursorMoved = debounce(this._onCursorMoved.bind(this), debounceTime2);
       }
       bindEvents(autoHide, alignTop) {
         let eventNames = ["InsertLeave", "InsertEnter", "BufEnter"];
@@ -37113,6 +37120,9 @@ var init_regions = __esm({
           res.push(o[0], o[1]);
         });
         return res;
+      }
+      get isEmpty() {
+        return this.ranges.length === 0;
       }
       clear() {
         this.ranges = [];
@@ -39219,7 +39229,7 @@ var init_schema = __esm({
           type: ["string", "null"],
           default: null,
           scope: "application",
-          description: "Highlight group for border of dialog window/popup, default to 'CocFloating'"
+          description: "Highlight group for border of dialog window/popup, default to 'CocFloatBorder'"
         },
         "dialog.floatHighlight": {
           type: ["string", "null"],
@@ -40829,7 +40839,7 @@ function scopeToOverrides(scope) {
   let overrides;
   if (typeof scope === "string") {
     overrides = { resource: scope };
-  } else if (URI.isUri(scope)) {
+  } else if (URI2.isUri(scope)) {
     overrides = { resource: scope.toString() };
   } else if (scope != null) {
     let uri = scope["uri"];
@@ -41304,7 +41314,7 @@ var init_configuration = __esm({
         this._folderConfigurations.forEach(fn);
       }
       getConfigurationByResource(uri) {
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (u.scheme !== "file") return void 0;
         let folders = Array.from(this._folderConfigurations.keys());
         folders.sort((a, b) => b.length - a.length);
@@ -41385,7 +41395,7 @@ var init_configuration = __esm({
         let folders = Array.from(this._folderConfigurations.keys);
         folders.sort((a, b) => b.length - a.length);
         for (let folder2 of folders) {
-          if (isParentFolder(folder2, URI.parse(uri).fsPath, true)) {
+          if (isParentFolder(folder2, URI2.parse(uri).fsPath, true)) {
             this._resolvedFolderConfigurations.set(uri, folder2);
             return folder2;
           }
@@ -42114,7 +42124,7 @@ var init_configuration2 = __esm({
         if (!filepath || !fs.existsSync(filepath)) return new ConfigurationModel();
         let parser2 = new ConfigurationModelParser(filepath);
         let content = filecontents || fs.readFileSync(filepath, "utf8");
-        let uri = URI.file(filepath).toString();
+        let uri = URI2.file(filepath).toString();
         parser2.parse(content);
         if (!isFalsyOrEmpty(parser2.errors)) {
           this._errors.set(uri, parser2.errors);
@@ -42212,7 +42222,7 @@ var init_configuration2 = __esm({
       getDefaultResource() {
         let root = this._proxy?.root;
         if (!root) return void 0;
-        return URI.file(root).toString();
+        return URI2.file(root).toString();
       }
       /**
        * Get workspace configuration
@@ -42298,7 +42308,7 @@ var init_configuration2 = __esm({
       locateFolderConfigution(uri) {
         let folder = this._configuration.resolveFolder(uri);
         if (folder) return true;
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (u.scheme !== "file") return false;
         let dir = folder = findUp(".vim", u.fsPath);
         if (!dir) return false;
@@ -42380,7 +42390,7 @@ var init_shape = __esm({
       getWorkspaceFolder(resource) {
         if (typeof this.resolver.getWorkspaceFolder === "function") {
           let workspaceFolder = this.resolver.getWorkspaceFolder(resource);
-          if (workspaceFolder) return URI.parse(workspaceFolder.uri);
+          if (workspaceFolder) return URI2.parse(workspaceFolder.uri);
         }
         return void 0;
       }
@@ -42498,7 +42508,7 @@ var init_contentProvider = __esm({
         let provider = this.providers.get(scheme);
         if (!provider) return;
         let tokenSource = new import_node3.CancellationTokenSource();
-        let content = await Promise.resolve(provider.provideTextDocumentContent(URI.parse(uri), tokenSource.token));
+        let content = await Promise.resolve(provider.provideTextDocumentContent(URI2.parse(uri), tokenSource.token));
         let buf = await this.nvim.buffer;
         await buf.setLines(toText(content).split(/\r?\n/), {
           start: 0,
@@ -43656,8 +43666,8 @@ function fireLinesChanged(bufnr) {
 }
 function getUri(fullpath, id2, buftype) {
   if (!fullpath) return `untitled:${id2}`;
-  if (path.isAbsolute(fullpath)) return URI.file(path.normalize(fullpath)).toString();
-  if (isUrl(fullpath)) return URI.parse(fullpath).toString();
+  if (path.isAbsolute(fullpath)) return URI2.file(path.normalize(fullpath)).toString();
+  if (isUrl(fullpath)) return URI2.parse(fullpath).toString();
   if (buftype != "") return `${buftype}:${id2}`;
   return `unknown:${id2}`;
 }
@@ -43670,7 +43680,7 @@ function getNotAttachReason(buftype, enabled, size) {
   }
   return `buffer size ${size} exceed coc.preferences.maxFileSize`;
 }
-var import_buffer, logger10, debounceTime2, Document;
+var import_buffer, logger10, debounceTime3, Document;
 var init_document = __esm({
   "src/model/document.ts"() {
     "use strict";
@@ -43692,7 +43702,7 @@ var init_document = __esm({
     init_chars();
     init_textdocument();
     logger10 = createLogger("document");
-    debounceTime2 = getConditionValue(150, 15);
+    debounceTime3 = getConditionValue(150, 15);
     Document = class {
       constructor(buffer, env, nvim, opts) {
         this.buffer = buffer;
@@ -43714,7 +43724,7 @@ var init_document = __esm({
         this.onDocumentChange = this._onDocumentChange.event;
         this.fireContentChanges = debounce(() => {
           this._fireContentChanges();
-        }, debounceTime2);
+        }, debounceTime3);
         this.init(opts);
       }
       /**
@@ -43792,7 +43802,7 @@ var init_document = __esm({
        * Scheme of document.
        */
       get schema() {
-        return URI.parse(this.uri).scheme;
+        return URI2.parse(this.uri).scheme;
       }
       /**
        * Line count of current buffer.
@@ -44523,7 +44533,7 @@ var init_documents = __esm({
         let doc = this.getDocument(this.bufnr);
         let resolved;
         if (doc && doc.schema == "file") {
-          let dir = path.dirname(URI.parse(doc.uri).fsPath);
+          let dir = path.dirname(URI2.parse(doc.uri).fsPath);
           resolved = resolveRoot(dir, rootPatterns, this.cwd);
         } else {
           resolved = resolveRoot(this.cwd, rootPatterns);
@@ -44544,7 +44554,7 @@ var init_documents = __esm({
         if (typeof uri === "number") {
           return this.buffers.get(uri);
         }
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         uri = u.toString();
         let isFile2 = u.scheme === "file";
         for (let doc of this.buffers.values()) {
@@ -44562,7 +44572,7 @@ var init_documents = __esm({
         }
         if (input.includes("$")) {
           let doc = this.getDocument(this.bufnr);
-          let fsPath2 = doc ? URI.parse(doc.uri).fsPath : "";
+          let fsPath2 = doc ? URI2.parse(doc.uri).fsPath : "";
           const root = this._root || this._cwd;
           input = input.replace(/\$\{(.*?)\}/g, (match, name2) => {
             if (name2.startsWith("env:")) {
@@ -44665,7 +44675,7 @@ var init_documents = __esm({
         let ext = path.extname(filepath);
         if (!ext) return "";
         for (let doc of this.attached()) {
-          let fsPath2 = URI.parse(doc.uri).fsPath;
+          let fsPath2 = URI2.parse(doc.uri).fsPath;
           if (path.extname(fsPath2) == ext) {
             return doc.languageId;
           }
@@ -44675,7 +44685,7 @@ var init_documents = __esm({
       async getLines(uri) {
         let doc = this.getDocument(uri);
         if (doc) return doc.textDocument.lines;
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (u.scheme !== "file") return [];
         try {
           let content = await readFile(u.fsPath, "utf8");
@@ -44762,9 +44772,8 @@ var init_documents = __esm({
         this._bufnr = bufnr;
         let doc = this.buffers.get(bufnr);
         if (doc) {
-          let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri));
-          if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath;
-          if (isVim) void doc.patchChange();
+          let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI2.parse(doc.uri));
+          if (workspaceFolder) this._root = URI2.parse(workspaceFolder.uri).fsPath;
         }
       }
       onBufUnload(bufnr) {
@@ -44785,7 +44794,7 @@ var init_documents = __esm({
         this._onDidCloseDocument.fire(doc.textDocument);
         this.buffers.delete(bufnr);
         doc.detach();
-        const uris = this.textDocuments.map((o) => URI.parse(o.uri));
+        const uris = this.textDocuments.map((o) => URI2.parse(o.uri));
         this.workspaceFolder.onDocumentDetach(uris);
       }
       async onBufWritePost(bufnr, changedtick) {
@@ -44885,7 +44894,7 @@ var init_documents = __esm({
       async getQuickfixList(locations) {
         let filesLines = {};
         let filepathList = locations.reduce((pre, curr) => {
-          let u = URI.parse(curr.uri);
+          let u = URI2.parse(curr.uri);
           if (u.scheme == "file" && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) {
             pre.push(u.fsPath);
           }
@@ -44903,7 +44912,7 @@ var init_documents = __esm({
         }));
         return await Promise.all(locations.map((loc) => {
           let { uri, range } = loc;
-          let { fsPath: fsPath2 } = URI.parse(uri);
+          let { fsPath: fsPath2 } = URI2.parse(uri);
           let text;
           let lines = filesLines[fsPath2];
           if (lines) text = lines[range.start.line];
@@ -44949,7 +44958,7 @@ var init_documents = __esm({
         let doc = this.getDocument(loc.uri);
         let { uri, range } = loc;
         let { start, end } = range;
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (!text && u.scheme == "file") {
           text = await this.getLine(uri, start.line);
         }
@@ -44977,7 +44986,7 @@ var init_documents = __esm({
         let document2 = this.getDocument(uri);
         if (document2 && document2.attached) return document2.getline(line) || "";
         if (!uri.startsWith("file:")) return "";
-        let fsPath2 = URI.parse(uri).fsPath;
+        let fsPath2 = URI2.parse(uri).fsPath;
         if (!fs.existsSync(fsPath2)) return "";
         return await readFileLine(fsPath2, line);
       }
@@ -44990,7 +44999,7 @@ var init_documents = __esm({
           await document2.patchChange();
           return document2.content;
         }
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (u.scheme != "file") return "";
         let lines = await this.nvim.call("readfile", [u.fsPath]);
         return lines.join("\n") + "\n";
@@ -45022,7 +45031,7 @@ var init_documents = __esm({
 function renamed(editor, info) {
   let { document: document2, uri } = editor;
   if (document2.bufnr != info.bufnr) return false;
-  let u = URI.parse(uri);
+  let u = URI2.parse(uri);
   if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
   return false;
 }
@@ -46424,7 +46433,7 @@ var init_fileSystemWatcher = __esm({
       attach(channel) {
         this.channel = channel;
         let createClient = (folder) => {
-          let root = URI.parse(folder.uri).fsPath;
+          let root = URI2.parse(folder.uri).fsPath;
           void this.createClient(root);
         };
         this.workspaceFolder.workspaceFolders.forEach((folder) => {
@@ -46435,7 +46444,7 @@ var init_fileSystemWatcher = __esm({
             createClient(folder);
           });
           e.removed.forEach((folder) => {
-            let root = URI.parse(folder.uri).fsPath;
+            let root = URI2.parse(folder.uri).fsPath;
             let client = this.clientsMap.get(root);
             if (client) {
               this.clientsMap.delete(root);
@@ -46558,7 +46567,7 @@ var init_fileSystemWatcher = __esm({
             files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
           }
           for (let file of files) {
-            let uri = URI.file(path.join(root2, file.name));
+            let uri = URI2.file(path.join(root2, file.name));
             if (!file.exists) {
               if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
             } else {
@@ -46574,8 +46583,8 @@ var init_fileSystemWatcher = __esm({
             let newFile = files.find((o) => o.exists === true);
             if (oldFile.size == newFile.size) {
               this._onDidRename.fire({
-                oldUri: URI.file(path.join(root2, oldFile.name)),
-                newUri: URI.file(path.join(root2, newFile.name))
+                oldUri: URI2.file(path.join(root2, oldFile.name)),
+                newUri: URI2.file(path.join(root2, newFile.name))
               });
             }
           }
@@ -46586,8 +46595,8 @@ var init_fileSystemWatcher = __esm({
                 let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
                 if (newFile) {
                   this._onDidRename.fire({
-                    oldUri: URI.file(path.join(root2, oldFile.name)),
-                    newUri: URI.file(path.join(root2, newFile.name))
+                    oldUri: URI2.file(path.join(root2, oldFile.name)),
+                    newUri: URI2.file(path.join(root2, newFile.name))
                   });
                 }
               }
@@ -46808,7 +46817,7 @@ var init_editInspect = __esm({
         let cwd2 = await nvim.call("getcwd");
         this.bufnr = buffer.id;
         const relpath = (uri) => {
-          let fsPath2 = URI.parse(uri).fsPath;
+          let fsPath2 = URI2.parse(uri).fsPath;
           return isParentFolder(cwd2, fsPath2, true) ? path.relative(cwd2, fsPath2) : fsPath2;
         };
         const absPath = (filepath) => {
@@ -46878,7 +46887,7 @@ var init_editInspect = __esm({
             }
           }
           if (!find) return;
-          let uri = URI.file(absPath(find.filepath)).toString();
+          let uri = URI2.file(absPath(find.filepath)).toString();
           let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath;
           await nvim.call("coc#util#open_file", ["tab drop", absPath(filepath)]);
           let documentChanges = toArray(state.edit.documentChanges);
@@ -46943,7 +46952,7 @@ function fileMatch(root, relpath, pattern) {
   return minimatch(relpath, pattern, { dot: true });
 }
 function fsPath(uri) {
-  return URI.parse(uri).fsPath;
+  return URI2.parse(uri).fsPath;
 }
 var logger15, Files;
 var init_files = __esm({
@@ -46987,7 +46996,7 @@ var init_files = __esm({
         this.window = window2;
       }
       async openTextDocument(uri) {
-        uri = typeof uri === "string" ? URI.file(uri) : uri;
+        uri = typeof uri === "string" ? URI2.file(uri) : uri;
         let doc = this.documents.getDocument(uri.toString());
         if (doc) return doc;
         const scheme = uri.scheme;
@@ -47004,7 +47013,7 @@ var init_files = __esm({
       async jumpTo(uri, position, openCommand) {
         if (!openCommand) openCommand = this.configurations.initialConfiguration.get("coc.preferences.jumpCommand", "edit");
         let { nvim } = this;
-        let u = uri instanceof URI ? uri : URI.parse(uri);
+        let u = uri instanceof URI2 ? uri : URI2.parse(uri);
         let doc = this.documents.getDocument(u.with({ fragment: "" }).toString());
         let bufnr = doc ? doc.bufnr : -1;
         if (!position && u.scheme === "file" && u.fragment) {
@@ -47042,7 +47051,7 @@ var init_files = __esm({
        */
       async openResource(uri) {
         let { nvim } = this;
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         if (/^https?/.test(u.scheme)) {
           await nvim.call("coc#ui#open_url", uri);
           return;
@@ -47060,7 +47069,7 @@ var init_files = __esm({
           const preferences = this.configurations.getConfiguration("workspace");
           cmd = preferences.get("openResourceCommand", "tab drop");
         }
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         let bufname = u.scheme === "file" ? u.fsPath : uri;
         let bufnr;
         if (cmd) {
@@ -47079,7 +47088,7 @@ var init_files = __esm({
       async loadResources(uris) {
         let { documents } = this;
         let files = uris.map((uri) => {
-          let u = URI.parse(uri);
+          let u = URI2.parse(uri);
           return u.scheme == "file" ? u.fsPath : uri;
         });
         let bufnrs = await this.nvim.call("coc#ui#open_files", [files]);
@@ -47099,7 +47108,7 @@ var init_files = __esm({
         if (!exists || opts.overwrite) {
           let tokenSource = new import_node3.CancellationTokenSource();
           await this.fireWaitUntilEvent(this._onWillCreateFiles, {
-            files: [URI.file(filepath)],
+            files: [URI2.file(filepath)],
             token: tokenSource.token
           }, recovers);
           tokenSource.cancel();
@@ -47135,7 +47144,7 @@ var init_files = __esm({
               return nvim.command(`silent! bd! ${bufnr}`);
             });
           }
-          this._onDidCreateFiles.fire({ files: [URI.file(filepath)] });
+          this._onDidCreateFiles.fire({ files: [URI2.file(filepath)] });
         }
       }
       /**
@@ -47149,7 +47158,7 @@ var init_files = __esm({
           throw fileNotExists(filepath);
         }
         if (stat == null) return;
-        let uri = URI.file(filepath);
+        let uri = URI2.file(filepath);
         await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers);
         if (!isDir) {
           let bufnr = await this.nvim.call("bufnr", [filepath]);
@@ -47209,7 +47218,7 @@ var init_files = __esm({
         let oldStat = await statAsync(oldPath);
         let loaded = oldStat && oldStat.isDirectory() ? 0 : await nvim.call("bufloaded", [oldPath]);
         if (!loaded && !oldStat) throw fileNotExists(oldPath);
-        let file = { newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) };
+        let file = { newUri: URI2.parse(newPath), oldUri: URI2.parse(oldPath) };
         if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
         if (loaded) {
           let bufnr = await nvim.call("coc#ui#rename_file", [oldPath, newPath, oldStat != null]);
@@ -47217,7 +47226,7 @@ var init_files = __esm({
         } else {
           if (oldStat.isDirectory()) {
             for (let doc of this.documents.attached("file")) {
-              let u = URI.parse(doc.uri);
+              let u = URI2.parse(doc.uri);
               if (isParentFolder(oldPath, u.fsPath, false)) {
                 let filepath = u.fsPath.replace(oldPath, newPath);
                 let bufnr = await nvim.call("coc#ui#rename_file", [u.fsPath, filepath, false]);
@@ -47365,7 +47374,7 @@ var init_files = __esm({
         let folders = this.workspaceFolderControl.workspaceFolders;
         if (token?.isCancellationRequested || !folders.length || maxResults === 0) return [];
         maxResults = maxResults ?? Infinity;
-        let roots = folders.map((o) => URI.parse(o.uri).fsPath);
+        let roots = folders.map((o) => URI2.parse(o.uri).fsPath);
         let pattern;
         if (typeof include !== "string") {
           pattern = include.pattern;
@@ -47392,7 +47401,7 @@ var init_files = __esm({
           if (token?.isCancellationRequested) break;
           for (let file of files) {
             if (exclude && fileMatch(root, file, exclude)) continue;
-            res.push(URI.file(path.join(root, file)));
+            res.push(URI2.file(path.join(root, file)));
             if (res.length === maxResults) {
               exceed = true;
               break;
@@ -47672,7 +47681,7 @@ function toWorkspaceFolder(fsPath2) {
   if (!fsPath2 || !path.isAbsolute(fsPath2)) return void 0;
   return {
     name: path.basename(fsPath2),
-    uri: URI.file(fsPath2).toString()
+    uri: URI2.file(fsPath2).toString()
   };
 }
 var PatternType, logger18, PatternTypes, checkPatternTimeout, extensionRegistry3, WorkspaceFolderController;
@@ -47758,7 +47767,7 @@ var init_workspaceFolder = __esm({
       }
       getWorkspaceFolder(uri) {
         if (uri.scheme !== "file") return void 0;
-        let folders = Array.from(this._workspaceFolders).map((o) => URI.parse(o.uri).fsPath);
+        let folders = Array.from(this._workspaceFolders).map((o) => URI2.parse(o.uri).fsPath);
         folders.sort((a, b) => b.length - a.length);
         let fsPath2 = uri.fsPath;
         let folder = folders.find((f) => isParentFolder(f, fsPath2, true));
@@ -47768,7 +47777,7 @@ var init_workspaceFolder = __esm({
         let resource;
         let p = "";
         if (typeof pathOrUri === "string") {
-          resource = URI.file(pathOrUri);
+          resource = URI2.file(pathOrUri);
           p = pathOrUri;
         } else if (typeof pathOrUri !== "undefined") {
           resource = pathOrUri;
@@ -47780,7 +47789,7 @@ var init_workspaceFolder = __esm({
         if (typeof includeWorkspace === "undefined" && this._workspaceFolders) {
           includeWorkspace = this._workspaceFolders.length > 1;
         }
-        let result = path.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
+        let result = path.relative(URI2.parse(folder.uri).fsPath, resource.fsPath);
         result = result == "" ? resource.fsPath : result;
         if (includeWorkspace && folder.name) {
           result = `${folder.name}/${result}`;
@@ -47801,7 +47810,7 @@ var init_workspaceFolder = __esm({
       }
       resolveRoot(document2, cwd2, fireEvent, expand2) {
         if (document2.buftype !== "" || document2.schema !== "file") return null;
-        let u = URI.parse(document2.uri);
+        let u = URI2.parse(document2.uri);
         let dir = isDirectory(u.fsPath) ? path.normalize(u.fsPath) : path.dirname(u.fsPath);
         let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
         if (ignoredFiletypes?.includes(document2.filetype)) return null;
@@ -47841,7 +47850,7 @@ var init_workspaceFolder = __esm({
       renameWorkspaceFolder(oldPath, newPath) {
         let added = toWorkspaceFolder(newPath);
         if (!added) return;
-        let idx = this._workspaceFolders.findIndex((f) => URI.parse(f.uri).fsPath == oldPath);
+        let idx = this._workspaceFolders.findIndex((f) => URI2.parse(f.uri).fsPath == oldPath);
         if (idx == -1) return;
         let removed = this.workspaceFolders[idx];
         this._workspaceFolders.splice(idx, 1, added);
@@ -47871,7 +47880,7 @@ var init_workspaceFolder = __esm({
           }
         }
         for (const item of this.workspaceFolders) {
-          const folder = URI.parse(item.uri).fsPath;
+          const folder = URI2.parse(item.uri).fsPath;
           if (!filepaths.some((f) => isParentFolder(folder, f))) {
             this.removeWorkspaceFolder(folder);
             return;
@@ -47900,7 +47909,7 @@ var init_workspaceFolder = __esm({
       }
       async checkPatterns(folders, patterns) {
         if (isFalsyOrEmpty(folders)) return false;
-        let dirs = folders.map((f) => URI.parse(f.uri).fsPath);
+        let dirs = folders.map((f) => URI2.parse(f.uri).fsPath);
         let find = false;
         let tokenSource = new import_node3.CancellationTokenSource();
         this._tokenSources.add(tokenSource);
@@ -48519,7 +48528,7 @@ var init_workspace = __esm({
         return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns);
       }
       get folderPaths() {
-        return this.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
+        return this.workspaceFolders.map((f) => URI2.parse(f.uri).fsPath);
       }
       get channelNames() {
         return channels_default.names;
@@ -48666,7 +48675,7 @@ var init_workspace = __esm({
        * Get WorkspaceFolder of uri
        */
       getWorkspaceFolder(uri) {
-        return this.workspaceFolderControl.getWorkspaceFolder(typeof uri === "string" ? URI.parse(uri) : uri);
+        return this.workspaceFolderControl.getWorkspaceFolder(typeof uri === "string" ? URI2.parse(uri) : uri);
       }
       /**
        * Get content from buffer or file by uri.
@@ -48973,7 +48982,7 @@ var init_TreeItem = __esm({
     TreeItem = class {
       constructor(label, collapsibleState = 0 /* None */) {
         this.collapsibleState = collapsibleState;
-        if (URI.isUri(label)) {
+        if (URI2.isUri(label)) {
           this.resourceUri = label;
           this.label = path.basename(label.path);
           this.id = label.toString();
@@ -52973,7 +52982,7 @@ var init_util5 = __esm({
 });
 
 // src/diagnostic/buffer.ts
-var signGroup, NAMESPACE, hlGroups, delay2, aleMethod, virtualTextSrcId, floatFactory, DiagnosticBuffer;
+var signGroup, NAMESPACE, hlGroups, delay, aleMethod, virtualTextSrcId, floatFactory, DiagnosticBuffer;
 var init_buffer = __esm({
   "src/diagnostic/buffer.ts"() {
     "use strict";
@@ -52993,7 +53002,7 @@ var init_buffer = __esm({
     signGroup = "CocDiagnostic";
     NAMESPACE = "diagnostic";
     hlGroups = ["CocErrorHighlight", "CocWarningHighlight", "CocInfoHighlight", "CocHintHighlight", "CocDeprecatedHighlight", "CocUnusedHighlight"];
-    delay2 = getConditionValue(50, 10);
+    delay = getConditionValue(50, 10);
     aleMethod = getConditionValue("ale#other_source#ShowResults", "MockAleResults");
     DiagnosticBuffer = class {
       constructor(nvim, doc) {
@@ -53014,7 +53023,7 @@ var init_buffer = __esm({
             this._refreshing = false;
             if (!this._autoRefresh) return;
             void this._refresh(true);
-          }, delay2);
+          }, delay);
         };
         fn.clear = () => {
           this._refreshing = false;
@@ -53284,7 +53293,7 @@ var init_buffer = __esm({
 Related information:
 `;
             for (const info of diagnostic.relatedInformation) {
-              const fsPath2 = URI.parse(info.location.uri).fsPath;
+              const fsPath2 = URI2.parse(info.location.uri).fsPath;
               const basename = path.basename(fsPath2);
               const line = info.location.range.start.line + 1;
               const column = info.location.range.start.character + 1;
@@ -53422,7 +53431,7 @@ Related information:
             if (full) {
               let { start, end } = diagnostic.range;
               items.push({
-                file: URI.parse(this.doc.uri).fsPath,
+                file: URI2.parse(this.doc.uri).fsPath,
                 lnum: start.line + 1,
                 end_lnum: end.line + 1,
                 col: start.character + 1,
@@ -53636,7 +53645,7 @@ var init_collection = __esm({
         }
         for (let item of diagnosticsPerFile) {
           let [uri, diagnostics2] = item;
-          uri = URI.parse(uri).toString();
+          uri = URI2.parse(uri).toString();
           diagnostics2.forEach((o) => {
             o.range = o.range ?? Range.create(0, 0, 0, 0);
             o.message = o.message ?? "";
@@ -53778,7 +53787,7 @@ var init_manager = __esm({
         if (!isFalsyOrEmpty(errors)) {
           const collection = this.create("config");
           for (let [uri, diagnostics] of errors.entries()) {
-            let fsPath2 = URI.parse(uri).fsPath;
+            let fsPath2 = URI2.parse(uri).fsPath;
             void window_default.showErrorMessage(`Error detected for config file ${fsPath2}, please check diagnostics list.`);
             collection.set(uri, diagnostics);
           }
@@ -53999,7 +54008,7 @@ var init_manager = __esm({
         for (let collection of this.collections) {
           for (let [uri, diagnostics] of collection.entries()) {
             if (diagnostics.length == 0) continue;
-            let u = URI.parse(uri);
+            let u = URI2.parse(uri);
             let doc = workspace_default.getDocument(uri);
             let lines = doc && doc.attached ? doc.textDocument.lines : void 0;
             if (!lines && u.scheme === "file") {
@@ -54173,6 +54182,7 @@ var init_manager2 = __esm({
     "use strict";
     init_main();
     init_logger();
+    init_errors();
     init_extensionRegistry();
     init_object();
     init_protocol();
@@ -54206,7 +54216,7 @@ var init_manager2 = __esm({
       }
       handleResults(results, name2) {
         results.forEach((res) => {
-          if (res.status === "rejected") {
+          if (res.status === "rejected" && !shouldIgnore(res.reason)) {
             logger22.error(`Provider error on ${name2}:`, res.reason);
           }
         });
@@ -67248,7 +67258,7 @@ var init_basic = __esm({
       async convertLocation(location) {
         if (typeof location == "string") return Location.create(location, Range.create(0, 0, 0, 0));
         if (Location.is(location)) return location;
-        let u = URI.parse(location.uri);
+        let u = URI2.parse(location.uri);
         if (u.scheme != "file") return Location.create(location.uri, Range.create(0, 0, 0, 0));
         return await lineToLocation(u.fsPath, location.line, location.text);
       }
@@ -67276,7 +67286,7 @@ var init_basic = __esm({
       async previewLocation(location, context) {
         let { uri, range } = location;
         let doc = workspace_default.getDocument(location.uri);
-        let u = URI.parse(uri);
+        let u = URI2.parse(uri);
         let lines = await workspace_default.documentsManager.getLines(uri);
         let config = {
           bufnr: doc ? doc.bufnr : void 0,
@@ -68192,7 +68202,7 @@ var init_sequence = __esm({
 });
 
 // src/list/ui.ts
-var debounceTime3, ListUI;
+var debounceTime4, ListUI;
 var init_ui2 = __esm({
   "src/list/ui.ts"() {
     "use strict";
@@ -68205,7 +68215,7 @@ var init_ui2 = __esm({
     init_string();
     init_workspace();
     init_configuration3();
-    debounceTime3 = getConditionValue(100, 20);
+    debounceTime4 = getConditionValue(100, 20);
     ListUI = class {
       constructor(nvim, name2, listOptions) {
         this.nvim = nvim;
@@ -68251,7 +68261,7 @@ var init_ui2 = __esm({
           this.doHighlight(s, e);
           nvim.command("redraw", true);
           nvim.resumeNotification(false, true);
-        }, debounceTime3);
+        }, debounceTime4);
         this.disposables.push({
           dispose: () => {
             debounced.clear();
@@ -69119,7 +69129,7 @@ var init_worker = __esm({
 });
 
 // src/list/session.ts
-var frames2, debounceTime4, ListSession;
+var frames2, debounceTime5, ListSession;
 var init_session = __esm({
   "src/list/session.ts"() {
     "use strict";
@@ -69135,7 +69145,7 @@ var init_session = __esm({
     init_ui2();
     init_worker();
     frames2 = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
-    debounceTime4 = getConditionValue(50, 1);
+    debounceTime5 = getConditionValue(50, 1);
     ListSession = class {
       constructor(nvim, prompt, list2, listOptions, listArgs) {
         this.nvim = nvim;
@@ -69159,7 +69169,7 @@ var init_session = __esm({
             let idx = this.ui.lnumToIndex(lnum);
             await this.doPreview(idx);
           }
-        }, debounceTime4);
+        }, debounceTime5);
         this.disposables.push({
           dispose: () => {
             debouncedChangeLine.clear();
@@ -69634,7 +69644,7 @@ function fixWidth(str, width) {
 }
 function formatUri(uri, cwd2) {
   if (!uri.startsWith("file:")) return uri;
-  let filepath = URI.parse(uri).fsPath;
+  let filepath = URI2.parse(uri).fsPath;
   return isParentFolder(cwd2, filepath) ? path.relative(cwd2, filepath) : filepath;
 }
 function formatListItems(align, list2) {
@@ -69796,7 +69806,7 @@ var init_location = __esm({
         return items;
       }
       createItem(filename, loc) {
-        let uri = loc.uri ?? URI.file(loc.filename).toString();
+        let uri = loc.uri ?? URI2.file(loc.filename).toString();
         let label = "";
         const ansiHighlights = [];
         let start = 0;
@@ -69887,12 +69897,12 @@ var init_diagnostics = __esm({
         let list2 = await manager_default.getDiagnosticList();
         let { cwd: cwd2, args } = context;
         if (args.includes("--workspace-folder")) {
-          const normalized = URI.parse(workspace_default.getWorkspaceFolder(cwd2).uri);
+          const normalized = URI2.parse(workspace_default.getWorkspaceFolder(cwd2).uri);
           list2 = list2.filter((item) => isParentFolder(normalized.fsPath, item.file));
         }
         if (args.includes("--buffer")) {
           const doc = await workspace_default.document;
-          const normalized = URI.parse(doc.uri);
+          const normalized = URI2.parse(doc.uri);
           list2 = list2.filter((item) => item.file === normalized.fsPath);
         }
         const config = this.getConfig();
@@ -69955,7 +69965,7 @@ function getExtensionPriority(stat) {
       return 0;
   }
 }
-var delay3, ExtensionList;
+var delay2, ExtensionList;
 var init_extensions = __esm({
   "src/list/source/extensions.ts"() {
     "use strict";
@@ -69966,7 +69976,7 @@ var init_extensions = __esm({
     init_workspace();
     init_basic();
     init_formatting();
-    delay3 = getConditionValue(50, 0);
+    delay2 = getConditionValue(50, 0);
     ExtensionList = class extends BasicList {
       constructor(manager) {
         super();
@@ -69982,7 +69992,7 @@ var init_extensions = __esm({
           } else {
             await this.manager.activate(id2);
           }
-          await wait(delay3);
+          await wait(delay2);
         }, { persist: true, reload: true, parallel: true });
         this.addAction("configuration", async (item) => {
           let { root } = item.data;
@@ -69990,7 +70000,7 @@ var init_extensions = __esm({
           if (fs.existsSync(jsonFile)) {
             let lines = fs.readFileSync(jsonFile, "utf8").split(/\r?\n/);
             let idx = lines.findIndex((s) => s.includes('"contributes"'));
-            await workspace_default.jumpTo(URI.file(jsonFile), { line: idx == -1 ? 0 : idx, character: 0 });
+            await workspace_default.jumpTo(URI2.file(jsonFile), { line: idx == -1 ? 0 : idx, character: 0 });
           }
         });
         this.addAction("open", async (item) => {
@@ -70013,7 +70023,7 @@ var init_extensions = __esm({
           let { root } = item.data;
           let files = fs.readdirSync(root, { encoding: "utf8" });
           let file = files.find((f) => /^readme/i.test(f));
-          if (file) await workspace_default.jumpTo(URI.file(path.join(root, file)));
+          if (file) await workspace_default.jumpTo(URI2.file(path.join(root, file)));
         });
         this.addAction("reload", async (item) => {
           let { id: id2 } = item.data;
@@ -70102,7 +70112,7 @@ var init_folders = __esm({
           let file = await window_default.requestInput("File name", item.label + "/");
           if (!file) return;
           await workspace_default.createFile(file, { overwrite: false, ignoreIfExists: true });
-          await this.jumpTo(URI.file(file).toString(), null, context);
+          await this.jumpTo(URI2.file(file).toString(), null, context);
         });
       }
       async loadItems() {
@@ -70253,7 +70263,7 @@ async function loadCtagsSymbols(document2, nvim, token) {
   if (!which.sync("ctags", { nothrow: true })) {
     return [];
   }
-  let uri = URI.parse(document2.uri);
+  let uri = URI2.parse(document2.uri);
   let extname = path.extname(uri.fsPath);
   let content = "";
   let tempname = await nvim.call("tempname");
@@ -71299,7 +71309,7 @@ var init_diagnostic = __esm({
     })(DiagnosticPullMode || {});
     ((DocumentOrUri2) => {
       function asKey(document2) {
-        return document2 instanceof URI ? document2.toString() : document2.uri;
+        return document2 instanceof URI2 ? document2.toString() : document2.uri;
       }
       DocumentOrUri2.asKey = asKey;
     })(DocumentOrUri || (DocumentOrUri = {}));
@@ -71311,7 +71321,7 @@ var init_diagnostic = __esm({
       }
       track(kind, document2, arg1) {
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
-        const [key, uri, version2] = document2 instanceof URI ? [document2.toString(), document2, arg1] : [document2.uri.toString(), URI.parse(document2.uri), document2.version];
+        const [key, uri, version2] = document2 instanceof URI2 ? [document2.toString(), document2, arg1] : [document2.uri.toString(), URI2.parse(document2.uri), document2.version];
         let state = states.get(key);
         if (state === void 0) {
           state = { document: uri, pulledVersion: version2, resultId: void 0 };
@@ -71321,7 +71331,7 @@ var init_diagnostic = __esm({
       }
       update(kind, document2, arg1, arg2) {
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
-        const [key, uri, version2, resultId] = document2 instanceof URI ? [document2.toString(), document2, arg1, arg2] : [document2.uri, URI.parse(document2.uri), document2.version, arg1];
+        const [key, uri, version2, resultId] = document2 instanceof URI2 ? [document2.toString(), document2, arg1, arg2] : [document2.uri, URI2.parse(document2.uri), document2.version, arg1];
         let state = states.get(key);
         if (state === void 0) {
           state = { document: uri, pulledVersion: version2, resultId };
@@ -71332,12 +71342,12 @@ var init_diagnostic = __esm({
         }
       }
       unTrack(kind, document2) {
-        const key = document2 instanceof URI ? document2.toString() : document2.uri;
+        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         states.delete(key);
       }
       tracks(kind, document2) {
-        const key = document2 instanceof URI ? document2.toString() : document2.uri;
+        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         return states.has(key);
       }
@@ -71345,7 +71355,7 @@ var init_diagnostic = __esm({
         return Array.from(this.documentPullStates.keys());
       }
       getResultId(kind, document2) {
-        const key = document2 instanceof URI ? document2.toString() : document2.uri;
+        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         return states.get(key)?.resultId;
       }
@@ -71505,11 +71515,11 @@ var init_diagnostic = __esm({
           }
           for (const item of chunk.items) {
             if (item.kind === import_node3.DocumentDiagnosticReportKind.Full) {
-              if (!this.documentStates.tracks(1 /* document */, URI.parse(item.uri))) {
+              if (!this.documentStates.tracks(1 /* document */, URI2.parse(item.uri))) {
                 this.diagnostics.set(item.uri.toString(), item.items);
               }
             }
-            this.documentStates.update(2 /* workspace */, URI.parse(item.uri), item.version ?? void 0, item.resultId);
+            this.documentStates.update(2 /* workspace */, URI2.parse(item.uri), item.version ?? void 0, item.resultId);
           }
         });
       }
@@ -71520,7 +71530,7 @@ var init_diagnostic = __esm({
             const middleware = this.client.middleware;
             const client = this._client;
             const provideDiagnostics = (document3, previousResultId2, token2) => {
-              const uri = client.code2ProtocolConverter.asUri(document3 instanceof URI ? document3 : URI.parse(document3.uri));
+              const uri = client.code2ProtocolConverter.asUri(document3 instanceof URI2 ? document3 : URI2.parse(document3.uri));
               const params = {
                 identifier: this.options.identifier,
                 textDocument: { uri },
@@ -71677,12 +71687,12 @@ var init_diagnostic = __esm({
         const ignored = diagnosticPullOptions.ignored ?? [];
         const matches = (document2) => {
           if (diagnosticPullOptions.match !== void 0) {
-            return diagnosticPullOptions.match(selector, URI.parse(document2.uri));
+            return diagnosticPullOptions.match(selector, URI2.parse(document2.uri));
           }
           if (workspace_default.match(selector, document2) <= 0) return false;
           const visible = window_default.visibleTextEditors.some((editor) => editor.document.uri === document2.uri);
           if (!visible) return false;
-          if (ignored.length > 0 && ignored.some((p) => minimatch(URI.parse(document2.uri).fsPath, p, { dot: true }))) return false;
+          if (ignored.length > 0 && ignored.some((p) => minimatch(URI2.parse(document2.uri).fsPath, p, { dot: true }))) return false;
           return true;
         };
         const isActiveDocument = (document2) => {
@@ -72391,7 +72401,7 @@ var init_relativePattern = __esm({
     RelativePattern2 = class {
       constructor(base, pattern) {
         if (typeof base !== "string") {
-          if (!base || !URI.isUri(base) && typeof base.uri !== "string") {
+          if (!base || !URI2.isUri(base) && typeof base.uri !== "string") {
             throw illegalArgument("base");
           }
         }
@@ -72399,11 +72409,11 @@ var init_relativePattern = __esm({
           throw illegalArgument("pattern");
         }
         if (typeof base === "string") {
-          this.baseUri = URI.file(base);
-        } else if (URI.isUri(base)) {
+          this.baseUri = URI2.file(base);
+        } else if (URI2.isUri(base)) {
           this.baseUri = base;
         } else {
-          this.baseUri = URI.parse(base.uri);
+          this.baseUri = URI2.parse(base.uri);
         }
         this.pattern = pattern;
       }
@@ -72421,11 +72431,11 @@ var init_relativePattern = __esm({
 function asRelativePattern(rp) {
   let { baseUri, pattern } = rp;
   if (typeof baseUri === "string") {
-    return new RelativePattern2(URI.parse(baseUri), pattern);
+    return new RelativePattern2(URI2.parse(baseUri), pattern);
   }
   return new RelativePattern2(baseUri, pattern);
 }
-var debounceTime5, FileSystemWatcherFeature;
+var debounceTime6, FileSystemWatcherFeature;
 var init_fileSystemWatcher2 = __esm({
   "src/language-client/fileSystemWatcher.ts"() {
     "use strict";
@@ -72438,7 +72448,7 @@ var init_fileSystemWatcher2 = __esm({
     init_uuid();
     init_relativePattern();
     init_esm();
-    debounceTime5 = getConditionValue(200, 20);
+    debounceTime6 = getConditionValue(200, 20);
     FileSystemWatcherFeature = class {
       constructor(_client) {
         this._client = _client;
@@ -72446,7 +72456,7 @@ var init_fileSystemWatcher2 = __esm({
         this._fileEventsMap = /* @__PURE__ */ new Map();
         this.debouncedFileNotify = debounce(() => {
           void this._notifyFileEvent();
-        }, debounceTime5);
+        }, debounceTime6);
       }
       async _notifyFileEvent() {
         let map = this._fileEventsMap;
@@ -74060,10 +74070,10 @@ var init_utils = __esm({
 function createConverter(uriConverter) {
   uriConverter = uriConverter || ((value) => value.toString());
   function asUri(value) {
-    if (URI.isUri(value)) {
+    if (URI2.isUri(value)) {
       return uriConverter(value);
     } else {
-      return uriConverter(URI.parse(value));
+      return uriConverter(URI2.parse(value));
     }
   }
   function asTextDocumentItem(textDocument) {
@@ -74351,7 +74361,7 @@ var init_workspaceFolders = __esm({
         if (!workspaceFolders || workspaceFolders.length == 0) return void 0;
         let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths ?? [];
         let arr = workspaceFolders.filter((o) => {
-          let fsPath2 = URI.parse(o.uri).fsPath;
+          let fsPath2 = URI2.parse(o.uri).fsPath;
           return ignoredRootPaths.every((p) => !sameFile(p, fsPath2));
         });
         return arr.length ? arr : void 0;
@@ -74459,7 +74469,7 @@ var init_workspaceFolders = __esm({
       }
       asProtocol(workspaceFolder) {
         if (workspaceFolder == null) return null;
-        return { uri: this._client.code2ProtocolConverter.asUri(URI.parse(workspaceFolder.uri)), name: workspaceFolder.name };
+        return { uri: this._client.code2ProtocolConverter.asUri(URI2.parse(workspaceFolder.uri)), name: workspaceFolder.name };
       }
     };
   }
@@ -75258,7 +75268,7 @@ var init_client = __esm({
       }
       resolveRootPath() {
         if (this._clientOptions.workspaceFolder) {
-          return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath;
+          return URI2.parse(this._clientOptions.workspaceFolder.uri).fsPath;
         }
         let { ignoredRootPaths, rootPatterns, requireRootPattern } = this._clientOptions;
         let resolved;
@@ -75279,7 +75289,7 @@ var init_client = __esm({
         let initParams = {
           processId: process.pid,
           rootPath: rootPath ? rootPath : null,
-          rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI.file(rootPath)) : null,
+          rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI2.file(rootPath)) : null,
           capabilities: this.computeClientCapabilities(),
           initializationOptions: func(initializationOptions) ? initializationOptions() : initializationOptions,
           trace: import_node3.Trace.toString(this._trace),
@@ -76480,7 +76490,7 @@ var init_services = __esm({
         }, null, this.disposables);
       }
       registerClientsFromFolder(workspaceFolder) {
-        let uri = URI.parse(workspaceFolder.uri);
+        let uri = URI2.parse(workspaceFolder.uri);
         let lspConfig = workspace_default.getConfiguration(void 0, uri);
         let config = lspConfig.inspect("languageserver").workspaceFolderValue;
         this.registerClientsByConfig(config, uri);
@@ -76779,7 +76789,7 @@ var init_sources = __esm({
           let prefix = stat.disabled ? " " : "*";
           let location;
           if (stat.filepath) {
-            location = Location.create(URI.file(stat.filepath).toString(), Range.create(0, 0, 0, 0));
+            location = Location.create(URI2.file(stat.filepath).toString(), Range.create(0, 0, 0, 0));
           }
           return {
             label: `${prefix} ${fixWidth(stat.name, 22)} ${fixWidth("[" + stat.shortcut + "]", 10)} ${fixWidth(stat.triggerCharacters.join(""), 10)} ${fixWidth(stat.priority.toString(), 3)} ${stat.filetypes.join(",")}`,
@@ -78036,10 +78046,10 @@ var init_variableResolve = __esm({
         }
         if (["RELATIVE_FILEPATH", "WORKSPACE_NAME", "WORKSPACE_FOLDER"].includes(name2)) {
           let filepath = await nvim.call("coc#util#get_fullpath");
-          let folder = this.workspaceFolder.getWorkspaceFolder(URI.file(filepath));
+          let folder = this.workspaceFolder.getWorkspaceFolder(URI2.file(filepath));
           if (name2 === "RELATIVE_FILEPATH") return this.workspaceFolder.getRelativePath(filepath);
           if (name2 === "WORKSPACE_NAME") return folder.name;
-          if (name2 === "WORKSPACE_FOLDER") return URI.parse(folder.uri).fsPath;
+          if (name2 === "WORKSPACE_FOLDER") return URI2.parse(folder.uri).fsPath;
         }
         if (name2 === "LINE_COMMENT") {
           let commentstring = await nvim.eval("&commentstring");
@@ -79102,7 +79112,7 @@ var require_src3 = __commonJS({
       get nvim() {
         return workspace_default.nvim;
       },
-      Uri: URI,
+      Uri: URI2,
       LineBuilder,
       NullLogger,
       SettingMonitor,
@@ -79779,7 +79789,7 @@ function checkCommand(command, activationEvents) {
   return false;
 }
 function checkFileSystem(uri, activationEvents) {
-  let scheme = URI.parse(uri).scheme;
+  let scheme = URI2.parse(uri).scheme;
   for (let eventName of activationEvents) {
     let parts = eventName.split(":");
     let ev = parts[0];
@@ -79947,7 +79957,7 @@ var init_manager5 = __esm({
             patterns.push(parts[1]);
           } else if (ev === "onFileSystem" /* OnFileSystem */) {
             for (let doc of workspace_default.documents) {
-              let u = URI.parse(doc.uri);
+              let u = URI2.parse(doc.uri);
               if (u.scheme == parts[1]) {
                 return true;
               }
@@ -80183,7 +80193,7 @@ var init_manager5 = __esm({
           id: id2,
           packageJSON,
           extensionPath,
-          extensionUri: URI.parse(extensionPath),
+          extensionUri: URI2.parse(extensionPath),
           get isActive() {
             return isActive;
           },
@@ -80351,7 +80361,7 @@ var init_manager5 = __esm({
 });
 
 // src/extension/ui.ts
-var interval, InstallChannel, debounceTime6, InstallBuffer;
+var interval, InstallChannel, debounceTime7, InstallBuffer;
 var init_ui3 = __esm({
   "src/extension/ui.ts"() {
     "use strict";
@@ -80394,7 +80404,7 @@ var init_ui3 = __esm({
         }
       }
     };
-    debounceTime6 = getConditionValue(500, 10);
+    debounceTime7 = getConditionValue(500, 10);
     InstallBuffer = class {
       constructor(settings) {
         this.settings = settings;
@@ -80411,7 +80421,7 @@ var init_ui3 = __esm({
             let docs = msgs.length > 0 ? [{ content: msgs.join("\n"), filetype: "txt" }] : [];
             await floatFactory4.show(docs);
           }
-        }, debounceTime6);
+        }, debounceTime7);
         this.disposables.push(import_node3.Disposable.create(() => {
           fn.clear();
         }));
@@ -80926,7 +80936,7 @@ var init_keywords = __esm({
         this.lineWords = [];
         this._gitIgnored = false;
         this.parseWords(segmentChinese);
-        let uri = URI.parse(doc.uri);
+        let uri = URI2.parse(doc.uri);
         if (uri.scheme === "file") {
           void isGitIgnored(uri.fsPath).then((ignored) => {
             this._gitIgnored = ignored;
@@ -82130,7 +82140,7 @@ var init_languages = __esm({
     init_is();
     init_protocol();
     init_string();
-    eventDebounce = getConditionValue(500, 10);
+    eventDebounce = getConditionValue(100, 10);
     ProviderName = /* @__PURE__ */ ((ProviderName3) => {
       ProviderName3["FormatOnType"] = "formatOnType";
       ProviderName3["Rename"] = "rename";
@@ -83172,7 +83182,7 @@ var init_pum = __esm({
         if (pumFloatConfig.border) {
           obj.border = [1, 1, 1, 1];
           obj.rounded = pumFloatConfig.rounded ? 1 : 0;
-          obj.borderhighlight = pumFloatConfig.borderhighlight ?? "CocFloating";
+          obj.borderhighlight = pumFloatConfig.borderhighlight ?? "CocFloatBorder";
         }
         obj.reverse = reversePumAboveCursor === true;
         this._pumConfig = obj;
@@ -83738,7 +83748,7 @@ var init_completion2 = __esm({
           word: input + followWord,
           changedtick: info.changedtick,
           synname: "",
-          filepath: doc.schema === "file" ? URI.parse(doc.uri).fsPath : "",
+          filepath: doc.schema === "file" ? URI2.parse(doc.uri).fsPath : "",
           triggerCharacter: manual ? void 0 : toText(pre[pre.length - 1])
         };
       }
@@ -84569,7 +84579,7 @@ var init_LocationsDataProvider = __esm({
       getTreeItem(element) {
         let item = new TreeItem(element.name, element.children ? 2 /* Expanded */ : 1 /* Collapsed */);
         if (this.config.enableTooltip) {
-          item.tooltip = path.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
+          item.tooltip = path.relative(workspace_default.cwd, URI2.parse(element.uri).fsPath);
         }
         item.description = element.detail;
         item.deprecated = element.tags?.includes(SymbolTag.Deprecated);
@@ -84981,7 +84991,7 @@ function getCommands(line, codeLenses) {
   }
   return commands;
 }
-var logger49, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
+var logger49, srcId, debounceTime8, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer3 = __esm({
   "src/handler/codelens/buffer.ts"() {
     "use strict";
@@ -84997,7 +85007,7 @@ var init_buffer3 = __esm({
     init_window();
     init_workspace();
     logger49 = createLogger("codelens-buffer");
-    debounceTime7 = getConditionValue(200, 20);
+    debounceTime8 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
     NORMAL_HL = "Normal";
     CodeLensBuffer = class {
@@ -85006,10 +85016,10 @@ var init_buffer3 = __esm({
         this.document = document2;
         this.resolveCodeLens = debounce(() => {
           this._resolveCodeLenses().catch(onUnexpectedError);
-        }, debounceTime7);
+        }, debounceTime8);
         this.debounceFetch = debounce(() => {
           this.fetchCodeLenses().catch(onUnexpectedError);
-        }, debounceTime7);
+        }, debounceTime8);
         if (this.hasProvider) this.debounceFetch();
       }
       get config() {
@@ -85209,7 +85219,7 @@ var init_buffer3 = __esm({
 });
 
 // src/handler/codelens/index.ts
-var debounceTime8, CodeLensManager2;
+var debounceTime9, CodeLensManager2;
 var init_codelens = __esm({
   "src/handler/codelens/index.ts"() {
     "use strict";
@@ -85222,7 +85232,7 @@ var init_codelens = __esm({
     init_window();
     init_workspace();
     init_buffer3();
-    debounceTime8 = getConditionValue(200, 0);
+    debounceTime9 = getConditionValue(200, 0);
     CodeLensManager2 = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -85253,7 +85263,7 @@ var init_codelens = __esm({
             item.abandonResult();
             await item.forceFetch();
           }
-        }, debounceTime8);
+        }, debounceTime9);
         this.disposables.push(import_node3.Disposable.create(() => {
           debounced.clear();
         }));
@@ -85330,7 +85340,7 @@ var init_color = __esm({
 function getHighlightGroup2(color) {
   return `BG${toHexString(color)}`;
 }
-var NAMESPACE2, debounceTime9, ColorBuffer;
+var NAMESPACE2, debounceTime10, ColorBuffer;
 var init_colorBuffer = __esm({
   "src/handler/colors/colorBuffer.ts"() {
     "use strict";
@@ -85344,7 +85354,7 @@ var init_colorBuffer = __esm({
     init_window();
     init_workspace();
     NAMESPACE2 = "color";
-    debounceTime9 = getConditionValue(200, 10);
+    debounceTime10 = getConditionValue(200, 10);
     ColorBuffer = class {
       // last highlight version
       constructor(nvim, doc, config, usedColors) {
@@ -85355,7 +85365,7 @@ var init_colorBuffer = __esm({
         this._colors = [];
         this.highlight = debounce(() => {
           void this.doHighlight();
-        }, debounceTime9);
+        }, debounceTime10);
         if (this.hasProvider) this.highlight();
       }
       get enable() {
@@ -86111,7 +86121,7 @@ function isDocumentation(obj) {
 async function readLines(uri, start, end) {
   let doc = workspace_default.getDocument(uri);
   if (doc) return doc.getLines(start, end + 1);
-  let fsPath2 = URI.parse(uri).fsPath;
+  let fsPath2 = URI2.parse(uri).fsPath;
   if (!fs.existsSync(fsPath2)) return [];
   return await readFileLines(fsPath2, start, end);
 }
@@ -86457,12 +86467,12 @@ var init_buffer4 = __esm({
           }
         }
       }
-      async render(winid, delay4) {
+      async render(winid, delay3) {
         this.cancel();
         if (events_default.insertMode && !this.config.refreshOnInsertMode || !this.enabled) return;
         this.tokenSource = new import_node3.CancellationTokenSource();
         let token = this.tokenSource.token;
-        await waitWithToken(typeof delay4 === "number" ? delay4 : debounceInterval, token);
+        await waitWithToken(typeof delay3 === "number" ? delay3 : debounceInterval, token);
         if (token.isCancellationRequested) return;
         const { doc } = this;
         const spans = await window_default.getVisibleRanges(doc.bufnr, winid);
@@ -86482,13 +86492,13 @@ var init_buffer4 = __esm({
         const range = this.doc.textDocument.intersectWith(Range.create(startLine, 0, endLine + 1, 0));
         let inlayHints = await this.requestInlayHints(range, token);
         if (inlayHints == null || token.isCancellationRequested) return;
-        this.regions.add(startLine, endLine);
         if (!this.config.enableParameter) {
           inlayHints = inlayHints.filter((o) => o.kind !== InlayHintKind.Parameter);
         }
         this.currentHints = this.currentHints.filter((o) => positionInRange(o.position, range) !== 0);
         this.currentHints.push(...inlayHints);
         this.setVirtualText(range, inlayHints);
+        this.regions.add(startLine, endLine);
       }
       setVirtualText(range, inlayHints) {
         let { nvim, doc } = this;
@@ -86516,7 +86526,7 @@ var init_buffer4 = __esm({
           }
           buffer.setVirtualText(srcId2, position.line, chunks, opts);
         }
-        nvim.resumeNotification(true, true);
+        nvim.resumeNotification(false, true);
         this._onDidRefresh.fire();
       }
       clearVirtualText() {
@@ -86581,24 +86591,28 @@ var init_inlayHint2 = __esm({
           let buf = this.buffers.getItem(bufnr);
           if (buf) await buf.render(winid);
         }, null, this.disposables);
+        events_default.on("BufWinEnter", async (bufnr, winid) => {
+          let buf = this.buffers.getItem(bufnr);
+          if (buf) await buf.render(winid);
+        }, null, this.disposables);
         commands_default.register({
           id: "document.toggleInlayHint",
           execute: (bufnr) => {
             this.setState("toggle", bufnr);
           }
-        }, false, "toggle inlayHint display of current buffer");
+        }, false, "Toggle inlayHint display of current buffer");
         commands_default.register({
           id: "document.enableInlayHint",
           execute: (bufnr) => {
             this.setState("enable", bufnr);
           }
-        }, false, "enable codeLens display of current buffer");
+        }, false, "Enable inlayHint display of current buffer");
         commands_default.register({
           id: "document.disableInlayHint",
           execute: (bufnr) => {
             this.setState("disable", bufnr);
           }
-        }, false, "disable codeLens display of current buffer");
+        }, false, "Disable inlayHint display of current buffer");
         handler.addDisposable(import_node3.Disposable.create(() => {
           disposeAll(this.disposables);
         }));
@@ -86621,7 +86635,7 @@ var init_inlayHint2 = __esm({
 });
 
 // src/handler/linkedEditing.ts
-var debounceTime10, LinkedEditingHandler;
+var debounceTime11, LinkedEditingHandler;
 var init_linkedEditing = __esm({
   "src/handler/linkedEditing.ts"() {
     "use strict";
@@ -86637,12 +86651,12 @@ var init_linkedEditing = __esm({
     init_string();
     init_window();
     init_workspace();
-    debounceTime10 = getConditionValue(200, 10);
+    debounceTime11 = getConditionValue(200, 10);
     LinkedEditingHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
         this.changing = false;
-        this.checkPosition = debounce(this._checkPosition, debounceTime10);
+        this.checkPosition = debounce(this._checkPosition, debounceTime11);
         handler.addDisposable(events_default.on("CursorMoved", (bufnr, cursor) => {
           this.cancel();
           this.checkPosition(bufnr, [cursor[0], cursor[1]]);
@@ -86779,7 +86793,7 @@ function sameLinks(links2, other) {
   }
   return true;
 }
-var import_debounce, floatFactory2, debounceTime11, NAMESPACE3, highlightGroup, Links, LinkBuffer;
+var import_debounce, floatFactory2, debounceTime12, NAMESPACE3, highlightGroup, Links, LinkBuffer;
 var init_links2 = __esm({
   "src/handler/links.ts"() {
     "use strict";
@@ -86794,7 +86808,7 @@ var init_links2 = __esm({
     init_protocol();
     init_window();
     init_workspace();
-    debounceTime11 = getConditionValue(200, 10);
+    debounceTime12 = getConditionValue(200, 10);
     NAMESPACE3 = "links";
     highlightGroup = "CocLink";
     Links = class {
@@ -86910,7 +86924,7 @@ var init_links2 = __esm({
         this.links = [];
         this.fetchLinks = (0, import_debounce.default)(() => {
           void this.getLinks();
-        }, debounceTime11);
+        }, debounceTime12);
         if (this.hasProvider) this.fetchLinks();
       }
       get config() {
@@ -87097,7 +87111,7 @@ var init_locations = __esm({
         }
         if (!definitions || !definitions.length) return null;
         return definitions.map((location) => {
-          let parsedURI = URI.parse(location.uri);
+          let parsedURI = URI2.parse(location.uri);
           const filename = parsedURI.scheme == "file" ? parsedURI.fsPath : parsedURI.toString();
           return {
             name: word,
@@ -87316,7 +87330,7 @@ var init_buffer5 = __esm({
         return this._fileItems;
       }
       getFileItem(uri) {
-        let filepath = URI.parse(uri).fsPath;
+        let filepath = URI2.parse(uri).fsPath;
         return this._fileItems.find((o) => sameFile(o.filepath, filepath));
       }
       getFileRange(lnum) {
@@ -87651,7 +87665,7 @@ var init_buffer5 = __esm({
         }
         let changeMap = {};
         for (let change of fileChanges) {
-          let uri = URI.file(change.filepath).toString();
+          let uri = URI2.file(change.filepath).toString();
           let edits = changeMap[uri] || [];
           edits.push({
             range: Range.create(change.start, 0, change.end, 0),
@@ -87663,7 +87677,7 @@ var init_buffer5 = __esm({
         await workspace_default.applyEdit({ changes: changeMap });
         this.changing = false;
         for (let item of this.fileItems) {
-          let uri = URI.file(this.getAbsolutePath(item.filepath)).toString();
+          let uri = URI2.file(this.getAbsolutePath(item.filepath)).toString();
           let edits = changeMap[uri];
           if (edits && edits.length > 0) {
             item.ranges.forEach((r) => {
@@ -87681,7 +87695,7 @@ var init_buffer5 = __esm({
         return true;
       }
       async getLines(fsPath2, start, end) {
-        let uri = URI.file(fsPath2).toString();
+        let uri = URI2.file(fsPath2).toString();
         let doc = workspace_default.getDocument(uri);
         if (doc) return doc.getLines(start, end);
         return await readFileLines(fsPath2, start, end - 1);
@@ -88161,7 +88175,7 @@ var init_refactor = __esm({
           if (start != null) ranges.push({ start, end, highlights });
           items.push({
             ranges,
-            filepath: URI.parse(key).fsPath
+            filepath: URI2.parse(key).fsPath
           });
         }
         let buf = await this.createRefactorBuffer(filetype);
@@ -88171,7 +88185,7 @@ var init_refactor = __esm({
       async getLineCount(uri) {
         let doc = workspace_default.getDocument(uri);
         if (doc) return doc.lineCount;
-        return await getFileLineCount(URI.parse(uri).fsPath);
+        return await getFileLineCount(URI2.parse(uri).fsPath);
       }
       reset() {
         for (let buf of this.buffers.values()) {
@@ -88392,10 +88406,7 @@ var init_buffer6 = __esm({
         this.regions = new Regions();
         this._onDidRefresh = new import_node3.Emitter();
         this.onDidRefresh = this._onDidRefresh.event;
-        this.highlight = delay(() => {
-          void this.doHighlight();
-        }, debounceInterval2);
-        if (this.hasProvider) this.highlight();
+        if (this.hasProvider) this.doHighlight().catch(onUnexpectedError);
       }
       get config() {
         if (this._config) return this._config;
@@ -88413,7 +88424,7 @@ var init_buffer6 = __esm({
         };
         if (changed) {
           if (this._config.enable) {
-            this.highlight();
+            this.forceHighlight().catch(onUnexpectedError);
           } else {
             this.clearHighlight();
           }
@@ -88429,21 +88440,32 @@ var init_buffer6 = __esm({
         return this.doc.bufnr;
       }
       onChange() {
-        this.highlight();
+        this.doHighlight().catch(onUnexpectedError);
       }
       onTextChange() {
+        this._version = void 0;
         this.cancel();
       }
       async forceHighlight() {
         this.clearHighlight();
-        this.cancel();
-        await this.doHighlight(true);
+        await this.doHighlight(true, 0);
       }
       async onShown(winid) {
-        if (this.shouldRangeHighlight) return;
-        const { doc } = this;
-        if (doc.dirty || doc.version === this._version) return;
-        await this.doHighlight(false, winid);
+        if (!this.shouldHighlight) return;
+        await this.doHighlight(false, debounceInterval2, winid);
+      }
+      async onWinScroll(winid) {
+        if (!this.shouldHighlight) return;
+        this.cancel(true);
+        let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
+        let token = rangeTokenSource.token;
+        await waitWithToken(debounceInterval2, token);
+        if (token.isCancellationRequested) return;
+        if (this.shouldRangeHighlight) {
+          await this.doRangeHighlight(winid, token);
+        } else {
+          await this.highlightRegions(winid, token);
+        }
       }
       get hasProvider() {
         return languages_default.hasProvider("semanticTokens" /* SemanticTokens */, this.doc) || languages_default.hasProvider("semanticTokensRange" /* SemanticTokensRange */, this.doc);
@@ -88472,6 +88494,12 @@ var init_buffer6 = __esm({
       get enabled() {
         if (!this.configEnabled || !this.hasLegend) return false;
         return this.hasProvider;
+      }
+      get shouldHighlight() {
+        if (!this.enabled) return false;
+        const { doc } = this;
+        if (doc.dirty || doc.version === this._version) return false;
+        return true;
       }
       checkState() {
         if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`);
@@ -88533,14 +88561,14 @@ var init_buffer6 = __esm({
           });
         }
       }
-      toHighlightItems(highlights, startLine, endLine) {
+      toHighlightItems(highlights, span) {
         let { incrementTypes } = this.config;
-        let filter2 = typeof startLine === "number" && typeof endLine === "number";
+        let filter2 = Array.isArray(span);
         let res = [];
         for (let hi of highlights) {
           if (!hi.hlGroup) continue;
           let lnum = hi.range[0];
-          if (filter2 && (lnum < startLine || lnum >= endLine)) continue;
+          if (filter2 && (lnum < span[0] || lnum > span[1])) continue;
           let item = {
             lnum,
             hlGroup: hi.hlGroup,
@@ -88556,23 +88584,25 @@ var init_buffer6 = __esm({
         }
         return res;
       }
-      async doHighlight(forceFull = false, winid) {
+      async doHighlight(forceFull = false, wait2 = debounceInterval2, winid) {
         this.cancel();
-        const winids = winid == null ? workspace_default.editors.getBufWinids(this.bufnr) : [winid];
-        if (!this.enabled || winids.length === 0) return;
         let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
         let token = tokenSource.token;
+        await waitWithToken(wait2, token);
+        if (token.isCancellationRequested) return;
+        const winids = winid == null ? workspace_default.editors.getBufWinids(this.bufnr) : [winid];
+        if (!this.enabled || winids.length === 0) return;
         if (this.shouldRangeHighlight) {
+          this.cancel(true);
           let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
           let rangeToken = rangeTokenSource.token;
           for (const win of winids) {
             await this.doRangeHighlight(win, rangeToken);
             if (rangeToken.isCancellationRequested) break;
           }
-          this.rangeTokenSource = void 0;
-          if (rangeToken.isCancellationRequested && this.rangeProviderOnly) return;
         }
-        if (token.isCancellationRequested) return;
+        if (token.isCancellationRequested || this.rangeProviderOnly) return;
+        this.cancel(true);
         const { doc } = this;
         const version2 = doc.version;
         let tokenRanges;
@@ -88592,19 +88622,28 @@ var init_buffer6 = __esm({
         if (token.isCancellationRequested || !tokenRanges) return;
         this._highlights = [version2, tokenRanges];
         if (!this._dirty || tokenRanges.length < 500) {
-          let items = this.toHighlightItems(tokenRanges);
-          let diff = await window_default.diffHighlights(this.bufnr, NAMESPACE4, items, void 0, token);
-          if (token.isCancellationRequested || !diff) return;
-          this._dirty = true;
-          this._version = version2;
-          const priority = this.config.highlightPriority;
-          await window_default.applyDiffHighlights(this.bufnr, NAMESPACE4, priority, diff);
+          let succeed = await this.addHighlights(tokenRanges, void 0, token);
+          if (succeed) this._version = version2;
         } else {
           this.regions.clear();
           await this.highlightRegions(winid, token);
         }
-        if (!token.isCancellationRequested) this.tokenSource = void 0;
         this._onDidRefresh.fire();
+      }
+      async addHighlights(highlights, span, token) {
+        const { bufnr, regions, doc, config } = this;
+        let items = this.toHighlightItems(highlights, span);
+        let diff = await window_default.diffHighlights(bufnr, NAMESPACE4, items, span, token);
+        if (!diff || token.isCancellationRequested) return false;
+        const priority = config.highlightPriority;
+        await window_default.applyDiffHighlights(bufnr, NAMESPACE4, priority, diff, true);
+        this._dirty = true;
+        if (span) {
+          regions.add(span[0], span[1]);
+        } else {
+          regions.add(0, doc.lineCount);
+        }
+        return true;
       }
       async sendRequest(fn, token) {
         try {
@@ -88612,7 +88651,7 @@ var init_buffer6 = __esm({
         } catch (e) {
           if (!token.isCancellationRequested) {
             if (e instanceof CancellationError) {
-              this.highlight(requestDelay2);
+              this.doHighlight(true, requestDelay2).catch(onUnexpectedError);
             } else {
               logger53.error("Error on request semanticTokens: ", e);
             }
@@ -88642,70 +88681,20 @@ var init_buffer6 = __esm({
             }
           });
         }
-        const items = this.toHighlightItems(highlights, start, end + 1);
-        let diff = await window_default.diffHighlights(this.bufnr, NAMESPACE4, items, [start, end], token);
-        if (diff && !token.isCancellationRequested) {
-          const priority = this.config.highlightPriority;
-          await window_default.applyDiffHighlights(this.bufnr, NAMESPACE4, priority, diff, true);
-          this.regions.add(start, end);
-          this._dirty = true;
-        }
+        await this.addHighlights(highlights, [start, end], token);
       }
       /**
        * highlight current visible regions, highlight all associated winids when winid is undefined
        */
       async highlightRegions(winid, token) {
-        let { regions, highlights, doc, config, bufnr } = this;
+        let { regions, highlights, doc, bufnr } = this;
         if (!highlights) return;
         let spans = await window_default.getVisibleRanges(bufnr, winid);
         if (token.isCancellationRequested) return;
         for (let lines of spans) {
           let span = regions.toUncoveredSpan([lines[0] - 1, lines[1] - 1], workspace_default.env.lines, doc.lineCount);
-          if (!span) return;
-          const [start, end] = span;
-          let items = this.toHighlightItems(highlights, start, end + 1);
-          let diff = await window_default.diffHighlights(bufnr, NAMESPACE4, items, [start, end], token);
-          if (token.isCancellationRequested) break;
-          regions.add(start, end);
-          let priority = config.highlightPriority;
-          if (diff) await window_default.applyDiffHighlights(bufnr, NAMESPACE4, priority, diff, true);
+          if (span) await this.addHighlights(highlights, span, token);
         }
-      }
-      async onWinScroll(winid) {
-        this.cancel(true);
-        if (!this.enabled || this.doc.dirty) return;
-        let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
-        let token = rangeTokenSource.token;
-        await wait(debounceInterval2);
-        if (token.isCancellationRequested) return;
-        if (this.shouldRangeHighlight) {
-          await this.doRangeHighlight(winid, token);
-        } else {
-          await this.highlightRegions(winid, token);
-        }
-        if (!token.isCancellationRequested) this.rangeTokenSource = void 0;
-      }
-      getHighlightSpan(start, end) {
-        let delta = workspace_default.env.lines;
-        let startLine = start;
-        if (start != 0) {
-          let s = Math.max(0, startLine - delta);
-          if (!this.regions.has(s, startLine)) {
-            startLine = s;
-          }
-        }
-        let endLine = end;
-        let linecount = this.doc.lineCount;
-        if (end < linecount) {
-          let e = Math.min(end + delta, linecount);
-          if (!this.regions.has(endLine, e)) {
-            endLine = e;
-          }
-        }
-        if (this.regions.has(start, end) && startLine === start && endLine === end) {
-          return void 0;
-        }
-        return [startLine, endLine];
       }
       /**
        * Request highlights for visible range of winid.
@@ -88756,13 +88745,17 @@ var init_buffer6 = __esm({
         return await this.getTokenRanges(tokens, legend, token);
       }
       clearHighlight() {
-        this.previousResults = void 0;
-        this._highlights = void 0;
-        this.regions.clear();
+        this.reset();
         this.buffer.clearNamespace(NAMESPACE4);
       }
-      abandonResult() {
-        this.previousResults = void 0;
+      onProviderChange() {
+        if (!this.hasProvider) {
+          this.cancel();
+          this.clearHighlight();
+        } else {
+          this.reset();
+          this.doHighlight(true, 0).catch(onUnexpectedError);
+        }
       }
       cancel(rangeOnly = false) {
         if (this.rangeTokenSource) {
@@ -88771,15 +88764,20 @@ var init_buffer6 = __esm({
         }
         if (rangeOnly) return;
         this.regions.clear();
-        this.highlight.clear();
         if (this.tokenSource) {
           this.tokenSource.cancel();
           this.tokenSource = null;
         }
       }
+      reset() {
+        this.previousResults = void 0;
+        this._highlights = void 0;
+        this._version = void 0;
+        this.regions.clear();
+      }
       dispose() {
         this.cancel();
-        this.clearHighlight();
+        this.reset();
         this._onDidRefresh.dispose();
       }
     };
@@ -88860,14 +88858,8 @@ var init_semanticTokens2 = __esm({
         languages_default.onDidSemanticTokensRefresh(async (selector) => {
           let visibleBufs = window_default.visibleTextEditors.map((o) => o.document.bufnr);
           for (let item of this.highlighters.items) {
-            if (!workspace_default.match(selector, item.doc)) continue;
-            if (!item.hasProvider) {
-              item.clearHighlight();
-            } else {
-              item.abandonResult();
-              if (visibleBufs.includes(item.bufnr)) {
-                item.highlight();
-              }
+            if (workspace_default.match(selector, item.doc) && visibleBufs.includes(item.bufnr)) {
+              item.onProviderChange();
             }
           }
         }, null, this.disposables);
@@ -89029,7 +89021,7 @@ var init_util7 = __esm({
 });
 
 // src/handler/signature.ts
-var debounceTime12, Signature;
+var debounceTime13, Signature;
 var init_signature = __esm({
   "src/handler/signature.ts"() {
     "use strict";
@@ -89043,7 +89035,7 @@ var init_signature = __esm({
     init_window();
     init_workspace();
     init_util7();
-    debounceTime12 = getConditionValue(100, 10);
+    debounceTime13 = getConditionValue(100, 10);
     Signature = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -89057,7 +89049,7 @@ var init_signature = __esm({
         }, this.config.floatConfig));
         this.disposables.push(this.signatureFactory);
         workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
-        events_default.on("CursorMovedI", debounce(this.checkCurosr.bind(this), debounceTime12), null, this.disposables);
+        events_default.on("CursorMovedI", debounce(this.checkCurosr.bind(this), debounceTime13), null, this.disposables);
         events_default.on(["InsertLeave", "BufEnter"], () => {
           this.tokenSource?.cancel();
         }, null, this.disposables);
@@ -90017,7 +90009,7 @@ var init_symbols2 = __esm({
           return buf;
         });
         this.outline = new SymbolsOutline(nvim, this.buffers, handler);
-        const debounceTime13 = workspace_default.initialConfiguration.get("coc.preferences.currentFunctionSymbolDebounceTime", 300);
+        const debounceTime14 = workspace_default.initialConfiguration.get("coc.preferences.currentFunctionSymbolDebounceTime", 300);
         let debounced = debounce(async (bufnr, cursor) => {
           if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return;
           let doc = workspace_default.getDocument(bufnr);
@@ -90027,7 +90019,7 @@ var init_symbols2 = __esm({
           let buffer = nvim.createBuffer(bufnr);
           buffer.setVar("coc_current_function", func2 ?? "", true);
           this.nvim.call("coc#util#do_autocmd", ["CocStatusChange"], true);
-        }, getConditionValue(debounceTime13, 0));
+        }, getConditionValue(debounceTime14, 0));
         events_default.on("CursorMoved", debounced, this, this.disposables);
         this.disposables.push(import_node3.Disposable.create(() => {
           debounced.clear();
@@ -90369,7 +90361,7 @@ var init_workspace2 = __esm({
           id: "workspace.workspaceFolders",
           execute: async () => {
             let folders = workspace_default.workspaceFolders;
-            let lines = folders.map((folder) => URI.parse(folder.uri).fsPath);
+            let lines = folders.map((folder) => URI2.parse(folder.uri).fsPath);
             await window_default.echoLines(lines);
           }
         }, false, "show opened workspaceFolders.");
@@ -90400,7 +90392,7 @@ var init_workspace2 = __esm({
       }
       async openLog() {
         let file = getLoggerFile();
-        await workspace_default.jumpTo(URI.file(file).toString());
+        await workspace_default.jumpTo(URI2.file(file).toString());
       }
       /**
        * Open local config file
@@ -90412,7 +90404,7 @@ var init_workspace2 = __esm({
           void window_default.showWarningMessage(`Current buffer doesn't have valid file path.`);
           return;
         }
-        let folder = workspace_default.getWorkspaceFolder(URI.file(fsPath2).toString());
+        let folder = workspace_default.getWorkspaceFolder(URI2.file(fsPath2).toString());
         if (!folder) {
           let c = workspace_default.initialConfiguration.get("workspace");
           let patterns = defaultValue(c.rootPatterns, []);
@@ -90423,14 +90415,14 @@ var init_workspace2 = __esm({
           void window_default.showWarningMessage(msg);
           return;
         }
-        let root = URI.parse(folder.uri).fsPath;
+        let root = URI2.parse(folder.uri).fsPath;
         let dir = path.join(root, ".vim");
         if (!fs.existsSync(dir)) {
           let res = await window_default.showPrompt(`Would you like to create folder'${root}/.vim'?`);
           if (!res) return;
           fs.mkdirSync(dir);
         }
-        await workspace_default.jumpTo(URI.file(path.join(dir, CONFIG_FILE_NAME)));
+        await workspace_default.jumpTo(URI2.file(path.join(dir, CONFIG_FILE_NAME)));
       }
       async renameCurrent() {
         let { nvim } = this;
@@ -90522,7 +90514,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-63e808a 2025-04-06 21:53:03 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-b3a3ffc 2025-04-10 23:32:48 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -91050,30 +91042,17 @@ var init_plugin = __esm({
 // src/attach.ts
 var attach_exports = {};
 __export(attach_exports, {
-  default: () => attach_default,
-  pathReplace: () => pathReplace
+  default: () => attach_default
 });
-function pathReplace(patterns) {
-  if (objectLiteral(patterns)) {
-    const old_uri = URI.file;
-    URI.file = (path2) => {
-      path2 = path2.replace(/\\/g, "/");
-      Object.keys(patterns).forEach((k) => path2 = path2.replace(new RegExp("^" + k), patterns[k]));
-      return old_uri(path2);
-    };
-  }
-}
 var import_neovim, logger58, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
 var init_attach = __esm({
   "src/attach.ts"() {
     "use strict";
     import_neovim = __toESM(require_lib2());
-    init_esm();
     init_events();
     init_logger();
     init_plugin();
     init_constants();
-    init_is();
     init_node();
     init_string();
     init_timing();

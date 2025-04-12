@@ -375,6 +375,14 @@ Recommended steps:
 ------------------------------------------------------------------------------
 DEBUG EXTENSIONS 				*coc-api-debug*
 
+Channel errors: ~
+
+Channel feature on vim (not neovim) is used by coc.nvim to communicate between
+vim and NodeJS, the error messages of vim are not shown by default, it's
+possible to show them by configure 'verbose' option to 3 or higher.  Most of
+the time the error should be caught by coc.nvim and can be checked by
+|CocOpenLog|.
+
 Uncaught errors: ~
 
 When an uncaught error raised on the NodeJS process, the error message would

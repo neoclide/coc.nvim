@@ -574,7 +574,7 @@ function! coc#util#get_config_home(...)
       endif
     endif
   endif
-  return skip_convert ? dir : coc#util#win32unix_to_node(dir)
+  return skip_convert ? coc#util#fix_home(dir) : coc#util#win32unix_to_node(dir)
 endfunction
 
 function! coc#util#get_data_home()
@@ -594,6 +594,7 @@ function! coc#util#get_data_home()
       endif
     endif
   endif
+  let dir = coc#util#fix_home(dir)
   if !isdirectory(dir)
     call coc#notify#create(['creating coc.nvim data directory: '.dir], {
           \ 'borderhighlight': 'CocInfoSign',
@@ -605,16 +606,21 @@ function! coc#util#get_data_home()
   return coc#util#win32unix_to_node(dir)
 endfunction
 
+" Get the fixed home dir on mysys2, use user's home
+" /home/YourName => /c/User/YourName
+function! coc#util#fix_home(filepath) abort
+  if s:win32unix_fix_home && strpart(a:filepath, 0, 6) ==# '/home/'
+    return substitute(a:filepath, '^/home', '/c/User', '')
+  endif
+  return a:filepath
+endfunction
+
 " /cygdrive/c/Users/YourName
 " /mnt/c/Users/YourName
 " /c/Users/YourName
 function! coc#util#win32unix_to_node(filepath) abort
   if s:is_win32unix
-    let fullpath = a:filepath
-    " /home/YourName => /c/User/YourName
-    if s:win32unix_fix_home && strpart(a:filepath, 0, 6) ==# '/home/'
-      let fullpath = substitute(a:filepath, '^/home', '/c/User', '')
-    endif
+    let fullpath = coc#util#fix_home(a:filepath)
     if strpart(fullpath, 0, s:win32unix_prefix_len) ==# s:win32unix_prefix
       let part = strpart(fullpath, s:win32unix_prefix_len)
       return toupper(part[0]) . ':' . substitute(part[1:], '/', '\', 'g')
@@ -658,27 +664,8 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-" Used for TextChangedI with InsertCharPre, vim only
-function! coc#util#get_changeinfo(bufnr)
-  call listener_flush(a:bufnr)
-  if bufnr('%') == a:bufnr
-    return {
-          \ 'lnum': line('.'),
-          \ 'line': getline('.'),
-          \ 'changedtick': b:changedtick,
-          \}
-  endif
-  let winid = bufwinid(a:bufnr)
-  if winid != -1
-    let ref = {}
-    call win_execute(winid, 'let ref = {"lnum": line("."), "line": getline("."), "changedtick": b:changedtick}')
-    return ref
-  endif
-  return v:null
-endfunction
-
 function! coc#util#get_changedtick(bufnr) abort
-  if s:is_vim
+  if s:is_vim && bufloaded(a:bufnr)
     call listener_flush(a:bufnr)
   endif
   return getbufvar(a:bufnr, 'changedtick')
