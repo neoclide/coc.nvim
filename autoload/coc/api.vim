@@ -11,7 +11,7 @@ final id_types: dict<any> = {}
 var tab_id: number = 1
 final listener_map: dict<any> = {}
 const prop_offset: number = get(g:, 'coc_text_prop_offset', 1000)
-const keymap_arguments: list<string> = ['nowait', 'silent', 'script', 'expr', 'unique']
+const keymap_arguments: list<string> = ['nowait', 'silent', 'script', 'expr', 'unique', 'special']
 const known_types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'None', 'Job', 'Channel', 'Blob']
 const scopes = ['global', 'local']
 # Boolean options of vim 9.1.1134

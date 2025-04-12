@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
-import events from '../../events'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -45,7 +44,7 @@ describe('doKeymap()', () => {
 describe('registerKeymap()', () => {
   it('should getBufnr', () => {
     expect(getBufnr(3)).toBe(3)
-    expect(getBufnr(true)).toBe(events.bufnr)
+    expect(getBufnr(true)).toBe(0)
   })
 
   it('should getKeymapModifier', () => {
