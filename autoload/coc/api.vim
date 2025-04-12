@@ -1,3 +1,6 @@
+if has('nvim')
+  finish
+endif
 vim9script
 scriptencoding utf-8
 
@@ -124,20 +127,51 @@ enddef
 
 def CheckBufnr(bufnr: number): void
   if bufnr != 0 && !bufexists(bufnr)
-    throw 'Invalid buffer id: ' .. bufnr
+    throw $'Invalid buffer id: {bufnr}'
+  endif
+enddef
+
+def CheckWinid(winid: number): void
+  if winid != 0 && empty(getwininfo(winid))
+    throw $'Invalid window id: {winid}'
+  endif
+enddef
+
+def GetValidBufnr(id: number): number
+  if id == 0
+    return bufnr('%')
+  endif
+  if !bufexists(id)
+    throw $'Invalid buffer id: {id}'
+  endif
+  return id
+enddef
+
+def GetValidWinid(id: number): number
+  if id == 0
+    return win_getid()
+  endif
+  if empty(getwininfo(id))
+    throw $'Invalid window id: {id}'
+  endif
+  return id
+enddef
+
+def CheckKey(dict: dict<any>, key: string): void
+  if !has_key(dict, key)
+    throw $'Key not found: {key}'
   endif
 enddef
 
 # TextChanged and callback not fired when using channel on vim.
 def OnTextChange(bufnr: number): void
   const event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
-  execute 'legacy doautocmd <nomodeline> ' .. event .. ' ' .. bufname(bufnr)
+  execute $'legacy doautocmd <nomodeline> {event} {bufname(bufnr)}'
   listener_flush(bufnr)
 enddef
 
 # execute command for bufnr
 def BufExecute(bufnr: number, cmds: list<string>): void
-  CheckBufnr(bufnr)
   var winid = get(win_findbuf(bufnr), 0, -1)
   var need_close: bool = v:false
   if winid == -1
@@ -147,12 +181,6 @@ def BufExecute(bufnr: number, cmds: list<string>): void
   win_execute(winid, cmds, 'silent')
   if need_close
     noa popup_close(winid)
-  endif
-enddef
-
-def CheckWinid(winid: number): void
-  if winid < 0 || empty(getwininfo(winid))
-    throw $'Invalid window id: {winid}'
   endif
 enddef
 
@@ -199,10 +227,10 @@ def BufLineCount(bufnr: number): number
   if empty(info)
     throw $'Invalid buffer id: {bufnr}'
   endif
-  if !info['loaded']
+  if info.loaded == 0
     return 0
   endif
-  return info['linecount']
+  return info.linecount
 enddef
 
 def DeferExecute(cmd: string): void
@@ -225,7 +253,7 @@ def EscapeSpace(text: string): string
 enddef
 
 # See :h option-backslash
-export def EscapeOptionValue(value: any): string
+def EscapeOptionValue(value: any): string
   if type(value) == v:t_string
     return substitute(value, '\( \|\\\)', '\\\1', 'g')
   endif
@@ -272,15 +300,6 @@ def CreateArguments(opts: dict<any>): string
     endif
   endfor
   return arguments
-enddef
-
-def CheckOptionArgs(scope: string, win: number, buf: number): void
-  if win != 0
-    CheckWinid(win)
-  endif
-  if buf != 0
-    CheckBufnr(buf)
-  endif
 enddef
 
 def GeneratePropId(bufnr: number): number
@@ -359,7 +378,7 @@ endfunction
 
 # nvim client methods {{
 export def Set_current_dir(dir: string): any
-  execute 'legacy cd ' .. fnameescape(dir)
+  execute $'legacy cd {fnameescape(dir)}'
   return v:null
 enddef
 
@@ -369,18 +388,14 @@ export def Set_var(name: string, value: any): any
 enddef
 
 export def Del_var(name: string): any
-  if !has_key(g:, name)
-    throw 'Key not found: ' .. name
-  endif
+  CheckKey(g:, name)
   remove(g:, name)
   return v:null
 enddef
 
 export def Set_option(name: string, value: any, local: bool = v:false): any
+  CheckOptionValue(name, value)
   if index(boolean_options, name) != -1
-    if type(value) != v:t_bool
-      throw $"Invalid value for option '{name}': expected boolean, got {tolower(InspectType(value))} {value}"
-    endif
     if value
       execute $'legacy set{local ? 'l' : ''} {name}'
     else
@@ -393,13 +408,13 @@ export def Set_option(name: string, value: any, local: bool = v:false): any
 enddef
 
 export def Get_option(name: string): any
-  return eval('&' .. name)
+  return eval($'&{name}')
 enddef
 
 export def Set_current_buf(bufnr: number): any
   CheckBufnr(bufnr)
   # autocmd could fail when not use legacy.
-  execute 'legacy buffer ' .. bufnr
+  execute $'legacy buffer {bufnr}'
   return v:null
 enddef
 
@@ -449,6 +464,7 @@ export def Unsubscribe(..._): any
   return v:null
 enddef
 
+# Have to use function to catch the error
 export function Call_function(method, args, ...) abort
   if index(['execute', 'eval', 'win_execute'], a:method) != -1
     legacy return call(a:method, a:args)
@@ -474,7 +490,7 @@ export def Call_dict_function(dict: any, method: string, args: list<any>): any
   return call(method, args, dict)
 enddef
 
-# Use the legacy eval, could be called by Call, must export
+# Use the legacy eval, could be called by Call
 export function Eval(expr) abort
   legacy return eval(a:expr)
 endfunction
@@ -484,15 +500,14 @@ export def Command(command: string): any
   if command =~# '^\(echo\|redraw\|sign\)'
     DeferExecute(command)
   else
-    # Use legacy not work for command like autocmd
-    # execute $'legacy {command}'
+    # Use legacy command not work for command like autocmd
     Execute(command)
     # The error is set by python script, since vim not give error on python command failure
     if strpart(command, 0, 2) ==# 'py'
-      const err: string = get(g:, 'errmsg', '')
-      if !empty(err)
+      const errmsg: string = get(g:, 'errmsg', '')
+      if !empty(errmsg)
         remove(g:, 'errmsg')
-        throw 'Python error ' .. err
+        throw $'Python error {errmsg}'
       endif
     endif
   endif
@@ -569,11 +584,16 @@ export def Del_current_line(): any
 enddef
 
 export def Get_var(var: string): any
-  return get(g:, var, v:null)
+  CheckKey(g:, var)
+  return g:[var]
 enddef
 
 export def Get_vvar(var: string): any
-  return eval('v:' .. var)
+  # Use legacy eval since vim9 can't use v: as variable.
+  if !Eval($"has_key(v:, '{var}')")
+    throw $'Key not found: {var}'
+  endif
+  return eval($'v:{var}')
 enddef
 
 export def Get_current_buf(): number
@@ -647,7 +667,7 @@ export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): 
   const modekey: string = CreateModePrefix(mode, opts)
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  execute $'legacy {modekey} {arguments} {EscapeSpace(lhs)} {escaped}'
+  Execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
   return v:null
 enddef
 
@@ -701,26 +721,26 @@ enddef
 # }}
 
 # buffer methods {{
-export def Buf_set_option(bufnr: number, name: string, value: any): any
+export def Buf_set_option(id: number, name: string, value: any): any
+  const bufnr = GetValidBufnr(id)
   CheckOptionValue(name, value)
-  CheckBufnr(bufnr)
   if index(buffer_options, name) == -1
     throw $"Invalid buffer option name: {name}"
   endif
-  setbufvar(bufnr, '&' .. name, value)
+  setbufvar(bufnr, $'&{name}', value)
   return v:null
 enddef
 
-export def Buf_get_option(bufnr: number, name: string): any
-  CheckBufnr(bufnr)
+export def Buf_get_option(id: number, name: string): any
+  const bufnr = GetValidBufnr(id)
   if index(buffer_options, name) == -1
     throw $"Invalid buffer option name: {name}"
   endif
-  return getbufvar(bufnr, '&' .. name)
+  return getbufvar(bufnr, $'&{name}')
 enddef
 
-export def Buf_get_changedtick(bufnr: number): number
-  CheckBufnr(bufnr)
+export def Buf_get_changedtick(id: number): number
+  const bufnr = GetValidBufnr(id)
   return getbufvar(bufnr, 'changedtick')
 enddef
 
@@ -732,8 +752,8 @@ export def Buf_is_loaded(bufnr: number): bool
   return bufloaded(bufnr)
 enddef
 
-export def Buf_get_mark(bufnr: number, name: string): list<number>
-  CheckBufnr(bufnr)
+export def Buf_get_mark(id: number, name: string): list<number>
+  const bufnr = GetValidBufnr(id)
   const marks: list<any> = getmarklist(bufnr)
   for item in marks
     if item['mark'] ==# $"'{name}"
@@ -744,8 +764,8 @@ export def Buf_get_mark(bufnr: number, name: string): list<number>
   return [0, 0]
 enddef
 
-export def Buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
-  CheckBufnr(bufnr)
+export def Buf_add_highlight(id: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
+  const bufnr = GetValidBufnr(id)
   var sourceId: number
   if srcId == 0
     max_src_id += 1
@@ -753,8 +773,7 @@ export def Buf_add_highlight(bufnr: number, srcId: number, hlGroup: string, line
   else
     sourceId = srcId
   endif
-  const bufferNumber: number = bufnr == 0 ? bufnr('%') : bufnr
-  Buf_add_highlight1(bufferNumber, sourceId, hlGroup, line, colStart, colEnd, propTypeOpts)
+  Buf_add_highlight1(bufnr, sourceId, hlGroup, line, colStart, colEnd, propTypeOpts)
   return sourceId
 enddef
 
@@ -775,7 +794,7 @@ export def Buf_add_highlight1(bufnr: number, srcId: number, hlGroup: string, lin
 enddef
 
 export def Buf_clear_namespace(id: number, srcId: number, startLine: number, endLine: number): any
-  const bufnr = id == 0 ? bufnr('%') : id
+  const bufnr = GetValidBufnr(id)
   const start = startLine + 1
   const end = endLine == -1 ? BufLineCount(bufnr) : endLine
   if srcId == -1
@@ -804,7 +823,7 @@ export def Buf_line_count(bufnr: number): number
 enddef
 
 export def Buf_attach(id: number = 0, ..._): bool
-  const bufnr: number = id == 0 ? bufnr('%') : id
+  const bufnr = GetValidBufnr(id)
   # listener not removed on e!
   DetachListener(bufnr)
   const result = listener_add(OnBufferChange, bufnr)
@@ -816,25 +835,23 @@ export def Buf_attach(id: number = 0, ..._): bool
 enddef
 
 export def Buf_detach(id: number): bool
-  const bufnr: number = id == 0 ? bufnr('%') : id
+  const bufnr = GetValidBufnr(id)
   return DetachListener(bufnr)
 enddef
 
 export def Buf_get_lines(id: number, start: number, end: number, strict: bool = v:false): list<string>
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
   const s = start < 0 ? len + start + 2 : start + 1
   const e = end < 0 ? len + end + 1 : end
   if strict && e > len
-    throw 'Index out of bounds ' .. end
+    throw $'Index out of bounds {end}'
   endif
   return getbufline(bufnr, s, e)
 enddef
 
 export def Buf_set_lines(id: number, start: number, end: number, strict: bool = v:false, replacement: list<string> = []): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
   var startLnum = start < 0 ? len + start + 2 : start + 1
   var endLnum = end < 0 ? len + end + 1 : end
@@ -866,48 +883,38 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
 enddef
 
 export def Buf_set_name(id: number, name: string): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
+  const bufnr = GetValidBufnr(id)
   BufExecute(bufnr, ['legacy silent noa 0file', $'legacy file {fnameescape(name)}'])
   return v:null
 enddef
 
 export def Buf_get_name(id: number): string
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
-  return bufname(bufnr)
+  return GetValidBufnr(id)->bufname()
 enddef
 
 export def Buf_get_var(id: number, name: string): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   const dict: dict<any> = getbufvar(bufnr, '')
-  if !has_key(dict, name)
-    throw 'Key not found: ' .. name
-  endif
+  CheckKey(dict, name)
   return dict[name]
 enddef
 
 export def Buf_set_var(id: number, name: string, val: any): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   setbufvar(bufnr, name, val)
   return v:null
 enddef
 
 export def Buf_del_var(id: number, name: string): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   final bufvars = getbufvar(bufnr, '')
-  if !has_key(bufvars, name)
-    throw 'Key not found: ' .. name
-  endif
+  CheckKey(bufvars, name)
   remove(bufvars, name)
   return v:null
 enddef
 
 export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, opts: dict<any>): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   const prefix = CreateModePrefix(mode, opts)
   const arguments = CreateArguments(opts)
   const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
@@ -916,8 +923,7 @@ export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, op
 enddef
 
 export def Buf_del_keymap(id: number, mode: string, lhs: string): any
-  const bufnr: number = id == 0 ? bufnr('%') : id
-  CheckBufnr(bufnr)
+  const bufnr = GetValidBufnr(id)
   const escaped = substitute(lhs, ' ', '<space>', 'g')
   BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
   return v:null
@@ -926,31 +932,27 @@ enddef
 
 # window methods {{
 export def Win_get_buf(id: number): number
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
-  return winbufnr(winid)
+  return GetValidWinid(id)->winbufnr()
 enddef
 
 export def Win_set_buf(id: number, bufnr: number): any
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   CheckBufnr(bufnr)
   win_execute(winid, $'legacy buffer {bufnr}')
   return v:null
 enddef
 
 export def Win_get_position(id: number): list<number>
-  const winid = id == 0 ? win_getid() : id
+  const winid = GetValidWinid(id)
   const [row, col] = win_screenpos(winid)
   if row == 0 && col == 0
-    throw 'Invalid window ' .. winid
+    throw $'Invalid window {winid}'
   endif
   return [row - 1, col - 1]
 enddef
 
 export def Win_set_height(id: number, height: number): any
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   if IsPopup(winid)
     popup_move(winid, {'maxheight': height, 'minheight': height})
   else
@@ -960,8 +962,7 @@ export def Win_set_height(id: number, height: number): any
 enddef
 
 export def Win_get_height(id: number): number
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   if IsPopup(winid)
     return popup_getpos(winid)['height']
   endif
@@ -969,8 +970,7 @@ export def Win_get_height(id: number): number
 enddef
 
 export def Win_set_width(id: number, width: number): any
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   if IsPopup(winid)
     popup_move(winid, {'maxwidth': width, 'minwidth': width})
   else
@@ -980,8 +980,7 @@ export def Win_set_width(id: number, width: number): any
 enddef
 
 export def Win_get_width(id: number): number
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   if IsPopup(winid)
     return popup_getpos(winid)['width']
   endif
@@ -989,15 +988,13 @@ export def Win_get_width(id: number): number
 enddef
 
 export def Win_set_cursor(id: number, pos: list<number>): any
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   win_execute(winid, $'cursor({pos[0]}, {pos[1] + 1})')
   return v:null
 enddef
 
 export def Win_get_cursor(id: number): list<number>
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   const result = getcurpos(winid)
   if result[1] == 0
     return [1, 0]
@@ -1006,9 +1003,9 @@ export def Win_get_cursor(id: number): list<number>
 enddef
 
 export def Win_set_option(id: number, name: string, value: any): any
+  const winid = GetValidWinid(id)
   CheckOptionValue(name, value)
-  const winid = id == 0 ? win_getid() : id
-  const tabnr: number = WinTabnr(winid)
+  const tabnr = WinTabnr(winid)
   if index(window_options, name) == -1
     throw $"Invalid window option name: {name}"
   endif
@@ -1017,8 +1014,8 @@ export def Win_set_option(id: number, name: string, value: any): any
 enddef
 
 export def Win_get_option(id: number, name: string, ..._): any
-  const winid = id == 0 ? win_getid() : id
-  const tabnr: number = WinTabnr(winid)
+  const winid = GetValidWinid(id)
+  const tabnr = WinTabnr(winid)
   if index(window_options, name) == -1
     throw $"Invalid window option name: {name}"
   endif
@@ -1026,29 +1023,25 @@ export def Win_get_option(id: number, name: string, ..._): any
 enddef
 
 export def Win_get_var(id: number, name: string, ..._): any
-  const winid = id == 0 ? win_getid() : id
+  const winid = GetValidWinid(id)
   const tabnr = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '')
-  if !has_key(vars, name)
-    throw $'Key not found: {name}'
-  endif
+  CheckKey(vars, name)
   return vars[name]
 enddef
 
 export def Win_set_var(id: number, name: string, value: any): any
-  const winid = id == 0 ? win_getid() : id
+  const winid = GetValidWinid(id)
   const tabnr = WinTabnr(winid)
   settabwinvar(tabnr, winid, name, value)
   return v:null
 enddef
 
 export def Win_del_var(id: number, name: string): any
-  const winid = id == 0 ? win_getid() : id
+  const winid = GetValidWinid(id)
   const tabnr = WinTabnr(winid)
-  const vars = gettabwinvar(tabnr, winid, '')
-  if !has_key(vars, name)
-    throw $'Key not found: {name}'
-  endif
+  const vars: dict<any> = gettabwinvar(tabnr, winid, '')
+  CheckKey(vars, name)
   win_execute(winid, 'remove(w:, "' .. name .. '")')
   return v:null
 enddef
@@ -1059,22 +1052,19 @@ export def Win_is_valid(id: number): bool
 enddef
 
 export def Win_get_number(id: number): number
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   const info = getwininfo(winid)
-  # Vim return 0 for popup
+  # Note: vim return 0 for popup
   return info[0]['winnr']
 enddef
 
+# Not work for popup since vim gives 0 for tabnr
 export def Win_get_tabpage(id: number): number
-  const winid = id == 0 ? win_getid() : id
-  const nr = WinTabnr(winid)
-  return TabNrId(nr)
+  return GetValidWinid(id)->WinTabnr()->TabNrId()
 enddef
 
 export def Win_close(id: number, force: bool = v:false): any
-  const winid = id == 0 ? win_getid() : id
-  CheckWinid(winid)
+  const winid = GetValidWinid(id)
   if IsPopup(winid)
     popup_close(winid)
   else
@@ -1090,16 +1080,13 @@ export def Tabpage_get_number(tid: number): number
 enddef
 
 export def Tabpage_list_wins(tid: number): list<number>
-  const nr = TabIdNr(tid)
-  return gettabinfo(nr)[0]['windows']
+  return TabIdNr(tid)->gettabinfo()[0].windows
 enddef
 
 export def Tabpage_get_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   const dict = gettabvar(nr, '')
-  if !has_key(dict, name)
-    throw $'Key not found: {name}'
-  endif
+  CheckKey(dict, name)
   return dict[name]
 enddef
 
@@ -1112,9 +1099,7 @@ enddef
 export def Tabpage_del_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   final dict = gettabvar(nr, '')
-  if !has_key(dict, name)
-    throw $'Key not found: {name}'
-  endif
+  CheckKey(dict, name)
   remove(dict, name)
   return v:null
 enddef
@@ -1152,7 +1137,7 @@ export function Call(method, args) abort
     let result = call(fname, a:args)
     call listener_flush()
   catch /.*/
-    let err =  v:exception .. ' - on request ' .. a:method .. ' ' .. json_encode(a:args)
+    let err =  v:exception .. ' - on request "' .. a:method .. '" ' .. json_encode(a:args)
     let result = v:null
   endtry
   return [err, result]
