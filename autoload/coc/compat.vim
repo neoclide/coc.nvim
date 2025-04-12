@@ -26,7 +26,7 @@ endfunction
 
 " remove keymap for bufnr, not throw error
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
-  if !bufloaded(a:bufnr)
+  if a:bufnr != 0 && !bufexists(a:bufnr)
     return
   endif
   try
@@ -37,7 +37,7 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
 endfunction
 
 function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
-  if !bufloaded(a:bufnr)
+  if a:bufnr != 0 && !bufexists(a:bufnr)
     return
   endif
   call coc#compat#call('buf_set_keymap', [a:bufnr, a:mode, a:lhs, a:rhs, a:opts])
