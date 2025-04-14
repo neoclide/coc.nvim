@@ -165,7 +165,7 @@ endfunction
 " highlight LSP range, opts contains 'combine' 'priority' 'start_incl' 'end_incl'
 function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  if !bufloaded(bufnr) || !exists('*getbufline')
+  if !bufloaded(bufnr)
     return
   endif
   let opts = get(a:, 1, {})
@@ -492,9 +492,10 @@ endfunction
 
 function! coc#highlight#clear_all() abort
   let dict = coc#compat#call('get_namespaces', [])
+  let bufnrs = map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
   for [key, src_id] in items(dict)
     if key =~# '^coc-'
-      for bufnr in map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
+      for bufnr in bufnrs
         call coc#compat#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
       endfor
     endif
@@ -590,9 +591,10 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
     call coc#api#Buf_add_highlight(a:bufnr, src_id, a:hl_group, a:line, a:col_start, a:col_end, opts)
   else
     let priority = get(opts, 'priority', v:null)
+    let col_end = a:col_end == -1 ? strlen(get(getbufline(a:bufnr, a:line + 1), 0, '')) : a:col_end
     try
       call nvim_buf_set_extmark(a:bufnr, src_id, a:line, a:col_start, {
-            \ 'end_col': a:col_end,
+            \ 'end_col': col_end,
             \ 'hl_group': a:hl_group,
             \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
             \ 'right_gravity': v:true,
@@ -600,11 +602,12 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
             \ 'priority': type(priority) == v:t_number ?  min([priority, 4096]) : 4096,
             \ })
     catch /^Vim\%((\a\+)\)\=:E5555/
-      " the end_col could be invalid, ignore this error
+    " the end_col could be invalid, ignore this error
     endtry
   endif
 endfunction
 
+" Can't use script variable as nvim change it after VimEnter
 function! s:use_term_colors() abort
   return &termguicolors == 0 && !has('gui_running')
 endfunction
