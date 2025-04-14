@@ -372,6 +372,7 @@ Related variables: ~
 Related highlight groups: ~
 
   • |CocFloating| For floating window background.
+  • |CocFloatBorder| Default border highlight group of floating window.
   • |CocFloatDividingLine| For dividing lines.
   • |CocFloatActive| For active parts.
   • |CocMenuSel| For selected line.
@@ -3363,6 +3364,9 @@ Float window/popup related ~
 
 *CocFloating* default highlight group of floating windows/popups.
 Default links to |NormalFloat| on neovim and |Pmenu| on vim.
+*CocFloatBorder* default border highlight group of floating windows/popups.
+Default links to |FloatBorder| when exists and |CocFloating| when not.
+Note: only foreground color is used for border highlight.
 *CocFloatThumb* thumb highlight of scrollbar.
 *CocFloatSbar* Scrollbar highlight of floating window/popups.
 *CocFloatDividingLine* for dividing lines, links to |NonText| by default.
