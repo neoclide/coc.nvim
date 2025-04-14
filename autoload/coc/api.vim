@@ -461,7 +461,7 @@ export def Unsubscribe(..._): any
   return v:null
 enddef
 
-# Have to use function to use legacy return
+# Not return on notification for possible void function call.
 export def Call_function(method: string, args: list<any>, notify: bool = v:false): any
   if method ==# 'execute'
     return call(Execute, args)
@@ -1135,10 +1135,10 @@ endfunction
 # Used by node-client notification, function needed to catch error
 export function Notify(method, args) abort
   try
-    let fname = $'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
     if a:method ==# 'call_function'
       call coc#api#Call_function(a:args[0], a:args[1], v:true)
     else
+      let fname = $'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
       call call(fname, a:args)
     endif
     call listener_flush()
