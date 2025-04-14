@@ -116,16 +116,10 @@ describe('call_function', () => {
     await nvim.command(`set runtimepath+=${folder}`)
   })
 
-  it('should call vim9 void function', async () => {
-    let err = null
-    helper.reportError = false
-    nvim.once('vim_error', e => {
-      err = e
-    })
-    let res = await nvim.call('vim9#Execute', ['g:x = $"foo"'])
-    expect(res).toBeNull()
-    expect(err).toBeDefined()
-    helper.reportError = true
+  it('should throw when call vim9 void function', async () => {
+    await expect(async () => {
+      await nvim.call('vim9#Execute', ['g:x = $"foo"'])
+    }).rejects.toThrow(Error)
     // should not report error
     nvim.call('vim9#Execute', ['g:x = $"abc"'], true)
     let x = await nvim.getVar('x')
@@ -135,6 +129,12 @@ describe('call_function', () => {
   it('should call dict function', async () => {
     let res = await nvim.callDictFunction({ key: 1 }, 'legacy#dict_add')
     expect(res).toBe(2)
+  })
+
+  it('should use notify for execute', async () => {
+    nvim.call('execute', 'let g:x = "a"."b"', true)
+    let res = await nvim.getVar('x')
+    expect(res).toBe('ab')
   })
 
   it('should not throw for win_execute', async () => {

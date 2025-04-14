@@ -184,6 +184,14 @@ def BufExecute(bufnr: number, cmds: list<string>): void
   endif
 enddef
 
+def BufLineCount(bufnr: number): number
+  const info = get(getbufinfo(bufnr), 0, v:null)
+  if empty(info)
+    throw $'Invalid buffer id: {bufnr}'
+  endif
+  return info.loaded == 0 ? 0 : info.linecount
+enddef
+
 def IsPopup(winid: number): bool
   return index(popup_list(), winid) != -1
 enddef
@@ -220,17 +228,6 @@ def WinTabnr(winid: number): number
     throw $'Invalid window id: {winid}'
   endif
   return info[0]['tabnr']
-enddef
-
-def BufLineCount(bufnr: number): number
-  const info = get(getbufinfo(bufnr), 0, v:null)
-  if empty(info)
-    throw $'Invalid buffer id: {bufnr}'
-  endif
-  if info.loaded == 0
-    return 0
-  endif
-  return info.linecount
 enddef
 
 def DeferExecute(cmd: string): void
@@ -438,7 +435,7 @@ export def Call_atomic(calls: list<any>): list<any>
   final results: list<any> = []
   for i in range(len(calls))
     const key: string = calls[i][0]
-    const name: string = toupper(key[5]) .. key[6 : ]
+    const name: string = $"{toupper(key[5])}{strpart(key, 6)}"
     try
       const result = call(name, get(calls[i], 1, []))
       add(results, result)
@@ -464,24 +461,22 @@ export def Unsubscribe(..._): any
   return v:null
 enddef
 
-# Have to use function to catch the error
-export function Call_function(method, args, ...) abort
-  if index(['execute', 'eval', 'win_execute'], a:method) != -1
-    legacy return call(a:method, a:args)
+# Have to use function to use legacy return
+export def Call_function(method: string, args: list<any>, notify: bool = v:false): any
+  if method ==# 'execute'
+    return call(Execute, args)
+  elseif method ==# 'eval'
+    return Eval(args[0])
+  elseif method ==# 'win_execute'
+    return call(Win_execute, args)
   endif
-  let result = v:null
-  try
-    let result = call(a:method, a:args)
-  catch /^Vim\%((\a\+)\)\=:E1031/
-    " v:exception like: Vim(let):E1031: Cannot use void value
-    " The function code is executed when the error raised.
-    " Send the error to client when it's request
-    if !get(a:, 1)
-      call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on function call "' .. a:method .. '"'])
-    endif
-  endtry
-  return result
-endfunction
+  if !notify
+    return call(method, args)
+  else
+    call call(method, args)
+  endif
+  return v:null
+enddef
 
 export def Call_dict_function(dict: any, method: string, args: list<any>): any
   if type(dict) == v:t_string
@@ -589,10 +584,6 @@ export def Get_var(var: string): any
 enddef
 
 export def Get_vvar(var: string): any
-  # Use legacy eval since vim9 can't use v: as variable.
-  if !Eval($"has_key(v:, '{var}')")
-    throw $'Key not found: {var}'
-  endif
   return eval($'v:{var}')
 enddef
 
@@ -1129,12 +1120,12 @@ enddef
 # }}
 
 # Used by node-client request, function needed to catch error
+# Must use coc#api# prefix to avoid call global function
 export function Call(method, args) abort
   let err = v:null
   let result = v:null
   try
-    let fname = toupper(a:method[0]) .. a:method[1 : ]
-    let result = call(fname, a:args)
+    let result = call($'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}', a:args)
     call listener_flush()
   catch /.*/
     let err =  v:exception .. ' - on request "' .. a:method .. '" ' .. json_encode(a:args)
@@ -1146,9 +1137,9 @@ endfunction
 # Used by node-client notification, function needed to catch error
 export function Notify(method, args) abort
   try
-    let fname = toupper(a:method[0]) .. a:method[1 : ]
-    if fname ==# 'Call_function'
-      call call(fname, a:args + [v:true])
+    let fname = $'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
+    if a:method ==# 'call_function'
+      call coc#api#Call_function(a:args[0], a:args[1], v:true)
     else
       call call(fname, a:args)
     endif
