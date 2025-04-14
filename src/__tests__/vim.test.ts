@@ -151,6 +151,24 @@ describe('call_function', () => {
     let val = await win.getVar('foo')
     expect(val).toBe('ab')
   })
+
+  it('should eval with legacy syntax', async () => {
+    let res = await nvim.call('eval', ['"a"."b"'])
+    expect(res).toBe('ab')
+  })
+
+  it('should not conflict with global function', async () => {
+    await nvim.exec([
+      'function! Win_execute(...) abort',
+      ' throw "my error"',
+      'endfunction'
+    ].join('\n'))
+    let winid = await nvim.call('win_getid') as number
+    await nvim.call('win_execute', [winid, 'let w:f = "b"'])
+    let win = nvim.createWindow(winid)
+    let val = await win.getVar('f')
+    expect(val).toBe('b')
+  })
 })
 
 describe('client API', () => {
