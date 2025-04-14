@@ -81,7 +81,7 @@ endfunction
 
 function! s:on_exit(id, code) abort
   if get(g:, 'coc_vim_leaving', 0) | return | endif
-  if has('nvim')
+  if !s:is_vim
     let s:out_remain_text[a:id] = ''
     let s:err_remain_text[a:id] = ''
   endif

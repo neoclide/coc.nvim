@@ -275,7 +275,7 @@ function! coc#util#vim_info()
         \ 'apiversion': s:vim_api_version,
         \ 'mode': mode(),
         \ 'config': get(g:, 'coc_user_config', {}),
-        \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
+        \ 'floating': !s:is_vim && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
         \ 'lines': &lines,
@@ -288,7 +288,7 @@ function! coc#util#vim_info()
         \ 'dialog': 1,
         \ 'unixPrefix': s:win32unix_prefix,
         \ 'jumpAutocmd': coc#util#check_jump_autocmd(),
-        \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'isVim': s:is_vim ? v:true : v:false,
         \ 'isCygwin': s:is_win32unix ? v:true : v:false,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'isiTerm': $TERM_PROGRAM ==# "iTerm.app",
@@ -546,18 +546,7 @@ function! coc#util#get_config_home(...)
     if exists('$VIMCONFIG')
       let dir =  resolve($VIMCONFIG)
     else
-      if has('nvim')
-        let appname = empty($NVIM_APPNAME) ? 'nvim' : $NVIM_APPNAME
-        if exists('$XDG_CONFIG_HOME')
-          let dir = s:resolve($XDG_CONFIG_HOME, appname)
-        else
-          if s:is_win
-            let dir = s:resolve($HOME, 'AppData/Local/'.appname)
-          else
-            let dir = s:resolve($HOME, '.config/'.appname)
-          endif
-        endif
-      else
+      if s:is_vim
         if s:is_win || s:is_win32unix
           let dir = s:resolve($HOME, "vimfiles")
         else
@@ -569,6 +558,17 @@ function! coc#util#get_config_home(...)
             else
               let dir = s:resolve($HOME, '.config/vim')
             endif
+          endif
+        endif
+      else
+        let appname = empty($NVIM_APPNAME) ? 'nvim' : $NVIM_APPNAME
+        if exists('$XDG_CONFIG_HOME')
+          let dir = s:resolve($XDG_CONFIG_HOME, appname)
+        else
+          if s:is_win
+            let dir = s:resolve($HOME, 'AppData/Local/'.appname)
+          else
+            let dir = s:resolve($HOME, '.config/'.appname)
           endif
         endif
       endif

@@ -99,7 +99,7 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   let bufnr = res[1]
   call coc#compat#execute(winid, 'setl nonumber')
   redraw
-  if has('nvim')
+  if !s:is_vim
     call coc#float#nvim_scrollbar(winid)
   endif
   return [currbuf, pos, winid, bufnr, alignTop]
@@ -287,7 +287,7 @@ function! coc#dialog#create_menu(lines, config) abort
   let s:prompt_win_bufnr = ids[1]
   call coc#dialog#set_cursor(ids[0], ids[1], contentCount + 1)
   redraw
-  if has('nvim')
+  if !s:is_vim
     call coc#float#nvim_scrollbar(ids[0])
   endif
   return [ids[0], ids[1], contentCount]
@@ -322,7 +322,7 @@ function! coc#dialog#create_dialog(lines, config) abort
   if get(a:config, 'cursorline', 0)
     call coc#dialog#place_sign(bufnr, 1)
   endif
-  if has('nvim')
+  if !s:is_vim
     redraw
     call coc#float#nvim_scrollbar(res[0])
   endif
