@@ -99,12 +99,7 @@ function! coc#ui#open_terminal(opts) abort
     endif
   endfunction
 
-  if has('nvim')
-    call termopen(cmd, {
-          \ 'cwd': cwd,
-          \ 'on_exit': {job, status -> s:OnExit(status)},
-          \})
-  else
+  if s:is_vim
     if s:is_win
       let cmd = 'cmd.exe /C "'.cmd.'"'
     endif
@@ -112,6 +107,11 @@ function! coc#ui#open_terminal(opts) abort
           \ 'cwd': cwd,
           \ 'exit_cb': {job, status -> s:OnExit(status)},
           \ 'curwin': 1,
+          \})
+  else
+    call termopen(cmd, {
+          \ 'cwd': cwd,
+          \ 'on_exit': {job, status -> s:OnExit(status)},
           \})
   endif
   if keepfocus

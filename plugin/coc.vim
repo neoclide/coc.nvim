@@ -1,4 +1,6 @@
 scriptencoding utf-8
+let s:is_vim = !has('nvim')
+let s:is_gvim = s:is_vim && has("gui_running")
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
@@ -6,10 +8,10 @@ endif
 function! s:checkVersion() abort
   let l:unsupported = 0
   if get(g:, 'coc_disable_startup_warning', 0) != 1
-    if has('nvim')
-      let l:unsupported = !has('nvim-0.8.0')
-    else
+    if s:is_vim
       let l:unsupported = !has('patch-9.0.0438')
+    else
+      let l:unsupported = !has('nvim-0.8.0')
     endif
 
     if l:unsupported == 1
@@ -31,8 +33,6 @@ call s:checkVersion()
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:root = expand('<sfile>:h:h')
-let s:is_vim = !has('nvim')
-let s:is_gvim = s:is_vim && has("gui_running")
 
 if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
   call coc#rpc#start_server()
@@ -493,13 +493,14 @@ call s:StaticHighlight()
 call s:AddAnsiGroups()
 
 function! s:Highlight() abort
-  if coc#highlight#get_contrast('Normal', has('nvim') ? 'NormalFloat' : 'Pmenu') > 2.0
+  let normalFloat = s:is_vim ? 'Pmenu' : 'NormalFloat'
+  if coc#highlight#get_contrast('Normal', normalFloat) > 2.0
     exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
     exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
     exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
     hi default link CocFloatSbar CocFloating
   else
-    exe 'hi default link CocFloating '.(has('nvim') ? 'NormalFloat' : 'Pmenu')
+    exe 'hi default link CocFloating '.normalFloat
     if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
       exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
     else
@@ -508,11 +509,7 @@ function! s:Highlight() abort
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
-  if has('nvim') && hlexists('FloatBorder')
-    hi default link CocFloatBorder FloatBorder
-  else
-    hi default link CocFloatBorder CocFloating
-  endif
+  exe 'hi default link CocFloatBorder ' .. (hlexists('FloatBorder') ? 'FloatBorder' : 'CocFloating')
   if coc#highlight#get_contrast('Normal', 'CursorLine') < 1.3
     " Avoid color too close
     exe 'hi default CocListLine '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
@@ -520,7 +517,7 @@ function! s:Highlight() abort
     hi default link CocListLine            CursorLine
   endif
 
-  if has('nvim')
+  if !s:is_vim
     hi default CocCursorTransparent gui=strikethrough blend=100
   endif
 
