@@ -469,12 +469,10 @@ export def Call_function(method: string, args: list<any>, notify: bool = v:false
     return Eval(args[0])
   elseif method ==# 'win_execute'
     return call(Win_execute, args)
-  endif
-  if !notify
+  elseif !notify
     return call(method, args)
-  else
-    call call(method, args)
   endif
+  call call(method, args)
   return v:null
 enddef
 
@@ -550,7 +548,7 @@ export def Input(keys: string): any
   return v:null
 enddef
 
-export def Create_buf(listed: any, scratch: bool): number
+export def Create_buf(listed: bool, scratch: bool): number
   const bufnr: number = bufadd('')
   setbufvar(bufnr, '&buflisted', listed ? 1 : 0)
   if scratch
@@ -772,7 +770,7 @@ enddef
 # 0 based line, colStart, colEnd, see `:h prop_type_add` for propTypeOpts
 export def Buf_add_highlight1(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): void
   const columnEnd: number = colEnd == -1 ? strlen(get(getbufline(bufnr, line + 1), 0, '')) + 1 : colEnd + 1
-  if columnEnd < colStart + 1
+  if columnEnd <= colStart
     return
   endif
   const propType: string = CreateType(srcId, hlGroup, propTypeOpts)
