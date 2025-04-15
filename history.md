@@ -2,6 +2,14 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-15
+
+- Support 'title' for configuration `suggest.floatConfig` and `suggest.pumFloatConfig`.
+- Use timer for `CocStatusChange` autocmd to avoid cursor vanish caused by `redraws`.
+- Use vim9 script for api.vim and refactor related functions.
+- Add `coc#compat#call` for call api functions on vim or neovim.
+- Add `special` to interface `KeymapOption` (vim9 only).
+
 ## 2025-04-06
 
 - Add `cmd` option to interface `KeymapOption`.

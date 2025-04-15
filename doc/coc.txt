@@ -2431,6 +2431,14 @@ coc#float#scroll({forward}, [{amount}])			*coc#float#scroll()*
 	{forward} is not `1`. {amount} could be number or full page when
 	omitted.  Popup menu is excluded.
 
+coc#compat#call({name}, {args}) 			*coc#compat#call()*
+	
+	Call api function {name} with {args} list (starts with `nvim_`) on vim
+	or neovim, use:
+	>
+	:echo coc#api#Get_api_info()[1]['functions']
+<
+	on vim9 to get supported apis on vim.
 
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 
