@@ -220,7 +220,7 @@ endfunction
 
 function! s:check_vim_enter() abort
   if s:client['running'] && v:vim_did_enter
-    call coc#rpc#notify('VimEnter', [join(coc#compat#list_runtime_paths, ",")])
+    call coc#rpc#notify('VimEnter', [join(coc#compat#list_runtime_paths(), ",")])
   endif
 endfunction
 
