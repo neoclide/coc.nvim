@@ -374,7 +374,7 @@ function! coc#pum#create(lines, opt, config) abort
     return
   endif
   let s:reversed = get(a:config, 'reverse', 0) && config['row'] < 0
-  let s:virtual_text = a:opt['virtualText']
+  let s:virtual_text = get(a:opt, 'virtualText', v:false)
   let s:pum_size = len(a:lines)
   let s:pum_index = a:opt['index']
   let lnum = s:index_to_lnum(s:pum_index)
@@ -386,7 +386,7 @@ function! coc#pum#create(lines, opt, config) abort
         \ 'index': lnum - 1,
         \ 'focusable': v:false
         \ })
-  call extend(config, coc#dict#pick(a:config, ['highlight', 'rounded', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
+  call extend(config, coc#dict#pick(a:config, ['highlight', 'rounded', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight', 'title']))
   if s:reversed
     for item in config['highlights']
       let item['lnum'] = s:pum_size - item['lnum'] - 1

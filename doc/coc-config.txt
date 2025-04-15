@@ -1752,9 +1752,8 @@ SUGGEST
 	Configure style of popup menu and documentation window for completion,
 	see |coc-config-float|.
 
-	Note: some properties not work, including: "title", "focusable",
-	"close" and "maxHeight" (use 'pumheight' option for maximum height of
-	popup menu).
+	Note: some properties not work, including: "focusable", "close" and
+	"maxHeight" (use 'pumheight' option for maximum height of popup menu).
 
 	Note: "maxWidth" not works for popup menu, use
 	|coc-config-suggest-labelMaxLength| instead.
@@ -1845,11 +1844,11 @@ SUGGEST
 	used when not specified, see |coc-config-float|.
 
 	Available properties: "border", "rounded", "highlight",
-	"borderhighlight", "winblend" and "shadow".
+	"borderhighlight", "winblend", "title" and "shadow".
 
 	Note: 'winblend' option is used for custom popup menu when not
-	configured, use 'pumwidth' for minimal width of popup menu and
-	'pumheight' for maximum height of popup menu.
+	configured (neovim only), use 'pumwidth' for minimal width of popup
+	menu and 'pumheight' for maximum height of popup menu.
 
 	Scope: `application`, default: `null`
 

@@ -23,7 +23,7 @@ function! coc#dialog#create_pum_float(lines, config) abort
   let pw = pumbounding['width'] + (pumbounding['border'] ? 0 : get(pumbounding, 'scrollbar', 0))
   let rp = &columns - pumbounding['col'] - pw
   let showRight = pumbounding['col'] > rp ? 0 : 1
-  let maxWidth = showRight ? coc#math#min(rp - 1, a:config['maxWidth']) : coc#math#min(pumbounding['col'] - 1, a:config['maxWidth'])
+  let maxWidth = showRight ? min([rp - 1, a:config['maxWidth']]) : min([pumbounding['col'] - 1, a:config['maxWidth']])
   let bh = get(border, 0 ,0) + get(border, 2, 0)
   let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1 - bh
   if maxWidth <= 2 || maxHeight < 1
@@ -34,9 +34,9 @@ function! coc#dialog#create_pum_float(lines, config) abort
     let dw = max([1, strdisplaywidth(line)])
     let width = max([width, dw + 2])
   endfor
-  let width = float2nr(coc#math#min(maxWidth, width))
+  let width = width < maxWidth ? width : maxWidth
   let ch = coc#string#content_height(a:lines, width - 2)
-  let height = float2nr(coc#math#min(maxHeight, ch))
+  let height = ch < maxHeight ? ch : maxHeight
   let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
         \ 'lines': lines,
@@ -49,7 +49,7 @@ function! coc#dialog#create_pum_float(lines, config) abort
         \ 'scrollinside': showRight ? 0 : 1,
         \ 'codes': get(a:config, 'codes', []),
         \ }
-  for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow', 'rounded']
+  for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow', 'rounded', 'title']
     if has_key(a:config, key)
       let opts[key] = a:config[key]
     endif

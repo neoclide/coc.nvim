@@ -222,7 +222,8 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.floatConfig', {
         border: true,
         rounded: true,
-        borderhighlight: 'Normal'
+        borderhighlight: 'Normal',
+        title: 'title'
       }, disposables)
       await nvim.input('<esc>')
       await nvim.input('of')
@@ -236,14 +237,19 @@ describe('completion', () => {
         highlight: 'Normal',
         winblend: 15,
         shadow: true,
-        rounded: true
+        rounded: true,
+        title: 'suggest'
       }, disposables)
       await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
       let win = await helper.getFloat('pum')
-      let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
+      let id = await nvim.call('coc#float#get_related', [win.id, 'border']) as number
       expect(id).toBeGreaterThan(1000)
       let hl = await win.getOption('winhl')
       expect(hl).toMatch('Normal')
+      let border = nvim.createWindow(id)
+      let buf = await border.buffer
+      let lines = await buf.lines
+      expect(lines[0]).toMatch('suggest')
     })
 
     it('should do filter when autoTrigger is none', async () => {
@@ -1179,6 +1185,7 @@ describe('completion', () => {
     })
 
     it('should show float window', async () => {
+      helper.updateConfiguration('suggest.floatConfig', { border: true, title: 'title' }, disposables)
       let source: ISource = {
         name: 'float',
         priority: 10,
@@ -1189,11 +1196,8 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(30)
-      await nvim.input('f')
+      await nvim.input('if')
       await helper.waitPopup()
-      await helper.wait(100)
       let hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(1)
       let res = await helper.visible('foo', 'float')

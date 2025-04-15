@@ -51,6 +51,7 @@ export default class Floating {
         rounded: config.rounded ? 1 : 0,
         focusable: config.focusable === true ? 1 : 0
       }
+      if (Is.string(config.title)) opts.title = config.title
       if (config.shadow) opts.shadow = 1
       if (config.border) opts.border = [1, 1, 1, 1]
       if (config.borderhighlight) opts.borderhighlight = config.borderhighlight

@@ -2154,6 +2154,7 @@
         "rounded": {},
         "highlight": {},
         "borderhighlight": {},
+        "title": {},
         "maxWidth": {},
         "winblend": {},
         "shadow": {}
@@ -2261,6 +2262,7 @@
       "additionalProperties": false,
       "default": null,
       "properties": {
+        "title": {},
         "border": {},
         "rounded": {},
         "highlight": {},

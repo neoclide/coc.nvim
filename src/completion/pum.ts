@@ -44,6 +44,7 @@ export interface PumConfig {
   highlights?: HighlightItem[]
   highlight?: string
   borderhighlight?: string
+  title?: string
   winblend?: number
   shadow?: boolean
   border?: [number, number, number, number] | undefined
@@ -113,14 +114,15 @@ export default class PopupMenu {
     let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config
     if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
-    if (Is.string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight
-    if (Is.number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend
-    if (pumFloatConfig.shadow) obj.shadow = pumFloatConfig.shadow
     if (pumFloatConfig.border) {
       obj.border = [1, 1, 1, 1]
       obj.rounded = pumFloatConfig.rounded ? 1 : 0
       obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloatBorder'
     }
+    if (Is.string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight
+    if (Is.number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend
+    if (Is.string(pumFloatConfig.title)) obj.title = pumFloatConfig.title
+    obj.shadow = pumFloatConfig.shadow === true
     obj.reverse = reversePumAboveCursor === true
     this._pumConfig = obj
     return obj
