@@ -236,7 +236,7 @@ export default class InlayHintBuffer implements SyncItem {
       }
       buffer.setVirtualText(srcId, position.line, chunks, opts)
     }
-    nvim.resumeNotification(false, true)
+    nvim.resumeNotification(true, true)
     this._onDidRefresh.fire()
   }
 
