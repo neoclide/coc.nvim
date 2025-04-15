@@ -173,10 +173,10 @@ enddef
 # execute command for bufnr
 def BufExecute(bufnr: number, cmds: list<string>): void
   var winid = get(win_findbuf(bufnr), 0, -1)
-  var need_close: bool = v:false
+  var need_close: bool = false
   if winid == -1
     winid = CreatePopup(bufnr)
-    need_close = v:true
+    need_close = true
   endif
   win_execute(winid, cmds, 'silent')
   if need_close
@@ -185,7 +185,7 @@ def BufExecute(bufnr: number, cmds: list<string>): void
 enddef
 
 def BufLineCount(bufnr: number): number
-  const info = get(getbufinfo(bufnr), 0, v:null)
+  const info = get(getbufinfo(bufnr), 0, null)
   if empty(info)
     throw $'Invalid buffer id: {bufnr}'
   endif
@@ -200,13 +200,13 @@ def TabIdNr(tid: number): number
   if tid == 0
     return tabpagenr()
   endif
-  var result: any = v:null
+  var result: any = null
   for nr in range(1, tabpagenr('$'))
-    if gettabvar(nr, '__coc_tid', v:null) == tid
+    if gettabvar(nr, '__coc_tid', null) == tid
       result = nr
     endif
   endfor
-  if type(result) == v:t_none
+  if result == null
     throw $'Invalid tabpage id: {tid}'
   endif
   return result
@@ -241,8 +241,8 @@ def DeferExecute(cmd: string): void
   timer_start(0, (..._) => RunExecute())
 enddef
 
-def InspectType(v: any): string
-  return get(known_types, type(v), 'Unknown')
+def InspectType(val: any): string
+  return get(known_types, type(val), 'Unknown')
 enddef
 
 def EscapeSpace(text: string): string
@@ -292,7 +292,7 @@ enddef
 def CreateArguments(opts: dict<any>): string
   var arguments = ''
   for key in keys(opts)
-    if opts[key] == v:true && index(keymap_arguments, key) != -1
+    if opts[key] == true && index(keymap_arguments, key) != -1
       arguments ..= $'<{key}>'
     endif
   endfor
@@ -357,9 +357,9 @@ export def DetachListener(bufnr: number): bool
   if id != 0
     remove(listener_map, bufnr)
     const succeed = listener_remove(id)
-    return succeed ? v:true : v:false
+    return succeed ? true : false
   endif
-  return v:false
+  return false
 enddef
 
 # Call the legacy execute, use silent to avoid vim block
@@ -376,21 +376,21 @@ endfunction
 # nvim client methods {{
 export def Set_current_dir(dir: string): any
   execute $'legacy cd {fnameescape(dir)}'
-  return v:null
+  return null
 enddef
 
 export def Set_var(name: string, value: any): any
   g:[name] = value
-  return v:null
+  return null
 enddef
 
 export def Del_var(name: string): any
   CheckKey(g:, name)
   remove(g:, name)
-  return v:null
+  return null
 enddef
 
-export def Set_option(name: string, value: any, local: bool = v:false): any
+export def Set_option(name: string, value: any, local: bool = false): any
   CheckOptionValue(name, value)
   if index(boolean_options, name) != -1
     if value
@@ -401,7 +401,7 @@ export def Set_option(name: string, value: any, local: bool = v:false): any
   else
     execute $"legacy set{local ? 'l' : ''} {name}={EscapeOptionValue(value)}"
   endif
-  return v:null
+  return null
 enddef
 
 export def Get_option(name: string): any
@@ -412,23 +412,23 @@ export def Set_current_buf(bufnr: number): any
   CheckBufnr(bufnr)
   # autocmd could fail when not use legacy.
   execute $'legacy buffer {bufnr}'
-  return v:null
+  return null
 enddef
 
 export def Set_current_win(winid: number): any
   CheckWinid(winid)
   win_gotoid(winid)
-  return v:null
+  return null
 enddef
 
 export def Set_current_tabpage(tid: number): any
   const nr = TabIdNr(tid)
   execute $'legacy normal! {nr}gt'
-  return v:null
+  return null
 enddef
 
 export def List_wins(): list<number>
-  return map(getwininfo(), 'v:val["winid"]')
+  return getwininfo()->map((_, info) => info.winid)
 enddef
 
 export def Call_atomic(calls: list<any>): list<any>
@@ -443,26 +443,26 @@ export def Call_atomic(calls: list<any>): list<any>
       return [results, [i, $'VimException({InspectType(v:exception)})', $'{v:exception} on function coc#api#{name}']]
     endtry
   endfor
-  return [results, v:null]
+  return [results, null]
 enddef
 
 export def Set_client_info(..._): any
   # not supported
-  return v:null
+  return null
 enddef
 
 export def Subscribe(..._): any
   # not supported
-  return v:null
+  return null
 enddef
 
 export def Unsubscribe(..._): any
   # not supported
-  return v:null
+  return null
 enddef
 
 # Not return on notification for possible void function call.
-export def Call_function(method: string, args: list<any>, notify: bool = v:false): any
+export def Call_function(method: string, args: list<any>, notify: bool = false): any
   if method ==# 'execute'
     return call(Execute, args)
   elseif method ==# 'eval'
@@ -473,7 +473,7 @@ export def Call_function(method: string, args: list<any>, notify: bool = v:false
     return call(method, args)
   endif
   call call(method, args)
-  return v:null
+  return null
 enddef
 
 export def Call_dict_function(dict: any, method: string, args: list<any>): any
@@ -504,7 +504,7 @@ export def Command(command: string): any
       endif
     endif
   endif
-  return v:null
+  return null
 enddef
 
 export def Get_api_info(): any
@@ -517,12 +517,12 @@ export def Get_api_info(): any
 enddef
 
 export def List_bufs(): list<number>
-  return map(getbufinfo(), 'v:val["bufnr"]')
+  return getbufinfo()->map((_, info) => info.bufnr)
 enddef
 
-export def Feedkeys(keys: string, mode: string, escape_csi: any = v:false): any
+export def Feedkeys(keys: string, mode: string, escape_csi: any = false): any
   feedkeys(keys, mode)
-  return v:null
+  return null
 enddef
 
 export def List_runtime_paths(): list<string>
@@ -545,7 +545,7 @@ enddef
 export def Input(keys: string): any
   const escaped: string = substitute(keys, '<', '\\<', 'g')
   feedkeys(eval($'"{escaped}"'), 'n')
-  return v:null
+  return null
 enddef
 
 export def Create_buf(listed: bool, scratch: bool): number
@@ -567,13 +567,13 @@ enddef
 export def Set_current_line(line: string): any
   setline('.', line)
   OnTextChange(bufnr('%'))
-  return v:null
+  return null
 enddef
 
 export def Del_current_line(): any
   deletebufline('%', line('.'))
   OnTextChange(bufnr('%'))
-  return v:null
+  return null
 enddef
 
 export def Get_var(var: string): any
@@ -607,7 +607,7 @@ enddef
 
 export def Get_mode(): dict<any>
   const m: string = mode()
-  return {'blocking': m =~# '^r' ? v:true : v:false, 'mode': m}
+  return {'blocking': m =~# '^r' ? true : false, 'mode': m}
 enddef
 
 export def Strwidth(str: string): number
@@ -617,12 +617,12 @@ enddef
 export def Out_write(str: string): any
   echon str
   DeferExecute('redraw')
-  return v:null
+  return null
 enddef
 
 export def Err_write(str: string): any
   # Err_write texts are cached by node-client
-  return v:null
+  return null
 enddef
 
 export def Err_writeln(str: string): any
@@ -630,7 +630,7 @@ export def Err_writeln(str: string): any
   echom str
   echohl None
   DeferExecute('redraw')
-  return v:null
+  return null
 enddef
 
 export def Create_namespace(name: string): number
@@ -657,13 +657,13 @@ export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): 
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
   Execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
-  return v:null
+  return null
 enddef
 
 export def Del_keymap(mode: string, lhs: string): any
   const escaped = substitute(lhs, ' ', '<space>', 'g')
   execute $'legacy silent {mode}unmap {escaped}'
-  return v:null
+  return null
 enddef
 
 export def Set_option_value(name: string, value: any, opts: dict<any>): any
@@ -679,10 +679,10 @@ export def Set_option_value(name: string, value: any, opts: dict<any>): any
     if scope ==# 'global'
       Set_option(name, value)
     else
-      Set_option(name, value, v:true)
+      Set_option(name, value, true)
     endif
   endif
-  return v:null
+  return null
 enddef
 
 export def Get_option_value(name: string, opts: dict<any> = {}): any
@@ -690,7 +690,7 @@ export def Get_option_value(name: string, opts: dict<any> = {}): any
   const winid: number = get(opts, 'win', -1)
   const bufnr: number = get(opts, 'buf', -1)
   const scope: string = get(opts, 'scope', 'global')
-  var result: any = v:null
+  var result: any = null
   if bufnr != -1
     result = Buf_get_option(bufnr, name)
   elseif winid != -1
@@ -699,8 +699,8 @@ export def Get_option_value(name: string, opts: dict<any> = {}): any
     if scope ==# 'global'
       result = eval($'&{name}')
     else
-      result = gettabwinvar(tabpagenr(), 0, '&' .. name, v:null)
-      if type(result) == v:t_none
+      result = gettabwinvar(tabpagenr(), 0, '&' .. name, null)
+      if result == null
         result = Buf_get_option(bufnr('%'), name)
       endif
     endif
@@ -717,7 +717,7 @@ export def Buf_set_option(id: number, name: string, value: any): any
     throw $"Invalid buffer option name: {name}"
   endif
   setbufvar(bufnr, $'&{name}', value)
-  return v:null
+  return null
 enddef
 
 export def Buf_get_option(id: number, name: string): any
@@ -795,13 +795,13 @@ export def Buf_clear_namespace(id: number, srcId: number, startLine: number, end
     const types = get(id_types, srcId, [])
     if !empty(types)
       try
-        prop_remove({'bufnr': bufnr, 'all': v:true, 'types': types}, start, end)
+        prop_remove({'bufnr': bufnr, 'all': true, 'types': types}, start, end)
       catch /^Vim\%((\a\+)\)\=:E968/
         # ignore 968
       endtry
     endif
   endif
-  return v:null
+  return null
 enddef
 
 export def Buf_line_count(bufnr: number): number
@@ -818,9 +818,9 @@ export def Buf_attach(id: number = 0, ..._): bool
   const result = listener_add(OnBufferChange, bufnr)
   if result != 0
     listener_map[bufnr] = result
-    return v:true
+    return true
   endif
-  return v:false
+  return false
 enddef
 
 export def Buf_detach(id: number): bool
@@ -828,7 +828,7 @@ export def Buf_detach(id: number): bool
   return DetachListener(bufnr)
 enddef
 
-export def Buf_get_lines(id: number, start: number, end: number, strict: bool = v:false): list<string>
+export def Buf_get_lines(id: number, start: number, end: number, strict: bool = false): list<string>
   const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
   const s = start < 0 ? len + start + 2 : start + 1
@@ -839,7 +839,7 @@ export def Buf_get_lines(id: number, start: number, end: number, strict: bool = 
   return getbufline(bufnr, s, e)
 enddef
 
-export def Buf_set_lines(id: number, start: number, end: number, strict: bool = v:false, replacement: list<string> = []): any
+export def Buf_set_lines(id: number, start: number, end: number, strict: bool = false, replacement: list<string> = []): any
   const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
   var startLnum = start < 0 ? len + start + 2 : start + 1
@@ -852,7 +852,7 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
     endif
   endif
   const delCount = endLnum - (startLnum - 1)
-  const view = bufnr == bufnr('%') ? winsaveview() : v:null
+  const view = bufnr == bufnr('%') ? winsaveview() : null
   if delCount == len(replacement)
     setbufline(bufnr, startLnum, replacement)
   else
@@ -864,17 +864,17 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
       silent deletebufline(bufnr, startLnum, startLnum + delCount - 1)
     endif
   endif
-  if type(view) != v:t_none
+  if view != null
     winrestview(view)
   endif
   OnTextChange(bufnr)
-  return v:null
+  return null
 enddef
 
 export def Buf_set_name(id: number, name: string): any
   const bufnr = GetValidBufnr(id)
   BufExecute(bufnr, ['legacy silent noa 0file', $'legacy file {fnameescape(name)}'])
-  return v:null
+  return null
 enddef
 
 export def Buf_get_name(id: number): string
@@ -891,7 +891,7 @@ enddef
 export def Buf_set_var(id: number, name: string, val: any): any
   const bufnr = GetValidBufnr(id)
   setbufvar(bufnr, name, val)
-  return v:null
+  return null
 enddef
 
 export def Buf_del_var(id: number, name: string): any
@@ -899,7 +899,7 @@ export def Buf_del_var(id: number, name: string): any
   final bufvars = getbufvar(bufnr, '')
   CheckKey(bufvars, name)
   remove(bufvars, name)
-  return v:null
+  return null
 enddef
 
 export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, opts: dict<any>): any
@@ -908,14 +908,14 @@ export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, op
   const arguments = CreateArguments(opts)
   const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
   BufExecute(bufnr, [$'legacy {prefix} {arguments}<buffer> {EscapeSpace(lhs)} {escaped}'])
-  return v:null
+  return null
 enddef
 
 export def Buf_del_keymap(id: number, mode: string, lhs: string): any
   const bufnr = GetValidBufnr(id)
   const escaped = substitute(lhs, ' ', '<space>', 'g')
   BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
-  return v:null
+  return null
 enddef
 # }}
 
@@ -928,7 +928,7 @@ export def Win_set_buf(id: number, bufnr: number): any
   const winid = GetValidWinid(id)
   CheckBufnr(bufnr)
   win_execute(winid, $'legacy buffer {bufnr}')
-  return v:null
+  return null
 enddef
 
 export def Win_get_position(id: number): list<number>
@@ -947,7 +947,7 @@ export def Win_set_height(id: number, height: number): any
   else
     win_execute(winid, $'legacy resize {height}')
   endif
-  return v:null
+  return null
 enddef
 
 export def Win_get_height(id: number): number
@@ -965,7 +965,7 @@ export def Win_set_width(id: number, width: number): any
   else
     win_execute(winid, $'legacy vertical resize {width}')
   endif
-  return v:null
+  return null
 enddef
 
 export def Win_get_width(id: number): number
@@ -979,7 +979,7 @@ enddef
 export def Win_set_cursor(id: number, pos: list<number>): any
   const winid = GetValidWinid(id)
   win_execute(winid, $'cursor({pos[0]}, {pos[1] + 1})')
-  return v:null
+  return null
 enddef
 
 export def Win_get_cursor(id: number): list<number>
@@ -999,7 +999,7 @@ export def Win_set_option(id: number, name: string, value: any): any
     throw $"Invalid window option name: {name}"
   endif
   settabwinvar(tabnr, winid, $'&{name}', value)
-  return v:null
+  return null
 enddef
 
 export def Win_get_option(id: number, name: string, ..._): any
@@ -1023,7 +1023,7 @@ export def Win_set_var(id: number, name: string, value: any): any
   const winid = GetValidWinid(id)
   const tabnr = WinTabnr(winid)
   settabwinvar(tabnr, winid, name, value)
-  return v:null
+  return null
 enddef
 
 export def Win_del_var(id: number, name: string): any
@@ -1032,7 +1032,7 @@ export def Win_del_var(id: number, name: string): any
   const vars: dict<any> = gettabwinvar(tabnr, winid, '')
   CheckKey(vars, name)
   win_execute(winid, 'remove(w:, "' .. name .. '")')
-  return v:null
+  return null
 enddef
 
 export def Win_is_valid(id: number): bool
@@ -1052,14 +1052,14 @@ export def Win_get_tabpage(id: number): number
   return GetValidWinid(id)->WinTabnr()->TabNrId()
 enddef
 
-export def Win_close(id: number, force: bool = v:false): any
+export def Win_close(id: number, force: bool = false): any
   const winid = GetValidWinid(id)
   if IsPopup(winid)
     popup_close(winid)
   else
     win_execute(winid, $'legacy close{force ? '!' : ''}')
   endif
-  return v:null
+  return null
 enddef
 # }}
 
@@ -1082,7 +1082,7 @@ enddef
 export def Tabpage_set_var(tid: number, name: string, value: any): any
   const nr = TabIdNr(tid)
   settabvar(nr, name, value)
-  return v:null
+  return null
 enddef
 
 export def Tabpage_del_var(tid: number, name: string): any
@@ -1090,16 +1090,16 @@ export def Tabpage_del_var(tid: number, name: string): any
   final dict = gettabvar(nr, '')
   CheckKey(dict, name)
   remove(dict, name)
-  return v:null
+  return null
 enddef
 
 export def Tabpage_is_valid(tid: number): bool
   for nr in range(1, tabpagenr('$'))
     if gettabvar(nr, '__coc_tid', -1) == tid
-      return v:true
+      return true
     endif
   endfor
-  return v:false
+  return false
 enddef
 
 export def Tabpage_get_win(tid: number): number
@@ -1149,11 +1149,11 @@ export function Notify(method, args) abort
 endfunction
 
 # Could be called by other plguin
-const call_function = [
-  'function! coc#api#call(method, args) abort',
-  '  return coc#api#Call(a:method, a:args)',
-  'endfunction'
-]
+const call_function =<< trim END
+  function! coc#api#call(method, args) abort
+    return coc#api#Call(a:method, a:args)
+  endfunction
+END
 
 execute $'legacy execute "{join(call_function, '\n')}"'
 
