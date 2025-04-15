@@ -5,18 +5,15 @@ import { createLogger } from '../logger'
 import { ProviderResult } from '../provider'
 import { Env } from '../types'
 import { disposeAll } from '../util'
-import { Disposable, Emitter, Event } from '../util/protocol'
+import { Disposable } from '../util/protocol'
 import { toErrorText } from '../util/string'
 const logger = createLogger('watchers')
 
 export default class Watchers implements Disposable {
   private nvim: Neovim
-  private env: Env
   private optionCallbacks: Map<string, Set<(oldValue: any, newValue: any) => ProviderResult<void>>> = new Map()
   private globalCallbacks: Map<string, Set<(oldValue: any, newValue: any) => ProviderResult<void>>> = new Map()
   private disposables: Disposable[] = []
-  private _onDidRuntimePathChange = new Emitter<string[]>()
-  public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   constructor() {
     events.on('OptionSet', async (changed: string, oldValue: any, newValue: any) => {
       let cbs = Array.from(this.optionCallbacks.get(changed) ?? [])
@@ -50,18 +47,8 @@ export default class Watchers implements Disposable {
     return Array.from(this.optionCallbacks.keys())
   }
 
-  public attach(nvim: Neovim, env: Env): void {
+  public attach(nvim: Neovim, _env: Env): void {
     this.nvim = nvim
-    this.env = env
-    this.watchOption('runtimepath', (oldValue: string, newValue: string) => {
-      let oldList: string[] = oldValue.split(',')
-      let newList: string[] = newValue.split(',')
-      let paths = newList.filter(x => !oldList.includes(x))
-      if (paths.length > 0) {
-        this._onDidRuntimePathChange.fire(paths)
-      }
-      this.env.runtimepath = newValue
-    }, this.disposables)
   }
 
   /**
@@ -108,6 +95,5 @@ export default class Watchers implements Disposable {
 
   public dispose(): void {
     disposeAll(this.disposables)
-    this._onDidRuntimePathChange.dispose()
   }
 }

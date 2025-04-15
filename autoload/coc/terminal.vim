@@ -102,7 +102,7 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
     call chansend(chan, lines)
     let winid = bufwinid(a:bufnr)
     if winid != -1
-      call coc#compat#execute(winid, 'noa normal! G')
+      call win_execute(winid, 'noa normal! G')
     endif
   endif
 endfunction

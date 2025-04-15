@@ -295,7 +295,7 @@ function! coc#util#vim_info()
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
-        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
+        \ 'runtimepath': join(coc#compat#list_runtime_paths(), ','),
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
@@ -422,15 +422,11 @@ function! coc#util#get_editoroption(winid) abort
   return {
         \ 'bufnr': bufnr,
         \ 'winid': a:winid,
-        \ 'tabpageid': coc#util#tabnr_id(info['tabnr']),
+        \ 'tabpageid': coc#compat#tabnr_id(info['tabnr']),
         \ 'winnr': winnr(),
         \ 'visibleRanges': s:visible_ranges(a:winid),
         \ 'formatOptions': coc#util#get_format_opts(bufnr),
         \ }
-endfunction
-
-function! coc#util#tabnr_id(tabnr) abort
-  return s:is_vim ? coc#api#get_tabid(a:tabnr) : nvim_list_tabpages()[a:tabnr - 1]
 endfunction
 
 function! coc#util#get_loaded_bufs() abort
@@ -450,19 +446,12 @@ function! coc#util#editor_infos() abort
       call add(result, {
           \ 'winid': info['winid'],
           \ 'bufnr': bufnr,
-          \ 'tabid': coc#util#tabnr_id(info['tabnr']),
+          \ 'tabid': coc#compat#tabnr_id(info['tabnr']),
           \ 'fullpath': empty(bufname) ? '' : coc#util#win32unix_to_node(fnamemodify(bufname, ':p')),
           \ })
     endif
   endfor
   return result
-endfunction
-
-function! coc#util#tabpages() abort
-  if s:is_vim
-    return coc#api#exec('list_tabpages', [])
-  endif
-  return nvim_list_tabpages()
 endfunction
 
 function! coc#util#getpid()

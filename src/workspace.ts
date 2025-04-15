@@ -34,11 +34,12 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
 import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
+import { FileType, getFileType } from './util/fs'
 import { IJSONSchema } from './util/jsonSchema'
 import { path } from './util/node'
 import { toObject } from './util/object'
 import { runCommand } from './util/processes'
-import { CancellationToken, Disposable, Event } from './util/protocol'
+import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 const logger = createLogger('workspace')
 
 const methods = [
@@ -56,7 +57,6 @@ export class Workspace {
   public readonly onDidSaveTextDocument: Event<LinesTextDocument>
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent>
-  public readonly onDidRuntimePathChange: Event<string[]>
   public readonly onDidCreateFiles: Event<FileCreateEvent>
   public readonly onDidRenameFiles: Event<FileRenameEvent>
   public readonly onDidDeleteFiles: Event<FileDeleteEvent>
@@ -76,6 +76,9 @@ export class Workspace {
   public readonly editors: Editors
   public readonly isTrusted = true
   public statusLine = new StatusLine()
+  private _onDidRuntimePathChange = new Emitter<string[]>()
+  public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
+
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth
   private _env: Env
@@ -102,7 +105,6 @@ export class Workspace {
     this.keymaps = new Keymaps()
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
-    this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
     this.onDidChangeConfiguration = this.configurations.onDidChange
     this.onDidOpenTextDocument = documents.onDidOpenTextDocument
@@ -169,6 +171,29 @@ export class Workspace {
     this.keymaps.attach(nvim)
     this.autocmds.attach(nvim, env)
     this.watchers.attach(nvim, env)
+    this.watchers.watchOption('runtimepath', async (oldValue: string, newValue: string) => {
+      let oldList: string[] = oldValue.split(',')
+      let newList: string[] = newValue.split(',')
+      let paths = newList.filter(x => !oldList.includes(x))
+      if (paths.length > 0) {
+        let filepaths: string[] = []
+        await Promise.allSettled(paths.map(filepath => {
+          return new Promise((resolve, reject) => {
+            let converted = this.fixWin32unixFilepath(filepath)
+            getFileType(converted).then(t => {
+              if (t == FileType.Directory) {
+                filepaths.push(converted)
+              }
+              resolve(undefined)
+            }, reject)
+          })
+        }))
+        if (filepaths.length > 0) {
+          this._onDidRuntimePathChange.fire(filepaths)
+          this.env.runtimepath = [...oldList, ...filepaths].join(',')
+        }
+      }
+    })
     await this.documentsManager.attach(this.nvim, this._env)
     await this.editors.attach(nvim)
     let channel = channels.create('watchman', nvim)

@@ -247,6 +247,7 @@ export interface KeymapOption {
   cancel?: boolean
   silent?: boolean
   repeat?: boolean
+  special?: boolean
 }
 
 export interface TabStopInfo {

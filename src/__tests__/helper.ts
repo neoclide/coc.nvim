@@ -47,6 +47,7 @@ export class Helper extends EventEmitter {
   public proc: cp.ChildProcess
   private server: Server
   public plugin: Plugin
+  public reportError = true
 
   constructor() {
     super()
@@ -91,7 +92,7 @@ export class Helper extends EventEmitter {
       server = this.server = net.createServer(socket => {
         this.plugin = attach({ reader: socket, writer: socket })
         this.nvim.on('vim_error', err => {
-          console.error('Error from vim: ', err)
+          if (this.reportError) console.error('Error from vim: ', err)
         })
         this.nvim._transport.on('notification', (...args) => {
           if (args[0] === 'vim_buf_change_event') {

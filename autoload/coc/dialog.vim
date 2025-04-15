@@ -97,9 +97,9 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   let alignTop = dimension['row'] < 0
   let winid = res[0]
   let bufnr = res[1]
-  call coc#compat#execute(winid, 'setl nonumber')
-  redraw
+  call win_execute(winid, 'setl nonumber')
   if !s:is_vim
+    redraw
     call coc#float#nvim_scrollbar(winid)
   endif
   return [currbuf, pos, winid, bufnr, alignTop]
@@ -640,7 +640,7 @@ endfunction
 function! coc#dialog#set_cursor(winid, bufnr, line) abort
   if a:winid >= 0
     if s:is_vim
-      call coc#compat#execute(a:winid, 'exe '.max([a:line, 1]), 'silent!')
+      call win_execute(a:winid, 'exe ' . max([a:line, 1]), 'silent!')
       call popup_setoptions(a:winid, {'cursorline' : 1})
       call popup_setoptions(a:winid, {'cursorline' : 0})
     else

@@ -8,9 +8,8 @@ scriptencoding utf-8
 # type HighlightItem = list<any>
 # type HighlightItemList = list<HighlightItem>
 # NOTE: Can't use type on vim9.0.0438
-
 export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number): void
-  const maxCount = g:coc_highlight_maximum_count
+  const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   if len(highlights) > maxCount
     const changedtick = getbufvar(bufnr, 'changedtick', 0)
     Add_highlights_timer(bufnr, ns, highlights, priority, changedtick, maxCount)
@@ -63,18 +62,19 @@ export def Add_highlight(bufnr: number, src_id: number, hl_group: string, line: 
   if !hlexists(hl_group)
     execute $'highlight {hl_group} ctermfg=NONE'
   endif
-  coc#api#funcs_buf_add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, opts)
+  coc#api#Buf_add_highlight1(bufnr, src_id, hl_group, line, col_start, col_end, opts)
 enddef
 
 # From `src/core/highlights.ts`:
 # type HighlightItemResult = [string, number, number, number, number?]
 # type HighlightItemResult = list<any>
 
-export def Get_highlights(bufnr: number, ns: number, start: number, end: number): list<any>
+export def Get_highlights(bufnr: number, key: string, start: number, end: number): list<any>
   if !bufloaded(bufnr)
     return []
   endif
-  const types: list<string> = coc#api#get_types(ns)
+  const ns = coc#api#Create_namespace($'coc-{key}')
+  const types: list<string> = coc#api#GetNamespaceTypes(ns)
   if empty(types)
     return []
   endif

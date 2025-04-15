@@ -33,7 +33,7 @@ export default class Popup {
   }
 
   public execute(cmd: string): void {
-    this.nvim.call('coc#compat#execute', [this.winid, cmd], true)
+    this.nvim.call('win_execute', [this.winid, cmd], true)
   }
 
   private async getWininfo(): Promise<WindowInfo> {

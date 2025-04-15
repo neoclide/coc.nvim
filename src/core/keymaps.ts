@@ -1,8 +1,8 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import events from '../events'
+import { Neovim, KeymapOption as VimKeymapOption } from '@chemzqm/neovim'
 import { createLogger } from '../logger'
 import { KeymapOption } from '../types'
+import { isVim } from '../util/constants'
 import { Disposable } from '../util/protocol'
 import { toBase64 } from '../util/string'
 const logger = createLogger('core-keymaps')
@@ -20,7 +20,7 @@ export function getKeymapModifier(mode: MapMode, cmd?: boolean): string {
 }
 
 export function getBufnr(buffer: number | boolean): number {
-  return typeof buffer === 'number' ? buffer : events.bufnr
+  return typeof buffer === 'number' ? buffer : 0
 }
 
 export default class Keymaps {
@@ -47,7 +47,7 @@ export default class Keymaps {
   /**
    * Register global <Plug>(coc-${key}) key mapping.
    */
-  public registerKeymap(modes: MapMode[], name: string, fn: KeymapCallback, opts: Partial<KeymapOption> = {}): Disposable {
+  public registerKeymap(modes: MapMode[], name: string, fn: KeymapCallback, opts: KeymapOption = {}): Disposable {
     if (!name) throw new Error(`Invalid key ${name} of registerKeymap`)
     let key = `coc-${name}`
     if (this.keymaps.has(key)) throw new Error(`keymap: "${name}" already exists.`)
@@ -90,7 +90,7 @@ export default class Keymaps {
       rhs = `coc#rpc#request('doKeymap', ['${id}'])`
     }
     let opts = { noremap: true, silent: true, expr: true, nowait: true }
-    if (buffer) {
+    if (buffer !== false) {
       nvim.call('coc#compat#buf_add_keymap', [bufnr, mode, lhs, rhs, opts], true)
     } else {
       nvim.setKeymap(mode, lhs, rhs, opts)
@@ -106,32 +106,32 @@ export default class Keymaps {
     })
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: KeymapCallback, notify: boolean | KeymapOption): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: KeymapCallback, option: boolean | KeymapOption): Disposable {
     let { nvim } = this
     let buffer = nvim.createBuffer(bufnr)
     let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`
-    const conf = typeof notify == 'boolean' ? { sync: !notify } : notify
-    const opts: KeymapOption = Object.assign({ sync: true, cancel: true, silent: true }, conf)
+    const opts = toKeymapOption(option)
     this.keymaps.set(id, [fn, !!opts.repeat])
-    let method = opts.sync ? 'request' : 'notify'
+    const method = opts.sync ? 'request' : 'notify'
+    const opt: VimKeymapOption = { noremap: true, silent: opts.silent !== false }
+    if (isVim && opts.special) opt.special = true
     if (mode == 'i') {
       const cancel = opts.cancel ? 1 : 0
-      buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id}', ${cancel})`, {
-        expr: true,
-        noremap: true,
-        silent: opts.silent
-      })
+      opt.expr = true
+      buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id}', ${cancel})`, opt)
     } else {
+      opt.nowait = true
       const modify = getKeymapModifier(mode, opts.cmd)
-      buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
-        silent: opts.silent,
-        nowait: true,
-        noremap: true
-      })
+      buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, opt)
     }
     return Disposable.create(() => {
       this.keymaps.delete(id)
       buffer.deleteKeymap(mode, lhs)
     })
   }
+}
+
+function toKeymapOption(option: KeymapOption | boolean): KeymapOption {
+  const conf = typeof option == 'boolean' ? { sync: !option } : option
+  return Object.assign({ sync: true, cancel: true, silent: true }, conf)
 }

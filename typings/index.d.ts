@@ -3956,6 +3956,8 @@ declare module 'coc.nvim' {
     script?: boolean
     expr?: boolean
     unique?: boolean
+    // vim9 only
+    special?: boolean
   }
 
   export interface BufferHighlight {
@@ -8272,6 +8274,10 @@ declare module 'coc.nvim' {
      * Enable repeat support for repeat.vim, default `false`.
      */
     repeat?: boolean
+    /**
+     * Use <special> map argument, see `:h :map-special`, vim9 only.
+     */
+    special?: boolean
   }
 
   export interface DidChangeTextDocumentParams {
@@ -9153,7 +9159,7 @@ declare module 'coc.nvim' {
      * @param {MapMode} mode - Mode short-name.
      * @param {string} rhs - rhs of key-mapping.
      * @param {Function} fn - callback function.
-     * @param {number | boolean} buffer - Buffer number or current buffer by use `true`, default to false.
+     * @param {number | boolean} buffer - Buffer number or current buffer by use `true` or 0, default to false.
      * @param {boolean} cancel - Cancel pupop menu before invoke callback, insert mode only, define to true.
      * @returns {Disposable}
      */
