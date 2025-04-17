@@ -4096,7 +4096,7 @@ declare module 'coc.nvim' {
     /**
      * Echo error message to vim and log error stack.
      */
-    echoError(msg: unknown): void
+    echoError(error: Error | string): void
 
     /**
      * Check if `nvim_` function exists.
@@ -4350,12 +4350,38 @@ declare module 'coc.nvim' {
      * @param {VimValue | VimValue[]} args
      * @returns {Promise<any>}
      */
-    call(fname: string, args?: VimValue | VimValue[]): Promise<any>
+    call(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
 
     /**
      * Call a vim function by notification.
      */
     call(fname: string, args: VimValue | VimValue[], isNotify: true): void
+
+    /**
+     * Use call command `:h channel-commands` to call function on vim9.
+     * Warning: NodeJS side only get the 'ERROR' text on error, to get error message,
+     * see `:h coc-api-channel`
+     */
+    callVim(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
+
+    /**
+     * Use call command `:h channel-commands` to call function on vim9.
+     * Warning: errors not exists on NodeJS side, see `:h coc-api-channel`
+     */
+    callVim(fname: string, args: VimValue | VimValue[], isNotify: true): void
+
+    /**
+     * Use expr command `:h channel-commands` to eval expression on vim9.
+     * Warning: NodeJS side only get the 'ERROR' text on error, to get error message,
+     * see `:h coc-api-channel`
+     */
+    evalVim(expr: string): Promise<unknown>
+
+    /**
+     * Use ex command `:h channel-commands` to execute command on vim9.
+     * Warning: errors not exists on NodeJS side, see `:h coc-api-channel`
+     */
+    exVim(command: string): void
 
     /**
      * Call a vim function with timer of timeout 0.

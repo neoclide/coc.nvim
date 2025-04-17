@@ -375,6 +375,7 @@ Recommended steps:
 ------------------------------------------------------------------------------
 DEBUG EXTENSIONS 				*coc-api-debug*
 
+						*coc-api-channel*
 Channel errors: ~
 
 Channel feature on vim9 is used by coc.nvim to communicate between vim and

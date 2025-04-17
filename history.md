@@ -5,6 +5,7 @@ Notable changes of coc.nvim:
 ## 2025-04-17
 
 - Support `$COC_VIM_CHANNEL_ENABLE` for enable channel log on vim9.
+- Add `nvim.callVim()`, `nvim.evalVim()` and `nvim.exVim()`.
 
 ## 2025-04-15
 
