@@ -1923,8 +1923,11 @@ g:coc_open_url_command 					*g:coc_open_url_command*
 g:node_client_debug					*g:node_client_debug*
 
 	Enable debug mode of node client for check rpc messages between vim
-	and coc.nvim.  Use environment variable $NODE_CLIENT_LOG_FILE to set
+	and coc.nvim.  Use environment variable `$NODE_CLIENT_LOG_FILE` to set
 	the log file or get the log file after coc.nvim started.
+	On vim9, this variable also enables vim's channel log, the log
+	filepath would be disposed on the screen after vim start.
+
 	To open the log file, use command: >
 
 	:call coc#client#open_log()

@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-17
+
+- Support `$COC_VIM_CHANNEL_ENABLE` for enable channel log on vim9.
+
 ## 2025-04-15
 
 - Support 'title' for configuration `suggest.floatConfig` and `suggest.pumFloatConfig`.

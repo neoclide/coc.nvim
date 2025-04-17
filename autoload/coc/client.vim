@@ -41,8 +41,10 @@ function! s:start() dict
     return
   endif
   let tmpdir = fnamemodify(tempname(), ':p:h')
+  let env = { 'NODE_NO_WARNINGS': '1', 'TMPDIR': coc#util#win32unix_to_node(tmpdir)}
   if s:is_vim
-    if get(g:, 'node_client_debug', 0)
+    let env['VIM_NODE_RPC'] = 1
+    if get(g:, 'node_client_debug', 0) || $COC_VIM_CHANNEL_ENABLE == '1'
       let file = tmpdir . '/coc.log'
       call ch_logfile(file, 'w')
       echohl MoreMsg | echo '[coc.nvim] channel log to '.file | echohl None
@@ -54,11 +56,7 @@ function! s:start() dict
           \ 'err_mode': 'nl',
           \ 'err_cb': {channel, message -> s:on_stderr(self.name, split(message, "\n"))},
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': {
-            \ 'NODE_NO_WARNINGS': '1',
-            \ 'VIM_NODE_RPC': '1',
-            \ 'TMPDIR': coc#util#win32unix_to_node(tmpdir),
-          \ }
+          \ 'env': env
           \}
     let job = job_start(self.command, options)
     let status = job_status(job)
@@ -67,14 +65,13 @@ function! s:start() dict
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
       return
     endif
-    let self['running'] = 1
     let self['channel'] = job_getchannel(job)
   else
     let opts = {
           \ 'rpc': 1,
           \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': { 'NODE_NO_WARNINGS': '1', 'TMPDIR': coc#util#win32unix_to_node(tmpdir) }
+          \ 'env': env
           \ }
     let chan_id = jobstart(self.command, opts)
     if chan_id <= 0
@@ -82,8 +79,8 @@ function! s:start() dict
       return
     endif
     let self['chan_id'] = chan_id
-    let self['running'] = 1
   endif
+  let self['running'] = 1
 endfunction
 
 function! s:on_stderr(name, msgs)
