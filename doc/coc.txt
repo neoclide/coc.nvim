@@ -1685,6 +1685,10 @@ $NODE_CLIENT_LOG_FILE
 
 	Full path of client log file, used when |g:node_client_debug| enabled.
 
+$COC_VIM_CHANNEL_ENABLE 				*$COC_VIM_CHANNEL_ENABLE*
+
+	Enable vim's channel log |ch_logfile()| when is "1".
+
 --------------------------------------------------------------------------------
 
 BUFFER VARIABLES					*coc-buffer-variables*

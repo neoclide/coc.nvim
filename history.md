@@ -6,7 +6,7 @@ Notable changes of coc.nvim:
 
 - Add `nvim.createAugroup()`, `nvim.createAutocmd()` and `nvim.deleteAutocmd()`.
 - Add `buffer` `once` and `nested` support to `workspace.registerAutocmd()`.
-- Not throw error from autocmd callback, log the error with register call stack.
+- Not throw error from autocmd callback, log the error instead.
 - Add configuration `editor.autocmdTimeout`.
 
 ## 2025-04-17
