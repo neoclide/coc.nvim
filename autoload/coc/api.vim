@@ -21,6 +21,11 @@ const scopes = ['global', 'local']
 const boolean_options: list<string> = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'autoindent', 'autoread', 'autoshelldir', 'autowrite', 'autowriteall', 'backup', 'balloonevalterm', 'binary', 'bomb', 'breakindent', 'buflisted', 'cdhome', 'cindent', 'compatible', 'confirm', 'copyindent', 'cursorbind', 'cursorcolumn', 'cursorline', 'delcombine', 'diff', 'digraph', 'edcompatible', 'emoji', 'endoffile', 'endofline', 'equalalways', 'errorbells', 'esckeys', 'expandtab', 'exrc', 'fileignorecase', 'fixendofline', 'foldenable', 'fsync', 'gdefault', 'hidden', 'hkmap', 'hkmapp', 'hlsearch', 'icon', 'ignorecase', 'imcmdline', 'imdisable', 'incsearch', 'infercase', 'insertmode', 'joinspaces', 'langnoremap', 'langremap', 'lazyredraw', 'linebreak', 'lisp', 'list', 'loadplugins', 'magic', 'modeline', 'modelineexpr', 'modifiable', 'modified', 'more', 'number', 'paste', 'preserveindent', 'previewwindow', 'prompt', 'readonly', 'relativenumber', 'remap', 'revins', 'rightleft', 'ruler', 'scrollbind', 'secure', 'shelltemp', 'shiftround', 'shortname', 'showcmd', 'showfulltag', 'showmatch', 'showmode', 'smartcase', 'smartindent', 'smarttab', 'smoothscroll', 'spell', 'splitbelow', 'splitright', 'startofline', 'swapfile', 'tagbsearch', 'tagrelative', 'tagstack', 'termbidi', 'termguicolors', 'terse', 'textauto', 'textmode', 'tildeop', 'timeout', 'title', 'ttimeout', 'ttybuiltin', 'ttyfast', 'undofile', 'visualbell', 'warn', 'weirdinvert', 'wildignorecase', 'wildmenu', 'winfixbuf', 'winfixheight', 'winfixwidth', 'wrap', 'wrapscan', 'write', 'writeany', 'writebackup', 'xtermcodes']
 const window_options = keys(getwinvar(0, '&'))
 const buffer_options = keys(getbufvar(bufnr('%'), '&'))
+var group_id: number = 1
+# id => name
+final groups_map: dict<any> = {}
+var autocmd_id: number = 1
+final autocmds_map: dict<any> = {}
 
 const API_FUNCTIONS = [
   'eval',
@@ -57,6 +62,7 @@ const API_FUNCTIONS = [
   'del_var',
   'del_keymap',
   'del_current_line',
+  'del_autocmd',
   'list_wins',
   'list_bufs',
   'list_runtime_paths',
@@ -65,6 +71,8 @@ const API_FUNCTIONS = [
   'call_function',
   'call_dict_function',
   'create_namespace',
+  'create_augroup',
+  'create_autocmd',
   'buf_set_option',
   'buf_get_option',
   'buf_get_changedtick',
@@ -706,6 +714,69 @@ export def Get_option_value(name: string, opts: dict<any> = {}): any
     endif
   endif
   return result
+enddef
+
+export def Create_augroup(name: string, option: dict<any> = {}): number
+  const clear: bool = get(option, 'clear', true)
+  if clear
+    execute $'augroup {name} | autocmd! | augroup END'
+  else
+    execute $'augroup {name} | augroup END'
+  endif
+  const id = group_id
+  groups_map[id] = name
+  group_id += 1
+  return id
+enddef
+
+export def Create_autocmd(event: any, option: dict<any> = {}): number
+  final opt: dict<any> = { event: event }
+  if has_key(option, 'group')
+    if type(option.group) == v:t_number
+      if !has_key(groups_map, option.group)
+        throw $'Invalid group {option.group}'
+      endif
+      opt.group = groups_map[option.group]
+    elseif type(option.group) == v:t_string
+      opt.group = option.group
+    else
+      throw $'Invalid group {option.group}'
+    endif
+  endif
+  if get(option, 'nested', false) == true
+    opt.nested = true
+  endif
+  if get(option, 'once', false) == true
+    opt.nested = true
+  endif
+  if has_key(option, 'pattern')
+    opt.pattern = option.pattern
+  else
+    # nvim add it automatically
+    opt.pattern = '*'
+  endif
+  if has_key(option, 'buffer')
+    opt.bufnr = option.buffer
+  endif
+  if has_key(option, 'command')
+    opt.cmd = $'legacy {option.command}'
+  endif
+  call autocmd_add([extend({'replace': get(option, 'replace', false)}, opt)])
+  const id = autocmd_id
+  autocmds_map[id] = opt
+  autocmd_id += 1
+  return id
+enddef
+
+export def Del_autocmd(id: number): bool
+  if !has_key(autocmds_map, id)
+    return true
+  endif
+  final opt: dict<any> = autocmds_map[id]
+  # vim add autocmd when cmd exists
+  remove(opt, 'cmd')
+  remove(autocmds_map, id)
+  return autocmd_delete([opt])
 enddef
 # }}
 

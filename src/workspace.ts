@@ -7,7 +7,7 @@ import { URI } from 'vscode-uri'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import type { ConfigurationResourceScope, WorkspaceConfiguration } from './configuration/types'
-import Autocmds from './core/autocmds'
+import Autocmds, { AutocmdOptionWithStack } from './core/autocmds'
 import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
@@ -33,7 +33,6 @@ import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
 import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
-import { parseExtensionName } from './util/extensionRegistry'
 import { FileType, getFileType } from './util/fs'
 import { IJSONSchema } from './util/jsonSchema'
 import { path } from './util/node'
@@ -337,11 +336,9 @@ export class Workspace {
    * Register autocmd on vim.
    */
   public registerAutocmd(autocmd: Autocmd, disposables?: Disposable[]): Disposable {
-    if (autocmd.request && autocmd.event !== 'BufWritePre') {
-      let name = parseExtensionName(Error().stack)
-      logger.warn(`Extension "${name}" registered synchronized autocmd "${autocmd.event}", which could be slow.`)
-    }
-    let disposable = this.autocmds.registerAutocmd(autocmd)
+    let opts = Object.assign({}, autocmd)
+    Error.captureStackTrace(opts)
+    let disposable = this.autocmds.registerAutocmd(opts as AutocmdOptionWithStack)
     if (disposables) disposables.push(disposable)
     return disposable
   }

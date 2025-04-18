@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-18
+
+- Add `nvim.createAugroup()`, `nvim.createAutocmd()` and `nvim.deleteAutocmd()`.
+- Add `buffer` `once` and `nested` support to `workspace.registerAutocmd()`.
+- Not throw error from autocmd callback, log the error with register call stack.
+
 ## 2025-04-17
 
 - Support `$COC_VIM_CHANNEL_ENABLE` for enable channel log on vim9.

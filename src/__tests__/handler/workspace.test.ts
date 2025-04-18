@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import { Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
@@ -9,12 +10,11 @@ import events from '../../events'
 import extensions from '../../extension'
 import WorkspaceHandler from '../../handler/workspace'
 import languages from '../../languages'
-import { v4 as uuid } from 'uuid'
+import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
-import snippetManager from '../../snippets/manager'
 
 let nvim: Neovim
 let handler: WorkspaceHandler
@@ -42,6 +42,30 @@ describe('Workspace handler', () => {
     let lines = await buf.lines
     expect(lines.join('\n')).toMatch(content)
   }
+
+  describe('events', () => {
+    it('should reset autocmds of extensions', async () => {
+      workspace.registerAutocmd({
+        event: 'CursorHold',
+        callback: () => {},
+      })
+      workspace.registerAutocmd({
+        event: 'CursorMoved',
+        callback: () => {},
+      })
+      let obj = workspace.autocmds.autocmds.get(1)
+      Object.assign(obj, { _extensiionName: 'test' })
+      let m = extensions.manager as any
+      m._onDidUnloadExtension.fire('test')
+      let map = workspace.autocmds.autocmds
+      let arr = Array.from(map.keys())
+      expect(arr).toEqual([2])
+      let output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
+      expect(output).toMatch('CursorMoved')
+      expect(output.includes('CursorHold')).toBe(false)
+      nvim.command('autocmd! coc_dynamic_autocmd', true)
+    })
+  })
 
   describe('commands', () => {
     it('should check filetype', async () => {

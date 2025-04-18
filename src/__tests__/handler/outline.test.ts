@@ -5,6 +5,7 @@ import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 import Parser from './parser'
@@ -40,7 +41,6 @@ afterAll(async () => {
 
 afterEach(async () => {
   disposeAll(disposables)
-  disposables = []
   await helper.reset()
   await nvim.command(`let w:cocViewId = ''`)
 
@@ -72,6 +72,56 @@ describe('symbols outline', () => {
     return buf
   }
 
+  describe('actions', () => {
+    it('should invoke selected code action', async () => {
+      const codeAction = CodeAction.create('my action', CodeActionKind.Refactor)
+      let uri: string
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: () => [codeAction],
+        resolveCodeAction: (action): ProviderResult<CodeAction> => {
+          action.edit = {
+            changes: {
+              [uri]: [TextEdit.del(Range.create(0, 0, 0, 5))]
+            }
+          }
+          return action
+        }
+      }, undefined))
+      await createBuffer()
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      let doc = workspace.getDocument(bufnr)
+      uri = doc.uri
+      await symbols.showOutline(0)
+      await helper.waitValue(async () => {
+        let id = await nvim.eval('get(w:,"cocViewId",v:null)')
+        return id != null
+      }, true)
+      await nvim.call('cursor', [3, 1])
+      let spy = jest.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+        return Promise.resolve(0)
+      })
+      await nvim.input('<tab>')
+      await helper.waitValue(async () => {
+        return await nvim.eval('getline(1)')
+      }, ' myClass {')
+      spy.mockRestore()
+    })
+
+    it('should invoke visual select', async () => {
+      await createBuffer()
+      let bufnr = await nvim.call('bufnr', ['%'])
+      await symbols.showOutline(0)
+      await helper.waitFor('getline', [3], /fun1/)
+      await nvim.command('exe 3')
+      await nvim.input('<tab>')
+      await helper.waitPrompt()
+      await nvim.input('<cr>')
+      await helper.waitFor('mode', [], 'v')
+      let buf = await nvim.buffer
+      expect(buf.id).toBe(bufnr)
+    })
+  })
+
   describe('configuration', () => {
     it('should follow cursor', async () => {
       await createBuffer(`  class myClass {
@@ -84,7 +134,7 @@ describe('symbols outline', () => {
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
       await events.fire('CursorHold', [curr, [3, 1]])
-      await helper.wait(50)
+      await helper.wait(30)
       await nvim.call('cursor', [1, 1])
       await events.fire('CursorHold', [curr, [1, 1]])
       await helper.wait(30)
@@ -107,7 +157,7 @@ describe('symbols outline', () => {
     })
 
     it('should not follow cursor', async () => {
-      helper.updateConfiguration('outline.followCursor', false,)
+      helper.updateConfiguration('outline.followCursor', false, disposables)
       await createBuffer()
       let curr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(0)
@@ -122,7 +172,7 @@ describe('symbols outline', () => {
     })
 
     it('should keep current window', async () => {
-      helper.updateConfiguration('outline.keepWindow', true)
+      helper.updateConfiguration('outline.keepWindow', true, disposables)
       await createBuffer()
       let curr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline()
@@ -131,7 +181,7 @@ describe('symbols outline', () => {
     })
 
     it('should check on buffer switch', async () => {
-      helper.updateConfiguration('outline.checkBufferSwitch', true)
+      helper.updateConfiguration('outline.checkBufferSwitch', true, disposables)
       let b = await createBuffer()
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
@@ -151,7 +201,7 @@ describe('symbols outline', () => {
     })
 
     it('should not check on buffer switch', async () => {
-      helper.updateConfiguration('outline.checkBufferSwitch', false)
+      helper.updateConfiguration('outline.checkBufferSwitch', false, disposables)
       await createBuffer()
       await symbols.showOutline(1)
       await helper.edit('unnamed')
@@ -164,7 +214,7 @@ describe('symbols outline', () => {
     })
 
     it('should not check on buffer reload', async () => {
-      helper.updateConfiguration('outline.checkBufferSwitch', false)
+      helper.updateConfiguration('outline.checkBufferSwitch', false, disposables)
       await symbols.showOutline(1)
       await createBuffer()
       await helper.wait(50)
@@ -192,7 +242,7 @@ fun1() {}
   fun2() { }
   fun1() {}
 }`
-      helper.updateConfiguration('outline.sortBy', 'position',)
+      helper.updateConfiguration('outline.sortBy', 'position', disposables)
       await createBuffer(code)
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
@@ -207,7 +257,7 @@ fun1() {}
   fun2() {}
   fun1() {}
 }`
-      helper.updateConfiguration('outline.sortBy', 'name')
+      helper.updateConfiguration('outline.sortBy', 'name', disposables)
       await createBuffer(code)
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
@@ -218,7 +268,7 @@ fun1() {}
     })
 
     it('should change sort method', async () => {
-      helper.updateConfiguration('outline.detailAsDescription', false)
+      helper.updateConfiguration('outline.detailAsDescription', false, disposables)
       let code = `class detail {
   fun2() {}
   fun1() {}
@@ -237,7 +287,7 @@ fun1() {}
     })
 
     it('should show detail as description', async () => {
-      helper.updateConfiguration('outline.detailAsDescription', true)
+      helper.updateConfiguration('outline.detailAsDescription', true, disposables)
       let code = `class detail {
   fun2() {}
 }`
@@ -251,7 +301,7 @@ fun1() {}
     })
 
     it('should not showLineNumber', async () => {
-      helper.updateConfiguration('outline.showLineNumber', false)
+      helper.updateConfiguration('outline.showLineNumber', false, disposables)
       let code = `class detail {
   fun2() {}
 }`
@@ -471,7 +521,7 @@ fun1() {}
     })
 
     it('should enable auto preview by configuration', async () => {
-      helper.updateConfiguration('outline.autoPreview', true)
+      helper.updateConfiguration('outline.autoPreview', true, disposables)
       await createBuffer()
       await symbols.showOutline(0)
       await helper.waitFor('getline', [3], /fun1/)
@@ -481,66 +531,17 @@ fun1() {}
     })
   })
 
-  describe('actions', () => {
-    it('should invoke visual select', async () => {
-      await createBuffer()
-      let bufnr = await nvim.call('bufnr', ['%'])
-      await symbols.showOutline(0)
-      await helper.waitFor('getline', [3], /fun1/)
-      await nvim.command('exe 3')
-      await nvim.input('<tab>')
-      await helper.waitPrompt()
-      await nvim.input('<cr>')
-      await helper.waitFor('mode', [], 'v')
-      let buf = await nvim.buffer
-      expect(buf.id).toBe(bufnr)
-    })
-
-    it('should invoke selected code action', async () => {
-      const codeAction = CodeAction.create('my action', CodeActionKind.Refactor)
-      let uri: string
-      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
-        provideCodeActions: () => [codeAction],
-        resolveCodeAction: (action): ProviderResult<CodeAction> => {
-          action.edit = {
-            changes: {
-              [uri]: [TextEdit.del(Range.create(0, 0, 0, 5))]
-            }
-          }
-          return action
-        }
-      }, undefined))
-      await createBuffer()
-      let bufnr = await nvim.call('bufnr', ['%']) as number
-      let doc = workspace.getDocument(bufnr)
-      uri = doc.uri
-      await symbols.showOutline(0)
-      await helper.waitValue(async () => {
-        let id = await nvim.eval('get(w:,"cocViewId",v:null)')
-        return id != null
-      }, true)
-      await nvim.call('cursor', [3, 1])
-      await nvim.input('<tab>')
-      await helper.waitFloat()
-      await nvim.input('<cr>')
-      await helper.waitValue(async () => {
-        return await nvim.eval('getline(1)')
-      }, ' myClass {')
-    })
-  })
-
   describe('hide()', () => {
     it('should hide outline', async () => {
       await createBuffer('')
       await helper.doAction('showOutline', 1)
-      await helper.wait(10)
       await helper.doAction('hideOutline')
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()
     })
 
     it('should auto hide outline on clicking', async () => {
-      helper.updateConfiguration('outline.autoHide', true)
+      helper.updateConfiguration('outline.autoHide', true, disposables)
       await createBuffer()
       await symbols.showOutline()
       await helper.waitFor('getline', [3], '    m fun1 2')

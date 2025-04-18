@@ -56,7 +56,7 @@ export default class Plugin {
     this.addAction('addWorkspaceFolder', (folder: string) => this.handler.workspace.addWorkspaceFolder(folder))
     this.addAction('removeWorkspaceFolder', (folder: string) => this.handler.workspace.removeWorkspaceFolder(folder))
     this.addAction('getConfig', (key: string) => this.handler.workspace.getConfiguration(key))
-    this.addAction('doAutocmd', (id: string, ...args: []) => this.handler.workspace.doAutocmd(id, args))
+    this.addAction('doAutocmd', (id: number, ...args: []) => this.handler.workspace.doAutocmd(id, args))
     this.addAction('openLog', () => this.handler.workspace.openLog())
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())

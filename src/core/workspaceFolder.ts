@@ -27,7 +27,10 @@ const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternTyp
 const checkPatternTimeout = getConditionValue(5000, 50)
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
-  if (!fsPath || !path.isAbsolute(fsPath)) return undefined
+  if (!fsPath || !path.isAbsolute(fsPath)) {
+    logger.error(`Invalid folder: ${fsPath}, full path required.`)
+    return undefined
+  }
   return {
     name: path.basename(fsPath),
     uri: URI.file(fsPath).toString()
@@ -120,7 +123,7 @@ export default class WorkspaceFolderController {
     if (typeof pathOrUri === 'string') {
       resource = URI.file(pathOrUri)
       p = pathOrUri
-    } else if (typeof pathOrUri !== 'undefined') {
+    } else if (pathOrUri != null) {
       resource = pathOrUri
       p = pathOrUri.fsPath
     }
@@ -237,7 +240,7 @@ export default class WorkspaceFolderController {
   }
 
   public getRootPatterns(document: Document, patternType: PatternType): ReadonlyArray<string> {
-    if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
+    if (patternType == PatternType.Buffer) return document.getVar('root_patterns', [])
     if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)
     return this.config.rootPatterns
   }

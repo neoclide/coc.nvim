@@ -3,7 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import helper from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -95,24 +95,22 @@ describe('request', () => {
   })
 
   it('should echo error instead of throw for autocmds request', async () => {
-    workspace.registerAutocmd({
-      event: 'BufWritePre',
-      request: true,
-      callback: () => {
-        throw new Error('Bad request')
-      }
-    }, disposables)
-    let file = await createTmpFile('', disposables)
-    await helper.createDocument(file)
-    await nvim.setLine('foo')
+    let disposable = events.on('CursorHold', async () => {
+      throw new Error('my error')
+    })
+    let s = jest.spyOn(events, 'fire').mockImplementation(() => {
+      return Promise.reject(new Error('my error'))
+    })
+    nvim.call('coc#rpc#request', ['CocAutocmd', ['CursorHold', 1, [1, 1]]], true)
     let spy = jest.spyOn(nvim, 'echoError').mockImplementation(() => {
       called = true
     })
-    nvim.command('wa', true)
     let called = false
     await helper.waitValue(() => {
       return called
     }, true)
+    disposable.dispose()
+    s.mockRestore()
     spy.mockRestore()
   })
 })

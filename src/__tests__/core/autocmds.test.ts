@@ -1,13 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { createCommand, getAutoCmdText } from '../../core/autocmds'
+import { AutocmdItem, createCommand, toAutocmdOption } from '../../core/autocmds'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { getEnd } from '../../util/position'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -114,50 +113,73 @@ describe('contentProvider', () => {
 })
 
 describe('setupDynamicAutocmd()', () => {
-  it('should get autocmd text', async () => {
-    let text = getAutoCmdText({
-      event: 'BufWinLeave',
-      callback: function foo() {}
-    })
-    expect(text).toBe('BufWinLeave function foo() {}')
-    text = getAutoCmdText({
-      event: ['BufWinLeave', 'BufEnter'],
-      arglist: ['arg'],
-      callback: function foo() {}
-    })
-    expect(text).toBe('BufWinLeave BufEnter arg function foo() {}')
-    text = getAutoCmdText({
-      event: 'BufWinLeave',
-      arglist: ['a', 'b'],
-      pattern: '*',
+  afterEach(() => {
+    nvim.command(`autocmd! coc_dynamic_autocmd`, true)
+  })
+
+  it('should create command', () => {
+    let res = createCommand(1, 'BufEnter', {
+      callback: () => {},
+      event: ['User Jump'],
+      once: true,
+      nested: true,
+      arglist: ['3', '4'],
       request: true,
-      callback: function bar() {}
     })
-    expect(text).toBe('BufWinLeave * request a b function bar() {}')
+    expect(res).toBe(`autocmd coc_dynamic_autocmd BufEnter ++once ++nested  call coc#rpc#request('doAutocmd', [1, 3, 4])`)
   })
 
-  it('should create command', async () => {
-    let callback = () => {}
-    expect(createCommand('1', { callback, event: 'event', arglist: [], pattern: '*', request: true })).toMatch('event')
-    expect(createCommand('1', { callback, event: 'event', arglist: ['foo'] })).toMatch('foo')
-    expect(createCommand('1', { callback, event: ['foo', 'bar'], arglist: [] })).toMatch('foo')
-    expect(createCommand('1', { callback, event: 'user Event', arglist: [] })).toMatch('user')
+  it('should convert to autocmd option ', () => {
+    let item = new AutocmdItem(1, {
+      stack: '',
+      buffer: 1,
+      pattern: '*.js',
+      once: true,
+      nested: true,
+      arglist: ['2', '3'],
+      event: 'BufEnter', callback: () => {}
+    })
+    let res = toAutocmdOption(item)
+    expect(res).toEqual({
+      group: "coc_dynamic_autocmd",
+      buffer: 1,
+      pattern: "*.js",
+      once: true,
+      nested: true,
+      command: "call coc#rpc#notify('doAutocmd', [1, 2, 3])"
+    })
   })
 
-  it('should setup autocmd on vim', async () => {
+  it('should setup autocmd', async () => {
     await nvim.setLine('foo')
-    let called = false
+    let times = 0
     let disposable = workspace.registerAutocmd({
-      event: 'CursorMoved',
+      event: ['CursorMoved'],
       request: true,
       callback: () => {
-        called = true
+        times++
       }
     })
-    await helper.wait(50)
-    await nvim.command('normal! $')
+    nvim.command('doautocmd <nomodeline> CursorMoved', true)
+    await helper.waitValue(() => times, 1)
+    disposable.dispose()
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.wait(10)
+    expect(times).toBe(1)
+  })
+
+  it('should not throw on autocmd callback error', async () => {
+    let called = false
+    let disposable = workspace.registerAutocmd({
+      event: 'CursorHold',
+      request: false,
+      callback: () => {
+        called = true
+        throw new Error('my error')
+      }
+    })
+    nvim.command('doautocmd <nomodeline> CursorHold', true)
     await helper.waitValue(() => called, true)
-    expect(called).toBe(true)
     disposable.dispose()
   })
 
@@ -165,12 +187,10 @@ describe('setupDynamicAutocmd()', () => {
     let called = false
     workspace.registerAutocmd({
       event: 'User CocJumpPlaceholder',
-      request: true,
       callback: () => {
         called = true
       }
     })
-    await helper.wait(50)
     await nvim.command('doautocmd <nomodeline> User CocJumpPlaceholder')
     await helper.waitValue(() => called, true)
   })
@@ -178,7 +198,7 @@ describe('setupDynamicAutocmd()', () => {
 
 describe('doAutocmd()', () => {
   it('should not throw when command id does not exist', async () => {
-    await workspace.autocmds.doAutocmd('999', [])
+    await workspace.autocmds.doAutocmd(999, [])
   })
 
   it('should dispose', async () => {

@@ -4020,6 +4020,48 @@ declare module 'coc.nvim' {
     text_wrap?: 'wrap' | 'truncate'
   }
 
+  export interface AugroupOption {
+    /**
+     * Clear the all autocmds before create autocmd group, default to `true`.
+     */
+    clear?: boolean
+  }
+
+  interface AutocmdOption {
+    /**
+     * Group name or group id from `nvim.createAugroup()`, see `:h autocmd-groups`.
+     */
+    group?: string | number
+    /**
+     * Pattern to match, see `:h autocmd-pattern`.
+     */
+    pattern?: string | string[]
+    /**
+     * Buffer number for buflocal autocommand, see `:h autocmd-buflocal`.
+     */
+    buffer?: number
+    /**
+    * Description test, not used on vim9.
+    */
+    desc?: string
+    /**
+     * Vim command to run when trigger autocommand.
+     */
+    command?: string
+    /**
+     * See `:h autocmd-once`.
+     */
+    once?: boolean
+    /**
+     * See `:h autocmd-nested`.
+     */
+    nested?: boolean
+    /**
+     * Vim9 only, see `:h autocmd_add()`
+     */
+    replace?: boolean
+  }
+
   interface BaseApi<T> {
     /**
      * unique identify number
@@ -4492,6 +4534,33 @@ declare module 'coc.nvim' {
      * Gets width(display cells) of string.
      */
     strWidth(str: string): Promise<number>
+
+    /**
+     * Create autocmd group with {name} and {option}
+     */
+    createAugroup(name: string, option?: AugroupOption): Promise<number>
+
+    /**
+     * Create autocmd group with {name} and {option}, use notification to vim.
+     */
+    createAugroup(name: string, option: AugroupOption, isNotify: true): void
+
+    /**
+     * Create autocmd with {event} and {option}
+     */
+    createAutocmd(event: string | string[], option?: AutocmdOption): Promise<number>
+
+    /**
+     * Create autocmd with {event} and {option}
+     */
+    createAutocmd(event: string | string[], option: AutocmdOption, isNotify: true): void
+
+    /**
+     * Delete autocmd with {id} returned from `nvim.createAutocmd()`
+     * Notice: vim9 can't support delete specific autocmd yet, autocmds which
+     * have the same `group` `event` `pattern` are all cleared.
+     */
+    deleteAutocmd(id: number): void
 
     /**
      * Gets a list of dictionaries representing attached UIs.
@@ -8357,15 +8426,27 @@ declare module 'coc.nvim' {
     /**
      * Callback functions that called with evaled arglist as arguments.
      */
-    callback: Function
+    callback: (...args: any[]) => void | Promise<void>
     /**
      * Match pattern, default to `*`.
      */
-    pattern?: string
+    pattern?: string | string[]
     /**
      * Vim expression that eval to arguments of callback, default to `[]`
      */
     arglist?: string[]
+    /**
+     * buffer number for buffer-local autocommand.
+     */
+    buffer?: number
+    /**
+     * the command is executed once when `true`, see `:h autocmd-once`
+     */
+    once?: boolean
+    /**
+     * allow nested autocmd when `true`, see `:h autocmd-nested`
+     */
+    nested?: boolean
     /**
      * Use request when `true`, use notification by default.
      */
@@ -12711,4 +12792,4 @@ declare module 'coc.nvim' {
   }
   // }}
 }
-// vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
+// vim: set tw=80 sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
