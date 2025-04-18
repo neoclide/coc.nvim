@@ -168,7 +168,7 @@ export class Workspace {
     this.contentProvider.attach(nvim)
     this.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     this.keymaps.attach(nvim)
-    this.autocmds.attach(nvim, env)
+    this.autocmds.attach(nvim)
     this.watchers.attach(nvim, env)
     this.watchers.watchOption('runtimepath', async (oldValue: string, newValue: string) => {
       let oldList: string[] = oldValue.split(',')

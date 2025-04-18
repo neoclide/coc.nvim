@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { AutocmdItem, createCommand, toAutocmdOption } from '../../core/autocmds'
 import events from '../../events'
@@ -199,6 +199,32 @@ describe('setupDynamicAutocmd()', () => {
 describe('doAutocmd()', () => {
   it('should not throw when command id does not exist', async () => {
     await workspace.autocmds.doAutocmd(999, [])
+  })
+
+  it('should cancel timeout request autocmd', async () => {
+    let cancelled = false
+    workspace.autocmds.registerAutocmd({
+      event: ['CursorMoved'],
+      request: true,
+      callback: (token: CancellationToken) => {
+        return new Promise(resolve => {
+          let timer = setTimeout(() => {
+            resolve()
+          }, 5000)
+          token.onCancellationRequested(() => {
+            cancelled = true
+            clearTimeout(timer)
+            resolve()
+          })
+        })
+      },
+      stack: ''
+    })
+    let autocmds = workspace.autocmds.autocmds
+    let keys = autocmds.keys()
+    let max = Math.max(...Array.from(keys))
+    await workspace.autocmds.doAutocmd(max, [], 10)
+    expect(cancelled).toBe(true)
   })
 
   it('should dispose', async () => {

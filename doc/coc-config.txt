@@ -329,6 +329,14 @@ EDITOR
 
 	Scope: `language-overridable`, default: `{}`
 
+							*coc-config-editor-autocmdTimeout*
+
+"editor.autocmdTimeout"
+
+	Timeout for execute request autocmd registered by coc extensions.
+
+	Scope: `application`, default: `1000`
+
 ------------------------------------------------------------------------------
 FLOATfACTORY
 							*coc-config-floatFactory*

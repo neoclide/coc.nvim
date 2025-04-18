@@ -1268,6 +1268,14 @@
       "scope": "resource",
       "description": "Timeout for document highlight, in milliseconds."
     },
+    "editor.autocmdTimeout": {
+      "type": "integer",
+      "default": 1000,
+      "minimum": 100,
+      "maximum": 5000,
+      "scope": "application",
+      "description": "Timeout for execute request autocmd registered by coc extensions."
+    },
     "editor.codeActionsOnSave": {
       "additionalProperties": {
         "type": ["string", "boolean"],

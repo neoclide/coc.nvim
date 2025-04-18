@@ -5,13 +5,8 @@ import { Autocmd } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { omit } from '../util/lodash'
-import { Disposable } from '../util/protocol'
+import { CancellationTokenSource, Disposable } from '../util/protocol'
 const logger = createLogger('autocmds')
-
-interface PartialEnv {
-  isVim: boolean
-  version: string
-}
 
 interface AutocmdOption {
   group?: string | number
@@ -62,25 +57,36 @@ export function toAutocmdOption(item: AutocmdItem): AutocmdOption {
 export default class Autocmds implements Disposable {
   public readonly autocmds: Map<number, AutocmdItem> = new Map()
   private nvim: Neovim
-  private env: PartialEnv
   private id = 0
 
-  public attach(nvim: Neovim, env: PartialEnv): void {
+  public attach(nvim: Neovim): void {
     this.nvim = nvim
-    this.env = env
   }
 
-  public async doAutocmd(id: number, args: any[]): Promise<void> {
+  public async doAutocmd(id: number, args: any[], timeout = 1000): Promise<void> {
     let autocmd = this.autocmds.get(id)
     if (autocmd) {
       let option = autocmd.option
-      // TODO add timeout limit for request
-      // autocmd.option.request
       logger.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option)
       try {
-        await Promise.resolve(option.callback.apply(option.thisArg, args))
+        let tokenSource = new CancellationTokenSource()
+        let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]))
+        if (option.request) {
+          let timer
+          let tp = new Promise(resolve => {
+            timer = setTimeout(() => {
+              tokenSource.cancel()
+              logger.error(`Autocmd timeout after ${timeout}ms`, omit(option, ['callback', 'stack']), autocmd.option.stack)
+              resolve(undefined)
+            }, timeout)
+          })
+          await Promise.race([tp, promise])
+          clearTimeout(timer)
+          tokenSource.dispose()
+        } else {
+          await promise
+        }
       } catch (e) {
-        e['stack'] = autocmd.option.stack
         logger.error(`Error on autocmd "${option.event}"`, omit(option, ['callback', 'stack']), e)
       }
     }
