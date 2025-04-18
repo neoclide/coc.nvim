@@ -345,12 +345,23 @@ describe('window', () => {
     })
 
     it('should use notification for message', async () => {
-      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
       let p = window.showErrorMessage('error message')
       await helper.waitFloat()
       await nvim.call('coc#float#close_all', [])
       let res = await p
       expect(res).toBeUndefined()
+    })
+
+    it('should show confirm for message', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', false)
+      let p = window.showInformationMessage('error message', 'first', 'second')
+      await helper.waitValue(async () => {
+        let m = await nvim.mode
+        return m.mode
+      }, 'c')
+      await nvim.input('2')
+      let res = await p
+      expect(res).toBe('second')
     })
 
     it('should prefer menu picker for notification message', async () => {

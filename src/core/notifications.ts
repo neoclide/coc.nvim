@@ -57,11 +57,12 @@ export class Notifications {
   constructor(private dialogs: Dialogs) {
   }
 
-  public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
+  public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind)
+    let stack = Error().stack
     if (items.length > 0) {
       let source = parseExtensionName(stack)
-      return await this.showMessagePicker(`Choose action ${source ? `(${source})` : ''}`, message, `Coc${kind}Float`, items)
+      return await this.showMessagePicker(`Choose action ${toText(source)}`, message, `Coc${kind}Float`, items)
     }
     await this.createNotification(kind.toLowerCase() as NotificationKind, message, [], stack)
     return undefined

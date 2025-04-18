@@ -352,8 +352,7 @@ export class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showInformationMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    let stack = Error().stack
-    return await this.notifications._showMessage('Info', message, items, stack)
+    return await this.notifications._showMessage('Info', message, items)
   }
 
   /**
@@ -364,8 +363,7 @@ export class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showWarningMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    let stack = Error().stack
-    return await this.notifications._showMessage('Warning', message, items, stack)
+    return await this.notifications._showMessage('Warning', message, items)
   }
 
   /**
@@ -376,8 +374,7 @@ export class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    let stack = Error().stack
-    return await this.notifications._showMessage('Error', message, items, stack)
+    return await this.notifications._showMessage('Error', message, items)
   }
 
   public async showNotification(config: NotificationConfig): Promise<void> {

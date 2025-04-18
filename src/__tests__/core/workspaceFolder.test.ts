@@ -45,7 +45,7 @@ afterAll(async () => {
 
 describe('WorkspaceFolderController', () => {
   describe('asRelativePath()', () => {
-    function assertAsRelativePath(input: string, expected: string, includeWorkspace?: boolean) {
+    function assertAsRelativePath(input: string | URI, expected: string, includeWorkspace?: boolean) {
       const actual = workspaceFolder.getRelativePath(input, includeWorkspace)
       expect(actual).toBe(expected)
     }
@@ -58,6 +58,8 @@ describe('WorkspaceFolderController', () => {
       assertAsRelativePath('', '')
       assertAsRelativePath('/foo/bar', '/foo/bar')
       assertAsRelativePath('in/out', 'in/out')
+      assertAsRelativePath(null, '')
+      assertAsRelativePath(URI.file('/tmp'), '/tmp')
     })
 
     it('should asRelativePath, same paths, #11402', async () => {
@@ -282,6 +284,12 @@ describe('WorkspaceFolderController', () => {
       expect(e.removed.length).toBe(1)
       expect(e.added.length).toBe(0)
     })
+
+    it('should not throw for invalid folder', async () => {
+      workspaceFolder.addWorkspaceFolder('tmp', false)
+      workspaceFolder.removeWorkspaceFolder('tmp')
+      workspaceFolder.renameWorkspaceFolder('tmp', 'other')
+    })
   })
 
   describe('checkPatterns()', () => {
@@ -292,6 +300,15 @@ describe('WorkspaceFolderController', () => {
       expect(res).toBe(true)
       res = await workspaceFolder.checkPatterns([folder], ['**/not_exists'])
       expect(res).toBe(false)
+    })
+
+    it('should not throw when checkFolder throw error', async () => {
+      let spy = jest.spyOn(workspaceFolder, 'checkFolder').mockImplementation(() => {
+        return Promise.reject(new Error('error'))
+      })
+      let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
+      await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
+      spy.mockRestore()
     })
 
     it('should not throw on timeout', async () => {
