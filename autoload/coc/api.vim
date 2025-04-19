@@ -747,7 +747,7 @@ export def Create_autocmd(event: any, option: dict<any> = {}): number
     opt.nested = true
   endif
   if get(option, 'once', false) == true
-    opt.nested = true
+    opt.once = true
   endif
   if has_key(option, 'pattern')
     opt.pattern = option.pattern
