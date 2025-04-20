@@ -48,7 +48,7 @@ export default class FormatHandler {
           let tokenSource = new CancellationTokenSource()
           const tp = new Promise<undefined>(c => {
             timer = setTimeout(() => {
-              logger.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`)
+              logger.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, event.document.uri)
               tokenSource.cancel()
               c(undefined)
             }, formatOnSaveTimeout)

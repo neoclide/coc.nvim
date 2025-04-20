@@ -1,14 +1,16 @@
 'use strict'
 import type Documents from '../core/documents'
-import events from '../events'
+import events, { VisibleEvent } from '../events'
 import { DidChangeTextDocumentParams } from '../types'
 import { disposeAll } from '../util'
+import * as Is from '../util/is'
 import { Disposable } from '../util/protocol'
 import type Document from './document'
 
 export interface SyncItem extends Disposable {
   onChange?(e: DidChangeTextDocumentParams): void
   onTextChange?(): void
+  onVisible?(winid: number, region: Readonly<[number, number]>)
 }
 
 /**
@@ -32,12 +34,20 @@ export default class BufferSync<T extends SyncItem> {
       this.delete(e.bufnr)
     }, null, disposables)
     events.on('LinesChanged', this.onTextChange, this, disposables)
+    events.on('WindowVisible', this.onVisible, this, disposables)
   }
 
   private onTextChange(bufnr: number): void {
     let o = this.itemsMap.get(bufnr)
-    if (o && typeof o.item.onTextChange == 'function') {
+    if (o && Is.func(o.item.onTextChange)) {
       o.item.onTextChange()
+    }
+  }
+
+  private onVisible(ev: VisibleEvent): void {
+    let o = this.itemsMap.get(ev.bufnr)
+    if (o && typeof o.item.onVisible === 'function') {
+      o.item.onVisible(ev.winid, ev.region)
     }
   }
 

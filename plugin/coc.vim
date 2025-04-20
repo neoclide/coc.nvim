@@ -295,15 +295,26 @@ function! s:HandleWinScrolled(winid, event) abort
     call coc#float#nvim_scrollbar(a:winid)
   endif
   if !empty(a:event)
+    let opt = get(a:event, 'all', {})
+    if get(opt, 'topline', 0) == 0 && get(opt, 'height', 0) == 0
+      " visible region not changed.
+      return
+    endif
     for key in keys(a:event)
       let winid = str2nr(key)
       if winid != 0
-        call s:Autocmd('WinScrolled', winid, winbufnr(winid))
+        let info = getwininfo(winid)
+        if !empty(info)
+          call s:Autocmd('WinScrolled', winid, info[0]['bufnr'], [info[0]['topline'], info[0]['botline']])
+        endif
       endif
     endfor
   else
     " v:event not exists on old version vim9
-    call s:Autocmd('WinScrolled', a:winid, winbufnr(a:winid))
+    let info = getwininfo(a:winid)
+    if !empty(info)
+      call s:Autocmd('WinScrolled', a:winid, info[0]['bufnr'], [info[0]['topline'], info[0]['botline']])
+    endif
   endif
 endfunction
 
@@ -399,7 +410,7 @@ function! s:Enable(initialize)
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
     autocmd WinEnter            * call s:Autocmd('WinEnter', win_getid())
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
-    autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
+    autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid(), coc#window#visible_range(win_getid()))
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')

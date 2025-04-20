@@ -34,17 +34,17 @@ describe('register handler', () => {
 
   it('should fire visible event once', async () => {
     let fn = jest.fn()
-    let args
-    events.once('WindowVisible', (winid, bufnr) => {
-      args = [winid, bufnr]
+    let event
+    events.once('WindowVisible', ev => {
+      event = ev
       fn()
     })
-    await events.fire('BufWinEnter', [1, 1000])
-    await events.fire('WinScrolled', [1000, 2])
+    await events.fire('BufWinEnter', [1, 1000, [1, 2]])
+    await events.fire('WinScrolled', [1000, 2, [2, 3]])
     await wait(20)
     await events.fire('WinClosed', [1000])
     expect(fn).toHaveBeenCalledTimes(1)
-    expect(args).toEqual([1000, 2])
+    expect(event).toEqual({ bufnr: 2, winid: 1000, region: [2, 3] })
   })
 
   it('should cancel visible event', async () => {
@@ -74,20 +74,14 @@ describe('register handler', () => {
   })
 
   it('should track slow handler', async () => {
-    let fn = jest.fn()
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
-      fn()
-    })
     events.on('BufWritePre', async () => {
       await wait(50)
     }, null, disposables)
     events.timeout = 20
     events.requesting = true
     await events.fire('BufWritePre', [1, '', 1])
-    spy.mockRestore()
     events.requesting = false
     events.timeout = 1000
-    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should on throw on handler error', async () => {
