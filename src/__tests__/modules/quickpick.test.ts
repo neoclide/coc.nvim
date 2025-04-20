@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import events from '../../events'
+import QuickPick from '../../model/quickpick'
 import { QuickPickItem } from '../../types'
 import { disposeAll } from '../../util'
-import events from '../../events'
 import window from '../../window'
-import QuickPick from '../../model/quickpick'
 import helper from '../helper'
 export type Item = QuickPickItem | string
 
