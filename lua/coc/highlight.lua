@@ -17,7 +17,7 @@ function M.getHighlights(bufnr, key, s, e)
     local id = mark[1]
     local line = mark[2]
     local startCol = mark[3]
-    local details = mark[4]
+    local details = mark[4] or {}
     local endCol = details.end_col
     if line < max then
       local delta = details.end_row - line
@@ -38,9 +38,6 @@ function M.getHighlights(bufnr, key, s, e)
 end
 
 local function addHighlights(bufnr, ns, highlights, priority)
-  if not api.nvim_buf_is_loaded(bufnr) then
-    return false
-  end
   for _, items in ipairs(highlights) do
     local hlGroup = items[1]
     local line = items[2]
@@ -56,24 +53,21 @@ local function addHighlights(bufnr, ns, highlights, priority)
           priority = type(priority) == 'number' and math.min(priority, 4096) or 4096
     })
   end
-  return true
 end
 
 local function addHighlightTimer(bufnr, ns, highlights, priority, changedtick, maxCount)
-  if api.nvim_buf_get_var(bufnr, 'changedtick') > changedtick then
+  if not api.nvim_buf_is_loaded(bufnr) then
+    return nil
+  end
+  if vim.fn.getbufvar(bufnr, 'changedtick', 0) ~= changedtick then
     return nil
   end
   local hls = {}
   local next = {}
-  for i, v in ipairs(highlights) do
-    if i < maxCount then
-      table.insert(hls, v)
-    else
-      table.insert(next, v)
-    end
-  end
-  local succeed = addHighlights(bufnr, ns, hls, priority)
-  if succeed and #next > 0 then
+  table.move(highlights, 1, maxCount, 1, hls)
+  table.move(highlights, maxCount + 1, #highlights, 1, next)
+  addHighlights(bufnr, ns, hls, priority)
+  if #next > 0 then
     vim.defer_fn(function()
       addHighlightTimer(bufnr, ns, next, priority, changedtick, maxCount)
     end, 10)
@@ -81,9 +75,12 @@ local function addHighlightTimer(bufnr, ns, highlights, priority, changedtick, m
 end
 
 function M.set(bufnr, ns, highlights, priority)
-  local maxCount = vim.g.coc_highlight_maximum_count
+  if not api.nvim_buf_is_loaded(bufnr) then
+    return nil
+  end
+  local maxCount = vim.g.coc_highlight_maximum_count or 500
   if #highlights > maxCount then
-    local changedtick = api.nvim_buf_get_var(bufnr, 'changedtick')
+    local changedtick = vim.fn.getbufvar(bufnr, 'changedtick')
     addHighlightTimer(bufnr, ns, highlights, priority, changedtick, maxCount)
   else
     addHighlights(bufnr, ns, highlights, priority)
