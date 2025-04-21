@@ -29,19 +29,26 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
 enddef
 
 def Add_highlights(bufnr: number, ns: number, highlights: any, priority: number): void
-  # TODO use prop_add_list()
+  final types = coc#api#GetNamespaceTypes(ns)->copy()
   for highlightItem in highlights
     const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = highlightItem
-    const combine: number = get(highlightItem, 4, 1)
-    const start_incl: number = get(highlightItem, 5, 0)
-    const end_incl: number = get(highlightItem, 6, 0)
-    const opts: dict<any> = {
-      'priority': priority,
-      'combine': combine,
-      'start_incl': start_incl,
-      'end_incl':  end_incl,
-    }
-    coc#api#Buf_add_highlight1(bufnr, ns, hlGroup, lnum, colStart, colEnd, opts)
+    const type: string = $'{hlGroup}_{ns}'
+    const propId: number = coc#api#GeneratePropId(bufnr)
+    if index(types, type) == -1
+      const opts: dict<any> = {
+        'priority': priority,
+        'hl_mode': get(highlightItem, 4, 1) ? 'combine' : 'override',
+        'start_incl': get(highlightItem, 5, 0),
+        'end_incl': get(highlightItem, 6, 0),
+      }
+      coc#api#CreateType(ns, hlGroup, opts)
+      add(types, type)
+    endif
+    try
+      prop_add(lnum + 1, colStart + 1, {'bufnr': bufnr, 'type': type, 'id': propId, 'end_col': colEnd + 1})
+    catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
+      # ignore 967
+    endtry
   endfor
 enddef
 

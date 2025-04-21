@@ -23,9 +23,14 @@ function disposeAll(disposables: Disposable[]): void {
 
 const disposables: Disposable[] = []
 let nvim: Neovim
+let featuredPropList = false
 beforeAll(async () => {
   await helper.setupVim()
   nvim = helper.workspace.nvim
+  // for text_padding_left of property
+  if (helper.workspace.has('patch-9.0.1782')) {
+    featuredPropList = true
+  }
 })
 
 afterEach(() => {
@@ -563,9 +568,11 @@ describe('Buffer API', () => {
     let props = await nvim.call('prop_list', [1, { types }]) as any[]
     expect(props.length).toBe(1)
     let prop = props[0]
-    expect(prop.text_align).toBe('above')
-    expect(prop.text_padding_left).toBe(2)
-    expect(prop.text).toBe('bar')
+    if (featuredPropList) {
+      expect(prop.text_align).toBe('above')
+      expect(prop.text_padding_left).toBe(2)
+      expect(prop.text).toBe('bar')
+    }
   })
 
   it('should set multiple virtual texts', async () => {
@@ -592,7 +599,9 @@ describe('Buffer API', () => {
     let prop = props[0]
     expect(prop.lnum).toBe(1)
     expect(prop.col).toBe(1)
-    expect(prop.text).toBe('0')
+    if (featuredPropList) {
+      expect(prop.text).toBe('0')
+    }
   })
 })
 
