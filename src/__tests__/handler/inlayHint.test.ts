@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
@@ -89,21 +89,19 @@ describe('InlayHint', () => {
   })
 
   describe('provideInlayHints', () => {
-    it('should throw when failed', async () => {
+    // not fail like VSCode
+    it('should not throw when failed', async () => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return Promise.reject(new Error('Test failure'))
         }
       }))
       let doc = await workspace.document
-      let fn = async () => {
-        let tokenSource = new CancellationTokenSource()
-        await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
-      }
-      await expect(fn()).rejects.toThrow(Error)
+      let tokenSource = new CancellationTokenSource()
+      await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
     })
 
-    it('should merge provide results', async () => {
+    it('should merge provider results', async () => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [InlayHint.create(Position.create(0, 0), 'foo')]
@@ -126,6 +124,18 @@ describe('InlayHint', () => {
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 3, 0), tokenSource.token)
       expect(res.length).toBe(2)
+    })
+
+    it('should not throw when provider return null', async () => {
+      disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          throw new CancellationError()
+        }
+      }))
+      let doc = await workspace.document
+      let item = handler.getItem(doc.bufnr)
+      item.clearCache()
+      await item.renderRange([0, 1], CancellationToken.Cancelled)
     })
 
     it('should resolve inlay hint', async () => {
@@ -224,6 +234,20 @@ describe('InlayHint', () => {
       helper.updateConfiguration('inlayHint.enable', true)
 
     })
+
+    it('should change position to eol', async () => {
+      helper.updateConfiguration('inlayHint.position', 'eol', disposables)
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(2)
+      for (const m of markers) {
+        let detail = m[3]
+        expect(detail['virt_text_pos']).toBe('eol')
+      }
+    })
   })
 
   describe('inlayHint setState', () => {
@@ -240,7 +264,7 @@ describe('InlayHint', () => {
     })
 
     it('should show message when not enabled', async () => {
-      helper.updateConfiguration('inlayHint.filetypes', [])
+      helper.updateConfiguration('inlayHint.filetypes', [], disposables)
       let doc = await helper.createDocument()
       let disposable = await registerProvider('')
       disposables.push(disposable)
@@ -364,12 +388,16 @@ describe('InlayHint', () => {
       let disposable = await registerProvider(content)
       disposables.push(disposable)
       await waitRefresh(buf.id)
-      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      let len = markers.length
+      let item = handler.getItem(buf.id)
+      item.clearVirtualText()
+      item.clearCache()
       await nvim.command('normal! G')
       await waitRefresh(buf.id)
-      await nvim.input('<C-y>')
+      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      let len = markers.length
+      await nvim.command('normal! gg')
       await waitRefresh(buf.id)
+      await nvim.command('normal! G')
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBeGreaterThan(len)
     })
@@ -389,8 +417,8 @@ describe('InlayHint', () => {
       let called = 0
       let disposable = languages.registerInlayHintsProvider([{ language: 'vim' }], {
         provideInlayHints: () => {
-          if (called == 0) {
-            called++
+          called++
+          if (called == 1) {
             throw new CancellationError()
           }
           return []
@@ -398,10 +426,9 @@ describe('InlayHint', () => {
       })
       disposables.push(disposable)
       let filepath = await createTmpFile('a\n\b\nc\n', disposables)
-      let doc = await helper.createDocument(filepath)
+      await helper.createDocument(filepath)
       await nvim.command('setfiletype vim')
-      await waitRefresh(doc.buffer.id)
-      expect(called).toBe(1)
+      await helper.waitValue(() => called, 2)
     })
   })
 })

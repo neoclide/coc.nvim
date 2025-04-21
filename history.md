@@ -2,6 +2,16 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-21
+
+- Add `WindowVisible` event to `events`.
+- Add `onVisible()` support to `BufferSyncItem`.
+- Improve inlay hint:
+    - Use lua and vim9 for virtual text api.
+    - Add `coc#vtext#set()` for set multiple virtual texts.
+    - Render all inlay hints for the first time.
+    - Use `WindowVisible` event.
+
 ## 2025-04-18
 
 - Add `nvim.createAugroup()`, `nvim.createAutocmd()` and `nvim.deleteAutocmd()`.

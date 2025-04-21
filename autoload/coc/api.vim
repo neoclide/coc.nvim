@@ -307,7 +307,7 @@ def CreateArguments(opts: dict<any>): string
   return arguments
 enddef
 
-def GeneratePropId(bufnr: number): number
+export def GeneratePropId(bufnr: number): number
   const max: number = get(buffer_id, bufnr, prop_offset)
   const id: number = max + 1
   buffer_id[bufnr] = id
@@ -326,6 +326,9 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
     id_types[ns] = types
     if empty(prop_type_get(type))
       final type_option: dict<any> = {'highlight': hl}
+      if !hlexists(hl)
+        execute $'highlight default {hl} ctermfg=NONE'
+      endif
       const hl_mode: string = get(opts, 'hl_mode', 'combine')
       if hl_mode !=# 'combine'
         type_option['override'] = 1

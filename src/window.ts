@@ -229,7 +229,7 @@ export class Window {
    * @param bufnr Buffer number
    * @param ns Highlight namespace
    * @param items Highlight items
-   * @param region 0 based start and end line count (end exclusive)
+   * @param region 0 based start and end line count (end inclusive)
    * @param token CancellationToken
    * @returns {Promise<HighlightDiff | null>}
    */

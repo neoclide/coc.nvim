@@ -33,21 +33,21 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
     document: TextDocument,
     range: Range,
     token: CancellationToken
-  ): Promise<InlayHintWithProvider[] | null> {
+  ): Promise<InlayHintWithProvider[]> {
     let items = this.getProviders(document)
     let inlayHints: InlayHintWithProvider[] = []
-    await Promise.all(items.map(item => {
+    let results = await Promise.allSettled(items.map(async item => {
       let { id, provider } = item
-      return Promise.resolve(provider.provideInlayHints(document, range, token)).then(hints => {
-        if (!Array.isArray(hints) || token.isCancellationRequested) return
-        let noCheck = inlayHints.length == 0
-        for (let hint of hints) {
-          if (!isValidInlayHint(hint, range)) continue
-          if (!noCheck && inlayHints.findIndex(o => sameHint(o, hint)) != -1) continue
-          inlayHints.push({ providerId: id, ...hint })
-        }
-      })
+      let hints = await Promise.resolve(provider.provideInlayHints(document, range, token))
+      if (!Array.isArray(hints) || token.isCancellationRequested) return
+      let noCheck = inlayHints.length == 0
+      for (let hint of hints) {
+        if (!isValidInlayHint(hint, range)) continue
+        if (!noCheck && inlayHints.findIndex(o => sameHint(o, hint)) != -1) continue
+        inlayHints.push({ providerId: id, ...hint })
+      }
     }))
+    this.handleResults(results, 'provideInlayHints', token)
     return inlayHints
   }
 

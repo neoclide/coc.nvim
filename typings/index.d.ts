@@ -6984,7 +6984,7 @@ declare module 'coc.nvim' {
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
   type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
-  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled'
+  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled' | 'WindowVisible'
   type OptionValue = string | number | boolean
   type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
@@ -7056,6 +7056,15 @@ declare module 'coc.nvim' {
      * Caused by selection change (not initial or completed)
      */
     readonly move: boolean
+  }
+
+  export interface VisibleEvent {
+    winid: number
+    bufnr: number
+    /**
+    * 1 based, end inclusive topline, botline
+    */
+    region: [number, number]
   }
 
   /**
@@ -7141,7 +7150,18 @@ declare module 'coc.nvim' {
     export function on(event: 'InputChar', handler: (session: string, character: string, mode: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'PromptInsert', handler: (value: string, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'Command', handler: (name: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
-
+    /**
+     * Emitted on WinScrolled event of vim, with related `winid` and `bufnr`,
+     * `region` contains [topline, botline] which are 1 based, end enclusive
+     * (the same as the result from getwininfo()).
+     */
+    export function on(event: 'WinScrolled', handler: (winid: number, bufnr: number, region: Readonly<[number, number]>) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Emitted with debounce time (100ms) after `BufWinEnter` and `WinScrolled`
+     * for the change of window visible regions. To track visible changes of all
+     * attached buffers, use `workspace.registerBufferSync()` is recommended.
+     */
+    export function on(event: 'WindowVisible', handler: (event: VisibleEvent) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Fired after user insert character and made change to the buffer.
      * Fired after TextChangedI & TextChangedP event.
@@ -8768,9 +8788,16 @@ declare module 'coc.nvim' {
      */
     onChange?(e: DidChangeTextDocumentParams): void
     /**
-     * Called on TextChangedI & TextChanged events.
+     * Called when NodeJS client receive lines change event, could be before or
+     * after `TextChangedI` and `TextChangedP` events, but always before
+     * `TextDocumentContentChange` event.
      */
     onTextChange?(): void
+    /**
+     * Called on `WindowVisible` event when exists.
+     * `region` contains, 1 based, end inclusive topline, botline
+     */
+    onVisible?(winid: number, region: Readonly<[number, number]>): void
   }
 
   export interface BufferSync<T extends BufferSyncItem> {
@@ -9289,8 +9316,12 @@ declare module 'coc.nvim' {
     export function registerLocalKeymap(bufnr: number, mode: 'n' | 'i' | 'v' | 's' | 'x', lhs: string, fn: () => ProviderResult<any>, opts?: KeymapOption | boolean): Disposable
 
     /**
-     * Register for buffer sync objects, created item should be disposable
-     * and provide optional `onChange` which called when document change.
+     * Register for buffer sync objects, created sync object should be
+     * disposable and provide optional event handlers:
+     *
+     * - `onChange` called on `onDidChangeTextDocument` event.
+     * - `onTextChange` called on line change event from vim.
+     * - `onVisible` called on `WindowVisible` event.
      *
      * The document is always attached and not command line buffer.
      *
@@ -10466,7 +10497,7 @@ declare module 'coc.nvim' {
      * @param {number} bufnr - Buffer number
      * @param {string} ns - Highlight namespace
      * @param {HighlightItem[]} items - Highlight items
-     * @param {[number, number] | undefined} region - 0 based start line and end line (end exclusive)
+     * @param {[number, number] | undefined} region - 0 based start line and end line (end inclusive)
      * @param {CancellationToken} token - CancellationToken
      * @returns {Promise<HighlightDiff>}
      */

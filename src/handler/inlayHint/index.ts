@@ -48,14 +48,6 @@ export default class InlayHintHandler {
       let item = this.buffers.getItem(bufnr)
       if (item) item.onInsertEnter()
     }, null, this.disposables)
-    events.on('WinScrolled', async (winid, bufnr) => {
-      let buf = this.buffers.getItem(bufnr)
-      if (buf) await buf.render(winid)
-    }, null, this.disposables)
-    events.on('BufWinEnter', async (bufnr, winid) => {
-      let buf = this.buffers.getItem(bufnr)
-      if (buf) await buf.render(winid)
-    }, null, this.disposables)
     commands.register({
       id: 'document.toggleInlayHint',
       execute: (bufnr?: number) => {

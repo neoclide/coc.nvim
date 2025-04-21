@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid'
 import { Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import events from '../events'
+import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import { sameFile } from '../util/fs'
 import { type Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
@@ -551,6 +552,47 @@ describe('Buffer API', () => {
     buf2.deleteVar('foo')
     curr = await buf2.getVar('foo')
     expect(curr).toBeNull()
+  })
+
+  it('should add virtual text', async () => {
+    let buf = await nvim.buffer
+    await nvim.call('setline', ['.', '  foo'])
+    let ns = await nvim.createNamespace('virtual-text')
+    buf.setVirtualText(ns, 0, [['bar', 'MoreMsg']], { text_align: 'above', indent: true })
+    let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
+    let props = await nvim.call('prop_list', [1, { types }]) as any[]
+    expect(props.length).toBe(1)
+    let prop = props[0]
+    expect(prop.text_align).toBe('above')
+    expect(prop.text_padding_left).toBe(2)
+    expect(prop.text).toBe('bar')
+  })
+
+  it('should set multiple virtual texts', async () => {
+    let buf = await nvim.buffer
+    let arr = (new Array(10)).fill('foo')
+    await buf.setLines(arr)
+    let ns = await nvim.createNamespace('vtext-set')
+    let len = await buf.length
+    let items: VirtualTextItem[] = []
+    for (let i = 0; i < len; i++) {
+      items.push({
+        blocks: [[`${i}`, 'MoreMsg']],
+        line: i,
+        col: 1,
+        right_gravity: true,
+        virt_text_win_col: 0,
+        hl_mode: 'blend'
+      })
+    }
+    await nvim.call('coc#vtext#set', [buf.id, ns, items, false, 900])
+    let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
+    let props = await nvim.call('prop_list', [1, { types, end_lnum: len }]) as any[]
+    expect(props.length).toBe(10)
+    let prop = props[0]
+    expect(prop.lnum).toBe(1)
+    expect(prop.col).toBe(1)
+    expect(prop.text).toBe('0')
   })
 })
 

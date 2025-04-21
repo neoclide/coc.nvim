@@ -4294,7 +4294,7 @@ The easiest way is add `%{coc#status()}` to your 'statusline' option. Example: >
 
 	set statusline^=%{coc#status()}
 <
-You may need to use |CocStatusChange| for automatically refresh statusline: >
+Use |CocStatusChange| autocmd for automatically refresh statusline: >
 
 	autocmd User CocStatusChange redrawstatus
 <
@@ -4302,7 +4302,7 @@ You may need to use |CocStatusChange| for automatically refresh statusline: >
 
 							*coc-status-manual*
 
-Create function:
+Create function like:
 >
 	function! StatusDiagnostic() abort
 	  let info = get(b:, 'coc_diagnostic_info', {})

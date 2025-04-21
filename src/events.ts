@@ -31,7 +31,7 @@ export interface VisibleEvent {
   winid: number
   bufnr: number
   /**
-   * 1 based, end exclusive topline, botline
+   * 1 based, end inclusive topline, botline
    */
   region: [number, number]
 }
@@ -340,7 +340,8 @@ export class Events {
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'WinScrolled' | 'WindowVisible', handler: (event: VisibleEvent) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'WindowVisible', handler: (event: VisibleEvent) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'WinScrolled', handler: (winid: number, bufnr: number, region: Readonly<[number, number]>) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabClosed', handler: (tabids: number[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TabNew', handler: (tabid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
