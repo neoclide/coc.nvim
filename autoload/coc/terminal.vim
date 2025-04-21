@@ -42,7 +42,24 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     endif
   endfunction
 
-  if has('nvim')
+  if s:is_vim
+    let cmd = s:is_win ? join(a:cmd, ' ') : a:cmd
+    let res = term_start(cmd, {
+          \ 'cwd': cwd,
+          \ 'term_kill': s:is_win ? 'kill' : 'term',
+          \ 'term_finish': 'close',
+          \ 'exit_cb': {job, status -> s:OnExit(status)},
+          \ 'curwin': 1,
+          \ 'env': env,
+          \})
+    if res == 0
+      throw 'create terminal job failed'
+    endif
+    let job = term_getjob(bufnr)
+    let s:channel_map[bufnr] = job_getchannel(job)
+    wincmd p
+    return [bufnr, job_info(job).process]
+  else
     let job_id = termopen(a:cmd, {
           \ 'cwd': cwd,
           \ 'pty': v:true,
@@ -61,30 +78,19 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     wincmd p
     let s:channel_map[bufnr] = job_id
     return [bufnr, jobpid(job_id)]
-  else
-    let cmd = s:is_win ? join(a:cmd, ' ') : a:cmd
-    let res = term_start(cmd, {
-          \ 'cwd': cwd,
-          \ 'term_kill': s:is_win ? 'kill' : 'term',
-          \ 'term_finish': 'close',
-          \ 'exit_cb': {job, status -> s:OnExit(status)},
-          \ 'curwin': 1,
-          \ 'env': env,
-          \})
-    if res == 0
-      throw 'create terminal job failed'
-    endif
-    let job = term_getjob(bufnr)
-    let s:channel_map[bufnr] = job_getchannel(job)
-    wincmd p
-    return [bufnr, job_info(job).process]
   endif
 endfunction
 
 function! coc#terminal#send(bufnr, text, add_new_line) abort
   let chan = get(s:channel_map, a:bufnr, v:null)
   if empty(chan) | return| endif
-  if has('nvim')
+  if s:is_vim
+    if !a:add_new_line
+      call ch_sendraw(chan, a:text)
+    else
+      call ch_sendraw(chan, a:text.(s:is_win ? "\r\n" : "\n"))
+    endif
+  else
     let lines = split(a:text, '\v\r?\n')
     if a:add_new_line && !empty(lines[len(lines) - 1])
       if s:is_win
@@ -96,19 +102,13 @@ function! coc#terminal#send(bufnr, text, add_new_line) abort
     call chansend(chan, lines)
     let winid = bufwinid(a:bufnr)
     if winid != -1
-      call coc#compat#execute(winid, 'noa normal! G')
-    endif
-  else
-    if !a:add_new_line
-      call ch_sendraw(chan, a:text)
-    else
-      call ch_sendraw(chan, a:text.(s:is_win ? "\r\n" : "\n"))
+      call win_execute(winid, 'noa normal! G')
     endif
   endif
 endfunction
 
 function! coc#terminal#close(bufnr) abort
-  if has('nvim')
+  if !s:is_vim
     let job_id = get(s:channel_map, a:bufnr, 0)
     if !empty(job_id)
       silent! call chanclose(job_id)

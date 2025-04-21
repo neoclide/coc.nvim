@@ -42,6 +42,7 @@ LSP features 					|coc-lsp|
 Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
   Variables					|coc-variables|
+    Environment variables 			|coc-environment-variables|
     Buffer variables 				|coc-buffer-variables|
     Window variables 				|coc-window-variables|
     Global variables 				|coc-global-variables|
@@ -372,6 +373,7 @@ Related variables: ~
 Related highlight groups: ~
 
   • |CocFloating| For floating window background.
+  • |CocFloatBorder| Default border highlight group of floating window.
   • |CocFloatDividingLine| For dividing lines.
   • |CocFloatActive| For active parts.
   • |CocMenuSel| For selected line.
@@ -1667,6 +1669,28 @@ The Variables used by coc.nvim.
 
 --------------------------------------------------------------------------------
 
+ENVIRONMENT VARIABLES					*coc-environment-variables*
+
+$COC_NODE_PATH 						*$COC_NODE_PATH*
+
+	Full path of NodeJS executable to start the node process, `node`
+	command is used when the variable not exists.
+
+$VIMCONFIG
+
+	Full path of directory which used for contain the user configuration
+	file, not used when |g:coc_config_home| exists.
+
+$NODE_CLIENT_LOG_FILE
+
+	Full path of client log file, used when |g:node_client_debug| enabled.
+
+$COC_VIM_CHANNEL_ENABLE 				*$COC_VIM_CHANNEL_ENABLE*
+
+	Enable vim's channel log |ch_logfile()| when is "1".
+
+--------------------------------------------------------------------------------
+
 BUFFER VARIABLES					*coc-buffer-variables*
 
 b:coc_enabled						*b:coc_enabled*
@@ -1922,8 +1946,11 @@ g:coc_open_url_command 					*g:coc_open_url_command*
 g:node_client_debug					*g:node_client_debug*
 
 	Enable debug mode of node client for check rpc messages between vim
-	and coc.nvim.  Use environment variable $NODE_CLIENT_LOG_FILE to set
+	and coc.nvim.  Use environment variable `$NODE_CLIENT_LOG_FILE` to set
 	the log file or get the log file after coc.nvim started.
+	On vim9, this variable also enables vim's channel log, the log
+	filepath would be disposed on the screen after vim start.
+
 	To open the log file, use command: >
 
 	:call coc#client#open_log()
@@ -2430,6 +2457,14 @@ coc#float#scroll({forward}, [{amount}])			*coc#float#scroll()*
 	{forward} is not `1`. {amount} could be number or full page when
 	omitted.  Popup menu is excluded.
 
+coc#compat#call({name}, {args}) 			*coc#compat#call()*
+	
+	Call api function {name} with {args} list (starts with `nvim_`) on vim
+	or neovim, use:
+	>
+	:echo coc#api#Get_api_info()[1]['functions']
+<
+	on vim9 to get supported apis on vim.
 
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 
@@ -3363,6 +3398,9 @@ Float window/popup related ~
 
 *CocFloating* default highlight group of floating windows/popups.
 Default links to |NormalFloat| on neovim and |Pmenu| on vim.
+*CocFloatBorder* default border highlight group of floating windows/popups.
+Default links to |FloatBorder| when exists and |CocFloating| when not.
+Note: only foreground color is used for border highlight.
 *CocFloatThumb* thumb highlight of scrollbar.
 *CocFloatSbar* Scrollbar highlight of floating window/popups.
 *CocFloatDividingLine* for dividing lines, links to |NonText| by default.
@@ -4256,7 +4294,7 @@ The easiest way is add `%{coc#status()}` to your 'statusline' option. Example: >
 
 	set statusline^=%{coc#status()}
 <
-You may need to use |CocStatusChange| for automatically refresh statusline: >
+Use |CocStatusChange| autocmd for automatically refresh statusline: >
 
 	autocmd User CocStatusChange redrawstatus
 <
@@ -4264,7 +4302,7 @@ You may need to use |CocStatusChange| for automatically refresh statusline: >
 
 							*coc-status-manual*
 
-Create function:
+Create function like:
 >
 	function! StatusDiagnostic() abort
 	  let info = get(b:, 'coc_diagnostic_info', {})

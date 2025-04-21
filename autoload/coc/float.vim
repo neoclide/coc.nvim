@@ -23,7 +23,7 @@ function! coc#float#close_all(...) abort
 endfunction
 
 function! coc#float#jump() abort
-  if has('nvim')
+  if !s:is_vim
     let winids = coc#float#get_float_win_list()
     if !empty(winids)
       call win_gotoid(winids[0])
@@ -737,7 +737,7 @@ function! coc#float#content_height(bufnr, width, wrap) abort
   if !a:wrap
     return coc#compat#buf_line_count(a:bufnr)
   endif
-  let lines = has('nvim') ? nvim_buf_get_lines(a:bufnr, 0, -1, 0) : getbufline(a:bufnr, 1, '$')
+  let lines = s:is_vim ? getbufline(a:bufnr, 1, '$') : nvim_buf_get_lines(a:bufnr, 0, -1, 0)
   return coc#string#content_height(lines, a:width)
 endfunction
 
@@ -977,11 +977,11 @@ function! coc#float#create_buf(bufnr, ...) abort
   endif
   let lines = get(a:, 1, v:null)
   if type(lines) == v:t_list
-    if has('nvim')
-      call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
-    else
+    if s:is_vim
       silent noa call setbufline(bufnr, 1, lines)
       silent noa call deletebufline(bufnr, len(lines) + 1, '$')
+    else
+      call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
     endif
   endif
   return bufnr
@@ -1027,7 +1027,7 @@ function! coc#float#nvim_scroll_adjust(winid) abort
               \ 'col': col + 1,
               \ })
       endif
-    elseif has('nvim-0.6.0')
+    else
       " Move winid and all related left by 1
       let winids = [a:winid] + coc#window#get_var(a:winid, 'related', [])
       for winid in winids
@@ -1319,7 +1319,14 @@ endfunction
 
 " topline content_height content_width
 function! coc#float#get_options(winid) abort
-  if has('nvim')
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    return {
+      \ 'topline': pos['firstline'],
+      \ 'width': pos['core_width'],
+      \ 'height': pos['core_height']
+      \ }
+  else
     let width = nvim_win_get_width(a:winid)
     if coc#window#get_var(a:winid, '&foldcolumn', 0)
       let width = width - 1
@@ -1330,25 +1337,16 @@ function! coc#float#get_options(winid) abort
       \ 'height': nvim_win_get_height(a:winid),
       \ 'width': width
       \ }
-  else
-    let pos = popup_getpos(a:winid)
-    return {
-      \ 'topline': pos['firstline'],
-      \ 'width': pos['core_width'],
-      \ 'height': pos['core_height']
-      \ }
   endif
 endfunction
 
 function! s:win_setview(winid, topline, lnum) abort
-  if has('nvim')
-    call coc#compat#execute(a:winid, 'call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})')
-    call timer_start(10, { -> coc#float#nvim_refresh_scrollbar(a:winid) })
+  if s:is_vim
+    call win_execute(a:winid, 'exe '.a:lnum)
+    call popup_setoptions(a:winid, { 'firstline': a:topline })
   else
-    call coc#compat#execute(a:winid, 'exe '.a:lnum)
-    call popup_setoptions(a:winid, {
-          \ 'firstline': a:topline,
-          \ })
+    call win_execute(a:winid, 'call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})')
+    call timer_start(1, { -> coc#float#nvim_refresh_scrollbar(a:winid) })
   endif
 endfunction
 
@@ -1367,7 +1365,7 @@ function! s:set_float_defaults(winid, config) abort
   if exists('&statuscolumn')
     call setwinvar(a:winid, '&statuscolumn', '')
   endif
-  if has('nvim')
+  if !s:is_vim
     call setwinvar(a:winid, '&number', 0)
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&cursorline', 0)

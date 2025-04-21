@@ -2,6 +2,36 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-21
+
+- Add `WindowVisible` event to `events`.
+- Add `onVisible()` support to `BufferSyncItem`.
+- Improve inlay hint:
+    - Use lua and vim9 for virtual text api.
+    - Add `coc#vtext#set()` for set multiple virtual texts.
+    - Render all inlay hints for the first time.
+    - Use `WindowVisible` event.
+
+## 2025-04-18
+
+- Add `nvim.createAugroup()`, `nvim.createAutocmd()` and `nvim.deleteAutocmd()`.
+- Add `buffer` `once` and `nested` support to `workspace.registerAutocmd()`.
+- Not throw error from autocmd callback, log the error instead.
+- Add configuration `editor.autocmdTimeout`.
+
+## 2025-04-17
+
+- Support `$COC_VIM_CHANNEL_ENABLE` for enable channel log on vim9.
+- Add `nvim.callVim()`, `nvim.evalVim()` and `nvim.exVim()`.
+
+## 2025-04-15
+
+- Support 'title' for configuration `suggest.floatConfig` and `suggest.pumFloatConfig`.
+- Use timer for `CocStatusChange` autocmd to avoid cursor vanish caused by `redraws`.
+- Use vim9 script for api.vim and refactor related functions.
+- Add `coc#compat#call` for call api functions on vim or neovim.
+- Add `special` to interface `KeymapOption` (vim9 only).
+
 ## 2025-04-06
 
 - Add `cmd` option to interface `KeymapOption`.
