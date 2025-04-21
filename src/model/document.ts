@@ -245,7 +245,7 @@ export default class Document {
         }
       }, this.disposables)
     } else {
-      this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
+      this.buffer.listen('lines', (buf: Buffer, tick: number | null, firstline: number, lastline: number, linedata: string[]) => {
         if (tick && tick > this._changedtick) {
           this._changedtick = tick
           lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
@@ -365,6 +365,7 @@ export default class Document {
     this._applyQueque.push(newLines)
     this.lines = newLines
     await waitNextTick()
+    fireLinesChanged(this.bufnr)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
