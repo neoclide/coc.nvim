@@ -83,6 +83,18 @@ function! coc#compat#list_runtime_paths() abort
   return coc#compat#call('list_runtime_paths', [])
 endfunction
 
+function coc#compat#execute(command, ...) abort
+  return execute(a:command, get(a:, 1, 'silent'))
+endfunction
+
+function! coc#compat#eval(expr) abort
+  return eval(a:expr)
+endfunction
+
+function coc#compat#win_execute(id, command, ...) abort
+  return win_execute(a:id, a:command, get(a:, 1, 'silent'))
+endfunction
+
 " call api function on vim or neovim
 function! coc#compat#call(fname, args) abort
   if s:is_vim

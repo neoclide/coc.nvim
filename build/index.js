@@ -25026,7 +25026,7 @@ var init_constants = __esm({
     ASCII_END = 128;
     VERSION = version;
     isVim = process.env.VIM_NODE_RPC == "1";
-    APIVERSION = 35;
+    APIVERSION = 36;
     floatHighlightGroup = "CocFloating";
     CONFIG_FILE_NAME = "coc-settings.json";
     configHome = defaultValue(process.env.COC_VIMCONFIG, path.join(os.homedir(), ".vim"));
@@ -90734,7 +90734,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-f61c8199 2025-04-22 00:22:36 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-317e12e 2025-04-22 23:46:55 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

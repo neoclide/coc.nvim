@@ -15,7 +15,7 @@ let s:is_vim = !has('nvim')
 " priority - Highlight priority
 function! coc#vtext#set(bufnr, ns, items, indent, priority) abort
   if s:is_vim
-    call coc#vim9#Set_visual_texts(a:bufnr, a:ns, a:items, a:indent, a:priority)
+    call coc#vim9#Set_virtual_texts(a:bufnr, a:ns, a:items, a:indent, a:priority)
   else
     call v:lua.require('coc.vtext').set(a:bufnr, a:ns, a:items, a:indent, a:priority)
   endif
