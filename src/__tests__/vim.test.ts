@@ -429,7 +429,7 @@ describe('Buffer API', () => {
         called = true
       }
     }, null, disposables)
-    Object.assign(doc, { lines: [''] })
+    Object.assign(doc, { lines: [''], _changedtick: doc.changedtick + 1 })
     await events.fire('CursorHold', [buffer.id, [1, 1]])
     expect(called).toBe(true)
     expect(doc.getLines()).toEqual(['1', '2'])

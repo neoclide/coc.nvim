@@ -8,7 +8,7 @@ import { createLogger } from '../logger'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getConditionValue, wait, waitNextTick } from '../util/index'
+import { disposeAll, getConditionValue, sha256, wait, waitNextTick } from '../util/index'
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
@@ -17,7 +17,7 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
-import { firstDiffLine, LinesTextDocument } from './textdocument'
+import { LinesTextDocument } from './textdocument'
 const logger = createLogger('document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -627,15 +627,16 @@ export default class Document {
     this._forceSync()
   }
 
-  public async checkLines(): Promise<void> {
+  public getSha256(): string {
+    return sha256(this.lines.join('\n'))
+  }
+
+  public async fetchLines(): Promise<void> {
     let lines = await this.nvim.call('getbufline', [this.bufnr, 1, '$']) as ReadonlyArray<string>
-    let diff = firstDiffLine(this.lines, lines)
-    if (diff) {
-      this.lines = lines
-      fireLinesChanged(this.bufnr)
-      this.fireContentChanges()
-      logger.error(`Buffer ${this.bufnr} not synchronized on line ${diff[0]}\nExpected:${diff[2]}\nCurrent:${diff[1]}`)
-    }
+    this.lines = lines
+    fireLinesChanged(this.bufnr)
+    this.fireContentChanges()
+    logger.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`)
   }
 }
 

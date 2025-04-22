@@ -1,8 +1,13 @@
 'use strict'
 import type { CancellationToken } from 'vscode-languageserver-protocol'
+import { crypto } from './node'
 
 export interface Disposable {
   dispose(): void
+}
+
+export function sha256(data: string): string {
+  return crypto.createHash('sha256').update(data).digest('hex')
 }
 
 export function getConditionValue<T>(value: T, testValue: T): T {
