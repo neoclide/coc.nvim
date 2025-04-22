@@ -87,7 +87,7 @@ enddef
 
 # Can't use strdisplaywidth as it doesn't support bufnr
 def Calc_padding_size(bufnr: number, indent: string): number
-  const tabSize: number = getbufvar(bufnr, '&shiftwidth', getbufvar(bufnr, '&tabstop', 8))
+  const tabSize: number = getbufvar(bufnr, '&shiftwidth') ?? getbufvar(bufnr, '&tabstop', 8)
   var padding: number = 0
   for character in indent
     if character == "\t"
@@ -180,7 +180,7 @@ def Add_vtexts_timer(bufnr: number, ns: number, items: list<any>, indent: bool,
   endif
 enddef
 
-export def Set_visual_texts(bufnr: number, ns: number, items: list<any>, indent: bool, priority: number): void
+export def Set_virtual_texts(bufnr: number, ns: number, items: list<any>, indent: bool, priority: number): void
   const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   const changedtick = getbufvar(bufnr, 'changedtick', 0)
   Add_vtexts_timer(bufnr, ns, items, indent, priority, changedtick, maxCount)
