@@ -12,7 +12,7 @@ import { disposeAll, getConditionValue, sha256, wait, waitNextTick } from '../ut
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
-import { comparePosition, emptyRange } from '../util/position'
+import { emptyRange } from '../util/position'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
@@ -34,6 +34,11 @@ export interface ChangeInfo {
   changedtick: number
 }
 
+export interface CursorAndCol {
+  cursor?: [number, number]
+  col?: number
+}
+
 const debounceTime = getConditionValue(150, 15)
 
 // getText, positionAt, offsetAt
@@ -50,7 +55,7 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _commandLine = false
-  private _applyQueque = []
+  private _applying = false
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
@@ -225,10 +230,6 @@ export default class Document {
       fireDetach(this.bufnr)
     })
     const onLinesChange = (id: number, lines: ReadonlyArray<string>) => {
-      let prev = this._applyQueque.shift()
-      if (prev && equals(prev, lines)) {
-        return
-      }
       this.lines = lines
       fireLinesChanged(id)
       if (events.completing) return
@@ -310,6 +311,7 @@ export default class Document {
   public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<TextEdit | undefined> {
     if (Array.isArray(arguments[1])) edits = arguments[1]
     if (!this._attached || edits.length === 0) return
+    const { bufnr } = this
     this._forceSync()
     let textDocument = this.textDocument
     edits = filterSortEdits(textDocument, edits)
@@ -322,30 +324,14 @@ export default class Document {
     let isAppend = changed.start === changed.end && changed.start === lines.length
     let original = lines.slice(changed.start, changed.end)
     let changes: TextChangeItem[] = []
-    // avoid out of range and lines replacement, avoid too many buf_set_text cause nvim slow.
-    if (edits.length < 200
-      && changed.start !== changed.end
-      && edits[edits.length - 1].range.end.line < lines.length
-    ) {
+    // Avoid too many buf_set_text cause nvim slow.
+    // Not used when insert or delete lines.
+    if (edits.length < 200 && changed.start !== changed.end && changed.replacement.length > 0) {
       changes = toTextChanges(lines, edits)
     }
-    let cursor: [number, number]
-    let isCurrent = events.bufnr === this.bufnr
-    let col: number
-    if (move && isCurrent && !isAppend) {
-      let pos = Position.is(move) ? move : this.cursor
-      if (pos) {
-        let position = getPositionFromEdits(pos, edits)
-        if (comparePosition(pos, position) !== 0) {
-          let content = toText(newLines[position.line])
-          let col = byteIndex(content, position.character) + 1
-          cursor = [position.line + 1, col]
-        }
-        col = byteIndex(this.lines[pos.line], pos.character) + 1
-      }
-    }
+    const { cursor, col } = this.getCursorAndCol(move, edits, newLines)
     this.nvim.pauseNotification()
-    if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
+    if (joinUndo) this.nvim.command(`if bufnr('%') == ${bufnr} | undojoin | endif`, true)
     if (isAppend) {
       this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true)
     } else {
@@ -361,16 +347,44 @@ export default class Document {
         col
       ], true)
     }
-    this.nvim.resumeNotification(isCurrent, true)
-    this._applyQueque.push(newLines)
+    this._applying = true
+    void this.nvim.resumeNotification(true, true)
     this.lines = newLines
     await waitNextTick()
-    fireLinesChanged(this.bufnr)
+    fireLinesChanged(bufnr)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
     let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
     return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
+  }
+
+  public onTextChange(): void {
+    let { bufnr } = this
+    if (this._applying) {
+      this._applying = false
+      if (!equals(this.lines, this.textDocument.lines)) {
+        fireLinesChanged(bufnr)
+        this.fireContentChanges()
+      }
+    }
+  }
+
+  private getCursorAndCol(move: boolean | Position, edits: TextEdit[], newLines: ReadonlyArray<string>): CursorAndCol {
+    if (!move) return {}
+    let pos = Position.is(move) ? move : this.cursor
+    if (pos) {
+      let position = getPositionFromEdits(pos, edits)
+      if (!equals(pos, position)) {
+        let content = toText(newLines[position.line])
+        let column = byteIndex(content, position.character) + 1
+        return {
+          cursor: [position.line + 1, column],
+          col: byteIndex(this.lines[pos.line], pos.character) + 1
+        }
+      }
+    }
+    return {}
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
@@ -385,7 +399,6 @@ export default class Document {
     if (!filtered.length) return
     this.nvim.call('coc#ui#change_lines', [this.bufnr, filtered], true)
     this.nvim.redrawVim()
-    this._applyQueque.push(newLines)
     this.lines = newLines
     await waitNextTick()
     fireLinesChanged(this.bufnr)

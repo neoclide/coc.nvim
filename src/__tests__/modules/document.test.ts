@@ -479,7 +479,7 @@ describe('Document', () => {
         { range: { start: { line: 0, character: 2 }, end: { line: 1, character: 0 } }, newText: "" },
       ]
       await doc.applyEdits(edits)
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await doc.buffer.lines
       expect(lines).toEqual(['aabb', 'cc', 'd'])
     })
 

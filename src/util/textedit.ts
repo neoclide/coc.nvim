@@ -253,7 +253,25 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | unde
   return contentToLines(result, document.eol)
 }
 
+export function insertAtEnd(edit: TextEdit): boolean {
+  let { range, newText } = edit
+  return emptyRange(range) && range.start.character === 0 && newText.endsWith('\n')
+}
+
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
+  let last = edits[edits.length - 1]
+  if (!last) return []
+  // Invalid edit
+  if (last.range.end.line > lines.length) return []
+  if (last.range.end.line == lines.length) {
+    // should only be insert at the end
+    if (!insertAtEnd(last)) return []
+    // convert to insert at the end of last line
+    let line = lines.length - 1
+    let character = lines[line].length
+    last.range = Range.create(line, character, line, character)
+    last.newText = '\n' + last.newText.slice(0, -1)
+  }
   return edits.map(o => {
     let { start, end } = o.range
     let sl = toText(lines[start.line])

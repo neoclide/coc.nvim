@@ -283,9 +283,10 @@ function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end
     endif
   endif
   " Make lines change event fire only once
-  if exists('*nvim_buf_set_text') && len(a:changes) == 1
-    let item = a:changes[0]
-    call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
+  if exists('*nvim_buf_set_text') && !empty(a:changes)
+    for item in reverse(copy(a:changes))
+      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
+    endfor
   else
     call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   endif
