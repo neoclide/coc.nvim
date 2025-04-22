@@ -372,16 +372,6 @@ export def DetachListener(bufnr: number): bool
   endif
   return false
 enddef
-
-# Call the legacy execute, use silent to avoid vim block
-function Execute(command, ...) abort
-  legacy return execute(a:command, get(a:, 1, 'silent'))
-endfunction
-
-# Call the legacy win_execute, use silent to avoid vim block
-function Win_execute(winid, cmds, ...) abort
-  legacy return win_execute(a:winid, a:cmds, get(a:, 1, 'silent'))
-endfunction
 # }}"
 
 # nvim client methods {{
@@ -475,11 +465,11 @@ enddef
 # Not return on notification for possible void function call.
 export def Call_function(method: string, args: list<any>, notify: bool = false): any
   if method ==# 'execute'
-    return call(Execute, args)
+    return call('coc#compat#execute', args)
   elseif method ==# 'eval'
     return Eval(args[0])
   elseif method ==# 'win_execute'
-    return call(Win_execute, args)
+    return call('coc#compat#win_execute', args)
   elseif !notify
     return call(method, args)
   endif
@@ -496,7 +486,7 @@ enddef
 
 # Use the legacy eval, could be called by Call
 export function Eval(expr) abort
-  legacy return eval(a:expr)
+  legacy return coc#compat#eval(a:expr)
 endfunction
 
 export def Command(command: string): any
@@ -505,7 +495,7 @@ export def Command(command: string): any
     DeferExecute(command)
   else
     # Use legacy command not work for command like autocmd
-    Execute(command)
+    coc#compat#execute(command)
     # The error is set by python script, since vim not give error on python command failure
     if strpart(command, 0, 2) ==# 'py'
       const errmsg: string = get(g:, 'errmsg', '')
@@ -541,14 +531,14 @@ export def List_runtime_paths(): list<string>
 enddef
 
 export def Command_output(cmd: string): string
-  return trim(Execute(cmd, 'silent'), "\r\n")
+  return trim(coc#compat#execute(cmd, 'silent'), "\r\n")
 enddef
 
 export def Exec(code: string, output: bool): string
   if output
     return Command_output(code)
   endif
-  Execute(code)
+  coc#compat#execute(code)
   return ''
 enddef
 
@@ -667,7 +657,7 @@ export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): 
   const modekey: string = CreateModePrefix(mode, opts)
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  Execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
+  coc#compat#execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
   return null
 enddef
 
