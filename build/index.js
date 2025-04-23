@@ -11929,6 +11929,9 @@ var init_log = __esm({
 });
 
 // src/util/index.ts
+function sha256(data) {
+  return crypto.createHash("sha256").update(data).digest("hex");
+}
 function getConditionValue(value, testValue) {
   return false ? testValue : value;
 }
@@ -12007,6 +12010,7 @@ var pariedCharacters;
 var init_util = __esm({
   "src/util/index.ts"() {
     "use strict";
+    init_node();
     pariedCharacters = /* @__PURE__ */ new Map([
       ["<", ">"],
       [">", "<"],
@@ -24335,11 +24339,11 @@ var require_node2 = __commonJS({
 });
 
 // src/util/protocol.ts
-var import_node3;
+var import_node4;
 var init_protocol = __esm({
   "src/util/protocol.ts"() {
     "use strict";
-    import_node3 = __toESM(require_node2());
+    import_node4 = __toESM(require_node2());
   }
 });
 
@@ -24825,10 +24829,10 @@ var init_events = __esm({
               disposeAll(disposables);
               resolve(void 0);
             }, token);
-            disposables.push(import_node3.Disposable.create(() => {
+            disposables.push(import_node4.Disposable.create(() => {
               clearTimeout(timer);
             }));
-          } else if (import_node3.CancellationToken.is(token)) {
+          } else if (import_node4.CancellationToken.is(token)) {
             token.onCancellationRequested(() => {
               disposeAll(disposables);
               resolve(void 0);
@@ -24958,7 +24962,7 @@ var init_events = __esm({
           for (let ev of event) {
             this.on(ev, handler, thisArg, arr);
           }
-          let dis = import_node3.Disposable.create(() => {
+          let dis = import_node4.Disposable.create(() => {
             disposeAll(arr);
           });
           if (Array.isArray(disposables)) {
@@ -24987,7 +24991,7 @@ var init_events = __esm({
           Error.captureStackTrace(wrappedhandler);
           arr.push(wrappedhandler);
           this.handlers.set(event, arr);
-          let disposable = import_node3.Disposable.create(() => {
+          let disposable = import_node4.Disposable.create(() => {
             let idx = arr.indexOf(wrappedhandler);
             if (idx !== -1) {
               arr.splice(idx, 1);
@@ -26857,12 +26861,12 @@ function watchFile(filepath, onChange, immediate = false) {
     if (immediate) {
       setTimeout(onChange, 10);
     }
-    return import_node3.Disposable.create(() => {
+    return import_node4.Disposable.create(() => {
       callback.clear();
       watcher.close();
     });
   } catch (e) {
-    return import_node3.Disposable.create(() => {
+    return import_node4.Disposable.create(() => {
       callback.clear();
     });
   }
@@ -27566,7 +27570,7 @@ var init_commands = __esm({
         if (id2.startsWith("_")) internal = true;
         if (this.commands.has(id2)) logger4.warn(`Command ${id2} already registered`);
         this.commands.set(id2, new CommandItem(id2, impl, thisArg, internal));
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.commands.delete(id2);
         });
       }
@@ -27810,7 +27814,7 @@ var init_dialog = __esm({
         this.nvim = nvim;
         this.config = config;
         this.disposables = [];
-        this._onDidClose = new import_node3.Emitter();
+        this._onDidClose = new import_node4.Emitter();
         this.onDidClose = this._onDidClose.event;
         events_default.on("BufWinLeave", (bufnr) => {
           if (bufnr == this.bufnr) {
@@ -27881,8 +27885,8 @@ var init_input = __esm({
         this._disposed = false;
         // width, height, row, col
         this._dimension = [0, 0, 0, 0];
-        this._onDidFinish = new import_node3.Emitter();
-        this._onDidChange = new import_node3.Emitter();
+        this._onDidFinish = new import_node4.Emitter();
+        this._onDidChange = new import_node4.Emitter();
         this.clear = false;
         this.onDidFinish = this._onDidFinish.event;
         this.onDidChange = this._onDidChange.event;
@@ -28106,7 +28110,7 @@ var init_menu = __esm({
         this.keyMappings = /* @__PURE__ */ new Map();
         this.shortcutIndexes = /* @__PURE__ */ new Set();
         this._disposed = false;
-        this._onDidClose = new import_node3.Emitter();
+        this._onDidClose = new import_node4.Emitter();
         this.onDidClose = this._onDidClose.event;
         this.total = config.items.length;
         if (token) {
@@ -28343,7 +28347,7 @@ var init_picker = __esm({
         this.picked = /* @__PURE__ */ new Set();
         this.disposables = [];
         this.keyMappings = /* @__PURE__ */ new Map();
-        this._onDidClose = new import_node3.Emitter();
+        this._onDidClose = new import_node4.Emitter();
         this.onDidClose = this._onDidClose.event;
         for (let i = 0; i < config.items.length; i++) {
           let item = config.items[i];
@@ -29090,9 +29094,9 @@ var init_quickpick = __esm({
         this.disposables = [];
         this._changed = false;
         // emitted with selected items or undefined when cancelled.
-        this._onDidFinish = new import_node3.Emitter();
-        this._onDidChangeSelection = new import_node3.Emitter();
-        this._onDidChangeValue = new import_node3.Emitter();
+        this._onDidFinish = new import_node4.Emitter();
+        this._onDidChangeSelection = new import_node4.Emitter();
+        this._onDidChangeValue = new import_node4.Emitter();
         this.onDidFinish = this._onDidFinish.event;
         this.onDidChangeSelection = this._onDidChangeSelection.event;
         this.onDidChangeValue = this._onDidChangeValue.event;
@@ -33103,10 +33107,10 @@ function runCommand(cmd, opts = {}, timeout2, isWindows2 = platform === 3 /* Win
         terminate(cp);
         reject(new CancellationError());
       }, timeout2 * 1e3);
-      disposable = import_node3.Disposable.create(() => {
+      disposable = import_node4.Disposable.create(() => {
         clearTimeout(timer);
       });
-    } else if (import_node3.CancellationToken.is(timeout2)) {
+    } else if (import_node4.CancellationToken.is(timeout2)) {
       disposable = timeout2.onCancellationRequested(() => {
         terminate(cp);
         reject(new CancellationError());
@@ -33281,7 +33285,7 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
     } else {
       return 0;
     }
-  } else if (selector && import_node3.TextDocumentFilter.is(selector)) {
+  } else if (selector && import_node4.TextDocumentFilter.is(selector)) {
     let u = URI2.parse(uri);
     const { language, pattern, scheme } = selector;
     let ret = 0;
@@ -37077,7 +37081,7 @@ var init_floatFactory = __esm({
             this.close();
           }
         }, null, this.disposables);
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           this.onCursorMoved.clear();
         }));
         events_default.on("CursorMoved", this.onCursorMoved.bind(this, autoHide), this, this.disposables);
@@ -37838,7 +37842,7 @@ var init_progress = __esm({
           closable: option.cancellable
         }, false);
         this.option = option;
-        this._onDidFinish = new import_node3.Emitter();
+        this._onDidFinish = new import_node4.Emitter();
         this.onDidFinish = this._onDidFinish.event;
         this.cancelProgress = (bufnr) => {
           if (bufnr == this.bufnr && this.tokenSource) {
@@ -37850,7 +37854,7 @@ var init_progress = __esm({
       }
       async show(preferences) {
         let { task } = this.option;
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         this.disposables.push(tokenSource);
         let total = 0;
         if (!preferences.disabled) {
@@ -37983,7 +37987,7 @@ var init_notifications = __esm({
             }
             statusItem.text = formatMessage(title, p.message, total).replace(/\r?\n/g, " ");
           }
-        }, import_node3.CancellationToken.None);
+        }, import_node4.CancellationToken.None);
         statusItem.dispose();
         return result;
       }
@@ -38083,8 +38087,8 @@ var init_terminals = __esm({
       constructor() {
         this._terminals = /* @__PURE__ */ new Map();
         this.disposables = [];
-        this._onDidOpenTerminal = new import_node3.Emitter();
-        this._onDidCloseTerminal = new import_node3.Emitter();
+        this._onDidOpenTerminal = new import_node4.Emitter();
+        this._onDidCloseTerminal = new import_node4.Emitter();
         this.onDidCloseTerminal = this._onDidCloseTerminal.event;
         this.onDidOpenTerminal = this._onDidOpenTerminal.event;
         events_default.on("BufUnload", (bufnr) => {
@@ -40683,7 +40687,7 @@ var init_jsonRegistry = __esm({
     };
     JSONContributionRegistry = class {
       constructor() {
-        this._onDidChangeSchema = new import_node3.Emitter();
+        this._onDidChangeSchema = new import_node4.Emitter();
         this.onDidChangeSchema = this._onDidChangeSchema.event;
         this.schemasById = {};
       }
@@ -41941,9 +41945,9 @@ var init_registry2 = __esm({
     contributionRegistry = Registry.as(Extensions2.JSONContribution);
     ConfigurationRegistry = class {
       constructor() {
-        this._onDidSchemaChange = new import_node3.Emitter();
+        this._onDidSchemaChange = new import_node4.Emitter();
         this.onDidSchemaChange = this._onDidSchemaChange.event;
-        this._onDidUpdateConfiguration = new import_node3.Emitter();
+        this._onDidUpdateConfiguration = new import_node4.Emitter();
         this.onDidUpdateConfiguration = this._onDidUpdateConfiguration.event;
         this.resourceLanguageSettingsSchema = { properties: {}, patternProperties: {}, additionalProperties: false, errorMessage: "Unknown coc.nvim configuration property", allowTrailingCommas: true, allowComments: true };
         this.configurationProperties = {};
@@ -42127,8 +42131,8 @@ var init_configuration2 = __esm({
         this.noWatch = noWatch;
         this._watchedFiles = /* @__PURE__ */ new Set();
         this._errors = /* @__PURE__ */ new Map();
-        this._onError = new import_node3.Emitter();
-        this._onChange = new import_node3.Emitter();
+        this._onError = new import_node4.Emitter();
+        this._onChange = new import_node4.Emitter();
         this.disposables = [];
         this._initialized = false;
         this.cached = [];
@@ -42586,7 +42590,7 @@ var init_autocmds = __esm({
           let option = autocmd.option;
           logger10.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option);
           try {
-            let tokenSource = new import_node3.CancellationTokenSource();
+            let tokenSource = new import_node4.CancellationTokenSource();
             let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]));
             if (option.request) {
               let timer;
@@ -42613,7 +42617,7 @@ var init_autocmds = __esm({
         let item = new AutocmdItem(id2, autocmd);
         this.autocmds.set(id2, item);
         this.createAutocmd(item);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.autocmds.delete(id2);
         });
       }
@@ -42668,7 +42672,7 @@ var init_contentProvider = __esm({
         this.documents = documents;
         this.disposables = [];
         this.providers = /* @__PURE__ */ new Map();
-        this._onDidProviderChange = new import_node3.Emitter();
+        this._onDidProviderChange = new import_node4.Emitter();
         this.onDidProviderChange = this._onDidProviderChange.event;
       }
       attach(nvim) {
@@ -42681,7 +42685,7 @@ var init_contentProvider = __esm({
       async onBufReadCmd(scheme, uri) {
         let provider = this.providers.get(scheme);
         if (!provider) return;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let content = await Promise.resolve(provider.provideTextDocumentContent(URI2.parse(uri), tokenSource.token));
         let buf = await this.nvim.buffer;
         await buf.setLines(toText(content).split(/\r?\n/), {
@@ -42710,7 +42714,7 @@ var init_contentProvider = __esm({
           provider.onDidChange(async (uri) => {
             let doc = this.documents.getDocument(uri.toString());
             if (!doc) return;
-            let tokenSource = new import_node3.CancellationTokenSource();
+            let tokenSource = new import_node4.CancellationTokenSource();
             let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token));
             await doc.buffer.setLines(content.split(/\r?\n/), {
               start: 0,
@@ -42720,7 +42724,7 @@ var init_contentProvider = __esm({
           }, null, disposables);
         }
         this.nvim.command(getAutocmdCommand(scheme), true);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.providers.delete(scheme);
           disposeAll(disposables);
           this.resetAutocmds();
@@ -43707,17 +43711,6 @@ function computeLinesOffsets(lines, eol) {
   if (eol) result.push(textOffset);
   return result;
 }
-function firstDiffLine(oldLines, newLines) {
-  let m = Math.max(oldLines.length, newLines.length);
-  for (let i = 0; i < m; i++) {
-    let oldLine = oldLines[i];
-    let newLine = newLines[i];
-    if (oldLine !== newLine) {
-      return [i + 1, oldLine ?? "", newLine ?? ""];
-    }
-  }
-  return void 0;
-}
 var LinesTextDocument;
 var init_textdocument = __esm({
   "src/model/textdocument.ts"() {
@@ -43894,7 +43887,7 @@ var init_document = __esm({
         this.disposables = [];
         // real current lines
         this.lines = [];
-        this._onDocumentChange = new import_node3.Emitter();
+        this._onDocumentChange = new import_node4.Emitter();
         this.onDocumentChange = this._onDocumentChange.event;
         this.fireContentChanges = debounce(() => {
           this._fireContentChanges();
@@ -44397,17 +44390,15 @@ var init_document = __esm({
         this._changedtick = await this.nvim.call("coc#util#get_changedtick", [this.bufnr]);
         this._forceSync();
       }
-      async checkLines() {
+      getSha256() {
+        return sha256(this.lines.join("\n"));
+      }
+      async fetchLines() {
         let lines = await this.nvim.call("getbufline", [this.bufnr, 1, "$"]);
-        let diff = firstDiffLine(this.lines, lines);
-        if (diff) {
-          this.lines = lines;
-          fireLinesChanged(this.bufnr);
-          this.fireContentChanges();
-          logger11.error(`Buffer ${this.bufnr} not synchronized on line ${diff[0]}
-Expected:${diff[2]}
-Current:${diff[1]}`);
-        }
+        this.lines = lines;
+        fireLinesChanged(this.bufnr);
+        this.fireContentChanges();
+        logger11.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
       }
     };
   }
@@ -44607,11 +44598,11 @@ var init_documents = __esm({
         this.creating = /* @__PURE__ */ new Map();
         this.buffers = /* @__PURE__ */ new Map();
         this.resolves = [];
-        this._onDidOpenTextDocument = new import_node3.Emitter();
-        this._onDidCloseDocument = new import_node3.Emitter();
-        this._onDidChangeDocument = new import_node3.Emitter();
-        this._onDidSaveDocument = new import_node3.Emitter();
-        this._onWillSaveDocument = new import_node3.Emitter();
+        this._onDidOpenTextDocument = new import_node4.Emitter();
+        this._onDidCloseDocument = new import_node4.Emitter();
+        this._onDidChangeDocument = new import_node4.Emitter();
+        this._onDidSaveDocument = new import_node4.Emitter();
+        this._onWillSaveDocument = new import_node4.Emitter();
         this.onDidOpenTextDocument = this._onDidOpenTextDocument.event;
         this.onDidCloseDocument = this._onDidCloseDocument.event;
         this.onDidChangeDocument = this._onDidChangeDocument.event;
@@ -44630,9 +44621,15 @@ var init_documents = __esm({
         this._bufnr = bufnr;
         await Promise.all(bufnrs.map((bufnr2) => this.createDocument(bufnr2)));
         if (isVim) {
+          const checkedTick = /* @__PURE__ */ new Map();
           events_default.on("CursorHold", async (bufnr2) => {
             let doc = this.getDocument(bufnr2);
-            if (doc && doc.attached) await doc.checkLines();
+            if (doc && doc.attached && checkedTick.get(bufnr2) != doc.changedtick) {
+              let sha2562 = doc.getSha256();
+              let same = await nvim.callVim("coc#vim9#Check_sha256", [bufnr2, sha2562]);
+              checkedTick.set(bufnr2, doc.changedtick);
+              if (!same) await doc.fetchLines();
+            }
           }, null, this.disposables);
         }
         events_default.on("BufDetach", this.onBufDetach, this, this.disposables);
@@ -44997,7 +44994,7 @@ var init_documents = __esm({
         let event = {
           bufnr: doc.bufnr,
           document: doc.textDocument,
-          reason: import_node3.TextDocumentSaveReason.Manual,
+          reason: import_node4.TextDocumentSaveReason.Manual,
           waitUntil: (thenable) => {
             if (!firing) {
               this.nvim.echoError(`waitUntil can't be used in async manner, check log for details`);
@@ -45228,9 +45225,9 @@ var init_editors = __esm({
         this.disposables = [];
         this.editors = /* @__PURE__ */ new Map();
         this.tabIds = /* @__PURE__ */ new Set();
-        this._onDidTabClose = new import_node3.Emitter();
-        this._onDidChangeActiveTextEditor = new import_node3.Emitter();
-        this._onDidChangeVisibleTextEditors = new import_node3.Emitter();
+        this._onDidTabClose = new import_node4.Emitter();
+        this._onDidChangeActiveTextEditor = new import_node4.Emitter();
+        this._onDidChangeVisibleTextEditors = new import_node4.Emitter();
         this.onDidTabClose = this._onDidTabClose.event;
         this.onDidChangeActiveTextEditor = this._onDidChangeActiveTextEditor.event;
         this.onDidChangeVisibleTextEditors = this._onDidChangeVisibleTextEditors.event;
@@ -46595,7 +46592,7 @@ var init_fileSystemWatcher = __esm({
         this.clientsMap = /* @__PURE__ */ new Map();
         this.disposables = [];
         this.creating = /* @__PURE__ */ new Set();
-        this._onDidCreateClient = new import_node3.Emitter();
+        this._onDidCreateClient = new import_node4.Emitter();
         this.disabled = false;
         this.onDidCreateClient = this._onDidCreateClient.event;
         if (!config.enable) {
@@ -46700,17 +46697,17 @@ var init_fileSystemWatcher = __esm({
         this.ignoreCreateEvents = ignoreCreateEvents;
         this.ignoreChangeEvents = ignoreChangeEvents;
         this.ignoreDeleteEvents = ignoreDeleteEvents;
-        this._onDidCreate = new import_node3.Emitter();
-        this._onDidChange = new import_node3.Emitter();
-        this._onDidDelete = new import_node3.Emitter();
-        this._onDidRename = new import_node3.Emitter();
+        this._onDidCreate = new import_node4.Emitter();
+        this._onDidChange = new import_node4.Emitter();
+        this._onDidDelete = new import_node4.Emitter();
+        this._onDidRename = new import_node4.Emitter();
         this.disposables = [];
         this._disposed = false;
         this.onDidCreate = this._onDidCreate.event;
         this.onDidChange = this._onDidChange.event;
         this.onDidDelete = this._onDidDelete.event;
         this.onDidRename = this._onDidRename.event;
-        this._onDidListen = new import_node3.Emitter();
+        this._onDidListen = new import_node4.Emitter();
         this.onDidListen = this._onDidListen.event;
       }
       listen(root, client) {
@@ -47152,12 +47149,12 @@ var init_files = __esm({
         this.workspaceFolderControl = workspaceFolderControl;
         this.keymaps = keymaps;
         this.operationTimeout = 500;
-        this._onDidCreateFiles = new import_node3.Emitter();
-        this._onDidRenameFiles = new import_node3.Emitter();
-        this._onDidDeleteFiles = new import_node3.Emitter();
-        this._onWillCreateFiles = new import_node3.Emitter();
-        this._onWillRenameFiles = new import_node3.Emitter();
-        this._onWillDeleteFiles = new import_node3.Emitter();
+        this._onDidCreateFiles = new import_node4.Emitter();
+        this._onDidRenameFiles = new import_node4.Emitter();
+        this._onDidDeleteFiles = new import_node4.Emitter();
+        this._onWillCreateFiles = new import_node4.Emitter();
+        this._onWillRenameFiles = new import_node4.Emitter();
+        this._onWillDeleteFiles = new import_node4.Emitter();
         this.onDidCreateFiles = this._onDidCreateFiles.event;
         this.onDidRenameFiles = this._onDidRenameFiles.event;
         this.onDidDeleteFiles = this._onDidDeleteFiles.event;
@@ -47281,7 +47278,7 @@ var init_files = __esm({
           throw fileExists(filepath);
         }
         if (!exists || opts.overwrite) {
-          let tokenSource = new import_node3.CancellationTokenSource();
+          let tokenSource = new import_node4.CancellationTokenSource();
           await this.fireWaitUntilEvent(this._onWillCreateFiles, {
             files: [URI2.file(filepath)],
             token: tokenSource.token
@@ -47681,7 +47678,7 @@ var init_keymaps = __esm({
             });
           }
         }
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.keymaps.delete(key);
           for (let m of modes) {
             nvim.deleteKeymap(m, lhs);
@@ -47705,7 +47702,7 @@ var init_keymaps = __esm({
           nvim.setKeymap(mode, lhs, rhs, opts);
         }
         this.keymaps.set(id2, [fn, false]);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.keymaps.delete(id2);
           if (buffer) {
             nvim.call("coc#compat#buf_del_keymap", [bufnr, mode, lhs], true);
@@ -47732,7 +47729,7 @@ var init_keymaps = __esm({
           const modify2 = getKeymapModifier(mode, opts.cmd);
           buffer.setKeymap(mode, lhs, `:${modify2}call coc#rpc#${method}('doKeymap', ['${id2}'])<CR>`, opt);
         }
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.keymaps.delete(id2);
           buffer.deleteKeymap(mode, lhs);
         });
@@ -47802,7 +47799,7 @@ var init_watchers = __esm({
         cbs.add(callback);
         let cmd = `autocmd! coc_dynamic_option OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`;
         this.nvim.command(cmd, true);
-        let disposable = import_node3.Disposable.create(() => {
+        let disposable = import_node4.Disposable.create(() => {
           let cbs2 = this.optionCallbacks.get(key);
           cbs2.delete(callback);
           if (cbs2.size === 0) this.nvim.command(`autocmd! coc_dynamic_option OptionSet ${key}`, true);
@@ -47822,7 +47819,7 @@ var init_watchers = __esm({
         }
         cbs.add(callback);
         nvim.call("coc#_watch", key, true);
-        let disposable = import_node3.Disposable.create(() => {
+        let disposable = import_node4.Disposable.create(() => {
           let cbs2 = this.globalCallbacks.get(key);
           cbs2.delete(callback);
           if (cbs2.size === 0) nvim.call("coc#_unwatch", key, true);
@@ -47877,7 +47874,7 @@ var init_workspaceFolder = __esm({
     WorkspaceFolderController = class {
       constructor(configurations) {
         this.configurations = configurations;
-        this._onDidChangeWorkspaceFolders = new import_node3.Emitter();
+        this._onDidChangeWorkspaceFolders = new import_node4.Emitter();
         this.onDidChangeWorkspaceFolders = this._onDidChangeWorkspaceFolders.event;
         // filetype => patterns
         this.rootPatterns = /* @__PURE__ */ new Map();
@@ -48075,7 +48072,7 @@ var init_workspaceFolder = __esm({
         if (isFalsyOrEmpty(folders)) return false;
         let dirs = folders.map((f) => URI2.parse(f.uri).fsPath);
         let find = false;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         this._tokenSources.add(tokenSource);
         let token = tokenSource.token;
         let timer = setTimeout(() => {
@@ -48422,9 +48419,9 @@ var init_task = __esm({
         this.nvim = nvim;
         this.id = id2;
         this.disposables = [];
-        this._onExit = new import_node3.Emitter();
-        this._onStderr = new import_node3.Emitter();
-        this._onStdout = new import_node3.Emitter();
+        this._onExit = new import_node4.Emitter();
+        this._onStderr = new import_node4.Emitter();
+        this._onStdout = new import_node4.Emitter();
         this.onExit = this._onExit.event;
         this.onStdout = this._onStdout.event;
         this.onStderr = this._onStderr.event;
@@ -48542,7 +48539,7 @@ var init_workspace = __esm({
       constructor() {
         this.isTrusted = true;
         this.statusLine = new StatusLine();
-        this._onDidRuntimePathChange = new import_node3.Emitter();
+        this._onDidRuntimePathChange = new import_node4.Emitter();
         this.onDidRuntimePathChange = this._onDidRuntimePathChange.event;
         void initFuzzyWasm().then((api) => {
           this.fuzzyExports = api;
@@ -49076,9 +49073,9 @@ var init_filter2 = __esm({
         this._activated = false;
         this.history = new HistoryInput();
         this.disposables = [];
-        this._onDidUpdate = new import_node3.Emitter();
-        this._onDidExit = new import_node3.Emitter();
-        this._onDidKeyPress = new import_node3.Emitter();
+        this._onDidUpdate = new import_node4.Emitter();
+        this._onDidExit = new import_node4.Emitter();
+        this._onDidKeyPress = new import_node4.Emitter();
         this.onDidKeyPress = this._onDidKeyPress.event;
         this.onDidUpdate = this._onDidUpdate.event;
         this.onDidExit = this._onDidExit.event;
@@ -49227,14 +49224,14 @@ var init_TreeView = __esm({
         this.opts = opts;
         this._selection = [];
         this._keymapDefs = [];
-        this._onDispose = new import_node3.Emitter();
-        this._onDidRefrash = new import_node3.Emitter();
-        this._onDidExpandElement = new import_node3.Emitter();
-        this._onDidCollapseElement = new import_node3.Emitter();
-        this._onDidChangeSelection = new import_node3.Emitter();
-        this._onDidChangeVisibility = new import_node3.Emitter();
-        this._onDidFilterStateChange = new import_node3.Emitter();
-        this._onDidCursorMoved = new import_node3.Emitter();
+        this._onDispose = new import_node4.Emitter();
+        this._onDidRefrash = new import_node4.Emitter();
+        this._onDidExpandElement = new import_node4.Emitter();
+        this._onDidCollapseElement = new import_node4.Emitter();
+        this._onDidChangeSelection = new import_node4.Emitter();
+        this._onDidChangeVisibility = new import_node4.Emitter();
+        this._onDidFilterStateChange = new import_node4.Emitter();
+        this._onDidCursorMoved = new import_node4.Emitter();
         this.onDidRefrash = this._onDidRefrash.event;
         this.onDispose = this._onDispose.event;
         this.onDidExpandElement = this._onDidExpandElement.event;
@@ -49356,7 +49353,7 @@ var init_TreeView = __esm({
           let element = this.getElementByLnum(cursor[0] - 1);
           this._onDidCursorMoved.fire(element);
         }, 30);
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           debounced.clear();
         }));
         events_default.on("CursorMoved", debounced, null, this.disposables);
@@ -49630,7 +49627,7 @@ var init_TreeView = __esm({
       }
       async resolveItem(element, item) {
         if (typeof this.provider.resolveTreeItem === "function") {
-          let tokenSource = this.resolveTokenSource = new import_node3.CancellationTokenSource();
+          let tokenSource = this.resolveTokenSource = new import_node4.CancellationTokenSource();
           let token = tokenSource.token;
           item = await Promise.resolve(this.provider.resolveTreeItem(item, element, token));
           tokenSource.dispose();
@@ -50341,7 +50338,7 @@ var init_window = __esm({
       /**
        * Shows a selection list.
        */
-      async showQuickPick(itemsOrItemsPromise, options2, token = import_node3.CancellationToken.None) {
+      async showQuickPick(itemsOrItemsPromise, options2, token = import_node4.CancellationToken.None) {
         return await this.dialogs.showQuickPick(itemsOrItemsPromise, options2, token);
       }
       /**
@@ -53204,7 +53201,7 @@ var init_buffer = __esm({
         this._disposed = false;
         this._dirties = /* @__PURE__ */ new Set();
         this._refreshing = false;
-        this._onDidRefresh = new import_node3.Emitter();
+        this._onDidRefresh = new import_node4.Emitter();
         this.onDidRefresh = this._onDidRefresh.event;
         this.loadConfiguration();
         let timer;
@@ -53813,7 +53810,7 @@ var init_collection = __esm({
         this.name = name2;
         this.onDispose = onDispose;
         this.diagnosticsMap = /* @__PURE__ */ new Map();
-        this._onDidDiagnosticsChange = new import_node3.Emitter();
+        this._onDidDiagnosticsChange = new import_node4.Emitter();
         this.onDidDiagnosticsChange = this._onDidDiagnosticsChange.event;
       }
       set(entries, diagnostics) {
@@ -53910,7 +53907,7 @@ var init_manager = __esm({
     init_util5();
     DiagnosticManager = class {
       constructor() {
-        this._onDidRefresh = new import_node3.Emitter();
+        this._onDidRefresh = new import_node4.Emitter();
         this.onDidRefresh = this._onDidRefresh.event;
         this.enabled = true;
         this.collections = [];
@@ -54402,7 +54399,7 @@ var init_manager2 = __esm({
           });
         }
         this.providers.add(item);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.providers.delete(item);
         });
       }
@@ -68150,7 +68147,7 @@ var init_prompt = __esm({
         this._mode = "insert";
         this.interactive = false;
         this.requestInput = false;
-        this._onDidChangeInput = new import_node3.Emitter();
+        this._onDidChangeInput = new import_node4.Emitter();
         this.onDidChangeInput = this._onDidChangeInput.event;
       }
       get input() {
@@ -68425,11 +68422,11 @@ var init_ui2 = __esm({
         this.disposables = [];
         this.selected = /* @__PURE__ */ new Set();
         this.sequence = new Sequence();
-        this._onDidChangeLine = new import_node3.Emitter();
-        this._onDidOpen = new import_node3.Emitter();
-        this._onDidClose = new import_node3.Emitter();
-        this._onDidLineChange = new import_node3.Emitter();
-        this._onDoubleClick = new import_node3.Emitter();
+        this._onDidChangeLine = new import_node4.Emitter();
+        this._onDidOpen = new import_node4.Emitter();
+        this._onDidClose = new import_node4.Emitter();
+        this._onDidLineChange = new import_node4.Emitter();
+        this._onDoubleClick = new import_node4.Emitter();
         this.onDidChangeLine = this._onDidChangeLine.event;
         this.onDidLineChange = this._onDidLineChange.event;
         this.onDidOpen = this._onDidOpen.event;
@@ -69032,8 +69029,8 @@ var init_worker = __esm({
         this._finished = false;
         this.mutex = new Mutex();
         this.totalItems = [];
-        this._onDidChangeItems = new import_node3.Emitter();
-        this._onDidChangeLoading = new import_node3.Emitter();
+        this._onDidChangeItems = new import_node4.Emitter();
+        this._onDidChangeLoading = new import_node4.Emitter();
         this.onDidChangeItems = this._onDidChangeItems.event;
         this.onDidChangeLoading = this._onDidChangeLoading.event;
         this.fuzzyMatch = workspace_default.createFuzzyMatch();
@@ -69053,7 +69050,7 @@ var init_worker = __esm({
         let { list: list2, listOptions } = this;
         this.loading = true;
         let { interactive } = listOptions;
-        this.tokenSource = new import_node3.CancellationTokenSource();
+        this.tokenSource = new import_node4.CancellationTokenSource();
         let token = this.tokenSource.token;
         let items = await list2.loadItems(context, token);
         if (token.isCancellationRequested) return;
@@ -69065,7 +69062,7 @@ var init_worker = __esm({
           this._finished = true;
           let filtered;
           if (!interactive) {
-            this.filterTokenSource = new import_node3.CancellationTokenSource();
+            this.filterTokenSource = new import_node4.CancellationTokenSource();
             await this.mutex.use(async () => {
               await this.filterItems(items, { reload }, token);
             });
@@ -69083,7 +69080,7 @@ var init_worker = __esm({
           let totalItems = this.totalItems = [];
           let taken = 0;
           let currInput = context.input;
-          this.filterTokenSource = new import_node3.CancellationTokenSource();
+          this.filterTokenSource = new import_node4.CancellationTokenSource();
           let _onData = async (finished) => {
             await this.mutex.use(async () => {
               let inputChanged = this.input != currInput;
@@ -69153,7 +69150,7 @@ var init_worker = __esm({
         let { totalItems } = this;
         if (totalItems.length === 0) return;
         this.cancelFilter();
-        let tokenSource = this.filterTokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.filterTokenSource = new import_node4.CancellationTokenSource();
         let token = tokenSource.token;
         await this.mutex.use(async () => {
           if (token.isCancellationRequested) return;
@@ -69407,7 +69404,7 @@ var init_session = __esm({
         let start = 0;
         let timer;
         let interval2;
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           clearTimeout(timer);
           clearInterval(interval2);
         }));
@@ -70657,7 +70654,7 @@ var init_features = __esm({
         this._createParams = createParams;
         this._selectorFilter = selectorFilter;
         this._selectors = /* @__PURE__ */ new Map();
-        this._onNotificationSent = new import_node3.Emitter();
+        this._onNotificationSent = new import_node4.Emitter();
       }
       getDocumentSelectors() {
         return this._selectors.values();
@@ -70763,13 +70760,13 @@ var init_features = __esm({
         if (boolean(capability) && capability === true) {
           return [generateUuid(), { documentSelector }];
         }
-        if (import_node3.TextDocumentRegistrationOptions.is(capability)) {
-          const id2 = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+        if (import_node4.TextDocumentRegistrationOptions.is(capability)) {
+          const id2 = import_node4.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
           const selector = capability.documentSelector ?? documentSelector;
           return [id2, Object.assign({}, capability, { documentSelector: selector })];
         }
-        if (import_node3.WorkDoneProgressOptions.is(capability)) {
-          const id2 = import_node3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+        if (import_node4.WorkDoneProgressOptions.is(capability)) {
+          const id2 = import_node4.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
           return [id2, Object.assign({}, capability, { documentSelector })];
         }
         return [void 0, void 0];
@@ -70810,7 +70807,7 @@ var init_callHierarchy = __esm({
     init_features();
     CallHierarchyFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.CallHierarchyPrepareRequest.type);
+        super(client, import_node4.CallHierarchyPrepareRequest.type);
       }
       fillClientCapabilities(cap) {
         const capabilities = cap;
@@ -70830,7 +70827,7 @@ var init_callHierarchy = __esm({
             const client = this._client;
             const prepareCallHierarchy = (document3, position2, token2) => {
               const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
-              return this.sendRequest(import_node3.CallHierarchyPrepareRequest.type, params, token2);
+              return this.sendRequest(import_node4.CallHierarchyPrepareRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.prepareCallHierarchy ? middleware.prepareCallHierarchy(document2, position, token, prepareCallHierarchy) : prepareCallHierarchy(document2, position, token);
@@ -70838,7 +70835,7 @@ var init_callHierarchy = __esm({
           provideCallHierarchyIncomingCalls: (item, token) => {
             const client = this._client;
             const provideCallHierarchyIncomingCalls = (item2, token2) => {
-              return this.sendRequest(import_node3.CallHierarchyIncomingCallsRequest.type, { item: item2 }, token2);
+              return this.sendRequest(import_node4.CallHierarchyIncomingCallsRequest.type, { item: item2 }, token2);
             };
             const middleware = client.middleware;
             return middleware.provideCallHierarchyIncomingCalls ? middleware.provideCallHierarchyIncomingCalls(item, token, provideCallHierarchyIncomingCalls) : provideCallHierarchyIncomingCalls(item, token);
@@ -70846,7 +70843,7 @@ var init_callHierarchy = __esm({
           provideCallHierarchyOutgoingCalls: (item, token) => {
             const client = this._client;
             const provideCallHierarchyOutgoingCalls = (item2, token2) => {
-              return this.sendRequest(import_node3.CallHierarchyOutgoingCallsRequest.type, { item: item2 }, token2);
+              return this.sendRequest(import_node4.CallHierarchyOutgoingCallsRequest.type, { item: item2 }, token2);
             };
             const middleware = client.middleware;
             return middleware.provideCallHierarchyOutgoingCalls ? middleware.provideCallHierarchyOutgoingCalls(item, token, provideCallHierarchyOutgoingCalls) : provideCallHierarchyOutgoingCalls(item, token);
@@ -70872,7 +70869,7 @@ var init_codeAction = __esm({
     init_uuid();
     CodeActionFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.CodeActionRequest.type);
+        super(client, import_node4.CodeActionRequest.type);
         this.disposables = [];
       }
       fillClientCapabilities(capabilities) {
@@ -70918,7 +70915,7 @@ var init_codeAction = __esm({
               command,
               arguments: args
             };
-            return client.sendRequest(import_node3.ExecuteCommandRequest.type, params);
+            return client.sendRequest(import_node4.ExecuteCommandRequest.type, params);
           };
           const middleware = client.middleware;
           this.disposables.push(commands_default.registerCommand(id2, (...args) => {
@@ -70934,7 +70931,7 @@ var init_codeAction = __esm({
                 range: range2,
                 context: context2
               };
-              return this.sendRequest(import_node3.CodeActionRequest.type, params, token2).then(
+              return this.sendRequest(import_node4.CodeActionRequest.type, params, token2).then(
                 (values) => {
                   if (!values) return void 0;
                   values.forEach((val) => {
@@ -70951,7 +70948,7 @@ var init_codeAction = __esm({
           resolveCodeAction: options2.resolveProvider ? (item, token) => {
             const middleware = this._client.middleware;
             const resolveCodeAction = (item2, token2) => {
-              return this.sendRequest(import_node3.CodeActionResolveRequest.type, item2, token2, item2);
+              return this.sendRequest(import_node4.CodeActionResolveRequest.type, item2, token2, item2);
             };
             return middleware.resolveCodeAction ? middleware.resolveCodeAction(item, token, resolveCodeAction) : resolveCodeAction(item, token);
           } : void 0
@@ -70981,7 +70978,7 @@ var init_codeLens = __esm({
     init_uuid();
     CodeLensFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.CodeLensRequest.type);
+        super(client, import_node4.CodeLensRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "codeLens").dynamicRegistration = true;
@@ -70989,7 +70986,7 @@ var init_codeLens = __esm({
       }
       initialize(capabilities, documentSelector) {
         const client = this._client;
-        client.onRequest(import_node3.CodeLensRefreshRequest.type, async () => {
+        client.onRequest(import_node4.CodeLensRefreshRequest.type, async () => {
           for (const provider of this.getAllProviders()) {
             provider.onDidChangeCodeLensEmitter.fire();
           }
@@ -70999,14 +70996,14 @@ var init_codeLens = __esm({
         this.register({ id: generateUuid(), registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
-        const emitter = new import_node3.Emitter();
+        const emitter = new import_node4.Emitter();
         const provider = {
           onDidChangeCodeLenses: emitter.event,
           provideCodeLenses: (document2, token) => {
             const client = this._client;
             const provideCodeLenses = (document3, token2) => {
               return this.sendRequest(
-                import_node3.CodeLensRequest.type,
+                import_node4.CodeLensRequest.type,
                 client.code2ProtocolConverter.asCodeLensParams(document3),
                 token2
               );
@@ -71018,7 +71015,7 @@ var init_codeLens = __esm({
             const client = this._client;
             const resolveCodeLens = (codeLens2, token2) => {
               return this.sendRequest(
-                import_node3.CodeLensResolveRequest.type,
+                import_node4.CodeLensResolveRequest.type,
                 codeLens2,
                 token2,
                 codeLens2
@@ -71045,7 +71042,7 @@ var init_colorProvider = __esm({
     init_features();
     ColorProviderFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentColorRequest.type);
+        super(client, import_node4.DocumentColorRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "colorProvider").dynamicRegistration = true;
@@ -71067,7 +71064,7 @@ var init_colorProvider = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context2.document),
                 range: context2.range
               };
-              return this.sendRequest(import_node3.ColorPresentationRequest.type, requestParams, token2);
+              return this.sendRequest(import_node4.ColorPresentationRequest.type, requestParams, token2);
             };
             const middleware = client.middleware;
             return middleware.provideColorPresentations ? middleware.provideColorPresentations(color, context, token, provideColorPresentations) : provideColorPresentations(color, context, token);
@@ -71078,7 +71075,7 @@ var init_colorProvider = __esm({
               const requestParams = {
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
-              return this.sendRequest(import_node3.DocumentColorRequest.type, requestParams, token2);
+              return this.sendRequest(import_node4.DocumentColorRequest.type, requestParams, token2);
             };
             const middleware = client.middleware;
             return middleware.provideDocumentColors ? middleware.provideDocumentColors(document2, token, provideDocumentColors) : provideDocumentColors(document2, token);
@@ -71130,7 +71127,7 @@ var init_completion = __esm({
     ];
     CompletionItemFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.CompletionRequest.type);
+        super(client, import_node4.CompletionRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true;
@@ -71176,7 +71173,7 @@ var init_completion = __esm({
             const middleware = this._client.middleware;
             const provideCompletionItems = (document3, position2, context2, token2) => {
               return this.sendRequest(
-                import_node3.CompletionRequest.type,
+                import_node4.CompletionRequest.type,
                 this._client.code2ProtocolConverter.asCompletionParams(document3, position2, context2),
                 token2,
                 []
@@ -71188,7 +71185,7 @@ var init_completion = __esm({
             const middleware = this._client.middleware;
             const resolveCompletionItem = (item2, token2) => {
               return this.sendRequest(
-                import_node3.CompletionResolveRequest.type,
+                import_node4.CompletionResolveRequest.type,
                 item2,
                 token2,
                 item2
@@ -71230,7 +71227,7 @@ var init_configuration4 = __esm({
         this._client = _client;
       }
       get method() {
-        return import_node3.ConfigurationRequest.method;
+        return import_node4.ConfigurationRequest.method;
       }
       fillClientCapabilities(capabilities) {
         ensure(capabilities, "workspace").configuration = true;
@@ -71241,7 +71238,7 @@ var init_configuration4 = __esm({
       initialize() {
         let client = this._client;
         let { configuredSection } = client;
-        client.onRequest(import_node3.ConfigurationRequest.type, (params, token) => {
+        client.onRequest(import_node4.ConfigurationRequest.type, (params, token) => {
           let configuration2 = (params2) => {
             let result = [];
             for (let item of params2.items) {
@@ -71287,7 +71284,7 @@ var init_configuration4 = __esm({
         return { kind: "workspace", id: this.registrationType.method, registrations: this._listeners.size > 0 };
       }
       get registrationType() {
-        return import_node3.DidChangeConfigurationNotification.type;
+        return import_node4.DidChangeConfigurationNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "workspace"), "didChangeConfiguration").dynamicRegistration = true;
@@ -71343,16 +71340,16 @@ var init_configuration4 = __esm({
         }
         let didChangeConfiguration = (sections2) => {
           if (sections2 == null) {
-            return this._client.sendNotification(import_node3.DidChangeConfigurationNotification.type, { settings: null });
+            return this._client.sendNotification(import_node4.DidChangeConfigurationNotification.type, { settings: null });
           }
           let workspaceFolder = this._client.clientOptions.workspaceFolder;
           let settings = configuredSection ? _SyncConfigurationFeature.getConfiguredSettings(configuredSection, workspaceFolder) : _SyncConfigurationFeature.extractSettingsInformation(sections2, workspaceFolder);
-          return this._client.sendNotification(import_node3.DidChangeConfigurationNotification.type, { settings });
+          return this._client.sendNotification(import_node4.DidChangeConfigurationNotification.type, { settings });
         };
         let middleware = this._client.middleware.workspace?.didChangeConfiguration;
         let promise = middleware ? Promise.resolve(middleware(sections, didChangeConfiguration)) : didChangeConfiguration(sections);
         promise.catch((error) => {
-          this._client.error(`Sending notification ${import_node3.DidChangeConfigurationNotification.type.method} failed`, error);
+          this._client.error(`Sending notification ${import_node4.DidChangeConfigurationNotification.type.method} failed`, error);
         });
       }
       static getConfiguredSettings(key, workspaceFolder) {
@@ -71402,7 +71399,7 @@ var init_declaration = __esm({
     init_features();
     DeclarationFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DeclarationRequest.type);
+        super(client, import_node4.DeclarationRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let declarationSupport = ensure(ensure(capabilities, "textDocument"), "declaration");
@@ -71420,7 +71417,7 @@ var init_declaration = __esm({
         const provider = {
           provideDeclaration: (document2, position, token) => {
             const client = this._client;
-            const provideDeclaration = (document3, position2, token2) => this.sendRequest(import_node3.DeclarationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
+            const provideDeclaration = (document3, position2, token2) => this.sendRequest(import_node4.DeclarationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideDeclaration ? middleware.provideDeclaration(document2, position, token, provideDeclaration) : provideDeclaration(document2, position, token);
           }
@@ -71443,7 +71440,7 @@ var init_definition = __esm({
     init_uuid();
     DefinitionFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DefinitionRequest.type);
+        super(client, import_node4.DefinitionRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let definitionSupport = ensure(ensure(capabilities, "textDocument"), "definition");
@@ -71466,7 +71463,7 @@ var init_definition = __esm({
             const client = this._client;
             const provideDefinition = (document3, position2, token2) => {
               return this.sendRequest(
-                import_node3.DefinitionRequest.type,
+                import_node4.DefinitionRequest.type,
                 client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
@@ -71576,7 +71573,7 @@ var init_diagnostic = __esm({
         this.options = options2;
         this.enableWorkspace = options2.workspaceDiagnostics && this.client.clientOptions.diagnosticPullOptions?.workspace !== false;
         this.isDisposed = false;
-        this.onDidChangeDiagnosticsEmitter = new import_node3.Emitter();
+        this.onDidChangeDiagnosticsEmitter = new import_node4.Emitter();
         this.provider = this.createProvider();
         this.diagnostics = languages_default.createDiagnosticCollection(options2.identifier ? options2.identifier : client.id);
         this.openRequests = /* @__PURE__ */ new Map();
@@ -71608,14 +71605,14 @@ var init_diagnostic = __esm({
         const currentRequestState = this.openRequests.get(uri);
         const documentState = this.documentStates.track(1 /* document */, document2);
         if (currentRequestState === void 0) {
-          const tokenSource = new import_node3.CancellationTokenSource();
+          const tokenSource = new import_node4.CancellationTokenSource();
           this.openRequests.set(uri, { state: "open" /* active */, document: document2, version: version2, tokenSource });
           let report;
           let afterState;
           try {
-            report = await this.provider.provideDiagnostics(document2, documentState.resultId, tokenSource.token) ?? { kind: import_node3.DocumentDiagnosticReportKind.Full, items: [] };
+            report = await this.provider.provideDiagnostics(document2, documentState.resultId, tokenSource.token) ?? { kind: import_node4.DocumentDiagnosticReportKind.Full, items: [] };
           } catch (error) {
-            if (error instanceof LSPCancellationError && error.data && import_node3.DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
+            if (error instanceof LSPCancellationError && error.data && import_node4.DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
               afterState = { state: "drop" /* outDated */, document: document2 };
             }
             if (afterState === void 0 && error instanceof CancellationError) {
@@ -71638,7 +71635,7 @@ var init_diagnostic = __esm({
           }
           if (afterState.state === "drop" /* outDated */) return;
           if (report !== void 0) {
-            if (report.kind === import_node3.DocumentDiagnosticReportKind.Full) {
+            if (report.kind === import_node4.DocumentDiagnosticReportKind.Full) {
               this.diagnostics.set(uri, report.items);
             }
             documentState.pulledVersion = version2;
@@ -71681,16 +71678,16 @@ var init_diagnostic = __esm({
       pullWorkspace() {
         if (!this.enableWorkspace) return;
         this.pullWorkspaceAsync().then(() => {
-          this.workspaceTimeout = (0, import_node3.RAL)().timer.setTimeout(() => {
+          this.workspaceTimeout = (0, import_node4.RAL)().timer.setTimeout(() => {
             this.pullWorkspace();
           }, workdpacePullDebounce);
         }, (error) => {
-          if (!(error instanceof LSPCancellationError) && !import_node3.DiagnosticServerCancellationData.is(error.data)) {
+          if (!(error instanceof LSPCancellationError) && !import_node4.DiagnosticServerCancellationData.is(error.data)) {
             this.client.error(`Workspace diagnostic pull failed.`, error);
             this.workspaceErrorCounter++;
           }
           if (this.workspaceErrorCounter <= 5) {
-            this.workspaceTimeout = (0, import_node3.RAL)().timer.setTimeout(() => {
+            this.workspaceTimeout = (0, import_node4.RAL)().timer.setTimeout(() => {
               this.pullWorkspace();
             }, workdpacePullDebounce);
           }
@@ -71704,14 +71701,14 @@ var init_diagnostic = __esm({
           this.workspaceCancellation.cancel();
           this.workspaceCancellation = void 0;
         }
-        this.workspaceCancellation = new import_node3.CancellationTokenSource();
+        this.workspaceCancellation = new import_node4.CancellationTokenSource();
         const previousResultIds = this.documentStates.getAllResultIds();
         await this.provider.provideWorkspaceDiagnostics(previousResultIds, this.workspaceCancellation.token, (chunk) => {
           if (!chunk || this.isDisposed) {
             return;
           }
           for (const item of chunk.items) {
-            if (item.kind === import_node3.DocumentDiagnosticReportKind.Full) {
+            if (item.kind === import_node4.DocumentDiagnosticReportKind.Full) {
               if (!this.documentStates.tracks(1 /* document */, URI2.parse(item.uri))) {
                 this.diagnostics.set(item.uri.toString(), item.items);
               }
@@ -71733,11 +71730,11 @@ var init_diagnostic = __esm({
                 textDocument: { uri },
                 previousResultId: previousResultId2
               };
-              return this.sendRequest(import_node3.DocumentDiagnosticRequest.type, params, token2, { kind: import_node3.DocumentDiagnosticReportKind.Full, items: [] }).then(async (result) => {
+              return this.sendRequest(import_node4.DocumentDiagnosticRequest.type, params, token2, { kind: import_node4.DocumentDiagnosticReportKind.Full, items: [] }).then(async (result) => {
                 if (result === void 0 || result === null || this.isDisposed) {
-                  return { kind: import_node3.DocumentDiagnosticReportKind.Full, items: [] };
+                  return { kind: import_node4.DocumentDiagnosticReportKind.Full, items: [] };
                 }
-                if (middleware.handleDiagnostics && result.kind == import_node3.DocumentDiagnosticReportKind.Full) {
+                if (middleware.handleDiagnostics && result.kind == import_node4.DocumentDiagnosticReportKind.Full) {
                   middleware.handleDiagnostics(uri, result.items, (_, diagnostics) => {
                     result.items = diagnostics;
                   });
@@ -71752,7 +71749,7 @@ var init_diagnostic = __esm({
           provider.provideWorkspaceDiagnostics = (resultIds, token, resultReporter) => {
             const provideWorkspaceDiagnostics = (resultIds2, token2, resultReporter2) => {
               const partialResultToken = v4_default();
-              const disposable = this.client.onProgress(import_node3.WorkspaceDiagnosticRequest.partialResult, partialResultToken, (partialResult) => {
+              const disposable = this.client.onProgress(import_node4.WorkspaceDiagnosticRequest.partialResult, partialResultToken, (partialResult) => {
                 if (partialResult == void 0) {
                   resultReporter2(null);
                   return;
@@ -71764,7 +71761,7 @@ var init_diagnostic = __esm({
                 previousResultIds: resultIds2,
                 partialResultToken
               };
-              return this.sendRequest(import_node3.WorkspaceDiagnosticRequest.type, params, token2, { items: [] }).then(async (result) => {
+              return this.sendRequest(import_node4.WorkspaceDiagnosticRequest.type, params, token2, { items: [] }).then(async (result) => {
                 resultReporter2(result);
                 return { items: [] };
               }).finally(() => {
@@ -71845,7 +71842,7 @@ var init_diagnostic = __esm({
         if (this.timeoutHandle !== void 0) {
           return;
         }
-        this.timeoutHandle = (0, import_node3.RAL)().timer.setTimeout(() => {
+        this.timeoutHandle = (0, import_node4.RAL)().timer.setTimeout(() => {
           const document2 = this.documents.first;
           if (document2 === void 0) {
             return;
@@ -71918,7 +71915,7 @@ var init_diagnostic = __esm({
             }
           }
         }, null, disposables);
-        const openFeature = client.getFeature(import_node3.DidOpenTextDocumentNotification.method);
+        const openFeature = client.getFeature(import_node4.DidOpenTextDocumentNotification.method);
         disposables.push(openFeature.onNotificationSent((event) => {
           const textDocument = event.original;
           if (matches(textDocument)) {
@@ -71935,7 +71932,7 @@ var init_diagnostic = __esm({
           }
         }
         if (diagnosticPullOptions.onChange === true) {
-          const changeFeature = client.getFeature(import_node3.DidChangeTextDocumentNotification.method);
+          const changeFeature = client.getFeature(import_node4.DidChangeTextDocumentNotification.method);
           disposables.push(changeFeature.onNotificationSent(async (event) => {
             const textDocument = workspace_default.getDocument(event.original.bufnr).textDocument;
             if (considerDocument(textDocument, "onType" /* onType */)) {
@@ -71946,7 +71943,7 @@ var init_diagnostic = __esm({
           }));
         }
         if (diagnosticPullOptions.onSave === true) {
-          const saveFeature = client.getFeature(import_node3.DidSaveTextDocumentNotification.method);
+          const saveFeature = client.getFeature(import_node4.DidSaveTextDocumentNotification.method);
           disposables.push(saveFeature.onNotificationSent((event) => {
             const textDocument = event.original;
             if (considerDocument(textDocument, "onSave" /* onSave */)) {
@@ -71954,7 +71951,7 @@ var init_diagnostic = __esm({
             }
           }));
         }
-        const closeFeature = client.getFeature(import_node3.DidCloseTextDocumentNotification.method);
+        const closeFeature = client.getFeature(import_node4.DidCloseTextDocumentNotification.method);
         disposables.push(closeFeature.onNotificationSent((event) => {
           this.cleanUpDocument(event.original);
         }));
@@ -71987,7 +71984,7 @@ var init_diagnostic = __esm({
         if (options2.workspaceDiagnostics === true && options2.identifier !== "da348dc5-c30a-4515-9d98-31ff3be38d14") {
           this.diagnosticRequestor.pullWorkspace();
         }
-        this.disposable = import_node3.Disposable.create(() => [...disposables, this.backgroundScheduler, this.diagnosticRequestor].forEach((d) => d.dispose()));
+        this.disposable = import_node4.Disposable.create(() => [...disposables, this.backgroundScheduler, this.diagnosticRequestor].forEach((d) => d.dispose()));
       }
       get onDidChangeDiagnosticsEmitter() {
         return this.diagnosticRequestor.onDidChangeDiagnosticsEmitter;
@@ -72010,7 +72007,7 @@ var init_diagnostic = __esm({
     };
     DiagnosticFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentDiagnosticRequest.type);
+        super(client, import_node4.DocumentDiagnosticRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let capability = ensure(ensure(capabilities, "textDocument"), "diagnostic");
@@ -72020,7 +72017,7 @@ var init_diagnostic = __esm({
       }
       initialize(capabilities, documentSelector) {
         const client = this._client;
-        client.onRequest(import_node3.DiagnosticRefreshRequest.type, async () => {
+        client.onRequest(import_node4.DiagnosticRefreshRequest.type, async () => {
           for (const provider of this.getAllProviders()) {
             provider.onDidChangeDiagnosticsEmitter.fire();
           }
@@ -72053,7 +72050,7 @@ var init_documentHighlight = __esm({
     init_uuid();
     DocumentHighlightFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentHighlightRequest.type);
+        super(client, import_node4.DocumentHighlightRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(
@@ -72077,7 +72074,7 @@ var init_documentHighlight = __esm({
             const client = this._client;
             const _provideDocumentHighlights = (document3, position2, token2) => {
               return this.sendRequest(
-                import_node3.DocumentHighlightRequest.type,
+                import_node4.DocumentHighlightRequest.type,
                 client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
@@ -72104,7 +72101,7 @@ var init_documentLink = __esm({
     init_uuid();
     DocumentLinkFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentLinkRequest.type);
+        super(client, import_node4.DocumentLinkRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const documentLinkCapabilities = ensure(ensure(capabilities, "textDocument"), "documentLink");
@@ -72127,7 +72124,7 @@ var init_documentLink = __esm({
             const client = this._client;
             const provideDocumentLinks = (document3, token2) => {
               return this.sendRequest(
-                import_node3.DocumentLinkRequest.type,
+                import_node4.DocumentLinkRequest.type,
                 client.code2ProtocolConverter.asDocumentLinkParams(document3),
                 token2
               );
@@ -72138,7 +72135,7 @@ var init_documentLink = __esm({
           resolveDocumentLink: options2.resolveProvider ? (link, token) => {
             const client = this._client;
             let resolveDocumentLink = (link2, token2) => {
-              return this.sendRequest(import_node3.DocumentLinkResolveRequest.type, link2, token2, link2);
+              return this.sendRequest(import_node4.DocumentLinkResolveRequest.type, link2, token2, link2);
             };
             const middleware = client.middleware;
             return middleware.resolveDocumentLink ? middleware.resolveDocumentLink(link, token, resolveDocumentLink) : resolveDocumentLink(link, token);
@@ -72194,7 +72191,7 @@ var init_documentSymbol = __esm({
     ];
     DocumentSymbolFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentSymbolRequest.type);
+        super(client, import_node4.DocumentSymbolRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let symbolCapabilities = ensure(ensure(capabilities, "textDocument"), "documentSymbol");
@@ -72225,7 +72222,7 @@ var init_documentSymbol = __esm({
             const client = this._client;
             const _provideDocumentSymbols = (document3, token2) => {
               return this.sendRequest(
-                import_node3.DocumentSymbolRequest.type,
+                import_node4.DocumentSymbolRequest.type,
                 client.code2ProtocolConverter.asDocumentSymbolParams(document3),
                 token2
               );
@@ -72259,7 +72256,7 @@ var init_executeCommand = __esm({
         return { kind: "workspace", id: this.registrationType.method, registrations: this._commands.size > 0 };
       }
       get registrationType() {
-        return import_node3.ExecuteCommandRequest.type;
+        return import_node4.ExecuteCommandRequest.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "workspace"), "executeCommand").dynamicRegistration = true;
@@ -72281,7 +72278,7 @@ var init_executeCommand = __esm({
             command,
             arguments: args
           };
-          return this.sendRequest(import_node3.ExecuteCommandRequest.type, params, import_node3.CancellationToken.None);
+          return this.sendRequest(import_node4.ExecuteCommandRequest.type, params, import_node4.CancellationToken.None);
         };
         if (data.registerOptions.commands) {
           let disposables = [];
@@ -72407,10 +72404,10 @@ var init_fileOperations = __esm({
                     this._client.error(`Failed to determine file type for ${uri.toString()}.`);
                     return true;
                   }
-                  if (fileType === 1 /* File */ && filter2.kind === import_node3.FileOperationPatternKind.file || fileType === 2 /* Directory */ && filter2.kind === import_node3.FileOperationPatternKind.folder) {
+                  if (fileType === 1 /* File */ && filter2.kind === import_node4.FileOperationPatternKind.file || fileType === 2 /* Directory */ && filter2.kind === import_node4.FileOperationPatternKind.folder) {
                     return true;
                   }
-                } else if (filter2.kind === import_node3.FileOperationPatternKind.folder) {
+                } else if (filter2.kind === import_node4.FileOperationPatternKind.folder) {
                   const fileType = await getFileType(uri.fsPath);
                   if (fileType === 2 /* Directory */ && filter2.matcher.match(`${path2}/`)) {
                     return true;
@@ -72465,7 +72462,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onDidCreateFiles,
-          import_node3.DidCreateFilesNotification.type,
+          import_node4.DidCreateFilesNotification.type,
           "didCreate",
           "didCreate",
           (i) => i,
@@ -72482,7 +72479,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onDidRenameFiles,
-          import_node3.DidRenameFilesNotification.type,
+          import_node4.DidRenameFilesNotification.type,
           "didRename",
           "didRename",
           (i) => i.oldUri,
@@ -72499,7 +72496,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onDidDeleteFiles,
-          import_node3.DidDeleteFilesNotification.type,
+          import_node4.DidDeleteFilesNotification.type,
           "didDelete",
           "didDelete",
           (i) => i,
@@ -72526,7 +72523,7 @@ var init_fileOperations = __esm({
         const filteredEvent = await this.filter(originalEvent, this._accessUri);
         if (filteredEvent.files.length) {
           const next = (event) => {
-            return this.sendRequest(this._requestType, this._createParams(event), import_node3.CancellationToken.None);
+            return this.sendRequest(this._requestType, this._createParams(event), import_node4.CancellationToken.None);
           };
           return this.doSend(filteredEvent, next);
         } else {
@@ -72539,7 +72536,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onWillCreateFiles,
-          import_node3.WillCreateFilesRequest.type,
+          import_node4.WillCreateFilesRequest.type,
           "willCreate",
           "willCreate",
           (i) => i,
@@ -72556,7 +72553,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onWillRenameFiles,
-          import_node3.WillRenameFilesRequest.type,
+          import_node4.WillRenameFilesRequest.type,
           "willRename",
           "willRename",
           (i) => i.oldUri,
@@ -72573,7 +72570,7 @@ var init_fileOperations = __esm({
         super(
           client,
           workspace_default.onWillDeleteFiles,
-          import_node3.WillDeleteFilesRequest.type,
+          import_node4.WillDeleteFilesRequest.type,
           "willDelete",
           "willDelete",
           (i) => i,
@@ -72659,7 +72656,7 @@ var init_fileSystemWatcher2 = __esm({
         let map = this._fileEventsMap;
         if (map.size == 0) return;
         await this._client.forceDocumentSync();
-        this._client.sendNotification(import_node3.DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch((error) => {
+        this._client.sendNotification(import_node4.DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch((error) => {
           this._client.error(`Notify file events failed.`, error);
         });
         map.clear();
@@ -72681,7 +72678,7 @@ var init_fileSystemWatcher2 = __esm({
         return { kind: "workspace", id: this.registrationType.method, registrations: this._watchers.size > 0 };
       }
       get registrationType() {
-        return import_node3.DidChangeWatchedFilesNotification.type;
+        return import_node4.DidChangeWatchedFilesNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "workspace"), "didChangeWatchedFiles").dynamicRegistration = true;
@@ -72713,7 +72710,7 @@ var init_fileSystemWatcher2 = __esm({
           let globPattern;
           if (string(watcher.globPattern)) {
             globPattern = watcher.globPattern;
-          } else if (import_node3.RelativePattern.is(watcher.globPattern)) {
+          } else if (import_node4.RelativePattern.is(watcher.globPattern)) {
             globPattern = asRelativePattern(watcher.globPattern);
           } else {
             continue;
@@ -72722,9 +72719,9 @@ var init_fileSystemWatcher2 = __esm({
           let watchChange = true;
           let watchDelete = true;
           if (watcher.kind != null) {
-            watchCreate = (watcher.kind & import_node3.WatchKind.Create) !== 0;
-            watchChange = (watcher.kind & import_node3.WatchKind.Change) !== 0;
-            watchDelete = (watcher.kind & import_node3.WatchKind.Delete) !== 0;
+            watchCreate = (watcher.kind & import_node4.WatchKind.Create) !== 0;
+            watchChange = (watcher.kind & import_node4.WatchKind.Change) !== 0;
+            watchDelete = (watcher.kind & import_node4.WatchKind.Delete) !== 0;
           }
           let fileSystemWatcher = workspace_default.createFileSystemWatcher(
             globPattern,
@@ -72749,7 +72746,7 @@ var init_fileSystemWatcher2 = __esm({
           fileSystemWatcher.onDidCreate(
             (resource) => this.notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
-              type: import_node3.FileChangeType.Created
+              type: import_node4.FileChangeType.Created
             }),
             null,
             listeners
@@ -72759,7 +72756,7 @@ var init_fileSystemWatcher2 = __esm({
           fileSystemWatcher.onDidChange(
             (resource) => this.notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
-              type: import_node3.FileChangeType.Changed
+              type: import_node4.FileChangeType.Changed
             }),
             null,
             listeners
@@ -72769,7 +72766,7 @@ var init_fileSystemWatcher2 = __esm({
           fileSystemWatcher.onDidDelete(
             (resource) => this.notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
-              type: import_node3.FileChangeType.Deleted
+              type: import_node4.FileChangeType.Deleted
             }),
             null,
             listeners
@@ -72809,14 +72806,14 @@ var init_foldingRange = __esm({
     init_features();
     FoldingRangeFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.FoldingRangeRequest.type);
+        super(client, import_node4.FoldingRangeRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let capability = ensure(ensure(capabilities, "textDocument"), "foldingRange");
         capability.dynamicRegistration = true;
         capability.rangeLimit = 5e3;
         capability.lineFoldingOnly = true;
-        capability.foldingRangeKind = { valueSet: [import_node3.FoldingRangeKind.Comment, import_node3.FoldingRangeKind.Imports, import_node3.FoldingRangeKind.Region] };
+        capability.foldingRangeKind = { valueSet: [import_node4.FoldingRangeKind.Comment, import_node4.FoldingRangeKind.Imports, import_node4.FoldingRangeKind.Region] };
         capability.foldingRange = { collapsedText: false };
       }
       initialize(capabilities, documentSelector) {
@@ -72834,7 +72831,7 @@ var init_foldingRange = __esm({
               const requestParams = {
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
-              return this.sendRequest(import_node3.FoldingRangeRequest.type, requestParams, token2);
+              return this.sendRequest(import_node4.FoldingRangeRequest.type, requestParams, token2);
             };
             const middleware = client.middleware;
             return middleware.provideFoldingRanges ? middleware.provideFoldingRanges(document2, context, token, provideFoldingRanges) : provideFoldingRanges(document2, context, token);
@@ -72858,7 +72855,7 @@ var init_formatting2 = __esm({
     init_uuid();
     DocumentFormattingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentFormattingRequest.type);
+        super(client, import_node4.DocumentFormattingRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(
@@ -72885,7 +72882,7 @@ var init_formatting2 = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 options: options4
               };
-              return this.sendRequest(import_node3.DocumentFormattingRequest.type, params, token2);
+              return this.sendRequest(import_node4.DocumentFormattingRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.provideDocumentFormattingEdits ? middleware.provideDocumentFormattingEdits(document2, options3, token, provideDocumentFormattingEdits) : provideDocumentFormattingEdits(document2, options3, token);
@@ -72900,7 +72897,7 @@ var init_formatting2 = __esm({
     };
     DocumentRangeFormattingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentRangeFormattingRequest.type);
+        super(client, import_node4.DocumentRangeFormattingRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(
@@ -72928,7 +72925,7 @@ var init_formatting2 = __esm({
                 range: range2,
                 options: options4
               };
-              return this.sendRequest(import_node3.DocumentRangeFormattingRequest.type, params, token2);
+              return this.sendRequest(import_node4.DocumentRangeFormattingRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.provideDocumentRangeFormattingEdits ? middleware.provideDocumentRangeFormattingEdits(document2, range, options3, token, provideDocumentRangeFormattingEdits) : provideDocumentRangeFormattingEdits(document2, range, options3, token);
@@ -72943,7 +72940,7 @@ var init_formatting2 = __esm({
     };
     DocumentOnTypeFormattingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.DocumentOnTypeFormattingRequest.type);
+        super(client, import_node4.DocumentOnTypeFormattingRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "onTypeFormatting").dynamicRegistration = true;
@@ -72969,7 +72966,7 @@ var init_formatting2 = __esm({
                 ch: ch2,
                 options: options4
               };
-              return this.sendRequest(import_node3.DocumentOnTypeFormattingRequest.type, params, token2);
+              return this.sendRequest(import_node4.DocumentOnTypeFormattingRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.provideOnTypeFormattingEdits ? middleware.provideOnTypeFormattingEdits(document2, position, ch, options3, token, provideOnTypeFormattingEdits) : provideOnTypeFormattingEdits(document2, position, ch, options3, token);
@@ -72995,7 +72992,7 @@ var init_hover = __esm({
     init_uuid();
     HoverFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.HoverRequest.type);
+        super(client, import_node4.HoverRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const hoverCapability = ensure(
@@ -73021,7 +73018,7 @@ var init_hover = __esm({
             const client = this._client;
             const provideHover = (document3, position2, token2) => {
               return this.sendRequest(
-                import_node3.HoverRequest.type,
+                import_node4.HoverRequest.type,
                 client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2),
                 token2
               );
@@ -73047,7 +73044,7 @@ var init_implementation = __esm({
     init_features();
     ImplementationFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.ImplementationRequest.type);
+        super(client, import_node4.ImplementationRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const implementationSupport = ensure(ensure(capabilities, "textDocument"), "implementation");
@@ -73065,7 +73062,7 @@ var init_implementation = __esm({
         const provider = {
           provideImplementation: (document2, position, token) => {
             const client = this._client;
-            const provideImplementation = (document3, position2, token2) => this.sendRequest(import_node3.ImplementationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
+            const provideImplementation = (document3, position2, token2) => this.sendRequest(import_node4.ImplementationRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideImplementation ? middleware.provideImplementation(document2, position, token, provideImplementation) : provideImplementation(document2, position, token);
           }
@@ -73087,7 +73084,7 @@ var init_inlayHint = __esm({
     init_features();
     InlayHintsFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.InlayHintRequest.type);
+        super(client, import_node4.InlayHintRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const inlayHint = ensure(ensure(capabilities, "textDocument"), "inlayHint");
@@ -73098,7 +73095,7 @@ var init_inlayHint = __esm({
         ensure(ensure(capabilities, "workspace"), "inlayHint").refreshSupport = true;
       }
       initialize(capabilities, documentSelector) {
-        this._client.onRequest(import_node3.InlayHintRefreshRequest.type, async () => {
+        this._client.onRequest(import_node4.InlayHintRefreshRequest.type, async () => {
           for (const provider of this.getAllProviders()) {
             provider.onDidChangeInlayHints.fire();
           }
@@ -73110,7 +73107,7 @@ var init_inlayHint = __esm({
         this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
-        const eventEmitter = new import_node3.Emitter();
+        const eventEmitter = new import_node4.Emitter();
         const provider = {
           onDidChangeInlayHints: eventEmitter.event,
           provideInlayHints: (document2, range, token) => {
@@ -73120,7 +73117,7 @@ var init_inlayHint = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2
               };
-              return this.sendRequest(import_node3.InlayHintRequest.type, requestParams, token2, null);
+              return this.sendRequest(import_node4.InlayHintRequest.type, requestParams, token2, null);
             };
             const middleware = client.middleware;
             return middleware.provideInlayHints ? middleware.provideInlayHints(document2, range, token, provideInlayHints) : provideInlayHints(document2, range, token);
@@ -73129,7 +73126,7 @@ var init_inlayHint = __esm({
         provider.resolveInlayHint = options2.resolveProvider === true ? (hint, token) => {
           const client = this._client;
           const resolveInlayHint = (item, token2) => {
-            return this.sendRequest(import_node3.InlayHintResolveRequest.type, item, token2);
+            return this.sendRequest(import_node4.InlayHintResolveRequest.type, item, token2);
           };
           const middleware = client.middleware;
           return middleware.resolveInlayHint ? middleware.resolveInlayHint(hint, token, resolveInlayHint) : resolveInlayHint(hint, token);
@@ -73152,14 +73149,14 @@ var init_inlineValue = __esm({
     init_features();
     InlineValueFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.InlineValueRequest.type);
+        super(client, import_node4.InlineValueRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "inlineValue").dynamicRegistration = true;
         ensure(ensure(capabilities, "workspace"), "inlineValue").refreshSupport = true;
       }
       initialize(capabilities, documentSelector) {
-        this._client.onRequest(import_node3.InlineValueRefreshRequest.type, async () => {
+        this._client.onRequest(import_node4.InlineValueRefreshRequest.type, async () => {
           for (const provider of this.getAllProviders()) {
             provider.onDidChangeInlineValues.fire();
           }
@@ -73171,7 +73168,7 @@ var init_inlineValue = __esm({
         this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
-        const eventEmitter = new import_node3.Emitter();
+        const eventEmitter = new import_node4.Emitter();
         const provider = {
           onDidChangeInlineValues: eventEmitter.event,
           provideInlineValues: (document2, viewPort, context, token) => {
@@ -73182,7 +73179,7 @@ var init_inlineValue = __esm({
                 range,
                 context: context2
               };
-              return this.sendRequest(import_node3.InlineValueRequest.type, requestParams, token2);
+              return this.sendRequest(import_node4.InlineValueRequest.type, requestParams, token2);
             };
             const middleware = client.middleware;
             return middleware.provideInlineValues ? middleware.provideInlineValues(document2, viewPort, context, token, provideInlineValues) : provideInlineValues(document2, viewPort, context, token);
@@ -73206,7 +73203,7 @@ var init_linkedEditingRange = __esm({
     init_features();
     LinkedEditingFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.LinkedEditingRangeRequest.type);
+        super(client, import_node4.LinkedEditingRangeRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const linkedEditingSupport = ensure(ensure(capabilities, "textDocument"), "linkedEditingRange");
@@ -73225,7 +73222,7 @@ var init_linkedEditingRange = __esm({
             const client = this._client;
             const provideLinkedEditing = (document3, position2, token2) => {
               const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
-              return this.sendRequest(import_node3.LinkedEditingRangeRequest.type, params, token2);
+              return this.sendRequest(import_node4.LinkedEditingRangeRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.provideLinkedEditingRange ? middleware.provideLinkedEditingRange(document2, position, token, provideLinkedEditing) : provideLinkedEditing(document2, position, token);
@@ -73258,7 +73255,7 @@ var init_progressPart = __esm({
         this._cancelled = false;
         this._percent = 0;
         this._started = false;
-        this.disposables.push(client.onProgress(import_node3.WorkDoneProgress.type, this.token, (value) => {
+        this.disposables.push(client.onProgress(import_node4.WorkDoneProgress.type, this.token, (value) => {
           switch (value.kind) {
             case "begin":
               this.begin(value);
@@ -73287,7 +73284,7 @@ var init_progressPart = __esm({
           this.report(params);
           if (this._cancelled) return Promise.resolve();
           this.disposables.push(token.onCancellationRequested(() => {
-            this.client.sendNotification(import_node3.WorkDoneProgressCancelNotification.type, { token: this.token });
+            this.client.sendNotification(import_node4.WorkDoneProgressCancelNotification.type, { token: this.token });
             this.cancel();
           }));
           return new Promise((resolve, reject) => {
@@ -73355,13 +73352,13 @@ var init_progress2 = __esm({
         this.activeParts = /* @__PURE__ */ new Set();
       }
       get method() {
-        return import_node3.WorkDoneProgressCreateRequest.method;
+        return import_node4.WorkDoneProgressCreateRequest.method;
       }
       fillClientCapabilities(capabilities) {
         ensure(capabilities, "window").workDoneProgress = true;
       }
       getState() {
-        return { kind: "window", id: import_node3.WorkDoneProgressCreateRequest.method, registrations: this.activeParts.size > 0 };
+        return { kind: "window", id: import_node4.WorkDoneProgressCreateRequest.method, registrations: this.activeParts.size > 0 };
       }
       initialize() {
         let client = this._client;
@@ -73371,7 +73368,7 @@ var init_progress2 = __esm({
         const createHandler = (params) => {
           this.activeParts.add(new ProgressPart(this._client, params.token, deleteHandler));
         };
-        client.onRequest(import_node3.WorkDoneProgressCreateRequest.type, createHandler);
+        client.onRequest(import_node4.WorkDoneProgressCreateRequest.type, createHandler);
       }
       dispose() {
         for (const part of this.activeParts) {
@@ -73394,7 +73391,7 @@ var init_reference = __esm({
     init_uuid();
     ReferencesFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.ReferencesRequest.type);
+        super(client, import_node4.ReferencesRequest.type);
       }
       fillClientCapabilities(capabilities) {
         ensure(
@@ -73418,7 +73415,7 @@ var init_reference = __esm({
             const client = this._client;
             const _providerReferences = (document3, position2, options4, token2) => {
               return this.sendRequest(
-                import_node3.ReferencesRequest.type,
+                import_node4.ReferencesRequest.type,
                 client.code2ProtocolConverter.asReferenceParams(document3, position2, options4),
                 token2
               );
@@ -73447,14 +73444,14 @@ var init_rename = __esm({
     init_uuid();
     RenameFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.RenameRequest.type);
+        super(client, import_node4.RenameRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let rename = ensure(ensure(capabilities, "textDocument"), "rename");
         rename.dynamicRegistration = true;
         rename.prepareSupport = true;
         rename.honorsChangeAnnotations = true;
-        rename.prepareSupportDefaultBehavior = import_node3.PrepareSupportDefaultBehavior.Identifier;
+        rename.prepareSupportDefaultBehavior = import_node4.PrepareSupportDefaultBehavior.Identifier;
       }
       initialize(capabilities, documentSelector) {
         const options2 = this.getRegistrationOptions(documentSelector, capabilities.renameProvider);
@@ -73479,7 +73476,7 @@ var init_rename = __esm({
                 position: position2,
                 newName: newName2
               };
-              return this.sendRequest(import_node3.RenameRequest.type, params, token2);
+              return this.sendRequest(import_node4.RenameRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.provideRenameEdits ? middleware.provideRenameEdits(document2, position, newName, token, provideRenameEdits) : provideRenameEdits(document2, position, newName, token);
@@ -73491,7 +73488,7 @@ var init_rename = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 position: position2
               };
-              return this.sendRequest(import_node3.PrepareRenameRequest.type, params, token2).then((result) => {
+              return this.sendRequest(import_node4.PrepareRenameRequest.type, params, token2).then((result) => {
                 if (!result) return null;
                 if (Range.is(result)) {
                   return result;
@@ -73530,7 +73527,7 @@ var init_selectionRange = __esm({
     init_features();
     SelectionRangeFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.SelectionRangeRequest.type);
+        super(client, import_node4.SelectionRangeRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let capability = ensure(ensure(capabilities, "textDocument"), "selectionRange");
@@ -73552,7 +73549,7 @@ var init_selectionRange = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 positions: positions2
               };
-              return this.sendRequest(import_node3.SelectionRangeRequest.type, requestParams, token2);
+              return this.sendRequest(import_node4.SelectionRangeRequest.type, requestParams, token2);
             };
             const middleware = client.middleware;
             return middleware.provideSelectionRanges ? middleware.provideSelectionRanges(document2, positions, token, provideSelectionRanges) : provideSelectionRanges(document2, positions, token);
@@ -73577,7 +73574,7 @@ var init_semanticTokens = __esm({
     init_features();
     SemanticTokensFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.SemanticTokensRegistrationType.type);
+        super(client, import_node4.SemanticTokensRegistrationType.type);
       }
       fillClientCapabilities(capabilities) {
         const capability = ensure(ensure(capabilities, "textDocument"), "semanticTokens");
@@ -73619,7 +73616,7 @@ var init_semanticTokens = __esm({
           SemanticTokenModifiers.documentation,
           SemanticTokenModifiers.defaultLibrary
         ];
-        capability.formats = [import_node3.TokenFormat.Relative];
+        capability.formats = [import_node4.TokenFormat.Relative];
         capability.requests = {
           range: true,
           full: {
@@ -73634,7 +73631,7 @@ var init_semanticTokens = __esm({
       }
       initialize(capabilities, documentSelector) {
         const client = this._client;
-        client.onRequest(import_node3.SemanticTokensRefreshRequest.type, async () => {
+        client.onRequest(import_node4.SemanticTokensRefreshRequest.type, async () => {
           for (const provider of this.getAllProviders()) {
             provider.onDidChangeSemanticTokensEmitter.fire();
           }
@@ -73648,7 +73645,7 @@ var init_semanticTokens = __esm({
       registerLanguageProvider(options2) {
         const fullProvider = boolean(options2.full) ? options2.full : options2.full !== void 0;
         const hasEditProvider = options2.full !== void 0 && typeof options2.full !== "boolean" && options2.full.delta === true;
-        const eventEmitter = new import_node3.Emitter();
+        const eventEmitter = new import_node4.Emitter();
         const documentProvider = fullProvider ? {
           onDidChangeSemanticTokens: eventEmitter.event,
           provideDocumentSemanticTokens: (document2, token) => {
@@ -73658,7 +73655,7 @@ var init_semanticTokens = __esm({
               const params = {
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3)
               };
-              return this.sendRequest(import_node3.SemanticTokensRequest.type, params, token2);
+              return this.sendRequest(import_node4.SemanticTokensRequest.type, params, token2);
             };
             return middleware.provideDocumentSemanticTokens ? middleware.provideDocumentSemanticTokens(document2, token, provideDocumentSemanticTokens) : provideDocumentSemanticTokens(document2, token);
           },
@@ -73670,7 +73667,7 @@ var init_semanticTokens = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 previousResultId: previousResultId2
               };
-              return this.sendRequest(import_node3.SemanticTokensDeltaRequest.type, params, token2);
+              return this.sendRequest(import_node4.SemanticTokensDeltaRequest.type, params, token2);
             };
             return middleware.provideDocumentSemanticTokensEdits ? middleware.provideDocumentSemanticTokensEdits(document2, previousResultId, token, provideDocumentSemanticTokensEdits) : provideDocumentSemanticTokensEdits(document2, previousResultId, token);
           } : void 0
@@ -73685,7 +73682,7 @@ var init_semanticTokens = __esm({
                 textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document3),
                 range: range2
               };
-              return this.sendRequest(import_node3.SemanticTokensRangeRequest.type, params, token2);
+              return this.sendRequest(import_node4.SemanticTokensRangeRequest.type, params, token2);
             };
             return middleware.provideDocumentRangeSemanticTokens ? middleware.provideDocumentRangeSemanticTokens(document2, range, token, provideDocumentRangeSemanticTokens) : provideDocumentRangeSemanticTokens(document2, range, token);
           }
@@ -73699,7 +73696,7 @@ var init_semanticTokens = __esm({
           this._client.attachExtensionName(rangeProvider);
           disposables.push(languages_default.registerDocumentRangeSemanticTokensProvider(options2.documentSelector, rangeProvider, options2.legend));
         }
-        return [import_node3.Disposable.create(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
+        return [import_node4.Disposable.create(() => disposables.forEach((item) => item.dispose())), { range: rangeProvider, full: documentProvider, onDidChangeSemanticTokensEmitter: eventEmitter }];
       }
     };
   }
@@ -73716,7 +73713,7 @@ var init_signatureHelp = __esm({
     init_uuid();
     SignatureHelpFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.SignatureHelpRequest.type);
+        super(client, import_node4.SignatureHelpRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let config = ensure(ensure(capabilities, "textDocument"), "signatureHelp");
@@ -73744,7 +73741,7 @@ var init_signatureHelp = __esm({
             const client = this._client;
             const providerSignatureHelp = (document3, position2, context2, token2) => {
               return this.sendRequest(
-                import_node3.SignatureHelpRequest.type,
+                import_node4.SignatureHelpRequest.type,
                 client.code2ProtocolConverter.asSignatureHelpParams(document3, position2, context2),
                 token2
               );
@@ -73775,7 +73772,7 @@ var init_textSynchronization = __esm({
         super(
           client,
           workspace_default.onDidOpenTextDocument,
-          import_node3.DidOpenTextDocumentNotification.type,
+          import_node4.DidOpenTextDocumentNotification.type,
           "didOpen",
           (textDocument) => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument),
           TextDocumentEventFeature.textDocumentFilter
@@ -73783,7 +73780,7 @@ var init_textSynchronization = __esm({
         this._syncedDocuments = _syncedDocuments;
       }
       get registrationType() {
-        return import_node3.DidOpenTextDocumentNotification.type;
+        return import_node4.DidOpenTextDocumentNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "synchronization").dynamicRegistration = true;
@@ -73819,7 +73816,7 @@ var init_textSynchronization = __esm({
         super(
           client,
           workspace_default.onDidCloseTextDocument,
-          import_node3.DidCloseTextDocumentNotification.type,
+          import_node4.DidCloseTextDocumentNotification.type,
           "didClose",
           (textDocument) => client.code2ProtocolConverter.asCloseTextDocumentParams(textDocument),
           TextDocumentEventFeature.textDocumentFilter
@@ -73827,7 +73824,7 @@ var init_textSynchronization = __esm({
         this._syncedDocuments = _syncedDocuments;
       }
       get registrationType() {
-        return import_node3.DidCloseTextDocumentNotification.type;
+        return import_node4.DidCloseTextDocumentNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(
@@ -73874,7 +73871,7 @@ var init_textSynchronization = __esm({
       constructor(client) {
         super(client);
         this._changeData = /* @__PURE__ */ new Map();
-        this._onNotificationSent = new import_node3.Emitter();
+        this._onNotificationSent = new import_node4.Emitter();
       }
       *getDocumentSelectors() {
         for (const data of this._changeData.values()) {
@@ -73882,14 +73879,14 @@ var init_textSynchronization = __esm({
         }
       }
       get registrationType() {
-        return import_node3.DidChangeTextDocumentNotification.type;
+        return import_node4.DidChangeTextDocumentNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "synchronization").dynamicRegistration = true;
       }
       initialize(capabilities, documentSelector) {
         let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
-        if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.change !== void 0 && textDocumentSyncOptions.change !== import_node3.TextDocumentSyncKind.None) {
+        if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.change !== void 0 && textDocumentSyncOptions.change !== import_node4.TextDocumentSyncKind.None) {
           this.register({
             id: generateUuid(),
             registerOptions: Object.assign(
@@ -73923,17 +73920,17 @@ var init_textSynchronization = __esm({
             let promise;
             let didChange;
             const client = this._client;
-            if (changeData.syncKind === import_node3.TextDocumentSyncKind.Incremental) {
+            if (changeData.syncKind === import_node4.TextDocumentSyncKind.Incremental) {
               didChange = async (event2) => {
                 const params = client.code2ProtocolConverter.asChangeTextDocumentParams(event2);
-                await this._client.sendNotification(import_node3.DidChangeTextDocumentNotification.type, params);
-                this.notificationSent(event2, import_node3.DidChangeTextDocumentNotification.type, params);
+                await this._client.sendNotification(import_node4.DidChangeTextDocumentNotification.type, params);
+                this.notificationSent(event2, import_node4.DidChangeTextDocumentNotification.type, params);
               };
-            } else if (changeData.syncKind === import_node3.TextDocumentSyncKind.Full) {
+            } else if (changeData.syncKind === import_node4.TextDocumentSyncKind.Full) {
               didChange = async (event2) => {
                 const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(textDocument);
-                await this._client.sendNotification(import_node3.DidChangeTextDocumentNotification.type, params);
-                this.notificationSent(event2, import_node3.DidChangeTextDocumentNotification.type, params);
+                await this._client.sendNotification(import_node4.DidChangeTextDocumentNotification.type, params);
+                this.notificationSent(event2, import_node4.DidChangeTextDocumentNotification.type, params);
               };
             } else {
               didChange = () => Promise.resolve(void 0);
@@ -73943,7 +73940,7 @@ var init_textSynchronization = __esm({
           }
         }
         return Promise.all(promises).then(void 0, (error) => {
-          this._client.error(`Sending document notification ${import_node3.DidChangeTextDocumentNotification.type.method} failed`, error);
+          this._client.error(`Sending document notification ${import_node4.DidChangeTextDocumentNotification.type.method} failed`, error);
           throw error;
         });
       }
@@ -73981,14 +73978,14 @@ var init_textSynchronization = __esm({
         super(
           client,
           workspace_default.onWillSaveTextDocument,
-          import_node3.WillSaveTextDocumentNotification.type,
+          import_node4.WillSaveTextDocumentNotification.type,
           "willSave",
           (willSaveEvent) => client.code2ProtocolConverter.asWillSaveTextDocumentParams(willSaveEvent),
           (selectors, willSaveEvent) => TextDocumentEventFeature.textDocumentFilter(selectors, willSaveEvent.document)
         );
       }
       get registrationType() {
-        return import_node3.WillSaveTextDocumentNotification.type;
+        return import_node4.WillSaveTextDocumentNotification.type;
       }
       fillClientCapabilities(capabilities) {
         let value = ensure(ensure(capabilities, "textDocument"), "synchronization");
@@ -74013,7 +74010,7 @@ var init_textSynchronization = __esm({
         return this._selectors.values();
       }
       get registrationType() {
-        return import_node3.WillSaveTextDocumentWaitUntilRequest.type;
+        return import_node4.WillSaveTextDocumentWaitUntilRequest.type;
       }
       fillClientCapabilities(capabilities) {
         let value = ensure(ensure(capabilities, "textDocument"), "synchronization");
@@ -74046,9 +74043,9 @@ var init_textSynchronization = __esm({
           let middleware = this._client.middleware;
           let willSaveWaitUntil = (event2) => {
             return this.sendRequest(
-              import_node3.WillSaveTextDocumentWaitUntilRequest.type,
+              import_node4.WillSaveTextDocumentWaitUntilRequest.type,
               client.code2ProtocolConverter.asWillSaveTextDocumentParams(event2),
-              import_node3.CancellationToken.None
+              import_node4.CancellationToken.None
             );
           };
           event.waitUntil(
@@ -74076,7 +74073,7 @@ var init_textSynchronization = __esm({
         super(
           client,
           workspace_default.onDidSaveTextDocument,
-          import_node3.DidSaveTextDocumentNotification.type,
+          import_node4.DidSaveTextDocumentNotification.type,
           "didSave",
           (textDocument) => client.code2ProtocolConverter.asSaveTextDocumentParams(textDocument, this._includeText),
           TextDocumentEventFeature.textDocumentFilter
@@ -74084,7 +74081,7 @@ var init_textSynchronization = __esm({
         this._includeText = false;
       }
       get registrationType() {
-        return import_node3.DidSaveTextDocumentNotification.type;
+        return import_node4.DidSaveTextDocumentNotification.type;
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "synchronization").didSave = true;
@@ -74117,7 +74114,7 @@ var init_typeDefinition = __esm({
     init_features();
     TypeDefinitionFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.TypeDefinitionRequest.type);
+        super(client, import_node4.TypeDefinitionRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const typeDefinitionSupport = ensure(ensure(capabilities, "textDocument"), "typeDefinition");
@@ -74135,7 +74132,7 @@ var init_typeDefinition = __esm({
         const provider = {
           provideTypeDefinition: (document2, position, token) => {
             const client = this._client;
-            const provideTypeDefinition = (document3, position2, token2) => this.sendRequest(import_node3.TypeDefinitionRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
+            const provideTypeDefinition = (document3, position2, token2) => this.sendRequest(import_node4.TypeDefinitionRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2), token2);
             const middleware = client.middleware;
             return middleware.provideTypeDefinition ? middleware.provideTypeDefinition(document2, position, token, provideTypeDefinition) : provideTypeDefinition(document2, position, token);
           }
@@ -74157,7 +74154,7 @@ var init_typeHierarchy = __esm({
     init_features();
     TypeHierarchyFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_node3.TypeHierarchyPrepareRequest.type);
+        super(client, import_node4.TypeHierarchyPrepareRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const capability = ensure(ensure(capabilities, "textDocument"), "typeHierarchy");
@@ -74177,21 +74174,21 @@ var init_typeHierarchy = __esm({
           prepareTypeHierarchy: (document2, position, token) => {
             const prepareTypeHierarchy = (document3, position2, token2) => {
               const params = client.code2ProtocolConverter.asTextDocumentPositionParams(document3, position2);
-              return this.sendRequest(import_node3.TypeHierarchyPrepareRequest.type, params, token2);
+              return this.sendRequest(import_node4.TypeHierarchyPrepareRequest.type, params, token2);
             };
             const middleware = client.middleware;
             return middleware.prepareTypeHierarchy ? middleware.prepareTypeHierarchy(document2, position, token, prepareTypeHierarchy) : prepareTypeHierarchy(document2, position, token);
           },
           provideTypeHierarchySupertypes: (item, token) => {
             const provideTypeHierarchySupertypes = (item2, token2) => {
-              return this.sendRequest(import_node3.TypeHierarchySupertypesRequest.type, { item: item2 }, token2);
+              return this.sendRequest(import_node4.TypeHierarchySupertypesRequest.type, { item: item2 }, token2);
             };
             const middleware = client.middleware;
             return middleware.provideTypeHierarchySupertypes ? middleware.provideTypeHierarchySupertypes(item, token, provideTypeHierarchySupertypes) : provideTypeHierarchySupertypes(item, token);
           },
           provideTypeHierarchySubtypes: (item, token) => {
             const provideTypeHierarchySubtypes = (item2, token2) => {
-              return this.sendRequest(import_node3.TypeHierarchySubtypesRequest.type, { item: item2 }, token2);
+              return this.sendRequest(import_node4.TypeHierarchySubtypesRequest.type, { item: item2 }, token2);
             };
             const middleware = client.middleware;
             return middleware.provideTypeHierarchySubtypes ? middleware.provideTypeHierarchySubtypes(item, token, provideTypeHierarchySubtypes) : provideTypeHierarchySubtypes(item, token);
@@ -74223,7 +74220,7 @@ function getTraceMessage(data) {
   return `[Trace - ${currentTimeStamp()}] `;
 }
 function data2String(data, color = false) {
-  if (data instanceof import_node3.ResponseError) {
+  if (data instanceof import_node4.ResponseError) {
     const responseError = data;
     return `  Message: ${responseError.message}
   Code: ${responseError.code} ${responseError.data ? "\n" + responseError.data.toString() : ""}`;
@@ -74551,7 +74548,7 @@ var init_workspaceFolders = __esm({
         return { kind: "workspace", id: this.registrationType.method, registrations: this._listeners.size > 0 };
       }
       get registrationType() {
-        return import_node3.DidChangeWorkspaceFoldersNotification.type;
+        return import_node4.DidChangeWorkspaceFoldersNotification.type;
       }
       getValidWorkspaceFolders() {
         let { workspaceFolders } = workspace_default;
@@ -74582,7 +74579,7 @@ var init_workspaceFolders = __esm({
       }
       initialize(capabilities) {
         let client = this._client;
-        client.onRequest(import_node3.WorkspaceFoldersRequest.type, (token) => {
+        client.onRequest(import_node4.WorkspaceFoldersRequest.type, (token) => {
           let workspaceFolders = () => {
             let folders = this.getValidWorkspaceFolders();
             if (folders === void 0) {
@@ -74615,7 +74612,7 @@ var init_workspaceFolders = __esm({
             removed: removedFolders.map((folder) => this.asProtocol(folder))
           }
         };
-        return this._client.sendNotification(import_node3.DidChangeWorkspaceFoldersNotification.type, params);
+        return this._client.sendNotification(import_node4.DidChangeWorkspaceFoldersNotification.type, params);
       }
       sendInitialEvent(currentWorkspaceFolders) {
         let promise;
@@ -74632,7 +74629,7 @@ var init_workspaceFolders = __esm({
         }
         if (promise) {
           promise.catch((error) => {
-            this._client.error(`Sending notification ${import_node3.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
+            this._client.error(`Sending notification ${import_node4.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
           });
         }
       }
@@ -74648,7 +74645,7 @@ var init_workspaceFolders = __esm({
           const promise = middleware?.didChangeWorkspaceFolders ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders) : didChangeWorkspaceFolders(event);
           if (promise) {
             promise.catch((error) => {
-              this._client.error(`Sending notification ${import_node3.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
+              this._client.error(`Sending notification ${import_node4.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
             });
           }
         });
@@ -74719,7 +74716,7 @@ var init_workspaceSymbol = __esm({
     };
     WorkspaceSymbolFeature = class extends WorkspaceFeature {
       constructor(client) {
-        super(client, import_node3.WorkspaceSymbolRequest.type);
+        super(client, import_node4.WorkspaceSymbolRequest.type);
       }
       fillClientCapabilities(capabilities) {
         let symbolCapabilities = ensure(ensure(capabilities, "workspace"), "symbol");
@@ -74746,7 +74743,7 @@ var init_workspaceSymbol = __esm({
           provideWorkspaceSymbols: (query, token) => {
             const client = this._client;
             const provideWorkspaceSymbols = (query2, token2) => {
-              return this.sendRequest(import_node3.WorkspaceSymbolRequest.type, { query: query2 }, token2);
+              return this.sendRequest(import_node4.WorkspaceSymbolRequest.type, { query: query2 }, token2);
             };
             const middleware = client.middleware;
             return middleware.provideWorkspaceSymbols ? middleware.provideWorkspaceSymbols(query, token, provideWorkspaceSymbols) : provideWorkspaceSymbols(query, token);
@@ -74754,7 +74751,7 @@ var init_workspaceSymbol = __esm({
           resolveWorkspaceSymbol: options2.resolveProvider === true ? (item, token) => {
             const client = this._client;
             const resolveWorkspaceSymbol = (item2, token2) => {
-              return this.sendRequest(import_node3.WorkspaceSymbolResolveRequest.type, item2, token2);
+              return this.sendRequest(import_node4.WorkspaceSymbolResolveRequest.type, item2, token2);
             };
             const middleware = client.middleware;
             return middleware.resolveWorkspaceSymbol ? middleware.resolveWorkspaceSymbol(item, token, resolveWorkspaceSymbol) : resolveWorkspaceSymbol(item, token);
@@ -74770,7 +74767,7 @@ var init_workspaceSymbol = __esm({
 // src/language-client/client.ts
 function createConnection(input, output, errorHandler, closeHandler, options2) {
   let logger60 = new ConsoleLogger();
-  let connection = (0, import_node3.createProtocolConnection)(input, output, logger60, options2);
+  let connection = (0, import_node4.createProtocolConnection)(input, output, logger60, options2);
   connection.onError((data) => {
     errorHandler(data[0], data[1], data[2]);
   });
@@ -74793,13 +74790,13 @@ function createConnection(input, output, errorHandler, closeHandler, options2) {
       return connection.trace(value, tracer, sendNotificationOrTraceOptions);
     },
     initialize: (params) => {
-      return connection.sendRequest(import_node3.InitializeRequest.type, params);
+      return connection.sendRequest(import_node4.InitializeRequest.type, params);
     },
     shutdown: () => {
-      return connection.sendRequest(import_node3.ShutdownRequest.type, void 0);
+      return connection.sendRequest(import_node4.ShutdownRequest.type, void 0);
     },
     exit: () => {
-      return connection.sendNotification(import_node3.ExitNotification.type);
+      return connection.sendNotification(import_node4.ExitNotification.type);
     },
     end: () => connection.end(),
     dispose: () => connection.dispose()
@@ -74894,7 +74891,7 @@ var init_client = __esm({
     ((MessageTransports2) => {
       function is(value) {
         let candidate = value;
-        return candidate && import_node3.MessageReader.is(value.reader) && import_node3.MessageWriter.is(value.writer);
+        return candidate && import_node4.MessageReader.is(value.reader) && import_node4.MessageWriter.is(value.writer);
       }
       MessageTransports2.is = is;
     })(MessageTransports || (MessageTransports = {}));
@@ -74927,8 +74924,8 @@ var init_client = __esm({
         this._progressDisposables = /* @__PURE__ */ new Map();
         this._ignoredRegistrations = /* @__PURE__ */ new Set();
         this._onStop = void 0;
-        this._stateChangeEmitter = new import_node3.Emitter();
-        this._trace = import_node3.Trace.Off;
+        this._stateChangeEmitter = new import_node4.Emitter();
+        this._trace = import_node4.Trace.Off;
         this._tracer = {
           log: (messageOrDataObject, data) => {
             if (string(messageOrDataObject)) {
@@ -75144,7 +75141,7 @@ var init_client = __esm({
         const connection = this.activeConnection();
         let disposable;
         const handleWorkDoneProgress = this._clientOptions.middleware.handleWorkDoneProgress;
-        const realHandler = import_node3.WorkDoneProgress.is(type) && handleWorkDoneProgress !== void 0 ? (params) => {
+        const realHandler = import_node4.WorkDoneProgress.is(type) && handleWorkDoneProgress !== void 0 ? (params) => {
           handleWorkDoneProgress(token, params, () => handler(params));
         } : handler;
         if (connection !== void 0) {
@@ -75244,7 +75241,7 @@ var init_client = __esm({
         this.consoleMessage(prefix, message);
         if (data != null) this.traceData(data);
         if (showNotification && this._clientOptions.revealOutputChannelOn <= 1 /* Info */) {
-          this.showNotificationMessage(import_node3.MessageType.Info, message);
+          this.showNotificationMessage(import_node4.MessageType.Info, message);
         }
       }
       warn(message, data, showNotification = true) {
@@ -75253,7 +75250,7 @@ var init_client = __esm({
         this.consoleMessage(prefix, message);
         if (data != null) this.traceData(data);
         if (showNotification && this._clientOptions.revealOutputChannelOn <= 2 /* Warn */) {
-          this.showNotificationMessage(import_node3.MessageType.Warning, message);
+          this.showNotificationMessage(import_node4.MessageType.Warning, message);
         }
       }
       error(message, data, showNotification = true) {
@@ -75262,7 +75259,7 @@ var init_client = __esm({
         this.consoleMessage(prefix, message, true);
         if (data != null) this.traceData(data, true);
         if (showNotification === "force" || showNotification && this._clientOptions.revealOutputChannelOn <= 3 /* Error */) {
-          this.showNotificationMessage(import_node3.MessageType.Error, message);
+          this.showNotificationMessage(import_node4.MessageType.Error, message);
         }
       }
       logTrace(message, data) {
@@ -75272,7 +75269,7 @@ var init_client = __esm({
         if (data != null) this.traceData(data);
       }
       showNotificationMessage(type, message) {
-        const messageFunc = type === import_node3.MessageType.Error ? window_default.showErrorMessage.bind(window_default) : type === import_node3.MessageType.Warning ? window_default.showWarningMessage.bind(window_default) : window_default.showInformationMessage.bind(window_default);
+        const messageFunc = type === import_node4.MessageType.Error ? window_default.showErrorMessage.bind(window_default) : type === import_node4.MessageType.Warning ? window_default.showWarningMessage.bind(window_default) : window_default.showInformationMessage.bind(window_default);
         void messageFunc(message);
       }
       needsStart() {
@@ -75374,46 +75371,46 @@ var init_client = __esm({
         return connection;
       }
       handleConnectionEvents(connection) {
-        connection.onNotification(import_node3.LogMessageNotification.type, (message) => {
+        connection.onNotification(import_node4.LogMessageNotification.type, (message) => {
           switch (message.type) {
-            case import_node3.MessageType.Error:
+            case import_node4.MessageType.Error:
               this.error(message.message);
               break;
-            case import_node3.MessageType.Warning:
+            case import_node4.MessageType.Warning:
               this.warn(message.message);
               break;
-            case import_node3.MessageType.Info:
+            case import_node4.MessageType.Info:
               this.info(message.message);
               break;
             default:
               this.outputChannel.appendLine(message.message);
           }
         });
-        connection.onNotification(import_node3.ShowMessageNotification.type, (message) => {
+        connection.onNotification(import_node4.ShowMessageNotification.type, (message) => {
           switch (message.type) {
-            case import_node3.MessageType.Error:
+            case import_node4.MessageType.Error:
               void window_default.showErrorMessage(message.message);
               break;
-            case import_node3.MessageType.Warning:
+            case import_node4.MessageType.Warning:
               void window_default.showWarningMessage(message.message);
               break;
-            case import_node3.MessageType.Info:
+            case import_node4.MessageType.Info:
               void window_default.showInformationMessage(message.message);
               break;
             default:
               void window_default.showInformationMessage(message.message);
           }
         });
-        connection.onRequest(import_node3.ShowMessageRequest.type, (params) => {
+        connection.onRequest(import_node4.ShowMessageRequest.type, (params) => {
           let messageFunc;
           switch (params.type) {
-            case import_node3.MessageType.Error:
+            case import_node4.MessageType.Error:
               messageFunc = window_default.showErrorMessage.bind(window_default);
               break;
-            case import_node3.MessageType.Warning:
+            case import_node4.MessageType.Warning:
               messageFunc = window_default.showWarningMessage.bind(window_default);
               break;
-            case import_node3.MessageType.Info:
+            case import_node4.MessageType.Info:
               messageFunc = window_default.showInformationMessage.bind(window_default);
               break;
             default:
@@ -75424,7 +75421,7 @@ var init_client = __esm({
             return res == null ? null : res;
           });
         });
-        connection.onRequest(import_node3.ShowDocumentRequest.type, async (params) => {
+        connection.onRequest(import_node4.ShowDocumentRequest.type, async (params) => {
           const showDocument = async (params2) => {
             try {
               if (params2.external === true || /^https?:\/\//.test(params2.uri)) {
@@ -75489,7 +75486,7 @@ var init_client = __esm({
           rootUri: rootPath ? this.code2ProtocolConverter.asUri(URI2.file(rootPath)) : null,
           capabilities: this.computeClientCapabilities(),
           initializationOptions: func(initializationOptions) ? initializationOptions() : initializationOptions,
-          trace: import_node3.Trace.toString(this._trace),
+          trace: import_node4.Trace.toString(this._trace),
           workspaceFolders: workspaceFolder ? [workspaceFolder] : null,
           locale: getLocale(),
           clientInfo: {
@@ -75518,7 +75515,7 @@ var init_client = __esm({
       async doInitialize(connection, initParams) {
         try {
           const result = await connection.initialize(initParams);
-          if (result.capabilities.positionEncoding !== void 0 && result.capabilities.positionEncoding !== import_node3.PositionEncodingKind.UTF16) {
+          if (result.capabilities.positionEncoding !== void 0 && result.capabilities.positionEncoding !== import_node4.PositionEncodingKind.UTF16) {
             await connection.shutdown();
             await connection.exit();
             connection.end();
@@ -75529,10 +75526,10 @@ var init_client = __esm({
           this.$state = 3 /* Running */;
           let textDocumentSyncOptions;
           if (number(result.capabilities.textDocumentSync)) {
-            if (result.capabilities.textDocumentSync === import_node3.TextDocumentSyncKind.None) {
+            if (result.capabilities.textDocumentSync === import_node4.TextDocumentSyncKind.None) {
               textDocumentSyncOptions = {
                 openClose: false,
-                change: import_node3.TextDocumentSyncKind.None,
+                change: import_node4.TextDocumentSyncKind.None,
                 save: void 0
               };
             } else {
@@ -75548,12 +75545,12 @@ var init_client = __esm({
             textDocumentSyncOptions = result.capabilities.textDocumentSync;
           }
           this._capabilities = Object.assign({}, result.capabilities, { resolvedTextDocumentSync: textDocumentSyncOptions });
-          connection.onNotification(import_node3.PublishDiagnosticsNotification.type, (params) => this.handleDiagnostics(params));
-          connection.onRequest(import_node3.RegistrationRequest.type, (params) => this.handleRegistrationRequest(params));
+          connection.onNotification(import_node4.PublishDiagnosticsNotification.type, (params) => this.handleDiagnostics(params));
+          connection.onRequest(import_node4.RegistrationRequest.type, (params) => this.handleRegistrationRequest(params));
           connection.onRequest("client/registerFeature", (params) => this.handleRegistrationRequest(params));
-          connection.onRequest(import_node3.UnregistrationRequest.type, (params) => this.handleUnregistrationRequest(params));
+          connection.onRequest(import_node4.UnregistrationRequest.type, (params) => this.handleUnregistrationRequest(params));
           connection.onRequest("client/unregisterFeature", (params) => this.handleUnregistrationRequest(params));
-          connection.onRequest(import_node3.ApplyWorkspaceEditRequest.type, (params) => this.handleApplyWorkspaceEdit(params));
+          connection.onRequest(import_node4.ApplyWorkspaceEditRequest.type, (params) => this.handleApplyWorkspaceEdit(params));
           for (const [method, handler] of this._pendingNotificationHandlers) {
             this._notificationDisposables.set(method, connection.onNotification(method, handler));
           }
@@ -75566,7 +75563,7 @@ var init_client = __esm({
             this._progressDisposables.set(token, connection.onProgress(data.type, token, data.handler));
           }
           this._pendingProgressHandlers.clear();
-          await connection.sendNotification(import_node3.InitializedNotification.type, {});
+          await connection.sendNotification(import_node4.InitializedNotification.type, {});
           this.hookConfigurationChanged(connection);
           this.initializeFeatures(connection);
           return result;
@@ -75582,7 +75579,7 @@ var init_client = __esm({
           };
           if (this._clientOptions.initializationFailedHandler) {
             cb(this._clientOptions.initializationFailedHandler(error));
-          } else if (error instanceof import_node3.ResponseError && error.data && error.data.retry) {
+          } else if (error instanceof import_node4.ResponseError && error.data && error.data.retry) {
             if (this._connection) {
               let connection2 = this._connection;
               connection2.end();
@@ -75756,7 +75753,7 @@ var init_client = __esm({
       }
       checkState() {
         if (this.$state === 2 /* StartFailed */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */) {
-          throw new import_node3.ResponseError(import_node3.ErrorCodes.ConnectionInactive, `Client is not running`);
+          throw new import_node4.ResponseError(import_node4.ErrorCodes.ConnectionInactive, `Client is not running`);
         }
       }
       handleConnectionError(error, message, count) {
@@ -75775,15 +75772,15 @@ var init_client = __esm({
       }
       refreshTrace(connection, sendNotification) {
         let config = workspace_default.getConfiguration(this._id, this.clientOptions.workspaceFolder);
-        let trace = import_node3.Trace.Off;
-        let traceFormat = import_node3.TraceFormat.Text;
+        let trace = import_node4.Trace.Off;
+        let traceFormat = import_node4.TraceFormat.Text;
         if (config) {
           const traceConfig = config.get("trace.server", "off");
           if (typeof traceConfig === "string") {
-            trace = import_node3.Trace.fromString(traceConfig);
+            trace = import_node4.Trace.fromString(traceConfig);
           } else {
-            trace = import_node3.Trace.fromString(config.get("trace.server.verbosity", "off"));
-            traceFormat = import_node3.TraceFormat.fromString(config.get("trace.server.format", "text"));
+            trace = import_node4.Trace.fromString(config.get("trace.server.verbosity", "off"));
+            traceFormat = import_node4.TraceFormat.fromString(config.get("trace.server.format", "text"));
           }
         }
         if (sendNotification && this._trace == trace && this._traceFormat == traceFormat) {
@@ -75797,8 +75794,8 @@ var init_client = __esm({
         }).catch(this.error.bind(this, `Updating trace failed with error`));
       }
       enableVerboseTrace() {
-        this._trace = import_node3.Trace.Verbose;
-        this._traceFormat = import_node3.TraceFormat.Text;
+        this._trace = import_node4.Trace.Verbose;
+        this._traceFormat = import_node4.TraceFormat.Text;
         this._connection.trace(this._trace, this._tracer, {
           sendNotification: true,
           traceFormat: this._traceFormat
@@ -75889,8 +75886,8 @@ var init_client = __esm({
         ensure(result, "workspace").applyEdit = true;
         const workspaceEdit = ensure(ensure(result, "workspace"), "workspaceEdit");
         workspaceEdit.documentChanges = true;
-        workspaceEdit.resourceOperations = [import_node3.ResourceOperationKind.Create, import_node3.ResourceOperationKind.Rename, import_node3.ResourceOperationKind.Delete];
-        workspaceEdit.failureHandling = import_node3.FailureHandlingKind.Undo;
+        workspaceEdit.resourceOperations = [import_node4.ResourceOperationKind.Create, import_node4.ResourceOperationKind.Rename, import_node4.ResourceOperationKind.Delete];
+        workspaceEdit.failureHandling = import_node4.FailureHandlingKind.Undo;
         workspaceEdit.normalizesLineEndings = true;
         workspaceEdit.changeAnnotationSupport = {
           groupsOnLabel: false
@@ -75992,25 +75989,25 @@ var init_client = __esm({
       }
       static {
         this.RequestsToCancelOnContentModified = /* @__PURE__ */ new Set([
-          import_node3.InlayHintRequest.method,
-          import_node3.SemanticTokensRequest.method,
-          import_node3.SemanticTokensRangeRequest.method,
-          import_node3.SemanticTokensDeltaRequest.method
+          import_node4.InlayHintRequest.method,
+          import_node4.SemanticTokensRequest.method,
+          import_node4.SemanticTokensRangeRequest.method,
+          import_node4.SemanticTokensDeltaRequest.method
         ]);
       }
       handleFailedRequest(type, token, error, defaultValue2) {
         if (token && token.isCancellationRequested) return defaultValue2;
-        if (error instanceof import_node3.ResponseError) {
-          if (error.code === import_node3.ErrorCodes.PendingResponseRejected || error.code === import_node3.ErrorCodes.ConnectionInactive) {
+        if (error instanceof import_node4.ResponseError) {
+          if (error.code === import_node4.ErrorCodes.PendingResponseRejected || error.code === import_node4.ErrorCodes.ConnectionInactive) {
             return defaultValue2;
           }
-          if (error.code === import_node3.LSPErrorCodes.RequestCancelled || error.code === import_node3.LSPErrorCodes.ServerCancelled) {
+          if (error.code === import_node4.LSPErrorCodes.RequestCancelled || error.code === import_node4.LSPErrorCodes.ServerCancelled) {
             if (error.data != null) {
               throw new LSPCancellationError(error.data);
             } else {
               throw new CancellationError();
             }
-          } else if (error.code === import_node3.LSPErrorCodes.ContentModified) {
+          } else if (error.code === import_node4.LSPErrorCodes.ContentModified) {
             if (_BaseLanguageClient.RequestsToCancelOnContentModified.has(type.method)) {
               throw new CancellationError();
             } else {
@@ -76023,7 +76020,7 @@ var init_client = __esm({
       }
       // Should be keeped
       logFailedRequest(type, error) {
-        if (error instanceof import_node3.ResponseError && error.code === import_node3.LSPErrorCodes.RequestCancelled) {
+        if (error instanceof import_node4.ResponseError && error.code === import_node4.LSPErrorCodes.RequestCancelled) {
           return;
         }
         this.error(`Request ${type.method} failed.`, error);
@@ -76264,8 +76261,8 @@ var init_language_client = __esm({
             } else if (StreamInfo.is(result)) {
               this._isDetached = !!result.detached;
               return {
-                reader: new import_node3.StreamMessageReader(result.reader),
-                writer: new import_node3.StreamMessageWriter(result.writer)
+                reader: new import_node4.StreamMessageReader(result.reader),
+                writer: new import_node4.StreamMessageWriter(result.writer)
               };
             } else {
               let cp;
@@ -76278,8 +76275,8 @@ var init_language_client = __esm({
               }
               cp.stderr.on("data", logMessage);
               return {
-                reader: new import_node3.StreamMessageReader(cp.stdout),
-                writer: new import_node3.StreamMessageWriter(cp.stdin)
+                reader: new import_node4.StreamMessageReader(cp.stdout),
+                writer: new import_node4.StreamMessageWriter(cp.stdin)
               };
             }
           });
@@ -76310,7 +76307,7 @@ var init_language_client = __esm({
               } else if (transport === 0 /* stdio */) {
                 args.push("--stdio");
               } else if (transport === 2 /* pipe */) {
-                pipeName = (0, import_node3.generateRandomPipeName)();
+                pipeName = (0, import_node4.generateRandomPipeName)();
                 args.push(`--pipe=${pipeName}`);
               } else if (Transport.isSocket(transport)) {
                 args.push(`--socket=${transport.port}`);
@@ -76330,12 +76327,12 @@ var init_language_client = __esm({
                 sp.stderr.on("data", logMessage);
                 if (transport === 1 /* ipc */) {
                   sp.stdout.on("data", logMessage);
-                  resolve({ reader: new import_node3.IPCMessageReader(this._serverProcess), writer: new import_node3.IPCMessageWriter(this._serverProcess) });
+                  resolve({ reader: new import_node4.IPCMessageReader(this._serverProcess), writer: new import_node4.IPCMessageWriter(this._serverProcess) });
                 } else {
-                  resolve({ reader: new import_node3.StreamMessageReader(sp.stdout), writer: new import_node3.StreamMessageWriter(sp.stdin) });
+                  resolve({ reader: new import_node4.StreamMessageReader(sp.stdout), writer: new import_node4.StreamMessageWriter(sp.stdin) });
                 }
               } else if (transport === 2 /* pipe */) {
-                return (0, import_node3.createClientPipeTransport)(pipeName).then((transport2) => {
+                return (0, import_node4.createClientPipeTransport)(pipeName).then((transport2) => {
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
                   logger35.info(`Language server "${this.id}" started with ${sp.pid}`);
@@ -76347,7 +76344,7 @@ var init_language_client = __esm({
                   });
                 });
               } else if (Transport.isSocket(transport)) {
-                return (0, import_node3.createClientSocketTransport)(transport.port).then((transport2) => {
+                return (0, import_node4.createClientSocketTransport)(transport.port).then((transport2) => {
                   let sp = child_process.fork(node.module, args || [], options2);
                   assertStdio(sp);
                   this._serverProcess = sp;
@@ -76382,7 +76379,7 @@ var init_language_client = __esm({
             serverProcess.stderr.on("data", (data) => this.outputChannel.append(string(data) ? data : data.toString(encoding2)));
             this._serverProcess = serverProcess;
             this._isDetached = !!options2.detached;
-            return Promise.resolve({ reader: new import_node3.StreamMessageReader(serverProcess.stdout), writer: new import_node3.StreamMessageWriter(serverProcess.stdin) });
+            return Promise.resolve({ reader: new import_node4.StreamMessageReader(serverProcess.stdout), writer: new import_node4.StreamMessageWriter(serverProcess.stdin) });
           }
           return Promise.reject(new Error(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`));
         });
@@ -76700,7 +76697,7 @@ var init_services = __esm({
         service.onServiceReady(() => {
           logger36.info(`service ${id2} started`);
         }, null, this.disposables);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           if (!this.registered.has(id2)) return;
           service.dispose();
           this.registered.delete(id2);
@@ -76795,7 +76792,7 @@ var init_services = __esm({
       }
       async sendRequest(id2, method, params, token) {
         let client = await this.getLanguageClient(id2);
-        token = token ?? import_node3.CancellationToken.None;
+        token = token ?? import_node4.CancellationToken.None;
         return await Promise.resolve(client.sendRequest(method, params, token));
       }
       registerNotification(id2, method) {
@@ -76819,9 +76816,9 @@ var init_services = __esm({
       registerLanguageClient(name2, config, folder) {
         let id2 = typeof name2 === "string" ? `languageserver.${name2}` : name2.id;
         let disposables = [];
-        let onDidServiceReady = new import_node3.Emitter();
+        let onDidServiceReady = new import_node4.Emitter();
         let client = typeof name2 === "string" ? null : name2;
-        if (this.registered.has(id2)) return import_node3.Disposable.create(() => {
+        if (this.registered.has(id2)) return import_node4.Disposable.create(() => {
         });
         if (client && typeof client.dispose === "function") disposables.push(client);
         let created = false;
@@ -77092,7 +77089,7 @@ var init_symbols = __esm({
       async resolveItem(item) {
         let symbolItem = item.data.original;
         if (!symbolItem || Location.is(symbolItem.location)) return null;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let resolved = await languages_default.resolveWorkspaceSymbol(symbolItem, tokenSource.token);
         if (!resolved) return null;
         if (Location.is(resolved.location)) {
@@ -77585,7 +77582,7 @@ var init_manager3 = __esm({
         this.listMap.set(name2, list2);
         const configNode = createConfigurationNode(name2, interactive, id2);
         if (!removed) workspace_default.configurations.updateConfigurations([configNode]);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.deregisterList(name2);
           const configurationRegistry3 = Registry.as(Extensions3.Configuration);
           configurationRegistry3.deregisterConfigurations([configNode]);
@@ -77623,7 +77620,7 @@ var init_manager3 = __esm({
         let res = this.parseArgs(args);
         if (!res || !name2) return;
         let { list: list2, options: options2, listArgs } = res;
-        let source = new import_node3.CancellationTokenSource();
+        let source = new import_node4.CancellationTokenSource();
         let token = source.token;
         let arr = await this.nvim.eval('[win_getid(),bufnr("%")]');
         let items = await list2.loadItems({
@@ -77964,7 +77961,7 @@ var init_snippet = __esm({
         let snippet = new SnippetParser(!!ultisnip).parse(text, true);
         let marker = this.replaceWithMarker(range, snippet, current);
         await this.resolve(snippet, ultisnip);
-        await this.onMarkerUpdate(marker, import_node3.CancellationToken.None);
+        await this.onMarkerUpdate(marker, import_node4.CancellationToken.None);
         return snippet;
       }
       /**
@@ -78316,7 +78313,7 @@ var init_session2 = __esm({
         this._applying = false;
         this._force = false;
         this.snippet = null;
-        this._onActiveChange = new import_node3.Emitter();
+        this._onActiveChange = new import_node4.Emitter();
         this.isStaled = false;
         this.onActiveChange = this._onActiveChange.event;
       }
@@ -78569,7 +78566,7 @@ var init_session2 = __esm({
           this.deactivate();
           return;
         }
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         const nextPlaceholder = getNextPlaceholder(current, true);
         const { cursor } = document2;
         const id2 = getPlaceholderId(current);
@@ -79314,19 +79311,19 @@ var require_src3 = __commonJS({
       NullLogger,
       SettingMonitor,
       LanguageClient,
-      CancellationTokenSource: import_node3.CancellationTokenSource,
-      ProgressType: import_node3.ProgressType,
-      RequestType: import_node3.RequestType,
-      RequestType0: import_node3.RequestType0,
-      NotificationType: import_node3.NotificationType,
-      NotificationType0: import_node3.NotificationType0,
-      ProtocolRequestType: import_node3.ProtocolRequestType,
-      ProtocolRequestType0: import_node3.ProtocolRequestType0,
-      ProtocolNotificationType: import_node3.ProtocolNotificationType,
-      ProtocolNotificationType0: import_node3.ProtocolNotificationType0,
+      CancellationTokenSource: import_node4.CancellationTokenSource,
+      ProgressType: import_node4.ProgressType,
+      RequestType: import_node4.RequestType,
+      RequestType0: import_node4.RequestType0,
+      NotificationType: import_node4.NotificationType,
+      NotificationType0: import_node4.NotificationType0,
+      ProtocolRequestType: import_node4.ProtocolRequestType,
+      ProtocolRequestType0: import_node4.ProtocolRequestType0,
+      ProtocolNotificationType: import_node4.ProtocolNotificationType,
+      ProtocolNotificationType0: import_node4.ProtocolNotificationType0,
       Highlighter,
       Mru,
-      Emitter: import_node3.Emitter,
+      Emitter: import_node4.Emitter,
       SnippetString,
       BasicList,
       Mutex,
@@ -79336,8 +79333,8 @@ var require_src3 = __commonJS({
       RelativePattern: RelativePattern2,
       CancellationError,
       WorkspaceChange,
-      ResponseError: import_node3.ResponseError,
-      Trace: import_node3.Trace,
+      ResponseError: import_node4.ResponseError,
+      Trace: import_node4.Trace,
       DocumentUri,
       WorkspaceFolder,
       InlineValueText,
@@ -79384,7 +79381,7 @@ var require_src3 = __commonJS({
       SignatureInformation,
       SymbolInformation,
       MarkupContent,
-      ErrorCodes: import_node3.ErrorCodes,
+      ErrorCodes: import_node4.ErrorCodes,
       CompletionItemTag,
       integer,
       uinteger,
@@ -79396,9 +79393,9 @@ var require_src3 = __commonJS({
       CompletionItemLabelDetails,
       MarkedString,
       ProviderName,
-      DocumentDiagnosticReportKind: import_node3.DocumentDiagnosticReportKind,
-      UniquenessLevel: import_node3.UniquenessLevel,
-      MonikerKind: import_node3.MonikerKind,
+      DocumentDiagnosticReportKind: import_node4.DocumentDiagnosticReportKind,
+      UniquenessLevel: import_node4.UniquenessLevel,
+      MonikerKind: import_node4.MonikerKind,
       PatternType,
       SourceType,
       ConfigurationTarget: ConfigurationUpdateTarget,
@@ -79415,8 +79412,8 @@ var require_src3 = __commonJS({
       DiagnosticTag,
       DocumentHighlightKind,
       SymbolKind,
-      SignatureHelpTriggerKind: import_node3.SignatureHelpTriggerKind,
-      FileChangeType: import_node3.FileChangeType,
+      SignatureHelpTriggerKind: import_node4.SignatureHelpTriggerKind,
+      FileChangeType: import_node4.FileChangeType,
       CodeActionKind,
       Diagnostic,
       DiagnosticSeverity,
@@ -79424,16 +79421,16 @@ var require_src3 = __commonJS({
       InsertTextFormat,
       Location,
       LocationLink,
-      CancellationToken: import_node3.CancellationToken,
+      CancellationToken: import_node4.CancellationToken,
       Position,
       Range,
       TextEdit,
-      Disposable: import_node3.Disposable,
-      Event: import_node3.Event,
+      Disposable: import_node4.Disposable,
+      Event: import_node4.Event,
       workspace: workspace_default,
       window: window_default,
       CodeActionTriggerKind,
-      CompletionTriggerKind: import_node3.CompletionTriggerKind,
+      CompletionTriggerKind: import_node4.CompletionTriggerKind,
       snippetManager: manager_default3,
       events: events_default,
       services: services_default,
@@ -80048,9 +80045,9 @@ var init_manager5 = __esm({
         this.disposables = [];
         this.configurationNodes = [];
         this.extensions = /* @__PURE__ */ new Map();
-        this._onDidLoadExtension = new import_node3.Emitter();
-        this._onDidActiveExtension = new import_node3.Emitter();
-        this._onDidUnloadExtension = new import_node3.Emitter();
+        this._onDidLoadExtension = new import_node4.Emitter();
+        this._onDidActiveExtension = new import_node4.Emitter();
+        this._onDidUnloadExtension = new import_node4.Emitter();
         this.singleExtensionsRoot = path.join(configHome, "coc-extensions");
         this.onDidLoadExtension = this._onDidLoadExtension.event;
         this.onDidActiveExtension = this._onDidActiveExtension.event;
@@ -80619,7 +80616,7 @@ var init_ui3 = __esm({
             await floatFactory4.show(docs);
           }
         }, debounceTime7);
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           fn.clear();
         }));
         events_default.on("CursorMoved", fn, this.disposables);
@@ -81463,7 +81460,7 @@ var init_source_language = __esm({
         let triggerKind = this.getTriggerKind(option);
         this.triggerContext = { lnum: position.line, character: position.character, line: option.line };
         let context = { triggerKind, option };
-        if (triggerKind == import_node3.CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter;
+        if (triggerKind == import_node4.CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter;
         let textDocument = workspace_default.getDocument(bufnr).textDocument;
         await waitImmediate();
         let result = await Promise.resolve(this.provider.provideCompletionItems(textDocument, position, token, context));
@@ -81562,11 +81559,11 @@ var init_source_language = __esm({
       getTriggerKind(opt) {
         let { triggerCharacters } = this;
         let isTrigger = triggerCharacters.includes(opt.triggerCharacter);
-        let triggerKind = import_node3.CompletionTriggerKind.Invoked;
+        let triggerKind = import_node4.CompletionTriggerKind.Invoked;
         if (opt.triggerForInComplete) {
-          triggerKind = import_node3.CompletionTriggerKind.TriggerForIncompleteCompletions;
+          triggerKind = import_node4.CompletionTriggerKind.TriggerForIncompleteCompletions;
         } else if (isTrigger) {
-          triggerKind = import_node3.CompletionTriggerKind.TriggerCharacter;
+          triggerKind = import_node4.CompletionTriggerKind.TriggerCharacter;
         }
         return triggerKind;
       }
@@ -82231,7 +82228,7 @@ var init_sources2 = __esm({
           logger44.warn(`Recreate source ${name2}`);
         }
         this.sourceMap.set(name2, source);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           this.removeSource(source);
         });
       }
@@ -82370,11 +82367,11 @@ var init_languages = __esm({
     })(ProviderName || {});
     Languages = class {
       constructor() {
-        this._onDidSemanticTokensRefresh = new import_node3.Emitter();
-        this._onDidInlayHintRefresh = new import_node3.Emitter();
-        this._onDidCodeLensRefresh = new import_node3.Emitter();
-        this._onDidColorsRefresh = new import_node3.Emitter();
-        this._onDidLinksRefresh = new import_node3.Emitter();
+        this._onDidSemanticTokensRefresh = new import_node4.Emitter();
+        this._onDidInlayHintRefresh = new import_node4.Emitter();
+        this._onDidCodeLensRefresh = new import_node4.Emitter();
+        this._onDidColorsRefresh = new import_node4.Emitter();
+        this._onDidLinksRefresh = new import_node4.Emitter();
         this.onDidSemanticTokensRefresh = this._onDidSemanticTokensRefresh.event;
         this.onDidInlayHintRefresh = this._onDidInlayHintRefresh.event;
         this.onDidCodeLensRefresh = this._onDidCodeLensRefresh.event;
@@ -82454,7 +82451,7 @@ var init_languages = __esm({
       registerDocumentLinkProvider(selector, provider) {
         this._onDidLinksRefresh.fire(selector);
         let disposable = this.documentLinkManager.register(selector, provider);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           disposable.dispose();
           this._onDidLinksRefresh.fire(selector);
         });
@@ -82462,7 +82459,7 @@ var init_languages = __esm({
       registerDocumentColorProvider(selector, provider) {
         this._onDidColorsRefresh.fire(selector);
         let disposable = this.documentColorManager.register(selector, provider);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           disposable.dispose();
           this._onDidColorsRefresh.fire(selector);
         });
@@ -82514,7 +82511,7 @@ var init_languages = __esm({
           this._onDidSemanticTokensRefresh.fire(selector);
         }, eventDebounce);
         let disposable = this.semanticTokensRangeManager.register(selector, provider, legend);
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           clearTimeout(timer);
           disposable.dispose();
           this._onDidSemanticTokensRefresh.fire(selector);
@@ -82681,7 +82678,7 @@ var init_languages = __esm({
         let timer = setTimeout(() => {
           emitter.fire(selector);
         }, eventDebounce);
-        disposables.push(import_node3.Disposable.create(() => {
+        disposables.push(import_node4.Disposable.create(() => {
           clearTimeout(timer);
         }));
         if (func(provider[key])) {
@@ -82691,7 +82688,7 @@ var init_languages = __esm({
           }));
         }
         disposables.push(manager.register(selector, provider, extra));
-        return import_node3.Disposable.create(() => {
+        return import_node4.Disposable.create(() => {
           disposeAll(disposables);
           emitter.fire(selector);
         });
@@ -82888,7 +82885,7 @@ var init_complete = __esm({
         this.cid = 0;
         this.minCharacter = Number.MAX_SAFE_INTEGER;
         this.completingSources = /* @__PURE__ */ new Set();
-        this._onDidRefresh = new import_node3.Emitter();
+        this._onDidRefresh = new import_node4.Emitter();
         this.tokenSources = /* @__PURE__ */ new Set();
         this.tokensInfo = /* @__PURE__ */ new WeakMap();
         this.itemsMap = /* @__PURE__ */ new WeakMap();
@@ -83176,7 +83173,7 @@ var init_complete = __esm({
         return Range.create(line, this.inputStart, line, end);
       }
       createTokenSource(isIncomplete) {
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         this.tokenSources.add(tokenSource);
         tokenSource.token.onCancellationRequested(() => {
           this.tokenSources.delete(tokenSource);
@@ -83283,7 +83280,7 @@ var init_floating = __esm({
         }
       }
       requestWithToken(fn) {
-        let tokenSource = this.resolveTokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.resolveTokenSource = new import_node4.CancellationTokenSource();
         return new Promise((resolve, reject) => {
           let called = false;
           let onFinish = (err) => {
@@ -84246,8 +84243,8 @@ var init_session3 = __esm({
         this.nvim = nvim;
         this.doc = doc;
         this.config = config;
-        this._onDidCancel = new import_node3.Emitter();
-        this._onDidUpdate = new import_node3.Emitter();
+        this._onDidCancel = new import_node4.Emitter();
+        this._onDidUpdate = new import_node4.Emitter();
         this.onDidCancel = this._onDidCancel.event;
         this.onDidUpdate = this._onDidUpdate.event;
         this.disposables = [];
@@ -84723,7 +84720,7 @@ var init_LocationsDataProvider = __esm({
         this.rootItems = rootItems;
         this.getIcon = getIcon;
         this.resolveChildren = resolveChildren;
-        this._onDidChangeTreeData = new import_node3.Emitter();
+        this._onDidChangeTreeData = new import_node4.Emitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         this.actions = [];
         this.addAction("Open in new tab", async (element) => {
@@ -84759,7 +84756,7 @@ var init_LocationsDataProvider = __esm({
       }
       async getChildren(element) {
         this.cancel();
-        this.tokenSource = new import_node3.CancellationTokenSource();
+        this.tokenSource = new import_node4.CancellationTokenSource();
         let { token } = this.tokenSource;
         if (!element) {
           for (let o of this.rootItems) {
@@ -84930,7 +84927,7 @@ var init_callHierarchy2 = __esm({
       }
       async getCallHierarchyItems(item, kind) {
         const { doc, position } = await this.handler.getCurrentState();
-        const source = new import_node3.CancellationTokenSource();
+        const source = new import_node4.CancellationTokenSource();
         if (!item) {
           await doc.synchronize();
           let res = await this.prepare(doc.textDocument, position, source.token);
@@ -84953,7 +84950,7 @@ var init_callHierarchy2 = __esm({
           void window_default.showErrorMessage(`CallHierarchy provider not found for current document, it's not supported by your languageserver`);
           return;
         }
-        const res = await languages_default.prepareCallHierarchy(doc.textDocument, position, import_node3.CancellationToken.None);
+        const res = await languages_default.prepareCallHierarchy(doc.textDocument, position, import_node4.CancellationToken.None);
         const rootItems = isCallHierarchyItem(res) ? [res] : res;
         if (isFalsyOrEmpty(rootItems)) {
           void window_default.showWarningMessage("Unable to get CallHierarchyItem at cursor position.");
@@ -85028,7 +85025,7 @@ var init_codeActions = __esm({
           if (codeAction) {
             logger49.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`);
             timing.start(`"${kind}"`);
-            let tokenSource = new import_node3.CancellationTokenSource();
+            let tokenSource = new import_node4.CancellationTokenSource();
             let timer;
             let _resolve;
             const tp = new Promise((c) => {
@@ -85083,7 +85080,7 @@ var init_codeActions = __esm({
         let diagnostics = manager_default.getDiagnosticsInRange(doc.textDocument, range);
         let context = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked };
         if (!isFalsyOrEmpty(only)) context.only = only;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let codeActions = await languages_default.getCodeActions(doc.textDocument, range, context, tokenSource.token);
         if (!codeActions || codeActions.length == 0) return [];
         if (excludeSourceAction) {
@@ -85159,7 +85156,7 @@ var init_codeActions = __esm({
         if (action.disabled) {
           throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`);
         }
-        token = token == null ? import_node3.CancellationToken.None : token;
+        token = token == null ? import_node4.CancellationToken.None : token;
         let resolved = await languages_default.resolveCodeAction(action, token);
         if (!resolved || token.isCancellationRequested) return;
         let { edit: edit2, command } = resolved;
@@ -85278,7 +85275,7 @@ var init_buffer3 = __esm({
           let { textDocument } = this.document;
           let version2 = textDocument.version;
           this.cancelFetch();
-          let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+          let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
           let token = tokenSource.token;
           if (!srcId) srcId = await this.nvim.createNamespace("coc-codelens");
           let codeLenses = await languages_default.getCodeLens(textDocument, token);
@@ -85309,7 +85306,7 @@ var init_buffer3 = __esm({
           return lnum >= start && lnum <= end;
         });
         if (codeLenses.length) {
-          let tokenSource = this.resolveTokenSource = new import_node3.CancellationTokenSource();
+          let tokenSource = this.resolveTokenSource = new import_node4.CancellationTokenSource();
           let token = tokenSource.token;
           await Promise.all(codeLenses.map((codeLens) => {
             if (isCommand(codeLens.command)) return Promise.resolve();
@@ -85462,7 +85459,7 @@ var init_codelens = __esm({
             await item.forceFetch();
           }
         }, debounceTime9);
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           debounced.clear();
         }));
         languages_default.onDidCodeLensRefresh(debounced, null, this.disposables);
@@ -85617,7 +85614,7 @@ var init_colorBuffer = __esm({
       async doHighlight() {
         if (!this.enabled) return;
         let { nvim, doc } = this;
-        this.tokenSource = new import_node3.CancellationTokenSource();
+        this.tokenSource = new import_node4.CancellationTokenSource();
         let { token } = this.tokenSource;
         let colors;
         colors = await languages_default.provideDocumentColors(doc.textDocument, token);
@@ -85749,7 +85746,7 @@ var init_colors = __esm({
         this.handler.checkProvider("documentColor" /* DocumentColor */, doc.textDocument);
         let info = await this.getColorInformation(doc.bufnr);
         if (!info) return void window_default.showWarningMessage("Color not found at current position");
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let presentations = await languages_default.provideColorPresentations(info, doc.textDocument, tokenSource.token);
         if (!presentations?.length) return void window_default.showWarningMessage("No color presentations found");
         let res = await window_default.showMenuPicker(presentations.map((o) => o.label), "Choose color:");
@@ -85946,7 +85943,7 @@ var init_format2 = __esm({
               let options2 = await workspace_default.getFormatOptions(event.document.uri);
               let formatOnSaveTimeout = workspace_default.getConfiguration("coc.preferences", event.document).get("formatOnSaveTimeout", 500);
               let timer;
-              let tokenSource = new import_node3.CancellationTokenSource();
+              let tokenSource = new import_node4.CancellationTokenSource();
               const tp = new Promise((c) => {
                 timer = setTimeout(() => {
                   logger51.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, event.document.uri);
@@ -86264,7 +86261,7 @@ var init_highlights2 = __esm({
         if (!ch || !doc.isWord(ch)) return null;
         await doc.synchronize();
         this.cancel();
-        let source = this.tokenSource = new import_node3.CancellationTokenSource();
+        let source = this.tokenSource = new import_node4.CancellationTokenSource();
         let timer = this.timer = setTimeout(() => {
           source.cancel();
         }, this.config.timeout);
@@ -86502,7 +86499,7 @@ var init_hover2 = __esm({
         }
         this.handler.checkProvider("hover" /* Hover */, doc.textDocument);
         await doc.synchronize();
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let hovers = await languages_default.getHover(doc.textDocument, position, tokenSource.token);
         for (let h of hovers) {
           let { contents } = h;
@@ -86566,7 +86563,7 @@ var init_buffer4 = __esm({
         this._dirty = false;
         // Saved for resolve and TextEdits in the future.
         this.currentHints = [];
-        this._onDidRefresh = new import_node3.Emitter();
+        this._onDidRefresh = new import_node4.Emitter();
         this.onDidRefresh = this._onDidRefresh.event;
         this.render().catch(onUnexpectedError);
       }
@@ -86671,7 +86668,7 @@ var init_buffer4 = __esm({
         if (!this.enabled) return;
         if (!this.config.refreshOnInsertMode && events_default.bufnr === this.doc.bufnr && events_default.insertMode) return;
         this.cancel();
-        this.tokenSource = new import_node3.CancellationTokenSource();
+        this.tokenSource = new import_node4.CancellationTokenSource();
         let token = this.tokenSource.token;
         await waitWithToken(typeof delay3 === "number" ? delay3 : debounceInterval, token);
         if (!srcId2) srcId2 = await this.nvim.createNamespace("coc-inlayHint");
@@ -86833,7 +86830,7 @@ var init_inlayHint2 = __esm({
             this.setState("disable", bufnr);
           }
         }, false, "Disable inlayHint display of current buffer");
-        handler.addDisposable(import_node3.Disposable.create(() => {
+        handler.addDisposable(import_node4.Disposable.create(() => {
           disposeAll(this.disposables);
         }));
       }
@@ -86981,7 +86978,7 @@ var init_linkedEditing = __esm({
       }
       async enable(doc, position) {
         let textDocument = doc.textDocument;
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         let token = tokenSource.token;
         let win = await this.nvim.window;
         let linkedRanges = await languages_default.provideLinkedEdits(textDocument, position, token);
@@ -87089,7 +87086,7 @@ var init_links2 = __esm({
           for (let link2 of links2) {
             if (positionInRange(pos, link2.range) == 0) {
               if (!link2.target) {
-                let tokenSource = this.tokenSource = this.tokenSource || new import_node3.CancellationTokenSource();
+                let tokenSource = this.tokenSource = this.tokenSource || new import_node4.CancellationTokenSource();
                 link2 = await languages_default.resolveDocumentLink(link2, this.tokenSource.token);
                 this.tokenSource = void 0;
                 if (!link2.target || tokenSource.token.isCancellationRequested) continue;
@@ -87200,7 +87197,7 @@ var init_links2 = __esm({
         if (!this.hasProvider || !this.config.enable || this.currentVersion === this.doc.version) return;
         this.currentVersion = this.doc.version;
         this.cancel();
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         let token = tokenSource.token;
         let links2 = await languages_default.getDocumentLinks(this.doc.textDocument, token);
         this.tokenSource = void 0;
@@ -87245,35 +87242,35 @@ var init_locations = __esm({
         const { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("definition" /* Definition */, doc.textDocument);
         await doc.synchronize();
-        const tokenSource = new import_node3.CancellationTokenSource();
+        const tokenSource = new import_node4.CancellationTokenSource();
         return languages_default.getDefinition(doc.textDocument, position, tokenSource.token);
       }
       async declarations() {
         const { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("declaration" /* Declaration */, doc.textDocument);
         await doc.synchronize();
-        const tokenSource = new import_node3.CancellationTokenSource();
+        const tokenSource = new import_node4.CancellationTokenSource();
         return languages_default.getDeclaration(doc.textDocument, position, tokenSource.token);
       }
       async typeDefinitions() {
         const { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("typeDefinition" /* TypeDefinition */, doc.textDocument);
         await doc.synchronize();
-        const tokenSource = new import_node3.CancellationTokenSource();
+        const tokenSource = new import_node4.CancellationTokenSource();
         return languages_default.getTypeDefinition(doc.textDocument, position, tokenSource.token);
       }
       async implementations() {
         const { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("implementation" /* Implementation */, doc.textDocument);
         await doc.synchronize();
-        const tokenSource = new import_node3.CancellationTokenSource();
+        const tokenSource = new import_node4.CancellationTokenSource();
         return languages_default.getImplementation(doc.textDocument, position, tokenSource.token);
       }
       async references(excludeDeclaration) {
         const { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("reference" /* Reference */, doc.textDocument);
         await doc.synchronize();
-        const tokenSource = new import_node3.CancellationTokenSource();
+        const tokenSource = new import_node4.CancellationTokenSource();
         return languages_default.getReferences(doc.textDocument, { includeDeclaration: !excludeDeclaration }, position, tokenSource.token);
       }
       async gotoDefinition(openCommand) {
@@ -87316,7 +87313,7 @@ var init_locations = __esm({
         let word = await this.nvim.call("expand", "<cword>");
         if (!word) return null;
         if (!languages_default.hasProvider("definition" /* Definition */, doc.textDocument)) return null;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         let definitions = [];
         try {
           let timeout2 = workspace_default.initialConfiguration.get("coc.preferences.tagDefinitionTimeout", 0);
@@ -88236,7 +88233,7 @@ var init_refactor = __esm({
         this.handler = handler;
         this.buffers = /* @__PURE__ */ new Map();
         this.disposables = [];
-        this._onCreate = new import_node3.Emitter();
+        this._onCreate = new import_node4.Emitter();
         this.onCreate = this._onCreate.event;
         this.setConfiguration();
         workspace_default.onDidChangeConfiguration(this.setConfiguration, this, this.disposables);
@@ -88445,7 +88442,7 @@ var init_rename2 = __esm({
         let curname = doc.textDocument.getText(range);
         if (languages_default.hasProvider("rename" /* Rename */, doc.textDocument)) {
           await doc.synchronize();
-          let requestTokenSource = new import_node3.CancellationTokenSource();
+          let requestTokenSource = new import_node4.CancellationTokenSource();
           let res = await languages_default.prepareRename(doc.textDocument, position, requestTokenSource.token);
           if (res !== false) {
             let newName = curname.startsWith("a") ? "b" : "a";
@@ -88465,7 +88462,7 @@ var init_rename2 = __esm({
         let { doc, position } = await this.handler.getCurrentState();
         this.handler.checkProvider("rename" /* Rename */, doc.textDocument);
         await doc.synchronize();
-        let token = new import_node3.CancellationTokenSource().token;
+        let token = new import_node4.CancellationTokenSource().token;
         let res = await languages_default.prepareRename(doc.textDocument, position, token);
         if (res === false) {
           void window_default.showWarningMessage("Invalid position for rename");
@@ -88624,7 +88621,7 @@ var init_buffer6 = __esm({
         this.staticConfig = staticConfig;
         this._dirty = false;
         this.regions = new Regions();
-        this._onDidRefresh = new import_node3.Emitter();
+        this._onDidRefresh = new import_node4.Emitter();
         this.onDidRefresh = this._onDidRefresh.event;
         if (this.hasProvider) this.doHighlight().catch(onUnexpectedError);
       }
@@ -88677,7 +88674,7 @@ var init_buffer6 = __esm({
       async onWinScroll(winid) {
         if (!this.shouldHighlight) return;
         this.cancel(true);
-        let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
+        let rangeTokenSource = this.rangeTokenSource = new import_node4.CancellationTokenSource();
         let token = rangeTokenSource.token;
         await waitWithToken(debounceInterval2, token);
         if (token.isCancellationRequested) return;
@@ -88806,7 +88803,7 @@ var init_buffer6 = __esm({
       }
       async doHighlight(forceFull = false, wait2 = debounceInterval2, winid) {
         this.cancel();
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         let token = tokenSource.token;
         await waitWithToken(wait2, token);
         if (token.isCancellationRequested) return;
@@ -88814,7 +88811,7 @@ var init_buffer6 = __esm({
         if (!this.enabled || winids.length === 0) return;
         if (this.shouldRangeHighlight) {
           this.cancel(true);
-          let rangeTokenSource = this.rangeTokenSource = new import_node3.CancellationTokenSource();
+          let rangeTokenSource = this.rangeTokenSource = new import_node4.CancellationTokenSource();
           let rangeToken = rangeTokenSource.token;
           for (const win of winids) {
             await this.doRangeHighlight(win, rangeToken);
@@ -89330,7 +89327,7 @@ var init_signature = __esm({
       }
       async _triggerSignatureHelp(doc, position, invoke, offset = 0) {
         this.tokenSource?.cancel();
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         let token = tokenSource.token;
         token.onCancellationRequested(() => {
           tokenSource.dispose();
@@ -89343,7 +89340,7 @@ var init_signature = __esm({
         await doc.patchChange();
         let signatureHelp = await languages_default.getSignatureHelp(doc.textDocument, position, token, {
           isRetrigger: this.signatureFactory.checkRetrigger(doc.bufnr),
-          triggerKind: invoke ? import_node3.SignatureHelpTriggerKind.Invoked : import_node3.SignatureHelpTriggerKind.TriggerCharacter
+          triggerKind: invoke ? import_node4.SignatureHelpTriggerKind.Invoked : import_node4.SignatureHelpTriggerKind.TriggerCharacter
         });
         clearTimeout(timer);
         if (token.isCancellationRequested) return false;
@@ -89504,7 +89501,7 @@ var init_buffer7 = __esm({
         this.doc = doc;
         this.autoUpdateBufnrs = autoUpdateBufnrs;
         this.disposables = [];
-        this._onDidUpdate = new import_node3.Emitter();
+        this._onDidUpdate = new import_node4.Emitter();
         this.onDidUpdate = this._onDidUpdate.event;
         this.fetchSymbols = debounce(() => {
           this._fetchSymbols().catch(onUnexpectedError);
@@ -89532,7 +89529,7 @@ var init_buffer7 = __esm({
       async _fetchSymbols() {
         let { textDocument } = this.doc;
         let { version: version2 } = textDocument;
-        let tokenSource = this.tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         let { token } = tokenSource;
         let symbols = await languages_default.getDocumentSymbol(textDocument, token);
         this.tokenSource = void 0;
@@ -89590,7 +89587,7 @@ var init_BasicDataProvider = __esm({
         this.opts = opts;
         this.disposables = [];
         // only fired for change of exists TreeNode
-        this._onDidChangeTreeData = new import_node3.Emitter();
+        this._onDidChangeTreeData = new import_node4.Emitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         this.invokeCommand = `_invoke_${v4_default()}`;
         this.disposables.push(commands_default.registerCommand(this.invokeCommand, async (node) => {
@@ -90241,7 +90238,7 @@ var init_symbols2 = __esm({
           }
         }, getConditionValue(debounceTime14, 0));
         events_default.on("CursorMoved", debounced, this, this.disposables);
-        this.disposables.push(import_node3.Disposable.create(() => {
+        this.disposables.push(import_node4.Disposable.create(() => {
           debounced.clear();
         }));
         events_default.on("InsertEnter", (bufnr) => {
@@ -90260,12 +90257,12 @@ var init_symbols2 = __esm({
       }
       async getWorkspaceSymbols(input) {
         this.handler.checkProvider("workspaceSymbols" /* WorkspaceSymbols */, null);
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         return await languages_default.getWorkspaceSymbols(input, tokenSource.token);
       }
       async resolveWorkspaceSymbol(symbolInfo) {
         if (symbolInfo.location?.uri) return symbolInfo;
-        let tokenSource = new import_node3.CancellationTokenSource();
+        let tokenSource = new import_node4.CancellationTokenSource();
         return await languages_default.resolveWorkspaceSymbol(symbolInfo, tokenSource.token);
       }
       async getDocumentSymbols(bufnr) {
@@ -90734,7 +90731,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-317e12e 2025-04-22 23:46:55 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-22130a1 2025-04-23 00:26:27 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90947,7 +90944,7 @@ var init_handler = __esm({
         }
         clearTimeout(this.requestTimer);
         let statusItem = this.requestStatusItem;
-        this.requestTokenSource = new import_node3.CancellationTokenSource();
+        this.requestTokenSource = new import_node4.CancellationTokenSource();
         let { token } = this.requestTokenSource;
         token.onCancellationRequested(() => {
           statusItem.text = `${name2} request canceled`;

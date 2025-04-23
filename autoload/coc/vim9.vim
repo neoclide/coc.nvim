@@ -1,6 +1,14 @@
 vim9script
 scriptencoding utf-8
 
+# Check if lines synchronized as expected
+export def Check_sha256(bufnr: number, expected: string): bool
+  if !exists('*sha256')
+    return true
+  endif
+  return getbufline(bufnr, 1, '$')->join("\n")->sha256() ==# expected
+enddef
+
 # From `coc#highlight#set(`:
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 # From `src/core/highlights.ts`:
