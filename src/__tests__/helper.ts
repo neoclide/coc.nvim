@@ -78,7 +78,9 @@ export class Helper extends EventEmitter {
     await this.nvim.uiAttach(160, 80, {})
     this.nvim.call('coc#rpc#set_channel', [1], true)
     this.nvim.on('vim_error', err => {
-      // console.error('Error from vim: ', err)
+      // if (typeof err === 'string' && err.startsWith('Lua')) {
+      console.error('Error from vim: ', err)
+      // }
     })
     if (init) await plugin.init('')
     return plugin

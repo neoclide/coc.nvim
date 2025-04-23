@@ -251,7 +251,10 @@ function! s:system(cmd)
   return output
 endfunction
 
-function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor, col) abort
+function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor, col, linecount) abort
+  if !s:is_vim
+    return v:lua.require('coc.text').set_lines(a:bufnr, a:changedtick, a:original, a:replacement, a:start, a:end, a:changes, a:cursor, a:col, a:linecount)
+  endif
   if !bufloaded(a:bufnr)
     return
   endif
@@ -282,14 +285,7 @@ function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end
       endif
     endif
   endif
-  " Make lines change event fire only once
-  if exists('*nvim_buf_set_text') && !empty(a:changes)
-    for item in reverse(copy(a:changes))
-      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
-    endfor
-  else
-    call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
-  endif
+  call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   if !empty(a:cursor) && a:bufnr == bufnr('%')
     call cursor(a:cursor[0], a:cursor[1] + delta)
   endif
