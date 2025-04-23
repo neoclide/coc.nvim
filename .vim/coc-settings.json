@@ -8,5 +8,8 @@
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.quoteStyle": "single",
   "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "Lua.diagnostics.disable": [
+    "empty-block"
+  ]
 }

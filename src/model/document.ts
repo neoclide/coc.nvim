@@ -344,7 +344,8 @@ export default class Document {
         changed.end,
         changes,
         cursor,
-        col
+        col,
+        lines.length
       ], true)
     }
     this._applying = true
