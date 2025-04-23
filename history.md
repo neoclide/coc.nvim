@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-23
+
+- Add configuration `inlayHint.maxLength`, default to `0`
+
 ## 2025-04-21
 
 - Add `WindowVisible` event to `events`.
@@ -55,7 +59,7 @@ Notable changes of coc.nvim:
 ## 2025-04-01
 
 - Add configuration `workspace.removeEmptyWorkspaceFolder` default to `false`.
-- Add configuration `editor.codeActionsOnSave` , similar to VSCode.
+- Add configuration `editor.codeActionsOnSave`, similar to VSCode.
 
 ## 2025-03-31
 

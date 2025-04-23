@@ -232,7 +232,6 @@ describe('InlayHint', () => {
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(0)
       helper.updateConfiguration('inlayHint.enable', true)
-
     })
 
     it('should change position to eol', async () => {
@@ -247,6 +246,43 @@ describe('InlayHint', () => {
         let detail = m[3]
         expect(detail['virt_text_pos']).toBe('eol')
       }
+    })
+
+    it('should truncate hint label when exceeding maxLength', async () => {
+      helper.updateConfiguration('inlayHint.maxLength', 3, disposables)
+      let doc = await helper.createDocument()
+      let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          return [InlayHint.create(Position.create(0, 3), 'tooLongLabel', InlayHintKind.Type)]
+        }
+      })
+      disposables.push(disposable)
+      await doc.buffer.setLines(['foo'], { start: 0, end: -1 })
+      await doc.synchronize()
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(1)
+      let virtText = markers[0][3].virt_text
+      expect(virtText).toEqual([['too…', 'CocInlayHintType']])
+    })
+
+    it('should not truncate hint label when maxLength is 0', async () => {
+      helper.updateConfiguration('inlayHint.maxLength', 0, disposables)
+      let doc = await helper.createDocument()
+      let longLabel = 'thisIsALongLabel'
+      let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          return [InlayHint.create(Position.create(0, 3), longLabel, InlayHintKind.Type)]
+        }
+      })
+      disposables.push(disposable)
+      await doc.buffer.setLines(['foo'], { start: 0, end: -1 })
+      await doc.synchronize()
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(1)
+      let virtText = markers[0][3].virt_text
+      expect(virtText).toEqual([[longLabel, 'CocInlayHintType']])
     })
   })
 

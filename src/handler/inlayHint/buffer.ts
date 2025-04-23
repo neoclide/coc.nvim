@@ -24,6 +24,7 @@ export interface InlayHintConfig {
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
+  maxLength: number
 }
 
 export interface VirtualTextItem extends VirtualTextOption {
@@ -100,6 +101,7 @@ export default class InlayHintBuffer implements SyncItem {
       filetypes: config.get<string[]>('filetypes'),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
       enableParameter: config.get<boolean>('enableParameter'),
+      maxLength: config.get<number>('maxLength', 0),
     }
     if (changeEnable || changeDisplay) {
       let { enable, display } = this._config
@@ -271,6 +273,7 @@ export default class InlayHintBuffer implements SyncItem {
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
     let { nvim, doc } = this
     let buffer = doc.buffer
+    const { maxLength } = this.config
     nvim.pauseNotification()
     const end = range.end.line >= doc.lineCount ? -1 : range.end.line + 1
     buffer.clearNamespace(srcId, range.start.line, end)
@@ -280,8 +283,14 @@ export default class InlayHintBuffer implements SyncItem {
       let { position } = item
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
+
+      let label = getLabel(item)
+      if (maxLength > 0 && label.length > maxLength) {
+        label = label.slice(0, maxLength) + '…'
+      }
+
       if (item.paddingLeft) blocks.push([' ', 'Normal'])
-      blocks.push([getLabel(item), getHighlightGroup(item.kind)])
+      blocks.push([label, getHighlightGroup(item.kind)])
       if (item.paddingRight) blocks.push([' ', 'Normal'])
       if (this.config.position == InlayHintPosition.Eol) {
         col = 0
