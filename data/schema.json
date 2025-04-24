@@ -1475,7 +1475,7 @@
       "default": 0,
       "minimum": 0,
       "scope": "language-overridable",
-      "description": "Maximum length for inlayHint label. Hints longer than maximumLength will be truncated with an ellipsis. Set to 0 to disable truncation."
+      "description": "Maximum overall length of inlay hints, for a single line, before they get truncated by the editor. Set to `0`to disable truncation."
     },
     "links.enable": {
       "type": "boolean",

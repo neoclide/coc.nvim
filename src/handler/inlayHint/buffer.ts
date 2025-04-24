@@ -277,16 +277,28 @@ export default class InlayHintBuffer implements SyncItem {
     nvim.pauseNotification()
     const end = range.end.line >= doc.lineCount ? -1 : range.end.line + 1
     buffer.clearNamespace(srcId, range.start.line, end)
+    let lineInfo = { lineNum: 0, totalLineLen: 0 }
     const vitems: VirtualTextItem[] = []
     for (const item of inlayHints) {
       const blocks = []
       let { position } = item
+      if (lineInfo.lineNum !== position.line) {
+        lineInfo = { lineNum: position.line, totalLineLen: 0 }
+      }
+      if (maximumLength > 0 && lineInfo.totalLineLen > maximumLength) {
+        logger.error(`Inlay hint too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`)
+        continue
+      }
+
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
 
+      // TODO: if item.label is InlayHintLabelPart[], how to handle?
       let label = getLabel(item)
-      if (maximumLength > 0 && label.length > maximumLength) {
-        label = label.slice(0, maximumLength) + '…'
+      lineInfo.totalLineLen += label.length
+      const over = maximumLength > 0 ? lineInfo.totalLineLen - maximumLength : 0
+      if (over > 0) {
+        label = label.slice(0, -over) + '…'
       }
 
       if (item.paddingLeft) blocks.push([' ', 'Normal'])
