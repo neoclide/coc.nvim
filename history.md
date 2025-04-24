@@ -4,7 +4,7 @@ Notable changes of coc.nvim:
 
 ## 2025-04-23
 
-- Add configuration `inlayHint.maxLength`, default to `0`
+- Add configuration `inlayHint.maximumLength`, default to `0`
 
 ## 2025-04-21
 

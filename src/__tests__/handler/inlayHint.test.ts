@@ -248,8 +248,8 @@ describe('InlayHint', () => {
       }
     })
 
-    it('should truncate hint label when exceeding maxLength', async () => {
-      helper.updateConfiguration('inlayHint.maxLength', 3, disposables)
+    it('should truncate hint label when exceeding maximumLength', async () => {
+      helper.updateConfiguration('inlayHint.maximumLength', 3, disposables)
       let doc = await helper.createDocument()
       let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
@@ -266,8 +266,8 @@ describe('InlayHint', () => {
       expect(virtText).toEqual([['too…', 'CocInlayHintType']])
     })
 
-    it('should not truncate hint label when maxLength is 0', async () => {
-      helper.updateConfiguration('inlayHint.maxLength', 0, disposables)
+    it('should not truncate hint label when maximumLength is 0', async () => {
+      helper.updateConfiguration('inlayHint.maximumLength', 0, disposables)
       let doc = await helper.createDocument()
       let longLabel = 'thisIsALongLabel'
       let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {

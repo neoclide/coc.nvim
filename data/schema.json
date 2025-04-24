@@ -1470,12 +1470,12 @@
       "scope": "language-overridable",
       "description": "Refresh inlayHints on insert mode."
     },
-    "inlayHint.maxLength": {
+    "inlayHint.maximumLength": {
       "type": "integer",
       "default": 0,
       "minimum": 0,
       "scope": "language-overridable",
-      "description": "Maximum length for inlayHint label. Hints longer than maxLength will be truncated with an ellipsis. Set to 0 to disable truncation."
+      "description": "Maximum length for inlayHint label. Hints longer than maximumLength will be truncated with an ellipsis. Set to 0 to disable truncation."
     },
     "links.enable": {
       "type": "boolean",
