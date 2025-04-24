@@ -286,14 +286,13 @@ export default class InlayHintBuffer implements SyncItem {
         lineInfo = { lineNum: position.line, totalLineLen: 0 }
       }
       if (maximumLength > 0 && lineInfo.totalLineLen > maximumLength) {
-        logger.error(`Inlay hint too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`)
+        logger.warn(`Inlay hint of ${lineInfo.lineNum} too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`)
         continue
       }
 
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
 
-      // TODO: if item.label is InlayHintLabelPart[], how to handle?
       let label = getLabel(item)
       lineInfo.totalLineLen += label.length
       const over = maximumLength > 0 ? lineInfo.totalLineLen - maximumLength : 0
