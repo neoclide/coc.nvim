@@ -1470,6 +1470,13 @@
       "scope": "language-overridable",
       "description": "Refresh inlayHints on insert mode."
     },
+    "inlayHint.maximumLength": {
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "scope": "language-overridable",
+      "description": "Maximum overall length of inlay hints, for a single line, before they get truncated by the editor. Set to `0`to disable truncation."
+    },
     "links.enable": {
       "type": "boolean",
       "scope": "language-overridable",
