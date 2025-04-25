@@ -39619,6 +39619,13 @@ var init_schema = __esm({
           scope: "language-overridable",
           description: "Refresh inlayHints on insert mode."
         },
+        "inlayHint.maximumLength": {
+          type: "integer",
+          default: 0,
+          minimum: 0,
+          scope: "language-overridable",
+          description: "Maximum overall length of inlay hints, for a single line, before they get truncated by the editor. Set to `0`to disable truncation."
+        },
         "links.enable": {
           type: "boolean",
           scope: "language-overridable",
@@ -42147,7 +42154,7 @@ var init_configuration2 = __esm({
         this._initialConfiguration = this.getConfiguration(void 0, null);
       }
       /**
-       * Contains default and user configuration only
+       * Contains default, memory and user configuration only
        */
       get initialConfiguration() {
         return this._initialConfiguration;
@@ -42345,7 +42352,7 @@ var init_configuration2 = __esm({
           change = configuration2.compareAndUpdateMemoryConfiguration(model);
         }
         if (!change || change.keys.length == 0) return;
-        if (target !== 3 /* WorkspaceFolder */) {
+        if (target !== 3 /* WorkspaceFolder */, target !== 2 /* Workspace */) {
           this._initialConfiguration = this.getConfiguration(void 0, null);
         }
         if (listOnly) return;
@@ -42475,12 +42482,13 @@ var init_configuration2 = __esm({
         return void 0;
       }
       /**
-       * Reset configurations for test
+       * Reset configurations for test, not trigger configuration change event.
        */
       reset() {
         this._errors.clear();
         let model = new ConfigurationModel();
-        this.changeConfiguration(4 /* Memory */, model, void 0);
+        this._configuration.updateMemoryConfiguration(model);
+        this._initialConfiguration = this.getConfiguration(void 0, null);
       }
       dispose() {
         this._onError.dispose();
@@ -67378,7 +67386,7 @@ var init_basic = __esm({
           this.optionMap = /* @__PURE__ */ new Map();
           for (let opt of this.options) {
             let parts = opt.name.split(/,\s*/g).map((s) => s.replace(/\s+.*/g, ""));
-            let name2 = opt.key ? opt.key : parts[parts.length - 1].replace(/^-/, "");
+            let name2 = opt.key ? opt.key : parts[parts.length - 1].replace(/^-+/, "");
             for (let p of parts) {
               this.optionMap.set(p, { name: name2, hasValue: opt.hasValue });
             }
@@ -70061,6 +70069,7 @@ var init_diagnostics = __esm({
     "use strict";
     init_esm();
     init_manager();
+    init_util5();
     init_util();
     init_fs();
     init_node();
@@ -70075,12 +70084,16 @@ var init_diagnostics = __esm({
         this.name = "diagnostics";
         this.options = [{
           name: "--buffer",
-          hasValue: true,
+          hasValue: false,
           description: "list diagnostics of current buffer only"
         }, {
           name: "--workspace-folder",
-          hasValue: true,
+          hasValue: false,
           description: "list diagnostics of current workspace folder only"
+        }, {
+          name: "-l, -level LEVEL",
+          hasValue: true,
+          description: 'filter diagnostics by diagnostic level, could be "error", "warning" and "information"'
         }];
         manager_default.onDidRefresh(async () => {
           let session = manager.getSession("diagnostics");
@@ -70090,14 +70103,22 @@ var init_diagnostics = __esm({
       async loadItems(context) {
         let list2 = await manager_default.getDiagnosticList();
         let { cwd: cwd2, args } = context;
+        const parsedArgs = this.parseArguments(args);
         if (args.includes("--workspace-folder")) {
-          const normalized = URI2.parse(workspace_default.getWorkspaceFolder(cwd2).uri);
-          list2 = list2.filter((item) => isParentFolder(normalized.fsPath, item.file));
+          const folder = workspace_default.getWorkspaceFolder(workspace_default.root);
+          if (folder) {
+            const normalized = URI2.parse(folder.uri);
+            list2 = list2.filter((item) => isParentFolder(normalized.fsPath, item.file));
+          }
         }
-        if (args.includes("--buffer")) {
+        if (parsedArgs.buffer) {
           const doc = await workspace_default.document;
           const normalized = URI2.parse(doc.uri);
           list2 = list2.filter((item) => item.file === normalized.fsPath);
+        }
+        if (typeof parsedArgs.level === "string") {
+          let level2 = severityLevel(parsedArgs.level);
+          list2 = list2.filter((item) => item.level <= level2);
         }
         const config = this.getConfig();
         const includeCode = config.get("includeCode", true);
@@ -77782,10 +77803,7 @@ var init_snippet = __esm({
       }
       async resolve(snippet, ultisnip) {
         let { resolver: resolver2, nvim } = this;
-        if (resolver2) {
-          await snippet.resolveVariables(resolver2);
-          this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
-        }
+        if (resolver2) await snippet.resolveVariables(resolver2);
         if (ultisnip) {
           let pyCodes = [];
           snippetsPythonContexts.set(snippet, ultisnip);
@@ -78354,6 +78372,7 @@ var init_session2 = __esm({
           }
         }
         this.current = textmateSnippet.first;
+        this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
         await this.applyEdits(edits);
         this.activate(snippet);
         let code = this.snippet.getUltiSnipAction(textmateSnippet, "postExpand");
@@ -86582,7 +86601,8 @@ var init_buffer4 = __esm({
           display: config.get("display", true),
           filetypes: config.get("filetypes"),
           refreshOnInsertMode: config.get("refreshOnInsertMode"),
-          enableParameter: config.get("enableParameter")
+          enableParameter: config.get("enableParameter"),
+          maximumLength: config.get("maximumLength", 0)
         };
         if (changeEnable || changeDisplay) {
           let { enable, display } = this._config;
@@ -86730,17 +86750,32 @@ var init_buffer4 = __esm({
       setVirtualText(range, inlayHints) {
         let { nvim, doc } = this;
         let buffer = doc.buffer;
+        const { maximumLength } = this.config;
         nvim.pauseNotification();
         const end = range.end.line >= doc.lineCount ? -1 : range.end.line + 1;
         buffer.clearNamespace(srcId2, range.start.line, end);
+        let lineInfo = { lineNum: 0, totalLineLen: 0 };
         const vitems = [];
         for (const item of inlayHints) {
           const blocks = [];
           let { position } = item;
+          if (lineInfo.lineNum !== position.line) {
+            lineInfo = { lineNum: position.line, totalLineLen: 0 };
+          }
+          if (maximumLength > 0 && lineInfo.totalLineLen > maximumLength) {
+            logger52.warn(`Inlay hint of ${lineInfo.lineNum} too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`);
+            continue;
+          }
           let line = this.doc.getline(position.line);
           let col = byteIndex(line, position.character) + 1;
+          let label = getLabel(item);
+          lineInfo.totalLineLen += label.length;
+          const over = maximumLength > 0 ? lineInfo.totalLineLen - maximumLength : 0;
+          if (over > 0) {
+            label = label.slice(0, -over) + "\u2026";
+          }
           if (item.paddingLeft) blocks.push([" ", "Normal"]);
-          blocks.push([getLabel(item), getHighlightGroup3(item.kind)]);
+          blocks.push([label, getHighlightGroup3(item.kind)]);
           if (item.paddingRight) blocks.push([" ", "Normal"]);
           if (this.config.position == "eol" /* Eol */) {
             col = 0;
@@ -89002,9 +89037,6 @@ var init_buffer6 = __esm({
 });
 
 // src/handler/semanticTokens/index.ts
-function getFiletypes() {
-  return workspace_default.initialConfiguration.get("semanticTokens.filetypes", null);
-}
 var headGroup, floatFactory3, SemanticTokens5;
 var init_semanticTokens2 = __esm({
   "src/handler/semanticTokens/index.ts"() {
@@ -89024,12 +89056,10 @@ var init_semanticTokens2 = __esm({
       constructor(nvim) {
         this.nvim = nvim;
         this.disposables = [];
-        this.staticConfig = {
-          filetypes: getFiletypes()
-        };
+        this.setStaticConfiguration();
         workspace_default.onDidChangeConfiguration((e) => {
           if (e.affectsConfiguration("semanticTokens")) {
-            this.staticConfig.filetypes = getFiletypes();
+            this.setStaticConfiguration();
             for (let item of this.highlighters.items) {
               item.loadConfiguration();
             }
@@ -89088,6 +89118,10 @@ var init_semanticTokens2 = __esm({
           let item = this.highlighters.getItem(bufnr);
           if (item) await item.onWinScroll(winid);
         }, null, this.disposables);
+      }
+      setStaticConfiguration() {
+        const filetypes = workspace_default.initialConfiguration.get("semanticTokens.filetypes", null);
+        this.staticConfig = Object.assign(this.staticConfig ?? {}, { filetypes });
       }
       async inspectSemanticToken() {
         let item = await this.getCurrentItem();
@@ -90731,7 +90765,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-22130a1 2025-04-23 00:26:27 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-d2edf3f 2025-04-25 23:12:28 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
