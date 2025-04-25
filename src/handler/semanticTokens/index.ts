@@ -88,7 +88,7 @@ export default class SemanticTokens {
   }
 
   public setStaticConfiguration(): void {
-    const filetypes = workspace.initialConfiguration.get<string[]>('semanticTokens.filetypes', [])
+    const filetypes = workspace.initialConfiguration.get<string[] | null>('semanticTokens.filetypes', null)
     this.staticConfig = Object.assign(this.staticConfig ?? {}, { filetypes })
   }
 
