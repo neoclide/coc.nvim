@@ -167,7 +167,7 @@ export class Completion implements Disposable {
     }
   }
 
-  private loadConfiguration(e?: IConfigurationChangeEvent): CompleteConfig {
+  public loadConfiguration(e?: IConfigurationChangeEvent): CompleteConfig {
     if (e && !e.affectsConfiguration('suggest')) return
     if (e) this.pum.reset()
     let suggest = workspace.initialConfiguration.get('suggest') as any

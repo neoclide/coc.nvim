@@ -15,9 +15,6 @@ import workspace from '../../workspace'
 import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, StaticConfig, toHighlightPart } from './buffer'
 const headGroup = 'Statement'
 
-function getFiletypes(): string[] {
-  return workspace.initialConfiguration.get<string[] | null>('semanticTokens.filetypes', null)
-}
 let floatFactory: FloatFactory | undefined
 
 export default class SemanticTokens {
@@ -26,12 +23,10 @@ export default class SemanticTokens {
   public staticConfig: StaticConfig
 
   constructor(private nvim: Neovim) {
-    this.staticConfig = {
-      filetypes: getFiletypes(),
-    }
+    this.setStaticConfiguration()
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('semanticTokens')) {
-        this.staticConfig.filetypes = getFiletypes()
+        this.setStaticConfiguration()
         for (let item of this.highlighters.items) {
           item.loadConfiguration()
         }
@@ -90,6 +85,11 @@ export default class SemanticTokens {
       let item = this.highlighters.getItem(bufnr)
       if (item) await item.onWinScroll(winid)
     }, null, this.disposables)
+  }
+
+  public setStaticConfiguration(): void {
+    const filetypes = workspace.initialConfiguration.get<string[]>('semanticTokens.filetypes', [])
+    this.staticConfig = Object.assign(this.staticConfig ?? {}, { filetypes })
   }
 
   public async inspectSemanticToken(): Promise<void> {

@@ -71,7 +71,7 @@ export default class Configurations {
   }
 
   /**
-   * Contains default and user configuration only
+   * Contains default, memory and user configuration only
    */
   public get initialConfiguration(): WorkspaceConfiguration {
     return this._initialConfiguration
@@ -284,7 +284,10 @@ export default class Configurations {
       change = configuration.compareAndUpdateMemoryConfiguration(model)
     }
     if (!change || change.keys.length == 0) return
-    if (target !== ConfigurationTarget.WorkspaceFolder) {
+    if (
+      target !== ConfigurationTarget.WorkspaceFolder,
+      target !== ConfigurationTarget.Workspace
+    ) {
       this._initialConfiguration = this.getConfiguration(undefined, null)
     }
     if (listOnly) return
@@ -425,12 +428,13 @@ export default class Configurations {
   }
 
   /**
-   * Reset configurations for test
+   * Reset configurations for test, not trigger configuration change event.
    */
   public reset(): void {
     this._errors.clear()
     let model = new ConfigurationModel()
-    this.changeConfiguration(ConfigurationTarget.Memory, model, undefined)
+    this._configuration.updateMemoryConfiguration(model)
+    this._initialConfiguration = this.getConfiguration(undefined, null)
   }
 
   public dispose(): void {
