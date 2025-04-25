@@ -278,11 +278,23 @@ function! s:HandleCharInsert(char, bufnr) abort
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
-function! s:HandleTextChangedI(bufnr) abort
+function! s:HandleTextChangedI(event, bufnr) abort
   if get(g:, 'coc_feeding_keys', 0)
     unlet g:coc_feeding_keys
   endif
-  call s:Autocmd('TextChangedI', a:bufnr, coc#util#change_info())
+  if s:is_vim
+    " make sure lines event before changed event.
+    call listener_flush(a:bufnr)
+  endif
+  call s:Autocmd(a:event, a:bufnr, coc#util#change_info())
+endfunction
+
+function! s:HandleTextChanged(bufnr) abort
+  if s:is_vim
+    " make sure lines event before changed event.
+    call listener_flush(a:bufnr)
+  endif
+  call s:Autocmd('TextChanged', a:bufnr, getbufvar(a:bufnr, 'changedtick'))
 endfunction
 
 function! s:HandleInsertLeave(bufnr) abort
@@ -413,15 +425,13 @@ function! s:Enable(initialize)
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid(), coc#window#visible_range(win_getid()))
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
-    if exists('##TextChangedP')
-      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
-    endif
-    autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
+    autocmd TextChangedP        * call s:HandleTextChangedI('TextChangedP', +expand('<abuf>'))
+    autocmd TextChangedI        * call s:HandleTextChangedI('TextChangedI', +expand('<abuf>'))
+    autocmd TextChanged         * call s:HandleTextChanged(+expand('<abuf>'))
     autocmd InsertLeave         * call s:HandleInsertLeave(+expand('<abuf>'))
     autocmd BufEnter            * call s:HandleBufEnter(+expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
-    autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
