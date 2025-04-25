@@ -95,6 +95,7 @@ export class SnippetSession {
       }
     }
     this.current = textmateSnippet.first
+    this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
     await this.applyEdits(edits)
     this.activate(snippet)
     let code = this.snippet.getUltiSnipAction(textmateSnippet, 'postExpand')

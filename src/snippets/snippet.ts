@@ -116,10 +116,7 @@ export class CocSnippet {
 
   private async resolve(snippet: TextmateSnippet, ultisnip?: UltiSnippetContext): Promise<void> {
     let { resolver, nvim } = this
-    if (resolver) {
-      await snippet.resolveVariables(resolver)
-      this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
-    }
+    if (resolver) await snippet.resolveVariables(resolver)
     if (ultisnip) {
       let pyCodes: string[] = []
       snippetsPythonContexts.set(snippet, ultisnip)
