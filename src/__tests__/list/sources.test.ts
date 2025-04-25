@@ -670,10 +670,22 @@ describe('list sources', () => {
       await manager.start(['diagnostics'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-
       let buf = await nvim.buffer
       let lines = await buf.lines
       expect(lines.length).toEqual(10)
+    })
+
+    it('should filter diagnostics by level', async () => {
+      await createDocument('a')
+      await manager.start(['diagnostics', '-level', 'error'])
+      await manager.session?.ui.ready
+      expect(manager.isActivated).toBe(true)
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines.length).toBe(2)
+      lines.forEach(line => {
+        expect(line).toMatch('Error')
+      })
     })
 
     it('should load diagnostics for buffer only', async () => {
@@ -699,18 +711,22 @@ describe('list sources', () => {
       await createDocument('f')
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder1')
-      jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
+      let spy = jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
         name: 'workspace-folder1',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-
+      spy.mockRestore()
       let buf = await nvim.buffer
       let lines = await buf.lines
       // A Total of 10 for buf a & b
       expect(lines.length).toEqual(10)
+      spy = jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(undefined)
+      await manager.start(['diagnostics', '--workspace-folder'])
+      await helper.wait(50)
+      spy.mockRestore()
     })
 
     it('should load no diagnostics for buffers outside workspace folder', async () => {
@@ -724,18 +740,18 @@ describe('list sources', () => {
       await createDocument('f')
 
       const workspaceFolder = path.join(__dirname, 'workspace-folder4')
-      jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
+      let spy = jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
         name: 'workspace-folder4',
         uri: URI.file(workspaceFolder).toString()
       })
       await manager.start(['diagnostics', '--workspace-folder'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-
       let buf = await nvim.buffer
       let lines = await buf.lines
       // No results line just visible
       expect(lines.length).toEqual(1)
+      spy.mockRestore()
     })
 
     it('should refresh on diagnostics refresh', async () => {
@@ -851,22 +867,16 @@ describe('list sources', () => {
       await nvim.input('<C-u>')
       await nvim.input('<cr>')
       await p
-      p = doAction('newfile', res[0])
-      await helper.waitFloat()
-      await helper.wait(30)
-      await nvim.input('<C-u>')
-      await nvim.input('<cr>')
-      await p
+      let spy = jest.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(''))
+      await doAction('newfile', res[0])
+      spy.mockRestore()
       fs.rmSync(path.join(os.tmpdir(), uid), { recursive: true, force: true })
       let filepath = path.join(os.tmpdir(), uid, 'bar')
-      let spy = jest.spyOn(window, 'requestInput').mockImplementation(() => {
-        return Promise.resolve(filepath)
-      })
+      spy = jest.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(filepath))
       await doAction('newfile', res[0])
       let exists = fs.existsSync(filepath)
       expect(exists).toBe(true)
       spy.mockRestore()
-      workspace.reset()
     })
   })
 
