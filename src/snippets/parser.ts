@@ -811,11 +811,14 @@ export class TextmateSnippet extends Marker {
       })
     }))
     if (pyCodes.length === 0) return
+    // update normal python block with related.
+    let relatedBlocks = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
     // run all python code by sequence
     const variableCode = getVariablesCode(this.values)
     await executePythonCode(nvim, [...pyCodes, variableCode])
     for (let block of pyBlocks) {
       let pre = block.value
+      if (relatedBlocks.includes(block)) continue
       await block.resolve(nvim)
       if (pre === block.value) continue
       if (block.parent instanceof Placeholder) {
@@ -827,9 +830,7 @@ export class TextmateSnippet extends Marker {
     for (let block of this.orderedPyIndexBlocks) {
       await this.updatePyIndexBlock(nvim, block)
     }
-    // update normal python block with related.
-    let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-    for (let block of filtered) {
+    for (let block of relatedBlocks) {
       await block.resolve(nvim)
     }
   }
