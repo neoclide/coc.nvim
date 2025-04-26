@@ -187,7 +187,8 @@ describe('SnippetSession', () => {
       expect(col).toBe(7)
       await session.nextPlaceholder()
       expect(session.isActive).toBe(true)
-      expect(session.placeholder.index).toBe(0)
+      // should finalize snippet
+      expect(session.placeholder.index).toBe(1)
       await session.nextPlaceholder()
       expect(session.placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('b')
@@ -197,11 +198,15 @@ describe('SnippetSession', () => {
       await nvim.command('startinsert')
       let session = await createSession()
       let res = await session.start('${1:a} $1', defaultRange)
-      let line = await nvim.call('getline', ['.'])
       res = await session.start('${1:foo}', Range.create(0, 0, 0, 1), false)
       expect(res).toBe(true)
-      line = await nvim.line
+      let line = await nvim.line
       expect(line).toBe('foo foo')
+      await session.selectCurrentPlaceholder()
+      let spy = jest.spyOn(session.snippet, 'finalizeSnippet').mockReturnValue(false)
+      await session.nextPlaceholder()
+      spy.mockRestore()
+      expect(session.placeholder).toBeDefined()
     })
 
     it('should not nested when range not contains', async () => {

@@ -506,6 +506,7 @@ describe('CocSnippet', () => {
     it('should work with methods of snip', async () => {
       await nvim.command('setl shiftwidth=4 ft=txt tabstop=4 expandtab')
       await createSnippet('`!p snip.rv = "a"`', {}, Range.create(0, 4, 0, 8), '    abcd')
+      await executePythonCode(nvim, [])
       await executePythonCode(nvim, [
         'snip.shift(1)',
         // ultisnip indent only when there's '\n' in snip.rv
@@ -562,6 +563,7 @@ describe('CocSnippet', () => {
     it('should update nested placeholder values', async () => {
       let c = await createSnippet('${2:foo ${1:`!p snip.rv = "bar"`}} ${2/^\\w//} `!p snip.rv = t[2]`', {})
       expect(c.text).toBe('foo bar oo bar foo bar')
+      c.finalizeSnippet(c.tmSnippet)
     })
   })
 

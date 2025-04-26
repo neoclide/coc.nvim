@@ -87,6 +87,7 @@ export function getInitialPythonCode(context: UltiSnippetContext): string[] {
 }
 
 export async function executePythonCode(nvim: Neovim, codes: string[]) {
+  if (codes.length == 0) return
   let lines = [...codes]
   lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)
   try {

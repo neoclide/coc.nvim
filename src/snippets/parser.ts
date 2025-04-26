@@ -152,7 +152,6 @@ export class Scanner {
 }
 
 export abstract class Marker {
-  public readonly _markerBrand: any
   public parent: Marker
   protected _children: Marker[] = []
 

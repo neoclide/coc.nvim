@@ -448,6 +448,17 @@ export class CocSnippet {
   }
 
   /**
+   * Finalize nested snippet.
+   */
+  public finalizeSnippet(snip: TextmateSnippet): boolean {
+    let marker = snip.parent
+    if (!marker) return false
+    snip.replaceWith(new Text(snip.toString()))
+    this.synchronize()
+    return true
+  }
+
+  /**
    * Should be used after snippet resolved.
    */
   public synchronize(): void {

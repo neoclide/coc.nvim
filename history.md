@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-25
+
+- Add `-level` argument support to diagnostics list.
+- Make lines event send before TextChange events on vim9.
+
 ## 2025-04-23
 
 - Add configuration `inlayHint.maximumLength`, default to `0`

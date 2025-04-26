@@ -219,11 +219,20 @@ export class SnippetSession {
     this.checkFinalPlaceholder()
   }
 
-  private checkFinalPlaceholder(): void {
+  public checkFinalPlaceholder(): void {
     let current = this.current
-    if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
-      logger.info('Jump to final placeholder, cancelling snippet session')
-      this.deactivate()
+    if (current && current.index === 0) {
+      const { snippet } = current
+      if (snippet === this.snippet.tmSnippet) {
+        logger.info('Jump to final placeholder, cancelling snippet session')
+        this.deactivate()
+      } else {
+        let inserted = this.snippet.finalizeSnippet(snippet)
+        let marker = snippet.parent
+        if (inserted && marker instanceof Placeholder) {
+          this.current = marker
+        }
+      }
     }
   }
 
