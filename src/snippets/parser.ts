@@ -12,6 +12,7 @@ import { convertRegex } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 let id = 0
+let snippet_id = 0
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
 const ultisnipSpecialEscape = ['u', 'l', 'U', 'L', 'E', 'n', 't']
@@ -732,9 +733,11 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean, ignoreChil
 export class TextmateSnippet extends Marker {
 
   public readonly ultisnip: boolean
-  constructor(ultisnip?: boolean) {
+  public readonly id: number
+  constructor(ultisnip?: boolean, id?: number) {
     super()
     this.ultisnip = ultisnip === true
+    this.id = id ?? snippet_id++
   }
 
   public get hasPythonBlock(): boolean {
@@ -912,6 +915,17 @@ export class TextmateSnippet extends Marker {
       return true
     }, true)
     return variables
+  }
+
+  public get snippets(): TextmateSnippet[] {
+    const result: TextmateSnippet[] = []
+    this.walk(candidate => {
+      if (candidate instanceof TextmateSnippet) {
+        result.push(candidate)
+      }
+      return true
+    }, false)
+    return result
   }
 
   public get placeholders(): Placeholder[] {
@@ -1106,7 +1120,7 @@ export class TextmateSnippet extends Marker {
   }
 
   public clone(): TextmateSnippet {
-    let ret = new TextmateSnippet(this.ultisnip)
+    let ret = new TextmateSnippet(this.ultisnip, this.id)
     ret._children = this.children.map(child => {
       let m = child.clone()
       m.parent = ret

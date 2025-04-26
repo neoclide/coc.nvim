@@ -7,7 +7,7 @@ import { TabStopInfo } from '../types'
 import { defaultValue, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
-import { executePythonCode, getPyBlockCode, getResetPythonCode, hasPython } from './eval'
+import { getPyBlockCode, getResetPythonCode, hasPython } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, getNewRange, getTextAfter, getTextBefore, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
@@ -278,6 +278,22 @@ export class CocSnippet {
   }
 
   /**
+   * Keep the references of snippets, so the map could work.
+   */
+  public replaceWithCloned(cloned: TextmateSnippet, childSnippets: TextmateSnippet[]): void {
+    let nestedSnippets = cloned.snippets
+    this.tmSnippet.replaceChildren(cloned.children)
+    nestedSnippets.forEach(s => {
+      let children = s.children
+      let old = childSnippets.find(o => o.id === s.id)
+      if (old) {
+        s.replaceWith(old)
+        old.replaceChildren(children)
+      }
+    })
+  }
+
+  /**
    * Replace range with text, return new Cursor position when cursor provided
    *
    * Get new Cursor position for synchronize update only.
@@ -287,6 +303,7 @@ export class CocSnippet {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
+    const snippets = this._tmSnippet.snippets
     // No need further action when only affect the top snippet.
     if (marker === this._tmSnippet) {
       this.synchronize()
@@ -296,7 +313,7 @@ export class CocSnippet {
     let sp = this.getMarkerPosition(marker)
     let changeCharacter = cursor && sp.line === cursor.line
     const reset = () => {
-      this._tmSnippet = cloned
+      this.replaceWithCloned(cloned, snippets)
       this.synchronize()
     }
     token.onCancellationRequested(reset)
@@ -386,15 +403,6 @@ export class CocSnippet {
     await waitWithToken(16, token)
     if (token.isCancellationRequested) return
     this.synchronize()
-  }
-
-  public async executeGlobalCode(snip: TextmateSnippet | undefined): Promise<boolean> {
-    let codes = snippetsPythonGlobalCodes.get(snip)
-    if (codes) {
-      await executePythonCode(this.nvim, codes)
-      return true
-    }
-    return false
   }
 
   private usePython(snip: TextmateSnippet): boolean {
