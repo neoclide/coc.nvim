@@ -17,9 +17,9 @@ import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode, getInitialPythonCode } from './eval'
+import { contexts_var, executePythonCode, generateContextId, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder, TextmateSnippet } from './parser'
-import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder } from "./snippet"
+import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
@@ -97,32 +97,32 @@ export class SnippetSession {
     this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
     await this.applyEdits(edits)
     this.activate(snippet)
-    let code = this.snippet.getUltiSnipAction(textmateSnippet, 'postExpand')
     // Not delay, avoid unexpected character insert
-    if (code) await this.tryPostExpand(code)
-    if (this.snippet && select && this.current) {
-      let placeholder = this.snippet.getPlaceholderByMarker(this.current)
-      await this.selectPlaceholder(placeholder, true)
-    }
+    await this.tryPostExpand(textmateSnippet)
+    let { placeholder } = this
+    if (select && placeholder) await this.selectPlaceholder(placeholder, true)
     return this.isActive
   }
 
-  private async tryPostExpand(code: string): Promise<void> {
+  private async tryPostExpand(textmateSnippet: TextmateSnippet): Promise<void> {
+    let result = getUltiSnipActionCodes(textmateSnippet, 'postExpand')
+    if (!result) return
     const { start, end } = this.snippet.range
+    const [code, resetCodes] = result
     let pos = `[${start.line},${start.character},${end.line},${end.character}]`
-    let codes = [`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code]
+    let codes = [...resetCodes, `snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code]
     this.cancel()
     await executePythonCode(this.nvim, codes)
     await this.forceSynchronize()
   }
 
-  private async tryPostJump(code: string, info: JumpInfo, bufnr: number): Promise<void> {
+  private async tryPostJump(code: string, resetCodes: string[], info: JumpInfo, bufnr: number): Promise<void> {
     // make events.requesting = false
     await waitNextTick()
     this.nvim.setVar('coc_ultisnips_tabstops', info.tabstops, true)
     const { snippet_start, snippet_end } = info
     let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`
-    let codes = [`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code]
+    let codes = [...resetCodes, `snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code]
     this.cancel()
     await executePythonCode(this.nvim, codes)
     await this.forceSynchronize()
@@ -207,11 +207,9 @@ export class SnippetSession {
       range: placeholder.range,
       charbefore: start.character == 0 ? '' : line.slice(start.character - 1, start.character)
     }
-    let code = this.snippet.getUltiSnipAction(marker, 'postJump')
-    if (code) {
-      await this.snippet.executeGlobalCode(marker.snippet)
-      // make it async to allow insertSnippet request from python code
-      this.tryPostJump(code, info, document.bufnr).catch(onUnexpectedError)
+    let result = getUltiSnipActionCodes(marker, 'postJump')
+    if (result) {
+      this.tryPostJump(result[0], result[1], info, document.bufnr).catch(onUnexpectedError)
     } else {
       void events.fire('PlaceholderJump', [document.bufnr, info])
     }
@@ -226,9 +224,9 @@ export class SnippetSession {
         logger.info('Jump to final placeholder, cancelling snippet session')
         this.deactivate()
       } else {
-        let inserted = this.snippet.finalizeSnippet(snippet)
         let marker = snippet.parent
-        if (inserted && marker instanceof Placeholder) {
+        this.snippet.deactivateSnippet(snippet)
+        if (marker instanceof Placeholder) {
           this.current = marker
         }
       }
@@ -466,6 +464,12 @@ export class SnippetSession {
     this.snippet = null
     this.current = null
     this.textDocument = undefined
+    const prefix = `${this.bufnr}-`
+    const lines = [
+      `${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`,
+      `${contexts_var} = {k: v for k, v in ${contexts_var}.items() if not k.startswith('${prefix}')}`
+    ]
+    this.nvim.command(`pyx ${lines.join('\n')}`, true)
   }
 
   public async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
@@ -474,13 +478,13 @@ export class SnippetSession {
     if (ultisnip) {
       // avoid all actions
       ultisnip = omit(ultisnip, ['actions'])
-      if (this.snippet?.hasPython) {
-        ultisnip.noPython = true
-      }
       context = Object.assign({
         range: Range.create(0, 0, 0, 0),
         line: ''
-      }, ultisnip)
+      }, ultisnip, { id: generateContextId(events.bufnr) })
+      if (this.snippet?.hasPython) {
+        context.noPython = true
+      }
       if (ultisnip.noPython !== true && snippetString.includes('`!p')) {
         await executePythonCode(nvim, getInitialPythonCode(context))
       }

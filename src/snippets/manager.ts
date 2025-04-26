@@ -14,7 +14,7 @@ import { Disposable } from '../util/protocol'
 import { getPositionFromEdits } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
-import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
+import { executePythonCode, generateContextId, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { SnippetString } from './string'
 import { getAction, normalizeSnippetString, reduceTextEdit, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
@@ -170,7 +170,8 @@ export class SnippetManager {
       let usePy = false
       if (ultisnip != null) {
         usePy = hasPython(ultisnip) || inserted.includes('`!p')
-        context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
+        const bufnr = document.bufnr
+        context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip, { id: generateContextId(bufnr) })
         if (usePy) {
           if (session.placeholder) {
             let { start, end } = session.placeholder.range

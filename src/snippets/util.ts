@@ -1,7 +1,7 @@
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completion/types'
 import { UltiSnipsActions } from '../types'
 import { defaultValue } from '../util'
-import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completion/types'
 import { getEnd } from '../util/position'
 
 export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
@@ -9,6 +9,7 @@ export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
 export type UltiSnipsOption = 'trimTrailingWhitespace' | 'removeWhiteSpace' | 'noExpand'
 
 export interface UltiSnippetContext {
+  id: string
   /**
    * line on insert
    */

@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import which from 'which'
 import Terminals from '../../core/terminals'
-import window from '../../window'
 import { TerminalModel } from '../../model/terminal'
+import window from '../../window'
 import helper from '../helper'
-import { v4 as uuid } from 'uuid'
 
 let nvim: Neovim
 let terminals: Terminals

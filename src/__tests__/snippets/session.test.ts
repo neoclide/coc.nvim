@@ -40,6 +40,7 @@ async function createSession(enableHighlight = false, preferComplete = false, ne
 describe('SnippetSession', () => {
   const defaultRange = Range.create(0, 0, 0, 0)
   const defaultContext = {
+    id: `1-1`,
     line: '',
     range: defaultRange
   }
@@ -203,9 +204,7 @@ describe('SnippetSession', () => {
       let line = await nvim.line
       expect(line).toBe('foo foo')
       await session.selectCurrentPlaceholder()
-      let spy = jest.spyOn(session.snippet, 'finalizeSnippet').mockReturnValue(false)
       await session.nextPlaceholder()
-      spy.mockRestore()
       expect(session.placeholder).toBeDefined()
     })
 
@@ -254,6 +253,7 @@ describe('SnippetSession', () => {
       await session.checkPosition()
       expect(session.version).toBe(-1)
       await session.start('${1:foo}${2:`!p snip.rv = ""`} `!p snip.rv = t[1] + t[2]`', defaultRange, true, {
+        id: '1-1',
         line: '',
         range: defaultRange
       })

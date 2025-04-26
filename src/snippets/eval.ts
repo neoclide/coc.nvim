@@ -10,6 +10,14 @@ import { toText } from '../util/string'
 import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
+export const contexts_var = '__coc_ultisnip_contexts'
+
+let context_id = 1
+
+export function generateContextId(bufnr: number): string {
+  return `${bufnr}-${context_id++}`
+}
+
 /**
  * Eval code for code placeholder.
  */
@@ -40,6 +48,14 @@ export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolea
   return false
 }
 
+export function getResetPythonCode(context: UltiSnippetContext): string[] {
+  const pyCodes: string[] = []
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`)
+  pyCodes.push(`context = ${contexts_var}.get('${context.id}', {}).get('context', None)`)
+  pyCodes.push(`match = ${contexts_var}.get('${context.id}', {}).get('match', None)`)
+  return pyCodes
+}
+
 export function getPyBlockCode(snip: UltiSnippetContext): string[] {
   let { range, line } = snip
   let pyCodes: string[] = [
@@ -50,15 +66,17 @@ export function getPyBlockCode(snip: UltiSnippetContext): string[] {
   let start = `(${range.start.line},${range.start.character})`
   let end = `(${range.start.line},${range.end.character})`
   let indent = line.match(/^\s*/)[0]
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
+  pyCodes.push(...getResetPythonCode(snip))
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   return pyCodes
 }
 
-/**
- * Python code for specific snippet `context` and `match`
- */
-export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
-  const pyCodes: string[] = []
+export function getInitialPythonCode(context: UltiSnippetContext): string[] {
+  let pyCodes: string[] = [
+    'import re, os, vim, string, random',
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`,
+  ]
   let { range, regex, line } = context
   if (context.context) {
     pyCodes.push(`snip = ContextSnippet()`)
@@ -73,16 +91,9 @@ export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
   } else {
     pyCodes.push(`match = None`)
   }
-  return pyCodes
-}
-
-export function getInitialPythonCode(context: UltiSnippetContext): string[] {
-  let pyCodes: string[] = [
-    'import re, os, vim, string, random',
-    `path = vim.eval('coc#util#get_fullpath()') or ""`,
-    `fn = os.path.basename(path)`,
-  ]
-  pyCodes.push(...getSnippetPythonCode(context))
+  // save 'context and 'match' for synchronize and actions.
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`)
+  pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`)
   return pyCodes
 }
 

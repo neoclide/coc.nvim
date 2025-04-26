@@ -7,7 +7,7 @@ import { TabStopInfo } from '../types'
 import { defaultValue, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
-import { executePythonCode, getPyBlockCode, getSnippetPythonCode, hasPython } from './eval'
+import { executePythonCode, getPyBlockCode, getResetPythonCode, hasPython } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, getNewRange, getTextAfter, getTextBefore, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
@@ -95,12 +95,14 @@ export class CocSnippet {
   public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
     if (!marker) return undefined
     let snip = this.getSnippet(marker)
+    if (!snip) return undefined
     let context = snippetsPythonContexts.get(snip)
     return getAction(context, action)
   }
 
   public getUltiSnipOption(marker: Marker, key: UltiSnipsOption): boolean | undefined {
     let snip = this.getSnippet(marker)
+    if (!snip) return undefined
     let context = snippetsPythonContexts.get(snip)
     if (!context) return undefined
     return context[key]
@@ -120,13 +122,15 @@ export class CocSnippet {
     if (ultisnip) {
       let pyCodes: string[] = []
       snippetsPythonContexts.set(snippet, ultisnip)
-      if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
-        let globalCodes = getSnippetPythonCode(ultisnip)
+      if (ultisnip.noPython !== true) {
         if (snippet.hasPythonBlock) {
           pyCodes = getPyBlockCode(ultisnip)
-          globalCodes.push(...pyCodes)
+        } else if (hasPython(ultisnip)) {
+          pyCodes = getResetPythonCode(ultisnip)
         }
-        snippetsPythonGlobalCodes.set(snippet, globalCodes)
+        if (pyCodes.length > 0) {
+          snippetsPythonGlobalCodes.set(snippet, pyCodes)
+        }
       }
       // Code from getSnippetPythonCode already executed before snippet insert
       await snippet.evalCodeBlocks(nvim, pyCodes)
@@ -366,9 +370,12 @@ export class CocSnippet {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
         if (!snip) break
-        await this.executeGlobalCode(snip)
         const config = snippetsPythonContexts.get(snip)
-        await snip.update(this.nvim, marker, config?.noPython)
+        let codes: string[] = []
+        if (config?.noPython !== true) {
+          codes = snippetsPythonGlobalCodes.get(snip) ?? []
+        }
+        await snip.update(this.nvim, marker, codes)
         if (token.isCancellationRequested) return
         marker = snip.parent
       } else {
@@ -445,17 +452,6 @@ export class CocSnippet {
     if (p) return p
     let placeholder = this.getPlaceholderByIndex(index)
     return placeholder ? placeholder.marker : undefined
-  }
-
-  /**
-   * Finalize nested snippet.
-   */
-  public finalizeSnippet(snip: TextmateSnippet): boolean {
-    let marker = snip.parent
-    if (!marker) return false
-    snip.replaceWith(new Text(snip.toString()))
-    this.synchronize()
-    return true
   }
 
   /**
@@ -547,4 +543,21 @@ export function getNextPlaceholder(marker: Placeholder | undefined, forward: boo
   }
   if (nested) return marker
   return undefined
+}
+
+/**
+ * Return action code and reset code of snippet.
+ */
+export function getUltiSnipActionCodes(marker: Marker | undefined, action: UltiSnipsAction): [string, string[]] | undefined {
+  if (!marker) return undefined
+  const snip = marker instanceof TextmateSnippet ? marker : marker.snippet
+  if (!snip) return undefined
+  let context = snippetsPythonContexts.get(snip)
+  let code = getAction(context, action)
+  if (!code) return undefined
+  return [code, getResetPythonCode(context)]
+}
+
+export function addUltiSnipContext(snippet: TextmateSnippet, ultisnip: UltiSnippetContext): void {
+  snippetsPythonContexts.set(snippet, ultisnip)
 }

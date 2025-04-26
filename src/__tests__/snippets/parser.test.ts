@@ -1,7 +1,7 @@
 /* eslint-disable */
 import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
-import { Choice, mergeTexts, CodeBlock, ConditionMarker, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable, getPlaceholderId } from '../../snippets/parser'
+import { Choice, CodeBlock, ConditionMarker, ConditionString, FormatString, getPlaceholderId, Marker, mergeTexts, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
 
 describe('SnippetParser', () => {
 

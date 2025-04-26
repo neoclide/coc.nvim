@@ -837,11 +837,11 @@ export class TextmateSnippet extends Marker {
   /**
    * Update python blocks after user change Placeholder with index
    */
-  public async updatePythonCodes(nvim: Neovim, marker: Placeholder): Promise<void> {
+  public async updatePythonCodes(nvim: Neovim, marker: Placeholder, codes: string[]): Promise<void> {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
-    await executePythonCode(nvim, [getVariablesCode(this.values)])
+    await executePythonCode(nvim, [...codes, getVariablesCode(this.values)])
     for (let block of blocks) {
       await this.updatePyIndexBlock(nvim, block)
     }
@@ -943,10 +943,10 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public async update(nvim: Neovim, marker: Placeholder, noPython: boolean): Promise<void> {
+  public async update(nvim: Neovim, marker: Placeholder, codes: string[]): Promise<void> {
     this.onPlaceholderUpdate(marker)
-    if (noPython || !this.hasPythonBlock) return
-    await this.updatePythonCodes(nvim, marker)
+    if (codes.length === 0 || !this.hasPythonBlock) return
+    await this.updatePythonCodes(nvim, marker, codes)
   }
 
   /**
