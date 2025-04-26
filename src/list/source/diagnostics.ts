@@ -36,26 +36,25 @@ export default class DiagnosticsList extends LocationList {
     hasValue: true,
     description: 'filter diagnostics by diagnostic level, could be "error", "warning" and "information"'
   }]
-  public constructor(manager: ListManager) {
+  public constructor(manager: ListManager, event = true) {
     super()
-    diagnosticManager.onDidRefresh(async () => {
-      let session = manager.getSession('diagnostics')
-      if (session) await session.reloadItems()
-    }, null, this.disposables)
+    if (event) {
+      diagnosticManager.onDidRefresh(async () => {
+        let session = manager.getSession('diagnostics')
+        if (session) await session.reloadItems()
+      }, null, this.disposables)
+    }
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async filterDiagnostics(parsedArgs: { [key: string]: string | boolean }): Promise<DiagnosticItem[]> {
     let list = await diagnosticManager.getDiagnosticList()
-    let { cwd, args } = context
-    const parsedArgs = this.parseArguments(args)
-    if (args.includes('--workspace-folder')) {
+    if (parsedArgs['workspace-folder']) {
       const folder = workspace.getWorkspaceFolder(workspace.root)
       if (folder) {
         const normalized = URI.parse(folder.uri)
         list = list.filter(item => isParentFolder(normalized.fsPath, item.file))
       }
-    }
-    if (parsedArgs.buffer) {
+    } else if (parsedArgs.buffer) {
       const doc = await workspace.document
       const normalized = URI.parse(doc.uri)
       list = list.filter(item => item.file === normalized.fsPath)
@@ -64,6 +63,13 @@ export default class DiagnosticsList extends LocationList {
       let level = severityLevel(parsedArgs.level)
       list = list.filter(item => item.level <= level)
     }
+    return list
+  }
+
+  public async loadItems(context: ListContext): Promise<ListItem[]> {
+    let { cwd, args } = context
+    const parsedArgs = this.parseArguments(args)
+    let list = await this.filterDiagnostics(parsedArgs)
     const config = this.getConfig()
     const includeCode = config.get<boolean>('includeCode', true)
     const pathFormat = config.get<PathFormatting>('pathFormat', "full")
