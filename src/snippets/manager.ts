@@ -11,12 +11,13 @@ import { Mutex } from '../util/mutex'
 import { deepClone } from '../util/object'
 import { emptyRange, toValidRange } from '../util/position'
 import { Disposable } from '../util/protocol'
+import { getPositionFromEdits } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, getInitialPythonCode, hasPython } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { SnippetString } from './string'
-import { getAction, normalizeSnippetString, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
+import { getAction, normalizeSnippetString, reduceTextEdit, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
 
 export class SnippetManager {
   private disposables: Disposable[] = []
@@ -115,6 +116,7 @@ export class SnippetManager {
     try {
       let document = workspace.getAttachedDocument(bufnr)
       const session = this.bufferSync.getItem(bufnr)
+      range = await this.synchronizeSession(session, range)
       range = toValidRange(range)
       const currentLine = document.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
@@ -129,6 +131,28 @@ export class SnippetManager {
   }
 
   /**
+   * Synchronize session when needed (ex: snippet insert during TextChange),
+   * the range could be changed
+   */
+  public async synchronizeSession(session: SnippetSession, range: Range): Promise<Range> {
+    let { document, isActive } = session
+    if (!isActive) return range
+    let disposable = document.onDocumentChange(e => {
+      let changes = e.contentChanges
+      let { start, end } = range
+      changes.forEach(change => {
+        let edit = reduceTextEdit(TextEdit.replace(change.range, change.text), e.original)
+        start = getPositionFromEdits(start, [edit])
+        end = getPositionFromEdits(end, [edit])
+      })
+      range = Range.create(start, end)
+    })
+    await session.forceSynchronize()
+    disposable.dispose()
+    return range
+  }
+
+  /**
    * Insert snippet at current cursor position
    */
   public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
@@ -138,6 +162,7 @@ export class SnippetManager {
       let document = workspace.getAttachedDocument(workspace.bufnr)
       const session = this.bufferSync.getItem(document.bufnr)
       let context: UltiSnippetContext
+      if (range) await this.synchronizeSession(session, range)
       range = await this.toRange(range)
       const currentLine = document.getline(range.start.line)
       const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
@@ -148,10 +173,9 @@ export class SnippetManager {
         context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
         if (usePy) {
           if (session.placeholder) {
-            let { placeholder } = session
-            let { start, end } = placeholder.range
+            let { start, end } = session.placeholder.range
             let last = {
-              current_text: placeholder.value,
+              current_text: session.placeholder.value,
               start: { line: start.line, col: start.character, character: start.character },
               end: { line: end.line, col: end.character, character: end.character }
             }
@@ -186,6 +210,7 @@ export class SnippetManager {
           await document.applyEdits([TextEdit.del(range)])
           range.end = Position.create(start.line, start.character)
         }
+        range = await this.synchronizeSession(session, range)
       }
       await session.start(inserted, range, select, context)
       release()

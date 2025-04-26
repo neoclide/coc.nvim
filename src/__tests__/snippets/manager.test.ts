@@ -533,6 +533,19 @@ describe('snippet provider', () => {
     })
   })
 
+  describe('synchronizeSession', () => {
+    it('should synchronize range on session synchronize', async () => {
+      let active = await snippetManager.insertSnippet('foo foo$1', true)
+      expect(active).toBe(true)
+      let buf = await nvim.buffer
+      let range = Range.create(0, 4, 0, 7)
+      let session = snippetManager.getSession(buf.id)
+      nvim.call('setline', ['.', 'foo" foo'], true)
+      let newRange = await snippetManager.synchronizeSession(session, range)
+      expect(newRange).toEqual(Range.create(0, 5, 0, 8))
+    })
+  })
+
   describe('dispose()', () => {
     it('should dispose', async () => {
       let active = await snippetManager.insertSnippet('${1:foo}')

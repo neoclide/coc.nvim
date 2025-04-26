@@ -60,7 +60,6 @@ export class SnippetSession {
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
-    await this.forceSynchronize()
     let { document, snippet } = this
     const edits: TextEdit[] = []
     let textmateSnippet: TextmateSnippet
