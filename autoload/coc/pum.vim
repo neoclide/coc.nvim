@@ -290,9 +290,7 @@ function! s:select_by_index(index, insert) abort
       call s:insert_word(word, 0)
     endif
     " The current line is wrong when use feedkeys.
-    if !s:is_vim
-      doautocmd <nomodeline> TextChangedP
-    endif
+    doautocmd <nomodeline> TextChangedP
   endif
   call s:on_pum_change(1)
 endfunction
@@ -315,16 +313,12 @@ function! s:insert_word(word, finish) abort
       call timer_start(0, { -> execute('noa setl textwidth='.textwidth)})
     endif
     " should not be used on finish to have correct line.
-    if s:is_vim && !a:finish
-      call coc#pum#replace(s:start_col + 1, a:word, 1)
-    else
-      let saved_completeopt = &completeopt
-      noa set completeopt=menu
-      noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
-      " exit complete state
-      call feedkeys("\<C-x>\<C-z>", 'in')
-      execute 'noa set completeopt='.saved_completeopt
-    endif
+    let saved_completeopt = &completeopt
+    noa set completeopt=menu
+    noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
+    " exit complete state
+    call feedkeys("\<C-x>\<C-z>", 'in')
+    execute 'noa set completeopt='.saved_completeopt
   endif
 endfunction
 
