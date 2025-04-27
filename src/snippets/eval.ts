@@ -77,7 +77,7 @@ export function getInitialPythonCode(context: UltiSnippetContext): string[] {
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`,
   ]
-  let { range, regex, line } = context
+  let { range, regex, line, id } = context
   if (context.context) {
     pyCodes.push(`snip = ContextSnippet()`)
     pyCodes.push(`context = ${context.context}`)
@@ -93,6 +93,9 @@ export function getInitialPythonCode(context: UltiSnippetContext): string[] {
   }
   // save 'context and 'match' for synchronize and actions.
   pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`)
+  let prefix = id.match(/^\w+-/)[0]
+  // keep context of current buffer only.
+  pyCodes.push(`${contexts_var} = {k: v for k, v in ${contexts_var}.items() if k.startswith('${prefix}')}`)
   pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`)
   return pyCodes
 }

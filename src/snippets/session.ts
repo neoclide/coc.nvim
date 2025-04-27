@@ -17,7 +17,7 @@ import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import { contexts_var, executePythonCode, generateContextId, getInitialPythonCode } from './eval'
+import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
@@ -465,12 +465,6 @@ export class SnippetSession {
     this.snippet = null
     this.current = null
     this.textDocument = undefined
-    const prefix = `${this.bufnr}-`
-    const lines = [
-      `${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`,
-      `${contexts_var} = {k: v for k, v in ${contexts_var}.items() if not k.startswith('${prefix}')}`
-    ]
-    this.nvim.command(`pyx ${lines.join('\n')}`, true)
   }
 
   public async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {

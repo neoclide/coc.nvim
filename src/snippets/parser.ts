@@ -269,20 +269,27 @@ export class CodeBlock extends Marker {
   private _value = ''
   private _related: number[] = []
 
-  constructor(public code: string, public readonly kind: EvalKind, value?: string) {
+  constructor(public code: string, public readonly kind: EvalKind, value?: string, related?: number[]) {
     super()
-    if (kind === 'python') {
-      let { _related } = this
-      let arr
-      let re = /\bt\[(\d+)\]/g
-      while (true) {
-        arr = re.exec(code)
-        if (arr == null) break
-        let n = parseInt(arr[1], 10)
-        if (!_related.includes(n)) _related.push(n)
-      }
+    if (Array.isArray(related)) {
+      this._related = related
+    } else if (kind === 'python') {
+      this._related = CodeBlock.parseRelated(code)
     }
     if (typeof value === 'string') this._value = value
+  }
+
+  public static parseRelated(code: string): number[] {
+    let list: number[] = []
+    let arr
+    let re = /\bt\[(\d+)\]/g
+    while (true) {
+      arr = re.exec(code)
+      if (arr == null) break
+      let n = parseInt(arr[1], 10)
+      if (!list.includes(n)) list.push(n)
+    }
+    return list
   }
 
   public get related(): number[] {
@@ -327,7 +334,7 @@ export class CodeBlock extends Marker {
   }
 
   public clone(): CodeBlock {
-    return new CodeBlock(this.code, this.kind, this.value)
+    return new CodeBlock(this.code, this.kind, this.value, this._related.slice())
   }
 }
 
