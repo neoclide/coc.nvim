@@ -12079,150 +12079,6 @@ var init_logger = __esm({
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/utils/constants.js
-var require_constants2 = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/utils/constants.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isVim = exports2.isTester = exports2.isCocNvim = void 0;
-    exports2.isCocNvim = true;
-    exports2.isTester = process.env.COC_TESTER == "1";
-    exports2.isVim = process.env.VIM_NODE_RPC == "1";
-  }
-});
-
-// node_modules/@chemzqm/neovim/lib/utils/logger.js
-var require_logger = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/utils/logger.js"(exports2) {
-    "use strict";
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.level = exports2.nullLogger = void 0;
-    exports2.createLogger = createLogger2;
-    var fs_1 = __importDefault(require("fs"));
-    var os_1 = __importDefault(require("os"));
-    var path_1 = __importDefault(require("path"));
-    var util_1 = require("util");
-    exports2.nullLogger = {
-      debug: () => {
-      },
-      info: () => {
-      },
-      warn: () => {
-      },
-      error: () => {
-      },
-      trace: () => {
-      }
-    };
-    function getLogFile() {
-      let file = process.env.NODE_CLIENT_LOG_FILE;
-      if (file)
-        return file;
-      let dir = process.env.XDG_RUNTIME_DIR;
-      if (dir)
-        return path_1.default.join(dir, "node-client.log");
-      return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
-    }
-    var debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
-    var LOG_FILE_PATH = getLogFile();
-    exports2.level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
-    var invalid = !debugging && process.getuid && process.getuid() == 0;
-    if (!invalid && !debugging) {
-      try {
-        fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
-        fs_1.default.writeFileSync(LOG_FILE_PATH, "", { encoding: "utf8", mode: 438 });
-      } catch (_e) {
-        invalid = true;
-      }
-    }
-    function toObject2(arg) {
-      if (arg == null) {
-        return arg;
-      }
-      if (Array.isArray(arg)) {
-        return arg.map((o) => toObject2(o));
-      }
-      if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") {
-        return "[" + arg.prefix + arg.data + "]";
-      }
-      return arg;
-    }
-    function toString(arg) {
-      if (debugging)
-        return (0, util_1.inspect)(arg, { depth: null, colors: true, compact: false });
-      if (arg == null)
-        return String(arg);
-      if (arg instanceof Error)
-        return arg.stack;
-      if (typeof arg == "object")
-        return JSON.stringify(arg, null, 2);
-      return String(arg);
-    }
-    var toTwoDigits2 = (v) => v < 10 ? `0${v}` : v.toString();
-    var toThreeDigits2 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
-    function toTimeString(currentTime) {
-      return `${toTwoDigits2(currentTime.getHours())}:${toTwoDigits2(currentTime.getMinutes())}:${toTwoDigits2(currentTime.getSeconds())}.${toThreeDigits2(currentTime.getMilliseconds())}`;
-    }
-    var writableStream = void 0;
-    var Logger = class {
-      constructor(name2) {
-        this.name = name2;
-      }
-      get stream() {
-        if (writableStream)
-          return writableStream;
-        if (debugging) {
-          writableStream = process.stdout;
-        } else {
-          writableStream = fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
-        }
-        return writableStream;
-      }
-      getText(level2, data, meta) {
-        let more = "";
-        if (meta.length) {
-          let arr = toObject2(meta);
-          more = " " + arr.map((o) => toString(o)).join(", ");
-        }
-        return `${toTimeString(/* @__PURE__ */ new Date())} ${level2.toUpperCase()} [${this.name}] - ${data}${more}
-`;
-      }
-      debug(data, ...meta) {
-        if (exports2.level != "debug" || invalid)
-          return;
-        this.stream.write(this.getText("debug", data, meta));
-      }
-      info(data, ...meta) {
-        if (invalid)
-          return;
-        this.stream.write(this.getText("info", data, meta));
-      }
-      warn(data, ...meta) {
-        if (invalid)
-          return;
-        this.stream.write(this.getText("warn", data, meta));
-      }
-      error(data, ...meta) {
-        if (invalid)
-          return;
-        let stream = debugging ? process.stderr : this.stream;
-        stream.write(this.getText("error", data, meta));
-      }
-      trace(data, ...meta) {
-        if (exports2.level != "trace" || invalid)
-          return;
-        this.stream.write(this.getText("trace", data, meta));
-      }
-    };
-    function createLogger2(name2) {
-      return new Logger(name2);
-    }
-  }
-});
-
 // node_modules/@chemzqm/msgpack-lite/lib/buffer-global.js
 var require_buffer_global = __commonJS({
   "node_modules/@chemzqm/msgpack-lite/lib/buffer-global.js"(exports2, module2) {
@@ -14089,6 +13945,18 @@ var require_msgpack_lite = __commonJS({
   }
 });
 
+// node_modules/@chemzqm/neovim/lib/utils/constants.js
+var require_constants2 = __commonJS({
+  "node_modules/@chemzqm/neovim/lib/utils/constants.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.isVim = exports2.isTester = exports2.isCocNvim = void 0;
+    exports2.isCocNvim = true;
+    exports2.isTester = process.env.COC_TESTER == "1";
+    exports2.isVim = process.env.VIM_NODE_RPC == "1";
+  }
+});
+
 // node_modules/@chemzqm/neovim/lib/api/Base.js
 var require_Base = __commonJS({
   "node_modules/@chemzqm/neovim/lib/api/Base.js"(exports2) {
@@ -14867,6 +14735,138 @@ var require_buffered = __commonJS({
       }
     };
     exports2.default = Buffered;
+  }
+});
+
+// node_modules/@chemzqm/neovim/lib/utils/logger.js
+var require_logger = __commonJS({
+  "node_modules/@chemzqm/neovim/lib/utils/logger.js"(exports2) {
+    "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.level = exports2.nullLogger = void 0;
+    exports2.createLogger = createLogger2;
+    var fs_1 = __importDefault(require("fs"));
+    var os_1 = __importDefault(require("os"));
+    var path_1 = __importDefault(require("path"));
+    var util_1 = require("util");
+    exports2.nullLogger = {
+      debug: () => {
+      },
+      info: () => {
+      },
+      warn: () => {
+      },
+      error: () => {
+      },
+      trace: () => {
+      }
+    };
+    function getLogFile() {
+      let file = process.env.NODE_CLIENT_LOG_FILE;
+      if (file)
+        return file;
+      let dir = process.env.XDG_RUNTIME_DIR;
+      if (dir)
+        return path_1.default.join(dir, "node-client.log");
+      return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
+    }
+    var debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
+    var LOG_FILE_PATH = getLogFile();
+    exports2.level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
+    var invalid = !debugging && process.getuid && process.getuid() == 0;
+    if (!invalid && !debugging) {
+      try {
+        fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
+        fs_1.default.writeFileSync(LOG_FILE_PATH, "", { encoding: "utf8", mode: 438 });
+      } catch (_e) {
+        invalid = true;
+      }
+    }
+    function toObject2(arg) {
+      if (arg == null) {
+        return arg;
+      }
+      if (Array.isArray(arg)) {
+        return arg.map((o) => toObject2(o));
+      }
+      if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") {
+        return "[" + arg.prefix + arg.data + "]";
+      }
+      return arg;
+    }
+    function toString(arg) {
+      if (debugging)
+        return (0, util_1.inspect)(arg, { depth: null, colors: true, compact: false });
+      if (arg == null)
+        return String(arg);
+      if (arg instanceof Error)
+        return arg.stack;
+      if (typeof arg == "object")
+        return JSON.stringify(arg, null, 2);
+      return String(arg);
+    }
+    var toTwoDigits2 = (v) => v < 10 ? `0${v}` : v.toString();
+    var toThreeDigits2 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+    function toTimeString(currentTime) {
+      return `${toTwoDigits2(currentTime.getHours())}:${toTwoDigits2(currentTime.getMinutes())}:${toTwoDigits2(currentTime.getSeconds())}.${toThreeDigits2(currentTime.getMilliseconds())}`;
+    }
+    var writableStream = void 0;
+    var Logger = class {
+      constructor(name2) {
+        this.name = name2;
+      }
+      get stream() {
+        if (writableStream)
+          return writableStream;
+        if (debugging) {
+          writableStream = process.stdout;
+        } else {
+          writableStream = fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
+        }
+        return writableStream;
+      }
+      getText(level2, data, meta) {
+        let more = "";
+        if (meta.length) {
+          let arr = toObject2(meta);
+          more = " " + arr.map((o) => toString(o)).join(", ");
+        }
+        return `${toTimeString(/* @__PURE__ */ new Date())} ${level2.toUpperCase()} [${this.name}] - ${data}${more}
+`;
+      }
+      debug(data, ...meta) {
+        if (exports2.level != "debug" || invalid)
+          return;
+        this.stream.write(this.getText("debug", data, meta));
+      }
+      info(data, ...meta) {
+        if (invalid)
+          return;
+        this.stream.write(this.getText("info", data, meta));
+      }
+      warn(data, ...meta) {
+        if (invalid)
+          return;
+        this.stream.write(this.getText("warn", data, meta));
+      }
+      error(data, ...meta) {
+        if (invalid)
+          return;
+        let stream = debugging ? process.stderr : this.stream;
+        stream.write(this.getText("error", data, meta));
+      }
+      trace(data, ...meta) {
+        if (exports2.level != "trace" || invalid)
+          return;
+        this.stream.write(this.getText("trace", data, meta));
+      }
+    };
+    function createLogger2(name2) {
+      return new Logger(name2);
+    }
   }
 });
 
@@ -16098,7 +16098,7 @@ var require_client = __commonJS({
       redrawVim(force) {
         if (!this.isVim)
           return;
-        this.transport.vimCommand("redraw", force);
+        this.transport.notify("nvim_command", [`redraw${force ? "!" : ""}`]);
       }
       /** Attaches msgpack to read/write streams * */
       attach({ reader, writer }, requestApi = true) {
@@ -16276,6 +16276,35 @@ var require_client = __commonJS({
   }
 });
 
+// node_modules/@chemzqm/neovim/lib/api/index.js
+var require_api = __commonJS({
+  "node_modules/@chemzqm/neovim/lib/api/index.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.Tabpage = exports2.Window = exports2.Buffer = exports2.NeovimClient = exports2.Neovim = void 0;
+    var client_1 = require_client();
+    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
+      return client_1.NeovimClient;
+    } });
+    var client_2 = require_client();
+    Object.defineProperty(exports2, "NeovimClient", { enumerable: true, get: function() {
+      return client_2.NeovimClient;
+    } });
+    var Buffer_1 = require_Buffer();
+    Object.defineProperty(exports2, "Buffer", { enumerable: true, get: function() {
+      return Buffer_1.Buffer;
+    } });
+    var Window_1 = require_Window();
+    Object.defineProperty(exports2, "Window", { enumerable: true, get: function() {
+      return Window_1.Window;
+    } });
+    var Tabpage_1 = require_Tabpage();
+    Object.defineProperty(exports2, "Tabpage", { enumerable: true, get: function() {
+      return Tabpage_1.Tabpage;
+    } });
+  }
+});
+
 // node_modules/@chemzqm/neovim/lib/attach/attach.js
 var require_attach = __commonJS({
   "node_modules/@chemzqm/neovim/lib/attach/attach.js"(exports2) {
@@ -16327,57 +16356,28 @@ var require_attach = __commonJS({
   }
 });
 
-// node_modules/@chemzqm/neovim/lib/api/index.js
-var require_api = __commonJS({
-  "node_modules/@chemzqm/neovim/lib/api/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Tabpage = exports2.Window = exports2.Buffer = exports2.NeovimClient = exports2.Neovim = void 0;
-    var client_1 = require_client();
-    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
-      return client_1.NeovimClient;
-    } });
-    var client_2 = require_client();
-    Object.defineProperty(exports2, "NeovimClient", { enumerable: true, get: function() {
-      return client_2.NeovimClient;
-    } });
-    var Buffer_1 = require_Buffer();
-    Object.defineProperty(exports2, "Buffer", { enumerable: true, get: function() {
-      return Buffer_1.Buffer;
-    } });
-    var Window_1 = require_Window();
-    Object.defineProperty(exports2, "Window", { enumerable: true, get: function() {
-      return Window_1.Window;
-    } });
-    var Tabpage_1 = require_Tabpage();
-    Object.defineProperty(exports2, "Tabpage", { enumerable: true, get: function() {
-      return Tabpage_1.Tabpage;
-    } });
-  }
-});
-
 // node_modules/@chemzqm/neovim/lib/index.js
 var require_lib2 = __commonJS({
   "node_modules/@chemzqm/neovim/lib/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Window = exports2.Tabpage = exports2.Buffer = exports2.Neovim = exports2.attach = void 0;
-    var attach_1 = require_attach();
-    Object.defineProperty(exports2, "attach", { enumerable: true, get: function() {
-      return attach_1.attach;
-    } });
+    exports2.attach = exports2.Window = exports2.Tabpage = exports2.Neovim = exports2.Buffer = void 0;
     var index_1 = require_api();
-    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
-      return index_1.Neovim;
-    } });
     Object.defineProperty(exports2, "Buffer", { enumerable: true, get: function() {
       return index_1.Buffer;
+    } });
+    Object.defineProperty(exports2, "Neovim", { enumerable: true, get: function() {
+      return index_1.Neovim;
     } });
     Object.defineProperty(exports2, "Tabpage", { enumerable: true, get: function() {
       return index_1.Tabpage;
     } });
     Object.defineProperty(exports2, "Window", { enumerable: true, get: function() {
       return index_1.Window;
+    } });
+    var attach_1 = require_attach();
+    Object.defineProperty(exports2, "attach", { enumerable: true, get: function() {
+      return attach_1.attach;
     } });
   }
 });
@@ -50497,6 +50497,9 @@ var init_types2 = __esm({
 });
 
 // src/snippets/eval.ts
+function generateContextId(bufnr) {
+  return `${bufnr}-${context_id++}`;
+}
 async function evalCode(nvim, kind, code, curr) {
   if (kind == "vim") {
     let res2 = await nvim.eval(code);
@@ -50520,6 +50523,13 @@ function hasPython(snip) {
   if (snip.actions && Object.keys(snip.actions).length > 0) return true;
   return false;
 }
+function getResetPythonCode(context) {
+  const pyCodes = [];
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
+  pyCodes.push(`context = ${contexts_var}.get('${context.id}', {}).get('context', None)`);
+  pyCodes.push(`match = ${contexts_var}.get('${context.id}', {}).get('match', None)`);
+  return pyCodes;
+}
 function getPyBlockCode(snip) {
   let { range, line } = snip;
   let pyCodes = [
@@ -50530,11 +50540,16 @@ function getPyBlockCode(snip) {
   let start = `(${range.start.line},${range.start.character})`;
   let end = `(${range.start.line},${range.end.character})`;
   let indent = line.match(/^\s*/)[0];
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`);
+  pyCodes.push(...getResetPythonCode(snip));
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`);
   return pyCodes;
 }
-function getSnippetPythonCode(context) {
-  const pyCodes = [];
+function getInitialPythonCode(context) {
+  let pyCodes = [
+    "import re, os, vim, string, random",
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`
+  ];
   let { range, regex: regex2, line } = context;
   if (context.context) {
     pyCodes.push(`snip = ContextSnippet()`);
@@ -50549,18 +50564,12 @@ function getSnippetPythonCode(context) {
   } else {
     pyCodes.push(`match = None`);
   }
-  return pyCodes;
-}
-function getInitialPythonCode(context) {
-  let pyCodes = [
-    "import re, os, vim, string, random",
-    `path = vim.eval('coc#util#get_fullpath()') or ""`,
-    `fn = os.path.basename(path)`
-  ];
-  pyCodes.push(...getSnippetPythonCode(context));
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
+  pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`);
   return pyCodes;
 }
 async function executePythonCode(nvim, codes) {
+  if (codes.length == 0) return;
   let lines = [...codes];
   lines.unshift(`__requesting = ${events_default.requesting ? "True" : "False"}`);
   try {
@@ -50598,7 +50607,7 @@ function addPythonTryCatch(code, force = false) {
 function escapeString(input) {
   return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\t/g, "\\t").replace(/\n/g, "\\n");
 }
-var import_child_process;
+var import_child_process, contexts_var, context_id;
 var init_eval = __esm({
   "src/snippets/eval.ts"() {
     "use strict";
@@ -50608,6 +50617,8 @@ var init_eval = __esm({
     init_constants();
     init_node();
     init_string();
+    contexts_var = "__coc_ultisnip_contexts";
+    context_id = 1;
   }
 });
 
@@ -50883,7 +50894,7 @@ function getPlaceholderId(p) {
   p.id = id++;
   return p.id;
 }
-var logger22, ULTISNIP_VARIABLES, id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var logger22, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser3 = __esm({
   "src/snippets/parser.ts"() {
     "use strict";
@@ -50899,6 +50910,7 @@ var init_parser3 = __esm({
     logger22 = createLogger("snippets-parser");
     ULTISNIP_VARIABLES = ["VISUAL", "YANK", "UUID"];
     id = 0;
+    snippet_id = 0;
     knownRegexOptions = ["d", "g", "i", "m", "s", "u", "y"];
     ultisnipSpecialEscape = ["u", "l", "U", "L", "E", "n", "t"];
     Scanner = class _Scanner {
@@ -51414,9 +51426,10 @@ var init_parser3 = __esm({
       }
     };
     TextmateSnippet = class _TextmateSnippet extends Marker {
-      constructor(ultisnip) {
+      constructor(ultisnip, id2) {
         super();
         this.ultisnip = ultisnip === true;
+        this.id = id2 ?? snippet_id++;
       }
       get hasPythonBlock() {
         if (!this.ultisnip) return false;
@@ -51484,10 +51497,12 @@ var init_parser3 = __esm({
           });
         }));
         if (pyCodes.length === 0) return;
+        let relatedBlocks = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
         const variableCode = getVariablesCode(this.values);
         await executePythonCode(nvim, [...pyCodes, variableCode]);
         for (let block2 of pyBlocks) {
           let pre = block2.value;
+          if (relatedBlocks.includes(block2)) continue;
           await block2.resolve(nvim);
           if (pre === block2.value) continue;
           if (block2.parent instanceof Placeholder) {
@@ -51498,18 +51513,17 @@ var init_parser3 = __esm({
         for (let block2 of this.orderedPyIndexBlocks) {
           await this.updatePyIndexBlock(nvim, block2);
         }
-        let filtered = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
-        for (let block2 of filtered) {
+        for (let block2 of relatedBlocks) {
           await block2.resolve(nvim);
         }
       }
       /**
        * Update python blocks after user change Placeholder with index
        */
-      async updatePythonCodes(nvim, marker) {
+      async updatePythonCodes(nvim, marker, codes) {
         let index = marker.index;
         let blocks = this.getDependentPyIndexBlocks(index);
-        await executePythonCode(nvim, [getVariablesCode(this.values)]);
+        await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
         for (let block2 of blocks) {
           await this.updatePyIndexBlock(nvim, block2);
         }
@@ -51574,6 +51588,16 @@ var init_parser3 = __esm({
         }, true);
         return variables;
       }
+      get snippets() {
+        const result = [];
+        this.walk((candidate) => {
+          if (candidate instanceof _TextmateSnippet) {
+            result.push(candidate);
+          }
+          return true;
+        }, false);
+        return result;
+      }
       get placeholders() {
         let placeholders = [];
         this.walk((candidate) => {
@@ -51600,10 +51624,10 @@ var init_parser3 = __esm({
         }
         return finals.find((o) => o.primary) ?? finals[0];
       }
-      async update(nvim, marker, noPython) {
+      async update(nvim, marker, codes) {
         this.onPlaceholderUpdate(marker);
-        if (noPython || !this.hasPythonBlock) return;
-        await this.updatePythonCodes(nvim, marker);
+        if (codes.length === 0 || !this.hasPythonBlock) return;
+        await this.updatePythonCodes(nvim, marker, codes);
       }
       /**
        * Reflact changes for related markers.
@@ -51747,7 +51771,7 @@ var init_parser3 = __esm({
         return this.children.reduce((prev, cur) => prev + cur.toTextmateString(), "");
       }
       clone() {
-        let ret = new _TextmateSnippet(this.ultisnip);
+        let ret = new _TextmateSnippet(this.ultisnip, this.id);
         ret._children = this.children.map((child) => {
           let m = child.clone();
           m.parent = ret;
@@ -70077,7 +70101,7 @@ var init_diagnostics = __esm({
     init_formatting();
     init_location();
     DiagnosticsList = class extends LocationList {
-      constructor(manager) {
+      constructor(manager, event = true) {
         super();
         this.defaultAction = "open";
         this.description = "diagnostics of current workspace";
@@ -70095,23 +70119,22 @@ var init_diagnostics = __esm({
           hasValue: true,
           description: 'filter diagnostics by diagnostic level, could be "error", "warning" and "information"'
         }];
-        manager_default.onDidRefresh(async () => {
-          let session = manager.getSession("diagnostics");
-          if (session) await session.reloadItems();
-        }, null, this.disposables);
+        if (event) {
+          manager_default.onDidRefresh(async () => {
+            let session = manager.getSession("diagnostics");
+            if (session) await session.reloadItems();
+          }, null, this.disposables);
+        }
       }
-      async loadItems(context) {
+      async filterDiagnostics(parsedArgs) {
         let list2 = await manager_default.getDiagnosticList();
-        let { cwd: cwd2, args } = context;
-        const parsedArgs = this.parseArguments(args);
-        if (args.includes("--workspace-folder")) {
+        if (parsedArgs["workspace-folder"]) {
           const folder = workspace_default.getWorkspaceFolder(workspace_default.root);
           if (folder) {
             const normalized = URI2.parse(folder.uri);
             list2 = list2.filter((item) => isParentFolder(normalized.fsPath, item.file));
           }
-        }
-        if (parsedArgs.buffer) {
+        } else if (parsedArgs.buffer) {
           const doc = await workspace_default.document;
           const normalized = URI2.parse(doc.uri);
           list2 = list2.filter((item) => item.file === normalized.fsPath);
@@ -70120,6 +70143,12 @@ var init_diagnostics = __esm({
           let level2 = severityLevel(parsedArgs.level);
           list2 = list2.filter((item) => item.level <= level2);
         }
+        return list2;
+      }
+      async loadItems(context) {
+        let { cwd: cwd2, args } = context;
+        const parsedArgs = this.parseArguments(args);
+        let list2 = await this.filterDiagnostics(parsedArgs);
         const config = this.getConfig();
         const includeCode = config.get("includeCode", true);
         const pathFormat = config.get("pathFormat", "full");
@@ -77735,6 +77764,15 @@ function getNextPlaceholder(marker, forward, nested = false) {
   if (nested) return marker;
   return void 0;
 }
+function getUltiSnipActionCodes(marker, action) {
+  if (!marker) return void 0;
+  const snip = marker instanceof TextmateSnippet ? marker : marker.snippet;
+  if (!snip) return void 0;
+  let context = snippetsPythonContexts.get(snip);
+  let code = getAction(context, action);
+  if (!code) return void 0;
+  return [code, getResetPythonCode(context)];
+}
 var snippetsPythonGlobalCodes, snippetsPythonContexts, CocSnippet;
 var init_snippet = __esm({
   "src/snippets/snippet.ts"() {
@@ -77785,11 +77823,13 @@ var init_snippet = __esm({
       getUltiSnipAction(marker, action) {
         if (!marker) return void 0;
         let snip = this.getSnippet(marker);
+        if (!snip) return void 0;
         let context = snippetsPythonContexts.get(snip);
         return getAction(context, action);
       }
       getUltiSnipOption(marker, key) {
         let snip = this.getSnippet(marker);
+        if (!snip) return void 0;
         let context = snippetsPythonContexts.get(snip);
         if (!context) return void 0;
         return context[key];
@@ -77807,13 +77847,15 @@ var init_snippet = __esm({
         if (ultisnip) {
           let pyCodes = [];
           snippetsPythonContexts.set(snippet, ultisnip);
-          if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
-            let globalCodes = getSnippetPythonCode(ultisnip);
+          if (ultisnip.noPython !== true) {
             if (snippet.hasPythonBlock) {
               pyCodes = getPyBlockCode(ultisnip);
-              globalCodes.push(...pyCodes);
+            } else if (hasPython(ultisnip)) {
+              pyCodes = getResetPythonCode(ultisnip);
             }
-            snippetsPythonGlobalCodes.set(snippet, globalCodes);
+            if (pyCodes.length > 0) {
+              snippetsPythonGlobalCodes.set(snippet, pyCodes);
+            }
           }
           await snippet.evalCodeBlocks(nvim, pyCodes);
         }
@@ -77940,6 +77982,21 @@ var init_snippet = __esm({
         return parentMarker;
       }
       /**
+       * Keep the references of snippets, so the map could work.
+       */
+      replaceWithCloned(cloned, childSnippets) {
+        let nestedSnippets = cloned.snippets;
+        this.tmSnippet.replaceChildren(cloned.children);
+        nestedSnippets.forEach((s) => {
+          let children = s.children;
+          let old = childSnippets.find((o) => o.id === s.id);
+          if (old) {
+            s.replaceWith(old);
+            old.replaceChildren(children);
+          }
+        });
+      }
+      /**
        * Replace range with text, return new Cursor position when cursor provided
        *
        * Get new Cursor position for synchronize update only.
@@ -77949,6 +78006,7 @@ var init_snippet = __esm({
         let cloned = this._tmSnippet.clone();
         let marker = this.replaceWithMarker(range, new Text(text), current);
         let snippetText = this._tmSnippet.toString();
+        const snippets = this._tmSnippet.snippets;
         if (marker === this._tmSnippet) {
           this.synchronize();
           return { snippetText, marker };
@@ -77956,7 +78014,7 @@ var init_snippet = __esm({
         let sp = this.getMarkerPosition(marker);
         let changeCharacter = cursor && sp.line === cursor.line;
         const reset = () => {
-          this._tmSnippet = cloned;
+          this.replaceWithCloned(cloned, snippets);
           this.synchronize();
         };
         token.onCancellationRequested(reset);
@@ -78023,9 +78081,12 @@ var init_snippet = __esm({
           if (marker instanceof Placeholder) {
             let snip = marker.snippet;
             if (!snip) break;
-            await this.executeGlobalCode(snip);
             const config = snippetsPythonContexts.get(snip);
-            await snip.update(this.nvim, marker, config?.noPython);
+            let codes = [];
+            if (config?.noPython !== true) {
+              codes = snippetsPythonGlobalCodes.get(snip) ?? [];
+            }
+            await snip.update(this.nvim, marker, codes);
             if (token.isCancellationRequested) return;
             marker = snip.parent;
           } else {
@@ -78035,14 +78096,6 @@ var init_snippet = __esm({
         await waitWithToken(16, token);
         if (token.isCancellationRequested) return;
         this.synchronize();
-      }
-      async executeGlobalCode(snip) {
-        let codes = snippetsPythonGlobalCodes.get(snip);
-        if (codes) {
-          await executePythonCode(this.nvim, codes);
-          return true;
-        }
-        return false;
       }
       usePython(snip) {
         return snip.hasCodeBlock || hasPython(snippetsPythonContexts.get(snip));
@@ -78339,7 +78392,6 @@ var init_session2 = __esm({
         return this.isStaled;
       }
       async start(inserted, range, select = true, context) {
-        await this.forceSynchronize();
         let { document: document2, snippet } = this;
         const edits = [];
         let textmateSnippet;
@@ -78375,28 +78427,28 @@ var init_session2 = __esm({
         this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
         await this.applyEdits(edits);
         this.activate(snippet);
-        let code = this.snippet.getUltiSnipAction(textmateSnippet, "postExpand");
-        if (code) await this.tryPostExpand(code);
-        if (this.snippet && select && this.current) {
-          let placeholder = this.snippet.getPlaceholderByMarker(this.current);
-          await this.selectPlaceholder(placeholder, true);
-        }
+        await this.tryPostExpand(textmateSnippet);
+        let { placeholder } = this;
+        if (select && placeholder) await this.selectPlaceholder(placeholder, true);
         return this.isActive;
       }
-      async tryPostExpand(code) {
+      async tryPostExpand(textmateSnippet) {
+        let result = getUltiSnipActionCodes(textmateSnippet, "postExpand");
+        if (!result) return;
         const { start, end } = this.snippet.range;
+        const [code, resetCodes] = result;
         let pos = `[${start.line},${start.character},${end.line},${end.character}]`;
-        let codes = [`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code];
+        let codes = [...resetCodes, `snip = coc_ultisnips_dict["PostExpandContext"](${pos})`, code];
         this.cancel();
         await executePythonCode(this.nvim, codes);
         await this.forceSynchronize();
       }
-      async tryPostJump(code, info, bufnr) {
+      async tryPostJump(code, resetCodes, info, bufnr) {
         await waitNextTick();
         this.nvim.setVar("coc_ultisnips_tabstops", info.tabstops, true);
         const { snippet_start, snippet_end } = info;
         let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`;
-        let codes = [`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code];
+        let codes = [...resetCodes, `snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`, code];
         this.cancel();
         await executePythonCode(this.nvim, codes);
         await this.forceSynchronize();
@@ -78474,10 +78526,9 @@ var init_session2 = __esm({
           range: placeholder.range,
           charbefore: start.character == 0 ? "" : line.slice(start.character - 1, start.character)
         };
-        let code = this.snippet.getUltiSnipAction(marker, "postJump");
-        if (code) {
-          await this.snippet.executeGlobalCode(marker.snippet);
-          this.tryPostJump(code, info, document2.bufnr).catch(onUnexpectedError);
+        let result = getUltiSnipActionCodes(marker, "postJump");
+        if (result) {
+          this.tryPostJump(result[0], result[1], info, document2.bufnr).catch(onUnexpectedError);
         } else {
           void events_default.fire("PlaceholderJump", [document2.bufnr, info]);
         }
@@ -78485,9 +78536,18 @@ var init_session2 = __esm({
       }
       checkFinalPlaceholder() {
         let current = this.current;
-        if (current && current.index === 0 && current.snippet === this.snippet.tmSnippet) {
-          logger38.info("Jump to final placeholder, cancelling snippet session");
-          this.deactivate();
+        if (current && current.index === 0) {
+          const { snippet } = current;
+          if (snippet === this.snippet.tmSnippet) {
+            logger38.info("Jump to final placeholder, cancelling snippet session");
+            this.deactivate();
+          } else {
+            let marker = snippet.parent;
+            this.snippet.deactivateSnippet(snippet);
+            if (marker instanceof Placeholder) {
+              this.current = marker;
+            }
+          }
         }
       }
       highlights() {
@@ -78602,8 +78662,9 @@ var init_session2 = __esm({
         this.textDocument = newDocument;
         let { snippetText, delta } = res;
         let changedRange = Range.create(start, getEnd(start, snippetText));
-        if (newDocument.getText(changedRange) !== snippetText) {
-          logger38.error(`Something went wrong with the snippet implementation`, change, snippetText);
+        const expected = newDocument.getText(changedRange);
+        if (expected !== snippetText) {
+          logger38.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
           this.deactivate();
           return;
         }
@@ -78682,19 +78743,25 @@ var init_session2 = __esm({
         this.snippet = null;
         this.current = null;
         this.textDocument = void 0;
+        const prefix = `${this.bufnr}-`;
+        const lines = [
+          `${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`,
+          `${contexts_var} = {k: v for k, v in ${contexts_var}.items() if not k.startswith('${prefix}')}`
+        ];
+        this.nvim.command(`pyx ${lines.join("\n")}`, true);
       }
       async resolveSnippet(nvim, snippetString, ultisnip) {
         let context;
         let position = ultisnip?.range ? ultisnip.range.start : Position.create(0, 0);
         if (ultisnip) {
           ultisnip = omit(ultisnip, ["actions"]);
-          if (this.snippet?.hasPython) {
-            ultisnip.noPython = true;
-          }
           context = Object.assign({
             range: Range.create(0, 0, 0, 0),
             line: ""
-          }, ultisnip);
+          }, ultisnip, { id: generateContextId(events_default.bufnr) });
+          if (this.snippet?.hasPython) {
+            context.noPython = true;
+          }
           if (ultisnip.noPython !== true && snippetString.includes("`!p")) {
             await executePythonCode(nvim, getInitialPythonCode(context));
           }
@@ -78800,6 +78867,7 @@ var init_manager4 = __esm({
     init_mutex();
     init_object();
     init_position();
+    init_textedit();
     init_window();
     init_workspace();
     init_eval();
@@ -78893,6 +78961,7 @@ var init_manager4 = __esm({
         try {
           let document2 = workspace_default.getAttachedDocument(bufnr);
           const session = this.bufferSync.getItem(bufnr);
+          range = await this.synchronizeSession(session, range);
           range = toValidRange(range);
           const currentLine = document2.getline(range.start.line);
           const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
@@ -78906,6 +78975,27 @@ var init_manager4 = __esm({
         }
       }
       /**
+       * Synchronize session when needed (ex: snippet insert during TextChange),
+       * the range could be changed
+       */
+      async synchronizeSession(session, range) {
+        let { document: document2, isActive } = session;
+        if (!isActive) return range;
+        let disposable = document2.onDocumentChange((e) => {
+          let changes = e.contentChanges;
+          let { start, end } = range;
+          changes.forEach((change) => {
+            let edit2 = reduceTextEdit(TextEdit.replace(change.range, change.text), e.original);
+            start = getPositionFromEdits(start, [edit2]);
+            end = getPositionFromEdits(end, [edit2]);
+          });
+          range = Range.create(start, end);
+        });
+        await session.forceSynchronize();
+        disposable.dispose();
+        return range;
+      }
+      /**
        * Insert snippet at current cursor position
        */
       async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip) {
@@ -78915,6 +79005,7 @@ var init_manager4 = __esm({
           let document2 = workspace_default.getAttachedDocument(workspace_default.bufnr);
           const session = this.bufferSync.getItem(document2.bufnr);
           let context;
+          if (range) await this.synchronizeSession(session, range);
           range = await this.toRange(range);
           const currentLine = document2.getline(range.start.line);
           const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
@@ -78922,13 +79013,13 @@ var init_manager4 = __esm({
           let usePy = false;
           if (ultisnip != null) {
             usePy = hasPython(ultisnip) || inserted.includes("`!p");
-            context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip);
+            const bufnr = document2.bufnr;
+            context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip, { id: generateContextId(bufnr) });
             if (usePy) {
               if (session.placeholder) {
-                let { placeholder } = session;
-                let { start: start2, end } = placeholder.range;
+                let { start: start2, end } = session.placeholder.range;
                 let last = {
-                  current_text: placeholder.value,
+                  current_text: session.placeholder.value,
                   start: { line: start2.line, col: start2.character, character: start2.character },
                   end: { line: end.line, col: end.character, character: end.character }
                 };
@@ -78960,6 +79051,7 @@ var init_manager4 = __esm({
               await document2.applyEdits([TextEdit.del(range)]);
               range.end = Position.create(start.line, start.character);
             }
+            range = await this.synchronizeSession(session, range);
           }
           await session.start(inserted, range, select, context);
           release();
@@ -90765,7 +90857,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-d2edf3f 2025-04-25 23:12:28 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-d4b44b37 2025-04-27 10:01:51 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
