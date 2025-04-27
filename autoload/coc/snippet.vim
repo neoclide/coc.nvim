@@ -135,7 +135,7 @@ function! coc#snippet#select(start, end, text) abort
   if s:is_vim
     call feedkeys(cmd, 'n')
   else
-    call nvim_input(cmd)
+    call feedkeys(cmd, 'nt')
   endif
 endfunction
 
