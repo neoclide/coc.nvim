@@ -1,17 +1,22 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CompletionItem, Disposable, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import events from '../../events'
+import languages from '../../languages'
 import Document from '../../model/document'
+import { CompletionItemProvider } from '../../provider'
 import snippetManager, { SnippetManager } from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
+import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
 let doc: Document
+let disposables: Disposable[] = []
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -24,6 +29,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -171,6 +177,34 @@ describe('snippet provider', () => {
       expect(active).toBe(true)
       let last = await nvim.getVar('last')
       expect(last).toBe('i')
+    })
+
+    it('should insert nested snippet on CompleteDone with correct position', async () => {
+      await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      let session = snippetManager.getSession(bufnr)
+      expect(session.isActive).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('     inner')
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'bar',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, 5, 0, 6), newText: '${1:foobar}' },
+          preselect: true
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      await nvim.input('b')
+      await helper.waitPopup()
+      let res = await helper.items()
+      let idx = res.findIndex(o => o.source?.name == 'edits')
+      await helper.confirmCompletion(idx)
+      await session.synchronize()
+      let m = await nvim.mode
+      expect(m.mode).toBe('s')
+      line = await nvim.line
+      expect(line).toBe('    foobar')
     })
   })
 
@@ -530,19 +564,6 @@ describe('snippet provider', () => {
         await snippetManager.nextPlaceholder()
         await snippetManager.previousPlaceholder()
       })
-    })
-  })
-
-  describe('synchronizeSession', () => {
-    it('should synchronize range on session synchronize', async () => {
-      let active = await snippetManager.insertSnippet('foo foo$1', true)
-      expect(active).toBe(true)
-      let buf = await nvim.buffer
-      let range = Range.create(0, 4, 0, 7)
-      let session = snippetManager.getSession(buf.id)
-      nvim.call('setline', ['.', 'foo" foo'], true)
-      let newRange = await snippetManager.synchronizeSession(session, range)
-      expect(newRange).toEqual(Range.create(0, 5, 0, 8))
     })
   })
 

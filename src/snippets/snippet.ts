@@ -4,7 +4,7 @@ import { Position, Range } from 'vscode-languageserver-types'
 import events from '../events'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
-import { defaultValue, waitNextTick } from '../util'
+import { defaultValue, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getPyBlockCode, getResetPythonCode, hasPython } from './eval'
@@ -359,6 +359,7 @@ export class CocSnippet {
   }
 
   public async onMarkerUpdate(marker: Marker, token: CancellationToken): Promise<void> {
+    let ts = Date.now()
     while (marker != null) {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
@@ -371,7 +372,7 @@ export class CocSnippet {
       }
     }
     // Avoid document change fired during document change event, which may cause unexpected behavior.
-    await waitNextTick()
+    await waitWithToken(Math.max(0, 16 - Date.now() + ts), token)
     if (token.isCancellationRequested) return
     this.synchronize()
   }
