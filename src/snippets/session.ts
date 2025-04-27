@@ -301,9 +301,11 @@ export class SnippetSession {
       return
     }
     const startTs = Date.now()
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    const cursor = events.bufnr == document.bufnr ? await window.getCursorPosition() : undefined
+    if (tokenSource.token.isCancellationRequested) return
     let change = documentChange?.change
     if (!change) {
-      let cursor = document.cursor
       let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
       change = { range: edit.range, text: edit.newText }
     }
@@ -346,9 +348,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
     const nextPlaceholder = getNextPlaceholder(current, true)
-    const { cursor } = document
     const id = getPlaceholderId(current)
     const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force)
     this.tokenSource = undefined
@@ -377,7 +377,9 @@ export class SnippetSession {
     if (newText !== snippetText) {
       let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
       await this.applyEdits([edit], true)
-      if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
+      if (delta) {
+        this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
+      }
     }
     this.highlights()
     logger.debug('update cost:', Date.now() - startTs, res.delta)

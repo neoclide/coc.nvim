@@ -959,8 +959,9 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public async update(nvim: Neovim, marker: Placeholder, codes: string[], token: CancellationToken): Promise<void> {
+  public async update(nvim: Neovim, marker: Placeholder, token: CancellationToken): Promise<void> {
     this.onPlaceholderUpdate(marker)
+    let codes = this.related.codes ?? []
     if (codes.length === 0 || !this.hasPythonBlock) return
     await this.updatePythonCodes(nvim, marker, codes, token)
   }

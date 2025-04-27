@@ -4,7 +4,7 @@ import { Position, Range } from 'vscode-languageserver-types'
 import events from '../events'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
-import { defaultValue, waitWithToken } from '../util'
+import { defaultValue, waitNextTick } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getPyBlockCode, getResetPythonCode, hasPython } from './eval'
@@ -363,12 +363,7 @@ export class CocSnippet {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
         if (!snip) break
-        const config = snip.related.context
-        let codes: string[] = []
-        if (config?.noPython !== true) {
-          codes = snip.related.codes ?? []
-        }
-        await snip.update(this.nvim, marker, codes, token)
+        await snip.update(this.nvim, marker, token)
         if (token.isCancellationRequested) return
         marker = snip.parent
       } else {
@@ -376,7 +371,7 @@ export class CocSnippet {
       }
     }
     // Avoid document change fired during document change event, which may cause unexpected behavior.
-    await waitWithToken(16, token)
+    await waitNextTick()
     if (token.isCancellationRequested) return
     this.synchronize()
   }

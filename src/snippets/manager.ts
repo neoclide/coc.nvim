@@ -209,9 +209,15 @@ export class SnippetManager {
         this.nvim.call('coc#cursor#move_to', [start.line, start.character], true)
         if (!emptyRange(range)) {
           await document.applyEdits([TextEdit.del(range)])
-          range.end = Position.create(start.line, start.character)
+          if (session.isActive) {
+            await session.synchronize()
+            // the cursor position may changed on session synchronize.
+            let pos = await window.getCursorPosition()
+            range = Range.create(pos, pos)
+          } else {
+            range.end = Position.create(start.line, start.character)
+          }
         }
-        range = await this.synchronizeSession(session, range)
       }
       await session.start(inserted, range, select, context)
       release()
