@@ -50550,7 +50550,7 @@ function getInitialPythonCode(context) {
     `path = vim.eval('coc#util#get_fullpath()') or ""`,
     `fn = os.path.basename(path)`
   ];
-  let { range, regex: regex2, line } = context;
+  let { range, regex: regex2, line, id: id2 } = context;
   if (context.context) {
     pyCodes.push(`snip = ContextSnippet()`);
     pyCodes.push(`context = ${context.context}`);
@@ -50565,6 +50565,8 @@ function getInitialPythonCode(context) {
     pyCodes.push(`match = None`);
   }
   pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
+  let prefix = id2.match(/^\w+-/)[0];
+  pyCodes.push(`${contexts_var} = {k: v for k, v in ${contexts_var}.items() if k.startswith('${prefix}')}`);
   pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`);
   return pyCodes;
 }
@@ -51082,24 +51084,30 @@ var init_parser3 = __esm({
       }
     };
     CodeBlock = class _CodeBlock extends Marker {
-      constructor(code, kind, value) {
+      constructor(code, kind, value, related) {
         super();
         this.code = code;
         this.kind = kind;
         this._value = "";
         this._related = [];
-        if (kind === "python") {
-          let { _related } = this;
-          let arr;
-          let re = /\bt\[(\d+)\]/g;
-          while (true) {
-            arr = re.exec(code);
-            if (arr == null) break;
-            let n = parseInt(arr[1], 10);
-            if (!_related.includes(n)) _related.push(n);
-          }
+        if (Array.isArray(related)) {
+          this._related = related;
+        } else if (kind === "python") {
+          this._related = _CodeBlock.parseRelated(code);
         }
         if (typeof value === "string") this._value = value;
+      }
+      static parseRelated(code) {
+        let list2 = [];
+        let arr;
+        let re = /\bt\[(\d+)\]/g;
+        while (true) {
+          arr = re.exec(code);
+          if (arr == null) break;
+          let n = parseInt(arr[1], 10);
+          if (!list2.includes(n)) list2.push(n);
+        }
+        return list2;
       }
       get related() {
         return this._related;
@@ -51110,9 +51118,10 @@ var init_parser3 = __esm({
         }
         return void 0;
       }
-      async resolve(nvim) {
+      async resolve(nvim, token) {
         if (!this.code.length) return;
         let res = await evalCode(nvim, this.kind, this.code, defaultValue(this._value, ""));
+        if (token?.isCancellationRequested) return;
         if (res != null) this._value = res;
       }
       len() {
@@ -51136,7 +51145,7 @@ var init_parser3 = __esm({
         return "`" + t + this.code + "`";
       }
       clone() {
-        return new _CodeBlock(this.code, this.kind, this.value);
+        return new _CodeBlock(this.code, this.kind, this.value, this._related.slice());
       }
     };
     TransformableMarker = class extends Marker {
@@ -51428,6 +51437,7 @@ var init_parser3 = __esm({
     TextmateSnippet = class _TextmateSnippet extends Marker {
       constructor(ultisnip, id2) {
         super();
+        this.related = {};
         this.ultisnip = ultisnip === true;
         this.id = id2 ?? snippet_id++;
       }
@@ -51520,16 +51530,18 @@ var init_parser3 = __esm({
       /**
        * Update python blocks after user change Placeholder with index
        */
-      async updatePythonCodes(nvim, marker, codes) {
+      async updatePythonCodes(nvim, marker, codes, token) {
         let index = marker.index;
         let blocks = this.getDependentPyIndexBlocks(index);
         await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
+        if (token.isCancellationRequested) return;
         for (let block2 of blocks) {
-          await this.updatePyIndexBlock(nvim, block2);
+          await this.updatePyIndexBlock(nvim, block2, token);
         }
+        if (token.isCancellationRequested) return;
         let filtered = this.pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
         for (let block2 of filtered) {
-          await block2.resolve(nvim);
+          await block2.resolve(nvim, token);
         }
       }
       getDependentPyIndexBlocks(index) {
@@ -51551,10 +51563,10 @@ var init_parser3 = __esm({
       /**
        * Update single index block
        */
-      async updatePyIndexBlock(nvim, block2) {
+      async updatePyIndexBlock(nvim, block2, token) {
         let pre = block2.value;
-        await block2.resolve(nvim);
-        if (pre === block2.value) return;
+        await block2.resolve(nvim, token);
+        if (pre === block2.value || token?.isCancellationRequested) return;
         if (block2.parent instanceof Placeholder) {
           this.onPlaceholderUpdate(block2.parent);
         }
@@ -51588,16 +51600,6 @@ var init_parser3 = __esm({
         }, true);
         return variables;
       }
-      get snippets() {
-        const result = [];
-        this.walk((candidate) => {
-          if (candidate instanceof _TextmateSnippet) {
-            result.push(candidate);
-          }
-          return true;
-        }, false);
-        return result;
-      }
       get placeholders() {
         let placeholders = [];
         this.walk((candidate) => {
@@ -51624,10 +51626,10 @@ var init_parser3 = __esm({
         }
         return finals.find((o) => o.primary) ?? finals[0];
       }
-      async update(nvim, marker, codes) {
+      async update(nvim, marker, codes, token) {
         this.onPlaceholderUpdate(marker);
         if (codes.length === 0 || !this.hasPythonBlock) return;
-        await this.updatePythonCodes(nvim, marker, codes);
+        await this.updatePythonCodes(nvim, marker, codes, token);
       }
       /**
        * Reflact changes for related markers.
@@ -51772,6 +51774,8 @@ var init_parser3 = __esm({
       }
       clone() {
         let ret = new _TextmateSnippet(this.ultisnip, this.id);
+        ret.related.codes = this.related.codes;
+        ret.related.context = this.related.context;
         ret._children = this.children.map((child) => {
           let m = child.clone();
           m.parent = ret;
@@ -77768,12 +77772,12 @@ function getUltiSnipActionCodes(marker, action) {
   if (!marker) return void 0;
   const snip = marker instanceof TextmateSnippet ? marker : marker.snippet;
   if (!snip) return void 0;
-  let context = snippetsPythonContexts.get(snip);
+  let context = snip.related.context;
   let code = getAction(context, action);
   if (!code) return void 0;
   return [code, getResetPythonCode(context)];
 }
-var snippetsPythonGlobalCodes, snippetsPythonContexts, CocSnippet;
+var CocSnippet;
 var init_snippet = __esm({
   "src/snippets/snippet.ts"() {
     "use strict";
@@ -77786,8 +77790,6 @@ var init_snippet = __esm({
     init_eval();
     init_parser3();
     init_util3();
-    snippetsPythonGlobalCodes = /* @__PURE__ */ new WeakMap();
-    snippetsPythonContexts = /* @__PURE__ */ new WeakMap();
     CocSnippet = class {
       constructor(snippetString, position, nvim, resolver2) {
         this.snippetString = snippetString;
@@ -77811,8 +77813,6 @@ var init_snippet = __esm({
       }
       deactivateSnippet(snip) {
         if (!snip) return;
-        snippetsPythonGlobalCodes.delete(snip);
-        snippetsPythonContexts.delete(snip);
         let marker = snip.parent;
         if (marker) {
           let text = new Text(snip.toString());
@@ -77824,13 +77824,13 @@ var init_snippet = __esm({
         if (!marker) return void 0;
         let snip = this.getSnippet(marker);
         if (!snip) return void 0;
-        let context = snippetsPythonContexts.get(snip);
+        let context = snip.related.context;
         return getAction(context, action);
       }
       getUltiSnipOption(marker, key) {
         let snip = this.getSnippet(marker);
         if (!snip) return void 0;
-        let context = snippetsPythonContexts.get(snip);
+        let context = snip.related.context;
         if (!context) return void 0;
         return context[key];
       }
@@ -77846,7 +77846,7 @@ var init_snippet = __esm({
         if (resolver2) await snippet.resolveVariables(resolver2);
         if (ultisnip) {
           let pyCodes = [];
-          snippetsPythonContexts.set(snippet, ultisnip);
+          snippet.related.context = ultisnip;
           if (ultisnip.noPython !== true) {
             if (snippet.hasPythonBlock) {
               pyCodes = getPyBlockCode(ultisnip);
@@ -77854,7 +77854,7 @@ var init_snippet = __esm({
               pyCodes = getResetPythonCode(ultisnip);
             }
             if (pyCodes.length > 0) {
-              snippetsPythonGlobalCodes.set(snippet, pyCodes);
+              snippet.related.codes = pyCodes;
             }
           }
           await snippet.evalCodeBlocks(nvim, pyCodes);
@@ -77982,21 +77982,6 @@ var init_snippet = __esm({
         return parentMarker;
       }
       /**
-       * Keep the references of snippets, so the map could work.
-       */
-      replaceWithCloned(cloned, childSnippets) {
-        let nestedSnippets = cloned.snippets;
-        this.tmSnippet.replaceChildren(cloned.children);
-        nestedSnippets.forEach((s) => {
-          let children = s.children;
-          let old = childSnippets.find((o) => o.id === s.id);
-          if (old) {
-            s.replaceWith(old);
-            old.replaceChildren(children);
-          }
-        });
-      }
-      /**
        * Replace range with text, return new Cursor position when cursor provided
        *
        * Get new Cursor position for synchronize update only.
@@ -78006,7 +77991,6 @@ var init_snippet = __esm({
         let cloned = this._tmSnippet.clone();
         let marker = this.replaceWithMarker(range, new Text(text), current);
         let snippetText = this._tmSnippet.toString();
-        const snippets = this._tmSnippet.snippets;
         if (marker === this._tmSnippet) {
           this.synchronize();
           return { snippetText, marker };
@@ -78014,7 +77998,7 @@ var init_snippet = __esm({
         let sp = this.getMarkerPosition(marker);
         let changeCharacter = cursor && sp.line === cursor.line;
         const reset = () => {
-          this.replaceWithCloned(cloned, snippets);
+          this._tmSnippet = cloned;
           this.synchronize();
         };
         token.onCancellationRequested(reset);
@@ -78081,12 +78065,12 @@ var init_snippet = __esm({
           if (marker instanceof Placeholder) {
             let snip = marker.snippet;
             if (!snip) break;
-            const config = snippetsPythonContexts.get(snip);
+            const config = snip.related.context;
             let codes = [];
             if (config?.noPython !== true) {
-              codes = snippetsPythonGlobalCodes.get(snip) ?? [];
+              codes = snip.related.codes ?? [];
             }
-            await snip.update(this.nvim, marker, codes);
+            await snip.update(this.nvim, marker, codes, token);
             if (token.isCancellationRequested) return;
             marker = snip.parent;
           } else {
@@ -78098,7 +78082,7 @@ var init_snippet = __esm({
         this.synchronize();
       }
       usePython(snip) {
-        return snip.hasCodeBlock || hasPython(snippetsPythonContexts.get(snip));
+        return snip.hasCodeBlock || hasPython(snip.related.context);
       }
       get hasPython() {
         for (const info of this._snippets) {
@@ -78743,12 +78727,6 @@ var init_session2 = __esm({
         this.snippet = null;
         this.current = null;
         this.textDocument = void 0;
-        const prefix = `${this.bufnr}-`;
-        const lines = [
-          `${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`,
-          `${contexts_var} = {k: v for k, v in ${contexts_var}.items() if not k.startswith('${prefix}')}`
-        ];
-        this.nvim.command(`pyx ${lines.join("\n")}`, true);
       }
       async resolveSnippet(nvim, snippetString, ultisnip) {
         let context;
@@ -88613,7 +88591,6 @@ var init_rename2 = __esm({
         let edit2 = await languages_default.provideRenameEdits(doc.textDocument, position, newName, token);
         if (token.isCancellationRequested || !edit2) return false;
         await workspace_default.applyEdit(edit2);
-        this.nvim.redrawVim();
         return true;
       }
     };
@@ -90857,7 +90834,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-d4b44b37 2025-04-27 10:01:51 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-f75b684e 2025-04-27 16:04:01 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
