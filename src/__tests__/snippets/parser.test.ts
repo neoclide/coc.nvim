@@ -1186,7 +1186,7 @@ describe('TextmateSnippet', () => {
     let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
 
     assert.equal(snippet.placeholders.length, 3)
-    const [first, second] = snippet.placeholders
+    const [, second] = snippet.placeholders
     assert.equal(second.index, '2')
 
     let nested = new SnippetParser().parse('dddeee$0', true)
@@ -1194,8 +1194,6 @@ describe('TextmateSnippet', () => {
 
     assert.equal(snippet.toString(), 'aaabbbdddeee')
     assert.equal(snippet.placeholders.length, 4)
-    first.replaceWith(nested)
-    expect(snippet.snippets.length).toBe(1)
   })
 
   test('TextmateSnippet replace variable with placeholder', async () => {

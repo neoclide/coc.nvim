@@ -7,7 +7,7 @@ import { URI } from 'vscode-uri'
 import events from '../../events'
 import { addPythonTryCatch, evalCode, executePythonCode, generateContextId, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
 import { Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
-import { addUltiSnipContext, CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
+import { CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
 import { SnippetString } from '../../snippets/string'
 import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -565,7 +565,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(index)
       expect(p != null).toBe(true)
       p.marker.setOnlyChild(new Text(value))
-      await c.tmSnippet.update(nvim, p.marker, ultisnip?.noPython ? [] : ['context = None'])
+      await c.tmSnippet.update(nvim, p.marker, ultisnip?.noPython ? [] : ['context = None'], CancellationToken.None)
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
@@ -593,7 +593,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(2)
       expect(p).toBeDefined()
       p.marker.setOnlyChild(new Text('foo'))
-      await c.tmSnippet.update(nvim, p.marker, ['context = None'])
+      await c.tmSnippet.update(nvim, p.marker, ['context = None'], CancellationToken.None)
       let t = c.tmSnippet.toString()
       expect(t.startsWith(first)).toBe(true)
       expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
@@ -685,12 +685,12 @@ describe('CocSnippet', () => {
 
     it('should get codes when exists action', async () => {
       let snip = (new SnippetParser()).parse('${1:a}', true)
-      addUltiSnipContext(snip, {
+      snip.related.context = {
         id: `1-1`,
         line: '',
         range: Range.create(0, 0, 0, 0),
         actions: { postJump: 'jump' }
-      })
+      }
       let res = getUltiSnipActionCodes(snip, 'postJump')
       expect(res.length).toBe(2)
     })

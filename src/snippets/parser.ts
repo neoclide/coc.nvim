@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'
 import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
@@ -8,7 +9,7 @@ import { onUnexpectedError } from '../util/errors'
 import { unidecode } from '../util/node'
 import { iterateCharacter, toText } from '../util/string'
 import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
-import { convertRegex } from './util'
+import { convertRegex, UltiSnippetContext } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 let id = 0
@@ -303,9 +304,10 @@ export class CodeBlock extends Marker {
     return undefined
   }
 
-  public async resolve(nvim: Neovim): Promise<void> {
+  public async resolve(nvim: Neovim, token?: CancellationToken): Promise<void> {
     if (!this.code.length) return
     let res = await evalCode(nvim, this.kind, this.code, defaultValue(this._value, ''))
+    if (token?.isCancellationRequested) return
     if (res != null) this._value = res
   }
 
@@ -741,6 +743,7 @@ export class TextmateSnippet extends Marker {
 
   public readonly ultisnip: boolean
   public readonly id: number
+  public readonly related: { codes?: string[], context?: UltiSnippetContext } = {}
   constructor(ultisnip?: boolean, id?: number) {
     super()
     this.ultisnip = ultisnip === true
@@ -848,18 +851,20 @@ export class TextmateSnippet extends Marker {
   /**
    * Update python blocks after user change Placeholder with index
    */
-  public async updatePythonCodes(nvim: Neovim, marker: Placeholder, codes: string[]): Promise<void> {
+  public async updatePythonCodes(nvim: Neovim, marker: Placeholder, codes: string[], token: CancellationToken): Promise<void> {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
     await executePythonCode(nvim, [...codes, getVariablesCode(this.values)])
+    if (token.isCancellationRequested) return
     for (let block of blocks) {
-      await this.updatePyIndexBlock(nvim, block)
+      await this.updatePyIndexBlock(nvim, block, token)
     }
+    if (token.isCancellationRequested) return
     // update normal pyBlocks.
     let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
     for (let block of filtered) {
-      await block.resolve(nvim)
+      await block.resolve(nvim, token)
     }
   }
 
@@ -883,10 +888,10 @@ export class TextmateSnippet extends Marker {
   /**
    * Update single index block
    */
-  private async updatePyIndexBlock(nvim: Neovim, block: CodeBlock): Promise<void> {
+  private async updatePyIndexBlock(nvim: Neovim, block: CodeBlock, token?: CancellationToken): Promise<void> {
     let pre = block.value
-    await block.resolve(nvim)
-    if (pre === block.value) return
+    await block.resolve(nvim, token)
+    if (pre === block.value || token?.isCancellationRequested) return
     if (block.parent instanceof Placeholder) {
       this.onPlaceholderUpdate(block.parent)
     }
@@ -924,17 +929,6 @@ export class TextmateSnippet extends Marker {
     return variables
   }
 
-  public get snippets(): TextmateSnippet[] {
-    const result: TextmateSnippet[] = []
-    this.walk(candidate => {
-      if (candidate instanceof TextmateSnippet) {
-        result.push(candidate)
-      }
-      return true
-    }, false)
-    return result
-  }
-
   public get placeholders(): Placeholder[] {
     let placeholders: Placeholder[] = []
     this.walk(candidate => {
@@ -965,10 +959,10 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public async update(nvim: Neovim, marker: Placeholder, codes: string[]): Promise<void> {
+  public async update(nvim: Neovim, marker: Placeholder, codes: string[], token: CancellationToken): Promise<void> {
     this.onPlaceholderUpdate(marker)
     if (codes.length === 0 || !this.hasPythonBlock) return
-    await this.updatePythonCodes(nvim, marker, codes)
+    await this.updatePythonCodes(nvim, marker, codes, token)
   }
 
   /**
@@ -1128,6 +1122,8 @@ export class TextmateSnippet extends Marker {
 
   public clone(): TextmateSnippet {
     let ret = new TextmateSnippet(this.ultisnip, this.id)
+    ret.related.codes = this.related.codes
+    ret.related.context = this.related.context
     ret._children = this.children.map(child => {
       let m = child.clone()
       m.parent = ret

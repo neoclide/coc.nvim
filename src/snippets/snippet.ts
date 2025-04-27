@@ -46,11 +46,6 @@ export interface CursorDelta {
   character: number
 }
 
-// The python global code for different snippets. Note: variable `t` not included
-// including `context` `match`
-const snippetsPythonGlobalCodes: WeakMap<TextmateSnippet, string[]> = new WeakMap()
-const snippetsPythonContexts: WeakMap<TextmateSnippet, UltiSnippetContext> = new WeakMap()
-
 export class CocSnippet {
   // placeholders and snippets from top to bottom
   private _markerSeuqence: (Placeholder | TextmateSnippet)[] = []
@@ -82,8 +77,6 @@ export class CocSnippet {
 
   public deactivateSnippet(snip: TextmateSnippet | undefined): void {
     if (!snip) return
-    snippetsPythonGlobalCodes.delete(snip)
-    snippetsPythonContexts.delete(snip)
     let marker = snip.parent
     if (marker) {
       let text = new Text(snip.toString())
@@ -96,14 +89,14 @@ export class CocSnippet {
     if (!marker) return undefined
     let snip = this.getSnippet(marker)
     if (!snip) return undefined
-    let context = snippetsPythonContexts.get(snip)
+    let context = snip.related.context
     return getAction(context, action)
   }
 
   public getUltiSnipOption(marker: Marker, key: UltiSnipsOption): boolean | undefined {
     let snip = this.getSnippet(marker)
     if (!snip) return undefined
-    let context = snippetsPythonContexts.get(snip)
+    let context = snip.related.context
     if (!context) return undefined
     return context[key]
   }
@@ -121,7 +114,7 @@ export class CocSnippet {
     if (resolver) await snippet.resolveVariables(resolver)
     if (ultisnip) {
       let pyCodes: string[] = []
-      snippetsPythonContexts.set(snippet, ultisnip)
+      snippet.related.context = ultisnip
       if (ultisnip.noPython !== true) {
         if (snippet.hasPythonBlock) {
           pyCodes = getPyBlockCode(ultisnip)
@@ -129,7 +122,7 @@ export class CocSnippet {
           pyCodes = getResetPythonCode(ultisnip)
         }
         if (pyCodes.length > 0) {
-          snippetsPythonGlobalCodes.set(snippet, pyCodes)
+          snippet.related.codes = pyCodes
         }
       }
       // Code from getSnippetPythonCode already executed before snippet insert
@@ -278,22 +271,6 @@ export class CocSnippet {
   }
 
   /**
-   * Keep the references of snippets, so the map could work.
-   */
-  public replaceWithCloned(cloned: TextmateSnippet, childSnippets: TextmateSnippet[]): void {
-    let nestedSnippets = cloned.snippets
-    this.tmSnippet.replaceChildren(cloned.children)
-    nestedSnippets.forEach(s => {
-      let children = s.children
-      let old = childSnippets.find(o => o.id === s.id)
-      if (old) {
-        s.replaceWith(old)
-        old.replaceChildren(children)
-      }
-    })
-  }
-
-  /**
    * Replace range with text, return new Cursor position when cursor provided
    *
    * Get new Cursor position for synchronize update only.
@@ -303,7 +280,6 @@ export class CocSnippet {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
-    const snippets = this._tmSnippet.snippets
     // No need further action when only affect the top snippet.
     if (marker === this._tmSnippet) {
       this.synchronize()
@@ -313,7 +289,7 @@ export class CocSnippet {
     let sp = this.getMarkerPosition(marker)
     let changeCharacter = cursor && sp.line === cursor.line
     const reset = () => {
-      this.replaceWithCloned(cloned, snippets)
+      this._tmSnippet = cloned
       this.synchronize()
     }
     token.onCancellationRequested(reset)
@@ -387,12 +363,12 @@ export class CocSnippet {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
         if (!snip) break
-        const config = snippetsPythonContexts.get(snip)
+        const config = snip.related.context
         let codes: string[] = []
         if (config?.noPython !== true) {
-          codes = snippetsPythonGlobalCodes.get(snip) ?? []
+          codes = snip.related.codes ?? []
         }
-        await snip.update(this.nvim, marker, codes)
+        await snip.update(this.nvim, marker, codes, token)
         if (token.isCancellationRequested) return
         marker = snip.parent
       } else {
@@ -406,7 +382,7 @@ export class CocSnippet {
   }
 
   private usePython(snip: TextmateSnippet): boolean {
-    return snip.hasCodeBlock || hasPython(snippetsPythonContexts.get(snip))
+    return snip.hasCodeBlock || hasPython(snip.related.context)
   }
 
   public get hasPython(): boolean {
@@ -560,12 +536,8 @@ export function getUltiSnipActionCodes(marker: Marker | undefined, action: UltiS
   if (!marker) return undefined
   const snip = marker instanceof TextmateSnippet ? marker : marker.snippet
   if (!snip) return undefined
-  let context = snippetsPythonContexts.get(snip)
+  let context = snip.related.context
   let code = getAction(context, action)
   if (!code) return undefined
   return [code, getResetPythonCode(context)]
-}
-
-export function addUltiSnipContext(snippet: TextmateSnippet, ultisnip: UltiSnippetContext): void {
-  snippetsPythonContexts.set(snippet, ultisnip)
 }
