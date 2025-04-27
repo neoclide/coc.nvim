@@ -918,7 +918,12 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
   const delCount = endLnum - (startLnum - 1)
   const view = bufnr == bufnr('%') ? winsaveview() : null
   if delCount == len(replacement)
-    setbufline(bufnr, startLnum, replacement)
+    const currentLines = getbufline(bufnr, startLnum, startLnum + delCount)
+    for idx in range(0, delCount - 1)
+      if currentLines[idx] !=# replacement[idx]
+        call setbufline(bufnr, startLnum + idx, replacement[idx])
+      endif
+    endfor
   else
     if len(replacement) > 0
       appendbufline(bufnr, startLnum - 1, replacement)
