@@ -1151,6 +1151,8 @@ Related functions: ~
 
 Related variables, highlights and autocmds: ~
 
+  • |g:coc_selected_text| Used for replace `${VISUAL}` and `${TM_SELECTED_TEXT}`
+    placeholder of next expanded snippet.
   • |b:coc_snippet_active| Check if snippet session is activated.
   • |CocJumpPlaceholder| Autocmds triggered after placeholder jump.
   • |CocSnippetVisual| For highlight of current placeholders when the
@@ -1498,7 +1500,7 @@ There're some cases that local key-mappings are enabled for current buffer.
 
 Note: Use |:verbose| command to check key-mappings that taking effect.
 
-Note: Use 'noremap' with <Plug> will make the key-mapping not work at all.
+Note: Use |noremap| with <Plug> will make the key-mapping not work at all.
 
 Note: <Plug> key-mappings are provided for convenient, use |CocActionAsync()| or
 |CocAction()| for more options.
@@ -1874,6 +1876,15 @@ g:coc_snippet_prev					*g:coc_snippet_prev*
 	Only works when snippet session is activated.
 
 	Default: <C-k>
+
+g:coc_selected_text 					*g:coc_selected_text*
+
+	The text used for replace `${VISUAL}` and `${TM_SELECTED_TEXT}`
+	placeholder of next expanded snippet.  Normally created by press
+	`<Plug>(coc-snippets-select)` provided by coc-snippets extensions.
+	The variable is removed after snippet expand.
+
+	Not exists by default.
 
 g:coc_filetype_map					*g:coc_filetype_map*
 

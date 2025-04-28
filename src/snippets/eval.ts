@@ -1,12 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { exec, ExecOptions } from 'child_process'
 import { Range } from 'vscode-languageserver-types'
 import events from '../events'
 import { UltiSnippetOption } from '../types'
 import { isVim } from '../util/constants'
-import { promisify } from '../util/node'
-import { toText } from '../util/string'
 import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
@@ -16,29 +13,6 @@ let context_id = 1
 
 export function generateContextId(bufnr: number): string {
   return `${bufnr}-${context_id++}`
-}
-
-/**
- * Eval code for code placeholder.
- */
-export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr: string): Promise<string> {
-  if (kind == 'vim') {
-    let res = await nvim.eval(code)
-    return res.toString()
-  }
-
-  if (kind == 'shell') {
-    let opts: ExecOptions = { windowsHide: true }
-    if (process.env.SHELL) opts.shell = process.env.shell
-    let res = await promisify(exec)(code, opts)
-    return res.stdout.replace(/\s*$/, '')
-  }
-
-  let lines = [`snip._reset("${escapeString(curr)}")`]
-  lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
-  await executePythonCode(nvim, lines)
-  let res = await nvim.call(`pyxeval`, 'str(snip.rv)') as string
-  return toText(res)
 }
 
 export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolean {
@@ -141,7 +115,7 @@ export function addPythonTryCatch(code: string, force = false): string {
   return lines.join('\n')
 }
 
-function escapeString(input: string): string {
+export function escapeString(input: string): string {
   return input
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')

@@ -142,8 +142,8 @@ export class SnippetManager {
           let { start, end } = session.placeholder.range
           let last = {
             current_text: session.placeholder.value,
-            start: { line: start.line, col: start.character, character: start.character },
-            end: { line: end.line, col: end.character, character: end.character }
+            start: { line: start.line, col: start.character },
+            end: { line: end.line, col: end.character }
           }
           this.nvim.setVar('coc_last_placeholder', last, true)
         } else {
@@ -152,6 +152,7 @@ export class SnippetManager {
         const codes = getInitialPythonCode(context)
         let preExpand = getAction(ultisnip, 'preExpand')
         if (preExpand) {
+          nvim.call('coc#cursor#move_to', [range.end.line, range.end.character], true)
           await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]))
           const [valid, pos] = await nvim.call('pyxeval', 'snip.getResult()') as [boolean, [number, number]]
           // need remove the trigger

@@ -5,8 +5,8 @@ import { CancellationToken, CancellationTokenSource } from 'vscode-languageserve
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../../events'
-import { addPythonTryCatch, evalCode, executePythonCode, generateContextId, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
-import { Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
+import { addPythonTryCatch, executePythonCode, generateContextId, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
+import { CodeBlock, Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
 import { SnippetString } from '../../snippets/string'
 import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, UltiSnippetContext } from '../../snippets/util'
@@ -828,15 +828,33 @@ describe('CocSnippet', () => {
       expect(msg).toMatch('INVALID_CODE')
     })
 
-    it('should eval code', async () => {
-      let val = process.env.SHELL
-      process.env.SHELL = '/bin/sh'
-      let res = await evalCode(nvim, 'shell', 'echo foo', '')
-      expect(res).toBe('foo')
-      process.env.SHELL = undefined
-      res = await evalCode(nvim, 'shell', 'echo foo', '')
-      expect(res).toBe('foo')
-      process.env.SHELL = val
+    it('should cancel code block eval when necessary', async (): Promise<void> => {
+      {
+        let block = new CodeBlock('echo "foo"', 'shell')
+        await block.resolve(nvim, CancellationToken.Cancelled)
+        expect(block.len()).toBe(0)
+      }
+      {
+        let block = new CodeBlock('bufnr("%")', 'vim')
+        await block.resolve(nvim, CancellationToken.None)
+        let bufnr = await nvim.eval('bufnr("%")')
+        expect(block.value).toBe(`${bufnr}`)
+      }
+      {
+        let block = new CodeBlock('v:null', 'vim')
+        await block.resolve(nvim)
+        expect(block.value).toBe('')
+      }
+      {
+        await executePythonCode(nvim, [`snip = SnippetUtil("", (0, 0), (0, 0), None)`])
+        let block = new CodeBlock('snip.rv = "foo"', 'python')
+        let tokenSource = new CancellationTokenSource()
+        let token = tokenSource.token
+        process.nextTick(() => {
+          tokenSource.cancel()
+        })
+        await block.resolve(nvim, token)
+      }
     })
 
     it('should parse comments', async () => {

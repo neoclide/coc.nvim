@@ -477,6 +477,22 @@ describe('snippet provider', () => {
         let pos = await window.getCursorPosition()
         expect(pos).toEqual({ line: 1, character: 3 })
       })
+
+      it('should insert snippetwith pre_expand as nested python snippet', async () => {
+        await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+        await nvim.setVar('coc_selected_text', 'bar')
+        await snippetManager.insertSnippet('${1:foo}', true, Range.create(0, 5, 0, 10), undefined, {
+          actions: {
+            preExpand: 'vim.vars["v"] = snip.visual_content'
+          }
+        })
+        let line = await nvim.line
+        expect(line).toBe('       foo')
+        let res = await nvim.getVar('v')
+        expect(res).toBe('bar')
+        let val = await nvim.getVar('coc_selected_text')
+        expect(val).toBeNull()
+      })
     })
 
     describe('post_expand', () => {

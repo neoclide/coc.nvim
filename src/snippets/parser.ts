@@ -1,14 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { exec, ExecOptions } from 'child_process'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'
-import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { onUnexpectedError } from '../util/errors'
-import { unidecode } from '../util/node'
+import { promisify, unidecode } from '../util/node'
 import { iterateCharacter, toText } from '../util/string'
-import { evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
+import { escapeString, EvalKind, executePythonCode, getVariablesCode } from './eval'
 import { convertRegex, UltiSnippetContext } from './util'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
@@ -306,9 +306,38 @@ export class CodeBlock extends Marker {
 
   public async resolve(nvim: Neovim, token?: CancellationToken): Promise<void> {
     if (!this.code.length) return
-    let res = await evalCode(nvim, this.kind, this.code, defaultValue(this._value, ''))
+    if (token?.isCancellationRequested) return
+    let res: string
+    if (this.kind == 'python') {
+      res = await this.evalPython(nvim, token)
+    } else if (this.kind == 'vim') {
+      res = await this.evalVim(nvim)
+    } else if (this.kind == 'shell') {
+      res = await this.evalShell()
+    }
     if (token?.isCancellationRequested) return
     if (res != null) this._value = res
+  }
+
+  public async evalShell(): Promise<string> {
+    let opts: ExecOptions = { windowsHide: true }
+    Object.assign(opts, { shell: process.env.SHELL })
+    let res = await promisify(exec)(this.code, opts)
+    return res.stdout.replace(/\s*$/, '')
+  }
+
+  public async evalVim(nvim: Neovim): Promise<string> {
+    let res = await nvim.eval(this.code)
+    return res == null ? '' : res.toString()
+  }
+
+  public async evalPython(nvim: Neovim, token?: CancellationToken): Promise<string> {
+    let curr = toText(this._value)
+    let lines = [`snip._reset("${escapeString(curr)}")`]
+    lines.push(...this.code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
+    await executePythonCode(nvim, lines)
+    if (token?.isCancellationRequested) return
+    return await nvim.call(`pyxeval`, 'str(snip.rv)') as string
   }
 
   public len(): number {
