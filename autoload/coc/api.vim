@@ -531,7 +531,12 @@ export def List_runtime_paths(): list<string>
 enddef
 
 export def Command_output(cmd: string): string
-  return trim(coc#compat#execute(cmd, 'silent'), "\r\n")
+  const output = coc#compat#execute(cmd, 'silent')
+  # The same as nvim.
+  if cmd =~# '^echo'
+    return trim(output, "\r\n")
+  endif
+  return output
 enddef
 
 export def Exec(code: string, output: bool): string
