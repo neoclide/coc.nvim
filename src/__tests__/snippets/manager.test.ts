@@ -477,7 +477,6 @@ describe('snippet provider', () => {
         let pos = await window.getCursorPosition()
         expect(pos).toEqual({ line: 1, character: 3 })
       })
-
     })
 
     describe('post_expand', () => {

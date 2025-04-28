@@ -43,6 +43,7 @@ export class SnippetSession {
   private tokenSource: CancellationTokenSource
   private _applying = false
   private _force = false
+  private _paused = false
   public snippet: CocSnippet = null
   private _onActiveChange = new Emitter<boolean>()
   private isStaled = false
@@ -61,6 +62,7 @@ export class SnippetSession {
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
     let { document, snippet } = this
+    this._paused = false
     const edits: TextEdit[] = []
     let textmateSnippet: TextmateSnippet
     if (inserted.length === 0) return this.isActive
@@ -269,7 +271,7 @@ export class SnippetSession {
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
-    if (this._applying || !this.isActive) return
+    if (this._applying || !this.isActive || this._paused) return
     let changes = e.contentChanges
     // if not cancel, applyEdits would change latest document lines, which could be wrong.
     this.cancel()
@@ -277,8 +279,10 @@ export class SnippetSession {
   }
 
   public async synchronize(change?: DocumentChange): Promise<void> {
-    const { document } = this
+    const { document, isActive } = this
     this.isStaled = false
+    this._paused = false
+    if (!isActive) return
     await this.mutex.use(() => {
       if (!document.attached
         || document.dirty
@@ -453,12 +457,14 @@ export class SnippetSession {
     return this.snippet.getPlaceholderByMarker(this.current)
   }
 
-  public cancel(): void {
+  public cancel(pause = false): void {
+    if (!this.isActive) return
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource.dispose()
       this.tokenSource = null
     }
+    if (pause) this._paused = true
   }
 
   public dispose(): void {

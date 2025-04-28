@@ -111,11 +111,12 @@ export class SnippetManager {
   public async insertBufferSnippet(bufnr: number, snippet: string | SnippetString, range: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     let document = workspace.getAttachedDocument(bufnr)
     const session = this.bufferSync.getItem(bufnr)
-    session.cancel()
+    session.cancel(true)
     range = toValidRange(range)
     const line = document.getline(range.start.line)
     const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, line, insertTextMode)
+    await session.synchronize()
     return await session.start(inserted, range, false)
   }
 
@@ -127,14 +128,13 @@ export class SnippetManager {
     let document = workspace.getAttachedDocument(workspace.bufnr)
     const session = this.bufferSync.getItem(document.bufnr)
     let context: UltiSnippetContext
-    session.cancel()
+    session.cancel(true)
     range = await this.toRange(range)
     const currentLine = document.getline(range.start.line)
     const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip)
-    let usePy = false
     if (ultisnip != null) {
-      usePy = hasPython(ultisnip) || inserted.includes('`!p')
+      const usePy = hasPython(ultisnip) || inserted.includes('`!p')
       const bufnr = document.bufnr
       context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip, { id: generateContextId(bufnr) })
       if (usePy) {
@@ -157,13 +157,10 @@ export class SnippetManager {
           // need remove the trigger
           if (valid) {
             let count = range.end.character - range.start.character
-            let end = Position.create(pos[0], pos[1])
-            let start = Position.create(pos[0], Math.max(0, pos[1] - count))
-            range = Range.create(start, end)
+            range = Range.create(pos[0], Math.max(0, pos[1] - count), pos[0], pos[1])
           } else {
             // trigger removed already
-            let start = Position.create(pos[0], pos[1])
-            range = Range.create(start, deepClone(start))
+            range = Range.create(pos[0], pos[1], pos[0], pos[1])
           }
         } else {
           await executePythonCode(nvim, codes)
@@ -171,14 +168,17 @@ export class SnippetManager {
       }
     }
     // same behavior as Ultisnips
-    // range could outside snippet range when session synchronize is canceled
-    const { start } = range
-    this.nvim.call('coc#cursor#move_to', [start.line, start.character], true)
-    if (!emptyRange(range)) {
-      await document.applyEdits([TextEdit.del(range)])
+    const noMove = ultisnip == null && !session.isActive
+    if (!noMove) {
+      const { start } = range
+      nvim.call('coc#cursor#move_to', [start.line, start.character], true)
+      // range could outside snippet range when session synchronize is canceled
+      if (!emptyRange(range)) {
+        await document.applyEdits([TextEdit.del(range)])
+      }
       if (session.isActive) {
         await session.synchronize()
-        // the cursor position may changed on session synchronize.
+        // the cursor position could be changed on session synchronize.
         let pos = await window.getCursorPosition()
         range = Range.create(pos, pos)
       } else {
