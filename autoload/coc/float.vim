@@ -1169,7 +1169,8 @@ function! s:close_win(winid, noautocmd) abort
   endif
   " vim not throw for none exists winid
   if s:is_vim
-    call popup_close(a:winid)
+    let prefix = a:noautocmd ? 'noa ': ''
+    exe prefix.'call popup_close('.a:winid.')'
   else
     if nvim_win_is_valid(a:winid)
       let prefix = a:noautocmd ? 'noa ': ''
