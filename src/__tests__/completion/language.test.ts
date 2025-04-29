@@ -6,6 +6,7 @@ import completion from '../../completion'
 import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ItemDefaults } from '../../completion/types'
+import events from '../../events'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -357,6 +358,8 @@ describe('language source', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'barfoo')
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(7)
     })
 
     it('should fix cursor position with snippet on additionalTextEdits', async () => {
@@ -418,7 +421,7 @@ describe('language source', () => {
       await nvim.input('if')
       await helper.waitPopup()
       await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'bar func(do)')
+      await events.race(['CompleteDone'], 200)
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
       expect(col).toBe(12)

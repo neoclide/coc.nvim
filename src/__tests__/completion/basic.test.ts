@@ -100,6 +100,7 @@ describe('completion', () => {
     })
 
     it('should use ascii match', async () => {
+      helper.updateConfiguration('suggest.asciiMatch', true)
       await create(['\xc1\xc7\xc8'], false)
       await nvim.input('a')
       await helper.waitPopup()
@@ -215,20 +216,17 @@ describe('completion', () => {
     })
 
     it('should use border with floatConfig', async () => {
-      helper.updateConfiguration('suggest.floatConfig', { border: true })
-      await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
-      let win = await helper.getFloat('pum')
-      let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
-      expect(id).toBeGreaterThan(1000)
-      helper.updateConfiguration('suggest.floatConfig', {
+      let dispose = helper.updateConfiguration('suggest.floatConfig', {
         border: true,
         rounded: true,
         borderhighlight: 'Normal',
         title: 'title'
       })
-      await nvim.input('<esc>')
-      await nvim.input('of')
-      await helper.waitPopup()
+      await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
+      let win = await helper.getFloat('pum')
+      let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
+      expect(id).toBeGreaterThan(1000)
+      dispose()
     })
 
     it('should use pumFloatConfig', async () => {
@@ -1551,10 +1549,11 @@ describe('completion', () => {
     it('should navigate completion list', async () => {
       helper.updateConfiguration('suggest.noselect', true)
       await create(['foo', 'foot'], true)
-      await nvim.call('coc#pum#_navigate', [1, 1])
+      let items = completion.activeItems
+      nvim.call('coc#pum#_navigate', [1, 1], true)
       await helper.waitValue(() => {
-        return completion.selectedItem?.word
-      }, 'foo')
+        return completion.selectedItem?.word == items[0].word
+      }, true)
       await nvim.call('coc#pum#_navigate', [0, 1])
       await helper.waitValue(() => {
         return completion.selectedItem

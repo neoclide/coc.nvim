@@ -7,7 +7,7 @@ import { onUnexpectedError, shouldIgnore } from './util/errors'
 import * as Is from './util/is'
 import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
-import { byteLength, byteSlice } from './util/string'
+import { byteSlice } from './util/string'
 const logger = createLogger('events')
 const debounceTime = getConditionValue(100, 10)
 
@@ -50,7 +50,6 @@ export interface InsertChange {
 
 export enum EventName {
   Ready = 'ready',
-  PumInsert = 'PumInsert',
   InsertEnter = 'InsertEnter',
   InsertLeave = 'InsertLeave',
   CursorHoldI = 'CursorHoldI',
@@ -124,7 +123,6 @@ export class Events {
   private _completing = false
   private _requesting = false
   private _ready = false
-  private _last_pum_insert: string | undefined
   public timeout = 1000
   // public completing = false
 
@@ -226,7 +224,6 @@ export class Events {
     } else if (event == EventName.InsertEnter) {
       this._insertMode = true
     } else if (event == EventName.InsertLeave) {
-      this._last_pum_insert = undefined
       this._insertMode = false
       this._pumVisible = false
       this._recentInserts = []
@@ -256,13 +253,7 @@ export class Events {
       let pre = byteSlice(info.line ?? '', 0, info.col - 1)
       let arr: [number, string][]
       // use TextChangedP and disable insert
-      if (this._last_pum_insert != null && this._last_pum_insert == pre) {
-        arr = []
-        event = EventName.TextChangedP
-      } else {
-        arr = this._recentInserts.filter(o => o[0] == args[0])
-      }
-      this._last_pum_insert = undefined
+      arr = this._recentInserts.filter(o => o[0] == args[0])
       this._bufnr = args[0]
       this._recentInserts = []
       this._lastChange = Date.now()
@@ -284,9 +275,6 @@ export class Events {
           })
         }
       }
-    } else if (event == EventName.PumInsert) {
-      this._last_pum_insert = args[0]
-      return
     } else if (event == EventName.BufWinEnter) {
       const [bufnr, winid, region] = args
       this.fireVisibleEvent({ bufnr, winid, region })
@@ -306,7 +294,6 @@ export class Events {
         col: args[1][1],
         insert: event == EventName.CursorMovedI
       }
-      if (this._last_pum_insert && byteLength(this._last_pum_insert) + 1 == cursor.col) return
       // Avoid CursorMoved event when it's not moved at all
       if ((this._cursor && equals(this._cursor, cursor))) return
       this._cursor = cursor

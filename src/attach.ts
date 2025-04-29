@@ -54,7 +54,6 @@ export default (opts: Attach, requestApi = false): Plugin => {
       case 'PromptKeyPress':
       case 'FloatBtnClick':
       case 'CompleteStop':
-      case 'PumInsert':
       case 'InputListSelect':
       case 'PumNavigate':
         logger.trace('Event: ', method, ...args)
@@ -90,7 +89,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
       if (method == 'CompleteStop') {
         logger.trace('Event: ', method, ...args)
         await events.fire(method, args)
-        resp.send(undefined)
+        resp.send('')
       } else if (method == 'CocAutocmd') {
         logger.trace('Request autocmd:', ...args)
         await events.fire(args[0], args.slice(1))

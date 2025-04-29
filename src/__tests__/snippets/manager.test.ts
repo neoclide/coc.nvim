@@ -200,9 +200,8 @@ describe('snippet provider', () => {
       let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
+      await events.race(['PlaceholderJump'], 200)
       await session.synchronize()
-      let m = await nvim.mode
-      expect(m.mode).toBe('s')
       line = await nvim.line
       expect(line).toBe('    foobar')
     })

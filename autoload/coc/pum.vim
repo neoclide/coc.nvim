@@ -45,6 +45,7 @@ function! coc#pum#close_detail() abort
   endif
 endfunction
 
+" kind, and skipRequest (default to false)
 function! coc#pum#close(...) abort
   if coc#pum#visible()
     let kind = get(a:, 1, '')
@@ -53,7 +54,6 @@ function! coc#pum#close(...) abort
       let s:pum_index = -1
       call s:insert_word(input, 1)
       call s:on_pum_change(0)
-      doautocmd <nomodeline> TextChangedI
     elseif kind ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
@@ -62,11 +62,11 @@ function! coc#pum#close(...) abort
         " have to restore here, so that TextChangedI can trigger indent.
         call s:restore_indentkeys()
       endif
-      doautocmd <nomodeline> TextChangedI
     endif
     call s:close_pum()
     if !get(a:, 2, 0)
-      call coc#rpc#request('CompleteStop', [kind])
+      " Needed to wait TextChangedI fired
+      call timer_start(0, {-> coc#rpc#request('CompleteStop', [kind])})
     endif
   endif
   return ''
@@ -99,7 +99,7 @@ function! coc#pum#_one_more() abort
     if !empty(word) && strcharpart(word, 0, strchars(input)) ==# input
       let ch = strcharpart(word, strchars(input), 1)
       if !empty(ch)
-        call feedkeys(ch, "int")
+        call feedkeys(ch, "nt")
       endif
     endif
   endif
@@ -116,7 +116,7 @@ function! coc#pum#_insert() abort
     endif
     doautocmd <nomodeline> TextChangedI
     call s:close_pum()
-    call coc#rpc#request('CompleteStop', [''])
+    call timer_start(0, {-> coc#rpc#request('CompleteStop', [''])})
   endif
   return ''
 endfunction
@@ -160,9 +160,14 @@ function! coc#pum#select(index, insert, confirm) abort
     if a:index < 0 || a:index >= s:pum_size
       throw 'index out of range ' . a:index
     endif
-    call s:select_by_index(a:index, a:insert)
     if a:confirm
+      if s:pum_index != a:index
+        let s:pum_index = a:index
+        call s:on_pum_change(0)
+      endif
       call coc#pum#close('confirm')
+    else
+      call s:select_by_index(a:index, a:insert)
     endif
   endif
   return ''
@@ -279,7 +284,7 @@ function! s:select_by_index(index, insert) abort
     call coc#float#nvim_scrollbar(s:pum_winid)
   endif
   if a:insert
-    let s:inserted = 1
+    let s:inserted = a:index >= 0
     if a:index < 0
       let input = getwinvar(s:pum_winid, 'input', '')
       call s:insert_word(input, 0)
@@ -289,8 +294,6 @@ function! s:select_by_index(index, insert) abort
       let word = get(words, a:index, '')
       call s:insert_word(word, 0)
     endif
-    " The current line is wrong when use feedkeys.
-    doautocmd <nomodeline> TextChangedP
   endif
   call s:on_pum_change(1)
 endfunction
@@ -312,41 +315,30 @@ function! s:insert_word(word, finish) abort
       noa setl textwidth=0
       call timer_start(0, { -> execute('noa setl textwidth='.textwidth)})
     endif
-    " should not be used on finish to have correct line.
-    let saved_completeopt = &completeopt
-    noa set completeopt=menu
-    noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
-    " exit complete state
-    call feedkeys("\<C-x>\<C-z>", 'in')
-    execute 'noa set completeopt='.saved_completeopt
+    " Not insert same characters
+    let inserted = strpart(getline('.'), s:start_col, col('.') - 1)
+    call coc#rpc#notify('Log', [a:word, inserted])
+    if inserted ==# a:word
+      if a:finish
+        doautocmd <nomodeline> TextChangedI
+      endif
+    else
+      let saved_completeopt = &completeopt
+      noa set completeopt=noinsert,noselect
+      noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
+      noa call feedkeys("\<C-n>\<C-x>\<C-z>", 'in')
+      execute 'noa set completeopt='.saved_completeopt
+    endif
   endif
 endfunction
 
 " Replace from col to cursor col with new characters
-function! coc#pum#replace(col, insert, ...) abort
-  let insert = a:insert
-  let curr = getline('.')
-  let removed = strpart(curr, a:col - 1, col('.') - a:col)
-  let n = strchars(removed)
-  let start = coc#string#common_start(insert, removed)
-  let event = get(a:, 1, 0)
-  if start > 0
-    let n = n - start
-    let insert = strcharpart(a:insert, start)
-    if empty(insert) && n == 0 && !event
-      let n = 1
-      let insert = coc#string#last_character(a:insert)
-    endif
-  endif
-  let keys = repeat("\<bs>", n).insert
-  if len(keys)
-    if event
-      let previous =strpart(curr, 0, a:col - 1)
-      call coc#rpc#notify('PumInsert', [previous.a:insert])
-      let g:coc_feeding_keys = 1
-    endif
-    call feedkeys(keys, 'int')
-  endif
+function! coc#pum#replace(col, insert) abort
+  let saved_completeopt = &completeopt
+  noa set completeopt=menu
+  noa call complete(a:col, [{ 'empty': v:true, 'word': a:insert }])
+  noa call feedkeys("\<C-x>\<C-z>", 'in')
+  execute 'noa set completeopt='.saved_completeopt
 endfunction
 
 " create or update pum with lines, CompleteOption and config.

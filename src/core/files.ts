@@ -646,7 +646,7 @@ export default class Files {
     const ac = new AbortController()
     if (token) {
       token.onCancellationRequested(() => {
-        ac.abort()
+        if (!ac.signal.aborted) ac.abort()
       })
     }
     for (let root of roots) {

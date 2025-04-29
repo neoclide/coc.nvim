@@ -272,16 +272,10 @@ function! s:HandleBufEnter(bufnr) abort
 endfunction
 
 function! s:HandleCharInsert(char, bufnr) abort
-  if get(g:, 'coc_feeding_keys', 0)
-    return
-  endif
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
 function! s:HandleTextChangedI(event, bufnr) abort
-  if get(g:, 'coc_feeding_keys', 0)
-    unlet g:coc_feeding_keys
-  endif
   if s:is_vim
     " make sure lines event before changed event.
     call listener_flush(a:bufnr)

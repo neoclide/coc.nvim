@@ -25,7 +25,7 @@ import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, C
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
-const CURSORMOVE_DEBOUNCE = getConditionValue(10, 0)
+const CURSORMOVE_DEBOUNCE = getConditionValue(20, 20)
 
 export class Completion implements Disposable {
   public config: CompleteConfig
@@ -71,7 +71,6 @@ export class Completion implements Disposable {
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
-    events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('MenuPopupChanged', async ev => {
       if (!this.option) return
       this.popupEvent = ev
@@ -91,26 +90,8 @@ export class Completion implements Disposable {
     return this._mru
   }
 
-  public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
+  public onCursorMovedI(bufnr: number, _cursor: [number, number], hasInsert: boolean): void {
     if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
-    let { linenr, colnr, col } = this.option
-    if (linenr === cursor[0]) {
-      if (cursor[1] == colnr && cursor[1] === byteLength(toText(this.pretext)) + 1) {
-        return
-      }
-      let line = this.document.getline(cursor[0] - 1)
-      if (line.match(/^\s*/)[0] !== this.option.line.match(/^\s*/)[0]) {
-        return
-      }
-      let curr = characterIndex(line, cursor[1] - 1)
-      let start = characterIndex(line, col)
-      if (start < curr) {
-        let text = line.substring(start, curr)
-        if (!this.inserted && text === this.pum.search) {
-          return
-        }
-      }
-    }
     this.cancelAndClose()
   }
 
@@ -236,17 +217,10 @@ export class Completion implements Disposable {
     if (shouldStop) this.cancelAndClose(false)
   }
 
-  private async onTextChangedP(_bufnr: number, info: InsertChange): Promise<void> {
-    // navigate item or finish completion
-    if (!info.insertChar && this.complete) {
-      this.complete.cancel()
-    }
-    this.pretext = info.pre
-  }
-
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     const doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
+    this._debounced.clear()
     const { option } = this
     const filterOnBackspace = this.staticConfig.filterOnBackspace
     if (option != null) {
@@ -260,6 +234,7 @@ export class Completion implements Disposable {
             return
           }
         } else if (pre + this.pum.search == info.pre) {
+          this.pretext = info.pre
           return
         }
       }
@@ -287,9 +262,8 @@ export class Completion implements Disposable {
       if (result && sources.shouldCommit(result.source, result.item, last)) {
         logger.debug('commit by commit character.')
         let startcol = byteIndex(this.option.line, resolvedItem.character) + 1
-        this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word + info.insertChar], true)
-        // confirm by commit character
-        await this.stop(true)
+        this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word], true)
+        this.nvim.call('feedkeys', [info.insertChar, 'n'], true)
         return
       }
     }
