@@ -66,7 +66,7 @@ function! coc#pum#close(...) abort
     call s:close_pum()
     if !get(a:, 2, 0)
       " Needed to wait TextChangedI fired
-      call timer_start(0, {-> coc#rpc#request('CompleteStop', [kind])})
+      call timer_start(0, {-> coc#rpc#request('stopCompletion', [kind])})
     endif
   endif
   return ''
@@ -116,7 +116,7 @@ function! coc#pum#_insert() abort
     endif
     doautocmd <nomodeline> TextChangedI
     call s:close_pum()
-    call timer_start(0, {-> coc#rpc#request('CompleteStop', [''])})
+    call timer_start(0, {-> coc#rpc#request('stopCompletion', [''])})
   endif
   return ''
 endfunction

@@ -107,19 +107,6 @@ describe('snippet provider', () => {
     })
   })
 
-  describe('insertBufferSnippet()', () => {
-    it('should throw when buffer not attached', async () => {
-      await nvim.command(`vnew +setl\\ buftype=nofile`)
-      let bufnr = await nvim.call('bufnr', ['%']) as number
-      expect(snippetManager.jumpable()).toBe(false)
-      let res = await snippetManager.resolveSnippet('${1:foo}')
-      expect(res).toBeUndefined()
-      await expect(async () => {
-        await snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))
-      }).rejects.toThrow(Error)
-    })
-  })
-
   describe('insertSnippet()', () => {
     it('should throw when current buffer not attached', async () => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
@@ -199,11 +186,24 @@ describe('snippet provider', () => {
       await helper.waitPopup()
       let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
+      nvim.call('coc#pum#select', [idx, 1, 1], true)
       await events.race(['PlaceholderJump'], 200)
       await session.synchronize()
       line = await nvim.line
       expect(line).toBe('    foobar')
+    })
+  })
+
+  describe('insertBufferSnippet()', () => {
+    it('should throw when buffer not attached', async () => {
+      await nvim.command(`vnew +setl\\ buftype=nofile`)
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      expect(snippetManager.jumpable()).toBe(false)
+      let res = await snippetManager.resolveSnippet('${1:foo}')
+      expect(res).toBeUndefined()
+      await expect(async () => {
+        await snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))
+      }).rejects.toThrow(Error)
     })
   })
 

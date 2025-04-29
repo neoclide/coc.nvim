@@ -66,9 +66,6 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', () => {
       clearTimeout(this.triggerTimer)
     }, null, this.disposables)
-    events.on('CompleteStop', async kind => {
-      await this.stop(false, kind)
-    }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('MenuPopupChanged', async ev => {
