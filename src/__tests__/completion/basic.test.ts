@@ -887,6 +887,15 @@ describe('completion', () => {
       expect(completion.isActivated).toBe(false)
       await events.fire('PumNavigate', [])
     })
+
+    it('should stop completion with invalid input', async () => {
+      await nvim.setLine('line ')
+      await nvim.input('Af')
+      await create(['foo', 'foot'])
+      await nvim.setLine('abcd f')
+      await helper.waitValue(() => completion.isActivated, false)
+      await completion.filterResults()
+    })
   })
 
   describe('TextChangedP', () => {

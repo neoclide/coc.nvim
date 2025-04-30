@@ -11,7 +11,7 @@ import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
-import { byteIndex, byteSlice, characterIndex, isLowSurrogate, toText } from '../util/string'
+import { byteIndex, byteSlice, characterIndex, getUnicodeClass, isLowSurrogate, toText } from '../util/string'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
@@ -141,7 +141,8 @@ export function getDocumentaions(completeItem: CompleteItem, filetype: string, d
   return docs
 }
 
-export function getResumeInput(option: PartialOption, pretext: string): string {
+export function getResumeInput(option: PartialOption | undefined, pretext: string): string {
+  if (!option) return null
   const { line, col } = option
   const start = characterIndex(line, col)
   const pl = pretext.length
@@ -207,7 +208,7 @@ export function indentChanged(event: { word: string } | undefined, cursor: [numb
 
 export function shouldStop(bufnr: number, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'col'>): boolean {
   let { pre } = info
-  if (pre.length === 0 || pre[pre.length - 1] === ' ') return true
+  if (pre.length === 0 || getUnicodeClass(pre[pre.length - 1]) === 'space') return true
   if (option.bufnr != bufnr || option.linenr != info.lnum) return true
   let text = byteSlice(option.line, 0, option.col)
   if (!pre.startsWith(text)) return true

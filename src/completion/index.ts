@@ -112,11 +112,6 @@ export class Completion implements Disposable {
     return this.complete != null
   }
 
-  public get document(): Document | null {
-    if (!this.complete) return null
-    return this.complete.document
-  }
-
   public get selectedItem(): DurationCompleteItem | undefined {
     if (!this.popupEvent) return undefined
     return this.activeItems[this.popupEvent.index]
@@ -363,7 +358,7 @@ export class Completion implements Disposable {
   }
 
   // Used by stopCompletion action.
-  public async stop(kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
+  public async stop(kind: CompleteFinishKind): Promise<void> {
     let { complete } = this
     if (complete == null) return
     // Confirm may not send popup change event with inserted = true
@@ -406,7 +401,7 @@ export class Completion implements Disposable {
     return true
   }
 
-  private async filterResults(info?: InsertChange): Promise<void> {
+  public async filterResults(info?: InsertChange): Promise<void> {
     let { complete, option, pretext } = this
     let search = getResumeInput(option, pretext)
     if (search == null || !complete) {
