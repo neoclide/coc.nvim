@@ -231,7 +231,7 @@ export default class Document {
       }
       this.lines = lines
       fireLinesChanged(id)
-      if (events.pumvisible) return
+      if (events.completing) return
       this.fireContentChanges()
     }
     if (isVim) {
