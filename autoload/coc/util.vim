@@ -72,10 +72,6 @@ function! coc#util#synname() abort
   return synIDattr(synID(line('.'), col('.') - 1, 1), 'name')
 endfunction
 
-function! coc#util#setline(lnum, line)
-  keepjumps call setline(a:lnum, a:line)
-endfunction
-
 function! coc#util#version()
   if s:is_vim
     return string(v:versionlong)
@@ -368,14 +364,6 @@ function! coc#util#do_autocmd(name) abort
   endif
 endfunction
 
-function! coc#util#unmap(bufnr, keys) abort
-  if bufnr('%') == a:bufnr
-    for key in a:keys
-      exe 'silent! nunmap <buffer> '.key
-    endfor
-  endif
-endfunction
-
 function! coc#util#refactor_foldlevel(lnum) abort
   if a:lnum <= 2 | return 0 | endif
   let line = getline(a:lnum)
@@ -460,17 +448,6 @@ function! coc#util#getpid()
   endif
   let cmd = 'cat /proc/' . getpid() . '/winpid'
   return substitute(system(cmd), '\v\n', '', 'gi')
-endfunction
-
-" Get indentkeys for indent on TextChangedP, consider = for word indent only.
-function! coc#util#get_indentkeys() abort
-  if empty(&indentexpr)
-    return ''
-  endif
-  if &indentkeys !~# '='
-    return ''
-  endif
-  return &indentkeys
 endfunction
 
 function! coc#util#get_bufoptions(bufnr, max) abort
