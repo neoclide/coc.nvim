@@ -104,7 +104,11 @@ export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, i
   if (!item || !selected) return {}
   return Object.assign({
     word: selected.word,
+    abbr: selected.abbr,
+    kind: selected.kind,
+    menu: selected.menu,
     source: selected.source.name,
+    isSnippet: selected.isSnippet,
     user_data: `${selected.source.name}:0`
   }, item)
 }
