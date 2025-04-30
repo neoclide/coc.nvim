@@ -9,12 +9,13 @@ import { createLogger } from '../logger'
 import type Document from '../model/document'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
+import { onUnexpectedError } from '../util/errors'
 import * as Is from '../util/is'
 import { debounce } from '../util/node'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
 import type { Disposable } from '../util/protocol'
-import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../util/string'
+import { byteIndex, byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete from './complete'
@@ -56,7 +57,10 @@ export class Completion implements Disposable {
     this.pum = new PopupMenu(this.staticConfig, this._mru)
     this.floating = new Floating(this.staticConfig)
     this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE)
-    events.on('CursorMoved', async () => {
+    events.on('BufEnter', () => {
+      this._debounced.clear()
+    }, null, this.disposables)
+    events.on('CursorMoved', () => {
       this.cancelAndClose()
     }, null, this.disposables)
     events.on('PumNavigate', () => {
@@ -69,11 +73,13 @@ export class Completion implements Disposable {
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('MenuPopupChanged', async ev => {
-      if (!this.option) return
+      if (this.complete == null) return
       this.popupEvent = ev
-      let resolved = this.complete.resolveItem(this.selectedItem)
+      if (ev.inserted) this.complete.cancel()
+      let selectedItem = this.activeItems[ev.index]
+      let resolved = this.complete.resolveItem(selectedItem)
       if (!resolved || (!ev.move && this.complete.isCompleting)) return
-      let detailRendered = this.selectedItem.detailRendered
+      let detailRendered = selectedItem.detailRendered
       let showDocs = this.config.enableFloat
       await this.floating.resolveItem(resolved.source, resolved.item, this.option, showDocs, detailRendered)
     }, null, this.disposables)
@@ -87,8 +93,13 @@ export class Completion implements Disposable {
     return this._mru
   }
 
-  public onCursorMovedI(bufnr: number, _cursor: [number, number], hasInsert: boolean): void {
+  public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
     if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
+    // Possible cursor move out and move back, not cancel
+    let { linenr } = this.option
+    if (linenr === cursor[0] && cursor[1] === byteLength(toText(this.pretext)) + 1) {
+      return
+    }
     this.cancelAndClose()
   }
 
@@ -101,13 +112,9 @@ export class Completion implements Disposable {
     return this.complete != null
   }
 
-  public get inserted(): boolean {
-    return this.popupEvent != null && this.popupEvent.inserted
-  }
-
   public get document(): Document | null {
-    if (!this.option) return null
-    return workspace.getDocument(this.option.bufnr)
+    if (!this.complete) return null
+    return this.complete.document
   }
 
   public get selectedItem(): DurationCompleteItem | undefined {
@@ -207,7 +214,6 @@ export class Completion implements Disposable {
         this.cancelAndClose(false)
         return
       }
-      if (this.inserted) return
       await this.filterResults()
     })
     let shouldStop = await complete.doComplete()
@@ -336,42 +342,43 @@ export class Completion implements Disposable {
     }
   }
 
-  // Void CompleteDone logic
   public cancelAndClose(close = true): void {
     clearTimeout(this.triggerTimer)
     if (this.complete) {
-      this.cancel()
+      if (this.popupEvent?.inserted) this.addMruItem()
+      let doc = this.complete.document
       events.completing = false
-      let doc = workspace.getDocument(workspace.bufnr)
-      if (doc) doc._forceSync()
+      this.cancel()
+      doc._forceSync()
       if (close) this.nvim.call('coc#pum#_close', [], true)
-      void events.fire('CompleteDone', [{}])
+      events.fire('CompleteDone', [{}]).catch(onUnexpectedError)
     }
   }
 
-  public async stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
+  public addMruItem(): void {
+    let { selectedItem, complete } = this
+    if (!selectedItem) return
+    let character = selectedItem.character
+    this._mru.add(complete.getTrigger(character), selectedItem)
+  }
+
+  // Used by stopCompletion action.
+  public async stop(kind: CompleteFinishKind = CompleteFinishKind.Normal): Promise<void> {
     let { complete } = this
     if (complete == null) return
-    let inserted = kind === CompleteFinishKind.Confirm || (this.popupEvent?.inserted && kind != CompleteFinishKind.Cancel)
+    // Confirm may not send popup change event with inserted = true
+    let inserted = kind === CompleteFinishKind.Confirm || this.popupEvent?.inserted
+    if (inserted) this.addMruItem()
     let item = this.selectedItem
-    let character = item?.character
     let resolved = complete.resolveItem(item)
     let option = complete.option
-    let input = complete.input
-    let doc = workspace.getDocument(option.bufnr)
-    let line = option.line
-    let inputStart = characterIndex(line, option.col)
     events.completing = false
     this.cancel()
-    doc._forceSync()
-    if (close) this.nvim.call('coc#pum#_close', [], true)
-    if (resolved && inserted) {
-      this._mru.add(line.slice(character, inputStart) + input, item)
-    }
-    if (kind == CompleteFinishKind.Confirm && resolved) {
+    complete.document._forceSync()
+    if (resolved && kind == CompleteFinishKind.Confirm) {
       await this.confirmCompletion(resolved.source, resolved.item, option)
     }
-    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
+    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)]).catch(onUnexpectedError)
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {

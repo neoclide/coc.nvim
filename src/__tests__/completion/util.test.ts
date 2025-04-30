@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { sortItems } from '../../completion/complete'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
-import { CompleteOption, InsertMode, ISource } from '../../completion/types'
+import { CompleteOption, InsertMode, ISource, SortMethod } from '../../completion/types'
 import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
@@ -523,6 +524,28 @@ describe('util functions', () => {
       spy.mockRestore()
       let res = w.distance(Position.create(0, 0), { word: 'foo' } as any)
       expect(res).toBe(0)
+    })
+  })
+
+  describe('sortItems', () => {
+    it('should sort items', () => {
+      let emptyInput = false
+      let defaultSortMethod: SortMethod = SortMethod.None
+      let a: any = {
+        abbr: 'a', character: 0, filterText: 'a', index: 0, source: '', word: 'a'
+      }
+      let b: any = {
+        abbr: 'b', character: 0, filterText: 'b', index: 0, source: '', word: 'b'
+      }
+      const check = (ap: any, bp: any, res: number) => {
+        let val = sortItems(emptyInput, defaultSortMethod, Object.assign(ap, a), Object.assign(bp, b))
+        expect(val).toBe(res)
+      }
+      check({ score: 1 }, { score: 2 }, 1)
+      check({ priority: 1 }, { priority: 2 }, 1)
+      check({ sortText: 'b' }, { sortText: 'a' }, 1)
+      check({ sortText: 'a' }, { sortText: 'b' }, -1)
+      check({ localBonus: 1 }, { localBonus: 2 }, 1)
     })
   })
 

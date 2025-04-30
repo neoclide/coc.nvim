@@ -393,6 +393,7 @@ export default class Document {
   }
 
   public _forceSync(): void {
+    if (!this._attached) return
     this.fireContentChanges.clear()
     this._fireContentChanges()
   }

@@ -96,7 +96,7 @@ export default class Plugin {
     this.addAction('highlight', () => this.handler.documentHighlighter.highlight())
     this.addAction('fold', (kind?: string) => this.handler.fold.fold(kind))
     this.addAction('startCompletion', (option: { source?: string, col?: number }) => completion.startCompletion(option))
-    this.addAction('stopCompletion', (kind: CompleteFinishKind) => completion.stop(false, kind))
+    this.addAction('stopCompletion', (kind: CompleteFinishKind) => completion.stop(kind))
     this.addAction('sourceStat', () => sources.sourceStats())
     this.addAction('refreshSource', (name: string) => sources.refresh(name))
     this.addAction('toggleSource', (name: string) => sources.toggleSource(name))

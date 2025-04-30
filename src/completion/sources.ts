@@ -291,7 +291,7 @@ export class Sources {
     return this.sources.filter(source => {
       let { filetypes, enable, documentSelector, name } = source
       if (disabled.includes(name)) return false
-      if (!enable || (filetypes && !intersect(filetypes, languageIds))) return false
+      if (!enable || (Array.isArray(filetypes) && !intersect(filetypes, languageIds))) return false
       if (documentSelector && languageIds.every(languageId => workspace.match(documentSelector, { uri, languageId }) == 0)) {
         return false
       }

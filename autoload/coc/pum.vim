@@ -163,6 +163,7 @@ function! coc#pum#select(index, insert, confirm) abort
     if a:confirm
       if s:pum_index != a:index
         let s:pum_index = a:index
+        let s:inserted = 1
         call s:on_pum_change(0)
       endif
       call coc#pum#close('confirm')
@@ -317,12 +318,7 @@ function! s:insert_word(word, finish) abort
     endif
     " Not insert same characters
     let inserted = strpart(getline('.'), s:start_col, col('.') - 1)
-    call coc#rpc#notify('Log', [a:word, inserted])
-    if inserted ==# a:word
-      if a:finish
-        doautocmd <nomodeline> TextChangedI
-      endif
-    else
+    if inserted !=# a:word
       let saved_completeopt = &completeopt
       noa set completeopt=noinsert,noselect
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])

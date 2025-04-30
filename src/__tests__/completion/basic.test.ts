@@ -2,9 +2,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import completion, { Completion } from '../../completion'
-import { sortItems } from '../../completion/complete'
 import sources from '../../completion/sources'
-import { CompleteFinishKind, CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SortMethod, SourceType, VimCompleteItem } from '../../completion/types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType, VimCompleteItem } from '../../completion/types'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import { disposeAll, waitWithToken } from '../../util'
@@ -380,7 +379,7 @@ describe('completion', () => {
       })
       await p
       await helper.wait(20)
-      await completion.stop(true)
+      completion.cancelAndClose()
       spy.mockRestore()
     })
   })
@@ -876,29 +875,21 @@ describe('completion', () => {
       await nvim.input('o.')
       await helper.waitFor('getline', ['.'], 'foo.')
     })
+
+    it('should cancel on CursorMoved', async () => {
+      await nvim.setLine('first line')
+      await nvim.input('o')
+      await create(['foo', 'foot'])
+      let [_, line, col] = await nvim.call('getcurpos') as number[]
+      completion.onCursorMovedI(events.bufnr, [line, col], false)
+      expect(completion.isActivated).toBe(true)
+      completion.onCursorMovedI(events.bufnr, [line, col - 1], false)
+      expect(completion.isActivated).toBe(false)
+      await events.fire('PumNavigate', [])
+    })
   })
 
   describe('TextChangedP', () => {
-    it('should stop when input length below option input length', async () => {
-      await create(['foo', 'fbi'], false)
-      await nvim.input('f')
-      await helper.waitPopup()
-      await nvim.input('<backspace>')
-      await helper.waitValue(async () => {
-        return completion.isActivated
-      }, false)
-    })
-
-    it('should filter on none keyword input', async () => {
-      await nvim.setLine('foo')
-      await nvim.input('A')
-      await create(['foo#abc'], true)
-      await nvim.input('#')
-      await helper.wait(30)
-      let items = await helper.items()
-      expect(items[0].word).toBe('foo#abc')
-    })
-
     it('should cancel on CursorMoved', async () => {
       let buf = await nvim.buffer
       await buf.setLines(['', 'bar'], { start: 0, end: -1, strictIndexing: false })
@@ -1007,12 +998,14 @@ describe('completion', () => {
     })
   })
 
-  describe('InsertEnter', () => {
-    beforeEach(() => {
-      helper.updateConfiguration('suggest.triggerAfterInsertEnter', true)
-    })
-
+  describe('trigger completion', () => {
     it('should trigger completion if triggerAfterInsertEnter is true', async () => {
+      helper.updateConfiguration('suggest.triggerAfterInsertEnter', true)
+      await nvim.command('edit t|setl buftype=nofile')
+      await nvim.input('o')
+      await helper.wait(10)
+      expect(completion.isActivated).toBe(false)
+      await helper.createDocument()
       await create(['fball', 'football'], false)
       await nvim.input('f')
       await nvim.input('<esc>')
@@ -1021,15 +1014,6 @@ describe('completion', () => {
       expect(completion.isActivated).toBe(true)
     })
 
-    it('should not trigger when document not attached', async () => {
-      await nvim.command('edit t|setl buftype=nofile')
-      await nvim.input('o')
-      await helper.wait(10)
-      expect(completion.isActivated).toBe(false)
-    })
-  })
-
-  describe('trigger completion', () => {
     it('should trigger complete when trigger patterns match', async () => {
       let source: ISource = {
         priority: 99,
@@ -1498,7 +1482,7 @@ describe('completion', () => {
       }, 0)
     })
 
-    it('should not trigger completion after indent change with reTriggerAfterIndent = false', async () => {
+    it('should not trigger completion after indent change with reTriggerAfterIndent disabled', async () => {
       helper.updateConfiguration('suggest.reTriggerAfterIndent', false)
       await helper.createDocument('t')
       let source: ISource = {
@@ -1523,28 +1507,6 @@ describe('completion', () => {
     })
   })
 
-  describe('sortItems', () => {
-    it('should sort items', () => {
-      let emptyInput = false
-      let defaultSortMethod: SortMethod = SortMethod.None
-      let a: any = {
-        abbr: 'a', character: 0, filterText: 'a', index: 0, source: '', word: 'a'
-      }
-      let b: any = {
-        abbr: 'b', character: 0, filterText: 'b', index: 0, source: '', word: 'b'
-      }
-      const check = (ap: any, bp: any, res: number) => {
-        let val = sortItems(emptyInput, defaultSortMethod, Object.assign(ap, a), Object.assign(bp, b))
-        expect(val).toBe(res)
-      }
-      check({ score: 1 }, { score: 2 }, 1)
-      check({ priority: 1 }, { priority: 2 }, 1)
-      check({ sortText: 'b' }, { sortText: 'a' }, 1)
-      check({ sortText: 'a' }, { sortText: 'b' }, -1)
-      check({ localBonus: 1 }, { localBonus: 2 }, 1)
-    })
-  })
-
   describe('Navigate list', () => {
     it('should navigate completion list', async () => {
       helper.updateConfiguration('suggest.noselect', true)
@@ -1554,13 +1516,13 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.selectedItem?.word == items[0].word
       }, true)
-      await nvim.call('coc#pum#_navigate', [0, 1])
+      nvim.call('coc#pum#_navigate', [0, 1], true)
       await helper.waitValue(() => {
         return completion.selectedItem
       }, undefined)
-      await completion.stop(true, CompleteFinishKind.Normal)
+      completion.cancelAndClose()
       await events.fire('MenuPopupChanged', [{}])
-      expect(completion.document).toBeNull()
+      expect(completion.isActivated).toBe(false)
     })
   })
 

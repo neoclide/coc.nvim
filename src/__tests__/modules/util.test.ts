@@ -850,6 +850,7 @@ describe('strings', () => {
     expect(strings.getUnicodeClass('，')).toBe('punctuation')
     expect(strings.getUnicodeClass('你')).toBe('cjkideograph')
     expect(strings.getUnicodeClass('😘')).toBe('other')
+    expect(strings.getUnicodeClass('a')).toBe('word')
   })
 })
 
