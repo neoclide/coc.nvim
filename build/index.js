@@ -50500,23 +50500,6 @@ var init_types2 = __esm({
 function generateContextId(bufnr) {
   return `${bufnr}-${context_id++}`;
 }
-async function evalCode(nvim, kind, code, curr) {
-  if (kind == "vim") {
-    let res2 = await nvim.eval(code);
-    return res2.toString();
-  }
-  if (kind == "shell") {
-    let opts = { windowsHide: true };
-    if (process.env.SHELL) opts.shell = process.env.shell;
-    let res2 = await (0, import_util.promisify)(import_child_process.exec)(code, opts);
-    return res2.stdout.replace(/\s*$/, "");
-  }
-  let lines = [`snip._reset("${escapeString(curr)}")`];
-  lines.push(...code.split(/\r?\n/).map((line) => line.replace(/\t/g, "    ")));
-  await executePythonCode(nvim, lines);
-  let res = await nvim.call(`pyxeval`, "str(snip.rv)");
-  return toText(res);
-}
 function hasPython(snip) {
   if (!snip) return false;
   if (snip.context) return true;
@@ -50609,16 +50592,13 @@ function addPythonTryCatch(code, force = false) {
 function escapeString(input) {
   return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\t/g, "\\t").replace(/\n/g, "\\n");
 }
-var import_child_process, contexts_var, context_id;
+var contexts_var, context_id;
 var init_eval = __esm({
   "src/snippets/eval.ts"() {
     "use strict";
-    import_child_process = require("child_process");
     init_main();
     init_events();
     init_constants();
-    init_node();
-    init_string();
     contexts_var = "__coc_ultisnip_contexts";
     context_id = 1;
   }
@@ -50896,12 +50876,12 @@ function getPlaceholderId(p) {
   p.id = id++;
   return p.id;
 }
-var logger22, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var import_child_process, logger22, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser3 = __esm({
   "src/snippets/parser.ts"() {
     "use strict";
+    import_child_process = require("child_process");
     init_logger();
-    init_util();
     init_array();
     init_charCode();
     init_errors();
@@ -51120,9 +51100,35 @@ var init_parser3 = __esm({
       }
       async resolve(nvim, token) {
         if (!this.code.length) return;
-        let res = await evalCode(nvim, this.kind, this.code, defaultValue(this._value, ""));
+        if (token?.isCancellationRequested) return;
+        let res;
+        if (this.kind == "python") {
+          res = await this.evalPython(nvim, token);
+        } else if (this.kind == "vim") {
+          res = await this.evalVim(nvim);
+        } else if (this.kind == "shell") {
+          res = await this.evalShell();
+        }
         if (token?.isCancellationRequested) return;
         if (res != null) this._value = res;
+      }
+      async evalShell() {
+        let opts = { windowsHide: true };
+        Object.assign(opts, { shell: process.env.SHELL });
+        let res = await (0, import_util.promisify)(import_child_process.exec)(this.code, opts);
+        return res.stdout.replace(/\s*$/, "");
+      }
+      async evalVim(nvim) {
+        let res = await nvim.eval(this.code);
+        return res == null ? "" : res.toString();
+      }
+      async evalPython(nvim, token) {
+        let curr = toText(this._value);
+        let lines = [`snip._reset("${escapeString(curr)}")`];
+        lines.push(...this.code.split(/\r?\n/).map((line) => line.replace(/\t/g, "    ")));
+        await executePythonCode(nvim, lines);
+        if (token?.isCancellationRequested) return;
+        return await nvim.call(`pyxeval`, "str(snip.rv)");
       }
       len() {
         return this._value.length;
@@ -51626,8 +51632,9 @@ var init_parser3 = __esm({
         }
         return finals.find((o) => o.primary) ?? finals[0];
       }
-      async update(nvim, marker, codes, token) {
+      async update(nvim, marker, token) {
         this.onPlaceholderUpdate(marker);
+        let codes = this.related.codes ?? [];
         if (codes.length === 0 || !this.hasPythonBlock) return;
         await this.updatePythonCodes(nvim, marker, codes, token);
       }
@@ -78061,23 +78068,19 @@ var init_snippet = __esm({
         return res;
       }
       async onMarkerUpdate(marker, token) {
+        let ts = Date.now();
         while (marker != null) {
           if (marker instanceof Placeholder) {
             let snip = marker.snippet;
             if (!snip) break;
-            const config = snip.related.context;
-            let codes = [];
-            if (config?.noPython !== true) {
-              codes = snip.related.codes ?? [];
-            }
-            await snip.update(this.nvim, marker, codes, token);
+            await snip.update(this.nvim, marker, token);
             if (token.isCancellationRequested) return;
             marker = snip.parent;
           } else {
             marker = marker.parent;
           }
         }
-        await waitWithToken(16, token);
+        await waitWithToken(Math.max(0, 16 - Date.now() + ts), token);
         if (token.isCancellationRequested) return;
         this.synchronize();
       }
@@ -78367,6 +78370,7 @@ var init_session2 = __esm({
         this.mutex = new Mutex();
         this._applying = false;
         this._force = false;
+        this._paused = false;
         this.snippet = null;
         this._onActiveChange = new import_node4.Emitter();
         this.isStaled = false;
@@ -78377,6 +78381,7 @@ var init_session2 = __esm({
       }
       async start(inserted, range, select = true, context) {
         let { document: document2, snippet } = this;
+        this._paused = false;
         const edits = [];
         let textmateSnippet;
         if (inserted.length === 0) return this.isActive;
@@ -78566,14 +78571,16 @@ var init_session2 = __esm({
         this.cancel();
       }
       onChange(e) {
-        if (this._applying || !this.isActive) return;
+        if (this._applying || !this.isActive || this._paused) return;
         let changes = e.contentChanges;
         this.cancel();
         this.synchronize({ version: e.textDocument.version, change: changes[0] }).catch(onUnexpectedError);
       }
       async synchronize(change) {
-        const { document: document2 } = this;
+        const { document: document2, isActive } = this;
         this.isStaled = false;
+        this._paused = false;
+        if (!isActive) return;
         await this.mutex.use(() => {
           if (!document2.attached || document2.dirty || !this.snippet || !this.textDocument || document2.version === this.version) return Promise.resolve();
           if (change && (change.version - this.version !== 1 || document2.version != change.version)) {
@@ -78590,10 +78597,12 @@ var init_session2 = __esm({
           return;
         }
         const startTs = Date.now();
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
+        const cursor = events_default.bufnr == document2.bufnr ? await window_default.getCursorPosition() : void 0;
+        if (tokenSource.token.isCancellationRequested) return;
         let change = documentChange?.change;
         if (!change) {
-          let cursor2 = document2.cursor;
-          let edit2 = getTextEdit(textDocument.lines, newDocument.lines, cursor2, events_default.insertMode);
+          let edit2 = getTextEdit(textDocument.lines, newDocument.lines, cursor, events_default.insertMode);
           change = { range: edit2.range, text: edit2.newText };
         }
         const { range, start } = snippet;
@@ -78629,9 +78638,7 @@ var init_session2 = __esm({
           this.deactivate();
           return;
         }
-        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
         const nextPlaceholder = getNextPlaceholder(current, true);
-        const { cursor } = document2;
         const id2 = getPlaceholderId(current);
         const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force);
         this.tokenSource = void 0;
@@ -78656,7 +78663,9 @@ var init_session2 = __esm({
         if (newText !== snippetText) {
           let edit2 = reduceTextEdit({ range: changedRange, newText }, snippetText);
           await this.applyEdits([edit2], true);
-          if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
+          if (delta) {
+            this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
+          }
         }
         this.highlights();
         logger38.debug("update cost:", Date.now() - startTs, res.delta);
@@ -78714,12 +78723,14 @@ var init_session2 = __esm({
         if (!this.snippet || !this.current) return void 0;
         return this.snippet.getPlaceholderByMarker(this.current);
       }
-      cancel() {
+      cancel(pause = false) {
+        if (!this.isActive) return;
         if (this.tokenSource) {
           this.tokenSource.cancel();
           this.tokenSource.dispose();
           this.tokenSource = null;
         }
+        if (pause) this._paused = true;
       }
       dispose() {
         this.cancel();
@@ -78842,10 +78853,8 @@ var init_manager4 = __esm({
     init_commands();
     init_events();
     init_util();
-    init_mutex();
     init_object();
     init_position();
-    init_textedit();
     init_window();
     init_workspace();
     init_eval();
@@ -78855,7 +78864,6 @@ var init_manager4 = __esm({
     SnippetManager = class {
       constructor() {
         this.disposables = [];
-        this.mutex = new Mutex();
       }
       init() {
         this.synchronizeConfig();
@@ -78935,109 +78943,79 @@ var init_manager4 = __esm({
        * Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
        */
       async insertBufferSnippet(bufnr, snippet, range, insertTextMode) {
-        let release = await this.mutex.acquire();
-        try {
-          let document2 = workspace_default.getAttachedDocument(bufnr);
-          const session = this.bufferSync.getItem(bufnr);
-          range = await this.synchronizeSession(session, range);
-          range = toValidRange(range);
-          const currentLine = document2.getline(range.start.line);
-          const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
-          const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode);
-          let isActive = await session.start(inserted, range, false);
-          release();
-          return isActive;
-        } catch (e) {
-          release();
-          throw e;
-        }
-      }
-      /**
-       * Synchronize session when needed (ex: snippet insert during TextChange),
-       * the range could be changed
-       */
-      async synchronizeSession(session, range) {
-        let { document: document2, isActive } = session;
-        if (!isActive) return range;
-        let disposable = document2.onDocumentChange((e) => {
-          let changes = e.contentChanges;
-          let { start, end } = range;
-          changes.forEach((change) => {
-            let edit2 = reduceTextEdit(TextEdit.replace(change.range, change.text), e.original);
-            start = getPositionFromEdits(start, [edit2]);
-            end = getPositionFromEdits(end, [edit2]);
-          });
-          range = Range.create(start, end);
-        });
-        await session.forceSynchronize();
-        disposable.dispose();
-        return range;
+        let document2 = workspace_default.getAttachedDocument(bufnr);
+        const session = this.bufferSync.getItem(bufnr);
+        session.cancel(true);
+        range = toValidRange(range);
+        const line = document2.getline(range.start.line);
+        const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+        const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, line, insertTextMode);
+        await session.synchronize();
+        return await session.start(inserted, range, false);
       }
       /**
        * Insert snippet at current cursor position
        */
       async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip) {
         let { nvim } = workspace_default;
-        let release = await this.mutex.acquire();
-        try {
-          let document2 = workspace_default.getAttachedDocument(workspace_default.bufnr);
-          const session = this.bufferSync.getItem(document2.bufnr);
-          let context;
-          if (range) await this.synchronizeSession(session, range);
-          range = await this.toRange(range);
-          const currentLine = document2.getline(range.start.line);
-          const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
-          const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
-          let usePy = false;
-          if (ultisnip != null) {
-            usePy = hasPython(ultisnip) || inserted.includes("`!p");
-            const bufnr = document2.bufnr;
-            context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip, { id: generateContextId(bufnr) });
-            if (usePy) {
-              if (session.placeholder) {
-                let { start: start2, end } = session.placeholder.range;
-                let last = {
-                  current_text: session.placeholder.value,
-                  start: { line: start2.line, col: start2.character, character: start2.character },
-                  end: { line: end.line, col: end.character, character: end.character }
-                };
-                this.nvim.setVar("coc_last_placeholder", last, true);
-              } else {
-                this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
-              }
-              const codes = getInitialPythonCode(context);
-              let preExpand = getAction(ultisnip, "preExpand");
-              if (preExpand) {
-                await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]));
-                const [valid, pos] = await nvim.call("pyxeval", "snip.getResult()");
-                if (valid) {
-                  let count = range.end.character - range.start.character;
-                  let end = Position.create(pos[0], pos[1]);
-                  let start2 = Position.create(pos[0], Math.max(0, pos[1] - count));
-                  range = Range.create(start2, end);
-                } else {
-                  let start2 = Position.create(pos[0], pos[1]);
-                  range = Range.create(start2, deepClone(start2));
-                }
-              } else {
-                await executePythonCode(nvim, codes);
-              }
+        let document2 = workspace_default.getAttachedDocument(workspace_default.bufnr);
+        const session = this.bufferSync.getItem(document2.bufnr);
+        let context;
+        session.cancel(true);
+        range = await this.toRange(range);
+        const currentLine = document2.getline(range.start.line);
+        const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+        const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
+        if (ultisnip != null) {
+          const usePy = hasPython(ultisnip) || inserted.includes("`!p");
+          const bufnr = document2.bufnr;
+          context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip, { id: generateContextId(bufnr) });
+          if (usePy) {
+            if (session.placeholder) {
+              let { start, end } = session.placeholder.range;
+              let last = {
+                current_text: session.placeholder.value,
+                start: { line: start.line, col: start.character },
+                end: { line: end.line, col: end.character }
+              };
+              this.nvim.setVar("coc_last_placeholder", last, true);
+            } else {
+              this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
             }
-            const { start } = range;
-            this.nvim.call("coc#cursor#move_to", [start.line, start.character], true);
-            if (!emptyRange(range)) {
-              await document2.applyEdits([TextEdit.del(range)]);
-              range.end = Position.create(start.line, start.character);
+            const codes = getInitialPythonCode(context);
+            let preExpand = getAction(ultisnip, "preExpand");
+            if (preExpand) {
+              nvim.call("coc#cursor#move_to", [range.end.line, range.end.character], true);
+              await executePythonCode(nvim, codes.concat(['snip = coc_ultisnips_dict["PreExpandContext"]()', preExpand]));
+              const [valid, pos] = await nvim.call("pyxeval", "snip.getResult()");
+              if (valid) {
+                let count = range.end.character - range.start.character;
+                range = Range.create(pos[0], Math.max(0, pos[1] - count), pos[0], pos[1]);
+              } else {
+                range = Range.create(pos[0], pos[1], pos[0], pos[1]);
+              }
+            } else {
+              await executePythonCode(nvim, codes);
             }
-            range = await this.synchronizeSession(session, range);
           }
-          await session.start(inserted, range, select, context);
-          release();
-          return session.isActive;
-        } catch (e) {
-          release();
-          throw e;
         }
+        const noMove = ultisnip == null && !session.isActive;
+        if (!noMove) {
+          const { start } = range;
+          nvim.call("coc#cursor#move_to", [start.line, start.character], true);
+          if (!emptyRange(range)) {
+            await document2.applyEdits([TextEdit.del(range)]);
+          }
+          if (session.isActive) {
+            await session.synchronize();
+            let pos = await window_default.getCursorPosition();
+            range = Range.create(pos, pos);
+          } else {
+            range.end = Position.create(start.line, start.character);
+          }
+        }
+        await session.start(inserted, range, select, context);
+        return session.isActive;
       }
       async selectCurrentPlaceholder(triggerAutocmd = true) {
         let { session } = this;
@@ -79092,15 +79070,7 @@ var init_manager4 = __esm({
       async resolveSnippet(snippetString, ultisnip) {
         let session = this.bufferSync.getItem(workspace_default.bufnr);
         if (!session) return;
-        let release = await this.mutex.acquire();
-        try {
-          let res = await session.resolveSnippet(this.nvim, snippetString, ultisnip);
-          release();
-          return res;
-        } catch (e) {
-          release();
-          throw e;
-        }
+        return await session.resolveSnippet(this.nvim, snippetString, ultisnip);
       }
       async normalizeInsertText(bufnr, snippetString, currentLine, insertTextMode, ultisnip) {
         let inserted = "";
@@ -79108,7 +79078,12 @@ var init_manager4 = __esm({
           inserted = snippetString;
         } else {
           const currentIndent = currentLine.match(/^\s*/)[0];
-          const formatOptions = window_default.activeTextEditor ? window_default.activeTextEditor.options : await workspace_default.getFormatOptions(bufnr);
+          let formatOptions;
+          if (bufnr == window_default.activeTextEditor?.bufnr) {
+            formatOptions = window_default.activeTextEditor.options;
+          } else {
+            formatOptions = await workspace_default.getFormatOptions(bufnr);
+          }
           let opts = ultisnip ?? {};
           formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
           if (opts.noExpand) formatOptions.noExpand = true;
@@ -90834,7 +90809,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-f75b684 2025-04-27 16:04:01 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-04567f5 2025-04-29 23:42:27 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

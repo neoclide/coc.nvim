@@ -531,7 +531,12 @@ export def List_runtime_paths(): list<string>
 enddef
 
 export def Command_output(cmd: string): string
-  return trim(coc#compat#execute(cmd, 'silent'), "\r\n")
+  const output = coc#compat#execute(cmd, 'silent')
+  # The same as nvim.
+  if cmd =~# '^echo'
+    return trim(output, "\r\n")
+  endif
+  return output
 enddef
 
 export def Exec(code: string, output: bool): string
@@ -1085,7 +1090,7 @@ export def Win_get_var(id: number, name: string, ..._): any
   const tabnr = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '')
   CheckKey(vars, name)
-  return get(vars, name, v:null)
+  return get(vars, name, null)
 enddef
 
 export def Win_set_var(id: number, name: string, value: any): any
@@ -1145,7 +1150,7 @@ export def Tabpage_get_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   const dict = gettabvar(nr, '')
   CheckKey(dict, name)
-  return get(dict, name, v:null)
+  return get(dict, name, null)
 enddef
 
 export def Tabpage_set_var(tid: number, name: string, value: any): any
