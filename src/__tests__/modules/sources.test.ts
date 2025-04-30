@@ -27,6 +27,7 @@ describe('sources', () => {
     expect(sources.shouldCommit(undefined, undefined, '')).toBe(false)
     let source = sources.getSource('$words')
     expect(sources.shouldCommit(source, { word: '' }, '.')).toBe(false)
+    expect(sources.shouldCommit(source, { word: '' }, '')).toBe(false)
   })
 
   it('should get normal sources', () => {

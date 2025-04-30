@@ -232,7 +232,7 @@ export class Sources {
   }
 
   public shouldCommit(source: ISource | undefined, item: CompleteItem | undefined, commitCharacter: string): boolean {
-    if (!item || source == null) return false
+    if (!item || source == null || commitCharacter.length === 0) return false
     if (Is.func(source.shouldCommit)) {
       return source.shouldCommit(item, commitCharacter)
     }

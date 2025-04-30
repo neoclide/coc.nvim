@@ -121,6 +121,17 @@ function! coc#pum#_insert() abort
   return ''
 endfunction
 
+function! coc#pum#commit(char) abort
+  if coc#pum#visible()
+    let words = getwinvar(s:pum_winid, 'words', [])
+    if s:pum_index >= 0 && s:pum_index < len(words)
+      call coc#pum#close('confirm')
+      " Should append, not use i option.
+      call timer_start(0, {-> feedkeys(a:char, 'nt')})
+    endif
+  endif
+endfunction
+
 function! coc#pum#insert() abort
   return "\<C-r>=coc#pum#_insert()\<CR>"
 endfunction

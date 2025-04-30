@@ -15,7 +15,7 @@ import { debounce } from '../util/node'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
 import type { Disposable } from '../util/protocol'
-import { byteIndex, byteLength, byteSlice, toText } from '../util/string'
+import { byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete from './complete'
@@ -260,9 +260,7 @@ export class Completion implements Disposable {
       let result = this.complete.resolveItem(resolvedItem)
       if (result && sources.shouldCommit(result.source, result.item, last)) {
         logger.debug('commit by commit character.')
-        let startcol = byteIndex(this.option.line, resolvedItem.character) + 1
-        this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word], true)
-        this.nvim.call('feedkeys', [info.insertChar, 'n'], true)
+        this.nvim.call('coc#pum#commit', [last], true)
         return
       }
     }

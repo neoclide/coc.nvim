@@ -569,13 +569,13 @@ describe('language source', () => {
   })
 
   describe('itemDefaults', () => {
-    async function start(item: CompletionItem, itemDefaults: ItemDefaults): Promise<void> {
+    async function start(item: CompletionItem, itemDefaults: ItemDefaults, triggerCharacters: string[] = []): Promise<void> {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionList> => {
           return { items: [item], itemDefaults, isIncomplete: false }
         }
       }
-      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider))
+      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider, triggerCharacters))
       await nvim.input('i')
       nvim.call('coc#start', [{ source: 'test' }], true)
       await helper.waitPopup()
@@ -583,9 +583,12 @@ describe('language source', () => {
 
     it('should use commitCharacters from itemDefaults', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
-      await start({ label: 'foo' }, { commitCharacters: ['.'] })
+      await start({ label: 'foo' }, { commitCharacters: ['.'] }, ['.'])
       await nvim.input('.')
+      // should trigger after commit
       await helper.waitFor('getline', ['.'], 'foo.')
+      expect(events.completing).toBe(true)
+      completion.cancelAndClose()
     })
 
     it('should use range of editRange from itemDefaults', async () => {
