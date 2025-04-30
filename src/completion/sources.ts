@@ -5,7 +5,6 @@ import extensions from '../extension'
 import { createLogger } from '../logger'
 import BufferSync from '../model/bufferSync'
 import type { CompletionItemProvider, DocumentSelector } from '../provider'
-import type { WordsSource } from '../snippets/util'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { readFileLines, statAsync } from '../util/fs'
@@ -38,7 +37,6 @@ export class Sources {
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
   public keywords: BufferSync<KeywordsBuffer>
-  private wordsSource: WordsSource
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
@@ -61,11 +59,6 @@ export class Sources {
 
   public getKeywordsBuffer(bufnr: number): KeywordsBuffer {
     return this.keywords.getItem(bufnr)
-  }
-
-  public setWords(words: string[], col: number): void {
-    this.wordsSource.startcol = col
-    this.wordsSource.words = words
   }
 
   private createNativeSources(): void {
