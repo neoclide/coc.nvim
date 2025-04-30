@@ -1,5 +1,5 @@
 'use strict'
-import type { CompleteDoneItem } from './completion/types'
+import type { CompleteDoneItem, CompleteOption } from './completion/types'
 import { createLogger } from './logger'
 import { JumpInfo } from './types'
 import { disposeAll, getConditionValue } from './util'
@@ -85,7 +85,7 @@ export type TabEvents = 'TabNew' | 'TabClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
-  | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled'
+  | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled' | 'CompleteStart'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
 
@@ -343,6 +343,7 @@ export class Events {
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: CompleteDoneItem | object) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteStart', handler: (option: Readonly<CompleteOption>) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -194,15 +194,16 @@ export class Completion implements Disposable {
     option.filetype = doc.filetype
     logger.debug('trigger completion with', option)
     this.cancelAndClose()
-    this.pretext = byteSlice(option.line, 0, option.colnr - 1)
     sourceList = sourceList ?? sources.getSources(option)
     if (isFalsyOrEmpty(sourceList)) return
+    this.pretext = byteSlice(option.line, 0, option.colnr - 1)
     let complete = this.complete = new Complete(
       option,
       doc,
       this.config,
       sourceList)
     events.completing = true
+    void events.fire('CompleteStart', [option])
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
