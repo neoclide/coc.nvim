@@ -34,7 +34,7 @@ export class Window {
   public highlights: Highlights = new Highlights()
   private terminalManager: Terminals = new Terminals()
   private notifications: Notifications
-  private dialogs = new Dialogs()
+  public readonly dialogs = new Dialogs()
   public readonly cursors: Cursors
   private workspace: Workspace
   constructor() {
@@ -280,8 +280,15 @@ export class Window {
     return await this.dialogs.createQuickPick(config)
   }
 
+  public async requestInputList(prompt: string, items: string[]): Promise<number> {
+    if (items.length > this.workspace.env.lines) {
+      items = items.slice(0, this.workspace.env.lines - 2)
+    }
+    return await this.dialogs.requestInputList(prompt, items)
+  }
+
   /**
-   * Show menu picker at current cursor position, |inputlist()| is used as fallback.
+   * Show menu picker at current cursor position.
    * @param items Array of texts.
    * @param option Options for menu.
    * @param token A token that can be used to signal cancellation.

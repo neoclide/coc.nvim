@@ -395,11 +395,17 @@ describe('handler codeActions', () => {
     it('should use quickpick', async () => {
       helper.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), CodeAction.create('bar', CodeActionKind.QuickFix)]
-      let spy = jest.spyOn(window, 'showQuickpick').mockImplementation(() => {
-        return Promise.resolve(-1)
+      let spy = jest.spyOn(window.dialogs, 'requestInputList').mockReturnValue(Promise.resolve(0))
+      let action
+      let s = jest.spyOn(codeActions, 'applyCodeAction').mockImplementation((a, _token) => {
+        action = a
+        return Promise.resolve()
       })
       await codeActions.doCodeAction(null, undefined)
+      s.mockRestore()
       spy.mockRestore()
+      expect(action).toBeDefined()
+      expect(action.title).toBe('foo')
       helper.updateConfiguration('coc.preferences.floatActions', true)
     })
   })

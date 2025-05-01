@@ -1,10 +1,10 @@
-import helper from '../helper'
-import path from 'path'
-import workspace from '../../workspace'
-import Plugin from '../../plugin'
 import { Neovim } from '@chemzqm/neovim'
-import * as exportObj from '../../index'
+import path from 'path'
 import * as vsTypes from 'vscode-languageserver-types'
+import * as exportObj from '../../index'
+import Plugin from '../../plugin'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let nvim: Neovim
 let plugin: Plugin

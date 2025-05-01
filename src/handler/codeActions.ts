@@ -151,7 +151,7 @@ export default class CodeActions {
         }),
         'Choose action'
       )
-      : await window.showQuickpick(codeActions.map(o => o.title))
+      : await window.requestInputList('Choose action by number:', codeActions.map(o => o.title))
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }

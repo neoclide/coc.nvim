@@ -188,6 +188,19 @@ export class Dialogs {
     }
   }
 
+  /**
+   * Request selection by use inputlist of vim.
+   */
+  public async requestInputList(prompt: string, items: string[]): Promise<number> {
+    let { nvim } = this
+    return await this.mutex.use(async () => {
+      let list = items.map((text, i) => `${i + 1}. ${text}`)
+      let res = await callAsync<number>(this.nvim, 'inputlist', [[`${prompt}:`, ...list]])
+      nvim.command('normal! :<C-u>', true)
+      return res >= 1 && res <= items.length ? res - 1 : -1
+    })
+  }
+
   public async createInputBox(title: string, value: string | undefined, option?: InputPreference): Promise<InputBox> {
     let input = new InputBox(this.nvim, toText(value))
     await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})))
