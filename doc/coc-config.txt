@@ -1662,11 +1662,15 @@ SUGGEST
 
 	Scope: `language-overridable`, default: `false`
 
-"suggest.chineseSegments"				*coc-config-suggest-chineseSegments*
+"suggest.segmenterLocales"				*coc-config-suggest-chineseSegments*
 
-	Divide Chinese sentence into segments in around/buffer source.
+	Locales used for divide sentence into segments for around and buffer
+	source, works when NodeJS built with intl support, see:
+	https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters
+	default empty string means auto detect, use null to disable this
+	feature.
 
-	Scope: `language-overridable`, default: `true`
+	Scope: `language-overridable`, default: `""`
 
 "suggest.asciiMatch"					*coc-config-suggest-asciiMatch*
 

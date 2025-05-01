@@ -40,8 +40,8 @@ export class Sources {
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
-      const chineseSegments = workspace.getConfiguration('suggest').get('chineseSegments', true)
-      return new KeywordsBuffer(doc, chineseSegments)
+      const segmenterLocales = workspace.getConfiguration('suggest', doc).get<string>('segmenterLocales')
+      return new KeywordsBuffer(doc, segmenterLocales)
     })
     this.createNativeSources()
     this.createRemoteSources()

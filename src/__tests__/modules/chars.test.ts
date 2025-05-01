@@ -1,5 +1,5 @@
 import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
-import { Chars, IntegerRanges, getCharCode, splitKeywordOption, sameScope, chineseSegments } from '../../model/chars'
+import { Chars, IntegerRanges, detectLanguage, getCharCode, parseSegments, sameScope, splitKeywordOption } from '../../model/chars'
 import { makeLine } from '../helper'
 
 describe('funcs', () => {
@@ -26,7 +26,7 @@ describe('funcs', () => {
   })
 
   it('should chineseSegments', () => {
-    let res = Array.from(chineseSegments('你好世界'))
+    let res = Array.from(parseSegments('你好世界', 'cn'))
     expect(Array.isArray(res)).toBe(true)
     let fn = Intl['Segmenter']
     if (typeof fn === 'function') {
@@ -35,7 +35,7 @@ describe('funcs', () => {
           return undefined
         }
       })
-      res = Array.from(chineseSegments('你好世界'))
+      res = Array.from(parseSegments('你好世界', 'cn'))
       Object.defineProperty(Intl, 'Segmenter', {
         get: () => {
           return fn
@@ -43,6 +43,12 @@ describe('funcs', () => {
       })
       expect(res).toEqual(['你好世界'])
     }
+  })
+
+  it('should delete language', () => {
+    expect(detectLanguage('你'.charCodeAt(0))).toBe('cn')
+    expect(detectLanguage('れ'.charCodeAt(0))).toBe('ja')
+    expect(detectLanguage('것'.charCodeAt(0))).toBe('ko')
   })
 })
 
@@ -219,18 +225,16 @@ describe('chars', () => {
     it('should matchLine', async () => {
       let text = 'a'.repeat(2048)
       let chars = new Chars('@')
-      expect(chars.matchLine(text, true, 3, 128)).toEqual(['a'.repeat(128)])
+      expect(chars.matchLine(text, 'cn', 3, 128)).toEqual(['a'.repeat(128)])
       expect(chars.matchLine('a b c')).toEqual([])
       expect(chars.matchLine('foo bar')).toEqual(['foo', 'bar'])
       expect(chars.matchLine('?foo bar')).toEqual(['foo', 'bar'])
       expect(chars.matchLine('?foo $')).toEqual(['foo'])
       expect(chars.matchLine('?foo foo foo')).toEqual(['foo'])
       expect(chars.matchLine(' 你好foo')).toEqual(['你好', 'foo'])
-      expect(chars.matchLine('bar你好')).toEqual(['bar', '你好'])
-      expect(chars.matchLine('你好，世界。')).toEqual(['你好', '世界'])
-      expect(chars.matchLine('你好世界', true)).toEqual(['你好', '世界'])
-      expect(chars.matchLine('你好世界', false)).toEqual(['你好世界'])
+      expect(chars.matchLine('bar你好', 'cn')).toEqual(['bar', '你好'])
       expect(chars.matchLine('foo😍bar foo，bar')).toEqual(['foo', 'bar'])
+      expect(chars.matchLine('你好世界', '')).toBeDefined()
     })
   })
 

@@ -8,8 +8,8 @@ import { isGitIgnored } from '../util/fs'
 export class KeywordsBuffer implements SyncItem {
   private lineWords: ReadonlyArray<string>[] = []
   private _gitIgnored = false
-  constructor(private doc: Document, private segmentChinese = true) {
-    this.parseWords(segmentChinese)
+  constructor(private doc: Document, private segmenterLocales: string) {
+    this.parseWords(segmenterLocales)
     let uri = URI.parse(doc.uri)
     if (uri.scheme === 'file') {
       void isGitIgnored(uri.fsPath).then(ignored => {
@@ -30,11 +30,11 @@ export class KeywordsBuffer implements SyncItem {
     return res
   }
 
-  public parseWords(segmentChinese: boolean): void {
+  public parseWords(segmenterLocales: string | null): void {
     let { lineWords, doc } = this
     let { chars } = doc
     for (let line of this.doc.textDocument.lines) {
-      let words = chars.matchLine(line, segmentChinese, 2)
+      let words = chars.matchLine(line, segmenterLocales, 2)
       lineWords.push(words)
     }
   }
@@ -48,15 +48,16 @@ export class KeywordsBuffer implements SyncItem {
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
+    // TODO skip when completing
     if (e.contentChanges.length == 0) return
-    let { lineWords, doc, segmentChinese } = this
+    let { lineWords, doc, segmenterLocales } = this
     let { range, text } = e.contentChanges[0]
     let { start, end } = range
     let sl = start.line
     let el = end.line
     let del = el - sl
     let newLines = doc.textDocument.lines.slice(sl, sl + text.split(/\n/).length)
-    let arr = newLines.map(line => doc.chars.matchLine(line, segmentChinese, 2))
+    let arr = newLines.map(line => doc.chars.matchLine(line, segmenterLocales, 2))
     lineWords.splice(sl, del + 1, ...arr)
   }
 
