@@ -37606,6 +37606,18 @@ var init_dialogs = __esm({
           });
         }
       }
+      /**
+       * Request selection by use inputlist of vim.
+       */
+      async requestInputList(prompt, items) {
+        let { nvim } = this;
+        return await this.mutex.use(async () => {
+          let list2 = items.map((text, i) => `${i + 1}. ${text}`);
+          let res = await callAsync(this.nvim, "inputlist", [[`${prompt}:`, ...list2]]);
+          nvim.command("normal! :<C-u>", true);
+          return res >= 1 && res <= items.length ? res - 1 : -1;
+        });
+      }
       async createInputBox(title, value, option) {
         let input = new InputBox(this.nvim, toText(value));
         await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})));
@@ -50361,8 +50373,14 @@ var init_window = __esm({
       async createQuickPick(config = {}) {
         return await this.dialogs.createQuickPick(config);
       }
+      async requestInputList(prompt, items) {
+        if (items.length > this.workspace.env.lines) {
+          items = items.slice(0, this.workspace.env.lines - 2);
+        }
+        return await this.dialogs.requestInputList(prompt, items);
+      }
       /**
-       * Show menu picker at current cursor position, |inputlist()| is used as fallback.
+       * Show menu picker at current cursor position.
        * @param items Array of texts.
        * @param option Options for menu.
        * @param token A token that can be used to signal cancellation.
@@ -85190,7 +85208,7 @@ var init_codeActions = __esm({
             return { text: o.title, disabled: o.disabled };
           }),
           "Choose action"
-        ) : await window_default.showQuickpick(codeActions.map((o) => o.title));
+        ) : await window_default.requestInputList("Choose action by number:", codeActions.map((o) => o.title));
         let action = codeActions[idx];
         if (action) await this.applyCodeAction(action);
       }
@@ -90809,7 +90827,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-04567f5 2025-04-29 23:42:27 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-7222ade2 2025-05-01 13:35:46 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
