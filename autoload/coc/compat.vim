@@ -66,7 +66,7 @@ endfunction
 " Delete var, not throw version.
 function! coc#compat#del_var(name) abort
   if s:is_vim
-    execute 'unlet! '.a:name
+    execute 'unlet! g:' . a:name
   else
     silent! call nvim_del_var(a:name)
   endif
