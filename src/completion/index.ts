@@ -338,15 +338,15 @@ export class Completion implements Disposable {
 
   public cancelAndClose(close = true): void {
     clearTimeout(this.triggerTimer)
-    if (this.complete) {
-      if (this.popupEvent?.inserted) this.addMruItem()
-      let doc = this.complete.document
-      events.completing = false
-      this.cancel()
-      doc._forceSync()
-      if (close) this.nvim.call('coc#pum#_close', [], true)
-      events.fire('CompleteDone', [{}]).catch(onUnexpectedError)
-    }
+    if (!this.complete) return
+    const { linenr, bufnr } = this.complete.option
+    if (this.popupEvent?.inserted) this.addMruItem()
+    let doc = this.complete.document
+    events.completing = false
+    this.cancel()
+    doc._forceSync()
+    if (close) this.nvim.call('coc#pum#_close', [], true)
+    events.fire('CompleteDone', [{}, linenr, bufnr]).catch(onUnexpectedError)
   }
 
   public addMruItem(): void {
@@ -360,6 +360,7 @@ export class Completion implements Disposable {
   public async stop(kind: CompleteFinishKind): Promise<void> {
     let { complete } = this
     if (complete == null) return
+    const { linenr, bufnr } = this.complete.option
     // Confirm may not send popup change event with inserted = true
     let inserted = kind === CompleteFinishKind.Confirm || this.popupEvent?.inserted
     if (inserted) this.addMruItem()
@@ -372,7 +373,7 @@ export class Completion implements Disposable {
     if (resolved && kind == CompleteFinishKind.Confirm) {
       await this.confirmCompletion(resolved.source, resolved.item, option)
     }
-    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)]).catch(onUnexpectedError)
+    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item), linenr, bufnr]).catch(onUnexpectedError)
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {

@@ -46,6 +46,10 @@ export class Sources {
     this.createNativeSources()
     this.createRemoteSources()
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
+    events.on('CompleteDone', (_item, linenr, bufnr) => {
+      let item = this.keywords.getItem(bufnr)
+      if (item) item.onCompleteDone(linenr - 1)
+    }, null, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
         this.createVimSources(p).catch(logError)

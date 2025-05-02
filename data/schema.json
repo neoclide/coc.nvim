@@ -2053,12 +2053,6 @@
       "scope": "language-overridable",
       "default": false
     },
-    "suggest.chineseSegments": {
-      "type": "boolean",
-      "default": true,
-      "scope": "application",
-      "description": "Divide Chinese sentence into segments in around/buffer source"
-    },
     "suggest.segmenterLocales": {
       "type": ["string", "null"],
       "default": "",
@@ -2349,12 +2343,12 @@
       "minimum": 0,
       "maximum": 50,
       "scope": "language-overridable",
-      "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
+      "description": "Wait time between text change and completion start, completion is canceled when text changed during wait."
     },
     "suggest.virtualText": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show virtual text for insert word of selected item",
+      "description": "Show virtual text for insert word of the selected item if any",
       "default": false
     },
     "tree.closedIcon": {

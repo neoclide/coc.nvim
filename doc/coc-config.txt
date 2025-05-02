@@ -1662,7 +1662,7 @@ SUGGEST
 
 	Scope: `language-overridable`, default: `false`
 
-"suggest.segmenterLocales"				*coc-config-suggest-chineseSegments*
+"suggest.segmenterLocales" 				*coc-config-suggest-segmenterLocales*
 
 	Locales used for divide sentence into segments for around and buffer
 	source, works when NodeJS built with intl support, see:

@@ -206,7 +206,9 @@ describe('completion', () => {
     it('should remove current word', async () => {
       helper.updateConfiguration('suggest.removeCurrentWord', true)
       let buf = await nvim.buffer
+      let doc = workspace.getDocument(buf.id)
       await buf.setLines(['foo bar', ''], { start: 0, end: -1, strictIndexing: false })
+      await doc.patchChange()
       await nvim.call('cursor', [2, 1])
       await nvim.input('if')
       await helper.waitPopup()

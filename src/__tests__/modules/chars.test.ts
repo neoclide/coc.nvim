@@ -25,7 +25,7 @@ describe('funcs', () => {
     expect(sameScope(97, 19970)).toBe(false)
   })
 
-  it('should chineseSegments', () => {
+  it('should use Segmenter', () => {
     let res = Array.from(parseSegments('你好世界', 'cn'))
     expect(Array.isArray(res)).toBe(true)
     let fn = Intl['Segmenter']
