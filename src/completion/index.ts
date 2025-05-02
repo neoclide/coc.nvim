@@ -340,6 +340,7 @@ export class Completion implements Disposable {
     clearTimeout(this.triggerTimer)
     if (!this.complete) return
     const { linenr, bufnr } = this.complete.option
+    this.floating.cancel()
     if (this.popupEvent?.inserted) this.addMruItem()
     let doc = this.complete.document
     events.completing = false
@@ -361,6 +362,7 @@ export class Completion implements Disposable {
     let { complete } = this
     if (complete == null) return
     const { linenr, bufnr } = this.complete.option
+    this.floating.cancel()
     // Confirm may not send popup change event with inserted = true
     let inserted = kind === CompleteFinishKind.Confirm || this.popupEvent?.inserted
     if (inserted) this.addMruItem()
