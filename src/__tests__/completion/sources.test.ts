@@ -336,6 +336,47 @@ endfunction `
 })
 
 describe('native sources', () => {
+  it('should not complete when buffer not exists', async () => {
+    let tokenSource = new CancellationTokenSource()
+    let source = sources.getSource('around')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { bufnr: -1, input: 'a' })
+    let res = await source.doComplete(opt, tokenSource.token)
+    expect(res).toBeNull()
+  })
+
+  it('should not complete when check failed', async () => {
+    let tokenSource = new CancellationTokenSource()
+    for (const name of ['around', 'buffer', 'file']) {
+      let source = sources.getSource(name)
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let spy = jest.spyOn(source, 'checkComplete' as any).mockReturnValue(Promise.resolve(false))
+      let res = await source.doComplete(opt, tokenSource.token)
+      spy.mockRestore()
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete with empty input', async () => {
+    for (const name of ['around', 'buffer']) {
+      let tokenSource = new CancellationTokenSource()
+      let source = sources.getSource(name)
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let res = await source.doComplete(opt, tokenSource.token)
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete when cancelled', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { input: 'a' })
+    for (const name of ['around', 'buffer']) {
+      let source = sources.getSource(name)
+      let res = await source.doComplete(opt, CancellationToken.Cancelled)
+      expect(res).toBeNull()
+    }
+  })
+
   it('should resolveEnvVariables', () => {
     expect(resolveEnvVariables('%HOME%/data%x%', { HOME: '/home' })).toBe('/home/data%x%')
     expect(resolveEnvVariables('$HOME/${USER}/data', { HOME: '/home', USER: 'foo' })).toBe('/home/foo/data')
