@@ -1,5 +1,6 @@
 import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
+import crypto from 'crypto'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net, { Server } from 'net'
@@ -348,6 +349,14 @@ export class Helper extends EventEmitter {
 
   public createNullChannel(): OutputChannel {
     return nullChannel
+  }
+
+  public generateRandomHash(algorithm = 'sha256') {
+    const randomString = Math.random().toString(36).substring(2) // 生成随机字符串
+    const hash = crypto.createHash(algorithm)
+      .update(randomString)
+      .digest('hex') // 输出十六进制格式
+    return hash
   }
 }
 
