@@ -109,7 +109,7 @@ export interface LatestInsert {
   readonly timestamp: number
 }
 
-export class Events {
+class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition

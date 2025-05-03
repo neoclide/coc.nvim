@@ -87,6 +87,29 @@ describe('format handler', () => {
       let line = await nvim.line
       expect(line).toBe('  ')
     })
+
+    it('should use specified format provider', async () => {
+      helper.updateConfiguration('coc.preferences.formatterExtension', 'foo', disposables)
+      disposables.push(languages.registerDocumentFormatProvider([{ language: '*' }], {
+        provideDocumentFormattingEdits: () => {
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      let doc = await workspace.document
+      let res = await format.documentFormat(doc)
+      expect(res).toBe(true)
+      let provider = {
+        provideDocumentFormattingEdits: doc => {
+          let line = doc.lines[0] as string
+          return [TextEdit.replace(Range.create(0, 0, 0, line.length), 'foo')]
+        }
+      }
+      provider['__extensionName'] = 'foo'
+      disposables.push(languages.registerDocumentFormatProvider([{ language: '*' }], provider))
+      await format.documentFormat(doc)
+      let line = doc.getline(0)
+      expect(line).toBe('foo')
+    })
   })
 
   describe('formatOnSave', () => {

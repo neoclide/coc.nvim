@@ -13,6 +13,7 @@ describe('register handler', () => {
     let fn = jest.fn()
     events.on('InsertEnter', fn, null, disposables)
     events.on('InsertLeave', fn, null, disposables)
+    expect(events.pumvisible).toBe(false)
     expect(events.insertMode).toBe(false)
     await events.fire('CursorMovedI', [1, [1, 1]])
     expect(events.insertMode).toBe(true)

@@ -74,16 +74,22 @@ export default class Manager<T extends object, P = object> {
     return providerItem
   }
 
+  public getProvideByExtension(document: TextDocumentMatch, extension: string): ProviderItem<T, P> {
+    for (let item of this.providers) {
+      if (item.provider['__extensionName'] === extension) {
+        return item
+      }
+    }
+    logger.warn(`User-specified formatter not found for ${document.languageId}:`, extension)
+    return undefined
+  }
+
   protected getFormatProvider(document: TextDocumentMatch): ProviderItem<T, P> {
     // Prefer user choice
     const userChoice = workspace.getConfiguration('coc.preferences', document).get<string>('formatterExtension')
     if (userChoice) {
-      for (let item of this.providers) {
-        if (item.provider['__extensionName'] === userChoice) {
-          return item
-        }
-      }
-      logger.warn(`User-specified formatter not found for ${document.languageId}:`, userChoice)
+      let provider = this.getProvideByExtension(document, userChoice)
+      if (provider) return provider
     }
     return this.getProvider(document)
   }

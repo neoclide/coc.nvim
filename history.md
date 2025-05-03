@@ -2,6 +2,17 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-03
+
+- The performance with popupmenu navigation on vim9 have improved, for some
+  cases, it's more than 10 times faster.
+- Break change: current line is not synchronized after use the pum API like
+  `coc#pum#select()`, see `:h coc#pum#select()`, functions used as expr
+  key-mappings should be not affected.
+- Break change: configuration `suggest.segmentChinese` replaced with
+  `suggest.segmenterLocales`, see `:h coc-config-suggest-segmenterLocales`.
+- Add `CompleteStart` event to `events` module.
+
 ## 2025-04-25
 
 - Add `-level` argument support to diagnostics list.
