@@ -123,7 +123,7 @@ export default class LinkedEditingHandler {
   }
 
   private _checkPosition(bufnr: number, cursor: [number, number]): void {
-    if (events.pumvisible || !workspace.isAttached(bufnr)) return
+    if (events.completing || !workspace.isAttached(bufnr)) return
     let doc = workspace.getDocument(bufnr)
     let config = workspace.getConfiguration('coc.preferences', doc)
     let enabled = config.get<boolean>('enableLinkedEditing', false)

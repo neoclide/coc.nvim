@@ -238,19 +238,29 @@ describe('SnippetParser', () => {
   })
 
   test('Parser ConditionMarker', () => {
-    let m = new ConditionMarker(1,
-      [new Text('a '), new FormatString(1)],
-      [new Text('b '), new FormatString(2)],
-    )
-    let val = m.resolve('', ['', 'foo', 'bar'])
-    expect(val).toBe('b bar')
-    val = m.resolve('x', ['', 'foo', 'bar'])
-    expect(val).toBe('a foo')
-    m.addIfMarker(new Text('if'))
-    m.addElseMarker(new Text('else'))
-    let s = m.toTextmateString()
-    expect(s).toBe('(?1:a ${1}if:b ${2}else)')
-    expect(m.clone()).toBeDefined()
+    {
+      let m = new ConditionMarker(1,
+        [new Text('a '), new FormatString(1)],
+        [new Text('b '), new FormatString(2)],
+      )
+      let val = m.resolve('', ['', 'foo', 'bar'])
+      expect(val).toBe('b bar')
+      val = m.resolve('x', ['', 'foo', 'bar'])
+      expect(val).toBe('a foo')
+      m.addIfMarker(new Text('if'))
+      m.addElseMarker(new Text('else'))
+      let s = m.toTextmateString()
+      expect(s).toBe('(?1:a ${1}if:b ${2}else)')
+      expect(m.clone()).toBeDefined()
+    }
+    {
+      let m = new ConditionMarker(1,
+        [new Text('foo')],
+        []
+      )
+      let text = m.toTextmateString()
+      expect(text).toBe('(?1:foo)')
+    }
   })
 
   test('Parser, TM text', () => {
@@ -1226,6 +1236,7 @@ describe('TextmateSnippet', () => {
       new Text('e')
     ])
     mergeTexts(m, 0)
+    expect(m.hasCodeBlock).toBe(false)
     expect(m.children.length).toBe(5)
     expect(m.children[2].toString()).toBe('ab')
     expect(m.children[4].toString()).toBe('cde')

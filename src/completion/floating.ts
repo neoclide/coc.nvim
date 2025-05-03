@@ -27,7 +27,7 @@ export default class Floating {
       } catch (e) {
         if (isCancellationError(e)) return
         logger.error(`Error on resolve complete item from ${source.name}:`, item, e)
-        return
+        // not return, may need show/hide docs.
       }
     }
     if (showDocs) {
@@ -67,7 +67,7 @@ export default class Floating {
     workspace.nvim.redrawVim()
   }
 
-  private cancel(): void {
+  public cancel(): void {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = undefined

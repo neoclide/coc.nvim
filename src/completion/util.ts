@@ -4,6 +4,7 @@ import { InsertChange } from '../events'
 import { Chars, sameScope } from '../model/chars'
 import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
+import { pariedCharacters } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { ASCII_END } from '../util/constants'
@@ -11,7 +12,7 @@ import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
-import { byteIndex, byteSlice, characterIndex, isLowSurrogate, toText } from '../util/string'
+import { byteIndex, byteSlice, characterIndex, getUnicodeClass, isLowSurrogate, toText } from '../util/string'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
@@ -100,11 +101,29 @@ export function getDetail(item: CompletionItem, filetype: string): { filetype: s
   return undefined
 }
 
+/**
+ * Return 1 when next is inserted as paried character
+ */
+export function deltaCount(info: InsertChange): number {
+  if (!info.insertChar || !info.insertChars) return 0
+  if (info.insertChars.length != 2) return 0
+  let pre = info.pre
+  let last = pre[pre.length - 1]
+  if (last !== info.insertChars[0] || !pariedCharacters.has(last)) return 0
+  let next = info.line[pre.length]
+  if (!next || pariedCharacters.get(last) != next) return 0
+  return 1
+}
+
 export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, item: CompleteItem | undefined): CompleteDoneItem | object {
   if (!item || !selected) return {}
   return Object.assign({
     word: selected.word,
+    abbr: selected.abbr,
+    kind: selected.kind,
+    menu: selected.menu,
     source: selected.source.name,
+    isSnippet: selected.isSnippet,
     user_data: `${selected.source.name}:0`
   }, item)
 }
@@ -137,7 +156,8 @@ export function getDocumentaions(completeItem: CompleteItem, filetype: string, d
   return docs
 }
 
-export function getResumeInput(option: PartialOption, pretext: string): string {
+export function getResumeInput(option: PartialOption | undefined, pretext: string): string {
+  if (!option) return null
   const { line, col } = option
   const start = characterIndex(line, col)
   const pl = pretext.length
@@ -203,7 +223,7 @@ export function indentChanged(event: { word: string } | undefined, cursor: [numb
 
 export function shouldStop(bufnr: number, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'col'>): boolean {
   let { pre } = info
-  if (pre.length === 0 || pre[pre.length - 1] === ' ') return true
+  if (pre.length === 0 || getUnicodeClass(pre[pre.length - 1]) === 'space') return true
   if (option.bufnr != bufnr || option.linenr != info.lnum) return true
   let text = byteSlice(option.line, 0, option.col)
   if (!pre.startsWith(text)) return true

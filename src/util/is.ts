@@ -27,9 +27,9 @@ export function isHover(value: any): value is Hover {
 }
 
 export function isEditRange(value: any): value is EditRange {
-  if (value == null) return false
+  if (!value) return false
   if (Range.is(value)) return true
-  return Range.is(value.insert) || Range.is(value.replace)
+  return Range.is(value.insert) && Range.is(value.replace)
 }
 
 export function isCommand(obj: any): obj is Command {

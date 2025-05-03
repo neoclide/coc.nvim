@@ -435,11 +435,9 @@ const nonAsciiUnicodeClassRanges = [
  * Get class of a Unicode character.
  */
 export function getUnicodeClass(char: string): UnicodeClass {
-  if (char == null) return "other"
+  if (char == null || char.length === 0) return "other"
 
   const charCode = char.charCodeAt(0)
-  if (charCode == null) return "other"
-
   // Check for ASCII character
   if (charCode <= 0x7f) {
     if (charCode === 0) return "other"

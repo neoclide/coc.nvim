@@ -1,21 +1,21 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import os from 'os'
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
-import { File, filterFiles, getDirectory, getFileItem, getLastPart, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
+import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, getLastPart, resolveEnvVariables } from '../../completion/native/file'
 import Source, { firstMatchFuzzy } from '../../completion/source'
-import VimSource, { getMethodName, checkInclude } from '../../completion/source-vim'
-import sources, { Sources, logError, getSourceType } from '../../completion/sources'
+import VimSource, { checkInclude, getMethodName } from '../../completion/source-vim'
+import sources, { Sources, getSourceType, logError } from '../../completion/sources'
 import { CompleteOption, ExtendedCompleteItem, SourceConfig, SourceType } from '../../completion/types'
-import { disposeAll } from '../../util'
 import extensions from '../../extension'
+import { WordsSource } from '../../snippets/util'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
-import { WordsSource } from '../../snippets/util'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -336,6 +336,47 @@ endfunction `
 })
 
 describe('native sources', () => {
+  it('should not complete when buffer not exists', async () => {
+    let tokenSource = new CancellationTokenSource()
+    let source = sources.getSource('around')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { bufnr: -1, input: 'a' })
+    let res = await source.doComplete(opt, tokenSource.token)
+    expect(res).toBeNull()
+  })
+
+  it('should not complete when check failed', async () => {
+    let tokenSource = new CancellationTokenSource()
+    for (const name of ['around', 'buffer', 'file']) {
+      let source = sources.getSource(name)
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let spy = jest.spyOn(source, 'checkComplete' as any).mockReturnValue(Promise.resolve(false))
+      let res = await source.doComplete(opt, tokenSource.token)
+      spy.mockRestore()
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete with empty input', async () => {
+    for (const name of ['around', 'buffer']) {
+      let tokenSource = new CancellationTokenSource()
+      let source = sources.getSources({ source: name } as any)[0]
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let res = await source.doComplete(opt, tokenSource.token)
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete when cancelled', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { input: 'a' })
+    for (const name of ['around', 'buffer']) {
+      let source = sources.getSource(name)
+      let res = await source.doComplete(opt, CancellationToken.Cancelled)
+      expect(res).toBeNull()
+    }
+  })
+
   it('should resolveEnvVariables', () => {
     expect(resolveEnvVariables('%HOME%/data%x%', { HOME: '/home' })).toBe('/home/data%x%')
     expect(resolveEnvVariables('$HOME/${USER}/data', { HOME: '/home', USER: 'foo' })).toBe('/home/foo/data')

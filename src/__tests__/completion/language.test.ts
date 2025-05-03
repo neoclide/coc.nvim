@@ -6,6 +6,7 @@ import completion from '../../completion'
 import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ItemDefaults } from '../../completion/types'
+import events from '../../events'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -130,6 +131,43 @@ describe('language source', () => {
       expect(res).toBe(true)
     })
 
+    it('should not feedkeys when already inserted before', async () => {
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          textEdit: TextEdit.replace(Range.create(pos.line, pos.character, pos.line, pos.character + 1), `foo($1)$0`),
+          insertTextFormat: InsertTextFormat.Snippet,
+          commitCharacters: ['(']
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
+      await nvim.command('startinsert')
+      nvim.call('coc#start', [{ source: 'language' }], true)
+      await helper.waitPopup()
+      expect(completion.selectedItem).toBeDefined()
+      await nvim.input('(')
+      await helper.waitFor('getline', ['.'], 'foo()')
+    })
+
+    it('should not feedkeys when have paried characters before', async () => {
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          textEdit: TextEdit.replace(Range.create(pos.line, pos.character, pos.line, pos.character + 1), `foo()$0`),
+          insertTextFormat: InsertTextFormat.Snippet,
+          commitCharacters: ['(']
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
+      await nvim.command('startinsert')
+      nvim.call('coc#start', [{ source: 'language' }], true)
+      await helper.waitPopup()
+      expect(completion.selectedItem).toBeDefined()
+      await nvim.input('()<left>')
+      await helper.waitFor('getline', ['.'], 'foo()')
+    })
   })
 
   describe('resolveCompletionItem()', () => {
@@ -357,6 +395,8 @@ describe('language source', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'barfoo')
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(7)
     })
 
     it('should fix cursor position with snippet on additionalTextEdits', async () => {
@@ -418,7 +458,7 @@ describe('language source', () => {
       await nvim.input('if')
       await helper.waitPopup()
       await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'bar func(do)')
+      await events.race(['CompleteDone'], 200)
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
       expect(col).toBe(12)
@@ -566,13 +606,13 @@ describe('language source', () => {
   })
 
   describe('itemDefaults', () => {
-    async function start(item: CompletionItem, itemDefaults: ItemDefaults): Promise<void> {
+    async function start(item: CompletionItem, itemDefaults: ItemDefaults, triggerCharacters: string[] = []): Promise<void> {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionList> => {
           return { items: [item], itemDefaults, isIncomplete: false }
         }
       }
-      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider))
+      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider, triggerCharacters))
       await nvim.input('i')
       nvim.call('coc#start', [{ source: 'test' }], true)
       await helper.waitPopup()
@@ -580,9 +620,12 @@ describe('language source', () => {
 
     it('should use commitCharacters from itemDefaults', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
-      await start({ label: 'foo' }, { commitCharacters: ['.'] })
+      await start({ label: 'foo' }, { commitCharacters: ['.'] }, ['.'])
       await nvim.input('.')
+      // should trigger after commit
       await helper.waitFor('getline', ['.'], 'foo.')
+      expect(events.completing).toBe(true)
+      completion.cancelAndClose()
     })
 
     it('should use range of editRange from itemDefaults', async () => {

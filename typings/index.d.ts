@@ -5197,9 +5197,8 @@ declare module 'coc.nvim' {
     readonly abbr?: string
     readonly source: string
     readonly isSnippet: boolean
-    readonly kind?: string
+    readonly kind?: string | CompletionItemKind
     readonly menu?: string
-    readonly user_data?: string
   }
 
   export interface LocationListItem {
@@ -7141,7 +7140,14 @@ declare module 'coc.nvim' {
      */
     export function on(event: 'VimResized', handler: (columns: number, lines: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
-    export function on(event: 'CompleteDone', handler: (item: CompleteDoneItem | {}) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Fired on completion finish.
+     */
+    export function on(event: 'CompleteDone', handler: (item: VimCompleteItem & CompleteDoneItem | CompletionItem & CompleteDoneItem | {}) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Fired on completion start.
+     */
+    export function on(event: 'CompleteStart', handler: (option: CompleteOption) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'InsertCharPre', handler: (character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'FileType', handler: (filetype: string, bufnr: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     export function on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable

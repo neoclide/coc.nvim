@@ -13,7 +13,7 @@ import { DocumentChange } from '../../types'
 import { concurrent, delay, disposeAll, wait, waitWithToken } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
-import { filter } from '../../util/async'
+import { filter, forEach, map, YieldOptions } from '../../util/async'
 import * as color from '../../util/color'
 import { pluginRoot } from '../../util/constants'
 import { getSymbolKind } from '../../util/convert'
@@ -850,6 +850,7 @@ describe('strings', () => {
     expect(strings.getUnicodeClass('，')).toBe('punctuation')
     expect(strings.getUnicodeClass('你')).toBe('cjkideograph')
     expect(strings.getUnicodeClass('😘')).toBe('other')
+    expect(strings.getUnicodeClass('a')).toBe('word')
   })
 })
 
@@ -866,6 +867,13 @@ describe('Is', () => {
     expect(Is.isUrl('')).toBe(false)
     expect(Is.isUrl(undefined)).toBe(false)
     expect(Is.isUrl('file:1')).toBe(true)
+  })
+
+  it('should check insert replace edit', () => {
+    expect(Is.isEditRange(null)).toBe(false)
+    let r = Range.create(0, 0, 0, 1)
+    expect(Is.isEditRange(r)).toBe(true)
+    expect(Is.isEditRange({ insert: r, replace: r })).toBe(true)
   })
 
   it('should check command', () => {
@@ -1745,6 +1753,69 @@ describe('diff', () => {
       }, (_, done) => {
         expect(done).toBeFalsy()
       }, token)
+    })
+
+    it('should perform async forEach', async () => {
+      await forEach([], () => {})
+      let res = []
+      await forEach([1, 2], x => res.push(x))
+      expect(res).toEqual([1, 2])
+      let result = []
+      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
+      await forEach(items, () => result.push(helper.generateRandomHash()), undefined, { yieldAfter: 5 })
+      expect(result.length).toBe(items.length)
+      result = []
+      await forEach(items, () => result.push(helper.generateRandomHash()), undefined)
+      expect(result.length).toBe(items.length)
+      // it should cancel with callback called.
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      let called = false
+      let cb = () => {
+        tokenSource.cancel()
+        called = true
+      }
+      result = []
+      await forEach(items, () => result.push(helper.generateRandomHash()), token, { yieldAfter: 1, yieldCallback: cb })
+      expect(called).toBe(true)
+      expect(result.length).toBeLessThan(items.length)
+    })
+
+    it('should map with empty array should return empty array', async () => {
+      const result = await map([], x => x * 2)
+      expect(result).toEqual([])
+    })
+
+    it('should map correct transform items', async () => {
+      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
+      const result = await map(items, () => helper.generateRandomHash())
+      expect(result.length).toBe(items.length)
+    })
+
+    it('should map yieldCallback when yielding', async () => {
+      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      let called = false
+      let cb = () => {
+        tokenSource.cancel()
+        called = true
+      }
+      const options: YieldOptions = { yieldCallback: cb, yieldAfter: 5 }
+      await map(items, x => helper.generateRandomHash(), token, options)
+      expect(called).toBe(true)
+    })
+
+    it('should cancel on map', async () => {
+      let total = 1024 * 1024
+      const items = Array(total).fill(1) // 足够大的数组以确保会yield
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      process.nextTick(() => {
+        tokenSource.cancel()
+      }, 0)
+      let res = await map(items, x => helper.generateRandomHash(), token)
+      expect(res[res.length - 1]).toBeUndefined()
     })
   })
 

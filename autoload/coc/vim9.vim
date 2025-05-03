@@ -194,4 +194,20 @@ export def Set_virtual_texts(bufnr: number, ns: number, items: list<any>, indent
   Add_vtexts_timer(bufnr, ns, items, indent, priority, changedtick, maxCount)
 enddef
 
+# Replace text before cursor at current line, insert should not includes line break.
+# 0 based start col
+export def Replace_before_cursor(start: number, insert: string): void
+  var restore_hlsearch = false
+  if &hlsearch
+    restore_hlsearch = true
+    set nohlsearch
+  endif
+  const end = col('.') + 1
+  execute $'noa s/\%.l\%>{start}c.*\%<{end}c/{insert}/i'
+  cursor(line('.'), start + strlen(insert) + 1)
+  if restore_hlsearch
+    set hlsearch
+  endif
+enddef
+
 defcompile

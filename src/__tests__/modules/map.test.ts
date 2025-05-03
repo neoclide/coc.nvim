@@ -351,4 +351,15 @@ describe('Map', () => {
     assert.strictEqual([...map.keys()].length, 1)
     assert.strictEqual([...map.keys()][0], '1')
   })
+
+  test('LinkedMap, - before and after', function(): void {
+    const map = new LinkedMap<string, number>()
+    map.set('1', 1)
+    map.set('2', 2)
+    assert.strictEqual(map.before('2'), 1)
+    assert.strictEqual(map.before('1'), undefined)
+    assert.strictEqual(map.after('1'), 2)
+    assert.strictEqual(map.after('2'), undefined)
+    assert.strictEqual(map.after('3'), undefined)
+  })
 })

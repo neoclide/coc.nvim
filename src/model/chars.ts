@@ -11,7 +11,6 @@ const WORD_RANGES: [number, number][] = [[257, 893], [895, 902], [904, 1369], [1
 
 const MAX_CODE_UNIT = 65535
 
-const chineseRegex = /[\u4e00-\u9fa5]/
 const boundary = 19968
 
 export function getCharCode(str: string): number | undefined {
@@ -25,13 +24,23 @@ export function sameScope(a: number, b: number): boolean {
   return b >= boundary
 }
 
-export function* chineseSegments(text: string): Iterable<string> {
+export function detectLanguage(code: number): string {
+  // 中文范围
+  if (code >= 0x4E00 && code <= 0x9FFF) return 'cn'
+  // 日语平假名、片假名
+  if ((code >= 0x3040 && code <= 0x309F) || (code >= 0x30A0 && code <= 0x30FF)) return 'ja'
+  // 韩语
+  if (code >= 0xAC00 && code <= 0xD7AF) return 'ko'
+  return ''
+}
+
+export function* parseSegments(text: string, segmenterLocales: string): Iterable<string> {
   if (Intl === undefined || typeof Intl['Segmenter'] !== 'function') {
     yield text
     return
   }
   let res: string[] = []
-  let items = new Intl['Segmenter']('cn', { granularity: 'word' }).segment(text)
+  let items = new Intl['Segmenter'](segmenterLocales === '' ? undefined : segmenterLocales, { granularity: 'word' }).segment(text)
   for (let item of items) {
     if (item.isWordLike) {
       yield item.segment
@@ -239,7 +248,7 @@ export class Chars {
     }
   }
 
-  public matchLine(line: string, segmentChinese = true, min = 2, max = 1024): string[] {
+  public matchLine(line: string, segmenterLocales = undefined, min = 2, max = 1024): string[] {
     let res: Set<string> = new Set()
     let l = line.length
     if (l > max) {
@@ -249,8 +258,12 @@ export class Chars {
     for (let [start, end] of this.iterateWords(line)) {
       if (end - start < min) continue
       let word = line.slice(start, end)
-      if (segmentChinese && chineseRegex.test(word[0])) {
-        for (let text of chineseSegments(word)) {
+      let code = word.charCodeAt(0)
+      if (segmenterLocales != null && code > 255) {
+        if (segmenterLocales == '') {
+          segmenterLocales = detectLanguage(code)
+        }
+        for (let text of parseSegments(word, segmenterLocales)) {
           res.add(text)
         }
       } else {
