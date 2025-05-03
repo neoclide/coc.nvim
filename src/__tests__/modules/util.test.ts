@@ -869,6 +869,13 @@ describe('Is', () => {
     expect(Is.isUrl('file:1')).toBe(true)
   })
 
+  it('should check insert replace edit', () => {
+    expect(Is.isEditRange(null)).toBe(false)
+    let r = Range.create(0, 0, 0, 1)
+    expect(Is.isEditRange(r)).toBe(true)
+    expect(Is.isEditRange({ insert: r, replace: r })).toBe(true)
+  })
+
   it('should check command', () => {
     expect(Is.isCommand(undefined)).toBe(false)
     expect(Is.isCommand({})).toBe(false)
@@ -1756,6 +1763,9 @@ describe('diff', () => {
       let result = []
       const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
       await forEach(items, () => result.push(helper.generateRandomHash()), undefined, { yieldAfter: 5 })
+      expect(result.length).toBe(items.length)
+      result = []
+      await forEach(items, () => result.push(helper.generateRandomHash()), undefined)
       expect(result.length).toBe(items.length)
       // it should cancel with callback called.
       let tokenSource = new CancellationTokenSource()

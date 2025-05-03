@@ -2,7 +2,7 @@ import { CancellationToken } from '../util/protocol'
 
 const defaultYieldTimeout = 15
 
-export function waitImmediate(): Promise<void> {
+function waitImmediate(): Promise<void> {
   return new Promise(resolve => {
     setImmediate(() => {
       resolve(undefined)
