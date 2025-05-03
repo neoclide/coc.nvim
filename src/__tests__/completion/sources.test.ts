@@ -530,6 +530,7 @@ describe('native sources', () => {
     let stats = sources.sourceStats()
     let find = stats.find(o => o.name === '$words')
     expect(find).toBeUndefined()
+    expect(WordsSource).toBeDefined()
     let s = sources.getSource('$words') as WordsSource
     expect(s.name).toBe('$words')
     expect(s.shortcut).toBe('')

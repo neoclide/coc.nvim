@@ -85,14 +85,6 @@ export class CocSnippet {
     }
   }
 
-  public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
-    if (!marker) return undefined
-    let snip = this.getSnippet(marker)
-    if (!snip) return undefined
-    let context = snip.related.context
-    return getAction(context, action)
-  }
-
   public getUltiSnipOption(marker: Marker, key: UltiSnipsOption): boolean | undefined {
     let snip = this.getSnippet(marker)
     if (!snip) return undefined
@@ -143,10 +135,6 @@ export class CocSnippet {
     let tmSnippet = marker.snippet
     let placeholders = this._placeholders.filter(o => o.index == marker.index && o.marker.snippet === tmSnippet)
     return placeholders.map(o => o.range).filter(r => !emptyRange(r))
-  }
-
-  public isValidPlaceholder(marker: Placeholder): boolean {
-    return this._placeholders.find(o => o.marker === marker) != null
   }
 
   /**

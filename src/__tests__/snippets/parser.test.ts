@@ -1236,6 +1236,7 @@ describe('TextmateSnippet', () => {
       new Text('e')
     ])
     mergeTexts(m, 0)
+    expect(m.hasPythonBlock).toBe(false)
     expect(m.hasCodeBlock).toBe(false)
     expect(m.children.length).toBe(5)
     expect(m.children[2].toString()).toBe('ab')

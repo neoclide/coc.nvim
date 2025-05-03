@@ -3,7 +3,7 @@ import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-langua
 import commands from '../../commands'
 import completion, { Completion } from '../../completion'
 import sources from '../../completion/sources'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType, VimCompleteItem } from '../../completion/types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../../completion/types'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import { disposeAll, waitWithToken } from '../../util'
@@ -35,9 +35,10 @@ async function pumvisible(): Promise<boolean> {
   return res == 1
 }
 
-async function create(items: string[] | VimCompleteItem[], trigger = true): Promise<string> {
+async function create(items: string[] | VimCompleteItem[], trigger = true, conf?: Partial<SourceConfig>): Promise<string> {
   let name = Math.random().toString(16).slice(-6)
   disposables.push(sources.createSource({
+    ...(conf ?? {}),
     name,
     doComplete: (_opt: CompleteOption): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
       if (items.length == 0 || typeof items[0] === 'string') {
@@ -67,6 +68,8 @@ describe('completion', () => {
       expect(typeof Completion).toBe('function')
       await create([{ word: 'foo' }, { word: 'foo' }, { word: 'bar', preselect: true }], true)
       expect(events.completing).toBe(true)
+      await nvim.input('br')
+      await helper.waitValue(() => completion.activeItems.length, 1)
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar')
     })

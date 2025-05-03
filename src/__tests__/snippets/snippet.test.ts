@@ -253,6 +253,7 @@ describe('CocSnippet', () => {
       let m = c.tmSnippet.children[0]
       expect(c.getUltiSnipOption(m, 'noExpand')).toBe(true)
       expect(c.getUltiSnipOption(c.tmSnippet, 'noExpand')).toBe(true)
+      expect(c.getUltiSnipOption(new Text(''), 'trimTrailingWhitespace')).toBeUndefined()
     })
   })
 
@@ -573,6 +574,15 @@ describe('CocSnippet', () => {
     it('should update variable placeholders', async () => {
       await assertUpdate('${foo} ${foo}', 'bar', 'bar bar', 1, null)
       await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar', 1, null)
+    })
+
+    it('should not update when cancelled', async () => {
+      let c = await createSnippet('${1:foo} `!p snip.rv = t[1]`', {})
+      let p = c.getPlaceholderByIndex(1)
+      expect(p != null).toBe(true)
+      p.marker.setOnlyChild(new Text('bar'))
+      await c.tmSnippet.update(nvim, p.marker, CancellationToken.Cancelled)
+      expect(c.tmSnippet.toString()).toBe('bar foo')
     })
 
     it('should work with snip.c', async () => {

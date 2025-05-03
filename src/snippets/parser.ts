@@ -4,6 +4,7 @@ import { exec, ExecOptions } from 'child_process'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'
 import { groupBy } from '../util/array'
+import { runSequence } from '../util/async'
 import { CharCode } from '../util/charCode'
 import { onUnexpectedError } from '../util/errors'
 import { promisify, unidecode } from '../util/node'
@@ -884,17 +885,19 @@ export class TextmateSnippet extends Marker {
     let index = marker.index
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
-    await executePythonCode(nvim, [...codes, getVariablesCode(this.values)])
-    if (token.isCancellationRequested) return
-    for (let block of blocks) {
-      await this.updatePyIndexBlock(nvim, block, token)
-    }
-    if (token.isCancellationRequested) return
-    // update normal pyBlocks.
-    let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-    for (let block of filtered) {
-      await block.resolve(nvim, token)
-    }
+    await runSequence([async () => {
+      await executePythonCode(nvim, [...codes, getVariablesCode(this.values)])
+    }, async () => {
+      for (let block of blocks) {
+        await this.updatePyIndexBlock(nvim, block, token)
+      }
+    }, async () => {
+      // update normal pyBlocks.
+      let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
+      for (let block of filtered) {
+        await block.resolve(nvim, token)
+      }
+    }], token)
   }
 
   private getDependentPyIndexBlocks(index: number): CodeBlock[] {

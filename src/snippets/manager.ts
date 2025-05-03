@@ -114,7 +114,7 @@ export class SnippetManager {
     session.cancel(true)
     range = toValidRange(range)
     const line = document.getline(range.start.line)
-    const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+    const snippetStr = toSnippetString(snippet)
     const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, line, insertTextMode)
     await session.synchronize()
     return await session.start(inserted, range, false)
@@ -131,7 +131,7 @@ export class SnippetManager {
     session.cancel(true)
     range = await this.toRange(range)
     const currentLine = document.getline(range.start.line)
-    const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+    const snippetStr = toSnippetString(snippet)
     const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip)
     if (ultisnip != null) {
       const usePy = hasPython(ultisnip) || inserted.includes('`!p')
@@ -279,6 +279,13 @@ export class SnippetManager {
     this.cancel()
     disposeAll(this.disposables)
   }
+}
+
+export function toSnippetString(snippet: string | SnippetString): string {
+  if (typeof snippet !== 'string' && !SnippetString.isSnippetString(snippet)) {
+    throw new TypeError(`snippet should be string or SnippetString`)
+  }
+  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet
 }
 
 export default new SnippetManager()

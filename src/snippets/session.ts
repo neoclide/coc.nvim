@@ -6,7 +6,7 @@ import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { DidChangeTextDocumentParams, JumpInfo, TextDocumentContentChange, UltiSnippetOption } from '../types'
-import { waitNextTick } from '../util'
+import { defaultValue, waitNextTick } from '../util'
 import { getTextEdit } from '../util/diff'
 import { onUnexpectedError } from '../util/errors'
 import { omit } from '../util/lodash'
@@ -160,11 +160,7 @@ export class SnippetSession {
       let { placeholder } = this
       if (placeholder) await this.removeWhiteSpaceBefore(placeholder)
     }
-    let snip = marker.snippet
     const p = this.snippet.getPlaceholderOnJump(marker, true)
-    if (p && p.marker.snippet !== snip) {
-      this.snippet.deactivateSnippet(snip)
-    }
     await this.selectPlaceholder(p, true)
   }
 
@@ -362,7 +358,7 @@ export class SnippetSession {
         // find out the cloned placeholder
         let marker = this.snippet.getPlaceholderById(id, current.index)
         // the current could be invalid, so not able to find a cloned placeholder.
-        this.current = marker ?? this.snippet.tmSnippet.first
+        this.current = defaultValue(marker, this.snippet.tmSnippet.first)
       }
       return
     }
@@ -415,9 +411,9 @@ export class SnippetSession {
   }
 
   public async onCompleteDone(): Promise<void> {
-    if (this.isActive && this.isStaled) {
+    if (this.isActive) {
       this.isStaled = false
-      await this.document.patchChange()
+      this.document._forceSync()
       await this.synchronize()
     }
   }

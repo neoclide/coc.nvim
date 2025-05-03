@@ -62,6 +62,15 @@ class Timer {
   }
 }
 
+export async function runSequence(funcs: (() => Promise<void>)[], token: CancellationToken): Promise<void> {
+  for (const fn of funcs) {
+    if (token.isCancellationRequested) {
+      break
+    }
+    await fn()
+  }
+}
+
 export interface YieldOptions {
   /**
    * The time in ms after which the function should yield.

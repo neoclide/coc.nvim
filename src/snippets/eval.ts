@@ -7,7 +7,7 @@ import { isVim } from '../util/constants'
 import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
-export const contexts_var = '__coc_ultisnip_contexts'
+const contexts_var = '__coc_ultisnip_contexts'
 
 let context_id = 1
 

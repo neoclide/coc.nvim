@@ -6,7 +6,7 @@ import events from '../../events'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { CompletionItemProvider } from '../../provider'
-import snippetManager, { SnippetManager } from '../../snippets/manager'
+import snippetManager, { SnippetManager, toSnippetString } from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
 import { disposeAll } from '../../util'
 import window from '../../window'
@@ -97,13 +97,16 @@ describe('snippet provider', () => {
     })
 
     it('should show & hide status item', async () => {
-      let buf = await nvim.buffer
+      let doc = await workspace.document
+      let buf = doc.buffer
       await helper.createDocument()
       await buf.setLines([], { start: 0, end: -1 })
-      let isActive = await snippetManager.insertBufferSnippet(buf.id, '${1:foo} $0', Range.create(0, 0, 0, 0))
+      let isActive = await snippetManager.insertBufferSnippet(buf.id, ' ${1:foo} $1 $0', Range.create(0, 0, 0, 0))
       expect(isActive).toBe(true)
       let status = await nvim.getVar('coc_status')
       expect(!!status).toBe(false)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
+      await helper.waitValue(() => doc.getline(0), ' xfoo xfoo ')
     })
   })
 
@@ -373,30 +376,26 @@ describe('snippet provider', () => {
   describe('normalizeInsertText()', () => {
     it('should normalizeInsertText', async () => {
       let doc = await workspace.document
-      Object.defineProperty(window, 'activeTextEditor', {
-        get: () => {
-          return undefined
-        },
-        configurable: true,
-        enumerable: true
-      })
-      let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.adjustIndentation)
-      expect(res).toBe('foo\n  bar')
-      Object.defineProperty(window, 'activeTextEditor', {
-        get: () => {
-          return workspace.editors.activeTextEditor
-        }
-      })
+      let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.asIs)
+      expect(res).toBe('foo\nbar')
     })
 
     it('should respect noExpand', async () => {
       await nvim.command('startinsert')
-      let res = await snippetManager.insertSnippet('\t\t${1:foo}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {
+      let res = await snippetManager.insertSnippet('\t\t${1:foo}', true, Range.create(0, 0, 0, 0), InsertTextMode.adjustIndentation, {
         noExpand: true
       })
       expect(res).toBe(true)
       let line = await nvim.line
       expect(line).toBe('\t\tfoo')
+    })
+  })
+
+  describe('toSnippetString()', () => {
+    it('should show for invalid snippet', async () => {
+      await expect(async () => {
+        toSnippetString(undefined)
+      }).rejects.toThrow(TypeError)
     })
   })
 

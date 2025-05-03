@@ -172,20 +172,20 @@ describe('SnippetSession', () => {
       expect(res).toBe(true)
       let { placeholder } = session
       expect(placeholder.index).toBe(1)
-      res = await session.start('${1:foo} ${2:bar}', defaultRange)
+      res = await session.start('${1:foo} | ${2:bar}', defaultRange)
       expect(res).toBe(true)
       placeholder = session.placeholder
       expect(placeholder.value).toBe('foo')
       expect(placeholder.index).toBe(1)
       line = await nvim.getLine()
-      expect(line).toBe('foo bara b')
-      expect(session.snippet.text).toBe('foo bara b')
+      expect(line).toBe('foo | bara b')
+      expect(session.snippet.text).toBe('foo | bara b')
       await session.nextPlaceholder()
       placeholder = session.placeholder
       expect(placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('bar')
       let col = await nvim.call('col', ['.'])
-      expect(col).toBe(7)
+      expect(col).toBe(9)
       await session.nextPlaceholder()
       expect(session.isActive).toBe(true)
       // should finalize snippet
@@ -479,10 +479,23 @@ describe('SnippetSession', () => {
       expect(start).toEqual(Position.create(0, 1))
       session.deactivate()
     })
+
+    it('should cancel change synchronize', async () => {
+      let doc = await workspace.document
+      let session = await createSession()
+      let res = await session.start('${1:foo}', defaultRange)
+      expect(res).toBe(true)
+      session.cancel(true)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
+      process.nextTick(() => {
+        session.cancel()
+      })
+      await session._synchronize()
+      expect(session.snippet.tmSnippet.toString()).toBe('foo')
+    })
   })
 
   describe('deactivate()', () => {
-
     it('should deactivate on cursor outside', async () => {
       let buf = await nvim.buffer
       let session = await createSession()
