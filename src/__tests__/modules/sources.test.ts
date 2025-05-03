@@ -107,6 +107,12 @@ describe('sources', () => {
   })
 
   it('should return source states', async () => {
+    disposables.push(sources.addSource({
+      name: 'foo',
+      documentSelector: ['vim'],
+      enable: true,
+      doComplete: () => Promise.resolve({ items: [] }),
+    }))
     let stats = await helper.doAction('sourceStat')
     expect(stats.length > 1).toBe(true)
   })

@@ -212,7 +212,7 @@ describe('completion', () => {
       await nvim.call('cursor', [2, 1])
       await nvim.input('if')
       await helper.waitPopup()
-      await nvim.input('foo')
+      await nvim.input('oo')
       await helper.waitFor('coc#pum#visible', [], 0)
     })
 
@@ -614,12 +614,16 @@ describe('completion', () => {
         })
       }))
       let timer
+      let called = false
       disposables.push(sources.createSource({
         name: 'inComplete',
-        doComplete: (opt: CompleteOption) => new Promise(resolve => {
+        doComplete: (opt: CompleteOption, token) => new Promise(resolve => {
           if (opt.input.length == 1) {
             resolve({ items: [{ word: 'fa' }], isIncomplete: true })
           } else {
+            token.onCancellationRequested(() => {
+              called = true
+            })
             timer = setTimeout(() => {
               resolve({ items: [{ word: 'footman' }, { word: 'football' }, { word: 'fa' }], isIncomplete: false })
             }, 1000)
@@ -629,11 +633,13 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.waitPopup()
       await nvim.input('t')
-      clearTimeout(timer)
       await helper.waitValue((() => {
         let activeItems = completion.activeItems
         return activeItems.length == 1 && activeItems[0].word === 'foot'
       }), true)
+      await nvim.input('t')
+      await helper.waitValue(() => called, true)
+      clearTimeout(timer)
     })
 
     it('should stop if no filtered items', async () => {
@@ -856,7 +862,7 @@ describe('completion', () => {
       await helper.waitValue(() => completion.activeItems.length, 2)
     })
 
-    it('should respect commitCharacter on TextChangedI', async () => {
+    it('should respect commit character', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
       let source: ISource = {
         enable: true,

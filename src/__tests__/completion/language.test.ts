@@ -131,6 +131,43 @@ describe('language source', () => {
       expect(res).toBe(true)
     })
 
+    it('should not feedkeys when already inserted before', async () => {
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          textEdit: TextEdit.replace(Range.create(pos.line, pos.character, pos.line, pos.character + 1), `foo($1)$0`),
+          insertTextFormat: InsertTextFormat.Snippet,
+          commitCharacters: ['(']
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
+      await nvim.command('startinsert')
+      nvim.call('coc#start', [{ source: 'language' }], true)
+      await helper.waitPopup()
+      expect(completion.selectedItem).toBeDefined()
+      await nvim.input('(')
+      await helper.waitFor('getline', ['.'], 'foo()')
+    })
+
+    it('should not feedkeys when have paried characters before', async () => {
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          textEdit: TextEdit.replace(Range.create(pos.line, pos.character, pos.line, pos.character + 1), `foo()$0`),
+          insertTextFormat: InsertTextFormat.Snippet,
+          commitCharacters: ['(']
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
+      await nvim.command('startinsert')
+      nvim.call('coc#start', [{ source: 'language' }], true)
+      await helper.waitPopup()
+      expect(completion.selectedItem).toBeDefined()
+      await nvim.input('()<left>')
+      await helper.waitFor('getline', ['.'], 'foo()')
+    })
   })
 
   describe('resolveCompletionItem()', () => {

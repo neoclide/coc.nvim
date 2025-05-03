@@ -4,6 +4,7 @@ import { InsertChange } from '../events'
 import { Chars, sameScope } from '../model/chars'
 import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
+import { pariedCharacters } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { ASCII_END } from '../util/constants'
@@ -98,6 +99,20 @@ export function getDetail(item: CompletionItem, filetype: string): { filetype: s
     return { filetype: isText ? 'txt' : filetype, content: detail }
   }
   return undefined
+}
+
+/**
+ * Return 1 when next is inserted as paried character
+ */
+export function deltaCount(info: InsertChange): number {
+  if (!info.insertChar || !info.insertChars) return 0
+  if (info.insertChars.length != 2) return 0
+  let pre = info.pre
+  let last = pre[pre.length - 1]
+  if (last !== info.insertChars[0] || !pariedCharacters.has(last)) return 0
+  let next = info.line[pre.length]
+  if (!next || pariedCharacters.get(last) != next) return 0
+  return 1
 }
 
 export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, item: CompleteItem | undefined): CompleteDoneItem | object {

@@ -360,7 +360,7 @@ describe('native sources', () => {
   it('should not complete with empty input', async () => {
     for (const name of ['around', 'buffer']) {
       let tokenSource = new CancellationTokenSource()
-      let source = sources.getSource(name)
+      let source = sources.getSources({ source: name } as any)[0]
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
       let res = await source.doComplete(opt, tokenSource.token)
       expect(res).toBeNull()

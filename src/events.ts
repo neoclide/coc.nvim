@@ -46,6 +46,7 @@ export interface InsertChange {
    * Insert character that cause change of this time.
    */
   insertChar?: string
+  insertChars?: string[]
 }
 
 export enum EventName {
@@ -258,6 +259,7 @@ export class Events {
       this._recentInserts = []
       this._lastChange = Date.now()
       info.pre = pre
+      info.insertChars = arr.map(o => o[1])
       // fix cursor since vim not send CursorMovedI event
       this._cursor = Object.freeze({
         bufnr: args[0],
@@ -404,8 +406,8 @@ export class Events {
     }
   }
 
-  public once(event: AllEvents, handler: (...args: any[]) => Result, thisArg?: any): void {
-    this.on(event, handler, thisArg, true)
+  public once(event: AllEvents, handler: (...args: any[]) => Result, thisArg?: any): Disposable {
+    return this.on(event, handler, thisArg, true)
   }
 }
 

@@ -121,17 +121,6 @@ function! coc#pum#_insert() abort
   return ''
 endfunction
 
-function! coc#pum#commit(char) abort
-  if coc#pum#visible()
-    let words = getwinvar(s:pum_winid, 'words', [])
-    if s:pum_index >= 0 && s:pum_index < len(words)
-      call coc#pum#close('confirm')
-      " Should append, not use i option.
-      call timer_start(0, {-> feedkeys(a:char, 'nt')})
-    endif
-  endif
-endfunction
-
 function! coc#pum#insert() abort
   return "\<C-r>=coc#pum#_insert()\<CR>"
 endfunction
@@ -340,12 +329,15 @@ function! s:insert_word(word, finish) abort
 endfunction
 
 " Replace from col to cursor col with new characters
-function! coc#pum#replace(col, insert) abort
+function! coc#pum#replace(col, insert, delta) abort
+  if a:delta == 1
+    call feedkeys("\<right>", 'in')
+  endif
   let saved_completeopt = &completeopt
-  noa set completeopt=menu
+  noa set completeopt=noinsert,noselect
   noa call complete(a:col, [{ 'empty': v:true, 'word': a:insert }])
-  noa call feedkeys("\<C-x>\<C-z>", 'in')
-  execute 'noa set completeopt='.saved_completeopt
+  noa call feedkeys("\<C-n>\<C-x>\<C-z>", 'n')
+execute 'noa set completeopt='.saved_completeopt
 endfunction
 
 " create or update pum with lines, CompleteOption and config.

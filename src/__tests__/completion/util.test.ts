@@ -4,9 +4,9 @@ import { sortItems } from '../../completion/complete'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ISource, SortMethod } from '../../completion/types'
-import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
+import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
-import events from '../../events'
+import events, { InsertChange } from '../../events'
 import languages from '../../languages'
 import { Chars } from '../../model/chars'
 import { disposeAll } from '../../util'
@@ -70,6 +70,20 @@ describe('util functions', () => {
     expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
     item = { label: '', detail: 'detail()' }
     expect(getDetail(item, 'vim')).toEqual({ filetype: 'vim', content: 'detail()' })
+  })
+
+  it('should get deltaCount', () => {
+    let base = { lnum: 1, col: 1, line: '', changedtick: 1, pre: '' }
+    let insert: InsertChange = Object.assign({ insertChar: 's' }, base)
+    expect(deltaCount(insert)).toBe(0)
+    insert = Object.assign({ insertChar: 's', insertChars: ['s'] }, base)
+    expect(deltaCount(insert)).toBe(0)
+    insert = Object.assign({ insertChar: 's', insertChars: ['s', 's'] }, base, { pre: 's' })
+    expect(deltaCount(insert)).toBe(0)
+    insert = Object.assign({ insertChar: '<', insertChars: ['<', '>'] }, base, { pre: '<', line: '<x' })
+    expect(deltaCount(insert)).toBe(0)
+    insert = Object.assign({ insertChar: '<', insertChars: ['<', '>'] }, base, { pre: '<', line: '<>' })
+    expect(deltaCount(insert)).toBe(1)
   })
 
   it('should get caseScore', () => {

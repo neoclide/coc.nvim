@@ -7,7 +7,7 @@ import type { IConfigurationChangeEvent } from '../configuration/types'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import { createLogger } from '../logger'
 import type Document from '../model/document'
-import { defaultValue, disposeAll, getConditionValue } from '../util'
+import { defaultValue, disposeAll, getConditionValue, pariedCharacters } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { onUnexpectedError } from '../util/errors'
 import * as Is from '../util/is'
@@ -15,7 +15,7 @@ import { debounce } from '../util/node'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
 import type { Disposable } from '../util/protocol'
-import { byteLength, byteSlice, toText } from '../util/string'
+import { byteIndex, byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete from './complete'
@@ -23,7 +23,7 @@ import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
 import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
-import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, deltaCount, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
 const CURSORMOVE_DEBOUNCE = getConditionValue(20, 20)
@@ -259,8 +259,19 @@ export class Completion implements Disposable {
       let resolvedItem = this.selectedItem
       let result = this.complete.resolveItem(resolvedItem)
       if (result && sources.shouldCommit(result.source, result.item, last)) {
-        logger.debug('commit by commit character.')
-        this.nvim.call('coc#pum#commit', [last], true)
+        logger.debug(`commit by commit character: ${last}`)
+        let startcol = byteIndex(this.option.line, resolvedItem.character) + 1
+        let delta = deltaCount(info)
+        await this.nvim.call('coc#pum#replace', [startcol, resolvedItem.word, delta])
+        await this.stop(CompleteFinishKind.Confirm, true)
+        let res = await this.nvim.evalVim(`[getline('.'),col('.'),mode()]`) as [string, number, string]
+        let currentPre = byteSlice(res[0], 0, res[1] - 1)
+        // Don't know how to decide feedkeys is Needed
+        if (res[2] != 'i' || currentPre[currentPre.length - 1] == last) return
+        if (pariedCharacters.has(last) && currentPre.slice(-2) == `${last}${pariedCharacters.get(last)}`) return
+        // Need nvim_buf_set_text on vim9 to insert to end of line
+        // if (info.line === pretext && last === ';') {
+        this.nvim.call('feedkeys', [last, 'n'], true)
         return
       }
     }
@@ -336,20 +347,6 @@ export class Completion implements Disposable {
     }
   }
 
-  public cancelAndClose(close = true): void {
-    clearTimeout(this.triggerTimer)
-    if (!this.complete) return
-    const { linenr, bufnr } = this.complete.option
-    this.floating.cancel()
-    if (this.popupEvent?.inserted) this.addMruItem()
-    let doc = this.complete.document
-    events.completing = false
-    this.cancel()
-    doc._forceSync()
-    if (close) this.nvim.call('coc#pum#_close', [], true)
-    events.fire('CompleteDone', [{}, linenr, bufnr]).catch(onUnexpectedError)
-  }
-
   public addMruItem(): void {
     let { selectedItem, complete } = this
     if (!selectedItem) return
@@ -357,25 +354,36 @@ export class Completion implements Disposable {
     this._mru.add(complete.getTrigger(character), selectedItem)
   }
 
-  // Used by stopCompletion action.
-  public async stop(kind: CompleteFinishKind): Promise<void> {
-    let { complete } = this
-    if (complete == null) return
+  public cancelAndClose(close = true): void {
+    clearTimeout(this.triggerTimer)
+    if (!this.complete) return
     const { linenr, bufnr } = this.complete.option
+    this._onFinish(CompleteFinishKind.Normal, close)
+    events.fire('CompleteDone', [{}, linenr, bufnr]).catch(onUnexpectedError)
+  }
+
+  private _onFinish(kind: CompleteFinishKind, close: boolean) {
     this.floating.cancel()
-    // Confirm may not send popup change event with inserted = true
     let inserted = kind === CompleteFinishKind.Confirm || this.popupEvent?.inserted
     if (inserted) this.addMruItem()
-    let item = this.selectedItem
-    let resolved = complete.resolveItem(item)
-    let option = complete.option
+    let doc = this.complete.document
     events.completing = false
     this.cancel()
-    complete.document._forceSync()
+    doc._forceSync()
+    if (close) this.nvim.call('coc#pum#_close', [], true)
+  }
+
+  public async stop(kind: CompleteFinishKind, close = false): Promise<void> {
+    let { complete } = this
+    if (complete == null) return
+    const item = this.selectedItem
+    const resolved = complete.resolveItem(item)
+    const option = complete.option
+    this._onFinish(kind, close)
     if (resolved && kind == CompleteFinishKind.Confirm) {
       await this.confirmCompletion(resolved.source, resolved.item, option)
     }
-    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item), linenr, bufnr]).catch(onUnexpectedError)
+    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr]).catch(onUnexpectedError)
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {
