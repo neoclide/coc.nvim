@@ -226,7 +226,7 @@ function! s:AddAnsiGroups() abort
 endfunction
 
 function! s:CreateHighlight(group, fg, bg) abort
-  let cmd = coc#highlight#compose(a:fg, a:bg)
+  let cmd = coc#hlgroup#compose(a:fg, a:bg)
   if !empty(trim(cmd))
     exe 'hi default '.a:group.' '.cmd
   else
@@ -511,25 +511,25 @@ call s:AddAnsiGroups()
 
 function! s:Highlight() abort
   let normalFloat = s:is_vim ? 'Pmenu' : 'NormalFloat'
-  if coc#highlight#get_contrast('Normal', normalFloat) > 2.0
-    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
-    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
-    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
+  if coc#hlgroup#get_contrast('Normal', normalFloat) > 2.0
+    exe 'hi default CocFloating '.coc#hlgroup#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
+    exe 'hi default CocMenuSel '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
+    exe 'hi default CocFloatThumb '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
     hi default link CocFloatSbar CocFloating
   else
     exe 'hi default link CocFloating '.normalFloat
-    if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
-      exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
+    if coc#hlgroup#get_contrast('CocFloating', 'PmenuSel') > 2.0
+      exe 'hi default CocMenuSel '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
     else
-      exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+      exe 'hi default CocMenuSel '.coc#hlgroup#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
     endif
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
   exe 'hi default link CocFloatBorder ' .. (hlexists('FloatBorder') ? 'FloatBorder' : 'CocFloating')
-  if coc#highlight#get_contrast('Normal', 'CursorLine') < 1.3
+  if coc#hlgroup#get_contrast('Normal', 'CursorLine') < 1.3
     " Avoid color too close
-    exe 'hi default CocListLine '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
+    exe 'hi default CocListLine '.coc#hlgroup#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
   else
     hi default link CocListLine            CursorLine
   endif
@@ -604,7 +604,7 @@ function! s:Highlight() abort
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')
-      execute 'hi default link CocSem'.key.' '.(coc#highlight#valid(ts) ? ts : fallback)
+      execute 'hi default link CocSem'.key.' '.(coc#hlgroup#valid(ts) ? ts : fallback)
     endfor
   endif
   let symbolMap = {
@@ -644,9 +644,9 @@ function! s:Highlight() abort
       \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
-    let hlGroup = coc#highlight#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
+    let hlGroup = coc#hlgroup#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
     if hlexists(hlGroup)
-      execute 'hi default CocSymbol'.key.' '.coc#highlight#get_hl_command(synIDtrans(hlID(hlGroup)), 'fg', '223', '#ebdbb2')
+      execute 'hi default CocSymbol'.key.' '.coc#hlgroup#get_hl_command(synIDtrans(hlID(hlGroup)), 'fg', '223', '#ebdbb2')
     endif
   endfor
 endfunction
