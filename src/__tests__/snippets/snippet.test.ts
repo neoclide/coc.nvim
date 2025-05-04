@@ -9,7 +9,7 @@ import { addPythonTryCatch, executePythonCode, generateContextId, getInitialPyth
 import { CodeBlock, Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
 import { SnippetString } from '../../snippets/string'
-import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, UltiSnippetContext } from '../../snippets/util'
+import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, toSnippetString, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
@@ -28,7 +28,7 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = Range.create(0, 0, 0, 0), line = '') {
+async function createSnippet(snippet: string | TextmateSnippet, opts?: UltiSnippetOption, range = Range.create(0, 0, 0, 0), line = '') {
   let resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
   let snip = new CocSnippet(snippet, Position.create(0, 0), nvim, resolver)
   let context: UltiSnippetContext
@@ -153,6 +153,15 @@ describe('SnippetString', () => {
   })
 })
 
+describe('toSnippetString()', () => {
+  it('should convert snippet to string', async () => {
+    await expect(async () => {
+      toSnippetString(undefined)
+    }).rejects.toThrow(TypeError)
+    expect(toSnippetString(new SnippetString())).toBe('')
+  })
+})
+
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string, opts?: UltiSnippetOption) {
     let c = await createSnippet(snip, opts)
@@ -259,7 +268,9 @@ describe('CocSnippet', () => {
 
   describe('findParent()', () => {
     it('should throw when not found', async () => {
-      let c = await createSnippet('f')
+      let snip = new TextmateSnippet()
+      snip.appendChild(new Text('f'))
+      let c = await createSnippet(snip)
       expect(() => {
         c.findParent(Range.create(1, 0, 1, 0))
       }).toThrow(Error)

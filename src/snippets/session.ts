@@ -15,12 +15,14 @@ import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
+import { filterSortEdits } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
-import { getPlaceholderId, Placeholder, TextmateSnippet } from './parser'
+import { getPlaceholderId, Placeholder, Text, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
-import { reduceTextEdit, UltiSnippetContext, wordsSource } from './util'
+import { SnippetString } from './string'
+import { reduceTextEdit, toSnippetString, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
@@ -28,6 +30,11 @@ const NAME_SPACE = 'snippets'
 interface DocumentChange {
   version: number
   change: TextDocumentContentChange
+}
+
+export interface SnippetEdit {
+  range: Range
+  snippet: string | SnippetString
 }
 
 export interface SnippetConfig {
@@ -45,6 +52,7 @@ export class SnippetSession {
   private _paused = false
   public snippet: CocSnippet = null
   private _onActiveChange = new Emitter<boolean>()
+  private _selected = false
   public readonly onActiveChange: Event<boolean> = this._onActiveChange.event
 
   constructor(
@@ -52,6 +60,42 @@ export class SnippetSession {
     public readonly document: Document,
     private readonly config: SnippetConfig
   ) {
+  }
+
+  public get selected(): boolean {
+    return this._selected
+  }
+
+  public async insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
+    if (edits.length === 0) return this.isActive
+    if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false)
+    const textDocument = this.document.textDocument
+    const textEdits = filterSortEdits(textDocument, edits.map(e => TextEdit.replace(e.range, toSnippetString(e.snippet))))
+    const len = textEdits.length
+    const snip = new TextmateSnippet()
+    for (let i = 0; i < len; i++) {
+      let range = textEdits[i].range
+      let placeholder = new Placeholder(i + 1)
+      placeholder.appendChild(new Text(textDocument.getText(range)))
+      snip.appendChild(placeholder)
+      if (i != len - 1) {
+        let r = Range.create(range.end, textEdits[i + 1].range.start)
+        snip.appendChild(new Text(textDocument.getText(r)))
+      }
+    }
+    this.deactivate()
+    const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
+    let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver)
+    await snippet.init()
+    this.activate(snippet)
+    // reverse insert needed
+    for (let i = len - 1; i >= 0; i--) {
+      let idx = i + 1
+      this.current = snip.placeholders.find(o => o.index === idx)
+      let edit = textEdits[i]
+      await this.start(edit.newText, edit.range, false)
+    }
+    return this.isActive
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
@@ -94,7 +138,7 @@ export class SnippetSession {
     await this.applyEdits(edits)
     this.activate(snippet)
     // Not delay, avoid unexpected character insert
-    await this.tryPostExpand(textmateSnippet)
+    if (context) await this.tryPostExpand(textmateSnippet)
     let { placeholder } = this
     if (select && placeholder) await this.selectPlaceholder(placeholder, true)
     return this.isActive
@@ -174,6 +218,7 @@ export class SnippetSession {
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder | undefined, triggerAutocmd = true, forward = true): Promise<void> {
     let { nvim, document } = this
     if (!document || !placeholder) return
+    this._selected = true
     let { start, end } = placeholder.range
     const line = document.getline(start.line)
     const marker = this.current = placeholder.marker
@@ -424,7 +469,7 @@ export class SnippetSession {
   private activate(snippet: CocSnippet): void {
     if (this.isActive) return
     this.snippet = snippet
-    this.nvim.call('coc#snippet#enable', [this.config.preferComplete ? 1 : 0], true)
+    this.nvim.call('coc#snippet#enable', [this.bufnr, this.config.preferComplete ? 1 : 0], true)
     this._onActiveChange.fire(true)
   }
 
@@ -433,7 +478,7 @@ export class SnippetSession {
     if (!this.isActive) return
     this.snippet = null
     this.current = null
-    this.nvim.call('coc#snippet#disable', [], true)
+    this.nvim.call('coc#snippet#disable', [this.bufnr], true)
     if (this.config.highlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onActiveChange.fire(false)
     logger.debug(`session ${this.bufnr} deactivate`)

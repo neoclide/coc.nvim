@@ -4,11 +4,7 @@ let s:is_vim = !has('nvim')
 " first window id for bufnr
 " builtin bufwinid returns window of current tab only
 function! coc#compat#buf_win_id(bufnr) abort
-  let info = filter(getwininfo(), 'v:val["bufnr"] =='.a:bufnr)
-  if empty(info)
-    return -1
-  endif
-  return info[0]['winid']
+  return get(win_findbuf(a:bufnr), 0, -1)
 endfunction
 
 function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
@@ -31,7 +27,7 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   endif
   try
     call coc#compat#call('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
-  catch /^Vim\%((\a\+)\)\=:E31/
+  catch /E31/
     " ignore keymap doesn't exist
   endtry
 endfunction
@@ -81,6 +77,15 @@ endfunction
 
 function! coc#compat#list_runtime_paths() abort
   return coc#compat#call('list_runtime_paths', [])
+endfunction
+
+function! coc#compat#buf_execute(bufnr, cmds, ...) abort
+  let silent = get(a:, 1, 'silent')
+  if s:is_vim
+    let cmds = copy(a:cmds)->map({_, val -> 'legacy ' . val})
+    call coc#api#BufExecute(a:bufnr, cmds, silent)
+  else
+  endif
 endfunction
 
 function coc#compat#execute(command, ...) abort

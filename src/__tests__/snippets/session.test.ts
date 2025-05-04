@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { SnippetConfig, SnippetSession } from '../../snippets/session'
+import { SnippetConfig, SnippetEdit, SnippetSession } from '../../snippets/session'
 import { UltiSnippetContext } from '../../snippets/util'
 import { Disposable, disposeAll } from '../../util'
 import window from '../../window'
@@ -160,6 +160,34 @@ describe('SnippetSession', () => {
       await start('${VISUAL:foo}')
       let line = await nvim.line
       expect(line).toBe('foo')
+    })
+  })
+
+  describe('insertSnippetEdits', () => {
+    it('should insert snippets', async () => {
+      await helper.createDocument()
+      let session = await createSession()
+      await helper.createDocument()
+      let doc = session.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\n\nbar')])
+      let res = await session.insertSnippetEdits([])
+      expect(res).toBe(false)
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 3), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(2, 0, 2, 3), snippet: 'bar($1)' })
+      res = await session.insertSnippetEdits(edits)
+      expect(res).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo()', '', 'bar()'])
+      let range = session.placeholder!.range
+      expect(range).toEqual(Range.create(0, 4, 0, 4))
+      let ses = await createSession()
+      res = await ses.insertSnippetEdits([{ range: Range.create(0, 0, 0, 0), snippet: 'foo' }])
+      expect(res).toBe(true)
+      doc = ses.document
+      let line = doc.getline(0)
+      expect(line).toBe('foo')
+      expect(ses.selected).toBe(false)
     })
   })
 

@@ -55,7 +55,7 @@ export class CocSnippet {
   private _tmSnippet: TextmateSnippet
 
   constructor(
-    private snippetString: string,
+    private snippet: string | TextmateSnippet,
     private position: Position,
     private nvim: Neovim,
     private resolver?: VariableResolver,
@@ -93,10 +93,14 @@ export class CocSnippet {
   }
 
   public async init(ultisnip?: UltiSnippetContext): Promise<void> {
-    const parser = new SnippetParser(!!ultisnip)
-    const snippet = parser.parse(this.snippetString, true)
-    this._tmSnippet = snippet
-    await this.resolve(snippet, ultisnip)
+    if (typeof this.snippet === 'string') {
+      const parser = new SnippetParser(!!ultisnip)
+      const snippet = parser.parse(this.snippet, true)
+      this._tmSnippet = snippet
+    } else {
+      this._tmSnippet = this.snippet
+    }
+    await this.resolve(this._tmSnippet, ultisnip)
     this.synchronize()
   }
 

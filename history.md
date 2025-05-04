@@ -5,6 +5,7 @@ Notable changes of coc.nvim:
 ## 2025-05-04
 
 - Execute python on snippet resolve, disable snippet synchronize on completion.
+- Add API `snippetManager.insertBufferSnippets`.
 
 ## 2025-05-03
 

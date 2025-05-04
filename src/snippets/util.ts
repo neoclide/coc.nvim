@@ -3,6 +3,7 @@ import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completio
 import { UltiSnipsActions } from '../types'
 import { defaultValue } from '../util'
 import { getEnd } from '../util/position'
+import { SnippetString } from './string'
 
 export type UltiSnipsAction = 'preExpand' | 'postExpand' | 'postJump'
 
@@ -225,4 +226,11 @@ export function getTextAfter(range: Range, text: string, pos: Position): string 
     }
   }
   return newLines.join('\n')
+}
+
+export function toSnippetString(snippet: string | SnippetString): string {
+  if (typeof snippet !== 'string' && !SnippetString.isSnippetString(snippet)) {
+    throw new TypeError(`snippet should be string or SnippetString`)
+  }
+  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet
 }

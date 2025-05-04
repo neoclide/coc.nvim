@@ -13,9 +13,9 @@ import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode, hasPython } from './eval'
-import { SnippetConfig, SnippetSession } from './session'
+import { SnippetConfig, SnippetEdit, SnippetSession } from './session'
 import { SnippetString } from './string'
-import { getAction, normalizeSnippetString, shouldFormat, SnippetFormatOptions, UltiSnippetContext } from './util'
+import { getAction, normalizeSnippetString, shouldFormat, SnippetFormatOptions, toSnippetString, UltiSnippetContext } from './util'
 
 export class SnippetManager {
   private disposables: Disposable[] = []
@@ -57,11 +57,13 @@ export class SnippetManager {
     })
     this.disposables.push(this.bufferSync)
 
-    window.onDidChangeActiveTextEditor(e => {
-      if (!this._statusItem) return
+    window.onDidChangeActiveTextEditor(async e => {
       let session = this.bufferSync.getItem(e.bufnr)
       if (session && session.isActive) {
         this.statusItem.show()
+        if (!session.selected) {
+          await session.selectCurrentPlaceholder()
+        }
       } else {
         this.statusItem.hide()
       }
@@ -82,8 +84,8 @@ export class SnippetManager {
 
   private get statusItem(): StatusBarItem {
     if (this._statusItem) return this._statusItem
-    let statusItem = this._statusItem = window.createStatusBarItem(0)
     const snippetConfig = workspace.initialConfiguration.get('snippet') as any
+    const statusItem = this._statusItem = window.createStatusBarItem(0)
     statusItem.text = defaultValue(snippetConfig.statusText, '')
     return this._statusItem
   }
@@ -107,6 +109,24 @@ export class SnippetManager {
     if (range) return toValidRange(range)
     let pos = await window.getCursorPosition()
     return Range.create(pos, pos)
+  }
+
+  public async insertBufferSnippets(bufnr: number, edits: SnippetEdit[], select = false): Promise<boolean> {
+    let document = workspace.getAttachedDocument(bufnr)
+    const session = this.bufferSync.getItem(bufnr)
+    session.cancel(true)
+    let snippetEdit: SnippetEdit[] = []
+    for (const edit of edits) {
+      let currentLine = document.getline(edit.range.start.line)
+      let inserted = await this.normalizeInsertText(bufnr, toSnippetString(edit.snippet), currentLine, InsertTextMode.asIs)
+      snippetEdit.push({ range: edit.range, snippet: inserted })
+    }
+    await session.synchronize()
+    let isActive = await session.insertSnippetEdits(edits)
+    if (isActive && select && workspace.bufnr === bufnr) {
+      await session.selectCurrentPlaceholder()
+    }
+    return isActive
   }
 
   /**
@@ -283,13 +303,6 @@ export class SnippetManager {
     this.cancel()
     disposeAll(this.disposables)
   }
-}
-
-export function toSnippetString(snippet: string | SnippetString): string {
-  if (typeof snippet !== 'string' && !SnippetString.isSnippetString(snippet)) {
-    throw new TypeError(`snippet should be string or SnippetString`)
-  }
-  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet
 }
 
 export default new SnippetManager()

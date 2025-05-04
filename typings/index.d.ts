@@ -10972,6 +10972,11 @@ declare module 'coc.nvim' {
     isActive: boolean
   }
 
+  export interface SnippetEdit {
+    range: Range
+    snippet: string | SnippetString
+  }
+
   export interface UltiSnipsActions {
     // pre_expand action code.
     preExpand?: string
@@ -11117,6 +11122,22 @@ declare module 'coc.nvim' {
      * @returns Whether the snippet is activated.
      */
     export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean>
+
+    /**
+     * Insert multiple snippets to a specific buffer, the buffer must be
+     * attached buffer.  The buffer could be hidden, ranges of inserted snippets
+     * should not have overlap, snippets are inserted as nested snippets of a
+     * top snippet.  No ultisnip snippet support, selection is disabled by
+     * default.  When not selected, the first placeholder is selected on
+     * BufEnter event.
+     *
+     * @param {number} bufnr - Buffer number of attached buffer.
+     * @param {SnippetEdit[]} edits - snippet edits with range and snippet.
+     * @param {boolean} [select] - select the first placeholder when bufnr is
+     * current buffer.
+     * @returns {Promise<boolean>} True when snippet is activated.
+     */
+    export function insertBufferSnippets(bufnr: number, edits: SnippetEdit[], select?: boolean): Promise<boolean>
 
     /**
      * Jump to next placeholder, only works when snippet session activated.

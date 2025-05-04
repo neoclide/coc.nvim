@@ -6,7 +6,8 @@ import events from '../../events'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { CompletionItemProvider } from '../../provider'
-import snippetManager, { SnippetManager, toSnippetString } from '../../snippets/manager'
+import snippetManager, { SnippetManager } from '../../snippets/manager'
+import { SnippetEdit } from '../../snippets/session'
 import { SnippetString } from '../../snippets/string'
 import { disposeAll } from '../../util'
 import window from '../../window'
@@ -96,7 +97,7 @@ describe('snippet provider', () => {
     it('should show & hide status item', async () => {
       let doc = await workspace.document
       let buf = doc.buffer
-      await helper.createDocument()
+      let curr = await helper.createDocument()
       await buf.setLines([], { start: 0, end: -1 })
       let isActive = await snippetManager.insertBufferSnippet(buf.id, ' ${1:foo} $1 $0', Range.create(0, 0, 0, 0))
       expect(isActive).toBe(true)
@@ -104,6 +105,10 @@ describe('snippet provider', () => {
       expect(!!status).toBe(false)
       await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
       await helper.waitValue(() => doc.getline(0), ' xfoo xfoo ')
+      let active = await buf.getVar('coc_snippet_active')
+      expect(active).toBe(1)
+      active = await curr.buffer.getVar('coc_snippet_active')
+      expect(active != 1).toBe(true)
     })
   })
 
@@ -207,8 +212,36 @@ describe('snippet provider', () => {
     })
   })
 
+  describe('insertBufferSnippets()', () => {
+    it('should insert snippets', async () => {
+      let doc = await helper.createDocument()
+      await helper.createDocument()
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
+      let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits)
+      expect(result).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo()bar()'])
+      await nvim.command(`b ${doc.bufnr}`)
+      // selected on BufEnter
+      await helper.waitFor('col', ['.'], 5)
+    })
+
+    it('should select placeholder', async () => {
+      let doc = await workspace.document
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
+      let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits, true)
+      expect(result).toBe(true)
+      let cursor = await window.getCursorPosition()
+      expect(cursor).toEqual(Position.create(0, 4))
+    })
+  })
+
   describe('nextPlaceholder()', () => {
-    it('should goto next placeholder', async () => {
+    it('should go to next placeholder', async () => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
       await helper.doAction('snippetNext')
       let col = await nvim.call('col', '.')
@@ -385,14 +418,6 @@ describe('snippet provider', () => {
       expect(res).toBe(true)
       let line = await nvim.line
       expect(line).toBe('\t\tfoo')
-    })
-  })
-
-  describe('toSnippetString()', () => {
-    it('should show for invalid snippet', async () => {
-      await expect(async () => {
-        toSnippetString(undefined)
-      }).rejects.toThrow(TypeError)
     })
   })
 
