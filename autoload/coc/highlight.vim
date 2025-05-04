@@ -140,25 +140,26 @@ endfunction
 " Add multiple highlights to buffer.
 " type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 function! coc#highlight#set(bufnr, key, highlights, priority) abort
-  let ns = coc#highlight#create_namespace(a:key)
   if s:is_vim
-    call coc#vim9#Set_highlights(a:bufnr, ns, a:highlights, a:priority)
+    call coc#vim9#Set_highlights(a:bufnr, a:key, a:highlights, a:priority)
   else
-    call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
+    call v:lua.require('coc.highlight').set_highlights(a:bufnr, a:key, a:highlights, a:priority)
   endif
 endfunction
 
 function! coc#highlight#del_markers(bufnr, key, ids) abort
-  if !bufloaded(a:bufnr)
-    return
-  endif
-  let ns = coc#highlight#create_namespace(a:key)
   if s:is_vim
     call coc#vim9#Del_markers(a:bufnr, a:ids)
   else
-    for id in a:ids
-      call nvim_buf_del_extmark(a:bufnr, ns, id)
-    endfor
+    call v:lua.require('coc.highlight').del_markers(a:bufnr, a:key, a:ids)
+  endif
+endfunction
+
+function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
+  if s:is_vim
+    call coc#vim9#Clear_highlights(a:bufnr, a:key, a:start_line, a:end_line)
+  else
+    call v:lua.require('coc.highlight').clear_highlights(a:bufnr, a:key, a:start_line, a:end_line)
   endif
 endfunction
 
@@ -194,15 +195,6 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
       call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd, opts)
     endfor
   endfor
-endfunction
-
-function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
-  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  if !bufloaded(bufnr)
-    return
-  endif
-  let ns = coc#highlight#create_namespace(a:key)
-  call coc#compat#call('buf_clear_namespace', [bufnr, ns, a:start_line, a:end_line])
 endfunction
 
 " highlight buffer in winid with CodeBlock &HighlightItems
