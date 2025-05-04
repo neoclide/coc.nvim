@@ -42,6 +42,7 @@ function! coc#snippet#enable(...)
   let complete = get(a:, 1, 0)
   let b:coc_snippet_active = 1
   call coc#snippet#_select_mappings()
+
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   if maparg(nextkey, 'i') =~# 'snippet'
@@ -133,6 +134,7 @@ function! coc#snippet#select(start, end, text) abort
     let cmd .= "o\<C-g>"
   endif
   if s:is_vim
+    " Can't use 't' since the code of <esc> can be changed.
     call feedkeys(cmd, 'n')
   else
     call feedkeys(cmd, 'nt')

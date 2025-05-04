@@ -168,7 +168,6 @@ export class Helper extends EventEmitter {
     if (typeof global.gc === 'function') {
       global.gc()
     }
-    await this.wait(30)
   }
 
   public wait(ms = 30): Promise<void> {

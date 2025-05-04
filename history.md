@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-04
+
+- Execute python on snippet resolve, disable snippet synchronize on completion.
+
 ## 2025-05-03
 
 - The performance with popupmenu navigation on vim9 have improved, for some

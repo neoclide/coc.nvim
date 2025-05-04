@@ -83,9 +83,6 @@ describe('snippet provider', () => {
       await nvim.input('t')
       let s = snippetManager.session
       await doc.patchChange()
-      await helper.waitValue(() => {
-        return s.staled
-      }, true)
       events.completing = false
       await s.onCompleteDone()
       line = await nvim.line
@@ -353,12 +350,12 @@ describe('snippet provider', () => {
       expect(snippet.toString()).toBe('foo foo')
     })
 
-    it('should avoid python resolve when necessary', async () => {
+    it('should resolve python when have python snippet', async () => {
       await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {}) as any
       expect(res).toBe(true)
       let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
-      expect(snippet.toString()).toBe('x ')
+      expect(snippet.toString()).toBe('x x')
     })
 
     it('should throw when resolve throw error', async () => {

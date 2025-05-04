@@ -42,11 +42,9 @@ export class SnippetSession {
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
   private _applying = false
-  private _force = false
   private _paused = false
   public snippet: CocSnippet = null
   private _onActiveChange = new Emitter<boolean>()
-  private isStaled = false
   public readonly onActiveChange: Event<boolean> = this._onActiveChange.event
 
   constructor(
@@ -54,10 +52,6 @@ export class SnippetSession {
     public readonly document: Document,
     private readonly config: SnippetConfig
   ) {
-  }
-
-  public get staled(): boolean {
-    return this.isStaled
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
@@ -276,7 +270,6 @@ export class SnippetSession {
 
   public async synchronize(change?: DocumentChange): Promise<void> {
     const { document, isActive } = this
-    this.isStaled = false
     this._paused = false
     if (!isActive) return
     await this.mutex.use(() => {
@@ -350,11 +343,10 @@ export class SnippetSession {
     }
     const nextPlaceholder = getNextPlaceholder(current, true)
     const id = getPlaceholderId(current)
-    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force)
+    const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor)
     this.tokenSource = undefined
     if (!res) {
       if (this.snippet) {
-        this.isStaled = true
         // find out the cloned placeholder
         let marker = this.snippet.getPlaceholderById(id, current.index)
         // the current could be invalid, so not able to find a cloned placeholder.
@@ -401,10 +393,9 @@ export class SnippetSession {
 
   public async forceSynchronize(): Promise<void> {
     if (this.isActive) {
-      this._force = true
+      this._paused = false
       await this.document.patchChange()
       await this.synchronize()
-      this._force = false
     } else {
       await this.document.patchChange()
     }
@@ -412,7 +403,7 @@ export class SnippetSession {
 
   public async onCompleteDone(): Promise<void> {
     if (this.isActive) {
-      this.isStaled = false
+      this._paused = false
       this.document._forceSync()
       await this.synchronize()
     }
@@ -473,7 +464,6 @@ export class SnippetSession {
 
   public async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     let context: UltiSnippetContext
-    let position = ultisnip?.range ? ultisnip.range.start : Position.create(0, 0)
     if (ultisnip) {
       // avoid all actions
       ultisnip = omit(ultisnip, ['actions'])
@@ -481,15 +471,12 @@ export class SnippetSession {
         range: Range.create(0, 0, 0, 0),
         line: ''
       }, ultisnip, { id: generateContextId(events.bufnr) })
-      if (this.snippet?.hasPython) {
-        context.noPython = true
-      }
       if (ultisnip.noPython !== true && snippetString.includes('`!p')) {
         await executePythonCode(nvim, getInitialPythonCode(context))
       }
     }
     const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
-    let snippet = new CocSnippet(snippetString, position, nvim, resolver)
+    const snippet = new CocSnippet(snippetString, Position.create(0, 0), nvim, resolver)
     await snippet.init(context)
     return snippet.text
   }

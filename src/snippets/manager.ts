@@ -34,9 +34,13 @@ export class SnippetManager {
       let session = this.session
       if (session) session.cancel()
     }, null, this.disposables)
-    events.on('CompleteDone', async () => {
-      let session = this.bufferSync.getItem(workspace.bufnr)
+    events.on('CompleteDone', async (_item, _line, bufnr) => {
+      let session = this.bufferSync.getItem(bufnr)
       if (session) await session.onCompleteDone()
+    }, null, this.disposables)
+    events.on('CompleteStart', async opt => {
+      let session = this.bufferSync.getItem(opt.bufnr)
+      if (session) session.cancel(true)
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       let session = this.bufferSync.getItem(bufnr)
