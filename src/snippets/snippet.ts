@@ -258,6 +258,18 @@ export class CocSnippet {
         mergeTexts(parentMarker, 0)
       }
     }
+    if (parentMarker instanceof Placeholder && !parentMarker.primary) {
+      let first = parentMarker.children[0]
+      // Replace with Text
+      if (parentMarker.children.length === 1 && first instanceof Text) {
+        parentMarker.replaceWith(first)
+        return first
+      }
+      // increase index to not synchronize
+      if (Number.isInteger(parentMarker.index)) {
+        parentMarker.index += 0.1
+      }
+    }
     return parentMarker
   }
 

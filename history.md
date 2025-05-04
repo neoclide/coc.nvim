@@ -5,7 +5,9 @@ Notable changes of coc.nvim:
 ## 2025-05-04
 
 - Execute python on snippet resolve, disable snippet synchronize on completion.
-- Add API `snippetManager.insertBufferSnippets`.
+- Change of none primary placeholder would not update placeholders with same
+  index, like UltiSnip does.
+- Add API `snippetManager.insertBufferSnippets()`.
 
 ## 2025-05-03
 

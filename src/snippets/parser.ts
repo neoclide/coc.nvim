@@ -1210,6 +1210,7 @@ export class SnippetParser {
       if (marker instanceof Placeholder) {
         if (marker.index == 0) hasFinal = true
         if (marker.children.some(o => o instanceof Placeholder)) {
+          marker.primary = true
           complexPlaceholders.push(marker)
         } else if (!defaultValues.has(marker.index) && marker.children.length > 0) {
           marker.primary = true

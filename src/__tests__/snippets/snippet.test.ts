@@ -400,6 +400,13 @@ describe('CocSnippet', () => {
       expect(changed['index']).toBe(0)
       expect(changed.toString()).toBe('ar')
     })
+
+    it('should replace with Text when placeholder is not primary', async () => {
+      let c = await createSnippet('$1 ${1:foo}')
+      let result = await c.replaceWithText(Range.create(0, 0, 0, 1), 'b', CancellationToken.None)
+      expect(result.marker instanceof Text).toBe(true)
+      expect(result.snippetText).toBe('boo foo')
+    })
   })
 
   describe('replaceWithSnippet()', () => {
@@ -461,6 +468,13 @@ describe('CocSnippet', () => {
     it('should not throw when parent not exist', async () => {
       let c = await createSnippet('${1:foo}', {})
       await c.onMarkerUpdate(new Placeholder(1), CancellationToken.None)
+    })
+
+    it('should not synchronize with none primary placeholder change', async () => {
+      let c = await createSnippet('${1:foo}\n$1', {})
+      let res = await c.replaceWithSnippet(Range.create(1, 0, 1, 3), '${1:bar}')
+      expect(res.toString()).toBe('bar')
+      expect(c.tmSnippet.toString()).toBe('foo\nbar')
     })
   })
 
