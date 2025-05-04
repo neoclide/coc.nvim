@@ -264,12 +264,11 @@ function! s:Autocmd(...) abort
 endfunction
 
 function! s:HandleBufEnter(bufnr) abort
-  if !bufexists(a:bufnr) || !buflisted(a:bufnr)
-    return
-  endif
   if s:is_vim
-      "" The buffer could be hidden before, lines may not synchronized
-    call listener_flush(a:bufnr)
+    if type(a:bufnr) == v:t_number && bufloaded(a:bufnr)
+      " The buffer could be hidden before, lines may not synchronized
+      call listener_flush(a:bufnr)
+    endif
   endif
   call s:Autocmd('BufEnter', a:bufnr)
 endfunction
