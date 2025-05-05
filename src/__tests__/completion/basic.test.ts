@@ -7,6 +7,7 @@ import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceCo
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import { disposeAll, waitWithToken } from '../../util'
+import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -1543,6 +1544,20 @@ describe('completion', () => {
       completion.cancelAndClose()
       await events.fire('MenuPopupChanged', [{}])
       expect(completion.isActivated).toBe(false)
+    })
+
+    it('should not cancel when cursor moved to end of inserted word', async () => {
+      helper.updateConfiguration('suggest.noselect', true)
+      await create(['foo', 'foot'], true)
+      let items = completion.activeItems
+      let { option } = completion
+      nvim.call('coc#pum#_navigate', [1, 1], true)
+      let word = items[0].word
+      await helper.waitValue(() => {
+        return completion.selectedItem?.word == word
+      }, true)
+      completion.onCursorMovedI(option.bufnr, [option.linenr, option.col + byteLength(word) + 1], false)
+      expect(completion.isActivated).toBe(true)
     })
   })
 

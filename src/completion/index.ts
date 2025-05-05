@@ -95,8 +95,14 @@ export class Completion implements Disposable {
 
   public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
     if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
+    let { linenr, col } = this.option
+    if (!hasInsert
+      && this.selectedItem
+      && linenr === cursor[0]
+      && col + byteLength(this.selectedItem?.word) + 1 == cursor[1]) {
+      return
+    }
     // Possible cursor move out and move back, not cancel
-    let { linenr } = this.option
     if (linenr === cursor[0] && cursor[1] === byteLength(toText(this.pretext)) + 1) {
       return
     }
