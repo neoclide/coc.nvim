@@ -9,6 +9,24 @@ export def Check_sha256(bufnr: number, expected: string): bool
   return getbufline(bufnr, 1, '$')->join("\n")->sha256() ==# expected
 enddef
 
+def Create_namespace(key: any): number
+  if type(key) == v:t_number
+    return key
+  endif
+  if type(key) == v:t_string
+    return coc#api#Create_namespace($'coc-{key}')
+  endif
+  throw 'Expect number or string for namespace key.'
+enddef
+
+export def Clear_highlights(id: number, key: any, start_line: number, end_line: number): void
+  const buf = id == 0 ? bufnr('%') : id
+  if bufloaded(buf)
+    const ns = Create_namespace(key)
+    coc#api#Buf_clear_namespace(buf, ns, start_line, end_line)
+  endif
+enddef
+
 # From `coc#highlight#set(`:
 #   type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 # From `src/core/highlights.ts`:
@@ -16,9 +34,10 @@ enddef
 # type HighlightItem = list<any>
 # type HighlightItemList = list<HighlightItem>
 # NOTE: Can't use type on vim9.0.0438
-export def Set_highlights(bufnr: number, ns: number, highlights: list<any>, priority: number): void
+export def Set_highlights(bufnr: number, key: any, highlights: list<any>, priority: number): void
   const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   const changedtick = getbufvar(bufnr, 'changedtick', 0)
+  const ns = Create_namespace(key)
   Add_highlights_timer(bufnr, ns, highlights, priority, changedtick, maxCount)
 enddef
 
@@ -67,7 +86,7 @@ export def Get_highlights(bufnr: number, key: string, start: number, end: number
   if !bufloaded(bufnr)
     return []
   endif
-  const ns = coc#api#Create_namespace($'coc-{key}')
+  const ns = Create_namespace(key)
   const types: list<string> = coc#api#GetNamespaceTypes(ns)
   if empty(types)
     return []
@@ -88,9 +107,11 @@ export def Get_highlights(bufnr: number, key: string, start: number, end: number
 enddef
 
 export def Del_markers(bufnr: number, ids: list<number>): void
-  for id in ids
-    prop_remove({'bufnr': bufnr, 'id': id})
-  endfor
+  if bufloaded(bufnr)
+    for id in ids
+      prop_remove({'bufnr': bufnr, 'id': id})
+    endfor
+  endif
 enddef
 
 # Can't use strdisplaywidth as it doesn't support bufnr
@@ -192,6 +213,22 @@ export def Set_virtual_texts(bufnr: number, ns: number, items: list<any>, indent
   const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
   const changedtick = getbufvar(bufnr, 'changedtick', 0)
   Add_vtexts_timer(bufnr, ns, items, indent, priority, changedtick, maxCount)
+enddef
+
+# Replace text before cursor at current line, insert should not includes line break.
+# 0 based start col
+export def Replace_before_cursor(start: number, insert: string): void
+  var restore_hlsearch = false
+  if &hlsearch
+    restore_hlsearch = true
+    set nohlsearch
+  endif
+  const end = col('.') + 1
+  execute $'noa s/\%.l\%>{start}c.*\%<{end}c/{insert}/i'
+  cursor(line('.'), start + strlen(insert) + 1)
+  if restore_hlsearch
+    set hlsearch
+  endif
 enddef
 
 defcompile

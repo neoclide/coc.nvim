@@ -17842,9 +17842,9 @@ function isHover(value) {
   return !!candidate && objectLiteral(candidate) && (MarkupContent.is(candidate.contents) || MarkedString.is(candidate.contents) || typedArray(candidate.contents, MarkedString.is)) && (value.range == null || Range.is(value.range));
 }
 function isEditRange(value) {
-  if (value == null) return false;
+  if (!value) return false;
   if (Range.is(value)) return true;
-  return Range.is(value.insert) || Range.is(value.replace);
+  return Range.is(value.insert) && Range.is(value.replace);
 }
 function isCommand(obj) {
   if (!obj || !string(obj.title) || !string(obj.command) || obj.command.length == 0) return false;
@@ -24630,9 +24630,8 @@ function bytes(text, max) {
   };
 }
 function getUnicodeClass(char) {
-  if (char == null) return "other";
+  if (char == null || char.length === 0) return "other";
   const charCode = char.charCodeAt(0);
-  if (charCode == null) return "other";
   if (charCode <= 127) {
     if (charCode === 0) return "other";
     if (/\s/.test(char)) return "space";
@@ -24852,7 +24851,6 @@ var init_events = __esm({
         } else if (event == "InsertEnter" /* InsertEnter */) {
           this._insertMode = true;
         } else if (event == "InsertLeave" /* InsertLeave */) {
-          this._last_pum_insert = void 0;
           this._insertMode = false;
           this._pumVisible = false;
           this._recentInserts = [];
@@ -24881,17 +24879,12 @@ var init_events = __esm({
           let info = args[1];
           let pre = byteSlice(info.line ?? "", 0, info.col - 1);
           let arr;
-          if (this._last_pum_insert != null && this._last_pum_insert == pre) {
-            arr = [];
-            event = "TextChangedP" /* TextChangedP */;
-          } else {
-            arr = this._recentInserts.filter((o) => o[0] == args[0]);
-          }
-          this._last_pum_insert = void 0;
+          arr = this._recentInserts.filter((o) => o[0] == args[0]);
           this._bufnr = args[0];
           this._recentInserts = [];
           this._lastChange = Date.now();
           info.pre = pre;
+          info.insertChars = arr.map((o) => o[1]);
           this._cursor = Object.freeze({
             bufnr: args[0],
             lnum: info.lnum,
@@ -24907,9 +24900,6 @@ var init_events = __esm({
               });
             }
           }
-        } else if (event == "PumInsert" /* PumInsert */) {
-          this._last_pum_insert = args[0];
-          return;
         } else if (event == "BufWinEnter" /* BufWinEnter */) {
           const [bufnr, winid, region] = args;
           this.fireVisibleEvent({ bufnr, winid, region });
@@ -24929,7 +24919,6 @@ var init_events = __esm({
             col: args[1][1],
             insert: event == "CursorMovedI" /* CursorMovedI */
           };
-          if (this._last_pum_insert && byteLength(this._last_pum_insert) + 1 == cursor.col) return;
           if (this._cursor && equals(this._cursor, cursor)) return;
           this._cursor = cursor;
         }
@@ -25004,7 +24993,7 @@ var init_events = __esm({
         }
       }
       once(event, handler, thisArg) {
-        this.on(event, handler, thisArg, true);
+        return this.on(event, handler, thisArg, true);
       }
     };
     events_default = new Events();
@@ -25030,7 +25019,7 @@ var init_constants = __esm({
     ASCII_END = 128;
     VERSION = version;
     isVim = process.env.VIM_NODE_RPC == "1";
-    APIVERSION = 36;
+    APIVERSION = 37;
     floatHighlightGroup = "CocFloating";
     CONFIG_FILE_NAME = "coc-settings.json";
     configHome = defaultValue(process.env.COC_VIMCONFIG, path.join(os.homedir(), ".vim"));
@@ -40214,11 +40203,11 @@ var init_schema = __esm({
           scope: "language-overridable",
           default: false
         },
-        "suggest.chineseSegments": {
-          type: "boolean",
-          default: true,
-          scope: "application",
-          description: "Divide Chinese sentence into segments in around/buffer source"
+        "suggest.segmenterLocales": {
+          type: ["string", "null"],
+          default: "",
+          scope: "language-overridable",
+          description: "Locales used for divide sentence into segments for around and buffer source, works when NodeJS built with intl support, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters, default empty string means auto detect, use null to disable this feature."
         },
         "suggest.asciiMatch": {
           type: "boolean",
@@ -40504,12 +40493,12 @@ var init_schema = __esm({
           minimum: 0,
           maximum: 50,
           scope: "language-overridable",
-          description: "Wait time between text change and completion start, cancel completion when text changed during wait."
+          description: "Wait time between text change and completion start, completion is canceled when text changed during wait."
         },
         "suggest.virtualText": {
           type: "boolean",
           scope: "application",
-          description: "Show virtual text for insert word of selected item",
+          description: "Show virtual text for insert word of the selected item if any",
           default: false
         },
         "tree.closedIcon": {
@@ -42649,7 +42638,11 @@ var init_autocmds = __esm({
           this.nvim.command(cmd, true);
         } else {
           let opt = toAutocmdOption(item);
-          this.nvim.createAutocmd(item.option.event, opt, true);
+          this.nvim.createAutocmd(
+            Array.isArray(item.option.event) ? item.option.event : item.option.event.split(","),
+            opt,
+            true
+          );
         }
       }
       removeExtensionAutocmds(extensiionName) {
@@ -43406,13 +43399,19 @@ function sameScope(a, b) {
   if (a < boundary) return b < boundary;
   return b >= boundary;
 }
-function* chineseSegments(text) {
+function detectLanguage(code) {
+  if (code >= 19968 && code <= 40959) return "cn";
+  if (code >= 12352 && code <= 12447 || code >= 12448 && code <= 12543) return "ja";
+  if (code >= 44032 && code <= 55215) return "ko";
+  return "";
+}
+function* parseSegments(text, segmenterLocales) {
   if (Intl === void 0 || typeof Intl["Segmenter"] !== "function") {
     yield text;
     return;
   }
   let res = [];
-  let items = new Intl["Segmenter"]("cn", { granularity: "word" }).segment(text);
+  let items = new Intl["Segmenter"](segmenterLocales === "" ? void 0 : segmenterLocales, { granularity: "word" }).segment(text);
   for (let item of items) {
     if (item.isWordLike) {
       yield item.segment;
@@ -43452,7 +43451,7 @@ function splitKeywordOption(iskeyword) {
   }
   return res;
 }
-var WORD_RANGES, MAX_CODE_UNIT, chineseRegex, boundary, IntegerRanges, Chars;
+var WORD_RANGES, MAX_CODE_UNIT, boundary, IntegerRanges, Chars;
 var init_chars = __esm({
   "src/model/chars.ts"() {
     "use strict";
@@ -43463,7 +43462,6 @@ var init_chars = __esm({
     init_string();
     WORD_RANGES = [[257, 893], [895, 902], [904, 1369], [1376, 1416], [1418, 1469], [1471, 1471], [1473, 1474], [1476, 1522], [1525, 1547], [1549, 1562], [1564, 1566], [1568, 1641], [1646, 1747], [1749, 1791], [1806, 2403], [2406, 2415], [2417, 3571], [3573, 3662], [3664, 3673], [3676, 3843], [3859, 3897], [3902, 3972], [3974, 4169], [4176, 4346], [4348, 4960], [4969, 5740], [5743, 5759], [5761, 5786], [5789, 5866], [5870, 5940], [5943, 6099], [6109, 6143], [6155, 8191], [10240, 10495], [10649, 10711], [10716, 10747], [10750, 11775], [11904, 12287], [12321, 12335], [12337, 12348], [12350, 64829], [64832, 65071], [65132, 65279], [65296, 65305], [65313, 65338], [65345, 65370], [65382, 65535]];
     MAX_CODE_UNIT = 65535;
-    chineseRegex = /[\u4e00-\u9fa5]/;
     boundary = 19968;
     IntegerRanges = class _IntegerRanges {
       /**
@@ -43617,7 +43615,7 @@ var init_chars = __esm({
           prevCode = code;
         }
       }
-      matchLine(line, segmentChinese = true, min = 2, max = 1024) {
+      matchLine(line, segmenterLocales = void 0, min = 2, max = 1024) {
         let res = /* @__PURE__ */ new Set();
         let l = line.length;
         if (l > max) {
@@ -43627,8 +43625,12 @@ var init_chars = __esm({
         for (let [start, end] of this.iterateWords(line)) {
           if (end - start < min) continue;
           let word = line.slice(start, end);
-          if (segmentChinese && chineseRegex.test(word[0])) {
-            for (let text of chineseSegments(word)) {
+          let code = word.charCodeAt(0);
+          if (segmenterLocales != null && code > 255) {
+            if (segmenterLocales == "") {
+              segmenterLocales = detectLanguage(code);
+            }
+            for (let text of parseSegments(word, segmenterLocales)) {
               res.add(text);
             }
           } else {
@@ -44052,7 +44054,7 @@ var init_document = __esm({
           }
           this.lines = lines2;
           fireLinesChanged(id2);
-          if (events_default.pumvisible) return;
+          if (events_default.completing) return;
           this.fireContentChanges();
         };
         if (isVim) {
@@ -44198,6 +44200,7 @@ var init_document = __esm({
         this._forceSync();
       }
       _forceSync() {
+        if (!this._attached) return;
         this.fireContentChanges.clear();
         this._fireContentChanges();
       }
@@ -47579,27 +47582,33 @@ var init_files = __esm({
         const ac = new AbortController();
         if (token) {
           token.onCancellationRequested(() => {
-            ac.abort();
+            if (!ac.signal.aborted) ac.abort();
           });
         }
         for (let root of roots) {
-          let files = await glob.glob(pattern, {
-            signal: ac.signal,
-            dot: true,
-            cwd: root,
-            nodir: true,
-            absolute: false
-          });
-          if (token?.isCancellationRequested) break;
-          for (let file of files) {
-            if (exclude && fileMatch(root, file, exclude)) continue;
-            res.push(URI2.file(path.join(root, file)));
-            if (res.length === maxResults) {
-              exceed = true;
+          try {
+            let files = await glob.glob(pattern, {
+              signal: ac.signal,
+              dot: true,
+              cwd: root,
+              nodir: true,
+              absolute: false
+            });
+            if (token?.isCancellationRequested) break;
+            for (let file of files) {
+              if (exclude && fileMatch(root, file, exclude)) continue;
+              res.push(URI2.file(path.join(root, file)));
+              if (res.length === maxResults) {
+                exceed = true;
+                break;
+              }
+            }
+            if (exceed) break;
+          } catch (e) {
+            if (e["name"] === "AbortError") {
               break;
             }
           }
-          if (exceed) break;
         }
         return res;
       }
@@ -50514,6 +50523,123 @@ var init_types2 = __esm({
   }
 });
 
+// src/util/async.ts
+function waitImmediate2() {
+  return new Promise((resolve) => {
+    setImmediate(() => {
+      resolve(void 0);
+    });
+  });
+}
+async function runSequence(funcs, token) {
+  for (const fn of funcs) {
+    if (token.isCancellationRequested) {
+      break;
+    }
+    await fn();
+  }
+}
+async function forEach(items, func2, token, options2) {
+  if (items.length === 0) {
+    return;
+  }
+  const timer = new Timer(options2?.yieldAfter);
+  function runBatch(start) {
+    timer.start();
+    for (let i = start; i < items.length; i++) {
+      func2(items[i]);
+      if (timer.shouldYield()) {
+        if (options2?.yieldCallback) {
+          options2.yieldCallback();
+        }
+        return i + 1;
+      }
+    }
+    return -1;
+  }
+  let index = runBatch(0);
+  while (index !== -1) {
+    await waitImmediate2();
+    if (token !== void 0 && token.isCancellationRequested) {
+      break;
+    }
+    index = runBatch(index);
+  }
+}
+async function filter(items, isValid, onFilter, token) {
+  if (items.length === 0) return;
+  const timer = new Timer();
+  const len = items.length;
+  function convertBatch(start) {
+    const result = [];
+    timer.start();
+    for (let i = start; i < len; i++) {
+      let item = items[i];
+      let res = isValid(item);
+      if (res === true) {
+        result.push(item);
+      } else if (res) {
+        result.push(Object.assign({}, item, res));
+      }
+      if (timer.shouldYield()) {
+        let done = i === len - 1;
+        onFilter(result, done);
+        return done ? -1 : i + 1;
+      }
+    }
+    onFilter(result, true);
+    return -1;
+  }
+  let index = convertBatch(0);
+  while (index !== -1) {
+    await waitImmediate2();
+    if (token != null && token.isCancellationRequested) {
+      break;
+    }
+    index = convertBatch(index);
+  }
+}
+var defaultYieldTimeout, Timer;
+var init_async = __esm({
+  "src/util/async.ts"() {
+    "use strict";
+    defaultYieldTimeout = 15;
+    Timer = class {
+      constructor(yieldAfter = defaultYieldTimeout) {
+        this.yieldAfter = Math.max(yieldAfter, defaultYieldTimeout);
+        this.startTime = Date.now();
+        this.counter = 0;
+        this.total = 0;
+        this.counterInterval = 1;
+      }
+      start() {
+        this.startTime = Date.now();
+      }
+      shouldYield() {
+        if (++this.counter >= this.counterInterval) {
+          const timeTaken = Date.now() - this.startTime;
+          const timeLeft = Math.max(0, this.yieldAfter - timeTaken);
+          this.total += this.counter;
+          this.counter = 0;
+          if (timeTaken >= this.yieldAfter || timeLeft <= 1) {
+            this.counterInterval = 1;
+            this.total = 0;
+            return true;
+          } else {
+            switch (timeTaken) {
+              case 0:
+              case 1:
+                this.counterInterval = this.total * 2;
+                break;
+            }
+          }
+        }
+        return false;
+      }
+    };
+  }
+});
+
 // src/snippets/eval.ts
 function generateContextId(bufnr) {
   return `${bufnr}-${context_id++}`;
@@ -50622,6 +50748,86 @@ var init_eval = __esm({
   }
 });
 
+// src/snippets/string.ts
+var SnippetString;
+var init_string2 = __esm({
+  "src/snippets/string.ts"() {
+    "use strict";
+    SnippetString = class _SnippetString {
+      constructor(value) {
+        this._tabstop = 1;
+        this.value = value || "";
+      }
+      static isSnippetString(thing) {
+        if (thing instanceof _SnippetString) {
+          return true;
+        }
+        if (!thing) {
+          return false;
+        }
+        return typeof thing.value === "string";
+      }
+      static _escape(value) {
+        return value.replace(/\$|}|\\/g, "\\$&");
+      }
+      appendText(str) {
+        this.value += _SnippetString._escape(str);
+        return this;
+      }
+      appendTabstop(num = this._tabstop++) {
+        this.value += "$";
+        this.value += num;
+        return this;
+      }
+      appendPlaceholder(value, num = this._tabstop++) {
+        if (typeof value === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          value(nested);
+          this._tabstop = nested._tabstop;
+          value = nested.value;
+        } else {
+          value = _SnippetString._escape(value);
+        }
+        this.value += "${";
+        this.value += num;
+        this.value += ":";
+        this.value += value;
+        this.value += "}";
+        return this;
+      }
+      appendChoice(values, num = this._tabstop++) {
+        const value = values.map((s) => s.replaceAll(/[|\\,]/g, "\\$&")).join(",");
+        this.value += "${";
+        this.value += num;
+        this.value += "|";
+        this.value += value;
+        this.value += "|}";
+        return this;
+      }
+      appendVariable(name2, defaultValue2) {
+        if (typeof defaultValue2 === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          defaultValue2(nested);
+          this._tabstop = nested._tabstop;
+          defaultValue2 = nested.value;
+        } else if (typeof defaultValue2 === "string") {
+          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
+        }
+        this.value += "${";
+        this.value += name2;
+        if (defaultValue2) {
+          this.value += ":";
+          this.value += defaultValue2;
+        }
+        this.value += "}";
+        return this;
+      }
+    };
+  }
+});
+
 // src/snippets/util.ts
 var util_exports = {};
 __export(util_exports, {
@@ -50634,6 +50840,7 @@ __export(util_exports, {
   normalizeSnippetString: () => normalizeSnippetString,
   reduceTextEdit: () => reduceTextEdit,
   shouldFormat: () => shouldFormat,
+  toSnippetString: () => toSnippetString,
   wordsSource: () => wordsSource
 });
 function convertRegex(str) {
@@ -50758,6 +50965,12 @@ function getTextAfter(range, text, pos) {
   }
   return newLines.join("\n");
 }
+function toSnippetString(snippet) {
+  if (typeof snippet !== "string" && !SnippetString.isSnippetString(snippet)) {
+    throw new TypeError(`snippet should be string or SnippetString`);
+  }
+  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+}
 var stringStartRe, conditionRe, commentRe, namedCaptureRe, namedReferenceRe, regex, WordsSource, wordsSource;
 var init_util3 = __esm({
   "src/snippets/util.ts"() {
@@ -50765,6 +50978,7 @@ var init_util3 = __esm({
     init_main();
     init_util();
     init_position();
+    init_string2();
     stringStartRe = /\\A/;
     conditionRe = /\(\?\(\w+\).+\|/;
     commentRe = /\(\?#.*?\)/;
@@ -50901,6 +51115,7 @@ var init_parser3 = __esm({
     import_child_process = require("child_process");
     init_logger();
     init_array();
+    init_async();
     init_charCode();
     init_errors();
     init_node();
@@ -51557,16 +51772,18 @@ var init_parser3 = __esm({
       async updatePythonCodes(nvim, marker, codes, token) {
         let index = marker.index;
         let blocks = this.getDependentPyIndexBlocks(index);
-        await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
-        if (token.isCancellationRequested) return;
-        for (let block2 of blocks) {
-          await this.updatePyIndexBlock(nvim, block2, token);
-        }
-        if (token.isCancellationRequested) return;
-        let filtered = this.pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
-        for (let block2 of filtered) {
-          await block2.resolve(nvim, token);
-        }
+        await runSequence([async () => {
+          await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
+        }, async () => {
+          for (let block2 of blocks) {
+            await this.updatePyIndexBlock(nvim, block2, token);
+          }
+        }, async () => {
+          let filtered = this.pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
+          for (let block2 of filtered) {
+            await block2.resolve(nvim, token);
+          }
+        }], token);
       }
       getDependentPyIndexBlocks(index) {
         const res = [];
@@ -51841,6 +52058,7 @@ var init_parser3 = __esm({
           if (marker instanceof Placeholder) {
             if (marker.index == 0) hasFinal = true;
             if (marker.children.some((o) => o instanceof Placeholder)) {
+              marker.primary = true;
               complexPlaceholders.push(marker);
             } else if (!defaultValues.has(marker.index) && marker.children.length > 0) {
               marker.primary = true;
@@ -52699,11 +52917,25 @@ function getDetail(item, filetype) {
   }
   return void 0;
 }
+function deltaCount(info) {
+  if (!info.insertChar || !info.insertChars) return 0;
+  if (info.insertChars.length != 2) return 0;
+  let pre = info.pre;
+  let last = pre[pre.length - 1];
+  if (last !== info.insertChars[0] || !pariedCharacters.has(last)) return 0;
+  let next = info.line[pre.length];
+  if (!next || pariedCharacters.get(last) != next) return 0;
+  return 1;
+}
 function toCompleteDoneItem(selected, item) {
   if (!item || !selected) return {};
   return Object.assign({
     word: selected.word,
+    abbr: selected.abbr,
+    kind: selected.kind,
+    menu: selected.menu,
     source: selected.source.name,
+    isSnippet: selected.isSnippet,
     user_data: `${selected.source.name}:0`
   }, item);
 }
@@ -52735,6 +52967,7 @@ function getDocumentaions(completeItem, filetype, detailRendered = false) {
   return docs;
 }
 function getResumeInput(option, pretext) {
+  if (!option) return null;
   const { line, col } = option;
   const start = characterIndex(line, col);
   const pl = pretext.length;
@@ -52787,7 +53020,7 @@ function createKindMap(labels) {
 }
 function shouldStop(bufnr, info, option) {
   let { pre } = info;
-  if (pre.length === 0 || pre[pre.length - 1] === " ") return true;
+  if (pre.length === 0 || getUnicodeClass(pre[pre.length - 1]) === "space") return true;
   if (option.bufnr != bufnr || option.linenr != info.lnum) return true;
   let text = byteSlice(option.line, 0, option.col);
   if (!pre.startsWith(text)) return true;
@@ -52885,6 +53118,7 @@ var init_util4 = __esm({
     init_main();
     init_chars();
     init_parser3();
+    init_util();
     init_array();
     init_charCode();
     init_constants();
@@ -54492,15 +54726,20 @@ var init_manager2 = __esm({
         }
         return providerItem;
       }
+      getProvideByExtension(document2, extension) {
+        for (let item of this.providers) {
+          if (item.provider["__extensionName"] === extension) {
+            return item;
+          }
+        }
+        logger23.warn(`User-specified formatter not found for ${document2.languageId}:`, extension);
+        return void 0;
+      }
       getFormatProvider(document2) {
         const userChoice = workspace_default.getConfiguration("coc.preferences", document2).get("formatterExtension");
         if (userChoice) {
-          for (let item of this.providers) {
-            if (item.provider["__extensionName"] === userChoice) {
-              return item;
-            }
-          }
-          logger23.warn(`User-specified formatter not found for ${document2.languageId}:`, userChoice);
+          let provider = this.getProvideByExtension(document2, userChoice);
+          if (provider) return provider;
         }
         return this.getProvider(document2);
       }
@@ -68937,84 +69176,6 @@ var init_ui2 = __esm({
   }
 });
 
-// src/util/async.ts
-async function filter(items, isValid, onFilter, token) {
-  if (items.length === 0) return;
-  const timer = new Timer();
-  const len = items.length;
-  function convertBatch(start) {
-    const result = [];
-    timer.start();
-    for (let i = start; i < len; i++) {
-      let item = items[i];
-      let res = isValid(item);
-      if (res === true) {
-        result.push(item);
-      } else if (res) {
-        result.push(Object.assign({}, item, res));
-      }
-      if (timer.shouldYield()) {
-        let done = i === len - 1;
-        onFilter(result, done);
-        return done ? -1 : i + 1;
-      }
-    }
-    onFilter(result, true);
-    return -1;
-  }
-  let index = convertBatch(0);
-  while (index !== -1) {
-    if (token != null && token.isCancellationRequested) {
-      break;
-    }
-    index = await new Promise((resolve) => {
-      setImmediate(() => {
-        resolve(convertBatch(index));
-      });
-    });
-  }
-}
-var defaultYieldTimeout, Timer;
-var init_async = __esm({
-  "src/util/async.ts"() {
-    "use strict";
-    defaultYieldTimeout = 15;
-    Timer = class {
-      constructor(yieldAfter = defaultYieldTimeout) {
-        this.yieldAfter = Math.max(yieldAfter, defaultYieldTimeout);
-        this.startTime = Date.now();
-        this.counter = 0;
-        this.total = 0;
-        this.counterInterval = 1;
-      }
-      start() {
-        this.startTime = Date.now();
-      }
-      shouldYield() {
-        if (++this.counter >= this.counterInterval) {
-          const timeTaken = Date.now() - this.startTime;
-          const timeLeft = Math.max(0, this.yieldAfter - timeTaken);
-          this.total += this.counter;
-          this.counter = 0;
-          if (timeTaken >= this.yieldAfter || timeLeft <= 1) {
-            this.counterInterval = 1;
-            this.total = 0;
-            return true;
-          } else {
-            switch (timeTaken) {
-              case 0:
-              case 1:
-                this.counterInterval = this.total * 2;
-                break;
-            }
-          }
-        }
-        return false;
-      }
-    };
-  }
-});
-
 // src/list/worker.ts
 function getFilterLabel(item) {
   return item.filterText != null ? patchLine(item.filterText, item.label) : item.label;
@@ -77807,7 +77968,6 @@ var init_snippet = __esm({
   "src/snippets/snippet.ts"() {
     "use strict";
     init_main();
-    init_events();
     init_textdocument();
     init_util();
     init_position();
@@ -77816,8 +77976,8 @@ var init_snippet = __esm({
     init_parser3();
     init_util3();
     CocSnippet = class {
-      constructor(snippetString, position, nvim, resolver2) {
-        this.snippetString = snippetString;
+      constructor(snippet, position, nvim, resolver2) {
+        this.snippet = snippet;
         this.position = position;
         this.nvim = nvim;
         this.resolver = resolver2;
@@ -77845,13 +78005,6 @@ var init_snippet = __esm({
           this.synchronize();
         }
       }
-      getUltiSnipAction(marker, action) {
-        if (!marker) return void 0;
-        let snip = this.getSnippet(marker);
-        if (!snip) return void 0;
-        let context = snip.related.context;
-        return getAction(context, action);
-      }
       getUltiSnipOption(marker, key) {
         let snip = this.getSnippet(marker);
         if (!snip) return void 0;
@@ -77860,10 +78013,14 @@ var init_snippet = __esm({
         return context[key];
       }
       async init(ultisnip) {
-        const parser2 = new SnippetParser(!!ultisnip);
-        const snippet = parser2.parse(this.snippetString, true);
-        this._tmSnippet = snippet;
-        await this.resolve(snippet, ultisnip);
+        if (typeof this.snippet === "string") {
+          const parser2 = new SnippetParser(!!ultisnip);
+          const snippet = parser2.parse(this.snippet, true);
+          this._tmSnippet = snippet;
+        } else {
+          this._tmSnippet = this.snippet;
+        }
+        await this.resolve(this._tmSnippet, ultisnip);
         this.synchronize();
       }
       async resolve(snippet, ultisnip) {
@@ -77897,9 +78054,6 @@ var init_snippet = __esm({
         let tmSnippet = marker.snippet;
         let placeholders = this._placeholders.filter((o) => o.index == marker.index && o.marker.snippet === tmSnippet);
         return placeholders.map((o) => o.range).filter((r) => !emptyRange(r));
-      }
-      isValidPlaceholder(marker) {
-        return this._placeholders.find((o) => o.marker === marker) != null;
       }
       /**
        * Find the most possible marker contains range, throw error when not found
@@ -78004,6 +78158,16 @@ var init_snippet = __esm({
             mergeTexts(parentMarker, 0);
           }
         }
+        if (parentMarker instanceof Placeholder && !parentMarker.primary) {
+          let first = parentMarker.children[0];
+          if (parentMarker.children.length === 1 && first instanceof Text) {
+            parentMarker.replaceWith(first);
+            return first;
+          }
+          if (Number.isInteger(parentMarker.index)) {
+            parentMarker.index += 0.1;
+          }
+        }
         return parentMarker;
       }
       /**
@@ -78012,7 +78176,7 @@ var init_snippet = __esm({
        * Get new Cursor position for synchronize update only.
        * The cursor position should already adjusted before call this function.
        */
-      async replaceWithText(range, text, token, current, cursor, force = false) {
+      async replaceWithText(range, text, token, current, cursor) {
         let cloned = this._tmSnippet.clone();
         let marker = this.replaceWithMarker(range, new Text(text), current);
         let snippetText = this._tmSnippet.toString();
@@ -78035,10 +78199,6 @@ var init_snippet = __esm({
           let lc = ep.line - sp.line;
           let cc = changeCharacter ? ep.character - sp.character : 0;
           if (lc != 0 || cc != 0) delta = Position.create(lc, cc);
-        }
-        if (delta && events_default.completing && !force) {
-          reset();
-          return void 0;
         }
         return { snippetText, marker, delta };
       }
@@ -78371,6 +78531,7 @@ var init_session2 = __esm({
     init_position();
     init_protocol();
     init_string();
+    init_textedit();
     init_window();
     init_workspace();
     init_eval();
@@ -78387,15 +78548,44 @@ var init_session2 = __esm({
         this.config = config;
         this.mutex = new Mutex();
         this._applying = false;
-        this._force = false;
         this._paused = false;
         this.snippet = null;
         this._onActiveChange = new import_node4.Emitter();
-        this.isStaled = false;
+        this._selected = false;
         this.onActiveChange = this._onActiveChange.event;
       }
-      get staled() {
-        return this.isStaled;
+      get selected() {
+        return this._selected;
+      }
+      async insertSnippetEdits(edits) {
+        if (edits.length === 0) return this.isActive;
+        if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
+        const textDocument = this.document.textDocument;
+        const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
+        const len = textEdits.length;
+        const snip = new TextmateSnippet();
+        for (let i = 0; i < len; i++) {
+          let range = textEdits[i].range;
+          let placeholder = new Placeholder(i + 1);
+          placeholder.appendChild(new Text(textDocument.getText(range)));
+          snip.appendChild(placeholder);
+          if (i != len - 1) {
+            let r = Range.create(range.end, textEdits[i + 1].range.start);
+            snip.appendChild(new Text(textDocument.getText(r)));
+          }
+        }
+        this.deactivate();
+        const resolver2 = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
+        let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver2);
+        await snippet.init();
+        this.activate(snippet);
+        for (let i = len - 1; i >= 0; i--) {
+          let idx = i + 1;
+          this.current = snip.placeholders.find((o) => o.index === idx);
+          let edit2 = textEdits[i];
+          await this.start(edit2.newText, edit2.range, false);
+        }
+        return this.isActive;
       }
       async start(inserted, range, select = true, context) {
         let { document: document2, snippet } = this;
@@ -78434,7 +78624,7 @@ var init_session2 = __esm({
         this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
         await this.applyEdits(edits);
         this.activate(snippet);
-        await this.tryPostExpand(textmateSnippet);
+        if (context) await this.tryPostExpand(textmateSnippet);
         let { placeholder } = this;
         if (select && placeholder) await this.selectPlaceholder(placeholder, true);
         return this.isActive;
@@ -78488,11 +78678,7 @@ var init_session2 = __esm({
           let { placeholder } = this;
           if (placeholder) await this.removeWhiteSpaceBefore(placeholder);
         }
-        let snip = marker.snippet;
         const p = this.snippet.getPlaceholderOnJump(marker, true);
-        if (p && p.marker.snippet !== snip) {
-          this.snippet.deactivateSnippet(snip);
-        }
         await this.selectPlaceholder(p, true);
       }
       async previousPlaceholder() {
@@ -78509,6 +78695,7 @@ var init_session2 = __esm({
       async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true) {
         let { nvim, document: document2 } = this;
         if (!document2 || !placeholder) return;
+        this._selected = true;
         let { start, end } = placeholder.range;
         const line = document2.getline(start.line);
         const marker = this.current = placeholder.marker;
@@ -78596,7 +78783,6 @@ var init_session2 = __esm({
       }
       async synchronize(change) {
         const { document: document2, isActive } = this;
-        this.isStaled = false;
         this._paused = false;
         if (!isActive) return;
         await this.mutex.use(() => {
@@ -78658,13 +78844,12 @@ var init_session2 = __esm({
         }
         const nextPlaceholder = getNextPlaceholder(current, true);
         const id2 = getPlaceholderId(current);
-        const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor, this._force);
+        const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor);
         this.tokenSource = void 0;
         if (!res) {
           if (this.snippet) {
-            this.isStaled = true;
             let marker = this.snippet.getPlaceholderById(id2, current.index);
-            this.current = marker ?? this.snippet.tmSnippet.first;
+            this.current = defaultValue(marker, this.snippet.tmSnippet.first);
           }
           return;
         }
@@ -78697,18 +78882,17 @@ var init_session2 = __esm({
       }
       async forceSynchronize() {
         if (this.isActive) {
-          this._force = true;
+          this._paused = false;
           await this.document.patchChange();
           await this.synchronize();
-          this._force = false;
         } else {
           await this.document.patchChange();
         }
       }
       async onCompleteDone() {
-        if (this.isActive && this.isStaled) {
-          this.isStaled = false;
-          await this.document.patchChange();
+        if (this.isActive) {
+          this._paused = false;
+          this.document._forceSync();
           await this.synchronize();
         }
       }
@@ -78724,7 +78908,7 @@ var init_session2 = __esm({
       activate(snippet) {
         if (this.isActive) return;
         this.snippet = snippet;
-        this.nvim.call("coc#snippet#enable", [this.config.preferComplete ? 1 : 0], true);
+        this.nvim.call("coc#snippet#enable", [this.bufnr, this.config.preferComplete ? 1 : 0], true);
         this._onActiveChange.fire(true);
       }
       deactivate() {
@@ -78732,7 +78916,7 @@ var init_session2 = __esm({
         if (!this.isActive) return;
         this.snippet = null;
         this.current = null;
-        this.nvim.call("coc#snippet#disable", [], true);
+        this.nvim.call("coc#snippet#disable", [this.bufnr], true);
         if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [this.bufnr, NAME_SPACE2, 0, -1], true);
         this._onActiveChange.fire(false);
         logger38.debug(`session ${this.bufnr} deactivate`);
@@ -78759,104 +78943,20 @@ var init_session2 = __esm({
       }
       async resolveSnippet(nvim, snippetString, ultisnip) {
         let context;
-        let position = ultisnip?.range ? ultisnip.range.start : Position.create(0, 0);
         if (ultisnip) {
           ultisnip = omit(ultisnip, ["actions"]);
           context = Object.assign({
             range: Range.create(0, 0, 0, 0),
             line: ""
           }, ultisnip, { id: generateContextId(events_default.bufnr) });
-          if (this.snippet?.hasPython) {
-            context.noPython = true;
-          }
           if (ultisnip.noPython !== true && snippetString.includes("`!p")) {
             await executePythonCode(nvim, getInitialPythonCode(context));
           }
         }
         const resolver2 = new SnippetVariableResolver(nvim, workspace_default.workspaceFolderControl);
-        let snippet = new CocSnippet(snippetString, position, nvim, resolver2);
+        const snippet = new CocSnippet(snippetString, Position.create(0, 0), nvim, resolver2);
         await snippet.init(context);
         return snippet.text;
-      }
-    };
-  }
-});
-
-// src/snippets/string.ts
-var SnippetString;
-var init_string2 = __esm({
-  "src/snippets/string.ts"() {
-    "use strict";
-    SnippetString = class _SnippetString {
-      constructor(value) {
-        this._tabstop = 1;
-        this.value = value || "";
-      }
-      static isSnippetString(thing) {
-        if (thing instanceof _SnippetString) {
-          return true;
-        }
-        if (!thing) {
-          return false;
-        }
-        return typeof thing.value === "string";
-      }
-      static _escape(value) {
-        return value.replace(/\$|}|\\/g, "\\$&");
-      }
-      appendText(str) {
-        this.value += _SnippetString._escape(str);
-        return this;
-      }
-      appendTabstop(num = this._tabstop++) {
-        this.value += "$";
-        this.value += num;
-        return this;
-      }
-      appendPlaceholder(value, num = this._tabstop++) {
-        if (typeof value === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          value(nested);
-          this._tabstop = nested._tabstop;
-          value = nested.value;
-        } else {
-          value = _SnippetString._escape(value);
-        }
-        this.value += "${";
-        this.value += num;
-        this.value += ":";
-        this.value += value;
-        this.value += "}";
-        return this;
-      }
-      appendChoice(values, num = this._tabstop++) {
-        const value = values.map((s) => s.replaceAll(/[|\\,]/g, "\\$&")).join(",");
-        this.value += "${";
-        this.value += num;
-        this.value += "|";
-        this.value += value;
-        this.value += "|}";
-        return this;
-      }
-      appendVariable(name2, defaultValue2) {
-        if (typeof defaultValue2 === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          defaultValue2(nested);
-          this._tabstop = nested._tabstop;
-          defaultValue2 = nested.value;
-        } else if (typeof defaultValue2 === "string") {
-          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
-        }
-        this.value += "${";
-        this.value += name2;
-        if (defaultValue2) {
-          this.value += ":";
-          this.value += defaultValue2;
-        }
-        this.value += "}";
-        return this;
       }
     };
   }
@@ -78877,7 +78977,6 @@ var init_manager4 = __esm({
     init_workspace();
     init_eval();
     init_session2();
-    init_string2();
     init_util3();
     SnippetManager = class {
       constructor() {
@@ -78894,9 +78993,13 @@ var init_manager4 = __esm({
           let session = this.session;
           if (session) session.cancel();
         }, null, this.disposables);
-        events_default.on("CompleteDone", async () => {
-          let session = this.bufferSync.getItem(workspace_default.bufnr);
+        events_default.on("CompleteDone", async (_item, _line, bufnr) => {
+          let session = this.bufferSync.getItem(bufnr);
           if (session) await session.onCompleteDone();
+        }, null, this.disposables);
+        events_default.on("CompleteStart", async (opt) => {
+          let session = this.bufferSync.getItem(opt.bufnr);
+          if (session) session.cancel(true);
         }, null, this.disposables);
         events_default.on("InsertEnter", async (bufnr) => {
           let session = this.bufferSync.getItem(bufnr);
@@ -78911,11 +79014,13 @@ var init_manager4 = __esm({
           return session;
         });
         this.disposables.push(this.bufferSync);
-        window_default.onDidChangeActiveTextEditor((e) => {
-          if (!this._statusItem) return;
+        window_default.onDidChangeActiveTextEditor(async (e) => {
           let session = this.bufferSync.getItem(e.bufnr);
           if (session && session.isActive) {
             this.statusItem.show();
+            if (!session.selected) {
+              await session.selectCurrentPlaceholder();
+            }
           } else {
             this.statusItem.hide();
           }
@@ -78933,8 +79038,8 @@ var init_manager4 = __esm({
       }
       get statusItem() {
         if (this._statusItem) return this._statusItem;
-        let statusItem = this._statusItem = window_default.createStatusBarItem(0);
         const snippetConfig = workspace_default.initialConfiguration.get("snippet");
+        const statusItem = this._statusItem = window_default.createStatusBarItem(0);
         statusItem.text = defaultValue(snippetConfig.statusText, "");
         return this._statusItem;
       }
@@ -78957,6 +79062,23 @@ var init_manager4 = __esm({
         let pos = await window_default.getCursorPosition();
         return Range.create(pos, pos);
       }
+      async insertBufferSnippets(bufnr, edits, select = false) {
+        let document2 = workspace_default.getAttachedDocument(bufnr);
+        const session = this.bufferSync.getItem(bufnr);
+        session.cancel(true);
+        let snippetEdit = [];
+        for (const edit2 of edits) {
+          let currentLine = document2.getline(edit2.range.start.line);
+          let inserted = await this.normalizeInsertText(bufnr, toSnippetString(edit2.snippet), currentLine, InsertTextMode.asIs);
+          snippetEdit.push({ range: edit2.range, snippet: inserted });
+        }
+        await session.synchronize();
+        let isActive = await session.insertSnippetEdits(edits);
+        if (isActive && select && workspace_default.bufnr === bufnr) {
+          await session.selectCurrentPlaceholder();
+        }
+        return isActive;
+      }
       /**
        * Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
        */
@@ -78966,7 +79088,7 @@ var init_manager4 = __esm({
         session.cancel(true);
         range = toValidRange(range);
         const line = document2.getline(range.start.line);
-        const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+        const snippetStr = toSnippetString(snippet);
         const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, line, insertTextMode);
         await session.synchronize();
         return await session.start(inserted, range, false);
@@ -78982,7 +79104,7 @@ var init_manager4 = __esm({
         session.cancel(true);
         range = await this.toRange(range);
         const currentLine = document2.getline(range.start.line);
-        const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+        const snippetStr = toSnippetString(snippet);
         const inserted = await this.normalizeInsertText(document2.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
         if (ultisnip != null) {
           const usePy = hasPython(ultisnip) || inserted.includes("`!p");
@@ -81203,14 +81325,18 @@ var init_keywords = __esm({
   "src/completion/keywords.ts"() {
     "use strict";
     init_esm();
+    init_events();
+    init_async();
     init_fs();
+    init_protocol();
     KeywordsBuffer = class {
-      constructor(doc, segmentChinese = true) {
+      constructor(doc, segmenterLocales) {
         this.doc = doc;
-        this.segmentChinese = segmentChinese;
+        this.segmenterLocales = segmenterLocales;
         this.lineWords = [];
         this._gitIgnored = false;
-        this.parseWords(segmentChinese);
+        this.minimalCharacterLen = 2;
+        void this.parseWords(segmenterLocales);
         let uri = URI2.parse(doc.uri);
         if (uri.scheme === "file") {
           void isGitIgnored(uri.fsPath).then((ignored) => {
@@ -81229,13 +81355,21 @@ var init_keywords = __esm({
         }
         return res;
       }
-      parseWords(segmentChinese) {
-        let { lineWords, doc } = this;
-        let { chars } = doc;
-        for (let line of this.doc.textDocument.lines) {
-          let words = chars.matchLine(line, segmentChinese, 2);
-          lineWords.push(words);
+      cancel() {
+        if (this.tokenSource) {
+          this.tokenSource.cancel();
+          this.tokenSource = void 0;
         }
+      }
+      async parseWords(segmenterLocales) {
+        let { lineWords, doc, minimalCharacterLen } = this;
+        let { chars } = doc;
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
+        let token = tokenSource.token;
+        await forEach(doc.textDocument.lines, (line) => {
+          let words = chars.matchLine(line, segmenterLocales, minimalCharacterLen);
+          lineWords.push(words);
+        }, token, { yieldAfter: 20 });
       }
       get bufnr() {
         return this.doc.bufnr;
@@ -81243,16 +81377,21 @@ var init_keywords = __esm({
       get gitIgnored() {
         return this._gitIgnored;
       }
+      onCompleteDone(idx) {
+        let { doc, segmenterLocales, minimalCharacterLen } = this;
+        let line = doc.getline(idx);
+        this.lineWords[idx] = doc.chars.matchLine(line, segmenterLocales, minimalCharacterLen);
+      }
       onChange(e) {
-        if (e.contentChanges.length == 0) return;
-        let { lineWords, doc, segmentChinese } = this;
+        if (events_default.completing || e.contentChanges.length == 0) return;
+        let { lineWords, doc, segmenterLocales, minimalCharacterLen } = this;
         let { range, text } = e.contentChanges[0];
         let { start, end } = range;
         let sl = start.line;
         let el = end.line;
         let del = el - sl;
         let newLines = doc.textDocument.lines.slice(sl, sl + text.split(/\n/).length);
-        let arr = newLines.map((line) => doc.chars.matchLine(line, segmentChinese, 2));
+        let arr = newLines.map((line) => doc.chars.matchLine(line, segmenterLocales, minimalCharacterLen));
         lineWords.splice(sl, del + 1, ...arr);
       }
       *matchWords(line) {
@@ -81267,6 +81406,7 @@ var init_keywords = __esm({
         }
       }
       dispose() {
+        this.cancel();
         this.lineWords = [];
       }
     };
@@ -81289,8 +81429,8 @@ var init_source = __esm({
     init_array();
     init_constants();
     init_fuzzy();
-    init_node();
     init_is();
+    init_node();
     init_string();
     init_workspace();
     init_types2();
@@ -81368,9 +81508,6 @@ var init_source = __esm({
       }
       get disableSyntaxes() {
         return this.getConfig("disableSyntaxes", []);
-      }
-      get chineseSegments() {
-        return this.getConfig("chineseSegments", true);
       }
       getConfig(key, defaultValue2) {
         let val = this.config[key];
@@ -81781,9 +81918,9 @@ var init_around = __esm({
         if (!shouldRun) return null;
         let { bufnr, input, word, linenr, triggerForInComplete } = opt;
         if (input.length === 0) return null;
+        await waitImmediate();
         let buf = this.keywords.getItem(bufnr);
         if (!buf) return null;
-        await waitImmediate();
         if (!triggerForInComplete) this.noMatchWords = /* @__PURE__ */ new Set();
         if (token.isCancellationRequested) return null;
         let iterable = buf.matchWords(linenr - 1);
@@ -82068,12 +82205,16 @@ var init_sources2 = __esm({
       }
       init() {
         this.keywords = workspace_default.registerBufferSync((doc) => {
-          const chineseSegments2 = workspace_default.getConfiguration("suggest").get("chineseSegments", true);
-          return new KeywordsBuffer(doc, chineseSegments2);
+          const segmenterLocales = workspace_default.getConfiguration("suggest", doc).get("segmenterLocales");
+          return new KeywordsBuffer(doc, segmenterLocales);
         });
         this.createNativeSources();
         this.createRemoteSources();
         events_default.on("BufEnter", this.onDocumentEnter, this, this.disposables);
+        events_default.on("CompleteDone", (_item, linenr, bufnr) => {
+          let item = this.keywords.getItem(bufnr);
+          if (item) item.onCompleteDone(linenr - 1);
+        }, null, this.disposables);
         workspace_default.onDidRuntimePathChange((newPaths) => {
           for (let p of newPaths) {
             this.createVimSources(p).catch(logError);
@@ -82085,10 +82226,6 @@ var init_sources2 = __esm({
       }
       getKeywordsBuffer(bufnr) {
         return this.keywords.getItem(bufnr);
-      }
-      setWords(words, col) {
-        this.wordsSource.startcol = col;
-        this.wordsSource.words = words;
       }
       createNativeSources() {
         void Promise.all([
@@ -82250,7 +82387,7 @@ var init_sources2 = __esm({
         return this.sourceMap.get(name2) ?? null;
       }
       shouldCommit(source, item, commitCharacter) {
-        if (!item || source == null) return false;
+        if (!item || source == null || commitCharacter.length === 0) return false;
         if (func(source.shouldCommit)) {
           return source.shouldCommit(item, commitCharacter);
         }
@@ -82297,7 +82434,7 @@ var init_sources2 = __esm({
         return this.sources.filter((source) => {
           let { filetypes, enable, documentSelector, name: name2 } = source;
           if (disabled.includes(name2)) return false;
-          if (!enable || filetypes && !intersect(filetypes, languageIds)) return false;
+          if (!enable || Array.isArray(filetypes) && !intersect(filetypes, languageIds)) return false;
           if (documentSelector && languageIds.every((languageId) => workspace_default.match(documentSelector, { uri, languageId }) == 0)) {
             return false;
           }
@@ -82981,6 +83118,13 @@ var init_complete = __esm({
       get nvim() {
         return workspace_default.nvim;
       }
+      // trigger texts starts at character
+      getTrigger(character) {
+        let { linenr, col } = this.option;
+        let line = this.document.getline(linenr - 1);
+        let pre = line.slice(0, characterIndex(line, col)) + this.input;
+        return pre.slice(character);
+      }
       fireRefresh(waitTime) {
         clearTimeout(this.timer);
         if (!waitTime) {
@@ -83318,7 +83462,6 @@ var init_floating = __esm({
           } catch (e) {
             if (isCancellationError(e)) return;
             logger46.error(`Error on resolve complete item from ${source.name}:`, item, e);
-            return;
           }
         }
         if (showDocs) {
@@ -83709,6 +83852,7 @@ var init_completion2 = __esm({
     init_logger();
     init_util();
     init_array();
+    init_errors();
     init_is();
     init_node();
     init_numbers();
@@ -83724,7 +83868,7 @@ var init_completion2 = __esm({
     init_util4();
     logger47 = createLogger("completion");
     TRIGGER_TIMEOUT = getConditionValue(200, 20);
-    CURSORMOVE_DEBOUNCE = getConditionValue(10, 0);
+    CURSORMOVE_DEBOUNCE = getConditionValue(20, 20);
     Completion = class {
       constructor() {
         this.disposables = [];
@@ -83745,7 +83889,10 @@ var init_completion2 = __esm({
         this.pum = new PopupMenu(this.staticConfig, this._mru);
         this.floating = new Floating(this.staticConfig);
         this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE);
-        events_default.on("CursorMoved", async () => {
+        events_default.on("BufEnter", () => {
+          this._debounced.clear();
+        }, null, this.disposables);
+        events_default.on("CursorMoved", () => {
           this.cancelAndClose();
         }, null, this.disposables);
         events_default.on("PumNavigate", () => {
@@ -83755,18 +83902,16 @@ var init_completion2 = __esm({
         events_default.on("CursorMovedI", () => {
           clearTimeout(this.triggerTimer);
         }, null, this.disposables);
-        events_default.on("CompleteStop", async (kind) => {
-          await this.stop(false, kind);
-        }, null, this.disposables);
         events_default.on("InsertEnter", this.onInsertEnter, this, this.disposables);
         events_default.on("TextChangedI", this.onTextChangedI, this, this.disposables);
-        events_default.on("TextChangedP", this.onTextChangedP, this, this.disposables);
         events_default.on("MenuPopupChanged", async (ev) => {
-          if (!this.option) return;
+          if (this.complete == null) return;
           this.popupEvent = ev;
-          let resolved = this.complete.resolveItem(this.selectedItem);
+          if (ev.inserted) this.complete.cancel();
+          let selectedItem = this.activeItems[ev.index];
+          let resolved = this.complete.resolveItem(selectedItem);
           if (!resolved || !ev.move && this.complete.isCompleting) return;
-          let detailRendered = this.selectedItem.detailRendered;
+          let detailRendered = selectedItem.detailRendered;
           let showDocs = this.config.enableFloat;
           await this.floating.resolveItem(resolved.source, resolved.item, this.option, showDocs, detailRendered);
         }, null, this.disposables);
@@ -83780,23 +83925,12 @@ var init_completion2 = __esm({
       }
       onCursorMovedI(bufnr, cursor, hasInsert) {
         if (hasInsert || !this.option || bufnr !== this.option.bufnr) return;
-        let { linenr, colnr, col } = this.option;
-        if (linenr === cursor[0]) {
-          if (cursor[1] == colnr && cursor[1] === byteLength(toText(this.pretext)) + 1) {
-            return;
-          }
-          let line = this.document.getline(cursor[0] - 1);
-          if (line.match(/^\s*/)[0] !== this.option.line.match(/^\s*/)[0]) {
-            return;
-          }
-          let curr = characterIndex(line, cursor[1] - 1);
-          let start = characterIndex(line, col);
-          if (start < curr) {
-            let text = line.substring(start, curr);
-            if (!this.inserted && text === this.pum.search) {
-              return;
-            }
-          }
+        let { linenr, col } = this.option;
+        if (!hasInsert && this.selectedItem && linenr === cursor[0] && col + byteLength(this.selectedItem?.word) + 1 == cursor[1]) {
+          return;
+        }
+        if (linenr === cursor[0] && cursor[1] === byteLength(toText(this.pretext)) + 1) {
+          return;
         }
         this.cancelAndClose();
       }
@@ -83806,13 +83940,6 @@ var init_completion2 = __esm({
       }
       get isActivated() {
         return this.complete != null;
-      }
-      get inserted() {
-        return this.popupEvent != null && this.popupEvent.inserted;
-      }
-      get document() {
-        if (!this.option) return null;
-        return workspace_default.getDocument(this.option.bufnr);
       }
       get selectedItem() {
         if (!this.popupEvent) return void 0;
@@ -83892,9 +84019,9 @@ var init_completion2 = __esm({
         option.filetype = doc.filetype;
         logger47.debug("trigger completion with", option);
         this.cancelAndClose();
-        this.pretext = byteSlice(option.line, 0, option.colnr - 1);
         sourceList = sourceList ?? sources_default.getSources(option);
         if (isFalsyOrEmpty(sourceList)) return;
+        this.pretext = byteSlice(option.line, 0, option.colnr - 1);
         let complete = this.complete = new Complete(
           option,
           doc,
@@ -83902,27 +84029,22 @@ var init_completion2 = __esm({
           sourceList
         );
         events_default.completing = true;
+        void events_default.fire("CompleteStart", [option]);
         complete.onDidRefresh(async () => {
           clearTimeout(this.triggerTimer);
           if (complete.isEmpty) {
             this.cancelAndClose(false);
             return;
           }
-          if (this.inserted) return;
           await this.filterResults();
         });
         let shouldStop2 = await complete.doComplete();
         if (shouldStop2) this.cancelAndClose(false);
       }
-      async onTextChangedP(_bufnr, info) {
-        if (!info.insertChar && this.complete) {
-          this.complete.cancel();
-        }
-        this.pretext = info.pre;
-      }
       async onTextChangedI(bufnr, info) {
         const doc = workspace_default.getDocument(bufnr);
         if (!doc || !doc.attached) return;
+        this._debounced.clear();
         const { option } = this;
         const filterOnBackspace = this.staticConfig.filterOnBackspace;
         if (option != null) {
@@ -83935,6 +84057,7 @@ var init_completion2 = __esm({
                 return;
               }
             } else if (pre + this.pum.search == info.pre) {
+              this.pretext = info.pre;
               return;
             }
           }
@@ -83958,10 +84081,16 @@ var init_completion2 = __esm({
           let resolvedItem = this.selectedItem;
           let result = this.complete.resolveItem(resolvedItem);
           if (result && sources_default.shouldCommit(result.source, result.item, last)) {
-            logger47.debug("commit by commit character.");
+            logger47.debug(`commit by commit character: ${last}`);
             let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
-            this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word + info.insertChar], true);
-            await this.stop(true);
+            let delta = deltaCount(info);
+            await this.nvim.call("coc#pum#replace", [startcol, resolvedItem.word, delta]);
+            await this.stop("confirm" /* Confirm */, true);
+            let res = await this.nvim.evalVim(`[getline('.'),col('.'),mode()]`);
+            let currentPre = byteSlice(res[0], 0, res[1] - 1);
+            if (res[2] != "i" || currentPre[currentPre.length - 1] == last) return;
+            if (pariedCharacters.has(last) && currentPre.slice(-2) == `${last}${pariedCharacters.get(last)}`) return;
+            this.nvim.call("feedkeys", [last, "n"], true);
             return;
           }
         }
@@ -84029,41 +84158,40 @@ var init_completion2 = __esm({
           triggerCharacter: manual ? void 0 : toText(pre[pre.length - 1])
         };
       }
-      // Void CompleteDone logic
+      addMruItem() {
+        let { selectedItem, complete } = this;
+        if (!selectedItem) return;
+        let character = selectedItem.character;
+        this._mru.add(complete.getTrigger(character), selectedItem);
+      }
       cancelAndClose(close = true) {
         clearTimeout(this.triggerTimer);
-        if (this.complete) {
-          this.cancel();
-          events_default.completing = false;
-          let doc = workspace_default.getDocument(workspace_default.bufnr);
-          if (doc) doc._forceSync();
-          if (close) this.nvim.call("coc#pum#_close", [], true);
-          void events_default.fire("CompleteDone", [{}]);
-        }
+        if (!this.complete) return;
+        const { linenr, bufnr } = this.complete.option;
+        this._onFinish("" /* Normal */, close);
+        events_default.fire("CompleteDone", [{}, linenr, bufnr]).catch(onUnexpectedError);
       }
-      async stop(close, kind = "" /* Normal */) {
-        let { complete } = this;
-        if (complete == null) return;
-        let inserted = kind === "confirm" /* Confirm */ || this.popupEvent?.inserted && kind != "cancel" /* Cancel */;
-        let item = this.selectedItem;
-        let character = item?.character;
-        let resolved = complete.resolveItem(item);
-        let option = complete.option;
-        let input = complete.input;
-        let doc = workspace_default.getDocument(option.bufnr);
-        let line = option.line;
-        let inputStart = characterIndex(line, option.col);
+      _onFinish(kind, close) {
+        this.floating.cancel();
+        let inserted = kind === "confirm" /* Confirm */ || this.popupEvent?.inserted;
+        if (inserted) this.addMruItem();
+        let doc = this.complete.document;
         events_default.completing = false;
         this.cancel();
         doc._forceSync();
         if (close) this.nvim.call("coc#pum#_close", [], true);
-        if (resolved && inserted) {
-          this._mru.add(line.slice(character, inputStart) + input, item);
-        }
-        if (kind == "confirm" /* Confirm */ && resolved) {
+      }
+      async stop(kind, close = false) {
+        let { complete } = this;
+        if (complete == null) return;
+        const item = this.selectedItem;
+        const resolved = complete.resolveItem(item);
+        const option = complete.option;
+        this._onFinish(kind, close);
+        if (resolved && kind == "confirm" /* Confirm */) {
           await this.confirmCompletion(resolved.source, resolved.item, option);
         }
-        void events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item)]);
+        events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr]).catch(onUnexpectedError);
       }
       async confirmCompletion(source, item, option) {
         await this.floating.resolveItem(source, item, option, false);
@@ -85208,7 +85336,7 @@ var init_codeActions = __esm({
             return { text: o.title, disabled: o.disabled };
           }),
           "Choose action"
-        ) : await window_default.requestInputList("Choose action by number:", codeActions.map((o) => o.title));
+        ) : await window_default.requestInputList("Choose action by number", codeActions.map((o) => o.title));
         let action = codeActions[idx];
         if (action) await this.applyCodeAction(action);
       }
@@ -86050,7 +86178,7 @@ var init_format2 = __esm({
         }));
         handler.addDisposable(events_default.on("TextInsert", async (bufnr, _info, character) => {
           let doc = workspace_default.getDocument(bufnr);
-          if (!events_default.pumvisible && doc && doc.attached) await this.tryFormatOnType(character, doc);
+          if (!events_default.completing && doc && doc.attached) await this.tryFormatOnType(character, doc);
         }));
         handler.addDisposable(commands_default.registerCommand("editor.action.formatDocument", async (uri) => {
           const doc = uri ? workspace_default.getDocument(uri) : (await this.handler.getCurrentState()).doc;
@@ -86099,6 +86227,7 @@ var init_format2 = __esm({
           await doc.synchronize();
           return await languages_default.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token);
         });
+        if (edits == null || events_default.completing) return false;
         if (edits.length === 0) return true;
         await doc.applyEdits(edits, false, true);
         this.logProvider(doc.bufnr, edits);
@@ -87059,7 +87188,7 @@ var init_linkedEditing = __esm({
         }
       }
       _checkPosition(bufnr, cursor) {
-        if (events_default.pumvisible || !workspace_default.isAttached(bufnr)) return;
+        if (events_default.completing || !workspace_default.isAttached(bufnr)) return;
         let doc = workspace_default.getDocument(bufnr);
         let config = workspace_default.getConfiguration("coc.preferences", doc);
         let enabled = config.get("enableLinkedEditing", false);
@@ -90827,7 +90956,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7222ade2 2025-05-01 13:35:46 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-1baa8dcb 2025-05-05 17:08:59 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -90865,9 +90994,9 @@ var init_handler = __esm({
     init_events();
     init_languages();
     init_logger();
-    init_is();
     init_util();
     init_convert();
+    init_is();
     init_object();
     init_protocol();
     init_textedit();
@@ -91199,6 +91328,7 @@ var init_plugin = __esm({
         this.addAction("highlight", () => this.handler.documentHighlighter.highlight());
         this.addAction("fold", (kind) => this.handler.fold.fold(kind));
         this.addAction("startCompletion", (option) => completion_default.startCompletion(option));
+        this.addAction("stopCompletion", (kind) => completion_default.stop(kind));
         this.addAction("sourceStat", () => sources_default.sourceStats());
         this.addAction("refreshSource", (name2) => sources_default.refresh(name2));
         this.addAction("toggleSource", (name2) => sources_default.toggleSource(name2));
@@ -91409,8 +91539,6 @@ var init_attach = __esm({
           case "OptionSet":
           case "PromptKeyPress":
           case "FloatBtnClick":
-          case "CompleteStop":
-          case "PumInsert":
           case "InputListSelect":
           case "PumNavigate":
             logger59.trace("Event: ", method, ...args);
@@ -91442,11 +91570,7 @@ var init_attach = __esm({
         timing.start(method);
         try {
           events_default.requesting = true;
-          if (method == "CompleteStop") {
-            logger59.trace("Event: ", method, ...args);
-            await events_default.fire(method, args);
-            resp.send(void 0);
-          } else if (method == "CocAutocmd") {
+          if (method == "CocAutocmd") {
             logger59.trace("Request autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             resp.send(void 0);

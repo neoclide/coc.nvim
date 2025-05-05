@@ -2,6 +2,13 @@ local api = vim.api
 
 local M = {}
 
+local function create_namespace(key)
+  if type(key) == 'number' then
+    return key
+  end
+  return api.nvim_create_namespace('coc-' .. key)
+end
+
 -- Get single line extmarks
 function M.getHighlights(bufnr, key, s, e)
   if not api.nvim_buf_is_loaded(bufnr) then
@@ -10,7 +17,7 @@ function M.getHighlights(bufnr, key, s, e)
   s = s or 0
   e = e or -1
   local max = e == -1 and api.nvim_buf_line_count(bufnr) or e + 1
-  local ns = api.nvim_create_namespace('coc-' .. key)
+  local ns = create_namespace(key)
   local markers = api.nvim_buf_get_extmarks(bufnr, ns, {s, 0}, {e, -1}, {details = true})
   local res = {}
   for _, mark in ipairs(markers) do
@@ -76,10 +83,28 @@ local function addHighlightTimer(bufnr, ns, highlights, priority, changedtick, m
   end
 end
 
-function M.set(bufnr, ns, highlights, priority)
+function M.del_markers(bufnr, key, ids)
+  if api.nvim_buf_is_loaded(bufnr) then
+    local ns = create_namespace(key)
+    for _, id in ipairs(ids) do
+      api.nvim_buf_del_extmark(bufnr, ns, id)
+    end
+  end
+end
+
+function M.set_highlights(bufnr, key, highlights, priority)
   local changedtick = vim.fn.getbufvar(bufnr, 'changedtick', 0)
   local maxCount = vim.g.coc_highlight_maximum_count or 500
+  local ns = create_namespace(key)
   addHighlightTimer(bufnr, ns, highlights, priority, changedtick, maxCount)
+end
+
+function M.clear_highlights(id, key, start_line, end_line)
+  local bufnr = id == 0 and api.nvim_get_current_buf() or id
+  if api.nvim_buf_is_loaded(bufnr) then
+    local ns = create_namespace(key)
+    api.nvim_buf_clear_namespace(bufnr, ns, start_line, end_line)
+  end
 end
 
 return M

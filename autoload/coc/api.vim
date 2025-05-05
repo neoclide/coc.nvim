@@ -179,14 +179,14 @@ def OnTextChange(bufnr: number): void
 enddef
 
 # execute command for bufnr
-def BufExecute(bufnr: number, cmds: list<string>): void
+export def BufExecute(bufnr: number, cmds: list<string>, silent = 'silent'): void
   var winid = get(win_findbuf(bufnr), 0, -1)
   var need_close: bool = false
   if winid == -1
     winid = CreatePopup(bufnr)
     need_close = true
   endif
-  win_execute(winid, cmds, 'silent')
+  win_execute(winid, cmds, silent)
   if need_close
     noa popup_close(winid)
   endif

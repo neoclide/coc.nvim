@@ -551,23 +551,24 @@ Hover key-mapping example: ~
 ------------------------------------------------------------------------------
 COMPLETION						*coc-completion*
 
-Vim's builtin completion is no longer used. The default completion
-now works like in VSCode:
+Vim's builtin completion is not used. The default completion works like
+completion in VSCode:
 
   • Completion is automatically triggered by default.
   • Selection is enabled by default, use |coc-config-suggest-noselect| to
-  disable default selection.
+    disable default selection.
   • When selection is enabled and no preselect item exists, the first complete
-  item will be selected (depends on |coc-config-suggest-selection|).
-  • Snippet expand and additional edits only work after confirm completion.
-  • 'completeopt' is not used and APIs of builtin popupmenu not work.
+    item will be selected (depends on |coc-config-suggest-selection|).
+  • Snippet expand and additional edits only work after confirm completion
+    |coc#pum#confirm()|.
+  • |'completeopt'| is not used and APIs of builtin popupmenu not work.
 
 							*coc-completion-default*
 Default Key-mappings: ~
 
-To make the new completion work like the builtin completion, without any
-additional configuration, the following key-mappings are used when
-the {lhs} is not mapped:
+To make the new completion works like the builtin completion, without any
+additional configuration, the following key-mappings are used when the {lhs}
+is not mapped:
 
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
@@ -594,14 +595,16 @@ Related variables: ~
   • Disable completion for buffer: |b:coc_suggest_disable|
   • Disable specific sources for buffer: |b:coc_disabled_sources|
   • Disable words for completion: |b:coc_suggest_blacklist|
-  • Add additional keyword characters: |b:coc_additional_keywords|
+  • Add additional keyword characters: |b:coc_additional_keywords|, the
+    buffer keyword characters are used for filter completion items instead of
+    trigger completion, see |'iskeyword'|.
 
 							*coc-completion-functions*
 Related functions: ~
 
   • Trigger completion with options: |coc#start()|.
   • Trigger completion refresh: |coc#refresh()|.
-  • Select and confirm completion: |coc#_select_confirm()|.
+  • Select and confirm completion: |coc#pum#select_confirm()|.
   • Check if the custom popupmenu is visible: |coc#pum#visible()|.
   • Select the next completion item: |coc#pum#next()|.
   • Select the previous completion item: |coc#pum#prev()|.
@@ -619,7 +622,7 @@ Customize completion: ~
 
 Use |coc-config-suggest| to change the completion behavior.
 
-Use 'pumwidth' for configure the minimal width of the popupmenu and 'pumheight'
+Use |'pumwidth'| for configure the minimal width of the popupmenu and |'pumheight'|
 for its maximum height.
 
 Related Highlight groups:
@@ -627,14 +630,14 @@ Related Highlight groups:
 	|CocSymbol| 	for kind icons.
 	|CocMenuSel| 	for background highlight of selected item.
 
-Note: background, border and winblend are configured by
+Note: background, border, title and winblend are configured by
 |coc-config-suggest-floatConfig|.
 
 Example user key-mappings: ~
 							*coc-completion-example*
 
-Note: use command `:verbose imap` to check current insert
-key-mappings when your key-mappings not work.
+Note: use command `:verbose imap` to check current insert key-mappings when
+your key-mappings not work.
 
 Use <tab> and <S-tab> to navigate completion list: >
 
@@ -660,19 +663,19 @@ Use <c-space> to trigger completion: >
 <
 Use <CR> to confirm completion, use: >
 
-  inoremap <expr> <cr> coc#pum#visible() ? coc#_select_confirm() : "\<CR>"
+  inoremap <expr> <cr> coc#pum#visible() ? coc#pum#select_confirm() : "\<CR>"
 <
 To make <CR> to confirm selection of selected complete item or notify coc.nvim
 to format on enter, use: >
 
-  inoremap <silent><expr> <CR> coc#pum#visible() ? coc#_select_confirm()
+  inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#select_confirm()
 				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 Map <tab> for trigger completion, completion confirm, snippet expand and jump
 like VSCode: >
 
   inoremap <silent><expr> <TAB>
-    \ coc#pum#visible() ? coc#_select_confirm() :
+    \ coc#pum#visible() ? coc#pum#select_confirm() :
     \ coc#expandableOrJumpable() ?
     \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
     \ CheckBackspace() ? "\<TAB>" :
@@ -1099,7 +1102,7 @@ The completion items with snippet format has label ends with
 |coc-config-suggest-snippetIndicator| (`~` by default).
 
 Select the complete item and confirm the completion by |coc#pum#confirm()| or
-|coc#_select_confirm()| to expand the snippet of current selected complete
+|coc#pum#select_confirm()| to expand the snippet of current selected complete
 ttem.
 
 Jump snippet placeholders: ~
@@ -2187,11 +2190,6 @@ coc#refresh()						*coc#refresh()*
 	  inoremap <silent><expr> <c-@> coc#refresh()
 	endif
 
-coc#_select_confirm()					*coc#_select_confirm()*
-
-	Select first completion item if no completion item is selected, then
-	confirm the completion like |coc#pum#confirm()|.  Return <Ignore>
-
 coc#config({section}, {value})				*coc#config()*
 
 	Change user configuration, overwrite configurations from
@@ -2316,8 +2314,8 @@ coc#pum#visible() 					*coc#pum#visible()*
 
 coc#pum#has_item_selected()				*coc#pum#has_item_selected*
 
-	Check if there is a completion item selected in the popup menu.
-	Return 1 when there has been a completion item selected.
+	Check if there is a completion item selected in the popup menu. Return
+	number `1` when completion item is selected.
 
 coc#pum#next({insert}) 					*coc#pum#next()*
 
@@ -2335,14 +2333,16 @@ coc#pum#prev({insert}) 					*coc#pum#prev()*
 
 coc#pum#stop() 						*coc#pum#stop()*
 
-	Close the customized popupmenu, works like <C-x><C-z> of vim.
+	Close the customized popupmenu and stop the completion, works like
+	<C-x><C-z> of vim.
 
 	Note: this function should only be used in <expr> key-mappings.
 
 coc#pum#cancel() 					*coc#pum#cancel()*
 
-	Cancel the customized popupmenu and revert trigger input, like <C-e>
-	of vim.  When no completion item selected, close the popup menu only.
+	Cancel the customized popupmenu and reset the trigger input before
+	cursor, like <C-e> of vim.  When no completion item selected, close
+	the popup menu only.
 
 	Note: this function should only be used in <expr> key-mappings.
 
@@ -2356,8 +2356,17 @@ coc#pum#insert() 					*coc#pum#insert()*
 
 coc#pum#confirm() 					*coc#pum#confirm()*
 
-	Confirm completion of current selected item and close the customized
-	popup menu, like <C-y> of vim.
+	Confirm completion of the selected item (when possible) by insert the
+	`word` of completion item when not inserted, and close the customized
+	popup menu, like <C-y> of vim.  Trigger the optional `onCompleteDone`
+	handler of completion source after buffer text changed.
+
+	Note: this function should only be used in <expr> key-mappings.
+
+coc#pum#select_confirm()	 			*coc#pum#select_confirm()*
+
+	Select the first completion item if no completion item is selected,
+	then confirm the completion like |coc#pum#confirm()|.
 
 	Note: this function should only be used in <expr> key-mappings.
 
@@ -2380,15 +2389,24 @@ coc#pum#info() 						*coc#pum#info()*
 
 coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 
-	Selects an item in the completion popupmenu.
-	Return empty string.
+	Selects a complete item in the completion popupmenu, with optional
+	{insert} and {confirm} action.  Return empty string.
+
+	Note: when {insert} enabled or cancelled by `index = -1`, the current
+	buffer state could be not synchronized (to have better performance
+	with dot repeat support |feedkeys()| with `\<C-n>` is used to insert
+	word when necessary). Use |timer_start()| afterwards to wait for the
+	buffer text synchronize and `stopCompletion` request finish when
+	needed.
 
 	Parameters: ~
 		{index} 	Index (zero-based) of the item to select.
-		{insert} 	Whether the selection should be inserted
-				in the buffer.
+				When is `-1` the completion is canceled.
+				Throw error when index out of range.
+		{insert} 	Whether the word of selected completion item
+				should be inserted to the buffer.
 		{confirm} 	Confirm the completion and dismiss the
-				popupmenu, implies `insert`.
+				popupmenu, implies `insert = 1`.
 
 coc#pum#one_more() 					*coc#pum#one_more()*
 
