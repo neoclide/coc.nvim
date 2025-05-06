@@ -13,10 +13,10 @@ def Create_namespace(key: any): number
   if type(key) == v:t_number
     return key
   endif
-  if type(key) == v:t_string
-    return coc#api#Create_namespace($'coc-{key}')
+  if type(key) != v:t_string
+    throw 'Expect number or string for namespace key.'
   endif
-  throw 'Expect number or string for namespace key.'
+  return coc#api#Create_namespace($'coc-{key}')
 enddef
 
 export def Clear_highlights(id: number, key: any, start_line: number, end_line: number): void
