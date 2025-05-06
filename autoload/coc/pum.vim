@@ -86,6 +86,9 @@ endfunction
 function! coc#pum#_close() abort
   if coc#pum#visible()
     call s:close_pum()
+    if s:is_vim
+      call timer_start(0, {-> execute('redraw')})
+    endif
   endif
 endfunction
 

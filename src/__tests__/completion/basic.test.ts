@@ -908,6 +908,13 @@ describe('completion', () => {
       await helper.waitValue(() => completion.isActivated, false)
       await completion.filterResults()
     })
+
+    it('should check indent change', async () => {
+      await create(['foo', 'bar'])
+      const linenr = completion.option.linenr
+      let changed = completion.hasIndentChange({ lnum: linenr + 1, col: 1, line: '', changedtick: 0, pre: '', })
+      expect(changed).toBe(false)
+    })
   })
 
   describe('TextChangedP', () => {

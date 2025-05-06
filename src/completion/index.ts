@@ -222,11 +222,20 @@ export class Completion implements Disposable {
     if (shouldStop) this.cancelAndClose(false)
   }
 
+  public hasIndentChange(info: InsertChange): boolean {
+    let { option, pretext } = this
+    if (!option || option.linenr != info.lnum) return false
+    let previous = pretext.match(/^\s*/)[0]
+    let current = info.pre.match(/^\s*/)[0]
+    if (previous == current || pretext.slice(previous.length) !== info.pre.slice(current.length)) return false
+    return true
+  }
+
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     const doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
     this._debounced.clear()
-    const { option } = this
+    const { option, staticConfig } = this
     const filterOnBackspace = this.staticConfig.filterOnBackspace
     if (option != null) {
       // detect item word insert
@@ -244,7 +253,8 @@ export class Completion implements Disposable {
         }
       }
       // retrigger after indent
-      if (this.staticConfig.reTriggerAfterIndent && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+      if (staticConfig.reTriggerAfterIndent && this.hasIndentChange(info)) {
+        this.cancelAndClose()
         await this.triggerCompletion(doc, info)
         return
       }
