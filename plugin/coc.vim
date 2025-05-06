@@ -366,12 +366,6 @@ function! s:VimEnter() abort
   call s:Highlight()
 endfunction
 
-function! s:NativePumChange() abort
-  if pumvisible()
-    call coc#pum#close()
-  endif
-endfunction
-
 function! s:Enable(initialize)
   if get(g:, 'coc_enabled', 0) == 1
     return
@@ -408,7 +402,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
     if exists('##CompleteChanged')
-      autocmd CompleteChanged   * call timer_start(10, { -> s:NativePumChange()})
+      autocmd CompleteChanged   * call timer_start(1, { -> execute('if pumvisible() | call coc#pum#close() | endif')})
     endif
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')

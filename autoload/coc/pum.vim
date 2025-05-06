@@ -327,7 +327,7 @@ function! s:insert_word(word, finish) abort
       noa set completeopt=noinsert,noselect
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
       noa call feedkeys("\<C-n>\<C-x>\<C-z>", 'in')
-      execute 'noa set completeopt='.saved_completeopt
+      call timer_start(0, { -> execute('noa set completeopt='.saved_completeopt)})
     endif
   endif
 endfunction
