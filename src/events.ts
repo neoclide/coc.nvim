@@ -253,14 +253,13 @@ class Events {
       let info: InsertChange = args[1]
       let pre = byteSlice(info.line ?? '', 0, info.col - 1)
       let arr: [number, string][]
-      // use TextChangedP and disable insert
       arr = this._recentInserts.filter(o => o[0] == args[0])
       this._bufnr = args[0]
       this._recentInserts = []
       this._lastChange = Date.now()
       info.pre = pre
       info.insertChars = arr.map(o => o[1])
-      // fix cursor since vim not send CursorMovedI event
+      // fix cursor since vim may not send CursorMovedI event
       this._cursor = Object.freeze({
         bufnr: args[0],
         lnum: info.lnum,
