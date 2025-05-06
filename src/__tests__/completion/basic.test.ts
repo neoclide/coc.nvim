@@ -1168,9 +1168,8 @@ describe('completion', () => {
       await nvim.setLine('foo.')
       await nvim.input('Ab')
       await helper.waitPopup()
-      await nvim.call('coc#pum#select_confirm')
-      let line = await nvim.line
-      expect(line).toBe('foo.bar')
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'foo.bar')
     })
 
     it('should should complete items without input', async () => {

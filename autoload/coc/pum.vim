@@ -78,7 +78,8 @@ function! coc#pum#select_confirm() abort
       let s:pum_index = 0
       call s:on_pum_change(0)
     endif
-    call coc#pum#close('confirm')
+    " Avoid change of text not allowed
+    return "\<C-r>=coc#pum#close('confirm')\<CR>"
   endif
   return ''
 endfunction
