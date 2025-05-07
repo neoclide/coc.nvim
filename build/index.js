@@ -14365,8 +14365,8 @@ var require_Buffer = __commonJS({
        * @param {string} hlGroup Highlight group.
        * @param {Range[]} ranges List of highlight ranges
        */
-      highlightRanges(srcId4, hlGroup, ranges) {
-        this.client.call("coc#highlight#ranges", [this.id, srcId4, hlGroup, ranges], true);
+      highlightRanges(srcId4, hlGroup, ranges, option) {
+        this.client.call("coc#highlight#ranges", [this.id, srcId4, hlGroup, ranges, option !== null && option !== void 0 ? option : {}], true);
       }
       /**
        * Clear namespace by id or name.
@@ -14448,12 +14448,12 @@ var require_Buffer = __commonJS({
         let end = typeof opts.end === "number" ? opts.end : -1;
         let changedtick = typeof opts.changedtick === "number" ? opts.changedtick : null;
         let priority = typeof opts.priority === "number" ? opts.priority : null;
+        let arr = highlights.map((o) => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.start_incl ? 1 : 0, o.end_incl ? 1 : 0]);
         if (start == 0 && end == -1) {
-          let arr = highlights.map((o) => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.start_incl ? 1 : 0, o.end_incl ? 1 : 0]);
           this.client.call("coc#highlight#buffer_update", [this.id, ns, arr, priority, changedtick], true);
           return;
         }
-        this.client.call("coc#highlight#update_highlights", [this.id, ns, highlights, start, end, priority, changedtick], true);
+        this.client.call("coc#highlight#update_highlights", [this.id, ns, arr, start, end, priority, changedtick], true);
       }
       /**
        * Listens to buffer for events
@@ -14630,13 +14630,13 @@ var require_Window = __commonJS({
        * Clear match by highlight group.
        */
       clearMatchGroup(hlGroup) {
-        this.client.call("coc#highlight#clear_match_group", [this.id, hlGroup], true);
+        this.client.call("coc#window#clear_match_group", [this.id, hlGroup], true);
       }
       /**
        * Clear match by match ids.
        */
       clearMatches(ids) {
-        this.client.call("coc#highlight#clear_matches", [this.id, ids], true);
+        this.client.call("coc#window#clear_matches", [this.id, ids], true);
       }
     };
     exports2.Window = Window2;
@@ -49888,7 +49888,7 @@ var init_TreeView = __esm({
         if (this.autoWidth) this.nvim.call("coc#window#adjust_width", [winid], true);
         if (highlights.length) {
           let highlightEnd = end == -1 ? -1 : start + lines.length;
-          nvim.call("coc#highlight#update_highlights", [this.bufnr, highlightNamespace, highlights, start, highlightEnd], true);
+          buf.updateHighlights(highlightNamespace, highlights, { start, end: highlightEnd });
         }
         buf.setOption("modifiable", false, true);
         if (!noRedraw) this.redraw();
@@ -83926,7 +83926,7 @@ var init_completion2 = __esm({
       onCursorMovedI(bufnr, cursor, hasInsert) {
         if (hasInsert || !this.option || bufnr !== this.option.bufnr) return;
         let { linenr, col } = this.option;
-        if (!hasInsert && this.selectedItem && linenr === cursor[0] && col + byteLength(this.selectedItem?.word) + 1 == cursor[1]) {
+        if (this.selectedItem && linenr === cursor[0] && col + byteLength(this.selectedItem.word) + 1 == cursor[1]) {
           return;
         }
         if (linenr === cursor[0] && cursor[1] === byteLength(toText(this.pretext)) + 1) {
@@ -84041,11 +84041,19 @@ var init_completion2 = __esm({
         let shouldStop2 = await complete.doComplete();
         if (shouldStop2) this.cancelAndClose(false);
       }
+      hasIndentChange(info) {
+        let { option, pretext } = this;
+        if (!option || option.linenr != info.lnum) return false;
+        let previous = pretext.match(/^\s*/)[0];
+        let current = info.pre.match(/^\s*/)[0];
+        if (previous == current || pretext.slice(previous.length) !== info.pre.slice(current.length)) return false;
+        return true;
+      }
       async onTextChangedI(bufnr, info) {
         const doc = workspace_default.getDocument(bufnr);
         if (!doc || !doc.attached) return;
         this._debounced.clear();
-        const { option } = this;
+        const { option, staticConfig } = this;
         const filterOnBackspace = this.staticConfig.filterOnBackspace;
         if (option != null) {
           if (!info.insertChar) {
@@ -84061,7 +84069,8 @@ var init_completion2 = __esm({
               return;
             }
           }
-          if (this.staticConfig.reTriggerAfterIndent && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+          if (staticConfig.reTriggerAfterIndent && this.hasIndentChange(info)) {
+            this.cancelAndClose();
             await this.triggerCompletion(doc, info);
             return;
           }
@@ -86325,11 +86334,10 @@ var init_format2 = __esm({
 });
 
 // src/handler/highlights.ts
-var import_buffer4, Highlights2;
+var Highlights2;
 var init_highlights2 = __esm({
   "src/handler/highlights.ts"() {
     "use strict";
-    import_buffer4 = require("buffer");
     init_main();
     init_commands();
     init_events();
@@ -86337,7 +86345,6 @@ var init_highlights2 = __esm({
     init_util();
     init_position();
     init_protocol();
-    init_string();
     init_window();
     init_workspace();
     Highlights2 = class {
@@ -86410,27 +86417,11 @@ var init_highlights2 = __esm({
         let win = nvim.createWindow(winid);
         nvim.pauseNotification();
         win.clearMatchGroup("^CocHighlight");
-        for (let hlGroup of Object.keys(groups)) {
-          let positions = [];
-          for (let range of groups[hlGroup]) {
-            this.addHighlightPositions(positions, doc, range, this.config.limit);
-          }
-          nvim.call("matchaddpos", [hlGroup, positions, this.config.priority], true);
+        for (let [hlGroup, ranges] of Object.entries(groups)) {
+          win.highlightRanges(hlGroup, ranges, 999, true);
         }
         nvim.resumeNotification(true, true);
         this.highlights.set(winid, highlights);
-      }
-      addHighlightPositions(items, doc, range, limit) {
-        let { start, end } = range;
-        if (emptyRange(range)) return;
-        for (let line = start.line; line <= end.line; line++) {
-          const text = doc.getline(line, false);
-          let colStart = line == start.line ? byteIndex(text, start.character) : 0;
-          let colEnd = line == end.line ? byteIndex(text, end.character) : import_buffer4.Buffer.byteLength(text);
-          if (colStart >= colEnd) continue;
-          items.push([line + 1, colStart + 1, colEnd - colStart]);
-          if (items.length == limit) break;
-        }
       }
       async jumpSymbol(direction) {
         let ranges = await this.getSymbolsRanges();
@@ -90956,7 +90947,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-1baa8dcb 2025-05-05 17:08:59 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-8ecf2442 2025-05-06 21:59:46 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

@@ -78,7 +78,8 @@ function! coc#pum#select_confirm() abort
       let s:pum_index = 0
       call s:on_pum_change(0)
     endif
-    call coc#pum#close('confirm')
+    " Avoid change of text not allowed
+    return "\<C-r>=coc#pum#close('confirm')\<CR>"
   endif
   return ''
 endfunction
@@ -86,6 +87,9 @@ endfunction
 function! coc#pum#_close() abort
   if coc#pum#visible()
     call s:close_pum()
+    if s:is_vim
+      call timer_start(0, {-> execute('redraw')})
+    endif
   endif
 endfunction
 
@@ -323,7 +327,7 @@ function! s:insert_word(word, finish) abort
       noa set completeopt=noinsert,noselect
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
       noa call feedkeys("\<C-n>\<C-x>\<C-z>", 'in')
-      execute 'noa set completeopt='.saved_completeopt
+      call timer_start(0, { -> execute('noa set completeopt='.saved_completeopt)})
     endif
   endif
 endfunction

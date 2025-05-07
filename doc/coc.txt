@@ -1101,9 +1101,9 @@ snippets format.
 The completion items with snippet format has label ends with
 |coc-config-suggest-snippetIndicator| (`~` by default).
 
-Select the complete item and confirm the completion by |coc#pum#confirm()| or
-|coc#pum#select_confirm()| to expand the snippet of current selected complete
-ttem.
+Confirm the completion by |coc#pum#confirm()| or |coc#pum#select_confirm()| to
+expand the snippet and execute other possible actions of selected complete
+item.
 
 Jump snippet placeholders: ~
 
@@ -2365,8 +2365,8 @@ coc#pum#confirm() 					*coc#pum#confirm()*
 
 coc#pum#select_confirm()	 			*coc#pum#select_confirm()*
 
-	Select the first completion item if no completion item is selected,
-	then confirm the completion like |coc#pum#confirm()|.
+	Select the first completion item if no complete item is selected, then
+	confirm the completion like |coc#pum#confirm()|.
 
 	Note: this function should only be used in <expr> key-mappings.
 
