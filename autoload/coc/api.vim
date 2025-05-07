@@ -315,6 +315,9 @@ export def GeneratePropId(bufnr: number): number
 enddef
 
 export def GetNamespaceTypes(ns: number): list<string>
+  if ns == -1
+    return values(id_types)->flattennew(1)
+  endif
   return get(id_types, ns, [])
 enddef
 

@@ -104,7 +104,7 @@ export class Helper extends EventEmitter {
       })
     })
     let address = await this.listenOnVim(server)
-    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
+    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim9', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
       shell: true,
       cwd: __dirname,
@@ -275,6 +275,21 @@ export class Helper extends EventEmitter {
     }
     if (disposables) disposables.push(Disposable.create(fn))
     return fn
+  }
+
+  public async getMatches(hlGroup: string): Promise<any[]> {
+    let res = await this.nvim.call('getmatches') as any[]
+    let list = []
+    res.forEach(o => {
+      if (o.group === hlGroup) {
+        for (const [key, value] of Object.entries(o)) {
+          if (key.startsWith('pos')) {
+            list.push(value)
+          }
+        }
+      }
+    })
+    return list
   }
 
   public async mockFunction(name: string, result: string | number | any): Promise<void> {

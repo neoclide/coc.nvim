@@ -6,6 +6,7 @@ Notable changes of coc.nvim:
 
 - For terminal created by `coc#ui#open_terminal`, close the terminal window on
   terminal finish, make the behavior on vim9 the same as nvim.
+- Use lua and vim9 for highlight functions.
 
 ## 2025-05-04
 

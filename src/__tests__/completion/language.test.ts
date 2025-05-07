@@ -69,7 +69,7 @@ describe('LanguageSource util', () => {
   })
 
   it('should select recent item by prefix', async () => {
-    helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
+    helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix', disposables)
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
         label: 'fa'
@@ -132,7 +132,7 @@ describe('language source', () => {
     })
 
     it('should not feedkeys when already inserted before', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -151,7 +151,7 @@ describe('language source', () => {
     })
 
     it('should not feedkeys when have paried characters before', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -349,7 +349,7 @@ describe('language source', () => {
 
   describe('labelDetails', () => {
     it('should show labelDetails to documentation window', async () => {
-      helper.updateConfiguration('suggest.labelMaxLength', 10)
+      helper.updateConfiguration('suggest.labelMaxLength', 10, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -618,16 +618,6 @@ describe('language source', () => {
       await helper.waitPopup()
     }
 
-    it('should use commitCharacters from itemDefaults', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
-      await start({ label: 'foo' }, { commitCharacters: ['.'] }, ['.'])
-      await nvim.input('.')
-      // should trigger after commit
-      await helper.waitFor('getline', ['.'], 'foo.')
-      expect(events.completing).toBe(true)
-      completion.cancelAndClose()
-    })
-
     it('should use range of editRange from itemDefaults', async () => {
       await nvim.call('setline', ['.', 'bar'])
       await start({ label: 'foo' }, {
@@ -635,6 +625,17 @@ describe('language source', () => {
       })
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo')
+    })
+
+    it('should use commitCharacters from itemDefaults', async () => {
+      let dispose = helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      await start({ label: 'foo' }, { commitCharacters: ['.'] }, ['.'])
+      await nvim.input('.')
+      // should trigger after commit
+      await helper.waitFor('getline', ['.'], 'foo.')
+      expect(events.completing).toBe(true)
+      completion.cancelAndClose()
+      dispose()
     })
 
     it('should use replace range of editRange from itemDefaults', async () => {

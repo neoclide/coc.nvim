@@ -603,6 +603,39 @@ describe('Buffer API', () => {
       expect(prop.text).toBe('0')
     }
   })
+
+  it('should update highlights', async () => {
+    let buf = await nvim.buffer
+    await buf.setLines(['foo', 'bar'])
+    let hls = []
+    hls.push({ lnum: 0, colStart: 0, colEnd: 3, hlGroup: 'MoreMsg' })
+    hls.push({ lnum: 1, colStart: 1, colEnd: 3, hlGroup: 'MoreMsg' })
+    buf.updateHighlights('test', hls, { priority: 80 })
+    let arr = await buf.getHighlights('test')
+    expect(arr.length).toBe(2)
+    let obj = {}
+    for (const key of ['hlGroup', 'lnum', 'colStart', 'colEnd']) {
+      obj[key] = arr[0][key]
+    }
+    expect(obj).toEqual(hls[0])
+    await nvim.call('coc#highlight#clear_all', [])
+    buf.updateHighlights('test', [hls[0]], { priority: 80, start: 0, end: 1 })
+    arr = await buf.getHighlights('test')
+    expect(arr.length).toBe(1)
+    let hl = { lnum: 1, colStart: 0, colEnd: -1, hlGroup: 'MoreMsg' }
+    buf.updateHighlights('test', [hl], { priority: 80 })
+    arr = await buf.getHighlights('test')
+    expect(arr.length).toBe(1)
+  })
+
+  it('should highlight ranges', async () => {
+    let buf = await nvim.buffer
+    await buf.setLines(['foo', 'bar'])
+    const range = Range.create(0, 0, 2, 0)
+    buf.highlightRanges('test', 'MoreMsg', [range])
+    let arr = await buf.getHighlights('test')
+    expect(arr.length).toBe(2)
+  })
 })
 
 describe('Window API', () => {
@@ -699,6 +732,25 @@ describe('Window API', () => {
     valid = await win.valid
     expect(valid).toBe(false)
     await nvim.command('only!')
+  })
+
+  it('should add and clear matches', async () => {
+    let buf = await nvim.buffer
+    let arr = new Array(10)
+    arr.fill('foo')
+    await buf.setLines(arr)
+    let ranges: Range[] = []
+    for (let i = 0; i < 10; i++) {
+      ranges.push(Range.create(i, 0, i, 3))
+    }
+    let win = await nvim.window
+    let ids = await win.highlightRanges('MoreMsg', ranges)
+    expect(ids.length).toBeGreaterThan(0)
+    let matches = await helper.getMatches('MoreMsg')
+    expect(matches.length).toBe(10)
+    win.clearMatches(ids)
+    matches = await helper.getMatches('MoreMsg')
+    expect(matches.length).toBe(0)
   })
 })
 
