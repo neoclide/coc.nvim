@@ -105,6 +105,7 @@ function! coc#ui#open_terminal(opts) abort
     endif
     call term_start(cmd, {
           \ 'cwd': cwd,
+          \ 'term_finish': 'close',
           \ 'exit_cb': {job, status -> s:OnExit(status)},
           \ 'curwin': 1,
           \})

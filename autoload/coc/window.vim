@@ -188,3 +188,28 @@ function! coc#window#visible_ranges(bufnr) abort
   endfor
   return res
 endfunction
+
+" Clear matches by hlGroup regexp.
+function! coc#window#clear_match_group(winid, match) abort
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  if !empty(getwininfo(winid))
+    let arr = filter(getmatches(winid), 'v:val["group"] =~# "'.a:match.'"')
+    for item in arr
+      call matchdelete(item['id'], winid)
+    endfor
+  endif
+endfunction
+
+" Clear matches by match ids, use 0 for current win.
+function! coc#window#clear_matches(winid, ids) abort
+  let winid = a:winid == 0 ? win_getid() : a:winid
+  if !empty(getwininfo(winid))
+    for id in a:ids
+      try
+        call matchdelete(id, winid)
+      catch /^Vim\%((\a\+)\)\=:E803/
+        " ignore
+      endtry
+    endfor
+  endif
+endfunction

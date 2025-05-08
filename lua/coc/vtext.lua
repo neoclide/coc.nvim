@@ -1,6 +1,7 @@
 local api = vim.api
 local M = {}
 local n10 = vim.fn.has('nvim-0.10')
+local maxCount = vim.g.coc_highlight_maximum_count or 500
 
 local function addVirtualText(bufnr, ns, opts, pre, priority)
     local align = opts.text_align or 'after'
@@ -11,7 +12,7 @@ local function addVirtualText(bufnr, ns, opts, pre, priority)
         config.virt_lines = { opts.blocks }
       else
         local list =  { {pre, 'Normal'}}
-        table.move(opts.blocks, 1, #opts.blocks, 2, list)
+        vim.list_extend(list, opts.blocks)
         config.virt_lines = { list }
       end
       if align == 'above' then
@@ -76,7 +77,7 @@ local function addVirtualTexts(bufnr, ns, items, indent, priority)
   end
 end
 
-local function addVirtualTextsTimer(bufnr, ns, items, indent, priority, changedtick, maxCount)
+local function addVirtualTextsTimer(bufnr, ns, items, indent, priority, changedtick)
   if not api.nvim_buf_is_loaded(bufnr) then
     return nil
   end
@@ -86,11 +87,11 @@ local function addVirtualTextsTimer(bufnr, ns, items, indent, priority, changedt
   if #items > maxCount then
     local markers = {}
     local next = {}
-    table.move(items, 1, maxCount, 1, markers)
-    table.move(items, maxCount + 1, #items, 1, next)
+    vim.list_extend(markers, items, 1, maxCount)
+    vim.list_extend(next, items, maxCount, #items)
     addVirtualTexts(bufnr, ns, markers, indent, priority)
     vim.defer_fn(function()
-      addVirtualTextsTimer(bufnr, ns, next, indent, priority, changedtick, maxCount)
+      addVirtualTextsTimer(bufnr, ns, next, indent, priority, changedtick)
     end, 10)
   else
     addVirtualTexts(bufnr, ns, items, indent, priority)
@@ -99,7 +100,6 @@ end
 
 function M.set(bufnr, ns, items, indent, priority)
   local changedtick = vim.fn.getbufvar(bufnr, 'changedtick', 0)
-  local maxCount = vim.g.coc_highlight_maximum_count or 500
-  addVirtualTextsTimer(bufnr, ns, items, indent, priority, changedtick, maxCount)
+  addVirtualTextsTimer(bufnr, ns, items, indent, priority, changedtick)
 end
 return M

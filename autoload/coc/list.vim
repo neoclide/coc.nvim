@@ -14,7 +14,6 @@ let s:filetype_map = {
       \ }
 let s:pwinid = -1
 let s:pbufnr = -1
-let s:match_ns = coc#highlight#create_namespace('list-match')
 let s:sign_range = 'CocCursorLine'
 let s:sign_popup_range = 'PopUpCocList'
 let s:current_line_hl = 'CocListCurrent'
