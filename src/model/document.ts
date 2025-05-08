@@ -231,6 +231,7 @@ export default class Document {
     })
     const onLinesChange = (id: number, lines: ReadonlyArray<string>) => {
       this.lines = lines
+      if (this._applying) return
       fireLinesChanged(id)
       if (events.completing) return
       this.fireContentChanges()
@@ -292,7 +293,6 @@ export default class Document {
     let original: string
     if (edit) {
       original = textDocument.getText(edit.range)
-      // TODO the range could be wrong
       changes.push({ range: edit.range, text: edit.newText, rangeLength: original.length })
     } else {
       original = ''
