@@ -240,7 +240,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'scrollbarhighlight': 'CocFloatSbar',
           \ 'thumbhighlight': 'CocFloatThumb',
           \ }
-    let winid = popup_create(bufnr, opts)
+    noa let winid = popup_create(bufnr, opts)
     call s:set_float_defaults(winid, a:config)
     call win_execute(winid, 'exe '.lnum)
     call coc#float#vim_buttons(winid, a:config)
