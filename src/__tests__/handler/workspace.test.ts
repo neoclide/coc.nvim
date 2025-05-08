@@ -30,8 +30,8 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  disposeAll(disposables)
   await helper.reset()
+  disposeAll(disposables)
 })
 
 describe('Workspace handler', () => {
@@ -196,21 +196,6 @@ describe('Workspace handler', () => {
       expect(bufname).toMatch(/x$/)
     })
 
-    it('should not throw when workspace folder does not exist', async () => {
-      helper.updateConfiguration('workspace.rootPatterns', [])
-      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
-      await nvim.command('enew')
-      await (window as any).openLocalConfig()
-      await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
-      await helper.doAction('openLocalConfig')
-      await nvim.command(`e t.md`)
-      await nvim.command('setf markdown')
-      await handler.openLocalConfig()
-      await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
-      await nvim.command('setf vim')
-      await commands.executeCommand('workspace.openLocalConfig')
-    })
-
     it('should open local config', async () => {
       let dir = path.join(os.tmpdir(), '.vim')
       fs.rmSync(dir, { recursive: true, force: true })
@@ -228,6 +213,28 @@ describe('Workspace handler', () => {
       await p
       let bufname = await nvim.call('bufname', ['%'])
       expect(bufname).toMatch('coc-settings.json')
+    })
+
+    it('should not throw when workspace folder does not exist', async () => {
+      helper.updateConfiguration('workspace.rootPatterns', [], disposables)
+      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'], disposables)
+      await nvim.command('enew')
+      await (window as any).openLocalConfig()
+      await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
+      await helper.doAction('openLocalConfig')
+      await nvim.command(`e t.md`)
+      await nvim.command('setf markdown')
+      await handler.openLocalConfig()
+      await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
+      await nvim.command('setf vim')
+      let called = false
+      let spy = jest.spyOn(window, 'showWarningMessage').mockImplementation(() => {
+        called = true
+        return Promise.resolve(undefined)
+      })
+      await commands.executeCommand('workspace.openLocalConfig')
+      expect(called).toBe(true)
+      spy.mockRestore()
     })
 
     it('should add workspace folder', async () => {

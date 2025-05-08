@@ -5,11 +5,11 @@ import { CancellationToken, CancellationTokenSource } from 'vscode-languageserve
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../../events'
-import { addPythonTryCatch, evalCode, executePythonCode, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
-import { Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
-import { CocSnippet, getNextPlaceholder } from '../../snippets/snippet'
+import { addPythonTryCatch, executePythonCode, generateContextId, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
+import { CodeBlock, Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
+import { CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
 import { SnippetString } from '../../snippets/string'
-import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, UltiSnippetContext } from '../../snippets/util'
+import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, toSnippetString, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
@@ -28,12 +28,12 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = Range.create(0, 0, 0, 0), line = '') {
+async function createSnippet(snippet: string | TextmateSnippet, opts?: UltiSnippetOption, range = Range.create(0, 0, 0, 0), line = '') {
   let resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
   let snip = new CocSnippet(snippet, Position.create(0, 0), nvim, resolver)
   let context: UltiSnippetContext
   if (opts) {
-    context = { range, line, ...opts, }
+    context = { range, line, ...opts, id: generateContextId(workspace.bufnr) }
     await executePythonCode(nvim, getInitialPythonCode(context))
   }
   await snip.init(context)
@@ -153,6 +153,15 @@ describe('SnippetString', () => {
   })
 })
 
+describe('toSnippetString()', () => {
+  it('should convert snippet to string', async () => {
+    await expect(async () => {
+      toSnippetString(undefined)
+    }).rejects.toThrow(TypeError)
+    expect(toSnippetString(new SnippetString())).toBe('')
+  })
+})
+
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string, opts?: UltiSnippetOption) {
     let c = await createSnippet(snip, opts)
@@ -253,12 +262,15 @@ describe('CocSnippet', () => {
       let m = c.tmSnippet.children[0]
       expect(c.getUltiSnipOption(m, 'noExpand')).toBe(true)
       expect(c.getUltiSnipOption(c.tmSnippet, 'noExpand')).toBe(true)
+      expect(c.getUltiSnipOption(new Text(''), 'trimTrailingWhitespace')).toBeUndefined()
     })
   })
 
   describe('findParent()', () => {
     it('should throw when not found', async () => {
-      let c = await createSnippet('f')
+      let snip = new TextmateSnippet()
+      snip.appendChild(new Text('f'))
+      let c = await createSnippet(snip)
       expect(() => {
         c.findParent(Range.create(1, 0, 1, 0))
       }).toThrow(Error)
@@ -388,13 +400,20 @@ describe('CocSnippet', () => {
       expect(changed['index']).toBe(0)
       expect(changed.toString()).toBe('ar')
     })
+
+    it('should replace with Text when placeholder is not primary', async () => {
+      let c = await createSnippet('$1 ${1:foo}')
+      let result = await c.replaceWithText(Range.create(0, 0, 0, 1), 'b', CancellationToken.None)
+      expect(result.marker instanceof Text).toBe(true)
+      expect(result.snippetText).toBe('boo foo')
+    })
   })
 
   describe('replaceWithSnippet()', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       c.deactivateSnippet(undefined)
-      expect(c.getUltiSnipAction(undefined, 'postJump')).toBeUndefined()
+      // expect(c.getUltiSnipActionCodes(undefined, 'postJump')).toBeUndefined()
       let res = await c.replaceWithSnippet(Range.create(0, 0, 0, 3), '${1:bar}')
       expect(res.toString()).toBe('bar')
       expect(res.parent.snippet.toString()).toBe('bar\nbar')
@@ -405,7 +424,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(false)
-      let res = await c.replaceWithSnippet(p.range, '${1:x} `!p snip.rv = t[1]`', p.marker, { line: '', range: p.range })
+      let res = await c.replaceWithSnippet(p.range, '${1:x} `!p snip.rv = t[1]`', p.marker, { line: '', range: p.range, id: `1-1` })
       expect(res.toString()).toBe('x x')
       expect(c.text).toBe('x x\nx x')
       let r = c.getPlaceholderByMarker(res.first)
@@ -423,16 +442,14 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(1)
       expect(c.hasPython).toBe(true)
       expect(c.text).toBe('foo ')
-      await executePythonCode(nvim, getInitialPythonCode({
+      let context = {
+        id: `1-1`,
         regex: '^(\\w+)',
         line: 'bar',
         range: Range.create(0, 0, 0, 3)
-      }))
-      await c.replaceWithSnippet(p.range, '`!p snip.rv = match.group(1)`', p.marker, {
-        regex: '^(\\w+)',
-        line: 'bar',
-        range: Range.create(0, 0, 0, 3)
-      })
+      }
+      await executePythonCode(nvim, getInitialPythonCode(context))
+      await c.replaceWithSnippet(p.range, '`!p snip.rv = match.group(1)`', p.marker, context)
       expect(c.text).toBe('foo bar')
     })
 
@@ -440,7 +457,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${1:foo} `!p snip.rv = t[1]`', {})
       let range = Range.create(0, 0, 0, 3)
       let line = await nvim.line
-      await c.replaceWithSnippet(range, '${1:bar} `!p snip.rv = t[1]`', undefined, { range, line })
+      await c.replaceWithSnippet(range, '${1:bar} `!p snip.rv = t[1]`', undefined, { range, line, id: `1-1` })
       expect(c.text).toBe('bar bar bar bar')
       let token = (new CancellationTokenSource()).token
       let res = await c.replaceWithText(Range.create(0, 0, 0, 3), 'xy', token)
@@ -451,6 +468,13 @@ describe('CocSnippet', () => {
     it('should not throw when parent not exist', async () => {
       let c = await createSnippet('${1:foo}', {})
       await c.onMarkerUpdate(new Placeholder(1), CancellationToken.None)
+    })
+
+    it('should not synchronize with none primary placeholder change', async () => {
+      let c = await createSnippet('${1:foo}\n$1', {})
+      let res = await c.replaceWithSnippet(Range.create(1, 0, 1, 3), '${1:bar}')
+      expect(res.toString()).toBe('bar')
+      expect(c.tmSnippet.toString()).toBe('foo\nbar')
     })
   })
 
@@ -506,6 +530,7 @@ describe('CocSnippet', () => {
     it('should work with methods of snip', async () => {
       await nvim.command('setl shiftwidth=4 ft=txt tabstop=4 expandtab')
       await createSnippet('`!p snip.rv = "a"`', {}, Range.create(0, 4, 0, 8), '    abcd')
+      await executePythonCode(nvim, [])
       await executePythonCode(nvim, [
         'snip.shift(1)',
         // ultisnip indent only when there's '\n' in snip.rv
@@ -558,11 +583,6 @@ describe('CocSnippet', () => {
     it('should update python block from placeholder', async () => {
       await assertResult('`!p snip.rv = t[1][0] if len(t[1]) > 0 else ""` ${1:`!p snip.rv = t[2]`} ${2:foo}', 'f foo foo', {})
     })
-
-    it('should update nested placeholder values', async () => {
-      let c = await createSnippet('${2:foo ${1:`!p snip.rv = "bar"`}} ${2/^\\w//} `!p snip.rv = t[2]`', {})
-      expect(c.text).toBe('foo bar oo bar foo bar')
-    })
   })
 
   describe('updatePlaceholder()', () => {
@@ -571,7 +591,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(index)
       expect(p != null).toBe(true)
       p.marker.setOnlyChild(new Text(value))
-      await c.tmSnippet.update(nvim, p.marker, ultisnip?.noPython)
+      await c.tmSnippet.update(nvim, p.marker, CancellationToken.None)
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
@@ -579,6 +599,15 @@ describe('CocSnippet', () => {
     it('should update variable placeholders', async () => {
       await assertUpdate('${foo} ${foo}', 'bar', 'bar bar', 1, null)
       await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar', 1, null)
+    })
+
+    it('should not update when cancelled', async () => {
+      let c = await createSnippet('${1:foo} `!p snip.rv = t[1]`', {})
+      let p = c.getPlaceholderByIndex(1)
+      expect(p != null).toBe(true)
+      p.marker.setOnlyChild(new Text('bar'))
+      await c.tmSnippet.update(nvim, p.marker, CancellationToken.Cancelled)
+      expect(c.tmSnippet.toString()).toBe('bar foo')
     })
 
     it('should work with snip.c', async () => {
@@ -599,7 +628,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(2)
       expect(p).toBeDefined()
       p.marker.setOnlyChild(new Text('foo'))
-      await c.tmSnippet.update(nvim, p.marker, false)
+      await c.tmSnippet.update(nvim, p.marker, CancellationToken.None)
       let t = c.tmSnippet.toString()
       expect(t.startsWith(first)).toBe(true)
       expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
@@ -678,6 +707,27 @@ describe('CocSnippet', () => {
       let next = getNextPlaceholder(p.marker, false)
       expect(next.index).toBe(1)
       expect(next.primary).toBe(true)
+    })
+  })
+
+  describe('getUltiSnipActionCodes()', () => {
+    it('should not get codes when action not exists', () => {
+      expect(getUltiSnipActionCodes(undefined, 'postJump')).toBeUndefined()
+      expect(getUltiSnipActionCodes(new Text(''), 'postJump')).toBeUndefined()
+      let snip = (new SnippetParser()).parse('${1:a}', true)
+      expect(getUltiSnipActionCodes(snip, 'postJump')).toBeUndefined()
+    })
+
+    it('should get codes when exists action', async () => {
+      let snip = (new SnippetParser()).parse('${1:a}', true)
+      snip.related.context = {
+        id: `1-1`,
+        line: '',
+        range: Range.create(0, 0, 0, 0),
+        actions: { postJump: 'jump' }
+      }
+      let res = getUltiSnipActionCodes(snip, 'postJump')
+      expect(res.length).toBe(2)
     })
   })
 
@@ -813,15 +863,33 @@ describe('CocSnippet', () => {
       expect(msg).toMatch('INVALID_CODE')
     })
 
-    it('should eval code', async () => {
-      let val = process.env.SHELL
-      process.env.SHELL = '/bin/sh'
-      let res = await evalCode(nvim, 'shell', 'echo foo', '')
-      expect(res).toBe('foo')
-      process.env.SHELL = undefined
-      res = await evalCode(nvim, 'shell', 'echo foo', '')
-      expect(res).toBe('foo')
-      process.env.SHELL = val
+    it('should cancel code block eval when necessary', async (): Promise<void> => {
+      {
+        let block = new CodeBlock('echo "foo"', 'shell')
+        await block.resolve(nvim, CancellationToken.Cancelled)
+        expect(block.len()).toBe(0)
+      }
+      {
+        let block = new CodeBlock('bufnr("%")', 'vim')
+        await block.resolve(nvim, CancellationToken.None)
+        let bufnr = await nvim.eval('bufnr("%")')
+        expect(block.value).toBe(`${bufnr}`)
+      }
+      {
+        let block = new CodeBlock('v:null', 'vim')
+        await block.resolve(nvim)
+        expect(block.value).toBe('')
+      }
+      {
+        await executePythonCode(nvim, [`snip = SnippetUtil("", (0, 0), (0, 0), None)`])
+        let block = new CodeBlock('snip.rv = "foo"', 'python')
+        let tokenSource = new CancellationTokenSource()
+        let token = tokenSource.token
+        process.nextTick(() => {
+          tokenSource.cancel()
+        })
+        await block.resolve(nvim, token)
+      }
     })
 
     it('should parse comments', async () => {

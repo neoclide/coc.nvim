@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, ParameterInformation, SignatureInformation, Range } from 'vscode-languageserver-protocol'
+import { Disposable, ParameterInformation, Range, SignatureInformation } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
+import events from '../../events'
 import Signature from '../../handler/signature'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -73,9 +73,10 @@ describe('signatureHelp', () => {
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeDefined()
-      let highlights = await win.getVar('highlights')
-      expect(highlights).toBeDefined()
-      expect(highlights[0].hlGroup).toBe('CocFloatActive')
+      let buf = await win.buffer
+      let hls = await buf.getHighlights(-1 as any)
+      expect(hls.length).toBe(2)
+      expect(hls[0].hlGroup).toBe('CocFloatActive')
     })
 
     it('should trigger by space', async () => {

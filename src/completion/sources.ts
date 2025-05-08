@@ -5,7 +5,6 @@ import extensions from '../extension'
 import { createLogger } from '../logger'
 import BufferSync from '../model/bufferSync'
 import type { CompletionItemProvider, DocumentSelector } from '../provider'
-import type { WordsSource } from '../snippets/util'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { readFileLines, statAsync } from '../util/fs'
@@ -38,16 +37,19 @@ export class Sources {
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
   public keywords: BufferSync<KeywordsBuffer>
-  private wordsSource: WordsSource
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
-      const chineseSegments = workspace.getConfiguration('suggest').get('chineseSegments', true)
-      return new KeywordsBuffer(doc, chineseSegments)
+      const segmenterLocales = workspace.getConfiguration('suggest', doc).get<string>('segmenterLocales')
+      return new KeywordsBuffer(doc, segmenterLocales)
     })
     this.createNativeSources()
     this.createRemoteSources()
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
+    events.on('CompleteDone', (_item, linenr, bufnr) => {
+      let item = this.keywords.getItem(bufnr)
+      if (item) item.onCompleteDone(linenr - 1)
+    }, null, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
         this.createVimSources(p).catch(logError)
@@ -61,11 +63,6 @@ export class Sources {
 
   public getKeywordsBuffer(bufnr: number): KeywordsBuffer {
     return this.keywords.getItem(bufnr)
-  }
-
-  public setWords(words: string[], col: number): void {
-    this.wordsSource.startcol = col
-    this.wordsSource.words = words
   }
 
   private createNativeSources(): void {
@@ -239,7 +236,7 @@ export class Sources {
   }
 
   public shouldCommit(source: ISource | undefined, item: CompleteItem | undefined, commitCharacter: string): boolean {
-    if (!item || source == null) return false
+    if (!item || source == null || commitCharacter.length === 0) return false
     if (Is.func(source.shouldCommit)) {
       return source.shouldCommit(item, commitCharacter)
     }
@@ -291,7 +288,7 @@ export class Sources {
     return this.sources.filter(source => {
       let { filetypes, enable, documentSelector, name } = source
       if (disabled.includes(name)) return false
-      if (!enable || (filetypes && !intersect(filetypes, languageIds))) return false
+      if (!enable || (Array.isArray(filetypes) && !intersect(filetypes, languageIds))) return false
       if (documentSelector && languageIds.every(languageId => workspace.match(documentSelector, { uri, languageId }) == 0)) {
         return false
       }

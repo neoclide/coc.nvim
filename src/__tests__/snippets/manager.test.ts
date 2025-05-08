@@ -1,17 +1,23 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CompletionItem, Disposable, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import events from '../../events'
+import languages from '../../languages'
 import Document from '../../model/document'
+import { CompletionItemProvider } from '../../provider'
 import snippetManager, { SnippetManager } from '../../snippets/manager'
+import { SnippetEdit } from '../../snippets/session'
 import { SnippetString } from '../../snippets/string'
+import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
 let doc: Document
+let disposables: Disposable[] = []
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -24,6 +30,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -77,9 +84,6 @@ describe('snippet provider', () => {
       await nvim.input('t')
       let s = snippetManager.session
       await doc.patchChange()
-      await helper.waitValue(() => {
-        return s.staled
-      }, true)
       events.completing = false
       await s.onCompleteDone()
       line = await nvim.line
@@ -91,26 +95,20 @@ describe('snippet provider', () => {
     })
 
     it('should show & hide status item', async () => {
-      let buf = await nvim.buffer
-      await helper.createDocument()
+      let doc = await workspace.document
+      let buf = doc.buffer
+      let curr = await helper.createDocument()
       await buf.setLines([], { start: 0, end: -1 })
-      let isActive = await snippetManager.insertBufferSnippet(buf.id, '${1:foo} $0', Range.create(0, 0, 0, 0))
+      let isActive = await snippetManager.insertBufferSnippet(buf.id, ' ${1:foo} $1 $0', Range.create(0, 0, 0, 0))
       expect(isActive).toBe(true)
       let status = await nvim.getVar('coc_status')
       expect(!!status).toBe(false)
-    })
-  })
-
-  describe('insertBufferSnippet()', () => {
-    it('should throw when buffer not attached', async () => {
-      await nvim.command(`vnew +setl\\ buftype=nofile`)
-      let bufnr = await nvim.call('bufnr', ['%']) as number
-      expect(snippetManager.jumpable()).toBe(false)
-      let res = await snippetManager.resolveSnippet('${1:foo}')
-      expect(res).toBeUndefined()
-      await expect(async () => {
-        await snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))
-      }).rejects.toThrow(Error)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
+      await helper.waitValue(() => doc.getline(0), ' xfoo xfoo ')
+      let active = await buf.getVar('coc_snippet_active')
+      expect(active).toBe(1)
+      active = await curr.buffer.getVar('coc_snippet_active')
+      expect(active != 1).toBe(true)
     })
   })
 
@@ -172,10 +170,78 @@ describe('snippet provider', () => {
       let last = await nvim.getVar('last')
       expect(last).toBe('i')
     })
+
+    it('should insert nested snippet on CompleteDone with correct position', async () => {
+      await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      let session = snippetManager.getSession(bufnr)
+      expect(session.isActive).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('     inner')
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'bar',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, 5, 0, 6), newText: '${1:foobar}' },
+          preselect: true
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      await nvim.input('b')
+      await helper.waitPopup()
+      let res = await helper.items()
+      let idx = res.findIndex(o => o.source?.name == 'edits')
+      nvim.call('coc#pum#select', [idx, 1, 1], true)
+      await events.race(['PlaceholderJump'], 200)
+      await session.synchronize()
+      line = await nvim.line
+      expect(line).toBe('    foobar')
+    })
+  })
+
+  describe('insertBufferSnippet()', () => {
+    it('should throw when buffer not attached', async () => {
+      await nvim.command(`vnew +setl\\ buftype=nofile`)
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      expect(snippetManager.jumpable()).toBe(false)
+      let res = await snippetManager.resolveSnippet('${1:foo}')
+      expect(res).toBeUndefined()
+      await expect(async () => {
+        await snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))
+      }).rejects.toThrow(Error)
+    })
+  })
+
+  describe('insertBufferSnippets()', () => {
+    it('should insert snippets', async () => {
+      let doc = await helper.createDocument()
+      await helper.createDocument()
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
+      let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits)
+      expect(result).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo()bar()'])
+      await nvim.command(`b ${doc.bufnr}`)
+      // selected on BufEnter
+      await helper.waitFor('col', ['.'], 5)
+    })
+
+    it('should select placeholder', async () => {
+      let doc = await workspace.document
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
+      let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits, true)
+      expect(result).toBe(true)
+      let cursor = await window.getCursorPosition()
+      expect(cursor).toEqual(Position.create(0, 4))
+    })
   })
 
   describe('nextPlaceholder()', () => {
-    it('should goto next placeholder', async () => {
+    it('should go to next placeholder', async () => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
       await helper.doAction('snippetNext')
       let col = await nvim.call('col', '.')
@@ -200,7 +266,7 @@ describe('snippet provider', () => {
       await doc.synchronize()
       await nvim.input('f')
       await helper.waitPopup()
-      await nvim.call('coc#pum#select_confirm')
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foot bar foot')
       fn()
     })
@@ -317,12 +383,12 @@ describe('snippet provider', () => {
       expect(snippet.toString()).toBe('foo foo')
     })
 
-    it('should avoid python resolve when necessary', async () => {
+    it('should resolve python when have python snippet', async () => {
       await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {}) as any
       expect(res).toBe(true)
       let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
-      expect(snippet.toString()).toBe('x ')
+      expect(snippet.toString()).toBe('x x')
     })
 
     it('should throw when resolve throw error', async () => {
@@ -340,25 +406,13 @@ describe('snippet provider', () => {
   describe('normalizeInsertText()', () => {
     it('should normalizeInsertText', async () => {
       let doc = await workspace.document
-      Object.defineProperty(window, 'activeTextEditor', {
-        get: () => {
-          return undefined
-        },
-        configurable: true,
-        enumerable: true
-      })
-      let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.adjustIndentation)
-      expect(res).toBe('foo\n  bar')
-      Object.defineProperty(window, 'activeTextEditor', {
-        get: () => {
-          return workspace.editors.activeTextEditor
-        }
-      })
+      let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.asIs)
+      expect(res).toBe('foo\nbar')
     })
 
     it('should respect noExpand', async () => {
       await nvim.command('startinsert')
-      let res = await snippetManager.insertSnippet('\t\t${1:foo}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {
+      let res = await snippetManager.insertSnippet('\t\t${1:foo}', true, Range.create(0, 0, 0, 0), InsertTextMode.adjustIndentation, {
         noExpand: true
       })
       expect(res).toBe(true)
@@ -444,6 +498,21 @@ describe('snippet provider', () => {
         expect(pos).toEqual({ line: 1, character: 3 })
       })
 
+      it('should insert snippetwith pre_expand as nested python snippet', async () => {
+        await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+        await nvim.setVar('coc_selected_text', 'bar')
+        await snippetManager.insertSnippet('${1:foo}', true, Range.create(0, 5, 0, 10), undefined, {
+          actions: {
+            preExpand: 'vim.vars["v"] = snip.visual_content'
+          }
+        })
+        let line = await nvim.line
+        expect(line).toBe('       foo')
+        let res = await nvim.getVar('v')
+        expect(res).toBe('bar')
+        let val = await nvim.getVar('coc_selected_text')
+        expect(val).toBeNull()
+      })
     })
 
     describe('post_expand', () => {

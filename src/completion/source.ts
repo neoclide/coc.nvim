@@ -1,17 +1,17 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
+import { DocumentSelector } from '../provider'
 import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { ASCII_END } from '../util/constants'
 import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import * as Is from '../util/is'
 import { unidecode } from '../util/node'
 import { CancellationToken, Disposable } from '../util/protocol'
-import * as Is from '../util/is'
 import { isAlphabet } from '../util/string'
 import workspace from '../workspace'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType } from './types'
-import { DocumentSelector } from '../provider'
 const WORD_PREFIXES = ['_', '$', '-']
 const WORD_PREFIXES_CODE = [95, 36, 45]
 const MAX_DURATION = getConditionValue(80, 20)
@@ -117,10 +117,6 @@ export default class Source implements ISource<ExtendedCompleteItem> {
 
   public get disableSyntaxes(): string[] {
     return this.getConfig('disableSyntaxes', [])
-  }
-
-  public get chineseSegments(): boolean {
-    return this.getConfig('chineseSegments', true)
   }
 
   public getConfig<T>(key: string, defaultValue?: T): T | null {

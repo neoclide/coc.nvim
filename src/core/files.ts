@@ -646,27 +646,33 @@ export default class Files {
     const ac = new AbortController()
     if (token) {
       token.onCancellationRequested(() => {
-        ac.abort()
+        if (!ac.signal.aborted) ac.abort()
       })
     }
     for (let root of roots) {
-      let files = await glob.glob(pattern, {
-        signal: ac.signal,
-        dot: true,
-        cwd: root,
-        nodir: true,
-        absolute: false
-      })
-      if (token?.isCancellationRequested) break
-      for (let file of files) {
-        if (exclude && fileMatch(root, file, exclude)) continue
-        res.push(URI.file(path.join(root, file)))
-        if (res.length === maxResults) {
-          exceed = true
+      try {
+        let files = await glob.glob(pattern, {
+          signal: ac.signal,
+          dot: true,
+          cwd: root,
+          nodir: true,
+          absolute: false
+        })
+        if (token?.isCancellationRequested) break
+        for (let file of files) {
+          if (exclude && fileMatch(root, file, exclude)) continue
+          res.push(URI.file(path.join(root, file)))
+          if (res.length === maxResults) {
+            exceed = true
+            break
+          }
+        }
+        if (exceed) break
+      } catch (e) {
+        if (e['name'] === 'AbortError') {
           break
         }
       }
-      if (exceed) break
     }
     return res
   }

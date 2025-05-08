@@ -47,9 +47,8 @@ async function registerProvider(content: string, position: Position): Promise<vo
 }
 
 async function matches(): Promise<number> {
-  let res = await nvim.call('getmatches') as any[]
-  res = res.filter(o => o.group === 'CocLinkedEditing')
-  return res.length
+  let list = await helper.getMatches('CocLinkedEditing')
+  return list.length
 }
 
 describe('LinkedEditing', () => {

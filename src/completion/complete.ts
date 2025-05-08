@@ -47,7 +47,7 @@ export default class Complete {
   private itemsMap: WeakMap<DurationCompleteItem, CompleteItem> = new WeakMap()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   constructor(public option: CompleteOption,
-    private document: Document,
+    public readonly document: Document,
     private config: CompleteConfig,
     private sources: ISource<CompleteItem>[]) {
     this.inputStart = characterIndex(option.line, option.col)
@@ -59,6 +59,14 @@ export default class Complete {
 
   private get nvim(): Neovim {
     return workspace.nvim
+  }
+
+  // trigger texts starts at character
+  public getTrigger(character: number): string {
+    let { linenr, col } = this.option
+    let line = this.document.getline(linenr - 1)
+    let pre = line.slice(0, characterIndex(line, col)) + this.input
+    return pre.slice(character)
   }
 
   private fireRefresh(waitTime: number): void {

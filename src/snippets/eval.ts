@@ -1,36 +1,18 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { exec, ExecOptions } from 'child_process'
 import { Range } from 'vscode-languageserver-types'
 import events from '../events'
 import { UltiSnippetOption } from '../types'
 import { isVim } from '../util/constants'
-import { promisify } from '../util/node'
-import { toText } from '../util/string'
 import { UltiSnippetContext } from './util'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
-/**
- * Eval code for code placeholder.
- */
-export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr: string): Promise<string> {
-  if (kind == 'vim') {
-    let res = await nvim.eval(code)
-    return res.toString()
-  }
+const contexts_var = '__coc_ultisnip_contexts'
 
-  if (kind == 'shell') {
-    let opts: ExecOptions = { windowsHide: true }
-    if (process.env.SHELL) opts.shell = process.env.shell
-    let res = await promisify(exec)(code, opts)
-    return res.stdout.replace(/\s*$/, '')
-  }
+let context_id = 1
 
-  let lines = [`snip._reset("${escapeString(curr)}")`]
-  lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
-  await executePythonCode(nvim, lines)
-  let res = await nvim.call(`pyxeval`, 'str(snip.rv)') as string
-  return toText(res)
+export function generateContextId(bufnr: number): string {
+  return `${bufnr}-${context_id++}`
 }
 
 export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolean {
@@ -38,6 +20,14 @@ export function hasPython(snip?: UltiSnippetContext | UltiSnippetOption): boolea
   if (snip.context) return true
   if (snip.actions && Object.keys(snip.actions).length > 0) return true
   return false
+}
+
+export function getResetPythonCode(context: UltiSnippetContext): string[] {
+  const pyCodes: string[] = []
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`)
+  pyCodes.push(`context = ${contexts_var}.get('${context.id}', {}).get('context', None)`)
+  pyCodes.push(`match = ${contexts_var}.get('${context.id}', {}).get('match', None)`)
+  return pyCodes
 }
 
 export function getPyBlockCode(snip: UltiSnippetContext): string[] {
@@ -50,16 +40,18 @@ export function getPyBlockCode(snip: UltiSnippetContext): string[] {
   let start = `(${range.start.line},${range.start.character})`
   let end = `(${range.start.line},${range.end.character})`
   let indent = line.match(/^\s*/)[0]
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context if 'context' in locals() else None)`)
+  pyCodes.push(...getResetPythonCode(snip))
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   return pyCodes
 }
 
-/**
- * Python code for specific snippet `context` and `match`
- */
-export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
-  const pyCodes: string[] = []
-  let { range, regex, line } = context
+export function getInitialPythonCode(context: UltiSnippetContext): string[] {
+  let pyCodes: string[] = [
+    'import re, os, vim, string, random',
+    `path = vim.eval('coc#util#get_fullpath()') or ""`,
+    `fn = os.path.basename(path)`,
+  ]
+  let { range, regex, line, id } = context
   if (context.context) {
     pyCodes.push(`snip = ContextSnippet()`)
     pyCodes.push(`context = ${context.context}`)
@@ -73,20 +65,17 @@ export function getSnippetPythonCode(context: UltiSnippetContext): string[] {
   } else {
     pyCodes.push(`match = None`)
   }
-  return pyCodes
-}
-
-export function getInitialPythonCode(context: UltiSnippetContext): string[] {
-  let pyCodes: string[] = [
-    'import re, os, vim, string, random',
-    `path = vim.eval('coc#util#get_fullpath()') or ""`,
-    `fn = os.path.basename(path)`,
-  ]
-  pyCodes.push(...getSnippetPythonCode(context))
+  // save 'context and 'match' for synchronize and actions.
+  pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`)
+  let prefix = id.match(/^\w+-/)[0]
+  // keep context of current buffer only.
+  pyCodes.push(`${contexts_var} = {k: v for k, v in ${contexts_var}.items() if k.startswith('${prefix}')}`)
+  pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`)
   return pyCodes
 }
 
 export async function executePythonCode(nvim: Neovim, codes: string[]) {
+  if (codes.length == 0) return
   let lines = [...codes]
   lines.unshift(`__requesting = ${events.requesting ? 'True' : 'False'}`)
   try {
@@ -126,7 +115,7 @@ export function addPythonTryCatch(code: string, force = false): string {
   return lines.join('\n')
 }
 
-function escapeString(input: string): string {
+export function escapeString(input: string): string {
   return input
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')

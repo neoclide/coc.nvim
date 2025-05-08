@@ -1,13 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
-import events from '../events'
 import { LinesTextDocument } from '../model/textdocument'
 import { TabStopInfo } from '../types'
 import { defaultValue, waitWithToken } from '../util'
 import { adjacentPosition, comparePosition, emptyRange, getEnd, positionInRange, rangeInRange, samePosition } from '../util/position'
 import { CancellationToken } from '../util/protocol'
-import { executePythonCode, getPyBlockCode, getSnippetPythonCode, hasPython } from './eval'
+import { getPyBlockCode, getResetPythonCode, hasPython } from './eval'
 import { Marker, mergeTexts, Placeholder, SnippetParser, Text, TextmateSnippet, VariableResolver } from "./parser"
 import { getAction, getNewRange, getTextAfter, getTextBefore, UltiSnippetContext, UltiSnipsAction, UltiSnipsOption } from './util'
 
@@ -46,11 +45,6 @@ export interface CursorDelta {
   character: number
 }
 
-// The python global code for different snippets. Note: variable `t` not included
-// including `context` `match`
-const snippetsPythonGlobalCodes: WeakMap<TextmateSnippet, string[]> = new WeakMap()
-const snippetsPythonContexts: WeakMap<TextmateSnippet, UltiSnippetContext> = new WeakMap()
-
 export class CocSnippet {
   // placeholders and snippets from top to bottom
   private _markerSeuqence: (Placeholder | TextmateSnippet)[] = []
@@ -61,7 +55,7 @@ export class CocSnippet {
   private _tmSnippet: TextmateSnippet
 
   constructor(
-    private snippetString: string,
+    private snippet: string | TextmateSnippet,
     private position: Position,
     private nvim: Neovim,
     private resolver?: VariableResolver,
@@ -82,8 +76,6 @@ export class CocSnippet {
 
   public deactivateSnippet(snip: TextmateSnippet | undefined): void {
     if (!snip) return
-    snippetsPythonGlobalCodes.delete(snip)
-    snippetsPythonContexts.delete(snip)
     let marker = snip.parent
     if (marker) {
       let text = new Text(snip.toString())
@@ -92,44 +84,41 @@ export class CocSnippet {
     }
   }
 
-  public getUltiSnipAction(marker: Marker | undefined, action: UltiSnipsAction): string | undefined {
-    if (!marker) return undefined
-    let snip = this.getSnippet(marker)
-    let context = snippetsPythonContexts.get(snip)
-    return getAction(context, action)
-  }
-
   public getUltiSnipOption(marker: Marker, key: UltiSnipsOption): boolean | undefined {
     let snip = this.getSnippet(marker)
-    let context = snippetsPythonContexts.get(snip)
+    if (!snip) return undefined
+    let context = snip.related.context
     if (!context) return undefined
     return context[key]
   }
 
   public async init(ultisnip?: UltiSnippetContext): Promise<void> {
-    const parser = new SnippetParser(!!ultisnip)
-    const snippet = parser.parse(this.snippetString, true)
-    this._tmSnippet = snippet
-    await this.resolve(snippet, ultisnip)
+    if (typeof this.snippet === 'string') {
+      const parser = new SnippetParser(!!ultisnip)
+      const snippet = parser.parse(this.snippet, true)
+      this._tmSnippet = snippet
+    } else {
+      this._tmSnippet = this.snippet
+    }
+    await this.resolve(this._tmSnippet, ultisnip)
     this.synchronize()
   }
 
   private async resolve(snippet: TextmateSnippet, ultisnip?: UltiSnippetContext): Promise<void> {
     let { resolver, nvim } = this
-    if (resolver) {
-      await snippet.resolveVariables(resolver)
-      this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
-    }
+    if (resolver) await snippet.resolveVariables(resolver)
     if (ultisnip) {
       let pyCodes: string[] = []
-      snippetsPythonContexts.set(snippet, ultisnip)
-      if (ultisnip.noPython !== true && (snippet.hasPythonBlock || hasPython(ultisnip))) {
-        let globalCodes = getSnippetPythonCode(ultisnip)
+      snippet.related.context = ultisnip
+      if (ultisnip.noPython !== true) {
         if (snippet.hasPythonBlock) {
           pyCodes = getPyBlockCode(ultisnip)
-          globalCodes.push(...pyCodes)
+        } else if (hasPython(ultisnip)) {
+          pyCodes = getResetPythonCode(ultisnip)
         }
-        snippetsPythonGlobalCodes.set(snippet, globalCodes)
+        if (pyCodes.length > 0) {
+          snippet.related.codes = pyCodes
+        }
       }
       // Code from getSnippetPythonCode already executed before snippet insert
       await snippet.evalCodeBlocks(nvim, pyCodes)
@@ -149,10 +138,6 @@ export class CocSnippet {
     let tmSnippet = marker.snippet
     let placeholders = this._placeholders.filter(o => o.index == marker.index && o.marker.snippet === tmSnippet)
     return placeholders.map(o => o.range).filter(r => !emptyRange(r))
-  }
-
-  public isValidPlaceholder(marker: Placeholder): boolean {
-    return this._placeholders.find(o => o.marker === marker) != null
   }
 
   /**
@@ -273,6 +258,18 @@ export class CocSnippet {
         mergeTexts(parentMarker, 0)
       }
     }
+    if (parentMarker instanceof Placeholder && !parentMarker.primary) {
+      let first = parentMarker.children[0]
+      // Replace with Text
+      if (parentMarker.children.length === 1 && first instanceof Text) {
+        parentMarker.replaceWith(first)
+        return first
+      }
+      // increase index to not synchronize
+      if (Number.isInteger(parentMarker.index)) {
+        parentMarker.index += 0.1
+      }
+    }
     return parentMarker
   }
 
@@ -282,7 +279,7 @@ export class CocSnippet {
    * Get new Cursor position for synchronize update only.
    * The cursor position should already adjusted before call this function.
    */
-  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position, force = false): Promise<ChangedInfo | undefined> {
+  public async replaceWithText(range: Range, text: string, token: CancellationToken, current?: Placeholder, cursor?: Position): Promise<ChangedInfo | undefined> {
     let cloned = this._tmSnippet.clone()
     let marker = this.replaceWithMarker(range, new Text(text), current)
     let snippetText = this._tmSnippet.toString()
@@ -307,11 +304,6 @@ export class CocSnippet {
       let lc = ep.line - sp.line
       let cc = (changeCharacter ? ep.character - sp.character : 0)
       if (lc != 0 || cc != 0) delta = Position.create(lc, cc)
-    }
-    if (delta && events.completing && !force) {
-      // move the cursor can break the completion
-      reset()
-      return undefined
     }
     return { snippetText, marker, delta }
   }
@@ -365,13 +357,12 @@ export class CocSnippet {
   }
 
   public async onMarkerUpdate(marker: Marker, token: CancellationToken): Promise<void> {
+    let ts = Date.now()
     while (marker != null) {
       if (marker instanceof Placeholder) {
         let snip = marker.snippet
         if (!snip) break
-        await this.executeGlobalCode(snip)
-        const config = snippetsPythonContexts.get(snip)
-        await snip.update(this.nvim, marker, config?.noPython)
+        await snip.update(this.nvim, marker, token)
         if (token.isCancellationRequested) return
         marker = snip.parent
       } else {
@@ -379,22 +370,13 @@ export class CocSnippet {
       }
     }
     // Avoid document change fired during document change event, which may cause unexpected behavior.
-    await waitWithToken(16, token)
+    await waitWithToken(Math.max(0, 16 - Date.now() + ts), token)
     if (token.isCancellationRequested) return
     this.synchronize()
   }
 
-  public async executeGlobalCode(snip: TextmateSnippet | undefined): Promise<boolean> {
-    let codes = snippetsPythonGlobalCodes.get(snip)
-    if (codes) {
-      await executePythonCode(this.nvim, codes)
-      return true
-    }
-    return false
-  }
-
   private usePython(snip: TextmateSnippet): boolean {
-    return snip.hasCodeBlock || hasPython(snippetsPythonContexts.get(snip))
+    return snip.hasCodeBlock || hasPython(snip.related.context)
   }
 
   public get hasPython(): boolean {
@@ -539,4 +521,17 @@ export function getNextPlaceholder(marker: Placeholder | undefined, forward: boo
   }
   if (nested) return marker
   return undefined
+}
+
+/**
+ * Return action code and reset code of snippet.
+ */
+export function getUltiSnipActionCodes(marker: Marker | undefined, action: UltiSnipsAction): [string, string[]] | undefined {
+  if (!marker) return undefined
+  const snip = marker instanceof TextmateSnippet ? marker : marker.snippet
+  if (!snip) return undefined
+  let context = snip.related.context
+  let code = getAction(context, action)
+  if (!code) return undefined
+  return [code, getResetPythonCode(context)]
 }

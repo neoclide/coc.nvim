@@ -1,6 +1,7 @@
 'use strict'
 import { URI } from 'vscode-uri'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
+import { severityLevel } from '../../diagnostic/util'
 import { defaultValue } from '../../util'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
@@ -24,33 +25,51 @@ export default class DiagnosticsList extends LocationList {
   public name = 'diagnostics'
   public options: ListArgument[] = [{
     name: '--buffer',
-    hasValue: true,
+    hasValue: false,
     description: 'list diagnostics of current buffer only',
   }, {
-      name: '--workspace-folder',
-      hasValue: true,
-      description: 'list diagnostics of current workspace folder only',
+    name: '--workspace-folder',
+    hasValue: false,
+    description: 'list diagnostics of current workspace folder only',
+  }, {
+    name: '-l, -level LEVEL',
+    hasValue: true,
+    description: 'filter diagnostics by diagnostic level, could be "error", "warning" and "information"'
   }]
-  public constructor(manager: ListManager) {
+  public constructor(manager: ListManager, event = true) {
     super()
-    diagnosticManager.onDidRefresh(async () => {
-      let session = manager.getSession('diagnostics')
-      if (session) await session.reloadItems()
-    }, null, this.disposables)
+    if (event) {
+      diagnosticManager.onDidRefresh(async () => {
+        let session = manager.getSession('diagnostics')
+        if (session) await session.reloadItems()
+      }, null, this.disposables)
+    }
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async filterDiagnostics(parsedArgs: { [key: string]: string | boolean }): Promise<DiagnosticItem[]> {
     let list = await diagnosticManager.getDiagnosticList()
-    let { cwd, args } = context
-    if (args.includes('--workspace-folder')) {
-      const normalized = URI.parse(workspace.getWorkspaceFolder(cwd).uri)
-      list = list.filter(item => isParentFolder(normalized.fsPath, item.file))
-    }
-    if (args.includes('--buffer')) {
+    if (parsedArgs['workspace-folder']) {
+      const folder = workspace.getWorkspaceFolder(workspace.root)
+      if (folder) {
+        const normalized = URI.parse(folder.uri)
+        list = list.filter(item => isParentFolder(normalized.fsPath, item.file))
+      }
+    } else if (parsedArgs.buffer) {
       const doc = await workspace.document
       const normalized = URI.parse(doc.uri)
       list = list.filter(item => item.file === normalized.fsPath)
     }
+    if (typeof parsedArgs.level === 'string') {
+      let level = severityLevel(parsedArgs.level)
+      list = list.filter(item => item.level <= level)
+    }
+    return list
+  }
+
+  public async loadItems(context: ListContext): Promise<ListItem[]> {
+    let { cwd, args } = context
+    const parsedArgs = this.parseArguments(args)
+    let list = await this.filterDiagnostics(parsedArgs)
     const config = this.getConfig()
     const includeCode = config.get<boolean>('includeCode', true)
     const pathFormat = config.get<PathFormatting>('pathFormat', "full")

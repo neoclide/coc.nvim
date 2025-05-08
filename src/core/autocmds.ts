@@ -112,7 +112,13 @@ export default class Autocmds implements Disposable {
       this.nvim.command(cmd, true)
     } else {
       let opt = toAutocmdOption(item)
-      this.nvim.createAutocmd(item.option.event, opt, true)
+      this.nvim.createAutocmd(
+        Array.isArray(item.option.event)
+          ? item.option.event
+          : item.option.event.split(","),
+        opt,
+        true
+      )
     }
   }
 

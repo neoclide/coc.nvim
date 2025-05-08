@@ -110,6 +110,7 @@ afterAll(async () => {
 afterEach(async () => {
   await helper.reset()
   disposeAll(disposables)
+  semanticTokens.setStaticConfiguration()
 })
 
 const defaultResult = {
@@ -814,8 +815,11 @@ describe('semanticTokens', () => {
   })
 
   describe('Server cancelled', () => {
-    it('should retrigger range request on server cancel', async () => {
+    beforeEach(() => {
       helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+    })
+
+    it('should retrigger range request on server cancel', async () => {
       let times = 0
       disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
         provideDocumentRangeSemanticTokens: () => {

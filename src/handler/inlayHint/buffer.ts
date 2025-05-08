@@ -24,6 +24,7 @@ export interface InlayHintConfig {
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
+  maximumLength: number
 }
 
 export interface VirtualTextItem extends VirtualTextOption {
@@ -100,6 +101,7 @@ export default class InlayHintBuffer implements SyncItem {
       filetypes: config.get<string[]>('filetypes'),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
       enableParameter: config.get<boolean>('enableParameter'),
+      maximumLength: config.get<number>('maximumLength', 0),
     }
     if (changeEnable || changeDisplay) {
       let { enable, display } = this._config
@@ -271,17 +273,35 @@ export default class InlayHintBuffer implements SyncItem {
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
     let { nvim, doc } = this
     let buffer = doc.buffer
+    const { maximumLength } = this.config
     nvim.pauseNotification()
     const end = range.end.line >= doc.lineCount ? -1 : range.end.line + 1
     buffer.clearNamespace(srcId, range.start.line, end)
+    let lineInfo = { lineNum: 0, totalLineLen: 0 }
     const vitems: VirtualTextItem[] = []
     for (const item of inlayHints) {
       const blocks = []
       let { position } = item
+      if (lineInfo.lineNum !== position.line) {
+        lineInfo = { lineNum: position.line, totalLineLen: 0 }
+      }
+      if (maximumLength > 0 && lineInfo.totalLineLen > maximumLength) {
+        logger.warn(`Inlay hint of ${lineInfo.lineNum} too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`)
+        continue
+      }
+
       let line = this.doc.getline(position.line)
       let col = byteIndex(line, position.character) + 1
+
+      let label = getLabel(item)
+      lineInfo.totalLineLen += label.length
+      const over = maximumLength > 0 ? lineInfo.totalLineLen - maximumLength : 0
+      if (over > 0) {
+        label = label.slice(0, -over) + '…'
+      }
+
       if (item.paddingLeft) blocks.push([' ', 'Normal'])
-      blocks.push([getLabel(item), getHighlightGroup(item.kind)])
+      blocks.push([label, getHighlightGroup(item.kind)])
       if (item.paddingRight) blocks.push([' ', 'Normal'])
       if (this.config.position == InlayHintPosition.Eol) {
         col = 0

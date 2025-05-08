@@ -774,7 +774,9 @@ def coc_UltiSnips_create():
     class PreExpandContext(BaseContext):
         @property
         def visual_content(self):  # pylint:disable=no-self-use
-            return get_visual_content()
+            if "coc_selected_text" in vim.vars:
+                return vim.vars["coc_selected_text"]
+            return ''
 
         def getResult(self):
             wrapper = self._handlers[0]

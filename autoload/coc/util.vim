@@ -2,7 +2,7 @@ scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:vim_api_version = 36
+let s:vim_api_version = 37
 let s:is_win32unix = has('win32unix')
 let s:win32unix_prefix = ''
 let s:win32unix_fix_home = 0
@@ -70,10 +70,6 @@ endfunction
 
 function! coc#util#synname() abort
   return synIDattr(synID(line('.'), col('.') - 1, 1), 'name')
-endfunction
-
-function! coc#util#setline(lnum, line)
-  keepjumps call setline(a:lnum, a:line)
 endfunction
 
 function! coc#util#version()
@@ -368,14 +364,6 @@ function! coc#util#do_autocmd(name) abort
   endif
 endfunction
 
-function! coc#util#unmap(bufnr, keys) abort
-  if bufnr('%') == a:bufnr
-    for key in a:keys
-      exe 'silent! nunmap <buffer> '.key
-    endfor
-  endif
-endfunction
-
 function! coc#util#refactor_foldlevel(lnum) abort
   if a:lnum <= 2 | return 0 | endif
   let line = getline(a:lnum)
@@ -460,17 +448,6 @@ function! coc#util#getpid()
   endif
   let cmd = 'cat /proc/' . getpid() . '/winpid'
   return substitute(system(cmd), '\v\n', '', 'gi')
-endfunction
-
-" Get indentkeys for indent on TextChangedP, consider = for word indent only.
-function! coc#util#get_indentkeys() abort
-  if empty(&indentexpr)
-    return ''
-  endif
-  if &indentkeys !~# '='
-    return ''
-  endif
-  return &indentkeys
 endfunction
 
 function! coc#util#get_bufoptions(bufnr, max) abort

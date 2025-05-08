@@ -232,7 +232,6 @@ describe('InlayHint', () => {
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(0)
       helper.updateConfiguration('inlayHint.enable', true)
-
     })
 
     it('should change position to eol', async () => {
@@ -247,6 +246,52 @@ describe('InlayHint', () => {
         let detail = m[3]
         expect(detail['virt_text_pos']).toBe('eol')
       }
+    })
+
+    it('should truncate hint label when exceeding maximumLength', async () => {
+      helper.updateConfiguration('inlayHint.maximumLength', 13, disposables)
+      let doc = await helper.createDocument()
+      let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          return [
+            InlayHint.create(Position.create(0, 0), 'firstLabel', InlayHintKind.Type),
+            InlayHint.create(Position.create(0, 3), 'secondLabel', InlayHintKind.Type),
+          ]
+        }
+      })
+      disposables.push(disposable)
+      await doc.buffer.setLines(['foo'], { start: 0, end: -1 })
+      await doc.synchronize()
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(2)
+      let first = markers[0][3].virt_text
+      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      let second = markers[1][3].virt_text
+      expect(second).toEqual([['sec…', 'CocInlayHintType']])
+    })
+
+    it('should not truncate hint label when maximumLength is 0', async () => {
+      helper.updateConfiguration('inlayHint.maximumLength', 0, disposables)
+      let doc = await helper.createDocument()
+      let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          return [
+            InlayHint.create(Position.create(0, 0), 'firstLabel', InlayHintKind.Type),
+            InlayHint.create(Position.create(0, 3), 'secondLabel', InlayHintKind.Type),
+          ]
+        }
+      })
+      disposables.push(disposable)
+      await doc.buffer.setLines(['foo'], { start: 0, end: -1 })
+      await doc.synchronize()
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(2)
+      let first = markers[0][3].virt_text
+      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      let second = markers[1][3].virt_text
+      expect(second).toEqual([['secondLabel', 'CocInlayHintType']])
     })
   })
 

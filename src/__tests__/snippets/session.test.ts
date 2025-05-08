@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { SnippetConfig, SnippetSession } from '../../snippets/session'
+import { SnippetConfig, SnippetEdit, SnippetSession } from '../../snippets/session'
 import { UltiSnippetContext } from '../../snippets/util'
 import { Disposable, disposeAll } from '../../util'
 import window from '../../window'
@@ -40,6 +40,7 @@ async function createSession(enableHighlight = false, preferComplete = false, ne
 describe('SnippetSession', () => {
   const defaultRange = Range.create(0, 0, 0, 0)
   const defaultContext = {
+    id: `1-1`,
     line: '',
     range: defaultRange
   }
@@ -162,6 +163,34 @@ describe('SnippetSession', () => {
     })
   })
 
+  describe('insertSnippetEdits', () => {
+    it('should insert snippets', async () => {
+      await helper.createDocument()
+      let session = await createSession()
+      await helper.createDocument()
+      let doc = session.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\n\nbar')])
+      let res = await session.insertSnippetEdits([])
+      expect(res).toBe(false)
+      let edits: SnippetEdit[] = []
+      edits.push({ range: Range.create(0, 0, 0, 3), snippet: 'foo($1)' })
+      edits.push({ range: Range.create(2, 0, 2, 3), snippet: 'bar($1)' })
+      res = await session.insertSnippetEdits(edits)
+      expect(res).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo()', '', 'bar()'])
+      let range = session.placeholder!.range
+      expect(range).toEqual(Range.create(0, 4, 0, 4))
+      let ses = await createSession()
+      res = await ses.insertSnippetEdits([{ range: Range.create(0, 0, 0, 0), snippet: 'foo' }])
+      expect(res).toBe(true)
+      doc = ses.document
+      let line = doc.getline(0)
+      expect(line).toBe('foo')
+      expect(ses.selected).toBe(false)
+    })
+  })
+
   describe('nested snippet', () => {
     it('should start with nest snippet', async () => {
       let session = await createSession()
@@ -171,23 +200,24 @@ describe('SnippetSession', () => {
       expect(res).toBe(true)
       let { placeholder } = session
       expect(placeholder.index).toBe(1)
-      res = await session.start('${1:foo} ${2:bar}', defaultRange)
+      res = await session.start('${1:foo} | ${2:bar}', defaultRange)
       expect(res).toBe(true)
       placeholder = session.placeholder
       expect(placeholder.value).toBe('foo')
       expect(placeholder.index).toBe(1)
       line = await nvim.getLine()
-      expect(line).toBe('foo bara b')
-      expect(session.snippet.text).toBe('foo bara b')
+      expect(line).toBe('foo | bara b')
+      expect(session.snippet.text).toBe('foo | bara b')
       await session.nextPlaceholder()
       placeholder = session.placeholder
       expect(placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('bar')
       let col = await nvim.call('col', ['.'])
-      expect(col).toBe(7)
+      expect(col).toBe(9)
       await session.nextPlaceholder()
       expect(session.isActive).toBe(true)
-      expect(session.placeholder.index).toBe(0)
+      // should finalize snippet
+      expect(session.placeholder.index).toBe(1)
       await session.nextPlaceholder()
       expect(session.placeholder.index).toBe(2)
       expect(session.placeholder.value).toBe('b')
@@ -197,11 +227,13 @@ describe('SnippetSession', () => {
       await nvim.command('startinsert')
       let session = await createSession()
       let res = await session.start('${1:a} $1', defaultRange)
-      let line = await nvim.call('getline', ['.'])
       res = await session.start('${1:foo}', Range.create(0, 0, 0, 1), false)
       expect(res).toBe(true)
-      line = await nvim.line
+      let line = await nvim.line
       expect(line).toBe('foo foo')
+      await session.selectCurrentPlaceholder()
+      await session.nextPlaceholder()
+      expect(session.placeholder).toBeDefined()
     })
 
     it('should not nested when range not contains', async () => {
@@ -249,6 +281,7 @@ describe('SnippetSession', () => {
       await session.checkPosition()
       expect(session.version).toBe(-1)
       await session.start('${1:foo}${2:`!p snip.rv = ""`} `!p snip.rv = t[1] + t[2]`', defaultRange, true, {
+        id: '1-1',
         line: '',
         range: defaultRange
       })
@@ -474,10 +507,23 @@ describe('SnippetSession', () => {
       expect(start).toEqual(Position.create(0, 1))
       session.deactivate()
     })
+
+    it('should cancel change synchronize', async () => {
+      let doc = await workspace.document
+      let session = await createSession()
+      let res = await session.start('${1:foo}', defaultRange)
+      expect(res).toBe(true)
+      session.cancel(true)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
+      process.nextTick(() => {
+        session.cancel()
+      })
+      await session._synchronize()
+      expect(session.snippet.tmSnippet.toString()).toBe('foo')
+    })
   })
 
   describe('deactivate()', () => {
-
     it('should deactivate on cursor outside', async () => {
       let buf = await nvim.buffer
       let session = await createSession()

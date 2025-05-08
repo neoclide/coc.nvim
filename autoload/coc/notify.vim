@@ -516,13 +516,13 @@ endfunction
 
 function! s:get_icon(kind, bg) abort
   if a:kind ==# 'info'
-    return {'text': s:info_icon, 'hl': coc#highlight#compose_hlgroup('CocInfoSign', a:bg)}
+    return {'text': s:info_icon, 'hl': coc#hlgroup#compose_hlgroup('CocInfoSign', a:bg)}
   endif
   if a:kind ==# 'warning'
-    return {'text': s:warning_icon, 'hl': coc#highlight#compose_hlgroup('CocWarningSign', a:bg)}
+    return {'text': s:warning_icon, 'hl': coc#hlgroup#compose_hlgroup('CocWarningSign', a:bg)}
   endif
   if a:kind ==# 'error'
-    return {'text': s:error_icon, 'hl': coc#highlight#compose_hlgroup('CocErrorSign', a:bg)}
+    return {'text': s:error_icon, 'hl': coc#hlgroup#compose_hlgroup('CocErrorSign', a:bg)}
   endif
   return v:null
 endfunction

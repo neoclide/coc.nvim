@@ -1169,7 +1169,8 @@ function! s:close_win(winid, noautocmd) abort
   endif
   " vim not throw for none exists winid
   if s:is_vim
-    call popup_close(a:winid)
+    let prefix = a:noautocmd ? 'noa ': ''
+    exe prefix.'call popup_close('.a:winid.')'
   else
     if nvim_win_is_valid(a:winid)
       let prefix = a:noautocmd ? 'noa ': ''
@@ -1422,7 +1423,7 @@ function! s:add_highlights(winid, config, create) abort
   for obj in codes
     let hlGroup = get(obj, 'hlGroup', v:null)
     if !empty(hlGroup)
-      let obj['hlGroup'] = coc#highlight#compose_hlgroup(hlGroup, bgGroup)
+      let obj['hlGroup'] = coc#hlgroup#compose_hlgroup(hlGroup, bgGroup)
     endif
   endfor
   call coc#highlight#add_highlights(a:winid, codes, highlights)
@@ -1455,7 +1456,7 @@ function! s:get_borderhighlight(config) abort
   let hlgroup = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', 'CocFloatBorder')
   let highlight = type(borderhighlight) == 3 ? borderhighlight[0] : borderhighlight
-  return coc#highlight#compose_hlgroup(highlight, hlgroup)
+  return coc#hlgroup#compose_hlgroup(highlight, hlgroup)
 endfunction
 
 function! s:has_shadow(config) abort

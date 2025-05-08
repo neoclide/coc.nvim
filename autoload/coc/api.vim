@@ -179,14 +179,14 @@ def OnTextChange(bufnr: number): void
 enddef
 
 # execute command for bufnr
-def BufExecute(bufnr: number, cmds: list<string>): void
+export def BufExecute(bufnr: number, cmds: list<string>, silent = 'silent'): void
   var winid = get(win_findbuf(bufnr), 0, -1)
   var need_close: bool = false
   if winid == -1
     winid = CreatePopup(bufnr)
     need_close = true
   endif
-  win_execute(winid, cmds, 'silent')
+  win_execute(winid, cmds, silent)
   if need_close
     noa popup_close(winid)
   endif
@@ -315,6 +315,9 @@ export def GeneratePropId(bufnr: number): number
 enddef
 
 export def GetNamespaceTypes(ns: number): list<string>
+  if ns == -1
+    return values(id_types)->flattennew(1)
+  endif
   return get(id_types, ns, [])
 enddef
 
@@ -372,16 +375,6 @@ export def DetachListener(bufnr: number): bool
   endif
   return false
 enddef
-
-# Call the legacy execute, use silent to avoid vim block
-function Execute(command, ...) abort
-  legacy return execute(a:command, get(a:, 1, 'silent'))
-endfunction
-
-# Call the legacy win_execute, use silent to avoid vim block
-function Win_execute(winid, cmds, ...) abort
-  legacy return win_execute(a:winid, a:cmds, get(a:, 1, 'silent'))
-endfunction
 # }}"
 
 # nvim client methods {{
@@ -475,11 +468,11 @@ enddef
 # Not return on notification for possible void function call.
 export def Call_function(method: string, args: list<any>, notify: bool = false): any
   if method ==# 'execute'
-    return call(Execute, args)
+    return call('coc#compat#execute', args)
   elseif method ==# 'eval'
     return Eval(args[0])
   elseif method ==# 'win_execute'
-    return call(Win_execute, args)
+    return call('coc#compat#win_execute', args)
   elseif !notify
     return call(method, args)
   endif
@@ -496,7 +489,7 @@ enddef
 
 # Use the legacy eval, could be called by Call
 export function Eval(expr) abort
-  legacy return eval(a:expr)
+  legacy return coc#compat#eval(a:expr)
 endfunction
 
 export def Command(command: string): any
@@ -505,7 +498,7 @@ export def Command(command: string): any
     DeferExecute(command)
   else
     # Use legacy command not work for command like autocmd
-    Execute(command)
+    coc#compat#execute(command)
     # The error is set by python script, since vim not give error on python command failure
     if strpart(command, 0, 2) ==# 'py'
       const errmsg: string = get(g:, 'errmsg', '')
@@ -541,14 +534,19 @@ export def List_runtime_paths(): list<string>
 enddef
 
 export def Command_output(cmd: string): string
-  return trim(Execute(cmd, 'silent'), "\r\n")
+  const output = coc#compat#execute(cmd, 'silent')
+  # The same as nvim.
+  if cmd =~# '^echo'
+    return trim(output, "\r\n")
+  endif
+  return output
 enddef
 
 export def Exec(code: string, output: bool): string
   if output
     return Command_output(code)
   endif
-  Execute(code)
+  coc#compat#execute(code)
   return ''
 enddef
 
@@ -667,7 +665,7 @@ export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): 
   const modekey: string = CreateModePrefix(mode, opts)
   const arguments: string = CreateArguments(opts)
   const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
-  Execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
+  coc#compat#execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
   return null
 enddef
 
@@ -928,7 +926,12 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
   const delCount = endLnum - (startLnum - 1)
   const view = bufnr == bufnr('%') ? winsaveview() : null
   if delCount == len(replacement)
-    setbufline(bufnr, startLnum, replacement)
+    const currentLines = getbufline(bufnr, startLnum, startLnum + delCount)
+    for idx in range(0, delCount - 1)
+      if currentLines[idx] !=# replacement[idx]
+        call setbufline(bufnr, startLnum + idx, replacement[idx])
+      endif
+    endfor
   else
     if len(replacement) > 0
       appendbufline(bufnr, startLnum - 1, replacement)
@@ -1090,7 +1093,7 @@ export def Win_get_var(id: number, name: string, ..._): any
   const tabnr = WinTabnr(winid)
   const vars = gettabwinvar(tabnr, winid, '')
   CheckKey(vars, name)
-  return vars[name]
+  return get(vars, name, null)
 enddef
 
 export def Win_set_var(id: number, name: string, value: any): any
@@ -1150,7 +1153,7 @@ export def Tabpage_get_var(tid: number, name: string): any
   const nr = TabIdNr(tid)
   const dict = gettabvar(nr, '')
   CheckKey(dict, name)
-  return dict[name]
+  return get(dict, name, null)
 enddef
 
 export def Tabpage_set_var(tid: number, name: string, value: any): any

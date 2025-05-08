@@ -204,7 +204,7 @@ describe('doAutocmd()', () => {
   it('should cancel timeout request autocmd', async () => {
     let cancelled = false
     workspace.autocmds.registerAutocmd({
-      event: ['CursorMoved'],
+      event: 'CursorMoved,CursorMovedI',
       request: true,
       callback: (token: CancellationToken) => {
         return new Promise(resolve => {

@@ -1,7 +1,6 @@
 'use strict'
 import { URI } from 'vscode-uri'
-import { isDirectory, statAsync } from '../../util/fs'
-import { fs, path } from '../../util/node'
+import { isDirectory } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
 import BasicList from '../basic'

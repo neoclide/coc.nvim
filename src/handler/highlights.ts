@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Buffer as NodeBuffer } from 'buffer'
 import { DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
@@ -8,9 +7,8 @@ import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
-import { comparePosition, compareRangesUsingStarts, emptyRange } from '../util/position'
+import { comparePosition, compareRangesUsingStarts } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
-import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
@@ -20,8 +18,6 @@ interface HighlightConfig {
   priority: number
   timeout: number
 }
-
-type HighlightPosition = [number, number, number]
 
 /**
  * Highlight same symbols on current window.
@@ -104,28 +100,11 @@ export default class Highlights {
     let win = nvim.createWindow(winid)
     nvim.pauseNotification()
     win.clearMatchGroup('^CocHighlight')
-    for (let hlGroup of Object.keys(groups)) {
-      let positions: HighlightPosition[] = []
-      for (let range of groups[hlGroup]) {
-        this.addHighlightPositions(positions, doc, range, this.config.limit)
-      }
-      nvim.call('matchaddpos', [hlGroup, positions, this.config.priority], true)
+    for (let [hlGroup, ranges] of Object.entries(groups)) {
+      win.highlightRanges(hlGroup, ranges, 999, true)
     }
     nvim.resumeNotification(true, true)
     this.highlights.set(winid, highlights)
-  }
-
-  public addHighlightPositions(items: HighlightPosition[], doc: Document, range: Range, limit: number): void {
-    let { start, end } = range
-    if (emptyRange(range)) return
-    for (let line = start.line; line <= end.line; line++) {
-      const text = doc.getline(line, false)
-      let colStart = line == start.line ? byteIndex(text, start.character) : 0
-      let colEnd = line == end.line ? byteIndex(text, end.character) : NodeBuffer.byteLength(text)
-      if (colStart >= colEnd) continue
-      items.push([line + 1, colStart + 1, colEnd - colStart])
-      if (items.length == limit) break
-    }
   }
 
   public async jumpSymbol(direction: 'previous' | 'next'): Promise<void> {

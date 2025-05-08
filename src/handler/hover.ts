@@ -99,7 +99,7 @@ export default class HoverHandler {
     let hover = hovers.find(o => Range.is(o.range))
     if (hover?.range) {
       let win = this.nvim.createWindow(winid)
-      win.highlightRanges('CocHoverRange', [hover.range], 99, true)
+      win.highlightRanges('CocHoverRange', [hover.range], 1024, true)
       this.timer = setTimeout(() => {
         win.clearMatchGroup('CocHoverRange')
         this.nvim.redrawVim()
@@ -127,7 +127,7 @@ export default class HoverHandler {
     let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover | undefined
     if (hover?.range) {
       let win = this.nvim.createWindow(winid)
-      win.highlightRanges('CocHoverRange', [hover.range], 99, true)
+      win.highlightRanges('CocHoverRange', [hover.range], 1024, true)
       this.timer = setTimeout(() => {
         win.clearMatchGroup('CocHoverRange')
         this.nvim.redrawVim()

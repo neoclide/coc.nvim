@@ -16,9 +16,9 @@ export class Around extends Source {
     if (!shouldRun) return null
     let { bufnr, input, word, linenr, triggerForInComplete } = opt
     if (input.length === 0) return null
+    await waitImmediate()
     let buf = this.keywords.getItem(bufnr)
     if (!buf) return null
-    await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
     if (token.isCancellationRequested) return null
     let iterable = buf.matchWords(linenr - 1)

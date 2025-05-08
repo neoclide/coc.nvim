@@ -81,9 +81,15 @@ export default class Documents implements Disposable {
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     if (isVim) {
+      const checkedTick: Map<number, number> = new Map()
       events.on('CursorHold', async bufnr => {
         let doc = this.getDocument(bufnr)
-        if (doc && doc.attached) await doc.checkLines()
+        if (doc && doc.attached && checkedTick.get(bufnr) != doc.changedtick) {
+          let sha256 = doc.getSha256()
+          let same = await nvim.callVim('coc#vim9#Check_sha256', [bufnr, sha256])
+          checkedTick.set(bufnr, doc.changedtick)
+          if (!same) await doc.fetchLines()
+        }
       }, null, this.disposables)
     }
     events.on('BufDetach', this.onBufDetach, this, this.disposables)

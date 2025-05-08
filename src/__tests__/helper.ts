@@ -1,5 +1,6 @@
 import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
+import crypto from 'crypto'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net, { Server } from 'net'
@@ -105,7 +106,7 @@ export class Helper extends EventEmitter {
       })
     })
     let address = await this.listenOnVim(server)
-    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
+    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim9', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
       shell: true,
       cwd: __dirname,
@@ -169,7 +170,6 @@ export class Helper extends EventEmitter {
     if (typeof global.gc === 'function') {
       global.gc()
     }
-    await this.wait(30)
   }
 
   public wait(ms = 30): Promise<void> {
@@ -279,6 +279,21 @@ export class Helper extends EventEmitter {
     return fn
   }
 
+  public async getMatches(hlGroup: string): Promise<any[]> {
+    let res = await this.nvim.call('getmatches') as any[]
+    let list = []
+    res.forEach(o => {
+      if (o.group === hlGroup) {
+        for (const [key, value] of Object.entries(o)) {
+          if (key.startsWith('pos')) {
+            list.push(value)
+          }
+        }
+      }
+    })
+    return list
+  }
+
   public async mockFunction(name: string, result: string | number | any): Promise<void> {
     let content = `
     function! ${name}(...)
@@ -350,6 +365,14 @@ export class Helper extends EventEmitter {
 
   public createNullChannel(): OutputChannel {
     return nullChannel
+  }
+
+  public generateRandomHash(algorithm = 'sha256') {
+    const randomString = Math.random().toString(36).substring(2) // 生成随机字符串
+    const hash = crypto.createHash(algorithm)
+      .update(randomString)
+      .digest('hex') // 输出十六进制格式
+    return hash
   }
 }
 

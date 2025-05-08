@@ -101,7 +101,7 @@ export default abstract class BasicList implements IList, Disposable {
       this.optionMap = new Map()
       for (let opt of this.options) {
         let parts = opt.name.split(/,\s*/g).map(s => s.replace(/\s+.*/g, ''))
-        let name = opt.key ? opt.key : parts[parts.length - 1].replace(/^-/, '')
+        let name = opt.key ? opt.key : parts[parts.length - 1].replace(/^-+/, '')
         for (let p of parts) {
           this.optionMap.set(p, { name, hasValue: opt.hasValue })
         }

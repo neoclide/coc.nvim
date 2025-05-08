@@ -2,6 +2,39 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-08
+
+- For terminal created by `coc#ui#open_terminal`, close the terminal window on
+  terminal finish, make the behavior on vim9 the same as nvim.
+- Use lua and vim9 for highlight functions.
+
+## 2025-05-04
+
+- Execute python on snippet resolve, disable snippet synchronize on completion.
+- Change of none primary placeholder would not update placeholders with same
+  index, like UltiSnip does.
+- Add API `snippetManager.insertBufferSnippets()`.
+
+## 2025-05-03
+
+- The performance with popupmenu navigation on vim9 have improved, for some
+  cases, it's more than 10 times faster.
+- Break change: current line is not synchronized after use the pum API like
+  `coc#pum#select()`, see `:h coc#pum#select()`, functions used as expr
+  key-mappings should be not affected.
+- Break change: configuration `suggest.segmentChinese` replaced with
+  `suggest.segmenterLocales`, see `:h coc-config-suggest-segmenterLocales`.
+- Add `CompleteStart` event to `events` module.
+
+## 2025-04-25
+
+- Add `-level` argument support to diagnostics list.
+- Make lines event send before TextChange events on vim9.
+
+## 2025-04-23
+
+- Add configuration `inlayHint.maximumLength`, default to `0`
+
 ## 2025-04-21
 
 - Add `WindowVisible` event to `events`.
@@ -55,7 +88,7 @@ Notable changes of coc.nvim:
 ## 2025-04-01
 
 - Add configuration `workspace.removeEmptyWorkspaceFolder` default to `false`.
-- Add configuration `editor.codeActionsOnSave` , similar to VSCode.
+- Add configuration `editor.codeActionsOnSave`, similar to VSCode.
 
 ## 2025-03-31
 

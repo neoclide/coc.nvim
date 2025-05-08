@@ -751,7 +751,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (this.autoWidth) this.nvim.call('coc#window#adjust_width', [winid], true)
     if (highlights.length) {
       let highlightEnd = end == -1 ? -1 : start + lines.length
-      nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, highlights, start, highlightEnd], true)
+      buf.updateHighlights(highlightNamespace, highlights, { start, end: highlightEnd })
     }
     buf.setOption('modifiable', false, true)
     if (!noRedraw) this.redraw()

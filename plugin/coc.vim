@@ -226,7 +226,7 @@ function! s:AddAnsiGroups() abort
 endfunction
 
 function! s:CreateHighlight(group, fg, bg) abort
-  let cmd = coc#highlight#compose(a:fg, a:bg)
+  let cmd = coc#hlgroup#compose(a:fg, a:bg)
   if !empty(trim(cmd))
     exe 'hi default '.a:group.' '.cmd
   else
@@ -265,24 +265,32 @@ endfunction
 
 function! s:HandleBufEnter(bufnr) abort
   if s:is_vim
-      "" The buffer could be hidden before, lines may not synchronized
-    call listener_flush(a:bufnr)
+    if type(a:bufnr) == v:t_number && bufloaded(a:bufnr)
+      " The buffer could be hidden before, lines may not synchronized
+      call listener_flush(a:bufnr)
+    endif
   endif
   call s:Autocmd('BufEnter', a:bufnr)
 endfunction
 
 function! s:HandleCharInsert(char, bufnr) abort
-  if get(g:, 'coc_feeding_keys', 0)
-    return
-  endif
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
-function! s:HandleTextChangedI(bufnr) abort
-  if get(g:, 'coc_feeding_keys', 0)
-    unlet g:coc_feeding_keys
+function! s:HandleTextChangedI(event, bufnr) abort
+  if s:is_vim
+    " make sure lines event before changed event.
+    call listener_flush(a:bufnr)
   endif
-  call s:Autocmd('TextChangedI', a:bufnr, coc#util#change_info())
+  call s:Autocmd(a:event, a:bufnr, coc#util#change_info())
+endfunction
+
+function! s:HandleTextChanged(bufnr) abort
+  if s:is_vim
+    " make sure lines event before changed event.
+    call listener_flush(a:bufnr)
+  endif
+  call s:Autocmd('TextChanged', a:bufnr, getbufvar(a:bufnr, 'changedtick'))
 endfunction
 
 function! s:HandleInsertLeave(bufnr) abort
@@ -394,7 +402,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
     if exists('##CompleteChanged')
-      autocmd CompleteChanged   * call timer_start(1, { -> coc#pum#close()})
+      autocmd CompleteChanged   * call timer_start(1, { -> execute('if pumvisible() | call coc#pum#close() | endif')})
     endif
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
@@ -413,15 +421,13 @@ function! s:Enable(initialize)
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid(), coc#window#visible_range(win_getid()))
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
-    if exists('##TextChangedP')
-      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
-    endif
-    autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
+    autocmd TextChangedP        * call s:HandleTextChangedI('TextChangedP', +expand('<abuf>'))
+    autocmd TextChangedI        * call s:HandleTextChangedI('TextChangedI', +expand('<abuf>'))
+    autocmd TextChanged         * call s:HandleTextChanged(+expand('<abuf>'))
     autocmd InsertLeave         * call s:HandleInsertLeave(+expand('<abuf>'))
     autocmd BufEnter            * call s:HandleBufEnter(+expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
-    autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
@@ -505,25 +511,25 @@ call s:AddAnsiGroups()
 
 function! s:Highlight() abort
   let normalFloat = s:is_vim ? 'Pmenu' : 'NormalFloat'
-  if coc#highlight#get_contrast('Normal', normalFloat) > 2.0
-    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
-    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
-    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
+  if coc#hlgroup#get_contrast('Normal', normalFloat) > 2.0
+    exe 'hi default CocFloating '.coc#hlgroup#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
+    exe 'hi default CocMenuSel '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
+    exe 'hi default CocFloatThumb '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
     hi default link CocFloatSbar CocFloating
   else
     exe 'hi default link CocFloating '.normalFloat
-    if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
-      exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
+    if coc#hlgroup#get_contrast('CocFloating', 'PmenuSel') > 2.0
+      exe 'hi default CocMenuSel '.coc#hlgroup#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
     else
-      exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+      exe 'hi default CocMenuSel '.coc#hlgroup#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
     endif
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
   exe 'hi default link CocFloatBorder ' .. (hlexists('FloatBorder') ? 'FloatBorder' : 'CocFloating')
-  if coc#highlight#get_contrast('Normal', 'CursorLine') < 1.3
+  if coc#hlgroup#get_contrast('Normal', 'CursorLine') < 1.3
     " Avoid color too close
-    exe 'hi default CocListLine '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
+    exe 'hi default CocListLine '.coc#hlgroup#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
   else
     hi default link CocListLine            CursorLine
   endif
@@ -598,7 +604,7 @@ function! s:Highlight() abort
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')
-      execute 'hi default link CocSem'.key.' '.(coc#highlight#valid(ts) ? ts : fallback)
+      execute 'hi default link CocSem'.key.' '.(coc#hlgroup#valid(ts) ? ts : fallback)
     endfor
   endif
   let symbolMap = {
@@ -638,9 +644,9 @@ function! s:Highlight() abort
       \ 'TypeParameter': ['@variable.parameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
-    let hlGroup = coc#highlight#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
+    let hlGroup = coc#hlgroup#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
     if hlexists(hlGroup)
-      execute 'hi default CocSymbol'.key.' '.coc#highlight#get_hl_command(synIDtrans(hlID(hlGroup)), 'fg', '223', '#ebdbb2')
+      execute 'hi default CocSymbol'.key.' '.coc#hlgroup#get_hl_command(synIDtrans(hlID(hlGroup)), 'fg', '223', '#ebdbb2')
     endif
   endfor
 endfunction

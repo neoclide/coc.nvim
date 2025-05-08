@@ -66,7 +66,6 @@ export default class Rename {
     let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, token)
     if (token.isCancellationRequested || !edit) return false
     await workspace.applyEdit(edit)
-    this.nvim.redrawVim()
     return true
   }
 }

@@ -4,6 +4,7 @@ import { CallHierarchyItem, CodeAction, CodeActionKind, InsertTextMode, Range, W
 import commandManager from './commands'
 import completion, { Completion } from './completion'
 import sources from './completion/sources'
+import type { CompleteFinishKind } from './completion/types'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
@@ -95,6 +96,7 @@ export default class Plugin {
     this.addAction('highlight', () => this.handler.documentHighlighter.highlight())
     this.addAction('fold', (kind?: string) => this.handler.fold.fold(kind))
     this.addAction('startCompletion', (option: { source?: string, col?: number }) => completion.startCompletion(option))
+    this.addAction('stopCompletion', (kind: CompleteFinishKind) => completion.stop(kind))
     this.addAction('sourceStat', () => sources.sourceStats())
     this.addAction('refreshSource', (name: string) => sources.refresh(name))
     this.addAction('toggleSource', (name: string) => sources.toggleSource(name))

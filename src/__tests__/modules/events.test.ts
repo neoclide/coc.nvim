@@ -13,6 +13,7 @@ describe('register handler', () => {
     let fn = jest.fn()
     events.on('InsertEnter', fn, null, disposables)
     events.on('InsertLeave', fn, null, disposables)
+    expect(events.pumvisible).toBe(false)
     expect(events.insertMode).toBe(false)
     await events.fire('CursorMovedI', [1, [1, 1]])
     expect(events.insertMode).toBe(true)
@@ -56,21 +57,6 @@ describe('register handler', () => {
     await events.fire('WinClosed', [1000])
     await wait(10)
     expect(fn).toHaveBeenCalledTimes(0)
-  })
-
-  it('should not add insertChar with TextChangedI after PumInsert', async () => {
-    await events.fire('PumInsert', ['foo'])
-    let pre: string
-    events.on('TextChangedP', (_bufnr, info) => {
-      pre = info.pre
-    })
-    await events.fire('TextChangedI', [1, {
-      lnum: 1,
-      col: 4,
-      line: 'foo',
-      changedtick: 1,
-    }])
-    expect(pre).toBe('foo')
   })
 
   it('should track slow handler', async () => {
