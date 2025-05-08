@@ -1,7 +1,6 @@
 local api = vim.api
 
 local M = {}
-local util = require('coc.util')
 
 local function splitText(text, col)
   return text:sub(1, col - 1), text:sub(col)
@@ -403,10 +402,9 @@ function M.set_lines(bufnr, changedtick, originalLines, replacement, startLine, 
         M.changeLineText(bufnr, startLine + i, text, replacement[i])
       end
       if #replacement > #originalLines then
-        local newLines = {util.unpack(replacement, #originalLines + 1, #replacement)}
+        local newLines = vim.list_slice(replacement, #originalLines + 1)
         api.nvim_buf_set_lines(bufnr, endLine, endLine, false, newLines)
       elseif #originalLines > #replacement then
-        vim.g.s = {startLine + #replacement, endLine}
         api.nvim_buf_set_lines(bufnr, startLine + #replacement, endLine, false, {})
       end
     else
