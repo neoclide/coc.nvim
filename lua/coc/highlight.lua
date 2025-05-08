@@ -153,8 +153,8 @@ function M.get_highlights(bufnr, key, start_line, end_line)
   if not api.nvim_buf_is_loaded(bufnr) then
     return nil
   end
-  start_line = is_null(start_line) and 0 or start_line
-  end_line = is_null(end_line) and -1 or end_line
+  start_line = type(start_line) == 'number' and start_line or 0
+  end_line = type(end_line) == 'number' and end_line or -1
   local max = end_line == -1 and api.nvim_buf_line_count(bufnr) or end_line + 1
   local ns = type(key) == 'number' and key or create_namespace(key)
   local markers = api.nvim_buf_get_extmarks(bufnr, ns, {start_line, 0}, {end_line, -1}, {details = true})
