@@ -175,7 +175,6 @@ enddef
 def OnTextChange(bufnr: number): void
   const event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
   execute $'legacy doautocmd <nomodeline> {event} {bufname(bufnr)}'
-  listener_flush(bufnr)
 enddef
 
 # execute command for bufnr

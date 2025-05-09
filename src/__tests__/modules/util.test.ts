@@ -494,6 +494,13 @@ describe('textedit', () => {
     let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
     expect(res).toEqual(toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
   })
+
+  it('should convert to text changes', () => {
+    expect(textedits.insertAtEnd(TextEdit.insert(Position.create(0, 0), 'abc'))).toBe(false)
+    expect(textedits.toTextChanges(['foo'], [])).toEqual([])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 1), '')])).toEqual([])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 0), 'bar\n')])).toEqual([[['', 'bar'], 0, 3, 0, 3]])
+  })
 })
 
 describe('Registry', () => {
