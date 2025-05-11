@@ -11,6 +11,7 @@ import { CancellationError } from './errors'
 import { child_process, debounce, glob, minimatch, readline } from './node'
 import { toObject } from './object'
 import * as platform from './platform'
+import { smartcaseIndex } from './string'
 const logger = createLogger('util-fs')
 const exec = child_process.exec
 
@@ -369,8 +370,8 @@ export async function lineToLocation(fsPath: string, match: string, text?: strin
     })
   })
   if (line != null) {
-    let character = text == null ? 0 : line.indexOf(text)
-    if (character == 0) character = line.match(/^\s*/)[0].length
+    let character = text == null ? -1 : smartcaseIndex(text, line)
+    if (character == -1) character = line.match(/^\s*/)[0].length
     let end = Position.create(n, character + (text ? text.length : 0))
     return Location.create(uri, Range.create(Position.create(n, character), end))
   }
