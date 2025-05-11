@@ -225,7 +225,10 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | unde
     let el = lines[end.line] ?? ''
     let content = sl.substring(0, start.character) + edits[0].newText + el.substring(end.character)
     if (end.line >= lines.length && document.eol) {
-      if (content == '') return [...lines.slice(0, start.line)]
+      if (content == '') {
+        const result = [...lines.slice(0, start.line)]
+        return result.length === 0 ? [''] : result
+      }
       if (content.endsWith('\n')) content = content.slice(0, -1)
       return [...lines.slice(0, start.line), ...content.split('\n')]
     }
@@ -253,9 +256,11 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | unde
   return contentToLines(result, document.eol)
 }
 
-export function insertAtEnd(edit: TextEdit): boolean {
+export function validEdit(edit: TextEdit): boolean {
   let { range, newText } = edit
-  return emptyRange(range) && range.start.character === 0 && newText.endsWith('\n')
+  if (!newText.endsWith('\n')) return false
+  if (range.end.character !== 0) return false
+  return true
 }
 
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
@@ -265,12 +270,19 @@ export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): 
   if (last.range.end.line > lines.length) return []
   if (last.range.end.line == lines.length) {
     // should only be insert at the end
-    if (!insertAtEnd(last)) return []
-    // convert to insert at the end of last line
+    if (!validEdit(last)) return []
     let line = lines.length - 1
     let character = lines[line].length
-    last.range = Range.create(line, character, line, character)
-    last.newText = '\n' + last.newText.slice(0, -1)
+    if (emptyRange(last.range)) {
+      // convert to insert at the end of last line.
+      last.range = Range.create(line, character, line, character)
+      last.newText = '\n' + last.newText.slice(0, -1)
+    } else {
+      // convert to replace to the end of last line.
+      const start = last.range.start
+      last.range = Range.create(start, Position.create(line, character))
+      last.newText = last.newText.slice(0, -1)
+    }
   }
   return edits.map(o => {
     let { start, end } = o.range

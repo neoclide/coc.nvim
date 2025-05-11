@@ -19,6 +19,7 @@ import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeT
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = createLogger('document')
+const MAX_EDITS = getConditionValue(200, 400)
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
 export type VimBufferChange = [number, number, string[]]
@@ -63,6 +64,7 @@ export default class Document {
   private _textDocument: LinesTextDocument
   // real current lines
   private lines: ReadonlyArray<string> = []
+  private _applyLines: ReadonlyArray<string>
   public fireContentChanges: (() => void) & { clear(): void } & { flush(): void }
   public fetchContent: (() => void) & { clear(): void } & { flush(): void }
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -230,8 +232,11 @@ export default class Document {
       fireDetach(this.bufnr)
     })
     const onLinesChange = (id: number, lines: ReadonlyArray<string>) => {
+      if (this._applying) {
+        this._applyLines = lines
+        return
+      }
       this.lines = lines
-      if (this._applying) return
       fireLinesChanged(id)
       if (events.completing) return
       this.fireContentChanges()
@@ -326,7 +331,7 @@ export default class Document {
     let changes: TextChangeItem[] = []
     // Avoid too many buf_set_text cause nvim slow.
     // Not used when insert or delete lines.
-    if (edits.length < 200 && changed.start !== changed.end && changed.replacement.length > 0) {
+    if (edits.length <= MAX_EDITS && changed.start !== changed.end && changed.replacement.length > 0) {
       changes = toTextChanges(lines, edits)
     }
     const { cursor, col } = this.getCursorAndCol(move, edits, newLines)
@@ -364,7 +369,9 @@ export default class Document {
     let { bufnr } = this
     if (this._applying) {
       this._applying = false
-      if (!equals(this.lines, this.textDocument.lines)) {
+      if (this._applyLines != null && !equals(this._applyLines, this.textDocument.lines)) {
+        this.lines = this._applyLines
+        this._applyLines = undefined
         fireLinesChanged(bufnr)
         this.fireContentChanges()
       }

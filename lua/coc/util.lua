@@ -10,8 +10,12 @@ M.unpack = unpackFn
 
 function M.sendErrorMsg(msg)
   vim.defer_fn(function()
-    vim.call('coc#rpc#notify', {'nvim_error_event', {0, 'Lua ' .. _VERSION .. ':'.. msg}})
+    vim.api.nvim_call_function('coc#rpc#notify', {'nvim_error_event', {0, 'Lua ' .. _VERSION .. ':'.. msg}})
   end, 10)
+end
+
+function M.getCurrentTime()
+    return os.clock() * 1000
 end
 
 local function errorHandler(err)

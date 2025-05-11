@@ -563,6 +563,29 @@ describe('Document', () => {
       await assertChange(2, 0, 3, 0, 'if', ['foo', 'bar', 'if'])
       await assertChange(2, 0, 2, 2, 'x', ['foo', 'bar', 'x'])
     })
+
+    it('should apply multiple edits', async () => {
+      let arr = new Array(200)
+      arr.fill('foo bar a b c d e')
+      let ranges: Range[] = []
+      let edits: TextEdit[] = []
+      for (let i = 0; i < arr.length; i++) {
+        ranges.push(Range.create(i, 0, i, 3))
+        ranges.push(Range.create(i, 4, i, 7))
+        ranges.push(Range.create(i, 8, i, 9))
+        ranges.push(Range.create(i, 10, i, 11))
+        ranges.push(Range.create(i, 12, i, 13))
+        ranges.push(Range.create(i, 14, i, 15))
+        ranges.push(Range.create(i, 16, i, 17))
+        edits.push(TextEdit.insert(Position.create(i, 0), `${i + 1} `))
+      }
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      await buf.setLines(arr)
+      buf.highlightRanges('test', 'MoreMsg', ranges)
+      await doc.patchChange()
+      await doc.applyEdits(edits)
+    })
   })
 
   describe('changeLines()', () => {

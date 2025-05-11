@@ -60,7 +60,7 @@ export class Completion implements Disposable {
     events.on('BufEnter', () => {
       this._debounced.clear()
     }, null, this.disposables)
-    events.on('CursorMoved', () => {
+    events.on(['CursorMoved', 'InsertLeave'], () => {
       this.cancelAndClose()
     }, null, this.disposables)
     events.on('PumNavigate', () => {

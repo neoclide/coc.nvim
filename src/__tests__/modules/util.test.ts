@@ -496,10 +496,12 @@ describe('textedit', () => {
   })
 
   it('should convert to text changes', () => {
-    expect(textedits.insertAtEnd(TextEdit.insert(Position.create(0, 0), 'abc'))).toBe(false)
+    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 0), 'abc'))).toBe(false)
+    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 1), 'abc\n'))).toBe(false)
     expect(textedits.toTextChanges(['foo'], [])).toEqual([])
     expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 1), '')])).toEqual([])
     expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 0), 'bar\n')])).toEqual([[['', 'bar'], 0, 3, 0, 3]])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.replace(Range.create(0, 0, 1, 0), 'bar\n')])).toEqual([[['bar'], 0, 0, 0, 3]])
   })
 })
 

@@ -22,7 +22,7 @@ function! s:call(name, args) abort
   catch /.*/
     " Need try catch here on vim9
     let name = s:is_vim ? get(s:func_map, a:name, a:name) : 'coc.highlight.' . a:name
-    call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on function "' .. name .. '" ' .. json_encode(a:args)])
+    call coc#compat#send_error(name, s:is_vim)
   endtry
 endfunction
 
