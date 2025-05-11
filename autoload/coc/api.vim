@@ -240,7 +240,11 @@ enddef
 
 def DeferExecute(cmd: string): void
   def RunExecute(): void
-    if cmd =~# '^echo'
+    if cmd =~# '^redraw'
+      if index(['c', 'r'], mode()) == -1
+        execute cmd
+      endif
+    elseif cmd =~# '^echo'
       execute cmd
     else
       silent! execute $'legacy {cmd}'
