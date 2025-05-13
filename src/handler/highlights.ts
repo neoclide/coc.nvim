@@ -101,7 +101,7 @@ export default class Highlights {
     nvim.pauseNotification()
     win.clearMatchGroup('^CocHighlight')
     for (let [hlGroup, ranges] of Object.entries(groups)) {
-      win.highlightRanges(hlGroup, ranges, 999, true)
+      win.highlightRanges(hlGroup, ranges, -1, true)
     }
     nvim.resumeNotification(true, true)
     this.highlights.set(winid, highlights)

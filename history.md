@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-13
+
+- Change document highlight priority to -1 to avoid override search highlight
+  on vim9.
+
 ## 2025-05-08
 
 - For terminal created by `coc#ui#open_terminal`, close the terminal window on
