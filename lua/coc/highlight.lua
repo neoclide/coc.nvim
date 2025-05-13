@@ -28,6 +28,10 @@ local function is_null(value)
   return value == nil or value == vim.NIL
 end
 
+local function is_enabled(value)
+  return value == 1 or value == true
+end
+
 -- 0 based character index to 0 based byte index
 local function byte_index(text, character)
   if character == 0 then
@@ -74,7 +78,7 @@ local function convert_item(item)
     if item.combine or priorities[item.hlGroup] ~= nil then
       combine = 1
     end
-    return {item.hlGroup, item.lnum, item.colStart, item.colEnd, combine}
+    return {item.hlGroup, item.lnum, item.colStart, item.colEnd, combine, item.start_incl, item.end_incl}
   end
   return item
 end
@@ -97,7 +101,7 @@ local function addHighlights(bufnr, ns, highlights, priority)
     local line = converted[2]
     local startCol = converted[3]
     local endCol = converted[4]
-    local hlMode = converted[5] and 'combine' or 'replace'
+    local hlMode = is_enabled(converted[5]) and 'combine' or 'replace'
     if endCol == -1 then
       local text = vim.fn.getbufline(bufnr, line + 1)[1] or ''
       endCol = #text
@@ -108,7 +112,8 @@ local function addHighlights(bufnr, ns, highlights, priority)
           end_col = endCol,
           hl_group = hlGroup,
           hl_mode = hlMode,
-          right_gravity = true,
+          right_gravity = not is_enabled(converted[6]),
+          end_right_gravity = is_enabled(converted[7]),
           priority = math.min(priority, 4096)
     })
   end
@@ -209,9 +214,9 @@ function M.add_highlight(id, key, hl_group, line, col_start, col_end, opts)
       pcall(api.nvim_buf_set_extmark, bufnr, ns, line, col_start, {
         end_col = col_end,
         hl_group = hl_group,
-        hl_mode = opts.combine and 'combine' or 'replace',
-        right_gravity = true,
-        end_right_gravity = false,
+        hl_mode = is_enabled(opts.combine) and 'combine' or 'replace',
+        right_gravity = not is_enabled(opts.start_incl),
+        end_right_gravity = is_enabled(opts.end_incl),
         priority = math.min(priority, 4096)
       })
     end
@@ -336,7 +341,7 @@ function M.buffer_update(bufnr, key, highlights, priority, changedtick)
   end
 end
 
--- Add highlights to LSP ranes
+-- Add highlights to LSP ranges
 -- @param id - buffer number or 0 for current buffer.
 -- @param key - namespace id or key string.
 -- @param hl_group - highlight group.
@@ -361,8 +366,8 @@ function M.highlight_ranges(id, key, hl_group, ranges, opts)
           local colStart = index == sp.line and byte_index(line, sp.character) or 0
           local colEnd = index == ep.line and byte_index(line, ep.character) or #line
           if colEnd > colStart then
-            local combine = opts.combine and 1 or 0
-            table.insert(highlights, {hl_group, index, colStart, colEnd, combine})
+            local combine = is_enabled(opts.combine) and 1 or 0
+            table.insert(highlights, {hl_group, index, colStart, colEnd, combine, opts.start_incl, opts.end_incl})
           end
         end
       end

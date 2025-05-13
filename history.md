@@ -6,6 +6,7 @@ Notable changes of coc.nvim:
 
 - Change document highlight priority to -1 to avoid override search highlight
   on vim9.
+- `start_incl` and `end_incl` options works on neovim.
 
 ## 2025-05-08
 
