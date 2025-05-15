@@ -155,15 +155,17 @@ function! coc#util#jump(cmd, filepath, ...) abort
     return
   elseif a:cmd ==# 'drop'
     let dstbuf = bufadd(path)
-    let binfo = getbufinfo(dstbuf)
-    if len(binfo) == 1 && empty(binfo[0].windows)
-      execute 'buffer '.dstbuf
-      let &buflisted = 1
-    else
-      let saved = &wildignore
-      set wildignore=
-      execute 'drop '.fnameescape(file)
-      execute 'set wildignore='.saved
+    if bufnr('%') != dstbuf
+      let binfo = getbufinfo(dstbuf)
+      if len(binfo) == 1 && empty(binfo[0].windows)
+        execute 'buffer '.dstbuf
+        let &buflisted = 1
+      else
+        let saved = &wildignore
+        set wildignore=
+        execute 'drop '.fnameescape(file)
+        execute 'set wildignore='.saved
+      endif
     endif
   elseif a:cmd ==# 'edit' && bufloaded(file)
     exe 'b '.bufnr(file)
