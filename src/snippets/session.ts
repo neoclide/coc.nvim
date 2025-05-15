@@ -367,7 +367,7 @@ export class SnippetSession {
       let changeEnd = change.range.end
       let checkCharacter = range.start.line === changeEnd.line
       let newLines = change.text.split(/\n/)
-      let lc = newLines.length - (change.range.start.line - changeEnd.line + 1)
+      let lc = newLines.length - (changeEnd.line - change.range.start.line + 1)
       let cc = 0
       if (checkCharacter) {
         if (newLines.length > 1) {
