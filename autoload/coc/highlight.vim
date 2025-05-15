@@ -130,7 +130,6 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   endfor
   if !empty(cmds)
     call win_execute(a:winid, cmds, 'silent!')
-    let v:errmsg = ''
   endif
 endfunction
 

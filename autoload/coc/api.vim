@@ -359,26 +359,8 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   return type
 enddef
 
-def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, bufchanges: list<any>): void
-  final result: list<any> = []
-  for item in bufchanges
-    const start = item['lnum'] - 1
-    # Delete lines
-    if item['added'] < 0
-      # include start line, which needed for undo
-      const lines = getbufline(bufnr, item['lnum'])
-      add(result, [start, 0 - item['added'] + 1, lines])
-    # Add lines
-    elseif item['added'] > 0
-      const lines = getbufline(bufnr, item['lnum'], item['lnum'] + item['added'])
-      add(result, [start, 1, lines])
-    # Change lines
-    else
-      const lines = getbufline(bufnr, item['lnum'], item['end'] - 1)
-      add(result, [start, item['end'] - item['lnum'], lines])
-    endif
-  endfor
-  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), result])
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
+  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start, end + added - 1)])
 enddef
 
 export def DetachListener(bufnr: number): bool

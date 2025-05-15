@@ -12,6 +12,27 @@ export def LinesEqual(one: list<string>, two: list<string>): bool
   return true
 enddef
 
+# Slice like javascript by character index
+export def Slice(str: string, start_idx: number, end_idx: any = null): string
+  if end_idx == null
+    return str[start_idx : ]
+  endif
+  if start_idx >= end_idx
+    return ''
+  endif
+  return str[start_idx : end_idx - 1]
+enddef
+
+# Function to check if a string starts with a given prefix
+export def StartsWith(str: string, prefix: string): bool
+  return str =~# '^' .. prefix
+enddef
+
+# Function to check if a string ends with a given suffix
+export def EndsWith(str: string, suffix: string): bool
+  return str =~# suffix .. '$'
+enddef
+
 # UTF16 character index in line to byte index.
 export def Byte_index(line: string, character: number): number
   if character == 0
@@ -29,9 +50,13 @@ export def Byte_index(line: string, character: number): number
   return len
 enddef
 
+# Character index of current vim encoding.
+export def Char_index(line: string, colIdx: number): number
+  return strpart(line, 0, colIdx)->strchars()
+enddef
+
 # Using character indexes
-def LcsDiff(str1: string, str2: string): list<dict<any>>
-  # 计算最长公共子序列
+export def LcsDiff(str1: string, str2: string): list<dict<any>>
   def Lcs(a: string, b: string): string
     var matrix = []
     for i in range(0, strchars(a))
@@ -100,25 +125,26 @@ def LcsDiff(str1: string, str2: string): list<dict<any>>
   return result
 enddef
 
-# Get the single changed part.
-export def SimpleStringDiff(oldStr: string, newStr: string, col: number = -1): dict<any>
+# Get the single changed part, by character index of cursor.
+def SimpleStringDiff(oldStr: string, newStr: string, charIdx: number = -1): dict<any>
   var suffixLen = 0
-  const old_length = len(oldStr)
-  const new_length = len(newStr)
-  if col >= 0
-    var maxSuffixLen = min([old_length, new_length - col])
+  const old_length = strchars(oldStr)
+  const new_length = strchars(newStr)
+  var maxSuffixLen = 0
+  if charIdx >= 0
+    maxSuffixLen = min([old_length, new_length - charIdx])
     while suffixLen < maxSuffixLen
-      if strpart(oldStr, old_length - suffixLen - 1, 1) !=
-         strpart(newStr, new_length - suffixLen - 1, 1)
+      if strcharpart(oldStr, old_length - suffixLen - 1, 1) !=
+         strcharpart(newStr, new_length - suffixLen - 1, 1)
         break
       endif
       suffixLen += 1
     endwhile
   else
-    var maxSuffixLen = min([old_length, new_length])
+    maxSuffixLen = min([old_length, new_length])
     while suffixLen < maxSuffixLen
-      if strpart(oldStr, old_length - suffixLen - 1, 1) !=
-         strpart(newStr, new_length - suffixLen - 1, 1)
+      if strcharpart(oldStr, old_length - suffixLen - 1, 1) !=
+         strcharpart(newStr, new_length - suffixLen - 1, 1)
         break
       endif
       suffixLen += 1
@@ -127,18 +153,32 @@ export def SimpleStringDiff(oldStr: string, newStr: string, col: number = -1): d
   var prefixLen = 0
   var remainingLen = min([old_length - suffixLen, new_length - suffixLen])
   while prefixLen < remainingLen
-    if strpart(oldStr, prefixLen, 1) != strpart(newStr, prefixLen, 1)
+    if strcharpart(oldStr, prefixLen, 1) != strcharpart(newStr, prefixLen, 1)
       break
     endif
     prefixLen += 1
   endwhile
-  const colEnd = old_length - suffixLen
-  const oldText = old_length == suffixLen ? '' : strpart(oldStr, prefixLen, old_length - prefixLen - suffixLen)
+  # Reduce suffixLen
+  if suffixLen == new_length - charIdx
+    const max = old_length - prefixLen - suffixLen
+    var i = 0
+    while i < max
+      if strcharpart(oldStr, old_length - suffixLen - 1, 1) !=
+         strcharpart(newStr, new_length - suffixLen - 1, 1)
+        break
+      endif
+      suffixLen += 1
+      i += 1
+    endwhile
+  endif
+  const endIndex = old_length - suffixLen
+  const oldText = old_length == suffixLen ? '' : Slice(oldStr, prefixLen, old_length - suffixLen)
+  echo suffixLen
   return {
     oldStart: prefixLen,
-    oldEnd: colEnd,
+    oldEnd: endIndex,
     oldText: oldText,
-    newText: strpart(newStr, prefixLen, new_length - prefixLen - suffixLen)
+    newText: Slice(newStr, prefixLen, new_length - suffixLen),
   }
 enddef
 
@@ -149,142 +189,12 @@ export def SimpleApplyDiff(text: string, start_col: number, end_col: number, ins
   return prefix .. insert .. suffix
 enddef
 
-# Find possible new col index in new string.
-export def FindCorrespondingPosition(oldStr: string, newStr: string, colIdx: number): number
-  const old_len = len(oldStr)
-  const new_len = len(newStr)
-  if colIdx < 0 || colIdx > old_len
-    return -1
-  endif
-  if oldStr ==# newStr
-    return colIdx
-  endif
-  if colIdx == old_len
-    return new_len
-  endif
-  if colIdx == 0
-    return 0
-  endif
-  # 计算前后部分长度
-  var prefixLen = colIdx
-  var suffixLen = old_len - colIdx
-  # 1. 优先比较较短的部分
-  if prefixLen <= suffixLen
-    # 先比较前缀部分
-    var prefixMatchPos = MatchPrefixPart(oldStr, newStr, colIdx)
-    if prefixMatchPos >= 0
-      return prefixMatchPos
-    endif
-    # 前缀匹配失败再尝试后缀
-    var suffixMatchPos = MatchSuffixPart(oldStr, newStr, colIdx)
-    if suffixMatchPos >= 0
-      return suffixMatchPos
-    endif
-  else
-    # 先比较后缀部分
-    var suffixMatchPos = MatchSuffixPart(oldStr, newStr, colIdx)
-    if suffixMatchPos >= 0
-      return suffixMatchPos
-    endif
-
-    # 后缀匹配失败再尝试前缀
-    var prefixMatchPos = MatchPrefixPart(oldStr, newStr, colIdx)
-    if prefixMatchPos >= 0
-      return prefixMatchPos
-    endif
-  endif
-
-  # 2. 如果前后匹配都失败，使用基于编辑距离的方法
-  return FindByEditDistance(oldStr, newStr, colIdx)
-enddef
-
-def MatchPrefixPart(oldStr: string, newStr: string, colIdx: number): number
-  var prefixLen = colIdx
-  var oldPrefix = strpart(oldStr, 0, colIdx)
-  var maxPossibleStart = len(newStr) - prefixLen
-  # 从后往前找可以更快找到最近的匹配
-  for start in range(maxPossibleStart, -1, -1)
-    if strpart(newStr, start, prefixLen) == oldPrefix
-      return start + min([colIdx, len(newStr) - start - 1])
-    endif
-  endfor
-  return -1
-enddef
-
-def MatchSuffixPart(oldStr: string, newStr: string, colIdx: number): number
-  var suffixLen = len(oldStr) - colIdx
-  var oldSuffix = strpart(oldStr, colIdx)
-  var maxPossibleStart = len(newStr) - suffixLen
-  # 从前往后找可以更快找到最左的匹配
-  for start in range(0, maxPossibleStart + 1)
-    if strpart(newStr, start, suffixLen) == oldSuffix
-      # 返回匹配开始位置加上原始偏移量
-      var adjustedPos = start + (colIdx - (len(oldStr) - suffixLen))
-      return max([0, min([adjustedPos, len(newStr) - 1])])
-    endif
-  endfor
-  return -1
-enddef
-
-# Helper function to calculate the edit distance between two strings
-def CalculateEditDistance(s1: string, s2: string): list<any>
-  var len1: number = len(s1)
-  var len2: number = len(s2)
-  # Create a 2D array to store distances
-  var dp: list<any> = []
-  for i in range(len1 + 1)
-    call add(dp, range(len2 + 1))
-  endfor
-  # Initialize the dp array
-  for i in range(len1 + 1)
-    dp[i][0] = i
-  endfor
-  for j in range(len2 + 1)
-    dp[0][j] = j
-  endfor
-  # Fill the dp array
-  for i in range(0, len1)
-    for j in range(0, len2)
-      if strpart(s1, i - 1, 1) ==# strpart(s2, j - 1, 1)
-        dp[i][j] = dp[i - 1][j - 1]
-      else
-        dp[i][j] = min([dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]]) + 1
-      endif
-    endfor
-  endfor
-  return dp
-enddef
-
-def FindByEditDistance(oldStr: string, newStr: string, colIdx: number): number
-  # Calculate the edit distance matrix
-  var dp: list<any> = CalculateEditDistance(oldStr, newStr)
-  # Backtrack to find the new column index
-  var i: number = len(oldStr)
-  var j: number = len(newStr)
-  var newColIdx: number = colIdx
-  while i > 0 && j > 0
-    if oldStr[i - 1] ==# newStr[j - 1]
-      if i == colIdx
-        newColIdx = j
-      endif
-      i -= 1
-      j -= 1
-    elseif dp[i][j] == dp[i - 1][j - 1] + 1
-      i -= 1
-      j -= 1
-    elseif dp[i][j] == dp[i - 1][j] + 1
-      i -= 1
-    else
-      j -= 1
-    endif
-  endwhile
-  return newColIdx
-enddef
-
 # Apply change from original to current for newText
 export def DiffApply(original: string, current: string, newText: string, colIdx: number): any
-  var diff = SimpleStringDiff(original, current, colIdx)
+  const charIdx = colIdx == -1 ? -1 : Char_index(current, colIdx)
+  const diff = SimpleStringDiff(original, current, charIdx)
   const delta = diff.oldEnd - diff.oldStart
+
   var newIdx = FindCorrespondingPosition(original, newText, diff.oldStart)
   if newIdx == -1
     return null

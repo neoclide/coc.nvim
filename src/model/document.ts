@@ -226,40 +226,31 @@ export default class Document {
 
   public attach(): void {
     let lines = this.lines
+    const { bufnr } = this
     this.buffer.attach(true).then(res => {
       if (!res) fireDetach(this.bufnr)
     }, _e => {
       fireDetach(this.bufnr)
     })
-    const onLinesChange = (id: number, lines: ReadonlyArray<string>) => {
-      if (this._applying) {
-        this._applyLines = lines
-        return
+    const onLinesChange = (_buf: number | Buffer, tick: number | null, firstline: number, lastline: number, linedata: string[]) => {
+      if (tick && tick > this._changedtick) {
+        this._changedtick = tick
+        lines = [...lines.slice(0, firstline), ...linedata, ...(lastline < 0 ? [] : lines.slice(lastline))]
+        if (lines.length == 0) lines = ['']
+        if (this._applying) {
+          this._applyLines = lines
+          return
+        }
+        this.lines = lines
+        fireLinesChanged(bufnr)
+        if (events.completing) return
+        this.fireContentChanges()
       }
-      this.lines = lines
-      fireLinesChanged(id)
-      if (events.completing) return
-      this.fireContentChanges()
     }
     if (isVim) {
-      this.buffer.listen('vim_lines', (bufnr: number, tick: number, changes: VimBufferChange) => {
-        if (tick && tick > this._changedtick) {
-          this._changedtick = tick
-          for (const change of changes) {
-            lines = [...lines.slice(0, change[0]), ...change[2], ...lines.slice(change[0] + change[1])]
-          }
-          onLinesChange(bufnr, lines)
-        }
-      }, this.disposables)
+      this.buffer.listen('vim_lines', onLinesChange, this.disposables)
     } else {
-      this.buffer.listen('lines', (buf: Buffer, tick: number | null, firstline: number, lastline: number, linedata: string[]) => {
-        if (tick && tick > this._changedtick) {
-          this._changedtick = tick
-          lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
-          if (lines.length == 0) lines = ['']
-          onLinesChange(buf.id, lines)
-        }
-      }, this.disposables)
+      this.buffer.listen('lines', onLinesChange, this.disposables)
       this.buffer.listen('detach', () => {
         fireDetach(this.bufnr)
       }, this.disposables)
