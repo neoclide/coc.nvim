@@ -154,7 +154,7 @@ File system watch					*coc-filesystemwatch*
 
 Watchman https://facebook.github.io/watchman/ is used by coc.nvim to provide
 file change detection to extensions and languageservers.  The watchman command
-is detected from your $PATH, the feature will silently fail when watchman
+is detected from your `$PATH`, the feature will silently fail when watchman
 can't work.
 
 Watchman automatically watch |coc-workspace-folders| for file events by
@@ -167,6 +167,10 @@ to open output channel of watchman.
 
 Use configuration |coc-config-fileSystemWatch| to change behavior of file
 system watch.
+
+Note: The default filesystem watch limit can be easily exceeded for many
+projects, checkout
+https://facebook.github.io/watchman/docs/install#system-specific-preparation
 
 ==============================================================================
 LANGUAGESERVER 						*coc-languageserver*
@@ -346,7 +350,7 @@ Close floating windows: ~
 
 To close all floating windows/popups use |coc#float#close_all()| or
 |popup_clear()| on vim.  Or you can use <CTRL-w>o on neovim which close all
-split windows as well.  Or use |popup_clear()| on vim.
+split windows as well.
 
 To close single floating window/popup, use |coc#float#close()|.
 

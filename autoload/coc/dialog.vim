@@ -98,7 +98,9 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   let winid = res[0]
   let bufnr = res[1]
   call win_execute(winid, 'setl nonumber')
-  if !s:is_vim
+  if s:is_vim
+    call timer_start(0, { -> execute('redraw')})
+  else
     redraw
     call coc#float#nvim_scrollbar(winid)
   endif

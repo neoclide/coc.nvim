@@ -48,17 +48,18 @@ endfunction
 " kind, and skipRequest (default to false)
 function! coc#pum#close(...) abort
   if coc#pum#visible()
+    let inserted = 0
     let kind = get(a:, 1, '')
     if kind ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
       let s:pum_index = -1
-      call s:insert_word(input, 1)
+      let inserted = s:insert_word(input, 1)
       call s:on_pum_change(0)
     elseif kind ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
-        call s:insert_word(word, 1)
+        let inserted = s:insert_word(word, 1)
         " have to restore here, so that TextChangedI can trigger indent.
         call s:restore_indentkeys()
       endif
@@ -66,7 +67,11 @@ function! coc#pum#close(...) abort
     call s:close_pum()
     if !get(a:, 2, 0)
       " Needed to wait TextChangedI fired
-      call timer_start(0, {-> coc#rpc#request('stopCompletion', [kind])})
+      if inserted
+        call timer_start(0, {-> coc#rpc#request('stopCompletion', [kind])})
+      else
+        call coc#rpc#request('stopCompletion', [kind])
+      endif
     endif
   endif
   return ''
@@ -314,22 +319,24 @@ endfunction
 
 function! s:insert_word(word, finish) abort
   if s:start_col != -1 && mode() ==# 'i'
-    " avoid auto wrap using 'textwidth'
-    if !a:finish && &textwidth > 0
-      let textwidth = &textwidth
-      noa setl textwidth=0
-      call timer_start(0, { -> execute('noa setl textwidth='.textwidth)})
-    endif
     " Not insert same characters
     let inserted = strpart(getline('.'), s:start_col, col('.') - 1)
     if inserted !=# a:word
+      " avoid auto wrap using 'textwidth'
+      if !a:finish && &textwidth > 0
+        let textwidth = &textwidth
+        noa setl textwidth=0
+        call timer_start(0, { -> execute('noa setl textwidth='.textwidth)})
+      endif
       let saved_completeopt = &completeopt
       noa set completeopt=noinsert,noselect
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
       noa call feedkeys("\<C-n>\<C-x>\<C-z>", 'in')
       call timer_start(0, { -> execute('noa set completeopt='.saved_completeopt)})
+      return 1
     endif
   endif
+  return 0
 endfunction
 
 " Replace from col to cursor col with new characters

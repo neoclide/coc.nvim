@@ -14528,7 +14528,7 @@ var require_Window = __commonJS({
     exports2.Window = void 0;
     var constants_1 = require_constants2();
     var Base_1 = require_Base();
-    var Window2 = class extends Base_1.BaseApi {
+    var Window3 = class extends Base_1.BaseApi {
       constructor() {
         super(...arguments);
         this.prefix = "nvim_win_";
@@ -14639,7 +14639,7 @@ var require_Window = __commonJS({
         this.client.call("coc#window#clear_matches", [this.id, ids], true);
       }
     };
-    exports2.Window = Window2;
+    exports2.Window = Window3;
   }
 });
 
@@ -27130,8 +27130,8 @@ async function lineToLocation(fsPath2, match, text) {
     });
   });
   if (line != null) {
-    let character = text == null ? 0 : line.indexOf(text);
-    if (character == 0) character = line.match(/^\s*/)[0].length;
+    let character = text == null ? -1 : smartcaseIndex(text, line);
+    if (character == -1) character = line.match(/^\s*/)[0].length;
     let end = Position.create(n, character + (text ? text.length : 0));
     return Location.create(uri, Range.create(Position.create(n, character), end));
   }
@@ -27179,6 +27179,7 @@ var init_fs = __esm({
     init_node();
     init_object();
     init_platform();
+    init_string();
     logger3 = createLogger("util-fs");
     exec = child_process.exec;
     FileType = /* @__PURE__ */ ((FileType2) => {
@@ -27863,6 +27864,7 @@ var init_input = __esm({
     "use strict";
     init_events();
     init_util();
+    init_constants();
     init_object();
     init_protocol();
     init_string();
@@ -27967,7 +27969,7 @@ var init_input = __esm({
         this.title = title;
         this.borderhighlight = preferences.borderhighlight ?? "CocFloatBorder";
         this.loading = false;
-        if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
+        if (preferences.placeHolder && !this._input && !isVim) {
           this.clear = true;
         }
         let res = await this.nvim.call("coc#dialog#create_prompt_win", [title, this._input, omitUndefined(preferences)]);
@@ -27981,7 +27983,7 @@ var init_input = __esm({
         if (this._disposed) return;
         this._disposed = true;
         this.nvim.call("coc#float#close", [this._winid ?? -1], true);
-        if (this.nvim.isVim) this.nvim.command(`silent! bd! ${this._bufnr}`, true);
+        if (isVim) this.nvim.command(`silent! bd! ${this._bufnr}`, true);
         this._onDidFinish.fire(this.accepted ? this._input : null);
         this._winid = void 0;
         this._bufnr = void 0;
@@ -37038,15 +37040,15 @@ var debounceTime2, FloatFactoryImpl;
 var init_floatFactory = __esm({
   "src/model/floatFactory.ts"() {
     "use strict";
-    init_node();
     init_events();
     init_markdown();
     init_util();
     init_array();
+    init_constants();
     init_mutex();
+    init_node();
     init_object();
     init_protocol();
-    init_constants();
     debounceTime2 = getConditionValue(100, 10);
     FloatFactoryImpl = class {
       constructor(nvim) {
@@ -37154,15 +37156,15 @@ var init_floatFactory = __esm({
         if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight;
         if (opts.cursorline) config.cursorline = 1;
         if (opts.position) config.relative = opts.position === "fixed" ? config.relative = "editor" : "cursor";
-        if (typeof opts.top === "number" && opts.top >= 0) config.top = opts.top;
-        if (typeof opts.left === "number" && opts.left >= 0) config.left = opts.left;
-        if (typeof opts.bottom === "number" && opts.bottom >= 0) config.bottom = opts.bottom;
-        if (typeof opts.right === "number" && opts.right >= 0) config.right = opts.right;
+        for (let key of ["top", "left", "bottom", "right"]) {
+          if (typeof opts[key] === "number" && opts[key] >= 0) {
+            config[key] = opts[key];
+          }
+        }
         let autoHide = opts.autoHide === false ? false : true;
         if (autoHide) config.autohide = 1;
         this.unbind();
         let arr = await this.nvim.call("coc#dialog#create_cursor_float", [this.winid, this._bufnr, lines, config]);
-        this.nvim.redrawVim();
         if (isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
           let winid2 = arr && arr.length > 0 ? arr[2] : this.winid;
           if (winid2) {
@@ -37795,7 +37797,7 @@ var init_notification = __esm({
         }
         if (Array.isArray(buttons)) {
           let actions = buttons.filter((o) => !o.disabled).map((o) => o.text);
-          if (actions.length) opts.actions = actions;
+          opts.actions = actions;
         }
         let res = await nvim.call("coc#notify#create", [this.lines, opts]);
         this._winid = res[0];
@@ -43765,9 +43767,9 @@ var init_textdocument = __esm({
         return this._content.length;
       }
       get end() {
-        let line = this.lineCount - 1;
-        if (this.eol) return Position.create(line, 0);
-        return Position.create(line, this.lines[line].length);
+        let len = this.lines.length;
+        if (this.eol) return Position.create(len, 0);
+        return Position.create(len - 1, this.lines[len - 1].length);
       }
       get lineCount() {
         return this.lines.length + (this.eol ? 1 : 0);
@@ -45261,11 +45263,11 @@ var init_editors = __esm({
       get visibleTextEditors() {
         return Array.from(this.editors.values());
       }
-      isVisible(bufnr) {
+      getFormatOptions(bufnr) {
         for (let editor of this.editors.values()) {
-          if (editor.bufnr == bufnr) return true;
+          if (editor.bufnr === bufnr || editor.uri === bufnr) return editor.options;
         }
-        return false;
+        return void 0;
       }
       getBufWinids(bufnr) {
         let winids = [];
@@ -46475,12 +46477,15 @@ var init_watchman = __esm({
     Watchman = class _Watchman {
       constructor(binaryPath, channel) {
         this.channel = channel;
-        this._disposed = false;
+        this._listeners = [];
         const watchman = require_fb_watchman();
         this.client = new watchman.Client({
           watchmanBinaryPath: binaryPath
         });
         this.client.setMaxListeners(300);
+      }
+      get root() {
+        return this._root;
       }
       checkCapability() {
         let { client } = this;
@@ -46499,14 +46504,37 @@ var init_watchman = __esm({
         });
       }
       async watchProject(root) {
+        this._root = root;
         let resp = await this.command(["watch-project", root]);
         let { watch, warning, relative_path } = resp;
         if (!watch) return false;
-        if (warning) logger14.warn(warning);
-        this.watch = watch;
+        if (warning) {
+          logger14.warn(warning);
+          this.appendOutput(warning, "Warning");
+        }
         this.relative_path = relative_path;
         logger14.info(`watchman watching project: ${root}`);
         this.appendOutput(`watchman watching project: ${root}`);
+        let { clock } = await this.command(["clock", watch]);
+        let sub = {
+          expression: ["allof", ["type", "f", "wholename"]],
+          fields: ["name", "size", "new", "exists", "type", "mtime_ms", "ctime_ms"],
+          since: clock
+        };
+        if (relative_path) {
+          sub.relative_root = relative_path;
+          root = path.join(watch, relative_path);
+        }
+        let uid = v1_default();
+        let { subscribe } = await this.command(["subscribe", watch, uid, sub]);
+        this.subscription = subscribe;
+        this.appendOutput(`subscribing events in ${root}`);
+        this.client.on("subscription", (resp2) => {
+          if (!resp2 || resp2.subscription != uid || !resp2.files) return;
+          for (let listener of this._listeners) {
+            listener(resp2);
+          }
+        });
         return true;
       }
       command(args) {
@@ -46517,54 +46545,25 @@ var init_watchman = __esm({
           });
         });
       }
-      async subscribe(globPattern, cb) {
-        let { watch, relative_path } = this;
-        if (!watch) throw new Error("watchman not watching");
-        let { clock } = await this.command(["clock", watch]);
-        let uid = v1_default();
-        let sub = {
-          expression: ["allof", ["match", "**/*", "wholename"]],
-          fields: ["name", "size", "new", "exists", "type", "mtime_ms", "ctime_ms"],
-          since: clock
-        };
-        let root = watch;
-        if (relative_path) {
-          sub.relative_root = relative_path;
-          root = path.join(watch, relative_path);
-        }
-        if (!this.client) return;
-        let { subscribe } = await this.command(["subscribe", watch, uid, sub]);
-        this.appendOutput(`subscribing "${globPattern}" in ${root}`);
-        this.client.on("subscription", (resp) => {
-          if (!resp || resp.subscription != uid) return;
-          let { files } = resp;
-          if (!files) return;
+      subscribe(globPattern, cb) {
+        let fn = (change) => {
+          let { files } = change;
           files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
           if (!files.length) return;
-          let ev = Object.assign({}, resp);
-          if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path);
-          this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`);
+          let ev = Object.assign({}, change);
+          if (this.relative_path) ev.root = path.resolve(change.root, this.relative_path);
+          this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
           cb(ev);
-        });
+        };
+        this._listeners.push(fn);
         return {
           dispose: () => {
-            void this.unsubscribe(subscribe);
-          },
-          subscribe
+            let idx = this._listeners.indexOf(fn);
+            if (idx !== -1) this._listeners.splice(idx, 1);
+          }
         };
       }
-      unsubscribe(subscription) {
-        if (this._disposed) return Promise.resolve();
-        let { watch } = this;
-        if (!watch) return;
-        this.appendOutput(`unsubscribe "${subscription}" in: ${watch}`);
-        return this.command(["unsubscribe", watch, subscription]).catch((e) => {
-          if (e.message?.includes("The client was ended")) logger14.error(e);
-        });
-      }
       dispose() {
-        if (this._disposed) return;
-        this._disposed = true;
         if (this.client) {
           this.client.end();
           this.client = void 0;
@@ -46725,7 +46724,6 @@ var init_fileSystemWatcher = __esm({
         this._onDidDelete = new import_node4.Emitter();
         this._onDidRename = new import_node4.Emitter();
         this.disposables = [];
-        this._disposed = false;
         this.onDidCreate = this._onDidCreate.event;
         this.onDidChange = this._onDidChange.event;
         this.onDidDelete = this._onDidDelete.event;
@@ -46798,19 +46796,12 @@ var init_fileSystemWatcher = __esm({
             }
           }
         };
-        client.subscribe(pattern, onChange).then((disposable) => {
-          if (!disposable) return;
-          this._onDidListen.fire();
-          this.subscribe = disposable.subscribe;
-          if (this._disposed) return disposable.dispose();
-          this.disposables.push(disposable);
-        }, (e) => {
-          if (e instanceof Error && e.message.includes("client was ended")) return;
-          logger15.error(`Error on subscribe ${pattern}`, e);
-        });
+        this.subscribe = client.subscription;
+        let disposable = client.subscribe(pattern, onChange);
+        this._onDidListen.fire();
+        this.disposables.push(disposable);
       }
       dispose() {
-        this._disposed = true;
         FileSystemWatcherManager.watchers.delete(this);
         this._onDidRename.dispose();
         this._onDidCreate.dispose();
@@ -58160,7 +58151,7 @@ function resolveRequestOptions(url, options2) {
   if (options2.buffer) opts.buffer = true;
   return opts;
 }
-function request(url, data, opts, token) {
+function request(url, data, opts, token, obj = {}) {
   let mod = getRequestModule(url);
   return new Promise((resolve, reject) => {
     if (token) {
@@ -58208,8 +58199,9 @@ function request(url, data, opts, token) {
         reject(new Error(`Bad response from ${url}: ${res.statusCode}`));
       }
     });
+    obj.req = req;
     req.on("error", (e) => {
-      if (opts.agent && e["code"] == "ECONNRESET") {
+      if (e["code"] == "ECONNRESET") {
         timer = setTimeout(() => {
           reject(e);
         }, timeout);
@@ -58249,12 +58241,12 @@ var init_fetch = __esm({
     import_querystring = require("querystring");
     import_url2 = require("url");
     init_logger();
+    init_util();
     init_errors();
     init_is();
     init_node();
-    init_workspace();
     init_string();
-    init_util();
+    init_workspace();
     logger26 = createLogger("model-fetch");
     timeout = getConditionValue(500, 50);
   }
@@ -67002,7 +66994,7 @@ function getExtname(dispositionHeader) {
   if (filename) return path.extname(filename);
   return void 0;
 }
-function download(urlInput, options2, token) {
+function download(urlInput, options2, token, obj = {}) {
   let url = toURL(urlInput);
   let { etagAlgorithm } = options2;
   let { dest, onProgress, extract } = options2;
@@ -67100,8 +67092,9 @@ function download(urlInput, options2, token) {
         reject(new Error(`Invalid response from ${url}: ${res.statusCode}`));
       }
     });
+    obj.req = req;
     req.on("error", (e) => {
-      if (opts.agent && e["code"] == "ECONNRESET") {
+      if (e["code"] == "ECONNRESET") {
         timer = setTimeout(() => {
           reject(e);
         }, timeout);
@@ -77275,6 +77268,7 @@ var init_symbols = __esm({
     "use strict";
     init_main();
     init_languages();
+    init_util();
     init_array();
     init_convert();
     init_node();
@@ -77331,7 +77325,7 @@ var init_symbols = __esm({
         if (!symbolItem || Location.is(symbolItem.location)) return null;
         let tokenSource = new import_node4.CancellationTokenSource();
         let resolved = await languages_default.resolveWorkspaceSymbol(symbolItem, tokenSource.token);
-        if (!resolved) return null;
+        resolved = defaultValue(resolved, symbolItem);
         if (Location.is(resolved.location)) {
           symbolItem.location = resolved.location;
           item.location = toTargetLocation(resolved.location);
@@ -78823,7 +78817,7 @@ var init_session2 = __esm({
           let changeEnd = change.range.end;
           let checkCharacter = range.start.line === changeEnd.line;
           let newLines = change.text.split(/\n/);
-          let lc = newLines.length - (change.range.start.line - changeEnd.line + 1);
+          let lc = newLines.length - (changeEnd.line - change.range.start.line + 1);
           let cc = 0;
           if (checkCharacter) {
             if (newLines.length > 1) {
@@ -79218,12 +79212,7 @@ var init_manager4 = __esm({
           inserted = snippetString;
         } else {
           const currentIndent = currentLine.match(/^\s*/)[0];
-          let formatOptions;
-          if (bufnr == window_default.activeTextEditor?.bufnr) {
-            formatOptions = window_default.activeTextEditor.options;
-          } else {
-            formatOptions = await workspace_default.getFormatOptions(bufnr);
-          }
+          let formatOptions = await workspace_default.getFormatOptions(bufnr);
           let opts = ultisnip ?? {};
           formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
           if (opts.noExpand) formatOptions.noExpand = true;
@@ -80223,6 +80212,7 @@ var init_manager5 = __esm({
     init_util();
     init_array();
     init_constants();
+    init_errors();
     init_extensionRegistry();
     init_factory();
     init_fs();
@@ -80709,9 +80699,10 @@ var init_manager5 = __esm({
           let client = await workspace_default.fileSystemWatchers.createClient(item.directory, true);
           if (!client) throw new Error("watchman not found");
           void window_default.showInformationMessage(`watching ${item.directory}`);
-          await client.subscribe("**/*.js", async () => {
-            await this.reloadExtension(id2);
-            void window_default.showInformationMessage(`reloaded ${id2}`);
+          client.subscribe("**/*.js", async () => {
+            this.reloadExtension(id2).then(() => {
+              void window_default.showInformationMessage(`reloaded ${id2}`);
+            }, onUnexpectedError);
           });
         }
       }
@@ -86418,7 +86409,7 @@ var init_highlights2 = __esm({
         nvim.pauseNotification();
         win.clearMatchGroup("^CocHighlight");
         for (let [hlGroup, ranges] of Object.entries(groups)) {
-          win.highlightRanges(hlGroup, ranges, 999, true);
+          win.highlightRanges(hlGroup, ranges, -1, true);
         }
         nvim.resumeNotification(true, true);
         this.highlights.set(winid, highlights);
@@ -86601,7 +86592,7 @@ var init_hover2 = __esm({
         let hover = hovers.find((o) => Range.is(o.range));
         if (hover?.range) {
           let win = this.nvim.createWindow(winid);
-          win.highlightRanges("CocHoverRange", [hover.range], 99, true);
+          win.highlightRanges("CocHoverRange", [hover.range], 1024, true);
           this.timer = setTimeout(() => {
             win.clearMatchGroup("CocHoverRange");
             this.nvim.redrawVim();
@@ -86627,7 +86618,7 @@ var init_hover2 = __esm({
         let hover = hovers.find((o) => Hover.is(o) && Range.is(o.range));
         if (hover?.range) {
           let win = this.nvim.createWindow(winid);
-          win.highlightRanges("CocHoverRange", [hover.range], 99, true);
+          win.highlightRanges("CocHoverRange", [hover.range], 1024, true);
           this.timer = setTimeout(() => {
             win.clearMatchGroup("CocHoverRange");
             this.nvim.redrawVim();
@@ -90947,7 +90938,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-7d5f07f4 2025-05-08 11:26:38 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-4fa2c0fa7 2025-05-17 00:20:31 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -91406,6 +91397,9 @@ var init_plugin = __esm({
       }
       get workspace() {
         return workspace_default;
+      }
+      get window() {
+        return window_default;
       }
       get completion() {
         return completion_default;
