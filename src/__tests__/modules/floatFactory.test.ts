@@ -59,7 +59,7 @@ describe('FloatFactory', () => {
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
-      await floatFactory.show(docs, { focusable: true, top: 1, left: 1, bottom: 1, right: 1 })
+      await floatFactory.show(docs, { focusable: true })
       await events.fire('BufEnter', [floatFactory.bufnr])
       let ev = {
         row: 21,
@@ -77,6 +77,19 @@ describe('FloatFactory', () => {
       await events.fire('MenuPopupChanged', [ev, 22])
       await events.fire('MenuPopupChanged', [ev, 20])
       expect(floatFactory.window).toBeNull()
+      floatFactory.close()
+    })
+
+    it('should create fixed float window', async () => {
+      let docs: Documentation[] = [{
+        filetype: 'markdown',
+        content: 'foo'
+      }]
+      await floatFactory.show(docs, { position: 'fixed', focusable: true, bottom: 1, right: 1 })
+      let res = await nvim.call('screenpos', [floatFactory.window.id, 1, 1]) as any
+      expect(res).toBeDefined()
+      expect(res.col > 150).toBe(true)
+      expect(res.row > 70).toBe(true)
       floatFactory.close()
     })
 

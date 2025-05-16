@@ -1369,6 +1369,10 @@ describe('object test', () => {
     expect(objects.isEmpty({ x: 1 })).toBe(false)
   })
 
+  it('should omit null and undefined properties', () => {
+    expect(objects.omitNullUndefined({ a: 1, b: null, c: undefined, d: "text" })).toEqual({ a: 1, d: 'text' })
+  })
+
   it('should deepIterate', () => {
     let obj = {
       x: 1,

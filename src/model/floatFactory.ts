@@ -162,10 +162,11 @@ export default class FloatFactoryImpl implements Disposable {
     if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight
     if (opts.cursorline) config.cursorline = 1
     if (opts.position) config.relative = opts.position === "fixed" ? config.relative = "editor" : "cursor"
-    if (typeof opts.top === 'number' && opts.top >= 0) config.top = opts.top
-    if (typeof opts.left === 'number' && opts.left >= 0) config.left = opts.left
-    if (typeof opts.bottom === 'number' && opts.bottom >= 0) config.bottom = opts.bottom
-    if (typeof opts.right === 'number' && opts.right >= 0) config.right = opts.right
+    for (let key of ['top', 'left', 'bottom', 'right']) {
+      if (typeof opts[key] === 'number' && opts[key] >= 0) {
+        config[key] = opts[key]
+      }
+    }
     let autoHide = opts.autoHide === false ? false : true
     if (autoHide) config.autohide = 1
     this.unbind()

@@ -11,12 +11,21 @@ export function toObject<T>(obj: T | null | undefined): Partial<T> {
   return obj == null ? {} : obj
 }
 
-export function omitUndefined(obj: object): object {
+export function omitUndefined<T extends object>(obj: T): Partial<T> {
   const result: any = {}
   Object.entries(obj).forEach(([key, val]) => {
     if (val !== undefined) result[key] = val
   })
   return result
+}
+
+export function omitNullUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value !== null && value !== undefined) {
+      acc[key as keyof T] = value
+    }
+    return acc
+  }, {} as Partial<T>)
 }
 
 export function deepIterate(obj: object, fn: (node: object, key: string) => void): object {
