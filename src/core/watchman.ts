@@ -38,9 +38,10 @@ export type ChangeCallback = (FileChange) => void
  */
 export default class Watchman {
   private client: Client
-  private watch: string | undefined
   private relative_path: string | undefined
-  private _disposed = false
+  private _listeners: ((change: FileChange) => void)[] = []
+  private _root: string
+  public subscription: string | undefined
 
   constructor(binaryPath: string, private channel?: OutputChannel) {
     const watchman = require('fb-watchman')
@@ -48,6 +49,10 @@ export default class Watchman {
       watchmanBinaryPath: binaryPath
     })
     this.client.setMaxListeners(300)
+  }
+
+  public get root(): string {
+    return this._root
   }
 
   public checkCapability(): Promise<boolean> {
@@ -68,14 +73,37 @@ export default class Watchman {
   }
 
   public async watchProject(root: string): Promise<boolean> {
+    this._root = root
     let resp = await this.command(['watch-project', root])
     let { watch, warning, relative_path } = resp as WatchResponse
     if (!watch) return false
-    if (warning) logger.warn(warning)
-    this.watch = watch
+    if (warning) {
+      logger.warn(warning)
+      this.appendOutput(warning, 'Warning')
+    }
     this.relative_path = relative_path
     logger.info(`watchman watching project: ${root}`)
     this.appendOutput(`watchman watching project: ${root}`)
+    let { clock } = await this.command(['clock', watch])
+    let sub: any = {
+      expression: ['allof', ['type', 'f', 'wholename']],
+      fields: ['name', 'size', 'new', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
+      since: clock,
+    }
+    if (relative_path) {
+      sub.relative_root = relative_path
+      root = path.join(watch, relative_path)
+    }
+    let uid = uuidv1()
+    let { subscribe } = await this.command(['subscribe', watch, uid, sub])
+    this.subscription = subscribe
+    this.appendOutput(`subscribing events in ${root}`)
+    this.client.on('subscription', resp => {
+      if (!resp || resp.subscription != uid || !resp.files) return
+      for (let listener of this._listeners) {
+        listener(resp)
+      }
+    })
     return true
   }
 
@@ -88,57 +116,26 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string } | undefined> {
-    let { watch, relative_path } = this
-    if (!watch) throw new Error('watchman not watching')
-    let { clock } = await this.command(['clock', watch])
-    let uid = uuidv1()
-    let sub: any = {
-      expression: ['allof', ['match', '**/*', 'wholename']],
-      fields: ['name', 'size', 'new', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
-      since: clock,
-    }
-    let root = watch
-    if (relative_path) {
-      sub.relative_root = relative_path
-      root = path.join(watch, relative_path)
-    }
-    if (!this.client) return
-    let { subscribe } = await this.command(['subscribe', watch, uid, sub])
-    this.appendOutput(`subscribing "${globPattern}" in ${root}`)
-    this.client.on('subscription', resp => {
-      if (!resp || resp.subscription != uid) return
-      let { files } = resp as FileChange
-      if (!files) return
+  public subscribe(globPattern: string, cb: ChangeCallback): Disposable {
+    let fn = (change: FileChange) => {
+      let { files } = change
       files = files.filter(f => f.type == 'f' && minimatch(f.name, globPattern, { dot: true }))
       if (!files.length) return
-      let ev: FileChange = Object.assign({}, resp)
-      if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path)
-      this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`)
+      let ev: FileChange = Object.assign({}, change)
+      if (this.relative_path) ev.root = path.resolve(change.root, this.relative_path)
+      this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)
-    })
-    // return Disposable.create(() => )
+    }
+    this._listeners.push(fn)
     return {
       dispose: () => {
-        void this.unsubscribe(subscribe)
+        let idx = this._listeners.indexOf(fn)
+        if (idx !== -1) this._listeners.splice(idx, 1)
       },
-      subscribe
     }
-  }
-
-  public unsubscribe(subscription: string): Promise<any> {
-    if (this._disposed) return Promise.resolve()
-    let { watch } = this
-    if (!watch) return
-    this.appendOutput(`unsubscribe "${subscription}" in: ${watch}`)
-    return this.command(['unsubscribe', watch, subscription]).catch(e => {
-      if (e.message?.includes('The client was ended')) logger.error(e)
-    })
   }
 
   public dispose(): void {
-    if (this._disposed) return
-    this._disposed = true
     if (this.client) {
       this.client.end()
       this.client = undefined

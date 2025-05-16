@@ -107,11 +107,7 @@ export class FileSystemWatcherManager {
     return curr.some(r => sameFile(r, root))
   }
 
-  public createFileSystemWatcher(
-    globPattern: GlobPattern,
-    ignoreCreateEvents: boolean,
-    ignoreChangeEvents: boolean,
-    ignoreDeleteEvents: boolean): FileSystemWatcher {
+  public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreateEvents: boolean, ignoreChangeEvents: boolean, ignoreDeleteEvents: boolean): FileSystemWatcher {
     let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents)
     let base = typeof globPattern === 'string' ? undefined : globPattern.baseUri.fsPath
     for (let [root, client] of this.clientsMap.entries()) {
@@ -145,7 +141,6 @@ export class FileSystemWatcher implements IFileSystemWatcher {
   private _onDidDelete = new Emitter<URI>()
   private _onDidRename = new Emitter<RenameEvent>()
   private disposables: Disposable[] = []
-  private _disposed = false
   public subscribe: string
   public readonly onDidCreate: Event<URI> = this._onDidCreate.event
   public readonly onDidChange: Event<URI> = this._onDidChange.event
@@ -228,20 +223,13 @@ export class FileSystemWatcher implements IFileSystemWatcher {
         }
       }
     }
-    client.subscribe(pattern, onChange).then(disposable => {
-      if (!disposable) return
-      this._onDidListen.fire()
-      this.subscribe = disposable.subscribe
-      if (this._disposed) return disposable.dispose()
-      this.disposables.push(disposable)
-    }, e => {
-      if (e instanceof Error && e.message.includes('client was ended')) return
-      logger.error(`Error on subscribe ${pattern}`, e)
-    })
+    this.subscribe = client.subscription
+    let disposable = client.subscribe(pattern, onChange)
+    this._onDidListen.fire()
+    this.disposables.push(disposable)
   }
 
   public dispose(): void {
-    this._disposed = true
     FileSystemWatcherManager.watchers.delete(this)
     this._onDidRename.dispose()
     this._onDidCreate.dispose()

@@ -7,6 +7,7 @@ import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
+import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
 import { ExtensionExport, createExtension } from '../util/factory'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
@@ -599,9 +600,10 @@ export class ExtensionManager {
       let client = await workspace.fileSystemWatchers.createClient(item.directory, true)
       if (!client) throw new Error('watchman not found')
       void window.showInformationMessage(`watching ${item.directory}`)
-      await client.subscribe('**/*.js', async () => {
-        await this.reloadExtension(id)
-        void window.showInformationMessage(`reloaded ${id}`)
+      client.subscribe('**/*.js', async () => {
+        this.reloadExtension(id).then(() => {
+          void window.showInformationMessage(`reloaded ${id}`)
+        }, onUnexpectedError)
       })
     }
   }

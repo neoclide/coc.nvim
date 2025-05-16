@@ -17,7 +17,7 @@ import helper from '../helper'
 
 let server: net.Server
 let client: net.Socket
-const cwd = process.cwd()
+const cwd = path.resolve(__dirname, '../../..')
 const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuid()}`)
 process.env.WATCHMAN_SOCK = sockPath
 
@@ -122,13 +122,12 @@ afterAll(async () => {
 })
 
 describe('watchman', () => {
-  it('should throw error when not watching', async () => {
+  it('should not throw error when not watching', async () => {
     let client = new Watchman(null)
     disposables.push(client)
-    let fn = async () => {
-      await client.subscribe('**/*', () => {})
-    }
-    await expect(fn()).rejects.toThrow(/not watching/)
+    let disposable = client.subscribe('**/*', () => {})
+    disposable.dispose()
+    client.dispose()
   })
 
   it('should checkCapability', async () => {
@@ -154,7 +153,7 @@ describe('watchman', () => {
     disposables.push(client)
     await client.watchProject(cwd)
     let fn = jest.fn()
-    let disposable = await client.subscribe(`${cwd}/*`, fn)
+    let disposable = client.subscribe(`${cwd}/*`, fn)
     disposable.dispose()
     client.dispose()
   })
@@ -166,15 +165,15 @@ describe('Watchman#subscribe', () => {
     let client = new Watchman(null, helper.createNullChannel())
     disposables.push(client)
     await client.watchProject(cwd)
-    let fn = jest.fn()
-    let disposable = await client.subscribe(`${cwd}/*`, fn)
+    let called = false
+    let disposable = client.subscribe(`${cwd}/*`, () => {
+      called = true
+    })
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
-    sendSubscription(disposable.subscribe, cwd, changes)
-    await wait(30)
-    expect(fn).toBeCalled()
-    let call = fn.mock.calls[0][0]
+    sendSubscription(client.subscription, cwd, changes)
+    await helper.wait(30)
+    expect(called).toBe(true)
     disposable.dispose()
-    expect(call.root).toBe(cwd)
     client.dispose()
   })
 
@@ -183,11 +182,11 @@ describe('Watchman#subscribe', () => {
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await client.watchProject(cwd)
     let fn = jest.fn()
-    let disposable = await client.subscribe(`${cwd}/*`, fn)
+    let disposable = client.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
-    sendSubscription(disposable.subscribe, cwd, changes)
+    sendSubscription(client.subscription, cwd, changes)
     await wait(30)
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
     let call = fn.mock.calls[0][0]
     disposable.dispose()
     expect(call.root).toBe(path.join(cwd, 'foo'))
@@ -200,18 +199,18 @@ describe('Watchman#subscribe', () => {
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await c.watchProject(cwd)
     let fn = jest.fn()
-    let disposable = await c.subscribe(`${cwd}/*`, fn)
+    c.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription('uuid', cwd, changes)
     await wait(10)
-    sendSubscription(disposable.subscribe, cwd, [])
+    sendSubscription(c.subscription, cwd, [])
     await wait(10)
     client.write(bser.dumpToBuffer({
-      subscription: disposable.subscribe,
+      subscription: c.subscription,
       root: cwd
     }))
     await wait(10)
-    expect(fn).toBeCalledTimes(0)
+    expect(fn).toHaveBeenCalledTimes(0)
   })
 })
 
@@ -235,12 +234,11 @@ describe('Watchman#createClient', () => {
     disposables.push(client)
     expect(client).toBeDefined()
   })
-
 })
 
 describe('fileSystemWatcher', () => {
 
-  function createWatcher(pattern: GlobPattern, ignoreCreateEvents = false, ignoreChangeEvents = false, ignoreDeleteEvents = false): FileSystemWatcher {
+  async function createWatcher(pattern: GlobPattern, ignoreCreateEvents = false, ignoreChangeEvents = false, ignoreDeleteEvents = false): Promise<FileSystemWatcher> {
     let watcher = watcherManager.createFileSystemWatcher(
       pattern,
       ignoreCreateEvents,
@@ -249,14 +247,6 @@ describe('fileSystemWatcher', () => {
     )
     disposables.push(watcher)
     return watcher
-  }
-
-  function waitReady(watcher: FileSystemWatcher): Promise<void> {
-    return new Promise(resolve => {
-      watcher.onDidListen(() => {
-        resolve()
-      })
-    })
   }
 
   beforeAll(async () => {
@@ -268,27 +258,25 @@ describe('fileSystemWatcher', () => {
     let folder = workspaceFolder.workspaceFolders[0]
     expect(folder).toBeDefined()
     let pattern = new RelativePattern(folder, '**/*')
-    let watcher = createWatcher(pattern, false, true, true)
+    let watcher = await createWatcher(pattern, false, true, true)
     let fn = jest.fn()
     watcher.onDidCreate(fn)
-    await waitReady(watcher)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(50)
+    await helper.wait(30)
     expect(fn).toHaveBeenCalled()
   })
 
   it('should use relative pattern #2', async () => {
     let called = false
     let pattern = new RelativePattern(__dirname, '**/*')
-    let watcher = createWatcher(pattern, false, true, true)
-    await waitReady(watcher)
+    let watcher = await createWatcher(pattern, false, true, true)
     watcher.onDidCreate(() => {
       called = true
     })
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(50)
+    await helper.wait(30)
     expect(called).toBe(false)
   })
 
@@ -296,7 +284,7 @@ describe('fileSystemWatcher', () => {
     let called = false
     let root = path.join(process.cwd(), 'not_exists')
     let pattern = new RelativePattern(root, '**/*')
-    let watcher = createWatcher(pattern, false, true, true)
+    let watcher = await createWatcher(pattern, false, true, true)
     watcher.onDidCreate(() => {
       called = true
     })
@@ -308,8 +296,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for file create', async () => {
-    let watcher = createWatcher('**/*', false, true, true)
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*', false, true, true)
     let called = false
     watcher.onDidCreate(() => {
       called = true
@@ -322,8 +309,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for file delete', async () => {
-    let watcher = createWatcher('**/*', true, true, false)
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*', true, true, false)
     let called = false
     watcher.onDidDelete(() => {
       called = true
@@ -336,8 +322,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for file change', async () => {
-    let watcher = createWatcher('**/*', false, false, false)
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*', false, false, false)
     let called = false
     watcher.onDidChange(() => {
       called = true
@@ -350,8 +335,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for file rename', async () => {
-    let watcher = createWatcher('**/*', false, false, false)
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*', false, false, false)
     let called = false
     watcher.onDidRename(() => {
       called = true
@@ -368,8 +352,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should not watch for events', async () => {
-    let watcher = createWatcher('**/*', true, true, true)
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*', true, true, true)
     let called = false
     let onChange = () => { called = true }
     watcher.onDidCreate(onChange)
@@ -386,8 +369,7 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for folder rename', async () => {
-    let watcher = createWatcher('**/*')
-    await waitReady(watcher)
+    let watcher = await createWatcher('**/*')
     let newFiles: string[] = []
     let count = 0
     watcher.onDidRename(e => {
@@ -407,14 +389,14 @@ describe('fileSystemWatcher', () => {
   })
 
   it('should watch for new folder', async () => {
-    let watcher = createWatcher('**/*')
+    let watcher = await createWatcher('**/*')
     expect(watcher).toBeDefined()
     workspaceFolder.renameWorkspaceFolder(cwd, __dirname)
     let uri: URI
     watcher.onDidCreate(e => {
       uri = e
     })
-    await waitReady(watcher)
+    await watcherManager.waitClient(__dirname)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, __dirname, changes)
     await helper.waitValue(() => {
