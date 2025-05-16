@@ -112,7 +112,7 @@ local function addHighlights(bufnr, ns, highlights, priority)
           end_col = endCol,
           hl_group = hlGroup,
           hl_mode = hlMode,
-          right_gravity = not is_enabled(converted[6]),
+          right_gravity = true,
           end_right_gravity = is_enabled(converted[7]),
           priority = math.min(priority, 4096)
     })
@@ -215,7 +215,7 @@ function M.add_highlight(id, key, hl_group, line, col_start, col_end, opts)
         end_col = col_end,
         hl_group = hl_group,
         hl_mode = is_enabled(opts.combine) and 'combine' or 'replace',
-        right_gravity = not is_enabled(opts.start_incl),
+        right_gravity = true,
         end_right_gravity = is_enabled(opts.end_incl),
         priority = math.min(priority, 4096)
       })
