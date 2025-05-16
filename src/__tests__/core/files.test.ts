@@ -548,7 +548,12 @@ describe('getOriginalLine', () => {
     })
 
     it('should render annotation label', async () => {
-      let filepath = await createTmpFile('', disposables)
+      let filepath = path.join(__dirname, uuid())
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath)
+        }
+      }))
       let doc = await helper.createDocument(filepath)
       let edit: WorkspaceEdit = {
         documentChanges: [

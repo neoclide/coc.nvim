@@ -16,7 +16,7 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import { HoverTarget, UltiSnippetOption } from './types'
 import { Disposable, disposeAll, getConditionValue } from './util'
-import window from './window'
+import window, { Window } from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
 
@@ -184,6 +184,10 @@ export default class Plugin {
 
   public get workspace(): Workspace {
     return workspace
+  }
+
+  public get window(): Window {
+    return window
   }
 
   public get completion(): Completion {

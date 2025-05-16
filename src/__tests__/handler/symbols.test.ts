@@ -81,9 +81,9 @@ describe('symbols handler', () => {
     }`
       let buf = await createBuffer(code)
       await events.fire('CursorMoved', [buf.id, [2, 8]])
-      await helper.waitFor('eval', ['b:coc_current_function'], 'fun1')
+      await helper.waitFor('eval', ['get(b:,"coc_current_function","")'], 'fun1')
       await events.fire('CursorMoved', [buf.id, [1, 8]])
-      await helper.waitFor('eval', ['b:coc_current_function'], 'myClass')
+      await helper.waitFor('eval', ['get(b:,"coc_current_function","")'], 'myClass')
     })
   })
 

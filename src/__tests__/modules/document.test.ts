@@ -186,6 +186,12 @@ describe('LinesTextDocument', () => {
     let reason = getNotAttachReason('', 1, 99)
     expect(reason).toMatch('exceed')
   })
+
+  it('should get intersect range', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
+    let res = doc.intersectWith(Range.create(0, 0, 2, 1))
+    expect(res).toEqual(Range.create(0, 0, 2, 0))
+  })
 })
 
 describe('Document', () => {

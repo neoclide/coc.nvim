@@ -793,6 +793,20 @@ describe('Popup', () => {
     await win.close(true)
     await nvim.call('popup_clear', [])
   })
+
+  it('should create inputBox', async () => {
+    let input = await helper.plugin.window.createInputBox('title', '')
+    input.title = 'new title'
+    let curr: string
+    input.onDidChange(text => {
+      curr = text
+    })
+    await nvim.input('abc')
+    await helper.waitValue((() => {
+      return curr
+    }), 'abc')
+    input.dispose()
+  })
 })
 
 describe('Tabpage API', () => {

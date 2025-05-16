@@ -59,7 +59,7 @@ describe('FloatFactory', () => {
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
-      await floatFactory.show(docs, { focusable: true })
+      await floatFactory.show(docs, { focusable: true, top: 1, left: 1, bottom: 1, right: 1 })
       await events.fire('BufEnter', [floatFactory.bufnr])
       let ev = {
         row: 21,

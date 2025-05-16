@@ -284,12 +284,7 @@ export class SnippetManager {
       inserted = snippetString
     } else {
       const currentIndent = currentLine.match(/^\s*/)[0]
-      let formatOptions: SnippetFormatOptions
-      if (bufnr == window.activeTextEditor?.bufnr) {
-        formatOptions = window.activeTextEditor.options
-      } else {
-        formatOptions = await workspace.getFormatOptions(bufnr) as SnippetFormatOptions
-      }
+      let formatOptions = await workspace.getFormatOptions(bufnr) as SnippetFormatOptions
       let opts: Partial<UltiSnippetOption> = ultisnip ?? {}
       // trim when option not exists
       formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false

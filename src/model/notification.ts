@@ -1,10 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from '../util/protocol'
 import events from '../events'
 import { disposeAll } from '../util'
-import { DialogButton } from './dialog'
 import { toArray } from '../util/array'
+import { Disposable } from '../util/protocol'
+import { DialogButton } from './dialog'
 
 /**
  * Represents an action that is shown with an information, warning, or
@@ -114,7 +114,7 @@ export default class Notification {
     }
     if (Array.isArray(buttons)) {
       let actions: string[] = buttons.filter(o => !o.disabled).map(o => o.text)
-      if (actions.length) opts.actions = actions
+      opts.actions = actions
     }
     let res = await nvim.call('coc#notify#create', [this.lines, opts]) as [number, number]
     this._winid = res[0]

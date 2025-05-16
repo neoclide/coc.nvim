@@ -66,9 +66,9 @@ export class LinesTextDocument implements TextDocument {
   }
 
   public get end(): Position {
-    let line = this.lineCount - 1
-    if (this.eol) return Position.create(line, 0)
-    return Position.create(line, this.lines[line].length)
+    let len = this.lines.length
+    if (this.eol) return Position.create(len, 0)
+    return Position.create(len - 1, this.lines[len - 1].length)
   }
 
   public get lineCount(): number {

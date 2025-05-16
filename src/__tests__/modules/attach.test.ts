@@ -30,6 +30,7 @@ afterAll(async () => {
 
 describe('notifications', () => {
   it('should notification before plugin ready', () => {
+    nvim.emit('notification', 'VimEnter', [''])
     let timeout = workspace.getConfiguration('suggest').get('timeout')
     expect(timeout).toBe(300)
   })

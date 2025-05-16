@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { disposeAll } from '../util'
+import { isVim } from '../util/constants'
 import { omitUndefined } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { toText } from '../util/string'
@@ -144,7 +145,7 @@ export default class InputBox implements Disposable {
     this.title = title
     this.borderhighlight = preferences.borderhighlight ?? 'CocFloatBorder'
     this.loading = false
-    if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
+    if (preferences.placeHolder && !this._input && !isVim) {
       this.clear = true
     }
     let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, omitUndefined(preferences)]) as RequestResult
@@ -159,7 +160,7 @@ export default class InputBox implements Disposable {
     if (this._disposed) return
     this._disposed = true
     this.nvim.call('coc#float#close', [this._winid ?? -1], true)
-    if (this.nvim.isVim) this.nvim.command(`silent! bd! ${this._bufnr}`, true)
+    if (isVim) this.nvim.command(`silent! bd! ${this._bufnr}`, true)
     this._onDidFinish.fire(this.accepted ? this._input : null)
     this._winid = undefined
     this._bufnr = undefined

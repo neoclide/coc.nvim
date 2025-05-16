@@ -1,16 +1,16 @@
 import fs from 'fs'
+import http, { Server } from 'http'
+import net from 'net'
 import os from 'os'
 import path from 'path'
-import net from 'net'
-import { URL } from 'url'
-import { v4 as uuid } from 'uuid'
-import { promisify } from 'util'
-import http, { Server } from 'http'
 import semver from 'semver'
-import download, { getEtag, getExtname } from '../../model/download'
-import fetch, { getAgent, getDataType, request, getText, getRequestModule, getSystemProxyURI, resolveRequestOptions, toURL, toPort } from '../../model/fetch'
-import helper from '../helper'
+import { URL } from 'url'
+import { promisify } from 'util'
+import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import download, { getEtag, getExtname } from '../../model/download'
+import fetch, { getAgent, getDataType, getRequestModule, getSystemProxyURI, getText, request, resolveRequestOptions, toPort, toURL } from '../../model/fetch'
+import helper from '../helper'
 
 process.env.NO_PROXY = '*'
 let port: number
@@ -340,6 +340,19 @@ describe('fetch', () => {
     delete process.env.HTTP_PROXY
   })
 
+  it('should throw for ECONNRESET error', async () => {
+    await expect(async () => {
+      let obj: any = {}
+      let url = new URL(`http://127.0.0.1:${port}/text`)
+      let opts = resolveRequestOptions(url, {})
+      let p = request(url, undefined, opts, undefined, obj)
+      let err: any = new Error('ECONNRESET')
+      err.code = 'ECONNRESET'
+      obj.req.destroy(err)
+      await p
+    }).rejects.toThrow(/ECONNRESET/)
+  })
+
   it('should fetch text', async () => {
     let res = await fetch(`http://127.0.0.1:${port}/text`)
     expect(res).toBe('text')
@@ -417,6 +430,17 @@ describe('download', () => {
       await download(url, { dest: __filename })
     }
     await expect(fn()).rejects.toThrow(/not directory/)
+  })
+
+  it('should throw on ECONNRESET', async () => {
+    let obj: any = {}
+    let p = download(`http://127.0.0.1:${port}/binary`, { dest: tempdir }, undefined, obj)
+    let err: any = new Error('ECONNRESET')
+    err.code = 'ECONNRESET'
+    await expect(async () => {
+      obj.req.destroy(err)
+      await p
+    }).rejects.toThrow(Error)
   })
 
   it('should throw when unable to extract', async () => {

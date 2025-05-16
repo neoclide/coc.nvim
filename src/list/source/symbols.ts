@@ -2,6 +2,7 @@
 import { Location, Range, SymbolTag, WorkspaceSymbol } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { AnsiHighlight, LocationWithTarget } from '../../types'
+import { defaultValue } from '../../util'
 import { toArray } from '../../util/array'
 import { getSymbolKind } from '../../util/convert'
 import { minimatch } from '../../util/node'
@@ -68,7 +69,7 @@ export default class Symbols extends LocationList {
     if (!symbolItem || Location.is(symbolItem.location)) return null
     let tokenSource = new CancellationTokenSource()
     let resolved = await languages.resolveWorkspaceSymbol(symbolItem, tokenSource.token)
-    if (!resolved) return null
+    resolved = defaultValue(resolved, symbolItem)
     if (Location.is(resolved.location)) {
       symbolItem.location = resolved.location
       item.location = toTargetLocation(resolved.location)
@@ -120,7 +121,7 @@ export default class Symbols extends LocationList {
   }
 }
 
-function toTargetLocation(location: Location | { uri: string }): LocationWithTarget | Location {
+export function toTargetLocation(location: Location | { uri: string }): LocationWithTarget | Location {
   if (!Location.is(location)) {
     return Location.create(location.uri, Range.create(0, 0, 0, 0))
   }

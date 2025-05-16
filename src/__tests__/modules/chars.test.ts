@@ -49,6 +49,7 @@ describe('funcs', () => {
     expect(detectLanguage('你'.charCodeAt(0))).toBe('cn')
     expect(detectLanguage('れ'.charCodeAt(0))).toBe('ja')
     expect(detectLanguage('것'.charCodeAt(0))).toBe('ko')
+    expect(detectLanguage(0xFFFF)).toBe('')
   })
 })
 

@@ -6,14 +6,14 @@ import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 import { ParsedUrlQueryInput, stringify } from 'querystring'
 import { Readable } from 'stream'
 import { URL } from 'url'
-import { CancellationToken } from '../util/protocol'
 import { createLogger } from '../logger'
+import { getConditionValue } from '../util'
 import { CancellationError } from '../util/errors'
 import { objectLiteral } from '../util/is'
 import { fs } from '../util/node'
-import workspace from '../workspace'
+import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
-import { getConditionValue } from '../util'
+import workspace from '../workspace'
 const logger = createLogger('model-fetch')
 export const timeout = getConditionValue(500, 50)
 
@@ -193,7 +193,7 @@ export function resolveRequestOptions(url: URL, options: FetchOptions): any {
   return opts
 }
 
-export function request(url: URL, data: any, opts: any, token?: CancellationToken): Promise<ResponseResult> {
+export function request(url: URL, data: any, opts: any, token?: CancellationToken, obj: any = {}): Promise<ResponseResult> {
   let mod = getRequestModule(url)
   return new Promise<ResponseResult>((resolve, reject) => {
     if (token) {
@@ -241,9 +241,10 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
         reject(new Error(`Bad response from ${url}: ${res.statusCode}`))
       }
     })
+    obj.req = req
     req.on('error', e => {
       // Possible succeed proxy request with ECONNRESET error on node > 14
-      if (opts.agent && e['code'] == 'ECONNRESET') {
+      if (e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
           reject(e)
         }, timeout)

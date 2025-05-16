@@ -2,10 +2,10 @@
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
 import { URL } from 'url'
 import { v1 as uuidv1 } from 'uuid'
-import { CancellationToken } from '../util/protocol'
 import { createLogger } from '../logger'
 import { crypto, fs, path } from '../util/node'
-import { FetchOptions, timeout, getRequestModule, resolveRequestOptions, toURL } from './fetch'
+import { CancellationToken } from '../util/protocol'
+import { FetchOptions, getRequestModule, resolveRequestOptions, timeout, toURL } from './fetch'
 const logger = createLogger('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
@@ -50,7 +50,7 @@ export function getExtname(dispositionHeader: string): string | undefined {
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
-export default function download(urlInput: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string> {
+export default function download(urlInput: string | URL, options: DownloadOptions, token?: CancellationToken, obj: any = {}): Promise<string> {
   let url = toURL(urlInput)
   let { etagAlgorithm } = options
   let { dest, onProgress, extract } = options
@@ -148,9 +148,10 @@ export default function download(urlInput: string | URL, options: DownloadOption
         reject(new Error(`Invalid response from ${url}: ${res.statusCode}`))
       }
     })
+    obj.req = req
     req.on('error', e => {
       // Possible succeed proxy request with ECONNRESET error on node > 14
-      if (opts.agent && e['code'] == 'ECONNRESET') {
+      if (e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
           reject(e)
         }, timeout)

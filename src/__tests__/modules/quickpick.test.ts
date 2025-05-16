@@ -180,6 +180,7 @@ describe('QuickPick', () => {
     }, 2)
     expect(q.value).toBe('f')
     expect(q.selectedItems.length).toBe(2)
+    expect(q.inputBox).toBeDefined()
     await nvim.input('<C-space>')
     await helper.waitValue(() => {
       return q.selectedItems.length

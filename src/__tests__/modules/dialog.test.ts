@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import { Dialog, DialogButton } from '../../model/dialog'
-import ProgressNotification from '../../model/progress'
 import Notification from '../../model/notification'
+import ProgressNotification from '../../model/progress'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -72,11 +72,12 @@ describe('Notification', () => {
     let called = false
     n = new Notification(nvim, {
       content: 'foo\nbar',
-      buttons: [{ index: 1, text: 'text' }],
+      buttons: [{ index: 1, text: 'text' }, { index: 2, text: 'disabled', disabled: true }],
       callback: () => {
         called = true
       }
     })
+    await n.show({ border: true })
     await events.fire('FloatBtnClick', [n.bufnr, 0])
     expect(called).toBe(true)
   })
