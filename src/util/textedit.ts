@@ -4,7 +4,7 @@ import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { isFalsyOrEmpty } from './array'
 import { toObject } from './object'
-import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
+import { comparePosition, emptyRange, getEnd, samePosition, toValidRange } from './position'
 import { byteIndex, contentToLines, toText } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
@@ -225,7 +225,10 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | unde
     let el = lines[end.line] ?? ''
     let content = sl.substring(0, start.character) + edits[0].newText + el.substring(end.character)
     if (end.line >= lines.length && document.eol) {
-      if (content == '') return [...lines.slice(0, start.line)]
+      if (content == '') {
+        const result = [...lines.slice(0, start.line)]
+        return result.length === 0 ? [''] : result
+      }
       if (content.endsWith('\n')) content = content.slice(0, -1)
       return [...lines.slice(0, start.line), ...content.split('\n')]
     }
@@ -253,14 +256,63 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | unde
   return contentToLines(result, document.eol)
 }
 
+export function getRangeText(lines: ReadonlyArray<string>, range: Range): string {
+  let result: string[] = []
+  const { start, end } = range
+  if (start.line === end.line) {
+    let line = toText(lines[start.line])
+    return line.slice(start.character, end.character)
+  }
+  for (let i = start.line; i <= end.line; i++) {
+    let line = toText(lines[i])
+    let text = line
+    if (i === start.line) {
+      text = line.slice(start.character)
+    } else if (i === end.line) {
+      text = line.slice(0, end.character)
+    }
+    result.push(text)
+  }
+  return result.join('\n')
+}
+
+export function validEdit(edit: TextEdit): boolean {
+  let { range, newText } = edit
+  if (!newText.endsWith('\n')) return false
+  if (range.end.character !== 0) return false
+  return true
+}
+
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
+  if (edits.length === 0) return []
+  for (let edit of edits) {
+    if (edit.range.end.line > lines.length) return []
+    if (edit.range.end.line == lines.length) {
+      // should only be insert at the end
+      if (!validEdit(edit)) return []
+      let line = lines.length - 1
+      let character = lines[line].length
+      if (emptyRange(edit.range)) {
+        // convert to insert at the end of last line.
+        edit.range = Range.create(line, character, line, character)
+        edit.newText = '\n' + edit.newText.slice(0, -1)
+      } else {
+        // convert to replace to the end of last line.
+        const start = edit.range.start
+        edit.range = Range.create(start, Position.create(line, character))
+        edit.newText = edit.newText.slice(0, -1)
+      }
+    }
+  }
   return edits.map(o => {
-    let { start, end } = o.range
+    const oldText = getRangeText(lines, o.range)
+    let edit = reduceTextEdit(o, oldText)
+    let { start, end } = edit.range
     let sl = toText(lines[start.line])
     let sc = byteIndex(sl, start.character)
     let el = end.line == start.line ? sl : toText(lines[end.line])
     let ec = byteIndex(el, end.character)
-    let { newText } = o
+    let { newText } = edit
     return [newText.length > 0 ? newText.split('\n') : [], start.line, sc, end.line, ec]
   })
 }
@@ -346,24 +398,41 @@ export function mergeTextEdits(edits: TextEdit[], oldLines: ReadonlyArray<string
   let cr = (oldLines[end.line] ?? '').length - end.character
   let line = newLines.length - lr
   let character = (newLines[line] ?? '').length - cr
-  let newText = getText(start, Position.create(line, character), newLines)
+  let newText = getRangeText(newLines, Range.create(start, Position.create(line, character)))
   return TextEdit.replace(Range.create(start, end), newText)
 }
 
-function getText(start: Position, end: Position, lines: ReadonlyArray<string>): string {
-  if (start.line === end.line) {
-    return toText(lines[start.line]).slice(start.character, end.character)
-  }
-  let spans: string[] = []
-  for (let i = start.line; i <= end.line; i++) {
-    let s = lines[i] ?? ''
-    if (i === start.line) {
-      spans.push(s.slice(start.character))
-    } else if (i === end.line) {
-      spans.push(s.slice(0, end.character))
+/*
+ * Avoid change unnecessary range of text.
+ */
+export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
+  if (oldText.length === 0) return edit
+  let { range, newText } = edit
+  let ol = oldText.length
+  let nl = newText.length
+  if (ol === 0 || nl === 0) return edit
+  let { start, end } = range
+  let bo = 0
+  for (let i = 1; i <= Math.min(nl, ol); i++) {
+    if (newText[i - 1] === oldText[i - 1]) {
+      bo = i
     } else {
-      spans.push(s)
+      break
     }
   }
-  return spans.join('\n')
+  let eo = 0
+  let t = Math.min(nl - bo, ol - bo)
+  if (t > 0) {
+    for (let i = 1; i <= t; i++) {
+      if (newText[nl - i] === oldText[ol - i]) {
+        eo = i
+      } else {
+        break
+      }
+    }
+  }
+  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo)
+  if (bo > 0) start = getEnd(start, newText.slice(0, bo))
+  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo))
+  return TextEdit.replace(Range.create(start, end), text)
 }

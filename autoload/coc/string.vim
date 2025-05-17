@@ -16,21 +16,6 @@ function! coc#string#character_index(line, byteIdx) abort
   return i
 endfunction
 
-function! coc#string#common_start(text, other) abort
-  let arr = split(a:text, '\zs')
-  let other = split(a:other, '\zs')
-  let total = min([len(arr), len(other)])
-  if total == 0
-    return 0
-  endif
-  for i in range(0, total - 1)
-    if arr[i] !=# other[i]
-      return i
-    endif
-  endfor
-  return total
-endfunction
-
 " Convert utf16 character index to byte index
 function! coc#string#byte_index(line, character) abort
   if a:character <= 0
@@ -47,11 +32,6 @@ function! coc#string#byte_index(line, character) abort
     endif
   endfor
   return len
-endfunction
-
-" Get character count from start col and end col, 1 based
-function! coc#string#get_char_count(text, start_col, end_col) abort
-  return strchars(strpart(a:text, a:start_col - 1, a:end_col - a:start_col))
 endfunction
 
 function! coc#string#character_length(text) abort
@@ -122,47 +102,6 @@ function! coc#string#content_height(lines, width) abort
     endif
   endfor
   return len
-endfunction
-
-" get change between two lines
-function! coc#string#diff(curr, previous, col) abort
-  let end = strpart(a:curr, a:col - 1)
-  let start = strpart(a:curr, 0, a:col -1)
-  let endOffset = 0
-  let startOffset = 0
-  let currLen = strchars(a:curr)
-  let prevLen = strchars(a:previous)
-  if len(end)
-    let endLen = strchars(end)
-    for i in range(min([prevLen, endLen]))
-      if strcharpart(end, endLen - 1 - i, 1) ==# strcharpart(a:previous, prevLen -1 -i, 1)
-        let endOffset = endOffset + 1
-      else
-        break
-      endif
-    endfor
-  endif
-  let remain = endOffset == 0 ? a:previous : strcharpart(a:previous, 0, prevLen - endOffset)
-  if len(remain)
-    for i in range(min([strchars(remain), strchars(start)]))
-      if strcharpart(remain, i, 1) ==# strcharpart(start, i ,1)
-        let startOffset = startOffset + 1
-      else
-        break
-      endif
-    endfor
-  endif
-  return {
-      \ 'start': startOffset,
-      \ 'end': prevLen - endOffset,
-      \ 'text': strcharpart(a:curr, startOffset, currLen - startOffset - endOffset)
-      \ }
-endfunction
-
-function! coc#string#apply(content, diff) abort
-  let totalLen = strchars(a:content)
-  let endLen = totalLen - a:diff['end']
-  return strcharpart(a:content, 0, a:diff['start']).a:diff['text'].strcharpart(a:content, a:diff['end'], endLen)
 endfunction
 
 " insert inserted to line at position, use ... when result is too long

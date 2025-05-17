@@ -1,8 +1,8 @@
 'use strict'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { fastDiff } from './node'
-import { byteLength } from './string'
 import { emptyRange, getEnd, positionInRange } from './position'
+import { byteLength } from './string'
 
 export interface ChangedLines {
   start: number

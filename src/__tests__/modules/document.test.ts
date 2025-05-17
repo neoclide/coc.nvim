@@ -479,7 +479,7 @@ describe('Document', () => {
         { range: { start: { line: 0, character: 2 }, end: { line: 1, character: 0 } }, newText: "" },
       ]
       await doc.applyEdits(edits)
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await doc.buffer.lines
       expect(lines).toEqual(['aabb', 'cc', 'd'])
     })
 
@@ -562,6 +562,29 @@ describe('Document', () => {
       await assertChange(2, 1, 3, 0, '', ['foo', 'bar', 'd'])
       await assertChange(2, 0, 3, 0, 'if', ['foo', 'bar', 'if'])
       await assertChange(2, 0, 2, 2, 'x', ['foo', 'bar', 'x'])
+    })
+
+    it('should apply multiple edits', async () => {
+      let arr = new Array(200)
+      arr.fill('foo bar a b c d e')
+      let ranges: Range[] = []
+      let edits: TextEdit[] = []
+      for (let i = 0; i < arr.length; i++) {
+        ranges.push(Range.create(i, 0, i, 3))
+        ranges.push(Range.create(i, 4, i, 7))
+        ranges.push(Range.create(i, 8, i, 9))
+        ranges.push(Range.create(i, 10, i, 11))
+        ranges.push(Range.create(i, 12, i, 13))
+        ranges.push(Range.create(i, 14, i, 15))
+        ranges.push(Range.create(i, 16, i, 17))
+        edits.push(TextEdit.insert(Position.create(i, 0), `${i + 1} `))
+      }
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      await buf.setLines(arr)
+      buf.highlightRanges('test', 'MoreMsg', ranges)
+      await doc.patchChange()
+      await doc.applyEdits(edits)
     })
   })
 
@@ -689,27 +712,77 @@ describe('Document', () => {
   })
 
   describe('applyEdits', () => {
-    it('should synchronize content added', async () => {
+    it('should synchronize on enter', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo f')
+      await doc.buffer.setLines(['foox', 'bar'])
+      await nvim.call('cursor', [1, 2])
+      await nvim.input('a')
       await doc.synchronize()
-      await nvim.command('normal! ^2l')
-      void nvim.input('ar')
+      void nvim.input('<cr>x')
       await doc.applyEdits([{
-        range: Range.create(0, 0, 0, 5),
-        newText: 'foo foo'
+        range: Range.create(0, 0, 1, 3),
+        newText: '"foox"\n"bar"'
       }])
-      await helper.waitFor('getline', ['.'], 'foor foo')
+      await helper.waitFor('getline', ['.'], 'xox"')
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['"fo', 'xox"', '"bar"'])
+    })
+
+    it('should synchronize content add on apply', async () => {
+      let doc = await workspace.document
+      await doc.buffer.setLines(['aaa', 'bbb', 'ccc'])
+      await nvim.call('cursor', [2, 1])
+      void nvim.input('Ab')
+      await doc.applyEdits([{
+        range: Range.create(0, 0, 0, 0),
+        newText: '1'
+      }, {
+        range: Range.create(1, 0, 1, 0),
+        newText: '2'
+      }, {
+        range: Range.create(2, 0, 2, 0),
+        newText: '3'
+      }, {
+        range: Range.create(2, 3, 2, 3),
+        newText: '\nfoo'
+      }])
+      await helper.waitFor('getline', ['.'], '2bbbb')
+      let lines = doc.getLines()
+      expect(lines).toEqual(['1aaa', '2bbbb', '3ccc', 'foo'])
+    })
+
+    it('should synchronize content change on multiple lines change', async () => {
+      let arr = (new Array(40)).fill('')
+      let doc = await workspace.document
+      await doc.buffer.setLines(arr)
+      await nvim.call('cursor', [1, 1])
+      let edits: TextEdit[] = []
+      let contents = []
+      for (let i = 0; i < arr.length; i++) {
+        edits.push(TextEdit.insert(Position.create(i, 0), `${i}`))
+        contents.push(`${i}`)
+      }
+      void nvim.input('Ax')
+      await doc.applyEdits(edits)
+      await helper.waitFor('getline', ['.'], '0x')
+      contents[0] = '0x'
+      let lines = doc.getLines()
+      expect(lines).toEqual(contents)
     })
 
     it('should synchronize content delete', async () => {
       let doc = await workspace.document
-      await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
+      await doc.buffer.setLines(['foo f', 'bar'])
       await doc.synchronize()
-      await nvim.command('normal! gg^2l')
-      await nvim.input('a')
-      await nvim.input('<backspace>')
-      await helper.waitFor('getline', ['.'], 'fo f')
+      await nvim.command('normal! ^2l')
+      void nvim.input('a<backspace>')
+      await doc.applyEdits([{
+        range: Range.create(0, 0, 1, 3),
+        newText: 'foo foo'
+      }])
+      await helper.waitFor('getline', ['.'], 'fo foo')
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['fo foo'])
     })
   })
 

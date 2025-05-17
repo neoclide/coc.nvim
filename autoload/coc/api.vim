@@ -172,10 +172,21 @@ def CheckKey(dict: dict<any>, key: string): void
 enddef
 
 # TextChanged and callback not fired when using channel on vim.
-def OnTextChange(bufnr: number): void
+export def OnTextChange(bufnr: number): void
   const event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
-  execute $'legacy doautocmd <nomodeline> {event} {bufname(bufnr)}'
-  listener_flush(bufnr)
+  if bufnr('%') == bufnr
+    coc#compat#execute($'doautocmd <nomodeline> {event}')
+  else
+    BufExecute(bufnr, [$'legacy doautocmd <nomodeline> {event}'])
+  endif
+enddef
+
+def Pick(target: dict<any>, source: dict<any>, keys: list<string>): void
+  for key in keys
+    if has_key(source, key)
+      target[key] = source[key]
+    endif
+  endfor
 enddef
 
 # execute command for bufnr
@@ -348,26 +359,8 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   return type
 enddef
 
-def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, bufchanges: list<any>): void
-  final result: list<any> = []
-  for item in bufchanges
-    const start = item['lnum'] - 1
-    # Delete lines
-    if item['added'] < 0
-      # include start line, which needed for undo
-      const lines = getbufline(bufnr, item['lnum'])
-      add(result, [start, 0 - item['added'] + 1, lines])
-    # Add lines
-    elseif item['added'] > 0
-      const lines = getbufline(bufnr, item['lnum'], item['lnum'] + item['added'])
-      add(result, [start, 1, lines])
-    # Change lines
-    else
-      const lines = getbufline(bufnr, item['lnum'], item['end'] - 1)
-      add(result, [start, item['end'] - item['lnum'], lines])
-    endif
-  endfor
-  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), result])
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
+  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start, end + added - 1)])
 enddef
 
 export def DetachListener(bufnr: number): bool
@@ -378,6 +371,163 @@ export def DetachListener(bufnr: number): bool
     return succeed ? true : false
   endif
   return false
+enddef
+
+# echo single line message with highlight
+export def EchoHl(message: string, hl: string): void
+  const escaped = substitute(message, "'", "''", 'g')
+  DeferExecute($"echohl {hl} | echo '{escaped}' | echohl None")
+enddef
+
+def ChangeBufferLines(bufnr: number, start_row: number, start_col: number, end_row: number, end_col: number, replacement: list<string>): void
+  const lines = getbufline(bufnr, start_row + 1, end_row + 1)
+  const total = len(lines)
+  final new_lines = []
+  const before = strpart(lines[0], 0, start_col)
+  const after = strpart(lines[total - 1], end_col)
+  const last = len(replacement) - 1
+  for idx in range(0, last)
+    var line = replacement[idx]
+    if idx == 0
+      line = before .. line
+    endif
+    if idx == last
+      line = line .. after
+    endif
+    new_lines->add(line)
+  endfor
+  const del = end_row - (start_row - 1)
+  if del == last + 1
+    setbufline(bufnr, start_row + 1, new_lines)
+  else
+    if len(new_lines) > 0
+      appendbufline(bufnr, start_row, new_lines)
+    endif
+    if del > 0
+      const lnum = start_row + len(new_lines) + 1
+      deletebufline(bufnr, lnum, lnum + del - 1)
+    endif
+  endif
+enddef
+
+# make sure inserted space first.
+def SortProp(a: dict<any>, b: dict<any>): number
+  if a.col != b.col
+    return a.col > b.col ? 1 : -1
+  endif
+  if has_key(a, 'text') && has_key(b, 'text')
+    return a.text ==# ' ' ? -1 : 1
+  endif
+  return 0
+enddef
+
+def ReplaceBufLines(bufnr: number, start_row: number, end_row: number, replacement: list<string>): void
+  if start_row != end_row
+    deletebufline(bufnr, start_row + 1, end_row)
+  endif
+  if !empty(replacement)
+    const new_lines = replacement[0 : -2]
+    if !empty(new_lines)
+      appendbufline(bufnr, start_row, new_lines)
+    endif
+  endif
+enddef
+
+# Change buffer texts with text properties keeped.
+export def SetBufferText(bufnr: number, start_row: number, start_col: number, end_row: number, end_col: number, replacement: list<string>): void
+  # Improve speed for replace lines
+  if start_col == 0 && end_col == 0 && (empty(replacement) || replacement[len(replacement) - 1] == '')
+    ReplaceBufLines(bufnr, start_row, end_row, replacement)
+  else
+    const lines = getbufline(bufnr, start_row + 1, end_row + 1)
+    final new_props = []
+    const props = prop_list(start_row + 1, {
+      'bufnr': bufnr,
+      'end_lnum': end_row + 1
+    })
+    const total = len(props)
+    const replace = empty(replacement) ? [''] : replacement
+    if total > 0
+      var idx = 0
+      while idx != total
+        const prop = props[idx]
+        if !prop.start || !prop.end || has_key(prop, 'text_align')
+          idx += 1
+          continue
+        endif
+        if prop.lnum > start_row + 1 || prop.col + prop.length > start_col + 1
+          break
+        endif
+        new_props->add(prop)
+        idx += 1
+      endwhile
+      const rl = len(replace)
+      if idx != total
+        # new - old
+        const line_delta = start_row + rl - 1 - end_row
+        var col_delta = 0
+        if rl > 1
+          col_delta = strlen(replace[rl - 1]) - end_col
+        else
+          col_delta = start_col + strlen(replace[0]) - end_col
+        endif
+        while idx != total
+          var prop = props[idx]
+          if prop.lnum < end_row + 1 || prop.col < end_col + 1 || !prop.start || !prop.end || has_key(prop, 'text_align')
+            idx += 1
+            continue
+          endif
+          if prop.lnum > end_row + 1
+            break
+          endif
+          prop = copy(prop)
+          prop.lnum += line_delta
+          prop.col += col_delta
+          new_props->add(prop)
+          idx += 1
+        endwhile
+      endif
+    endif
+    ChangeBufferLines(bufnr, start_row, start_col, end_row, end_col, replace)
+    for prop in sort(new_props, SortProp)
+      const has_text = has_key(prop, 'text')
+      const id = get(prop, 'id', -1)
+      if id < 0 && !has_text
+        # prop.id < 0 should be vtext, but text not exists on old vim, can't handle
+        continue
+      endif
+      final opts = {'bufnr': bufnr, 'type': prop.type}
+      if id > 0
+        opts.id = prop.id
+        opts.length = get(prop, 'length', 0)
+      else
+        Pick(opts, prop, ['text', 'text_wrap'])
+      endif
+      prop_add(prop.lnum, prop.col, opts)
+    endfor
+  endif
+enddef
+
+# Change lines only
+export def SetBufferLines(bufnr: number, start_line: number, end_line: number, replacement: list<string>): void
+  const delCount = end_line - (start_line - 1)
+  const total = len(replacement)
+  if delCount == total
+    const currentLines = getbufline(bufnr, start_line, start_line + delCount)
+    for idx in range(0, delCount - 1)
+      if currentLines[idx] !=# replacement[idx]
+        setbufline(bufnr, start_line + idx, replacement[idx])
+      endif
+    endfor
+  else
+    if total > 0
+      appendbufline(bufnr, start_line - 1, replacement)
+    endif
+    if delCount > 0
+      const start = start_line + total
+      silent deletebufline(bufnr, start, start + delCount - 1)
+    endif
+  endif
 enddef
 # }}"
 
@@ -662,7 +812,7 @@ export def Create_namespace(name: string): number
 enddef
 
 export def Get_namespaces(): dict<any>
-  return deepcopy(namespace_cache)
+  return copy(namespace_cache)
 enddef
 
 export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): any
@@ -918,7 +1068,7 @@ enddef
 export def Buf_set_lines(id: number, start: number, end: number, strict: bool = false, replacement: list<string> = []): any
   const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
-  var startLnum = start < 0 ? len + start + 2 : start + 1
+  const startLnum = start < 0 ? len + start + 2 : start + 1
   var endLnum = end < 0 ? len + end + 1 : end
   if endLnum > len
     if strict
@@ -927,24 +1077,8 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
       endLnum = len
     endif
   endif
-  const delCount = endLnum - (startLnum - 1)
   const view = bufnr == bufnr('%') ? winsaveview() : null
-  if delCount == len(replacement)
-    const currentLines = getbufline(bufnr, startLnum, startLnum + delCount)
-    for idx in range(0, delCount - 1)
-      if currentLines[idx] !=# replacement[idx]
-        call setbufline(bufnr, startLnum + idx, replacement[idx])
-      endif
-    endfor
-  else
-    if len(replacement) > 0
-      appendbufline(bufnr, startLnum - 1, replacement)
-    endif
-    if delCount > 0
-      startLnum += len(replacement)
-      silent deletebufline(bufnr, startLnum, startLnum + delCount - 1)
-    endif
-  endif
+  SetBufferLines(bufnr, startLnum, endLnum, replacement)
   if view != null
     winrestview(view)
   endif
@@ -997,6 +1131,18 @@ export def Buf_del_keymap(id: number, mode: string, lhs: string): any
   const escaped = substitute(lhs, ' ', '<space>', 'g')
   BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
   return null
+enddef
+
+export def Buf_set_text(id: number, start_row: number, start_col: number, end_row: number, end_col: number, replacement: list<string>): void
+  const bufnr = GetValidBufnr(id)
+  const len = BufLineCount(bufnr)
+  if start_row >= len
+    throw $'Start row out of bounds {start_row}'
+  endif
+  if end_row >= len
+    throw $'End row out of bounds {end_row}'
+  endif
+  SetBufferText(bufnr, start_row, start_col, end_row, end_col, replacement)
 enddef
 # }}
 
@@ -1207,7 +1353,7 @@ export function Call(method, args) abort
     let result = call($'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}', a:args)
     call listener_flush()
   catch /.*/
-    let err =  v:exception .. ' - on request "' .. a:method .. '" ' .. json_encode(a:args)
+    let err =  v:exception .. " - on request \"" .. a:method .. "\" \n" .. v:throwpoint
     let result = v:null
   endtry
   return [err, result]
@@ -1224,7 +1370,7 @@ export function Notify(method, args) abort
     endif
     call listener_flush()
   catch /.*/
-    call coc#rpc#notify('nvim_error_event', [0, v:exception .. ' - on notification "' .. a:method .. '" ' .. json_encode(a:args)])
+    call coc#rpc#notify('nvim_error_event', [0, v:exception .. " - on notification \"" .. a:method .. "\" \n" .. v:throwpoint])
   endtry
   return v:null
 endfunction

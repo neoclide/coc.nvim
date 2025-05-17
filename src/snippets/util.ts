@@ -159,39 +159,6 @@ export function getNewRange(base: Position, pos: Position, value: string): Range
   }
   return Range.create(start, getEnd(start, value))
 }
-/*
- * Avoid change unnecessary range of text.
- */
-export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
-  let { range, newText } = edit
-  let ol = oldText.length
-  let nl = newText.length
-  if (ol === 0 || nl === 0) return edit
-  let { start, end } = range
-  let bo = 0
-  for (let i = 1; i <= Math.min(nl, ol); i++) {
-    if (newText[i - 1] === oldText[i - 1]) {
-      bo = i
-    } else {
-      break
-    }
-  }
-  let eo = 0
-  let t = Math.min(nl - bo, ol - bo)
-  if (t > 0) {
-    for (let i = 1; i <= t; i++) {
-      if (newText[nl - i] === oldText[ol - i]) {
-        eo = i
-      } else {
-        break
-      }
-    }
-  }
-  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo)
-  if (bo > 0) start = getEnd(start, newText.slice(0, bo))
-  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo))
-  return TextEdit.replace(Range.create(start, end), text)
-}
 
 export function getTextBefore(range: Range, text: string, pos: Position): string {
   let newLines = []

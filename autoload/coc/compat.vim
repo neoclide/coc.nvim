@@ -107,4 +107,12 @@ function! coc#compat#call(fname, args) abort
   endif
   return call('nvim_' . a:fname, a:args)
 endfunction
+
+function! coc#compat#send_error(fname, tracestack) abort
+    let msg = v:exception .. ' - on "' .. a:fname .. '"'
+    if a:tracestack
+      let msg = msg .. " \n" .. v:throwpoint
+    endif
+    call coc#rpc#notify('nvim_error_event', [0, msg])
+endfunction
 " vim: set sw=2 ts=2 sts=2 et tw=78 foldlevel=0:
