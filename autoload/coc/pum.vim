@@ -417,8 +417,7 @@ function! coc#pum#create(lines, opt, config) abort
   call setwinvar(s:pum_winid, 'kind', 'pum')
   if !s:is_vim
     if s:pum_size > config['height']
-      redraw
-      call coc#float#nvim_scrollbar(s:pum_winid)
+      call timer_start(0,{ -> coc#float#nvim_scrollbar(s:pum_winid)})
     else
       call coc#float#close_related(s:pum_winid, 'scrollbar')
     endif

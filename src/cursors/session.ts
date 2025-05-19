@@ -81,6 +81,12 @@ export default class CursorSession {
     }, this, this.disposables)
   }
 
+  public checkRanges(): void {
+    if (this.ranges.length == 0) {
+      this.cancel()
+    }
+  }
+
   /**
    * Add or remove range.
    */
@@ -204,8 +210,7 @@ export default class CursorSession {
     })
     items.sort((a, b) => {
       if (a.lnum != b.lnum) return a.lnum - b.lnum
-      if (a.colStart != b.colStart) return a.colStart - b.colStart
-      return 0
+      return a.colStart - b.colStart
     })
     buffer.updateHighlights('cursors', items, { priority: 4096 })
     nvim.redrawVim()

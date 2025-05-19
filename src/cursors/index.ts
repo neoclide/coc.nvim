@@ -1,12 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Range } from 'vscode-languageserver-types'
+import commands from '../commands'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import commands from '../commands'
 import CursorSession, { CursorsConfig } from './session'
 import { getVisualRanges, splitRange } from './util'
 
@@ -91,7 +91,7 @@ export default class Cursors {
       // make sure range contains character for highlight
       let line = doc.getline(pos.line)
       if (pos.character >= line.length) {
-        range = Range.create(pos.line, line.length - 1, pos.line, line.length)
+        range = Range.create(pos.line, Math.max(0, line.length - 1), pos.line, line.length)
       } else {
         range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
       }
@@ -100,14 +100,16 @@ export default class Cursors {
     } else if (kind == 'range') {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
       let range = await window.getSelectedRange(mode)
-      if (!range) return
-      let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range)
-      for (let r of ranges) {
-        session.addRange(r)
+      if (range) {
+        let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range)
+        for (let r of ranges) {
+          session.addRange(r)
+        }
       }
     } else {
       throw new Error(`select kind "${kind}" not supported`)
     }
+    session.checkRanges()
   }
 
   public createSession(doc: Document): CursorSession {
