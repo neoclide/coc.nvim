@@ -38,7 +38,7 @@ interface SignItem {
   priority?: number
 }
 
-const delay = getConditionValue(50, 10)
+const delay = getConditionValue(100, 10)
 const aleMethod = getConditionValue('ale#other_source#ShowResults', 'MockAleResults')
 let virtualTextSrcId: number | undefined
 
