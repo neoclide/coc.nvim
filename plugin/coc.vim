@@ -413,6 +413,7 @@ function! s:Enable(initialize)
     if exists('##WinScrolled')
       autocmd WinScrolled         * call s:HandleWinScrolled(+expand('<amatch>'), v:event)
     endif
+    autocmd ModeChanged         * call s:Autocmd('ModeChanged', v:event)
     autocmd TabNew              * call s:Autocmd('TabNew', coc#compat#tabnr_id(tabpagenr()))
     autocmd TabClosed           * call s:Autocmd('TabClosed', coc#compat#call('list_tabpages', []))
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())

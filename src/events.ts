@@ -36,6 +36,11 @@ export interface VisibleEvent {
   region: [number, number]
 }
 
+export interface ModeChangedEvent {
+  readonly old_mode: string
+  readonly new_mode: string
+}
+
 export interface InsertChange {
   readonly lnum: number
   readonly col: number
@@ -67,7 +72,8 @@ export enum EventName {
   BufWinEnter = 'BufWinEnter',
   WinScrolled = 'WinScrolled',
   WinClosed = 'WinClosed',
-  BufWinLeave = 'BufWinLeave'
+  BufWinLeave = 'BufWinLeave',
+  ModeChanged = 'ModeChanged'
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
@@ -85,7 +91,7 @@ export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
 export type TabEvents = 'TabNew' | 'TabClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
-  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
+  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre' | 'ModeChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled' | 'CompleteStart'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
@@ -124,6 +130,7 @@ class Events {
   private _completing = false
   private _requesting = false
   private _ready = false
+  private _mode: string | undefined
   public timeout = 1000
   // public completing = false
 
@@ -137,6 +144,10 @@ class Events {
 
   public get ready(): boolean {
     return this._ready
+  }
+
+  public get mode(): string {
+    return this._mode
   }
 
   private fireVisibleEvent(ev: VisibleEvent): void {
@@ -286,6 +297,8 @@ class Events {
       this.clearVisibleTimer(args[0])
     } else if (event == EventName.BufWinLeave) {
       this.clearVisibleTimer(args[1])
+    } else if (event == EventName.ModeChanged) {
+      this._mode = args[0].new_mode
     }
     if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
@@ -355,6 +368,7 @@ class Events {
   public on(event: 'PromptInsert', handler: (value: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PlaceholderJump', handler: (bufnr: number, info: JumpInfo) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InputListSelect', handler: (index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'ModeChanged', handler: (event: ModeChangedEvent) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: EmptyEvents, handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents | AllEvents[], handler: (...args: unknown[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable {

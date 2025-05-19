@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-19
+
+- Add `ModeChanged` event and `mode` property to `events`.
+
 ## 2025-05-13
 
 - Change document highlight priority to -1 to avoid override search highlight
