@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import commands from '../../commands'
 import Cursors from '../../cursors'
 import CursorsSession, { surrondChanges } from '../../cursors/session'
 import TextRange from '../../cursors/textRange'
-import { getChange, getDelta, isSurrondChange, isTextChange, SurrondChange, TextChange } from '../../cursors/util'
-import workspace from '../../workspace'
+import { getChange, getDelta, getVisualRanges, isSurrondChange, isTextChange, splitRange, SurrondChange, TextChange } from '../../cursors/util'
 import window from '../../window'
+import workspace from '../../workspace'
 import helper from '../helper'
-import commands from '../../commands'
 
 let nvim: Neovim
 let cursors: Cursors
@@ -37,14 +37,7 @@ async function rangeCount(): Promise<number> {
   return markers.length
 }
 
-describe('cursors', () => {
-  describe('surrondChanges()', () => {
-    it('should check surrond changes', async () => {
-      expect(surrondChanges([], 0)).toBe(false)
-      expect(surrondChanges([{ offset: 1, add: 'f' }, { offset: 3, add: 'f' }], 0)).toBe(false)
-    })
-  })
-
+describe('cursors utils', () => {
   describe('getDelta()', () => {
     it('should get delta count', async () => {
       expect(getDelta({ prepend: [1, 'foo'], append: [1, 'bar'] })).toBe(4)
@@ -52,7 +45,12 @@ describe('cursors', () => {
     })
   })
 
-  describe('getChange()', () => {
+  describe('surrondChanges()', () => {
+    it('should check surrond changes', async () => {
+      expect(surrondChanges([], 0)).toBe(false)
+      expect(surrondChanges([{ offset: 1, add: 'f' }, { offset: 3, add: 'f' }], 0)).toBe(false)
+    })
+
     it('should get surrond change', async () => {
       const getText = (newText: string): string => {
         let r = new TextRange(0, 0, 'foo')
@@ -65,7 +63,9 @@ describe('cursors', () => {
       expect(getText('o')).toBe('o')
       expect(getText('')).toBe('')
     })
+  })
 
+  describe('getChange()', () => {
     it('should get end change', async () => {
       const getText = (character: number, newText: string) => {
         let start = Position.create(0, character)
@@ -92,8 +92,24 @@ describe('cursors', () => {
       expect(getText(0, 1, '')).toBe('oo')
       expect(getText(0, 2, 'ba')).toBe('bao')
     })
-  })
 
+    it('should split ranges', async () => {
+      let doc = await workspace.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\n\nend')])
+      let ranges = splitRange(doc, Range.create(0, 3, 3, 0))
+      expect(ranges).toEqual([Range.create(1, 0, 1, 3)])
+    })
+
+    it('should get visual ranges', async () => {
+      let doc = await workspace.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\nend')])
+      let ranges = getVisualRanges(doc, Range.create(0, 3, 3, 0))
+      expect(ranges.length).toBe(4)
+    })
+  })
+})
+
+describe('cursors', () => {
   describe('cancel()', () => {
     it('should cancel cursors session', async () => {
       cursors.cancel(999)
@@ -108,6 +124,16 @@ describe('cursors', () => {
       cursors.cancel(doc.bufnr)
       activated = await cursors.isActivated()
       expect(activated).toBe(false)
+    })
+
+    it('should cancel when no have ranges', async () => {
+      let doc = await workspace.document
+      let session = cursors.createSession(doc)
+      session.checkRanges()
+      let activated = await cursors.isActivated()
+      expect(activated).toBe(false)
+      session.cancel()
+      session.dispose()
     })
   })
 
@@ -188,6 +214,9 @@ describe('cursors', () => {
 
     it('should select by visual range', async () => {
       let doc = await workspace.document
+      await cursors.select(doc.bufnr, 'range', 'v')
+      let activated = await cursors.isActivated()
+      expect(activated).toBe(false)
       await nvim.call('setline', [1, ['"foo"', '"bar"']])
       await nvim.call('cursor', [1, 1])
       await nvim.command('normal! vE')
@@ -389,6 +418,20 @@ describe('cursors', () => {
       await doc.synchronize()
       let c = await rangeCount()
       expect(c).toBe(1)
+    })
+
+    it('should cancel when insert line break', async () => {
+      let doc = await workspace.document
+      await nvim.call('setline', [1, ['foo', '']])
+      await doc.synchronize()
+      let ranges = [Range.create(0, 0, 0, 3)]
+      await cursors.addRanges(ranges)
+      session = cursors.getSession(doc.bufnr)
+      await nvim.call('cursor', [1, 2])
+      await nvim.input('i<cr>')
+      await doc.synchronize()
+      let activated = await cursors.isActivated()
+      expect(activated).toBe(false)
     })
   })
 

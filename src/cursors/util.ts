@@ -2,6 +2,7 @@
 import { Range } from 'vscode-languageserver-types'
 import Document from '../model/document'
 import { equals } from '../util/object'
+import { toText } from '../util/string'
 import { getWellformedRange } from '../util/textedit'
 import type TextRange from './textRange'
 
@@ -29,7 +30,7 @@ export interface SurrondChange {
 export function splitRange(doc: Document, range: Range): Range[] {
   let splited: Range[] = []
   for (let i = range.start.line; i <= range.end.line; i++) {
-    let curr = doc.getline(i) || ''
+    let curr = toText(doc.getline(i))
     let sc = i == range.start.line ? range.start.character : 0
     let ec = i == range.end.line ? range.end.character : curr.length
     if (sc == ec) continue
