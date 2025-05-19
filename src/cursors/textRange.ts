@@ -47,10 +47,14 @@ export default class TextRange {
   }
 
   public applySurrondChange(change: SurrondChange): void {
-    let { prepend, append } = change
-    let len = this._text.length
-    let text = this._text.substring(prepend[0], len - append[0])
-    this._text = `${prepend[1]}${text}${append[1]}`
+    let { prepend, append, remove } = change
+    if (remove) {
+      this._text = ''
+    } else {
+      let len = this._text.length
+      let text = this._text.substring(prepend[0], len - append[0])
+      this._text = `${prepend[1]}${text}${append[1]}`
+    }
   }
 
   public applyTextChange(change: TextChange): void {

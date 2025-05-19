@@ -324,7 +324,8 @@ export default class CursorSession {
     } else if (surrondChanges(changes, len)) {
       change = {
         prepend: [changes[0].remove ? changes[0].remove.length : 0, changes[0].add ?? ''],
-        append: [changes[1].remove ? changes[1].remove.length : 0, changes[1].add ?? '']
+        append: [changes[1].remove ? changes[1].remove.length : 0, changes[1].add ?? ''],
+        remove: false
       }
     } else {
       let text = first.text

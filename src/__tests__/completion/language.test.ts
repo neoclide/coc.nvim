@@ -147,7 +147,7 @@ describe('language source', () => {
       await helper.waitPopup()
       expect(completion.selectedItem).toBeDefined()
       await nvim.input('(')
-      await helper.waitFor('getline', ['.'], 'foo()')
+      await helper.waitValue(() => completion.isActivated, false)
     })
 
     it('should not feedkeys when have paried characters before', async () => {

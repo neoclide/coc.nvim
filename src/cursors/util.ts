@@ -22,6 +22,10 @@ export interface SurrondChange {
    * delete count & insert text
    */
   append: [number, string]
+  /**
+   * Remove the range when true
+   */
+  remove: boolean
 }
 
 /**
@@ -76,14 +80,15 @@ export function getChange(r: TextRange, range: Range, newText: string): TextChan
     let idx = text.indexOf(newText)
     if (idx !== -1) {
       let prepend: [number, string] = [idx, '']
-      let append: [number, string] = [text.length - newText.length - idx, '']
-      return { prepend, append }
+      let n = text.length - newText.length - idx
+      let append: [number, string] = [n, '']
+      return { prepend, append, remove: r.text.length === n }
     }
     idx = newText.indexOf(text)
     if (idx !== -1) {
       let prepend: [number, string] = [0, newText.slice(0, idx)]
       let append: [number, string] = [0, newText.slice(- (newText.length - text.length - idx))]
-      return { prepend, append }
+      return { prepend, append, remove: false }
     }
   }
   if (equals(r.range.end, range.end)) {

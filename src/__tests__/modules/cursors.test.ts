@@ -40,7 +40,7 @@ async function rangeCount(): Promise<number> {
 describe('cursors utils', () => {
   describe('getDelta()', () => {
     it('should get delta count', async () => {
-      expect(getDelta({ prepend: [1, 'foo'], append: [1, 'bar'] })).toBe(4)
+      expect(getDelta({ prepend: [1, 'foo'], append: [1, 'bar'], remove: false })).toBe(4)
       expect(getDelta({ offset: 0, remove: 2, insert: 'foo' })).toBe(1)
     })
   })
@@ -378,6 +378,20 @@ describe('cursors', () => {
       await assertEdits([edit(0, 4, 0, 5, 'ba')], [0, 4, 5, 9, 10, 14], 'baoo baoo baoo')
       let col = await nvim.call('col', ['.'])
       expect(col).toBe(1)
+    })
+
+    it('should adjust on range remove', async () => {
+      let doc = await workspace.document
+      await nvim.call('setline', [1, ['foo', 'foobar']])
+      await doc.synchronize()
+      let ranges = [Range.create(0, 0, 0, 3), Range.create(1, 0, 1, 6)]
+      await cursors.addRanges(ranges)
+      session = cursors.getSession(doc.bufnr)
+      await doc.applyEdits([TextEdit.del(Range.create(0, 0, 0, 3))])
+      await doc.synchronize()
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['', ''])
+      session.cancel()
     })
 
     it('should adjust on undo & redo', async () => {
