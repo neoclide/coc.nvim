@@ -432,12 +432,11 @@ function! coc#util#editor_infos() abort
       if buftype !=# '' && buftype !=# 'acwrite'
         continue
       endif
-      let bufname = bufname(bufnr)
       call add(result, {
           \ 'winid': info['winid'],
           \ 'bufnr': bufnr,
           \ 'tabid': coc#compat#tabnr_id(info['tabnr']),
-          \ 'fullpath': empty(bufname) ? '' : coc#util#win32unix_to_node(fnamemodify(bufname, ':p')),
+          \ 'fullpath': coc#util#get_fullpath(bufnr),
           \ })
     endif
   endfor
@@ -482,16 +481,24 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'lisp': getbufvar(a:bufnr, '&lisp'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
-        \ 'fullpath': empty(bufname) ? '' : coc#util#win32unix_to_node(fnamemodify(bufname, ':p')),
+        \ 'fullpath': coc#util#get_fullpath(a:bufnr)
         \}
 endfunction
 
 " Get fullpath for NodeJs of current buffer or bufnr
 function! coc#util#get_fullpath(...) abort
-  if a:0 == 0
-    return coc#util#win32unix_to_node(expand('%:p'))
+  let nr = a:0 == 0 ? bufnr('%') : a:1
+  if !bufloaded(nr)
+    return ''
   endif
-  return coc#util#win32unix_to_node(fnamemodify(bufname(a:1), ':p'))
+  if s:is_vim && getbufvar(nr, '&buftype') ==# 'terminal'
+    let job = term_getjob(nr)
+    let pid = job_info(job)->get('process', 0)
+    let cwd = fnamemodify(getcwd(), ':~')
+    return 'term://' . cwd . '//' . pid . ':' . substitute(bufname(nr), '^!', '', '')
+  endif
+  let name = bufname(nr)
+  return empty(name) ? '' : coc#util#win32unix_to_node(fnamemodify(name, ':p'))
 endfunction
 
 function! coc#util#bufsize(bufnr) abort
