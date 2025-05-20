@@ -64,14 +64,14 @@ export default class Document {
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(
     public readonly buffer: Buffer,
-    private env: Env,
     private nvim: Neovim,
+    filetype: string,
     opts: BufferOption
   ) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
     }, debounceTime)
-    this.init(opts)
+    this.init(filetype, opts)
   }
 
   /**
@@ -139,26 +139,6 @@ export default class Document {
   }
 
   /**
-   * Map filetype for languageserver.
-   */
-  public convertFiletype(filetype: string): string {
-    switch (filetype) {
-      case 'javascript.jsx':
-        return 'javascriptreact'
-      case 'typescript.jsx':
-      case 'typescript.tsx':
-        return 'typescriptreact'
-      case 'tex':
-        // Vim filetype 'tex' means LaTeX, which has LSP language ID 'latex'
-        return 'latex'
-      default: {
-        let map = this.env.filetypeMap
-        return String(map[filetype] || filetype)
-      }
-    }
-  }
-
-  /**
    * Scheme of document.
    */
   public get schema(): string {
@@ -190,7 +170,7 @@ export default class Document {
   /**
    * Initialize document model.
    */
-  private init(opts: BufferOption): void {
+  private init(filetype: string, opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
     this._bufname = opts.bufname
     this._commandLine = opts.commandline === 1
@@ -208,7 +188,7 @@ export default class Document {
       this.lines = []
       this._notAttachReason = getNotAttachReason(buftype, this.variables[`coc_enabled`] as number, opts.size)
     }
-    this._filetype = this.convertFiletype(opts.filetype)
+    this._filetype = filetype
     this.setIskeyword(opts.iskeyword, opts.lisp)
     this.createTextDocument(1, this.lines)
   }
@@ -574,8 +554,8 @@ export default class Document {
    * Recreate document with new filetype.
    */
   public setFiletype(filetype: string): void {
-    this._filetype = this.convertFiletype(filetype)
-    let lines = this._textDocument.lines
+    this._filetype = filetype
+    let lines = this.lines
     this._textDocument = new LinesTextDocument(this.uri, this.languageId, 1, lines, this.bufnr, this.eol)
   }
 

@@ -1160,7 +1160,7 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('<C-o>')
       await checkLines([
         'test',

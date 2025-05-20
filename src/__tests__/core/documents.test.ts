@@ -50,6 +50,18 @@ describe('BufferSync', () => {
 })
 
 describe('documents', () => {
+  it('should convert filetype', () => {
+    const shouldConvert = (from: string, to: string): void => {
+      expect(documents.convertFiletype(from)).toBe(to)
+    }
+    shouldConvert('javascript.jsx', 'javascriptreact')
+    shouldConvert('typescript.jsx', 'typescriptreact')
+    shouldConvert('typescript.tsx', 'typescriptreact')
+    shouldConvert('tex', 'latex')
+    Object.assign(documents['_env']['filetypeMap'], { foo: 'bar' })
+    shouldConvert('foo', 'bar')
+  })
+
   it('should get document', async () => {
     await helper.createDocument('bar')
     let doc = await helper.createDocument('foo')
@@ -204,5 +216,32 @@ describe('documents', () => {
     }, disposables)
     res = await documents.tryCodeActionsOnSave(doc)
     expect(res).toBe(true)
+  })
+
+  it('should not fire document event when filetype not changed', async () => {
+    let fn = jest.fn()
+    disposables.push(documents.onDidOpenTextDocument(e => {
+      fn()
+    }))
+    let doc = await workspace.document
+    doc.setFiletype('javascript')
+    documents.onFileTypeChange('javascript', doc.bufnr)
+    await helper.wait(10)
+    expect(fn).toHaveBeenCalledTimes(0)
+    doc.detach()
+    documents.onFileTypeChange('javascript', doc.bufnr)
+    await helper.wait(10)
+    expect(fn).toHaveBeenCalledTimes(0)
+  })
+
+  it('should fire document create once on reload', async () => {
+    await helper.createDocument('t.vim')
+    let fn = jest.fn()
+    disposables.push(documents.onDidOpenTextDocument(e => {
+      fn()
+    }))
+    await nvim.command('edit')
+    await helper.wait(20)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 })

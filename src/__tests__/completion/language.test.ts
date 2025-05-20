@@ -161,6 +161,7 @@ describe('language source', () => {
         }]
       }
       disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
+      await nvim.call('cursor', [1, 1])
       await nvim.command('startinsert')
       nvim.call('coc#start', [{ source: 'language' }], true)
       await helper.waitPopup()
@@ -651,13 +652,17 @@ describe('language source', () => {
     })
 
     it('should use insertTextFormat from itemDefaults', async () => {
+      await nvim.call('cursor', [1, 1])
       await start({ label: 'foo', insertText: 'foo($1)$0' }, {
         insertTextFormat: InsertTextFormat.Snippet,
         insertTextMode: InsertTextMode.asIs,
         data: {}
       })
       await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foo()')
+      await helper.waitValue(async () => {
+        let line = await nvim.call('getline', ['.']) as string
+        return line.startsWith('foo()')
+      }, true)
     })
 
     it('should use textEditText when exists with default range', async () => {

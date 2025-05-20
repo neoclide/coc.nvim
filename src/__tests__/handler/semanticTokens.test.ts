@@ -173,17 +173,16 @@ function registerProvider(): void {
   }, legend))
 }
 
-async function createRustBuffer(): Promise<Buffer> {
+async function createRustBuffer(enableProvider = true): Promise<Buffer> {
   helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
-  registerProvider()
-  await helper.wait(20)
+  if (enableProvider) registerProvider()
+  let doc = await workspace.document
   let code = `fn main() {
     println!("H");
 }`
   let buf = await nvim.buffer
-  await nvim.command('setf rust')
+  doc.setFiletype('rust')
   await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
-  let doc = await workspace.document
   await doc.patchChange()
   return buf
 }
@@ -494,13 +493,7 @@ describe('semanticTokens', () => {
 
   describe('highlightRegions()', () => {
     it('should refresh when buffer visible', async () => {
-      helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
-      let code = `fn main() {
-    println!("H");
-}`
-      let buf = await nvim.buffer
-      await nvim.command('setf rust')
-      await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
+      let buf = await createRustBuffer(false)
       let doc = await workspace.document
       let item = await semanticTokens.getCurrentItem()
       let winid = await nvim.call('win_getid') as number

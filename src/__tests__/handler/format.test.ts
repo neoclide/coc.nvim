@@ -172,7 +172,8 @@ describe('format handler', () => {
       }))
       let filepath = await createTmpFile('a\nb\nc\n')
       let buf = await helper.edit(filepath)
-      await nvim.command('setf text')
+      let doc = workspace.getDocument(buf.id)
+      doc.setFiletype('text')
       await nvim.command('w')
       let lines = await buf.lines
       expect(lines).toEqual(['  a', '  b', '  c'])
@@ -240,8 +241,8 @@ describe('format handler', () => {
         }
       }, 1))
       let doc = await helper.createDocument()
+      doc.setFiletype('text')
       await nvim.call('setline', [1, ['a', 'b', 'c']])
-      await nvim.command('setf text')
       await nvim.command('normal! ggvG')
       await nvim.input('<esc>')
       expect(languages.hasFormatProvider(doc.textDocument)).toBe(true)
@@ -264,9 +265,9 @@ describe('format handler', () => {
           return []
         }
       }))
-      await helper.createDocument()
+      let doc = await helper.createDocument()
+      doc.setFiletype('text')
       await nvim.call('setline', [1, ['a', 'b', 'c']])
-      await nvim.command('setf text')
       await nvim.command(`setl formatexpr=CocAction('formatSelected')`)
       await nvim.command('normal! ggvGgq')
       expect(range).toEqual({
@@ -282,9 +283,9 @@ describe('format handler', () => {
           return [TextEdit.insert(Position.create(0, 0), '  ')]
         }
       }))
-      await helper.createDocument()
+      let doc = await helper.createDocument()
+      doc.setFiletype('text')
       await nvim.setLine('foo')
-      await nvim.command('setf text')
       await helper.doAction('format')
       let line = await nvim.line
       expect(line).toEqual('  foo')
@@ -350,8 +351,8 @@ describe('format handler', () => {
           return []
         }
       }))
-      await helper.edit()
-      await nvim.command('setf text')
+      let doc = await helper.createDocument()
+      doc.setFiletype('text')
       await nvim.setLine('"')
       await nvim.input('i|')
       await helper.waitFor('getline', ['.'], '  |"end')
