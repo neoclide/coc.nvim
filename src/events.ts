@@ -337,7 +337,7 @@ class Events {
   }
 
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number], winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-05-20
+
+- Add `winid` (current window ID) to `CursorHold` and `CursorHoldI` events handler.
+
 ## 2025-05-19
 
 - Add `ModeChanged` event and `mode` property to `events`.
