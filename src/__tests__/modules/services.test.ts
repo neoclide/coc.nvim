@@ -13,6 +13,7 @@ import { disposeAll } from '../../util'
 import { Workspace } from '../../workspace'
 import events from '../../events'
 import helper from '../helper'
+import window from '../../window'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -78,8 +79,12 @@ describe('services', () => {
       let w = workspace.workspaceFolderControl
       w.addWorkspaceFolder(folder, true)
       let s = services.getService('foo')
+      let spy = jest.spyOn(window as any, 'showErrorMessage').mockImplementation(() => {
+        return Promise.resolve()
+      })
       expect(s).toBeDefined()
       await s.restart()
+      spy.mockRestore()
       w.removeWorkspaceFolder(folder)
     })
 
