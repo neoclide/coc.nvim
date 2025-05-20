@@ -85,6 +85,10 @@ export default class SemanticTokens {
       let item = this.highlighters.getItem(bufnr)
       if (item) await item.onWinScroll(winid)
     }, null, this.disposables)
+    events.on('CursorHold', async (bufnr: number, cursor: [number, number], winid: number) => {
+      let item = this.highlighters.getItem(bufnr)
+      if (item && winid) await item.onCursorHold(winid, cursor[0])
+    }, null, this.disposables)
   }
 
   public setStaticConfiguration(): void {
