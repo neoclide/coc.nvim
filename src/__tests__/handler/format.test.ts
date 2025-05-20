@@ -40,11 +40,14 @@ describe('format handler', () => {
     })
 
     it('should throw when provider not found', async () => {
-      let doc = await workspace.document
+      await expect(async () => {
+        await commands.executeCommand('editor.action.formatDocument', 999)
+      }).rejects.toThrow(Error)
       await expect(async () => {
         await commands.executeCommand('editor.action.formatDocument')
       }).rejects.toThrow(Error)
       await expect(async () => {
+        let doc = await workspace.document
         await commands.executeCommand('editor.action.formatDocument', doc.uri)
       }).rejects.toThrow(Error)
     })

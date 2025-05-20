@@ -73,7 +73,13 @@ export default class FormatHandler {
       if (!events.completing && doc && doc.attached) await this.tryFormatOnType(character, doc)
     }))
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
-      const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc
+      let doc: Document | undefined
+      if (uri) {
+        doc = workspace.getAttachedDocument(uri)
+      } else {
+        let buf = await nvim.buffer
+        doc = workspace.getAttachedDocument(buf.id)
+      }
       await this.documentFormat(doc)
     }))
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
