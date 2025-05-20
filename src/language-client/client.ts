@@ -836,8 +836,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private showNotificationMessage(type: MessageType, message?: string, data?: any) {
-    // TODO: notification window may block the UI in testing
-    if (global.__TEST__) return
     message = message ?? 'A request has failed. See the output for more information.'
     if (data) {
       message += '\n' + data2String(data)

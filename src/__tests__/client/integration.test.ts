@@ -470,6 +470,9 @@ describe('Client integration', () => {
     assert.strictEqual(client.name, 'Test Language Server')
     assert.strictEqual(client.diagnostics, undefined)
     client.trace = Trace.Verbose
+    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
+      return Promise.resolve()
+    })
     let d = client.start()
     let s = new CancellationTokenSource()
     s.cancel()
@@ -503,6 +506,7 @@ describe('Client integration', () => {
     let err = new ResponseError(LSPErrorCodes.RequestCancelled, 'response error')
     client.logFailedRequest('', err)
     assert.strictEqual(client.diagnostics, undefined)
+    spy.mockReset()
     d.dispose()
   })
 
@@ -559,8 +563,12 @@ describe('Client integration', () => {
     }
     await expect(async () => {
       let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+      let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
+        return Promise.resolve()
+      })
       await client.start()
       await client.stop()
+      spy.mockRestore()
     }).rejects.toThrow(Error)
   })
 
