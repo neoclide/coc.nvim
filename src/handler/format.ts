@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commandManager from '../commands'
 import events from '../events'
@@ -10,7 +9,6 @@ import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { pariedCharacters } from '../util/index'
-import { CancellationTokenSource } from '../util/protocol'
 import { isAlphabet } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -34,34 +32,6 @@ export default class FormatHandler {
     handler.addDisposable(window.onDidChangeActiveTextEditor(() => {
       this.setConfiguration()
     }))
-    handler.addDisposable(workspace.onWillSaveTextDocument(event => {
-      // the document could be not current one.
-      if (this.shouldFormatOnSave(event.document)) {
-        let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
-          if (!languages.hasFormatProvider(event.document)) {
-            logger.warn(`Format provider not found for ${event.document.uri}`)
-            return undefined
-          }
-          let options = await workspace.getFormatOptions(event.document.uri)
-          let formatOnSaveTimeout = workspace.getConfiguration('coc.preferences', event.document).get('formatOnSaveTimeout', 500)
-          let timer: NodeJS.Timeout
-          let tokenSource = new CancellationTokenSource()
-          const tp = new Promise<undefined>(c => {
-            timer = setTimeout(() => {
-              logger.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, event.document.uri)
-              tokenSource.cancel()
-              c(undefined)
-            }, formatOnSaveTimeout)
-          })
-          const provideEdits = languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
-          let textEdits = await Promise.race([tp, provideEdits])
-          clearTimeout(timer)
-          this.logProvider(event.bufnr, textEdits)
-          return Array.isArray(textEdits) ? textEdits : undefined
-        }
-        event.waitUntil(willSaveWaitUntil())
-      }
-    }))
     handler.addDisposable(events.on('Enter', async bufnr => {
       let res = await events.race(['CursorMovedI'], 100)
       if (res.args && res.args[0] === bufnr) {
@@ -83,18 +53,6 @@ export default class FormatHandler {
       await this.documentFormat(doc)
     }))
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
-  }
-
-  public shouldFormatOnSave(doc: TextDocument): boolean {
-    let { languageId, uri } = doc
-    let document = workspace.getDocument(doc.uri)
-    if (!document || document.getVar('disable_autoformat', 0)) return false
-    // the document could be not current one.
-    let config = workspace.getConfiguration('coc.preferences', { uri, languageId })
-    let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
-    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(languageId)
-    let formatOnSave = config.get<boolean>('formatOnSave', false)
-    return formatOnSave
   }
 
   private setConfiguration(e?: IConfigurationChangeEvent): void {

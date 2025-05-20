@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, MarkedString, Hover, Range, TextEdit, Position, CancellationToken, MarkupKind } from 'vscode-languageserver-protocol'
-import HoverHandler, { addDefinitions, addDocument, isDocumentation, readLines } from '../../handler/hover'
+import { CancellationToken, Disposable, Hover, MarkedString, MarkupKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import HoverHandler, { addDefinitions, addDocument, isDocumentation, readLines } from '../../handler/hover'
 import languages from '../../languages'
-import { disposeAll } from '../../util'
-import helper, { createTmpFile } from '../helper'
-import workspace from '../../workspace'
 import { Documentation } from '../../types'
+import { disposeAll } from '../../util'
+import workspace from '../../workspace'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let hover: HoverHandler
@@ -193,7 +193,7 @@ describe('Hover', () => {
     it('should throw when buffer not attached', async () => {
       await expect(async () => {
         await hover.getHover({ bufnr: 999, line: 1, col: 2 })
-      }).rejects.toThrow(/not created/)
+      }).rejects.toThrow(/not exists/)
     })
   })
 

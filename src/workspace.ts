@@ -419,7 +419,7 @@ export class Workspace {
    */
   public getAttachedDocument(uri: number | string): Document {
     let doc = this.getDocument(uri)
-    if (!doc) throw new Error(`Buffer ${uri} not created.`)
+    if (!doc) throw new Error(`Buffer ${uri} not exists.`)
     if (!doc.attached) throw new Error(`Buffer ${uri} not attached, ${doc.notAttachReason}`)
     return doc
   }

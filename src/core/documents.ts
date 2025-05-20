@@ -6,11 +6,13 @@ import commands from '../commands'
 import Configurations from '../configuration'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
+import languages from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { isVim } from '../util/constants'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
@@ -18,7 +20,7 @@ import { emptyObject } from '../util/is'
 import { fs, os, path } from '../util/node'
 import { hasOwnProperty, toObject } from '../util/object'
 import * as platform from '../util/platform'
-import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex, toText } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
@@ -34,6 +36,7 @@ interface StateInfo {
 interface DocumentsConfig {
   maxFileSize: number
   willSaveHandlerTimeout: number
+  formatOnSaveTimeout: number
   useQuickfixForLocations: boolean
 }
 
@@ -129,6 +132,7 @@ export default class Documents implements Disposable {
       this.config = {
         maxFileSize: bytes.parse(config.maxFileSize),
         willSaveHandlerTimeout: defaultValue(config.willSaveHandlerTimeout, 500),
+        formatOnSaveTimeout: defaultValue(config.formatOnSaveTimeout, 500),
         useQuickfixForLocations: config.useQuickfixForLocations
       }
     }
@@ -536,6 +540,29 @@ export default class Documents implements Disposable {
       if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr)
     }
     await this.tryCodeActionsOnSave(doc)
+    await this.tryFormatOnSave(doc)
+  }
+
+  public async tryFormatOnSave(document: Document): Promise<void> {
+    if (!this.shouldFormatOnSave(document)) return
+    let options = await this.getFormatOptions(document.uri)
+    let formatOnSaveTimeout = this.config.formatOnSaveTimeout
+    let timer: NodeJS.Timeout
+    let tokenSource = new CancellationTokenSource()
+    const tp = new Promise<undefined>(c => {
+      timer = setTimeout(() => {
+        logger.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri)
+        tokenSource.cancel()
+        c(undefined)
+      }, formatOnSaveTimeout)
+    })
+    const provideEdits = languages.provideDocumentFormattingEdits(document.textDocument, options, tokenSource.token)
+    let textEdits = await Promise.race([tp, provideEdits])
+    clearTimeout(timer)
+    if (isFalsyOrEmpty(textEdits)) return
+    await document.applyEdits(textEdits)
+    let extensionName = textEdits['__extensionName']
+    logger.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`)
   }
 
   public async tryCodeActionsOnSave(doc: Document): Promise<boolean> {
@@ -551,6 +578,22 @@ export default class Documents implements Disposable {
     if (actions.length === 0) return false
     await commands.executeCommand('editor.action.executeCodeActions', doc, undefined, actions, this.config.willSaveHandlerTimeout)
     return true
+  }
+
+  public shouldFormatOnSave(document: Document): boolean {
+    if (!languages.hasFormatProvider(document)) {
+      logger.warn(`Format provider not found for ${document.uri}`)
+      return false
+    }
+    if (!document || document.getVar('disable_autoformat', 0)) {
+      logger.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`)
+      return false
+    }
+    let config = this.configurations.getConfiguration('coc.preferences', document)
+    let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
+    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(document.languageId)
+    let formatOnSave = config.get<boolean>('formatOnSave', false)
+    return formatOnSave
   }
 
   public onFileTypeChange(filetype: string, bufnr: number): void {
