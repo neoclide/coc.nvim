@@ -145,6 +145,9 @@ connection.onInitialize(params => {
           filters: [{scheme: 'file', pattern: {glob: '**/deleted-static/**{/,/*.txt}'}}]
         },
       },
+      textDocumentContent: {
+        schemes: ['content-test']
+      }
     },
     linkedEditingRangeProvider: true,
     diagnosticProvider: {
