@@ -329,6 +329,7 @@ describe('codeLenes featrue', () => {
         }]
       }
     }))
+    await helper.wait(10)
     await codeLens.checkProvider()
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
     expect(res.length).toBe(1)
