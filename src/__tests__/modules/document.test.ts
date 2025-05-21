@@ -58,6 +58,9 @@ describe('LinesTextDocument', () => {
     edits = filterSortEdits(textDocument, edits)
     let res = applyEdits(textDocument, edits)
     expect(res).toEqual(['use std::io::{Result, Error};'])
+    textDocument = new LinesTextDocument('', '', 1, [''], 1, true)
+    res = applyEdits(textDocument, [TextEdit.replace(Range.create(0, 0, 1, 0), '')])
+    expect(res).toEqual([''])
   })
 
   it('should throw for overlapping edits', () => {
