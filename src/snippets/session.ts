@@ -412,7 +412,7 @@ export class SnippetSession {
     let newText = this.snippet.text
     // further update caused by related placeholders or python CodeBlock change
     if (newText !== snippetText) {
-      let edit = TextEdit.replace(range, newText)
+      let edit = reduceTextEdit({ range: changedRange, newText }, snippetText)
       await this.applyEdits([edit], true)
       if (delta) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
