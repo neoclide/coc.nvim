@@ -85,7 +85,7 @@ describe('codeLenes featrue', () => {
   it('should toggle codeLens display', async () => {
     await codeLens.toggle(999)
     let line = await helper.getCmdline()
-    expect(line).toMatch('not created')
+    expect(line).toMatch('not exists')
     await createBufferWithCodeLens()
     await commands.executeCommand('document.toggleCodeLens')
     let doc = await workspace.document
@@ -329,6 +329,7 @@ describe('codeLenes featrue', () => {
         }]
       }
     }))
+    await helper.wait(10)
     await codeLens.checkProvider()
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
     expect(res.length).toBe(1)

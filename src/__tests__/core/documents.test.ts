@@ -8,10 +8,11 @@ import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-t
 import { URI } from 'vscode-uri'
 import Documents from '../../core/documents'
 import events from '../../events'
+import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let documents: Documents
 let nvim: Neovim
@@ -50,6 +51,18 @@ describe('BufferSync', () => {
 })
 
 describe('documents', () => {
+  it('should convert filetype', () => {
+    const shouldConvert = (from: string, to: string): void => {
+      expect(documents.convertFiletype(from)).toBe(to)
+    }
+    shouldConvert('javascript.jsx', 'javascriptreact')
+    shouldConvert('typescript.jsx', 'typescriptreact')
+    shouldConvert('typescript.tsx', 'typescriptreact')
+    shouldConvert('tex', 'latex')
+    Object.assign(documents['_env']['filetypeMap'], { foo: 'bar' })
+    shouldConvert('foo', 'bar')
+  })
+
   it('should get document', async () => {
     await helper.createDocument('bar')
     let doc = await helper.createDocument('foo')
@@ -204,5 +217,126 @@ describe('documents', () => {
     }, disposables)
     res = await documents.tryCodeActionsOnSave(doc)
     expect(res).toBe(true)
+  })
+
+  it('should not fire document event when filetype not changed', async () => {
+    let fn = jest.fn()
+    disposables.push(documents.onDidOpenTextDocument(e => {
+      fn()
+    }))
+    let doc = await workspace.document
+    doc.setFiletype('javascript')
+    documents.onFileTypeChange('javascript', doc.bufnr)
+    await helper.wait(10)
+    expect(fn).toHaveBeenCalledTimes(0)
+    doc.detach()
+    documents.onFileTypeChange('javascript', doc.bufnr)
+    await helper.wait(10)
+    expect(fn).toHaveBeenCalledTimes(0)
+  })
+
+  it('should fire document create once on reload', async () => {
+    await helper.createDocument('t.vim')
+    let fn = jest.fn()
+    disposables.push(documents.onDidOpenTextDocument(e => {
+      fn()
+    }))
+    await nvim.command('edit')
+    await helper.wait(20)
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('formatOnSave', () => {
+  it('should not throw when provider not found', async () => {
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['javascript'], disposables)
+    let filepath = await createTmpFile('')
+    await helper.edit(filepath)
+    await nvim.command('setf javascript')
+    await nvim.setLine('foo')
+    await nvim.command('silent w')
+  })
+
+  it('should invoke format on save', async () => {
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'], disposables)
+    disposables.push(languages.registerDocumentFormatProvider(['text'], {
+      provideDocumentFormattingEdits: document => {
+        let lines = document.getText().replace(/\n$/, '').split(/\n/)
+        let edits: TextEdit[] = []
+        for (let i = 0; i < lines.length; i++) {
+          let text = lines[i]
+          if (!text.startsWith(' ')) {
+            edits.push(TextEdit.insert(Position.create(i, 0), '  '))
+          }
+        }
+        return edits
+      }
+    }))
+    let filepath = await createTmpFile('a\nb\nc\n')
+    let buf = await helper.edit(filepath)
+    let doc = workspace.getDocument(buf.id)
+    doc.setFiletype('text')
+    await documents.tryFormatOnSave(doc)
+    let lines = await buf.lines
+    expect(lines).toEqual(['  a', '  b', '  c'])
+  })
+
+  it('should cancel when timeout', async () => {
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['*'], disposables)
+    let timer
+    disposables.push(languages.registerDocumentFormatProvider(['*'], {
+      provideDocumentFormattingEdits: () => {
+        return new Promise(resolve => {
+          timer = setTimeout(() => {
+            resolve(undefined)
+          }, 2000)
+        })
+      }
+    }))
+    let filepath = await createTmpFile('a\nb\nc\n')
+    await helper.edit(filepath)
+    let n = Date.now()
+    await nvim.command('w')
+    expect(Date.now() - n).toBeLessThan(1000)
+    clearTimeout(timer)
+  })
+
+  it('should enable format on save', async () => {
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', null)
+    helper.updateConfiguration('coc.preferences.formatOnSave', true)
+    let doc = await workspace.document
+    let res = documents.shouldFormatOnSave(doc)
+    expect(res).toBe(false)
+    disposables.push(languages.registerDocumentFormatProvider(['*'], {
+      provideDocumentFormattingEdits: () => {
+        return []
+      }
+    }))
+    res = documents.shouldFormatOnSave(doc)
+    expect(res).toBe(true)
+  })
+
+  it('should not format on save when disabled', async () => {
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'])
+    disposables.push(languages.registerDocumentFormatProvider(['text'], {
+      provideDocumentFormattingEdits: document => {
+        let lines = document.getText().replace(/\n$/, '').split(/\n/)
+        let edits: TextEdit[] = []
+        for (let i = 0; i < lines.length; i++) {
+          edits.push(TextEdit.insert(Position.create(0, 0), '  '))
+        }
+        return edits
+      }
+    }))
+    let filepath = await createTmpFile('a\nb\nc\n')
+    nvim.pauseNotification()
+    nvim.command('e ' + filepath, true)
+    nvim.command('let b:coc_disable_autoformat = 1', true)
+    nvim.command('setf text', true)
+    await nvim.resumeNotification()
+    await nvim.command('w')
+    let buf = await nvim.buffer
+    let lines = await buf.lines
+    expect(lines).toEqual(['a', 'b', 'c'])
   })
 })

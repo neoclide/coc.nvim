@@ -270,7 +270,11 @@ describe('workspace methods', () => {
     expect(Workspace).toBeDefined()
     expect(workspace['onDidOpenTerminal']).toBeDefined()
     expect(workspace['onDidCloseTerminal']).toBeDefined()
+    let spy = jest.spyOn(workspace.nvim, 'call').mockImplementation(() => {
+      return null
+    })
     workspace.checkVersion(0)
+    spy.mockRestore()
   })
 
   it('should resolve module path if exists', async () => {

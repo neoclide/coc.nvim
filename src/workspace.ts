@@ -202,7 +202,8 @@ export class Workspace {
 
   public checkVersion(version: number) {
     if (this._env.apiversion != version) {
-      this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'npm ci' after pull source code.`)
+      this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, building coc.nvim by 'npm ci'.`)
+      this.nvim.call('coc#ui#fix', [], true)
     }
   }
 
@@ -419,7 +420,7 @@ export class Workspace {
    */
   public getAttachedDocument(uri: number | string): Document {
     let doc = this.getDocument(uri)
-    if (!doc) throw new Error(`Buffer ${uri} not created.`)
+    if (!doc) throw new Error(`Buffer ${uri} not exists.`)
     if (!doc.attached) throw new Error(`Buffer ${uri} not attached, ${doc.notAttachReason}`)
     return doc
   }

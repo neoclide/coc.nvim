@@ -6975,7 +6975,8 @@ declare module 'coc.nvim' {
 
   // events module {{
   type EventResult = void | Promise<void>
-  type MoveEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'CursorHoldI'
+  type MoveEvents = 'CursorMoved' | 'CursorMovedI'
+  type HoldEvents = 'CursorHold' | 'CursorHoldI'
   type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
     | 'InsertLeave' | 'TermOpen' | 'InsertEnter'
     | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'Enter'
@@ -6983,7 +6984,7 @@ declare module 'coc.nvim' {
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
   type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
-  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled' | 'WindowVisible'
+  type AllEvents = BufEvents | EmptyEvents | HoldEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress' | 'WinScrolled' | 'WindowVisible'
   type OptionValue = string | number | boolean
   type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
@@ -7103,7 +7104,11 @@ declare module 'coc.nvim' {
     /**
      * Attach handler to mouse move events.
      */
-    export function on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    export function on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number], hasInsert: boolean) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Attach handler to cursor hold events.
+     */
+    export function on(event: HoldEvents, handler: (bufnr: number, cursor: [number, number], winid: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to TextChangedI or TextChangedP.
      */

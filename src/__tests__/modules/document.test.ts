@@ -335,20 +335,6 @@ describe('Document', () => {
       expect(lineCount).toBe(1)
       expect(winid != -1).toBe(true)
     })
-
-    it('should set filetype', async () => {
-      let doc = await workspace.document
-      doc.setFiletype('javascript.jsx')
-      expect(doc.filetype).toBe('javascriptreact')
-      doc.setFiletype('typescript.jsx')
-      expect(doc.filetype).toBe('typescriptreact')
-      doc.setFiletype('typescript.tsx')
-      expect(doc.filetype).toBe('typescriptreact')
-      doc.setFiletype('tex')
-      expect(doc.filetype).toBe('latex')
-      doc.setFiletype('foo')
-      expect(doc.filetype).toBe('foo')
-    })
   })
 
   describe('attach()', () => {

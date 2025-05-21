@@ -6,19 +6,22 @@ import commands from '../commands'
 import Configurations from '../configuration'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
+import languages from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
-import { defaultValue, disposeAll } from '../util'
+import { defaultValue, disposeAll, getConditionValue } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { isVim } from '../util/constants'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { emptyObject } from '../util/is'
 import { fs, os, path } from '../util/node'
+import { hasOwnProperty, toObject } from '../util/object'
 import * as platform from '../util/platform'
-import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
-import { byteIndex } from '../util/string'
+import { CancellationTokenSource, Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
+import { byteIndex, toText } from '../util/string'
 import type { TextDocumentWillSaveEvent } from './files'
 import WorkspaceFolder from './workspaceFolder'
 const logger = createLogger('core-documents')
@@ -33,10 +36,13 @@ interface StateInfo {
 interface DocumentsConfig {
   maxFileSize: number
   willSaveHandlerTimeout: number
+  formatOnSaveTimeout: number
   useQuickfixForLocations: boolean
 }
 
 const cwd = normalizeFilePath(process.cwd())
+// Many FileType events may emitted on buffer reload
+const filetypeDelay = getConditionValue(50, 10)
 
 export default class Documents implements Disposable {
   private _cwd: string
@@ -48,6 +54,7 @@ export default class Documents implements Disposable {
   private nvim: Neovim
   private config: DocumentsConfig
   private disposables: Disposable[] = []
+  private _filetypeTimer: Map<number, NodeJS.Timeout> = new Map()
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   public buffers: Map<number, Document> = new Map()
   private resolves: ((doc: Document) => void)[] = []
@@ -132,6 +139,7 @@ export default class Documents implements Disposable {
       this.config = {
         maxFileSize: bytes.parse(config.maxFileSize),
         willSaveHandlerTimeout: defaultValue(config.willSaveHandlerTimeout, 500),
+        formatOnSaveTimeout: defaultValue(config.formatOnSaveTimeout, 500),
         useQuickfixForLocations: config.useQuickfixForLocations
       }
     }
@@ -417,7 +425,7 @@ export default class Documents implements Disposable {
     let { bufnr } = opts
     if (this.buffers.has(bufnr)) return this.buffers.get(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
-    let doc = new Document(buffer, this._env, this.nvim, opts)
+    let doc = new Document(buffer, this.nvim, this.convertFiletype(opts.filetype), opts)
     if (opts.size > this.config.maxFileSize) logger.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`)
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
@@ -449,6 +457,7 @@ export default class Documents implements Disposable {
   }
 
   private async onBufDetach(bufnr: number, checkReload = true): Promise<void> {
+    this.clearTimer(bufnr)
     this.detachBuffer(bufnr)
     if (checkReload) {
       let loaded = await this.nvim.call('bufloaded', [bufnr])
@@ -538,6 +547,29 @@ export default class Documents implements Disposable {
       if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr)
     }
     await this.tryCodeActionsOnSave(doc)
+    await this.tryFormatOnSave(doc)
+  }
+
+  public async tryFormatOnSave(document: Document): Promise<void> {
+    if (!this.shouldFormatOnSave(document)) return
+    let options = await this.getFormatOptions(document.uri)
+    let formatOnSaveTimeout = this.config.formatOnSaveTimeout
+    let timer: NodeJS.Timeout
+    let tokenSource = new CancellationTokenSource()
+    const tp = new Promise<undefined>(c => {
+      timer = setTimeout(() => {
+        logger.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri)
+        tokenSource.cancel()
+        c(undefined)
+      }, formatOnSaveTimeout)
+    })
+    const provideEdits = languages.provideDocumentFormattingEdits(document.textDocument, options, tokenSource.token)
+    let textEdits = await Promise.race([tp, provideEdits])
+    clearTimeout(timer)
+    if (isFalsyOrEmpty(textEdits)) return
+    await document.applyEdits(textEdits)
+    let extensionName = textEdits['__extensionName']
+    logger.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`)
   }
 
   public async tryCodeActionsOnSave(doc: Document): Promise<boolean> {
@@ -555,14 +587,35 @@ export default class Documents implements Disposable {
     return true
   }
 
-  private onFileTypeChange(filetype: string, bufnr: number): void {
+  public shouldFormatOnSave(document: Document): boolean {
+    if (!languages.hasFormatProvider(document)) {
+      logger.warn(`Format provider not found for ${document.uri}`)
+      return false
+    }
+    if (!document || document.getVar('disable_autoformat', 0)) {
+      logger.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`)
+      return false
+    }
+    let config = this.configurations.getConfiguration('coc.preferences', document)
+    let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
+    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(document.languageId)
+    let formatOnSave = config.get<boolean>('formatOnSave', false)
+    return formatOnSave
+  }
+
+  public onFileTypeChange(filetype: string, bufnr: number): void {
     let doc = this.getDocument(bufnr)
     if (!doc) return
-    let converted = doc.convertFiletype(filetype)
-    if (converted == doc.filetype) return
-    this._onDidCloseDocument.fire(doc.textDocument)
-    doc.setFiletype(filetype)
-    this._onDidOpenTextDocument.fire(doc.textDocument)
+    this.clearTimer(bufnr)
+    let timer = setTimeout(() => {
+      if (this.creating.has(bufnr) || !doc.attached) return
+      let converted = this.convertFiletype(filetype)
+      if (converted === doc.filetype) return
+      this._onDidCloseDocument.fire(doc.textDocument)
+      doc.setFiletype(filetype)
+      this._onDidOpenTextDocument.fire(doc.textDocument)
+    }, filetypeDelay)
+    this._filetypeTimer.set(bufnr, timer)
   }
 
   public async getQuickfixList(locations: LocationWithTarget[]): Promise<ReadonlyArray<QuickfixItem>> {
@@ -683,6 +736,28 @@ export default class Documents implements Disposable {
     if (u.scheme != 'file') return ''
     let lines = await this.nvim.call('readfile', [u.fsPath]) as string[]
     return lines.join('\n') + '\n'
+  }
+
+  private clearTimer(bufnr: number): void {
+    let timer = this._filetypeTimer.get(bufnr)
+    if (timer) clearTimeout(timer)
+  }
+
+  public convertFiletype(filetype: string): string {
+    switch (filetype) {
+      case 'javascript.jsx':
+        return 'javascriptreact'
+      case 'typescript.jsx':
+      case 'typescript.tsx':
+        return 'typescriptreact'
+      case 'tex':
+        // Vim filetype 'tex' means LaTeX, which has LSP language ID 'latex'
+        return 'latex'
+      default: {
+        let map = toObject(this._env.filetypeMap)
+        return toText(hasOwnProperty(map, filetype) ? map[filetype] : filetype)
+      }
+    }
   }
 
   public reset(): void {

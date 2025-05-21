@@ -1,4 +1,5 @@
 'use strict'
+import { Neovim } from '@chemzqm/neovim'
 import { MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
@@ -14,7 +15,6 @@ import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
 import { toDocumentation } from './util'
-import { Neovim } from '@chemzqm/neovim'
 
 interface SignatureConfig {
   wait: number
@@ -55,7 +55,7 @@ export default class Signature {
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     events.on('CursorMovedI', debounce(this.checkCurosr.bind(this), debounceTime), null, this.disposables)
-    events.on(['InsertLeave', 'BufEnter'], () => {
+    events.on('BufEnter', () => {
       this.tokenSource?.cancel()
     }, null, this.disposables)
     events.on('TextChangedI', () => {

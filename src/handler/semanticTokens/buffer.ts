@@ -133,7 +133,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async onShown(winid: number): Promise<void> {
-    if (!this.shouldHighlight) return
+    if (!this.enabled) return
     await this.doHighlight(false, debounceInterval, winid)
   }
 
@@ -145,9 +145,26 @@ export default class SemanticTokensBuffer implements SyncItem {
     await waitWithToken(debounceInterval, token)
     if (token.isCancellationRequested) return
     if (this.shouldRangeHighlight) {
-      await this.doRangeHighlight(winid, token)
+      await this.doRangeHighlight(winid, undefined, token)
     } else {
       await this.highlightRegions(winid, token)
+    }
+  }
+
+  /**
+   * Highlight the span without check regions
+   */
+  public async onCursorHold(winid: number, lnum: number): Promise<void> {
+    if (!this.enabled) return
+    this.cancel(true)
+    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
+    let token = rangeTokenSource.token
+    let height = workspace.env.lines
+    let span: [number, number] = [Math.max(0, lnum - height), Math.min(this.doc.lineCount, lnum + height)]
+    if (this.shouldRangeHighlight) {
+      await this.doRangeHighlight(winid, span, token)
+    } else if (this.highlights) {
+      await this.addHighlights(this.highlights, span, token)
     }
   }
 
@@ -305,7 +322,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       let rangeToken = rangeTokenSource.token
       for (const win of winids) {
-        await this.doRangeHighlight(win, rangeToken)
+        await this.doRangeHighlight(win, undefined, rangeToken)
         if (rangeToken.isCancellationRequested) break
       }
     }
@@ -378,10 +395,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Perform range highlight request and update.
    */
-  public async doRangeHighlight(winid: number, token: CancellationToken): Promise<void> {
+  public async doRangeHighlight(winid: number, span: [number, number] | undefined, token: CancellationToken): Promise<void> {
     const { version } = this.doc
     let res = await this.sendRequest(() => {
-      return this.requestRangeHighlights(winid, token)
+      return this.requestRangeHighlights(winid, span, token)
     }, token)
     if (res == null || token.isCancellationRequested) return
     const { highlights, start, end } = res
@@ -417,12 +434,14 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Request highlights for visible range of winid.
    */
-  public async requestRangeHighlights(winid: number, token: CancellationToken): Promise<RangeHighlights | null> {
+  public async requestRangeHighlights(winid: number, span: [number, number] | undefined, token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim, doc } = this
-    let region = await nvim.call('coc#window#visible_range', [winid]) as [number, number]
-    if (!region || token.isCancellationRequested) return null
-    // convert to 0 based
-    let span = this.regions.toUncoveredSpan([region[0] - 1, region[1] - 1], workspace.env.lines, doc.lineCount)
+    if (!span) {
+      let region = await nvim.call('coc#window#visible_range', [winid]) as [number, number]
+      if (!region || token.isCancellationRequested) return null
+      // convert to 0 based
+      span = this.regions.toUncoveredSpan([region[0] - 1, region[1] - 1], workspace.env.lines, doc.lineCount)
+    }
     if (!span) return null
     const startLine = span[0]
     const endLine = span[1]

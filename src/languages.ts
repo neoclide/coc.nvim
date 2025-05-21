@@ -40,7 +40,7 @@ import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import { toText } from './util/string'
 
-const eventDebounce = getConditionValue(100, 10)
+const eventDebounce = getConditionValue(100, 1)
 
 type withKey<K extends string> = {
   [k in K]?: Event<void>
@@ -270,14 +270,17 @@ class Languages {
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    let disposable: Disposable | undefined
     let timer = setTimeout(() => {
+      disposable = this.semanticTokensRangeManager.register(selector, provider, legend)
       this._onDidSemanticTokensRefresh.fire(selector)
     }, eventDebounce)
-    let disposable = this.semanticTokensRangeManager.register(selector, provider, legend)
     return Disposable.create(() => {
       clearTimeout(timer)
-      disposable.dispose()
-      this._onDidSemanticTokensRefresh.fire(selector)
+      if (disposable) {
+        disposable.dispose()
+        this._onDidSemanticTokensRefresh.fire(selector)
+      }
     })
   }
 
@@ -502,21 +505,19 @@ class Languages {
     let disposables: Disposable[] = []
     // Wait the server finish initialize
     let timer = setTimeout(() => {
+      disposables.push(manager.register(selector, provider, extra))
       emitter.fire(selector)
+      if (Is.func(provider[key])) {
+        disposables.push(provider[key](() => {
+          emitter.fire(selector)
+        }))
+      }
     }, eventDebounce)
-    disposables.push(Disposable.create(() => {
-      clearTimeout(timer)
-    }))
-    if (Is.func(provider[key])) {
-      disposables.push(provider[key](() => {
-        clearTimeout(timer)
-        emitter.fire(selector)
-      }))
-    }
-    disposables.push(manager.register(selector, provider, extra))
     return Disposable.create(() => {
+      clearTimeout(timer)
+      let registered = disposables.length > 0
       disposeAll(disposables)
-      emitter.fire(selector)
+      if (registered) emitter.fire(selector)
     })
   }
 

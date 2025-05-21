@@ -111,7 +111,7 @@ export class Helper extends EventEmitter {
       })
     })
     let address = await this.listenOnVim(server)
-    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim9', ['--clean', '--not-a-term', '-u', vimrc], {
+    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
       shell: true,
       cwd: __dirname,
@@ -323,16 +323,17 @@ export class Helper extends EventEmitter {
 
   public async waitFor<T>(method: string, args: any[], value: T): Promise<void> {
     let find = false
+    let res
     for (let i = 0; i < 100; i++) {
       await this.wait(20)
-      let res = await this.nvim.call(method, args) as T
+      res = await this.nvim.call(method, args) as T
       if (equals(res, value) || (value instanceof RegExp && value.test(res.toString()))) {
         find = true
         break
       }
     }
     if (!find) {
-      throw new Error(`waitFor ${value} timeout`)
+      throw new Error(`waitFor ${value} timeout, current: ${res}`)
     }
   }
 

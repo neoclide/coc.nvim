@@ -62,12 +62,11 @@ describe('symbols outline', () => {
 }`
 
   async function createBuffer(code = defaultCode): Promise<Buffer> {
-    await helper.edit()
-    let buf = await nvim.buffer
-    await nvim.command('setf javascript')
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    doc.setFiletype('javascript')
     await buf.setOption('modifiable', true)
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
-    let doc = await workspace.document
     await doc.synchronize()
     return buf
   }
@@ -458,7 +457,7 @@ fun1() {}
         }
       }))
       let doc = await helper.createDocument('t.vim')
-      await nvim.command('setf vim')
+      doc.setFiletype('vim')
       let buf = await nvim.buffer
       await buf.setLines(['let'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
