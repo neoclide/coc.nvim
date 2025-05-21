@@ -104,7 +104,7 @@ export class Helper extends EventEmitter {
       })
     })
     let address = await this.listenOnVim(server)
-    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim9', ['--clean', '--not-a-term', '-u', vimrc], {
+    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
       shell: true,
       cwd: __dirname,

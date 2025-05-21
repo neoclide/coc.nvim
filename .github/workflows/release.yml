@@ -41,6 +41,9 @@ jobs:
           version: stable
 
       - name: Install Dependencies
+        env:
+          VIM_COMMAND: ${{ steps.vim.outputs.executable }}
+          NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
           npm i -g bytes
           npm ci
