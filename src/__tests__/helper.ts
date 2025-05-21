@@ -84,7 +84,7 @@ export class Helper extends EventEmitter {
     })
     this.nvim.on('notification', async (method, args) => {
       if (method == 'Log') {
-        console.log(args)
+        // console.log(args)
       }
     })
     if (init) await plugin.init('')
@@ -103,8 +103,8 @@ export class Helper extends EventEmitter {
           if (this.reportError) console.error('Error from vim: ', err)
         })
         this.nvim._transport.on('notification', (...args) => {
-          if (args[0] === 'vim_buf_change_event') {
-            // console.log(JSON.stringify(args, null, 2))
+          if (args[0] == 'Log') {
+            // console.log(args[1])
           }
         })
         resolve()

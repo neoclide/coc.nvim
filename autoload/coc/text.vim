@@ -160,7 +160,7 @@ def SimpleStringDiff(oldStr: string, newStr: string, charIdx: number = -1): dict
   endwhile
   # Reduce suffixLen
   if suffixLen == new_length - charIdx
-    const max = old_length - prefixLen - suffixLen
+    const max = min([old_length, new_length]) - prefixLen - suffixLen
     var i = 0
     while i < max
       if strcharpart(oldStr, old_length - suffixLen - 1, 1) !=
@@ -172,39 +172,68 @@ def SimpleStringDiff(oldStr: string, newStr: string, charIdx: number = -1): dict
     endwhile
   endif
   const endIndex = old_length - suffixLen
-  const oldText = old_length == suffixLen ? '' : Slice(oldStr, prefixLen, old_length - suffixLen)
   echo suffixLen
   return {
     oldStart: prefixLen,
     oldEnd: endIndex,
-    oldText: oldText,
     newText: Slice(newStr, prefixLen, new_length - suffixLen),
   }
 enddef
 
-# 0 based start_col and end_col
-export def SimpleApplyDiff(text: string, start_col: number, end_col: number, insert: string): string
-  const prefix = start_col > 0 ? strpart(text, 0, start_col) : ''
-  const suffix = end_col < len(text) ? strpart(text, end_col) : ''
-  return prefix .. insert .. suffix
+# Search for new start position of diff in new string
+export def SearchChangePosition(newStr: string, oldStr: string, diff: dict<any>): number
+  var result = -1
+  const delta = diff.oldEnd - diff.oldStart
+  const oldText = Slice(oldStr, diff.oldStart, diff.oldEnd)
+  def CheckPosition(idx: number): bool
+    if delta == 0 || Slice(newStr, idx, idx + delta) ==# oldText
+      result = idx
+      return true
+    endif
+    return false
+  enddef
+  if Slice(oldStr, 0, diff.oldStart) ==# Slice(newStr, 0, diff.oldStart) && CheckPosition(diff.oldStart)
+    return result
+  endif
+  const diffs = LcsDiff(oldStr, newStr)
+  # oldStr index
+  var used = 0
+  # newStr index
+  var index = 0
+  # Until used reached diff.oldStart
+  var i = 0
+  for d in diffs
+    if d.type ==# '-'
+      used += 1
+    elseif d.type ==# '+'
+      index += 1
+    else
+      used += 1
+      index += 1
+    endif
+    if used == diff.oldStart && CheckPosition(index)
+      break
+    endif
+  endfor
+  return result
+enddef
+
+# 0 based start index and end index
+export def SimpleApplyDiff(text: string, startIdx: number, endIdx: number, insert: string): string
+  return Slice(text, 0, startIdx) .. insert .. Slice(text, endIdx)
 enddef
 
 # Apply change from original to current for newText
 export def DiffApply(original: string, current: string, newText: string, colIdx: number): any
+  if original ==# current
+    return newText
+  endif
   const charIdx = colIdx == -1 ? -1 : Char_index(current, colIdx)
   const diff = SimpleStringDiff(original, current, charIdx)
   const delta = diff.oldEnd - diff.oldStart
-
-  var newIdx = FindCorrespondingPosition(original, newText, diff.oldStart)
-  if newIdx == -1
+  const idx = SearchChangePosition(newText, original, diff)
+  if idx == -1
     return null
   endif
-  if delta == 0
-    return SimpleApplyDiff(newText, newIdx, newIdx, diff.newText)
-  endif
-  # Should remove same text
-  if newText[newIdx : newIdx + delta] !=# diff.oldText
-    return null
-  endif
-  return SimpleApplyDiff(newText, newIdx, newIdx + delta, diff.newText)
+  return SimpleApplyDiff(newText, idx, idx + delta, diff.newText)
 enddef

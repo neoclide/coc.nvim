@@ -282,8 +282,6 @@ export def Match_ranges(id: number, buf: number, ranges: list<any>, hlGroup: str
 enddef
 
 # key could be string or number, use -1 for all highlights.
-# type HighlightItemResult = [string, number, number, number, number?]
-# type HighlightItemResult = list<any>
 export def Get_highlights(bufnr: number, key: any, start: number, end: number): list<any>
   if !bufloaded(bufnr)
     return []
@@ -293,7 +291,6 @@ export def Get_highlights(bufnr: number, key: any, start: number, end: number): 
   if empty(types)
     return []
   endif
-
   final res: list<any> = []
   const endLnum: number = end == -1 ? -1 : end + 1
   for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
@@ -303,7 +300,8 @@ export def Get_highlights(bufnr: number, key: any, start: number, end: number): 
     endif
     const startCol: number = prop.col - 1
     const endCol: number = startCol + prop.length
-    add(res, [ substitute(prop.type, '_\d\+$', '', ''), prop.lnum - 1, startCol, endCol, prop.id ])
+    const hl = prop_type_get(prop.type)->get('highlight', '')
+    add(res, [ hl, prop.lnum - 1, startCol, endCol, prop.id ])
   endfor
   return res
 enddef
@@ -419,8 +417,9 @@ export def Set_virtual_texts(bufnr: number, ns: number, items: list<any>, indent
 enddef
 
 # Apply many text changes while preserve text props can be slow,
-def Apply_changes(bufnr: number, changes: list<any>, total: number): void
+def Apply_changes(bufnr: number, changes: list<any>): void
   const start_time = reltime()
+  const total = len(changes)
   var timeout: bool = false
   var i = total - 1
   while i >= 0
@@ -473,7 +472,6 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
               replace[idx] = repalceStr
             endif
             change_list = []
-            # coc#rpc#notify('Log', ['new text', repalceStr])
           endif
         endfor
       else
@@ -488,8 +486,8 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
         endif
       endif
     endif
-    if !empty(change_list)
-      Apply_changes(bufnr, change_list, len(change_list))
+    if !empty(change_list) && len(change_list) <= maxEditCount
+      Apply_changes(bufnr, change_list)
     else
       coc#api#SetBufferLines(bufnr, start_row + 1, end_row, replace)
     endif
