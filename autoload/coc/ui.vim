@@ -1,6 +1,7 @@
 let s:is_vim = !has('nvim')
 let s:is_win = has('win32') || has('win64')
 let s:is_mac = has('mac')
+let s:root = expand('<sfile>:h:h:h')
 let s:sign_api = exists('*sign_getplaced') && exists('*sign_place')
 let s:sign_groups = []
 let s:outline_preview_bufnr = 0
@@ -134,6 +135,19 @@ function! coc#ui#run_terminal(opts, cb)
         \ 'Callback': {status, bufnr, content -> a:cb(v:null, {'success': status == 0 ? v:true : v:false, 'bufnr': bufnr, 'content': content})}
         \}
   call coc#ui#open_terminal(opts)
+endfunction
+
+function! coc#ui#fix() abort
+  let file = s:root .. '/esbuild.js'
+  if filereadable(file)
+    let opts = {
+          \ 'cmd': 'npm ci',
+          \ 'cwd': s:root,
+          \ 'keepfocus': 1,
+          \ 'Callback': {_ -> execute('CocRestart')}
+          \}
+    call coc#ui#open_terminal(opts)
+  endif
 endfunction
 
 function! coc#ui#echo_hover(msg)

@@ -21,7 +21,7 @@ local n10 = vim.fn.has('nvim-0.10') == 1 and true or false
 local maxTimePerBatchMs = 16
 
 local function getCurrentTime()
-    return os.clock() * 1000
+  return os.clock() * 1000
 end
 
 local function is_null(value)
