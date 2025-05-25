@@ -21,7 +21,7 @@ local n10 = vim.fn.has('nvim-0.10') == 1 and true or false
 local maxTimePerBatchMs = 16
 
 local function getCurrentTime()
-    return os.clock() * 1000
+  return os.clock() * 1000
 end
 
 local function is_null(value)
@@ -172,20 +172,16 @@ function M.get_highlights(bufnr, key, start_line, end_line)
     local endCol = details.end_col
     if line < max then
       local delta = details.end_row - line
-      if delta == 0 or (delta == 1 and endCol == 0) then
-        if delta == 0 and startCol == endCol then
-          api.nvim_buf_del_extmark(bufnr, ns, id)
-        else
-          if delta == 1 then
-            local text = vim.fn.getbufline(bufnr, line + 1)[1] or ''
-            endCol = #text
-          end
-          if endCol > startCol then
-            table.insert(res, {details.hl_group, line, startCol, endCol, id})
-          else
-            api.nvim_buf_del_extmark(bufnr, ns, id)
-          end
-        end
+      if delta == 1 and endCol == 0 then
+        local text = vim.fn.getbufline(bufnr, line + 1)[1] or ''
+        endCol = #text
+      elseif delta > 0 then
+        endCol = -1
+      end
+      if startCol >= endCol then
+        api.nvim_buf_del_extmark(bufnr, ns, id)
+      else
+        table.insert(res, {details.hl_group, line, startCol, endCol, id})
       end
     end
   end

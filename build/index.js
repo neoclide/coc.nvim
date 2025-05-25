@@ -81236,7 +81236,8 @@ var init_workspace = __esm({
       }
       checkVersion(version2) {
         if (this._env.apiversion != version2) {
-          this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'npm ci' after pull source code.`);
+          this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, building coc.nvim by 'npm ci'.`);
+          this.nvim.call("coc#ui#fix", [], true);
         }
       }
       getDisplayWidth(text, cache = false) {
@@ -90996,7 +90997,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-9bb670fef 2025-05-21 00:28:33 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-cd4a6b6 2025-05-21 20:12:09 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
