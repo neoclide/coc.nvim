@@ -833,7 +833,7 @@ export class TextmateSnippet extends Marker {
         }
       }
       if (!c) {
-        // recuisive dependencies detected
+        // recursive dependencies detected
         break
       }
       filtered = filtered.filter(o => !usedIndexes.includes(o.index))

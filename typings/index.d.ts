@@ -7894,7 +7894,7 @@ declare module 'coc.nvim' {
     priority?: number
     sourceType?: SourceType
     /**
-     * Should only be used when completion is triggered, requirs `triggerPatterns` or `triggerCharacters` defined.
+     * Should only be used when completion is triggered, requires `triggerPatterns` or `triggerCharacters` defined.
      */
     triggerOnly?: boolean
     triggerCharacters?: string[]

@@ -173,7 +173,7 @@ export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
 }
 
 /**
- * Filter unnessary edits and fix edits.
+ * Filter unnecessary edits and fix edits.
  */
 export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit[]): TextEdit[] {
   let res: TextEdit[] = []
