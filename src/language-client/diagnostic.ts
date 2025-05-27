@@ -142,7 +142,7 @@ namespace DocumentOrUri {
   }
 }
 
-const workdpacePullDebounce = getConditionValue(3000, 10)
+const workspacePullDebounce = getConditionValue(3000, 10)
 
 export class DocumentPullStateTracker {
   private readonly documentPullStates: Map<string, DocumentPullState>
@@ -368,7 +368,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.pullWorkspaceAsync().then(() => {
       this.workspaceTimeout = RAL().timer.setTimeout(() => {
         this.pullWorkspace()
-      }, workdpacePullDebounce)
+      }, workspacePullDebounce)
     }, error => {
       if (!(error instanceof LSPCancellationError) && !DiagnosticServerCancellationData.is(error.data)) {
         this.client.error(`Workspace diagnostic pull failed.`, error)
@@ -377,7 +377,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       if (this.workspaceErrorCounter <= 5) {
         this.workspaceTimeout = RAL().timer.setTimeout(() => {
           this.pullWorkspace()
-        }, workdpacePullDebounce)
+        }, workspacePullDebounce)
       }
     })
   }

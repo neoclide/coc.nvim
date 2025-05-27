@@ -47,7 +47,7 @@ export interface CursorDelta {
 
 export class CocSnippet {
   // placeholders and snippets from top to bottom
-  private _markerSeuqence: (Placeholder | TextmateSnippet)[] = []
+  private _markerSequence: (Placeholder | TextmateSnippet)[] = []
   private _placeholders: CocSnippetPlaceholder[] = []
   // from upper to lower
   private _snippets: CocSnippetInfo[] = []
@@ -147,9 +147,9 @@ export class CocSnippet {
     const isInsert = emptyRange(range)
     let marker: TextmateSnippet | Placeholder
     let markerRange: Range
-    const { _snippets, _placeholders, _markerSeuqence } = this
-    const seq = _markerSeuqence.filter(o => o !== current)
-    if (current && _markerSeuqence.includes(current)) seq.push(current)
+    const { _snippets, _placeholders, _markerSequence } = this
+    const seq = _markerSequence.filter(o => o !== current)
+    if (current && _markerSequence.includes(current)) seq.push(current)
     const list = seq.map(m => {
       return m instanceof TextmateSnippet ? _snippets.find(o => o.marker === m) : _placeholders.find(o => o.marker === m)
     })
@@ -441,15 +441,15 @@ export class CocSnippet {
     const document = new LinesTextDocument('/', '', 0, snippetStr.split(/\n/), 0, false)
     const placeholders: CocSnippetPlaceholder[] = []
     const snippets: CocSnippetInfo[] = []
-    const markerSeuqence = []
+    const markerSequence = []
     const { start } = this
     snippets.push({ range: Range.create(start, getEnd(start, snippetStr)), marker: snippet, value: snippetStr })
-    markerSeuqence.push(snippet)
+    markerSequence.push(snippet)
     // all placeholders, including nested placeholder from snippet
     let offset = 0
     snippet.walk(marker => {
       if (marker instanceof Placeholder && marker.transform == null) {
-        markerSeuqence.push(marker)
+        markerSequence.push(marker)
         const position = document.positionAt(offset)
         const value = marker.toString()
         placeholders.push({
@@ -460,7 +460,7 @@ export class CocSnippet {
           primary: marker.primary === true
         })
       } else if (marker instanceof TextmateSnippet) {
-        markerSeuqence.push(marker)
+        markerSequence.push(marker)
         const position = document.positionAt(offset)
         const value = marker.toString()
         snippets.push({
@@ -475,7 +475,7 @@ export class CocSnippet {
     this._snippets = snippets
     this._text = snippetStr
     this._placeholders = placeholders
-    this._markerSeuqence = markerSeuqence
+    this._markerSequence = markerSequence
   }
 }
 
