@@ -257,7 +257,7 @@ export default class Document {
   public get cursor(): Position | undefined {
     let { cursor } = events
     if (cursor.bufnr !== this.bufnr) return undefined
-    let content = this.lines[cursor.lnum - 1] ?? ''
+    let content = toText(this.lines[cursor.lnum - 1])
     return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
   }
 

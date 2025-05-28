@@ -575,6 +575,38 @@ describe('Document', () => {
       await doc.patchChange()
       await doc.applyEdits(edits)
     })
+
+    it('should consider latest change', async () => {
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      {
+        let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), 'bar')]
+        nvim.call('setline', [1, 'foo'], true)
+        await doc.applyEdits(edits)
+        let line = await nvim.line
+        expect(line).toBe('barfoo')
+      }
+      {
+        await buf.setLines(['  foo'])
+        await doc.patchChange()
+        nvim.call('setline', [1, '  fooa'], true)
+        nvim.call('cursor', [1, 7], true)
+        let edits: TextEdit[] = [TextEdit.del(Range.create(0, 0, 0, 1))]
+        await doc.applyEdits(edits)
+        let line = await nvim.line
+        expect(line).toBe(' fooa')
+      }
+      {
+        await buf.setLines(['foo'])
+        await nvim.call('cursor', [1, 3])
+        await doc.synchronize()
+        nvim.call('setline', [1, 'fo'], true)
+        let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), ' ')]
+        await doc.applyEdits(edits)
+        let line = await nvim.line
+        expect(line).toBe(' fo')
+      }
+    })
   })
 
   describe('changeLines()', () => {

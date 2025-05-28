@@ -42,6 +42,8 @@ describe('funcs', () => {
         }
       })
       expect(res).toEqual(['你好世界'])
+      res = Array.from(parseSegments('你好世界', ''))
+      expect(res).toBeDefined()
     }
   })
 
