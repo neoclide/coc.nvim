@@ -1395,7 +1395,7 @@ describe('Client integration', () => {
   })
 
   test('Inline Completions', async () => {
-    const provider = client.getFeature(InlineCompletionRequest.method)?.getProvider(document)
+    const provider = client.getFeature(InlineCompletionRequest.method).getProvider(document)
     isDefined(provider)
     const results = (await provider.provideInlineCompletionItems(document, position, { triggerKind: 1, selectedCompletionInfo: { range, text: 'text' } }, tokenSource.token)) as InlineCompletionItem[]
 
