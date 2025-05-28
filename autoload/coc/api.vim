@@ -1375,7 +1375,7 @@ export function Notify(method, args) abort
   return v:null
 endfunction
 
-# Could be called by other plguin
+# Could be called by other plugin
 const call_function =<< trim END
   function! coc#api#call(method, args) abort
     return coc#api#Call(a:method, a:args)

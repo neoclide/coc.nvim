@@ -140,7 +140,7 @@ export function getTextEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyA
   if (text.length === 0 && used === ol - e) return undefined
   let original = oldLines.slice(used, ol - e).join('\n') + '\n'
   let edit = TextEdit.replace(Range.create(used, 0, ol - e, 0), text)
-  return reduceReplceEdit(edit, original, cursor)
+  return reduceReplaceEdit(edit, original, cursor)
 }
 
 export function getCommonSuffixLen(a: string, b: string, max: number): number {
@@ -171,7 +171,7 @@ export function getCommonPrefixLen(a: string, b: string, max: number): number {
   return n
 }
 
-export function reduceReplceEdit(edit: TextEdit, original: string, cursor?: Position): TextEdit {
+export function reduceReplaceEdit(edit: TextEdit, original: string, cursor?: Position): TextEdit {
   let { newText, range } = edit
   if (emptyRange(range) || newText === '') return edit
   // let isAdd = newText.length > original.length

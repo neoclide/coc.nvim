@@ -1640,15 +1640,15 @@ describe('diff', () => {
     })
 
     it('should reduceTextEdit', () => {
-      let res = diff.reduceReplceEdit(TextEdit.replace(Range.create(0, 0, 3, 1), 'abd'), 'a\nb\nc\nd', Position.create(0, 1))
+      let res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(0, 0, 3, 1), 'abd'), 'a\nb\nc\nd', Position.create(0, 1))
       expect(res).toEqual(TextEdit.replace(Range.create(0, 1, 3, 0), 'b'))
-      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 9), ' '.repeat(5)), ' '.repeat(8), Position.create(3, 3))
+      res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 9), ' '.repeat(5)), ' '.repeat(8), Position.create(3, 3))
       expect(res).toEqual(TextEdit.replace(Range.create(3, 3, 3, 6), ''))
-      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), ' '.repeat(5)), ' '.repeat(3), Position.create(3, 3))
+      res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), ' '.repeat(5)), ' '.repeat(3), Position.create(3, 3))
       expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 1), '  '))
-      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)), ' '.repeat(3), Position.create(3, 3))
+      res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)), ' '.repeat(3), Position.create(3, 3))
       expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)))
-      res = diff.reduceReplceEdit(TextEdit.replace(Range.create(1, 0, 2, 0), 'd\n'), 'b\n')
+      res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(1, 0, 2, 0), 'd\n'), 'b\n')
       expect(res).toEqual(TextEdit.replace(Range.create(1, 0, 1, 1), 'd'))
     })
 

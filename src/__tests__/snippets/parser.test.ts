@@ -1148,7 +1148,7 @@ describe('TextmateSnippet', () => {
     assert.equal(snippet.offset(snippet.children[0]), 0)
     assert.equal(snippet.offset((<Variable>snippet.children[0]).children[0]), 0)
 
-    // forgein marker
+    // foreign marker
     assert.equal(snippet.offset(new Text('foo')), -1)
   })
 
