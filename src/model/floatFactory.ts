@@ -144,6 +144,7 @@ export default class FloatFactoryImpl implements Disposable {
       close: opts.close ? 1 : 0,
       rounded: opts.rounded ? 1 : 0,
       modes: opts.modes || ['n', 'i', 'ic', 's'],
+      relative: opts.position === 'fixed' ? 'editor' : 'cursor'
     }
     if (!isVim) {
       if (typeof opts.winblend === 'number') config.winblend = opts.winblend
@@ -161,7 +162,6 @@ export default class FloatFactoryImpl implements Disposable {
     if (opts.highlight) config.highlight = opts.highlight
     if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight
     if (opts.cursorline) config.cursorline = 1
-    if (opts.position) config.relative = opts.position === "fixed" ? config.relative = "editor" : "cursor"
     for (let key of ['top', 'left', 'bottom', 'right']) {
       if (typeof opts[key] === 'number' && opts[key] >= 0) {
         config[key] = opts[key]

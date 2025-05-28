@@ -265,47 +265,17 @@ function! s:system(cmd)
   return output
 endfunction
 
-function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor, col) abort
-  if !bufloaded(a:bufnr)
-    return
-  endif
-  let delta = 0
-  if !empty(a:col)
-    let delta = col('.') - a:col
-  endif
-  if getbufvar(a:bufnr, 'changedtick') > a:changedtick && bufnr('%') == a:bufnr
-    " try apply current line change
-    let lnum = line('.')
-    " change for current line
-    if a:end - a:start == 1 && a:end == lnum && len(a:replacement) == 1
-      let idx = a:start - lnum + 1
-      let previous = get(a:original, idx, 0)
-      if type(previous) == 1
-        let content = getline('.')
-        if previous !=# content
-          let diff = coc#string#diff(content, previous, col('.'))
-          let changed = get(a:replacement, idx, 0)
-          if type(changed) == 1 && strcharpart(previous, 0, diff['end']) ==# strcharpart(changed, 0, diff['end'])
-            let applied = coc#string#apply(changed, diff)
-            let replacement = copy(a:replacement)
-            let replacement[idx] = applied
-            call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, replacement)
-            return
-          endif
-        endif
-      endif
+function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor, col, linecount) abort
+  try
+    if s:is_vim
+      call coc#vim9#Set_lines(a:bufnr, a:changedtick, a:original, a:replacement, a:start, a:end, a:changes, a:cursor, a:col, a:linecount)
+    else
+      call v:lua.require('coc.text').set_lines(a:bufnr, a:changedtick, a:original, a:replacement, a:start, a:end, a:changes, a:cursor, a:col, a:linecount)
     endif
-  endif
-  " Make lines change event fire only once
-  if exists('*nvim_buf_set_text') && len(a:changes) == 1
-    let item = a:changes[0]
-    call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
-  else
-    call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
-  endif
-  if !empty(a:cursor) && a:bufnr == bufnr('%')
-    call cursor(a:cursor[0], a:cursor[1] + delta)
-  endif
+  catch /.*/
+    " Need try catch here on vim9
+    call coc#compat#send_error('coc#ui#set_lines', s:is_vim)
+  endtry
 endfunction
 
 function! coc#ui#change_lines(bufnr, list) abort

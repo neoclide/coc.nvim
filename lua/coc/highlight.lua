@@ -1,3 +1,4 @@
+local util = require('coc.util')
 local api = vim.api
 
 local M = {}
@@ -19,10 +20,6 @@ local maxCount = vim.g.coc_highlight_maximum_count or 500
 local n10 = vim.fn.has('nvim-0.10') == 1 and true or false
 -- 16 ms
 local maxTimePerBatchMs = 16
-
-local function getCurrentTime()
-  return os.clock() * 1000
-end
 
 local function is_null(value)
   return value == nil or value == vim.NIL
@@ -128,13 +125,13 @@ local function addHighlightTimer(bufnr, ns, highlights, priority, changedtick)
   end
   local total = #highlights
   local i = 1
-  local start = getCurrentTime()
+  local start = util.getCurrentTime()
   local next = {}
   while i <= total do
     local end_idx = math.min(i + maxCount - 1, total)
     local hls = vim.list_slice(highlights, i, end_idx)
     addHighlights(bufnr, ns, hls, priority)
-    local duration = getCurrentTime() - start
+    local duration = util.getCurrentTime() - start
     if duration > maxTimePerBatchMs and end_idx < total then
       next = vim.list_slice(highlights, end_idx + 1, total)
       break

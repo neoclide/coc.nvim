@@ -474,6 +474,40 @@ describe('textedit', () => {
     expect(res[0].range).toEqual(Range.create(0, 0, 0, 3))
   })
 
+  it('should get range text', async () => {
+    {
+      let text = textedits.getRangeText([''], Range.create(0, 0, 0, 0))
+      expect(text).toBe('')
+    }
+    {
+      let lines = ['foo', 'aabb', 'bar']
+      let text = textedits.getRangeText(lines, Range.create(0, 1, 2, 1))
+      expect(text).toBe('oo\naabb\nb')
+    }
+  })
+
+  it('should reduceTextEdit', () => {
+    let e: TextEdit
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
+    expect(textedits.reduceTextEdit(e, '')).toEqual(e)
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+    expect(textedits.reduceTextEdit(e, 'bar')).toEqual(
+      TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
+    )
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+    expect(textedits.reduceTextEdit(e, 'foo')).toEqual(
+      TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
+    )
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
+    expect(textedits.reduceTextEdit(e, 'daf')).toEqual(
+      TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
+    )
+    e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
+    expect(textedits.reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
+      TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
+    )
+  })
+
   it('should merge textedits #1', () => {
     let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
     let lines = ['ab']
@@ -493,6 +527,16 @@ describe('textedit', () => {
     let lines = ['a', 'b', 'c']
     let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
     expect(res).toEqual(toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
+  })
+
+  it('should convert to text changes', () => {
+    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 0), 'abc'))).toBe(false)
+    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 1), 'abc\n'))).toBe(false)
+    expect(textedits.toTextChanges(['foo'], [])).toEqual([])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(3, 1), '')])).toEqual([])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 1), '')])).toEqual([])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 0), 'bar\n')])).toEqual([[['', 'bar'], 0, 3, 0, 3]])
+    expect(textedits.toTextChanges(['foo'], [TextEdit.replace(Range.create(0, 0, 1, 0), 'bar\n')])).toEqual([[['bar'], 0, 0, 0, 3]])
   })
 })
 

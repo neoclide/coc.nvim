@@ -15,14 +15,14 @@ import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
-import { filterSortEdits } from '../util/textedit'
+import { filterSortEdits, reduceTextEdit } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
 import { getPlaceholderId, Placeholder, Text, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { SnippetString } from './string'
-import { reduceTextEdit, toSnippetString, UltiSnippetContext, wordsSource } from './util'
+import { toSnippetString, UltiSnippetContext, wordsSource } from './util'
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'

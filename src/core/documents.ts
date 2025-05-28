@@ -123,6 +123,13 @@ export default class Documents implements Disposable {
     events.on('BufEnter', (bufnr: number) => {
       void this.createDocument(bufnr)
     }, null, this.disposables)
+    events.on('TextChanged', this.onTextChange, this, this.disposables)
+    events.on('TextChangedI', this.onTextChange, this, this.disposables)
+  }
+
+  private onTextChange(bufnr: number): void {
+    let doc = this.getDocument(bufnr)
+    if (doc) doc.onTextChange()
   }
 
   private getConfiguration(e?: IConfigurationChangeEvent): void {

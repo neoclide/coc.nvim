@@ -2,14 +2,14 @@ import { Neovim } from '@chemzqm/neovim'
 import * as assert from 'assert'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
-import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import { addPythonTryCatch, executePythonCode, generateContextId, getInitialPythonCode, getVariablesCode, hasPython } from '../../snippets/eval'
 import { CodeBlock, Placeholder, SnippetParser, Text, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet, getNextPlaceholder, getUltiSnipActionCodes } from '../../snippets/snippet'
 import { SnippetString } from '../../snippets/string'
-import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, reduceTextEdit, shouldFormat, toSnippetString, UltiSnippetContext } from '../../snippets/util'
+import { convertRegex, getTextAfter, getTextBefore, normalizeSnippetString, shouldFormat, toSnippetString, UltiSnippetContext } from '../../snippets/util'
 import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
@@ -915,28 +915,6 @@ describe('CocSnippet', () => {
         start: undefined,
         single: '#'
       })
-    })
-
-    it('should reduce TextEdit', () => {
-      let e: TextEdit
-      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
-      expect(reduceTextEdit(e, '')).toEqual(e)
-      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-      expect(reduceTextEdit(e, 'bar')).toEqual(
-        TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
-      )
-      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-      expect(reduceTextEdit(e, 'foo')).toEqual(
-        TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
-      )
-      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
-      expect(reduceTextEdit(e, 'daf')).toEqual(
-        TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
-      )
-      e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
-      expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
-        TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
-      )
     })
 
     it('should set request variable', async () => {

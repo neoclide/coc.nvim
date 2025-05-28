@@ -5,7 +5,7 @@ import os from 'os'
 import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
-import { Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
@@ -531,6 +531,9 @@ describe('Buffer API', () => {
     await buffer.setLines([], { start: 1, end: 2, strictIndexing: true })
     lines = await buffer.lines
     expect(lines).toEqual(['1', '4'])
+    await buffer.setLines(['2', '3'], { start: 1, end: 2, strictIndexing: true })
+    lines = await buffer.lines
+    expect(lines).toEqual(['1', '2', '3'])
     await nvim.command('bd!')
   })
 
@@ -911,7 +914,6 @@ describe('document', () => {
     await nvim.setLine('foo')
     await shouldEqual(doc)
     await nvim.command('stopinsert')
-    await nvim.command('normal! dd')
   })
 
   it('should synchronize after changeLines', async () => {
@@ -927,13 +929,152 @@ describe('document', () => {
     await shouldEqual(doc)
   })
 
+  it('should add and remove lines', async () => {
+    let doc = await helper.workspace.document
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\n')])
+    await shouldEqual(doc)
+    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 3, 0), '')])
+    await shouldEqual(doc)
+    await nvim.command('bd!')
+  })
+
   it('should synchronize hidden buffer after replace lines', async () => {
     let doc = await helper.createDocument()
     await doc.buffer.setLines(['a', 'b', 'c', 'd'])
     await nvim.command('enew')
     await shouldEqual(doc)
-    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 4, 0), 'c\nb\na')])
+    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 4, 0), 'c\nb\na\n')])
     await doc.patchChange()
     await shouldEqual(doc)
+    await nvim.command('bd!')
+  })
+
+  async function assertBuffer(lines: string[], hls: [string, number, number, number][]): Promise<void> {
+    let buf = await nvim.buffer
+    let curr = await buf.lines
+    expect(curr).toEqual(lines)
+    let highlights = await buf.getHighlights('test')
+    let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
+    expect(arr).toEqual(hls)
+  }
+
+  it('should apply single line edit', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines(['foo foo'])
+    await doc.patchChange()
+    let ranges = [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)]
+    doc.buffer.highlightRanges('test', 'MoreMsg', ranges)
+    let edit = TextEdit.replace(Range.create(0, 3, 0, 4), 'xy')
+    await doc.applyEdits([edit])
+    await assertBuffer(['fooxyfoo'], [
+      ['MoreMsg', 0, 0, 3],
+      ['MoreMsg', 0, 5, 8],
+    ])
+    edit = TextEdit.replace(Range.create(0, 1, 0, 7), '')
+    await doc.applyEdits([edit])
+    await assertBuffer(['fo'], [])
+    await doc.buffer.append(['bar'])
+    await doc.patchChange()
+    ranges = [Range.create(0, 0, 0, 1), Range.create(1, 2, 1, 3)]
+    doc.buffer.highlightRanges('test', 'MoreMsg', ranges)
+    edit = TextEdit.replace(Range.create(0, 1, 1, 2), 'x')
+    await doc.applyEdits([edit])
+    await doc.patchChange()
+    await assertBuffer(['fxr'], [
+      ['MoreMsg', 0, 0, 1],
+      ['MoreMsg', 0, 2, 3],
+    ])
+  })
+
+  it('should apply multi lines edit', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines(['foo foo'])
+    await doc.patchChange()
+    let ranges = [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)]
+    doc.buffer.highlightRanges('test', 'MoreMsg', ranges)
+    let edit = TextEdit.replace(Range.create(0, 3, 0, 4), 'a\nb\nc')
+    await doc.applyEdits([edit])
+    await assertBuffer(['fooa', 'b', 'cfoo'], [
+      ['MoreMsg', 0, 0, 3],
+      ['MoreMsg', 2, 1, 4],
+    ])
+    edit = TextEdit.replace(Range.create(0, 3, 2, 1), '\n')
+    await doc.applyEdits([edit])
+    await assertBuffer(['foo', 'foo'], [
+      ['MoreMsg', 0, 0, 3],
+      ['MoreMsg', 1, 0, 3],
+    ])
+  })
+
+  it('should apply for lines replace edit', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines(['foo', 'bar'])
+    await doc.patchChange()
+    let edit = TextEdit.replace(Range.create(0, 0, 1, 0), 'a\nb\n')
+    await doc.applyEdits([edit, TextEdit.insert(Position.create(1, 0), 'x')])
+    let lines = await doc.buffer.lines
+    expect(lines).toEqual(['a', 'b', 'xbar'])
+    edit = TextEdit.replace(Range.create(0, 0, 2, 0), '')
+    await doc.applyEdits([edit, TextEdit.replace(Range.create(2, 0, 2, 1), '')])
+    lines = await doc.buffer.lines
+    expect(lines).toEqual(['bar'])
+  })
+
+  it('should apply multiple edits', async () => {
+    let doc = await helper.createDocument()
+    let arr = new Array(100)
+    arr.fill('foo bar a b c d e')
+    let ranges: Range[] = []
+    let edits: TextEdit[] = []
+    for (let i = 0; i < arr.length; i++) {
+      ranges.push(Range.create(i, 0, i, 3))
+      ranges.push(Range.create(i, 4, i, 7))
+      ranges.push(Range.create(i, 8, i, 9))
+      ranges.push(Range.create(i, 10, i, 11))
+      ranges.push(Range.create(i, 12, i, 13))
+      ranges.push(Range.create(i, 14, i, 15))
+      ranges.push(Range.create(i, 16, i, 17))
+      edits.push(TextEdit.insert(Position.create(i, 0), `${i + 1} `))
+    }
+    let buf = doc.buffer
+    await buf.setLines(arr)
+    buf.highlightRanges('test', 'Title', ranges)
+    await doc.synchronize()
+    await doc.applyEdits(edits)
+    await events.race(['TextChanged'], 100)
+    let hls = await buf.getHighlights('test')
+    expect(hls.length).toBe(700)
+  })
+
+  it('should consider latest change', async () => {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    {
+      let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), 'bar')]
+      nvim.call('setline', [1, 'foo'], true)
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe('foobar')
+    }
+    {
+      await buf.setLines(['  foo'])
+      await doc.patchChange()
+      nvim.call('setline', [1, '  fooa'], true)
+      nvim.call('cursor', [1, 7], true)
+      let edits: TextEdit[] = [TextEdit.del(Range.create(0, 0, 0, 1))]
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe(' fooa')
+    }
+    {
+      await buf.setLines(['foo'])
+      await nvim.call('cursor', [1, 3])
+      await doc.synchronize()
+      nvim.call('setline', [1, 'fo'], true)
+      let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), ' ')]
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe(' fo')
+    }
   })
 })

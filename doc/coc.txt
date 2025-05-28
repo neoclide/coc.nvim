@@ -2245,7 +2245,8 @@ coc#on_enter()						*coc#on_enter()*
 
 	Notify coc.nvim that <CR> has been pressed.
 
-	Used for the format on type and improvement of brackets, example: >
+	Used for the format on type and improvement of brackets insert,
+	example: >
 
 	" Confirm the completion when popupmenu is visible, insert <CR> and
 	" notify coc.nvim otherwise.
