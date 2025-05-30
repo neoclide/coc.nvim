@@ -265,10 +265,7 @@ endfunction
 
 function! s:HandleBufEnter(bufnr) abort
   if s:is_vim
-    if type(a:bufnr) == v:t_number && bufloaded(a:bufnr)
-      " The buffer could be hidden before, lines may not synchronized
-      call listener_flush(a:bufnr)
-    endif
+    call coc#api#Buf_flush(a:bufnr)
   endif
   call s:Autocmd('BufEnter', a:bufnr)
 endfunction
@@ -280,7 +277,7 @@ endfunction
 function! s:HandleTextChangedI(event, bufnr) abort
   if s:is_vim
     " make sure lines event before changed event.
-    call listener_flush(a:bufnr)
+    call coc#api#Buf_flush(a:bufnr)
   endif
   call s:Autocmd(a:event, a:bufnr, coc#util#change_info())
 endfunction
@@ -288,7 +285,7 @@ endfunction
 function! s:HandleTextChanged(bufnr) abort
   if s:is_vim
     " make sure lines event before changed event.
-    call listener_flush(a:bufnr)
+    call coc#api#Buf_flush(a:bufnr)
   endif
   call s:Autocmd('TextChanged', a:bufnr, getbufvar(a:bufnr, 'changedtick'))
 endfunction

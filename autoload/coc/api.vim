@@ -367,8 +367,7 @@ export def DetachListener(bufnr: number): bool
   const id: number = get(listener_map, bufnr, 0)
   if id != 0
     remove(listener_map, bufnr)
-    const succeed = listener_remove(id)
-    return succeed ? true : false
+    return listener_remove(id) != 0
   endif
   return false
 enddef
@@ -1052,6 +1051,12 @@ enddef
 export def Buf_detach(id: number): bool
   const bufnr = GetValidBufnr(id)
   return DetachListener(bufnr)
+enddef
+
+export def Buf_flush(id: any): void
+  if type(id) == v:t_number && has_key(listener_map, id)
+    listener_flush(id)
+  endif
 enddef
 
 export def Buf_get_lines(id: number, start: number, end: number, strict: bool = false): list<string>
