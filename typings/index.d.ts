@@ -9706,6 +9706,10 @@ declare module 'coc.nvim' {
      * An optional flag to make the picker accept multiple selections, if true the result is an array of picks.
      */
     canPickMany?: boolean
+    /**
+     * @deprecated use placeHolder instead.
+     */
+    placeholder?: string
   }
 
   /**
