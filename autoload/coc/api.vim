@@ -1356,7 +1356,7 @@ export function Call(method, args) abort
   let result = v:null
   try
     let result = call($'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}', a:args)
-    call listener_flush()
+    call coc#api#Buf_flush(bufnr('%'))
   catch /.*/
     let err =  v:exception .. " - on request \"" .. a:method .. "\" \n" .. v:throwpoint
     let result = v:null
@@ -1373,7 +1373,7 @@ export function Notify(method, args) abort
       let fname = $'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
       call call(fname, a:args)
     endif
-    call listener_flush()
+    call coc#api#Buf_flush(bufnr('%'))
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception .. " - on notification \"" .. a:method .. "\" \n" .. v:throwpoint])
   endtry
