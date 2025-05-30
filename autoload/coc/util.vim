@@ -2,7 +2,7 @@ scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:vim_api_version = 37
+let s:vim_api_version = 38
 let s:is_win32unix = has('win32unix')
 let s:win32unix_prefix = ''
 let s:win32unix_fix_home = 0

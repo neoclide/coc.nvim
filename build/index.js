@@ -16689,24 +16689,24 @@ var init_main = __esm({
       }
       Command3.is = is;
     })(Command || (Command = {}));
-    (function(TextEdit9) {
+    (function(TextEdit10) {
       function replace(range, newText) {
         return { range, newText };
       }
-      TextEdit9.replace = replace;
+      TextEdit10.replace = replace;
       function insert(position, newText) {
         return { range: { start: position, end: position }, newText };
       }
-      TextEdit9.insert = insert;
+      TextEdit10.insert = insert;
       function del(range) {
         return { range, newText: "" };
       }
-      TextEdit9.del = del;
+      TextEdit10.del = del;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.string(candidate.newText) && Range.is(candidate.range);
       }
-      TextEdit9.is = is;
+      TextEdit10.is = is;
     })(TextEdit || (TextEdit = {}));
     (function(ChangeAnnotation5) {
       function create(label, needsConfirmation, description) {
@@ -21453,7 +21453,7 @@ var require_main2 = __commonJS({
         ColorPresentation4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.undefined(candidate.textEdit) || TextEdit9.is(candidate)) && (Is2.undefined(candidate.additionalTextEdits) || Is2.typedArray(candidate.additionalTextEdits, TextEdit9.is));
+          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.undefined(candidate.textEdit) || TextEdit10.is(candidate)) && (Is2.undefined(candidate.additionalTextEdits) || Is2.typedArray(candidate.additionalTextEdits, TextEdit10.is));
         }
         ColorPresentation4.is = is;
       })(ColorPresentation3 || (exports3.ColorPresentation = ColorPresentation3 = {}));
@@ -21572,26 +21572,26 @@ var require_main2 = __commonJS({
         }
         Command4.is = is;
       })(Command3 || (exports3.Command = Command3 = {}));
-      var TextEdit9;
-      (function(TextEdit10) {
+      var TextEdit10;
+      (function(TextEdit11) {
         function replace(range, newText) {
           return { range, newText };
         }
-        TextEdit10.replace = replace;
+        TextEdit11.replace = replace;
         function insert(position, newText) {
           return { range: { start: position, end: position }, newText };
         }
-        TextEdit10.insert = insert;
+        TextEdit11.insert = insert;
         function del(range) {
           return { range, newText: "" };
         }
-        TextEdit10.del = del;
+        TextEdit11.del = del;
         function is(value) {
           var candidate = value;
           return Is2.objectLiteral(candidate) && Is2.string(candidate.newText) && Range11.is(candidate.range);
         }
-        TextEdit10.is = is;
-      })(TextEdit9 || (exports3.TextEdit = TextEdit9 = {}));
+        TextEdit11.is = is;
+      })(TextEdit10 || (exports3.TextEdit = TextEdit10 = {}));
       var ChangeAnnotation5;
       (function(ChangeAnnotation6) {
         function create(label, needsConfirmation, description) {
@@ -21635,7 +21635,7 @@ var require_main2 = __commonJS({
         AnnotatedTextEdit3.del = del;
         function is(value) {
           var candidate = value;
-          return TextEdit9.is(candidate) && (ChangeAnnotation5.is(candidate.annotationId) || ChangeAnnotationIdentifier2.is(candidate.annotationId));
+          return TextEdit10.is(candidate) && (ChangeAnnotation5.is(candidate.annotationId) || ChangeAnnotationIdentifier2.is(candidate.annotationId));
         }
         AnnotatedTextEdit3.is = is;
       })(AnnotatedTextEdit2 || (exports3.AnnotatedTextEdit = AnnotatedTextEdit2 = {}));
@@ -21743,7 +21743,7 @@ var require_main2 = __commonJS({
             var edit2;
             var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit9.insert(position, newText);
+              edit2 = TextEdit10.insert(position, newText);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
               id2 = annotation;
               edit2 = AnnotatedTextEdit2.insert(position, newText, annotation);
@@ -21761,7 +21761,7 @@ var require_main2 = __commonJS({
             var edit2;
             var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit9.replace(range, newText);
+              edit2 = TextEdit10.replace(range, newText);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
               id2 = annotation;
               edit2 = AnnotatedTextEdit2.replace(range, newText, annotation);
@@ -21779,7 +21779,7 @@ var require_main2 = __commonJS({
             var edit2;
             var id2;
             if (annotation === void 0) {
-              edit2 = TextEdit9.del(range);
+              edit2 = TextEdit10.del(range);
             } else if (ChangeAnnotationIdentifier2.is(annotation)) {
               id2 = annotation;
               edit2 = AnnotatedTextEdit2.del(range, annotation);
@@ -22545,7 +22545,7 @@ var require_main2 = __commonJS({
         InlayHint4.create = create;
         function is(value) {
           var candidate = value;
-          return Is2.objectLiteral(candidate) && Position10.is(candidate.position) && (Is2.string(candidate.label) || Is2.typedArray(candidate.label, InlayHintLabelPart2.is)) && (candidate.kind === void 0 || InlayHintKind2.is(candidate.kind)) && candidate.textEdits === void 0 || Is2.typedArray(candidate.textEdits, TextEdit9.is) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is2.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is2.boolean(candidate.paddingRight));
+          return Is2.objectLiteral(candidate) && Position10.is(candidate.position) && (Is2.string(candidate.label) || Is2.typedArray(candidate.label, InlayHintLabelPart2.is)) && (candidate.kind === void 0 || InlayHintKind2.is(candidate.kind)) && candidate.textEdits === void 0 || Is2.typedArray(candidate.textEdits, TextEdit10.is) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is2.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is2.boolean(candidate.paddingRight));
         }
         InlayHint4.is = is;
       })(InlayHint3 || (exports3.InlayHint = InlayHint3 = {}));
@@ -25024,7 +25024,7 @@ var init_constants = __esm({
     ASCII_END = 128;
     VERSION = version;
     isVim = process.env.VIM_NODE_RPC == "1";
-    APIVERSION = 37;
+    APIVERSION = 38;
     floatHighlightGroup = "CocFloating";
     CONFIG_FILE_NAME = "coc-settings.json";
     configHome = defaultValue(process.env.COC_VIMCONFIG, path.join(os.homedir(), ".vim"));
@@ -37142,7 +37142,8 @@ var init_floatFactory = __esm({
           title: opts.title || "",
           close: opts.close ? 1 : 0,
           rounded: opts.rounded ? 1 : 0,
-          modes: opts.modes || ["n", "i", "ic", "s"]
+          modes: opts.modes || ["n", "i", "ic", "s"],
+          relative: opts.position === "fixed" ? "editor" : "cursor"
         };
         if (!isVim) {
           if (typeof opts.winblend === "number") config.winblend = opts.winblend;
@@ -37160,7 +37161,6 @@ var init_floatFactory = __esm({
         if (opts.highlight) config.highlight = opts.highlight;
         if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight;
         if (opts.cursorline) config.cursorline = 1;
-        if (opts.position) config.relative = opts.position === "fixed" ? config.relative = "editor" : "cursor";
         for (let key of ["top", "left", "bottom", "right"]) {
           if (typeof opts[key] === "number" && opts[key] >= 0) {
             config[key] = opts[key];
@@ -43056,7 +43056,10 @@ function applyEdits2(document2, edits) {
     let el = lines[end.line] ?? "";
     let content = sl.substring(0, start.character) + edits[0].newText + el.substring(end.character);
     if (end.line >= lines.length && document2.eol) {
-      if (content == "") return [...lines.slice(0, start.line)];
+      if (content == "") {
+        const result2 = [...lines.slice(0, start.line)];
+        return result2.length === 0 ? [""] : result2;
+      }
       if (content.endsWith("\n")) content = content.slice(0, -1);
       return [...lines.slice(0, start.line), ...content.split("\n")];
     }
@@ -43082,14 +43085,58 @@ function applyEdits2(document2, edits) {
   if (result === text) return void 0;
   return contentToLines(result, document2.eol);
 }
+function getRangeText(lines, range) {
+  let result = [];
+  const { start, end } = range;
+  if (start.line === end.line) {
+    let line = toText(lines[start.line]);
+    return line.slice(start.character, end.character);
+  }
+  for (let i = start.line; i <= end.line; i++) {
+    let line = toText(lines[i]);
+    let text = line;
+    if (i === start.line) {
+      text = line.slice(start.character);
+    } else if (i === end.line) {
+      text = line.slice(0, end.character);
+    }
+    result.push(text);
+  }
+  return result.join("\n");
+}
+function validEdit(edit2) {
+  let { range, newText } = edit2;
+  if (!newText.endsWith("\n")) return false;
+  if (range.end.character !== 0) return false;
+  return true;
+}
 function toTextChanges(lines, edits) {
+  if (edits.length === 0) return [];
+  for (let edit2 of edits) {
+    if (edit2.range.end.line > lines.length) return [];
+    if (edit2.range.end.line == lines.length) {
+      if (!validEdit(edit2)) return [];
+      let line = lines.length - 1;
+      let character = lines[line].length;
+      if (emptyRange(edit2.range)) {
+        edit2.range = Range.create(line, character, line, character);
+        edit2.newText = "\n" + edit2.newText.slice(0, -1);
+      } else {
+        const start = edit2.range.start;
+        edit2.range = Range.create(start, Position.create(line, character));
+        edit2.newText = edit2.newText.slice(0, -1);
+      }
+    }
+  }
   return edits.map((o) => {
-    let { start, end } = o.range;
+    const oldText = getRangeText(lines, o.range);
+    let edit2 = reduceTextEdit(o, oldText);
+    let { start, end } = edit2.range;
     let sl = toText(lines[start.line]);
     let sc = byteIndex(sl, start.character);
     let el = end.line == start.line ? sl : toText(lines[end.line]);
     let ec = byteIndex(el, end.character);
-    let { newText } = o;
+    let { newText } = edit2;
     return [newText.length > 0 ? newText.split("\n") : [], start.line, sc, end.line, ec];
   });
 }
@@ -43164,25 +43211,39 @@ function mergeTextEdits(edits, oldLines, newLines) {
   let cr = (oldLines[end.line] ?? "").length - end.character;
   let line = newLines.length - lr;
   let character = (newLines[line] ?? "").length - cr;
-  let newText = getText(start, Position.create(line, character), newLines);
+  let newText = getRangeText(newLines, Range.create(start, Position.create(line, character)));
   return TextEdit.replace(Range.create(start, end), newText);
 }
-function getText(start, end, lines) {
-  if (start.line === end.line) {
-    return toText(lines[start.line]).slice(start.character, end.character);
-  }
-  let spans = [];
-  for (let i = start.line; i <= end.line; i++) {
-    let s = lines[i] ?? "";
-    if (i === start.line) {
-      spans.push(s.slice(start.character));
-    } else if (i === end.line) {
-      spans.push(s.slice(0, end.character));
+function reduceTextEdit(edit2, oldText) {
+  if (oldText.length === 0) return edit2;
+  let { range, newText } = edit2;
+  let ol = oldText.length;
+  let nl = newText.length;
+  if (ol === 0 || nl === 0) return edit2;
+  let { start, end } = range;
+  let bo = 0;
+  for (let i = 1; i <= Math.min(nl, ol); i++) {
+    if (newText[i - 1] === oldText[i - 1]) {
+      bo = i;
     } else {
-      spans.push(s);
+      break;
     }
   }
-  return spans.join("\n");
+  let eo = 0;
+  let t = Math.min(nl - bo, ol - bo);
+  if (t > 0) {
+    for (let i = 1; i <= t; i++) {
+      if (newText[nl - i] === oldText[ol - i]) {
+        eo = i;
+      } else {
+        break;
+      }
+    }
+  }
+  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo);
+  if (bo > 0) start = getEnd(start, newText.slice(0, bo));
+  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo));
+  return TextEdit.replace(Range.create(start, end), text);
 }
 var init_textedit = __esm({
   "src/util/textedit.ts"() {
@@ -48043,7 +48104,7 @@ var require_dist3 = __commonJS({
 function getRequestModule(url) {
   return url.protocol === "https:" ? import_follow_redirects.https : import_follow_redirects.http;
 }
-function getText2(data) {
+function getText(data) {
   if (typeof data === "string" || Buffer.isBuffer(data)) return data;
   return JSON.stringify(data);
 }
@@ -48224,7 +48285,7 @@ function request(url, data, opts, token, obj = {}) {
     req.on("timeout", () => {
       req.destroy(new Error(`Request timeout after ${opts.timeout}ms`));
     });
-    if (data) req.write(getText2(data));
+    if (data) req.write(getText(data));
     if (opts.timeout) req.setTimeout(opts.timeout);
     req.end();
   });
@@ -59546,7 +59607,7 @@ function getTextEdit(oldLines, newLines, cursor, insertMode) {
   if (text.length === 0 && used === ol - e) return void 0;
   let original = oldLines.slice(used, ol - e).join("\n") + "\n";
   let edit2 = TextEdit.replace(Range.create(used, 0, ol - e, 0), text);
-  return reduceReplceEdit(edit2, original, cursor);
+  return reduceReplaceEdit(edit2, original, cursor);
 }
 function getCommonSuffixLen(a, b, max) {
   if (max === 0) return 0;
@@ -59574,7 +59635,7 @@ function getCommonPrefixLen(a, b, max) {
   }
   return n;
 }
-function reduceReplceEdit(edit2, original, cursor) {
+function reduceReplaceEdit(edit2, original, cursor) {
   let { newText, range } = edit2;
   if (emptyRange(range) || newText === "") return edit2;
   let endOffset;
@@ -59616,8 +59677,8 @@ var init_diff = __esm({
     "use strict";
     init_main();
     init_node();
-    init_string();
     init_position();
+    init_string();
   }
 });
 
@@ -62592,7 +62653,7 @@ var init_map = __esm({
 });
 
 // src/language-client/diagnostic.ts
-var DiagnosticPullMode, DocumentOrUri, workdpacePullDebounce, DocumentPullStateTracker, DiagnosticRequestor, timeoutDebounce, BackgroundScheduler, DiagnosticFeatureProviderImpl, DiagnosticFeature;
+var DiagnosticPullMode, DocumentOrUri, workspacePullDebounce, DocumentPullStateTracker, DiagnosticRequestor, timeoutDebounce, BackgroundScheduler, DiagnosticFeatureProviderImpl, DiagnosticFeature;
 var init_diagnostic = __esm({
   "src/language-client/diagnostic.ts"() {
     "use strict";
@@ -62619,7 +62680,7 @@ var init_diagnostic = __esm({
       }
       DocumentOrUri2.asKey = asKey;
     })(DocumentOrUri || (DocumentOrUri = {}));
-    workdpacePullDebounce = getConditionValue(3e3, 10);
+    workspacePullDebounce = getConditionValue(3e3, 10);
     DocumentPullStateTracker = class {
       constructor() {
         this.documentPullStates = /* @__PURE__ */ new Map();
@@ -62792,7 +62853,7 @@ var init_diagnostic = __esm({
         this.pullWorkspaceAsync().then(() => {
           this.workspaceTimeout = (0, import_node4.RAL)().timer.setTimeout(() => {
             this.pullWorkspace();
-          }, workdpacePullDebounce);
+          }, workspacePullDebounce);
         }, (error) => {
           if (!(error instanceof LSPCancellationError) && !import_node4.DiagnosticServerCancellationData.is(error.data)) {
             this.client.error(`Workspace diagnostic pull failed.`, error);
@@ -62801,7 +62862,7 @@ var init_diagnostic = __esm({
           if (this.workspaceErrorCounter <= 5) {
             this.workspaceTimeout = (0, import_node4.RAL)().timer.setTimeout(() => {
               this.pullWorkspace();
-            }, workdpacePullDebounce);
+            }, workspacePullDebounce);
           }
         });
       }
@@ -68987,7 +69048,6 @@ __export(util_exports, {
   getTextAfter: () => getTextAfter,
   getTextBefore: () => getTextBefore,
   normalizeSnippetString: () => normalizeSnippetString,
-  reduceTextEdit: () => reduceTextEdit,
   shouldFormat: () => shouldFormat,
   toSnippetString: () => toSnippetString,
   wordsSource: () => wordsSource
@@ -69050,36 +69110,6 @@ function getNewRange(base, pos, value) {
     character: pos.line == 0 ? character + pos.character : pos.character
   };
   return Range.create(start, getEnd(start, value));
-}
-function reduceTextEdit(edit2, oldText) {
-  let { range, newText } = edit2;
-  let ol = oldText.length;
-  let nl = newText.length;
-  if (ol === 0 || nl === 0) return edit2;
-  let { start, end } = range;
-  let bo = 0;
-  for (let i = 1; i <= Math.min(nl, ol); i++) {
-    if (newText[i - 1] === oldText[i - 1]) {
-      bo = i;
-    } else {
-      break;
-    }
-  }
-  let eo = 0;
-  let t = Math.min(nl - bo, ol - bo);
-  if (t > 0) {
-    for (let i = 1; i <= t; i++) {
-      if (newText[nl - i] === oldText[ol - i]) {
-        eo = i;
-      } else {
-        break;
-      }
-    }
-  }
-  let text = eo == 0 ? newText.slice(bo) : newText.slice(bo, -eo);
-  if (bo > 0) start = getEnd(start, newText.slice(0, bo));
-  if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo));
-  return TextEdit.replace(Range.create(start, end), text);
 }
 function getTextBefore(range, text, pos) {
   let newLines = [];
@@ -70754,7 +70784,7 @@ var init_textdocument = __esm({
   "src/model/textdocument.ts"() {
     "use strict";
     init_main();
-    init_string();
+    init_textedit();
     init_textline();
     LinesTextDocument = class {
       constructor(uri, languageId, version2, lines, bufnr, eol) {
@@ -70804,15 +70834,7 @@ var init_textdocument = __esm({
         return Range.create(start, end);
       }
       getText(range) {
-        if (range) {
-          let { start, end } = range;
-          if (start.line === end.line) {
-            if (start.character === end.character) return "";
-            let line = toText(this.lines[start.line]);
-            return line.substring(start.character, end.character);
-          }
-          return this.content.substring(this.offsetAt(range.start), this.offsetAt(range.end));
-        }
+        if (range) return getRangeText(this.lines, range);
         return this.content;
       }
       lineAt(lineOrPos) {
@@ -70928,7 +70950,7 @@ var init_snippet = __esm({
         this.nvim = nvim;
         this.resolver = resolver2;
         // placeholders and snippets from top to bottom
-        this._markerSeuqence = [];
+        this._markerSequence = [];
         this._placeholders = [];
         // from upper to lower
         this._snippets = [];
@@ -71008,9 +71030,9 @@ var init_snippet = __esm({
         const isInsert = emptyRange(range);
         let marker;
         let markerRange;
-        const { _snippets, _placeholders, _markerSeuqence } = this;
-        const seq = _markerSeuqence.filter((o) => o !== current);
-        if (current && _markerSeuqence.includes(current)) seq.push(current);
+        const { _snippets, _placeholders, _markerSequence } = this;
+        const seq = _markerSequence.filter((o) => o !== current);
+        if (current && _markerSequence.includes(current)) seq.push(current);
         const list2 = seq.map((m) => {
           return m instanceof TextmateSnippet ? _snippets.find((o) => o.marker === m) : _placeholders.find((o) => o.marker === m);
         });
@@ -71263,14 +71285,14 @@ var init_snippet = __esm({
         const document2 = new LinesTextDocument("/", "", 0, snippetStr.split(/\n/), 0, false);
         const placeholders = [];
         const snippets = [];
-        const markerSeuqence = [];
+        const markerSequence = [];
         const { start } = this;
         snippets.push({ range: Range.create(start, getEnd(start, snippetStr)), marker: snippet, value: snippetStr });
-        markerSeuqence.push(snippet);
+        markerSequence.push(snippet);
         let offset = 0;
         snippet.walk((marker) => {
           if (marker instanceof Placeholder && marker.transform == null) {
-            markerSeuqence.push(marker);
+            markerSequence.push(marker);
             const position = document2.positionAt(offset);
             const value = marker.toString();
             placeholders.push({
@@ -71281,7 +71303,7 @@ var init_snippet = __esm({
               primary: marker.primary === true
             });
           } else if (marker instanceof TextmateSnippet) {
-            markerSeuqence.push(marker);
+            markerSequence.push(marker);
             const position = document2.positionAt(offset);
             const value = marker.toString();
             snippets.push({
@@ -71296,7 +71318,7 @@ var init_snippet = __esm({
         this._snippets = snippets;
         this._text = snippetStr;
         this._placeholders = placeholders;
-        this._markerSeuqence = markerSeuqence;
+        this._markerSequence = markerSequence;
       }
     };
   }
@@ -77066,7 +77088,7 @@ function getNotAttachReason(buftype, enabled, size) {
   }
   return `buffer size ${size} exceed coc.preferences.maxFileSize`;
 }
-var import_buffer2, logger35, debounceTime7, Document;
+var import_buffer2, logger35, MAX_EDITS, debounceTime7, Document;
 var init_document = __esm({
   "src/model/document.ts"() {
     "use strict";
@@ -77088,6 +77110,7 @@ var init_document = __esm({
     init_chars();
     init_textdocument();
     logger35 = createLogger("document");
+    MAX_EDITS = getConditionValue(200, 400);
     debounceTime7 = getConditionValue(150, 15);
     Document = class {
       constructor(buffer, nvim, filetype, opts) {
@@ -77101,7 +77124,7 @@ var init_document = __esm({
         this._previewwindow = false;
         this._winid = -1;
         this._commandLine = false;
-        this._applyQueque = [];
+        this._applying = false;
         this.disposables = [];
         // real current lines
         this.lines = [];
@@ -77220,40 +77243,31 @@ var init_document = __esm({
       }
       attach() {
         let lines = this.lines;
+        const { bufnr } = this;
         this.buffer.attach(true).then((res) => {
           if (!res) fireDetach(this.bufnr);
         }, (_e) => {
           fireDetach(this.bufnr);
         });
-        const onLinesChange = (id2, lines2) => {
-          let prev = this._applyQueque.shift();
-          if (prev && equals(prev, lines2)) {
-            return;
+        const onLinesChange = (_buf, tick, firstline, lastline, linedata) => {
+          if (tick && tick > this._changedtick) {
+            this._changedtick = tick;
+            lines = [...lines.slice(0, firstline), ...linedata, ...lastline < 0 ? [] : lines.slice(lastline)];
+            if (lines.length == 0) lines = [""];
+            if (this._applying) {
+              this._applyLines = lines;
+              return;
+            }
+            this.lines = lines;
+            fireLinesChanged(bufnr);
+            if (events_default.completing) return;
+            this.fireContentChanges();
           }
-          this.lines = lines2;
-          fireLinesChanged(id2);
-          if (events_default.completing) return;
-          this.fireContentChanges();
         };
         if (isVim) {
-          this.buffer.listen("vim_lines", (bufnr, tick, changes) => {
-            if (tick && tick > this._changedtick) {
-              this._changedtick = tick;
-              for (const change of changes) {
-                lines = [...lines.slice(0, change[0]), ...change[2], ...lines.slice(change[0] + change[1])];
-              }
-              onLinesChange(bufnr, lines);
-            }
-          }, this.disposables);
+          this.buffer.listen("vim_lines", onLinesChange, this.disposables);
         } else {
-          this.buffer.listen("lines", (buf, tick, firstline, lastline, linedata) => {
-            if (tick && tick > this._changedtick) {
-              this._changedtick = tick;
-              lines = [...lines.slice(0, firstline), ...linedata, ...lastline == -1 ? [] : lines.slice(lastline)];
-              if (lines.length == 0) lines = [""];
-              onLinesChange(buf.id, lines);
-            }
-          }, this.disposables);
+          this.buffer.listen("lines", onLinesChange, this.disposables);
           this.buffer.listen("detach", () => {
             fireDetach(this.bufnr);
           }, this.disposables);
@@ -77275,7 +77289,7 @@ var init_document = __esm({
       get cursor() {
         let { cursor } = events_default;
         if (cursor.bufnr !== this.bufnr) return void 0;
-        let content = this.lines[cursor.lnum - 1] ?? "";
+        let content = toText(this.lines[cursor.lnum - 1]);
         return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1));
       }
       _fireContentChanges(edit2) {
@@ -77303,6 +77317,7 @@ var init_document = __esm({
       async applyEdits(edits, joinUndo = false, move = false) {
         if (Array.isArray(arguments[1])) edits = arguments[1];
         if (!this._attached || edits.length === 0) return;
+        const { bufnr } = this;
         this._forceSync();
         let textDocument = this.textDocument;
         edits = filterSortEdits(textDocument, edits);
@@ -77313,26 +77328,12 @@ var init_document = __esm({
         let isAppend = changed.start === changed.end && changed.start === lines.length;
         let original = lines.slice(changed.start, changed.end);
         let changes = [];
-        if (edits.length < 200 && changed.start !== changed.end && edits[edits.length - 1].range.end.line < lines.length) {
+        if (edits.length <= MAX_EDITS && changed.start !== changed.end && changed.replacement.length > 0) {
           changes = toTextChanges(lines, edits);
         }
-        let cursor;
-        let isCurrent = events_default.bufnr === this.bufnr;
-        let col;
-        if (move && isCurrent && !isAppend) {
-          let pos = Position.is(move) ? move : this.cursor;
-          if (pos) {
-            let position = getPositionFromEdits(pos, edits);
-            if (comparePosition(pos, position) !== 0) {
-              let content = toText(newLines[position.line]);
-              let col2 = byteIndex(content, position.character) + 1;
-              cursor = [position.line + 1, col2];
-            }
-            col = byteIndex(this.lines[pos.line], pos.character) + 1;
-          }
-        }
+        const { cursor, col } = this.getCursorAndCol(move, edits, newLines);
         this.nvim.pauseNotification();
-        if (isCurrent && joinUndo) this.nvim.command("undojoin", true);
+        if (joinUndo) this.nvim.command(`if bufnr('%') == ${bufnr} | undojoin | endif`, true);
         if (isAppend) {
           this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true);
         } else {
@@ -77345,19 +77346,48 @@ var init_document = __esm({
             changed.end,
             changes,
             cursor,
-            col
+            col,
+            lines.length
           ], true);
         }
-        this.nvim.resumeNotification(isCurrent, true);
-        this._applyQueque.push(newLines);
+        this._applying = true;
+        void this.nvim.resumeNotification(true, true);
         this.lines = newLines;
         await waitNextTick();
-        fireLinesChanged(this.bufnr);
+        fireLinesChanged(bufnr);
         let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
         this.fireContentChanges.clear();
         this._fireContentChanges(textEdit);
         let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0);
         return TextEdit.replace(range, original.join("\n") + (original.length > 0 ? "\n" : ""));
+      }
+      onTextChange() {
+        let { bufnr } = this;
+        if (this._applying) {
+          this._applying = false;
+          if (this._applyLines != null && !equals(this._applyLines, this.textDocument.lines)) {
+            this.lines = this._applyLines;
+            this._applyLines = void 0;
+            fireLinesChanged(bufnr);
+            this.fireContentChanges();
+          }
+        }
+      }
+      getCursorAndCol(move, edits, newLines) {
+        if (!move) return {};
+        let pos = Position.is(move) ? move : this.cursor;
+        if (pos) {
+          let position = getPositionFromEdits(pos, edits);
+          if (!equals(pos, position)) {
+            let content = toText(newLines[position.line]);
+            let column = byteIndex(content, position.character) + 1;
+            return {
+              cursor: [position.line + 1, column],
+              col: byteIndex(this.lines[pos.line], pos.character) + 1
+            };
+          }
+        }
+        return {};
       }
       async changeLines(lines) {
         let filtered = [];
@@ -77371,7 +77401,6 @@ var init_document = __esm({
         if (!filtered.length) return;
         this.nvim.call("coc#ui#change_lines", [this.bufnr, filtered], true);
         this.nvim.redrawVim();
-        this._applyQueque.push(newLines);
         this.lines = newLines;
         await waitNextTick();
         fireLinesChanged(this.bufnr);
@@ -77789,6 +77818,12 @@ var init_documents = __esm({
         events_default.on("BufEnter", (bufnr2) => {
           void this.createDocument(bufnr2);
         }, null, this.disposables);
+        events_default.on("TextChanged", this.onTextChange, this, this.disposables);
+        events_default.on("TextChangedI", this.onTextChange, this, this.disposables);
+      }
+      onTextChange(bufnr) {
+        let doc = this.getDocument(bufnr);
+        if (doc) doc.onTextChange();
       }
       getConfiguration(e) {
         if (!e || e.affectsConfiguration("coc.preferences")) {
@@ -83939,7 +83974,7 @@ var init_completion2 = __esm({
         events_default.on("BufEnter", () => {
           this._debounced.clear();
         }, null, this.disposables);
-        events_default.on("CursorMoved", () => {
+        events_default.on(["CursorMoved", "InsertLeave"], () => {
           this.cancelAndClose();
         }, null, this.disposables);
         events_default.on("PumNavigate", () => {
@@ -87342,7 +87377,7 @@ var init_links2 = __esm({
           }
         }
         let line = await this.nvim.call("getline", ["."]);
-        let regex2 = /\w+?:\/\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\\+.~#?&//=]*/gi;
+        let regex2 = /\w+?:\/\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9@:%_\\+.~#?&//=]*/gi;
         let arr;
         let link;
         while ((arr = regex2.exec(line)) !== null) {
@@ -90997,7 +91032,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-cd4a6b6 2025-05-21 20:12:09 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-6729107 2025-05-30 21:30:27 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

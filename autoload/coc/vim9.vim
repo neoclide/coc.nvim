@@ -9,22 +9,8 @@ const priorities = {
 const diagnostic_hlgroups = ['CocUnusedHighlight', 'CocDeprecatedHighlight', 'CocHintHighlight', 'CocInfoHighlight', 'CocWarningHighlight', 'CocErrorHighlight']
 const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
 const maxTimePerBatchMs = 16
-
-def Byte_index(line: string, character: number): number
-  if character == 0
-    return 0
-  endif
-  var i = 0
-  var len = 0
-  for char in split(line, '\zs')
-    i += char2nr(char) > 65535 ? 2 : 1
-    len += strlen(char)
-    if i >= character
-      break
-    endif
-  endfor
-  return len
-enddef
+var maxEditCount = get(g:, 'coc_edits_maximum_count', 200)
+var saved_event_ignore: string = ''
 
 def Is_timeout(start_time: list<any>, max: number): bool
   return (start_time->reltime()->reltimefloat()) * 1000 > max
@@ -237,8 +223,8 @@ export def Highlight_ranges(id: number, key: any, hlGroup: string, ranges: list<
         if len(line) == 0
           continue
         endif
-        const colStart = index == start_pos.line ? Byte_index(line, start_pos.character) : 0
-        const colEnd = index == end_pos.line ? Byte_index(line, end_pos.character) : strlen(line)
+        const colStart = index == start_pos.line ? coc#text#Byte_index(line, start_pos.character) : 0
+        const colEnd = index == end_pos.line ? coc#text#Byte_index(line, end_pos.character) : strlen(line)
         if colStart >= colEnd
           continue
         endif
@@ -270,8 +256,8 @@ export def Match_ranges(id: number, buf: number, ranges: list<any>, hlGroup: str
       if len(line) == 0
         continue
       endif
-      const colStart = index == start_pos.line ? Byte_index(line, start_pos.character) : 0
-      const colEnd = index == end_pos.line ? Byte_index(line, end_pos.character) : strlen(line)
+      const colStart = index == start_pos.line ? coc#text#Byte_index(line, start_pos.character) : 0
+      const colEnd = index == end_pos.line ? coc#text#Byte_index(line, end_pos.character) : strlen(line)
       if colStart >= colEnd
         continue
       endif
@@ -296,8 +282,6 @@ export def Match_ranges(id: number, buf: number, ranges: list<any>, hlGroup: str
 enddef
 
 # key could be string or number, use -1 for all highlights.
-# type HighlightItemResult = [string, number, number, number, number?]
-# type HighlightItemResult = list<any>
 export def Get_highlights(bufnr: number, key: any, start: number, end: number): list<any>
   if !bufloaded(bufnr)
     return []
@@ -307,7 +291,6 @@ export def Get_highlights(bufnr: number, key: any, start: number, end: number): 
   if empty(types)
     return []
   endif
-
   final res: list<any> = []
   const endLnum: number = end == -1 ? -1 : end + 1
   for prop in prop_list(start + 1, {'bufnr': bufnr, 'types': types, 'end_lnum': endLnum})
@@ -317,7 +300,8 @@ export def Get_highlights(bufnr: number, key: any, start: number, end: number): 
     endif
     const startCol: number = prop.col - 1
     const endCol: number = startCol + prop.length
-    add(res, [ substitute(prop.type, '_\d\+$', '', ''), prop.lnum - 1, startCol, endCol, prop.id ])
+    const hl = prop_type_get(prop.type)->get('highlight', '')
+    add(res, [ hl, prop.lnum - 1, startCol, endCol, prop.id ])
   endfor
   return res
 enddef
@@ -432,19 +416,85 @@ export def Set_virtual_texts(bufnr: number, ns: number, items: list<any>, indent
   endif
 enddef
 
+# Apply many text changes while preserve text props can be slow,
+def Apply_changes(bufnr: number, changes: list<any>): void
+  const start_time = reltime()
+  const total = len(changes)
+  var timeout: bool = false
+  var i = total - 1
+  while i >= 0
+    const item = changes[i]
+    coc#api#SetBufferText(bufnr, item[1], item[2], item[3], item[4], item[0])
+    i -= 1
+  endwhile
+  const duration = (start_time->reltime()->reltimefloat()) * 1000
+  if duration > 200
+    maxEditCount = maxEditCount / 2
+    coc#api#EchoHl($'Text edits cost {float2nr(duration)}ms, consider configure g:coc_edits_maximum_count < {total}', 'WarningMsg')
+  endif
+enddef
+
 # Replace text before cursor at current line, insert should not includes line break.
 # 0 based start col
-export def Replace_before_cursor(start: number, insert: string): void
-  var restore_hlsearch = false
-  if &hlsearch
-    restore_hlsearch = true
-    set nohlsearch
-  endif
-  const end = col('.') + 1
-  execute $'noa s/\%.l\%>{start}c.*\%<{end}c/{insert}/i'
-  cursor(line('.'), start + strlen(insert) + 1)
-  if restore_hlsearch
-    set hlsearch
+export def Set_lines(bufnr: number, changedtick: number, original: list<string>, replacement: list<string>,
+    start: number, end: number, changes: any, cursor: any, col: any, linecount: number): void
+  if bufloaded(bufnr)
+    const current = bufnr == bufnr('%')
+    const view = current ? winsaveview() : null
+    var start_row: number = start
+    var end_row: number = end
+    var replace = copy(replacement)
+    var finished: bool = false
+    var change_list = copy(changes)
+    var delta: number = 0
+    if current && type(col) == v:t_number
+      delta = col('.') - col
+    endif
+    if changedtick != getbufvar(bufnr, 'changedtick') && end_row > start_row
+      const line_delta = bufnr->getbufinfo()->get(0).linecount - linecount
+      if line_delta == 0
+        # Check current line change first
+        const curr_lines = getbufline(bufnr, start_row + 1, end_row)
+        const pos = getpos('.')
+        const row = current ? pos[1] - start_row - 1 : -1
+        for idx in range(0, len(curr_lines) - 1)
+          var oldStr = get(original, idx, '')
+          var newStr = get(curr_lines, idx, '')
+          var repalceStr = get(replace, idx, null)
+          var colIdx = idx == row ? pos[2] - 1 : -1
+          if oldStr !=# newStr && repalceStr != null
+            if repalceStr ==# oldStr
+              repalceStr = newStr
+            else
+              repalceStr = coc#text#DiffApply(oldStr, newStr, repalceStr, colIdx)
+            endif
+            if repalceStr != null
+              replace[idx] = repalceStr
+            endif
+            change_list = []
+          endif
+        endfor
+      else
+        # Check if change lines before or after
+        # Consider changed before first
+        if coc#text#LinesEqual(replace, getbufline(bufnr, start_row + 1 + line_delta, end_row + line_delta))
+          start_row += line_delta
+          end_row += line_delta
+          change_list = []
+        elseif !coc#text#LinesEqual(replace, getbufline(bufnr, start_row + 1, end_row))
+          return
+        endif
+      endif
+    endif
+    if !empty(change_list) && len(change_list) <= maxEditCount
+      Apply_changes(bufnr, change_list)
+    else
+      coc#api#SetBufferLines(bufnr, start_row + 1, end_row, replace)
+    endif
+    if current
+      winrestview(view)
+    endif
+    coc#api#OnTextChange(bufnr)
   endif
 enddef
 
