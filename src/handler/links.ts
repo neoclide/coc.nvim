@@ -101,7 +101,7 @@ export default class Links implements Disposable {
       }
     }
     let line = await this.nvim.call('getline', ['.']) as string
-    let regex = /\w+?:\/\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\\+.~#?&//=]*/gi
+    let regex = /\w+?:\/\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9@:%_\\+.~#?&//=]*/gi
     let arr
     let link: DocumentLink | undefined
     while ((arr = regex.exec(line)) !== null) {
