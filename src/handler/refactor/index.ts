@@ -7,6 +7,7 @@ import events from '../../events'
 import languages, { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
+import { compareRangesUsingStarts } from '../../util/position'
 import { Disposable, Emitter, Event } from '../../util/protocol'
 import { emptyWorkspaceEdit } from '../../util/textedit'
 import workspace from '../../workspace'
@@ -162,43 +163,42 @@ export default class Refactor {
     let items: FileItemDef[] = []
     let { beforeContext, afterContext } = this.config
     let { changes, documentChanges } = edit
-    if (!changes) {
-      changes = {}
+    const rangesMap: Map<string, Range[]> = new Map()
+    if (documentChanges) {
       for (let change of documentChanges || []) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
-          // TODO: filter SnippetTextEdit for now
-          changes[textDocument.uri] = edits.filter(edit => 'newText' in edit)
+          rangesMap.set(textDocument.uri, edits.map(o => o.range))
         }
       }
+    } else if (changes) {
+      for (let [uri, edits] of Object.entries(changes)) {
+        rangesMap.set(uri, edits.map(o => o.range))
+      }
     }
-    for (let key of Object.keys(changes)) {
+    for (let [key, editRanges] of rangesMap.entries()) {
       let max = await this.getLineCount(key)
-      let edits = changes[key]
       let ranges: FileRangeDef[] = []
       // start end highlights
       let start = null
       let end = null
       let highlights: Range[] = []
-      edits.sort((a, b) => a.range.start.line - b.range.start.line)
-      for (let edit of edits) {
-        let { line } = edit.range.start
+      editRanges.sort(compareRangesUsingStarts)
+      for (let range of editRanges) {
+        let { line } = range.start
         let s = Math.max(0, line - beforeContext)
         if (start != null && s < end) {
           end = Math.min(max, line + afterContext + 1)
-          highlights.push(adjustRange(edit.range, start))
+          highlights.push(adjustRange(range, start))
         } else {
           if (start != null) ranges.push({ start, end, highlights })
           start = s
           end = Math.min(max, line + afterContext + 1)
-          highlights = [adjustRange(edit.range, start)]
+          highlights = [adjustRange(range, start)]
         }
       }
       if (start != null) ranges.push({ start, end, highlights })
-      items.push({
-        ranges,
-        filepath: URI.parse(key).fsPath
-      })
+      items.push({ ranges, filepath: URI.parse(key).fsPath })
     }
     let buf = await this.createRefactorBuffer(filetype)
     await buf.addFileItems(items)

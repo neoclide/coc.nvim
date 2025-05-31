@@ -74,7 +74,7 @@ function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   return data
 }
 
-export function mergeSortEdits(edits: TextEdit[]): TextEdit[] {
+export function mergeSortEdits<T extends { range: Range }>(edits: T[]): T[] {
   return mergeSort(edits, (a, b) => {
     let diff = a.range.start.line - b.range.start.line
     if (diff === 0) {
