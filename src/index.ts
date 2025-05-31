@@ -5,16 +5,20 @@ import {
   ColorInformation,
   ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
   CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
-  InlayHintLabelPart, InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
+  InlayHintLabelPart,
   InlineCompletionContext, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind,
+  InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
   InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer, Location,
   LocationLink, MarkedString, MarkupContent, MarkupKind, OptionalVersionedTextDocumentIdentifier, ParameterInformation, Position,
-  Range, RenameFile, SelectionRange, SemanticTokenModifiers,
+  Range, RenameFile,
+  SelectedCompletionInfo,
+  SelectionRange, SemanticTokenModifiers,
   SemanticTokens, SemanticTokenTypes, SignatureInformation,
   SymbolInformation, SymbolKind, SymbolTag, TextDocumentEdit, TextDocumentIdentifier, TextDocumentItem, TextEdit, uinteger, VersionedTextDocumentIdentifier, WorkspaceChange, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbol
 } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from './commands'
+import sources from './completion/sources'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extension'
@@ -30,7 +34,6 @@ import RelativePattern from './model/relativePattern'
 import services, { ServiceStat } from './services'
 import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
-import sources from './completion/sources'
 import { ansiparse } from './util/ansiparse'
 import { CancellationError } from './util/errors'
 import { Mutex } from './util/mutex'
@@ -53,15 +56,15 @@ import {
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
 
+import { SourceType } from './completion/types'
+import { ConfigurationUpdateTarget } from './configuration/types'
+import { PatternType } from './core/workspaceFolder'
 import LineBuilder from './model/line'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { concurrent, disposeAll, wait } from './util'
 import { FileType, watchFile } from './util/fs'
 import { executable, isRunning, runCommand, terminate } from './util/processes'
-import { ConfigurationUpdateTarget } from './configuration/types'
-import { SourceType } from './completion/types'
-import { PatternType } from './core/workspaceFolder'
 
 module.exports = {
   get nvim() {
@@ -98,6 +101,7 @@ module.exports = {
   Trace,
   DocumentUri,
   WorkspaceFolder,
+  SelectedCompletionInfo,
   InlineCompletionContext,
   InlineCompletionItem,
   InlineCompletionList,
