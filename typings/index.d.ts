@@ -740,8 +740,11 @@ declare module 'coc.nvim' {
      *
      * @since 3.16.0 - support for AnnotatedTextEdit. This is guarded using a
      * client capability.
+     *
+     * @since 3.18.0 - support for SnippetTextEdit. This is guarded using a
+     * client capability.
      */
-    edits: (TextEdit | AnnotatedTextEdit)[]
+    edits: (TextEdit | AnnotatedTextEdit | SnippetTextEdit)[]
   }
   /**
    * The TextDocumentEdit namespace provides helper function to create
@@ -3114,6 +3117,28 @@ declare module 'coc.nvim' {
   }
   export namespace InlineCompletionList {
     function create(items: InlineCompletionItem[]): InlineCompletionList
+  }
+
+  /**
+  * An interactive text edit.
+  */
+  export interface SnippetTextEdit {
+    /**
+    * The range of the text document to be manipulated.
+    */
+    range: Range
+    /**
+    * The snippet to be inserted.
+    */
+    snippet: StringValue
+    /**
+    * The actual identifier of the snippet edit.
+    */
+    annotationId?: ChangeAnnotationIdentifier
+  }
+
+  export namespace SnippetTextEdit {
+    function is(value: any): value is SnippetTextEdit
   }
   // }}
 

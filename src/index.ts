@@ -14,6 +14,7 @@ import {
   SelectedCompletionInfo,
   SelectionRange, SemanticTokenModifiers,
   SemanticTokens, SemanticTokenTypes, SignatureInformation,
+  SnippetTextEdit,
   SymbolInformation, SymbolKind, SymbolTag, TextDocumentEdit, TextDocumentIdentifier, TextDocumentItem, TextEdit, uinteger, VersionedTextDocumentIdentifier, WorkspaceChange, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbol
 } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -98,6 +99,7 @@ module.exports = {
   CancellationError,
   WorkspaceChange,
   ResponseError,
+  SnippetTextEdit,
   Trace,
   DocumentUri,
   WorkspaceFolder,
