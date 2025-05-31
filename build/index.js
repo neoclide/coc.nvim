@@ -37490,6 +37490,7 @@ var init_dialogs = __esm({
     init_constants();
     init_mutex();
     init_numbers();
+    init_platform();
     init_string();
     init_funcs();
     init_ui();
@@ -37579,10 +37580,11 @@ var init_dialogs = __esm({
           return picked == void 0 ? void 0 : items.filter((_, i) => picked.includes(i));
         });
       }
-      async requestInput(title, _env, value, option) {
+      async requestInput(title, env, value, option) {
         let { nvim } = this;
+        let noPompt = !env.terminal || !env.dialog || env.isVim && isWindows && !env.isCygwin;
         const promptInput = this.configuration.get("coc.preferences.promptInput");
-        if (promptInput) {
+        if (promptInput && !noPompt) {
           return await this.mutex.use(async () => {
             let input = new InputBox(nvim, toText(value));
             await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})));
@@ -91032,7 +91034,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-fe60ba420 2025-05-31 01:39:23 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-d425554a5 2025-06-01 02:02:45 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
