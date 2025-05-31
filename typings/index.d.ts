@@ -11094,7 +11094,7 @@ declare module 'coc.nvim' {
 
   export interface SnippetEdit {
     range: Range
-    snippet: string | SnippetString
+    snippet: string | SnippetString | StringValue
   }
 
   export interface UltiSnipsActions {
