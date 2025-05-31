@@ -55,6 +55,7 @@ import { RenameFeature, RenameMiddleware } from './rename'
 import { SelectionRangeFeature, SelectionRangeProviderMiddleware } from './selectionRange'
 import { SemanticTokensFeature, SemanticTokensMiddleware, SemanticTokensProviderShape } from './semanticTokens'
 import { SignatureHelpFeature, SignatureHelpMiddleware } from './signatureHelp'
+import { TextDocumentContentFeature, TextDocumentContentMiddleware, TextDocumentContentProviderShape } from './textDocumentContent'
 import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeature, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeature, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeature, DidSaveTextDocumentFeatureShape, ResolvedTextDocumentSyncCapabilities, TextDocumentSynchronizationMiddleware, WillSaveFeature, WillSaveWaitUntilFeature } from './textSynchronization'
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
@@ -65,7 +66,6 @@ import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
-import { TextDocumentContentFeature, TextDocumentContentMiddleware, TextDocumentContentProviderShape } from './textDocumentContent'
 
 const logger = createLogger('language-client-client')
 
@@ -241,7 +241,15 @@ export type LanguageClientOptions = {
     isTrusted?: boolean
     supportHtml?: boolean
   }
+  // TODO not used yet.
   textSynchronization?: {
+    /**
+     * Delays sending the open notification until one of the following
+     * conditions becomes `true`:
+     * - document is visible in the editor.
+     * - any of the other notifications or requests is sent to the server, except
+     * a closed notification for the pending document.
+     */
     delayOpenNotifications: boolean
   }
 } & $ConfigurationOptions & $CompletionOptions & $FormattingOptions & $DiagnosticPullOptions & $WorkspaceOptions
