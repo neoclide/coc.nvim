@@ -3,7 +3,8 @@ import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, SnippetTextEdit, 
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { isFalsyOrEmpty } from './array'
-import { toObject } from './object'
+import { diffLines } from './diff'
+import { equals, toObject } from './object'
 import { comparePosition, emptyRange, getEnd, samePosition, toValidRange } from './position'
 import { byteIndex, contentToLines, toText } from './string'
 
@@ -435,4 +436,12 @@ export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
   if (bo > 0) start = getEnd(start, newText.slice(0, bo))
   if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo))
   return TextEdit.replace(Range.create(start, end), text)
+}
+
+export function getRevertEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>, startLine: number): TextEdit | undefined {
+  if (equals(oldLines, newLines)) return undefined
+  let changed = diffLines(oldLines, newLines, startLine)
+  let original = oldLines.slice(changed.start, changed.end)
+  let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
+  return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
 }

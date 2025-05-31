@@ -508,6 +508,19 @@ describe('textedit', () => {
     )
   })
 
+  it('should get revert edit', async () => {
+    {
+      let res = textedits.getRevertEdit(['aa'], ['aa'], 0)
+      expect(res).toBeUndefined()
+    } {
+      let res = textedits.getRevertEdit(['foo', 'bar'], ['foo 1', 'bar 2'], 0)
+      expect(res).toEqual(TextEdit.replace(Range.create(0, 0, 2, 0), 'foo\nbar\n'))
+    } {
+      let res = textedits.getRevertEdit(['foo', 'bar'], ['foo', 'bar', 'after'], 2)
+      expect(res).toEqual(TextEdit.replace(Range.create(2, 0, 3, 0), ''))
+    }
+  })
+
   it('should merge textedits #1', () => {
     let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
     let lines = ['ab']
