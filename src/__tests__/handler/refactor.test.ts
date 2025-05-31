@@ -11,7 +11,6 @@ import { DidChangeTextDocumentParams } from '../../types'
 import { Disposable } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
-import { LinesTextDocument } from '../../model/textdocument'
 
 let nvim: Neovim
 let refactor: Refactor

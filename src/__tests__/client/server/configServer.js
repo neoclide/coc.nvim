@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ConfigurationRequest, DidChangeConfigurationNotification} = require('vscode-languageserver')
+const {createConnection, ConfigurationRequest, DidChangeConfigurationNotification} = require('vscode-languageserver/node')
 const {URI} = require('vscode-uri')
 
 const connection = createConnection()
@@ -10,7 +10,7 @@ connection.onInitialize((_params) => {
 })
 
 connection.onNotification('pull0', () => {
-  connection.sendRequest(ConfigurationRequest.type, {
+  void connection.sendRequest(ConfigurationRequest.type, {
     items: [{
       scopeUri: URI.file(__filename).toString()
     }]
@@ -18,7 +18,7 @@ connection.onNotification('pull0', () => {
 })
 
 connection.onNotification('pull1', () => {
-  connection.sendRequest(ConfigurationRequest.type, {
+  void connection.sendRequest(ConfigurationRequest.type, {
     items: [{
       section: 'http'
     }, {
@@ -30,7 +30,7 @@ connection.onNotification('pull1', () => {
 })
 
 connection.onNotification(DidChangeConfigurationNotification.type, params => {
-  connection.sendNotification('configurationChange', params)
+  void connection.sendNotification('configurationChange', params)
 })
 
 connection.listen()

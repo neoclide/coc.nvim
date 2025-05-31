@@ -132,5 +132,6 @@ describe('score()', () => {
     expect(funcs.score('*', 'untitled:///1', '')).toBe(5)
     expect(funcs.score('', 'untitled:///1', 'vim')).toBe(0)
     expect(funcs.score({ pattern: '/*' }, 'untitled:///1', 'vim', false)).toBe(5)
+    expect(funcs.score({ pattern: { pattern: '/*', baseUri: '/tmp' } }, 'untitled:///1', 'vim', false)).toBe(5)
   })
 })

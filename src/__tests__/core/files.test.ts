@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import { CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
+import { CreateFile, DeleteFile, Position, Range, RenameFile, SnippetTextEdit, StringValue, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
@@ -184,6 +184,25 @@ describe('applyEdits()', () => {
     let res = await workspace.applyEdit(workspaceEdit)
     expect(res).toBe(true)
     expect(doc.version).toBe(version)
+  })
+
+  it('should apply snippet edits', async () => {
+    let filepath = await createTmpFile('foo\nbar\n')
+    let doc = await helper.createDocument(filepath)
+    let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
+    let edit = TextEdit.insert(Position.create(0, 0), 'before\n')
+    let snippetEdit: SnippetTextEdit = { range: Range.create(2, 0, 2, 0), snippet: StringValue.createSnippet('after($1)') }
+    let change = TextDocumentEdit.create(versioned, [edit, snippetEdit])
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [change]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+    let newLines = doc.textDocument.lines
+    expect(newLines).toEqual(['before', 'foo', 'bar', 'after()'])
+    await workspace.files.undoWorkspaceEdit()
+    newLines = doc.textDocument.lines
+    expect(newLines).toEqual(['foo', 'bar'])
   })
 
   it('should not apply TextEdit if version miss match', async () => {
@@ -480,6 +499,9 @@ describe('getOriginalLine', () => {
         {
           range: Range.create(0, 0, 0, 0),
           newText: 'bar',
+        }, {
+          range: Range.create(2, 0, 2, 0),
+          snippet: StringValue.createSnippet('foo')
         }
       ]
     }

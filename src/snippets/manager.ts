@@ -76,6 +76,12 @@ export class SnippetManager {
         return await this.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
       }
     }, true)
+    commands.register({
+      id: 'editor.action.insertBufferSnippets',
+      execute: async (bufnr: number, edits: SnippetEdit[], select = false) => {
+        return await this.insertBufferSnippets(bufnr, edits, select)
+      }
+    }, true)
   }
 
   private get nvim(): Neovim {

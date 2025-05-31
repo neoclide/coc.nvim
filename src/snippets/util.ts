@@ -1,4 +1,4 @@
-import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { Position, Range, StringValue } from 'vscode-languageserver-types'
 import type { CompleteOption, ExtendedCompleteItem, ISource } from '../completion/types'
 import { UltiSnipsActions } from '../types'
 import { defaultValue } from '../util'
@@ -195,9 +195,12 @@ export function getTextAfter(range: Range, text: string, pos: Position): string 
   return newLines.join('\n')
 }
 
-export function toSnippetString(snippet: string | SnippetString): string {
-  if (typeof snippet !== 'string' && !SnippetString.isSnippetString(snippet)) {
-    throw new TypeError(`snippet should be string or SnippetString`)
+export function toSnippetString(snippet: string | SnippetString | StringValue): string {
+  if (typeof snippet === 'string') {
+    return snippet
   }
-  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet
+  if (typeof snippet.value === 'string') {
+    return snippet.value
+  }
+  throw new TypeError(`snippet should be string has value as string`)
 }

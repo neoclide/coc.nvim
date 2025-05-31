@@ -37,17 +37,14 @@ describe('Plugin', () => {
 
 describe('exports', () => {
   it('should exports all types from vscode-languageserver-types', () => {
-    // TODO: remove inline types after inline completion added
+    // TODO: LanguageKind added in 3.18, we didn't use this yet
+    // TODO: CodeActionTag added in 3.18, but prpoposed
     const excludes = [
       'EOL',
       'URI',
       'TextDocument',
-      'StringValue',
-      'InlineCompletionItem',
-      'InlineCompletionList',
-      'InlineCompletionTriggerKind',
-      'SelectedCompletionInfo',
-      'InlineCompletionContext'
+      'LanguageKind',
+      'CodeActionTag',
     ]
     let list: string[] = []
     for (let key of Object.keys(vsTypes)) {

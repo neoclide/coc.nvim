@@ -740,8 +740,11 @@ declare module 'coc.nvim' {
      *
      * @since 3.16.0 - support for AnnotatedTextEdit. This is guarded using a
      * client capability.
+     *
+     * @since 3.18.0 - support for SnippetTextEdit. This is guarded using a
+     * client capability.
      */
-    edits: (TextEdit | AnnotatedTextEdit)[]
+    edits: (TextEdit | AnnotatedTextEdit | SnippetTextEdit)[]
   }
   /**
    * The TextDocumentEdit namespace provides helper function to create
@@ -3000,6 +3003,167 @@ declare module 'coc.nvim' {
      */
     readonly lineCount: uinteger
   }
+
+  /**
+   * Describes how an {@link InlineCompletionItemProvider inline completion provider} was triggered.
+   */
+  export namespace InlineCompletionTriggerKind {
+    /**
+     * Completion was triggered explicitly by a user gesture.
+     */
+    const Invoked: 1
+    /**
+     * Completion was triggered automatically while editing.
+     */
+    const Automatic: 2
+  }
+
+  export type InlineCompletionTriggerKind = 1 | 2
+
+  /**
+   * Describes the currently selected completion item.
+   */
+  export type SelectedCompletionInfo = {
+    /**
+     * The range that will be replaced if this completion item is accepted.
+     */
+    range: Range
+    /**
+     * The text the range will be replaced with if this completion is accepted.
+     */
+    text: string
+  }
+
+  export namespace SelectedCompletionInfo {
+    function create(range: Range, text: string): SelectedCompletionInfo
+  }
+
+  /**
+  * Provides information about the context in which an inline completion was requested.
+  */
+  export type InlineCompletionContext = {
+    /**
+    * Describes how the inline completion was triggered.
+    */
+    triggerKind: InlineCompletionTriggerKind
+    /**
+    * Provides information about the currently selected item in the autocomplete widget if it is visible.
+    */
+    selectedCompletionInfo?: SelectedCompletionInfo
+  }
+
+  export namespace InlineCompletionContext {
+    function create(triggerKind: InlineCompletionTriggerKind, selectedCompletionInfo?: SelectedCompletionInfo): InlineCompletionContext
+  }
+
+  /**
+   * A string value used as a snippet is a template which allows to insert text
+   * and to control the editor cursor when insertion happens.
+   *
+   * A snippet can define tab stops and placeholders with `$1`, `$2`
+   * and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+   * the end of the snippet. Variables are defined with `$name` and
+   * `${name:default value}`.
+   */
+  export type StringValue = {
+    /**
+     * The kind of string value.
+     */
+    kind: 'snippet'
+    /**
+     * The snippet string.
+     */
+    value: string
+  }
+
+  export namespace StringValue {
+    function createSnippet(value: string): StringValue
+    function isSnippet(value: any): value is StringValue
+  }
+  /**
+   * An inline completion item represents a text snippet that is proposed inline to complete text that is being typed.
+   */
+  export interface InlineCompletionItem {
+    /**
+     * The text to replace the range with. Must be set.
+     */
+    insertText: string | StringValue
+    /**
+     * A text that is used to decide if this inline completion should be shown. When `falsy` the {@link InlineCompletionItem.insertText} is used.
+     */
+    filterText?: string
+    /**
+     * The range to replace. Must begin and end on the same line.
+     */
+    range?: Range
+    /**
+     * An optional {@link Command} that is executed *after* inserting this completion.
+     */
+    command?: Command
+  }
+
+  export namespace InlineCompletionItem {
+    function create(insertText: string | StringValue, filterText?: string, range?: Range, command?: Command): InlineCompletionItem
+  }
+
+  /**
+   * Represents a collection of {@link InlineCompletionItem inline completion items} to be presented in the editor.
+   */
+  export interface InlineCompletionList {
+    /**
+     * The inline completion items
+     */
+    items: InlineCompletionItem[]
+  }
+  export namespace InlineCompletionList {
+    function create(items: InlineCompletionItem[]): InlineCompletionList
+  }
+
+  /**
+  * An interactive text edit.
+  */
+  export interface SnippetTextEdit {
+    /**
+    * The range of the text document to be manipulated.
+    */
+    range: Range
+    /**
+    * The snippet to be inserted.
+    */
+    snippet: StringValue
+    /**
+    * The actual identifier of the snippet edit.
+    */
+    annotationId?: ChangeAnnotationIdentifier
+  }
+
+  export namespace SnippetTextEdit {
+    function is(value: any): value is SnippetTextEdit
+  }
+
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export namespace ApplyKind {
+    /**
+     * The value from the individual item (if provided and not `null`) will be
+     * used instead of the default.
+     */
+    const Replace: 1
+    /**
+     * The value from the item will be merged with the default.
+     *
+     * The specific rules for mergeing values are defined against each field
+     * that supports merging.
+     */
+    const Merge: 2
+  }
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export type ApplyKind = 1 | 2
   // }}
 
   // Language server protocol interfaces {{
@@ -10987,7 +11151,7 @@ declare module 'coc.nvim' {
 
   export interface SnippetEdit {
     range: Range
-    snippet: string | SnippetString
+    snippet: string | SnippetString | StringValue
   }
 
   export interface UltiSnipsActions {
