@@ -38,19 +38,13 @@ describe('Plugin', () => {
 describe('exports', () => {
   it('should exports all types from vscode-languageserver-types', () => {
     // TODO: LanguageKind added in 3.18, we didn't use this yet
-    // TODO: CodeActionTag, ApplyKind added in 3.18, but prpoposed
-    // TODO: SnippetTextEdit(StringValue) added in 3.18, but prpoposed
-    // TODO: SelectedCompletionInfo added in 3.18, but prpoposed
+    // TODO: CodeActionTag added in 3.18, but prpoposed
     const excludes = [
       'EOL',
       'URI',
       'TextDocument',
       'LanguageKind',
-      'ApplyKind',
       'CodeActionTag',
-      'StringValue',
-      'SnippetTextEdit',
-      'SelectedCompletionInfo',
     ]
     let list: string[] = []
     for (let key of Object.keys(vsTypes)) {

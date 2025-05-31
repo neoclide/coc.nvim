@@ -3140,6 +3140,30 @@ declare module 'coc.nvim' {
   export namespace SnippetTextEdit {
     function is(value: any): value is SnippetTextEdit
   }
+
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export namespace ApplyKind {
+    /**
+     * The value from the individual item (if provided and not `null`) will be
+     * used instead of the default.
+     */
+    const Replace: 1
+    /**
+     * The value from the item will be merged with the default.
+     *
+     * The specific rules for mergeing values are defined against each field
+     * that supports merging.
+     */
+    const Merge: 2
+  }
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export type ApplyKind = 1 | 2
   // }}
 
   // Language server protocol interfaces {{
