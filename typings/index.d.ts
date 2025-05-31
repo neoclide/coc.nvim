@@ -3000,6 +3000,121 @@ declare module 'coc.nvim' {
      */
     readonly lineCount: uinteger
   }
+
+  /**
+   * Describes how an {@link InlineCompletionItemProvider inline completion provider} was triggered.
+   */
+  export namespace InlineCompletionTriggerKind {
+    /**
+     * Completion was triggered explicitly by a user gesture.
+     */
+    const Invoked: 1
+    /**
+     * Completion was triggered automatically while editing.
+     */
+    const Automatic: 2
+  }
+
+  export type InlineCompletionTriggerKind = 1 | 2
+
+  /**
+   * Describes the currently selected completion item.
+   */
+  export type SelectedCompletionInfo = {
+    /**
+     * The range that will be replaced if this completion item is accepted.
+     */
+    range: Range
+    /**
+     * The text the range will be replaced with if this completion is accepted.
+     */
+    text: string
+  }
+
+  export namespace SelectedCompletionInfo {
+    function create(range: Range, text: string): SelectedCompletionInfo
+  }
+
+  /**
+  * Provides information about the context in which an inline completion was requested.
+  */
+  export type InlineCompletionContext = {
+    /**
+    * Describes how the inline completion was triggered.
+    */
+    triggerKind: InlineCompletionTriggerKind
+    /**
+    * Provides information about the currently selected item in the autocomplete widget if it is visible.
+    */
+    selectedCompletionInfo?: SelectedCompletionInfo
+  }
+
+  export namespace InlineCompletionContext {
+    function create(triggerKind: InlineCompletionTriggerKind, selectedCompletionInfo?: SelectedCompletionInfo): InlineCompletionContext
+  }
+
+  /**
+   * A string value used as a snippet is a template which allows to insert text
+   * and to control the editor cursor when insertion happens.
+   *
+   * A snippet can define tab stops and placeholders with `$1`, `$2`
+   * and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+   * the end of the snippet. Variables are defined with `$name` and
+   * `${name:default value}`.
+   */
+  export type StringValue = {
+    /**
+     * The kind of string value.
+     */
+    kind: 'snippet'
+    /**
+     * The snippet string.
+     */
+    value: string
+  }
+
+  export namespace StringValue {
+    function createSnippet(value: string): StringValue
+    function isSnippet(value: any): value is StringValue
+  }
+  /**
+   * An inline completion item represents a text snippet that is proposed inline to complete text that is being typed.
+   */
+  export interface InlineCompletionItem {
+    /**
+     * The text to replace the range with. Must be set.
+     */
+    insertText: string | StringValue
+    /**
+     * A text that is used to decide if this inline completion should be shown. When `falsy` the {@link InlineCompletionItem.insertText} is used.
+     */
+    filterText?: string
+    /**
+     * The range to replace. Must begin and end on the same line.
+     */
+    range?: Range
+    /**
+     * An optional {@link Command} that is executed *after* inserting this completion.
+     */
+    command?: Command
+  }
+
+  export namespace InlineCompletionItem {
+    function create(insertText: string | StringValue, filterText?: string, range?: Range, command?: Command): InlineCompletionItem
+  }
+
+  /**
+   * Represents a collection of {@link InlineCompletionItem inline completion items} to be presented in the editor.
+   */
+  export interface InlineCompletionList {
+    /**
+     * The inline completion items
+     */
+    items: InlineCompletionItem[]
+  }
+  export namespace InlineCompletionList {
+    function create(items: InlineCompletionItem[]): InlineCompletionList
+  }
   // }}
 
   // Language server protocol interfaces {{
