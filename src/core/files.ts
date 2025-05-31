@@ -1,20 +1,22 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
-import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, SnippetTextEdit, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../commands'
 import Configurations from '../configuration'
 import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
+import type { SnippetEdit } from '../snippets/session'
 import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path } from '../util/node'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
-import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
+import { createFilteredChanges, getConfirmAnnotations, getRevertEdit, mergeSortEdits, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
 import Documents from './documents'
 import type Keymaps from './keymaps'
@@ -530,8 +532,22 @@ export default class Files {
           let { textDocument, edits } = change
           let { uri } = textDocument
           let doc = await this.loadResource(uri)
-          // TODO: filter SnippetTextEdit for now
-          let revertEdit = await doc.applyEdits(edits.filter(edit => 'newText' in edit), false, uri === currentUri)
+          let revertEdit: TextEdit | undefined
+          if (edits.some(o => SnippetTextEdit.is(o))) {
+            // convert all to SnippetEdit
+            let snippetEdits: SnippetEdit[] = mergeSortEdits(edits.map(edit => {
+              if (SnippetTextEdit.is(edit)) {
+                return { range: edit.range, snippet: edit.snippet.value }
+              }
+              return { range: edit.range, snippet: edit.newText }
+            }))
+            let oldLines = doc.textDocument.lines
+            await commands.executeCommand('editor.action.insertBufferSnippets', doc.bufnr, snippetEdits, doc.bufnr === events.bufnr)
+            let startLine = snippetEdits[0].range.start.line
+            revertEdit = getRevertEdit(oldLines, doc.textDocument.lines, startLine)
+          } else {
+            revertEdit = await doc.applyEdits(edits as TextEdit[], false, uri === currentUri)
+          }
           if (revertEdit) {
             let version = doc.version
             let { newText, range } = revertEdit
