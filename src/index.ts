@@ -1,6 +1,6 @@
 'use strict'
 import {
-  AnnotatedTextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, CodeAction, CodeActionContext, CodeActionKind,
+  AnnotatedTextEdit, ApplyKind, ChangeAnnotation, ChangeAnnotationIdentifier, CodeAction, CodeActionContext, CodeActionKind,
   CodeActionTriggerKind, CodeDescription, CodeLens, Color,
   ColorInformation,
   ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
@@ -8,13 +8,15 @@ import {
   InlayHintLabelPart,
   InlineCompletionContext, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind,
   InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
-  InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer, Location,
+  InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer,
+  Location,
   LocationLink, MarkedString, MarkupContent, MarkupKind, OptionalVersionedTextDocumentIdentifier, ParameterInformation, Position,
   Range, RenameFile,
   SelectedCompletionInfo,
   SelectionRange, SemanticTokenModifiers,
   SemanticTokens, SemanticTokenTypes, SignatureInformation,
   SnippetTextEdit,
+  StringValue,
   SymbolInformation, SymbolKind, SymbolTag, TextDocumentEdit, TextDocumentIdentifier, TextDocumentItem, TextEdit, uinteger, VersionedTextDocumentIdentifier, WorkspaceChange, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbol
 } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -99,6 +101,7 @@ module.exports = {
   CancellationError,
   WorkspaceChange,
   ResponseError,
+  StringValue,
   SnippetTextEdit,
   Trace,
   DocumentUri,
@@ -213,6 +216,7 @@ module.exports = {
   listManager,
   TreeItemCollapsibleState,
   DiagnosticPullMode,
+  ApplyKind,
   terminate,
   fetch,
   download,
