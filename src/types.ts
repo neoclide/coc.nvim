@@ -178,6 +178,7 @@ export interface Env {
   readonly locationlist: boolean
   readonly progpath: string
   readonly dialog: boolean
+  readonly terminal: boolean
   readonly textprop: boolean
   readonly vimCommands: CommandConfig[]
   readonly semanticHighlights: string[]

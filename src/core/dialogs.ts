@@ -6,15 +6,16 @@ import InputBox, { InputPreference } from '../model/input'
 import Menu, { MenuItem } from '../model/menu'
 import Picker, { toPickerItems } from '../model/picker'
 import QuickPick from '../model/quickpick'
-import { QuickPickItem } from '../types'
+import { Env, QuickPickItem } from '../types'
 import { defaultValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { floatHighlightGroup } from '../util/constants'
 import { Mutex } from '../util/mutex'
 import { toNumber } from '../util/numbers'
+import { isWindows } from '../util/platform'
 import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
-import { callAsync, PartialEnv } from './funcs'
+import { callAsync } from './funcs'
 import { showPrompt } from './ui'
 export type Item = QuickPickItem | string
 export type InputOptions = Pick<InputPreference, 'borderhighlight' | 'position' | 'marginTop' | 'placeHolder'>
@@ -164,10 +165,11 @@ export class Dialogs {
     })
   }
 
-  public async requestInput(title: string, _env: PartialEnv, value?: string, option?: InputOptions): Promise<string | undefined> {
+  public async requestInput(title: string, env: Env, value?: string, option?: InputOptions): Promise<string | undefined> {
     let { nvim } = this
+    let noPompt = !env.terminal || !env.dialog || (env.isVim && isWindows && !env.isCygwin)
     const promptInput = this.configuration.get('coc.preferences.promptInput')
-    if (promptInput) {
+    if (promptInput && !noPompt) {
       return await this.mutex.use(async () => {
         let input = new InputBox(nvim, toText(value))
         await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})))

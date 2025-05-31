@@ -8566,6 +8566,10 @@ declare module 'coc.nvim' {
      */
     readonly dialog: boolean
     /**
+     * Is true when terminal feature is supported
+     */
+    readonly terminal: boolean
+    /**
      * Is true when vim's textprop is supported.
      */
     readonly textprop: boolean

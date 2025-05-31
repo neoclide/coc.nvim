@@ -117,6 +117,7 @@ function! coc#dialog#_create_prompt_vim(title, default, opts) abort
         \ 'hidden': 1,
         \ 'term_finish': 'close',
         \ 'norestore': 1,
+        \ 'tty_type': 'conpty',
         \ 'term_highlight': 'CocPopupTerminal'
         \ }
   let bufnr = term_start([node, s:root . '/bin/prompt.js', a:default, empty(placeHolder) ? '' : placeHolder], opt)
