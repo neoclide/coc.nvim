@@ -3,7 +3,9 @@ import type {
   ClientCapabilities, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileEvent, RegistrationType,
   ServerCapabilities
 } from 'vscode-languageserver-protocol'
-import { IFileSystemWatcher, GlobPattern } from '../types'
+import { URI } from 'vscode-uri'
+import RelativePatternImpl from '../model/relativePattern'
+import { GlobPattern, IFileSystemWatcher } from '../types'
 import { getConditionValue } from '../util'
 import * as Is from '../util/is'
 import { debounce } from '../util/node'
@@ -11,8 +13,6 @@ import { DidChangeWatchedFilesNotification, FileChangeType, RelativePattern, Wat
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
-import RelativePatternImpl from '../model/relativePattern'
-import { URI } from 'vscode-uri'
 
 export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void

@@ -39,7 +39,7 @@ import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbo
 import { ExecuteCommandFeature, ExecuteCommandMiddleware } from './executeCommand'
 import { Connection, DynamicFeature, ensure, FeatureClient, LSPCancellationError, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, FileOperationsMiddleware, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
-import { DidChangeWatchedFileSignature, FileSystemWatcherFeature, FileSystemWatcherMiddleware } from './fileSystemWatcher'
+import { DidChangeWatchedFileSignature, FileSystemWatcherFeature } from './fileSystemWatcher'
 import { FoldingRangeFeature, FoldingRangeProviderMiddleware } from './foldingRange'
 import { $FormattingOptions, DocumentFormattingFeature, DocumentOnTypeFormattingFeature, DocumentRangeFormattingFeature, FormattingMiddleware } from './formatting'
 import { HoverFeature, HoverMiddleware } from './hover'
@@ -160,7 +160,7 @@ interface _WorkspaceMiddleware {
   handleApplyEdit?: (this: void, params: ApplyWorkspaceEditParams, next: ApplyWorkspaceEditRequest.HandlerSignature) => HandlerResult<ApplyWorkspaceEditResult, void>
 }
 
-export type WorkspaceMiddleware = _WorkspaceMiddleware & DidChangeConfigurationMiddleware & FileSystemWatcherMiddleware & ConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
+export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationMiddleware & DidChangeConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
 
 export interface _WindowMiddleware {
   showDocument?: ShowDocumentRequest.MiddlewareSignature
@@ -1732,14 +1732,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     // This is some sort of workaround since the version check should be done by VS Code in the Workspace.applyEdit.
     // However doing it here adds some safety since the server can lag more behind then an extension.
     let workspaceEdit: WorkspaceEdit = params.edit
-    let openTextDocuments: Map<string, TextDocument> = new Map<string, TextDocument>()
-    workspace.textDocuments.forEach(document => openTextDocuments.set(document.uri.toString(), document))
     let versionMismatch = false
     if (workspaceEdit.documentChanges) {
       for (const change of workspaceEdit.documentChanges) {
         if (TextDocumentEdit.is(change) && change.textDocument.version && change.textDocument.version >= 0) {
-          let textDocument = openTextDocuments.get(change.textDocument.uri)
-          if (textDocument && textDocument.version !== change.textDocument.version) {
+          let doc = workspace.getDocument(change.textDocument.uri)
+          if (doc && (doc.version !== change.textDocument.version || doc.hasChanged)) {
             versionMismatch = true
             break
           }
