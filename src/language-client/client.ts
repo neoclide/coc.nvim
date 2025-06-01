@@ -10,7 +10,7 @@ import { createLogger } from '../logger'
 import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
-import { defaultValue, getConditionValue } from '../util'
+import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError, onUnexpectedError } from '../util/errors'
 import { parseExtensionName } from '../util/extensionRegistry'
@@ -1257,11 +1257,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
-      if (this._onStop !== undefined) {
-        return this._onStop
-      } else {
-        throw new Error(`Client is stopping but no stop promise available.`)
-      }
+      return this._onStop ?? Promise.resolve()
     }
 
     const connection = this.activeConnection()
@@ -1320,13 +1316,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private cleanUp(mode: ShutdownMode): void {
     if (this._listeners) {
-      this._listeners.forEach(listener => listener.dispose())
-      this._listeners = []
-    }
-
-    const disposables = this._listeners.splice(0, this._listeners.length)
-    for (const disposable of disposables) {
-      disposable.dispose()
+      disposeAll(this._listeners)
     }
 
     if (this._syncedDocuments) {
@@ -1435,14 +1425,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public async handleConnectionError(error: Error, message: Message | undefined, count: number): Promise<void> {
     let res = await this._clientOptions.errorHandler!.error(error, message, count)
-    let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : res
+    let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : res ?? { action: ErrorAction.Shutdown }
     if (result.action === ErrorAction.Shutdown) {
-      const msg = `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
-      this.error(result.message ?? msg, error, result.handled === true ? false : 'force')
-      this.stop().catch(this.error.bind(this, `Stopping server failed`))
+      const msg = result.message ?? `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
+      this.error(msg, error, result.handled === true ? false : 'force')
+      this.stop().catch(error => {
+        this.error(`Stopping server failed`, error, false)
+      })
     } else {
-      const msg = `Client ${this._name}: connection to server is erroring.\n${error.message}`
-      this.error(result.message ?? msg, error, result.handled === true ? false : 'force')
+      const msg = result.message ?? `Client ${this._name}: connection to server is erroring.\n${error.message}`
+      this.error(msg, error, result.handled === true ? false : 'force')
     }
   }
 
