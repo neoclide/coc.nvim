@@ -28,6 +28,7 @@ import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from './model/fuzzyMatch'
 import Mru from './model/mru'
 import StatusLine from './model/status'
 import { StrWidth } from './model/strwidth'
+import TabsModel from './model/tabs'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
@@ -73,6 +74,7 @@ export class Workspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  public readonly tabs: TabsModel
   public readonly isTrusted = true
   public statusLine = new StatusLine()
   private _onDidRuntimePathChange = new Emitter<string[]>()
@@ -104,6 +106,7 @@ export class Workspace {
     this.keymaps = new Keymaps()
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
+    this.tabs = new TabsModel(this.editors)
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
     this.onDidChangeConfiguration = this.configurations.onDidChange
     this.onDidOpenTextDocument = documents.onDidOpenTextDocument
@@ -195,6 +198,7 @@ export class Workspace {
     })
     await this.documentsManager.attach(this.nvim, this._env)
     await this.editors.attach(nvim)
+    this.tabs.attach()
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
     if (this.strWdith) this.strWdith.setAmbw(!env.ambiguousIsNarrow)
