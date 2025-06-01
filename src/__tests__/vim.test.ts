@@ -57,8 +57,14 @@ async function createTmpFile(content: string, disposables?: Disposable[]): Promi
   }
   return fsPath
 }
-describe('vim api', () => {
 
+describe('workspace', () => {
+  it('should not has nvim feature', () => {
+    expect(helper.workspace.has('nvim-0.4.0')).toBe(false)
+  })
+})
+
+describe('vim api', () => {
   it('should start server', async () => {
     await nvim.setLine('foobar')
     let buf = await nvim.buffer

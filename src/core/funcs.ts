@@ -8,7 +8,7 @@ import { isVim } from '../util/constants'
 import * as fs from '../util/fs'
 import { minimatch, os, path, semver, which } from '../util/node'
 import * as platform from '../util/platform'
-import { TextDocumentFilter } from '../util/protocol'
+import { RelativePattern, TextDocumentFilter } from '../util/protocol'
 let NAME_SPACE = 2000
 const resolver = new Resolver()
 
@@ -87,6 +87,7 @@ export function resolveModule(name: string): Promise<string> {
 }
 
 export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string, caseInsensitive = platform.isWindows || platform.isMacintosh): number {
+  let u = URI.parse(uri)
   if (Array.isArray(selector)) {
     // array -> take max individual value
     let ret = 0
@@ -112,7 +113,6 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
       return 0
     }
   } else if (selector && TextDocumentFilter.is(selector)) {
-    let u = URI.parse(uri)
     // filter -> select accordingly, use defaults for scheme
     const { language, pattern, scheme } = selector
     let ret = 0
@@ -135,10 +135,18 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
         return 0
       }
     }
-
     if (pattern) {
-      const realPattern = typeof pattern === 'string' ? pattern : pattern.pattern
-      let p = caseInsensitive ? realPattern.toLowerCase() : realPattern
+      let relativePattern: string
+      if (RelativePattern.is(pattern)) {
+        relativePattern = pattern.pattern
+        let baseUri = URI.parse(typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri)
+        if (u.scheme !== 'file' || !fs.isParentFolder(baseUri.fsPath, u.fsPath, true)) {
+          return 0
+        }
+      } else {
+        relativePattern = pattern
+      }
+      let p = caseInsensitive ? relativePattern.toLowerCase() : relativePattern
       let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
       if (p === f || minimatch(f, p, { dot: true })) {
         ret = Math.max(ret, 5)
@@ -146,7 +154,6 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
         return 0
       }
     }
-
     return ret
   } else {
     return 0
