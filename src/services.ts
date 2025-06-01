@@ -552,6 +552,8 @@ export function stateString(state: State): string {
       return 'starting'
     case State.Stopped:
       return 'stopped'
+    case State.StartFailed:
+      return 'startFailed'
     default:
       return 'unknown'
   }

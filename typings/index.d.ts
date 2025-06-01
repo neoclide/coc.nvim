@@ -12316,19 +12316,12 @@ declare module 'coc.nvim' {
   export enum State {
     Stopped = 1,
     Running = 2,
-    Starting = 3
+    Starting = 3,
+    StartFailed = 4,
   }
   export interface StateChangeEvent {
     oldState: State
     newState: State
-  }
-  export enum ClientState {
-    Initial = 0,
-    Starting = 1,
-    StartFailed = 2,
-    Running = 3,
-    Stopping = 4,
-    Stopped = 5
   }
   export interface RegistrationData<T> {
     id: string

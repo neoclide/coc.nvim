@@ -524,12 +524,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public getPublicState(): State {
-    if (this.$state === ClientState.Running) {
-      return State.Running
-    } else if (this.$state === ClientState.Starting) {
-      return State.Starting
-    } else {
-      return State.Stopped
+    switch (this.$state) {
+      case ClientState.Starting:
+        return State.Starting
+      case ClientState.Running:
+        return State.Running
+      case ClientState.StartFailed:
+        return State.StartFailed
+      default:
+        return State.Stopped
     }
   }
 
@@ -544,7 +547,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
   public sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
   public async sendRequest<R>(type: string | MessageSignature, ...params: any[]): Promise<R> {
-    this.checkState()
+    if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
+      return Promise.reject(new ResponseError(ErrorCodes.ConnectionInactive, `Client is not running`))
+    }
     try {
       const connection = await this.$start()
       // Send only depending open notifications
@@ -645,6 +650,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public async sendNotification<P>(type: string | MessageSignature, params?: P): Promise<void> {
     if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
       // not throw for notification
+      this.error(`Client is not running when send notification`, type)
       return
     }
     try {
@@ -751,7 +757,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public async sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void> {
-    this.checkState()
+    if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
+      return Promise.reject(new ResponseError(ErrorCodes.ConnectionInactive, `Client is not running`))
+    }
     try {
       const connection = await this.$start()
       await connection.sendProgress(type, token, value)
@@ -1422,12 +1430,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._onStop = Promise.resolve()
       this._onStart = undefined
       this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
-    }
-  }
-
-  private checkState() {
-    if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
-      throw new ResponseError(ErrorCodes.ConnectionInactive, `Client is not running`)
     }
   }
 
