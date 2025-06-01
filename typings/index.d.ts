@@ -5514,6 +5514,7 @@ declare module 'coc.nvim' {
     LinkedEditing = 'linkedEditing',
     InlayHint = 'inlayHint',
     InlineValue = 'inlineValue',
+    InlineCompletion = 'inlineCompletion',
     TypeHierarchy = 'typeHierarchy'
   }
 

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 'use strict'
-import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, TextEdit, TypeHierarchyItem, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-types'
 import type { Sources } from './completion/sources'
@@ -38,7 +37,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
-import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
+import { CancellationToken, Disposable, Emitter, Event, InlineCompletionContext, InlineCompletionItem, LinkedEditingRanges, SignatureHelpContext } from './util/protocol'
 import { toText } from './util/string'
 
 const eventDebounce = getConditionValue(100, 1)
@@ -410,6 +409,10 @@ class Languages {
 
   public async provideColorPresentations(color: ColorInformation, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[] | null> {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
+  }
+
+  public async provideInlineCompletionItems(document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
+    return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token)
   }
 
   public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<(CodeLens | null)[]> {
