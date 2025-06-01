@@ -6,6 +6,7 @@ import { Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import type { WorkspaceConfiguration } from '../configuration/types'
+import { callAsync } from '../core/funcs'
 import { PatternType } from '../core/workspaceFolder'
 import extensions from '../extension'
 import languages, { ProviderName } from '../languages'
@@ -165,7 +166,7 @@ export default class WorkspaceHandler {
   public async renameCurrent(): Promise<void> {
     let { nvim } = this
     let oldPath = await nvim.call('coc#util#get_fullpath', []) as string
-    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
+    let newPath = await callAsync(nvim, 'input', ['New path: ', oldPath, 'file']) as string
     newPath = newPath.trim()
     if (newPath === oldPath || !newPath) return
     if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {

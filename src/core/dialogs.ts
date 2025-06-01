@@ -182,11 +182,9 @@ export class Dialogs {
         })
       })
     } else {
-      return await this.mutex.use(async () => {
-        let res = await callAsync<string>(this.nvim, 'input', [title + ': ', toText(value)])
-        nvim.command('normal! :<C-u>', true)
-        return res
-      })
+      let res = await callAsync<string>(this.nvim, 'input', [title + ': ', toText(value)])
+      nvim.command('normal! :<C-u>', true)
+      return res
     }
   }
 
@@ -195,12 +193,10 @@ export class Dialogs {
    */
   public async requestInputList(prompt: string, items: string[]): Promise<number> {
     let { nvim } = this
-    return await this.mutex.use(async () => {
-      let list = items.map((text, i) => `${i + 1}. ${text}`)
-      let res = await callAsync<number>(this.nvim, 'inputlist', [[`${prompt}:`, ...list]])
-      nvim.command('normal! :<C-u>', true)
-      return res >= 1 && res <= items.length ? res - 1 : -1
-    })
+    let list = items.map((text, i) => `${i + 1}. ${text}`)
+    let res = await callAsync<number>(this.nvim, 'inputlist', [[`${prompt}:`, ...list]])
+    nvim.command('normal! :<C-u>', true)
+    return res >= 1 && res <= items.length ? res - 1 : -1
   }
 
   public async createInputBox(title: string, value: string | undefined, option?: InputPreference): Promise<InputBox> {

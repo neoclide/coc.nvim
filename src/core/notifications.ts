@@ -9,7 +9,7 @@ import { parseExtensionName } from '../util/extensionRegistry'
 import { toNumber } from '../util/numbers'
 import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
-import { Dialogs } from './dialogs'
+import { callAsync } from './funcs'
 import { echoMessages, MsgTypes } from './ui'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
@@ -103,7 +103,7 @@ export class Notifications {
     }
     let titles = toTitles(items)
     let choices = titles.map((s, i) => `${i + 1}${s}`)
-    let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]]) as number
+    let res = await callAsync(this.nvim, 'confirm', [message, choices.join('\n'), 0, kind]) as number
     return items[res - 1]
   }
 
