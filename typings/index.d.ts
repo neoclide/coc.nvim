@@ -9442,7 +9442,7 @@ declare module 'coc.nvim' {
     export function callAsync<T>(method: string, args: any[]): Promise<T>
 
     /**
-     * registerTextDocumentContentProvider
+     * Register TextDocumentContentProvider for custom scheme
      */
     export function registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
 
@@ -12819,6 +12819,12 @@ declare module 'coc.nvim' {
 
   export interface DidCloseTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, { textDocument: { uri: string } }> {}
 
+  export interface TextDocumentContentProviderShape {
+    scheme: string
+    onDidChangeEmitter: Emitter<Uri>
+    provider: TextDocumentContentProvider
+  }
+
   export interface WorkspaceProviderFeature<PR> {
     getProviders(): PR[] | undefined
   }
@@ -13050,6 +13056,7 @@ declare module 'coc.nvim' {
     getFeature(request: 'textDocument/inlineValue'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
     getFeature(request: 'textDocument/inlayHint'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
     getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
+    getFeature(request: 'workspace/textDocumentContent'): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<TextDocumentContentProviderShape>
   }
 
   /**
