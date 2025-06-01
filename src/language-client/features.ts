@@ -380,7 +380,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   private _listener: Disposable | undefined
   protected readonly _selectors: Map<string, DocumentSelector>
-  private readonly _onNotificationSent: Emitter<NotificationSendEvent<E, P>>
+  private _onNotificationSent: Emitter<NotificationSendEvent<E, P>>
 
   public static textDocumentFilter(
     selectors: IterableIterator<DocumentSelector>,
@@ -432,14 +432,14 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     if (!this.matches(data)) return
     const doSend = async (data: E): Promise<void> => {
       const params = this._createParams(data)
-      await this._client.sendNotification(this._type, params).catch()
+      await this._client.sendNotification(this._type, params)
       this.notificationSent(data, this._type, params)
     }
     const middleware = this._client.middleware[this._middleware]
     return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
   }
 
-  private matches(data: E): boolean {
+  protected matches(data: E): boolean {
     return !this._selectorFilter || this._selectorFilter(this._selectors.values(), data)
   }
 
@@ -458,6 +458,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   public dispose(): void {
     this._selectors.clear()
     this._onNotificationSent.dispose()
+    this._onNotificationSent = new Emitter<NotificationSendEvent<E, P>>()
     if (this._listener) {
       this._listener.dispose()
       this._listener = undefined

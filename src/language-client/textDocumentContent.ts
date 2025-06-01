@@ -125,11 +125,4 @@ export class TextDocumentContentFeature implements DynamicFeature<TextDocumentCo
     })
     this._registrations.clear()
   }
-
-  public clear(): void {
-    this._registrations.forEach(registration => {
-      registration.disposable.dispose()
-    })
-    this._registrations.clear()
-  }
 }

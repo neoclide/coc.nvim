@@ -1,5 +1,5 @@
 'use strict'
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HandlerResult, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineCompletionRequest, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentContentRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HandlerResult, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineCompletionRequest, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentContentRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { Diagnostic, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -241,7 +241,6 @@ export type LanguageClientOptions = {
     isTrusted?: boolean
     supportHtml?: boolean
   }
-  // TODO not used yet.
   textSynchronization?: {
     /**
      * Delays sending the open notification until one of the following
@@ -352,6 +351,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private readonly _progressHandlers: Map<string | number, { type: ProgressType<any>; handler: NotificationHandler<any> }>
   private readonly _pendingProgressHandlers: Map<string | number, { type: ProgressType<any>; handler: NotificationHandler<any> }>
   private readonly _progressDisposables: Map<string | number, Disposable>
+  private _didOpenTextDocumentFeature: DidOpenTextDocumentFeature | undefined
 
   private _listeners: Disposable[]
   private _diagnostics: DiagnosticCollection | undefined
@@ -473,11 +473,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       middleware: clientOptions.middleware ?? {},
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
-      textSynchronization: {
-        delayOpenNotifications: clientOptions.textSynchronization?.delayOpenNotifications === true
-      },
+      textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
       markdown
     }
+  }
+
+  private createTextSynchronizationOptions(options: LanguageClientOptions['textSynchronization']): ResolvedClientOptions['textSynchronization'] {
+    if (options && typeof options.delayOpenNotifications === 'boolean') {
+      return { delayOpenNotifications: options.delayOpenNotifications }
+    }
+    return { delayOpenNotifications: false }
   }
 
   public get supportedMarkupKind(): MarkupKind[] {
@@ -542,6 +547,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.checkState()
     try {
       const connection = await this.$start()
+      // Send only depending open notifications
+      await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications()
 
       let param: any | undefined
       let token: CancellationToken | undefined
@@ -641,9 +648,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       return
     }
     try {
+      let documentToClose: string | undefined
+      if (typeof type !== 'string' && type.method === DidCloseTextDocumentNotification.method) {
+        documentToClose = (params as DidCloseTextDocumentParams).textDocument.uri
+      }
       const connection = await this.$start()
-      const _sendNotification = this._clientOptions.middleware?.sendNotification
+      // Send only depending open notifications
+      await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
 
+      const _sendNotification = this._clientOptions.middleware?.sendNotification
       return _sendNotification
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)
         : connection.sendNotification(type, params)
@@ -1557,7 +1570,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   protected registerBuiltinFeatures() {
     this.registerFeature(new SyncConfigurationFeature(this), 'configuration')
-    this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments), 'document')
+    this._didOpenTextDocumentFeature = new DidOpenTextDocumentFeature(this, this._syncedDocuments)
+    this.registerFeature(this._didOpenTextDocumentFeature, 'document')
     this.registerFeature(new DidChangeTextDocumentFeature(this), 'document')
     this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments), 'document')
     this.registerFeature(new WillSaveFeature(this), 'willSave')
