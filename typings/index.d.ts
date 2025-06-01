@@ -12170,7 +12170,25 @@ declare module 'coc.nvim' {
     window?: WindowMiddleware
   }
 
-  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware
+  // A general middleware is applied to both requests and notifications
+  interface GeneralMiddleware {
+    sendRequest?<P, R>(
+      this: void,
+      type: string | MessageSignature,
+      param: P | undefined,
+      token: CancellationToken | undefined,
+      next: (type: string | MessageSignature, param?: P, token?: CancellationToken) => Promise<R>,
+    ): Promise<R>
+
+    sendNotification?<R>(
+      this: void,
+      type: string | MessageSignature,
+      next: (type: string | MessageSignature, params?: R) => Promise<void>,
+      params: R
+    ): Promise<void>
+  }
+
+  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware
 
   export interface ConnectionOptions {
     maxRestartCount?: number
