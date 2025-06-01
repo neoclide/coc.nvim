@@ -10,9 +10,9 @@ import { createLogger } from '../logger'
 import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
-import { defaultValue } from '../util'
+import { defaultValue, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
-import { CancellationError } from '../util/errors'
+import { CancellationError, onUnexpectedError } from '../util/errors'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { sameFile } from '../util/fs'
 import * as Is from '../util/is'
@@ -550,53 +550,48 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
       return Promise.reject(new ResponseError(ErrorCodes.ConnectionInactive, `Client is not running`))
     }
-    try {
-      const connection = await this.$start()
-      // Send only depending open notifications
-      await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications()
+    const connection = await this.$start()
+    // Send only depending open notifications
+    await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications()
 
-      let param: any | undefined
-      let token: CancellationToken | undefined
-      // Separate cancellation tokens from other parameters for a better client interface
-      if (params.length === 1) {
-        // CancellationToken is an interface, so we need to check if the first param complies to it
-        if (CancellationToken.is(params[0])) {
-          token = params[0]
-        } else {
-          param = params[0]
-        }
-      } else if (params.length === 2) {
-        param = params[0]
-        token = params[1]
-      }
-      if (token !== undefined && token.isCancellationRequested) {
-        return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
-      }
-      const _sendRequest = this._clientOptions.middleware?.sendRequest
-      if (_sendRequest !== undefined) {
-        // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
-        // pass them to the original sendRequest function.
-        return _sendRequest(type, param, token, (type, param, token) => {
-          const params: any[] = []
-
-          // Add the parameters if there are any
-          if (param !== undefined) {
-            params.push(param)
-          }
-
-          // Add the cancellation token if there is one
-          if (token !== undefined) {
-            params.push(token)
-          }
-
-          return connection.sendRequest<R>(type, ...params)
-        })
+    let param: any | undefined
+    let token: CancellationToken | undefined
+    // Separate cancellation tokens from other parameters for a better client interface
+    if (params.length === 1) {
+      // CancellationToken is an interface, so we need to check if the first param complies to it
+      if (CancellationToken.is(params[0])) {
+        token = params[0]
       } else {
-        return connection.sendRequest<R>(type, ...params)
+        param = params[0]
       }
-    } catch (error) {
-      this.error(`Sending request ${toMethod(type)} failed.`, error)
-      throw error
+    } else if (params.length === 2) {
+      param = params[0]
+      token = params[1]
+    }
+    if (token !== undefined && token.isCancellationRequested) {
+      return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
+    }
+    const _sendRequest = this._clientOptions.middleware?.sendRequest
+    if (_sendRequest !== undefined) {
+      // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
+      // pass them to the original sendRequest function.
+      return _sendRequest(type, param, token, (type, param, token) => {
+        const params: any[] = []
+
+        // Add the parameters if there are any
+        if (param !== undefined) {
+          params.push(param)
+        }
+
+        // Add the cancellation token if there is one
+        if (token !== undefined) {
+          params.push(token)
+        }
+
+        return connection.sendRequest<R>(type, ...params)
+      })
+    } else {
+      return connection.sendRequest<R>(type, ...params)
     }
   }
 
@@ -875,7 +870,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       : type === MessageType.Warning
         ? window.showWarningMessage.bind(window)
         : window.showInformationMessage.bind(window)
-    void messageFunc(message)
+    let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(undefined))
+    fn(message, { title: 'Go to output' }).then(selection => {
+      if (selection !== undefined) {
+        this.outputChannel.show(true)
+      }
+    }, onUnexpectedError)
   }
 
   public needsStart(): boolean {
