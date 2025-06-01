@@ -221,7 +221,7 @@ describe('Client events', () => {
         },
         closed: () => {
           called = true
-          return { action: CloseAction.DoNotRestart, handled: true }
+          return CloseAction.DoNotRestart
         }
       },
       initializationOptions: { initEvent: true }
@@ -238,7 +238,7 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return called
     }, true)
-    void client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
+    await client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
   })
 
   it('should handle message events', async () => {
@@ -456,10 +456,10 @@ describe('Client integration', () => {
       stdioEncoding: 'utf8',
       errorHandler: {
         error: () => {
-          return { action: lsclient.ErrorAction.Continue, handled: true }
+          return lsclient.ErrorAction.Continue
         },
         closed: () => {
-          return { action: lsclient.CloseAction.DoNotRestart, handled: true }
+          return lsclient.CloseAction.DoNotRestart
         }
       },
       progressOnInitialization: true,
@@ -470,9 +470,7 @@ describe('Client integration', () => {
     assert.strictEqual(client.name, 'Test Language Server')
     assert.strictEqual(client.diagnostics, undefined)
     client.trace = Trace.Verbose
-    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
-      return Promise.resolve()
-    })
+    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockReturnValue(Promise.resolve())
     let d = client.start()
     let s = new CancellationTokenSource()
     s.cancel()
@@ -506,6 +504,7 @@ describe('Client integration', () => {
     let err = new ResponseError(LSPErrorCodes.RequestCancelled, 'response error')
     client.logFailedRequest('', err)
     assert.strictEqual(client.diagnostics, undefined)
+    await client.handleConnectionError(new Error('test'), undefined, 0)
     spy.mockReset()
     d.dispose()
   })

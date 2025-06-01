@@ -11613,6 +11613,46 @@ declare module 'coc.nvim' {
      */
     Restart = 2
   }
+
+  export interface CloseHandlerResult {
+    /**
+    * The action to take.
+    */
+    action: CloseAction
+
+    /**
+    * An optional message to be presented to the user.
+    */
+    message?: string
+
+    /**
+    * If set to true the client assumes that the corresponding
+    * close handler has presented an appropriate message to the
+    * user and the message will only be log to the client's
+    * output channel.
+    */
+    handled?: boolean
+  }
+
+  export interface ErrorHandlerResult {
+    /**
+    * The action to take.
+    */
+    action: ErrorAction
+
+    /**
+    * An optional message to be presented to the user.
+    */
+    message?: string
+
+    /**
+    * If set to true the client assumes that the corresponding
+    * error handler has presented an appropriate message to the
+    * user and the message will only be log to the client's
+    * output channel.
+    */
+    handled?: boolean
+  }
   /**
    * A pluggable error handler that is invoked when the connection is either
    * producing errors or got closed.
@@ -11626,12 +11666,14 @@ declare module 'coc.nvim' {
      * @param count - a count indicating how often an error is received. Will
      *  be reset if a message got successfully send or received.
      */
-    error(error: Error, message: { jsonrpc: string }, count: number): ErrorAction
+    error(error: Error, message: { jsonrpc: string }, count: number): ErrorAction | ErrorHandlerResult | Promise<ErrorHandlerResult>
     /**
      * The connection to the server got closed.
+     * Use CloseHandlerResult should be preferred.
      */
-    closed(): CloseAction
+    closed(): CloseAction | CloseHandlerResult | Promise<CloseHandlerResult>
   }
+
   export interface InitializationFailedHandler {
     (error: Error | any): boolean
   }
