@@ -12303,6 +12303,16 @@ declare module 'coc.nvim' {
     workspaceFolder?: WorkspaceFolder
     connectionOptions?: ConnectionOptions
     diagnosticPullOptions?: DiagnosticPullOptions
+    textSynchronization?: {
+      /**
+      * Delays sending the open notification until one of the following
+      * conditions becomes `true`:
+      * - document is visible in the editor.
+      * - any of the other notifications or requests is sent to the server, except
+      * a closed notification for the pending document.
+      */
+      delayOpenNotifications: boolean
+    }
     markdown?: {
       isTrusted?: boolean
       /**
