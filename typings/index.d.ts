@@ -3164,6 +3164,60 @@ declare module 'coc.nvim' {
    * merged.
    */
   export type ApplyKind = 1 | 2
+
+  /**
+  * Additional data about a workspace edit.
+  */
+  export type WorkspaceEditMetadata = {
+    /**
+    * Signal to the editor that this edit is a refactoring.
+    */
+    isRefactoring?: boolean
+  }
+  /**
+  * The parameters passed via an apply workspace edit request.
+  */
+  export interface ApplyWorkspaceEditParams {
+    /**
+    * An optional label of the workspace edit. This label is
+    * presented in the user interface for example on an undo
+    * stack to undo the workspace edit.
+    */
+    label?: string
+    /**
+    * The edits to apply.
+    */
+    edit: WorkspaceEdit
+    /**
+    * Additional data about the edit.
+    *
+    * @since 3.18.0
+    * @proposed
+    */
+    metadata?: WorkspaceEditMetadata
+  }
+
+  /**
+   * The result returned from the apply workspace edit request.
+   */
+  export interface ApplyWorkspaceEditResult {
+    /**
+     * Indicates whether the edit was applied or not.
+     */
+    applied: boolean
+    /**
+     * An optional textual description for why the edit was not applied.
+     * This may be used by the server for diagnostic logging or to provide
+     * a suitable error for a request that triggered the edit.
+     */
+    failureReason?: string
+    /**
+     * Depending on the client's failure handling strategy `failedChange` might
+     * contain the index of the change that failed. This property is only available
+     * if the client signals a `failureHandlingStrategy` in its client capabilities.
+     */
+    failedChange?: uinteger
+  }
   // }}
 
   // Language server protocol interfaces {{
@@ -12015,6 +12069,7 @@ declare module 'coc.nvim' {
   export interface _WorkspaceMiddleware {
     didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
+    handleApplyEdit?: (this: void, params: ApplyWorkspaceEditParams, next: RequestHandler<ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, void>) => HandlerResult<ApplyWorkspaceEditResult, void>
   }
 
   export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware & FileOperationsMiddleware
@@ -12113,6 +12168,7 @@ declare module 'coc.nvim' {
     workspace?: WorkspaceMiddleware
     window?: WindowMiddleware
   }
+
   export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware
 
   export interface ConnectionOptions {
