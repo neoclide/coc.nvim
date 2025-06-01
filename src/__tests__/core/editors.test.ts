@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import Editors, { TextEditor, renamed } from '../../core/editors'
-import workspace from '../../workspace'
-import window from '../../window'
-import events from '../../events'
-import helper from '../helper'
-import { disposeAll } from '../../util'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import Editors, { TextEditor, renamed } from '../../core/editors'
+import events from '../../events'
+import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let editors: Editors
 let nvim: Neovim
@@ -225,5 +225,42 @@ describe('editors', () => {
     expect(tid).toBeDefined()
     editor = editors.visibleTextEditors.find(o => o.tabpageid == tid)
     expect(editor).toBeUndefined()
+  })
+})
+
+describe('Tabs', () => {
+  it('should attach tabs', async () => {
+    let doc = await workspace.document
+    expect(workspace.tabs.isActive(doc.textDocument)).toBe(true)
+    expect(workspace.tabs.isActive(URI.parse(doc.uri))).toBe(true)
+    expect(workspace.tabs.isVisible(doc.textDocument)).toBe(true)
+    expect(workspace.tabs.isVisible(URI.parse(doc.uri))).toBe(true)
+    let resources = workspace.tabs.getTabResources()
+    expect(resources.size).toBeGreaterThan(0)
+  })
+
+  it('should fire open and close event', async () => {
+    let tabs = workspace.tabs
+    let fn = jest.fn()
+    let disposable = tabs.onOpen(() => {
+      fn()
+    })
+    nvim.command('tabe foo', true)
+    nvim.command('tabe foo', true)
+    await helper.waitValue(() => {
+      return tabs.getTabResources().size
+    }, 2)
+    disposable.dispose()
+    expect(fn).toHaveBeenCalledTimes(1)
+    nvim.command('bd', true)
+    fn = jest.fn()
+    disposable = tabs.onClose(() => {
+      fn()
+    })
+    await helper.waitValue(() => {
+      return tabs.getTabResources().size
+    }, 1)
+    disposable.dispose()
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 })
