@@ -1637,6 +1637,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     diagnostics.codeDescriptionSupport = true
     diagnostics.dataSupport = true
 
+    const textDocumentFilter = ensure(ensure(result, 'textDocument')!, 'filters')!
+    textDocumentFilter.relativePatternSupport = true
+
     const windowCapabilities = ensure(result, 'window')!
     const showMessage = ensure(windowCapabilities, 'showMessage')!
     showMessage.messageActionItem = { additionalPropertiesSupport: true }
@@ -1644,16 +1647,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     showDocument.support = true
 
     const generalCapabilities = ensure(result, 'general')!
+    generalCapabilities.staleRequestSupport = {
+      cancel: true,
+      retryOnContentModified: Array.from(BaseLanguageClient.RequestsToCancelOnContentModified)
+    }
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
     generalCapabilities.markdown = { parser: 'marked', version: '7.0.5' }
     generalCapabilities.positionEncodings = ['utf-16']
     // Added in 3.17.0
-    // if (this._clientOptions.markdown.supportHtml) {
-    //   generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'img', 'span']
-    // }
-    generalCapabilities.staleRequestSupport = {
-      cancel: true,
-      retryOnContentModified: Array.from(BaseLanguageClient.RequestsToCancelOnContentModified)
+    if (this._clientOptions.markdown.supportHtml) {
+      generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'span']
     }
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)

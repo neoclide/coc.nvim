@@ -1,12 +1,11 @@
-import os from 'os'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
+import which from 'which'
 import Configurations from '../../configuration/index'
 import * as funcs from '../../core/funcs'
 import Resolver from '../../model/resolver'
-import * as platform from '../../util/platform'
-import which from 'which'
-import { v4 as uuid } from 'uuid'
 let configurations: Configurations
 
 beforeAll(async () => {
@@ -132,6 +131,8 @@ describe('score()', () => {
     expect(funcs.score('*', 'untitled:///1', '')).toBe(5)
     expect(funcs.score('', 'untitled:///1', 'vim')).toBe(0)
     expect(funcs.score({ pattern: '/*' }, 'untitled:///1', 'vim', false)).toBe(5)
-    expect(funcs.score({ pattern: { pattern: '/*', baseUri: '/tmp' } }, 'untitled:///1', 'vim', false)).toBe(5)
+    expect(funcs.score({ pattern: { pattern: '/*', baseUri: '/tmp' } }, 'untitled:///1', 'vim', false)).toBe(0)
+    expect(funcs.score({ pattern: { pattern: '/**', baseUri: '/tmp' } }, 'file:///tmp/a/b', 'vim')).toBe(5)
+    expect(funcs.score({ pattern: { pattern: '/**', baseUri: '/tmp' } }, 'file:///foo', 'vim')).toBe(0)
   })
 })

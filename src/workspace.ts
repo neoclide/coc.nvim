@@ -331,7 +331,7 @@ export class Workspace {
   }
 
   /**
-   * @deprecated
+   * @deprecated Use nvim.createNamespace() instead.
    */
   public createNameSpace(name: string): number {
     return createNameSpace(name)
