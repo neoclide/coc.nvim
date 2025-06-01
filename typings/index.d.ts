@@ -12188,7 +12188,15 @@ declare module 'coc.nvim' {
     ): Promise<void>
   }
 
-  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware
+  export interface ProvideTextDocumentContentSignature {
+    (this: void, uri: Uri, token: CancellationToken): ProviderResult<string>
+  }
+
+  export interface TextDocumentContentMiddleware {
+    provideTextDocumentContent?: (this: void, uri: Uri, token: CancellationToken, next: ProvideTextDocumentContentSignature) => ProviderResult<string>
+  }
+
+  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware & TextDocumentContentMiddleware
 
   export interface ConnectionOptions {
     maxRestartCount?: number
