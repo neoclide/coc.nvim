@@ -12128,8 +12128,8 @@ declare module 'coc.nvim' {
 
   export interface _WindowMiddleware {
     showDocument?: (
-      this: void,
       params: ShowDocumentParams,
+      token: CancellationToken,
       next: RequestHandler<ShowDocumentParams, ShowDocumentResult, void>
     ) => Promise<ShowDocumentResult>
   }
