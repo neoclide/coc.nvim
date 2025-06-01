@@ -81,12 +81,12 @@ export interface ErrorHandler {
    * @param count - a count indicating how often an error is received. Will
    * be reset if a message got successfully send or received.
    */
-  error(error: Error, message: Message | undefined, count: number | undefined): ErrorHandlerResult | Promise<ErrorHandlerResult>
+  error(error: Error, message: Message | undefined, count: number | undefined): ErrorAction | ErrorHandlerResult | Promise<ErrorHandlerResult>
 
   /**
    * The connection to the server got closed.
    */
-  closed(): CloseHandlerResult | Promise<CloseHandlerResult>
+  closed(): CloseHandlerResult | Promise<CloseHandlerResult> | CloseAction
 }
 
 export interface InitializationFailedHandler {

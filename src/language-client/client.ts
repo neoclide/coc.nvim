@@ -61,7 +61,7 @@ import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinitio
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
 import * as c2p from './utils/codeConverter'
-import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
+import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
@@ -1381,7 +1381,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let handlerResult: CloseHandlerResult = { action: CloseAction.DoNotRestart }
     if (this.$state !== ClientState.Stopping) {
       try {
-        handlerResult = await this._clientOptions.errorHandler.closed()
+        let result = await this._clientOptions.errorHandler.closed()
+        if (typeof result === 'number') {
+          handlerResult = { action: result }
+        } else if (result.action) {
+          handlerResult = result
+        }
       } catch (error) {
         // Ignore errors coming from the error handler.
       }
@@ -1413,8 +1418,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  public async handleConnectionError(error: Error, message: Message, count: number): Promise<void> {
-    let result = await this._clientOptions.errorHandler!.error(error, message, count)
+  public async handleConnectionError(error: Error, message: Message | undefined, count: number): Promise<void> {
+    let res = await this._clientOptions.errorHandler!.error(error, message, count)
+    let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : res
     if (result.action === ErrorAction.Shutdown) {
       const msg = `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
       this.error(result.message ?? msg, error, result.handled === true ? false : 'force')
