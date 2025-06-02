@@ -157,7 +157,6 @@ export class Workspace {
       })
     }
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
-    window.init(env)
     this.checkVersion(APIVERSION)
     this.configurations.updateMemoryConfig(this._env.config)
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)

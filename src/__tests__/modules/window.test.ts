@@ -309,13 +309,9 @@ describe('window', () => {
   })
 
   describe('window showMessage', () => {
-    beforeEach(() => {
-      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
-    })
-
     async function ensureNotification(idx: number): Promise<void> {
-      await helper.waitFloat()
-      await nvim.input(`${idx + 1}`)
+      let winid = await helper.waitFloat()
+      await nvim.call('coc#notify#choose', [winid, idx])
     }
 
     it('should echo lines', async () => {
@@ -341,20 +337,17 @@ describe('window', () => {
     })
 
     it('should show message item', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
       let p = window.showInformationMessage('information message', { title: 'first' }, { title: 'second' })
       await ensureNotification(0)
       let res = await p
       expect(res).toEqual({ title: 'first' })
-    })
-
-    it('should show information message', async () => {
-      let p = window.showInformationMessage('information message', 'first', 'second')
-      await ensureNotification(0)
-      let res = await p
-      expect(res).toBe('first')
+      res = await window.showInformationMessage('information message')
+      expect(res).toBeUndefined()
     })
 
     it('should show warning message', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
       let p = window.showWarningMessage('warning message', 'first', 'second')
       await ensureNotification(1)
       let res = await p
@@ -362,18 +355,11 @@ describe('window', () => {
     })
 
     it('should show error message', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
       let p = window.showErrorMessage('error message', 'first', 'second')
       await ensureNotification(0)
       let res = await p
       expect(res).toBe('first')
-    })
-
-    it('should use notification for message', async () => {
-      let p = window.showErrorMessage('error message')
-      await helper.waitFloat()
-      await nvim.call('coc#float#close_all', [])
-      let res = await p
-      expect(res).toBeUndefined()
     })
 
     it('should show confirm for message', async () => {
@@ -386,14 +372,6 @@ describe('window', () => {
       await nvim.input('2')
       let res = await p
       expect(res).toBe('second')
-    })
-
-    it('should prefer menu picker for notification message', async () => {
-      let p = window.showErrorMessage('error message', 'first', 'second')
-      await helper.waitFloat()
-      await nvim.input('1')
-      let res = await p
-      expect(res).toBe('first')
     })
   })
 

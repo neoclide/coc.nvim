@@ -114,6 +114,7 @@ endfunction
 " - zindex: (optional) zindex of window, default 50.
 " - borderchars: (optional) borderchars, should be length of 8
 " - nopad: (optional) not add pad when 1
+" - filter: (optional) filter property on vim9.
 " - index: (optional) line index
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
@@ -240,6 +241,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'scrollbarhighlight': 'CocFloatSbar',
           \ 'thumbhighlight': 'CocFloatThumb',
           \ }
+    if type(get(a:config, 'filter', v:null)) == v:t_func
+      let opts['filter'] = get(a:config, 'filter', v:null)
+    endif
     noa let winid = popup_create(bufnr, opts)
     call s:set_float_defaults(winid, a:config)
     call win_execute(winid, 'exe '.lnum)
