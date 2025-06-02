@@ -178,7 +178,7 @@
     "languageserver.trace.server.verbosity": {
       "type": "string",
       "default": "off",
-      "enum": ["off", "messages", "verbose"],
+      "enum": ["off", "messages", "compact", "verbose"],
       "description": "Trace level of communication between server and client"
     },
     "languageserver.trace.server.format": {
