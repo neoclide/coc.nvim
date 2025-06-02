@@ -449,9 +449,9 @@
           "description": "Detach the languageserver process"
         },
         "shell": {
-          "type": "boolean",
+          "type": ["boolean", "string"],
           "default": false,
-          "description": "Use shell for process"
+          "description": "If true runs command inside of a shell, always true on windows."
         },
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
