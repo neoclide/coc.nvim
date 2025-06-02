@@ -1767,7 +1767,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     SemanticTokensDeltaRequest.method
   ])
 
-  public handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T {
+  public handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T, showNotification = true): T {
     if (token && token.isCancellationRequested) return defaultValue
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
@@ -1790,7 +1790,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       }
     }
-    this.error(`Request ${type.method} failed.`, error)
+    this.error(`Request ${type.method} failed.`, error, showNotification)
     throw error
   }
 
