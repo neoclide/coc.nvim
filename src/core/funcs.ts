@@ -5,6 +5,7 @@ import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Resolver from '../model/resolver'
 import { isVim } from '../util/constants'
+import { onUnexpectedError } from '../util/errors'
 import * as fs from '../util/fs'
 import { Mutex } from '../util/mutex'
 import { minimatch, os, path, semver, which } from '../util/node'
@@ -50,7 +51,7 @@ export function has(env: PartialEnv, feature: string): boolean {
 export function callAsync<T>(nvim: Neovim, method: string, args: any[]): Promise<T> {
   return mutex.use<T>(() => {
     if (!isVim) return nvim.call(method, args) as Promise<T>
-    return nvim.callAsync('coc#util#with_callback', [method, args]) as Promise<T>
+    return nvim.callAsync('coc#util#with_callback', [method, args]).catch(onUnexpectedError) as Promise<T>
   })
 }
 

@@ -72,7 +72,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should asRelativePath, not workspaceFolder', async () => {
-      expect(workspace.getRelativePath('')).toBe('')
+      expect(workspace.asRelativePath('')).toBe('')
       assertAsRelativePath('/foo/bar', '/foo/bar')
     })
 

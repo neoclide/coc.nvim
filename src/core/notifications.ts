@@ -68,7 +68,6 @@ export class Notifications {
     }
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
-    console.log(idx)
     return items[idx]
   }
 

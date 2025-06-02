@@ -32,7 +32,9 @@ import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
+import { defaultValue } from './util'
 import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
+import { onUnexpectedError } from './util/errors'
 import { FileType, getFileType } from './util/fs'
 import { IJSONSchema } from './util/jsonSchema'
 import { path } from './util/node'
@@ -85,17 +87,17 @@ export class Workspace {
   constructor() {
     void initFuzzyWasm().then(api => {
       this.fuzzyExports = api
-    })
+    }, onUnexpectedError)
     void StrWidth.create().then(strWdith => {
       this.strWdith = strWdith
-    })
+    }, onUnexpectedError)
     events.on('VimResized', (columns, lines) => {
       Object.assign(toObject(this.env), { columns, lines })
     })
     Object.defineProperty(this.statusLine, 'nvim', {
       get: () => this.nvim
     })
-    let configurations = this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
+    this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
     this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
     let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl)
     this.contentProvider = new ContentProvider(documents)
@@ -118,20 +120,26 @@ export class Workspace {
     this.onWillRenameFiles = this.files.onWillRenameFiles
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
     // use global value only
-    let watchConfig = (configurations.initialConfiguration.inspect('fileSystemWatch').globalValue ?? {}) as Partial<FileWatchConfig>
-    let watchmanPath = watchConfig.watchmanPath ? watchConfig.watchmanPath : configurations.initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
-    if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
-    const config: FileWatchConfig = {
-      watchmanPath,
-      enable: watchConfig.enable == null ? true : !!watchConfig.enable,
-      ignoredFolders: (Array.isArray(watchConfig.ignoredFolders) ? watchConfig.ignoredFolders.filter(s => typeof s === 'string') : ["${tmpdir}", "/private/tmp", "/"]).map(p => this.expand(p))
-    }
-
+    const config = this.getWatchConfig()
     this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config)
   }
 
   public get initialConfiguration(): WorkspaceConfiguration {
     return this.configurations.initialConfiguration
+  }
+
+  public getWatchConfig(): FileWatchConfig {
+    let { initialConfiguration } = this
+    let watchConfig = defaultValue<Partial<FileWatchConfig>>(initialConfiguration.get('fileSystemWatch'), {})
+    let watchmanPath = watchConfig.watchmanPath
+    if (!watchmanPath) watchmanPath = initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
+    if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
+    let ignoredFolders = defaultValue(watchConfig.ignoredFolders, ["${tmpdir}", "/private/tmp", "/"])
+    return {
+      watchmanPath,
+      enable: watchConfig.enable == null ? true : !!watchConfig.enable,
+      ignoredFolders: ignoredFolders.map(p => this.expand(p))
+    }
   }
 
   public async init(window: any): Promise<void> {

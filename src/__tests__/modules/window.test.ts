@@ -168,11 +168,11 @@ describe('window', () => {
       expect(name).toMatch('channel')
     })
 
-    it('should not show none exists channel', async () => {
+    it('should not show channel not exists', async () => {
       let buf = await nvim.buffer
       let bufnr = buf.id
-      window.showOutputChannel('NONE')
-      await helper.wait(20)
+      window.showOutputChannel('NONE', 'edit')
+      await helper.wait(10)
       buf = await nvim.buffer
       expect(buf.id).toBe(bufnr)
     })
