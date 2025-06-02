@@ -32,7 +32,7 @@ import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
-import { defaultValue } from './util'
+import { defaultValue, getConditionValue } from './util'
 import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
 import { onUnexpectedError } from './util/errors'
 import { FileType, getFileType } from './util/fs'
@@ -135,9 +135,10 @@ export class Workspace {
     if (!watchmanPath) watchmanPath = initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
     if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
     let ignoredFolders = defaultValue(watchConfig.ignoredFolders, ["${tmpdir}", "/private/tmp", "/"])
+    let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false)
     return {
       watchmanPath,
-      enable: watchConfig.enable == null ? true : !!watchConfig.enable,
+      enable,
       ignoredFolders: ignoredFolders.map(p => this.expand(p))
     }
   }

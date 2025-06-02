@@ -228,6 +228,7 @@ describe('completion', () => {
         title: 'title'
       })
       await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
+      await helper.waitPopup()
       let win = await helper.getFloat('pum')
       let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
       expect(id).toBeGreaterThan(1000)

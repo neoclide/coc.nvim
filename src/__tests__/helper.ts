@@ -163,6 +163,7 @@ export class Helper extends EventEmitter {
     }
     this.completion.cancelAndClose()
     this.workspace.reset()
+    this.nvim.call('coc#float#close_all', [], true)
     await this.nvim.command('silent! %bwipeout! | setl nopreviewwindow')
     await this.workspace.document
   }

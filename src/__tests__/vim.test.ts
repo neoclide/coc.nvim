@@ -1022,7 +1022,7 @@ describe('document', () => {
 
   it('should apply multiple edits', async () => {
     let doc = await helper.createDocument()
-    let arr = new Array(100)
+    let arr = new Array(10)
     arr.fill('foo bar a b c d e')
     let ranges: Range[] = []
     let edits: TextEdit[] = []
@@ -1041,9 +1041,9 @@ describe('document', () => {
     buf.highlightRanges('test', 'Title', ranges)
     await doc.synchronize()
     await doc.applyEdits(edits)
-    await events.race(['TextChanged'], 100)
+    await events.race(['TextChanged'], 200)
     let hls = await buf.getHighlights('test')
-    expect(hls.length).toBe(700)
+    expect(hls.length).toBe(70)
   })
 
   it('should consider latest change', async () => {

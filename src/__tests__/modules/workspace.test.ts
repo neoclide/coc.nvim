@@ -341,7 +341,7 @@ describe('workspace methods', () => {
     helper.updateConfiguration('fileSystemWatch.watchmanPath', '~/bin/watchman', disposables)
     helper.updateConfiguration('fileSystemWatch.ignoredFolders', ['~'], disposables)
     let config = workspace.getWatchConfig()
-    expect(config.enable).toBe(true)
+    expect(config.enable).toBe(false)
     expect(typeof config.watchmanPath).toBe('string')
     expect(config.ignoredFolders).toEqual([os.homedir()])
   })
