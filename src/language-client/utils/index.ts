@@ -1,5 +1,4 @@
 import type { MessageSignature } from 'vscode-languageserver-protocol'
-import { getTimestamp } from '../../logger'
 import * as Is from '../../util/is'
 import { inspect } from '../../util/node'
 import { ResponseError } from '../../util/protocol'
@@ -18,9 +17,9 @@ export function currentTimeStamp(): string {
   return new Date().toLocaleTimeString()
 }
 
-export function getTraceMessage(data: any): string {
+export function getTracePrefix(data: any): string {
   if (data.isLSPMessage && data.type) {
-    return `[LSP   - ${currentTimeStamp()}] `
+    return `[LSP - ${currentTimeStamp()}] `
   }
   return `[Trace - ${currentTimeStamp()}] `
 }
