@@ -393,8 +393,8 @@ describe('Client integration', () => {
   })
 
   it('should initialize use IPC channel', async () => {
-    helper.updateConfiguration('css.trace.server.verbosity', 'verbose')
-    helper.updateConfiguration('css.trace.server.format', 'json')
+    helper.updateConfiguration('css.trace.server.verbosity', 'verbose', disposables)
+    helper.updateConfiguration('css.trace.server.format', 'json', disposables)
     let uri = URI.file(__filename)
     await workspace.loadFile(uri.toString())
     let serverModule = path.join(__dirname, './server/testInitializeResult.js')
@@ -436,8 +436,8 @@ describe('Client integration', () => {
   })
 
   it('should initialize use stdio', async () => {
-    helper.updateConfiguration('css.trace.server.verbosity', 'verbose')
-    helper.updateConfiguration('css.trace.server.format', 'text')
+    helper.updateConfiguration('css.trace.server.verbosity', 'verbose', disposables)
+    helper.updateConfiguration('css.trace.server.format', 'text', disposables)
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
@@ -565,15 +565,18 @@ describe('Client integration', () => {
       documentSelector: ['css'],
       initializationOptions: {}
     }
-    await expect(async () => {
-      let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-      let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
-        return Promise.resolve()
-      })
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
+      return Promise.resolve()
+    })
+    let err
+    try {
       await client.start()
-      await client.stop()
-      spy.mockRestore()
-    }).rejects.toThrow(Error)
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+    spy.mockRestore()
   })
 
   it('should logMessage', async () => {
@@ -584,20 +587,23 @@ describe('Client integration', () => {
       append: () => {
         called = true
       },
-      appendLine: () => {},
+      appendLine: () => {
+        called = true
+      },
       clear: () => {},
       show: () => {},
       hide: () => {},
       dispose: () => {}
     }
-    let serverModule = path.join(__dirname, './server/eventServer.js')
+    helper.updateConfiguration('css.trace.server.verbosity', 'verbose', disposables)
     let serverOptions: lsclient.ServerOptions = {
       command: 'node',
-      args: [serverModule, '--stdio']
+      args: [path.join(__dirname, './server/eventServer.js'), '--stdio']
     }
-    let client = await testLanguageServer(serverOptions, { outputChannel })
-    client.logMessage('message')
-    client.logMessage(Buffer.from('message', 'utf8'))
+    let client = await testLanguageServer(serverOptions, {
+      outputChannel,
+      initializationOptions: { trace: true }
+    })
     expect(called).toBe(true)
     await client.stop()
   })

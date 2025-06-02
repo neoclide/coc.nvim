@@ -1456,15 +1456,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (sendNotification && this._trace == trace && this._traceFormat == traceFormat) {
       return
     }
-    this.changeTrace(trace, traceFormat)
+    this.changeTrace(trace, traceFormat, sendNotification)
   }
 
-  private changeTrace(trace: Trace, traceFormat: TraceFormat): void {
+  private changeTrace(trace: Trace, traceFormat: TraceFormat, sendNotification = true): void {
     this._trace = trace
     this._traceFormat = traceFormat
     if (this._connection && (this.$state === ClientState.Running || this.$state === ClientState.Starting)) {
       this._connection.trace(this._trace, this._tracer, {
-        sendNotification: true,
+        sendNotification,
         traceFormat: this._traceFormat
       }).catch(error => { this.error(`Updating trace failed with error`, error, false) })
     }
