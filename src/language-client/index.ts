@@ -1,14 +1,19 @@
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 'use strict'
 /* eslint-disable no-redeclare */
-import { ForkOptions as CForkOptions, ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
+import { ForkOptions as CForkOptions, ChildProcess, ChildProcessWithoutNullStreams, SpawnOptions } from 'child_process'
+import * as stream from 'stream'
+import { SocketTransport as LsSocketTransport, PipeTransport } from 'vscode-languageserver-protocol/node'
 import { createLogger } from '../logger'
+import { OutputChannel } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import * as Is from '../util/is'
-import { child_process, fs, path } from '../util/node'
+import { child_process, fs, path, readline } from '../util/node'
 import { terminate } from '../util/processes'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, LanguageClientOptions, MessageTransports, ShutdownMode } from './client'
+import { currentTimeStamp } from './utils'
 
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
@@ -268,8 +273,30 @@ export class LanguageClient extends BaseLanguageClient {
       }
     }
 
+    function logMessage(kind: string, data: string | Buffer, outputChannel: OutputChannel): void {
+      let msg = `[${kind} - ${currentTimeStamp()}] ${Is.string(data) ? data : data.toString(encoding as BufferEncoding)}`
+      outputChannel.append(msg)
+    }
+
+    function pipeStdoutToLogOutputChannel(input: stream.Readable, outputChannel: OutputChannel) {
+      readline.createInterface({
+        input,
+        crlfDelay: Infinity,
+        terminal: false,
+        historySize: 0,
+      }).on('line', data => logMessage('Stdout', data, outputChannel))
+    }
+
+    function pipeStderrToLogOutputChannel(input: stream.Readable, outputChannel: OutputChannel) {
+      readline.createInterface({
+        input,
+        crlfDelay: Infinity,
+        terminal: false,
+        historySize: 0,
+      }).on('line', data => logMessage('Stderr', data, outputChannel))
+    }
+
     let server = this._serverOptions
-    const logMessage = this.logMessage.bind(this)
     // We got a function.
     if (Is.func(server)) {
       return server().then(result => {
@@ -291,7 +318,7 @@ export class LanguageClient extends BaseLanguageClient {
             cp = result
             this._isDetached = false
           }
-          cp.stderr!.on('data', logMessage)
+          pipeStderrToLogOutputChannel(cp.stderr, this.outputChannel)
           return {
             reader: new StreamMessageReader(cp.stdout!),
             writer: new StreamMessageWriter(cp.stdin!)
@@ -342,9 +369,9 @@ export class LanguageClient extends BaseLanguageClient {
             assertStdio(sp)
             this._serverProcess = sp
             logger.info(`Language server "${this.id}" started with ${sp.pid}`)
-            sp.stderr.on('data', logMessage)
+            pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
             if (transport === TransportKind.ipc) {
-              sp.stdout.on('data', logMessage)
+              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
               resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
             } else {
               resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
@@ -355,8 +382,8 @@ export class LanguageClient extends BaseLanguageClient {
               assertStdio(sp)
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
               this._serverProcess = sp
-              sp.stderr.on('data', logMessage)
-              sp.stdout.on('data', logMessage)
+              pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
+              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
               void transport.onConnected().then(protocol => {
                 resolve({ reader: protocol[0], writer: protocol[1] })
               })
@@ -367,8 +394,8 @@ export class LanguageClient extends BaseLanguageClient {
               assertStdio(sp)
               this._serverProcess = sp
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
-              sp.stderr.on('data', logMessage)
-              sp.stdout.on('data', logMessage)
+              pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
+              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
               void transport.onConnected().then(protocol => {
                 resolve({ reader: protocol[0], writer: protocol[1] })
               })
@@ -377,35 +404,73 @@ export class LanguageClient extends BaseLanguageClient {
         })
       } else if (Executable.is(json) && json.command) {
         let command: Executable = json
-        let args = command.args || []
-        let options = Object.assign({}, command.options)
-        options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
-        options.cwd = options.cwd || serverWorkingDir
-        options.shell = process.platform === 'win32' || !!options.shell
-        let cmd = workspace.expand(json.command)
-        let serverProcess = child_process.spawn(cmd, args, options)
-        serverProcess.on('error', e => {
-          this.error(e.message, e)
-        })
-        if (!serverProcess || !serverProcess.pid) {
-          return Promise.reject<MessageTransports>(new Error(`Launching server "${this.id}" using command ${command.command} failed.`))
+        let args = Array.isArray(command.args) ? command.args.slice(0) : []
+        let pipeName: string | undefined
+        const transport = json.transport
+        if (transport === TransportKind.stdio) {
+          args.push('--stdio')
+        } else if (transport === TransportKind.pipe) {
+          pipeName = generateRandomPipeName()
+          args.push(`--pipe=${pipeName}`)
+        } else if (Transport.isSocket(transport)) {
+          args.push(`--socket=${transport.port}`)
+        } else if (transport === TransportKind.ipc) {
+          throw new Error(`Transport kind ipc is not support for command executable`)
         }
-        logger.info(`Language server "${this.id}" started with ${serverProcess.pid}`)
-        serverProcess.on('exit', code => {
-          if (code != 0) this.error(`${command.command} exited with code: ${code}`)
-        })
-        serverProcess.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-        this._serverProcess = serverProcess
-        this._isDetached = !!options.detached
-        return Promise.resolve({ reader: new StreamMessageReader(serverProcess.stdout), writer: new StreamMessageWriter(serverProcess.stdin) })
+        let options = Object.assign({}, command.options) as SpawnOptions
+        options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
+        options.cwd = options.cwd ?? serverWorkingDir
+        options.shell = process.platform === 'win32' ? true : options.shell
+        options.windowsHide = true
+        const attachProcess = (serverProcess: ChildProcess, pipiStdout = true) => {
+          this._serverProcess = serverProcess
+          this._isDetached = !!options.detached
+          logger.info(`Language server "${this.id}" started with ${serverProcess.pid}`)
+          if (pipiStdout) pipeStdoutToLogOutputChannel(serverProcess.stdout, this.outputChannel)
+          pipeStderrToLogOutputChannel(serverProcess.stderr, this.outputChannel)
+        }
+        let cmd = workspace.expand(json.command)
+        if (transport === undefined || transport === TransportKind.stdio) {
+          const serverProcess = child_process.spawn(cmd, args, options)
+          if (!serverProcess || !serverProcess.pid) {
+            return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`)
+          }
+          attachProcess(serverProcess, false)
+          return Promise.resolve({ reader: new StreamMessageReader(serverProcess.stdout), writer: new StreamMessageWriter(serverProcess.stdin) })
+        } else if (transport === TransportKind.pipe || Transport.isSocket(transport)) {
+          let promise: Promise<LsSocketTransport | PipeTransport>
+          if (transport === TransportKind.pipe) {
+            promise = createClientPipeTransport(pipeName!)
+          } else {
+            promise = createClientSocketTransport(transport.port)
+          }
+          return promise.then(transport => {
+            const serverProcess = child_process.spawn(cmd, args, options)
+            if (!serverProcess || !serverProcess.pid) {
+              return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`)
+            }
+            attachProcess(serverProcess)
+            return transport.onConnected().then(protocol => {
+              return { reader: protocol[0], writer: protocol[1] }
+            })
+          })
+        }
       }
       return Promise.reject<MessageTransports>(new Error(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`))
+    }).finally(() => {
+      if (this._serverProcess !== undefined) {
+        this._serverProcess.on('exit', (code, signal) => {
+          if (code === 0) {
+            this.info('Server process exited successfully', undefined, false)
+          } else if (code !== null) {
+            this.error(`Server process exited with code ${code}.`, undefined, false)
+          }
+          if (signal !== null) {
+            this.error(`Server process exited with signal ${signal}.`, undefined, false)
+          }
+        })
+      }
     })
-  }
-
-  public logMessage(data: string | Buffer): void {
-    let encoding = this.clientOptions.stdioEncoding
-    this.outputChannel.append(Is.string(data) ? data : data.toString(encoding as BufferEncoding))
   }
 }
 
@@ -495,4 +560,19 @@ export function startedInDebugMode(args: string[] | undefined): boolean {
     })
   }
   return false
+}
+
+function handleChildProcessStartError(process: ChildProcess, message: string) {
+  if (process === null) {
+    return Promise.reject<MessageTransports>(message)
+  }
+
+  return new Promise<MessageTransports>((_, reject) => {
+    process.on('error', err => {
+      reject(`${message} ${err}`)
+    })
+    // the error event should always be run immediately,
+    // but race on it just in case
+    setImmediate(() => reject(message))
+  })
 }
