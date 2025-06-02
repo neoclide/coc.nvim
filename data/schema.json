@@ -178,7 +178,7 @@
     "languageserver.trace.server.verbosity": {
       "type": "string",
       "default": "off",
-      "enum": ["off", "messages", "verbose"],
+      "enum": ["off", "messages", "compact", "verbose"],
       "description": "Trace level of communication between server and client"
     },
     "languageserver.trace.server.format": {
@@ -677,17 +677,9 @@
       "anyOf": [
         {
           "type": "string",
-          "enum": [
-            "edit",
-            "split",
-            "vsplit",
-            "tabe",
-            "drop",
-            "tab drop",
-            "pedit"
-          ]
+          "enum": ["edit", "split", "vsplit", "tabe", "drop", "tab drop", "pedit"]
         },
-        { "type": "string", "minimum": 1 }
+        {"type": "string", "minimum": 1}
       ],
       "scope": "application",
       "description": "Command used for location jump, like goto definition, goto references etc. Can be also a custom command that gives file as an argument.",
@@ -995,7 +987,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of diagnostic message.",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1311,7 +1303,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure default style float window/popup created by float factory (created around cursor and automatically closed)",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1342,7 +1334,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of hover documents.",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1975,7 +1967,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of signature documents.",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -2084,32 +2076,32 @@
       "scope": "application",
       "description": "Set custom labels to completion items' kinds.",
       "properties": {
-        "text": { "type": "string" },
-        "method": { "type": "string" },
-        "function": { "type": "string" },
-        "constructor": { "type": "string" },
-        "field": { "type": "string" },
-        "variable": { "type": "string" },
-        "class": { "type": "string" },
-        "interface": { "type": "string" },
-        "module": { "type": "string" },
-        "property": { "type": "string" },
-        "unit": { "type": "string" },
-        "value": { "type": "string" },
-        "enum": { "type": "string" },
-        "keyword": { "type": "string" },
-        "snippet": { "type": "string" },
-        "color": { "type": "string" },
-        "file": { "type": "string" },
-        "reference": { "type": "string" },
-        "folder": { "type": "string" },
-        "enumMember": { "type": "string" },
-        "constant": { "type": "string" },
-        "struct": { "type": "string" },
-        "event": { "type": "string" },
-        "operator": { "type": "string" },
-        "typeParameter": { "type": "string" },
-        "default": { "type": "string" }
+        "text": {"type": "string"},
+        "method": {"type": "string"},
+        "function": {"type": "string"},
+        "constructor": {"type": "string"},
+        "field": {"type": "string"},
+        "variable": {"type": "string"},
+        "class": {"type": "string"},
+        "interface": {"type": "string"},
+        "module": {"type": "string"},
+        "property": {"type": "string"},
+        "unit": {"type": "string"},
+        "value": {"type": "string"},
+        "enum": {"type": "string"},
+        "keyword": {"type": "string"},
+        "snippet": {"type": "string"},
+        "color": {"type": "string"},
+        "file": {"type": "string"},
+        "reference": {"type": "string"},
+        "folder": {"type": "string"},
+        "enumMember": {"type": "string"},
+        "constant": {"type": "string"},
+        "struct": {"type": "string"},
+        "event": {"type": "string"},
+        "operator": {"type": "string"},
+        "typeParameter": {"type": "string"},
+        "default": {"type": "string"}
       },
       "additionalProperties": false
     },
@@ -2162,7 +2154,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure style of popup menu and documentation window of completion.",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -2273,7 +2265,7 @@
       "type": ["object", "null"],
       "scope": "application",
       "description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
-      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
+      "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "default": null,
       "properties": {
@@ -2464,13 +2456,7 @@
     },
     "workspace.ignoredFolders": {
       "type": "array",
-      "default": [
-        "$HOME",
-        "$HOME/.cargo/**",
-        "$HOME/.rustup/**",
-        "$HOME/pkg/mod/**",
-        "$HOMEBREW_PREFIX/**"
-      ],
+      "default": ["$HOME", "$HOME/.cargo/**", "$HOME/.rustup/**", "$HOME/pkg/mod/**", "$HOMEBREW_PREFIX/**"],
       "scope": "application",
       "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
       "items": {
