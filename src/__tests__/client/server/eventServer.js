@@ -25,6 +25,12 @@ connection.onInitialize((params) => {
   if (options.utf8) {
     return {capabilities: {positionEncoding: PositionEncodingKind.UTF8}}
   }
+  if (options.trace) {
+    setTimeout(() => {
+      connection.tracer.log('This is a trace message')
+      connection.tracer.log('This is a trace message', {'info': 'verbose info'})
+    }, 1)
+  }
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Full
