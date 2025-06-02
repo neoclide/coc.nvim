@@ -12306,6 +12306,7 @@ declare module 'coc.nvim' {
     diagnosticCollectionName?: string
     outputChannelName?: string
     outputChannel?: OutputChannel
+    traceOutputChannel?: OutputChannel
     revealOutputChannelOn?: RevealOutputChannelOn
     /**
      * The encoding use to read stdout and stderr. Defaults
@@ -12332,13 +12333,10 @@ declare module 'coc.nvim' {
       * - any of the other notifications or requests is sent to the server, except
       * a closed notification for the pending document.
       */
-      delayOpenNotifications: boolean
+      delayOpenNotifications?: boolean
     }
     markdown?: {
       isTrusted?: boolean
-      /**
-       * Not used
-       */
       supportHtml?: boolean
     }
   }
@@ -13050,17 +13048,25 @@ declare module 'coc.nvim' {
     sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
     /**
-     * Append info to outputChannel
+     * Append debug message to outputChannel
+     */
+    debug(message: string, data?: any, showNotification?: boolean): void
+    /**
+     * Append info message to outputChannel
      */
     info(message: string, data?: any, showNotification?: boolean): void
     /**
-     * Append warning to outputChannel
+     * Append warning message to outputChannel
      */
     warn(message: string, data?: any, showNotification?: boolean): void
     /**
-     * append error to outputChannel
+     * Append error message to outputChannel
      */
     error(message: string, data?: any, showNotification?: boolean | 'force'): void
+    /**
+     * Append trace message to traceOutputChannel or outputChannel
+     */
+    traceMessage(message: string, data?: any): void
 
     readonly state: State
     readonly middleware: Middleware
@@ -13116,12 +13122,10 @@ declare module 'coc.nvim' {
      * Register custom feature.
      */
     registerFeature(feature: StaticFeature | DynamicFeature<any>): void
-
     /**
      * Log failed request to outputChannel and throw error when necessary.
      */
     handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T
-
     /**
      * Create a default error handler.
      */

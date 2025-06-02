@@ -59,7 +59,7 @@ import { TextDocumentContentFeature, TextDocumentContentMiddleware, TextDocument
 import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeature, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeature, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeature, DidSaveTextDocumentFeatureShape, ResolvedTextDocumentSyncCapabilities, TextDocumentSynchronizationMiddleware, WillSaveFeature, WillSaveWaitUntilFeature } from './textSynchronization'
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
-import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
+import { currentTimeStamp, data2String, getLocale, getTracePrefix, toMethod } from './utils'
 import * as c2p from './utils/codeConverter'
 import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
@@ -214,13 +214,12 @@ export type LanguageClientOptions = {
   requireRootPattern?: boolean
   documentSelector?: DocumentSelector
   disableMarkdown?: boolean
-  disableWorkspaceFolders?: boolean
   disableDiagnostics?: boolean
-  disableCompletion?: boolean
   diagnosticCollectionName?: string
   disableDynamicRegister?: boolean
   disabledFeatures?: string[]
   outputChannelName?: string
+  traceOutputChannel?: OutputChannel
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
   /**
@@ -249,7 +248,7 @@ export type LanguageClientOptions = {
      * - any of the other notifications or requests is sent to the server, except
      * a closed notification for the pending document.
      */
-    delayOpenNotifications: boolean
+    delayOpenNotifications?: boolean
   }
 } & $ConfigurationOptions & $CompletionOptions & $FormattingOptions & $DiagnosticPullOptions & $WorkspaceOptions
 
@@ -340,6 +339,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public _connection: Connection | undefined
   private _initializeResult: InitializeResult | undefined
   private _outputChannel: OutputChannel | undefined
+  private _traceOutputChannel: OutputChannel | undefined
   private _capabilities: ServerCapabilities & ResolvedTextDocumentSyncCapabilities
 
   private readonly _notificationHandlers: Map<string, GenericNotificationHandler>
@@ -357,6 +357,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _diagnostics: DiagnosticCollection | undefined
   private _syncedDocuments: Map<string, TextDocument>
   private _stateChangeEmitter: Emitter<StateChangeEvent>
+  private _notifing = false
 
   private _traceFormat: TraceFormat
   private _trace: Trace
@@ -378,6 +379,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     } else {
       this._outputChannel = undefined
     }
+    this._traceOutputChannel = clientOptions.traceOutputChannel
     this._clientOptions = this.resolveClientOptions(clientOptions)
     this.$state = ClientState.Initial
     this._connection = undefined
@@ -402,9 +404,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._tracer = {
       log: (messageOrDataObject: string | any, data?: string) => {
         if (Is.string(messageOrDataObject)) {
-          this.logTrace(messageOrDataObject, data)
+          this.traceMessage(messageOrDataObject, data)
         } else {
-          this.logObjectTrace(messageOrDataObject)
+          this.traceObject(messageOrDataObject)
         }
       }
     }
@@ -416,9 +418,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public switchConsole(): void {
     this._consoleDebug = !this._consoleDebug
-    if (!this._consoleDebug) {
-      this.enableVerboseTrace()
-    }
+    this.changeTrace(Trace.Verbose, TraceFormat.Text)
   }
 
   private resolveClientOptions(clientOptions: LanguageClientOptions): ResolvedClientOptions {
@@ -788,6 +788,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return this._outputChannel
   }
 
+  public get traceOutputChannel(): OutputChannel {
+    return this._traceOutputChannel ? this._traceOutputChannel : this.outputChannel
+  }
+
   public get diagnostics(): DiagnosticCollection | undefined {
     return this._diagnostics
   }
@@ -797,32 +801,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public set trace(value: Trace) {
-    this._trace = value
-    const connection = this.activeConnection()
-    if (connection !== undefined) {
-      void connection.trace(this._trace, this._tracer, {
-        sendNotification: false,
-        traceFormat: this._traceFormat
-      })
-    }
+    this.changeTrace(value, this._traceFormat)
   }
 
-  private logObjectTrace(data: any): void {
-    this.outputChannel.append(getTraceMessage(data))
-    this.traceData(data)
-  }
-
-  private traceData(data: any, error = false): void {
-    this.outputChannel.appendLine(data2String(data))
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    if (this._consoleDebug) error ? console.error(redOpen + data2String(data) + redClose) : console.log(parseTraceData(data))
-  }
-
-  private consoleMessage(prefix: string, message: string, error = false): void {
+  private consoleMessage(message: string, error = false): void {
     if (this._consoleDebug) {
-      let msg = prefix + ' ' + message
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      error ? console.error(redOpen + msg + redClose) : console.log(msg)
+      error ? console.error(redOpen + message + redClose) : console.log(message)
     }
   }
 
@@ -843,23 +828,30 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private logOutputMessage(type: MessageType, reveal: RevealOutputChannelOn, name: string, message: string, data: any | undefined, showNotification: boolean | 'force'): void {
-    let prefix = `[${name.padEnd(5)} - ${currentTimeStamp()}]`
-    this.outputChannel.appendLine(`${prefix} ${message}`)
-    this.consoleMessage(prefix, message, true)
-    if (data != null) this.traceData(data, true)
+    const msg = `[${name.padEnd(5)} - ${currentTimeStamp()}] ${this.getLogMessage(message, data)}`
+    this.outputChannel.appendLine(msg)
+    this.consoleMessage(msg, type === MessageType.Error)
     if (showNotification === 'force' || (showNotification && this._clientOptions.revealOutputChannelOn <= reveal)) {
       this.showNotificationMessage(type, message, data)
     }
   }
 
-  private logTrace(message: string, data?: any): void {
-    let prefix = `[Trace - ${currentTimeStamp()}]`
-    this.outputChannel.appendLine(`${prefix} ${message}`)
-    this.consoleMessage(prefix, message)
-    if (data != null) this.traceData(data)
+  private traceObject(data: any): void {
+    this.traceOutputChannel.appendLine(`${getTracePrefix(data)}${data2String(data)}`)
+  }
+
+  public traceMessage(message: string, data?: any): void {
+    const msg = `[Trace - ${currentTimeStamp()}] ${this.getLogMessage(message, data)}`
+    this.traceOutputChannel.appendLine(msg)
+    this.consoleMessage(msg)
+  }
+
+  private getLogMessage(message: string, data?: any): string {
+    return data != null ? `${message}\n${data2String(data)}` : message
   }
 
   private showNotificationMessage(type: MessageType, message?: string, data?: any) {
+    if (this._notifing) return
     message = message ?? 'A request has failed. See the output for more information.'
     if (data) {
       message += '\n' + data2String(data)
@@ -871,7 +863,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         ? window.showWarningMessage.bind(window)
         : window.showInformationMessage.bind(window)
     let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(undefined))
+    this._notifing = true
     fn(message, { title: 'Go to output' }).then(selection => {
+      this._notifing = false
       if (selection !== undefined) {
         this.outputChannel.show(true)
       }
@@ -1119,7 +1113,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private initialize(connection: Connection): Promise<InitializeResult> {
     let { initializationOptions, workspaceFolder, progressOnInitialization } = this._clientOptions
-    this.refreshTrace(connection, false)
+    this.refreshTrace(false)
     let rootPath = this._rootPath
     let initParams: InitializeParams = {
       processId: process.pid,
@@ -1211,7 +1205,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       this._pendingProgressHandlers.clear()
       await connection.sendNotification(InitializedNotification.type, {})
-      this.hookConfigurationChanged(connection)
+      this.hookConfigurationChanged()
       this.initializeFeatures(connection)
       return result
     } catch (error: any) {
@@ -1438,19 +1432,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private hookConfigurationChanged(connection: Connection): void {
+  private hookConfigurationChanged(): void {
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration(this._id)) {
-        this.refreshTrace(connection, true)
+        this.refreshTrace(true)
       }
     }, null, this._listeners)
   }
 
-  private refreshTrace(
-    connection: Connection,
-    sendNotification: boolean
-  ): void {
-    let config = workspace.getConfiguration(this._id, this.clientOptions.workspaceFolder)
+  private refreshTrace(sendNotification: boolean): void {
+    let config = workspace.getConfiguration(this._id, null)
     let trace: Trace = Trace.Off
     let traceFormat: TraceFormat = TraceFormat.Text
     if (config) {
@@ -1465,21 +1456,18 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (sendNotification && this._trace == trace && this._traceFormat == traceFormat) {
       return
     }
-    this._trace = trace
-    this._traceFormat = traceFormat
-    connection.trace(this._trace, this._tracer, {
-      sendNotification,
-      traceFormat: this._traceFormat
-    }).catch(this.error.bind(this, `Updating trace failed with error`))
+    this.changeTrace(trace, traceFormat)
   }
 
-  private enableVerboseTrace(): void {
-    this._trace = Trace.Verbose
-    this._traceFormat = TraceFormat.Text
-    this._connection.trace(this._trace, this._tracer, {
-      sendNotification: true,
-      traceFormat: this._traceFormat
-    }).catch(this.error.bind(this, `Updating trace failed with error`))
+  private changeTrace(trace: Trace, traceFormat: TraceFormat): void {
+    this._trace = trace
+    this._traceFormat = traceFormat
+    if (this._connection && (this.$state === ClientState.Running || this.$state === ClientState.Starting)) {
+      this._connection.trace(this._trace, this._tracer, {
+        sendNotification: true,
+        traceFormat: this._traceFormat
+      }).catch(error => { this.error(`Updating trace failed with error`, error, false) })
+    }
   }
 
   private readonly _features: (StaticFeature | DynamicFeature<any>)[] = []
@@ -1779,7 +1767,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     SemanticTokensDeltaRequest.method
   ])
 
-  public handleFailedRequest<T>(type: { method: string, [key: string]: any }, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
+  public handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T {
     if (token && token.isCancellationRequested) return defaultValue
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {

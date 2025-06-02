@@ -47,6 +47,7 @@ describe('SettingMonitor', () => {
     client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', () => {
     })
     await client.start()
+    expect(client.traceOutputChannel).toBeDefined()
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
     let disposable = monitor.start()
     helper.updateConfiguration('html.enabled', false)
@@ -445,6 +446,7 @@ describe('Client integration', () => {
     let client = await testLanguageServer(serverOptions, {
       workspaceFolder: { name: 'test', uri: URI.file(__dirname).toString() },
       outputChannel: window.createOutputChannel('test'),
+      traceOutputChannel: window.createOutputChannel('test-trace'),
       markdown: {},
       disabledFeatures: ['pullDiagnostic'],
       revealOutputChannelOn: lsclient.RevealOutputChannelOn.Info,
@@ -469,6 +471,9 @@ describe('Client integration', () => {
     assert.deepStrictEqual(client.supportedMarkupKind, [MarkupKind.PlainText])
     assert.strictEqual(client.name, 'Test Language Server')
     assert.strictEqual(client.diagnostics, undefined)
+    expect(client.traceOutputChannel).toBeDefined()
+    client.traceMessage('message')
+    client.traceMessage('message', {})
     client.trace = Trace.Verbose
     let spy = jest.spyOn(client as any, 'showNotificationMessage').mockReturnValue(Promise.resolve())
     let d = client.start()
@@ -620,7 +625,7 @@ describe('Client integration', () => {
     s.mockRestore()
     spy.mockRestore()
     await client.stop()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should check version on apply workspaceEdit', async () => {
