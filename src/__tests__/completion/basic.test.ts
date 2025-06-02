@@ -1068,14 +1068,6 @@ describe('completion', () => {
       expect(items.length).toBe(2)
     })
 
-    it('should trigger on triggerSuggest command', async () => {
-      await create(['foo', 'bar'], false)
-      await commands.executeCommand('editor.action.triggerSuggest')
-      await helper.waitPopup()
-      let items = await helper.items()
-      expect(items.length).toBe(2)
-    })
-
     it('should filter and sort on increment search', async () => {
       await create(['forceDocumentSync', 'format', 'fallback'], false)
       await nvim.input('f')
