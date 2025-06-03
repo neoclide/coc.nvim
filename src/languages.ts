@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 'use strict'
+import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, TextEdit, TypeHierarchyItem, WorkspaceEdit, WorkspaceSymbol } from 'vscode-languageserver-types'
 import type { Sources } from './completion/sources'
@@ -37,7 +37,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
-import { CancellationToken, Disposable, Emitter, Event, InlineCompletionContext, InlineCompletionItem, LinkedEditingRanges, SignatureHelpContext } from './util/protocol'
+import { CancellationToken, Disposable, Emitter, Event, InlineCompletionContext, InlineCompletionItem } from './util/protocol'
 import { toText } from './util/string'
 
 const eventDebounce = getConditionValue(100, 1)
@@ -121,8 +121,8 @@ class Languages {
   private inlayHintManager = new InlayHintManger()
   private inlineCompletionItemManager = new InlineCompletionItemManager()
   private inlineValueManager = new InlineValueManager()
-  public readonly registerDocumentRangeFormattingEditProvider: Function
-  public readonly registerDocumentFormattingEditProvider: Function
+  public readonly registerDocumentRangeFormattingEditProvider: any
+  public readonly registerDocumentFormattingEditProvider: any
 
   public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
 

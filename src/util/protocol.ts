@@ -18,8 +18,6 @@ export {
   InitializedNotification,
   InlineCompletionItem,
   InlineCompletionContext,
-  LinkedEditingRanges,
-  SignatureHelpContext,
   TraceFormat,
   ResourceOperationKind,
   FailureHandlingKind,
