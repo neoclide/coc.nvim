@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver/node')
+const {createConnection, TextDocumentContentRefreshRequest, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver/node')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -11,9 +11,10 @@ let prepareResponse
 let configuration
 let folders
 let foldersEvent
+const id = 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
 connection.onInitialize((params) => {
   options = params.initializationOptions || {}
-  let changeNotifications = options.changeNotifications ?? 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
+  let changeNotifications = options.changeNotifications ?? id
   return {
     capabilities: {
       inlineValueProvider: {},
@@ -59,7 +60,8 @@ connection.onInitialize((params) => {
           willDelete: {
             filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
           },
-        }
+        },
+        textDocumentContent: options.textDocumentContent ? {id, schemes: ['lsptest']} : undefined
       },
     }
   }
@@ -186,6 +188,11 @@ connection.onRequest('getFoldersEvent', () => {
 
 connection.onNotification('fireInlineValueRefresh', () => {
   void connection.sendRequest(InlineValueRefreshRequest.type)
+})
+
+connection.onNotification('fireDocumentContentRefresh', () => {
+  void connection.sendRequest(TextDocumentContentRefreshRequest.type, {uri: 'lsptest:///2'})
+  void connection.sendRequest(TextDocumentContentRefreshRequest.type, {uri: 'untitled:///1'})
 })
 
 connection.onNotification('requestFolders', async () => {

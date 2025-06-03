@@ -1,10 +1,11 @@
 import os from 'os'
 import path from 'path'
-import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import * as lsclient from '../../language-client'
+import type { TextDocumentContentProviderShape } from '../../language-client/textDocumentContent'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -399,6 +400,40 @@ describe('DynamicFeature', () => {
       await helper.waitValue(() => {
         return called
       }, true)
+      await client.stop()
+    })
+  })
+
+  describe('TextDocumentContentFeature', () => {
+    it('should register static TextDocumentContent feature', async () => {
+      let client = await startServer({ textDocumentContent: true }, {})
+      let feature = client.getFeature(TextDocumentContentRequest.method)
+      expect(feature.getState()['registrations']).toBe(true)
+      let providers = feature.getProviders() as TextDocumentContentProviderShape[]
+      let provider = providers[0]
+      expect(provider.scheme).toBe('lsptest')
+      let times = 0
+      provider.provider.onDidChange(() => {
+        times++
+      })
+      await client.sendNotification('fireDocumentContentRefresh')
+      await helper.waitValue(() => times, 1)
+      let uri = URI.parse('lsptest:///1')
+      let spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve(undefined))
+      let res = await provider.provider.provideTextDocumentContent(uri, token)
+      expect(res).toBeUndefined()
+      spy.mockRestore()
+      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve({ text: 'foo' }))
+      res = await provider.provider.provideTextDocumentContent(uri, token)
+      expect(res).toBe('foo')
+      spy.mockRestore()
+      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.reject(new Error('myerror')))
+      await expect(async () => {
+        await provider.provider.provideTextDocumentContent(uri, token)
+      }).rejects.toThrow(Error)
+      spy.mockRestore()
+      feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
+      expect(feature.getState()['registrations']).toBe(false)
       await client.stop()
     })
   })

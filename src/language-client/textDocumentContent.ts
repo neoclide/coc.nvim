@@ -1,6 +1,8 @@
 import { CancellationToken, Disposable, Emitter, StaticRegistrationOptions, TextDocumentContentRefreshRequest, TextDocumentContentRequest, type ClientCapabilities, type RegistrationType, type ServerCapabilities, type TextDocumentContentParams, type TextDocumentContentRegistrationOptions } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult, TextDocumentContentProvider } from '../provider'
+import { defaultValue, disposeAll } from '../util'
+import { toArray } from '../util/array'
 import workspace from '../workspace'
 import { ensure, type DynamicFeature, type FeatureClient, type FeatureState, type RegistrationData } from './features'
 import * as UUID from './utils/uuid'
@@ -56,31 +58,36 @@ export class TextDocumentContentFeature implements DynamicFeature<TextDocumentCo
       const uri = URI.parse(params.uri)
       for (const registrations of this._registrations.values()) {
         for (const provider of registrations.providers) {
-          if (provider.scheme !== uri.scheme) {
+          if (provider.scheme === uri.scheme) {
             provider.onDidChangeEmitter.fire(uri)
           }
         }
       }
     })
 
-    if (!capabilities?.workspace?.textDocumentContent) {
-      return
+    const capability = defaultValue(defaultValue(capabilities, {}).workspace, {}).textDocumentContent
+    if (capability) {
+      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
+      this.register({
+        id,
+        registerOptions: capability
+      })
     }
-    const capability = capabilities.workspace.textDocumentContent
-    const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-    this.register({
-      id,
-      registerOptions: capability
-    })
   }
 
   public register(data: RegistrationData<TextDocumentContentRegistrationOptions>): void {
     const registrations: TextDocumentContentProviderShape[] = []
-    for (const scheme of data.registerOptions.schemes) {
+    const disposables: Disposable[] = []
+    for (const scheme of toArray(data.registerOptions.schemes)) {
       const [disposable, registration] = this.registerTextDocumentContentProvider(scheme)
+      disposables.push(disposable)
       registrations.push(registration)
-      this._registrations.set(data.id, { disposable, providers: registrations })
     }
+    this._registrations.set(data.id, {
+      disposable: Disposable.create(() => {
+        disposeAll(disposables)
+      }), providers: registrations
+    })
   }
 
   private registerTextDocumentContentProvider(scheme: string): [Disposable, TextDocumentContentProviderShape] {
@@ -94,10 +101,7 @@ export class TextDocumentContentFeature implements DynamicFeature<TextDocumentCo
             uri: uri.toString()
           }
           return client.sendRequest(TextDocumentContentRequest.type, params, token).then(result => {
-            if (token.isCancellationRequested) {
-              return null
-            }
-            return result.text
+            return result?.text
           }, error => {
             return client.handleFailedRequest(TextDocumentContentRequest.type, token, error, null)
           })
