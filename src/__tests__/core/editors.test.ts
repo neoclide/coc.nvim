@@ -235,6 +235,8 @@ describe('Tabs', () => {
     expect(workspace.tabs.isActive(URI.parse(doc.uri))).toBe(true)
     expect(workspace.tabs.isVisible(doc.textDocument)).toBe(true)
     expect(workspace.tabs.isVisible(URI.parse(doc.uri))).toBe(true)
+    workspace.editors['winid'] = 1
+    expect(workspace.tabs.isActive(URI.parse(doc.uri))).toBe(false)
     let resources = workspace.tabs.getTabResources()
     expect(resources.size).toBeGreaterThan(0)
   })
