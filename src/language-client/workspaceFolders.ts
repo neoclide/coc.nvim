@@ -1,6 +1,8 @@
 'use strict'
 import type { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RegistrationType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { defaultValue } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { sameFile } from '../util/fs'
 import { DidChangeWorkspaceFoldersNotification, WorkspaceFoldersRequest } from '../util/protocol'
 import workspace from '../workspace'
@@ -50,7 +52,8 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   public getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
     let { workspaceFolders } = workspace
     if (!workspaceFolders || workspaceFolders.length == 0) return undefined
-    let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths ?? []
+    let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths
+    if (isFalsyOrEmpty(ignoredRootPaths)) return workspaceFolders.slice(0)
     let arr = workspaceFolders.filter(o => {
       let fsPath = URI.parse(o.uri).fsPath
       return ignoredRootPaths.every(p => !sameFile(p, fsPath))
@@ -61,8 +64,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   public fillInitializeParams(params: InitializeParams): void {
     const folders = this.getValidWorkspaceFolders()
     this.initializeWithFolders(folders)
-    if (folders === undefined) {
-      this._client.warn(`No valid workspaceFolder exists`)
+    if (folders == null) {
       params.workspaceFolders = null
     } else {
       params.workspaceFolders = folders.map(folder => this.asProtocol(folder))
@@ -74,7 +76,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    capabilities.workspace = capabilities.workspace || {}
+    capabilities.workspace = defaultValue(capabilities.workspace, {})
     capabilities.workspace.workspaceFolders = true
   }
 
@@ -83,14 +85,13 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     client.onRequest(WorkspaceFoldersRequest.type, (token: CancellationToken) => {
       let workspaceFolders: WorkspaceFoldersRequest.HandlerSignature = () => {
         let folders = this.getValidWorkspaceFolders()
-        if (folders === void 0) {
+        if (folders == null) {
           return null
         }
-        let result: WorkspaceFolder[] = folders.map(folder => this.asProtocol(folder))
-        return result
+        return folders.map(folder => this.asProtocol(folder))
       }
       const middleware = client.middleware.workspace
-      return middleware?.workspaceFolders
+      return middleware && middleware.workspaceFolders
         ? middleware.workspaceFolders(token, workspaceFolders)
         : workspaceFolders(token)
     })
@@ -102,21 +103,8 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
       id = UUID.generateUuid()
     }
     if (id) {
-      this.register({
-        id,
-        registerOptions: undefined
-      })
+      this.register({ id, registerOptions: undefined })
     }
-  }
-
-  private doSendEvent(addedFolders: ReadonlyArray<WorkspaceFolder>, removedFolders: ReadonlyArray<WorkspaceFolder>): Promise<void> {
-    let params: DidChangeWorkspaceFoldersParams = {
-      event: {
-        added: addedFolders.map(folder => this.asProtocol(folder)),
-        removed: removedFolders.map(folder => this.asProtocol(folder))
-      }
-    }
-    return this._client.sendNotification(DidChangeWorkspaceFoldersNotification.type, params)
   }
 
   protected sendInitialEvent(currentWorkspaceFolders: ReadonlyArray<WorkspaceFolder> | undefined): void {
@@ -133,37 +121,53 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
       promise = this.doSendEvent(currentWorkspaceFolders, [])
     }
     if (promise) {
-      promise.catch(error => {
-        this._client.error(`Sending notification ${DidChangeWorkspaceFoldersNotification.type.method} failed`, error)
-      })
+      promise.catch(this.onNotificationError.bind(this))
     }
+  }
+
+  private onNotificationError(error: any): void {
+    this._client.error(`Sending notification ${DidChangeWorkspaceFoldersNotification.type.method} failed`, error)
+  }
+
+  private doSendEvent(addedFolders: ReadonlyArray<WorkspaceFolder>, removedFolders: ReadonlyArray<WorkspaceFolder>): Promise<void> {
+    let params: DidChangeWorkspaceFoldersParams = {
+      event: {
+        added: addedFolders.map(folder => this.asProtocol(folder)),
+        removed: removedFolders.map(folder => this.asProtocol(folder))
+      }
+    }
+    return this._client.sendNotification(DidChangeWorkspaceFoldersNotification.type, params)
   }
 
   public register(data: RegistrationData<undefined>): void {
     let id = data.id
     let client = this._client
-    if (this._listeners.size > 0) return
-    let disposable = workspace.onDidChangeWorkspaceFolders(event => {
-      let didChangeWorkspaceFolders = (e: WorkspaceFoldersChangeEvent): Promise<void> => {
-        return this.doSendEvent(e.added, e.removed)
-      }
-      let middleware = client.middleware.workspace
-      const promise = middleware?.didChangeWorkspaceFolders
-        ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders)
-        : didChangeWorkspaceFolders(event)
-      if (promise) {
-        promise.catch(error => {
-          this._client.error(`Sending notification ${DidChangeWorkspaceFoldersNotification.type.method} failed`, error)
-        })
-      }
-    })
-    this._listeners.set(id, disposable)
-    let workspaceFolders = this.getValidWorkspaceFolders()
-    this.sendInitialEvent(workspaceFolders)
+    if (this._listeners.size == 0) {
+      let disposable = workspace.onDidChangeWorkspaceFolders(event => {
+        let didChangeWorkspaceFolders = (e: WorkspaceFoldersChangeEvent): Promise<void> => {
+          return this.doSendEvent(e.added, e.removed)
+        }
+        let middleware = client.middleware.workspace
+        const promise = middleware?.didChangeWorkspaceFolders
+          ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders)
+          : didChangeWorkspaceFolders(event)
+        if (promise) {
+          promise.catch(this.onNotificationError.bind(this))
+        }
+      })
+      this._listeners.set(id, disposable)
+      let workspaceFolders = this.getValidWorkspaceFolders()
+      this.sendInitialEvent(workspaceFolders)
+    }
   }
 
   public unregister(id: string): void {
-    // dynamic not supported
+    const disposable = this._listeners.get(id)
+    if (disposable === void 0) {
+      return
+    }
+    this._listeners.delete(id)
+    disposable.dispose()
   }
 
   public dispose(): void {
@@ -173,10 +177,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     this._listeners.clear()
   }
 
-  private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder
-  private asProtocol(workspaceFolder: undefined): null
-  private asProtocol(workspaceFolder: WorkspaceFolder | undefined): WorkspaceFolder | null {
-    if (workspaceFolder == null) return null
+  private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder {
     return { uri: this._client.code2ProtocolConverter.asUri(URI.parse(workspaceFolder.uri)), name: workspaceFolder.name }
   }
 }

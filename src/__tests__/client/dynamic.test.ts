@@ -1,11 +1,12 @@
+import os from 'os'
 import path from 'path'
 import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import * as lsclient from '../../language-client'
-import helper from '../helper'
-import commands from '../../commands'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
+import * as lsclient from '../../language-client'
 import workspace from '../../workspace'
+import helper from '../helper'
 
 beforeAll(async () => {
   await helper.setup()
@@ -336,6 +337,9 @@ describe('DynamicFeature', () => {
       expect(feature).toBeDefined()
       let state = feature.getState() as any
       expect(state.registrations).toBe(true)
+      feature.register({ id: '1', registerOptions: undefined })
+      feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
+      feature.unregister('2')
       await client.stop()
     })
 
@@ -355,11 +359,16 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(1)
       let called = false
+      let fn = jest.fn()
       let client = await startServer({ changeNotifications: true }, {
         workspace: {
           workspaceFolders: (token, next) => {
             called = true
             return next(token)
+          },
+          didChangeWorkspaceFolders: () => {
+            fn()
+            return Promise.reject(new Error('my error'))
           }
         }
       })
@@ -369,6 +378,8 @@ describe('DynamicFeature', () => {
         return Array.isArray(res) && res.length == 1
       }, true)
       expect(called).toBe(true)
+      workspace.workspaceFolderControl.addWorkspaceFolder(os.tmpdir(), true)
+      expect(fn).toHaveBeenCalled()
       await client.stop()
     })
 
