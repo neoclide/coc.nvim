@@ -1431,12 +1431,15 @@ describe('Client integration', () => {
   })
 
   test('Text Document Content', async () => {
-    const providers = client.getFeature(TextDocumentContentRequest.method)?.getProviders()
+    let feature = client.getFeature(TextDocumentContentRequest.method)
+    const providers = feature?.getProviders()
     isDefined(providers)
     assert.strictEqual(providers.length, 1)
     const provider = providers[0].provider
     const result = await provider.provideTextDocumentContent(URI.parse('content-test:///test.txt'), tokenSource.token)
     assert.strictEqual(result, 'Some test content')
+    feature.unregister('foo')
+    expect(feature.getState()).toBeDefined()
 
     let middlewareCalled = false
     middleware.provideTextDocumentContent = (uri, token, next) => {

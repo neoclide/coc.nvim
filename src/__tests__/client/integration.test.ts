@@ -54,7 +54,6 @@ describe('SettingMonitor', () => {
     await helper.waitValue(() => {
       return client.state
     }, lsclient.State.Stopped)
-    await helper.wait(50)
     helper.updateConfiguration('html.enabled', true)
     await helper.waitValue(() => {
       return client.state != lsclient.State.Stopped
