@@ -4,6 +4,7 @@ import type {
   CancellationToken, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRegistrationOptions, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentSelector, PreviousResultId, ServerCapabilities, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { DiagnosticTag } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
@@ -779,10 +780,10 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(ensure(capabilities, 'textDocument')!, 'diagnostic')!
-    // capability.relatedInformation = true;
-    // capability.tagSupport = { valueSet: [ DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated ] };
-    // capability.codeDescriptionSupport = true;
-    // capability.dataSupport = true;
+    capability.relatedInformation = true
+    capability.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
+    capability.codeDescriptionSupport = true
+    capability.dataSupport = true
     capability.dynamicRegistration = true
     capability.relatedDocumentSupport = true
 
