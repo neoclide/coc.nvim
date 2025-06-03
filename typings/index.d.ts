@@ -12147,6 +12147,46 @@ declare module 'coc.nvim' {
     success: boolean
   }
 
+  /**
+   * General parameters to register for a notification or to register a provider.
+   */
+  export interface Registration {
+    /**
+     * The id used to register the request. The id can be used to deregister
+     * the request again.
+     */
+    id: string
+    /**
+     * The method / capability to register for.
+     */
+    method: string
+    /**
+     * Options necessary for the registration.
+     */
+    registerOptions?: LSPAny
+  }
+  export interface RegistrationParams {
+    registrations: Registration[]
+  }
+
+  /**
+   * General parameters to unregister a request or notification.
+   */
+  export interface Unregistration {
+    /**
+     * The id used to unregister the request or notification. Usually an id
+     * provided during the register request.
+     */
+    id: string
+    /**
+     * The method to unregister for.
+     */
+    method: string
+  }
+  export interface UnregistrationParams {
+    unregisterations: Unregistration[]
+  }
+
   export interface _WindowMiddleware {
     showDocument?: (
       params: ShowDocumentParams,
@@ -12181,6 +12221,8 @@ declare module 'coc.nvim' {
     provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<WorkspaceSymbol[]>
     provideCodeActions?: (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
     handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
+    handleRegisterCapability?: (this: void, params: RegistrationParams, next: RequestHandler<RegistrationParams, void, void>) => Promise<void>
+    handleUnregisterCapability?: (this: void, params: UnregistrationParams, next: RequestHandler<UnregistrationParams, void, void>) => Promise<void>
     resolveCodeAction?: (this: void, item: CodeAction, token: CancellationToken, next: ResolveCodeActionSignature) => ProviderResult<CodeAction>
     provideCodeLenses?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideCodeLensesSignature) => ProviderResult<CodeLens[]>
     resolveCodeLens?: (this: void, codeLens: CodeLens, token: CancellationToken, next: ResolveCodeLensSignature) => ProviderResult<CodeLens>
