@@ -53,6 +53,9 @@ describe('exports', () => {
       }
     }
     expect(list.length).toBe(0)
+    for (let key of ['InlineCompletionItem', 'InlineCompletionContext']) {
+      expect(exportObj[key]).toBeDefined()
+    }
   })
 })
 

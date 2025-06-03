@@ -78,7 +78,7 @@ export class SnippetManager {
     }, true)
     commands.register({
       id: 'editor.action.insertBufferSnippets',
-      execute: async (bufnr: number, edits: SnippetEdit[], select = false) => {
+      execute: async (bufnr: number, edits: SnippetEdit[], select: boolean) => {
         return await this.insertBufferSnippets(bufnr, edits, select)
       }
     }, true)

@@ -5,8 +5,7 @@ import {
   ColorInformation,
   ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
   CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
-  InlayHintLabelPart,
-  InlineCompletionContext, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind,
+  InlayHintLabelPart, InlineCompletionList, InlineCompletionTriggerKind,
   InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
   InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer,
   Location,
@@ -42,11 +41,13 @@ import { CancellationError } from './util/errors'
 import { Mutex } from './util/mutex'
 import {
   CancellationToken,
-  CancellationTokenSource, CompletionTriggerKind, Disposable, DocumentDiagnosticReportKind, Emitter, ErrorCodes, Event, FileChangeType, MonikerKind, NotificationType,
+  CancellationTokenSource, CompletionTriggerKind, Disposable, DocumentDiagnosticReportKind, Emitter, ErrorCodes, Event, FileChangeType,
+  InlineCompletionContext, InlineCompletionItem,
+  MonikerKind, NotificationType,
   NotificationType0, ProgressType, ProtocolNotificationType,
   ProtocolNotificationType0, ProtocolRequestType,
   ProtocolRequestType0, RequestType,
-  RequestType0, ResponseError, SignatureHelpTriggerKind, Trace, UniquenessLevel
+  RequestType0, ResponseError, SignatureHelpTriggerKind, Trace, UniquenessLevel,
 } from './util/protocol'
 import window from './window'
 import workspace from './workspace'

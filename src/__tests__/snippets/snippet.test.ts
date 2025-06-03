@@ -45,6 +45,7 @@ describe('SnippetString', () => {
     expect(SnippetString.isSnippetString(null)).toBe(false)
     let snippetString = new SnippetString()
     expect(SnippetString.isSnippetString(snippetString)).toBe(true)
+    expect(SnippetString.isSnippetString({})).toBe(false)
   })
 
   it('should build snippet string', () => {
@@ -155,9 +156,9 @@ describe('SnippetString', () => {
 
 describe('toSnippetString()', () => {
   it('should convert snippet to string', async () => {
-    await expect(async () => {
-      toSnippetString(undefined)
-    }).rejects.toThrow(TypeError)
+    expect(() => {
+      toSnippetString(1 as any)
+    }).toThrow(TypeError)
     expect(toSnippetString(new SnippetString())).toBe('')
   })
 })

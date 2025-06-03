@@ -202,5 +202,5 @@ export function toSnippetString(snippet: string | SnippetString | StringValue): 
   if (typeof snippet.value === 'string') {
     return snippet.value
   }
-  throw new TypeError(`snippet should be string has value as string`)
+  throw new TypeError(`Snippet should be string or has value as string`)
 }
