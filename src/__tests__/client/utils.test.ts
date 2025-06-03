@@ -39,6 +39,7 @@ test('data2String', () => {
 })
 
 test('parseTraceData', () => {
+  expect(parseTraceData({})).toBe('{}')
   expect(parseTraceData('msg')).toMatch('msg')
   expect(parseTraceData('Params: data')).toMatch('data')
   expect(parseTraceData('Result: {"foo": "bar"}')).toMatch('bar')

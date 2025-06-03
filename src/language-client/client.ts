@@ -1678,8 +1678,17 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private handleRegistrationRequest(params: RegistrationParams): void {
+  private handleRegistrationRequest(params: RegistrationParams): Promise<void> {
     if (this.clientOptions.disableDynamicRegister) return
+    const middleware = this.clientOptions.middleware?.handleRegisterCapability
+    if (middleware) {
+      return middleware(params, nextParams => this.doRegisterCapability(nextParams))
+    } else {
+      return this.doRegisterCapability(params)
+    }
+  }
+
+  private async doRegisterCapability(params: RegistrationParams): Promise<void> {
     // We will not receive a registration call before a client is running
     // from a server. However if we stop or shutdown we might which might
     // try to restart the server. So ignore registrations if we are not running
@@ -1691,11 +1700,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     for (const registration of params.registrations) {
       const feature = this._dynamicFeatures.get(registration.method)
-      if (!feature) {
-        this.error(`No feature implementation for ${registration.method} found. Registration failed.`)
-        return
+      if (feature === undefined) {
+        return Promise.reject(new Error(`No feature implementation for ${registration.method} found. Registration failed.`))
       }
-      const options = registration.registerOptions ?? {}
+      const options = registration.registerOptions ?? {} as any
       options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
       const data: RegistrationData<any> = {
         id: registration.id,
@@ -1705,17 +1713,23 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private handleUnregistrationRequest(
-    params: UnregistrationParams
-  ): Promise<void> {
-    return new Promise<void>(resolve => {
-      for (let unregistration of params.unregisterations) {
-        if (this._ignoredRegistrations.has(unregistration.id)) continue
-        const feature = this._dynamicFeatures.get(unregistration.method)
-        if (feature) feature.unregister(unregistration.id)
+  private handleUnregistrationRequest(params: UnregistrationParams): Promise<void> {
+    const middleware = this.clientOptions.middleware?.handleUnregisterCapability
+    if (middleware) {
+      return middleware(params, nextParams => this.doUnregisterCapability(nextParams))
+    } else {
+      return this.doUnregisterCapability(params)
+    }
+  }
+
+  private async doUnregisterCapability(params: UnregistrationParams): Promise<void> {
+    for (const unregistration of params.unregisterations) {
+      if (this._ignoredRegistrations.has(unregistration.id)) {
+        continue
       }
-      resolve()
-    })
+      const feature = this._dynamicFeatures.get(unregistration.method)
+      if (feature) feature.unregister(unregistration.id)
+    }
   }
 
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
