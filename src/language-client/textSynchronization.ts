@@ -3,7 +3,7 @@ import type { ClientCapabilities, DidChangeTextDocumentParams, DidCloseTextDocum
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TextDocumentWillSaveEvent } from '../core/files'
 import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../types'
-import { disposeAll } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { CancellationToken, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, Emitter, Event, TextDocumentSyncKind, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicDocumentFeature, DynamicFeature, ensure, FeatureClient, NextSignature, NotificationSendEvent, NotifyingFeature, RegistrationData, TextDocumentEventFeature, TextDocumentSendFeature } from './features'
@@ -58,10 +58,10 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     )
     this._syncedDocuments = syncedDocuments
     this._pendingOpenNotifications = new Map<string, TextDocument>()
-    this._delayOpen = client.clientOptions.textSynchronization?.delayOpenNotifications ?? false
+    this._delayOpen = defaultValue(client.clientOptions.textSynchronization?.delayOpenNotifications, false)
   }
 
-  protected async callback(document: TextDocument): Promise<void> {
+  public async callback(document: TextDocument): Promise<void> {
     if (!this._delayOpen) {
       return super.callback(document)
     } else {
@@ -105,12 +105,14 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
   public register(data: RegistrationData<TextDocumentRegistrationOptions>): void {
     super.register(data)
     if (!data.registerOptions.documentSelector) return
+    const onError = error => {
+      this._client.error(`Sending document notification ${this._type.method} failed`, error)
+    }
     workspace.textDocuments.forEach(textDocument => {
       let uri = textDocument.uri
-      if (this._syncedDocuments.has(uri)) return
-      this.callback(textDocument).catch(error => {
-        this._client.error(`Sending document notification ${this._type.method} failed`, error)
-      })
+      if (!this._syncedDocuments.has(uri)) {
+        this.callback(textDocument).catch(onError)
+      }
     })
     if (this._delayOpen && this._pendingOpenListeners === undefined) {
       this._pendingOpenListeners = []
@@ -124,9 +126,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
         for (const uri of opened) {
           const document = this._pendingOpenNotifications.get(uri.toString())
           if (document !== undefined) {
-            super.callback(document).catch((error => {
-              this._client.error(`Sending document notification ${this._type.method} failed`, error)
-            }))
+            super.callback(document).catch(onError)
             this._pendingOpenNotifications.delete(uri.toString())
           }
         }
@@ -304,13 +304,10 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
     if (event.contentChanges.length === 0) {
       return
     }
-    let doc = workspace.getDocument(event.textDocument.uri)
-    let { textDocument } = doc
     const promises: Promise<void>[] = []
     for (const changeData of this._changeData.values()) {
-      if (workspace.match(changeData.documentSelector, textDocument) > 0) {
+      if (workspace.match(changeData.documentSelector, event.document) > 0) {
         let middleware = this._client.middleware!
-        let promise: Promise<void> | undefined
         let didChange: (event: TextDocumentChangeEvent) => Promise<void>
         const client = this._client
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
@@ -319,22 +316,19 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
+          promises.push(middleware.didChange ? middleware.didChange(event, didChange) : didChange(event))
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
-            const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(textDocument)
+            const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(event.document)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
-        } else {
-          didChange = () => Promise.resolve(undefined)
+          promises.push(middleware.didChange ? middleware.didChange(event, didChange) : didChange(event))
         }
-        promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event)
-        if (promise) promises.push(promise)
       }
     }
     return Promise.all(promises).then(undefined, error => {
       this._client.error(`Sending document notification ${DidChangeTextDocumentNotification.type.method} failed`, error)
-      throw error
     })
   }
 
@@ -454,13 +448,12 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
   public register(
     data: RegistrationData<TextDocumentRegistrationOptions>
   ): void {
-    if (!data.registerOptions.documentSelector) {
-      return
+    if (data.registerOptions.documentSelector) {
+      if (!this._listener) {
+        this._listener = workspace.onWillSaveTextDocument(this.callback, this)
+      }
+      this._selectors.set(data.id, data.registerOptions.documentSelector)
     }
-    if (!this._listener) {
-      this._listener = workspace.onWillSaveTextDocument(this.callback, this)
-    }
-    this._selectors.set(data.id, data.registerOptions.documentSelector)
   }
 
   private callback(event: TextDocumentWillSaveEvent): void {
