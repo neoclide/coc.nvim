@@ -4,6 +4,7 @@ import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem,
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
+import { StaticFeature } from '../../language-client/features'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, State, TransportKind } from '../../language-client/index'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -237,6 +238,7 @@ describe('Client integration', () => {
       assert.notStrictEqual(feature, undefined)
       let res = feature.getState()
       assert.strictEqual(res.kind, kind)
+      assert.ok(StaticFeature.is(feature))
     }
     testStaticFeature(ConfigurationRequest.method, 'static')
     testStaticFeature(WorkDoneProgressCreateRequest.method, 'window')
@@ -446,7 +448,7 @@ describe('Client integration', () => {
       diagnostics: []
     }, tokenSource.token)) as CodeAction[]
 
-    isArray(result, CodeAction)
+    assert.strictEqual(result.length, 3)
     const action = result[0]
     assert.strictEqual(action.title, 'title')
     assert.strictEqual(action.command?.title, 'title')

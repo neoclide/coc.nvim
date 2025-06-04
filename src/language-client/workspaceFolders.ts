@@ -51,14 +51,12 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
 
   public getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
     let { workspaceFolders } = workspace
-    if (!workspaceFolders || workspaceFolders.length == 0) return undefined
     let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths
-    if (isFalsyOrEmpty(ignoredRootPaths)) return workspaceFolders.slice(0)
-    let arr = workspaceFolders.filter(o => {
+    let arr = isFalsyOrEmpty(ignoredRootPaths) ? workspaceFolders.slice(0) : workspaceFolders.filter(o => {
       let fsPath = URI.parse(o.uri).fsPath
       return ignoredRootPaths.every(p => !sameFile(p, fsPath))
     })
-    return arr.length ? arr : undefined
+    return arr.length > 0 ? arr : undefined
   }
 
   public fillInitializeParams(params: InitializeParams): void {
@@ -148,7 +146,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
           return this.doSendEvent(e.added, e.removed)
         }
         let middleware = client.middleware.workspace
-        const promise = middleware?.didChangeWorkspaceFolders
+        const promise = middleware && middleware.didChangeWorkspaceFolders
           ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders)
           : didChangeWorkspaceFolders(event)
         if (promise) {

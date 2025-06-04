@@ -46,6 +46,7 @@ describe('ProgressPart', () => {
   it('should not start if cancelled', async () => {
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
+    p.report({ kind: 'report', message: 'msg' })
     p.cancel()
     expect(p.begin({ kind: 'begin', title: 'canceleld' })).toBe(false)
   })

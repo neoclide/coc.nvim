@@ -3,6 +3,7 @@ import type { ClientCapabilities, DidChangeConfigurationRegistrationOptions, Dis
 import { IConfigurationChangeEvent, WorkspaceConfiguration } from '../configuration/types'
 import { mergeConfigProperties, toJSONObject } from '../configuration/util'
 import { IFileSystemWatcher } from '../types'
+import { defaultValue } from '../util'
 import * as Is from '../util/is'
 import {
   ConfigurationRequest,
@@ -136,7 +137,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   }
 
   public initialize(): void {
-    let section = this._client.clientOptions.synchronize?.configurationSection
+    let section = defaultValue(this._client.clientOptions.synchronize, {}).configurationSection
     if (section !== undefined) {
       let id = this.configuredUID = UUID.generateUuid()
       this.register({

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import assert from 'assert'
-import { data2String, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
+import { data2String, fixType, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
 import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
@@ -29,6 +29,10 @@ test('getLocale', () => {
 test('getTraceMessage', () => {
   expect(getTracePrefix({})).toMatch('Trace')
   expect(getTracePrefix({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
+})
+
+test('fixType', () => {
+  expect(fixType({ method: 'method' }, [])['numberOfParams']).toEqual(0)
 })
 
 test('data2String', () => {

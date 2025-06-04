@@ -313,7 +313,9 @@ connection.onDocumentHighlight(_params => {
 connection.onCodeAction(params => {
   if (params.textDocument.uri.endsWith('empty.bat')) return undefined
   return [
-    CodeAction.create('title', Command.create('title', 'test_command'))
+    CodeAction.create('title', Command.create('title', 'test_command')),
+    CodeAction.create('other title'),
+    Command.create('title', 'test_command')
   ]
 })
 

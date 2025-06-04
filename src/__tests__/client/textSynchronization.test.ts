@@ -148,7 +148,7 @@ describe('TextDocumentSynchronization', () => {
 
   describe('DidCloseTextDocumentFeature', () => {
     it('should send close event', async () => {
-      let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
+      let uri = URI.file(path.join(os.tmpdir(), 'close.vim'))
       let doc = await workspace.loadFile(uri.toString())
       let client = createClient([{ language: 'vim' }])
       await client.start()
@@ -164,7 +164,7 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient([{ language: 'javascript' }], {
         didClose: (e, next) => {
           called = true
-          return Promise.reject(new Error('myerror'))
+          return next(e)
         }
       })
       await client.start()
@@ -174,11 +174,13 @@ describe('TextDocumentSynchronization', () => {
       openFeature.register(options)
       let feature = client.getFeature(DidCloseTextDocumentNotification.method)
       feature.register(options)
-      let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
+      let uri = URI.file(path.join(os.tmpdir(), 'close.vim'))
       await workspace.loadFile(uri.toString())
       await helper.wait(10)
-      feature.unregister(id)
       feature.unregister('unknown')
+      let spy = jest.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
+      feature.unregister(id)
+      spy.mockRestore()
       let res = await client.sendRequest('getLastClose') as any
       expect(res).toBeNull()
       expect(called).toBe(true)

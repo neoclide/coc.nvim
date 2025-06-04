@@ -1,10 +1,11 @@
 import os from 'os'
 import path from 'path'
-import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentLinkRequest, DocumentSymbolRequest, ExecuteCommandRequest, InlayHintRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import * as lsclient from '../../language-client'
+import { SemanticTokensFeature } from '../../language-client/semanticTokens'
 import type { TextDocumentContentProviderShape } from '../../language-client/textDocumentContent'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -156,13 +157,13 @@ describe('DynamicFeature', () => {
     it('should pull configuration for configured languageserver', async () => {
       helper.updateConfiguration('languageserver.vim.settings.foo', 'bar')
       let client = await startServer({})
-      await helper.wait(50)
       await client.sendNotification('pullConfiguration')
       await helper.wait(50)
       let res = await client.sendRequest('getConfiguration')
-      expect(res).toEqual(['bar'])
+      expect(Array.isArray(res)).toBe(true)
+      expect(res[0]).toEqual('bar')
       helper.updateConfiguration('suggest.noselect', true)
-      await helper.wait(50)
+      await helper.wait(20)
       await client.stop()
     })
   })
@@ -187,7 +188,38 @@ describe('DynamicFeature', () => {
       expect(res.length).toBe(2)
       let resolved = await provider.resolveCodeLens(res[0], token)
       expect(resolved.command).toBeDefined()
-      expect(fn).toBeCalledTimes(2)
+      expect(fn).toHaveBeenCalledTimes(2)
+      await client.stop()
+    })
+
+    it('should no resolve when resolve not exists', async () => {
+      let client = await startServer({ noResolve: true }, {})
+      let feature = client.getFeature(CodeLensRequest.method)
+      let provider = feature.getProvider(textDocument).provider
+      expect(provider).toBeDefined()
+      expect(provider.resolveCodeLens).toBeUndefined()
+      {
+        let feature = client.getFeature(DocumentLinkRequest.method)
+        let provider = feature.getProvider(textDocument)
+        expect(provider).toBeDefined()
+        expect(provider.resolveDocumentLink).toBeUndefined()
+      }
+      {
+        let feature = client.getFeature(InlayHintRequest.method)
+        let provider = feature.getProvider(textDocument).provider
+        expect(provider).toBeDefined()
+        expect(provider.resolveInlayHint).toBeUndefined()
+      }
+      {
+        let feature: SemanticTokensFeature
+        await helper.waitValue(() => {
+          feature = client.getFeature(SemanticTokensRegistrationType.method) as SemanticTokensFeature
+          return feature != null
+        }, true)
+        let provider = feature.getProvider(textDocument).full
+        expect(provider).toBeDefined()
+        expect(provider.provideDocumentSemanticTokensEdits).toBeUndefined()
+      }
       await client.stop()
     })
   })
@@ -227,11 +259,22 @@ describe('DynamicFeature', () => {
       }, true)
       let feature = client.getFeature(ExecuteCommandRequest.method)
       expect(feature).toBeDefined()
+      feature.unregister('other_command')
       expect(feature.getState().kind).toBe('workspace')
       let res = await commands.executeCommand('test_command')
       expect(res).toEqual({ success: true })
       expect(called).toBe(true)
+      let err
+      let spy = jest.spyOn(client, 'handleFailedRequest').mockImplementation((_type, _token, error) => {
+        err = error
+      })
+      await commands.executeCommand('other_command')
+      spy.mockRestore()
+      expect(err.message).toMatch(/not exists/)
       await client.sendNotification('unregister')
+      await helper.waitValue(() => {
+        return commands.has('test_command')
+      }, false)
       await client.stop()
     })
 
@@ -349,9 +392,11 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(0)
       await client.sendNotification('requestFolders')
-      await helper.wait(30)
+      await helper.wait(10)
       let res = await client.sendRequest('getFolders')
       expect(res).toBeNull()
+      workspace.workspaceFolderControl.addWorkspaceFolder(process.cwd(), true)
+      await helper.wait(10)
       await client.stop()
     })
 

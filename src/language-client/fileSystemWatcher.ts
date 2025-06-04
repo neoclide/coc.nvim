@@ -33,7 +33,7 @@ interface $FileEventOptions {
 }
 const debounceTime = getConditionValue(200, 20)
 
-function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
+export function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
   let { baseUri, pattern } = rp
   if (typeof baseUri === 'string') {
     return new RelativePatternImpl(URI.parse(baseUri), pattern)
@@ -55,7 +55,6 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   public async _notifyFileEvent(): Promise<void> {
     let map = this._fileEventsMap
     if (map.size == 0) return
-    await this._client.forceDocumentSync()
     this._client.sendNotification(DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch(error => {
       this._client.error(`Notify file events failed.`, error)
     })

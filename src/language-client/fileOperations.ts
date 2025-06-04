@@ -1,10 +1,10 @@
 'use strict'
 import { Minimatch, MinimatchOptions } from 'minimatch'
-import { minimatch } from '../util/node'
 import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../core/files'
 import { FileType, getFileType } from '../util/fs'
+import { minimatch } from '../util/node'
 import {
   CancellationToken, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, FileOperationPatternKind, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest
 } from '../util/protocol'

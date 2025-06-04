@@ -100,11 +100,8 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
         }
         return client.sendRequest(ExecuteCommandRequest.type, params)
       }
-      const middleware = client.middleware!
       this.disposables.push(commands.registerCommand(id, (...args: any[]) => {
-        return middleware.executeCommand
-          ? middleware.executeCommand(id, args, executeCommand)
-          : executeCommand(id, args)
+        return this.sendWithMiddleware(executeCommand, 'executeCommand', id, args)
       }, null, true))
     }
     const provider: CodeActionProvider = {
