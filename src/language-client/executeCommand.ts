@@ -52,9 +52,11 @@ export class ExecuteCommandFeature extends BaseFeature<ExecuteCommandMiddleware>
         command,
         arguments: args
       }
-      return this.sendRequest(ExecuteCommandRequest.type, params, CancellationToken.None).then(
+      return client.sendRequest(ExecuteCommandRequest.type, params, CancellationToken.None).then(
         undefined,
-        error => client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
+        error => {
+          client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
+        }
       )
     }
     if (data.registerOptions.commands) {
