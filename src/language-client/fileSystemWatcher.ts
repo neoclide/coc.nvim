@@ -6,9 +6,8 @@ import type {
 import { URI } from 'vscode-uri'
 import RelativePatternImpl from '../model/relativePattern'
 import { GlobPattern, IFileSystemWatcher } from '../types'
-import { getConditionValue } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import * as Is from '../util/is'
-import { debounce } from '../util/node'
 import { DidChangeWatchedFilesNotification, FileChangeType, RelativePattern, WatchKind } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
@@ -18,20 +17,11 @@ export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void
 }
 
-export interface FileSystemWatcherMiddleware {
-  didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => Promise<void>
-}
-
-interface _FileSystemWatcherMiddleware {
-  workspace?: FileSystemWatcherMiddleware
-}
-
 interface $FileEventOptions {
   synchronize?: {
     fileEvents?: IFileSystemWatcher | IFileSystemWatcher[]
   }
 }
-const debounceTime = getConditionValue(200, 20)
 
 export function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
   let { baseUri, pattern } = rp
@@ -44,36 +34,13 @@ export function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
 export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatchedFilesRegistrationOptions> {
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
   private _fileEventsMap: Map<string, FileEvent> = new Map()
-  public debouncedFileNotify: (() => void) & { clear(): void }
+  private readonly _client: FeatureClient<object, $FileEventOptions>
+  private readonly _notifyFileEvent: (event: FileEvent) => void
 
-  constructor(private _client: FeatureClient<_FileSystemWatcherMiddleware, $FileEventOptions>) {
-    this.debouncedFileNotify = debounce(() => {
-      void this._notifyFileEvent()
-    }, debounceTime)
-  }
-
-  public async _notifyFileEvent(): Promise<void> {
-    let map = this._fileEventsMap
-    if (map.size == 0) return
-    this._client.sendNotification(DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch(error => {
-      this._client.error(`Notify file events failed.`, error)
-    })
-    map.clear()
-  }
-
-  private notifyFileEvent(event: FileEvent): void {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let self = this
-    function didChangeWatchedFile(event: FileEvent): void {
-      self._fileEventsMap.set(event.uri, event)
-      self.debouncedFileNotify()
-    }
-    const workSpaceMiddleware = this._client.middleware.workspace
-    if (workSpaceMiddleware?.didChangeWatchedFile) {
-      void workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile)
-    } else {
-      didChangeWatchedFile(event)
-    }
+  constructor(client: FeatureClient<object, $FileEventOptions>, notifyFileEvent: (event: FileEvent) => void) {
+    this._client = client
+    this._notifyFileEvent = notifyFileEvent
+    this._watchers = new Map<string, Disposable[]>()
   }
 
   public getState(): FeatureState {
@@ -90,7 +57,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   }
 
   public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {
-    let fileEvents = this._client.clientOptions.synchronize?.fileEvents
+    let fileEvents = defaultValue(this._client.clientOptions.synchronize, {}).fileEvents
     if (!fileEvents) return
     let watchers: IFileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
     let disposables: Disposable[] = []
@@ -158,7 +125,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
         resource =>
-          this.notifyFileEvent({
+          this._notifyFileEvent({
             uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Created
           }),
@@ -169,7 +136,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchChange) {
       fileSystemWatcher.onDidChange(
         resource =>
-          this.notifyFileEvent({
+          this._notifyFileEvent({
             uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Changed
           }),
@@ -180,7 +147,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchDelete) {
       fileSystemWatcher.onDidDelete(
         resource =>
-          this.notifyFileEvent({
+          this._notifyFileEvent({
             uri: client.code2ProtocolConverter.asUri(resource),
             type: FileChangeType.Deleted
           }),
@@ -193,20 +160,15 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   public unregister(id: string): void {
     let disposables = this._watchers.get(id)
     if (disposables) {
-      for (let disposable of disposables) {
-        disposable.dispose()
-      }
       this._watchers.delete(id)
+      disposeAll(disposables)
     }
   }
 
   public dispose(): void {
     this._fileEventsMap.clear()
-    this.debouncedFileNotify.clear()
     this._watchers.forEach(disposables => {
-      for (let disposable of disposables) {
-        disposable.dispose()
-      }
+      disposeAll(disposables)
     })
     this._watchers.clear()
   }

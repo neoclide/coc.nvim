@@ -326,6 +326,8 @@ export enum ShutdownMode {
   Stop = 'stop'
 }
 
+const delayTime = getConditionValue(250, 10)
+
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
   private _rootPath: string | false
   private _consoleDebug = false
@@ -400,6 +402,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._pendingProgressHandlers = new Map()
     this._progressDisposables = new Map()
 
+    this._fileEvents = []
+    this._fileEventDelayer = new Delayer<void>(delayTime)
     this._ignoredRegistrations = new Set()
     this._onStop = undefined
     this._stateChangeEmitter = new Emitter<StateChangeEvent>()
@@ -1311,6 +1315,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private cleanUp(mode: ShutdownMode): void {
+    this._fileEvents = []
+    this._fileEventDelayer.cancel()
+
     if (this._listeners) {
       disposeAll(this._listeners)
     }
@@ -1335,6 +1342,28 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._outputChannel.dispose()
       this._outputChannel = undefined
     }
+  }
+
+  public notifyFileEvent(event: FileEvent | undefined): void {
+    const didChangeWatchedFile = async (event: FileEvent | undefined): Promise<void> => {
+      if (event) this._fileEvents.push(event)
+      return this._fileEventDelayer.trigger(async (): Promise<void> => {
+        const fileEvents = this._fileEvents
+        if (fileEvents.length === 0) return
+        this._fileEvents = []
+        try {
+          await this.sendNotification(DidChangeWatchedFilesNotification.type, { changes: fileEvents })
+        } catch (error) {
+          // Restore the file events.
+          this._fileEvents = fileEvents
+          throw error
+        }
+      })
+    }
+    const workSpaceMiddleware = this.clientOptions.middleware?.workspace;
+    (workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)).catch(error => {
+      this.error(`Notifying ${DidChangeWatchedFilesNotification.method} failed.`, error)
+    })
   }
 
   public async forceDocumentSync(): Promise<void> {
@@ -1561,7 +1590,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerFeature(new WillSaveFeature(this), 'willSave')
     this.registerFeature(new WillSaveWaitUntilFeature(this), 'willSaveWaitUntil')
     this.registerFeature(new DidSaveTextDocumentFeature(this), 'didSave')
-    this.registerFeature(new FileSystemWatcherFeature(this), 'fileSystemWatcher')
+    this.registerFeature(new FileSystemWatcherFeature(this, this.notifyFileEvent.bind(this)), 'fileSystemWatcher')
     this.registerFeature(new CompletionItemFeature(this), 'completion')
     this.registerFeature(new HoverFeature(this), 'hover')
     this.registerFeature(new SignatureHelpFeature(this), 'signatureHelp')
