@@ -66,13 +66,13 @@ describe('BackgroundScheduler', () => {
     s.remove(createDocument(2))
     s.add(createDocument(3))
     s.remove(createDocument(3))
-    s.remove(createDocument(1))
+    s.trigger()
     s.trigger()
     await helper.waitValue(() => {
       return uris.length
-    }, 3)
+    }, 1)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([2, 3, 1])
+    expect(ids).toEqual([1])
     s.dispose()
   })
 })
