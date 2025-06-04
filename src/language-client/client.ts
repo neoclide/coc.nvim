@@ -60,6 +60,7 @@ import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidClo
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, fixType, getLocale, getTracePrefix, toMethod } from './utils'
+import { Delayer } from './utils/async'
 import * as c2p from './utils/codeConverter'
 import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
@@ -326,21 +327,24 @@ export enum ShutdownMode {
 }
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
+  private _rootPath: string | false
+  private _consoleDebug = false
+  private __extensionName: string
   private _id: string
   private _name: string
   private _clientOptions: ResolvedClientOptions
-  private _rootPath: string | false
-  private _disposed: 'disposing' | 'disposed' | undefined
-  private readonly _ignoredRegistrations: Set<string>
 
   protected _state: ClientState
   private _onStart: Promise<void> | undefined
   private _onStop: Promise<void> | undefined
-  public _connection: Connection | undefined
+  private _connection: Connection | undefined
   private _initializeResult: InitializeResult | undefined
   private _outputChannel: OutputChannel | undefined
   private _traceOutputChannel: OutputChannel | undefined
   private _capabilities: ServerCapabilities & ResolvedTextDocumentSyncCapabilities
+  private _disposed: 'disposing' | 'disposed' | undefined
+  private readonly _ignoredRegistrations: Set<string>
+  private readonly _listeners: Disposable[]
 
   private readonly _notificationHandlers: Map<string, GenericNotificationHandler>
   private readonly _notificationDisposables: Map<string, Disposable>
@@ -351,21 +355,20 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private readonly _progressHandlers: Map<string | number, { type: ProgressType<any>; handler: NotificationHandler<any> }>
   private readonly _pendingProgressHandlers: Map<string | number, { type: ProgressType<any>; handler: NotificationHandler<any> }>
   private readonly _progressDisposables: Map<string | number, Disposable>
-  private _didOpenTextDocumentFeature: DidOpenTextDocumentFeature | undefined
 
-  private _listeners: Disposable[]
+  private _fileEvents: FileEvent[]
+  private _fileEventDelayer: Delayer<void>
+
   private _diagnostics: DiagnosticCollection | undefined
   private _syncedDocuments: Map<string, TextDocument>
-  private _stateChangeEmitter: Emitter<StateChangeEvent>
-  private _notifing = false
 
   private _traceFormat: TraceFormat
   private _trace: Trace
   private _tracer: Tracer
-  private _consoleDebug = false
-  private __extensionName: string
+  private _stateChangeEmitter: Emitter<StateChangeEvent>
 
   private readonly _c2p: c2p.Converter
+  private _didOpenTextDocumentFeature: DidOpenTextDocumentFeature | undefined
 
   public constructor(
     id: string,
@@ -853,7 +856,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private showNotificationMessage(type: MessageType, message?: string, data?: any) {
-    if (this._notifing) return
     message = message ?? 'A request has failed. See the output for more information.'
     if (data) {
       message += '\n' + data2String(data)
@@ -865,9 +867,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         ? window.showWarningMessage.bind(window)
         : window.showInformationMessage.bind(window)
     let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(undefined))
-    this._notifing = true
     fn(message, { title: 'Go to output' }).then(selection => {
-      this._notifing = false
       if (selection !== undefined) {
         this.outputChannel.show(true)
       }

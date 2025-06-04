@@ -197,7 +197,7 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return called
     }, true)
-    let spy = jest.spyOn(client._connection as any, 'sendProgress').mockImplementation(() => {
+    let spy = jest.spyOn(client['_connection'] as any, 'sendProgress').mockImplementation(() => {
       throw new Error('error')
     })
     await expect(async () => {

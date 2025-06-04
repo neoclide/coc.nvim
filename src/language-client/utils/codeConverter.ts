@@ -1,55 +1,54 @@
-import { TextDocument, DocumentUri } from 'vscode-languageserver-textdocument'
-import { Position } from 'vscode-languageserver-types'
-import { FileCreateEvent, FileDeleteEvent, FileRenameEvent } from '../../core/files'
-import { URI } from 'vscode-uri'
 import * as protocol from 'vscode-languageserver-protocol'
-import { TextDocumentWillSaveEvent } from '../../core/files'
+import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument'
+import { Position } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
+import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, TextDocumentWillSaveEvent } from '../../core/files'
 import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../../types'
 import { omit } from '../../util/lodash'
 
 export interface Converter {
-  asUri(value: URI): string;
+  asUri(value: URI): string
 
-  asTextDocumentItem(textDocument: TextDocument): protocol.TextDocumentItem;
+  asTextDocumentItem(textDocument: TextDocument): protocol.TextDocumentItem
 
-  asTextDocumentIdentifier(textDocument: TextDocument): protocol.TextDocumentIdentifier;
+  asTextDocumentIdentifier(textDocument: TextDocument): protocol.TextDocumentIdentifier
 
-  asVersionedTextDocumentIdentifier(textDocument: TextDocument): protocol.VersionedTextDocumentIdentifier;
+  asVersionedTextDocumentIdentifier(textDocument: TextDocument): protocol.VersionedTextDocumentIdentifier
 
-  asOpenTextDocumentParams(textDocument: TextDocument): protocol.DidOpenTextDocumentParams;
+  asOpenTextDocumentParams(textDocument: TextDocument): protocol.DidOpenTextDocumentParams
 
-  asChangeTextDocumentParams(event: TextDocumentChangeEvent): protocol.DidChangeTextDocumentParams;
-  asFullChangeTextDocumentParams(textDocument: TextDocument): protocol.DidChangeTextDocumentParams;
+  asChangeTextDocumentParams(event: TextDocumentChangeEvent): protocol.DidChangeTextDocumentParams
+  asFullChangeTextDocumentParams(textDocument: TextDocument): protocol.DidChangeTextDocumentParams
 
-  asCloseTextDocumentParams(textDocument: TextDocument): protocol.DidCloseTextDocumentParams;
+  asCloseTextDocumentParams(textDocument: TextDocument): protocol.DidCloseTextDocumentParams
 
-  asSaveTextDocumentParams(textDocument: TextDocument, includeText?: boolean): protocol.DidSaveTextDocumentParams;
-  asWillSaveTextDocumentParams(event: TextDocumentWillSaveEvent): protocol.WillSaveTextDocumentParams;
+  asSaveTextDocumentParams(textDocument: TextDocument, includeText?: boolean): protocol.DidSaveTextDocumentParams
+  asWillSaveTextDocumentParams(event: TextDocumentWillSaveEvent): protocol.WillSaveTextDocumentParams
 
-  asDidCreateFilesParams(event: FileCreateEvent): protocol.CreateFilesParams;
-  asDidRenameFilesParams(event: FileRenameEvent): protocol.RenameFilesParams;
-  asDidDeleteFilesParams(event: FileDeleteEvent): protocol.DeleteFilesParams;
-  asWillCreateFilesParams(event: FileCreateEvent): protocol.CreateFilesParams;
-  asWillRenameFilesParams(event: FileRenameEvent): protocol.RenameFilesParams;
-  asWillDeleteFilesParams(event: FileDeleteEvent): protocol.DeleteFilesParams;
+  asDidCreateFilesParams(event: FileCreateEvent): protocol.CreateFilesParams
+  asDidRenameFilesParams(event: FileRenameEvent): protocol.RenameFilesParams
+  asDidDeleteFilesParams(event: FileDeleteEvent): protocol.DeleteFilesParams
+  asWillCreateFilesParams(event: FileCreateEvent): protocol.CreateFilesParams
+  asWillRenameFilesParams(event: FileRenameEvent): protocol.RenameFilesParams
+  asWillDeleteFilesParams(event: FileDeleteEvent): protocol.DeleteFilesParams
 
-  asTextDocumentPositionParams(textDocument: TextDocument, position: Position): protocol.TextDocumentPositionParams;
+  asTextDocumentPositionParams(textDocument: TextDocument, position: Position): protocol.TextDocumentPositionParams
 
-  asCompletionParams(textDocument: TextDocument, position: Position, context: protocol.CompletionContext): protocol.CompletionParams;
+  asCompletionParams(textDocument: TextDocument, position: Position, context: protocol.CompletionContext): protocol.CompletionParams
 
-  asSignatureHelpParams(textDocument: TextDocument, position: Position, context: protocol.SignatureHelpContext): protocol.SignatureHelpParams;
+  asSignatureHelpParams(textDocument: TextDocument, position: Position, context: protocol.SignatureHelpContext): protocol.SignatureHelpParams
 
-  asReferenceParams(textDocument: TextDocument, position: Position, options: { includeDeclaration: boolean }): protocol.ReferenceParams;
+  asReferenceParams(textDocument: TextDocument, position: Position, options: { includeDeclaration: boolean }): protocol.ReferenceParams
 
-  asDocumentSymbolParams(textDocument: TextDocument): protocol.DocumentSymbolParams;
+  asDocumentSymbolParams(textDocument: TextDocument): protocol.DocumentSymbolParams
 
-  asCodeLensParams(textDocument: TextDocument): protocol.CodeLensParams;
+  asCodeLensParams(textDocument: TextDocument): protocol.CodeLensParams
 
-  asDocumentLinkParams(textDocument: TextDocument): protocol.DocumentLinkParams;
+  asDocumentLinkParams(textDocument: TextDocument): protocol.DocumentLinkParams
 }
 
 export interface URIConverter {
-  (value: URI): string;
+  (value: URI): string
 }
 
 export function createConverter(uriConverter?: URIConverter): Converter {
