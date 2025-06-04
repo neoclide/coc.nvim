@@ -58,7 +58,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     )
     this._syncedDocuments = syncedDocuments
     this._pendingOpenNotifications = new Map<string, TextDocument>()
-    this._delayOpen = defaultValue(client.clientOptions.textSynchronization?.delayOpenNotifications, false)
+    this._delayOpen = defaultValue(defaultValue(client.clientOptions.textSynchronization, {}).delayOpenNotifications, false)
   }
 
   public async callback(document: TextDocument): Promise<void> {
@@ -219,17 +219,9 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
         workspace.match(selector, textDocument) > 0 &&
         !this._selectorFilter!(selectors, textDocument)
       ) {
-        let middleware = this._client.middleware!
-        let didClose = (textDocument: TextDocument) => {
-          return this._client.sendNotification(this._type, this._createParams(textDocument))
-        }
-        this._syncedDocuments.delete(textDocument.uri.toString())
-        let promise = middleware.didClose ? middleware.didClose(textDocument, didClose) : didClose(textDocument)
-        if (promise) {
-          promise.catch(error => {
-            this._client.error(`Sending document notification ${this._type.method} failed`, error)
-          })
-        }
+        this.sendNotification(textDocument).catch(error => {
+          this._client.error(`Sending document notification ${this._type.method} failed`, error)
+        })
       }
     })
   }
@@ -316,13 +308,14 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
-          promises.push(middleware.didChange ? middleware.didChange(event, didChange) : didChange(event))
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
             const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(event.document)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
+        }
+        if (didChange) {
           promises.push(middleware.didChange ? middleware.didChange(event, didChange) : didChange(event))
         }
       }

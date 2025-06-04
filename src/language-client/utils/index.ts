@@ -24,6 +24,15 @@ export function getTracePrefix(data: any): string {
   return `[Trace - ${currentTimeStamp()}] `
 }
 
+export function fixType<T extends string | { method: string, numberOfParams?: number }>(type: T, params: any[]): T {
+  if (typeof type === 'string' || typeof type.numberOfParams === 'number') return type
+  let len = params.length
+  Object.defineProperty(type, 'numberOfParams', {
+    get: () => len
+  })
+  return type
+}
+
 export function data2String(data: any, color = false): string {
   if (data instanceof ResponseError) {
     const responseError = data as ResponseError<any>

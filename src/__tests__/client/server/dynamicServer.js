@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, TextDocumentContentRefreshRequest, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver/node')
+const {createConnection, TextDocumentContentRefreshRequest, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest, ResponseError, ErrorCodes} = require('vscode-languageserver/node')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -25,7 +25,13 @@ connection.onInitialize((params) => {
       renameProvider: options.prepareRename ? {prepareProvider: true} : true,
       workspaceSymbolProvider: true,
       codeLensProvider: {
-        resolveProvider: true
+        resolveProvider: options.noResolve !== true
+      },
+      documentLinkProvider: {
+        resolveProvider: options.noResolve !== true
+      },
+      inlayHintProvider: {
+        resolveProvider: options.noResolve !== true
       },
       workspace: {
         workspaceFolders: {
@@ -81,6 +87,8 @@ connection.onInitialized(() => {
   let full = false
   if (options.delta) {
     full = {delta: true}
+  } else if (options.noResolve) {
+    full = {delta: false}
   }
   void connection.client.register(SemanticTokensRegistrationType.method, {
     full,
@@ -95,7 +103,7 @@ connection.onInitialized(() => {
   })
   void connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
   void connection.client.register(ExecuteCommandRequest.type, {
-    commands: ['test_command']
+    commands: ['test_command', 'other_command']
   }).then(d => {
     disposables.push(d)
   })
@@ -155,6 +163,7 @@ connection.onExecuteCommand(param => {
   if (param.command === 'test_command') {
     return {success: true}
   }
+  throw new ResponseError(ErrorCodes.InvalidRequest, `${param?.command} not exists.`)
 })
 
 connection.languages.semanticTokens.onDelta(() => {
@@ -170,7 +179,7 @@ connection.onRequest('setPrepareResponse', param => {
 
 connection.onNotification('pullConfiguration', () => {
   configuration = connection.sendRequest(ConfigurationRequest.type, {
-    items: [{section: 'foo'}]
+    items: [{section: 'foo'}, {}]
   })
 })
 

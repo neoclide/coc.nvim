@@ -59,7 +59,7 @@ import { TextDocumentContentFeature, TextDocumentContentMiddleware, TextDocument
 import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeature, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeature, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeature, DidSaveTextDocumentFeatureShape, ResolvedTextDocumentSyncCapabilities, TextDocumentSynchronizationMiddleware, WillSaveFeature, WillSaveWaitUntilFeature } from './textSynchronization'
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
-import { currentTimeStamp, data2String, getLocale, getTracePrefix, toMethod } from './utils'
+import { currentTimeStamp, data2String, fixType, getLocale, getTracePrefix, toMethod } from './utils'
 import * as c2p from './utils/codeConverter'
 import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
@@ -455,22 +455,22 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       disableMarkdown,
       disableSnippetCompletion,
       diagnosticPullOptions: pullOption,
-      rootPatterns: clientOptions.rootPatterns ?? [],
+      rootPatterns: defaultValue(clientOptions.rootPatterns, []),
       requireRootPattern: clientOptions.requireRootPattern,
       disableDynamicRegister: clientOptions.disableDynamicRegister,
-      formatterPriority: clientOptions.formatterPriority ?? 0,
-      ignoredRootPaths: clientOptions.ignoredRootPaths ?? [],
-      documentSelector: clientOptions.documentSelector ?? [],
-      synchronize: clientOptions.synchronize ?? {},
+      formatterPriority: defaultValue(clientOptions.formatterPriority, 0),
+      ignoredRootPaths: defaultValue(clientOptions.ignoredRootPaths, []),
+      documentSelector: defaultValue(clientOptions.documentSelector, []),
+      synchronize: defaultValue(clientOptions.synchronize, {}),
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-      outputChannelName: clientOptions.outputChannelName ?? this._id,
-      revealOutputChannelOn: clientOptions.revealOutputChannelOn ?? RevealOutputChannelOn.Never,
-      stdioEncoding: clientOptions.stdioEncoding ?? 'utf8',
+      outputChannelName: defaultValue(clientOptions.outputChannelName, this._id),
+      revealOutputChannelOn: defaultValue(clientOptions.revealOutputChannelOn, RevealOutputChannelOn.Never),
+      stdioEncoding: defaultValue(clientOptions.stdioEncoding, 'utf8'),
       initializationOptions: clientOptions.initializationOptions,
       initializationFailedHandler: clientOptions.initializationFailedHandler,
       progressOnInitialization: clientOptions.progressOnInitialization === true,
       errorHandler: clientOptions.errorHandler ?? this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
-      middleware: clientOptions.middleware ?? {},
+      middleware: defaultValue(clientOptions.middleware, {}),
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
       textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
@@ -571,6 +571,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (token !== undefined && token.isCancellationRequested) {
       return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
     }
+    type = fixType(type, params)
     const _sendRequest = this._clientOptions.middleware?.sendRequest
     if (_sendRequest !== undefined) {
       // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
@@ -657,6 +658,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       // Send only depending open notifications
       await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
 
+      type = fixType(type, params == null ? [] : [params])
       const _sendNotification = this._clientOptions.middleware?.sendNotification
       return _sendNotification
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)

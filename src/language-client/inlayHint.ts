@@ -72,14 +72,10 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
     }
     provider.resolveInlayHint = options.resolveProvider === true
       ? (hint, token) => {
-        const client = this._client
         const resolveInlayHint: ResolveInlayHintSignature = (item, token) => {
           return this.sendRequest(InlayHintResolveRequest.type, item, token)
         }
-        const middleware = client.middleware!
-        return middleware.resolveInlayHint
-          ? middleware.resolveInlayHint(hint, token, resolveInlayHint)
-          : resolveInlayHint(hint, token)
+        return this.sendWithMiddleware(resolveInlayHint, 'resolveInlayHint', hint, token)
       }
       : undefined
     const selector = options.documentSelector!

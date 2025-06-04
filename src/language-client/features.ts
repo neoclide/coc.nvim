@@ -346,6 +346,11 @@ export abstract class DynamicDocumentFeature<RO, MW, CO = object> extends BaseFe
   }
 
   protected abstract getDocumentSelectors(): IterableIterator<DocumentSelector>
+
+  public sendWithMiddleware<T>(fn: (...args: any[]) => ProviderResult<T>, key: string, ...params: any[]): ProviderResult<T> {
+    const middleware = this._client.middleware!
+    return middleware[key] ? middleware[key](...params, fn) : fn(...params)
+  }
 }
 
 /**
@@ -430,13 +435,16 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   protected async callback(data: E): Promise<void> {
     if (!this.matches(data)) return
+    return await this.sendNotification(data)
+  }
+
+  protected async sendNotification(data: E): Promise<void> {
     const doSend = async (data: E): Promise<void> => {
       const params = this._createParams(data)
       await this._client.sendNotification(this._type, params)
       this.notificationSent(data, this._type, params)
     }
-    const middleware = this._client.middleware[this._middleware]
-    return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
+    return this.sendWithMiddleware(doSend, this._middleware, data)
   }
 
   protected matches(data: E): boolean {
@@ -496,10 +504,9 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   protected *getDocumentSelectors(): IterableIterator<DocumentSelector> {
     for (const registration of this._registrations.values()) {
       const selector = registration.data.registerOptions.documentSelector
-      if (selector === null) {
-        continue
+      if (selector != null) {
+        yield selector
       }
-      yield selector
     }
   }
 
@@ -528,6 +535,7 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   public unregister(id: string): void {
     let registration = this._registrations.get(id)
     if (registration !== undefined) {
+      this._registrations.delete(id)
       registration.disposable.dispose()
     }
   }
@@ -540,18 +548,15 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   }
 
   protected getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
-    if (!capability) return [undefined, undefined]
-    if (Is.boolean(capability) && capability === true) {
-      return [UUID.generateUuid(), { documentSelector } as any]
-    }
-    if (TextDocumentRegistrationOptions.is(capability)) {
+    if (!capability) {
+      return [undefined, undefined]
+    } else if (TextDocumentRegistrationOptions.is(capability)) {
       const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
       const selector = capability.documentSelector ?? documentSelector
       return [id, Object.assign({}, capability, { documentSelector: selector })]
-    }
-    if (WorkDoneProgressOptions.is(capability)) {
-      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      return [id, Object.assign({}, capability, { documentSelector }) as any]
+    } else if ((Is.boolean(capability) && capability === true) || WorkDoneProgressOptions.is(capability)) {
+      const options = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })
+      return [UUID.generateUuid(), options as RO & { documentSelector: DocumentSelector }]
     }
     return [undefined, undefined]
   }
