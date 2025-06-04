@@ -334,7 +334,7 @@ describe('DynamicFeature', () => {
           },
           didDeleteFiles: (ev, next) => {
             n++
-            return next(ev)
+            return Promise.reject(new Error('my error'))
           },
           willRenameFiles: (ev, next) => {
             n++
@@ -347,6 +347,11 @@ describe('DynamicFeature', () => {
         }
       })
       let createFeature = client.getFeature(DidCreateFilesNotification.method)
+      createFeature.initialize({
+        workspace: {
+          fileOperations: { didCreate: { filters: [{ pattern: { glob: '' } }] } }
+        }
+      }, ['*'])
       await createFeature.send({ files: [URI.file('/a/b')] })
       let renameFeature = client.getFeature(DidRenameFilesNotification.method)
       await renameFeature.send({ files: [{ oldUri: URI.file('/a/b'), newUri: URI.file('/c/d') }] })
@@ -356,9 +361,38 @@ describe('DynamicFeature', () => {
       await willRename.send({ files: [{ oldUri: URI.file(__dirname), newUri: URI.file(path.join(__dirname, 'x')) }], waitUntil: () => {} })
       let willDelete = client.getFeature(WillDeleteFilesRequest.method)
       await willDelete.send({ files: [URI.file('/x/y')], waitUntil: () => {} })
+      await willDelete.send({ files: [], waitUntil: () => {} })
       await helper.waitValue(() => {
         return n
       }, 5)
+      await client.stop()
+    })
+
+    it('should filter matches', async () => {
+      let n = 0
+      let client = await startServer({}, {
+        workspace: {
+          didCreateFiles: (ev, next) => {
+            n += ev.files.length
+            return next(ev)
+          }
+        }
+      })
+      let createFeature = client.getFeature(DidCreateFilesNotification.method)
+      createFeature.initialize({
+        workspace: {
+          fileOperations: {
+            didCreate: {
+              filters: [
+                { pattern: { glob: '**/', matches: 'folder' } },
+                { pattern: { glob: '**', matches: 'file' } },
+              ]
+            }
+          }
+        }
+      }, ['*'])
+      await createFeature.send({ files: [URI.file(os.tmpdir()), URI.file(__filename)] })
+      await helper.waitValue(() => n, 2)
       await client.stop()
     })
   })
