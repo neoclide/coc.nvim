@@ -1,12 +1,12 @@
 import * as assert from 'assert'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
-import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentContentRequest, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ErrorCodes, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, ResponseError, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentContentRequest, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import { StaticFeature } from '../../language-client/features'
-import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, State, TransportKind } from '../../language-client/index'
+import { LanguageClient, LanguageClientOptions, Middleware, RevealOutputChannelOn, ServerOptions, State, TransportKind } from '../../language-client/index'
 import { InlayHintsFeature } from '../../language-client/inlayHint'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -106,6 +106,8 @@ describe('Client integration', () => {
     const clientOptions: LanguageClientOptions = {
       documentSelector, synchronize: {}, initializationOptions: {}, middleware,
       workspaceFolder: { name: 'test_folder', uri: URI.parse('file-test:///').toString() },
+      outputChannel: helper.createNullChannel(),
+      revealOutputChannelOn: RevealOutputChannelOn.Warn
     }
 
     client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
@@ -116,7 +118,7 @@ describe('Client integration', () => {
 
   afterAll(async () => {
     await client.sendNotification('unregister')
-    await helper.wait(50)
+    await helper.wait(30)
     contentProviderDisposable.dispose()
     await client.stop()
   })
@@ -287,6 +289,17 @@ describe('Client integration', () => {
     testFeature(InlayHintRequest.method, 'document')
     testFeature(WorkspaceSymbolRequest.method, 'workspace')
     testFeature(DocumentDiagnosticRequest.method, 'document')
+  })
+
+  test('warn and show output', async () => {
+    global.__showOutput = true
+    let called = false
+    let spy = jest.spyOn(client.outputChannel, 'show').mockImplementation(() => {
+      called = true
+    })
+    client.warn(undefined, { x: 1 }, true)
+    await helper.waitValue(() => called, true)
+    spy.mockRestore()
   })
 
   test('Goto Definition', async () => {
@@ -1488,11 +1501,13 @@ describe('Client integration', () => {
   test('applyEdit middleware', async () => {
     const middlewareEvents: Array<ApplyWorkspaceEditParams> = []
     let currentProgressResolver: (value: unknown) => void | undefined
+    let error = false
 
     middleware.workspace = middleware.workspace || {}
     middleware.workspace.handleApplyEdit = async (params, next) => {
       middlewareEvents.push(params)
       setImmediate(currentProgressResolver)
+      if (error) return new ResponseError(ErrorCodes.InternalError, 'myerror')
       return next(params, tokenSource.token)
     }
 
@@ -1506,11 +1521,22 @@ describe('Client integration', () => {
       )
     })
 
-    middleware.workspace.handleApplyEdit = undefined
-
     // Ensure event was handled.
     assert.strictEqual(middlewareEvents.length, 1)
     assert.strictEqual(middlewareEvents[0].label, 'Apply Edit')
+    error = true
+    let called = false
+    let spy = jest.spyOn(client, 'error').mockImplementation(() => {
+      called = true
+    })
+    await client.sendRequest(
+      new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
+      {},
+      tokenSource.token,
+    )
+    await helper.waitValue(() => called, true)
+    middleware.workspace.handleApplyEdit = undefined
+    spy.mockRestore()
   })
 })
 

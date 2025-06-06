@@ -76,6 +76,7 @@ connection.onNotification('send', () => {
 })
 
 connection.onNotification('logMessage', () => {
+  void connection.sendNotification(LogMessageNotification.type, {type: MessageType.Debug, message: 'msg'})
   void connection.sendNotification(LogMessageNotification.type, {type: MessageType.Error, message: 'msg'})
   void connection.sendNotification(LogMessageNotification.type, {type: MessageType.Info, message: 'msg'})
   void connection.sendNotification(LogMessageNotification.type, {type: MessageType.Log, message: 'msg'})

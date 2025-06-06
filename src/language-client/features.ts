@@ -609,7 +609,6 @@ export interface FeatureClient<M, CO = object> {
   start(): Promise<void>
   isRunning(): boolean
   stop(): Promise<void>
-  forceDocumentSync(): Promise<void>
   attachExtensionName<T extends object>(provider: T): void
 
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
