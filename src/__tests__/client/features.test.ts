@@ -1475,12 +1475,14 @@ describe('Client integration', () => {
 
   test('General middleware', async () => {
     let middlewareCallCount = 0
+    let throwError = false
     // Add a general middleware for both requests and notifications
     middleware.sendRequest = (type, param, token, next) => {
       middlewareCallCount++
       return next(type, param, token)
     }
     middleware.sendNotification = (type, next, params) => {
+      if (throwError) throw new Error('myerror')
       middlewareCallCount++
       return next(type, params)
     }
@@ -1492,6 +1494,10 @@ describe('Client integration', () => {
     const notificationProvider = client.getFeature(DidSaveTextDocumentNotification.method).getProvider(document)
     isDefined(notificationProvider)
     await notificationProvider.send(document)
+    throwError = true
+    await assert.rejects(async () => {
+      await client.sendNotification('not_exists')
+    }, /myerror/)
     // Verify that both the request and notification went through the middleware
     middleware.sendRequest = undefined
     middleware.sendNotification = undefined

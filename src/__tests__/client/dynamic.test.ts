@@ -5,6 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import * as lsclient from '../../language-client'
+import { ClientState } from '../../language-client'
 import { SemanticTokensFeature } from '../../language-client/semanticTokens'
 import type { TextDocumentContentProviderShape } from '../../language-client/textDocumentContent'
 import workspace from '../../workspace'
@@ -48,11 +49,24 @@ describe('DynamicFeature', () => {
 
   describe('RenameFeature', () => {
     it('should start server', async () => {
-      let client = await startServer({ prepareRename: false })
+      let called = false
+      let client = await startServer({ prepareRename: false }, {
+        handleRegisterCapability: async (params, next) => {
+          await Promise.resolve(next(params, CancellationToken.None))
+          return
+        },
+        handleUnregisterCapability: async (params, next) => {
+          called = true
+          await Promise.resolve(next(params, CancellationToken.None))
+          return
+        }
+      })
       let feature = client.getFeature(RenameRequest.method)
       let provider = feature.getProvider(textDocument)
       expect(provider.prepareRename).toBeUndefined()
       feature.unregister('')
+      client['_state'] = ClientState.StartFailed
+      await helper.waitValue(() => called, true)
       await client.stop()
     })
 

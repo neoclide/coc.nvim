@@ -92,7 +92,7 @@ const redClose = '\x1B[39m'
 function createConnection(input: MessageReader, output: MessageWriter, errorHandler: ConnectionErrorHandler, closeHandler: ConnectionCloseHandler, options?: ConnectionOptions): Connection {
   let logger = new ConsoleLogger()
   let connection = createProtocolConnection(input, output, logger, options)
-  // let disposables: Disposable[] = []
+
   connection.onError(data => { errorHandler(data[0], data[1], data[2]) })
   connection.onClose(closeHandler)
   let result: Connection = {
@@ -657,9 +657,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
       type = fixType(type, params == null ? [] : [params])
       const _sendNotification = this._clientOptions.middleware.sendNotification
-      return _sendNotification
+      return await Promise.resolve(_sendNotification
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)
-        : connection.sendNotification(type, params)
+        : connection.sendNotification(type, params))
     } catch (error) {
       this.error(`Sending notification ${toMethod(type)} failed.`, error)
       if ([ClientState.Stopping, ClientState.Stopped].includes(this._state)) return
@@ -1365,7 +1365,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private async createConnection(): Promise<Connection> {
     let onError = error => {
-      this.error(`Unexpected error: `, error, false)
+      this.error(`Unexpected connection error: `, error)
     }
     let errorHandler = (error: Error, message: Message | undefined, count: number | undefined) => {
       this.handleConnectionError(error, message, count).catch(onError)
@@ -1418,14 +1418,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.$state = ClientState.Initial
       this._onStop = Promise.resolve()
       this._onStart = undefined
-      this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
+      this.start().catch(error => {
+        this.error(`Restarting server failed`, error, 'force')
+      })
     }
     if (err) throw err
   }
 
   public async handleConnectionError(error: Error, message: Message | undefined, count: number): Promise<void> {
     let res = await this._clientOptions.errorHandler!.error(error, message, count)
-    let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : res ?? { action: ErrorAction.Shutdown }
+    let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : defaultValue(res, { action: ErrorAction.Shutdown })
     const showNotification = result.handled === true ? false : 'force'
     if (result.action === ErrorAction.Shutdown) {
       const msg = result.message ?? `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
@@ -1471,7 +1473,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._connection.trace(this._trace, this._tracer, {
         sendNotification,
         traceFormat: this._traceFormat
-      }).catch(error => { this.error(`Updating trace failed with error`, error, false) })
+      }).catch(error => {
+        this.error(`Updating trace failed with error`, error, false)
+      })
     }
   }
 
@@ -1705,10 +1709,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     for (const registration of params.registrations) {
       const feature = this._dynamicFeatures.get(registration.method)
-      if (feature === undefined) {
-        return Promise.reject(new Error(`No feature implementation for ${registration.method} found. Registration failed.`))
+      if (!feature) {
+        this.error(`No feature implementation for "${registration.method}" found. Registration failed.`, undefined, false)
+        return
       }
-      const options = registration.registerOptions ?? {} as any
+      const options = defaultValue(registration.registerOptions, {})
       options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
       const data: RegistrationData<any> = {
         id: registration.id,
@@ -1719,7 +1724,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private handleUnregistrationRequest(params: UnregistrationParams): Promise<void> {
-    const middleware = this._clientOptions.middleware?.handleUnregisterCapability
+    const middleware = this._clientOptions.middleware.handleUnregisterCapability
     if (middleware) {
       return middleware(params, nextParams => this.doUnregisterCapability(nextParams))
     } else {

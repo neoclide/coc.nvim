@@ -388,6 +388,7 @@ describe('applyEdits()', () => {
     }
     let res = await workspace.applyEdit(edit)
     expect(res).toBe(true)
+    await nvim.call('cursor', [1, 1])
     let curr = await workspace.document
     expect(curr.uri).toBe(newUri)
     expect(curr.getline(0)).toBe('bar')

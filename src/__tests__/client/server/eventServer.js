@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, TextEdit, TextDocuments, Range, DiagnosticSeverity, Location, Diagnostic, DiagnosticRelatedInformation, PositionEncodingKind, WorkDoneProgress, ResponseError, LogMessageNotification, MessageType, ShowMessageNotification, ShowMessageRequest, ShowDocumentRequest, ApplyWorkspaceEditRequest, TextDocumentSyncKind, Position} = require('vscode-languageserver/node')
+const {createConnection, TextEdit, RenameRequest, ProtocolRequestType, TextDocuments, Range, DiagnosticSeverity, Location, Diagnostic, DiagnosticRelatedInformation, PositionEncodingKind, WorkDoneProgress, ResponseError, LogMessageNotification, MessageType, ShowMessageNotification, ShowMessageRequest, ShowDocumentRequest, ApplyWorkspaceEditRequest, TextDocumentSyncKind, Position, RegistrationType} = require('vscode-languageserver/node')
 const {TextDocument} = require('vscode-languageserver-textdocument')
 let documents = new TextDocuments(TextDocument)
 
@@ -52,6 +52,16 @@ connection.onNotification('diagnostics', () => {
 connection.onNotification('simpleEdit', async () => {
   let res = await connection.sendRequest(ApplyWorkspaceEditRequest.type, {edit: {documentChanges: []}})
   void connection.sendNotification('result', res)
+})
+
+connection.onNotification('register', async () => {
+  void connection.client.register(RenameRequest.type, {
+    prepareProvider: false
+  })
+})
+
+connection.onNotification('registerBad', async () => {
+  void connection.client.register(new ProtocolRequestType('not_exists'), {})
 })
 
 connection.onNotification('edits', async () => {

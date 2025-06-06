@@ -10,7 +10,7 @@ import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
 import { TextDocumentMatch } from '../types'
-import { getConditionValue } from '../util'
+import { defaultValue, getConditionValue } from '../util'
 import { CancellationError } from '../util/errors'
 import { LinkedMap, Touch } from '../util/map'
 import { minimatch } from '../util/node'
@@ -248,7 +248,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.onDidChangeDiagnosticsEmitter = new Emitter<void>()
     this.provider = this.createProvider()
 
-    this.diagnostics = languages.createDiagnosticCollection(options.identifier ? options.identifier : client.id)
+    this.diagnostics = languages.createDiagnosticCollection(defaultValue(options.identifier, client.id))
     this.openRequests = new Map()
     this.documentStates = new DocumentPullStateTracker()
     this.workspaceErrorCounter = 0
@@ -256,10 +256,6 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
 
   public knows(kind: PullState, document: TextDocument | URI): boolean {
     return this.documentStates.tracks(kind, document) || this.openRequests.has(DocumentOrUri.asKey(document))
-  }
-
-  public trackingDocuments(): string[] {
-    return this.documentStates.trackingDocuments()
   }
 
   public forget(kind: PullState, document: TextDocument | URI): void {
