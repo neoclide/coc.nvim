@@ -115,4 +115,19 @@ connection.onRequest('getWorkspaceCount', () => {
   return workspaceCount
 })
 
+
+connection.onRequest('sendDiagnostics', async (_, __) => {
+  const uri = 'file:///abc.txt'
+  const diagnostics = [{
+    severity: DiagnosticSeverity.Warning,
+    range: {
+      start: {line: 0, character: 0},
+      end: {line: 0, character: 5}
+    },
+    message: "Example warning: Check your code!",
+    source: "ex"
+  }]
+  connection.sendDiagnostics({uri, diagnostics})
+})
+
 connection.listen()

@@ -84,12 +84,14 @@ describe('TextDocumentSynchronization', () => {
 
     it('should work with middleware', async () => {
       let called = false
+      let throwError = false
       let client = createClient({
         documentSelector: [{ language: 'vim' }],
         textSynchronization: {}
       }, {
         didOpen: (doc, next) => {
           called = true
+          if (throwError) throw new Error('myerror')
           return next(doc)
         }
       })
@@ -102,6 +104,9 @@ describe('TextDocumentSynchronization', () => {
       let res = await client.sendRequest('getLastOpen') as any
       expect(res.uri).toBe(doc.uri)
       expect(called).toBe(true)
+      throwError = true
+      uri = URI.file(path.join(os.tmpdir(), 'a.js'))
+      await workspace.loadFile(uri.toString())
       await client.stop()
     })
 

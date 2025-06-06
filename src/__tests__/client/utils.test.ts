@@ -4,9 +4,10 @@ import { spawn } from 'child_process'
 import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'
 import { data2String, fixType, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
-import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
+import { CloseAction, DefaultErrorHandler, ErrorAction, toCloseHandlerResult } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
 import { wait } from '../../util/index'
+import helper from '../helper'
 
 test('Logger', () => {
   const logger = new ConsoleLogger()
@@ -65,7 +66,7 @@ test('DefaultErrorHandler', async () => {
   let spy = jest.spyOn(console, 'error').mockImplementation(() => {
     // ignore
   })
-  const handler = new DefaultErrorHandler('test', 2)
+  let handler = new DefaultErrorHandler('test', 2)
   expect(handler.error(new Error('test'), { jsonrpc: '' }, 1).action).toBe(ErrorAction.Continue)
   expect(handler.error(new Error('test'), { jsonrpc: '' }, 5).action).toBe(ErrorAction.Shutdown)
   handler.closed()
@@ -77,6 +78,9 @@ test('DefaultErrorHandler', async () => {
   res = handler.closed()
   expect(res.action).toBe(CloseAction.DoNotRestart)
   spy.mockRestore()
+  expect(toCloseHandlerResult(CloseAction.DoNotRestart)).toBeDefined()
+  handler = new DefaultErrorHandler('test', 1, helper.createNullChannel())
+  handler.closed()
 })
 
 test('Delayer', () => {

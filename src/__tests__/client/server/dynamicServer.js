@@ -77,7 +77,7 @@ connection.onInitialized(() => {
   void connection.client.register(RenameRequest.type, {
     prepareProvider: options.prepareRename
   }).then(d => {
-    disposables.push(d)
+    d.dispose()
   })
   void connection.client.register(WorkspaceSymbolRequest.type, {
     resolveProvider: true
