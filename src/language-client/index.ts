@@ -3,22 +3,24 @@
 /* eslint-disable no-redeclare */
 import { ForkOptions as CForkOptions, ChildProcess, ChildProcessWithoutNullStreams, SpawnOptions } from 'child_process'
 import * as stream from 'stream'
-import { SocketTransport as LsSocketTransport, PipeTransport } from 'vscode-languageserver-protocol/node'
+import { MessageReader, MessageWriter } from 'vscode-languageserver-protocol/node'
+import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import * as Is from '../util/is'
 import { child_process, fs, path, readline } from '../util/node'
 import { terminate } from '../util/processes'
-import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
+import { Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, LanguageClientOptions, MessageTransports, ShutdownMode } from './client'
-import { currentTimeStamp } from './utils'
+import { createClientPipeTransport, createClientSocketTransport, currentTimeStamp } from './utils'
 
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
 const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
-const STOP_TIMEOUT = getConditionValue(2000, 100)
+const STOP_TIMEOUT = getConditionValue(2000, 10)
+const RESTART_TIMEOUT = getConditionValue(1000, 10)
 
 export * from './client'
 
@@ -34,6 +36,11 @@ export enum TransportKind {
 export interface SocketTransport {
   kind: TransportKind.socket
   port: number
+}
+
+export interface DisposableTransport {
+  onConnected(): Promise<[MessageReader, MessageWriter]>
+  dispose(): void
 }
 
 namespace Transport {
@@ -193,13 +200,13 @@ export class LanguageClient extends BaseLanguageClient {
     this._isInDebugMode = !!forceDebug
   }
 
-  protected shutdown(mode: ShutdownMode, timeout = STOP_TIMEOUT): Promise<void> {
+  protected shutdown(mode: ShutdownMode, timeout: number): Promise<void> {
     return super.shutdown(mode, timeout).then(() => {
       if (this._serverProcess) {
         let toCheck = this._serverProcess
         this._serverProcess = undefined
         if (this._isDetached === void 0 || !this._isDetached) {
-          this.checkProcessDied(toCheck)
+          checkProcessDied(toCheck)
         }
         this._isDetached = undefined
       }
@@ -215,19 +222,6 @@ export class LanguageClient extends BaseLanguageClient {
 
   public get serviceState() {
     return this._state
-  }
-
-  private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess || childProcess.pid === undefined) return
-    setTimeout(() => {
-      // Test if the process is still alive. Throws an exception if not
-      try {
-        process.kill(childProcess.pid, 0)
-        terminate(childProcess)
-      } catch (error) {
-        // All is fine.
-      }
-    }, STOP_TIMEOUT)
   }
 
   protected handleConnectionClosed(): Promise<void> {
@@ -246,7 +240,7 @@ export class LanguageClient extends BaseLanguageClient {
     // the disposable returned from start since it will call
     // stop on the same client instance.
     if (this.isInDebugMode) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, RESTART_TIMEOUT))
       await this._start()
     } else {
       await this._start()
@@ -269,12 +263,13 @@ export class LanguageClient extends BaseLanguageClient {
 
     function assertStdio(process: ChildProcess): asserts process is ChildProcessWithoutNullStreams {
       if (process.stdin === null || process.stdout === null || process.stderr === null) {
+        process.kill('SIGKILL')
         throw new Error('Process created without stdio streams')
       }
     }
 
-    function logMessage(kind: string, data: string | Buffer, outputChannel: OutputChannel): void {
-      let msg = `[${kind} - ${currentTimeStamp()}] ${Is.string(data) ? data : data.toString(encoding as BufferEncoding)}`
+    function logMessage(kind: string, data: string, outputChannel: OutputChannel): void {
+      let msg = `[${kind} - ${currentTimeStamp()}] ${data}`
       outputChannel.append(msg)
     }
 
@@ -363,9 +358,11 @@ export class LanguageClient extends BaseLanguageClient {
           options.execArgv = options.execArgv || []
           options.cwd = serverWorkingDir
           options.silent = true
+
           if (runtime) options.execPath = runtime
           if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
-            let sp = child_process.fork(node.module, args || [], options)
+            // options.stdio = 'ignore'
+            let sp = child_process.fork(node.module, args, options)
             assertStdio(sp)
             this._serverProcess = sp
             logger.info(`Language server "${this.id}" started with ${sp.pid}`)
@@ -378,7 +375,7 @@ export class LanguageClient extends BaseLanguageClient {
             }
           } else if (transport === TransportKind.pipe) {
             return createClientPipeTransport(pipeName!).then(transport => {
-              let sp = child_process.fork(node.module, args || [], options)
+              let sp = child_process.fork(node.module, args, options)
               assertStdio(sp)
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
               this._serverProcess = sp
@@ -390,7 +387,7 @@ export class LanguageClient extends BaseLanguageClient {
             })
           } else if (Transport.isSocket(transport)) {
             return createClientSocketTransport(transport.port).then(transport => {
-              let sp = child_process.fork(node.module, args || [], options)
+              let sp = child_process.fork(node.module, args, options)
               assertStdio(sp)
               this._serverProcess = sp
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
@@ -415,12 +412,11 @@ export class LanguageClient extends BaseLanguageClient {
         } else if (Transport.isSocket(transport)) {
           args.push(`--socket=${transport.port}`)
         } else if (transport === TransportKind.ipc) {
-          throw new Error(`Transport kind ipc is not support for command executable`)
+          throw new Error(`Transport kind ipc is not supported for command executable`)
         }
-        let options = Object.assign({}, command.options) as SpawnOptions
-        options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
+        let options = Object.assign({ shell: process.platform === 'win32' }, command.options) as SpawnOptions
+        options.env = getEnvironment(options.env, false)
         options.cwd = options.cwd ?? serverWorkingDir
-        options.shell = process.platform === 'win32' ? true : options.shell
         options.windowsHide = true
         const attachProcess = (serverProcess: ChildProcess, pipiStdout = true) => {
           this._serverProcess = serverProcess
@@ -438,7 +434,7 @@ export class LanguageClient extends BaseLanguageClient {
           attachProcess(serverProcess, false)
           return Promise.resolve({ reader: new StreamMessageReader(serverProcess.stdout), writer: new StreamMessageWriter(serverProcess.stdin) })
         } else if (transport === TransportKind.pipe || Transport.isSocket(transport)) {
-          let promise: Promise<LsSocketTransport | PipeTransport>
+          let promise: Promise<DisposableTransport>
           if (transport === TransportKind.pipe) {
             promise = createClientPipeTransport(pipeName!)
           } else {
@@ -447,6 +443,7 @@ export class LanguageClient extends BaseLanguageClient {
           return promise.then(transport => {
             const serverProcess = child_process.spawn(cmd, args, options)
             if (!serverProcess || !serverProcess.pid) {
+              transport.dispose()
               return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`)
             }
             attachProcess(serverProcess)
@@ -502,7 +499,7 @@ export class SettingMonitor {
     let rest = index >= 0 ? this._setting.substr(index + 1) : undefined
     let enabled = rest
       ? workspace.getConfiguration(primary).get(rest, true)
-      : workspace.getConfiguration(primary)
+      : workspace.getConfiguration().get(primary, true)
     if (enabled && this._client.needsStart()) {
       this._client.start().catch(error => this._client.error('Start failed after configuration change', error, 'force'))
     } else if (!enabled && this._client.needsStop()) {
@@ -536,8 +533,7 @@ export function mainGetRootPath(): string | undefined {
   if (!folders || folders.length === 0) {
     return undefined
   }
-  let folder = folders[0]
-  return folder.uri
+  return URI.parse(folders[0].uri).fsPath
 }
 
 export function getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
@@ -562,13 +558,13 @@ export function startedInDebugMode(args: string[] | undefined): boolean {
   return false
 }
 
-function handleChildProcessStartError(process: ChildProcess, message: string) {
-  if (process === null) {
+export function handleChildProcessStartError(childProcess: ChildProcess, message: string) {
+  if (childProcess === null) {
     return Promise.reject<MessageTransports>(message)
   }
-
+  childProcess.unref()
   return new Promise<MessageTransports>((_, reject) => {
-    process.on('error', err => {
+    childProcess.on('error', err => {
       reject(`${message} ${err}`)
     })
     // the error event should always be run immediately,
@@ -576,3 +572,17 @@ function handleChildProcessStartError(process: ChildProcess, message: string) {
     setImmediate(() => reject(message))
   })
 }
+
+export function checkProcessDied(childProcess: ChildProcess | undefined): void {
+  if (!childProcess || childProcess.pid === undefined) return
+  setTimeout(() => {
+    // Test if the process is still alive. Throws an exception if not
+    try {
+      process.kill(childProcess.pid, 0)
+      terminate(childProcess)
+    } catch (error) {
+      // All is fine.
+    }
+  }, STOP_TIMEOUT)
+}
+

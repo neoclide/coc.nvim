@@ -214,7 +214,7 @@ describe('DynamicFeature', () => {
         let feature: SemanticTokensFeature
         await helper.waitValue(() => {
           feature = client.getFeature(SemanticTokensRegistrationType.method) as SemanticTokensFeature
-          return feature != null
+          return feature != null && feature.getProvider(textDocument) != null
         }, true)
         let provider = feature.getProvider(textDocument).full
         expect(provider).toBeDefined()

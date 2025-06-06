@@ -1,7 +1,5 @@
 
 export {
-  createClientPipeTransport,
-  createClientSocketTransport,
   createProtocolConnection,
   generateRandomPipeName,
   InitializeRequest,

@@ -1,5 +1,6 @@
 'use strict'
 import type { InitializeError, Message, ResponseError } from 'vscode-languageserver-protocol'
+import { OutputChannel } from '../../types'
 
 /**
  * An action to be performed when the connection to a server got closed.
@@ -89,6 +90,11 @@ export interface ErrorHandler {
   closed(): CloseHandlerResult | Promise<CloseHandlerResult> | CloseAction
 }
 
+export function toCloseHandlerResult(result: CloseHandlerResult | CloseAction): CloseHandlerResult {
+  if (typeof result === 'number') return { action: result }
+  return result
+}
+
 export interface InitializationFailedHandler {
   (error: ResponseError<InitializeError> | Error | any): boolean
 }
@@ -97,7 +103,7 @@ export class DefaultErrorHandler implements ErrorHandler {
   private readonly restarts: number[]
   public milliseconds = 3 * 60 * 1000
 
-  constructor(private name: string, private maxRestartCount: number) {
+  constructor(private name: string, private maxRestartCount: number, private outputChannel?: OutputChannel) {
     this.restarts = []
   }
 
@@ -115,7 +121,7 @@ export class DefaultErrorHandler implements ErrorHandler {
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
       if (diff <= this.milliseconds) {
-        console.error(`The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`)
+        if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`)
         return {
           action: CloseAction.DoNotRestart,
           message: `The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`

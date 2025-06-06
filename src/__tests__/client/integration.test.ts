@@ -49,18 +49,43 @@ describe('SettingMonitor', () => {
     await client.start()
     expect(client.traceOutputChannel).toBeDefined()
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
-    let disposable = monitor.start()
     helper.updateConfiguration('html.enabled', false)
+    disposables.push(monitor.start())
     await helper.waitValue(() => {
       return client.state
     }, lsclient.State.Stopped)
-    helper.updateConfiguration('html.enabled', true)
+    helper.updateConfiguration('html.enabled', true, disposables)
     await helper.waitValue(() => {
       return client.state != lsclient.State.Stopped
     }, true)
     await client.onReady()
     await client.stop()
-    disposable.dispose()
+  })
+
+  it('should use SettingMonitor for primary setting', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {}
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      command: 'node',
+      args: [serverModule],
+      transport: lsclient.TransportKind.stdio,
+      options: { env: false }
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let monitor = new lsclient.SettingMonitor(client, 'TestServerEnabled')
+    let spy = jest.spyOn(client, 'start').mockReturnValue(Promise.reject(new Error('myerror')) as any)
+    disposables.push(monitor.start())
+    spy.mockRestore()
+    await client.start()
+    let called = false
+    let s = jest.spyOn(client, 'stop').mockImplementation(() => {
+      called = true
+      return Promise.reject(new Error('myerror'))
+    })
+    helper.updateConfiguration('TestServerEnabled', false)
+    await helper.waitValue(() => called, true)
+    s.mockRestore()
+    await client.stop()
   })
 })
 
@@ -81,6 +106,7 @@ describe('global functions', () => {
   })
 
   it('should get runtime path', async () => {
+    expect(lsclient.getRuntimePath('node', undefined)).toBe('node')
     expect(lsclient.getRuntimePath(__filename, undefined)).toBeDefined()
     let uri = URI.file(__filename)
     await workspace.openResource(uri.toString())
@@ -399,7 +425,7 @@ describe('Client integration', () => {
     let serverModule = path.join(__dirname, './server/testInitializeResult.js')
     let serverOptions: lsclient.ServerOptions = {
       run: { module: serverModule, transport: lsclient.TransportKind.ipc },
-      debug: { module: serverModule, transport: lsclient.TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
+      debug: { module: serverModule, transport: lsclient.TransportKind.ipc, options: { execArgv: [] } }
     }
     let clientOptions: lsclient.LanguageClientOptions = {
       rootPatterns: ['.vim'],
@@ -415,23 +441,28 @@ describe('Client integration', () => {
         }
       }
     }
-    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions, true)
+    assert.ok(client.isInDebugMode)
     await client.start()
-    let expected = {
-      capabilities: {
-        textDocumentSync: 1,
-        completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
-        hoverProvider: true,
-        renameProvider: {
-          prepareProvider: true
-        }
-      },
-      customResults: {
-        hello: "world"
-      }
-    }
-    assert.deepEqual(client.initializeResult, expected)
+    await client.restart()
+    assert.deepEqual(client.initializeResult.customResults, { hello: 'world' })
     await client.stop()
+    await assert.rejects(async () => {
+      let options: any = {}
+      let client = new lsclient.LanguageClient('css', 'Test Language Server', options, clientOptions)
+      await client.start()
+    }, /Unsupported/)
+    await assert.rejects(async () => {
+      let options: lsclient.ServerOptions = { command: 'node', transport: lsclient.TransportKind.ipc }
+      let client = new lsclient.LanguageClient('css', 'Test Language Server', options, clientOptions)
+      await client.start()
+    }, /not supported/)
+    await assert.rejects(async () => {
+      let opts: any = { stdio: 'ignore' }
+      let options: lsclient.ServerOptions = { module: serverModule, transport: lsclient.TransportKind.ipc, options: opts }
+      let client = new lsclient.LanguageClient('css', 'Test Language Server', options, clientOptions)
+      await client.start()
+    }, /without stdio/)
   })
 
   it('should initialize use stdio', async () => {
@@ -524,23 +555,42 @@ describe('Client integration', () => {
     })
     expect(client.serviceState).toBeDefined()
     await client.stop()
+    await assert.rejects(async () => {
+      let option: lsclient.ServerOptions = {
+        command: 'foobar',
+        transport: lsclient.TransportKind.pipe
+      }
+      await testLanguageServer(option, {})
+    }, /ENOENT/)
   })
 
   it('should initialize use socket', async () => {
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
-      options: {
-        env: {
-          NODE_SOCKET_TEST: 1
-        }
-      },
+      options: { env: { NODE_SOCKET_TEST: 1 } },
       transport: {
         kind: lsclient.TransportKind.socket,
         port: 8088
       }
     }
     let client = await testLanguageServer(serverOptions)
+    await client.stop()
+    let option: lsclient.ServerOptions = {
+      command: 'node',
+      args: [serverModule],
+      transport: {
+        kind: lsclient.TransportKind.socket,
+        port: 9088
+      }
+    }
+    client = await testLanguageServer(option, {})
+    await client.sendNotification('printMessage')
+    await helper.waitValue(() => {
+      return client.outputChannel.content.match('Stderr') != null
+    }, true)
+    // avoid pending response error
+    await helper.wait(50)
     await client.stop()
   })
 
@@ -704,8 +754,9 @@ describe('Client integration', () => {
       await client.start()
       return client
     }
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
-      // noop
+    let messageReturn = {}
+    let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
+      return Promise.resolve(messageReturn as any)
     })
     let n = 0
     await expect(async () => {
@@ -717,27 +768,19 @@ describe('Client integration', () => {
     await helper.waitValue(() => {
       return n
     }, 2)
-    let promise = new Promise<void>(resolve => {
-      let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
-        resolve()
-        spy.mockRestore()
-        return Promise.resolve({} as any)
-      })
-    })
     await expect(async () => {
       await startServer(undefined)
     }).rejects.toThrow(Error)
-    await promise
+
     await expect(async () => {
       await startServer(undefined, 'normalThrow')
     }).rejects.toThrow(Error)
     progressOnInitialization = true
     await expect(async () => {
-      await startServer(undefined, 'utf8')
+      client = await startServer(undefined, 'utf8')
     }).rejects.toThrow(/Unsupported position encoding/)
-    await expect(async () => {
-      await client.stop()
-    }).rejects.toThrow(Error)
+    await helper.waitValue(() => client.state, lsclient.State.Stopped)
+    await client.stop()
     spy.mockRestore()
   })
 
@@ -755,6 +798,7 @@ describe('Client integration', () => {
     client['stack'] = `\n\n${filepath}:1:1`
     let obj = {}
     client.attachExtensionName(obj)
+    expect(typeof client.getExtensionName()).toBe('string')
     expect(obj['__extensionName']).toBe('single')
     registry.unregistExtension('single')
     await client.dispose()

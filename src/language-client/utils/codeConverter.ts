@@ -1,4 +1,4 @@
-import * as protocol from 'vscode-languageserver-protocol'
+import type * as protocol from 'vscode-languageserver-protocol'
 import { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument'
 import { Position } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
