@@ -19,9 +19,9 @@ jobs:
       matrix:
         versions:
           - neovim: "stable"
-            vim: "v9.0.0815"
+            vim: "v9.0.0438"
           - neovim: "nightly"
-            vim: "v9.0.2076"
+            vim: "v9.1.1365"
         node:
           - "20"
         include:
