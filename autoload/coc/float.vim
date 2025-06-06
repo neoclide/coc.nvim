@@ -626,8 +626,7 @@ function! coc#float#get_float_win_list(...) abort
     return filter(popup_list(), 'popup_getpos(v:val)["visible"]'.(list_all ? '' : '&& getwinvar(v:val, "float", 0)'))
   else
     let res = []
-    for i in range(1, winnr('$'))
-      let id = win_getid(i)
+    for id in nvim_list_wins()
       let config = nvim_win_get_config(id)
       if empty(config) || empty(config['relative'])
         continue
@@ -648,8 +647,7 @@ function! coc#float#get_float_by_kind(kind) abort
     return get(filter(popup_list(), 'popup_getpos(v:val)["visible"] && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
   else
     let res = []
-    for i in range(1, winnr('$'))
-      let winid = win_getid(i)
+    for winid in nvim_list_wins()
       let config = nvim_win_get_config(winid)
       if !empty(config['relative']) && getwinvar(winid, 'kind', '') ==# a:kind
         return winid
