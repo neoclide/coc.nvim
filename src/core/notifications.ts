@@ -9,7 +9,7 @@ import { parseExtensionName } from '../util/extensionRegistry'
 import { toNumber } from '../util/numbers'
 import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
-import { Dialogs } from './dialogs'
+import { callAsync } from './funcs'
 import { echoMessages, MsgTypes } from './ui'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
@@ -54,21 +54,24 @@ export class Notifications {
   public nvim: Neovim
   public configuration: WorkspaceConfiguration
   public statusLine: StatusLine
-  constructor(private dialogs: Dialogs) {
+  constructor() {
   }
 
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
-    if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind)
-    let stack = Error().stack
-    if (items.length > 0) {
-      let source = parseExtensionName(stack)
-      return await this.showMessagePicker(`Choose action ${toText(source)}`, message, `Coc${kind}Float`, items)
+    if (!this.enableMessageDialog) {
+      if (items.length > 0) {
+        return await this.showConfirm(message, items, kind)
+      }
+      let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
+      this.echoMessages(message, msgType)
+      return undefined
     }
-    await this.createNotification(kind.toLowerCase() as NotificationKind, message, [], stack)
-    return undefined
+    let texts = items.map(o => typeof o === 'string' ? o : o.title)
+    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
+    return items[idx]
   }
 
-  public createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
+  public createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
     return new Promise((resolve, reject) => {
       let config: NotificationConfig = {
         kind,
@@ -79,31 +82,18 @@ export class Notifications {
         }
       }
       let notification = new Notification(this.nvim, config)
-      notification.show(this.getNotificationPreference(stack)).catch(reject)
+      notification.show(this.getNotificationPreference()).catch(reject)
+      if (items.length == 0) {
+        resolve(-1)
+      }
     })
-  }
-
-  private async showMessagePicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T | undefined> {
-    let texts = items.map(o => typeof o === 'string' ? o : o.title)
-    let res = await this.dialogs.showMenuPicker(texts, {
-      position: 'center',
-      content,
-      title: title.replace(/\r?\n/, ' '),
-      borderhighlight: hlGroup
-    })
-    return items[res]
   }
 
   // fallback for vim without dialog
   private async showConfirm<T extends MessageItem | string>(message: string, items: T[], kind: MessageKind): Promise<T> {
-    if (!items || items.length == 0) {
-      let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
-      this.echoMessages(message, msgType)
-      return undefined
-    }
     let titles = toTitles(items)
     let choices = titles.map((s, i) => `${i + 1}${s}`)
-    let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]]) as number
+    let res = await callAsync(this.nvim, 'confirm', [message, choices.join('\n'), 1, kind]) as number
     return items[res - 1]
   }
 
@@ -131,8 +121,7 @@ export class Notifications {
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
-    let stack = Error().stack
-    await progress.show(Object.assign(this.getNotificationPreference(stack, options.source), { minWidth }))
+    await progress.show(Object.assign(this.getNotificationPreference(options.source, true), { minWidth }))
     return await promise
   }
 
@@ -158,11 +147,14 @@ export class Notifications {
     return this.configuration.get<boolean>('coc.preferences.enableMessageDialog', false)
   }
 
-  private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
-    if (!source) source = parseExtensionName(stack)
+  private getNotificationPreference(source?: string, isProgress = false): NotificationPreferences {
+    if (!source) source = parseExtensionName(Error().stack)
     let config = this.configuration.get<NotificationConfiguration>('notification')
-    let disabledList = defaultValue(config.disabledProgressSources, []) as string[]
-    let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
+    let disabled = false
+    if (isProgress) {
+      let disabledList = defaultValue(config.disabledProgressSources, []) as string[]
+      disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
+    }
     return {
       border: config.border,
       focusable: config.focusable,

@@ -31,9 +31,7 @@ export class FileSystemWatcherManager {
     private workspaceFolder: WorkspaceFolderControl,
     private config: FileWatchConfig
   ) {
-    if (!config.enable) {
-      this.disabled = true
-    }
+    this.disabled = config.enable === false
   }
 
   public attach(channel: OutputChannel): void {

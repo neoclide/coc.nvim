@@ -20,7 +20,7 @@ import type QuickPick from './model/quickpick'
 import type { StatusBarItem } from './model/status'
 import type { TerminalModel, TerminalOptions } from './model/terminal'
 import type { TreeView, TreeViewOptions } from './tree'
-import type { Env, FloatConfig, FloatFactory, HighlightItem, OutputChannel, QuickPickItem } from './types'
+import type { FloatConfig, FloatFactory, HighlightItem, OutputChannel, QuickPickItem } from './types'
 import { toObject } from './util/object'
 import { CancellationToken, Event } from './util/protocol'
 import type { Workspace } from './workspace'
@@ -38,7 +38,7 @@ export class Window {
   public readonly cursors: Cursors
   private workspace: Workspace
   constructor() {
-    this.notifications = new Notifications(this.dialogs)
+    this.notifications = new Notifications()
     Object.defineProperty(this.highlights, 'nvim', {
       get: () => this.nvim
     })
@@ -58,8 +58,6 @@ export class Window {
       get: () => this.workspace.statusLine
     })
   }
-
-  public init(_env: Env): void {}
 
   public get activeTextEditor(): TextEditor | undefined {
     return this.workspace.editors.activeTextEditor

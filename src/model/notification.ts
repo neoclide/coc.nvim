@@ -1,9 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
-import { disposeAll } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { toArray } from '../util/array'
 import { Disposable } from '../util/protocol'
+import { toText } from '../util/string'
 import { DialogButton } from './dialog'
 
 /**
@@ -92,7 +93,7 @@ export default class Notification {
       events.on('FloatBtnClick', (bufnr, idx) => {
         if (bufnr == this.bufnr) {
           this.dispose()
-          if (config.callback) config.callback(btns[idx].index)
+          if (config.callback) config.callback(defaultValue(btns[idx]?.index, -1))
         }
       }, null, this.disposables)
     }
@@ -106,7 +107,7 @@ export default class Notification {
     let { nvim } = this
     let { buttons, kind, title } = this.config
     let opts: any = Object.assign({}, preferences)
-    opts.kind = kind ?? ''
+    opts.kind = toText(kind)
     opts.close = this.config.closable === true ? 1 : 0
     if (title) opts.title = title
     if (preferences.border) {

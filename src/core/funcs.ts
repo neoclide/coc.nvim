@@ -5,7 +5,9 @@ import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Resolver from '../model/resolver'
 import { isVim } from '../util/constants'
+import { onUnexpectedError } from '../util/errors'
 import * as fs from '../util/fs'
+import { Mutex } from '../util/mutex'
 import { minimatch, os, path, semver, which } from '../util/node'
 import * as platform from '../util/platform'
 import { RelativePattern, TextDocumentFilter } from '../util/protocol'
@@ -13,6 +15,7 @@ let NAME_SPACE = 2000
 const resolver = new Resolver()
 
 const namespaceMap: Map<string, number> = new Map()
+const mutex: Mutex = new Mutex()
 
 export interface PartialEnv {
   isVim: boolean
@@ -45,9 +48,11 @@ export function has(env: PartialEnv, feature: string): boolean {
   return semver.gte(env.version, feature.slice(5))
 }
 
-export async function callAsync<T>(nvim: Neovim, method: string, args: any[]): Promise<T> {
-  if (!isVim) return await nvim.call(method, args) as T
-  return await nvim.callAsync('coc#util#with_callback', [method, args]) as T
+export function callAsync<T>(nvim: Neovim, method: string, args: any[]): Promise<T> {
+  return mutex.use<T>(() => {
+    if (!isVim) return nvim.call(method, args) as Promise<T>
+    return nvim.callAsync('coc#util#with_callback', [method, args]).catch(onUnexpectedError) as Promise<T>
+  })
 }
 
 /**

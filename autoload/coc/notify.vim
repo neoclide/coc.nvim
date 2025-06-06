@@ -9,6 +9,7 @@ let s:phl = 'CocNotificationProgress'
 let s:progress_char = '─'
 let s:duration = 300.0
 let s:winids = []
+let s:fn_keys = ["\<F1>","\<F2>","\<F3>","\<F4>","\<F5>","\<F6>","\<F7>","\<F8>","\<F9>"]
 
 " Valid notify winids on current tab
 function! coc#notify#win_list() abort
@@ -115,15 +116,18 @@ endfunction
 " close - close button [boolean]
 function! coc#notify#create(lines, config) abort
   let actions = get(a:config, 'actions', [])
+  if s:is_vim
+    let actions = map(actions, 'v:val. "<F".(v:key + 1).">"')
+  endif
   let key = json_encode(extend({'lines': a:lines}, a:config))
   let winid = s:find_win(key)
   let kind = get(a:config, 'kind', '')
   let row = 0
+  " Close duplicated window
   if winid != -1
     let row = getwinvar(winid, 'top', 0)
     call filter(s:winids, 'v:val != '.winid)
     call coc#float#close(winid, 1)
-    let winid = v:null
   endif
   let opts = coc#dict#pick(a:config, ['highlight', 'borderhighlight', 'focusable', 'shadow', 'close'])
   let border = has_key(opts, 'borderhighlight') ? [1, 1, 1, 1] : []
@@ -167,10 +171,13 @@ function! coc#notify#create(lines, config) abort
     let height = height + 1
   endif
   if !empty(actions)
-    let before = max([width - strwidth(actionText), 0])
+    let before = max([width - strdisplaywidth(actionText), 0])
     let lines = lines + [repeat(' ', before).actionText]
     let height = height + 1
     call s:add_action_highlights(before, height - 1, highlights, actions)
+    if s:is_vim
+      let opts['filter'] = function('s:NotifyFilter', [len(actions)])
+    endif
   endif
   if row == 0
     let wintop = coc#notify#get_top()
@@ -198,11 +205,12 @@ function! coc#notify#create(lines, config) abort
       \ 'rounded': 1,
       \ 'highlights': highlights,
       \ 'winblend': winblend,
+      \ 'close': s:is_vim,
       \ 'border': border,
       \ })
   let result = coc#float#create_float_win(0, 0, opts)
   if empty(result)
-    throw 'Unable to create notify window'
+    return
   endif
   let winid = result[0]
   let bufnr = result[1]
@@ -247,8 +255,7 @@ function! coc#notify#nvim_click(winid) abort
       let word = expand('<cword>')
       let idx = index(actions, word)
       if idx != -1
-        call coc#rpc#notify('FloatBtnClick', [winbufnr(a:winid), idx])
-        call coc#notify#close(a:winid)
+        call coc#notify#choose(a:winid, idx)
       endif
     endif
   endif
@@ -303,10 +310,11 @@ function! s:add_action_highlights(before, lnum, highlights, actions) abort
   let colStart = a:before
   for text in a:actions
     let w = strwidth(text)
+    let len = s:is_vim ? stridx(text, '<') : 0
     call add(a:highlights, {
         \ 'lnum': a:lnum,
-        \ 'hlGroup': 'CocNotificationButton',
-        \ 'colStart': colStart,
+        \ 'hlGroup': s:is_vim ? 'CocNotificationKey' : 'CocNotificationButton',
+        \ 'colStart': colStart + len,
         \ 'colEnd': colStart + w
         \ })
     let colStart = colStart + w + 1
@@ -318,8 +326,7 @@ function! s:on_action(err, idx, winid) abort
     throw a:err
   endif
   if a:idx > 0
-    call coc#rpc#notify('FloatBtnClick', [winbufnr(a:winid), a:idx - 1])
-    call coc#notify#close(a:winid)
+    call coc#notify#choose(a:winid, a:idx - 1)
   endif
 endfunction
 
@@ -328,7 +335,7 @@ function! s:cancel(winid, ...) abort
   let timer = coc#window#get_var(a:winid, name)
   if !empty(timer)
     call timer_stop(timer)
-    call coc#window#set_var(a:winid, name, v:null)
+    call win_execute(a:winid, 'unlet w:timer', 'silent!')
   endif
 endfunction
 
@@ -540,4 +547,21 @@ function! s:get_props(from, to, percent) abort
     endif
   endfor
   return obj
+endfunction
+
+function! coc#notify#choose(winid, idx) abort
+  call s:cancel(a:winid, 'close_timer')
+  call coc#rpc#notify('FloatBtnClick', [winbufnr(a:winid), a:idx])
+  call coc#notify#close(a:winid)
+endfunction
+
+function! s:NotifyFilter(count, winid, key) abort
+  let max = min([a:count, 9])
+  for idx in range(1, max)
+    if a:key == s:fn_keys[idx - 1]
+      call coc#notify#choose(a:winid, idx - 1)
+      return 1
+    endif
+  endfor
+  return 0
 endfunction

@@ -335,10 +335,19 @@ describe('workspace methods', () => {
     expect(called).toBe(true)
     disposable.dispose()
   })
+
+  it('should getWatchConfig', async () => {
+    helper.updateConfiguration('fileSystemWatch.enable', null, disposables)
+    helper.updateConfiguration('fileSystemWatch.watchmanPath', '~/bin/watchman', disposables)
+    helper.updateConfiguration('fileSystemWatch.ignoredFolders', ['~'], disposables)
+    let config = workspace.getWatchConfig()
+    expect(config.enable).toBe(false)
+    expect(typeof config.watchmanPath).toBe('string')
+    expect(config.ignoredFolders).toEqual([os.homedir()])
+  })
 })
 
 describe('workspace utility', () => {
-
   it('should create database', async () => {
     let filpath = path.join(process.env.COC_DATA_HOME, 'test.json')
     if (fs.existsSync(filpath)) {

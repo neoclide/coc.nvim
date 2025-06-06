@@ -86,4 +86,9 @@ describe('help tags', () => {
     let doc = workspace.getDocument(bufnr)
     expect(doc).toBeDefined()
   })
+
+  it('should get related information', async () => {
+    let res = await helper.plugin.cocAction('diagnosticRelatedInformation')
+    expect(res).toEqual([])
+  })
 })

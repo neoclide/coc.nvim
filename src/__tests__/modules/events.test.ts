@@ -86,7 +86,7 @@ describe('register handler', () => {
     let disposable = events.on('BufEnter', fn, obj)
     disposables.push(disposable)
     await events.fire('BufEnter', ['a', 'b'])
-    expect(fn).toBeCalledWith('a', 'b')
+    expect(fn).toHaveBeenCalledWith('a', 'b')
   })
 
   it('should register multiple events', async () => {
@@ -95,7 +95,7 @@ describe('register handler', () => {
     disposables.push(disposable)
     await events.fire('TaskExit', [])
     await events.fire('TaskStderr', [])
-    expect(fn).toBeCalledTimes(2)
+    expect(fn).toHaveBeenCalledTimes(2)
   })
 
   it('should resolve after timeout', async () => {
@@ -130,6 +130,8 @@ describe('register handler', () => {
     expect(events.lastChangeTs).toBeDefined()
     await events.race(['TextInsert'])
     expect(arr).toEqual(['change', 'insert'])
+    await events.fire('ModeChanged', [{ old_mode: 'n', new_mode: 'i' }])
+    expect(events.mode).toBeDefined()
   })
 
   it('should race events', async () => {

@@ -398,9 +398,8 @@ describe('SnippetSession', () => {
       await session.start('${1:foo} bar$0', defaultRange)
       await nvim.input('<backspace>')
       await session.forceSynchronize()
-      await helper.waitValue(async () => {
-        return await nvim.call('col', ['.'])
-      }, 5)
+      let placeholder = session.placeholder
+      expect(placeholder.index).toBe(0)
     })
 
     it('should changed none current placeholder', async () => {

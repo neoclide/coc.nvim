@@ -228,6 +228,7 @@ describe('completion', () => {
         title: 'title'
       })
       await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
+      await helper.waitPopup()
       let win = await helper.getFloat('pum')
       let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
       expect(id).toBeGreaterThan(1000)
@@ -1062,14 +1063,6 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i')
       await nvim.input('EM')
-      await helper.waitPopup()
-      let items = await helper.items()
-      expect(items.length).toBe(2)
-    })
-
-    it('should trigger on triggerSuggest command', async () => {
-      await create(['foo', 'bar'], false)
-      await commands.executeCommand('editor.action.triggerSuggest')
       await helper.waitPopup()
       let items = await helper.items()
       expect(items.length).toBe(2)

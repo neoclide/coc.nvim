@@ -367,8 +367,7 @@ export def DetachListener(bufnr: number): bool
   const id: number = get(listener_map, bufnr, 0)
   if id != 0
     remove(listener_map, bufnr)
-    const succeed = listener_remove(id)
-    return succeed ? true : false
+    return listener_remove(id) != 0
   endif
   return false
 enddef
@@ -455,7 +454,7 @@ export def SetBufferText(bufnr: number, start_row: number, start_col: number, en
           idx += 1
           continue
         endif
-        if prop.lnum > start_row + 1 || prop.col + prop.length > start_col + 1
+        if prop.lnum > start_row + 1 || prop.col + get(prop, 'length', 0) > start_col + 1
           break
         endif
         new_props->add(prop)
@@ -1054,6 +1053,12 @@ export def Buf_detach(id: number): bool
   return DetachListener(bufnr)
 enddef
 
+export def Buf_flush(id: any): void
+  if type(id) == v:t_number && has_key(listener_map, id)
+    listener_flush(id)
+  endif
+enddef
+
 export def Buf_get_lines(id: number, start: number, end: number, strict: bool = false): list<string>
   const bufnr = GetValidBufnr(id)
   const len = BufLineCount(bufnr)
@@ -1351,7 +1356,7 @@ export function Call(method, args) abort
   let result = v:null
   try
     let result = call($'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}', a:args)
-    call listener_flush()
+    call coc#api#Buf_flush(bufnr('%'))
   catch /.*/
     let err =  v:exception .. " - on request \"" .. a:method .. "\" \n" .. v:throwpoint
     let result = v:null
@@ -1368,7 +1373,7 @@ export function Notify(method, args) abort
       let fname = $'coc#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
       call call(fname, a:args)
     endif
-    call listener_flush()
+    call coc#api#Buf_flush(bufnr('%'))
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception .. " - on notification \"" .. a:method .. "\" \n" .. v:throwpoint])
   endtry
