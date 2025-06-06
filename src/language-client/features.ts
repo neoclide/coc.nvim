@@ -547,12 +547,12 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
     this._registrations.clear()
   }
 
-  protected getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
+  public getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
     if (!capability) {
       return [undefined, undefined]
     } else if (TextDocumentRegistrationOptions.is(capability)) {
       const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      const selector = capability.documentSelector ?? documentSelector
+      const selector = defaultValue(capability.documentSelector, documentSelector)
       return [id, Object.assign({}, capability, { documentSelector: selector })]
     } else if ((Is.boolean(capability) && capability === true) || WorkDoneProgressOptions.is(capability)) {
       const options = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })
@@ -588,6 +588,7 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
 }
 
 import { ProviderResult } from '../provider'
+import { defaultValue } from '../util'
 import { CodeLensProviderShape } from './codeLens'
 import { DiagnosticProviderShape } from './diagnostic'
 import { InlayHintsProviderShape } from './inlayHint'

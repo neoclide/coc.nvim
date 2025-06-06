@@ -101,6 +101,11 @@ connection.onProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f54857
   void connection.sendNotification('progressResult', params)
 })
 
+connection.onNotification('printMessage', () => {
+  process.stdin.write('stdin\n')
+  process.stdout.write('stdout\n')
+})
+
 connection.onRequest('doExit', () => {
   setTimeout(() => {
     process.exit(1)

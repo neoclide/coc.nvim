@@ -13137,6 +13137,9 @@ declare module 'coc.nvim' {
      * Check if server could stop.
      */
     needsStop(): boolean
+    /**
+     * Resolved when server ready
+     */
     onReady(): Promise<void>
     set trace(value: Trace)
 

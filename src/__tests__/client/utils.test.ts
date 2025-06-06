@@ -1,5 +1,7 @@
 /* eslint-disable */
 import assert from 'assert'
+import { spawn } from 'child_process'
+import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'
 import { data2String, fixType, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
 import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
@@ -17,6 +19,16 @@ test('Logger', () => {
   nullLogger.warn('warn')
   nullLogger.info('info')
   nullLogger.log('log')
+})
+
+test('checkProcessDied', async () => {
+  checkProcessDied(undefined)
+  let child = spawn('sleep', ['3'], { cwd: process.cwd(), detached: true })
+  checkProcessDied(child)
+  await wait(20)
+  assert.rejects(async () => {
+    await handleChildProcessStartError(null, 'msg')
+  })
 })
 
 test('getLocale', () => {

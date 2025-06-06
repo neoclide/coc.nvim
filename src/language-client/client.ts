@@ -62,7 +62,7 @@ import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
 import { currentTimeStamp, data2String, fixType, getLocale, getTracePrefix, toMethod } from './utils'
 import { Delayer } from './utils/async'
 import * as c2p from './utils/codeConverter'
-import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler } from './utils/errorHandler'
+import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler, toCloseHandlerResult } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
 import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
@@ -277,8 +277,8 @@ type ResolvedClientOptions = {
     isTrusted: boolean
     supportHtml?: boolean
   }
-  textSynchronization?: {
-    delayOpenNotifications: boolean
+  textSynchronization: {
+    delayOpenNotifications?: boolean
   }
 } & $ConfigurationOptions & Required<$CompletionOptions> & Required<$FormattingOptions> & Required<$DiagnosticPullOptions> & Required<$WorkspaceOptions>
 
@@ -480,6 +480,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       middleware: defaultValue(clientOptions.middleware, {}),
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
+      uriConverter: clientOptions.uriConverter,
       textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
       markdown
     }
@@ -565,12 +566,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let token: CancellationToken | undefined
     // Separate cancellation tokens from other parameters for a better client interface
     if (params.length === 1) {
-      // CancellationToken is an interface, so we need to check if the first param complies to it
-      if (CancellationToken.is(params[0])) {
-        token = params[0]
-      } else {
-        param = params[0]
-      }
+      param = params[0]
     } else if (params.length === 2) {
       param = params[0]
       token = params[1]
@@ -579,7 +575,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
     }
     type = fixType(type, params)
-    const _sendRequest = this._clientOptions.middleware?.sendRequest
+    const _sendRequest = this._clientOptions.middleware.sendRequest
     if (_sendRequest !== undefined) {
       // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
       // pass them to the original sendRequest function.
@@ -666,12 +662,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
 
       type = fixType(type, params == null ? [] : [params])
-      const _sendNotification = this._clientOptions.middleware?.sendNotification
+      const _sendNotification = this._clientOptions.middleware.sendNotification
       return _sendNotification
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)
         : connection.sendNotification(type, params)
     } catch (error) {
       this.error(`Sending notification ${toMethod(type)} failed.`, error)
+      if (this._state === ClientState.Stopping || this._state === ClientState.Stopped) return
       throw error
     }
   }
@@ -777,11 +774,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
    * languageserver.xxx.settings or undefined
    */
   public get configuredSection(): string | undefined {
-    let section = this._clientOptions.synchronize?.configurationSection
+    let section = defaultValue(this._clientOptions.synchronize, {}).configurationSection
     return typeof section === 'string' && section.startsWith('languageserver.') ? section : undefined
   }
 
-  public get clientOptions(): LanguageClientOptions {
+  public get clientOptions(): ResolvedClientOptions {
     return this._clientOptions
   }
 
@@ -806,7 +803,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public createDefaultErrorHandler(maxRestartCount?: number): ErrorHandler {
-    return new DefaultErrorHandler(this._id, maxRestartCount ?? 4)
+    return new DefaultErrorHandler(this._id, maxRestartCount ?? 4, this._outputChannel)
   }
 
   public set trace(value: Trace) {
@@ -870,7 +867,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       : type === MessageType.Warning
         ? window.showWarningMessage.bind(window)
         : window.showInformationMessage.bind(window)
-    let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(undefined))
+    let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(global.__showOutput))
     fn(message, { title: 'Go to output' }).then(selection => {
       if (selection !== undefined) {
         this.outputChannel.show(true)
@@ -1158,10 +1155,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     try {
       const result = await connection.initialize(initParams)
       if (result.capabilities.positionEncoding !== undefined && result.capabilities.positionEncoding !== PositionEncodingKind.UTF16) {
-        await connection.shutdown()
-        await connection.exit()
-        connection.end()
-        connection.dispose()
         throw new Error(`Unsupported position encoding (${result.capabilities.positionEncoding}) received from server ${this.name}`)
       }
 
@@ -1189,12 +1182,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       this._capabilities = Object.assign({}, result.capabilities, { resolvedTextDocumentSync: textDocumentSyncOptions })
       connection.onNotification(PublishDiagnosticsNotification.type, params => this.handleDiagnostics(params))
-      connection.onRequest(RegistrationRequest.type, params => this.handleRegistrationRequest(params))
-      // See https://github.com/Microsoft/vscode-languageserver-node/issues/199
-      connection.onRequest('client/registerFeature', params => this.handleRegistrationRequest(params))
-      connection.onRequest(UnregistrationRequest.type, params => this.handleUnregistrationRequest(params))
-      // See https://github.com/Microsoft/vscode-languageserver-node/issues/199
-      connection.onRequest('client/unregisterFeature', params => this.handleUnregistrationRequest(params))
+      for (let requestType of [RegistrationRequest.type, 'client/registerFeature']) {
+        connection.onRequest(requestType, params => this.handleRegistrationRequest(params))
+      }
+      for (let requestType of [UnregistrationRequest.type, 'client/unregisterFeature']) {
+        connection.onRequest(requestType, params => this.handleUnregistrationRequest(params))
+      }
       connection.onRequest(ApplyWorkspaceEditRequest.type, params => this.handleApplyWorkspaceEdit(params))
 
       // Add pending notification, request and progress handlers.
@@ -1215,29 +1208,31 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.initializeFeatures(connection)
       return result
     } catch (error: any) {
+      this.error('Server initialization failed.', error)
+      logger.error(`Server "${this.id}" initialization failed.`, error)
       let cb = (retry: boolean) => {
-        if (retry) {
-          this.initialize(connection).catch(() => {})
-        } else {
-          this.stop().catch(() => {})
-        }
+        process.nextTick(() => {
+          new Promise((resolve, reject) => {
+            if (retry) {
+              this.initialize(connection).then(resolve, reject)
+            } else {
+              this.stop().then(resolve, reject)
+            }
+          }).catch(err => {
+            this.error(`Error on "${retry ? 'initialize' : 'stop'}"`, err)
+          })
+        })
       }
       if (this._clientOptions.initializationFailedHandler) {
         cb(this._clientOptions.initializationFailedHandler(error))
       } else if (error instanceof ResponseError && error.data && error.data.retry) {
-        if (this._connection) {
-          let connection = this._connection
-          connection.end()
-          this._connection.dispose()
-          this._connection = null
-        }
         void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
           cb(item && item.id === 'retry')
         })
       } else {
-        void window.showErrorMessage(toText(error.message))
-        this.error('Server initialization failed.', error)
-        logger.error(`Server ${this.id} initialization failed.`, error)
+        if (error && error.message) {
+          void window.showErrorMessage(toText(error.message))
+        }
         cb(false)
       }
       throw error
@@ -1254,16 +1249,18 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (this.$state === ClientState.Stopped || this.$state === ClientState.Initial) {
       return
     }
-
+    if (this.$state === ClientState.Starting && this._onStart) {
+      await this._onStart
+    }
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
       return this._onStop ?? Promise.resolve()
     }
 
-    const connection = this.activeConnection()
+    const connection = this._connection
     // We can't stop a client that is not running (e.g. has no connection). Especially not
     // on that us starting since it can't be correctly synchronized.
-    if (connection === undefined || (this.$state !== ClientState.Running && this.$state !== ClientState.Starting)) {
+    if (connection === undefined || (this.$state !== ClientState.Running && this.$state !== ClientState.StartFailed)) {
       throw new Error(`Client is not running and can't be stopped. It's current state is: ${this.$state}`)
     }
     this._initializeResult = undefined
@@ -1418,13 +1415,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (this.$state !== ClientState.Stopping) {
       try {
         let result = await this._clientOptions.errorHandler.closed()
-        if (typeof result === 'number') {
-          handlerResult = { action: result }
-        } else if (result.action) {
-          handlerResult = result
-        }
+        handlerResult = toCloseHandlerResult(result)
       } catch (error) {
         // Ignore errors coming from the error handler.
+        this.error(`Error on errorHandler.closed`, error)
       }
     }
     this._connection = undefined
@@ -1745,7 +1739,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private handleUnregistrationRequest(params: UnregistrationParams): Promise<void> {
-    const middleware = this.clientOptions.middleware?.handleUnregisterCapability
+    const middleware = this._clientOptions.middleware?.handleUnregisterCapability
     if (middleware) {
       return middleware(params, nextParams => this.doUnregisterCapability(nextParams))
     } else {
@@ -1793,10 +1787,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
-    const middleware = this.clientOptions.middleware?.workspace?.handleApplyEdit
+    const middleware = this.clientOptions.middleware.workspace?.handleApplyEdit
     if (middleware) {
       const resultOrError = await middleware(params, nextParams => this.doHandleApplyWorkspaceEdit(nextParams))
-      if (resultOrError instanceof ResponseError) {
+      if (resultOrError instanceof Error) {
         return Promise.reject(resultOrError)
       }
       return resultOrError

@@ -1,6 +1,7 @@
-import type { MessageSignature } from 'vscode-languageserver-protocol'
+import type { Disposable, MessageReader, MessageSignature, MessageWriter } from 'vscode-languageserver-protocol'
+import { PipeTransport, SocketMessageReader, SocketMessageWriter, SocketTransport } from 'vscode-languageserver-protocol/node'
 import * as Is from '../../util/is'
-import { inspect } from '../../util/node'
+import { inspect, net } from '../../util/node'
 import { ResponseError } from '../../util/protocol'
 
 export function getLocale(): string {
@@ -66,4 +67,58 @@ export function parseTraceData(data: any): string {
     }
   }
   return data
+}
+
+type MessageBufferEncoding = 'ascii' | 'utf-8'
+
+export function createClientPipeTransport(pipeName: string, encoding: MessageBufferEncoding = 'utf-8'): Promise<PipeTransport & Disposable> {
+  let connectResolve: (value: [MessageReader, MessageWriter]) => void
+  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, _reject) => {
+    connectResolve = resolve
+  })
+  return new Promise<PipeTransport & Disposable>((resolve, reject) => {
+    const server = net.createServer(socket => {
+      server.close()
+      connectResolve([
+        new SocketMessageReader(socket, encoding),
+        new SocketMessageWriter(socket, encoding)
+      ])
+    })
+    server.on('error', reject)
+    server.listen(pipeName, () => {
+      server.removeListener('error', reject)
+      resolve({
+        onConnected: () => { return connected },
+        dispose: () => {
+          server.close()
+        }
+      })
+    })
+  })
+}
+
+export function createClientSocketTransport(port: number, encoding: MessageBufferEncoding = 'utf-8'): Promise<SocketTransport & Disposable> {
+  let connectResolve: (value: [MessageReader, MessageWriter]) => void
+  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, _reject) => {
+    connectResolve = resolve
+  })
+  return new Promise<SocketTransport & Disposable>((resolve, reject) => {
+    const server = net.createServer(socket => {
+      server.close()
+      connectResolve([
+        new SocketMessageReader(socket, encoding),
+        new SocketMessageWriter(socket, encoding)
+      ])
+    })
+    server.on('error', reject)
+    server.listen(port, '127.0.0.1', () => {
+      server.removeListener('error', reject)
+      resolve({
+        onConnected: () => { return connected },
+        dispose: () => {
+          server.close()
+        }
+      })
+    })
+  })
 }

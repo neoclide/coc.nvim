@@ -1,11 +1,13 @@
 import * as assert from 'assert'
 import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentContentRequest, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import { StaticFeature } from '../../language-client/features'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, State, TransportKind } from '../../language-client/index'
+import { InlayHintsFeature } from '../../language-client/inlayHint'
 import languages from '../../languages'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -1360,7 +1362,12 @@ describe('Client integration', () => {
   })
 
   test('Inlay Hints', async () => {
-    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
+    let feature = client.getFeature(InlayHintRequest.method) as InlayHintsFeature
+    const providerData = feature.getProvider(document)
+    expect(feature.getProvider(TextDocument.create('term:///1', 'foo', 1, '\n'))).toBeUndefined()
+    feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
+    let res = feature.getRegistration([], { id: '1', workDoneProgress: '' } as any)
+    expect(res).toEqual([undefined, undefined])
     isDefined(providerData)
     const provider = providerData.provider
     const results = (await provider.provideInlayHints(document, range, tokenSource.token))
@@ -1564,20 +1571,21 @@ describe('sever tests', () => {
     await client.stop(10)
   })
 
-  test('Server can not be stopped right after start', async () => {
+  test('Server can not be stopped when connection not exists', async () => {
     const serverOptions: ServerOptions = {
-      module: path.join(__dirname, './server/startStopServer.js'),
+      module: path.join(__dirname, './server/testServer.js'),
       transport: TransportKind.ipc,
     }
     const clientOptions: LanguageClientOptions = {}
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    void client.start()
+    let spy = jest.spyOn(client, 'createConnection' as any).mockReturnValue(Promise.reject(new Error('myerror')))
+    await assert.rejects(async () => {
+      await client.start()
+    }, Error)
     await assert.rejects(async () => {
       await client.stop()
     }, /Client is not running and can't be stopped/)
-
-    await client._start()
-    await client.stop()
+    spy.mockRestore()
   })
 
   test('Test state change events', async () => {
