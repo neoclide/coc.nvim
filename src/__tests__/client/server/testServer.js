@@ -626,9 +626,10 @@ connection.onRequest(new ProtocolRequestType('testing/sendPercentageProgress'), 
   progress.done()
 })
 
+const uri = 'file:///abc.txt'
 connection.onWorkspaceSymbol(() => {
   return [
-    {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}
+    {name: 'name', kind: SymbolKind.Array, location: {uri}}
   ]
 })
 
@@ -640,6 +641,19 @@ connection.onWorkspaceSymbolResolve(symbol => {
 connection.onRequest(new ProtocolRequestType('testing/sendApplyEdit'), async (_, __) => {
   const params = {label: 'Apply Edit', edit: {}}
   await connection.sendRequest(ApplyWorkspaceEditRequest.type, params)
+})
+
+connection.onRequest(new ProtocolRequestType('testing/sendDiagnostics'), async (_, __) => {
+  const diagnostics = [{
+    severity: DiagnosticSeverity.Warning,
+    range: {
+      start: {line: 0, character: 0},
+      end: {line: 0, character: 5}
+    },
+    message: "Example warning: Check your code!",
+    source: "ex"
+  }]
+  connection.sendDiagnostics({uri, diagnostics})
 })
 
 // Listen on the connection

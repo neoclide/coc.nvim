@@ -1,7 +1,7 @@
 'use strict'
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HandlerResult, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineCompletionRequest, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentContentRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HandlerResult, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineCompletionRequest, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentContentRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
-import { Diagnostic, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticTag, MarkupKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import DiagnosticCollection from '../diagnostic/collection'
@@ -110,19 +110,8 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
     onProgress: connection.onProgress,
     sendProgress: connection.sendProgress,
 
-    trace: (value: Trace, tracer: Tracer, sendNotificationOrTraceOptions?: boolean | TraceOptions): Promise<void> => {
-      const defaultTraceOptions: TraceOptions = {
-        sendNotification: false,
-        traceFormat: TraceFormat.Text
-      }
-
-      if (sendNotificationOrTraceOptions === undefined) {
-        return connection.trace(value, tracer, defaultTraceOptions)
-      } else if (Is.boolean(sendNotificationOrTraceOptions)) {
-        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
-      } else {
-        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
-      }
+    trace: (value: Trace, tracer: Tracer, traceOptions: TraceOptions): Promise<void> => {
+      return connection.trace(value, tracer, traceOptions)
     },
 
     initialize: (params: InitializeParams) => {
@@ -566,7 +555,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let token: CancellationToken | undefined
     // Separate cancellation tokens from other parameters for a better client interface
     if (params.length === 1) {
-      param = params[0]
+      // CancellationToken is an interface, so we need to check if the first param complies to it
+      if (CancellationToken.is(params[0])) {
+        token = params[0]
+      } else {
+        param = params[0]
+      }
     } else if (params.length === 2) {
       param = params[0]
       token = params[1]
@@ -668,7 +662,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         : connection.sendNotification(type, params)
     } catch (error) {
       this.error(`Sending notification ${toMethod(type)} failed.`, error)
-      if (this._state === ClientState.Stopping || this._state === ClientState.Stopped) return
+      if ([ClientState.Stopping, ClientState.Stopped].includes(this._state)) return
       throw error
     }
   }
@@ -1052,9 +1046,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           messageFunc = window.showInformationMessage.bind(window)
       }
       let actions: MessageActionItem[] = toArray(params.actions)
-      return messageFunc(params.message, ...actions).then(res => {
-        return res == null ? null : res
-      })
+      return messageFunc(params.message, ...actions)
     })
     connection.onRequest(ShowDocumentRequest.type, async (params, token) => {
       const showDocument = async (params: ShowDocumentParams): Promise<ShowDocumentResult> => {
@@ -1219,7 +1211,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
               this.stop().then(resolve, reject)
             }
           }).catch(err => {
-            this.error(`Error on "${retry ? 'initialize' : 'stop'}"`, err)
+            this.error(`Unexpected error`, err, false)
           })
         })
       }
@@ -1244,7 +1236,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return this.shutdown(ShutdownMode.Stop, timeout)
   }
 
-  protected async shutdown(mode: ShutdownMode, timeout = 2000): Promise<void> {
+  protected async shutdown(mode: ShutdownMode, timeout: number): Promise<void> {
     // If the client is stopped or in its initial state return.
     if (this.$state === ClientState.Stopped || this.$state === ClientState.Initial) {
       return
@@ -1254,7 +1246,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
-      return this._onStop ?? Promise.resolve()
+      return this._onStop
     }
 
     const connection = this._connection
@@ -1357,41 +1349,29 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
       })
     }
-    const workSpaceMiddleware = this.clientOptions.middleware?.workspace;
+    const workSpaceMiddleware = this.clientOptions.middleware.workspace;
     (workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)).catch(error => {
       this.error(`Notifying ${DidChangeWatchedFilesNotification.method} failed.`, error)
     })
   }
 
+  /**
+   * @deprecated
+   */
   public async forceDocumentSync(): Promise<void> {
-    let textDocuments = Array.from(this._syncedDocuments.values())
-    await Promise.all(textDocuments.map(textDocument => {
-      let doc = workspace.getDocument(textDocument.uri)
-      return doc ? doc.synchronize() : null
-    }))
-  }
-
-  private handleDiagnostics(params: PublishDiagnosticsParams) {
-    let { uri, diagnostics, version } = params
-    if (Is.number(version) && !workspace.hasDocument(uri, version)) return
-    let middleware = this.clientOptions.middleware!.handleDiagnostics
-    if (middleware) {
-      middleware(uri, diagnostics, (uri, diagnostics) =>
-        this.setDiagnostics(uri, diagnostics)
-      )
-    } else {
-      this.setDiagnostics(uri, diagnostics)
-    }
   }
 
   protected abstract createMessageTransports(encoding: string): Promise<MessageTransports | null>
 
   private async createConnection(): Promise<Connection> {
+    let onError = error => {
+      this.error(`Unexpected error: `, error, false)
+    }
     let errorHandler = (error: Error, message: Message | undefined, count: number | undefined) => {
-      this.handleConnectionError(error, message, count).catch(error => this.error(`Handling connection error failed`, error))
+      this.handleConnectionError(error, message, count).catch(onError)
     }
     let closeHandler = () => {
-      this.handleConnectionClosed().catch(error => this.error(`Handling connection close failed`, error))
+      this.handleConnectionClosed().catch(onError)
     }
     const transports = await this.createMessageTransports(defaultValue(this._clientOptions.stdioEncoding, 'utf8'))
     this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions)
@@ -1401,7 +1381,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   protected async handleConnectionClosed(): Promise<void> {
     // Check whether this is a normal shutdown in progress or the client stopped normally.
     if (this.$state === ClientState.Stopped) {
-      logger.debug(`client ${this._id} normal closed`)
+      logger.info(`client ${this._id} normal closed`)
       return
     }
     try {
@@ -1412,13 +1392,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       // Disposing a connection could fail if error cases.
     }
     let handlerResult: CloseHandlerResult = { action: CloseAction.DoNotRestart }
+    let err
     if (this.$state !== ClientState.Stopping) {
       try {
         let result = await this._clientOptions.errorHandler.closed()
         handlerResult = toCloseHandlerResult(result)
       } catch (error) {
-        // Ignore errors coming from the error handler.
-        this.error(`Error on errorHandler.closed`, error)
+        err = error
       }
     }
     this._connection = undefined
@@ -1440,20 +1420,20 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._onStart = undefined
       this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
     }
+    if (err) throw err
   }
 
   public async handleConnectionError(error: Error, message: Message | undefined, count: number): Promise<void> {
     let res = await this._clientOptions.errorHandler!.error(error, message, count)
     let result: ErrorHandlerResult = typeof res === 'number' ? { action: res } : res ?? { action: ErrorAction.Shutdown }
+    const showNotification = result.handled === true ? false : 'force'
     if (result.action === ErrorAction.Shutdown) {
       const msg = result.message ?? `Client ${this._name}: connection to server is erroring.\n${error.message}\nShutting down server.`
-      this.error(msg, error, result.handled === true ? false : 'force')
-      this.stop().catch(error => {
-        this.error(`Stopping server failed`, error, false)
-      })
+      this.error(msg, error, showNotification)
+      return this.stop()
     } else {
       const msg = result.message ?? `Client ${this._name}: connection to server is erroring.\n${error.message}`
-      this.error(msg, error, result.handled === true ? false : 'force')
+      this.error(msg, error, showNotification)
     }
   }
 
@@ -1705,7 +1685,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private handleRegistrationRequest(params: RegistrationParams): Promise<void> {
     if (this.clientOptions.disableDynamicRegister) return
-    const middleware = this.clientOptions.middleware?.handleRegisterCapability
+    const middleware = this.clientOptions.middleware.handleRegisterCapability
     if (middleware) {
       return middleware(params, nextParams => this.doRegisterCapability(nextParams))
     } else {
@@ -1757,43 +1737,42 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
+  private handleDiagnostics(params: PublishDiagnosticsParams) {
+    let { uri, diagnostics, version } = params
+    if (Is.number(version) && !workspace.hasDocument(uri, version)) return
+    let middleware = this.clientOptions.middleware!.handleDiagnostics
+    if (middleware) {
+      middleware(uri, diagnostics, (uri, diagnostics) =>
+        this.setDiagnostics(uri, diagnostics)
+      )
+    } else {
+      this.setDiagnostics(uri, diagnostics)
+    }
+  }
+
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
     if (!this._diagnostics) return
-
     this._diagnostics.set(uri, diagnostics)
   }
 
-  private async doHandleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
-    // This is some sort of workaround since the version check should be done by VS Code in the Workspace.applyEdit.
-    // However doing it here adds some safety since the server can lag more behind then an extension.
-    let workspaceEdit: WorkspaceEdit = params.edit
-    let versionMismatch = false
-    if (workspaceEdit.documentChanges) {
-      for (const change of workspaceEdit.documentChanges) {
-        if (TextDocumentEdit.is(change) && change.textDocument.version && change.textDocument.version >= 0) {
-          let doc = workspace.getDocument(change.textDocument.uri)
-          if (doc && (doc.version !== change.textDocument.version || doc.hasChanged)) {
-            versionMismatch = true
-            break
-          }
-        }
-      }
-    }
-    if (versionMismatch) {
-      return Promise.resolve({ applied: false })
-    }
-    const applied = await workspace.applyEdit(params.edit)
-    return { applied }
+  private doHandleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
+    return workspace.applyEdit(params.edit).then(applied => {
+      return { applied }
+    })
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
     const middleware = this.clientOptions.middleware.workspace?.handleApplyEdit
     if (middleware) {
-      const resultOrError = await middleware(params, nextParams => this.doHandleApplyWorkspaceEdit(nextParams))
-      if (resultOrError instanceof Error) {
-        return Promise.reject(resultOrError)
+      try {
+        let resultOrError = await Promise.resolve(middleware(params, nextParams => this.doHandleApplyWorkspaceEdit(nextParams)))
+        if (resultOrError instanceof ResponseError) {
+          throw resultOrError
+        }
+      } catch (error) {
+        this.error(`Error on apply workspace edit`, error, false)
+        return { applied: false }
       }
-      return resultOrError
     } else {
       return this.doHandleApplyWorkspaceEdit(params)
     }

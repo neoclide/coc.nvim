@@ -29,6 +29,7 @@ connection.onInitialize((params) => {
 })
 connection.onInitialized(() => {
   void connection.sendDiagnostics({uri: "uri:/test.ts", diagnostics: []})
+  void connection.sendDiagnostics({uri: "uri:/not_exists.ts", diagnostics: [], version: 1})
 })
 // Listen on the connection
 connection.listen()

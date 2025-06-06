@@ -4,14 +4,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
 import { CloseAction, ErrorAction } from '../../language-client'
 import { LSPCancellationError } from '../../language-client/features'
-import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
+import { ErrorHandlerResult, InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import * as extension from '../../util/extensionRegistry'
@@ -35,7 +35,13 @@ afterAll(async () => {
 
 describe('SettingMonitor', () => {
   it('should setup SettingMonitor', async () => {
-    let clientOptions: lsclient.LanguageClientOptions = {}
+    let clientOptions: lsclient.LanguageClientOptions = {
+      uriConverter: { code2Protocol: uri => uri.toString() },
+      initializationOptions: () => {
+        return {}
+      },
+      markdown: { supportHtml: true }
+    }
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
@@ -47,6 +53,7 @@ describe('SettingMonitor', () => {
     client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', () => {
     })
     await client.start()
+    await client.forceDocumentSync()
     expect(client.traceOutputChannel).toBeDefined()
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
     helper.updateConfiguration('html.enabled', false)
@@ -235,18 +242,24 @@ describe('Client events', () => {
       await client._start()
     }).rejects.toThrow(Error)
     await p
+    await expect(async () => {
+      await client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })
+    }).rejects.toThrow(/not running/)
   })
 
   it('should use custom errorHandler', async () => {
+    let throwError = false
     let called = false
+    let result: ErrorHandlerResult | ErrorAction = { action: ErrorAction.Shutdown, handled: true }
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
       errorHandler: {
         error: () => {
-          return { action: ErrorAction.Shutdown, handled: true }
+          return result
         },
         closed: () => {
           called = true
+          if (throwError) throw new Error('myerror')
           return CloseAction.DoNotRestart
         }
       },
@@ -259,11 +272,17 @@ describe('Client events', () => {
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     disposables.push(client)
+    throwError = true
+    await assert.rejects(async () => {
+      await client.sendRequest('bad', CancellationToken.Cancelled)
+    }, /cancelled/)
     await client.sendRequest('doExit')
     await client.start()
     await helper.waitValue(() => {
       return called
     }, true)
+    await client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
+    result = ErrorAction.Continue
     await client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
   })
 
@@ -284,13 +303,14 @@ describe('Client events', () => {
     await client.sendNotification('showMessage')
     let types = [MessageType.Error, MessageType.Warning, MessageType.Info, MessageType.Log]
     let times = 0
+    let result = true
     const mockMessageFunctions = function(): Disposable {
       let names = ['showErrorMessage', 'showWarningMessage', 'showInformationMessage']
       let fns: Function[] = []
       for (let name of names) {
         let spy = jest.spyOn(window as any, name).mockImplementation(() => {
           times++
-          return Promise.resolve(true)
+          return Promise.resolve(result)
         })
         fns.push(() => {
           spy.mockRestore()
@@ -382,6 +402,7 @@ describe('Client integration', () => {
       let client = new lsclient.LanguageClient('HTML', serverOptions, clientOptions)
       await client.start()
       await client.dispose()
+      void client.dispose()
     }
     await testServer(() => {
       let module = path.join(__dirname, './server/eventServer.js')
@@ -444,6 +465,7 @@ describe('Client integration', () => {
     let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions, true)
     assert.ok(client.isInDebugMode)
     await client.start()
+    await helper.waitValue(() => client.diagnostics.has('uri:/test.ts'), true)
     await client.restart()
     assert.deepEqual(client.initializeResult.customResults, { hello: 'world' })
     await client.stop()
@@ -491,7 +513,7 @@ describe('Client integration', () => {
           return lsclient.ErrorAction.Continue
         },
         closed: () => {
-          return lsclient.CloseAction.DoNotRestart
+          return { action: CloseAction.DoNotRestart, handled: true }
         }
       },
       progressOnInitialization: true,
@@ -505,7 +527,6 @@ describe('Client integration', () => {
     client.traceMessage('message')
     client.traceMessage('message', {})
     client.trace = Trace.Verbose
-    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockReturnValue(Promise.resolve())
     let d = client.start()
     let s = new CancellationTokenSource()
     s.cancel()
@@ -540,7 +561,6 @@ describe('Client integration', () => {
     client.logFailedRequest('', err)
     assert.strictEqual(client.diagnostics, undefined)
     await client.handleConnectionError(new Error('test'), undefined, 0)
-    spy.mockReset()
     d.dispose()
   })
 
@@ -615,17 +635,12 @@ describe('Client integration', () => {
       initializationOptions: {}
     }
     let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-    let spy = jest.spyOn(client as any, 'showNotificationMessage').mockImplementation(() => {
-      return Promise.resolve()
-    })
-    let err
-    try {
+    await assert.rejects(async () => {
       await client.start()
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-    spy.mockRestore()
+    }, /failed/)
+    await expect(async () => {
+      await client['$start']()
+    }).rejects.toThrow(/failed/)
   })
 
   it('should logMessage', async () => {
@@ -700,11 +715,13 @@ describe('Client integration', () => {
     client.onNotification('result', p => {
       res = p
     })
-    await client.start()
+    let disposable = client.start()
+    await disposable
     await client.sendNotification('edits')
     await helper.waitValue(() => {
       return res
     }, { applied: false })
+    disposable.dispose()
     await client.stop()
   })
 
