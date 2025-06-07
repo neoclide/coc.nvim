@@ -58,7 +58,10 @@ abstract class WorkspaceFeature<RO, PR, M> extends BaseFeature<M, object> implem
 
   public unregister(id: string): void {
     const registration = this._registrations.get(id)
-    if (registration) registration.disposable.dispose()
+    if (registration) {
+      this._registrations.delete(id)
+      registration.disposable.dispose()
+    }
   }
 
   public dispose(): void {

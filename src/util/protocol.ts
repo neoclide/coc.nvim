@@ -1,7 +1,5 @@
 
 export {
-  createClientPipeTransport,
-  createClientSocketTransport,
   createProtocolConnection,
   generateRandomPipeName,
   InitializeRequest,
@@ -16,6 +14,8 @@ export {
   UnregistrationRequest,
   ApplyWorkspaceEditRequest,
   InitializedNotification,
+  InlineCompletionItem,
+  InlineCompletionContext,
   TraceFormat,
   ResourceOperationKind,
   FailureHandlingKind,

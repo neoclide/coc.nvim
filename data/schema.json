@@ -178,7 +178,7 @@
     "languageserver.trace.server.verbosity": {
       "type": "string",
       "default": "off",
-      "enum": ["off", "messages", "verbose"],
+      "enum": ["off", "messages", "compact", "verbose"],
       "description": "Trace level of communication between server and client"
     },
     "languageserver.trace.server.format": {
@@ -449,9 +449,9 @@
           "description": "Detach the languageserver process"
         },
         "shell": {
-          "type": "boolean",
+          "type": ["boolean", "string"],
           "default": false,
-          "description": "Use shell for process"
+          "description": "If true runs command inside of a shell, always true on windows."
         },
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
@@ -2342,6 +2342,20 @@
       "scope": "application",
       "description": "Show virtual text for insert word of the selected item if any",
       "default": false
+    },
+    "inlineSuggest.autoTrigger": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable automatically trigger inline completion on insert mode cursor hold.",
+      "default": true
+    },
+    "inlineSuggest.triggerCompletionWait": {
+      "type": "integer",
+      "default": 100,
+      "minimum": 50,
+      "maximum": 1000,
+      "scope": "language-overridable",
+      "description": "Wait time in milliseconds between TextChangedI and trigger inline completion."
     },
     "tree.closedIcon": {
       "type": "string",

@@ -1,10 +1,13 @@
 /* eslint-disable */
 import assert from 'assert'
+import { spawn } from 'child_process'
+import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'
+import { data2String, fixType, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
+import { CloseAction, DefaultErrorHandler, ErrorAction, toCloseHandlerResult } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
 import { wait } from '../../util/index'
-import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
-import { data2String, getLocale, getTraceMessage, parseTraceData } from '../../language-client/utils'
+import helper from '../helper'
 
 test('Logger', () => {
   const logger = new ConsoleLogger()
@@ -19,6 +22,16 @@ test('Logger', () => {
   nullLogger.log('log')
 })
 
+test('checkProcessDied', async () => {
+  checkProcessDied(undefined)
+  let child = spawn('sleep', ['3'], { cwd: process.cwd(), detached: true })
+  checkProcessDied(child)
+  await wait(20)
+  assert.rejects(async () => {
+    await handleChildProcessStartError(null, 'msg')
+  })
+})
+
 test('getLocale', () => {
   process.env.LANG = ''
   expect(getLocale()).toBe('en')
@@ -27,8 +40,12 @@ test('getLocale', () => {
 })
 
 test('getTraceMessage', () => {
-  expect(getTraceMessage({})).toMatch('Trace')
-  expect(getTraceMessage({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
+  expect(getTracePrefix({})).toMatch('Trace')
+  expect(getTracePrefix({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
+})
+
+test('fixType', () => {
+  expect(fixType({ method: 'method' }, [])['numberOfParams']).toEqual(0)
 })
 
 test('data2String', () => {
@@ -39,6 +56,7 @@ test('data2String', () => {
 })
 
 test('parseTraceData', () => {
+  expect(parseTraceData({})).toBe('{}')
   expect(parseTraceData('msg')).toMatch('msg')
   expect(parseTraceData('Params: data')).toMatch('data')
   expect(parseTraceData('Result: {"foo": "bar"}')).toMatch('bar')
@@ -48,18 +66,21 @@ test('DefaultErrorHandler', async () => {
   let spy = jest.spyOn(console, 'error').mockImplementation(() => {
     // ignore
   })
-  const handler = new DefaultErrorHandler('test', 2)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 1)).toBe(ErrorAction.Continue)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 5)).toBe(ErrorAction.Shutdown)
+  let handler = new DefaultErrorHandler('test', 2)
+  expect(handler.error(new Error('test'), { jsonrpc: '' }, 1).action).toBe(ErrorAction.Continue)
+  expect(handler.error(new Error('test'), { jsonrpc: '' }, 5).action).toBe(ErrorAction.Shutdown)
   handler.closed()
   handler.milliseconds = 1
   await wait(10)
   let res = handler.closed()
-  expect(res).toBe(CloseAction.Restart)
+  expect(res.action).toBe(CloseAction.Restart)
   handler.milliseconds = 10 * 1000
   res = handler.closed()
-  expect(res).toBe(CloseAction.DoNotRestart)
+  expect(res.action).toBe(CloseAction.DoNotRestart)
   spy.mockRestore()
+  expect(toCloseHandlerResult(CloseAction.DoNotRestart)).toBeDefined()
+  handler = new DefaultErrorHandler('test', 1, helper.createNullChannel())
+  handler.closed()
 })
 
 test('Delayer', () => {

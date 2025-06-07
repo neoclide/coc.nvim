@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 'use strict'
 import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -6,7 +5,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import type { Sources } from './completion/sources'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSelector, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSelector, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineCompletionItemProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
@@ -22,6 +21,7 @@ import FormatRangeManager from './provider/formatRangeManager'
 import HoverManager from './provider/hoverManager'
 import ImplementationManager from './provider/implementationManager'
 import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
+import InlineCompletionItemManager, { ExtendedInlineContext } from './provider/inlineCompletionItemManager'
 import InlineValueManager from './provider/inlineValueManager'
 import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
@@ -37,7 +37,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
-import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
+import { CancellationToken, Disposable, Emitter, Event, InlineCompletionItem } from './util/protocol'
 import { toText } from './util/string'
 
 const eventDebounce = getConditionValue(100, 1)
@@ -78,6 +78,7 @@ export enum ProviderName {
   LinkedEditing = 'linkedEditing',
   InlayHint = 'inlayHint',
   InlineValue = 'inlineValue',
+  InlineCompletion = 'inlineCompletion',
   TypeHierarchy = 'typeHierarchy'
 }
 
@@ -118,9 +119,10 @@ class Languages {
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
+  public inlineCompletionItemManager = new InlineCompletionItemManager()
   private inlineValueManager = new InlineValueManager()
-  public readonly registerDocumentRangeFormattingEditProvider: Function
-  public readonly registerDocumentFormattingEditProvider: Function
+  public readonly registerDocumentRangeFormattingEditProvider: any
+  public readonly registerDocumentFormattingEditProvider: any
 
   public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
 
@@ -162,6 +164,10 @@ class Languages {
     let sources = require('./completion/sources').default as Sources
     sources.removeSource(name)
     return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
+  }
+
+  public registerInlineCompletionItemProvider(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable {
+    return this.inlineCompletionItemManager.register(selector, provider)
   }
 
   public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
@@ -405,6 +411,10 @@ class Languages {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
 
+  public async provideInlineCompletionItems(document: TextDocument, position: Position, context: ExtendedInlineContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
+    return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token)
+  }
+
   public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<(CodeLens | null)[]> {
     return await this.codeLensManager.provideCodeLenses(document, token)
   }
@@ -574,6 +584,8 @@ class Languages {
         return this.linkedEditingManager.hasProvider(document)
       case ProviderName.InlayHint:
         return this.inlayHintManager.hasProvider(document)
+      case ProviderName.InlineCompletion:
+        return this.inlineCompletionItemManager.hasProvider(document)
       case ProviderName.InlineValue:
         return this.inlineValueManager.hasProvider(document)
       case ProviderName.TypeHierarchy:

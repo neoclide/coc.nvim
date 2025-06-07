@@ -1,6 +1,6 @@
 'use strict'
 import type { InitializeError, Message, ResponseError } from 'vscode-languageserver-protocol'
-import window from '../../window'
+import { OutputChannel } from '../../types'
 
 /**
  * An action to be performed when the connection to a server got closed.
@@ -14,6 +14,26 @@ export enum CloseAction {
    * Restart the server.
    */
   Restart = 2
+}
+
+export interface CloseHandlerResult {
+  /**
+   * The action to take.
+   */
+  action: CloseAction
+
+  /**
+   * An optional message to be presented to the user.
+   */
+  message?: string
+
+  /**
+   * If set to true the client assumes that the corresponding
+   * close handler has presented an appropriate message to the
+   * user and the message will only be log to the client's
+   * output channel.
+   */
+  handled?: boolean
 }
 
 /**
@@ -30,6 +50,26 @@ export enum ErrorAction {
   Shutdown = 2
 }
 
+export interface ErrorHandlerResult {
+  /**
+   * The action to take.
+   */
+  action: ErrorAction
+
+  /**
+   * An optional message to be presented to the user.
+   */
+  message?: string
+
+  /**
+   * If set to true the client assumes that the corresponding
+   * error handler has presented an appropriate message to the
+   * user and the message will only be log to the client's
+   * output channel.
+   */
+  handled?: boolean
+}
+
 /**
  * A pluggable error handler that is invoked when the connection is either
  * producing errors or got closed.
@@ -42,12 +82,17 @@ export interface ErrorHandler {
    * @param count - a count indicating how often an error is received. Will
    * be reset if a message got successfully send or received.
    */
-  error(error: Error, message: Message | undefined, count: number | undefined): ErrorAction
+  error(error: Error, message: Message | undefined, count: number | undefined): ErrorAction | ErrorHandlerResult | Promise<ErrorHandlerResult>
 
   /**
    * The connection to the server got closed.
    */
-  closed(): CloseAction
+  closed(): CloseHandlerResult | Promise<CloseHandlerResult> | CloseAction
+}
+
+export function toCloseHandlerResult(result: CloseHandlerResult | CloseAction): CloseHandlerResult {
+  if (typeof result === 'number') return { action: result }
+  return result
 }
 
 export interface InitializationFailedHandler {
@@ -58,29 +103,32 @@ export class DefaultErrorHandler implements ErrorHandler {
   private readonly restarts: number[]
   public milliseconds = 3 * 60 * 1000
 
-  constructor(private name: string, private maxRestartCount: number) {
+  constructor(private name: string, private maxRestartCount: number, private outputChannel?: OutputChannel) {
     this.restarts = []
   }
 
-  public error(_error: Error, _message: Message, count: number): ErrorAction {
+  public error(_error: Error, _message: Message, count: number): ErrorHandlerResult {
     if (count && count <= 3) {
-      return ErrorAction.Continue
+      return { action: ErrorAction.Continue }
     }
-    return ErrorAction.Shutdown
+    return { action: ErrorAction.Shutdown }
   }
 
-  public closed(): CloseAction {
+  public closed(): CloseHandlerResult {
     this.restarts.push(Date.now())
     if (this.restarts.length < this.maxRestartCount) {
-      return CloseAction.Restart
+      return { action: CloseAction.Restart }
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
       if (diff <= this.milliseconds) {
-        console.error(`The "${this.name}" server crashed ${this.maxRestartCount} times in the last 3 minutes. The server will not be restarted.`)
-        return CloseAction.DoNotRestart
+        if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`)
+        return {
+          action: CloseAction.DoNotRestart,
+          message: `The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`
+        }
       } else {
         this.restarts.shift()
-        return CloseAction.Restart
+        return { action: CloseAction.Restart }
       }
     }
   }

@@ -47,7 +47,7 @@ describe('converter', () => {
     let res = cv.asSaveTextDocumentParams(createDocument(), true)
     expect(res.textDocument.uri).toBeDefined()
     expect(res.text).toBeDefined()
-    res = cv.asSaveTextDocumentParams(createDocument(), false)
+    res = cv.asSaveTextDocumentParams(createDocument())
     expect(res.text).toBeUndefined()
   })
 

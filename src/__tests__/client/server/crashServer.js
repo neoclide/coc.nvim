@@ -1,7 +1,7 @@
 "use strict"
 Object.defineProperty(exports, "__esModule", {value: true})
-const node_1 = require('vscode-languageserver')
-var CrashNotification;
+const node_1 = require('vscode-languageserver/node')
+let CrashNotification;
 (function (CrashNotification) {
   CrashNotification.type = new node_1.NotificationType0('test/crash')
 })(CrashNotification || (CrashNotification = {}))

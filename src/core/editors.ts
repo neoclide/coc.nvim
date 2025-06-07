@@ -178,13 +178,13 @@ export default class Editors {
       }
       winids.add(info.winid)
     }
-    if (this.cleanupEditors(winids)) {
+    if (this.cleanUpEditors(winids)) {
       changed = true
     }
     if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
   }
 
-  public cleanupEditors(winids: Set<number>): boolean {
+  public cleanUpEditors(winids: Set<number>): boolean {
     let changed = false
     for (let winid of Array.from(this.editors.keys())) {
       if (!winids.has(winid)) {

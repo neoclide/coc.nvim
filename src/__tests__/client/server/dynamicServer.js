@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver')
+const {createConnection, TextDocumentContentRefreshRequest, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest, ResponseError, ErrorCodes} = require('vscode-languageserver/node')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -11,9 +11,10 @@ let prepareResponse
 let configuration
 let folders
 let foldersEvent
+const id = 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
 connection.onInitialize((params) => {
   options = params.initializationOptions || {}
-  let changeNotifications = options.changeNotifications ?? 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
+  let changeNotifications = options.changeNotifications ?? id
   return {
     capabilities: {
       inlineValueProvider: {},
@@ -24,7 +25,13 @@ connection.onInitialize((params) => {
       renameProvider: options.prepareRename ? {prepareProvider: true} : true,
       workspaceSymbolProvider: true,
       codeLensProvider: {
-        resolveProvider: true
+        resolveProvider: options.noResolve !== true
+      },
+      documentLinkProvider: {
+        resolveProvider: options.noResolve !== true
+      },
+      inlayHintProvider: {
+        resolveProvider: options.noResolve !== true
       },
       workspace: {
         workspaceFolders: {
@@ -59,19 +66,20 @@ connection.onInitialize((params) => {
           willDelete: {
             filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
           },
-        }
+        },
+        textDocumentContent: options.textDocumentContent ? {id, schemes: ['lsptest']} : undefined
       },
     }
   }
 })
 
 connection.onInitialized(() => {
-  connection.client.register(RenameRequest.type, {
+  void connection.client.register(RenameRequest.type, {
     prepareProvider: options.prepareRename
   }).then(d => {
-    disposables.push(d)
+    d.dispose()
   })
-  connection.client.register(WorkspaceSymbolRequest.type, {
+  void connection.client.register(WorkspaceSymbolRequest.type, {
     resolveProvider: true
   }).then(d => {
     disposables.push(d)
@@ -79,8 +87,10 @@ connection.onInitialized(() => {
   let full = false
   if (options.delta) {
     full = {delta: true}
+  } else if (options.noResolve) {
+    full = {delta: false}
   }
-  connection.client.register(SemanticTokensRegistrationType.method, {
+  void connection.client.register(SemanticTokensRegistrationType.method, {
     full,
     range: options.rangeTokens,
     legend: {
@@ -88,21 +98,21 @@ connection.onInitialized(() => {
       tokenModifiers: []
     },
   })
-  connection.client.register(CodeActionRequest.method, {
+  void connection.client.register(CodeActionRequest.method, {
     resolveProvider: false
   })
-  connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
-  connection.client.register(ExecuteCommandRequest.type, {
-    commands: ['test_command']
+  void connection.client.register(DidChangeConfigurationNotification.type, {section: undefined})
+  void connection.client.register(ExecuteCommandRequest.type, {
+    commands: ['test_command', 'other_command']
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
+  void connection.client.register(CompletionRequest.type, {
     documentSelector: [{language: 'vim'}]
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(CompletionRequest.type, {
+  void connection.client.register(CompletionRequest.type, {
     triggerCharacters: ['/'],
   }).then(d => {
     disposables.push(d)
@@ -153,6 +163,7 @@ connection.onExecuteCommand(param => {
   if (param.command === 'test_command') {
     return {success: true}
   }
+  throw new ResponseError(ErrorCodes.InvalidRequest, `${param?.command} not exists.`)
 })
 
 connection.languages.semanticTokens.onDelta(() => {
@@ -168,7 +179,7 @@ connection.onRequest('setPrepareResponse', param => {
 
 connection.onNotification('pullConfiguration', () => {
   configuration = connection.sendRequest(ConfigurationRequest.type, {
-    items: [{section: 'foo'}]
+    items: [{section: 'foo'}, {}]
   })
 })
 
@@ -185,7 +196,12 @@ connection.onRequest('getFoldersEvent', () => {
 })
 
 connection.onNotification('fireInlineValueRefresh', () => {
-  connection.sendRequest(InlineValueRefreshRequest.type)
+  void connection.sendRequest(InlineValueRefreshRequest.type)
+})
+
+connection.onNotification('fireDocumentContentRefresh', () => {
+  void connection.sendRequest(TextDocumentContentRefreshRequest.type, {uri: 'lsptest:///2'})
+  void connection.sendRequest(TextDocumentContentRefreshRequest.type, {uri: 'untitled:///1'})
 })
 
 connection.onNotification('requestFolders', async () => {

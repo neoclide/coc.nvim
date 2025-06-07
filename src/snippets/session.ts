@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { Position, Range, StringValue, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
@@ -34,7 +34,7 @@ interface DocumentChange {
 
 export interface SnippetEdit {
   range: Range
-  snippet: string | SnippetString
+  snippet: string | SnippetString | StringValue
 }
 
 export interface SnippetConfig {

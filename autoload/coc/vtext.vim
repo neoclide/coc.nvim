@@ -21,6 +21,18 @@ function! coc#vtext#set(bufnr, ns, items, indent, priority) abort
   endif
 endfunction
 
+" Check virtual text of namespace exists
+function! coc#vtext#exists(bufnr, ns) abort
+  if s:is_vim
+    let types = coc#api#GetNamespaceTypes(a:ns)
+    if empty(types)
+      return 0
+    endif
+    return !empty(prop_list(1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': -1}))
+  endif
+  return !empty(nvim_buf_get_extmarks(a:bufnr, a:ns, [0, 0], [-1, -1], {}))
+endfunction
+
 " This function is called by buffer.setVirtualText
 " ns - Id created by coc#highlight#create_namespace()
 " line - Zero based line number

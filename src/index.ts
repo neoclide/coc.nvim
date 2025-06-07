@@ -1,19 +1,26 @@
 'use strict'
 import {
-  AnnotatedTextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, CodeAction, CodeActionContext, CodeActionKind,
+  AnnotatedTextEdit, ApplyKind, ChangeAnnotation, ChangeAnnotationIdentifier, CodeAction, CodeActionContext, CodeActionKind,
   CodeActionTriggerKind, CodeDescription, CodeLens, Color,
   ColorInformation,
   ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
   CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
-  InlayHintLabelPart, InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
-  InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer, Location,
+  InlayHintLabelPart, InlineCompletionList, InlineCompletionTriggerKind,
+  InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
+  InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer,
+  Location,
   LocationLink, MarkedString, MarkupContent, MarkupKind, OptionalVersionedTextDocumentIdentifier, ParameterInformation, Position,
-  Range, RenameFile, SelectionRange, SemanticTokenModifiers,
+  Range, RenameFile,
+  SelectedCompletionInfo,
+  SelectionRange, SemanticTokenModifiers,
   SemanticTokens, SemanticTokenTypes, SignatureInformation,
+  SnippetTextEdit,
+  StringValue,
   SymbolInformation, SymbolKind, SymbolTag, TextDocumentEdit, TextDocumentIdentifier, TextDocumentItem, TextEdit, uinteger, VersionedTextDocumentIdentifier, WorkspaceChange, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbol
 } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from './commands'
+import sources from './completion/sources'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extension'
@@ -29,17 +36,18 @@ import RelativePattern from './model/relativePattern'
 import services, { ServiceStat } from './services'
 import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
-import sources from './completion/sources'
 import { ansiparse } from './util/ansiparse'
 import { CancellationError } from './util/errors'
 import { Mutex } from './util/mutex'
 import {
   CancellationToken,
-  CancellationTokenSource, CompletionTriggerKind, Disposable, DocumentDiagnosticReportKind, Emitter, ErrorCodes, Event, FileChangeType, MonikerKind, NotificationType,
+  CancellationTokenSource, CompletionTriggerKind, Disposable, DocumentDiagnosticReportKind, Emitter, ErrorCodes, Event, FileChangeType,
+  InlineCompletionContext, InlineCompletionItem,
+  MonikerKind, NotificationType,
   NotificationType0, ProgressType, ProtocolNotificationType,
   ProtocolNotificationType0, ProtocolRequestType,
   ProtocolRequestType0, RequestType,
-  RequestType0, ResponseError, SignatureHelpTriggerKind, Trace, UniquenessLevel
+  RequestType0, ResponseError, SignatureHelpTriggerKind, Trace, UniquenessLevel,
 } from './util/protocol'
 import window from './window'
 import workspace from './workspace'
@@ -52,15 +60,15 @@ import {
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
 
+import { SourceType } from './completion/types'
+import { ConfigurationUpdateTarget } from './configuration/types'
+import { PatternType } from './core/workspaceFolder'
 import LineBuilder from './model/line'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { concurrent, disposeAll, wait } from './util'
 import { FileType, watchFile } from './util/fs'
 import { executable, isRunning, runCommand, terminate } from './util/processes'
-import { ConfigurationUpdateTarget } from './configuration/types'
-import { SourceType } from './completion/types'
-import { PatternType } from './core/workspaceFolder'
 
 module.exports = {
   get nvim() {
@@ -94,9 +102,16 @@ module.exports = {
   CancellationError,
   WorkspaceChange,
   ResponseError,
+  StringValue,
+  SnippetTextEdit,
   Trace,
   DocumentUri,
   WorkspaceFolder,
+  SelectedCompletionInfo,
+  InlineCompletionContext,
+  InlineCompletionItem,
+  InlineCompletionList,
+  InlineCompletionTriggerKind,
   InlineValueText,
   InlineValueVariableLookup,
   InlineValueEvaluatableExpression,
@@ -202,6 +217,7 @@ module.exports = {
   listManager,
   TreeItemCollapsibleState,
   DiagnosticPullMode,
+  ApplyKind,
   terminate,
   fetch,
   download,

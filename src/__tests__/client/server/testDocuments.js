@@ -1,5 +1,5 @@
-const {ResponseError, LSPErrorCodes} = require('vscode-languageserver')
-const ls = require('vscode-languageserver')
+const {ResponseError, LSPErrorCodes} = require('vscode-languageserver/node')
+const ls = require('vscode-languageserver/node')
 const {TextDocument} = require('vscode-languageserver-textdocument')
 let connection = ls.createConnection()
 let documents = new ls.TextDocuments(TextDocument)
@@ -73,21 +73,21 @@ connection.onRequest('getLastDidSave', () => {
 let disposables = []
 connection.onNotification('registerDocumentSync', () => {
   let opt = {documentSelector: [{language: 'vim'}]}
-  connection.client.register(ls.DidOpenTextDocumentNotification.type, opt).then(d => {
+  void connection.client.register(ls.DidOpenTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.DidCloseTextDocumentNotification.type, opt).then(d => {
+  void connection.client.register(ls.DidCloseTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.DidChangeTextDocumentNotification.type, Object.assign({
+  void connection.client.register(ls.DidChangeTextDocumentNotification.type, Object.assign({
     syncKind: opts.none === true ? ls.TextDocumentSyncKind.None : ls.TextDocumentSyncKind.Incremental
   }, opt)).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.WillSaveTextDocumentNotification.type, opt).then(d => {
+  void connection.client.register(ls.WillSaveTextDocumentNotification.type, opt).then(d => {
     disposables.push(d)
   })
-  connection.client.register(ls.WillSaveTextDocumentWaitUntilRequest.type, opt).then(d => {
+  void connection.client.register(ls.WillSaveTextDocumentWaitUntilRequest.type, opt).then(d => {
     disposables.push(d)
   })
 })

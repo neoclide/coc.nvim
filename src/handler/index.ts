@@ -27,6 +27,7 @@ import Format from './format'
 import Highlights from './highlights'
 import HoverHandler from './hover'
 import InlayHintHandler from './inlayHint/index'
+import InlineCompletion, { InlineSuggetOption } from './inline'
 import LinkedEditingHandler from './linkedEditing'
 import Links from './links'
 import Locations from './locations'
@@ -68,6 +69,7 @@ export default class Handler implements HandlerDelegate {
   public readonly selectionRange: SelectionRange
   public readonly callHierarchy: CallHierarchy
   public readonly typeHierarchy: TypeHierarchy
+  public readonly inlineCompletion: InlineCompletion
   public readonly semanticHighlighter: SemanticTokens
   public readonly workspace: WorkspaceHandler
   public readonly linkedEditingHandler: LinkedEditingHandler
@@ -105,6 +107,7 @@ export default class Handler implements HandlerDelegate {
     this.selectionRange = new SelectionRange(nvim, this)
     this.linkedEditingHandler = new LinkedEditingHandler(nvim, this)
     this.inlayHintHandler = new InlayHintHandler(nvim, this)
+    this.inlineCompletion = new InlineCompletion(nvim, this)
     this.disposables.push({
       dispose: () => {
         this.callHierarchy.dispose()
@@ -118,6 +121,7 @@ export default class Handler implements HandlerDelegate {
         this.colors.dispose()
         this.documentHighlighter.dispose()
         this.semanticHighlighter.dispose()
+        this.inlineCompletion.dispose()
       }
     })
     this.registerCommands()
@@ -174,6 +178,10 @@ export default class Handler implements HandlerDelegate {
     this.register('editor.action.showRefactor', async (locations: Location[]) => {
       let locs = locations.filter(o => Location.is(o))
       return await this.refactor.fromLocations(locs)
+    })
+    this.register('editor.action.triggerInlineCompletion', async (option?: InlineSuggetOption) => {
+      let bufnr = await this.nvim.eval('bufnr("%")') as number
+      return await this.inlineCompletion.trigger(bufnr, option)
     })
   }
 

@@ -4,12 +4,13 @@ import type {
   CancellationToken, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRegistrationOptions, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentSelector, PreviousResultId, ServerCapabilities, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { DiagnosticTag } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
 import { TextDocumentMatch } from '../types'
-import { getConditionValue } from '../util'
+import { defaultValue, getConditionValue } from '../util'
 import { CancellationError } from '../util/errors'
 import { LinkedMap, Touch } from '../util/map'
 import { minimatch } from '../util/node'
@@ -186,13 +187,13 @@ export class DocumentPullStateTracker {
   }
 
   public unTrack(kind: PullState, document: TextDocument | URI): void {
-    const key = document instanceof URI ? document.toString() : document.uri
+    const key = DocumentOrUri.asKey(document)
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
     states.delete(key)
   }
 
   public tracks(kind: PullState, document: TextDocument | URI): boolean {
-    const key = document instanceof URI ? document.toString() : document.uri
+    const key = DocumentOrUri.asKey(document)
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
     return states.has(key)
   }
@@ -202,7 +203,7 @@ export class DocumentPullStateTracker {
   }
 
   public getResultId(kind: PullState, document: TextDocument | URI): string | undefined {
-    const key = document instanceof URI ? document.toString() : document.uri
+    const key = DocumentOrUri.asKey(document)
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
     return states.get(key)?.resultId
   }
@@ -247,49 +248,54 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.onDidChangeDiagnosticsEmitter = new Emitter<void>()
     this.provider = this.createProvider()
 
-    this.diagnostics = languages.createDiagnosticCollection(options.identifier ? options.identifier : client.id)
+    this.diagnostics = languages.createDiagnosticCollection(defaultValue(options.identifier, client.id))
     this.openRequests = new Map()
     this.documentStates = new DocumentPullStateTracker()
     this.workspaceErrorCounter = 0
   }
 
-  public knows(kind: PullState, textDocument: TextDocument): boolean {
-    return this.documentStates.tracks(kind, textDocument)
+  public knows(kind: PullState, document: TextDocument | URI): boolean {
+    return this.documentStates.tracks(kind, document) || this.openRequests.has(DocumentOrUri.asKey(document))
   }
 
-  public trackingDocuments(): string[] {
-    return this.documentStates.trackingDocuments()
-  }
-
-  public forget(kind: PullState, document: TextDocument): void {
+  public forget(kind: PullState, document: TextDocument | URI): void {
     this.documentStates.unTrack(kind, document)
   }
 
-  public pull(document: TextDocument, cb?: () => void): void {
+  public pull(document: TextDocument | URI, cb?: () => void): void {
+    if (this.isDisposed) {
+      return
+    }
+    const uri = DocumentOrUri.asKey(document)
     this.pullAsync(document).then(() => {
       if (cb) {
         cb()
       }
     }, error => {
-      this.client.error(`Document pull failed for text document ${document.uri}`, error)
+      this.client.error(`Document pull failed for text document ${uri.toString()}`, error, false)
     })
   }
 
-  public async pullAsync(document: TextDocument): Promise<void> {
-    if (this.isDisposed) return
-    const uri = document.uri
-    const version = document.version
-    const currentRequestState = this.openRequests.get(uri)
-    const documentState = this.documentStates.track(PullState.document, document)
+  public async pullAsync(document: TextDocument | URI, version?: number): Promise<void> {
+    if (this.isDisposed) {
+      return
+    }
+    const isUri = document instanceof URI
+    const key = DocumentOrUri.asKey(document)
+    version = isUri ? version : document.version
+    const currentRequestState = this.openRequests.get(key)
+    const documentState = isUri
+      ? this.documentStates.track(PullState.document, document, version)
+      : this.documentStates.track(PullState.document, document)
     if (currentRequestState === undefined) {
       const tokenSource = new CancellationTokenSource()
-      this.openRequests.set(uri, { state: RequestStateKind.active, document, version, tokenSource })
+      this.openRequests.set(key, { state: RequestStateKind.active, document, version, tokenSource })
       let report: DocumentDiagnosticReport | undefined
       let afterState: RequestState | undefined
       try {
         report = await this.provider.provideDiagnostics(document, documentState.resultId, tokenSource.token) ?? { kind: DocumentDiagnosticReportKind.Full, items: [] }
       } catch (error) {
-        if (error instanceof LSPCancellationError && error.data && DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
+        if (error instanceof LSPCancellationError && DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
           afterState = { state: RequestStateKind.outDated, document }
         }
         if (afterState === undefined && error instanceof CancellationError) {
@@ -298,25 +304,25 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
           throw error
         }
       }
-      afterState = afterState ?? this.openRequests.get(uri)
+      afterState = afterState ?? this.openRequests.get(key)
       if (afterState === undefined) {
         // This shouldn't happen. Log it
-        this.client.error(`Lost request state in diagnostic pull model. Clearing diagnostics for ${uri}`)
-        this.diagnostics.delete(uri)
+        this.client.error(`Lost request state in diagnostic pull model. Clearing diagnostics for ${key}`)
+        this.diagnostics.delete(key)
         return
       }
-      this.openRequests.delete(uri)
-      const visible = window.visibleTextEditors.some(editor => editor.document.uri === uri)
-      if (!visible) {
+      this.openRequests.delete(key)
+      if (!workspace.tabs.isVisible(document)) {
         this.documentStates.unTrack(PullState.document, document)
         return
       }
-      if (afterState.state === RequestStateKind.outDated) return
-
+      if (afterState.state === RequestStateKind.outDated) {
+        return
+      }
       // report is only undefined if the request has thrown.
       if (report !== undefined) {
         if (report.kind === DocumentDiagnosticReportKind.Full) {
-          this.diagnostics.set(uri, report.items)
+          this.diagnostics.set(key, report.items)
         }
         documentState.pulledVersion = version
         documentState.resultId = report.resultId
@@ -328,21 +334,21 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       if (currentRequestState.state === RequestStateKind.active) {
         // Cancel the current request and reschedule a new one when the old one returned.
         currentRequestState.tokenSource.cancel()
-        this.openRequests.set(uri, { state: RequestStateKind.reschedule, document: currentRequestState.document })
+        this.openRequests.set(key, { state: RequestStateKind.reschedule, document: currentRequestState.document })
       } else if (currentRequestState.state === RequestStateKind.outDated) {
-        this.openRequests.set(uri, { state: RequestStateKind.reschedule, document: currentRequestState.document })
+        this.openRequests.set(key, { state: RequestStateKind.reschedule, document: currentRequestState.document })
       }
     }
   }
 
-  public forgetDocument(document: TextDocument): void {
-    const uri = document.uri
-    const request = this.openRequests.get(uri)
-    if (this.enableWorkspace) {
+  public forgetDocument(document: TextDocument | URI): void {
+    const key = DocumentOrUri.asKey(document)
+    const request = this.openRequests.get(key)
+    if (this.options.workspaceDiagnostics) {
       // If we run workspace diagnostic pull a last time for the diagnostics
       // and the rely on getting them from the workspace result.
       if (request !== undefined) {
-        this.openRequests.set(uri, { state: RequestStateKind.reschedule, document })
+        this.openRequests.set(key, { state: RequestStateKind.reschedule, document })
       } else {
         this.pull(document, () => {
           this.forget(PullState.document, document)
@@ -356,9 +362,9 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
         if (request.state === RequestStateKind.active) {
           request.tokenSource.cancel()
         }
-        this.openRequests.delete(uri)
+        this.openRequests.set(key, { state: RequestStateKind.outDated, document })
       }
-      this.diagnostics.delete(uri.toString())
+      this.diagnostics.delete(key)
       this.forget(PullState.document, document)
     }
   }
@@ -525,19 +531,15 @@ export class BackgroundScheduler implements Disposable {
     this.lastDocumentToPull = document
   }
 
-  public remove(document: TextDocument): void {
-    const key = document.uri
-    if (this.documents.has(key)) {
-      this.documents.delete(key)
-      // Do a last pull
-      this.diagnosticRequestor.pull(document)
-    }
+  public remove(document: TextDocument | URI): void {
+    const key = DocumentOrUri.asKey(document)
+    this.documents.delete(key)
     // No more documents. Stop background activity.
     if (this.documents.size === 0) {
       this.stop()
       return
     }
-    if (document.uri === this.lastDocumentToPullKey()) {
+    if (key === this.lastDocumentToPullKey()) {
       // The remove document was the one we would run up to. So
       // take the one before it.
       const before = this.documents.before(key)
@@ -628,9 +630,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       if (diagnosticPullOptions.match !== undefined) {
         return diagnosticPullOptions.match(selector, URI.parse(document.uri))
       }
-      if (workspace.match(selector, document) <= 0) return false
-      const visible = window.visibleTextEditors.some(editor => editor.document.uri === document.uri)
-      if (!visible) return false
+      if (workspace.match(selector, document) <= 0 || !workspace.tabs.isVisible(document)) return false
       if (ignored.length > 0 && ignored.some(p => minimatch(URI.parse(document.uri).fsPath, p, { dot: true }))) return false
       return true
     }
@@ -652,26 +652,43 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     }
 
     this.activeTextDocument = window.activeTextEditor?.document.textDocument
-    window.onDidChangeActiveTextEditor(editor => {
+    disposables.push(window.onDidChangeActiveTextEditor(editor => {
       const oldActive = this.activeTextDocument
-      let textDocument = this.activeTextDocument = editor?.document.textDocument
+      this.activeTextDocument = editor?.document.textDocument
       if (oldActive !== undefined) {
         addToBackgroundIfNeeded(oldActive)
       }
-      if (textDocument != null) {
-        this.backgroundScheduler.remove(textDocument)
+      if (this.activeTextDocument !== undefined) {
+        this.backgroundScheduler.remove(this.activeTextDocument)
         if (diagnosticPullOptions.onFocus === true && matches(this.activeTextDocument) && considerDocument(this.activeTextDocument, DiagnosticPullMode.onFocus)) {
-          this.diagnosticRequestor.pull(textDocument)
+          this.diagnosticRequestor.pull(this.activeTextDocument)
         }
       }
-    }, null, disposables)
+    }))
 
     // We always pull on open.
     const openFeature = client.getFeature(DidOpenTextDocumentNotification.method)
     disposables.push(openFeature.onNotificationSent(event => {
       const textDocument = event.original
+      if (this.diagnosticRequestor.knows(PullState.document, textDocument)) {
+        return
+      }
       if (matches(textDocument)) {
         this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
+      }
+    }))
+
+    disposables.push(workspace.tabs.onOpen(opened => {
+      for (const resource of opened) {
+        // We already know about this document. This can happen via a document open.
+        if (this.diagnosticRequestor.knows(PullState.document, resource)) {
+          continue
+        }
+        const uriStr = resource.toString()
+        let textDocument = workspace.getDocument(uriStr)!.textDocument
+        if (textDocument !== undefined && matches(textDocument)) {
+          this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument!) })
+        }
       }
     }))
 
@@ -707,6 +724,13 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       this.cleanUpDocument(event.original)
     }))
 
+    // Same when a tabs closes.
+    disposables.push(workspace.tabs.onClose(closed => {
+      for (const document of closed) {
+        this.cleanUpDocument(document)
+      }
+    }))
+
     // We received a did change from the server.
     this.diagnosticRequestor.onDidChangeDiagnosticsEmitter.event(() => {
       for (const textDocument of workspace.textDocuments) {
@@ -715,25 +739,6 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
         }
       }
     })
-
-    window.onDidChangeVisibleTextEditors(editors => {
-      const handled: Set<string> = new Set()
-      const tracking = this.diagnosticRequestor.trackingDocuments()
-      editors.forEach(editor => {
-        let { uri, textDocument } = editor.document
-        if (handled.has(uri)) return
-        handled.add(uri)
-        if (matches(textDocument) && !tracking.includes(uri)) {
-          this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
-        }
-      })
-      // cleanUp hidden documents
-      tracking.forEach(uri => {
-        if (handled.has(uri)) return
-        let doc = workspace.getDocument(uri)
-        if (doc && doc.attached) this.cleanUpDocument(doc.textDocument)
-      })
-    }, null, disposables)
 
     // da348dc5-c30a-4515-9d98-31ff3be38d14 is the test UUID to test the middle ware. So don't auto trigger pulls.
     if (options.workspaceDiagnostics === true && options.identifier !== 'da348dc5-c30a-4515-9d98-31ff3be38d14') {
@@ -759,7 +764,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     this.cleanUpDocument(document)
   }
 
-  private cleanUpDocument(document: TextDocument): void {
+  private cleanUpDocument(document: TextDocument | URI): void {
     this.backgroundScheduler.remove(document)
     if (this.diagnosticRequestor.knows(PullState.document, document)) {
       this.diagnosticRequestor.forgetDocument(document)
@@ -779,10 +784,10 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(ensure(capabilities, 'textDocument')!, 'diagnostic')!
-    // capability.relatedInformation = true;
-    // capability.tagSupport = { valueSet: [ DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated ] };
-    // capability.codeDescriptionSupport = true;
-    // capability.dataSupport = true;
+    capability.relatedInformation = true
+    capability.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
+    capability.codeDescriptionSupport = true
+    capability.dataSupport = true
     capability.dynamicRegistration = true
     capability.relatedDocumentSupport = true
 

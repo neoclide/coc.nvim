@@ -1,11 +1,10 @@
 'use strict'
-
 import * as assert from 'assert'
-import { WorkspaceFoldersFeature } from '../../language-client/workspaceFolders'
-import { BaseLanguageClient, MessageTransports } from '../../language-client/client'
-import { Disposable, DidChangeWorkspaceFoldersParams } from 'vscode-languageserver-protocol'
 import * as proto from 'vscode-languageserver-protocol'
+import { DidChangeWorkspaceFoldersParams, Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { BaseLanguageClient, MessageTransports } from '../../language-client/client'
+import { WorkspaceFoldersFeature } from '../../language-client/workspaceFolders'
 
 class TestLanguageClient extends BaseLanguageClient {
   protected createMessageTransports(): Promise<MessageTransports> {

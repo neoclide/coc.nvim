@@ -1,11 +1,15 @@
+import os from 'os'
 import path from 'path'
-import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentLinkRequest, DocumentSymbolRequest, ExecuteCommandRequest, InlayHintRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import * as lsclient from '../../language-client'
-import helper from '../helper'
-import commands from '../../commands'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
+import * as lsclient from '../../language-client'
+import { ClientState } from '../../language-client'
+import { SemanticTokensFeature } from '../../language-client/semanticTokens'
+import type { TextDocumentContentProviderShape } from '../../language-client/textDocumentContent'
 import workspace from '../../workspace'
+import helper from '../helper'
 
 beforeAll(async () => {
   await helper.setup()
@@ -45,11 +49,24 @@ describe('DynamicFeature', () => {
 
   describe('RenameFeature', () => {
     it('should start server', async () => {
-      let client = await startServer({ prepareRename: false })
+      let called = false
+      let client = await startServer({ prepareRename: false }, {
+        handleRegisterCapability: async (params, next) => {
+          await Promise.resolve(next(params, CancellationToken.None))
+          return
+        },
+        handleUnregisterCapability: async (params, next) => {
+          called = true
+          await Promise.resolve(next(params, CancellationToken.None))
+          return
+        }
+      })
       let feature = client.getFeature(RenameRequest.method)
       let provider = feature.getProvider(textDocument)
       expect(provider.prepareRename).toBeUndefined()
       feature.unregister('')
+      client['_state'] = ClientState.StartFailed
+      await helper.waitValue(() => called, true)
       await client.stop()
     })
 
@@ -154,13 +171,13 @@ describe('DynamicFeature', () => {
     it('should pull configuration for configured languageserver', async () => {
       helper.updateConfiguration('languageserver.vim.settings.foo', 'bar')
       let client = await startServer({})
-      await helper.wait(50)
       await client.sendNotification('pullConfiguration')
       await helper.wait(50)
       let res = await client.sendRequest('getConfiguration')
-      expect(res).toEqual(['bar'])
+      expect(Array.isArray(res)).toBe(true)
+      expect(res[0]).toEqual('bar')
       helper.updateConfiguration('suggest.noselect', true)
-      await helper.wait(50)
+      await helper.wait(20)
       await client.stop()
     })
   })
@@ -185,7 +202,38 @@ describe('DynamicFeature', () => {
       expect(res.length).toBe(2)
       let resolved = await provider.resolveCodeLens(res[0], token)
       expect(resolved.command).toBeDefined()
-      expect(fn).toBeCalledTimes(2)
+      expect(fn).toHaveBeenCalledTimes(2)
+      await client.stop()
+    })
+
+    it('should no resolve when resolve not exists', async () => {
+      let client = await startServer({ noResolve: true }, {})
+      let feature = client.getFeature(CodeLensRequest.method)
+      let provider = feature.getProvider(textDocument).provider
+      expect(provider).toBeDefined()
+      expect(provider.resolveCodeLens).toBeUndefined()
+      {
+        let feature = client.getFeature(DocumentLinkRequest.method)
+        let provider = feature.getProvider(textDocument)
+        expect(provider).toBeDefined()
+        expect(provider.resolveDocumentLink).toBeUndefined()
+      }
+      {
+        let feature = client.getFeature(InlayHintRequest.method)
+        let provider = feature.getProvider(textDocument).provider
+        expect(provider).toBeDefined()
+        expect(provider.resolveInlayHint).toBeUndefined()
+      }
+      {
+        let feature: SemanticTokensFeature
+        await helper.waitValue(() => {
+          feature = client.getFeature(SemanticTokensRegistrationType.method) as SemanticTokensFeature
+          return feature != null && feature.getProvider(textDocument) != null
+        }, true)
+        let provider = feature.getProvider(textDocument).full
+        expect(provider).toBeDefined()
+        expect(provider.provideDocumentSemanticTokensEdits).toBeUndefined()
+      }
       await client.stop()
     })
   })
@@ -225,11 +273,22 @@ describe('DynamicFeature', () => {
       }, true)
       let feature = client.getFeature(ExecuteCommandRequest.method)
       expect(feature).toBeDefined()
+      feature.unregister('other_command')
       expect(feature.getState().kind).toBe('workspace')
       let res = await commands.executeCommand('test_command')
       expect(res).toEqual({ success: true })
       expect(called).toBe(true)
+      let err
+      let spy = jest.spyOn(client, 'handleFailedRequest').mockImplementation((_type, _token, error) => {
+        err = error
+      })
+      await commands.executeCommand('other_command')
+      spy.mockRestore()
+      expect(err.message).toMatch(/not exists/)
       await client.sendNotification('unregister')
+      await helper.waitValue(() => {
+        return commands.has('test_command')
+      }, false)
       await client.stop()
     })
 
@@ -289,7 +348,7 @@ describe('DynamicFeature', () => {
           },
           didDeleteFiles: (ev, next) => {
             n++
-            return next(ev)
+            return Promise.reject(new Error('my error'))
           },
           willRenameFiles: (ev, next) => {
             n++
@@ -302,6 +361,11 @@ describe('DynamicFeature', () => {
         }
       })
       let createFeature = client.getFeature(DidCreateFilesNotification.method)
+      createFeature.initialize({
+        workspace: {
+          fileOperations: { didCreate: { filters: [{ pattern: { glob: '' } }] } }
+        }
+      }, ['*'])
       await createFeature.send({ files: [URI.file('/a/b')] })
       let renameFeature = client.getFeature(DidRenameFilesNotification.method)
       await renameFeature.send({ files: [{ oldUri: URI.file('/a/b'), newUri: URI.file('/c/d') }] })
@@ -311,9 +375,38 @@ describe('DynamicFeature', () => {
       await willRename.send({ files: [{ oldUri: URI.file(__dirname), newUri: URI.file(path.join(__dirname, 'x')) }], waitUntil: () => {} })
       let willDelete = client.getFeature(WillDeleteFilesRequest.method)
       await willDelete.send({ files: [URI.file('/x/y')], waitUntil: () => {} })
+      await willDelete.send({ files: [], waitUntil: () => {} })
       await helper.waitValue(() => {
         return n
       }, 5)
+      await client.stop()
+    })
+
+    it('should filter matches', async () => {
+      let n = 0
+      let client = await startServer({}, {
+        workspace: {
+          didCreateFiles: (ev, next) => {
+            n += ev.files.length
+            return next(ev)
+          }
+        }
+      })
+      let createFeature = client.getFeature(DidCreateFilesNotification.method)
+      createFeature.initialize({
+        workspace: {
+          fileOperations: {
+            didCreate: {
+              filters: [
+                { pattern: { glob: '**/', matches: 'folder' } },
+                { pattern: { glob: '**', matches: 'file' } },
+              ]
+            }
+          }
+        }
+      }, ['*'])
+      await createFeature.send({ files: [URI.file(os.tmpdir()), URI.file(__filename)] })
+      await helper.waitValue(() => n, 2)
       await client.stop()
     })
   })
@@ -336,6 +429,9 @@ describe('DynamicFeature', () => {
       expect(feature).toBeDefined()
       let state = feature.getState() as any
       expect(state.registrations).toBe(true)
+      feature.register({ id: '1', registerOptions: undefined })
+      feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
+      feature.unregister('2')
       await client.stop()
     })
 
@@ -344,9 +440,11 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(0)
       await client.sendNotification('requestFolders')
-      await helper.wait(30)
+      await helper.wait(10)
       let res = await client.sendRequest('getFolders')
       expect(res).toBeNull()
+      workspace.workspaceFolderControl.addWorkspaceFolder(process.cwd(), true)
+      await helper.wait(10)
       await client.stop()
     })
 
@@ -355,11 +453,16 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(1)
       let called = false
+      let fn = jest.fn()
       let client = await startServer({ changeNotifications: true }, {
         workspace: {
           workspaceFolders: (token, next) => {
             called = true
             return next(token)
+          },
+          didChangeWorkspaceFolders: () => {
+            fn()
+            return Promise.reject(new Error('my error'))
           }
         }
       })
@@ -369,6 +472,8 @@ describe('DynamicFeature', () => {
         return Array.isArray(res) && res.length == 1
       }, true)
       expect(called).toBe(true)
+      workspace.workspaceFolderControl.addWorkspaceFolder(os.tmpdir(), true)
+      expect(fn).toHaveBeenCalled()
       await client.stop()
     })
 
@@ -388,6 +493,40 @@ describe('DynamicFeature', () => {
       await helper.waitValue(() => {
         return called
       }, true)
+      await client.stop()
+    })
+  })
+
+  describe('TextDocumentContentFeature', () => {
+    it('should register static TextDocumentContent feature', async () => {
+      let client = await startServer({ textDocumentContent: true }, {})
+      let feature = client.getFeature(TextDocumentContentRequest.method)
+      expect(feature.getState()['registrations']).toBe(true)
+      let providers = feature.getProviders() as TextDocumentContentProviderShape[]
+      let provider = providers[0]
+      expect(provider.scheme).toBe('lsptest')
+      let times = 0
+      provider.provider.onDidChange(() => {
+        times++
+      })
+      await client.sendNotification('fireDocumentContentRefresh')
+      await helper.waitValue(() => times, 1)
+      let uri = URI.parse('lsptest:///1')
+      let spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve(undefined))
+      let res = await provider.provider.provideTextDocumentContent(uri, token)
+      expect(res).toBeUndefined()
+      spy.mockRestore()
+      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve({ text: 'foo' }))
+      res = await provider.provider.provideTextDocumentContent(uri, token)
+      expect(res).toBe('foo')
+      spy.mockRestore()
+      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.reject(new Error('myerror')))
+      await expect(async () => {
+        await provider.provider.provideTextDocumentContent(uri, token)
+      }).rejects.toThrow(Error)
+      spy.mockRestore()
+      feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
+      expect(feature.getState()['registrations']).toBe(false)
       await client.stop()
     })
   })

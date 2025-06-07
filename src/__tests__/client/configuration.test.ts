@@ -169,6 +169,25 @@ describe('publish configuration feature', () => {
     await client.stop()
   })
 
+  it('should send null settings', async () => {
+    let client: LanguageClient
+    client = createClient(['cpp'], {
+      workspace: {
+        didChangeConfiguration: (_sections, next) => {
+          return next(null)
+        }
+      }
+    })
+    let changed
+    client.onNotification('configurationChange', params => {
+      changed = params
+    })
+    await client.start()
+    await helper.waitValue(() => changed != null, true)
+    expect(changed).toEqual({ settings: null })
+    await client.stop()
+  })
+
   it('should extractSettingsInformation', async () => {
     let res = SyncConfigurationFeature.extractSettingsInformation(['http.proxy', 'http.proxyCA'])
     expect(res.http).toBeDefined()

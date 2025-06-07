@@ -1,10 +1,13 @@
 import * as assert from 'assert'
 import path from 'path'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { v4 as uuidv4 } from 'uuid'
+import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ErrorCodes, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, ResponseError, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentContentRequest, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
-import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, State, TransportKind } from '../../language-client/index'
+import { StaticFeature } from '../../language-client/features'
+import { LanguageClient, LanguageClientOptions, Middleware, RevealOutputChannelOn, ServerOptions, State, TransportKind } from '../../language-client/index'
+import { InlayHintsFeature } from '../../language-client/inlayHint'
 import languages from '../../languages'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -101,7 +104,10 @@ describe('Client integration', () => {
 
     middleware = {}
     const clientOptions: LanguageClientOptions = {
-      documentSelector, synchronize: {}, initializationOptions: {}, middleware
+      documentSelector, synchronize: {}, initializationOptions: {}, middleware,
+      workspaceFolder: { name: 'test_folder', uri: URI.parse('file-test:///').toString() },
+      outputChannel: helper.createNullChannel(),
+      revealOutputChannelOn: RevealOutputChannelOn.Warn
     }
 
     client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
@@ -112,7 +118,7 @@ describe('Client integration', () => {
 
   afterAll(async () => {
     await client.sendNotification('unregister')
-    await helper.wait(50)
+    await helper.wait(30)
     contentProviderDisposable.dispose()
     await client.stop()
   })
@@ -137,7 +143,9 @@ describe('Client integration', () => {
           resolveProvider: true
         },
         documentFormattingProvider: true,
-        documentRangeFormattingProvider: true,
+        documentRangeFormattingProvider: {
+          rangesSupport: true
+        },
         documentOnTypeFormattingProvider: {
           firstTriggerCharacter: ':'
         },
@@ -147,6 +155,7 @@ describe('Client integration', () => {
         documentLinkProvider: {
           resolveProvider: true
         },
+        documentSymbolProvider: true,
         colorProvider: true,
         declarationProvider: true,
         foldingRangeProvider: true,
@@ -154,6 +163,7 @@ describe('Client integration', () => {
           documentSelector: [{ language: '*' }]
         },
         selectionRangeProvider: true,
+        inlineCompletionProvider: {},
         inlineValueProvider: {},
         inlayHintProvider: {
           resolveProvider: true
@@ -192,6 +202,9 @@ describe('Client integration', () => {
             },
             willDelete: { filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
           },
+          textDocumentContent: {
+            schemes: ['content-test']
+          }
         },
         linkedEditingRangeProvider: true,
         diagnosticProvider: {
@@ -229,6 +242,7 @@ describe('Client integration', () => {
       assert.notStrictEqual(feature, undefined)
       let res = feature.getState()
       assert.strictEqual(res.kind, kind)
+      assert.ok(StaticFeature.is(feature))
     }
     testStaticFeature(ConfigurationRequest.method, 'static')
     testStaticFeature(WorkDoneProgressCreateRequest.method, 'window')
@@ -270,10 +284,22 @@ describe('Client integration', () => {
     testFeature(SemanticTokensRegistrationType.method, 'document')
     testFeature(LinkedEditingRangeRequest.method, 'document')
     testFeature(TypeHierarchyPrepareRequest.method, 'document')
+    testFeature(InlineCompletionRequest.method, 'document')
     testFeature(InlineValueRequest.method, 'document')
     testFeature(InlayHintRequest.method, 'document')
     testFeature(WorkspaceSymbolRequest.method, 'workspace')
     testFeature(DocumentDiagnosticRequest.method, 'document')
+  })
+
+  test('warn and show output', async () => {
+    global.__showOutput = true
+    let called = false
+    let spy = jest.spyOn(client.outputChannel, 'show').mockImplementation(() => {
+      called = true
+    })
+    client.warn(undefined, { x: 1 }, true)
+    await helper.waitValue(() => called, true)
+    spy.mockRestore()
   })
 
   test('Goto Definition', async () => {
@@ -437,7 +463,7 @@ describe('Client integration', () => {
       diagnostics: []
     }, tokenSource.token)) as CodeAction[]
 
-    isArray(result, CodeAction)
+    assert.strictEqual(result.length, 3)
     const action = result[0]
     assert.strictEqual(action.title, 'title')
     assert.strictEqual(action.command?.title, 'title')
@@ -535,6 +561,40 @@ describe('Client integration', () => {
       {},
       tokenSource.token,
     )
+  })
+
+  test('Progress percentage is an integer', async () => {
+    const progressToken = 'TEST-PROGRESS-PERCENTAGE'
+    const percentages: Array<number | undefined> = []
+    let currentProgressResolver: (value: unknown) => void | undefined
+
+    // Set up middleware that calls the current resolve function when it gets its 'end' progress event.
+    middleware.handleWorkDoneProgress = (token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next) => {
+      if (token === progressToken) {
+        const percentage = params.kind === 'report' || params.kind === 'begin' ? params.percentage : undefined
+        percentages.push(percentage)
+
+        if (params.kind === 'end') {
+          setImmediate(currentProgressResolver)
+        }
+      }
+      return next(token, params)
+    }
+
+    // Trigger a progress event.
+    await new Promise<unknown>(resolve => {
+      currentProgressResolver = resolve
+      void client.sendRequest(
+        new ProtocolRequestType<any, null, never, any, any>('testing/sendPercentageProgress'),
+        {},
+        tokenSource.token,
+      )
+    })
+
+    middleware.handleWorkDoneProgress = undefined
+
+    // Ensure percentages are rounded according to the spec
+    assert.deepStrictEqual(percentages, [0, 50, undefined])
   })
 
   test('Document Formatting', async () => {
@@ -821,12 +881,13 @@ describe('Client integration', () => {
 
   const referenceFileUri = URI.parse('/dummy-edit')
   function ensureReferenceEdit(edits: WorkspaceEdit, type: string, expectedLines: string[]) {
-    // // Ensure the edits are as expected.
+    // Ensure the edits are as expected.
     assert.strictEqual(edits.documentChanges?.length, 1)
     const edit = edits.documentChanges[0] as TextDocumentEdit
     assert.strictEqual(edit.edits.length, 1)
     assert.strictEqual(edit.textDocument.uri, referenceFileUri.path)
-    assert.strictEqual(edit.edits[0].newText.trim(), `${type}:\n${expectedLines.join('\n')}`.trim())
+    const expectedTextEdit = edit.edits[0] as TextEdit
+    assert.strictEqual(expectedTextEdit.newText.trim(), `${type}:\n${expectedLines.join('\n')}`.trim())
   }
   async function ensureNotificationReceived(type: string, params: any) {
     const result = await client.sendRequest(
@@ -1314,7 +1375,12 @@ describe('Client integration', () => {
   })
 
   test('Inlay Hints', async () => {
-    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
+    let feature = client.getFeature(InlayHintRequest.method) as InlayHintsFeature
+    const providerData = feature.getProvider(document)
+    expect(feature.getProvider(TextDocument.create('term:///1', 'foo', 1, '\n'))).toBeUndefined()
+    feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
+    let res = feature.getRegistration([], { id: '1', workDoneProgress: '' } as any)
+    expect(res).toEqual([undefined, undefined])
     isDefined(providerData)
     const provider = providerData.provider
     const results = (await provider.provideInlayHints(document, range, tokenSource.token))
@@ -1350,6 +1416,27 @@ describe('Client integration', () => {
     }, true)
   })
 
+  test('Inline Completions', async () => {
+    const provider = client.getFeature(InlineCompletionRequest.method).getProvider(document)
+    isDefined(provider)
+    const results = (await provider.provideInlineCompletionItems(document, position, { triggerKind: 1, selectedCompletionInfo: { range, text: 'text' } }, tokenSource.token)) as InlineCompletionItem[]
+
+    isArray(results, InlineCompletionItem, 1)
+
+    rangeEqual(results[0].range!, 1, 2, 3, 4)
+    assert.strictEqual(results[0].filterText!, 'te')
+    assert.strictEqual(results[0].insertText, 'text inline')
+
+    let middlewareCalled = false
+    middleware.provideInlineCompletionItems = (d, r, c, t, n) => {
+      middlewareCalled = true
+      return n(d, r, c, t)
+    }
+    await provider.provideInlineCompletionItems(document, position, { triggerKind: 1, selectedCompletionInfo: undefined }, tokenSource.token)
+    middleware.provideInlineCompletionItems = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
   test('Workspace symbols', async () => {
     const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
     isDefined(providers)
@@ -1363,6 +1450,99 @@ describe('Client integration', () => {
     const symbol = await provider.resolveWorkspaceSymbol!(results[0], tokenSource.token)
     isDefined(symbol)
     rangeEqual(symbol.location['range'], 1, 2, 3, 4)
+  })
+
+  test('Text Document Content', async () => {
+    let feature = client.getFeature(TextDocumentContentRequest.method)
+    const providers = feature?.getProviders()
+    isDefined(providers)
+    assert.strictEqual(providers.length, 1)
+    const provider = providers[0].provider
+    const result = await provider.provideTextDocumentContent(URI.parse('content-test:///test.txt'), tokenSource.token)
+    assert.strictEqual(result, 'Some test content')
+    feature.unregister('foo')
+    expect(feature.getState()).toBeDefined()
+
+    let middlewareCalled = false
+    middleware.provideTextDocumentContent = (uri, token, next) => {
+      middlewareCalled = true
+      return next(uri, token)
+    }
+    await provider.provideTextDocumentContent(URI.parse('content-test:///test.txt'), tokenSource.token)
+    middleware.provideTextDocumentContent = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('General middleware', async () => {
+    let middlewareCallCount = 0
+    let throwError = false
+    // Add a general middleware for both requests and notifications
+    middleware.sendRequest = (type, param, token, next) => {
+      middlewareCallCount++
+      return next(type, param, token)
+    }
+    middleware.sendNotification = (type, next, params) => {
+      if (throwError) throw new Error('myerror')
+      middlewareCallCount++
+      return next(type, params)
+    }
+    // Send a request
+    const definitionProvider = client.getFeature(DefinitionRequest.method).getProvider(document)
+    isDefined(definitionProvider)
+    await definitionProvider.provideDefinition(document, position, tokenSource.token)
+    // Send a notification
+    const notificationProvider = client.getFeature(DidSaveTextDocumentNotification.method).getProvider(document)
+    isDefined(notificationProvider)
+    await notificationProvider.send(document)
+    throwError = true
+    await assert.rejects(async () => {
+      await client.sendNotification('not_exists')
+    }, /myerror/)
+    // Verify that both the request and notification went through the middleware
+    middleware.sendRequest = undefined
+    middleware.sendNotification = undefined
+    assert.strictEqual(middlewareCallCount, 2)
+  })
+
+  test('applyEdit middleware', async () => {
+    const middlewareEvents: Array<ApplyWorkspaceEditParams> = []
+    let currentProgressResolver: (value: unknown) => void | undefined
+    let error = false
+
+    middleware.workspace = middleware.workspace || {}
+    middleware.workspace.handleApplyEdit = async (params, next) => {
+      middlewareEvents.push(params)
+      setImmediate(currentProgressResolver)
+      if (error) return new ResponseError(ErrorCodes.InternalError, 'myerror')
+      return next(params, tokenSource.token)
+    }
+
+    // Trigger sample applyEdit event.
+    await new Promise<unknown>(resolve => {
+      currentProgressResolver = resolve
+      void client.sendRequest(
+        new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
+        {},
+        tokenSource.token,
+      )
+    })
+
+    // Ensure event was handled.
+    assert.strictEqual(middlewareEvents.length, 1)
+    assert.strictEqual(middlewareEvents[0].label, 'Apply Edit')
+    error = true
+    let called = false
+    let spy = jest.spyOn(client, 'error').mockImplementation(() => {
+      called = true
+    })
+    await client.sendRequest(
+      new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
+      {},
+      tokenSource.token,
+    )
+    await helper.waitValue(() => called, true)
+    middleware.workspace.handleApplyEdit = undefined
+    spy.mockRestore()
   })
 })
 
@@ -1382,8 +1562,8 @@ class CrashClient extends LanguageClient {
     })
   }
 
-  protected handleConnectionClosed(): void {
-    super.handleConnectionClosed()
+  protected async handleConnectionClosed(): Promise<void> {
+    await super.handleConnectionClosed()
     this.resolve!()
   }
 }
@@ -1423,20 +1603,21 @@ describe('sever tests', () => {
     await client.stop(10)
   })
 
-  test('Server can not be stopped right after start', async () => {
+  test('Server can not be stopped when connection not exists', async () => {
     const serverOptions: ServerOptions = {
-      module: path.join(__dirname, './server/startStopServer.js'),
+      module: path.join(__dirname, './server/testServer.js'),
       transport: TransportKind.ipc,
     }
     const clientOptions: LanguageClientOptions = {}
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    void client.start()
+    let spy = jest.spyOn(client, 'createConnection' as any).mockReturnValue(Promise.reject(new Error('myerror')))
+    await assert.rejects(async () => {
+      await client.start()
+    }, Error)
     await assert.rejects(async () => {
       await client.stop()
     }, /Client is not running and can't be stopped/)
-
-    await client._start()
-    await client.stop()
+    spy.mockRestore()
   })
 
   test('Test state change events', async () => {

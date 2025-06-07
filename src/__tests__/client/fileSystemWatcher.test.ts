@@ -1,6 +1,7 @@
 import path from 'path'
 import { DidChangeWatchedFilesNotification, DocumentSelector, Emitter, Event, FileChangeType } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { asRelativePattern } from '../../language-client/fileSystemWatcher'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import { IFileSystemWatcher } from '../../types'
 import helper from '../helper'
@@ -64,6 +65,8 @@ afterAll(async () => {
 
 describe('FileSystemWatcherFeature', () => {
   it('should hook file events from client configuration', async () => {
+    let res = asRelativePattern({ baseUri: { name: 'name', uri: '/tmp' }, pattern: '**' })
+    expect(res.baseUri.fsPath).toBe('/tmp')
     let client: LanguageClient
     let watcher = new CustomWatcher()
     let called = false
@@ -72,7 +75,9 @@ describe('FileSystemWatcherFeature', () => {
       workspace: {
         didChangeWatchedFile: async (event, next): Promise<void> => {
           called = true
-          changes.push(event.type)
+          if (event) {
+            changes.push(event.type)
+          }
           return next(event)
         }
       }
@@ -83,6 +88,8 @@ describe('FileSystemWatcherFeature', () => {
     })
     await client.start()
     expect(called).toBe(false)
+    client.notifyFileEvent(undefined)
+    await helper.wait(10)
     let uri = URI.file(__filename)
     watcher.fireCreate(uri)
     expect(called).toBe(true)
@@ -91,9 +98,9 @@ describe('FileSystemWatcherFeature', () => {
     expect(changes).toEqual([1, 2, 3])
     await helper.waitValue(() => {
       return received?.length
-    }, 1)
+    }, 3)
     await client.stop()
-    expect(received[0]).toEqual({
+    expect(received[2]).toEqual({
       uri: uri.toString(),
       type: 3
     })
@@ -113,6 +120,14 @@ describe('FileSystemWatcherFeature', () => {
     await helper.waitValue(() => {
       return received?.length
     }, 1)
+    let called = false
+    let spy = jest.spyOn(client, 'sendNotification').mockImplementation(() => {
+      called = true
+      return Promise.reject(new Error('myerror'))
+    })
+    watcher.fireChange(uri)
+    await helper.waitValue(() => called, true)
+    spy.mockRestore()
     await client.stop()
   })
 

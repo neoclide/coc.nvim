@@ -1,9 +1,9 @@
 'use strict'
-import type { Disposable, ExecuteCommandRegistrationOptions, ClientCapabilities, ServerCapabilities, RegistrationType, ExecuteCommandParams } from 'vscode-languageserver-protocol'
-import { ExecuteCommandRequest, CancellationToken } from '../util/protocol'
-import { ProviderResult } from '../provider'
-import { ensure, RegistrationData, DynamicFeature, FeatureClient, FeatureState, BaseFeature } from './features'
+import type { ClientCapabilities, Disposable, ExecuteCommandParams, ExecuteCommandRegistrationOptions, RegistrationType, ServerCapabilities } from 'vscode-languageserver-protocol'
 import commands from '../commands'
+import { ProviderResult } from '../provider'
+import { CancellationToken, ExecuteCommandRequest } from '../util/protocol'
+import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
 
 export interface ExecuteCommandSignature {
@@ -52,7 +52,12 @@ export class ExecuteCommandFeature extends BaseFeature<ExecuteCommandMiddleware>
         command,
         arguments: args
       }
-      return this.sendRequest(ExecuteCommandRequest.type, params, CancellationToken.None)
+      return client.sendRequest(ExecuteCommandRequest.type, params, CancellationToken.None).then(
+        undefined,
+        error => {
+          client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
+        }
+      )
     }
     if (data.registerOptions.commands) {
       let disposables: Disposable[] = []
@@ -70,6 +75,7 @@ export class ExecuteCommandFeature extends BaseFeature<ExecuteCommandMiddleware>
   public unregister(id: string): void {
     let disposables = this._commands.get(id)
     if (disposables) {
+      this._commands.delete(id)
       disposables.forEach(disposable => disposable.dispose())
     }
   }

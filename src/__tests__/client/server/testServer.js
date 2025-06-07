@@ -4,17 +4,20 @@ const {
   createConnection, CompletionItemKind, ResourceOperationKind, FailureHandlingKind,
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
-  ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification} = require('vscode-languageserver')
+  ColorInformation, Color, ColorPresentation, FoldingRange, ProposedFeatures, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
+  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification} = require('vscode-languageserver/node')
 
 const {
   DidCreateFilesNotification,
   DidRenameFilesNotification,
   DidDeleteFilesNotification,
-  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression
+  InlineCompletionItem,
+  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression,
+  ApplyWorkspaceEditRequest,
+  DocumentSymbol
 } = require('vscode-languageserver-protocol')
 
-let connection = createConnection()
+let connection = createConnection(ProposedFeatures.all)
 
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
@@ -74,7 +77,9 @@ connection.onInitialize(params => {
       resolveProvider: true
     },
     documentFormattingProvider: true,
-    documentRangeFormattingProvider: true,
+    documentRangeFormattingProvider: {
+      rangesSupport: true
+    },
     documentOnTypeFormattingProvider: {
       firstTriggerCharacter: ':'
     },
@@ -84,6 +89,7 @@ connection.onInitialize(params => {
     documentLinkProvider: {
       resolveProvider: true
     },
+    documentSymbolProvider: true,
     colorProvider: true,
     declarationProvider: true,
     foldingRangeProvider: true,
@@ -92,6 +98,7 @@ connection.onInitialize(params => {
     },
     selectionRangeProvider: true,
     inlineValueProvider: {},
+    inlineCompletionProvider: {},
     inlayHintProvider: {
       resolveProvider: true
     },
@@ -138,6 +145,9 @@ connection.onInitialize(params => {
           filters: [{scheme: 'file', pattern: {glob: '**/deleted-static/**{/,/*.txt}'}}]
         },
       },
+      textDocumentContent: {
+        schemes: ['content-test']
+      }
     },
     linkedEditingRangeProvider: true,
     diagnosticProvider: {
@@ -161,48 +171,48 @@ connection.onInitialize(params => {
 
 connection.onInitialized(() => {
   // Dynamic reg is folders + .js files with operation kind in the path
-  connection.client.register(DidCreateFilesNotification.type, {
+  void connection.client.register(DidCreateFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  connection.client.register(DidRenameFilesNotification.type, {
+  void connection.client.register(DidRenameFilesNotification.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  connection.client.register(DidDeleteFilesNotification.type, {
+  void connection.client.register(DidDeleteFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
-  connection.client.register(WillCreateFilesRequest.type, {
+  void connection.client.register(WillCreateFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  connection.client.register(WillRenameFilesRequest.type, {
+  void connection.client.register(WillRenameFilesRequest.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  connection.client.register(WillDeleteFilesRequest.type, {
+  void connection.client.register(WillDeleteFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
-  connection.client.register(SignatureHelpRequest.type, {
+  void connection.client.register(SignatureHelpRequest.type, {
     triggerCharacters: [':'],
     retriggerCharacters: [':']
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(WorkspaceSymbolRequest.type, {
+  void connection.client.register(WorkspaceSymbolRequest.type, {
     workDoneProgress: false,
     resolveProvider: true
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(DidChangeConfigurationNotification.type, {
+  void connection.client.register(DidChangeConfigurationNotification.type, {
     section: 'http'
   }).then(d => {
     disposables.push(d)
   })
-  connection.client.register(DidCreateFilesNotification.type, {
+  void connection.client.register(DidCreateFilesNotification.type, {
     filters: [{
       pattern: {
         glob: '**/renamed-dynamic/**/',
@@ -229,15 +239,15 @@ connection.onCodeLens(params => {
 })
 
 connection.onNotification('fireCodeLensRefresh', () => {
-  connection.sendRequest(CodeLensRefreshRequest.type)
+  void connection.sendRequest(CodeLensRefreshRequest.type)
 })
 
 connection.onNotification('fireSemanticTokensRefresh', () => {
-  connection.sendRequest(SemanticTokensRefreshRequest.type)
+  void connection.sendRequest(SemanticTokensRefreshRequest.type)
 })
 
 connection.onNotification('fireInlayHintsRefresh', () => {
-  connection.sendRequest(InlayHintRefreshRequest.type)
+  void connection.sendRequest(InlayHintRefreshRequest.type)
 })
 
 connection.onCodeLensResolve(codelens => {
@@ -303,7 +313,9 @@ connection.onDocumentHighlight(_params => {
 connection.onCodeAction(params => {
   if (params.textDocument.uri.endsWith('empty.bat')) return undefined
   return [
-    CodeAction.create('title', Command.create('title', 'test_command'))
+    CodeAction.create('title', Command.create('title', 'test_command')),
+    CodeAction.create('other title'),
+    Command.create('title', 'test_command')
   ]
 })
 
@@ -353,6 +365,12 @@ connection.onDocumentLinks(_params => {
 connection.onDocumentLinkResolve(link => {
   link.target = URI.file('/target.txt').toString()
   return link
+})
+
+connection.onDocumentSymbol(_params => {
+  return [
+    DocumentSymbol.create('name', undefined, SymbolKind.Method, Range.create(1, 1, 3, 1), Range.create(2, 1, 2, 3))
+  ]
 })
 
 connection.onDocumentColor(_params => {
@@ -568,6 +586,16 @@ connection.languages.onLinkedEditingRange(() => {
   }
 })
 
+connection.languages.inlineCompletion.on(_params => {
+  return [
+    InlineCompletionItem.create('text inline', 'te', Range.create(1, 2, 3, 4))
+  ]
+})
+
+connection.workspace.textDocumentContent.on(_params => {
+  return {text: 'Some test content'}
+})
+
 connection.onRequest(
   new ProtocolRequestType('testing/sendSampleProgress'),
   async (_, __) => {
@@ -587,15 +615,45 @@ connection.onRequest(
   },
 )
 
+connection.onRequest(new ProtocolRequestType('testing/sendPercentageProgress'), async (_, __) => {
+  // According to the spec, the reported percentage has to be an integer.
+  // Because JS doesn't have integer support, we have rounding code in place.
+  const progressToken2 = 'TEST-PROGRESS-PERCENTAGE'
+  await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken2})
+  const progress = connection.window.attachWorkDoneProgress(progressToken2)
+  progress.begin('Test Progress', 0.1)
+  progress.report(49.9, 'Halfway!')
+  progress.done()
+})
+
+const uri = 'file:///abc.txt'
 connection.onWorkspaceSymbol(() => {
   return [
-    {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}
+    {name: 'name', kind: SymbolKind.Array, location: {uri}}
   ]
 })
 
 connection.onWorkspaceSymbolResolve(symbol => {
   symbol.location = Location.create(symbol.location.uri, Range.create(1, 2, 3, 4))
   return symbol
+})
+
+connection.onRequest(new ProtocolRequestType('testing/sendApplyEdit'), async (_, __) => {
+  const params = {label: 'Apply Edit', edit: {}}
+  await connection.sendRequest(ApplyWorkspaceEditRequest.type, params)
+})
+
+connection.onRequest(new ProtocolRequestType('testing/sendDiagnostics'), async (_, __) => {
+  const diagnostics = [{
+    severity: DiagnosticSeverity.Warning,
+    range: {
+      start: {line: 0, character: 0},
+      end: {line: 0, character: 5}
+    },
+    message: "Example warning: Check your code!",
+    source: "ex"
+  }]
+  connection.sendDiagnostics({uri, diagnostics})
 })
 
 // Listen on the connection

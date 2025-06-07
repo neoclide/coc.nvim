@@ -4,7 +4,7 @@ import type {
   DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
   DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest,
   DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions,
-  FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineValueRequest,
+  FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineCompletionRequest, InlineValueRequest,
   LinkedEditingRangeRequest, MarkupKind, MessageSignature, NotificationHandler, NotificationHandler0,
   NotificationType, NotificationType0, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, ReferencesRequest,
   RegistrationType, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities,
@@ -13,7 +13,7 @@ import type {
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
-import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
+import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { CancellationError } from '../util/errors'
 import * as Is from '../util/is'
 import { Emitter, Event, StaticRegistrationOptions, TextDocumentRegistrationOptions, WorkDoneProgressOptions } from '../util/protocol'
@@ -346,6 +346,11 @@ export abstract class DynamicDocumentFeature<RO, MW, CO = object> extends BaseFe
   }
 
   protected abstract getDocumentSelectors(): IterableIterator<DocumentSelector>
+
+  public sendWithMiddleware<T>(fn: (...args: any[]) => ProviderResult<T>, key: string, ...params: any[]): ProviderResult<T> {
+    const middleware = this._client.middleware!
+    return middleware[key] ? middleware[key](...params, fn) : fn(...params)
+  }
 }
 
 /**
@@ -380,7 +385,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   private _listener: Disposable | undefined
   protected readonly _selectors: Map<string, DocumentSelector>
-  private readonly _onNotificationSent: Emitter<NotificationSendEvent<E, P>>
+  private _onNotificationSent: Emitter<NotificationSendEvent<E, P>>
 
   public static textDocumentFilter(
     selectors: IterableIterator<DocumentSelector>,
@@ -430,16 +435,19 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   protected async callback(data: E): Promise<void> {
     if (!this.matches(data)) return
-    const doSend = async (data: E): Promise<void> => {
-      const params = this._createParams(data)
-      await this._client.sendNotification(this._type, params).catch()
-      this.notificationSent(data, this._type, params)
-    }
-    const middleware = this._client.middleware[this._middleware]
-    return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
+    return await this.sendNotification(data)
   }
 
-  private matches(data: E): boolean {
+  protected async sendNotification(data: E): Promise<void> {
+    const doSend = async (data: E): Promise<void> => {
+      const params = this._createParams(data)
+      await this._client.sendNotification(this._type, params)
+      this.notificationSent(data, this._type, params)
+    }
+    return this.sendWithMiddleware(doSend, this._middleware, data)
+  }
+
+  protected matches(data: E): boolean {
     return !this._selectorFilter || this._selectorFilter(this._selectors.values(), data)
   }
 
@@ -458,6 +466,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   public dispose(): void {
     this._selectors.clear()
     this._onNotificationSent.dispose()
+    this._onNotificationSent = new Emitter<NotificationSendEvent<E, P>>()
     if (this._listener) {
       this._listener.dispose()
       this._listener = undefined
@@ -495,10 +504,9 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   protected *getDocumentSelectors(): IterableIterator<DocumentSelector> {
     for (const registration of this._registrations.values()) {
       const selector = registration.data.registerOptions.documentSelector
-      if (selector === null) {
-        continue
+      if (selector != null) {
+        yield selector
       }
-      yield selector
     }
   }
 
@@ -527,6 +535,7 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   public unregister(id: string): void {
     let registration = this._registrations.get(id)
     if (registration !== undefined) {
+      this._registrations.delete(id)
       registration.disposable.dispose()
     }
   }
@@ -538,19 +547,16 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
     this._registrations.clear()
   }
 
-  protected getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
-    if (!capability) return [undefined, undefined]
-    if (Is.boolean(capability) && capability === true) {
-      return [UUID.generateUuid(), { documentSelector } as any]
-    }
-    if (TextDocumentRegistrationOptions.is(capability)) {
+  public getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
+    if (!capability) {
+      return [undefined, undefined]
+    } else if (TextDocumentRegistrationOptions.is(capability)) {
       const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      const selector = capability.documentSelector ?? documentSelector
+      const selector = defaultValue(capability.documentSelector, documentSelector)
       return [id, Object.assign({}, capability, { documentSelector: selector })]
-    }
-    if (WorkDoneProgressOptions.is(capability)) {
-      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      return [id, Object.assign({}, capability, { documentSelector }) as any]
+    } else if ((Is.boolean(capability) && capability === true) || WorkDoneProgressOptions.is(capability)) {
+      const options = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })
+      return [UUID.generateUuid(), options as RO & { documentSelector: DocumentSelector }]
     }
     return [undefined, undefined]
   }
@@ -582,6 +588,7 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
 }
 
 import { ProviderResult } from '../provider'
+import { defaultValue } from '../util'
 import { CodeLensProviderShape } from './codeLens'
 import { DiagnosticProviderShape } from './diagnostic'
 import { InlayHintsProviderShape } from './inlayHint'
@@ -602,7 +609,6 @@ export interface FeatureClient<M, CO = object> {
   start(): Promise<void>
   isRunning(): boolean
   stop(): Promise<void>
-  forceDocumentSync(): Promise<void>
   attachExtensionName<T extends object>(provider: T): void
 
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
@@ -677,6 +683,7 @@ export interface FeatureClient<M, CO = object> {
   getFeature(request: typeof SemanticTokensRegistrationType.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviderShape>
   getFeature(request: typeof LinkedEditingRangeRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
   getFeature(request: typeof TypeHierarchyPrepareRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+  getFeature(request: typeof InlineCompletionRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineCompletionItemProvider>
   getFeature(request: typeof InlineValueRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
   getFeature(request: typeof InlayHintRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
   getFeature(request: typeof WorkspaceSymbolRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>

@@ -4,6 +4,7 @@ import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams } from '../types'
+import { defaultValue } from '../util'
 import { forEach } from '../util/async'
 import { isGitIgnored } from '../util/fs'
 import { CancellationTokenSource } from '../util/protocol'
@@ -85,7 +86,7 @@ export class KeywordsBuffer implements SyncItem {
     if (line >= lineWords.length) line = lineWords.length - 1
     for (let i = 0; i < lineWords.length; i++) {
       let idx = i < line ? line - i - 1 : i
-      let words = lineWords[idx]
+      let words = defaultValue(lineWords[idx], [])
       for (let word of words) {
         yield word
       }

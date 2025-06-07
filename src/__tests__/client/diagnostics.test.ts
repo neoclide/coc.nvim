@@ -7,6 +7,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
 import { BackgroundScheduler, DocumentPullStateTracker, PullState } from '../../language-client/diagnostic'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -66,13 +67,13 @@ describe('BackgroundScheduler', () => {
     s.remove(createDocument(2))
     s.add(createDocument(3))
     s.remove(createDocument(3))
-    s.remove(createDocument(1))
+    s.trigger()
     s.trigger()
     await helper.waitValue(() => {
       return uris.length
-    }, 3)
+    }, 1)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([2, 3, 1])
+    expect(ids).toEqual([1])
     s.dispose()
   })
 })
@@ -189,6 +190,9 @@ describe('DiagnosticFeature', () => {
     let provider = feature.getProvider(TextDocument.create('file:///1', 'vim', 1, ''))
     let res = provider.knows(PullState.document, doc.textDocument)
     expect(res).toBe(false)
+    doc = await workspace.loadFile(getUri(2), 'edit')
+    await helper.waitValue(() => window.activeTextEditor?.uri === doc.uri, true)
+    provider.forget(doc.textDocument)
     await client.stop()
   })
 
@@ -274,7 +278,7 @@ describe('DiagnosticFeature', () => {
   it('should use provideDiagnostics middleware', async () => {
     let called = false
     let callHandle = false
-    let client = await createServer(true, false, {
+    let middleware = {
       provideDiagnostics: (doc, id, token, next) => {
         called = true
         return next(doc, id, token)
@@ -283,7 +287,8 @@ describe('DiagnosticFeature', () => {
         callHandle = true
         return next(uri, diagnostics)
       }
-    })
+    }
+    let client = await createServer(true, false, middleware)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     expect(feature).toBeDefined()
     let textDocument = TextDocument.create(getUri('empty'), 'e', 1, '')
@@ -294,6 +299,8 @@ describe('DiagnosticFeature', () => {
     await helper.waitValue(() => {
       return callHandle
     }, true)
+    middleware.handleDiagnostics = undefined
+    await client.sendRequest('sendDiagnostics')
     await client.stop()
   })
 

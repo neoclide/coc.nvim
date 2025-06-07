@@ -740,8 +740,11 @@ declare module 'coc.nvim' {
      *
      * @since 3.16.0 - support for AnnotatedTextEdit. This is guarded using a
      * client capability.
+     *
+     * @since 3.18.0 - support for SnippetTextEdit. This is guarded using a
+     * client capability.
      */
-    edits: (TextEdit | AnnotatedTextEdit)[]
+    edits: (TextEdit | AnnotatedTextEdit | SnippetTextEdit)[]
   }
   /**
    * The TextDocumentEdit namespace provides helper function to create
@@ -2999,6 +3002,232 @@ declare module 'coc.nvim' {
      * @readonly
      */
     readonly lineCount: uinteger
+  }
+
+  /**
+   * Describes how an {@link InlineCompletionItemProvider inline completion provider} was triggered.
+   */
+  export namespace InlineCompletionTriggerKind {
+    /**
+     * Completion was triggered explicitly by a user gesture.
+     */
+    const Invoked: 1
+    /**
+     * Completion was triggered automatically while editing.
+     */
+    const Automatic: 2
+  }
+
+  export interface InlineCompletionOption {
+    /**
+     * The provider name, extension name or LanguageClient id.
+     */
+    provider?: string
+    /**
+     * Set trigger kind to InlineCompletionTriggerKind.Automatic when true.
+     */
+    autoTrigger?: boolean
+  }
+
+  export type InlineCompletionTriggerKind = 1 | 2
+
+  /**
+   * Describes the currently selected completion item.
+   */
+  export type SelectedCompletionInfo = {
+    /**
+     * The range that will be replaced if this completion item is accepted.
+     */
+    range: Range
+    /**
+     * The text the range will be replaced with if this completion is accepted.
+     */
+    text: string
+  }
+
+  export namespace SelectedCompletionInfo {
+    function create(range: Range, text: string): SelectedCompletionInfo
+  }
+
+  /**
+  * Provides information about the context in which an inline completion was requested.
+  */
+  export type InlineCompletionContext = {
+    /**
+    * Describes how the inline completion was triggered.
+    */
+    triggerKind: InlineCompletionTriggerKind
+    /**
+    * Provides information about the currently selected item in the autocomplete widget if it is visible.
+    */
+    selectedCompletionInfo?: SelectedCompletionInfo
+  }
+
+  export namespace InlineCompletionContext {
+    function create(triggerKind: InlineCompletionTriggerKind, selectedCompletionInfo?: SelectedCompletionInfo): InlineCompletionContext
+  }
+
+  /**
+   * A string value used as a snippet is a template which allows to insert text
+   * and to control the editor cursor when insertion happens.
+   *
+   * A snippet can define tab stops and placeholders with `$1`, `$2`
+   * and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+   * the end of the snippet. Variables are defined with `$name` and
+   * `${name:default value}`.
+   */
+  export type StringValue = {
+    /**
+     * The kind of string value.
+     */
+    kind: 'snippet'
+    /**
+     * The snippet string.
+     */
+    value: string
+  }
+
+  export namespace StringValue {
+    function createSnippet(value: string): StringValue
+    function isSnippet(value: any): value is StringValue
+  }
+  /**
+   * An inline completion item represents a text snippet that is proposed inline to complete text that is being typed.
+   */
+  export interface InlineCompletionItem {
+    /**
+     * The text to replace the range with. Must be set.
+     */
+    insertText: string | StringValue
+    /**
+     * A text that is used to decide if this inline completion should be shown. When `falsy` the {@link InlineCompletionItem.insertText} is used.
+     */
+    filterText?: string
+    /**
+     * The range to replace. Must begin and end on the same line.
+     */
+    range?: Range
+    /**
+     * An optional {@link Command} that is executed *after* inserting this completion.
+     */
+    command?: Command
+  }
+
+  export namespace InlineCompletionItem {
+    function create(insertText: string | StringValue, filterText?: string, range?: Range, command?: Command): InlineCompletionItem
+  }
+
+  /**
+   * Represents a collection of {@link InlineCompletionItem inline completion items} to be presented in the editor.
+   */
+  export interface InlineCompletionList {
+    /**
+     * The inline completion items
+     */
+    items: InlineCompletionItem[]
+  }
+  export namespace InlineCompletionList {
+    function create(items: InlineCompletionItem[]): InlineCompletionList
+  }
+
+  /**
+  * An interactive text edit.
+  */
+  export interface SnippetTextEdit {
+    /**
+    * The range of the text document to be manipulated.
+    */
+    range: Range
+    /**
+    * The snippet to be inserted.
+    */
+    snippet: StringValue
+    /**
+    * The actual identifier of the snippet edit.
+    */
+    annotationId?: ChangeAnnotationIdentifier
+  }
+
+  export namespace SnippetTextEdit {
+    function is(value: any): value is SnippetTextEdit
+  }
+
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export namespace ApplyKind {
+    /**
+     * The value from the individual item (if provided and not `null`) will be
+     * used instead of the default.
+     */
+    const Replace: 1
+    /**
+     * The value from the item will be merged with the default.
+     *
+     * The specific rules for mergeing values are defined against each field
+     * that supports merging.
+     */
+    const Merge: 2
+  }
+  /**
+   * Defines how values from a set of defaults and an individual item will be
+   * merged.
+   */
+  export type ApplyKind = 1 | 2
+
+  /**
+  * Additional data about a workspace edit.
+  */
+  export type WorkspaceEditMetadata = {
+    /**
+    * Signal to the editor that this edit is a refactoring.
+    */
+    isRefactoring?: boolean
+  }
+  /**
+  * The parameters passed via an apply workspace edit request.
+  */
+  export interface ApplyWorkspaceEditParams {
+    /**
+    * An optional label of the workspace edit. This label is
+    * presented in the user interface for example on an undo
+    * stack to undo the workspace edit.
+    */
+    label?: string
+    /**
+    * The edits to apply.
+    */
+    edit: WorkspaceEdit
+    /**
+    * Additional data about the edit.
+    *
+    * @since 3.18.0
+    * @proposed
+    */
+    metadata?: WorkspaceEditMetadata
+  }
+
+  /**
+   * The result returned from the apply workspace edit request.
+   */
+  export interface ApplyWorkspaceEditResult {
+    /**
+     * Indicates whether the edit was applied or not.
+     */
+    applied: boolean
+    /**
+     * An optional textual description for why the edit was not applied.
+     * This may be used by the server for diagnostic logging or to provide
+     * a suitable error for a request that triggered the edit.
+     */
+    failureReason?: string
+    /**
+     * Depending on the client's failure handling strategy `failedChange` might
+     * contain the index of the change that failed. This property is only available
+     * if the client signals a `failureHandlingStrategy` in its client capabilities.
+     */
+    failedChange?: uinteger
   }
   // }}
 
@@ -5296,6 +5525,7 @@ declare module 'coc.nvim' {
     LinkedEditing = 'linkedEditing',
     InlayHint = 'inlayHint',
     InlineValue = 'inlineValue',
+    InlineCompletion = 'inlineCompletion',
     TypeHierarchy = 'typeHierarchy'
   }
 
@@ -6172,6 +6402,34 @@ declare module 'coc.nvim' {
     provideDiagnostics(document: TextDocument | Uri, previousResultId: string | undefined, token: CancellationToken): ProviderResult<DocumentDiagnosticReport>
     provideWorkspaceDiagnostics?(resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter): ProviderResult<WorkspaceDiagnosticReport>
   }
+
+  /**
+   * The inline completion item provider interface defines the contract between extensions and
+   * the inline completion feature.
+   *
+   * Providers are asked for completions either explicitly by a user gesture or implicitly when typing.
+   */
+  export interface InlineCompletionItemProvider {
+
+    /**
+     * Provides inline completion items for the given position and document.
+     * If inline completions are enabled, this method will be called whenever the user stopped typing.
+     * It will also be called when the user explicitly triggers inline completions or explicitly asks for the next or previous inline completion.
+     * In that case, all available inline completions should be returned.
+     * `context.triggerKind` can be used to distinguish between these scenarios.
+     * @param document The document inline completions are requested for.
+     * @param position The position inline completions are requested for.
+     * @param context A context object with additional information.
+     * @param token A cancellation token.
+     * @returns An array of completion items or a thenable that resolves to an array of completion items.
+     */
+    provideInlineCompletionItems(
+      document: TextDocument,
+      position: Position,
+      context: InlineCompletionContext,
+      token: CancellationToken
+    ): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+  }
   // }}
 
   // Classes {{
@@ -6970,6 +7228,11 @@ declare module 'coc.nvim' {
      * Run format action for current buffer.
      */
     export function executeCommand(command: 'editor.action.format'): Promise<void>
+
+    /**
+     * Trigger inline completion
+     */
+    export function executeCommand(command: 'editor.action.triggerInlineCompletion', option?: InlineCompletionOption): Promise<void>
   }
   // }}
 
@@ -9282,7 +9545,7 @@ declare module 'coc.nvim' {
     export function callAsync<T>(method: string, args: any[]): Promise<T>
 
     /**
-     * registerTextDocumentContentProvider
+     * Register TextDocumentContentProvider for custom scheme
      */
     export function registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
 
@@ -10987,7 +11250,7 @@ declare module 'coc.nvim' {
 
   export interface SnippetEdit {
     range: Range
-    snippet: string | SnippetString
+    snippet: string | SnippetString | StringValue
   }
 
   export interface UltiSnipsActions {
@@ -11449,6 +11712,46 @@ declare module 'coc.nvim' {
      */
     Restart = 2
   }
+
+  export interface CloseHandlerResult {
+    /**
+    * The action to take.
+    */
+    action: CloseAction
+
+    /**
+    * An optional message to be presented to the user.
+    */
+    message?: string
+
+    /**
+    * If set to true the client assumes that the corresponding
+    * close handler has presented an appropriate message to the
+    * user and the message will only be log to the client's
+    * output channel.
+    */
+    handled?: boolean
+  }
+
+  export interface ErrorHandlerResult {
+    /**
+    * The action to take.
+    */
+    action: ErrorAction
+
+    /**
+    * An optional message to be presented to the user.
+    */
+    message?: string
+
+    /**
+    * If set to true the client assumes that the corresponding
+    * error handler has presented an appropriate message to the
+    * user and the message will only be log to the client's
+    * output channel.
+    */
+    handled?: boolean
+  }
   /**
    * A pluggable error handler that is invoked when the connection is either
    * producing errors or got closed.
@@ -11462,12 +11765,14 @@ declare module 'coc.nvim' {
      * @param count - a count indicating how often an error is received. Will
      *  be reset if a message got successfully send or received.
      */
-    error(error: Error, message: { jsonrpc: string }, count: number): ErrorAction
+    error(error: Error, message: { jsonrpc: string }, count: number): ErrorAction | ErrorHandlerResult | Promise<ErrorHandlerResult>
     /**
      * The connection to the server got closed.
+     * Use CloseHandlerResult should be preferred.
      */
-    closed(): CloseAction
+    closed(): CloseAction | CloseHandlerResult | Promise<CloseHandlerResult>
   }
+
   export interface InitializationFailedHandler {
     (error: Error | any): boolean
   }
@@ -11481,6 +11786,7 @@ declare module 'coc.nvim' {
   }
 
   export enum RevealOutputChannelOn {
+    Debug = 0,
     Info = 1,
     Warn = 2,
     Error = 3,
@@ -11817,6 +12123,7 @@ declare module 'coc.nvim' {
   export interface _WorkspaceMiddleware {
     didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
+    handleApplyEdit?: (this: void, params: ApplyWorkspaceEditParams, next: RequestHandler<ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, void>) => HandlerResult<ApplyWorkspaceEditResult, void>
   }
 
   export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware & FileOperationsMiddleware
@@ -11864,10 +12171,50 @@ declare module 'coc.nvim' {
     success: boolean
   }
 
+  /**
+   * General parameters to register for a notification or to register a provider.
+   */
+  export interface Registration {
+    /**
+     * The id used to register the request. The id can be used to deregister
+     * the request again.
+     */
+    id: string
+    /**
+     * The method / capability to register for.
+     */
+    method: string
+    /**
+     * Options necessary for the registration.
+     */
+    registerOptions?: LSPAny
+  }
+  export interface RegistrationParams {
+    registrations: Registration[]
+  }
+
+  /**
+   * General parameters to unregister a request or notification.
+   */
+  export interface Unregistration {
+    /**
+     * The id used to unregister the request or notification. Usually an id
+     * provided during the register request.
+     */
+    id: string
+    /**
+     * The method to unregister for.
+     */
+    method: string
+  }
+  export interface UnregistrationParams {
+    unregisterations: Unregistration[]
+  }
+
   export interface _WindowMiddleware {
     showDocument?: (
-      this: void,
       params: ShowDocumentParams,
+      token: CancellationToken,
       next: RequestHandler<ShowDocumentParams, ShowDocumentResult, void>
     ) => Promise<ShowDocumentResult>
   }
@@ -11898,6 +12245,8 @@ declare module 'coc.nvim' {
     provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<WorkspaceSymbol[]>
     provideCodeActions?: (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
     handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
+    handleRegisterCapability?: (this: void, params: RegistrationParams, next: RequestHandler<RegistrationParams, void, void>) => Promise<void>
+    handleUnregisterCapability?: (this: void, params: UnregistrationParams, next: RequestHandler<UnregistrationParams, void, void>) => Promise<void>
     resolveCodeAction?: (this: void, item: CodeAction, token: CancellationToken, next: ResolveCodeActionSignature) => ProviderResult<CodeAction>
     provideCodeLenses?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideCodeLensesSignature) => ProviderResult<CodeLens[]>
     resolveCodeLens?: (this: void, codeLens: CodeLens, token: CancellationToken, next: ResolveCodeLensSignature) => ProviderResult<CodeLens>
@@ -11915,7 +12264,34 @@ declare module 'coc.nvim' {
     workspace?: WorkspaceMiddleware
     window?: WindowMiddleware
   }
-  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware
+
+  // A general middleware is applied to both requests and notifications
+  interface GeneralMiddleware {
+    sendRequest?<P, R>(
+      this: void,
+      type: string | MessageSignature,
+      param: P | undefined,
+      token: CancellationToken | undefined,
+      next: (type: string | MessageSignature, param?: P, token?: CancellationToken) => Promise<R>,
+    ): Promise<R>
+
+    sendNotification?<R>(
+      this: void,
+      type: string | MessageSignature,
+      next: (type: string | MessageSignature, params?: R) => Promise<void>,
+      params: R
+    ): Promise<void>
+  }
+
+  export interface ProvideTextDocumentContentSignature {
+    (this: void, uri: Uri, token: CancellationToken): ProviderResult<string>
+  }
+
+  export interface TextDocumentContentMiddleware {
+    provideTextDocumentContent?: (this: void, uri: Uri, token: CancellationToken, next: ProvideTextDocumentContentSignature) => ProviderResult<string>
+  }
+
+  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware & TextDocumentContentMiddleware
 
   export interface ConnectionOptions {
     maxRestartCount?: number
@@ -11996,6 +12372,7 @@ declare module 'coc.nvim' {
     diagnosticCollectionName?: string
     outputChannelName?: string
     outputChannel?: OutputChannel
+    traceOutputChannel?: OutputChannel
     revealOutputChannelOn?: RevealOutputChannelOn
     /**
      * The encoding use to read stdout and stderr. Defaults
@@ -12014,30 +12391,30 @@ declare module 'coc.nvim' {
     workspaceFolder?: WorkspaceFolder
     connectionOptions?: ConnectionOptions
     diagnosticPullOptions?: DiagnosticPullOptions
+    textSynchronization?: {
+      /**
+      * Delays sending the open notification until one of the following
+      * conditions becomes `true`:
+      * - document is visible in the editor.
+      * - any of the other notifications or requests is sent to the server, except
+      * a closed notification for the pending document.
+      */
+      delayOpenNotifications?: boolean
+    }
     markdown?: {
       isTrusted?: boolean
-      /**
-       * Not used
-       */
       supportHtml?: boolean
     }
   }
   export enum State {
     Stopped = 1,
     Running = 2,
-    Starting = 3
+    Starting = 3,
+    StartFailed = 4,
   }
   export interface StateChangeEvent {
     oldState: State
     newState: State
-  }
-  export enum ClientState {
-    Initial = 0,
-    Starting = 1,
-    StartFailed = 2,
-    Running = 3,
-    Stopping = 4,
-    Stopped = 5
   }
   export interface RegistrationData<T> {
     id: string
@@ -12621,6 +12998,12 @@ declare module 'coc.nvim' {
 
   export interface DidCloseTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, { textDocument: { uri: string } }> {}
 
+  export interface TextDocumentContentProviderShape {
+    scheme: string
+    onDidChangeEmitter: Emitter<Uri>
+    provider: TextDocumentContentProvider
+  }
+
   export interface WorkspaceProviderFeature<PR> {
     getProviders(): PR[] | undefined
   }
@@ -12731,17 +13114,25 @@ declare module 'coc.nvim' {
     sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
     /**
-     * Append info to outputChannel
+     * Append debug message to outputChannel
+     */
+    debug(message: string, data?: any, showNotification?: boolean): void
+    /**
+     * Append info message to outputChannel
      */
     info(message: string, data?: any, showNotification?: boolean): void
     /**
-     * Append warning to outputChannel
+     * Append warning message to outputChannel
      */
     warn(message: string, data?: any, showNotification?: boolean): void
     /**
-     * append error to outputChannel
+     * Append error message to outputChannel
      */
     error(message: string, data?: any, showNotification?: boolean | 'force'): void
+    /**
+     * Append trace message to traceOutputChannel or outputChannel
+     */
+    traceMessage(message: string, data?: any): void
 
     readonly state: State
     readonly middleware: Middleware
@@ -12770,6 +13161,9 @@ declare module 'coc.nvim' {
      * Check if server could stop.
      */
     needsStop(): boolean
+    /**
+     * Resolved when server ready
+     */
     onReady(): Promise<void>
     set trace(value: Trace)
 
@@ -12797,12 +13191,16 @@ declare module 'coc.nvim' {
      * Register custom feature.
      */
     registerFeature(feature: StaticFeature | DynamicFeature<any>): void
-
     /**
      * Log failed request to outputChannel and throw error when necessary.
+     * @param type The request type.
+     * @param token CancellationToken used for request.
+     * @param error Request error.
+     * @param defaultValue Default return value when request cancelled or
+     * connection got disposed.
+     * @param showNotification Show message notification, default to true.
      */
-    handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T): T
-
+    handleFailedRequest<T, P extends { method: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T, showNotification?: boolean): T
     /**
      * Create a default error handler.
      */
@@ -12852,6 +13250,8 @@ declare module 'coc.nvim' {
     getFeature(request: 'textDocument/inlineValue'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
     getFeature(request: 'textDocument/inlayHint'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
     getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
+    getFeature(request: 'workspace/textDocumentContent'): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<TextDocumentContentProviderShape>
+    getFeature(request: 'textDocument/inlineCompletion'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineCompletionItemProvider>
   }
 
   /**

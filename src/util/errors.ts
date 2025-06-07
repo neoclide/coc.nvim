@@ -55,8 +55,9 @@ export function onUnexpectedError(e: any): void {
   if (shouldIgnore(e)) return
   if (e.stack) {
     throw new Error(e.message + '\n\n' + e.stack)
+  } else {
+    throw e
   }
-  throw e
 }
 
 export function notLoaded(uri: string): Error {

@@ -1,10 +1,11 @@
 'use strict'
 import { Minimatch, MinimatchOptions } from 'minimatch'
-import { minimatch } from '../util/node'
 import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../core/files'
+import { defaultValue } from '../util'
 import { FileType, getFileType } from '../util/fs'
+import { minimatch } from '../util/node'
 import {
   CancellationToken, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, FileOperationPatternKind, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest
 } from '../util/protocol'
@@ -120,6 +121,11 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     this._filters.set(data.id, minimatchFilter)
   }
 
+  public sendWithMiddleware<T>(fn: (...args: any[]) => Promise<T> | T, key: string, ...params: any[]): Promise<T> | T {
+    const middleware = defaultValue(defaultValue(this._client.middleware, {}).workspace, {})
+    return middleware[key] ? middleware[key](...params, fn) : fn(...params)
+  }
+
   public abstract send(data: E): Promise<void>
 
   public unregister(id: string): void {
@@ -222,7 +228,6 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
     const filteredEvent = await this.filter(originalEvent, this._accessUri)
     if (filteredEvent.files.length) {
       const next = async (event: E): Promise<void> => {
-        if (!this._client.isRunning()) return
         return this._client.sendNotification(
           this._notificationType,
           this._createParams(event)
@@ -254,8 +259,7 @@ export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void | Promise<void> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.didCreateFiles ? middleware.didCreateFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'didCreateFiles', event)
   }
 }
 
@@ -273,8 +277,7 @@ export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ ol
   }
 
   protected doSend(event: FileRenameEvent, next: (event: FileRenameEvent) => void): void | Promise<void> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.didRenameFiles ? middleware.didRenameFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'didRenameFiles', event)
   }
 }
 
@@ -292,8 +295,7 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void | Promise<void> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.didDeleteFiles ? middleware.didDeleteFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'didDeleteFiles', event)
   }
 }
 
@@ -359,8 +361,7 @@ export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillCreateEvent, next: (event: FileWillCreateEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.willCreateFiles ? middleware.willCreateFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'willCreateFiles', event)
   }
 }
 
@@ -378,8 +379,7 @@ export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri
   }
 
   protected doSend(event: FileWillRenameEvent, next: (event: FileWillRenameEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.willRenameFiles ? middleware.willRenameFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'willRenameFiles', event)
   }
 }
 
@@ -397,7 +397,6 @@ export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillDeleteEvent, next: (event: FileWillDeleteEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware.workspace
-    return middleware?.willDeleteFiles ? middleware.willDeleteFiles(event, next) : next(event)
+    return this.sendWithMiddleware(next, 'willDeleteFiles', event)
   }
 }
