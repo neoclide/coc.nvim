@@ -443,7 +443,7 @@ endfunction
 function! s:on_pum_change(move) abort
   if s:virtual_text
     if s:inserted
-      call s:clear_virtual_text()
+      call coc#pum#clear_vtext()
     else
       call s:insert_virtual_text()
     endif
@@ -546,7 +546,7 @@ endfunction
 function! s:insert_virtual_text() abort
   let bufnr = bufnr('%')
   if !s:virtual_text || s:pum_index < 0
-    call s:clear_virtual_text()
+    call coc#pum#clear_vtext()
   else
     " Check if could create
     let insert = ''
@@ -582,18 +582,19 @@ function! s:insert_virtual_text() abort
   endif
 endfunction
 
-function! s:clear_virtual_text() abort
+function! coc#pum#clear_vtext() abort
   if s:is_vim
     if s:prop_id != 0
       call prop_remove({'id': s:prop_id})
     endif
+    let s:prop_id = 0
   else
     call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
   endif
 endfunction
 
 function! s:close_pum() abort
-  call s:clear_virtual_text()
+  call coc#pum#clear_vtext()
   call coc#float#close(s:pum_winid, 1)
   let s:pum_winid = 0
   let s:pum_size = 0
