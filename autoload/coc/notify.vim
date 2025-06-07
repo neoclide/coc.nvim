@@ -250,14 +250,24 @@ function! coc#notify#nvim_click(winid) abort
   call s:cancel(a:winid, 'close_timer')
   let actions = getwinvar(a:winid, 'actions', [])
   if !empty(actions)
-    let character = strpart(getline('.'), col('.') - 1, 1)
-    if character =~# '^\k'
-      let word = expand('<cword>')
-      let idx = index(actions, word)
-      if idx != -1
+    let hls = filter(coc#highlight#get_highlights(bufnr('%'), -1), "v:val[0] ==# 'CocNotificationButton'")
+    if empty(hls)
+      " Something went wrong.
+      return
+    endif
+    if line('.') != hls[0][1] + 1
+      return
+    endif
+    let col = col('.')
+    let line = getline('.')
+    for idx in range(0, len(hls) - 1)
+      let item = hls[idx]
+      let start_idx = coc#string#byte_index(line, item[2])
+      let end_idx = coc#string#byte_index(line, item[3])
+      if col > start_idx && col <= end_idx
         call coc#notify#choose(a:winid, idx)
       endif
-    endif
+    endfor
   endif
 endfunction
 

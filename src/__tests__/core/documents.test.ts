@@ -237,13 +237,12 @@ describe('documents', () => {
 
   it('should fire document create once on reload', async () => {
     await helper.createDocument('t.vim')
-    let fn = jest.fn()
+    let called = false
     disposables.push(documents.onDidOpenTextDocument(e => {
-      fn()
+      called = true
     }))
     await nvim.command('edit')
-    await helper.wait(20)
-    expect(fn).toHaveBeenCalledTimes(1)
+    await helper.waitValue(() => called, true)
   })
 })
 

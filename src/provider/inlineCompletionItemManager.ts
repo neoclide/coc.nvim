@@ -3,9 +3,14 @@ import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineCompletionContext, InlineCompletionItem, Position } from 'vscode-languageserver-types'
 import { onUnexpectedError } from '../util/errors'
+import { omit } from '../util/lodash'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { DocumentSelector, InlineCompletionItemProvider } from './index'
-import Manager from './manager'
+import Manager, { ProviderItem } from './manager'
+
+export interface ExtendedInlineContext extends InlineCompletionContext {
+  provider?: string
+}
 
 export default class InlineCompletionItemManager extends Manager<InlineCompletionItemProvider> {
   public register(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable {
@@ -16,6 +21,10 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
     })
   }
 
+  public get isEmpty(): boolean {
+    return this.providers.size === 0
+  }
+
   /**
    * Multiple providers can be registered for a language. In that case providers are asked in
    * parallel and the results are merged. A failing provider (rejected promise or exception) will
@@ -24,13 +33,19 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
   public async provideInlineCompletionItems(
     document: TextDocument,
     position: Position,
-    context: InlineCompletionContext,
+    context: ExtendedInlineContext,
     token: CancellationToken
   ): Promise<InlineCompletionItem[]> {
-    const providers = this.getProviders(document)
+    let providers: ProviderItem<InlineCompletionItemProvider>[]
+    if (context.provider) {
+      let item = this.getProvideByExtension(document, context.provider)
+      if (item) providers = [item]
+    } else {
+      providers = this.getProviders(document)
+    }
     const items: InlineCompletionItem[] = []
     const promise = Promise.allSettled(providers.map(item => {
-      return Promise.resolve(item.provider.provideInlineCompletionItems(document, position, context, token)).then(result => {
+      return Promise.resolve(item.provider.provideInlineCompletionItems(document, position, omit(context, ['provider']), token)).then(result => {
         if (Array.isArray(result)) {
           items.push(...result)
         } else if (result?.items) {

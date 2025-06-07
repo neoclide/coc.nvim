@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Position } from 'vscode-languageserver-types'
+import { Position, Range, SelectedCompletionInfo } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import type { IConfigurationChangeEvent } from '../configuration/types'
@@ -122,6 +122,14 @@ export class Completion implements Disposable {
     return this.activeItems[this.popupEvent.index]
   }
 
+  public get selectedCompletionInfo(): SelectedCompletionInfo | undefined {
+    let item = this.selectedItem
+    let { pretext } = this
+    if (!pretext || !item) return undefined
+    let line = this.option.linenr - 1
+    let end = pretext.length
+    return { range: Range.create(line, item.character, line, end), text: item.word }
+  }
   /**
    * Configuration for current document
    */

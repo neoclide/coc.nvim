@@ -14,11 +14,27 @@ let s:is_vim = !has('nvim')
 " indent - Prepend indent of current line when true
 " priority - Highlight priority
 function! coc#vtext#set(bufnr, ns, items, indent, priority) abort
+  try
+    if s:is_vim
+      call coc#vim9#Set_virtual_texts(a:bufnr, a:ns, a:items, a:indent, a:priority)
+    else
+      call v:lua.require('coc.vtext').set(a:bufnr, a:ns, a:items, a:indent, a:priority)
+    endif
+  catch /.*/
+    call coc#compat#send_error('coc#vtext#set', s:is_vim)
+  endtry
+endfunction
+
+" Check virtual text of namespace exists
+function! coc#vtext#exists(bufnr, ns) abort
   if s:is_vim
-    call coc#vim9#Set_virtual_texts(a:bufnr, a:ns, a:items, a:indent, a:priority)
-  else
-    call v:lua.require('coc.vtext').set(a:bufnr, a:ns, a:items, a:indent, a:priority)
+    let types = coc#api#GetNamespaceTypes(a:ns)
+    if empty(types)
+      return 0
+    endif
+    return !empty(prop_list(1, {'bufnr': a:bufnr, 'types': types, 'end_lnum': -1}))
   endif
+  return !empty(nvim_buf_get_extmarks(a:bufnr, a:ns, [0, 0], [-1, -1], {}))
 endfunction
 
 " This function is called by buffer.setVirtualText
@@ -32,9 +48,13 @@ endfunction
 " opts.text_wrap - Could be 'wrap' and 'truncate', vim9 only.
 " opts.indent - add indent when using 'above' and 'below' as text_align
 function! coc#vtext#add(bufnr, ns, line, blocks, opts) abort
-  if s:is_vim
-    call coc#vim9#Add_vtext(a:bufnr, a:ns, a:line, a:blocks, a:opts)
-  else
-    call v:lua.require('coc.vtext').add(a:bufnr, a:ns, a:line, a:blocks, a:opts)
-  endif
+  try
+    if s:is_vim
+      call coc#vim9#Add_vtext(a:bufnr, a:ns, a:line, a:blocks, a:opts)
+    else
+      call v:lua.require('coc.vtext').add(a:bufnr, a:ns, a:line, a:blocks, a:opts)
+    endif
+  catch /.*/
+    call coc#compat#send_error('coc#vtext#add', s:is_vim)
+  endtry
 endfunction

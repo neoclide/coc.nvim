@@ -503,6 +503,11 @@ function! s:StaticHighlight() abort
   hi default link CocPumVirtualText        CocVirtualText
   hi default link CocInputBoxVirtualText   CocVirtualText
   hi default link CocFloatDividingLine     CocVirtualText
+  if &t_Co == 256
+    hi def CocInlineVirtualText guifg=#808080 ctermfg=244
+  else
+    hi def CocInlineVirtualText guifg=#808080 ctermfg=12
+  endif
 endfunction
 
 call s:StaticHighlight()
@@ -741,22 +746,22 @@ augroup END
 
 " Default key-mappings for completion
 if empty(mapcheck('<C-n>', 'i'))
-  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
+  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : coc#inline#visible() ? coc#inline#next() : "\<C-n>"
 endif
 if empty(mapcheck('<C-p>', 'i'))
-  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
+  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : coc#inline#visible() ? coc#inline#prev() : "\<C-p>"
 endif
 if empty(mapcheck('<down>', 'i'))
-  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
+  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : coc#inline#visible() ? coc#inline#next() :"\<down>"
 endif
 if empty(mapcheck('<up>', 'i'))
-  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
+  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : coc#inline#visible() ? coc#inline#prev() :"\<up>"
 endif
 if empty(mapcheck('<C-e>', 'i'))
-  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
+  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : coc#inline#visible() ? coc#inline#cancel() : "\<C-e>"
 endif
 if empty(mapcheck('<C-y>', 'i'))
-  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : coc#inline#visible() ? coc#inline#accept() :"\<C-y>"
 endif
 if empty(mapcheck('<PageDown>', 'i'))
   inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"

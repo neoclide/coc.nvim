@@ -606,7 +606,7 @@ export default class Document {
     let { changedtick } = this
     await this.patchChange()
     if (changedtick != this.changedtick) {
-      await wait(50)
+      await wait(30)
     }
   }
 

@@ -3018,6 +3018,17 @@ declare module 'coc.nvim' {
     const Automatic: 2
   }
 
+  export interface InlineCompletionOption {
+    /**
+     * The provider name, extension name or LanguageClient id.
+     */
+    provider?: string
+    /**
+     * Set trigger kind to InlineCompletionTriggerKind.Automatic when true.
+     */
+    autoTrigger?: boolean
+  }
+
   export type InlineCompletionTriggerKind = 1 | 2
 
   /**
@@ -7217,6 +7228,11 @@ declare module 'coc.nvim' {
      * Run format action for current buffer.
      */
     export function executeCommand(command: 'editor.action.format'): Promise<void>
+
+    /**
+     * Trigger inline completion
+     */
+    export function executeCommand(command: 'editor.action.triggerInlineCompletion', option?: InlineCompletionOption): Promise<void>
   }
   // }}
 

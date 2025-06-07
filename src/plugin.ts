@@ -10,6 +10,7 @@ import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extension'
 import Handler from './handler'
+import { AcceptKind, InlineSuggetOption } from './handler/inline'
 import listManager from './list/manager'
 import { createLogger } from './logger'
 import services from './services'
@@ -180,6 +181,11 @@ export default class Plugin {
     this.addAction('inspectSemanticToken', () => this.handler.semanticHighlighter.inspectSemanticToken())
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHighlightInfo())
+    this.addAction('inlineTrigger', (bufnr: number, option?: InlineSuggetOption) => this.handler.inlineCompletion.trigger(bufnr, option))
+    this.addAction('inlineCancel', () => this.handler.inlineCompletion.cancel())
+    this.addAction('inlineAccept', (bufnr: number, kind?: AcceptKind) => this.handler.inlineCompletion.accept(bufnr, kind))
+    this.addAction('inlineNext', (bufnr: number) => this.handler.inlineCompletion.next(bufnr))
+    this.addAction('inlinePrev', (bufnr: number) => this.handler.inlineCompletion.prev(bufnr))
   }
 
   public get workspace(): Workspace {
