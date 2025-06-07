@@ -53,6 +53,7 @@ export interface SnippetFormatOptions {
   trimTrailingWhitespace?: boolean
   // options from ultisnips context
   noExpand?: boolean
+  [key: string]: boolean | number | string | undefined
 }
 
 const stringStartRe = /\\A/

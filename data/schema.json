@@ -2343,6 +2343,20 @@
       "description": "Show virtual text for insert word of the selected item if any",
       "default": false
     },
+    "inlineSuggest.autoTrigger": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable automatically trigger inline completion on insert mode cursor hold.",
+      "default": true
+    },
+    "inlineSuggest.triggerCompletionWait": {
+      "type": "integer",
+      "default": 50,
+      "minimum": 10,
+      "maximum": 1000,
+      "scope": "language-overridable",
+      "description": "Wait time in milliseconds between text change and trigger inline completion."
+    },
     "tree.closedIcon": {
       "type": "string",
       "scope": "application",

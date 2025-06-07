@@ -334,6 +334,7 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
   const line = opts.line
   const blocks = opts.blocks
   var blockList: list<list<string>> = blocks
+  const virt_lines = get(opts, 'virt_lines', [])
   if !empty(blocks) && (align ==# 'above' || align ==# 'below')
     # only first highlight can be used
     const highlightGroup: string = blocks[0][1]
@@ -362,6 +363,13 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
     endif
     prop_add(line + 1, propColumn, propOpts)
     first = false
+  endfor
+  for item_list in virt_lines
+    for [text, highlightGroup] in item_list
+      const type: string = coc#api#CreateType(ns, highlightGroup, opts)
+      final propOpts: dict<any> = { 'text': text, 'type': type, 'bufnr': bufnr, 'text_align': 'below'}
+      prop_add(line + 1, 0, propOpts)
+    endfor
   endfor
 enddef
 

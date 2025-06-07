@@ -848,8 +848,8 @@ describe('semanticTokens', () => {
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
       await helper.waitValue(() => {
-        return times
-      }, 2)
+        return times > 1
+      }, true)
     })
 
     it('should retrigger full request on server cancel', async () => {

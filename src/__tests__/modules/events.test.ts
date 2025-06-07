@@ -16,7 +16,7 @@ describe('register handler', () => {
     expect(events.pumvisible).toBe(false)
     expect(events.insertMode).toBe(false)
     await events.fire('CursorMovedI', [1, [1, 1]])
-    expect(events.insertMode).toBe(true)
+    expect(events.insertMode).toBe(false)
     await events.fire('CursorMoved', [1, [1, 1]])
     expect(events.insertMode).toBe(false)
     expect(fn).toHaveBeenCalledTimes(2)

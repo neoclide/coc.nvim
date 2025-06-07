@@ -130,7 +130,7 @@ class Events {
   private _completing = false
   private _requesting = false
   private _ready = false
-  private _mode: string | undefined
+  private _mode = 'n'
   public timeout = 1000
   // public completing = false
 
@@ -194,7 +194,7 @@ class Events {
   }
 
   public get insertMode(): boolean {
-    return this._insertMode
+    return this._insertMode && this._mode.startsWith('i')
   }
 
   public get lastChangeTs(): number {

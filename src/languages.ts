@@ -21,7 +21,7 @@ import FormatRangeManager from './provider/formatRangeManager'
 import HoverManager from './provider/hoverManager'
 import ImplementationManager from './provider/implementationManager'
 import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
-import InlineCompletionItemManager from './provider/inlineCompletionItemManager'
+import InlineCompletionItemManager, { ExtendedInlineContext } from './provider/inlineCompletionItemManager'
 import InlineValueManager from './provider/inlineValueManager'
 import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
@@ -37,7 +37,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
-import { CancellationToken, Disposable, Emitter, Event, InlineCompletionContext, InlineCompletionItem } from './util/protocol'
+import { CancellationToken, Disposable, Emitter, Event, InlineCompletionItem } from './util/protocol'
 import { toText } from './util/string'
 
 const eventDebounce = getConditionValue(100, 1)
@@ -119,7 +119,7 @@ class Languages {
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
-  private inlineCompletionItemManager = new InlineCompletionItemManager()
+  public inlineCompletionItemManager = new InlineCompletionItemManager()
   private inlineValueManager = new InlineValueManager()
   public readonly registerDocumentRangeFormattingEditProvider: any
   public readonly registerDocumentFormattingEditProvider: any
@@ -411,7 +411,7 @@ class Languages {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
 
-  public async provideInlineCompletionItems(document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
+  public async provideInlineCompletionItems(document: TextDocument, position: Position, context: ExtendedInlineContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
     return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token)
   }
 
