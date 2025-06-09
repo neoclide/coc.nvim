@@ -473,6 +473,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'size': size,
         \ 'lines': lines,
         \ 'winid': bufwinid(a:bufnr),
+        \ 'winids': win_findbuf(a:bufnr),
         \ 'bufname': bufname,
         \ 'buftype': buftype,
         \ 'previewwindow': v:false,

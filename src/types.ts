@@ -60,6 +60,7 @@ export interface BufferOption {
   readonly eol: number
   readonly size: number
   readonly winid: number
+  readonly winids: number[]
   readonly lines: null | string[]
   readonly variables: { [key: string]: any }
   readonly bufname: string

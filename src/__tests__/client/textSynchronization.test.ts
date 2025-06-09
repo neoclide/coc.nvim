@@ -231,7 +231,6 @@ describe('TextDocumentSynchronization', () => {
       let doc = await helper.createDocument(`${uuidv4()}.vim`)
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
-      await helper.wait(50)
       await nvim.call('setline', [1, 'bar'])
       await doc.synchronize()
       await helper.waitValue(() => {

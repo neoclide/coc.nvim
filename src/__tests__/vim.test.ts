@@ -61,6 +61,7 @@ async function createTmpFile(content: string, disposables?: Disposable[]): Promi
 describe('workspace', () => {
   it('should not has nvim feature', () => {
     expect(helper.workspace.has('nvim-0.4.0')).toBe(false)
+    expect(helper.workspace.has('patch-9.0.0000')).toBe(true)
   })
 })
 
