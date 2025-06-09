@@ -1943,7 +1943,7 @@ INLINE COMPLETION
 
 "inlineSuggest.autoTrigger"				*coc-config-inlineSuggest-autoTrigger*
 
-	Enable automatically trigger inline completion after completion doen
+	Enable automatically trigger inline completion after completion done
 	or cursor hold.
 
 	Scope: `language-overridable`, default: `true`

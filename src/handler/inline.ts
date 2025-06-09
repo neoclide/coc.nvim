@@ -23,7 +23,7 @@ const logger = createLogger('handler-inline')
 
 export const NAMESPACE = 'inlineSuggest'
 
-export interface InlineSuggetOption {
+export interface InlineSuggestOption {
   provider?: string
   autoTrigger?: boolean
 }
@@ -154,11 +154,11 @@ export default class InlineCompletion {
     return !!result
   }
 
-  public async trigger(bufnr: number, option: InlineSuggetOption): Promise<void> {
+  public async trigger(bufnr: number, option: InlineSuggestOption): Promise<void> {
     await this._trigger(bufnr, option)
   }
 
-  private async _trigger(bufnr: number, option: InlineSuggetOption, delay?: number): Promise<void> {
+  private async _trigger(bufnr: number, option: InlineSuggestOption, delay?: number): Promise<void> {
     this.cancel()
     let document = workspace.getAttachedDocument(bufnr)
     if (!languages.hasProvider(ProviderName.InlineCompletion, document)) return
