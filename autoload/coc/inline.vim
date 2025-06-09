@@ -46,8 +46,8 @@ function! coc#inline#clear(...) abort
   call coc#compat#call('buf_clear_namespace', [bufnr, s:inline_ns, 0, -1])
 endfunction
 
-function! coc#inline#_insert(bufnr, lineidx, col, text) abort
-  if !s:is_supported || bufnr('%') != a:bufnr || mode() !~ '^i' || empty(a:text)
+function! coc#inline#_insert(bufnr, lineidx, col, lines) abort
+  if !s:is_supported || bufnr('%') != a:bufnr || mode() !~ '^i' || col('.') != a:col
     return v:false
   endif
   call coc#inline#clear(a:bufnr)
@@ -57,10 +57,9 @@ function! coc#inline#_insert(bufnr, lineidx, col, text) abort
       \ 'text_align': 'wrap',
       \ 'hl_mode': 'replace',
       \ }
-  let lines = split(a:text, '\n')
-  let blocks = [[lines[0], s:hl_group]]
-  if len(lines) > 1
-    let option['virt_lines'] = map(lines[1:], {idx, line -> [[line, s:hl_group]]})
+  let blocks = [[a:lines[0], s:hl_group]]
+  if len(a:lines) > 1
+    let option['virt_lines'] = map(a:lines[1:], {idx, line -> [[line, s:hl_group]]})
   endif
   call coc#vtext#add(a:bufnr, s:inline_ns, a:lineidx, blocks, option)
   return v:true
