@@ -55,6 +55,7 @@ function! coc#inline#_insert(bufnr, lineidx, col, text) abort
   let option = {
       \ 'col': a:col,
       \ 'text_align': 'wrap',
+      \ 'hl_mode': 'replace',
       \ }
   let lines = split(a:text, '\n')
   let blocks = [[lines[0], s:hl_group]]
