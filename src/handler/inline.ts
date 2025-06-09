@@ -8,14 +8,12 @@ import events from '../events'
 import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
 import { SnippetParser } from '../snippets/parser'
-import { normalizeSnippetString } from '../snippets/util'
 import { defaultValue, disposeAll, waitWithToken } from '../util'
 import { toArray } from '../util/array'
 import { onUnexpectedError } from '../util/errors'
-import { emptyRange, getEnd } from '../util/position'
+import { comparePosition, emptyRange, getEnd, positionInRange } from '../util/position'
 import { CancellationTokenSource, Disposable, InlineCompletionItem } from '../util/protocol'
-import { byteIndex } from '../util/string'
-import { reduceTextEdit } from '../util/textedit'
+import { byteIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
@@ -35,13 +33,30 @@ export interface InlineSuggestConfig {
 
 export type AcceptKind = 'all' | 'word' | 'line'
 
+export function formatInsertText(text: string, opts: FormattingOptions): string {
+  let lines = text.split(/\r?\n/)
+  let tabSize = defaultValue(opts.tabSize, 2)
+  let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+  lines = lines.map(line => {
+    let space = line.match(/^\s*/)[0]
+    let isTab = space.startsWith('\t')
+    if (isTab && opts.insertSpaces) {
+      space = ind.repeat(space.length)
+    } else if (!isTab && !opts.insertSpaces) {
+      space = ind.repeat(space.length / tabSize)
+    }
+    return space + line.slice(space.length)
+  })
+  return lines.join('\n')
+}
+
 export function getInsertText(item: InlineCompletionItem, formatOptions: FormattingOptions): string {
   if (StringValue.isSnippet(item.insertText)) {
     const parser = new SnippetParser(false)
     const snippet = parser.parse(item.insertText.value, true)
-    return normalizeSnippetString(snippet.toString(), '', formatOptions)
+    return formatInsertText(snippet.toString(), formatOptions)
   }
-  return normalizeSnippetString(item.insertText, '', formatOptions)
+  return formatInsertText(item.insertText, formatOptions)
 }
 
 export default class InlineCompletion {
@@ -61,9 +76,9 @@ export default class InlineCompletion {
       this.loadConfiguration()
     }, this, this.disposables)
     workspace.onDidChangeTextDocument(e => {
-      if (this.supported
+      if (languages.inlineCompletionItemManager.isEmpty === false
         && this.config.autoTrigger
-        && !languages.inlineCompletionItemManager.isEmpty
+        && this.supported
         && e.bufnr === window.activeTextEditor?.bufnr
         && events.insertMode
       ) {
@@ -154,18 +169,25 @@ export default class InlineCompletion {
     if (token.isCancellationRequested) return
     let state = await this.handler.getCurrentState()
     if (state.doc.bufnr !== bufnr || !state.mode.startsWith('i') || token.isCancellationRequested) return
+    this._cursor = state.position
     let items = await languages.provideInlineCompletionItems(document.textDocument, state.position, {
       provider: option.provider,
       selectedCompletionInfo: completion.selectedCompletionInfo,
       triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
     }, token)
     if (token.isCancellationRequested) return
-    this._items = toArray(items)
-    this._cursor = state.position
-    this._index = 0
-    if (items.length === 0 && !option.autoTrigger) {
-      void window.showWarningMessage(`No inline completion items from provider.`)
+    items = toArray(items).filter(item => {
+      if (item.range) return positionInRange(this._cursor, item.range) === 0
+      return true
+    })
+    if (items.length === 0) {
+      if (!option.autoTrigger) {
+        void window.showWarningMessage(`No inline completion items from provider.`)
+      }
+      return
     }
+    this._items = items
+    this._index = 0
     await this.insertVtext(bufnr, items[0])
   }
 
@@ -191,7 +213,7 @@ export default class InlineCompletion {
     let insertedLength = 0
     if (StringValue.isSnippet(item.insertText) && kind == 'all') {
       let range = item.range ? item.range : Range.create(this._cursor, this._cursor)
-      let edit = [TextEdit.replace(range, item.insertText.value)]
+      let edit = TextEdit.replace(range, item.insertText.value)
       await commands.executeCommand('editor.action.insertSnippet', edit)
     } else {
       let insertedText = this._vtext
@@ -229,48 +251,50 @@ export default class InlineCompletion {
     }
     if (insertedLength) {
       await events.fire('InlineAccept', [insertedLength, item])
-      // need trigger again?
-      // this._trigger(bufnr, { autoTrigger: true }).catch(onUnexpectedError)
     }
   }
 
   public async next(bufnr: number): Promise<void> {
-    if (bufnr !== this._bufnr) return
-    let item = this._items[this._index + 1]
-    if (item) {
-      this._index += 1
-      await this.insertVtext(bufnr, item)
-    }
+    if (bufnr !== this._bufnr || this.length <= 1) return
+    let idx = this._index === this.length - 1 ? 0 : this._index + 1
+    let item = this._items[idx]
+    this._index = idx
+    await this.insertVtext(bufnr, item)
   }
 
   public async prev(bufnr: number): Promise<void> {
-    if (bufnr !== this._bufnr) return
-    let item = this._items[this._index - 1]
-    if (item) {
-      this._index -= 1
-      await this.insertVtext(bufnr, item)
-    }
+    if (bufnr !== this._bufnr || this.length <= 1) return
+    let idx = this._index === 0 ? this.length - 1 : this._index - 1
+    let item = this._items[idx]
+    this._index = idx
+    await this.insertVtext(bufnr, item)
   }
 
-  public async insertVtext(bufnr: number, item: InlineCompletionItem | undefined): Promise<void> {
-    if (!item) return
-    let doc = workspace.getAttachedDocument(bufnr)
+  public get length(): number {
+    return this._items.length
+  }
+
+  public async insertVtext(bufnr: number, item: InlineCompletionItem): Promise<void> {
+    let textDocument = workspace.getAttachedDocument(bufnr).textDocument
     let formatOptions = window.activeTextEditor.options
     let text = getInsertText(item, formatOptions)
-    let pos = item.range ? item.range.start : this._cursor
+    let pos = this._cursor
     if (item.range && !emptyRange(item.range)) {
-      // TODO need make start pos to be cursor pos
-      let edit = TextEdit.replace(item.range, text)
-      edit = reduceTextEdit(edit, doc.textDocument.getText(item.range))
-      pos = edit.range.start
-      text = edit.newText
+      let current = textDocument.getText(Range.create(item.range.start, pos))
+      text = text.slice(current.length)
+      if (comparePosition(pos, item.range.end) !== 0) {
+        let after = textDocument.getText(Range.create(pos, item.range.end))
+        if (text.endsWith(after)) {
+          text = text.slice(0, -after.length)
+        }
+      }
     }
-    const line = doc.getline(pos.line)
-    const col = byteIndex(line, pos.character) + 1
+    const line = toText(textDocument.lines[pos.line])
     const extra = this._items.length > 1 ? ` (${this._index + 1}/${this._items.length})` : ''
     this._bufnr = bufnr
     this._vtext = text
-    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, pos.line, col, text + extra])
+    const col = byteIndex(line, pos.character) + 1
+    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, pos.line, col, (text + extra).split('\n')])
     if (shown) {
       this.nvim.redrawVim()
       void events.fire('InlineShown', [item])
