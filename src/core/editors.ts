@@ -6,7 +6,9 @@ import events from '../events'
 import { createLogger } from '../logger'
 import type Document from '../model/document'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
+import { onUnexpectedError } from '../util/errors'
 import { sameFile } from '../util/fs'
+import { Mutex } from '../util/mutex'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import Documents from './documents'
 const logger = createLogger('core-editors')
@@ -51,11 +53,13 @@ export function renamed(editor: TextEditor, info: EditorInfo): boolean {
 
 export default class Editors {
   private disposables: Disposable[] = []
-  private winid: number
+  private winid = -1
+  private mutex: Mutex = new Mutex()
   private previousId: string | undefined
   private nvim: Neovim
   private editors: Map<number, TextEditor> = new Map()
   private tabIds: Set<number> = new Set()
+  private creating: Set<number> = new Set()
   private readonly _onDidTabClose = new Emitter<number>()
   private readonly _onDidChangeActiveTextEditor = new Emitter<TextEditor | undefined>()
   private readonly _onDidChangeVisibleTextEditors = new Emitter<ReadonlyArray<TextEditor>>()
@@ -89,6 +93,7 @@ export default class Editors {
   }
 
   private onChangeCurrent(editor: TextEditor | undefined): void {
+    if (!editor) return
     let id = editor.id
     if (id === this.previousId) return
     this.previousId = id
@@ -98,17 +103,10 @@ export default class Editors {
   public async attach(nvim: Neovim): Promise<void> {
     this.nvim = nvim
     let [winid, infos] = await nvim.eval(`[win_getid(),coc#util#editor_infos()]`) as [number, EditorInfo[]]
-    this.winid = winid
     await Promise.allSettled(infos.map(info => {
       return this.createTextEditor(info.winid)
     }))
-    events.on('BufUnload', bufnr => {
-      for (let [winid, editor] of this.editors.entries()) {
-        if (bufnr == editor.bufnr) {
-          this.editors.delete(winid)
-        }
-      }
-    }, null, this.disposables)
+    this.winid = winid
     events.on('CursorHold', this.checkEditors, this, this.disposables)
     events.on('TabNew', (tabid: number) => {
       this.tabIds.add(tabid)
@@ -128,6 +126,19 @@ export default class Editors {
     events.on('BufWinEnter', async (_: number, winid: number) => {
       this.winid = winid
       let changed = await this.createTextEditor(winid)
+      if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
+    }, null, this.disposables)
+    this.documents.onDidOpenTextDocument(async e => {
+      let document = this.documents.getDocument(e.bufnr)
+      let changed = false
+      for (let winid of document.winids) {
+        let editor = this.editors.get(winid)
+        // buffer can be reloaded
+        if (editor?.document !== document) {
+          let res = await this.createTextEditor(winid).catch(onUnexpectedError)
+          if (res) changed = true
+        }
+      }
       if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
     }, null, this.disposables)
   }
@@ -156,32 +167,38 @@ export default class Editors {
   }
 
   public async checkEditors(): Promise<void> {
-    let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`) as [number, number[], EditorInfo[]]
-    this.winid = winid
-    this.checkUnloadedBuffers(bufnrs)
-    let changed = false
-    let winids: Set<number> = new Set()
-    for (let info of infos) {
-      let editor = this.editors.get(info.winid)
-      let create = false
-      if (!editor) {
-        create = true
-      } else if (renamed(editor, info)) {
-        await events.fire('BufRename', [info.bufnr])
-        create = true
-      } else if (editor.document.bufnr != info.bufnr || editor.tabpageid != info.tabid) {
-        create = true
+    let { documents } = this
+    await this.mutex.use(async () => {
+      let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`) as [number, number[], EditorInfo[]]
+      this.winid = winid
+      this.checkUnloadedBuffers(bufnrs)
+      let changed = false
+      let winids: Set<number> = new Set()
+      for (let info of infos) {
+        let editor = this.editors.get(info.winid)
+        let create = false
+        if (!editor) {
+          create = true
+        } else if (renamed(editor, info)) {
+          void events.fire('BufRename', [info.bufnr])
+          create = true
+        } else if (editor.document.bufnr != info.bufnr
+          || editor.document !== documents.getDocument(info.bufnr)
+          || editor.tabpageid != info.tabid) {
+          create = true
+        }
+        if (create) {
+          await this.createTextEditor(info.winid)
+          changed = true
+        }
+        winids.add(info.winid)
       }
-      if (create) {
-        await this.createTextEditor(info.winid)
+      if (this.cleanUpEditors(winids)) {
         changed = true
       }
-      winids.add(info.winid)
-    }
-    if (this.cleanUpEditors(winids)) {
-      changed = true
-    }
-    if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
+      this.onChangeCurrent(this.activeTextEditor)
+      if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
+    })
   }
 
   public cleanUpEditors(winids: Set<number>): boolean {
@@ -196,26 +213,33 @@ export default class Editors {
   }
 
   private async createTextEditor(winid: number): Promise<boolean> {
-    let { documents, nvim } = this
+    let { documents, creating, nvim } = this
+    if (creating.has(winid)) return false
+    let changed = false
+    creating.add(winid)
     let opts = await nvim.call('coc#util#get_editoroption', [winid]) as EditorOption
-    if (!opts) return false
-    this.tabIds.add(opts.tabpageid)
-    let doc = documents.getDocument(opts.bufnr)
-    if (doc && doc.attached) {
-      let editor = this.fromOptions(opts)
-      this.editors.set(winid, editor)
-      if (winid == this.winid) this.onChangeCurrent(editor)
-      logger.debug('editor created winid & bufnr & tabpageid: ', winid, opts.bufnr, opts.tabpageid)
-      return true
-    } else {
-      this.editors.delete(opts.winid)
+    if (opts) {
+      this.tabIds.add(opts.tabpageid)
+      let doc = documents.getDocument(opts.bufnr)
+      if (doc && doc.attached) {
+        let editor = this.fromOptions(opts)
+        this.editors.set(winid, editor)
+        if (winid == this.winid) this.onChangeCurrent(editor)
+        logger.debug('editor created winid & bufnr & tabpageid: ', winid, opts.bufnr, opts.tabpageid)
+        changed = true
+      } else if (this.editors.has(winid)) {
+        this.editors.delete(winid)
+        changed = true
+      }
     }
-    return false
+    creating.delete(winid)
+    return changed
   }
 
   private fromOptions(opts: EditorOption): TextEditor {
     let { visibleRanges, bufnr, formatOptions } = opts
-    let document = this.documents.getDocument(bufnr)
+    let { documents } = this
+    let document = documents.getDocument(bufnr)
     return {
       id: `${opts.tabpageid}-${opts.winid}-${document.uri}`,
       tabpageid: opts.tabpageid,

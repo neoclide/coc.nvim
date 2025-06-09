@@ -226,6 +226,23 @@ describe('editors', () => {
     editor = editors.visibleTextEditors.find(o => o.tabpageid == tid)
     expect(editor).toBeUndefined()
   })
+
+  it('should recreate editor on document reload', async () => {
+    let doc = await helper.createDocument('foo')
+    let bufnr = doc.bufnr
+    await nvim.command('edit!')
+    await helper.waitValue(() => {
+      return workspace.getDocument(bufnr) !== doc
+    }, true)
+    doc = workspace.getDocument(bufnr)
+    expect(editors.activeTextEditor.document.bufnr).toBe(bufnr)
+    expect(editors.activeTextEditor.document === doc).toBe(true)
+    await nvim.command('setf javascript')
+    await helper.waitValue(() => {
+      return doc.filetype
+    }, 'javascript')
+    expect(editors.activeTextEditor.document.filetype).toBe('javascript')
+  })
 })
 
 describe('Tabs', () => {

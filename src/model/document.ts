@@ -6,6 +6,7 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import { createLogger } from '../logger'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
+import { toArray } from '../util/array'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, getConditionValue, sha256, wait, waitNextTick } from '../util/index'
@@ -53,6 +54,7 @@ export default class Document {
   private _notAttachReason = ''
   private _previewwindow = false
   private _winid = -1
+  private _winids: number[] = []
   private _filetype: string
   private _bufname: string
   private _commandLine = false
@@ -166,6 +168,10 @@ export default class Document {
     return this._winid
   }
 
+  public get winids(): ReadonlyArray<number> {
+    return this._winids
+  }
+
   /**
    * Returns if current document is opened with previewwindow
    * @deprecated
@@ -183,6 +189,7 @@ export default class Document {
     this._commandLine = opts.commandline === 1
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
+    this._winids = toArray(opts.winids)
     this.variables = toObject(opts.variables)
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1

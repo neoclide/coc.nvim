@@ -201,7 +201,7 @@ export default class Handler implements HandlerDelegate {
   }
 
   public get uri(): string | undefined {
-    return window.activeTextEditor?.document.uri
+    return window.activeTextEditor?.uri
   }
 
   public async getCurrentState(): Promise<CurrentState> {
