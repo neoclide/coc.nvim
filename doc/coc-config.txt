@@ -1928,7 +1928,7 @@ SUGGEST
 	Wait time between text change and completion start, cancel completion
 	when text changed during wait.
 
-	Scope: `language-overridable`, default: `50`
+	Scope: `language-overridable`, default: `0`
 
 "suggest.virtualText"					*coc-config-suggest-virtualText*
 
