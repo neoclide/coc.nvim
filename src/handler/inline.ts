@@ -60,23 +60,10 @@ export default class InlineCompletion {
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
     }, this, this.disposables)
-    let changedBufnr: number
-    let changedTime: number
-    events.on('TextChangedI', (bufnr, info) => {
-      if (info.insertChar) {
-        changedBufnr = bufnr
-        changedTime = Date.now()
-      }
-    }, null, this.disposables)
-    events.on('Enter', bufnr => {
-      changedBufnr = bufnr
-      changedTime = Date.now()
-    }, null, this.disposables)
     workspace.onDidChangeTextDocument(e => {
-      if (this.config.autoTrigger
+      if (this.supported
+        && this.config.autoTrigger
         && !languages.inlineCompletionItemManager.isEmpty
-        && changedBufnr == e.bufnr
-        && Date.now() - changedTime < 200
         && e.bufnr === window.activeTextEditor?.bufnr
         && events.insertMode
       ) {
