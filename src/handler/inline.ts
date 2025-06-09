@@ -55,44 +55,40 @@ export default class InlineCompletion {
   private config: InlineSuggestConfig
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    if (!this.supported) {
-      this.config = { autoTrigger: false, triggerCompletionWait: 0 }
-    } else {
+    this.loadConfiguration()
+    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
-      workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-      window.onDidChangeActiveTextEditor(() => {
-        this.loadConfiguration()
-      }, this, this.disposables)
-      let changedBufnr: number
-      let changedTime: number
-      events.on('TextChangedI', (bufnr, info) => {
-        if (info.insertChar) {
-          changedBufnr = bufnr
-          changedTime = Date.now()
-        }
-      }, null, this.disposables)
-      events.on('Enter', bufnr => {
+    }, this, this.disposables)
+    let changedBufnr: number
+    let changedTime: number
+    events.on('TextChangedI', (bufnr, info) => {
+      if (info.insertChar) {
         changedBufnr = bufnr
         changedTime = Date.now()
-      }, null, this.disposables)
-      workspace.onDidChangeTextDocument(e => {
-        if (this.config.autoTrigger
-          && !languages.inlineCompletionItemManager.isEmpty
-          && changedBufnr == e.bufnr
-          && Date.now() - changedTime < 200
-          && e.bufnr === window.activeTextEditor?.bufnr
-          && events.insertMode
-        ) {
-          const wait = this.config.triggerCompletionWait
-          const option = { autoTrigger: true }
-          this._trigger(e.bufnr, option, wait).catch(onUnexpectedError)
-        }
-      }, null, this.disposables)
+      }
+    }, null, this.disposables)
+    events.on('Enter', bufnr => {
+      changedBufnr = bufnr
+      changedTime = Date.now()
+    }, null, this.disposables)
+    workspace.onDidChangeTextDocument(e => {
+      if (this.config.autoTrigger
+        && !languages.inlineCompletionItemManager.isEmpty
+        && changedBufnr == e.bufnr
+        && Date.now() - changedTime < 200
+        && e.bufnr === window.activeTextEditor?.bufnr
+        && events.insertMode
+      ) {
+        const wait = this.config.triggerCompletionWait
+        const option = { autoTrigger: true }
+        this._trigger(e.bufnr, option, wait).catch(onUnexpectedError)
+      }
+    }, null, this.disposables)
 
-      events.on(['InsertCharPre', 'CursorMovedI', 'BufEnter', 'ModeChanged'], () => {
-        this.cancel()
-      }, null, this.disposables)
-    }
+    events.on(['InsertCharPre', 'CursorMovedI', 'BufEnter', 'ModeChanged'], () => {
+      this.cancel()
+    }, null, this.disposables)
     commands.titles.set('document.checkInlineCompletion', 'check inline completion state of current buffer')
     this.handler.addDisposable(commands.registerCommand('document.checkInlineCompletion', async () => {
       if (!this.supported) {
@@ -125,7 +121,7 @@ export default class InlineCompletion {
   }
 
   public get supported(): boolean {
-    return workspace.isVim || workspace.has('nvim-0.10.0')
+    return workspace.has('patch-9.0.0185') || workspace.has('nvim-0.7.0')
   }
 
   public get autoTrigger(): boolean {
