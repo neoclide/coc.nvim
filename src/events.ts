@@ -131,6 +131,7 @@ class Events {
   private _requesting = false
   private _ready = false
   private _mode = 'n'
+  private _pumInserted = false
   public timeout = 1000
   // public completing = false
 
@@ -148,6 +149,10 @@ class Events {
 
   public get mode(): string {
     return this._mode
+  }
+
+  public get pumInserted(): boolean {
+    return this._pumInserted
   }
 
   private fireVisibleEvent(ev: VisibleEvent): void {
@@ -171,6 +176,7 @@ class Events {
   public set completing(completing: boolean) {
     this._completing = completing
     this._pumVisible = completing
+    this._pumInserted = false
   }
 
   public get completing(): boolean {
@@ -254,6 +260,7 @@ class Events {
     } else if (event == EventName.MenuPopupChanged) {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
+      this._pumInserted = args[0].inserted
     } else if (event == EventName.InsertCharPre) {
       this._recentInserts.push([args[1], args[0]])
     } else if (event == EventName.TextChanged) {

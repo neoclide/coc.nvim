@@ -223,7 +223,7 @@ export default class Document {
         }
         this.lines = lines
         fireLinesChanged(bufnr)
-        if (events.completing) return
+        if (events.pumInserted) return
         this.fireContentChanges()
       }
     }
