@@ -27,7 +27,7 @@ import Format from './format'
 import Highlights from './highlights'
 import HoverHandler from './hover'
 import InlayHintHandler from './inlayHint/index'
-import InlineCompletion, { InlineSuggetOption } from './inline'
+import InlineCompletion, { InlineSuggestOption } from './inline'
 import LinkedEditingHandler from './linkedEditing'
 import Links from './links'
 import Locations from './locations'
@@ -179,7 +179,7 @@ export default class Handler implements HandlerDelegate {
       let locs = locations.filter(o => Location.is(o))
       return await this.refactor.fromLocations(locs)
     })
-    this.register('editor.action.triggerInlineCompletion', async (option?: InlineSuggetOption) => {
+    this.register('editor.action.triggerInlineCompletion', async (option?: InlineSuggestOption) => {
       let bufnr = await this.nvim.eval('bufnr("%")') as number
       return await this.inlineCompletion.trigger(bufnr, option)
     })
