@@ -454,7 +454,7 @@ export def SetBufferText(bufnr: number, start_row: number, start_col: number, en
           idx += 1
           continue
         endif
-        if prop.lnum > start_row + 1 || prop.col + prop.length > start_col + 1
+        if prop.lnum > start_row + 1 || prop.col + get(prop, 'length', 0) > start_col + 1
           break
         endif
         new_props->add(prop)

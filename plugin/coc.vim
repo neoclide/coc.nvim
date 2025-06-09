@@ -479,6 +479,7 @@ function! s:StaticHighlight() abort
   " Notification
   hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocNotificationButton  CocUnderline
+  hi default link CocNotificationKey     Comment
   hi default link CocNotificationError   CocErrorFloat
   hi default link CocNotificationWarning CocWarningFloat
   hi default link CocNotificationInfo    CocInfoFloat

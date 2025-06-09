@@ -114,6 +114,7 @@ endfunction
 " - zindex: (optional) zindex of window, default 50.
 " - borderchars: (optional) borderchars, should be length of 8
 " - nopad: (optional) not add pad when 1
+" - filter: (optional) filter property on vim9.
 " - index: (optional) line index
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
@@ -240,6 +241,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'scrollbarhighlight': 'CocFloatSbar',
           \ 'thumbhighlight': 'CocFloatThumb',
           \ }
+    if type(get(a:config, 'filter', v:null)) == v:t_func
+      let opts['filter'] = get(a:config, 'filter', v:null)
+    endif
     noa let winid = popup_create(bufnr, opts)
     call s:set_float_defaults(winid, a:config)
     call win_execute(winid, 'exe '.lnum)
@@ -622,8 +626,7 @@ function! coc#float#get_float_win_list(...) abort
     return filter(popup_list(), 'popup_getpos(v:val)["visible"]'.(list_all ? '' : '&& getwinvar(v:val, "float", 0)'))
   else
     let res = []
-    for i in range(1, winnr('$'))
-      let id = win_getid(i)
+    for id in nvim_list_wins()
       let config = nvim_win_get_config(id)
       if empty(config) || empty(config['relative'])
         continue
@@ -644,8 +647,7 @@ function! coc#float#get_float_by_kind(kind) abort
     return get(filter(popup_list(), 'popup_getpos(v:val)["visible"] && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
   else
     let res = []
-    for i in range(1, winnr('$'))
-      let winid = win_getid(i)
+    for winid in nvim_list_wins()
       let config = nvim_win_get_config(winid)
       if !empty(config['relative']) && getwinvar(winid, 'kind', '') ==# a:kind
         return winid

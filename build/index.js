@@ -33231,9 +33231,11 @@ function has(env, feature) {
   }
   return semver.gte(env.version, feature.slice(5));
 }
-async function callAsync(nvim, method, args) {
-  if (!isVim) return await nvim.call(method, args);
-  return await nvim.callAsync("coc#util#with_callback", [method, args]);
+function callAsync(nvim, method, args) {
+  return mutex.use(() => {
+    if (!isVim) return nvim.call(method, args);
+    return nvim.callAsync("coc#util#with_callback", [method, args]).catch(onUnexpectedError);
+  });
 }
 function createNameSpace(name2) {
   if (namespaceMap.has(name2)) return namespaceMap.get(name2);
@@ -33317,20 +33319,23 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
     return 0;
   }
 }
-var NAME_SPACE, resolver, namespaceMap;
+var NAME_SPACE, resolver, namespaceMap, mutex;
 var init_funcs = __esm({
   "src/core/funcs.ts"() {
     "use strict";
     init_esm();
     init_resolver();
     init_constants();
+    init_errors();
     init_fs();
+    init_mutex();
     init_node();
     init_platform();
     init_protocol();
     NAME_SPACE = 2e3;
     resolver = new Resolver();
     namespaceMap = /* @__PURE__ */ new Map();
+    mutex = new Mutex();
   }
 });
 
@@ -37597,11 +37602,9 @@ var init_dialogs = __esm({
             });
           });
         } else {
-          return await this.mutex.use(async () => {
-            let res = await callAsync(this.nvim, "input", [title + ": ", toText(value)]);
-            nvim.command("normal! :<C-u>", true);
-            return res;
-          });
+          let res = await callAsync(this.nvim, "input", [title + ": ", toText(value)]);
+          nvim.command("normal! :<C-u>", true);
+          return res;
         }
       }
       /**
@@ -37609,12 +37612,10 @@ var init_dialogs = __esm({
        */
       async requestInputList(prompt, items) {
         let { nvim } = this;
-        return await this.mutex.use(async () => {
-          let list2 = items.map((text, i) => `${i + 1}. ${text}`);
-          let res = await callAsync(this.nvim, "inputlist", [[`${prompt}:`, ...list2]]);
-          nvim.command("normal! :<C-u>", true);
-          return res >= 1 && res <= items.length ? res - 1 : -1;
-        });
+        let list2 = items.map((text, i) => `${i + 1}. ${text}`);
+        let res = await callAsync(this.nvim, "inputlist", [[`${prompt}:`, ...list2]]);
+        nvim.command("normal! :<C-u>", true);
+        return res >= 1 && res <= items.length ? res - 1 : -1;
       }
       async createInputBox(title, value, option) {
         let input = new InputBox(this.nvim, toText(value));
@@ -37768,6 +37769,7 @@ var init_notification = __esm({
     init_events();
     init_util();
     init_array();
+    init_string();
     Notification = class {
       constructor(nvim, config, attachEvents = true) {
         this.nvim = nvim;
@@ -37784,7 +37786,7 @@ var init_notification = __esm({
           events_default.on("FloatBtnClick", (bufnr, idx) => {
             if (bufnr == this.bufnr) {
               this.dispose();
-              if (config.callback) config.callback(btns[idx].index);
+              if (config.callback) config.callback(defaultValue(btns[idx]?.index, -1));
             }
           }, null, this.disposables);
         }
@@ -37796,7 +37798,7 @@ var init_notification = __esm({
         let { nvim } = this;
         let { buttons, kind, title } = this.config;
         let opts = Object.assign({}, preferences);
-        opts.kind = kind ?? "";
+        opts.kind = toText(kind);
         opts.close = this.config.closable === true ? 1 : 0;
         if (title) opts.title = title;
         if (preferences.border) {
@@ -37907,22 +37909,25 @@ var init_notifications = __esm({
     init_numbers();
     init_protocol();
     init_string();
+    init_funcs();
     init_ui();
     Notifications = class {
-      constructor(dialogs) {
-        this.dialogs = dialogs;
+      constructor() {
       }
       async _showMessage(kind, message, items) {
-        if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind);
-        let stack = Error().stack;
-        if (items.length > 0) {
-          let source = parseExtensionName(stack);
-          return await this.showMessagePicker(`Choose action ${toText(source)}`, message, `Coc${kind}Float`, items);
+        if (!this.enableMessageDialog) {
+          if (items.length > 0) {
+            return await this.showConfirm(message, items, kind);
+          }
+          let msgType = kind == "Info" ? "more" : kind == "Error" ? "error" : "warning";
+          this.echoMessages(message, msgType);
+          return void 0;
         }
-        await this.createNotification(kind.toLowerCase(), message, [], stack);
-        return void 0;
+        let texts = items.map((o) => typeof o === "string" ? o : o.title);
+        let idx = await this.createNotification(kind.toLowerCase(), message, texts);
+        return items[idx];
       }
-      createNotification(kind, message, items, stack) {
+      createNotification(kind, message, items) {
         return new Promise((resolve, reject) => {
           let config = {
             kind,
@@ -37933,29 +37938,17 @@ var init_notifications = __esm({
             }
           };
           let notification = new Notification(this.nvim, config);
-          notification.show(this.getNotificationPreference(stack)).catch(reject);
+          notification.show(this.getNotificationPreference()).catch(reject);
+          if (items.length == 0) {
+            resolve(-1);
+          }
         });
-      }
-      async showMessagePicker(title, content, hlGroup, items) {
-        let texts = items.map((o) => typeof o === "string" ? o : o.title);
-        let res = await this.dialogs.showMenuPicker(texts, {
-          position: "center",
-          content,
-          title: title.replace(/\r?\n/, " "),
-          borderhighlight: hlGroup
-        });
-        return items[res];
       }
       // fallback for vim without dialog
       async showConfirm(message, items, kind) {
-        if (!items || items.length == 0) {
-          let msgType = kind == "Info" ? "more" : kind == "Error" ? "error" : "warning";
-          this.echoMessages(message, msgType);
-          return void 0;
-        }
         let titles = toTitles(items);
         let choices = titles.map((s, i) => `${i + 1}${s}`);
-        let res = await this.nvim.callAsync("coc#util#with_callback", ["confirm", [message, choices.join("\n"), 0, kind]]);
+        let res = await callAsync(this.nvim, "confirm", [message, choices.join("\n"), 1, kind]);
         return items[res - 1];
       }
       echoMessages(msg, messageType) {
@@ -37980,8 +37973,7 @@ var init_notifications = __esm({
         let promise = new Promise((resolve) => {
           progress.onDidFinish(resolve);
         });
-        let stack = Error().stack;
-        await progress.show(Object.assign(this.getNotificationPreference(stack, options2.source), { minWidth }));
+        await progress.show(Object.assign(this.getNotificationPreference(options2.source, true), { minWidth }));
         return await promise;
       }
       async createStatusLineProgress(options2, task) {
@@ -38004,11 +37996,14 @@ var init_notifications = __esm({
       get enableMessageDialog() {
         return this.configuration.get("coc.preferences.enableMessageDialog", false);
       }
-      getNotificationPreference(stack, source) {
-        if (!source) source = parseExtensionName(stack);
+      getNotificationPreference(source, isProgress = false) {
+        if (!source) source = parseExtensionName(Error().stack);
         let config = this.configuration.get("notification");
-        let disabledList = defaultValue(config.disabledProgressSources, []);
-        let disabled = Array.isArray(disabledList) && (disabledList.includes("*") || disabledList.includes(source));
+        let disabled = false;
+        if (isProgress) {
+          let disabledList = defaultValue(config.disabledProgressSources, []);
+          disabled = Array.isArray(disabledList) && (disabledList.includes("*") || disabledList.includes(source));
+        }
         return {
           border: config.border,
           focusable: config.focusable,
@@ -38836,15 +38831,7 @@ var init_schema = __esm({
           anyOf: [
             {
               type: "string",
-              enum: [
-                "edit",
-                "split",
-                "vsplit",
-                "tabe",
-                "drop",
-                "tab drop",
-                "pedit"
-              ]
+              enum: ["edit", "split", "vsplit", "tabe", "drop", "tab drop", "pedit"]
             },
             { type: "string", minimum: 1 }
           ],
@@ -40623,13 +40610,7 @@ var init_schema = __esm({
         },
         "workspace.ignoredFolders": {
           type: "array",
-          default: [
-            "$HOME",
-            "$HOME/.cargo/**",
-            "$HOME/.rustup/**",
-            "$HOME/pkg/mod/**",
-            "$HOMEBREW_PREFIX/**"
-          ],
+          default: ["$HOME", "$HOME/.cargo/**", "$HOME/.rustup/**", "$HOME/pkg/mod/**", "$HOMEBREW_PREFIX/**"],
           scope: "application",
           description: "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
           items: {
@@ -79687,9 +79668,7 @@ var init_fileSystemWatcher2 = __esm({
         this._onDidCreateClient = new import_node4.Emitter();
         this.disabled = false;
         this.onDidCreateClient = this._onDidCreateClient.event;
-        if (!config.enable) {
-          this.disabled = true;
-        }
+        this.disabled = config.enable === false;
       }
       static {
         this.watchers = /* @__PURE__ */ new Set();
@@ -81126,7 +81105,9 @@ var init_workspace = __esm({
     init_status();
     init_strwidth();
     init_task();
+    init_util();
     init_constants();
+    init_errors();
     init_fs();
     init_node();
     init_object();
@@ -81161,17 +81142,17 @@ var init_workspace = __esm({
         this.onDidRuntimePathChange = this._onDidRuntimePathChange.event;
         void initFuzzyWasm().then((api) => {
           this.fuzzyExports = api;
-        });
+        }, onUnexpectedError);
         void StrWidth.create().then((strWdith) => {
           this.strWdith = strWdith;
-        });
+        }, onUnexpectedError);
         events_default.on("VimResized", (columns, lines) => {
           Object.assign(toObject(this.env), { columns, lines });
         });
         Object.defineProperty(this.statusLine, "nvim", {
           get: () => this.nvim
         });
-        let configurations = this.configurations = new Configurations(userConfigFile, new ConfigurationProxy(this));
+        this.configurations = new Configurations(userConfigFile, new ConfigurationProxy(this));
         this.workspaceFolderControl = new WorkspaceFolderController(this.configurations);
         let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl);
         this.contentProvider = new ContentProvider(documents);
@@ -81193,18 +81174,25 @@ var init_workspace = __esm({
         this.onWillCreateFiles = this.files.onWillCreateFiles;
         this.onWillRenameFiles = this.files.onWillRenameFiles;
         this.onWillDeleteFiles = this.files.onWillDeleteFiles;
-        let watchConfig = configurations.initialConfiguration.inspect("fileSystemWatch").globalValue ?? {};
-        let watchmanPath = watchConfig.watchmanPath ? watchConfig.watchmanPath : configurations.initialConfiguration.inspect("coc.preferences.watchmanPath").globalValue;
-        if (typeof watchmanPath === "string") watchmanPath = this.expand(watchmanPath);
-        const config = {
-          watchmanPath,
-          enable: watchConfig.enable == null ? true : !!watchConfig.enable,
-          ignoredFolders: (Array.isArray(watchConfig.ignoredFolders) ? watchConfig.ignoredFolders.filter((s) => typeof s === "string") : ["${tmpdir}", "/private/tmp", "/"]).map((p) => this.expand(p))
-        };
+        const config = this.getWatchConfig();
         this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config);
       }
       get initialConfiguration() {
         return this.configurations.initialConfiguration;
+      }
+      getWatchConfig() {
+        let { initialConfiguration } = this;
+        let watchConfig = defaultValue(initialConfiguration.get("fileSystemWatch"), {});
+        let watchmanPath = watchConfig.watchmanPath;
+        if (!watchmanPath) watchmanPath = initialConfiguration.inspect("coc.preferences.watchmanPath").globalValue;
+        if (typeof watchmanPath === "string") watchmanPath = this.expand(watchmanPath);
+        let ignoredFolders = defaultValue(watchConfig.ignoredFolders, ["${tmpdir}", "/private/tmp", "/"]);
+        let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false);
+        return {
+          watchmanPath,
+          enable,
+          ignoredFolders: ignoredFolders.map((p) => this.expand(p))
+        };
       }
       async init(window2) {
         let { nvim } = this;
@@ -81229,7 +81217,6 @@ var init_workspace = __esm({
           });
         }
         let env = this._env = await nvim.call("coc#util#vim_info");
-        window2.init(env);
         this.checkVersion(APIVERSION);
         this.configurations.updateMemoryConfig(this._env.config);
         this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders);
@@ -82722,7 +82709,7 @@ var init_window = __esm({
         this.highlights = new Highlights();
         this.terminalManager = new Terminals();
         this.dialogs = new Dialogs();
-        this.notifications = new Notifications(this.dialogs);
+        this.notifications = new Notifications();
         Object.defineProperty(this.highlights, "nvim", {
           get: () => this.nvim
         });
@@ -82741,8 +82728,6 @@ var init_window = __esm({
         Object.defineProperty(this.notifications, "statusLine", {
           get: () => this.workspace.statusLine
         });
-      }
-      init(_env) {
       }
       get activeTextEditor() {
         return this.workspace.editors.activeTextEditor;
@@ -88412,7 +88397,7 @@ var init_search = __esm({
         argList.push("--", p ? path.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
         this.task = new Task2();
         this.task.start(cmd, argList, cwd2);
-        let mutex = new Mutex();
+        let mutex2 = new Mutex();
         let files = 0;
         let matches = 0;
         let start = Date.now();
@@ -88421,7 +88406,7 @@ var init_search = __esm({
           if (fileItems.length == 0) return;
           let items = fileItems.slice();
           fileItems = [];
-          const release = await mutex.acquire();
+          const release = await mutex2.acquire();
           try {
             await refactorBuf.addFileItems(items);
           } catch (e) {
@@ -88446,7 +88431,7 @@ var init_search = __esm({
             clearInterval(interval2);
             try {
               await addFileItems();
-              const release = await mutex.acquire();
+              const release = await mutex2.acquire();
               release();
               this.task.removeAllListeners();
               this.task = null;
@@ -90801,6 +90786,7 @@ var init_workspace2 = __esm({
     import_v8 = require("v8");
     init_esm();
     init_commands();
+    init_funcs();
     init_workspaceFolder();
     init_extension();
     init_languages();
@@ -90946,7 +90932,7 @@ var init_workspace2 = __esm({
       async renameCurrent() {
         let { nvim } = this;
         let oldPath = await nvim.call("coc#util#get_fullpath", []);
-        let newPath = await nvim.callAsync("coc#util#with_callback", ["input", ["New path: ", oldPath, "file"]]);
+        let newPath = await callAsync(nvim, "input", ["New path: ", oldPath, "file"]);
         newPath = newPath.trim();
         if (newPath === oldPath || !newPath) return;
         if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
@@ -91034,7 +91020,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-d425554 2025-06-01 02:02:45 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-67b9429 2025-06-06 19:07:24 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

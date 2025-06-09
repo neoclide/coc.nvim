@@ -3456,6 +3456,8 @@ CocNotification 					*CocNotification*
 
 *CocNotificationProgress* for progress line in progress notification.
 *CocNotificationButton* for action buttons in notification window.
+*CocNotificationKey* for function keys which trigger actions in notification
+popups (vim9 only).
 *CocNotificationError* for highlight border of error notification.
 *CocNotificationWarning* for highlight border of warning notification.
 *CocNotificationInfo* for highlight border of info notification.
