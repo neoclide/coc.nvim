@@ -70,6 +70,7 @@ describe('has()', () => {
     }
     expect(funcs.has(env, 'patch-7.4.248')).toBe(true)
     expect(funcs.has(env, 'patch-8.5.1')).toBe(false)
+    expect(funcs.has(env, 'patch-9.0.0125')).toBe(false)
   })
 
   it('should delete version on neovim', async () => {

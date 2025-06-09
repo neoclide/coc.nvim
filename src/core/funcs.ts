@@ -43,9 +43,15 @@ export function has(env: PartialEnv, feature: string): boolean {
   if (env.isVim) {
     let [_, major, minor, patch] = env.version.match(/^(\d)(\d{2})(\d+)$/)
     let version = `${major}.${parseInt(minor, 10)}.${parseInt(patch, 10)}`
-    return semver.gte(version, feature.slice(6))
+    return semver.gte(version, convertVersion(feature.slice(6)))
   }
   return semver.gte(env.version, feature.slice(5))
+}
+
+// convert to valid semver version 9.0.0138 to 9.0.138
+function convertVersion(version: string): string {
+  let parts = version.split('.')
+  return `${parseInt(parts[0], 10)}.${parseInt(parts[1], 10)}.${parseInt(parts[2], 10)}`
 }
 
 export function callAsync<T>(nvim: Neovim, method: string, args: any[]): Promise<T> {
