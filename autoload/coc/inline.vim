@@ -1,8 +1,7 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let n10 = has('nvim-0.10')
 let s:inline_ns = coc#highlight#create_namespace('inlineSuggest')
-let s:is_supported = s:is_vim || n10
+let s:is_supported = has('patch-9.0.0185') || has('nvim-0.7')
 let s:hl_group = 'CocInlineVirtualText'
 
 function! coc#inline#visible() abort
@@ -48,11 +47,7 @@ function! coc#inline#clear(...) abort
 endfunction
 
 function! coc#inline#_insert(bufnr, lineidx, col, text) abort
-  if !s:is_supported
-    call timer_start(0, { -> execute('echoe "vim9 or neovim >= 0.10 required for inline completion"')})
-    return v:false
-  endif
-  if bufnr('%') != a:bufnr || mode() !~ '^i'
+  if !s:is_supported || bufnr('%') != a:bufnr || mode() !~ '^i' || empty(a:text)
     return v:false
   endif
   call coc#inline#clear(a:bufnr)
