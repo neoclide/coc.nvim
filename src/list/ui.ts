@@ -65,6 +65,14 @@ export default class ListUI {
       this.window = null
       this._onDidClose.fire(bufnr)
     }, null, this.disposables)
+    events.on('WinClosed', winid => {
+      if (this.winid == winid) {
+        let { bufnr } = this
+        this.window = null
+        this.buffer = null
+        this._onDidClose.fire(bufnr)
+      }
+    }, null, this.disposables)
     events.on('CursorMoved', async (bufnr, cursor) => {
       if (bufnr != this.bufnr) return
       let idx = this.lnumToIndex(cursor[0])
