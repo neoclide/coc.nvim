@@ -86,7 +86,7 @@ export class InlineSesion {
   }
 
   public get extra(): string {
-    return this.length > 1 ? ` (${this.index + 1}/${this.length})` : ''
+    return this.length > 1 ? `(${this.index + 1}/${this.length})` : ''
   }
 
   public get nextIndex(): number {
@@ -308,7 +308,7 @@ export default class InlineCompletion {
     }
     const line = toText(textDocument.lines[cursor.line])
     const col = byteIndex(line, cursor.character) + 1
-    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, cursor.line, col, (text + extra).split('\n')])
+    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, cursor.line, col, text.split('\n'), extra])
     if (shown) {
       this.session.vtext = text
       this.nvim.redrawVim()

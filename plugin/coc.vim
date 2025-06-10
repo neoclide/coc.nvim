@@ -508,6 +508,7 @@ function! s:StaticHighlight() abort
   else
     hi def CocInlineVirtualText guifg=#808080 ctermfg=12
   endif
+  hi def link CocInlineAnnotation MoreMsg
 endfunction
 
 call s:StaticHighlight()
