@@ -143,6 +143,11 @@ export default class InlineCompletion {
         void window.showWarningMessage(`Buffer ${bufnr} is not attached, see ':h coc-document-attached'.`)
         return
       }
+      let disable = await nvim.createBuffer(bufnr).getVar('coc_inline_disable') as number
+      if (disable == 1) {
+        void window.showWarningMessage(`Trigger inline compation is disabled by b:coc_inline_disable.`)
+        return
+      }
       let providers = languages.inlineCompletionItemManager.getProviders(doc.textDocument)
       if (providers.length === 0) {
         void window.showWarningMessage(`Inline completion provider not found for buffer ${bufnr}.`)
@@ -187,7 +192,7 @@ export default class InlineCompletion {
     this.cancel()
     option = option ?? {}
     let document = workspace.getAttachedDocument(bufnr)
-    if (!languages.hasProvider(ProviderName.InlineCompletion, document)) return false
+    if (document.getVar('inline_disable') == 1 || !languages.hasProvider(ProviderName.InlineCompletion, document)) return false
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     if (delay) await waitWithToken(delay, token)
@@ -196,7 +201,11 @@ export default class InlineCompletion {
     }
     if (token.isCancellationRequested) return false
     let state = await this.handler.getCurrentState()
-    if (state.doc.bufnr !== bufnr || !state.mode.startsWith('i') || token.isCancellationRequested) return false
+    let disable = await document.buffer.getVar('coc_inline_disable') as number
+    if (disable == 1
+      || state.doc.bufnr !== bufnr
+      || !state.mode.startsWith('i')
+      || token.isCancellationRequested) return false
     let position = state.position
     let items = await languages.provideInlineCompletionItems(document.textDocument, state.position, {
       provider: option.provider,
