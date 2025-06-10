@@ -364,13 +364,13 @@ describe('window', () => {
 
     it('should show confirm for message', async () => {
       helper.updateConfiguration('coc.preferences.enableMessageDialog', false)
+      let spy = jest.spyOn(nvim, 'call').mockImplementationOnce((method, _args) => {
+        expect(method).toBe('confirm')
+        return Promise.resolve('2') as any
+      })
       let p = window.showInformationMessage('error message', 'first', 'second')
-      await helper.waitValue(async () => {
-        let m = await nvim.mode
-        return m.mode
-      }, 'c')
-      await nvim.input('2')
       let res = await p
+      spy.mockRestore()
       expect(res).toBe('second')
     })
   })
