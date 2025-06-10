@@ -88,7 +88,7 @@ describe('InlineCompletion', () => {
       await inlineCompletion.insertVtext(item)
       expect(nvim.call).toHaveBeenCalledWith(
         'coc#inline#_insert',
-        [doc.bufnr, 0, 6, ['completion text']]
+        [doc.bufnr, 0, 6, ['completion text'], '']
       )
       expect(inlineCompletion.session.vtext).toBe('completion text')
     })
@@ -102,7 +102,7 @@ describe('InlineCompletion', () => {
       await inlineCompletion.insertVtext(item1)
       expect(nvim.call).toHaveBeenCalledWith(
         'coc#inline#_insert',
-        [doc.bufnr, 0, 1, ['first (1/2)']]
+        [doc.bufnr, 0, 1, ['first'], '(1/2)']
       )
     })
 
@@ -180,7 +180,7 @@ describe('InlineCompletion', () => {
       await inlineCompletion.insertVtext(item)
       expect(nvim.call).toHaveBeenCalledWith(
         'coc#inline#_insert',
-        [doc.bufnr, 0, 1, 'line1\nline2\nline3'.split('\n')]
+        [doc.bufnr, 0, 1, 'line1\nline2\nline3'.split('\n'), ""]
       )
       expect(inlineCompletion.session.vtext).toBe('line1\nline2\nline3')
     })

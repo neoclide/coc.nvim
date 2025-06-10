@@ -3610,6 +3610,8 @@ Inline completion related ~
 
 *CocInlineVirtualText* for virtual text of |coc-inlineCompletion|, defaulting
 to a medium gray.
+*CocInlineAnnotation* for annotation virtual text of |coc-inlineCompletion|,
+defaulting to "MoreMsg".
 
 Symbol icons ~
 

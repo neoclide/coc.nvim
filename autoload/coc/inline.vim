@@ -3,6 +3,7 @@ let s:is_vim = !has('nvim')
 let s:inline_ns = coc#highlight#create_namespace('inlineSuggest')
 let s:is_supported = has('patch-9.0.0185') || has('nvim-0.7')
 let s:hl_group = 'CocInlineVirtualText'
+let s:annot_hlgroup = 'CocInlineAnnotation'
 
 function! coc#inline#visible() abort
   return coc#vtext#exists(bufnr('%'), s:inline_ns)
@@ -46,7 +47,7 @@ function! coc#inline#clear(...) abort
   call coc#compat#call('buf_clear_namespace', [bufnr, s:inline_ns, 0, -1])
 endfunction
 
-function! coc#inline#_insert(bufnr, lineidx, col, lines) abort
+function! coc#inline#_insert(bufnr, lineidx, col, lines, annot) abort
   if !s:is_supported || bufnr('%') != a:bufnr || mode() !~ '^i' || col('.') != a:col
     return v:false
   endif
@@ -57,6 +58,9 @@ function! coc#inline#_insert(bufnr, lineidx, col, lines) abort
       \ 'hl_mode': 'replace',
       \ }
   let blocks = [[a:lines[0], s:hl_group]]
+  if !empty(a:annot)
+    let blocks += [[' '], [a:annot, s:annot_hlgroup]]
+  endif
   if len(a:lines) > 1
     let option['virt_lines'] = map(a:lines[1:], {idx, line -> [[line, s:hl_group]]})
   endif
