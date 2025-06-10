@@ -76,6 +76,7 @@ export class InlineCompletionItemFeature extends TextDocumentLanguageFeature<boo
           : provideInlineCompletionItems(document, position, context, token)
       }
     }
+    this._client.attachExtensionName(provider)
     return [languages.registerInlineCompletionItemProvider(options.documentSelector, provider), provider]
   }
 }

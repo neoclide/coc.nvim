@@ -701,8 +701,8 @@ INLINE COMPLETION					*coc-inlineCompletion*
 
 Inline Completion is a smart, lightweight alternative to traditional
 IntelliSense, offering faster, context-aware suggestions without disrupting
-your workflow.  Inline completion is automatically triggered after user insert
-text by default.
+your workflow.  Inline completion is automatically triggered after document
+contents synchronize on insert mode by default.
 
 Use command `:CocCommand document.checkInlineCompletion` to check inline
 completion feature of current buffer.
@@ -2474,10 +2474,13 @@ coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 coc#inline#trigger([{option}]) 				*coc#inline#trigger()*
 
 	Parameters: ~
-		{option} 	Optional option object.
-				- `provider` the provider name (normally the
-				  same to extension name which provide
-				  inline complete items).
+		{option} Optional option object. Which can have
+		following properties:
+		- `provider` the provider name (the extension name or
+		  Language Client id which register inline completion
+		  provider), all valid providers will be requested in parallel
+		  when not specified.
+
 	Return `""`
 
 coc#inline#visible() 					*coc#inline#visible()*
@@ -2494,11 +2497,15 @@ coc#inline#cancel() 					*coc#inline#cancel()*
 	Note: this function uses |CocActionAsync|, use it in key-mappings
 	instead of API.
 
-coc#inline#accept() 					*coc#inline#accept()*
+coc#inline#accept([{kind}]) 					*coc#inline#accept()*
 
-	Accept in current inline completion by insert text to current buffer
-	when possible, nothing happens when inline completion is not
-	activated.
+	Accept current inline completion by insert text to current buffer when
+	possible, nothing happens when inline completion is not activated.
+
+	Parameters: ~
+		{kind} 	Optional accept kind of inline completion, could be
+		one of "all", "word", "line".  Default to "all" which means
+		accept full insert text of complete item.
 
 	Note: this function uses |CocActionAsync|, use it in key-mappings
 	instead of API.

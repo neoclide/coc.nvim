@@ -99,7 +99,7 @@ export default class Manager<T extends object, P = object> {
     return item ? item.provider : null
   }
 
-  protected getProviders(document: TextDocumentMatch): ProviderItem<T, P>[] {
+  public getProviders(document: TextDocumentMatch): ProviderItem<T, P>[] {
     let items = Array.from(this.providers)
     items = items.filter(item => workspace.match(item.selector, document) > 0)
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))

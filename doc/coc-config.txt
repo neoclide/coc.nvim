@@ -1950,10 +1950,10 @@ INLINE COMPLETION
 
 "inlineSuggest.triggerCompletionWait"   		*coc-config-inlineSuggest-triggerCompletionWait*
 
-	Wait time in milliseconds between text changed and trigger inline
+	Wait time in milliseconds between text synchronize and trigger inline
 	completion.
 
-	Scope: `language-overridable`, default: `50`
+	Scope: `language-overridable`, default: `0`
 
 ------------------------------------------------------------------------------
 TYPEHIERARCHY

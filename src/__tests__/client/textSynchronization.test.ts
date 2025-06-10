@@ -218,6 +218,7 @@ describe('TextDocumentSynchronization', () => {
 
     it('should send incremental change event', async () => {
       let client = createClient([{ scheme: 'lsptest' }])
+      expect(client.isSynced('untitled:///1')).toBe(false)
       await client.start()
       await client.sendNotification('registerDocumentSync')
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
@@ -229,10 +230,11 @@ describe('TextDocumentSynchronization', () => {
         called = true
       })
       let doc = await helper.createDocument(`${uuidv4()}.vim`)
-      await nvim.call('setline', [1, 'foo'])
-      await doc.synchronize()
+      await helper.waitValue(() => {
+        return client.isSynced(doc.uri)
+      }, true)
       await nvim.call('setline', [1, 'bar'])
-      await doc.synchronize()
+      await doc.patchChange()
       await helper.waitValue(() => {
         return called
       }, true)

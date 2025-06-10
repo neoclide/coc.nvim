@@ -19,7 +19,7 @@ import workspace from '../workspace'
 import { HandlerDelegate } from './types'
 const logger = createLogger('handler-inline')
 
-export const NAMESPACE = 'inlineSuggest'
+const NAMESPACE = 'inlineSuggest'
 
 export interface InlineSuggestOption {
   provider?: string
@@ -40,12 +40,13 @@ export function formatInsertText(text: string, opts: FormattingOptions): string 
   lines = lines.map(line => {
     let space = line.match(/^\s*/)[0]
     let isTab = space.startsWith('\t')
+    let len = space.length
     if (isTab && opts.insertSpaces) {
       space = ind.repeat(space.length)
     } else if (!isTab && !opts.insertSpaces) {
       space = ind.repeat(space.length / tabSize)
     }
-    return space + line.slice(space.length)
+    return space + line.slice(len)
   })
   return lines.join('\n')
 }
@@ -59,12 +60,46 @@ export function getInsertText(item: InlineCompletionItem, formatOptions: Formatt
   return formatInsertText(item.insertText, formatOptions)
 }
 
+export class InlineSesion {
+  constructor(
+    public readonly bufnr: number,
+    public readonly cursor: Position,
+    public readonly items: InlineCompletionItem[],
+    public index = 0,
+    public vtext: string | undefined = undefined
+  ) {
+  }
+
+  public get length(): number {
+    return this.items.length
+  }
+
+  public get selected(): InlineCompletionItem | undefined {
+    return this.items[this.index]
+  }
+
+  public clearNamespace(): void {
+    if (this.vtext) {
+      workspace.nvim.createBuffer(this.bufnr).clearNamespace(NAMESPACE)
+      this.vtext = undefined
+    }
+  }
+
+  public get extra(): string {
+    return this.length > 1 ? ` (${this.index + 1}/${this.length})` : ''
+  }
+
+  public get nextIndex(): number {
+    return this.index === this.length - 1 ? 0 : this.index + 1
+  }
+
+  public get prevIndex(): number {
+    return this.index === 0 ? this.length - 1 : this.index - 1
+  }
+}
+
 export default class InlineCompletion {
-  private _bufnr: number | undefined
-  private _items: InlineCompletionItem[] = []
-  private _index = 0
-  private _cursor = Position.create(0, 0)
-  private _vtext: string
+  public session: InlineSesion | undefined
   private tokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
   private config: InlineSuggestConfig
@@ -78,41 +113,49 @@ export default class InlineCompletion {
     workspace.onDidChangeTextDocument(e => {
       if (languages.inlineCompletionItemManager.isEmpty === false
         && this.config.autoTrigger
-        && this.supported
-        && e.bufnr === window.activeTextEditor?.bufnr
+        && e.bufnr === defaultValue(window.activeTextEditor, {} as any).bufnr
         && events.insertMode
       ) {
         const wait = this.config.triggerCompletionWait
         const option = { autoTrigger: true }
-        this._trigger(e.bufnr, option, wait).catch(onUnexpectedError)
+        this.trigger(e.bufnr, option, wait).catch(onUnexpectedError)
       }
     }, null, this.disposables)
 
-    events.on(['InsertCharPre', 'CursorMovedI', 'BufEnter', 'ModeChanged'], () => {
+    events.on(['InsertCharPre', 'CursorMovedI', 'ModeChanged'], () => {
       this.cancel()
     }, null, this.disposables)
+    workspace.onDidCloseTextDocument(e => {
+      if (e.bufnr === this.session?.bufnr) {
+        this.cancel()
+      }
+    }, null, this.disposables)
+
     commands.titles.set('document.checkInlineCompletion', 'check inline completion state of current buffer')
     this.handler.addDisposable(commands.registerCommand('document.checkInlineCompletion', async () => {
       if (!this.supported) {
-        return window.showWarningMessage(`Inline completion is not supported, requires neovim >= 0.10.0`)
-      }
-      if (!this.autoTrigger) {
-        return window.showWarningMessage(`Inline completion auto trigger disabled by configuration "inlineSuggest.autoTrigger"`)
+        void window.showWarningMessage(`Inline completion is not supported on current vim ${workspace.env.version}`)
+        return
       }
       let bufnr = await this.nvim.eval('bufnr("%")') as number
-      try {
-        if (!this.hasProvider(bufnr)) {
-          void window.showWarningMessage(`Inline completion provider not found for buffer ${bufnr}.`)
-        }
-      } catch (e) {
-        void window.showWarningMessage((e as Error).message)
+      let doc = workspace.getDocument(bufnr)
+      if (!doc || !doc.attached) {
+        void window.showWarningMessage(`Buffer ${bufnr} is not attached, see ':h coc-document-attached'.`)
+        return
       }
+      let providers = languages.inlineCompletionItemManager.getProviders(doc.textDocument)
+      if (providers.length === 0) {
+        void window.showWarningMessage(`Inline completion provider not found for buffer ${bufnr}.`)
+        return
+      }
+      let names = providers.map(item => item.provider['__extensionName'] ?? 'unknown')
+      void window.showInformationMessage(`Inline completion is supported by ${names.join(', ')}.`)
     }))
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('inlineSuggest')) {
-      let doc = window.activeTextEditor?.document
+      let doc = defaultValue<any>(window.activeTextEditor, {}).document
       let config = workspace.getConfiguration('inlineSuggest', doc)
       let autoTrigger = defaultValue<boolean>(config.inspect('autoTrigger').globalValue as boolean, true)
       this.config = Object.assign(this.config ?? {}, {
@@ -126,25 +169,8 @@ export default class InlineCompletion {
     return workspace.has('patch-9.0.0185') || workspace.has('nvim-0.7.0')
   }
 
-  public get autoTrigger(): boolean {
-    return this.config.autoTrigger
-  }
-
   public get selected(): InlineCompletionItem | undefined {
-    return this._items[this._index]
-  }
-
-  public isSelected(): boolean {
-    return this.selected != null
-  }
-
-  public hasProvider(bufnr: number): boolean {
-    let doc = workspace.getAttachedDocument(bufnr)
-    return doc && languages.hasProvider(ProviderName.InlineCompletion, doc.textDocument)
-  }
-
-  public get namespace(): Promise<number> {
-    return this.nvim.createNamespace(NAMESPACE)
+    return this.session?.selected
   }
 
   public async visible(): Promise<boolean> {
@@ -152,72 +178,61 @@ export default class InlineCompletion {
     return !!result
   }
 
-  public async trigger(bufnr: number, option: InlineSuggestOption): Promise<void> {
-    await this._trigger(bufnr, option)
+  public get vtextBufnr(): number {
+    return this.session?.vtext == null ? -1 : this.session.bufnr
   }
 
-  private async _trigger(bufnr: number, option: InlineSuggestOption, delay?: number): Promise<void> {
+  public async trigger(bufnr: number, option?: InlineSuggestOption, delay?: number): Promise<boolean> {
+    if (!this.supported) return false
     this.cancel()
+    option = option ?? {}
     let document = workspace.getAttachedDocument(bufnr)
-    if (!languages.hasProvider(ProviderName.InlineCompletion, document)) return
+    if (!languages.hasProvider(ProviderName.InlineCompletion, document)) return false
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     if (delay) await waitWithToken(delay, token)
-    if (!option.autoTrigger && document.hasChanged) {
+    if (option.autoTrigger !== true && document.hasChanged) {
       await document.synchronize()
     }
-    if (token.isCancellationRequested) return
+    if (token.isCancellationRequested) return false
     let state = await this.handler.getCurrentState()
-    if (state.doc.bufnr !== bufnr || !state.mode.startsWith('i') || token.isCancellationRequested) return
-    this._cursor = state.position
+    if (state.doc.bufnr !== bufnr || !state.mode.startsWith('i') || token.isCancellationRequested) return false
+    let position = state.position
     let items = await languages.provideInlineCompletionItems(document.textDocument, state.position, {
       provider: option.provider,
       selectedCompletionInfo: completion.selectedCompletionInfo,
       triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
     }, token)
-    if (token.isCancellationRequested) return
+    if (token.isCancellationRequested) return false
     items = toArray(items).filter(item => {
-      if (item.range) return positionInRange(this._cursor, item.range) === 0
+      if (item.range) return positionInRange(position, item.range) === 0
       return true
     })
     if (items.length === 0) {
       if (!option.autoTrigger) {
         void window.showWarningMessage(`No inline completion items from provider.`)
       }
-      return
+      return false
     }
-    this._items = items
-    this._index = 0
-    await this.insertVtext(bufnr, items[0])
+    this.session = new InlineSesion(bufnr, position, items)
+    await this.insertVtext(items[0])
+    return true
   }
 
-  public cancel(): void {
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-      this.tokenSource.dispose()
-      this.tokenSource = undefined
-    }
-    if (this._bufnr) {
-      this.nvim.createBuffer(this._bufnr).clearNamespace(NAMESPACE)
-    }
-    this._items = []
-    this._bufnr = undefined
-  }
-
-  public async accept(bufnr: number, kind: AcceptKind = 'all'): Promise<void> {
-    if (bufnr !== this._bufnr) return
+  public async accept(bufnr: number, kind: AcceptKind = 'all'): Promise<boolean> {
+    if (bufnr !== this.vtextBufnr || !this.selected) return false
     let item = this.selected
-    if (!item) return
+    let cursor = this.session.cursor
+    let insertedText = this.session.vtext
     this.cancel()
     let doc = workspace.getAttachedDocument(bufnr)
     let insertedLength = 0
     if (StringValue.isSnippet(item.insertText) && kind == 'all') {
-      let range = item.range ? item.range : Range.create(this._cursor, this._cursor)
+      let range = defaultValue(item.range, Range.create(cursor, cursor))
       let edit = TextEdit.replace(range, item.insertText.value)
       await commands.executeCommand('editor.action.insertSnippet', edit)
     } else {
-      let insertedText = this._vtext
-      let range: Range
+      let range = Range.create(cursor, cursor)
       if (kind == 'word') {
         let total = 0
         for (let i = 1; i < insertedText.length; i++) {
@@ -235,12 +250,10 @@ export default class InlineCompletion {
         insertedLength = insertText.length
       } else {
         insertedText = getInsertText(item, window.activeTextEditor.options)
-        range = item.range
+        if (item.range) range = item.range
       }
-      range = range ?? Range.create(this._cursor, this._cursor)
-      const pos = getEnd(range.start, insertedText)
       await doc.applyEdits([TextEdit.replace(range, insertedText)], false, false)
-      await window.moveTo(pos)
+      await window.moveTo(getEnd(range.start, insertedText))
     }
     if (item.command) {
       try {
@@ -249,58 +262,63 @@ export default class InlineCompletion {
         logger.error(`Error on execute command "${item.command.command}"`, err)
       }
     }
-    if (insertedLength) {
-      await events.fire('InlineAccept', [insertedLength, item])
-    }
+    await events.fire('InlineAccept', [insertedLength, item])
+    return true
   }
 
   public async next(bufnr: number): Promise<void> {
-    if (bufnr !== this._bufnr || this.length <= 1) return
-    let idx = this._index === this.length - 1 ? 0 : this._index + 1
-    let item = this._items[idx]
-    this._index = idx
-    await this.insertVtext(bufnr, item)
+    await this._navigate(true, bufnr)
   }
 
   public async prev(bufnr: number): Promise<void> {
-    if (bufnr !== this._bufnr || this.length <= 1) return
-    let idx = this._index === 0 ? this.length - 1 : this._index - 1
-    let item = this._items[idx]
-    this._index = idx
-    await this.insertVtext(bufnr, item)
+    await this._navigate(false, bufnr)
   }
 
-  public get length(): number {
-    return this._items.length
+  private async _navigate(next: boolean, bufnr: number): Promise<void> {
+    if (bufnr !== this.vtextBufnr || this.session.length <= 1) return
+    let idx = next ? this.session.nextIndex : this.session.prevIndex
+    this.session.index = idx
+    await this.insertVtext(this.session.selected)
   }
 
-  public async insertVtext(bufnr: number, item: InlineCompletionItem): Promise<void> {
+  public async insertVtext(item: InlineCompletionItem): Promise<void> {
+    if (!this.session || !item) return
+    const { bufnr, extra, cursor } = this.session
     let textDocument = workspace.getAttachedDocument(bufnr).textDocument
     let formatOptions = window.activeTextEditor.options
     let text = getInsertText(item, formatOptions)
-    let pos = this._cursor
     if (item.range && !emptyRange(item.range)) {
-      let current = textDocument.getText(Range.create(item.range.start, pos))
+      let current = textDocument.getText(Range.create(item.range.start, cursor))
       text = text.slice(current.length)
-      if (comparePosition(pos, item.range.end) !== 0) {
-        let after = textDocument.getText(Range.create(pos, item.range.end))
+      if (comparePosition(cursor, item.range.end) !== 0) {
+        let after = textDocument.getText(Range.create(cursor, item.range.end))
         if (text.endsWith(after)) {
           text = text.slice(0, -after.length)
         }
       }
     }
-    const line = toText(textDocument.lines[pos.line])
-    const extra = this._items.length > 1 ? ` (${this._index + 1}/${this._items.length})` : ''
-    this._bufnr = bufnr
-    this._vtext = text
-    const col = byteIndex(line, pos.character) + 1
-    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, pos.line, col, (text + extra).split('\n')])
+    const line = toText(textDocument.lines[cursor.line])
+    const col = byteIndex(line, cursor.character) + 1
+    let shown = await this.nvim.call('coc#inline#_insert', [bufnr, cursor.line, col, (text + extra).split('\n')])
     if (shown) {
+      this.session.vtext = text
       this.nvim.redrawVim()
       void events.fire('InlineShown', [item])
-    } else {
-      this._bufnr = undefined
-      this._items = []
+    } else if (this.session) {
+      this.session.clearNamespace()
+      this.session = undefined
+    }
+  }
+
+  public cancel(): void {
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+      this.tokenSource.dispose()
+      this.tokenSource = undefined
+    }
+    if (this.session) {
+      this.session.clearNamespace()
+      this.session = undefined
     }
   }
 

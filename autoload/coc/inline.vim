@@ -54,7 +54,6 @@ function! coc#inline#_insert(bufnr, lineidx, col, lines) abort
   call coc#pum#clear_vtext()
   let option = {
       \ 'col': a:col,
-      \ 'text_align': 'wrap',
       \ 'hl_mode': 'replace',
       \ }
   let blocks = [[a:lines[0], s:hl_group]]

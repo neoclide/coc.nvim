@@ -36,7 +36,7 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
     context: ExtendedInlineContext,
     token: CancellationToken
   ): Promise<InlineCompletionItem[]> {
-    let providers: ProviderItem<InlineCompletionItemProvider>[]
+    let providers: ProviderItem<InlineCompletionItemProvider>[] = []
     if (context.provider) {
       let item = this.getProvideByExtension(document, context.provider)
       if (item) providers = [item]
