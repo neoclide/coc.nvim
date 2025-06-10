@@ -2351,8 +2351,8 @@
     },
     "inlineSuggest.triggerCompletionWait": {
       "type": "integer",
-      "default": 50,
-      "minimum": 10,
+      "default": 0,
+      "minimum": 0,
       "maximum": 1000,
       "scope": "language-overridable",
       "description": "Wait time in milliseconds between text change and trigger inline completion."

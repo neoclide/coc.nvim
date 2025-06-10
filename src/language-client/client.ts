@@ -1361,6 +1361,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public async forceDocumentSync(): Promise<void> {
   }
 
+  public isSynced(uri: string): boolean {
+    return this._syncedDocuments ? this._syncedDocuments.has(uri) : false
+  }
+
   protected abstract createMessageTransports(encoding: string): Promise<MessageTransports | null>
 
   private async createConnection(): Promise<Connection> {
