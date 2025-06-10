@@ -729,6 +729,15 @@ Related functions: ~
 Customize completion: ~
 
 Use |coc-config-inlineSuggest| to change the inline completion behavior.
+To disable inline completion for special buffers, use language overridable
+configuration in coc-settings.json like: >
+
+	"[javascript][typescript]": {
+		"inlineSuggest.enable": false
+	}
+<
+Which disable auto trigger only, or use |b:coc_inline_disable| to disable
+trigger inline completion completely.
 
 Related Highlight groups:
 	|CocInlineVirtualText| for virtual text highlight.
@@ -1778,10 +1787,17 @@ b:coc_root_patterns					*b:coc_root_patterns*
 <
 b:coc_suggest_disable					*b:coc_suggest_disable*
 
-	Disable completion support of current buffer. Example: >
+	Disable trigger completion of buffer. Example: >
 
 	" Disable completion for python
 	autocmd FileType python let b:coc_suggest_disable = 1
+
+b:coc_inline_disable					*b:coc_inline_disable*
+
+	Disable trigger inline completion of buffer. Example: >
+
+	" Disable inline completion for python
+	autocmd FileType python let b:coc_inline_disable = 1
 
 b:coc_disabled_sources 					*b:coc_disabled_sources*
 

@@ -703,6 +703,15 @@ describe('InlineCompletion', () => {
         expect(showInformationMessageSpy).not.toHaveBeenCalled()
       })
 
+      it('should show warning when disabled by b:coc_inline_disable', async () => {
+        let doc = await workspace.document
+        await doc.buffer.setVar('coc_inline_disable', true)
+        await commands.executeCommand('document.checkInlineCompletion')
+        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('disabled'))
+        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        doc.buffer.deleteVar('coc_inline_disable')
+      })
+
       it('should show warning if no providers are found', async () => {
         const mockDoc = { bufnr: 1, attached: true, textDocument: {} } as any
         getDocumentSpy.mockReturnValue(mockDoc)
