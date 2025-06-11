@@ -21,6 +21,7 @@ LSP features
 	CodeLens 				|coc-config-codeLens|
 	Colors 					|coc-config-colors|
 	Completion 				|coc-config-suggest|
+	Inline completion 			|coc-config-inlineSuggest|
 	Cursors 				|coc-config-cursors|
 	Diagnostics 				|coc-config-diagnostic|
 	Document highlight 			|coc-config-documentHighlight|
@@ -1935,6 +1936,24 @@ SUGGEST
 	complete item.
 
 	Scope: `application`, default: `false`
+
+------------------------------------------------------------------------------
+INLINE COMPLETION
+							*coc-config-inlineSuggest*
+
+"inlineSuggest.autoTrigger"				*coc-config-inlineSuggest-autoTrigger*
+
+	Enable automatically trigger inline completion after completion done
+	or cursor hold.
+
+	Scope: `language-overridable`, default: `true`
+
+"inlineSuggest.triggerCompletionWait"   		*coc-config-inlineSuggest-triggerCompletionWait*
+
+	Wait time in milliseconds between text synchronize and trigger inline
+	completion.
+
+	Scope: `language-overridable`, default: `10`
 
 ------------------------------------------------------------------------------
 TYPEHIERARCHY

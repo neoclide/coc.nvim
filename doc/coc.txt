@@ -17,6 +17,7 @@ LSP features 					|coc-lsp|
   Document 					|coc-document|
   Hover 					|coc-hover|
   Completion					|coc-completion|
+  Inline completion				|coc-inlineCompletion|
   Diagnostics 					|coc-diagnostics|
   Pull diagnostics 				|coc-pullDiagnostics|
   Locations 					|coc-locations|
@@ -81,8 +82,8 @@ Coc.nvim enhances your (Neo)Vim to match the user experience provided by
 VSCode through a rich extension ecosystem and implemented the client features
 specified by Language Server Protocol (3.17 for now), see |coc-lsp|.
 
-Some features (like completion) automatically works by default, all of them
-can be disabled by |coc-configuration|.
+Some features (like completion and inline completion) automatically works by
+default, all of them can be disabled by |coc-configuration|.
 
 Some key features: ~
 
@@ -424,7 +425,8 @@ are not.
 
 Features automatically work by default: ~
 
-  • Trigger completion |coc-completion|.
+  • Trigger completion after text insert |coc-completion|.
+  • Trigger inline completion |coc-inlineCompletion|
   • Diagnostics refresh |coc-diagnostics|.
   • Pull diagnostics |coc-pullDiagnostics|.
   • Trigger signature help |coc-signature|.
@@ -574,23 +576,20 @@ To make the new completion works like the builtin completion, without any
 additional configuration, the following key-mappings are used when the {lhs}
 is not mapped:
 
-Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
+  • `<C-n>` navigate to next complete item or inline complete item.
+  • `<C-p>` navigate to previous complete item or inline complete item.
+  • `<down>` navigate to next complete item (without word insert) or inline
+    complete item.
+  • `<up>` navigate to previous complete item (without word insert) or inline
+    complete item.
+  • `<C-e>` cancel the completion or inline completion.
+  • `<C-y>` confirm completion or accept current inline complete item.
 
-  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
-  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
-  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
-  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
-<
 Use <PageDown> and <PageUp> to scroll: >
 
   inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
   inoremap <silent><expr> <PageUp> coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
 <
-Use <C-e> and <C-y> to cancel and confirm completion: >
-
-  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
-  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
-
 Note: <CR> and <Tab> are not remapped by coc.nvim.
 
 							*coc-completion-variables*
@@ -633,6 +632,8 @@ Related Highlight groups:
 	|CocPum| 	for highlight groups of customized pum.
 	|CocSymbol| 	for kind icons.
 	|CocMenuSel| 	for background highlight of selected item.
+	|CocPumVirtualText| for virtual text when enabled by
+	|coc-config-suggest-virtualText|.
 
 Note: background, border, title and winblend are configured by
 |coc-config-suggest-floatConfig|.
@@ -675,11 +676,12 @@ to format on enter, use: >
   inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#select_confirm()
 				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
-Map <tab> for trigger completion, completion confirm, snippet expand and jump
-like VSCode: >
+Map <tab> for trigger completion, completion confirm, inline completion accept,
+snippet expand and jump like VSCode: >
 
   inoremap <silent><expr> <TAB>
     \ coc#pum#visible() ? coc#pum#select_confirm() :
+    \ coc#inline#visible() ? coc#inline#accept() :
     \ coc#expandableOrJumpable() ?
     \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
     \ CheckBackspace() ? "\<TAB>" :
@@ -693,6 +695,52 @@ like VSCode: >
   let g:coc_snippet_next = '<tab>'
 <
 Note: the `coc-snippets` extension is required for this to work.
+
+------------------------------------------------------------------------------
+INLINE COMPLETION					*coc-inlineCompletion*
+
+Inline Completion is a smart, lightweight alternative to traditional
+IntelliSense, offering faster, context-aware suggestions without disrupting
+your workflow.  Inline completion is automatically triggered after document
+contents synchronize on insert mode by default.
+
+Use command `:CocCommand document.checkInlineCompletion` to check inline
+completion feature of current buffer.
+
+							*coc-inlineCompletion-default*
+Default Key-mappings: ~
+
+Inline completion and default completion shares default key mappings for
+navigate and finish actions. see |coc-completion-default|.  To accept inline
+completion when pum is visible, finish the completion first or use
+|coc#inline#accept()|.
+
+							*coc-inlineCompletion-functions*
+Related functions: ~
+
+  • Trigger inline completion: |coc#inline#trigger()|.
+  • Check if inline completion visual text exists: |coc#inline#visible()|.
+  • Cancel inline completion: |coc#inline#cancel()|.
+  • Accept inline completion: |coc#inline#accept()|.
+  • Navigate to next: |coc#inline#next()|.
+  • Navigate to previous: |coc#inline#prev()|.
+
+							*coc-inlineCompletion-customize*
+Customize completion: ~
+
+Use |coc-config-inlineSuggest| to change the inline completion behavior.
+To disable inline completion for special buffers, use language overridable
+configuration in coc-settings.json like: >
+
+	"[javascript][typescript]": {
+		"inlineSuggest.autoTrigger": false
+	}
+<
+Which disable auto trigger only, or use |b:coc_inline_disable| to disable
+trigger inline completion completely.
+
+Related Highlight groups:
+	|CocInlineVirtualText| for virtual text highlight.
 
 ------------------------------------------------------------------------------
 DIAGNOSTICS SUPPORT 					*coc-diagnostics*
@@ -1739,10 +1787,17 @@ b:coc_root_patterns					*b:coc_root_patterns*
 <
 b:coc_suggest_disable					*b:coc_suggest_disable*
 
-	Disable completion support of current buffer. Example: >
+	Disable trigger completion of buffer. Example: >
 
 	" Disable completion for python
 	autocmd FileType python let b:coc_suggest_disable = 1
+
+b:coc_inline_disable					*b:coc_inline_disable*
+
+	Disable trigger inline completion of buffer. Example: >
+
+	" Disable inline completion for python
+	autocmd FileType python let b:coc_inline_disable = 1
 
 b:coc_disabled_sources 					*b:coc_disabled_sources*
 
@@ -2345,9 +2400,8 @@ coc#pum#stop() 						*coc#pum#stop()*
 
 coc#pum#cancel() 					*coc#pum#cancel()*
 
-	Cancel the customized popupmenu and reset the trigger input before
-	cursor, like <C-e> of vim.  When no completion item selected, close
-	the popup menu only.
+	Close the customized popupmenu and reset the trigger input before
+	cursor when the trigger changed by pum navigation, like <C-e> of vim.
 
 	Note: this function should only be used in <expr> key-mappings.
 
@@ -2432,6 +2486,63 @@ coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 
 	Parameters: ~
 		{forward} 	Scroll forward when none zero.
+
+coc#inline#trigger([{option}]) 				*coc#inline#trigger()*
+
+	Parameters: ~
+		{option} Optional option object. Which can have
+		following properties:
+		- `provider` the provider name (the extension name or
+		  Language Client id which register inline completion
+		  provider), all valid providers will be requested in parallel
+		  when not specified.
+		- `silent` when truthy no message would be shown when no
+		  inline completion items exists.
+
+	Return `""`
+
+coc#inline#visible() 					*coc#inline#visible()*
+
+	Return `1` when inline completion visual text exists for current
+	buffer.
+
+coc#inline#cancel() 					*coc#inline#cancel()*
+
+	Cancel the inline completion request and clear inline completion
+	virtual text of current buffer.
+	Return `""`.
+
+	Note: this function uses |CocActionAsync|, use it in key-mappings
+	instead of API.
+
+coc#inline#accept([{kind}]) 					*coc#inline#accept()*
+
+	Accept current inline completion by insert text to current buffer when
+	possible, nothing happens when inline completion is not activated.
+
+	Parameters: ~
+		{kind} 	Optional accept kind of inline completion, could be
+		one of "all", "word", "line".  Default to "all" which means
+		accept full insert text of complete item.
+
+	Note: this function uses |CocActionAsync|, use it in key-mappings
+	instead of API.
+
+coc#inline#next() 					*coc#inline#next()*
+
+	Navigate to next inline complete item.
+	Return `""`.
+
+	Note: this function uses |CocActionAsync|, use it in key-mappings
+	instead of API.
+
+coc#inline#prev() 					*coc#inline#prev()*
+
+	Navigate to previous inline complete item.
+	Return `""`.
+
+	Note: this function uses |CocActionAsync|, use it in key-mappings
+	instead of API.
 
 							*coc#notify*
 coc#notify#close_all()					*coc#notify#close_all()*
@@ -2582,6 +2693,9 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	message would be echoed.
 
 	Checkout |coc-actions| for available actions.
+
+	Note: callback function required to get the vim state after the
+	action.
 
 CocHasProvider({feature}, [{bufnr}])			*CocHasProvider()*
 
@@ -3361,12 +3475,12 @@ AUTOCMD							*coc-autocmds*
 
 HIGHLIGHTS						*coc-highlights*
 
-The best place to override highlight groups is a file named
-after/colors/<colorschemename> .vim in your 'runtimepath' (e.g.,
-~/.config/nvim/after/colors/solarized.vim). Example declaration:
+The best place to override the highlights is with a |ColorScheme| autocommand:
 >
 	" make error texts have a red color
-	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
+	autocmd ColorScheme solarized
+              \ highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
+
 <
 Use |:highlight| with group name to check current highlight.
 
@@ -3490,8 +3604,16 @@ possible detail and description).
 *CocPumMenu* for menu of complete item.
 *CocPumShortcut* for shortcut text of source.
 *CocPumDeprecated* for deprecated label.
-*CocPumVirtualText* for virtual text which enabled by
-|coc-config-suggest-virtualText|
+*CocPumVirtualText* for inserted virtual text from word of selected complete
+item, enabled by |coc-config-suggest-virtualText|.
+
+							*CocInline*
+Inline completion related ~
+
+*CocInlineVirtualText* for virtual text of |coc-inlineCompletion|, defaulting
+to a medium gray.
+*CocInlineAnnotation* for annotation virtual text of |coc-inlineCompletion|,
+defaulting to "MoreMsg".
 
 Symbol icons ~
 

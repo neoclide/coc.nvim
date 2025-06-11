@@ -30,11 +30,16 @@ local function addVirtualText(bufnr, ns, opts, pre, priority)
       else
         config.virt_text_pos = 'eol'
       end
+      if type(opts.virt_lines) == 'table' then
+        config.virt_lines = opts.virt_lines
+        config.virt_text_pos = 'overlay'
+      end
     end
     if type(priority) == 'number' then
       config.priority = math.min(priority, 4096)
     end
-    local col = config.virt_text_pos == 'inline' and column - 1 or 0
+    local col = column ~= 0 and column - 1 or 0
+    -- api.nvim_buf_set_extmark(bufnr, ns, opts.line, col, config)
     -- Error: col value outside range
     pcall(api.nvim_buf_set_extmark, bufnr, ns, opts.line, col, config)
 end

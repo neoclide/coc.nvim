@@ -360,7 +360,7 @@ var require_brace_expansion = __commonJS({
         var isSequence = isNumericSequence || isAlphaSequence;
         var isOptions = m.body.indexOf(",") >= 0;
         if (!isSequence && !isOptions) {
-          if (m.post.match(/,.*\}/)) {
+          if (m.post.match(/,(?!,).*\}/)) {
             str = m.pre + "{" + m.body + escClose + m.post;
             return expand2(str);
           }
@@ -1525,10 +1525,11 @@ var require_commonjs = __commonJS({
         for (let i = 0; i < globParts.length - 1; i++) {
           for (let j = i + 1; j < globParts.length; j++) {
             const matched = this.partsMatch(globParts[i], globParts[j], !this.preserveMultipleSlashes);
-            if (!matched)
-              continue;
-            globParts[i] = matched;
-            globParts[j] = [];
+            if (matched) {
+              globParts[i] = [];
+              globParts[j] = matched;
+              break;
+            }
           }
         }
         return globParts.filter((gs) => gs.length);
@@ -1923,14 +1924,13 @@ var require_commonjs2 = __commonJS({
       }
     };
     var LRUCache2 = class _LRUCache {
-      // properties coming in from the options of these, only max and maxSize
-      // really *need* to be protected. The rest can be modified, as they just
-      // set defaults for various methods.
+      // options that cannot be changed without disaster
       #max;
       #maxSize;
       #dispose;
       #disposeAfter;
       #fetchMethod;
+      #memoMethod;
       /**
        * {@link LRUCache.OptionsBase.ttl}
        */
@@ -2076,6 +2076,9 @@ var require_commonjs2 = __commonJS({
       get fetchMethod() {
         return this.#fetchMethod;
       }
+      get memoMethod() {
+        return this.#memoMethod;
+      }
       /**
        * {@link LRUCache.OptionsBase.dispose} (read-only)
        */
@@ -2089,7 +2092,7 @@ var require_commonjs2 = __commonJS({
         return this.#disposeAfter;
       }
       constructor(options2) {
-        const { max = 0, ttl, ttlResolution = 1, ttlAutopurge, updateAgeOnGet, updateAgeOnHas, allowStale, dispose, disposeAfter, noDisposeOnSet, noUpdateTTL, maxSize = 0, maxEntrySize = 0, sizeCalculation, fetchMethod, noDeleteOnFetchRejection, noDeleteOnStaleGet, allowStaleOnFetchRejection, allowStaleOnFetchAbort, ignoreFetchAbort } = options2;
+        const { max = 0, ttl, ttlResolution = 1, ttlAutopurge, updateAgeOnGet, updateAgeOnHas, allowStale, dispose, disposeAfter, noDisposeOnSet, noUpdateTTL, maxSize = 0, maxEntrySize = 0, sizeCalculation, fetchMethod, memoMethod, noDeleteOnFetchRejection, noDeleteOnStaleGet, allowStaleOnFetchRejection, allowStaleOnFetchAbort, ignoreFetchAbort } = options2;
         if (max !== 0 && !isPosInt(max)) {
           throw new TypeError("max option must be a nonnegative integer");
         }
@@ -2109,6 +2112,10 @@ var require_commonjs2 = __commonJS({
             throw new TypeError("sizeCalculation set to non-function");
           }
         }
+        if (memoMethod !== void 0 && typeof memoMethod !== "function") {
+          throw new TypeError("memoMethod must be a function if defined");
+        }
+        this.#memoMethod = memoMethod;
         if (fetchMethod !== void 0 && typeof fetchMethod !== "function") {
           throw new TypeError("fetchMethod must be a function if specified");
         }
@@ -2179,7 +2186,8 @@ var require_commonjs2 = __commonJS({
         }
       }
       /**
-       * Return the remaining TTL time for a given entry key
+       * Return the number of ms left in the item's TTL. If item is not in cache,
+       * returns `0`. Returns `Infinity` if item is in cache without a defined TTL.
        */
       getRemainingTTL(key) {
         return this.#keyMap.has(key) ? Infinity : 0;
@@ -2195,7 +2203,7 @@ var require_commonjs2 = __commonJS({
           if (ttl !== 0 && this.ttlAutopurge) {
             const t = setTimeout(() => {
               if (this.#isStale(index)) {
-                this.delete(this.#keyList[index]);
+                this.#delete(this.#keyList[index], "expire");
               }
             }, ttl + 1);
             if (t.unref) {
@@ -2432,13 +2440,14 @@ var require_commonjs2 = __commonJS({
         return this.entries();
       }
       /**
-       * A String value that is used in the creation of the default string description of an object.
-       * Called by the built-in method Object.prototype.toString.
+       * A String value that is used in the creation of the default string
+       * description of an object. Called by the built-in method
+       * `Object.prototype.toString`.
        */
       [Symbol.toStringTag] = "LRUCache";
       /**
        * Find a value for which the supplied fn method returns a truthy value,
-       * similar to Array.find().  fn is called as fn(value, key, cache).
+       * similar to `Array.find()`. fn is called as `fn(value, key, cache)`.
        */
       find(fn, getOptions = {}) {
         for (const i of this.#indexes()) {
@@ -2452,10 +2461,15 @@ var require_commonjs2 = __commonJS({
         }
       }
       /**
-       * Call the supplied function on each item in the cache, in order from
-       * most recently used to least recently used.  fn is called as
-       * fn(value, key, cache).  Does not update age or recenty of use.
-       * Does not iterate over stale values.
+       * Call the supplied function on each item in the cache, in order from most
+       * recently used to least recently used.
+       *
+       * `fn` is called as `fn(value, key, cache)`.
+       *
+       * If `thisp` is provided, function will be called in the `this`-context of
+       * the provided object, or the cache if no `thisp` object is provided.
+       *
+       * Does not update age or recenty of use, or iterate over stale values.
        */
       forEach(fn, thisp = this) {
         for (const i of this.#indexes()) {
@@ -2487,7 +2501,7 @@ var require_commonjs2 = __commonJS({
         let deleted = false;
         for (const i of this.#rindexes({ allowStale: true })) {
           if (this.#isStale(i)) {
-            this.delete(this.#keyList[i]);
+            this.#delete(this.#keyList[i], "expire");
             deleted = true;
           }
         }
@@ -2495,9 +2509,15 @@ var require_commonjs2 = __commonJS({
       }
       /**
        * Get the extended info about a given entry, to get its value, size, and
-       * TTL info simultaneously. Like {@link LRUCache#dump}, but just for a
-       * single key. Always returns stale values, if their info is found in the
-       * cache, so be sure to check for expired TTLs if relevant.
+       * TTL info simultaneously. Returns `undefined` if the key is not present.
+       *
+       * Unlike {@link LRUCache#dump}, which is designed to be portable and survive
+       * serialization, the `start` value is always the current timestamp, and the
+       * `ttl` is a calculated remaining time to live (negative if expired).
+       *
+       * Always returns stale values, if their info is found in the cache, so be
+       * sure to check for expirations (ie, a negative {@link LRUCache.Entry#ttl})
+       * if relevant.
        */
       info(key) {
         const i = this.#keyMap.get(key);
@@ -2524,7 +2544,16 @@ var require_commonjs2 = __commonJS({
       }
       /**
        * Return an array of [key, {@link LRUCache.Entry}] tuples which can be
-       * passed to cache.load()
+       * passed to {@link LRLUCache#load}.
+       *
+       * The `start` fields are calculated relative to a portable `Date.now()`
+       * timestamp, even if `performance.now()` is available.
+       *
+       * Stale entries are always included in the `dump`, even if
+       * {@link LRUCache.OptionsBase.allowStale} is false.
+       *
+       * Note: this returns an actual array, not a generator, so it can be more
+       * easily passed around.
        */
       dump() {
         const arr = [];
@@ -2549,8 +2578,12 @@ var require_commonjs2 = __commonJS({
       }
       /**
        * Reset the cache and load in the items in entries in the order listed.
-       * Note that the shape of the resulting cache may be different if the
-       * same options are not used in both caches.
+       *
+       * The shape of the resulting cache may be different if the same options are
+       * not used in both caches.
+       *
+       * The `start` fields are assumed to be calculated relative to a portable
+       * `Date.now()` timestamp, even if `performance.now()` is available.
        */
       load(arr) {
         this.clear();
@@ -2567,6 +2600,30 @@ var require_commonjs2 = __commonJS({
        *
        * Note: if `undefined` is specified as a value, this is an alias for
        * {@link LRUCache#delete}
+       *
+       * Fields on the {@link LRUCache.SetOptions} options param will override
+       * their corresponding values in the constructor options for the scope
+       * of this single `set()` operation.
+       *
+       * If `start` is provided, then that will set the effective start
+       * time for the TTL calculation. Note that this must be a previous
+       * value of `performance.now()` if supported, or a previous value of
+       * `Date.now()` if not.
+       *
+       * Options object may also include `size`, which will prevent
+       * calling the `sizeCalculation` function and just use the specified
+       * number if it is a positive integer, and `noDisposeOnSet` which
+       * will prevent calling a `dispose` function in the case of
+       * overwrites.
+       *
+       * If the `size` (or return value of `sizeCalculation`) for a given
+       * entry is greater than `maxEntrySize`, then the item will not be
+       * added to the cache.
+       *
+       * Will update the recency of the entry.
+       *
+       * If the value is `undefined`, then this is an alias for
+       * `cache.delete(key)`. `undefined` is never stored in the cache.
        */
       set(k, v, setOptions2 = {}) {
         if (v === void 0) {
@@ -2581,7 +2638,7 @@ var require_commonjs2 = __commonJS({
             status.set = "miss";
             status.maxEntrySizeExceeded = true;
           }
-          this.delete(k);
+          this.#delete(k, "set");
           return this;
         }
         let index = this.#size === 0 ? void 0 : this.#keyMap.get(k);
@@ -2715,6 +2772,14 @@ var require_commonjs2 = __commonJS({
        * Will return false if the item is stale, even though it is technically
        * in the cache.
        *
+       * Check if a key is in the cache, without updating the recency of
+       * use. Age is updated if {@link LRUCache.OptionsBase.updateAgeOnHas} is set
+       * to `true` in either the options or the constructor.
+       *
+       * Will return `false` if the item is stale, even though it is technically in
+       * the cache. The difference can be determined (if it matters) by using a
+       * `status` argument, and inspecting the `has` field.
+       *
        * Will not update item age unless
        * {@link LRUCache.OptionsBase.updateAgeOnHas} is set.
        */
@@ -2797,7 +2862,7 @@ var require_commonjs2 = __commonJS({
               if (bf2.__staleWhileFetching) {
                 this.#valList[index] = bf2.__staleWhileFetching;
               } else {
-                this.delete(k);
+                this.#delete(k, "fetch");
               }
             } else {
               if (options2.status)
@@ -2823,7 +2888,7 @@ var require_commonjs2 = __commonJS({
           if (this.#valList[index] === p) {
             const del = !noDelete || bf2.__staleWhileFetching === void 0;
             if (del) {
-              this.delete(k);
+              this.#delete(k, "fetch");
             } else if (!allowStaleAborted) {
               this.#valList[index] = bf2.__staleWhileFetching;
             }
@@ -2961,6 +3026,28 @@ var require_commonjs2 = __commonJS({
           return staleVal ? p.__staleWhileFetching : p.__returned = p;
         }
       }
+      async forceFetch(k, fetchOptions = {}) {
+        const v = await this.fetch(k, fetchOptions);
+        if (v === void 0)
+          throw new Error("fetch() returned undefined");
+        return v;
+      }
+      memo(k, memoOptions = {}) {
+        const memoMethod = this.#memoMethod;
+        if (!memoMethod) {
+          throw new Error("no memoMethod provided to constructor");
+        }
+        const { context, forceRefresh, ...options2 } = memoOptions;
+        const v = this.get(k, options2);
+        if (!forceRefresh && v !== void 0)
+          return v;
+        const vv = memoMethod(k, v, {
+          options: options2,
+          context
+        });
+        this.set(k, vv, options2);
+        return vv;
+      }
       /**
        * Return a value from the cache. Will update the recency of the cache
        * entry found.
@@ -2980,7 +3067,7 @@ var require_commonjs2 = __commonJS({
               status.get = "stale";
             if (!fetching) {
               if (!noDeleteOnStaleGet) {
-                this.delete(k);
+                this.#delete(k, "expire");
               }
               if (status && allowStale)
                 status.returnedStale = true;
@@ -3024,16 +3111,20 @@ var require_commonjs2 = __commonJS({
       }
       /**
        * Deletes a key out of the cache.
+       *
        * Returns true if the key was deleted, false otherwise.
        */
       delete(k) {
+        return this.#delete(k, "delete");
+      }
+      #delete(k, reason) {
         let deleted = false;
         if (this.#size !== 0) {
           const index = this.#keyMap.get(k);
           if (index !== void 0) {
             deleted = true;
             if (this.#size === 1) {
-              this.clear();
+              this.#clear(reason);
             } else {
               this.#removeItemSize(index);
               const v = this.#valList[index];
@@ -3041,10 +3132,10 @@ var require_commonjs2 = __commonJS({
                 v.__abortController.abort(new Error("deleted"));
               } else if (this.#hasDispose || this.#hasDisposeAfter) {
                 if (this.#hasDispose) {
-                  this.#dispose?.(v, k, "delete");
+                  this.#dispose?.(v, k, reason);
                 }
                 if (this.#hasDisposeAfter) {
-                  this.#disposed?.push([v, k, "delete"]);
+                  this.#disposed?.push([v, k, reason]);
                 }
               }
               this.#keyMap.delete(k);
@@ -3078,6 +3169,9 @@ var require_commonjs2 = __commonJS({
        * Clear the cache entirely, throwing away all values.
        */
       clear() {
+        return this.#clear("delete");
+      }
+      #clear(reason) {
         for (const index of this.#rindexes({ allowStale: true })) {
           const v = this.#valList[index];
           if (this.#isBackgroundFetch(v)) {
@@ -3085,10 +3179,10 @@ var require_commonjs2 = __commonJS({
           } else {
             const k = this.#keyList[index];
             if (this.#hasDispose) {
-              this.#dispose?.(v, k, "delete");
+              this.#dispose?.(v, k, reason);
             }
             if (this.#hasDisposeAfter) {
-              this.#disposed?.push([v, k, "delete"]);
+              this.#disposed?.push([v, k, reason]);
             }
           }
         }
@@ -5974,12 +6068,15 @@ var require_ignore = __commonJS({
       relativeChildren;
       absolute;
       absoluteChildren;
+      platform;
+      mmopts;
       constructor(ignored, { nobrace, nocase, noext, noglobstar, platform: platform2 = defaultPlatform }) {
         this.relative = [];
         this.absolute = [];
         this.relativeChildren = [];
         this.absoluteChildren = [];
-        const mmopts = {
+        this.platform = platform2;
+        this.mmopts = {
           dot: true,
           nobrace,
           nocase,
@@ -5990,32 +6087,34 @@ var require_ignore = __commonJS({
           nocomment: true,
           nonegate: true
         };
-        for (const ign of ignored) {
-          const mm = new minimatch_1.Minimatch(ign, mmopts);
-          for (let i = 0; i < mm.set.length; i++) {
-            const parsed = mm.set[i];
-            const globParts = mm.globParts[i];
-            if (!parsed || !globParts) {
-              throw new Error("invalid pattern object");
-            }
-            while (parsed[0] === "." && globParts[0] === ".") {
-              parsed.shift();
-              globParts.shift();
-            }
-            const p = new pattern_js_1.Pattern(parsed, globParts, 0, platform2);
-            const m = new minimatch_1.Minimatch(p.globString(), mmopts);
-            const children = globParts[globParts.length - 1] === "**";
-            const absolute = p.isAbsolute();
+        for (const ign of ignored)
+          this.add(ign);
+      }
+      add(ign) {
+        const mm = new minimatch_1.Minimatch(ign, this.mmopts);
+        for (let i = 0; i < mm.set.length; i++) {
+          const parsed = mm.set[i];
+          const globParts = mm.globParts[i];
+          if (!parsed || !globParts) {
+            throw new Error("invalid pattern object");
+          }
+          while (parsed[0] === "." && globParts[0] === ".") {
+            parsed.shift();
+            globParts.shift();
+          }
+          const p = new pattern_js_1.Pattern(parsed, globParts, 0, this.platform);
+          const m = new minimatch_1.Minimatch(p.globString(), this.mmopts);
+          const children = globParts[globParts.length - 1] === "**";
+          const absolute = p.isAbsolute();
+          if (absolute)
+            this.absolute.push(m);
+          else
+            this.relative.push(m);
+          if (children) {
             if (absolute)
-              this.absolute.push(m);
+              this.absoluteChildren.push(m);
             else
-              this.relative.push(m);
-            if (children) {
-              if (absolute)
-                this.absoluteChildren.push(m);
-              else
-                this.relativeChildren.push(m);
-            }
+              this.relativeChildren.push(m);
           }
         }
       }
@@ -6307,13 +6406,19 @@ var require_walker = __commonJS({
       #sep;
       signal;
       maxDepth;
+      includeChildMatches;
       constructor(patterns, path2, opts) {
         this.patterns = patterns;
         this.path = path2;
         this.opts = opts;
         this.#sep = !opts.posix && opts.platform === "win32" ? "\\" : "/";
-        if (opts.ignore) {
-          this.#ignore = makeIgnore(opts.ignore, opts);
+        this.includeChildMatches = opts.includeChildMatches !== false;
+        if (opts.ignore || !this.includeChildMatches) {
+          this.#ignore = makeIgnore(opts.ignore ?? [], opts);
+          if (!this.includeChildMatches && typeof this.#ignore.add !== "function") {
+            const m = "cannot ignore child matches, ignore lacks add() method.";
+            throw new Error(m);
+          }
         }
         this.maxDepth = opts.maxDepth || Infinity;
         if (opts.signal) {
@@ -6399,6 +6504,10 @@ var require_walker = __commonJS({
       matchFinish(e, absolute) {
         if (this.#ignored(e))
           return;
+        if (!this.includeChildMatches && this.#ignore?.add) {
+          const ign = `${e.relativePosix()}/**`;
+          this.#ignore.add(ign);
+        }
         const abs = this.opts.absolute === void 0 ? absolute : this.opts.absolute;
         this.seen.add(e);
         const mark = this.opts.mark && e.isDirectory() ? this.#sep : "";
@@ -6538,10 +6647,9 @@ var require_walker = __commonJS({
     };
     exports2.GlobUtil = GlobUtil;
     var GlobWalker = class extends GlobUtil {
-      matches;
+      matches = /* @__PURE__ */ new Set();
       constructor(patterns, path2, opts) {
         super(patterns, path2, opts);
-        this.matches = /* @__PURE__ */ new Set();
       }
       matchEmit(e) {
         this.matches.add(e);
@@ -6623,8 +6731,8 @@ var require_glob = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Glob = void 0;
     var minimatch_1 = require_commonjs();
-    var path_scurry_1 = require_commonjs4();
     var node_url_1 = require("node:url");
+    var path_scurry_1 = require_commonjs4();
     var pattern_js_1 = require_pattern();
     var walker_js_1 = require_walker();
     var defaultPlatform = typeof process === "object" && process && typeof process.platform === "string" ? process.platform : "linux";
@@ -6653,6 +6761,7 @@ var require_glob = __commonJS({
       signal;
       windowsPathsNoEscape;
       withFileTypes;
+      includeChildMatches;
       /**
        * The options provided to the constructor.
        */
@@ -6695,6 +6804,7 @@ var require_glob = __commonJS({
         this.noext = !!opts.noext;
         this.realpath = !!opts.realpath;
         this.absolute = opts.absolute;
+        this.includeChildMatches = opts.includeChildMatches !== false;
         this.noglobstar = !!opts.noglobstar;
         this.matchBase = !!opts.matchBase;
         this.maxDepth = typeof opts.maxDepth === "number" ? opts.maxDepth : Infinity;
@@ -6768,7 +6878,8 @@ var require_glob = __commonJS({
             ...this.opts,
             maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
             platform: this.platform,
-            nocase: this.nocase
+            nocase: this.nocase,
+            includeChildMatches: this.includeChildMatches
           }).walk()
         ];
       }
@@ -6778,7 +6889,8 @@ var require_glob = __commonJS({
             ...this.opts,
             maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
             platform: this.platform,
-            nocase: this.nocase
+            nocase: this.nocase,
+            includeChildMatches: this.includeChildMatches
           }).walkSync()
         ];
       }
@@ -6787,7 +6899,8 @@ var require_glob = __commonJS({
           ...this.opts,
           maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
           platform: this.platform,
-          nocase: this.nocase
+          nocase: this.nocase,
+          includeChildMatches: this.includeChildMatches
         }).stream();
       }
       streamSync() {
@@ -6795,7 +6908,8 @@ var require_glob = __commonJS({
           ...this.opts,
           maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
           platform: this.platform,
-          nocase: this.nocase
+          nocase: this.nocase,
+          includeChildMatches: this.includeChildMatches
         }).streamSync();
       }
       /**
@@ -6849,43 +6963,15 @@ var require_commonjs5 = __commonJS({
   "node_modules/glob/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.glob = exports2.hasMagic = exports2.Glob = exports2.unescape = exports2.escape = exports2.sync = exports2.iterate = exports2.iterateSync = exports2.stream = exports2.streamSync = exports2.globIterate = exports2.globIterateSync = exports2.globSync = exports2.globStream = exports2.globStreamSync = void 0;
+    exports2.glob = exports2.sync = exports2.iterate = exports2.iterateSync = exports2.stream = exports2.streamSync = exports2.Ignore = exports2.hasMagic = exports2.Glob = exports2.unescape = exports2.escape = void 0;
+    exports2.globStreamSync = globStreamSync;
+    exports2.globStream = globStream;
+    exports2.globSync = globSync;
+    exports2.globIterateSync = globIterateSync;
+    exports2.globIterate = globIterate;
     var minimatch_1 = require_commonjs();
     var glob_js_1 = require_glob();
     var has_magic_js_1 = require_has_magic();
-    function globStreamSync(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).streamSync();
-    }
-    exports2.globStreamSync = globStreamSync;
-    function globStream(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).stream();
-    }
-    exports2.globStream = globStream;
-    function globSync(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).walkSync();
-    }
-    exports2.globSync = globSync;
-    async function glob_(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).walk();
-    }
-    function globIterateSync(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).iterateSync();
-    }
-    exports2.globIterateSync = globIterateSync;
-    function globIterate(pattern, options2 = {}) {
-      return new glob_js_1.Glob(pattern, options2).iterate();
-    }
-    exports2.globIterate = globIterate;
-    exports2.streamSync = globStreamSync;
-    exports2.stream = Object.assign(globStream, { sync: globStreamSync });
-    exports2.iterateSync = globIterateSync;
-    exports2.iterate = Object.assign(globIterate, {
-      sync: globIterateSync
-    });
-    exports2.sync = Object.assign(globSync, {
-      stream: globStreamSync,
-      iterate: globIterateSync
-    });
     var minimatch_2 = require_commonjs();
     Object.defineProperty(exports2, "escape", { enumerable: true, get: function() {
       return minimatch_2.escape;
@@ -6901,6 +6987,38 @@ var require_commonjs5 = __commonJS({
     Object.defineProperty(exports2, "hasMagic", { enumerable: true, get: function() {
       return has_magic_js_2.hasMagic;
     } });
+    var ignore_js_1 = require_ignore();
+    Object.defineProperty(exports2, "Ignore", { enumerable: true, get: function() {
+      return ignore_js_1.Ignore;
+    } });
+    function globStreamSync(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).streamSync();
+    }
+    function globStream(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).stream();
+    }
+    function globSync(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).walkSync();
+    }
+    async function glob_(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).walk();
+    }
+    function globIterateSync(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).iterateSync();
+    }
+    function globIterate(pattern, options2 = {}) {
+      return new glob_js_1.Glob(pattern, options2).iterate();
+    }
+    exports2.streamSync = globStreamSync;
+    exports2.stream = Object.assign(globStream, { sync: globStreamSync });
+    exports2.iterateSync = globIterateSync;
+    exports2.iterate = Object.assign(globIterate, {
+      sync: globIterateSync
+    });
+    exports2.sync = Object.assign(globSync, {
+      stream: globStreamSync,
+      iterate: globIterateSync
+    });
     exports2.glob = Object.assign(glob_, {
       glob: glob_,
       globSync,
@@ -11827,7 +11945,7 @@ var init_log = __esm({
         return format(args, depth, color, showHidden);
       }
       createLogger(scope) {
-        let logger60 = this.loggers.has(scope) ? this.loggers.get(scope) : {
+        let logger61 = this.loggers.has(scope) ? this.loggers.get(scope) : {
           category: scope,
           mark: () => {
           },
@@ -11876,8 +11994,8 @@ var init_log = __esm({
             return this.promise;
           }
         };
-        this.loggers.set(scope, logger60);
-        return logger60;
+        this.loggers.set(scope, logger61);
+        return logger61;
       }
       async initialize() {
         return Promise.resolve();
@@ -14878,11 +14996,11 @@ var require_base = __commonJS({
     var events_1 = require("events");
     var logger_1 = require_logger();
     var debug = logger_1.level === "debug";
-    var logger60 = (0, logger_1.createLogger)("transport");
+    var logger61 = (0, logger_1.createLogger)("transport");
     var Transport3 = class extends events_1.EventEmitter {
-      constructor(logger61, isVim2) {
+      constructor(logger62, isVim2) {
         super();
-        this.logger = logger61;
+        this.logger = logger62;
         this.isVim = isVim2;
         this.pauseLevel = 0;
         this.paused = /* @__PURE__ */ new Map();
@@ -14890,22 +15008,22 @@ var require_base = __commonJS({
       debug(key, ...meta) {
         if (!debug)
           return;
-        logger60.debug(key, ...meta);
+        logger61.debug(key, ...meta);
       }
       info(key, ...meta) {
-        logger60.info(key, ...meta);
+        logger61.info(key, ...meta);
       }
       debugMessage(msg) {
         if (!debug)
           return;
         const msgType = msg[0];
         if (msgType == 0) {
-          logger60.debug("receive request:", msg.slice(1));
+          logger61.debug("receive request:", msg.slice(1));
         } else if (msgType == 1) {
         } else if (msgType == 2) {
-          logger60.debug("receive notification:", msg.slice(1));
+          logger61.debug("receive notification:", msg.slice(1));
         } else {
-          logger60.debug("unknown message:", msg);
+          logger61.debug("unknown message:", msg);
         }
       }
       pauseNotification() {
@@ -15010,8 +15128,8 @@ var require_nvim = __commonJS({
     var buffered_1 = __importDefault(require_buffered());
     var base_1 = __importDefault(require_base());
     var NvimTransport = class extends base_1.default {
-      constructor(logger60) {
-        super(logger60, false);
+      constructor(logger61) {
+        super(logger61, false);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = 1;
         this.attached = false;
@@ -15156,7 +15274,7 @@ var require_connection = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     var events_1 = __importDefault(require("events"));
     var logger_1 = require_logger();
-    var logger60 = (0, logger_1.createLogger)("connection");
+    var logger61 = (0, logger_1.createLogger)("connection");
     var NR_CODE = 10;
     var Connection2 = class extends events_1.default {
       constructor(readable, writeable) {
@@ -15193,7 +15311,7 @@ var require_connection = __commonJS({
         };
         readable.on("data", onData);
         let onClose = () => {
-          logger60.warn("readable stream closed.");
+          logger61.warn("readable stream closed.");
         };
         readable.on("close", onClose);
         this.clean = () => {
@@ -15208,18 +15326,18 @@ var require_connection = __commonJS({
         try {
           arr = JSON.parse(str);
         } catch (e) {
-          logger60.error(`Invalid data from vim: ${str}`);
+          logger61.error(`Invalid data from vim: ${str}`);
           return;
         }
         let [id2, obj] = arr;
         if (id2 > 0) {
-          logger60.debug("received request:", id2, obj);
+          logger61.debug("received request:", id2, obj);
           this.emit("request", id2, obj);
         } else if (id2 == 0) {
-          logger60.debug("received notification:", obj);
+          logger61.debug("received notification:", obj);
           this.emit("notification", obj);
         } else {
-          logger60.debug("received response:", id2, obj);
+          logger61.debug("received response:", id2, obj);
           this.emit("response", id2, obj);
         }
       }
@@ -15230,7 +15348,7 @@ var require_connection = __commonJS({
         this.send([0, [event, data || null]]);
       }
       send(arr) {
-        logger60.debug("send to vim:", arr);
+        logger61.debug("send to vim:", arr);
         this.writeable.write(JSON.stringify(arr) + "\n");
       }
       redraw(force) {
@@ -15343,8 +15461,8 @@ var require_vim = __commonJS({
     var request_1 = __importDefault(require_request());
     var notifyMethod = constants_1.isCocNvim ? "coc#api#Notify" : "nvim#api#Notify";
     var VimTransport = class extends base_1.default {
-      constructor(logger60) {
-        super(logger60, true);
+      constructor(logger61) {
+        super(logger61, true);
         this.pending = /* @__PURE__ */ new Map();
         this.nextRequestId = -1;
         this.attached = false;
@@ -16041,14 +16159,14 @@ var require_client = __commonJS({
       });
     }
     var NeovimClient = class extends Neovim_1.Neovim {
-      constructor(logger60, isVim2) {
+      constructor(logger61, isVim2) {
         super({});
-        this.logger = logger60;
+        this.logger = logger61;
         this.isVim = isVim2;
         this.requestId = 1;
         this.responses = /* @__PURE__ */ new Map();
         this.attachedBuffers = /* @__PURE__ */ new Map();
-        this._transport = isVim2 ? new vim_1.VimTransport(logger60) : new nvim_1.NvimTransport(logger60);
+        this._transport = isVim2 ? new vim_1.VimTransport(logger61) : new nvim_1.NvimTransport(logger61);
         this.handleRequest = this.handleRequest.bind(this);
         this.handleNotification = this.handleNotification.bind(this);
       }
@@ -16315,12 +16433,12 @@ var require_attach = __commonJS({
     var constants_1 = require_constants2();
     var logger_1 = require_logger();
     var client_1 = require_client();
-    function attach2({ reader: _reader, writer: _writer, proc, socket }, logger60 = null, requestApi = true) {
+    function attach2({ reader: _reader, writer: _writer, proc, socket }, logger61 = null, requestApi = true) {
       let writer;
       let reader;
       let neovim;
-      if (!logger60)
-        logger60 = logger_1.nullLogger;
+      if (!logger61)
+        logger61 = logger_1.nullLogger;
       if (socket) {
         const client = (0, net_1.createConnection)(socket);
         writer = client;
@@ -16344,7 +16462,7 @@ var require_attach = __commonJS({
         }
       });
       if (writer && reader) {
-        neovim = new client_1.NeovimClient(logger60, constants_1.isVim);
+        neovim = new client_1.NeovimClient(logger61, constants_1.isVim);
         neovim.attach({
           writer,
           reader
@@ -16403,8 +16521,9 @@ function onUnexpectedError(e) {
   if (shouldIgnore(e)) return;
   if (e.stack) {
     throw new Error(e.message + "\n\n" + e.stack);
+  } else {
+    throw e;
   }
-  throw e;
 }
 function notLoaded(uri) {
   return new Error(`File ${uri} not loaded`);
@@ -16453,7 +16572,95 @@ var init_errors = __esm({
 });
 
 // node_modules/vscode-languageserver-types/lib/esm/main.js
-var DocumentUri, URI, integer, uinteger, Position, Range, Location, LocationLink, Color, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, TextDocument, FullTextDocument, Is;
+var main_exports = {};
+__export(main_exports, {
+  AnnotatedTextEdit: () => AnnotatedTextEdit,
+  ApplyKind: () => ApplyKind,
+  ChangeAnnotation: () => ChangeAnnotation,
+  ChangeAnnotationIdentifier: () => ChangeAnnotationIdentifier,
+  CodeAction: () => CodeAction,
+  CodeActionContext: () => CodeActionContext,
+  CodeActionKind: () => CodeActionKind,
+  CodeActionTag: () => CodeActionTag,
+  CodeActionTriggerKind: () => CodeActionTriggerKind,
+  CodeDescription: () => CodeDescription,
+  CodeLens: () => CodeLens,
+  Color: () => Color,
+  ColorInformation: () => ColorInformation,
+  ColorPresentation: () => ColorPresentation,
+  Command: () => Command,
+  CompletionItem: () => CompletionItem,
+  CompletionItemKind: () => CompletionItemKind,
+  CompletionItemLabelDetails: () => CompletionItemLabelDetails,
+  CompletionItemTag: () => CompletionItemTag,
+  CompletionList: () => CompletionList,
+  CreateFile: () => CreateFile,
+  DeleteFile: () => DeleteFile,
+  Diagnostic: () => Diagnostic,
+  DiagnosticRelatedInformation: () => DiagnosticRelatedInformation,
+  DiagnosticSeverity: () => DiagnosticSeverity,
+  DiagnosticTag: () => DiagnosticTag,
+  DocumentHighlight: () => DocumentHighlight,
+  DocumentHighlightKind: () => DocumentHighlightKind,
+  DocumentLink: () => DocumentLink,
+  DocumentSymbol: () => DocumentSymbol,
+  DocumentUri: () => DocumentUri,
+  EOL: () => EOL,
+  FoldingRange: () => FoldingRange,
+  FoldingRangeKind: () => FoldingRangeKind,
+  FormattingOptions: () => FormattingOptions,
+  Hover: () => Hover,
+  InlayHint: () => InlayHint,
+  InlayHintKind: () => InlayHintKind,
+  InlayHintLabelPart: () => InlayHintLabelPart,
+  InlineCompletionContext: () => InlineCompletionContext,
+  InlineCompletionItem: () => InlineCompletionItem,
+  InlineCompletionList: () => InlineCompletionList,
+  InlineCompletionTriggerKind: () => InlineCompletionTriggerKind,
+  InlineValueContext: () => InlineValueContext,
+  InlineValueEvaluatableExpression: () => InlineValueEvaluatableExpression,
+  InlineValueText: () => InlineValueText,
+  InlineValueVariableLookup: () => InlineValueVariableLookup,
+  InsertReplaceEdit: () => InsertReplaceEdit,
+  InsertTextFormat: () => InsertTextFormat,
+  InsertTextMode: () => InsertTextMode,
+  LanguageKind: () => LanguageKind,
+  Location: () => Location,
+  LocationLink: () => LocationLink,
+  MarkedString: () => MarkedString,
+  MarkupContent: () => MarkupContent,
+  MarkupKind: () => MarkupKind,
+  OptionalVersionedTextDocumentIdentifier: () => OptionalVersionedTextDocumentIdentifier,
+  ParameterInformation: () => ParameterInformation,
+  Position: () => Position,
+  Range: () => Range,
+  RenameFile: () => RenameFile,
+  SelectedCompletionInfo: () => SelectedCompletionInfo,
+  SelectionRange: () => SelectionRange,
+  SemanticTokenModifiers: () => SemanticTokenModifiers,
+  SemanticTokenTypes: () => SemanticTokenTypes,
+  SemanticTokens: () => SemanticTokens,
+  SignatureInformation: () => SignatureInformation,
+  SnippetTextEdit: () => SnippetTextEdit,
+  StringValue: () => StringValue,
+  SymbolInformation: () => SymbolInformation,
+  SymbolKind: () => SymbolKind,
+  SymbolTag: () => SymbolTag,
+  TextDocument: () => TextDocument,
+  TextDocumentEdit: () => TextDocumentEdit,
+  TextDocumentIdentifier: () => TextDocumentIdentifier,
+  TextDocumentItem: () => TextDocumentItem,
+  TextEdit: () => TextEdit,
+  URI: () => URI,
+  VersionedTextDocumentIdentifier: () => VersionedTextDocumentIdentifier,
+  WorkspaceChange: () => WorkspaceChange,
+  WorkspaceEdit: () => WorkspaceEdit,
+  WorkspaceFolder: () => WorkspaceFolder,
+  WorkspaceSymbol: () => WorkspaceSymbol,
+  integer: () => integer,
+  uinteger: () => uinteger
+});
+var DocumentUri, URI, integer, uinteger, Position, Range, Location, LocationLink, Color, ColorInformation, ColorPresentation, FoldingRangeKind, FoldingRange, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, CodeDescription, Diagnostic, Command, TextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, AnnotatedTextEdit, TextDocumentEdit, CreateFile, RenameFile, DeleteFile, WorkspaceEdit, TextEditChangeImpl, SnippetTextEdit, ChangeAnnotations, WorkspaceChange, TextDocumentIdentifier, VersionedTextDocumentIdentifier, OptionalVersionedTextDocumentIdentifier, LanguageKind, TextDocumentItem, MarkupKind, MarkupContent, CompletionItemKind, InsertTextFormat, CompletionItemTag, InsertReplaceEdit, InsertTextMode, ApplyKind, CompletionItemLabelDetails, CompletionItem, CompletionList, MarkedString, Hover, ParameterInformation, SignatureInformation, DocumentHighlightKind, DocumentHighlight, SymbolKind, SymbolTag, SymbolInformation, WorkspaceSymbol, DocumentSymbol, CodeActionKind, CodeActionTriggerKind, CodeActionContext, CodeActionTag, CodeAction, CodeLens, FormattingOptions, DocumentLink, SelectionRange, SemanticTokenTypes, SemanticTokenModifiers, SemanticTokens, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, InlineValueContext, InlayHintKind, InlayHintLabelPart, InlayHint, StringValue, InlineCompletionItem, InlineCompletionList, InlineCompletionTriggerKind, SelectedCompletionInfo, InlineCompletionContext, WorkspaceFolder, EOL, TextDocument, FullTextDocument, Is;
 var init_main = __esm({
   "node_modules/vscode-languageserver-types/lib/esm/main.js"() {
     "use strict";
@@ -16485,7 +16692,7 @@ var init_main = __esm({
       }
       uinteger3.is = is;
     })(uinteger || (uinteger = {}));
-    (function(Position10) {
+    (function(Position11) {
       function create(line, character) {
         if (line === Number.MAX_VALUE) {
           line = uinteger.MAX_VALUE;
@@ -16495,12 +16702,12 @@ var init_main = __esm({
         }
         return { line, character };
       }
-      Position10.create = create;
+      Position11.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.objectLiteral(candidate) && Is.uinteger(candidate.line) && Is.uinteger(candidate.character);
       }
-      Position10.is = is;
+      Position11.is = is;
     })(Position || (Position = {}));
     (function(Range11) {
       function create(one, two, three, four) {
@@ -16514,7 +16721,7 @@ var init_main = __esm({
       }
       Range11.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.objectLiteral(candidate) && Position.is(candidate.start) && Position.is(candidate.end);
       }
       Range11.is = is;
@@ -16525,7 +16732,7 @@ var init_main = __esm({
       }
       Location3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.range) && (Is.string(candidate.uri) || Is.undefined(candidate.uri));
       }
       Location3.is = is;
@@ -16536,7 +16743,7 @@ var init_main = __esm({
       }
       LocationLink3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.targetRange) && Is.string(candidate.targetUri) && Range.is(candidate.targetSelectionRange) && (Range.is(candidate.originSelectionRange) || Is.undefined(candidate.originSelectionRange));
       }
       LocationLink3.is = is;
@@ -16627,7 +16834,7 @@ var init_main = __esm({
       }
       DiagnosticRelatedInformation2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Location.is(candidate.location) && Is.string(candidate.message);
       }
       DiagnosticRelatedInformation2.is = is;
@@ -16651,7 +16858,7 @@ var init_main = __esm({
     })(CodeDescription || (CodeDescription = {}));
     (function(Diagnostic8) {
       function create(range, message, severity, code, source, relatedInformation) {
-        let result = { range, message };
+        const result = { range, message };
         if (Is.defined(severity)) {
           result.severity = severity;
         }
@@ -16669,14 +16876,14 @@ var init_main = __esm({
       Diagnostic8.create = create;
       function is(value) {
         var _a2;
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Range.is(candidate.range) && Is.string(candidate.message) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a2 = candidate.codeDescription) === null || _a2 === void 0 ? void 0 : _a2.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
       }
       Diagnostic8.is = is;
     })(Diagnostic || (Diagnostic = {}));
     (function(Command3) {
       function create(title, command, ...args) {
-        let result = { title, command };
+        const result = { title, command };
         if (Is.defined(args) && args.length > 0) {
           result.arguments = args;
         }
@@ -16684,29 +16891,29 @@ var init_main = __esm({
       }
       Command3.create = create;
       function is(value) {
-        let candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.title) && Is.string(candidate.command);
+        const candidate = value;
+        return Is.defined(candidate) && Is.string(candidate.title) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip)) && Is.string(candidate.command);
       }
       Command3.is = is;
     })(Command || (Command = {}));
-    (function(TextEdit10) {
+    (function(TextEdit11) {
       function replace(range, newText) {
         return { range, newText };
       }
-      TextEdit10.replace = replace;
+      TextEdit11.replace = replace;
       function insert(position, newText) {
         return { range: { start: position, end: position }, newText };
       }
-      TextEdit10.insert = insert;
+      TextEdit11.insert = insert;
       function del(range) {
         return { range, newText: "" };
       }
-      TextEdit10.del = del;
+      TextEdit11.del = del;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.string(candidate.newText) && Range.is(candidate.range);
       }
-      TextEdit10.is = is;
+      TextEdit11.is = is;
     })(TextEdit || (TextEdit = {}));
     (function(ChangeAnnotation5) {
       function create(label, needsConfirmation, description) {
@@ -16758,14 +16965,14 @@ var init_main = __esm({
       }
       TextDocumentEdit2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && OptionalVersionedTextDocumentIdentifier.is(candidate.textDocument) && Array.isArray(candidate.edits);
       }
       TextDocumentEdit2.is = is;
     })(TextDocumentEdit || (TextDocumentEdit = {}));
     (function(CreateFile2) {
       function create(uri, options2, annotation) {
-        let result = {
+        const result = {
           kind: "create",
           uri
         };
@@ -16779,14 +16986,14 @@ var init_main = __esm({
       }
       CreateFile2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && candidate.kind === "create" && Is.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
       }
       CreateFile2.is = is;
     })(CreateFile || (CreateFile = {}));
     (function(RenameFile2) {
       function create(oldUri, newUri, options2, annotation) {
-        let result = {
+        const result = {
           kind: "rename",
           oldUri,
           newUri
@@ -16801,14 +17008,14 @@ var init_main = __esm({
       }
       RenameFile2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && candidate.kind === "rename" && Is.string(candidate.oldUri) && Is.string(candidate.newUri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
       }
       RenameFile2.is = is;
     })(RenameFile || (RenameFile = {}));
     (function(DeleteFile2) {
       function create(uri, options2, annotation) {
-        let result = {
+        const result = {
           kind: "delete",
           uri
         };
@@ -16822,14 +17029,14 @@ var init_main = __esm({
       }
       DeleteFile2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && candidate.kind === "delete" && Is.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.recursive === void 0 || Is.boolean(candidate.options.recursive)) && (candidate.options.ignoreIfNotExists === void 0 || Is.boolean(candidate.options.ignoreIfNotExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
       }
       DeleteFile2.is = is;
     })(DeleteFile || (DeleteFile = {}));
     (function(WorkspaceEdit7) {
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && (candidate.changes !== void 0 || candidate.documentChanges !== void 0) && (candidate.documentChanges === void 0 || candidate.documentChanges.every((change) => {
           if (Is.string(change.kind)) {
             return CreateFile.is(change) || RenameFile.is(change) || DeleteFile.is(change);
@@ -16914,6 +17121,13 @@ var init_main = __esm({
         }
       }
     };
+    (function(SnippetTextEdit3) {
+      function is(value) {
+        const candidate = value;
+        return Is.objectLiteral(candidate) && Range.is(candidate.range) && StringValue.isSnippet(candidate.snippet) && (candidate.annotationId === void 0 || (ChangeAnnotation.is(candidate.annotationId) || ChangeAnnotationIdentifier.is(candidate.annotationId)));
+      }
+      SnippetTextEdit3.is = is;
+    })(SnippetTextEdit || (SnippetTextEdit = {}));
     ChangeAnnotations = class {
       constructor(annotations) {
         this._annotations = annotations === void 0 ? /* @__PURE__ */ Object.create(null) : annotations;
@@ -17014,7 +17228,7 @@ var init_main = __esm({
           }
           let result = this._textEditChanges[key];
           if (!result) {
-            let edits = [];
+            const edits = [];
             this._workspaceEdit.changes[key] = edits;
             result = new TextEditChangeImpl(edits);
             this._textEditChanges[key] = result;
@@ -17113,7 +17327,7 @@ var init_main = __esm({
       }
       TextDocumentIdentifier3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri);
       }
       TextDocumentIdentifier3.is = is;
@@ -17124,7 +17338,7 @@ var init_main = __esm({
       }
       VersionedTextDocumentIdentifier2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && Is.integer(candidate.version);
       }
       VersionedTextDocumentIdentifier2.is = is;
@@ -17135,18 +17349,81 @@ var init_main = __esm({
       }
       OptionalVersionedTextDocumentIdentifier2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && (candidate.version === null || Is.integer(candidate.version));
       }
       OptionalVersionedTextDocumentIdentifier2.is = is;
     })(OptionalVersionedTextDocumentIdentifier || (OptionalVersionedTextDocumentIdentifier = {}));
+    (function(LanguageKind2) {
+      LanguageKind2.ABAP = "abap";
+      LanguageKind2.WindowsBat = "bat";
+      LanguageKind2.BibTeX = "bibtex";
+      LanguageKind2.Clojure = "clojure";
+      LanguageKind2.Coffeescript = "coffeescript";
+      LanguageKind2.C = "c";
+      LanguageKind2.CPP = "cpp";
+      LanguageKind2.CSharp = "csharp";
+      LanguageKind2.CSS = "css";
+      LanguageKind2.D = "d";
+      LanguageKind2.Delphi = "pascal";
+      LanguageKind2.Diff = "diff";
+      LanguageKind2.Dart = "dart";
+      LanguageKind2.Dockerfile = "dockerfile";
+      LanguageKind2.Elixir = "elixir";
+      LanguageKind2.Erlang = "erlang";
+      LanguageKind2.FSharp = "fsharp";
+      LanguageKind2.GitCommit = "git-commit";
+      LanguageKind2.GitRebase = "rebase";
+      LanguageKind2.Go = "go";
+      LanguageKind2.Groovy = "groovy";
+      LanguageKind2.Handlebars = "handlebars";
+      LanguageKind2.Haskell = "haskell";
+      LanguageKind2.HTML = "html";
+      LanguageKind2.Ini = "ini";
+      LanguageKind2.Java = "java";
+      LanguageKind2.JavaScript = "javascript";
+      LanguageKind2.JavaScriptReact = "javascriptreact";
+      LanguageKind2.JSON = "json";
+      LanguageKind2.LaTeX = "latex";
+      LanguageKind2.Less = "less";
+      LanguageKind2.Lua = "lua";
+      LanguageKind2.Makefile = "makefile";
+      LanguageKind2.Markdown = "markdown";
+      LanguageKind2.ObjectiveC = "objective-c";
+      LanguageKind2.ObjectiveCPP = "objective-cpp";
+      LanguageKind2.Pascal = "pascal";
+      LanguageKind2.Perl = "perl";
+      LanguageKind2.Perl6 = "perl6";
+      LanguageKind2.PHP = "php";
+      LanguageKind2.Powershell = "powershell";
+      LanguageKind2.Pug = "jade";
+      LanguageKind2.Python = "python";
+      LanguageKind2.R = "r";
+      LanguageKind2.Razor = "razor";
+      LanguageKind2.Ruby = "ruby";
+      LanguageKind2.Rust = "rust";
+      LanguageKind2.SCSS = "scss";
+      LanguageKind2.SASS = "sass";
+      LanguageKind2.Scala = "scala";
+      LanguageKind2.ShaderLab = "shaderlab";
+      LanguageKind2.ShellScript = "shellscript";
+      LanguageKind2.SQL = "sql";
+      LanguageKind2.Swift = "swift";
+      LanguageKind2.TypeScript = "typescript";
+      LanguageKind2.TypeScriptReact = "typescriptreact";
+      LanguageKind2.TeX = "tex";
+      LanguageKind2.VisualBasic = "vb";
+      LanguageKind2.XML = "xml";
+      LanguageKind2.XSL = "xsl";
+      LanguageKind2.YAML = "yaml";
+    })(LanguageKind || (LanguageKind = {}));
     (function(TextDocumentItem2) {
       function create(uri, languageId, version2, text) {
         return { uri, languageId, version: version2, text };
       }
       TextDocumentItem2.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && Is.string(candidate.languageId) && Is.integer(candidate.version) && Is.string(candidate.text);
       }
       TextDocumentItem2.is = is;
@@ -17216,6 +17493,10 @@ var init_main = __esm({
       InsertTextMode3.asIs = 1;
       InsertTextMode3.adjustIndentation = 2;
     })(InsertTextMode || (InsertTextMode = {}));
+    (function(ApplyKind2) {
+      ApplyKind2.Replace = 1;
+      ApplyKind2.Merge = 2;
+    })(ApplyKind || (ApplyKind = {}));
     (function(CompletionItemLabelDetails3) {
       function is(value) {
         const candidate = value;
@@ -17248,7 +17529,7 @@ var init_main = __esm({
     })(MarkedString || (MarkedString = {}));
     (function(Hover4) {
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return !!candidate && Is.objectLiteral(candidate) && (MarkupContent.is(candidate.contents) || MarkedString.is(candidate.contents) || Is.typedArray(candidate.contents, MarkedString.is)) && (value.range === void 0 || Range.is(value.range));
       }
       Hover4.is = is;
@@ -17261,7 +17542,7 @@ var init_main = __esm({
     })(ParameterInformation || (ParameterInformation = {}));
     (function(SignatureInformation2) {
       function create(label, documentation, ...parameters) {
-        let result = { label };
+        const result = { label };
         if (Is.defined(documentation)) {
           result.documentation = documentation;
         }
@@ -17281,7 +17562,7 @@ var init_main = __esm({
     })(DocumentHighlightKind || (DocumentHighlightKind = {}));
     (function(DocumentHighlight4) {
       function create(range, kind) {
-        let result = { range };
+        const result = { range };
         if (Is.number(kind)) {
           result.kind = kind;
         }
@@ -17322,7 +17603,7 @@ var init_main = __esm({
     })(SymbolTag || (SymbolTag = {}));
     (function(SymbolInformation5) {
       function create(name2, kind, range, uri, containerName) {
-        let result = {
+        const result = {
           name: name2,
           kind,
           location: { uri, range }
@@ -17342,7 +17623,7 @@ var init_main = __esm({
     })(WorkspaceSymbol || (WorkspaceSymbol = {}));
     (function(DocumentSymbol7) {
       function create(name2, detail, kind, range, selectionRange, children) {
-        let result = {
+        const result = {
           name: name2,
           detail,
           kind,
@@ -17356,7 +17637,7 @@ var init_main = __esm({
       }
       DocumentSymbol7.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && Is.string(candidate.name) && Is.number(candidate.kind) && Range.is(candidate.range) && Range.is(candidate.selectionRange) && (candidate.detail === void 0 || Is.string(candidate.detail)) && (candidate.deprecated === void 0 || Is.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
       }
       DocumentSymbol7.is = is;
@@ -17367,10 +17648,12 @@ var init_main = __esm({
       CodeActionKind6.Refactor = "refactor";
       CodeActionKind6.RefactorExtract = "refactor.extract";
       CodeActionKind6.RefactorInline = "refactor.inline";
+      CodeActionKind6.RefactorMove = "refactor.move";
       CodeActionKind6.RefactorRewrite = "refactor.rewrite";
       CodeActionKind6.Source = "source";
       CodeActionKind6.SourceOrganizeImports = "source.organizeImports";
       CodeActionKind6.SourceFixAll = "source.fixAll";
+      CodeActionKind6.Notebook = "notebook";
     })(CodeActionKind || (CodeActionKind = {}));
     (function(CodeActionTriggerKind2) {
       CodeActionTriggerKind2.Invoked = 1;
@@ -17378,7 +17661,7 @@ var init_main = __esm({
     })(CodeActionTriggerKind || (CodeActionTriggerKind = {}));
     (function(CodeActionContext5) {
       function create(diagnostics, only, triggerKind) {
-        let result = { diagnostics };
+        const result = { diagnostics };
         if (only !== void 0 && only !== null) {
           result.only = only;
         }
@@ -17389,14 +17672,21 @@ var init_main = __esm({
       }
       CodeActionContext5.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.typedArray(candidate.diagnostics, Diagnostic.is) && (candidate.only === void 0 || Is.typedArray(candidate.only, Is.string)) && (candidate.triggerKind === void 0 || candidate.triggerKind === CodeActionTriggerKind.Invoked || candidate.triggerKind === CodeActionTriggerKind.Automatic);
       }
       CodeActionContext5.is = is;
     })(CodeActionContext || (CodeActionContext = {}));
+    (function(CodeActionTag2) {
+      CodeActionTag2.LLMGenerated = 1;
+      function is(value) {
+        return Is.defined(value) && value === CodeActionTag2.LLMGenerated;
+      }
+      CodeActionTag2.is = is;
+    })(CodeActionTag || (CodeActionTag = {}));
     (function(CodeAction7) {
       function create(title, kindOrCommandOrEdit, kind) {
-        let result = { title };
+        const result = { title };
         let checkKind = true;
         if (typeof kindOrCommandOrEdit === "string") {
           checkKind = false;
@@ -17413,14 +17703,14 @@ var init_main = __esm({
       }
       CodeAction7.create = create;
       function is(value) {
-        let candidate = value;
-        return candidate && Is.string(candidate.title) && (candidate.diagnostics === void 0 || Is.typedArray(candidate.diagnostics, Diagnostic.is)) && (candidate.kind === void 0 || Is.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command.is(candidate.command)) && (candidate.isPreferred === void 0 || Is.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit.is(candidate.edit));
+        const candidate = value;
+        return candidate && Is.string(candidate.title) && (candidate.diagnostics === void 0 || Is.typedArray(candidate.diagnostics, Diagnostic.is)) && (candidate.kind === void 0 || Is.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command.is(candidate.command)) && (candidate.isPreferred === void 0 || Is.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit.is(candidate.edit)) && (candidate.tags === void 0 || Is.typedArray(candidate.tags, CodeActionTag.is));
       }
       CodeAction7.is = is;
     })(CodeAction || (CodeAction = {}));
     (function(CodeLens3) {
       function create(range, data) {
-        let result = { range };
+        const result = { range };
         if (Is.defined(data)) {
           result.data = data;
         }
@@ -17428,21 +17718,21 @@ var init_main = __esm({
       }
       CodeLens3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
       }
       CodeLens3.is = is;
     })(CodeLens || (CodeLens = {}));
-    (function(FormattingOptions6) {
+    (function(FormattingOptions7) {
       function create(tabSize, insertSpaces) {
         return { tabSize, insertSpaces };
       }
-      FormattingOptions6.create = create;
+      FormattingOptions7.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.uinteger(candidate.tabSize) && Is.boolean(candidate.insertSpaces);
       }
-      FormattingOptions6.is = is;
+      FormattingOptions7.is = is;
     })(FormattingOptions || (FormattingOptions = {}));
     (function(DocumentLink3) {
       function create(range, target, data) {
@@ -17450,7 +17740,7 @@ var init_main = __esm({
       }
       DocumentLink3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
       }
       DocumentLink3.is = is;
@@ -17461,7 +17751,7 @@ var init_main = __esm({
       }
       SelectionRange5.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.range) && (candidate.parent === void 0 || SelectionRange5.is(candidate.parent));
       }
       SelectionRange5.is = is;
@@ -17490,6 +17780,7 @@ var init_main = __esm({
       SemanticTokenTypes2["regexp"] = "regexp";
       SemanticTokenTypes2["operator"] = "operator";
       SemanticTokenTypes2["decorator"] = "decorator";
+      SemanticTokenTypes2["label"] = "label";
     })(SemanticTokenTypes || (SemanticTokenTypes = {}));
     (function(SemanticTokenModifiers2) {
       SemanticTokenModifiers2["declaration"] = "declaration";
@@ -17588,39 +17879,44 @@ var init_main = __esm({
       }
       InlayHint3.is = is;
     })(InlayHint || (InlayHint = {}));
-    (function(StringValue2) {
+    (function(StringValue4) {
       function createSnippet(value) {
         return { kind: "snippet", value };
       }
-      StringValue2.createSnippet = createSnippet;
+      StringValue4.createSnippet = createSnippet;
+      function isSnippet(value) {
+        const candidate = value;
+        return Is.objectLiteral(candidate) && candidate.kind === "snippet" && Is.string(candidate.value);
+      }
+      StringValue4.isSnippet = isSnippet;
     })(StringValue || (StringValue = {}));
-    (function(InlineCompletionItem2) {
+    (function(InlineCompletionItem6) {
       function create(insertText, filterText, range, command) {
         return { insertText, filterText, range, command };
       }
-      InlineCompletionItem2.create = create;
+      InlineCompletionItem6.create = create;
     })(InlineCompletionItem || (InlineCompletionItem = {}));
-    (function(InlineCompletionList2) {
+    (function(InlineCompletionList3) {
       function create(items) {
         return { items };
       }
-      InlineCompletionList2.create = create;
+      InlineCompletionList3.create = create;
     })(InlineCompletionList || (InlineCompletionList = {}));
     (function(InlineCompletionTriggerKind2) {
-      InlineCompletionTriggerKind2.Invoked = 0;
-      InlineCompletionTriggerKind2.Automatic = 1;
+      InlineCompletionTriggerKind2.Invoked = 1;
+      InlineCompletionTriggerKind2.Automatic = 2;
     })(InlineCompletionTriggerKind || (InlineCompletionTriggerKind = {}));
-    (function(SelectedCompletionInfo2) {
+    (function(SelectedCompletionInfo3) {
       function create(range, text) {
         return { range, text };
       }
-      SelectedCompletionInfo2.create = create;
+      SelectedCompletionInfo3.create = create;
     })(SelectedCompletionInfo || (SelectedCompletionInfo = {}));
-    (function(InlineCompletionContext2) {
+    (function(InlineCompletionContext4) {
       function create(triggerKind, selectedCompletionInfo) {
         return { triggerKind, selectedCompletionInfo };
       }
-      InlineCompletionContext2.create = create;
+      InlineCompletionContext4.create = create;
     })(InlineCompletionContext || (InlineCompletionContext = {}));
     (function(WorkspaceFolder2) {
       function is(value) {
@@ -17629,20 +17925,21 @@ var init_main = __esm({
       }
       WorkspaceFolder2.is = is;
     })(WorkspaceFolder || (WorkspaceFolder = {}));
+    EOL = ["\n", "\r\n", "\r"];
     (function(TextDocument3) {
       function create(uri, languageId, version2, content) {
         return new FullTextDocument(uri, languageId, version2, content);
       }
       TextDocument3.create = create;
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && (Is.undefined(candidate.languageId) || Is.string(candidate.languageId)) && Is.uinteger(candidate.lineCount) && Is.func(candidate.getText) && Is.func(candidate.positionAt) && Is.func(candidate.offsetAt) ? true : false;
       }
       TextDocument3.is = is;
       function applyEdits3(document2, edits) {
         let text = document2.getText();
-        let sortedEdits = mergeSort3(edits, (a, b) => {
-          let diff = a.range.start.line - b.range.start.line;
+        const sortedEdits = mergeSort3(edits, (a, b) => {
+          const diff = a.range.start.line - b.range.start.line;
           if (diff === 0) {
             return a.range.start.character - b.range.start.character;
           }
@@ -17650,9 +17947,9 @@ var init_main = __esm({
         });
         let lastModifiedOffset = text.length;
         for (let i = sortedEdits.length - 1; i >= 0; i--) {
-          let e = sortedEdits[i];
-          let startOffset = document2.offsetAt(e.range.start);
-          let endOffset = document2.offsetAt(e.range.end);
+          const e = sortedEdits[i];
+          const startOffset = document2.offsetAt(e.range.start);
+          const endOffset = document2.offsetAt(e.range.end);
           if (endOffset <= lastModifiedOffset) {
             text = text.substring(0, startOffset) + e.newText + text.substring(endOffset, text.length);
           } else {
@@ -17676,7 +17973,7 @@ var init_main = __esm({
         let rightIdx = 0;
         let i = 0;
         while (leftIdx < left.length && rightIdx < right.length) {
-          let ret = compare2(left[leftIdx], right[rightIdx]);
+          const ret = compare2(left[leftIdx], right[rightIdx]);
           if (ret <= 0) {
             data[i++] = left[leftIdx++];
           } else {
@@ -17711,8 +18008,8 @@ var init_main = __esm({
       }
       getText(range) {
         if (range) {
-          let start = this.offsetAt(range.start);
-          let end = this.offsetAt(range.end);
+          const start = this.offsetAt(range.start);
+          const end = this.offsetAt(range.end);
           return this._content.substring(start, end);
         }
         return this._content;
@@ -17724,15 +18021,15 @@ var init_main = __esm({
       }
       getLineOffsets() {
         if (this._lineOffsets === void 0) {
-          let lineOffsets = [];
-          let text = this._content;
+          const lineOffsets = [];
+          const text = this._content;
           let isLineStart = true;
           for (let i = 0; i < text.length; i++) {
             if (isLineStart) {
               lineOffsets.push(i);
               isLineStart = false;
             }
-            let ch = text.charAt(i);
+            const ch = text.charAt(i);
             isLineStart = ch === "\r" || ch === "\n";
             if (ch === "\r" && i + 1 < text.length && text.charAt(i + 1) === "\n") {
               i++;
@@ -17747,31 +18044,31 @@ var init_main = __esm({
       }
       positionAt(offset) {
         offset = Math.max(Math.min(offset, this._content.length), 0);
-        let lineOffsets = this.getLineOffsets();
+        const lineOffsets = this.getLineOffsets();
         let low = 0, high = lineOffsets.length;
         if (high === 0) {
           return Position.create(0, offset);
         }
         while (low < high) {
-          let mid = Math.floor((low + high) / 2);
+          const mid = Math.floor((low + high) / 2);
           if (lineOffsets[mid] > offset) {
             high = mid;
           } else {
             low = mid + 1;
           }
         }
-        let line = low - 1;
+        const line = low - 1;
         return Position.create(line, offset - lineOffsets[line]);
       }
       offsetAt(position) {
-        let lineOffsets = this.getLineOffsets();
+        const lineOffsets = this.getLineOffsets();
         if (position.line >= lineOffsets.length) {
           return this._content.length;
         } else if (position.line < 0) {
           return 0;
         }
-        let lineOffset = lineOffsets[position.line];
-        let nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this._content.length;
+        const lineOffset = lineOffsets[position.line];
+        const nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this._content.length;
         return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
       }
       get lineCount() {
@@ -18053,35 +18350,34 @@ var require_is = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/is.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.stringArray = exports2.array = exports2.func = exports2.error = exports2.number = exports2.string = exports2.boolean = void 0;
+    exports2.boolean = boolean2;
+    exports2.string = string2;
+    exports2.number = number2;
+    exports2.error = error;
+    exports2.func = func2;
+    exports2.array = array;
+    exports2.stringArray = stringArray;
     function boolean2(value) {
       return value === true || value === false;
     }
-    exports2.boolean = boolean2;
     function string2(value) {
       return typeof value === "string" || value instanceof String;
     }
-    exports2.string = string2;
     function number2(value) {
       return typeof value === "number" || value instanceof Number;
     }
-    exports2.number = number2;
     function error(value) {
       return value instanceof Error;
     }
-    exports2.error = error;
     function func2(value) {
       return typeof value === "function";
     }
-    exports2.func = func2;
     function array(value) {
       return Array.isArray(value);
     }
-    exports2.array = array;
     function stringArray(value) {
       return array(value) && value.every((elem) => string2(elem));
     }
-    exports2.stringArray = stringArray;
   }
 });
 
@@ -18089,9 +18385,46 @@ var require_is = __commonJS({
 var require_messages = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/messages.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Message = exports2.NotificationType9 = exports2.NotificationType8 = exports2.NotificationType7 = exports2.NotificationType6 = exports2.NotificationType5 = exports2.NotificationType4 = exports2.NotificationType3 = exports2.NotificationType2 = exports2.NotificationType1 = exports2.NotificationType0 = exports2.NotificationType = exports2.RequestType9 = exports2.RequestType8 = exports2.RequestType7 = exports2.RequestType6 = exports2.RequestType5 = exports2.RequestType4 = exports2.RequestType3 = exports2.RequestType2 = exports2.RequestType1 = exports2.RequestType = exports2.RequestType0 = exports2.AbstractMessageSignature = exports2.ParameterStructures = exports2.ResponseError = exports2.ErrorCodes = void 0;
-    var is = require_is();
+    var is = __importStar(require_is());
     var ErrorCodes2;
     (function(ErrorCodes3) {
       ErrorCodes3.ParseError = -32700;
@@ -18111,6 +18444,8 @@ var require_messages = __commonJS({
       ErrorCodes3.serverErrorEnd = -32e3;
     })(ErrorCodes2 || (exports2.ErrorCodes = ErrorCodes2 = {}));
     var ResponseError2 = class _ResponseError extends Error {
+      code;
+      data;
       constructor(code, message, data) {
         super(message);
         this.code = is.number(code) ? code : ErrorCodes2.UnknownErrorCode;
@@ -18130,6 +18465,23 @@ var require_messages = __commonJS({
     };
     exports2.ResponseError = ResponseError2;
     var ParameterStructures = class _ParameterStructures {
+      kind;
+      /**
+       * The parameter structure is automatically inferred on the number of parameters
+       * and the parameter type in case of a single param.
+       */
+      static auto = new _ParameterStructures("auto");
+      /**
+       * Forces `byPosition` parameter structure. This is useful if you have a single
+       * parameter which has a literal type.
+       */
+      static byPosition = new _ParameterStructures("byPosition");
+      /**
+       * Forces `byName` parameter structure. This is only useful when having a single
+       * parameter. The library will report errors if used with a different number of
+       * parameters.
+       */
+      static byName = new _ParameterStructures("byName");
       constructor(kind) {
         this.kind = kind;
       }
@@ -18141,10 +18493,9 @@ var require_messages = __commonJS({
       }
     };
     exports2.ParameterStructures = ParameterStructures;
-    ParameterStructures.auto = new ParameterStructures("auto");
-    ParameterStructures.byPosition = new ParameterStructures("byPosition");
-    ParameterStructures.byName = new ParameterStructures("byName");
     var AbstractMessageSignature = class {
+      method;
+      numberOfParams;
       constructor(method, numberOfParams) {
         this.method = method;
         this.numberOfParams = numberOfParams;
@@ -18154,13 +18505,22 @@ var require_messages = __commonJS({
       }
     };
     exports2.AbstractMessageSignature = AbstractMessageSignature;
-    var RequestType02 = class extends AbstractMessageSignature {
+    var RequestType03 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 0);
       }
     };
-    exports2.RequestType0 = RequestType02;
-    var RequestType2 = class extends AbstractMessageSignature {
+    exports2.RequestType0 = RequestType03;
+    var RequestType3 = class extends AbstractMessageSignature {
+      _parameterStructures;
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method, _parameterStructures = ParameterStructures.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
@@ -18169,8 +18529,13 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.RequestType = RequestType2;
+    exports2.RequestType = RequestType3;
     var RequestType1 = class extends AbstractMessageSignature {
+      _parameterStructures;
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method, _parameterStructures = ParameterStructures.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
@@ -18181,54 +18546,91 @@ var require_messages = __commonJS({
     };
     exports2.RequestType1 = RequestType1;
     var RequestType22 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 2);
       }
     };
     exports2.RequestType2 = RequestType22;
-    var RequestType3 = class extends AbstractMessageSignature {
+    var RequestType32 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 3);
       }
     };
-    exports2.RequestType3 = RequestType3;
+    exports2.RequestType3 = RequestType32;
     var RequestType4 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 4);
       }
     };
     exports2.RequestType4 = RequestType4;
     var RequestType5 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 5);
       }
     };
     exports2.RequestType5 = RequestType5;
     var RequestType6 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 6);
       }
     };
     exports2.RequestType6 = RequestType6;
     var RequestType7 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 7);
       }
     };
     exports2.RequestType7 = RequestType7;
     var RequestType8 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 8);
       }
     };
     exports2.RequestType8 = RequestType8;
     var RequestType9 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 9);
       }
     };
     exports2.RequestType9 = RequestType9;
-    var NotificationType2 = class extends AbstractMessageSignature {
+    var NotificationType3 = class extends AbstractMessageSignature {
+      _parameterStructures;
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method, _parameterStructures = ParameterStructures.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
@@ -18237,14 +18639,23 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.NotificationType = NotificationType2;
-    var NotificationType02 = class extends AbstractMessageSignature {
+    exports2.NotificationType = NotificationType3;
+    var NotificationType03 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 0);
       }
     };
-    exports2.NotificationType0 = NotificationType02;
+    exports2.NotificationType0 = NotificationType03;
     var NotificationType1 = class extends AbstractMessageSignature {
+      _parameterStructures;
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method, _parameterStructures = ParameterStructures.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
@@ -18255,71 +18666,103 @@ var require_messages = __commonJS({
     };
     exports2.NotificationType1 = NotificationType1;
     var NotificationType22 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 2);
       }
     };
     exports2.NotificationType2 = NotificationType22;
-    var NotificationType3 = class extends AbstractMessageSignature {
+    var NotificationType32 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 3);
       }
     };
-    exports2.NotificationType3 = NotificationType3;
+    exports2.NotificationType3 = NotificationType32;
     var NotificationType4 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 4);
       }
     };
     exports2.NotificationType4 = NotificationType4;
     var NotificationType5 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 5);
       }
     };
     exports2.NotificationType5 = NotificationType5;
     var NotificationType6 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 6);
       }
     };
     exports2.NotificationType6 = NotificationType6;
     var NotificationType7 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 7);
       }
     };
     exports2.NotificationType7 = NotificationType7;
     var NotificationType8 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 8);
       }
     };
     exports2.NotificationType8 = NotificationType8;
     var NotificationType9 = class extends AbstractMessageSignature {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      _;
       constructor(method) {
         super(method, 9);
       }
     };
     exports2.NotificationType9 = NotificationType9;
-    var Message;
-    (function(Message2) {
+    var Message2;
+    (function(Message3) {
       function isRequest(message) {
         const candidate = message;
         return candidate && is.string(candidate.method) && (is.string(candidate.id) || is.number(candidate.id));
       }
-      Message2.isRequest = isRequest;
+      Message3.isRequest = isRequest;
       function isNotification(message) {
         const candidate = message;
         return candidate && is.string(candidate.method) && message.id === void 0;
       }
-      Message2.isNotification = isNotification;
+      Message3.isNotification = isNotification;
       function isResponse(message) {
         const candidate = message;
         return candidate && (candidate.result !== void 0 || !!candidate.error) && (is.string(candidate.id) || is.number(candidate.id) || candidate.id === null);
       }
-      Message2.isResponse = isResponse;
-    })(Message || (exports2.Message = Message = {}));
+      Message3.isResponse = isResponse;
+    })(Message2 || (exports2.Message = Message2 = {}));
   }
 });
 
@@ -18327,7 +18770,6 @@ var require_messages = __commonJS({
 var require_linkedMap = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/linkedMap.js"(exports2) {
     "use strict";
-    var _a2;
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LRUCache = exports2.LinkedMap = exports2.Touch = void 0;
     var Touch2;
@@ -18339,8 +18781,13 @@ var require_linkedMap = __commonJS({
       Touch3.AsNew = Touch3.Last;
     })(Touch2 || (exports2.Touch = Touch2 = {}));
     var LinkedMap2 = class {
+      [Symbol.toStringTag] = "LinkedMap";
+      _map;
+      _head;
+      _tail;
+      _size;
+      _state;
       constructor() {
-        this[_a2] = "LinkedMap";
         this._map = /* @__PURE__ */ new Map();
         this._head = void 0;
         this._tail = void 0;
@@ -18365,6 +18812,14 @@ var require_linkedMap = __commonJS({
       }
       get last() {
         return this._tail?.value;
+      }
+      before(key) {
+        const item = this._map.get(key);
+        return item ? item.previous?.value : void 0;
+      }
+      after(key) {
+        const item = this._map.get(key);
+        return item ? item.next?.value : void 0;
       }
       has(key) {
         return this._map.has(key);
@@ -18514,7 +18969,7 @@ var require_linkedMap = __commonJS({
         };
         return iterator;
       }
-      [(_a2 = Symbol.toStringTag, Symbol.iterator)]() {
+      [Symbol.iterator]() {
         return this.entries();
       }
       trimOld(newSize) {
@@ -18653,6 +19108,8 @@ var require_linkedMap = __commonJS({
     };
     exports2.LinkedMap = LinkedMap2;
     var LRUCache2 = class extends LinkedMap2 {
+      _limit;
+      _ratio;
       constructor(limit, ratio = 1) {
         super();
         this._limit = limit;
@@ -18699,15 +19156,15 @@ var require_disposable = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Disposable = void 0;
-    var Disposable36;
-    (function(Disposable37) {
+    var Disposable41;
+    (function(Disposable42) {
       function create(func2) {
         return {
           dispose: func2
         };
       }
-      Disposable37.create = create;
-    })(Disposable36 || (exports2.Disposable = Disposable36 = {}));
+      Disposable42.create = create;
+    })(Disposable41 || (exports2.Disposable = Disposable41 = {}));
   }
 });
 
@@ -18740,18 +19197,23 @@ var require_ral = __commonJS({
 var require_events = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/events.js"(exports2) {
     "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Emitter = exports2.Event = void 0;
-    var ral_1 = require_ral();
-    var Event45;
-    (function(Event46) {
+    var ral_1 = __importDefault(require_ral());
+    var Event46;
+    (function(Event47) {
       const _disposable = { dispose() {
       } };
-      Event46.None = function() {
+      Event47.None = function() {
         return _disposable;
       };
-    })(Event45 || (exports2.Event = Event45 = {}));
+    })(Event46 || (exports2.Event = Event46 = {}));
     var CallbackList = class {
+      _callbacks;
+      _contexts;
       add(callback, context = null, bucket) {
         if (!this._callbacks) {
           this._callbacks = [];
@@ -18805,7 +19267,12 @@ var require_events = __commonJS({
         this._contexts = void 0;
       }
     };
-    var Emitter2 = class _Emitter {
+    var Emitter3 = class _Emitter {
+      _options;
+      static _noop = function() {
+      };
+      _event;
+      _callbacks;
       constructor(_options) {
         this._options = _options;
       }
@@ -18859,9 +19326,7 @@ var require_events = __commonJS({
         }
       }
     };
-    exports2.Emitter = Emitter2;
-    Emitter2._noop = function() {
-    };
+    exports2.Emitter = Emitter3;
   }
 });
 
@@ -18869,27 +19334,67 @@ var require_events = __commonJS({
 var require_cancellation = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/cancellation.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.CancellationTokenSource = exports2.CancellationToken = void 0;
-    var ral_1 = require_ral();
-    var Is2 = require_is();
+    var ral_1 = __importDefault(require_ral());
+    var Is2 = __importStar(require_is());
     var events_1 = require_events();
-    var CancellationToken24;
-    (function(CancellationToken25) {
-      CancellationToken25.None = Object.freeze({
+    var CancellationToken27;
+    (function(CancellationToken28) {
+      CancellationToken28.None = Object.freeze({
         isCancellationRequested: false,
         onCancellationRequested: events_1.Event.None
       });
-      CancellationToken25.Cancelled = Object.freeze({
+      CancellationToken28.Cancelled = Object.freeze({
         isCancellationRequested: true,
         onCancellationRequested: events_1.Event.None
       });
       function is(value) {
         const candidate = value;
-        return candidate && (candidate === CancellationToken25.None || candidate === CancellationToken25.Cancelled || Is2.boolean(candidate.isCancellationRequested) && !!candidate.onCancellationRequested);
+        return candidate && (candidate === CancellationToken28.None || candidate === CancellationToken28.Cancelled || Is2.boolean(candidate.isCancellationRequested) && !!candidate.onCancellationRequested);
       }
-      CancellationToken25.is = is;
-    })(CancellationToken24 || (exports2.CancellationToken = CancellationToken24 = {}));
+      CancellationToken28.is = is;
+    })(CancellationToken27 || (exports2.CancellationToken = CancellationToken27 = {}));
     var shortcutEvent = Object.freeze(function(callback, context) {
       const handle = (0, ral_1.default)().timer.setTimeout(callback.bind(context), 0);
       return { dispose() {
@@ -18897,9 +19402,8 @@ var require_cancellation = __commonJS({
       } };
     });
     var MutableToken = class {
-      constructor() {
-        this._isCancelled = false;
-      }
+      _isCancelled = false;
+      _emitter;
       cancel() {
         if (!this._isCancelled) {
           this._isCancelled = true;
@@ -18929,6 +19433,7 @@ var require_cancellation = __commonJS({
       }
     };
     var CancellationTokenSource2 = class {
+      _token;
       get token() {
         if (!this._token) {
           this._token = new MutableToken();
@@ -18937,14 +19442,14 @@ var require_cancellation = __commonJS({
       }
       cancel() {
         if (!this._token) {
-          this._token = CancellationToken24.Cancelled;
+          this._token = CancellationToken27.Cancelled;
         } else {
           this._token.cancel();
         }
       }
       dispose() {
         if (!this._token) {
-          this._token = CancellationToken24.None;
+          this._token = CancellationToken27.None;
         } else if (this._token instanceof MutableToken) {
           this._token.dispose();
         }
@@ -18967,6 +19472,7 @@ var require_sharedArrayCancellation = __commonJS({
       CancellationState2.Cancelled = 1;
     })(CancellationState || (CancellationState = {}));
     var SharedArraySenderStrategy = class {
+      buffers;
       constructor() {
         this.buffers = /* @__PURE__ */ new Map();
       }
@@ -18997,6 +19503,7 @@ var require_sharedArrayCancellation = __commonJS({
     };
     exports2.SharedArraySenderStrategy = SharedArraySenderStrategy;
     var SharedArrayBufferCancellationToken = class {
+      data;
       constructor(buffer) {
         this.data = new Int32Array(buffer, 0, 1);
       }
@@ -19008,6 +19515,7 @@ var require_sharedArrayCancellation = __commonJS({
       }
     };
     var SharedArrayBufferCancellationTokenSource = class {
+      token;
       constructor(buffer) {
         this.token = new SharedArrayBufferCancellationToken(buffer);
       }
@@ -19017,9 +19525,7 @@ var require_sharedArrayCancellation = __commonJS({
       }
     };
     var SharedArrayReceiverStrategy = class {
-      constructor() {
-        this.kind = "request";
-      }
+      kind = "request";
       createCancellationTokenSource(request2) {
         const buffer = request2.$cancellationData;
         if (buffer === void 0) {
@@ -19036,10 +19542,16 @@ var require_sharedArrayCancellation = __commonJS({
 var require_semaphore = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/semaphore.js"(exports2) {
     "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Semaphore = void 0;
-    var ral_1 = require_ral();
+    var ral_1 = __importDefault(require_ral());
     var Semaphore = class {
+      _capacity;
+      _active;
+      _waiting;
       constructor(capacity = 1) {
         if (capacity <= 0) {
           throw new Error("Capacity must be greater than 0");
@@ -19070,7 +19582,7 @@ var require_semaphore = __commonJS({
         const next = this._waiting.shift();
         this._active++;
         if (this._active > this._capacity) {
-          throw new Error(`To many thunks active`);
+          throw new Error(`Too many thunks active`);
         }
         try {
           const result = next.thunk();
@@ -19104,21 +19616,64 @@ var require_semaphore = __commonJS({
 var require_messageReader = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/messageReader.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ReadableStreamMessageReader = exports2.AbstractMessageReader = exports2.MessageReader = void 0;
-    var ral_1 = require_ral();
-    var Is2 = require_is();
+    var ral_1 = __importDefault(require_ral());
+    var Is2 = __importStar(require_is());
     var events_1 = require_events();
     var semaphore_1 = require_semaphore();
     var MessageReader2;
     (function(MessageReader3) {
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && Is2.func(candidate.listen) && Is2.func(candidate.dispose) && Is2.func(candidate.onError) && Is2.func(candidate.onClose) && Is2.func(candidate.onPartialMessage);
       }
       MessageReader3.is = is;
     })(MessageReader2 || (exports2.MessageReader = MessageReader2 = {}));
     var AbstractMessageReader = class {
+      errorEmitter;
+      closeEmitter;
+      partialMessageEmitter;
       constructor() {
         this.errorEmitter = new events_1.Emitter();
         this.closeEmitter = new events_1.Emitter();
@@ -19127,6 +19682,7 @@ var require_messageReader = __commonJS({
       dispose() {
         this.errorEmitter.dispose();
         this.closeEmitter.dispose();
+        this.partialMessageEmitter.dispose();
       }
       get onError() {
         return this.errorEmitter.event;
@@ -19196,6 +19752,15 @@ var require_messageReader = __commonJS({
       ResolvedMessageReaderOptions2.fromOptions = fromOptions;
     })(ResolvedMessageReaderOptions || (ResolvedMessageReaderOptions = {}));
     var ReadableStreamMessageReader = class extends AbstractMessageReader {
+      readable;
+      options;
+      callback;
+      nextMessageLength;
+      messageToken;
+      buffer;
+      partialMessageTimer;
+      _partialMessageTimeout;
+      readSemaphore;
       constructor(readable, options2) {
         super();
         this.readable = readable;
@@ -19293,10 +19858,50 @@ ${JSON.stringify(Object.fromEntries(headers))}`));
 var require_messageWriter = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/messageWriter.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.WriteableStreamMessageWriter = exports2.AbstractMessageWriter = exports2.MessageWriter = void 0;
-    var ral_1 = require_ral();
-    var Is2 = require_is();
+    var ral_1 = __importDefault(require_ral());
+    var Is2 = __importStar(require_is());
     var semaphore_1 = require_semaphore();
     var events_1 = require_events();
     var ContentLength = "Content-Length: ";
@@ -19304,12 +19909,14 @@ var require_messageWriter = __commonJS({
     var MessageWriter2;
     (function(MessageWriter3) {
       function is(value) {
-        let candidate = value;
+        const candidate = value;
         return candidate && Is2.func(candidate.dispose) && Is2.func(candidate.onClose) && Is2.func(candidate.onError) && Is2.func(candidate.write);
       }
       MessageWriter3.is = is;
     })(MessageWriter2 || (exports2.MessageWriter = MessageWriter2 = {}));
     var AbstractMessageWriter = class {
+      errorEmitter;
+      closeEmitter;
       constructor() {
         this.errorEmitter = new events_1.Emitter();
         this.closeEmitter = new events_1.Emitter();
@@ -19351,6 +19958,10 @@ var require_messageWriter = __commonJS({
       ResolvedMessageWriterOptions2.fromOptions = fromOptions;
     })(ResolvedMessageWriterOptions || (ResolvedMessageWriterOptions = {}));
     var WriteableStreamMessageWriter = class extends AbstractMessageWriter {
+      writable;
+      options;
+      errorCount;
+      writeSemaphore;
       constructor(writable, options2) {
         super();
         this.writable = writable;
@@ -19411,6 +20022,9 @@ var require_messageBuffer = __commonJS({
     var LF = 10;
     var CRLF = "\r\n";
     var AbstractMessageBuffer = class {
+      _encoding;
+      _chunks;
+      _totalLength;
       constructor(encoding2 = "utf-8") {
         this._encoding = encoding2;
         this._chunks = [];
@@ -19435,7 +20049,7 @@ var require_messageBuffer = __commonJS({
         row: while (chunkIndex < this._chunks.length) {
           const chunk = this._chunks[chunkIndex];
           offset = 0;
-          column: while (offset < chunk.length) {
+          while (offset < chunk.length) {
             const value = chunk[offset];
             switch (value) {
               case CR:
@@ -19524,7 +20138,7 @@ ${header}`);
         }
         const result = this.allocNative(byteCount);
         let resultOffset = 0;
-        let chunkIndex = 0;
+        const chunkIndex = 0;
         while (byteCount > 0) {
           const chunk = this._chunks[chunkIndex];
           if (chunk.byteLength > byteCount) {
@@ -19553,10 +20167,51 @@ ${header}`);
 var require_connection2 = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/connection.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.createMessageConnection = exports2.ConnectionOptions = exports2.MessageStrategy = exports2.CancellationStrategy = exports2.CancellationSenderStrategy = exports2.CancellationReceiverStrategy = exports2.RequestCancellationReceiverStrategy = exports2.IdCancellationReceiverStrategy = exports2.ConnectionStrategy = exports2.ConnectionError = exports2.ConnectionErrors = exports2.LogTraceNotification = exports2.SetTraceNotification = exports2.TraceFormat = exports2.TraceValues = exports2.Trace = exports2.NullLogger = exports2.ProgressType = exports2.ProgressToken = void 0;
-    var ral_1 = require_ral();
-    var Is2 = require_is();
+    exports2.ConnectionOptions = exports2.MessageStrategy = exports2.CancellationStrategy = exports2.CancellationSenderStrategy = exports2.CancellationReceiverStrategy = exports2.RequestCancellationReceiverStrategy = exports2.IdCancellationReceiverStrategy = exports2.ConnectionStrategy = exports2.ConnectionError = exports2.ConnectionErrors = exports2.LogTraceNotification = exports2.SetTraceNotification = exports2.TraceFormat = exports2.TraceValues = exports2.TraceValue = exports2.Trace = exports2.NullLogger = exports2.ProgressType = exports2.ProgressToken = void 0;
+    exports2.createMessageConnection = createMessageConnection;
+    var ral_1 = __importDefault(require_ral());
+    var Is2 = __importStar(require_is());
     var messages_1 = require_messages();
     var linkedMap_1 = require_linkedMap();
     var events_1 = require_events();
@@ -19565,22 +20220,28 @@ var require_connection2 = __commonJS({
     (function(CancelNotification2) {
       CancelNotification2.type = new messages_1.NotificationType("$/cancelRequest");
     })(CancelNotification || (CancelNotification = {}));
-    var ProgressToken;
-    (function(ProgressToken2) {
+    var ProgressToken2;
+    (function(ProgressToken3) {
       function is(value) {
         return typeof value === "string" || typeof value === "number";
       }
-      ProgressToken2.is = is;
-    })(ProgressToken || (exports2.ProgressToken = ProgressToken = {}));
+      ProgressToken3.is = is;
+    })(ProgressToken2 || (exports2.ProgressToken = ProgressToken2 = {}));
     var ProgressNotification2;
     (function(ProgressNotification3) {
       ProgressNotification3.type = new messages_1.NotificationType("$/progress");
     })(ProgressNotification2 || (ProgressNotification2 = {}));
-    var ProgressType2 = class {
+    var ProgressType3 = class {
+      /**
+       * Clients must not use these properties. They are here to ensure correct typing.
+       * in TypeScript
+       */
+      __;
+      _pr;
       constructor() {
       }
     };
-    exports2.ProgressType = ProgressType2;
+    exports2.ProgressType = ProgressType3;
     var StarRequestHandler;
     (function(StarRequestHandler2) {
       function is(value) {
@@ -19605,13 +20266,14 @@ var require_connection2 = __commonJS({
       Trace3[Trace3["Compact"] = 2] = "Compact";
       Trace3[Trace3["Verbose"] = 3] = "Verbose";
     })(Trace2 || (exports2.Trace = Trace2 = {}));
-    var TraceValues;
-    (function(TraceValues2) {
-      TraceValues2.Off = "off";
-      TraceValues2.Messages = "messages";
-      TraceValues2.Compact = "compact";
-      TraceValues2.Verbose = "verbose";
-    })(TraceValues || (exports2.TraceValues = TraceValues = {}));
+    var TraceValue;
+    (function(TraceValue2) {
+      TraceValue2.Off = "off";
+      TraceValue2.Messages = "messages";
+      TraceValue2.Compact = "compact";
+      TraceValue2.Verbose = "verbose";
+    })(TraceValue || (exports2.TraceValue = TraceValue = {}));
+    exports2.TraceValues = TraceValue;
     (function(Trace3) {
       function fromString(value) {
         if (!Is2.string(value)) {
@@ -19682,6 +20344,7 @@ var require_connection2 = __commonJS({
       ConnectionErrors2[ConnectionErrors2["AlreadyListening"] = 3] = "AlreadyListening";
     })(ConnectionErrors || (exports2.ConnectionErrors = ConnectionErrors = {}));
     var ConnectionError = class _ConnectionError extends Error {
+      code;
       constructor(code, message) {
         super(message);
         this.code = code;
@@ -19689,14 +20352,14 @@ var require_connection2 = __commonJS({
       }
     };
     exports2.ConnectionError = ConnectionError;
-    var ConnectionStrategy;
-    (function(ConnectionStrategy2) {
+    var ConnectionStrategy2;
+    (function(ConnectionStrategy3) {
       function is(value) {
         const candidate = value;
         return candidate && Is2.func(candidate.cancelUndispatched);
       }
-      ConnectionStrategy2.is = is;
-    })(ConnectionStrategy || (exports2.ConnectionStrategy = ConnectionStrategy = {}));
+      ConnectionStrategy3.is = is;
+    })(ConnectionStrategy2 || (exports2.ConnectionStrategy = ConnectionStrategy2 = {}));
     var IdCancellationReceiverStrategy;
     (function(IdCancellationReceiverStrategy2) {
       function is(value) {
@@ -19740,9 +20403,9 @@ var require_connection2 = __commonJS({
       }
       CancellationSenderStrategy2.is = is;
     })(CancellationSenderStrategy || (exports2.CancellationSenderStrategy = CancellationSenderStrategy = {}));
-    var CancellationStrategy;
-    (function(CancellationStrategy2) {
-      CancellationStrategy2.Message = Object.freeze({
+    var CancellationStrategy2;
+    (function(CancellationStrategy3) {
+      CancellationStrategy3.Message = Object.freeze({
         receiver: CancellationReceiverStrategy.Message,
         sender: CancellationSenderStrategy.Message
       });
@@ -19750,8 +20413,8 @@ var require_connection2 = __commonJS({
         const candidate = value;
         return candidate && CancellationReceiverStrategy.is(candidate.receiver) && CancellationSenderStrategy.is(candidate.sender);
       }
-      CancellationStrategy2.is = is;
-    })(CancellationStrategy || (exports2.CancellationStrategy = CancellationStrategy = {}));
+      CancellationStrategy3.is = is;
+    })(CancellationStrategy2 || (exports2.CancellationStrategy = CancellationStrategy2 = {}));
     var MessageStrategy;
     (function(MessageStrategy2) {
       function is(value) {
@@ -19764,7 +20427,7 @@ var require_connection2 = __commonJS({
     (function(ConnectionOptions2) {
       function is(value) {
         const candidate = value;
-        return candidate && (CancellationStrategy.is(candidate.cancellationStrategy) || ConnectionStrategy.is(candidate.connectionStrategy) || MessageStrategy.is(candidate.messageStrategy));
+        return candidate && (CancellationStrategy2.is(candidate.cancellationStrategy) || ConnectionStrategy2.is(candidate.connectionStrategy) || MessageStrategy.is(candidate.messageStrategy) || Is2.number(candidate.maxParallelism));
       }
       ConnectionOptions2.is = is;
     })(ConnectionOptions || (exports2.ConnectionOptions = ConnectionOptions = {}));
@@ -19776,11 +20439,13 @@ var require_connection2 = __commonJS({
       ConnectionState2[ConnectionState2["Disposed"] = 4] = "Disposed";
     })(ConnectionState || (ConnectionState = {}));
     function createMessageConnection(messageReader, messageWriter, _logger, options2) {
-      const logger60 = _logger !== void 0 ? _logger : exports2.NullLogger;
+      const logger61 = _logger !== void 0 ? _logger : exports2.NullLogger;
       let sequenceNumber = 0;
       let notificationSequenceNumber = 0;
       let unknownResponseSequenceNumber = 0;
       const version2 = "2.0";
+      const maxParallelism = options2?.maxParallelism ?? -1;
+      let inFlight = 0;
       let starRequestHandler = void 0;
       const requestHandlers = /* @__PURE__ */ new Map();
       let starNotificationHandler = void 0;
@@ -19800,32 +20465,7 @@ var require_connection2 = __commonJS({
       const unhandledNotificationEmitter = new events_1.Emitter();
       const unhandledProgressEmitter = new events_1.Emitter();
       const disposeEmitter = new events_1.Emitter();
-      const cancellationStrategy = options2 && options2.cancellationStrategy ? options2.cancellationStrategy : CancellationStrategy.Message;
-      function createRequestQueueKey(id2) {
-        if (id2 === null) {
-          throw new Error(`Can't send requests with id null since the response can't be correlated.`);
-        }
-        return "req-" + id2.toString();
-      }
-      function createResponseQueueKey(id2) {
-        if (id2 === null) {
-          return "res-unknown-" + (++unknownResponseSequenceNumber).toString();
-        } else {
-          return "res-" + id2.toString();
-        }
-      }
-      function createNotificationQueueKey() {
-        return "not-" + (++notificationSequenceNumber).toString();
-      }
-      function addMessageToQueue(queue, message) {
-        if (messages_1.Message.isRequest(message)) {
-          queue.set(createRequestQueueKey(message.id), message);
-        } else if (messages_1.Message.isResponse(message)) {
-          queue.set(createResponseQueueKey(message.id), message);
-        } else {
-          queue.set(createNotificationQueueKey(), message);
-        }
-      }
+      const cancellationStrategy = options2 && options2.cancellationStrategy ? options2.cancellationStrategy : CancellationStrategy2.Message;
       function cancelUndispatched(_message) {
         return void 0;
       }
@@ -19854,40 +20494,86 @@ var require_connection2 = __commonJS({
       messageReader.onError(readErrorHandler);
       messageWriter.onClose(closeHandler);
       messageWriter.onError(writeErrorHandler);
+      function createRequestQueueKey(id2) {
+        if (id2 === null) {
+          throw new Error(`Can't send requests with id null since the response can't be correlated.`);
+        }
+        return "req-" + id2.toString();
+      }
+      function createResponseQueueKey(id2) {
+        if (id2 === null) {
+          return "res-unknown-" + (++unknownResponseSequenceNumber).toString();
+        } else {
+          return "res-" + id2.toString();
+        }
+      }
+      function createNotificationQueueKey() {
+        return "not-" + (++notificationSequenceNumber).toString();
+      }
+      function addMessageToQueue(queue, message) {
+        if (messages_1.Message.isRequest(message)) {
+          queue.set(createRequestQueueKey(message.id), message);
+        } else if (messages_1.Message.isResponse(message)) {
+          if (maxParallelism === -1) {
+            queue.set(createResponseQueueKey(message.id), message);
+          } else {
+            handleResponse(message);
+          }
+        } else {
+          queue.set(createNotificationQueueKey(), message);
+        }
+      }
       function triggerMessageQueue() {
         if (timer || messageQueue.size === 0) {
           return;
         }
-        timer = (0, ral_1.default)().timer.setImmediate(() => {
-          timer = void 0;
-          processMessageQueue();
-        });
-      }
-      function handleMessage(message) {
-        if (messages_1.Message.isRequest(message)) {
-          handleRequest(message);
-        } else if (messages_1.Message.isNotification(message)) {
-          handleNotification(message);
-        } else if (messages_1.Message.isResponse(message)) {
-          handleResponse(message);
-        } else {
-          handleInvalidMessage(message);
-        }
-      }
-      function processMessageQueue() {
-        if (messageQueue.size === 0) {
+        if (maxParallelism !== -1 && inFlight >= maxParallelism) {
           return;
         }
-        const message = messageQueue.shift();
-        try {
-          const messageStrategy = options2?.messageStrategy;
-          if (MessageStrategy.is(messageStrategy)) {
-            messageStrategy.handleMessage(message, handleMessage);
-          } else {
-            handleMessage(message);
+        timer = (0, ral_1.default)().timer.setImmediate(async () => {
+          timer = void 0;
+          if (messageQueue.size === 0) {
+            return;
           }
-        } finally {
-          triggerMessageQueue();
+          if (maxParallelism !== -1 && inFlight >= maxParallelism) {
+            return;
+          }
+          const message = messageQueue.shift();
+          let result;
+          try {
+            inFlight++;
+            const messageStrategy = options2?.messageStrategy;
+            if (MessageStrategy.is(messageStrategy)) {
+              result = messageStrategy.handleMessage(message, handleMessage);
+            } else {
+              result = handleMessage(message);
+            }
+          } catch (error) {
+            logger61.error(`Processing message queue failed: ${error.toString()}`);
+          } finally {
+            if (result instanceof Promise) {
+              result.then(() => {
+                inFlight--;
+                triggerMessageQueue();
+              }).catch((error) => {
+                logger61.error(`Processing message queue failed: ${error.toString()}`);
+              });
+            } else {
+              inFlight--;
+            }
+            triggerMessageQueue();
+          }
+        });
+      }
+      async function handleMessage(message) {
+        if (messages_1.Message.isRequest(message)) {
+          return handleRequest(message);
+        } else if (messages_1.Message.isNotification(message)) {
+          return handleNotification(message);
+        } else if (messages_1.Message.isResponse(message)) {
+          return handleResponse(message);
+        } else {
+          return handleInvalidMessage(message);
         }
       }
       const callback = (message) => {
@@ -19904,7 +20590,7 @@ var require_connection2 = __commonJS({
                 requestTokens.delete(cancelId);
                 response.id = toCancel.id;
                 traceSendingResponse(response, message.method, Date.now());
-                messageWriter.write(response).catch(() => logger60.error(`Sending response for canceled message failed.`));
+                messageWriter.write(response).catch(() => logger61.error(`Sending response for canceled message failed.`));
                 return;
               }
             }
@@ -19922,9 +20608,9 @@ var require_connection2 = __commonJS({
           triggerMessageQueue();
         }
       };
-      function handleRequest(requestMessage) {
+      async function handleRequest(requestMessage) {
         if (isDisposed()) {
-          return;
+          return Promise.resolve();
         }
         function reply(resultOrError, method, startTime2) {
           const message = {
@@ -19937,7 +20623,7 @@ var require_connection2 = __commonJS({
             message.result = resultOrError === void 0 ? null : resultOrError;
           }
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger60.error(`Sending response failed.`));
+          return messageWriter.write(message);
         }
         function replyError(error, method, startTime2) {
           const message = {
@@ -19946,19 +20632,7 @@ var require_connection2 = __commonJS({
             error: error.toJson()
           };
           traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger60.error(`Sending response failed.`));
-        }
-        function replySuccess(result, method, startTime2) {
-          if (result === void 0) {
-            result = null;
-          }
-          const message = {
-            jsonrpc: version2,
-            id: requestMessage.id,
-            result
-          };
-          traceSendingResponse(message, method, startTime2);
-          messageWriter.write(message).catch(() => logger60.error(`Sending response failed.`));
+          return messageWriter.write(message);
         }
         traceReceivedRequest(requestMessage);
         const element = requestHandlers.get(requestMessage.method);
@@ -19983,60 +20657,38 @@ var require_connection2 = __commonJS({
             if (requestHandler) {
               if (requestMessage.params === void 0) {
                 if (type !== void 0 && type.numberOfParams !== 0) {
-                  replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines ${type.numberOfParams} params but received none.`), requestMessage.method, startTime);
-                  return;
+                  return replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines ${type.numberOfParams} params but received none.`), requestMessage.method, startTime);
                 }
                 handlerResult = requestHandler(cancellationSource.token);
               } else if (Array.isArray(requestMessage.params)) {
                 if (type !== void 0 && type.parameterStructures === messages_1.ParameterStructures.byName) {
-                  replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines parameters by name but received parameters by position`), requestMessage.method, startTime);
-                  return;
+                  return replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines parameters by name but received parameters by position`), requestMessage.method, startTime);
                 }
                 handlerResult = requestHandler(...requestMessage.params, cancellationSource.token);
               } else {
                 if (type !== void 0 && type.parameterStructures === messages_1.ParameterStructures.byPosition) {
-                  replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines parameters by position but received parameters by name`), requestMessage.method, startTime);
-                  return;
+                  return replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InvalidParams, `Request ${requestMessage.method} defines parameters by position but received parameters by name`), requestMessage.method, startTime);
                 }
                 handlerResult = requestHandler(requestMessage.params, cancellationSource.token);
               }
             } else if (starRequestHandler) {
               handlerResult = starRequestHandler(requestMessage.method, requestMessage.params, cancellationSource.token);
             }
-            const promise = handlerResult;
-            if (!handlerResult) {
-              requestTokens.delete(tokenKey);
-              replySuccess(handlerResult, requestMessage.method, startTime);
-            } else if (promise.then) {
-              promise.then((resultOrError) => {
-                requestTokens.delete(tokenKey);
-                reply(resultOrError, requestMessage.method, startTime);
-              }, (error) => {
-                requestTokens.delete(tokenKey);
-                if (error instanceof messages_1.ResponseError) {
-                  replyError(error, requestMessage.method, startTime);
-                } else if (error && Is2.string(error.message)) {
-                  replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed with message: ${error.message}`), requestMessage.method, startTime);
-                } else {
-                  replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed unexpectedly without providing any details.`), requestMessage.method, startTime);
-                }
-              });
-            } else {
-              requestTokens.delete(tokenKey);
-              reply(handlerResult, requestMessage.method, startTime);
-            }
+            const resultOrError = await handlerResult;
+            await reply(resultOrError, requestMessage.method, startTime);
           } catch (error) {
-            requestTokens.delete(tokenKey);
             if (error instanceof messages_1.ResponseError) {
-              reply(error, requestMessage.method, startTime);
+              await reply(error, requestMessage.method, startTime);
             } else if (error && Is2.string(error.message)) {
-              replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed with message: ${error.message}`), requestMessage.method, startTime);
+              await replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed with message: ${error.message}`), requestMessage.method, startTime);
             } else {
-              replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed unexpectedly without providing any details.`), requestMessage.method, startTime);
+              await replyError(new messages_1.ResponseError(messages_1.ErrorCodes.InternalError, `Request ${requestMessage.method} failed unexpectedly without providing any details.`), requestMessage.method, startTime);
             }
+          } finally {
+            requestTokens.delete(tokenKey);
           }
         } else {
-          replyError(new messages_1.ResponseError(messages_1.ErrorCodes.MethodNotFound, `Unhandled method ${requestMessage.method}`), requestMessage.method, startTime);
+          await replyError(new messages_1.ResponseError(messages_1.ErrorCodes.MethodNotFound, `Unhandled method ${requestMessage.method}`), requestMessage.method, startTime);
         }
       }
       function handleResponse(responseMessage) {
@@ -20045,10 +20697,10 @@ var require_connection2 = __commonJS({
         }
         if (responseMessage.id === null) {
           if (responseMessage.error) {
-            logger60.error(`Received response message without id: Error is: 
+            logger61.error(`Received response message without id: Error is: 
 ${JSON.stringify(responseMessage.error, void 0, 4)}`);
           } else {
-            logger60.error(`Received response message without id. No further error information provided.`);
+            logger61.error(`Received response message without id. No further error information provided.`);
           }
         } else {
           const key = responseMessage.id;
@@ -20067,15 +20719,15 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               }
             } catch (error) {
               if (error.message) {
-                logger60.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
+                logger61.error(`Response handler '${responsePromise.method}' failed with message: ${error.message}`);
               } else {
-                logger60.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
+                logger61.error(`Response handler '${responsePromise.method}' failed unexpectedly.`);
               }
             }
           }
         }
       }
-      function handleNotification(message) {
+      async function handleNotification(message) {
         if (isDisposed()) {
           return;
         }
@@ -20100,39 +20752,39 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
               if (message.params === void 0) {
                 if (type !== void 0) {
                   if (type.numberOfParams !== 0 && type.parameterStructures !== messages_1.ParameterStructures.byName) {
-                    logger60.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
+                    logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received none.`);
                   }
                 }
-                notificationHandler();
+                await notificationHandler();
               } else if (Array.isArray(message.params)) {
                 const params = message.params;
-                if (message.method === ProgressNotification2.type.method && params.length === 2 && ProgressToken.is(params[0])) {
-                  notificationHandler({ token: params[0], value: params[1] });
+                if (message.method === ProgressNotification2.type.method && params.length === 2 && ProgressToken2.is(params[0])) {
+                  await notificationHandler({ token: params[0], value: params[1] });
                 } else {
                   if (type !== void 0) {
                     if (type.parameterStructures === messages_1.ParameterStructures.byName) {
-                      logger60.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
+                      logger61.error(`Notification ${message.method} defines parameters by name but received parameters by position`);
                     }
                     if (type.numberOfParams !== message.params.length) {
-                      logger60.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
+                      logger61.error(`Notification ${message.method} defines ${type.numberOfParams} params but received ${params.length} arguments`);
                     }
                   }
-                  notificationHandler(...params);
+                  await notificationHandler(...params);
                 }
               } else {
                 if (type !== void 0 && type.parameterStructures === messages_1.ParameterStructures.byPosition) {
-                  logger60.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
+                  logger61.error(`Notification ${message.method} defines parameters by position but received parameters by name`);
                 }
-                notificationHandler(message.params);
+                await notificationHandler(message.params);
               }
             } else if (starNotificationHandler) {
-              starNotificationHandler(message.method, message.params);
+              await starNotificationHandler(message.method, message.params);
             }
           } catch (error) {
             if (error.message) {
-              logger60.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
+              logger61.error(`Notification handler '${message.method}' failed with message: ${error.message}`);
             } else {
-              logger60.error(`Notification handler '${message.method}' failed unexpectedly.`);
+              logger61.error(`Notification handler '${message.method}' failed unexpectedly.`);
             }
           }
         } else {
@@ -20141,10 +20793,10 @@ ${JSON.stringify(responseMessage.error, void 0, 4)}`);
       }
       function handleInvalidMessage(message) {
         if (!message) {
-          logger60.error("Received empty message.");
+          logger61.error("Received empty message.");
           return;
         }
-        logger60.error(`Received message which is neither a response nor a notification message:
+        logger61.error(`Received message which is neither a response nor a notification message:
 ${JSON.stringify(message, null, 4)}`);
         const responseMessage = message;
         if (Is2.string(responseMessage.id) || Is2.number(responseMessage.id)) {
@@ -20175,9 +20827,7 @@ ${JSON.stringify(message, null, 4)}`);
         if (traceFormat === TraceFormat2.Text) {
           let data = void 0;
           if ((trace === Trace2.Verbose || trace === Trace2.Compact) && message.params) {
-            data = `Params: ${stringifyTrace(message.params)}
-
-`;
+            data = `Params: ${stringifyTrace(message.params)}`;
           }
           tracer.log(`Sending request '${message.method} - (${message.id})'.`, data);
         } else {
@@ -20192,11 +20842,9 @@ ${JSON.stringify(message, null, 4)}`);
           let data = void 0;
           if (trace === Trace2.Verbose || trace === Trace2.Compact) {
             if (message.params) {
-              data = `Params: ${stringifyTrace(message.params)}
-
-`;
+              data = `Params: ${stringifyTrace(message.params)}`;
             } else {
-              data = "No parameters provided.\n\n";
+              data = "No parameters provided.";
             }
           }
           tracer.log(`Sending notification '${message.method}'.`, data);
@@ -20212,16 +20860,12 @@ ${JSON.stringify(message, null, 4)}`);
           let data = void 0;
           if (trace === Trace2.Verbose || trace === Trace2.Compact) {
             if (message.error && message.error.data) {
-              data = `Error data: ${stringifyTrace(message.error.data)}
-
-`;
+              data = `Error data: ${stringifyTrace(message.error.data)}`;
             } else {
               if (message.result) {
-                data = `Result: ${stringifyTrace(message.result)}
-
-`;
+                data = `Result: ${stringifyTrace(message.result)}`;
               } else if (message.error === void 0) {
-                data = "No result returned.\n\n";
+                data = "No result returned.";
               }
             }
           }
@@ -20237,9 +20881,7 @@ ${JSON.stringify(message, null, 4)}`);
         if (traceFormat === TraceFormat2.Text) {
           let data = void 0;
           if ((trace === Trace2.Verbose || trace === Trace2.Compact) && message.params) {
-            data = `Params: ${stringifyTrace(message.params)}
-
-`;
+            data = `Params: ${stringifyTrace(message.params)}`;
           }
           tracer.log(`Received request '${message.method} - (${message.id})'.`, data);
         } else {
@@ -20254,11 +20896,9 @@ ${JSON.stringify(message, null, 4)}`);
           let data = void 0;
           if (trace === Trace2.Verbose || trace === Trace2.Compact) {
             if (message.params) {
-              data = `Params: ${stringifyTrace(message.params)}
-
-`;
+              data = `Params: ${stringifyTrace(message.params)}`;
             } else {
-              data = "No parameters provided.\n\n";
+              data = "No parameters provided.";
             }
           }
           tracer.log(`Received notification '${message.method}'.`, data);
@@ -20274,16 +20914,12 @@ ${JSON.stringify(message, null, 4)}`);
           let data = void 0;
           if (trace === Trace2.Verbose || trace === Trace2.Compact) {
             if (message.error && message.error.data) {
-              data = `Error data: ${stringifyTrace(message.error.data)}
-
-`;
+              data = `Error data: ${stringifyTrace(message.error.data)}`;
             } else {
               if (message.result) {
-                data = `Result: ${stringifyTrace(message.result)}
-
-`;
+                data = `Result: ${stringifyTrace(message.result)}`;
               } else if (message.error === void 0) {
-                data = "No result returned.\n\n";
+                data = "No result returned.";
               }
             }
           }
@@ -20401,7 +21037,7 @@ ${JSON.stringify(message, null, 4)}`);
               paramStart = 1;
               parameterStructures = first;
             }
-            let paramEnd = args.length;
+            const paramEnd = args.length;
             const numberOfParams = paramEnd - paramStart;
             switch (numberOfParams) {
               case 0:
@@ -20429,7 +21065,7 @@ ${JSON.stringify(message, null, 4)}`);
           };
           traceSendingNotification(notificationMessage);
           return messageWriter.write(notificationMessage).catch((error) => {
-            logger60.error(`Sending notification failed.`);
+            logger61.error(`Sending notification failed.`);
             throw error;
           });
         },
@@ -20450,8 +21086,10 @@ ${JSON.stringify(message, null, 4)}`);
           return {
             dispose: () => {
               if (method !== void 0) {
-                notificationHandlers.delete(method);
-              } else {
+                if (notificationHandlers.get(method)?.handler === handler) {
+                  notificationHandlers.delete(method);
+                }
+              } else if (starNotificationHandler === type) {
                 starNotificationHandler = void 0;
               }
             }
@@ -20464,7 +21102,9 @@ ${JSON.stringify(message, null, 4)}`);
           progressHandlers.set(token, handler);
           return {
             dispose: () => {
-              progressHandlers.delete(token);
+              if (progressHandlers.get(token) === handler) {
+                progressHandlers.delete(token);
+              }
             }
           };
         },
@@ -20475,6 +21115,16 @@ ${JSON.stringify(message, null, 4)}`);
         sendRequest: (type, ...args) => {
           throwIfClosedOrDisposed();
           throwIfNotListening();
+          function sendCancellation(connection2, id3) {
+            const p = cancellationStrategy.sender.sendCancellation(connection2, id3);
+            if (p === void 0) {
+              logger61.log(`Received no promise from cancellation strategy when cancelling id ${id3}`);
+            } else {
+              p.catch(() => {
+                logger61.log(`Sending cancellation messages for id ${id3} failed.`);
+              });
+            }
+          }
           let method;
           let messageParams;
           let token = void 0;
@@ -20517,18 +21167,15 @@ ${JSON.stringify(message, null, 4)}`);
           }
           const id2 = sequenceNumber++;
           let disposable;
-          if (token) {
-            disposable = token.onCancellationRequested(() => {
-              const p = cancellationStrategy.sender.sendCancellation(connection, id2);
-              if (p === void 0) {
-                logger60.log(`Received no promise from cancellation strategy when cancelling id ${id2}`);
-                return Promise.resolve();
-              } else {
-                return p.catch(() => {
-                  logger60.log(`Sending cancellation messages for id ${id2} failed`);
-                });
-              }
-            });
+          let tokenWasCancelled = false;
+          if (token !== void 0) {
+            if (token.isCancellationRequested) {
+              tokenWasCancelled = true;
+            } else {
+              disposable = token.onCancellationRequested(() => {
+                sendCancellation(connection, id2);
+              });
+            }
           }
           const requestMessage = {
             jsonrpc: version2,
@@ -20553,11 +21200,15 @@ ${JSON.stringify(message, null, 4)}`);
             };
             const responsePromise = { method, timerStart: Date.now(), resolve: resolveWithCleanup, reject: rejectWithCleanup };
             try {
-              await messageWriter.write(requestMessage);
               responsePromises.set(id2, responsePromise);
+              await messageWriter.write(requestMessage);
+              if (tokenWasCancelled) {
+                sendCancellation(connection, id2);
+              }
             } catch (error) {
-              logger60.error(`Sending request failed.`);
+              responsePromises.delete(id2);
               responsePromise.reject(new messages_1.ResponseError(messages_1.ErrorCodes.MessageWriteError, error.message ? error.message : "Unknown reason"));
+              logger61.error(`Sending request failed.`);
               throw error;
             }
           });
@@ -20586,8 +21237,10 @@ ${JSON.stringify(message, null, 4)}`);
                 return;
               }
               if (method !== void 0) {
-                requestHandlers.delete(method);
-              } else {
+                if (requestHandlers.get(method)?.handler === handler) {
+                  requestHandlers.delete(method);
+                }
+              } else if (starRequestHandler === type) {
                 starRequestHandler = void 0;
               }
             }
@@ -20663,17 +21316,16 @@ ${JSON.stringify(message, null, 4)}`);
         const verbose = trace === Trace2.Verbose || trace === Trace2.Compact;
         tracer.log(params.message, verbose ? params.verbose : void 0);
       });
-      connection.onNotification(ProgressNotification2.type, (params) => {
+      connection.onNotification(ProgressNotification2.type, async (params) => {
         const handler = progressHandlers.get(params.token);
         if (handler) {
-          handler(params.value);
+          await handler(params.value);
         } else {
           unhandledProgressEmitter.fire(params);
         }
       });
       return connection;
     }
-    exports2.createMessageConnection = createMessageConnection;
   }
 });
 
@@ -20681,9 +21333,12 @@ ${JSON.stringify(message, null, 4)}`);
 var require_api2 = __commonJS({
   "node_modules/vscode-jsonrpc/lib/common/api.js"(exports2) {
     "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ProgressType = exports2.ProgressToken = exports2.createMessageConnection = exports2.NullLogger = exports2.ConnectionOptions = exports2.ConnectionStrategy = exports2.AbstractMessageBuffer = exports2.WriteableStreamMessageWriter = exports2.AbstractMessageWriter = exports2.MessageWriter = exports2.ReadableStreamMessageReader = exports2.AbstractMessageReader = exports2.MessageReader = exports2.SharedArrayReceiverStrategy = exports2.SharedArraySenderStrategy = exports2.CancellationToken = exports2.CancellationTokenSource = exports2.Emitter = exports2.Event = exports2.Disposable = exports2.LRUCache = exports2.Touch = exports2.LinkedMap = exports2.ParameterStructures = exports2.NotificationType9 = exports2.NotificationType8 = exports2.NotificationType7 = exports2.NotificationType6 = exports2.NotificationType5 = exports2.NotificationType4 = exports2.NotificationType3 = exports2.NotificationType2 = exports2.NotificationType1 = exports2.NotificationType0 = exports2.NotificationType = exports2.ErrorCodes = exports2.ResponseError = exports2.RequestType9 = exports2.RequestType8 = exports2.RequestType7 = exports2.RequestType6 = exports2.RequestType5 = exports2.RequestType4 = exports2.RequestType3 = exports2.RequestType2 = exports2.RequestType1 = exports2.RequestType0 = exports2.RequestType = exports2.Message = exports2.RAL = void 0;
-    exports2.MessageStrategy = exports2.CancellationStrategy = exports2.CancellationSenderStrategy = exports2.CancellationReceiverStrategy = exports2.ConnectionError = exports2.ConnectionErrors = exports2.LogTraceNotification = exports2.SetTraceNotification = exports2.TraceFormat = exports2.TraceValues = exports2.Trace = void 0;
+    exports2.MessageStrategy = exports2.CancellationStrategy = exports2.CancellationSenderStrategy = exports2.RequestCancellationReceiverStrategy = exports2.IdCancellationReceiverStrategy = exports2.CancellationReceiverStrategy = exports2.ConnectionError = exports2.ConnectionErrors = exports2.LogTraceNotification = exports2.SetTraceNotification = exports2.TraceFormat = exports2.TraceValues = exports2.TraceValue = exports2.Trace = void 0;
     var messages_1 = require_messages();
     Object.defineProperty(exports2, "Message", { enumerable: true, get: function() {
       return messages_1.Message;
@@ -20844,8 +21499,8 @@ var require_api2 = __commonJS({
     Object.defineProperty(exports2, "Trace", { enumerable: true, get: function() {
       return connection_1.Trace;
     } });
-    Object.defineProperty(exports2, "TraceValues", { enumerable: true, get: function() {
-      return connection_1.TraceValues;
+    Object.defineProperty(exports2, "TraceValue", { enumerable: true, get: function() {
+      return connection_1.TraceValue;
     } });
     Object.defineProperty(exports2, "TraceFormat", { enumerable: true, get: function() {
       return connection_1.TraceFormat;
@@ -20865,6 +21520,12 @@ var require_api2 = __commonJS({
     Object.defineProperty(exports2, "CancellationReceiverStrategy", { enumerable: true, get: function() {
       return connection_1.CancellationReceiverStrategy;
     } });
+    Object.defineProperty(exports2, "IdCancellationReceiverStrategy", { enumerable: true, get: function() {
+      return connection_1.IdCancellationReceiverStrategy;
+    } });
+    Object.defineProperty(exports2, "RequestCancellationReceiverStrategy", { enumerable: true, get: function() {
+      return connection_1.RequestCancellationReceiverStrategy;
+    } });
     Object.defineProperty(exports2, "CancellationSenderStrategy", { enumerable: true, get: function() {
       return connection_1.CancellationSenderStrategy;
     } });
@@ -20874,7 +21535,10 @@ var require_api2 = __commonJS({
     Object.defineProperty(exports2, "MessageStrategy", { enumerable: true, get: function() {
       return connection_1.MessageStrategy;
     } });
-    var ral_1 = require_ral();
+    Object.defineProperty(exports2, "TraceValues", { enumerable: true, get: function() {
+      return connection_1.TraceValues;
+    } });
+    var ral_1 = __importDefault(require_ral());
     exports2.RAL = ral_1.default;
   }
 });
@@ -20887,6 +21551,7 @@ var require_ril = __commonJS({
     var util_1 = require("util");
     var api_1 = require_api2();
     var MessageBuffer = class _MessageBuffer extends api_1.AbstractMessageBuffer {
+      static emptyBuffer = Buffer.allocUnsafe(0);
       constructor(encoding2 = "utf-8") {
         super(encoding2);
       }
@@ -20914,8 +21579,8 @@ var require_ril = __commonJS({
         return Buffer.allocUnsafe(length);
       }
     };
-    MessageBuffer.emptyBuffer = Buffer.allocUnsafe(0);
     var ReadableStreamWrapper = class {
+      stream;
       constructor(stream) {
         this.stream = stream;
       }
@@ -20937,6 +21602,7 @@ var require_ril = __commonJS({
       }
     };
     var WritableStreamWrapper = class {
+      stream;
       constructor(stream) {
         this.stream = stream;
       }
@@ -21052,24 +21718,59 @@ var require_main = __commonJS({
       if (k2 === void 0) k2 = k;
       o[k2] = m[k];
     });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
     var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.createMessageConnection = exports2.createServerSocketTransport = exports2.createClientSocketTransport = exports2.createServerPipeTransport = exports2.createClientPipeTransport = exports2.generateRandomPipeName = exports2.StreamMessageWriter = exports2.StreamMessageReader = exports2.SocketMessageWriter = exports2.SocketMessageReader = exports2.PortMessageWriter = exports2.PortMessageReader = exports2.IPCMessageWriter = exports2.IPCMessageReader = void 0;
-    var ril_1 = require_ril();
+    exports2.StreamMessageWriter = exports2.StreamMessageReader = exports2.SocketMessageWriter = exports2.SocketMessageReader = exports2.PortMessageWriter = exports2.PortMessageReader = exports2.IPCMessageWriter = exports2.IPCMessageReader = void 0;
+    exports2.generateRandomPipeName = generateRandomPipeName2;
+    exports2.createClientPipeTransport = createClientPipeTransport2;
+    exports2.createServerPipeTransport = createServerPipeTransport;
+    exports2.createClientSocketTransport = createClientSocketTransport2;
+    exports2.createServerSocketTransport = createServerSocketTransport;
+    exports2.createMessageConnection = createMessageConnection;
+    var ril_1 = __importDefault(require_ril());
     ril_1.default.install();
-    var path2 = require("path");
-    var os2 = require("os");
+    var path2 = __importStar(require("path"));
+    var os2 = __importStar(require("os"));
+    var fs2 = __importStar(require("fs"));
     var crypto_1 = require("crypto");
     var net_1 = require("net");
     var api_1 = require_api2();
     __exportStar(require_api2(), exports2);
     var IPCMessageReader2 = class extends api_1.AbstractMessageReader {
+      process;
       constructor(process2) {
         super();
         this.process = process2;
-        let eventEmitter = this.process;
+        const eventEmitter = this.process;
         eventEmitter.on("error", (error) => this.fireError(error));
         eventEmitter.on("close", () => this.fireClose());
       }
@@ -21080,6 +21781,8 @@ var require_main = __commonJS({
     };
     exports2.IPCMessageReader = IPCMessageReader2;
     var IPCMessageWriter2 = class extends api_1.AbstractMessageWriter {
+      process;
+      errorCount;
       constructor(process2) {
         super();
         this.process = process2;
@@ -21115,6 +21818,7 @@ var require_main = __commonJS({
     };
     exports2.IPCMessageWriter = IPCMessageWriter2;
     var PortMessageReader = class extends api_1.AbstractMessageReader {
+      onData;
       constructor(port) {
         super();
         this.onData = new api_1.Emitter();
@@ -21130,6 +21834,8 @@ var require_main = __commonJS({
     };
     exports2.PortMessageReader = PortMessageReader;
     var PortMessageWriter = class extends api_1.AbstractMessageWriter {
+      port;
+      errorCount;
       constructor(port) {
         super();
         this.port = port;
@@ -21154,13 +21860,14 @@ var require_main = __commonJS({
       }
     };
     exports2.PortMessageWriter = PortMessageWriter;
-    var SocketMessageReader = class extends api_1.ReadableStreamMessageReader {
+    var SocketMessageReader2 = class extends api_1.ReadableStreamMessageReader {
       constructor(socket, encoding2 = "utf-8") {
         super((0, ril_1.default)().stream.asReadableStream(socket), encoding2);
       }
     };
-    exports2.SocketMessageReader = SocketMessageReader;
-    var SocketMessageWriter = class extends api_1.WriteableStreamMessageWriter {
+    exports2.SocketMessageReader = SocketMessageReader2;
+    var SocketMessageWriter2 = class extends api_1.WriteableStreamMessageWriter {
+      socket;
       constructor(socket, options2) {
         super((0, ril_1.default)().stream.asWritableStream(socket), options2);
         this.socket = socket;
@@ -21170,7 +21877,7 @@ var require_main = __commonJS({
         this.socket.destroy();
       }
     };
-    exports2.SocketMessageWriter = SocketMessageWriter;
+    exports2.SocketMessageWriter = SocketMessageWriter2;
     var StreamMessageReader2 = class extends api_1.ReadableStreamMessageReader {
       constructor(readable, encoding2) {
         super((0, ril_1.default)().stream.asReadableStream(readable), encoding2);
@@ -21189,34 +21896,33 @@ var require_main = __commonJS({
       ["darwin", 103]
     ]);
     function generateRandomPipeName2() {
-      const randomSuffix = (0, crypto_1.randomBytes)(21).toString("hex");
       if (process.platform === "win32") {
-        return `\\\\.\\pipe\\vscode-jsonrpc-${randomSuffix}-sock`;
+        return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
       }
-      let result;
-      if (XDG_RUNTIME_DIR) {
-        result = path2.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
-      } else {
-        result = path2.join(os2.tmpdir(), `vscode-${randomSuffix}.sock`);
-      }
+      let randomLength = 32;
+      const fixedLength = "lsp-.sock".length;
+      const tmpDir = fs2.realpathSync(XDG_RUNTIME_DIR ?? os2.tmpdir());
       const limit = safeIpcPathLengths.get(process.platform);
-      if (limit !== void 0 && result.length > limit) {
-        (0, ril_1.default)().console.warn(`WARNING: IPC handle "${result}" is longer than ${limit} characters.`);
+      if (limit !== void 0) {
+        randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
       }
-      return result;
+      if (randomLength < 16) {
+        throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
+      }
+      const randomSuffix = (0, crypto_1.randomBytes)(Math.floor(randomLength / 2)).toString("hex");
+      return path2.join(tmpDir, `lsp-${randomSuffix}.sock`);
     }
-    exports2.generateRandomPipeName = generateRandomPipeName2;
     function createClientPipeTransport2(pipeName, encoding2 = "utf-8") {
       let connectResolve;
       const connected = new Promise((resolve, _reject) => {
         connectResolve = resolve;
       });
       return new Promise((resolve, reject) => {
-        let server = (0, net_1.createServer)((socket) => {
+        const server = (0, net_1.createServer)((socket) => {
           server.close();
           connectResolve([
-            new SocketMessageReader(socket, encoding2),
-            new SocketMessageWriter(socket, encoding2)
+            new SocketMessageReader2(socket, encoding2),
+            new SocketMessageWriter2(socket, encoding2)
           ]);
         });
         server.on("error", reject);
@@ -21230,15 +21936,13 @@ var require_main = __commonJS({
         });
       });
     }
-    exports2.createClientPipeTransport = createClientPipeTransport2;
     function createServerPipeTransport(pipeName, encoding2 = "utf-8") {
       const socket = (0, net_1.createConnection)(pipeName);
       return [
-        new SocketMessageReader(socket, encoding2),
-        new SocketMessageWriter(socket, encoding2)
+        new SocketMessageReader2(socket, encoding2),
+        new SocketMessageWriter2(socket, encoding2)
       ];
     }
-    exports2.createServerPipeTransport = createServerPipeTransport;
     function createClientSocketTransport2(port, encoding2 = "utf-8") {
       let connectResolve;
       const connected = new Promise((resolve, _reject) => {
@@ -21248,8 +21952,8 @@ var require_main = __commonJS({
         const server = (0, net_1.createServer)((socket) => {
           server.close();
           connectResolve([
-            new SocketMessageReader(socket, encoding2),
-            new SocketMessageWriter(socket, encoding2)
+            new SocketMessageReader2(socket, encoding2),
+            new SocketMessageWriter2(socket, encoding2)
           ]);
         });
         server.on("error", reject);
@@ -21263,15 +21967,13 @@ var require_main = __commonJS({
         });
       });
     }
-    exports2.createClientSocketTransport = createClientSocketTransport2;
     function createServerSocketTransport(port, encoding2 = "utf-8") {
       const socket = (0, net_1.createConnection)(port, "127.0.0.1");
       return [
-        new SocketMessageReader(socket, encoding2),
-        new SocketMessageWriter(socket, encoding2)
+        new SocketMessageReader2(socket, encoding2),
+        new SocketMessageWriter2(socket, encoding2)
       ];
     }
-    exports2.createServerSocketTransport = createServerSocketTransport;
     function isReadableStream(value) {
       const candidate = value;
       return candidate.read !== void 0 && candidate.addListener !== void 0;
@@ -21280,1543 +21982,17 @@ var require_main = __commonJS({
       const candidate = value;
       return candidate.write !== void 0 && candidate.addListener !== void 0;
     }
-    function createMessageConnection(input, output, logger60, options2) {
-      if (!logger60) {
-        logger60 = api_1.NullLogger;
+    function createMessageConnection(input, output, logger61, options2) {
+      if (!logger61) {
+        logger61 = api_1.NullLogger;
       }
       const reader = isReadableStream(input) ? new StreamMessageReader2(input) : input;
       const writer = isWritableStream(output) ? new StreamMessageWriter2(output) : output;
       if (api_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, api_1.createMessageConnection)(reader, writer, logger60, options2);
+      return (0, api_1.createMessageConnection)(reader, writer, logger61, options2);
     }
-    exports2.createMessageConnection = createMessageConnection;
-  }
-});
-
-// node_modules/vscode-jsonrpc/node.js
-var require_node = __commonJS({
-  "node_modules/vscode-jsonrpc/node.js"(exports2, module2) {
-    "use strict";
-    module2.exports = require_main();
-  }
-});
-
-// node_modules/vscode-languageserver-types/lib/umd/main.js
-var require_main2 = __commonJS({
-  "node_modules/vscode-languageserver-types/lib/umd/main.js"(exports2, module2) {
-    (function(factory) {
-      if (typeof module2 === "object" && typeof module2.exports === "object") {
-        var v = factory(require, exports2);
-        if (v !== void 0) module2.exports = v;
-      } else if (typeof define === "function" && define.amd) {
-        define(["require", "exports"], factory);
-      }
-    })(function(require2, exports3) {
-      "use strict";
-      Object.defineProperty(exports3, "__esModule", { value: true });
-      exports3.TextDocument = exports3.EOL = exports3.WorkspaceFolder = exports3.InlineCompletionContext = exports3.SelectedCompletionInfo = exports3.InlineCompletionTriggerKind = exports3.InlineCompletionList = exports3.InlineCompletionItem = exports3.StringValue = exports3.InlayHint = exports3.InlayHintLabelPart = exports3.InlayHintKind = exports3.InlineValueContext = exports3.InlineValueEvaluatableExpression = exports3.InlineValueVariableLookup = exports3.InlineValueText = exports3.SemanticTokens = exports3.SemanticTokenModifiers = exports3.SemanticTokenTypes = exports3.SelectionRange = exports3.DocumentLink = exports3.FormattingOptions = exports3.CodeLens = exports3.CodeAction = exports3.CodeActionContext = exports3.CodeActionTriggerKind = exports3.CodeActionKind = exports3.DocumentSymbol = exports3.WorkspaceSymbol = exports3.SymbolInformation = exports3.SymbolTag = exports3.SymbolKind = exports3.DocumentHighlight = exports3.DocumentHighlightKind = exports3.SignatureInformation = exports3.ParameterInformation = exports3.Hover = exports3.MarkedString = exports3.CompletionList = exports3.CompletionItem = exports3.CompletionItemLabelDetails = exports3.InsertTextMode = exports3.InsertReplaceEdit = exports3.CompletionItemTag = exports3.InsertTextFormat = exports3.CompletionItemKind = exports3.MarkupContent = exports3.MarkupKind = exports3.TextDocumentItem = exports3.OptionalVersionedTextDocumentIdentifier = exports3.VersionedTextDocumentIdentifier = exports3.TextDocumentIdentifier = exports3.WorkspaceChange = exports3.WorkspaceEdit = exports3.DeleteFile = exports3.RenameFile = exports3.CreateFile = exports3.TextDocumentEdit = exports3.AnnotatedTextEdit = exports3.ChangeAnnotationIdentifier = exports3.ChangeAnnotation = exports3.TextEdit = exports3.Command = exports3.Diagnostic = exports3.CodeDescription = exports3.DiagnosticTag = exports3.DiagnosticSeverity = exports3.DiagnosticRelatedInformation = exports3.FoldingRange = exports3.FoldingRangeKind = exports3.ColorPresentation = exports3.ColorInformation = exports3.Color = exports3.LocationLink = exports3.Location = exports3.Range = exports3.Position = exports3.uinteger = exports3.integer = exports3.URI = exports3.DocumentUri = void 0;
-      var DocumentUri2;
-      (function(DocumentUri3) {
-        function is(value) {
-          return typeof value === "string";
-        }
-        DocumentUri3.is = is;
-      })(DocumentUri2 || (exports3.DocumentUri = DocumentUri2 = {}));
-      var URI3;
-      (function(URI4) {
-        function is(value) {
-          return typeof value === "string";
-        }
-        URI4.is = is;
-      })(URI3 || (exports3.URI = URI3 = {}));
-      var integer2;
-      (function(integer3) {
-        integer3.MIN_VALUE = -2147483648;
-        integer3.MAX_VALUE = 2147483647;
-        function is(value) {
-          return typeof value === "number" && integer3.MIN_VALUE <= value && value <= integer3.MAX_VALUE;
-        }
-        integer3.is = is;
-      })(integer2 || (exports3.integer = integer2 = {}));
-      var uinteger3;
-      (function(uinteger4) {
-        uinteger4.MIN_VALUE = 0;
-        uinteger4.MAX_VALUE = 2147483647;
-        function is(value) {
-          return typeof value === "number" && uinteger4.MIN_VALUE <= value && value <= uinteger4.MAX_VALUE;
-        }
-        uinteger4.is = is;
-      })(uinteger3 || (exports3.uinteger = uinteger3 = {}));
-      var Position10;
-      (function(Position11) {
-        function create(line, character) {
-          if (line === Number.MAX_VALUE) {
-            line = uinteger3.MAX_VALUE;
-          }
-          if (character === Number.MAX_VALUE) {
-            character = uinteger3.MAX_VALUE;
-          }
-          return { line, character };
-        }
-        Position11.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.uinteger(candidate.line) && Is2.uinteger(candidate.character);
-        }
-        Position11.is = is;
-      })(Position10 || (exports3.Position = Position10 = {}));
-      var Range11;
-      (function(Range12) {
-        function create(one, two, three, four) {
-          if (Is2.uinteger(one) && Is2.uinteger(two) && Is2.uinteger(three) && Is2.uinteger(four)) {
-            return { start: Position10.create(one, two), end: Position10.create(three, four) };
-          } else if (Position10.is(one) && Position10.is(two)) {
-            return { start: one, end: two };
-          } else {
-            throw new Error("Range#create called with invalid arguments[".concat(one, ", ").concat(two, ", ").concat(three, ", ").concat(four, "]"));
-          }
-        }
-        Range12.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Position10.is(candidate.start) && Position10.is(candidate.end);
-        }
-        Range12.is = is;
-      })(Range11 || (exports3.Range = Range11 = {}));
-      var Location3;
-      (function(Location4) {
-        function create(uri, range) {
-          return { uri, range };
-        }
-        Location4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && (Is2.string(candidate.uri) || Is2.undefined(candidate.uri));
-        }
-        Location4.is = is;
-      })(Location3 || (exports3.Location = Location3 = {}));
-      var LocationLink3;
-      (function(LocationLink4) {
-        function create(targetUri, targetRange, targetSelectionRange, originSelectionRange) {
-          return { targetUri, targetRange, targetSelectionRange, originSelectionRange };
-        }
-        LocationLink4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Range11.is(candidate.targetRange) && Is2.string(candidate.targetUri) && Range11.is(candidate.targetSelectionRange) && (Range11.is(candidate.originSelectionRange) || Is2.undefined(candidate.originSelectionRange));
-        }
-        LocationLink4.is = is;
-      })(LocationLink3 || (exports3.LocationLink = LocationLink3 = {}));
-      var Color2;
-      (function(Color3) {
-        function create(red, green, blue2, alpha) {
-          return {
-            red,
-            green,
-            blue: blue2,
-            alpha
-          };
-        }
-        Color3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.numberRange(candidate.red, 0, 1) && Is2.numberRange(candidate.green, 0, 1) && Is2.numberRange(candidate.blue, 0, 1) && Is2.numberRange(candidate.alpha, 0, 1);
-        }
-        Color3.is = is;
-      })(Color2 || (exports3.Color = Color2 = {}));
-      var ColorInformation3;
-      (function(ColorInformation4) {
-        function create(range, color) {
-          return {
-            range,
-            color
-          };
-        }
-        ColorInformation4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && Color2.is(candidate.color);
-        }
-        ColorInformation4.is = is;
-      })(ColorInformation3 || (exports3.ColorInformation = ColorInformation3 = {}));
-      var ColorPresentation3;
-      (function(ColorPresentation4) {
-        function create(label, textEdit, additionalTextEdits) {
-          return {
-            label,
-            textEdit,
-            additionalTextEdits
-          };
-        }
-        ColorPresentation4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.undefined(candidate.textEdit) || TextEdit10.is(candidate)) && (Is2.undefined(candidate.additionalTextEdits) || Is2.typedArray(candidate.additionalTextEdits, TextEdit10.is));
-        }
-        ColorPresentation4.is = is;
-      })(ColorPresentation3 || (exports3.ColorPresentation = ColorPresentation3 = {}));
-      var FoldingRangeKind3;
-      (function(FoldingRangeKind4) {
-        FoldingRangeKind4.Comment = "comment";
-        FoldingRangeKind4.Imports = "imports";
-        FoldingRangeKind4.Region = "region";
-      })(FoldingRangeKind3 || (exports3.FoldingRangeKind = FoldingRangeKind3 = {}));
-      var FoldingRange3;
-      (function(FoldingRange4) {
-        function create(startLine, endLine, startCharacter, endCharacter, kind, collapsedText) {
-          var result = {
-            startLine,
-            endLine
-          };
-          if (Is2.defined(startCharacter)) {
-            result.startCharacter = startCharacter;
-          }
-          if (Is2.defined(endCharacter)) {
-            result.endCharacter = endCharacter;
-          }
-          if (Is2.defined(kind)) {
-            result.kind = kind;
-          }
-          if (Is2.defined(collapsedText)) {
-            result.collapsedText = collapsedText;
-          }
-          return result;
-        }
-        FoldingRange4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.uinteger(candidate.startLine) && Is2.uinteger(candidate.startLine) && (Is2.undefined(candidate.startCharacter) || Is2.uinteger(candidate.startCharacter)) && (Is2.undefined(candidate.endCharacter) || Is2.uinteger(candidate.endCharacter)) && (Is2.undefined(candidate.kind) || Is2.string(candidate.kind));
-        }
-        FoldingRange4.is = is;
-      })(FoldingRange3 || (exports3.FoldingRange = FoldingRange3 = {}));
-      var DiagnosticRelatedInformation2;
-      (function(DiagnosticRelatedInformation3) {
-        function create(location, message) {
-          return {
-            location,
-            message
-          };
-        }
-        DiagnosticRelatedInformation3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Location3.is(candidate.location) && Is2.string(candidate.message);
-        }
-        DiagnosticRelatedInformation3.is = is;
-      })(DiagnosticRelatedInformation2 || (exports3.DiagnosticRelatedInformation = DiagnosticRelatedInformation2 = {}));
-      var DiagnosticSeverity2;
-      (function(DiagnosticSeverity3) {
-        DiagnosticSeverity3.Error = 1;
-        DiagnosticSeverity3.Warning = 2;
-        DiagnosticSeverity3.Information = 3;
-        DiagnosticSeverity3.Hint = 4;
-      })(DiagnosticSeverity2 || (exports3.DiagnosticSeverity = DiagnosticSeverity2 = {}));
-      var DiagnosticTag2;
-      (function(DiagnosticTag3) {
-        DiagnosticTag3.Unnecessary = 1;
-        DiagnosticTag3.Deprecated = 2;
-      })(DiagnosticTag2 || (exports3.DiagnosticTag = DiagnosticTag2 = {}));
-      var CodeDescription2;
-      (function(CodeDescription3) {
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.href);
-        }
-        CodeDescription3.is = is;
-      })(CodeDescription2 || (exports3.CodeDescription = CodeDescription2 = {}));
-      var Diagnostic8;
-      (function(Diagnostic9) {
-        function create(range, message, severity, code, source, relatedInformation) {
-          var result = { range, message };
-          if (Is2.defined(severity)) {
-            result.severity = severity;
-          }
-          if (Is2.defined(code)) {
-            result.code = code;
-          }
-          if (Is2.defined(source)) {
-            result.source = source;
-          }
-          if (Is2.defined(relatedInformation)) {
-            result.relatedInformation = relatedInformation;
-          }
-          return result;
-        }
-        Diagnostic9.create = create;
-        function is(value) {
-          var _a2;
-          var candidate = value;
-          return Is2.defined(candidate) && Range11.is(candidate.range) && Is2.string(candidate.message) && (Is2.number(candidate.severity) || Is2.undefined(candidate.severity)) && (Is2.integer(candidate.code) || Is2.string(candidate.code) || Is2.undefined(candidate.code)) && (Is2.undefined(candidate.codeDescription) || Is2.string((_a2 = candidate.codeDescription) === null || _a2 === void 0 ? void 0 : _a2.href)) && (Is2.string(candidate.source) || Is2.undefined(candidate.source)) && (Is2.undefined(candidate.relatedInformation) || Is2.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation2.is));
-        }
-        Diagnostic9.is = is;
-      })(Diagnostic8 || (exports3.Diagnostic = Diagnostic8 = {}));
-      var Command3;
-      (function(Command4) {
-        function create(title, command) {
-          var args = [];
-          for (var _i = 2; _i < arguments.length; _i++) {
-            args[_i - 2] = arguments[_i];
-          }
-          var result = { title, command };
-          if (Is2.defined(args) && args.length > 0) {
-            result.arguments = args;
-          }
-          return result;
-        }
-        Command4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.title) && Is2.string(candidate.command);
-        }
-        Command4.is = is;
-      })(Command3 || (exports3.Command = Command3 = {}));
-      var TextEdit10;
-      (function(TextEdit11) {
-        function replace(range, newText) {
-          return { range, newText };
-        }
-        TextEdit11.replace = replace;
-        function insert(position, newText) {
-          return { range: { start: position, end: position }, newText };
-        }
-        TextEdit11.insert = insert;
-        function del(range) {
-          return { range, newText: "" };
-        }
-        TextEdit11.del = del;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.newText) && Range11.is(candidate.range);
-        }
-        TextEdit11.is = is;
-      })(TextEdit10 || (exports3.TextEdit = TextEdit10 = {}));
-      var ChangeAnnotation5;
-      (function(ChangeAnnotation6) {
-        function create(label, needsConfirmation, description) {
-          var result = { label };
-          if (needsConfirmation !== void 0) {
-            result.needsConfirmation = needsConfirmation;
-          }
-          if (description !== void 0) {
-            result.description = description;
-          }
-          return result;
-        }
-        ChangeAnnotation6.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Is2.string(candidate.label) && (Is2.boolean(candidate.needsConfirmation) || candidate.needsConfirmation === void 0) && (Is2.string(candidate.description) || candidate.description === void 0);
-        }
-        ChangeAnnotation6.is = is;
-      })(ChangeAnnotation5 || (exports3.ChangeAnnotation = ChangeAnnotation5 = {}));
-      var ChangeAnnotationIdentifier2;
-      (function(ChangeAnnotationIdentifier3) {
-        function is(value) {
-          var candidate = value;
-          return Is2.string(candidate);
-        }
-        ChangeAnnotationIdentifier3.is = is;
-      })(ChangeAnnotationIdentifier2 || (exports3.ChangeAnnotationIdentifier = ChangeAnnotationIdentifier2 = {}));
-      var AnnotatedTextEdit2;
-      (function(AnnotatedTextEdit3) {
-        function replace(range, newText, annotation) {
-          return { range, newText, annotationId: annotation };
-        }
-        AnnotatedTextEdit3.replace = replace;
-        function insert(position, newText, annotation) {
-          return { range: { start: position, end: position }, newText, annotationId: annotation };
-        }
-        AnnotatedTextEdit3.insert = insert;
-        function del(range, annotation) {
-          return { range, newText: "", annotationId: annotation };
-        }
-        AnnotatedTextEdit3.del = del;
-        function is(value) {
-          var candidate = value;
-          return TextEdit10.is(candidate) && (ChangeAnnotation5.is(candidate.annotationId) || ChangeAnnotationIdentifier2.is(candidate.annotationId));
-        }
-        AnnotatedTextEdit3.is = is;
-      })(AnnotatedTextEdit2 || (exports3.AnnotatedTextEdit = AnnotatedTextEdit2 = {}));
-      var TextDocumentEdit2;
-      (function(TextDocumentEdit3) {
-        function create(textDocument, edits) {
-          return { textDocument, edits };
-        }
-        TextDocumentEdit3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && OptionalVersionedTextDocumentIdentifier2.is(candidate.textDocument) && Array.isArray(candidate.edits);
-        }
-        TextDocumentEdit3.is = is;
-      })(TextDocumentEdit2 || (exports3.TextDocumentEdit = TextDocumentEdit2 = {}));
-      var CreateFile2;
-      (function(CreateFile3) {
-        function create(uri, options2, annotation) {
-          var result = {
-            kind: "create",
-            uri
-          };
-          if (options2 !== void 0 && (options2.overwrite !== void 0 || options2.ignoreIfExists !== void 0)) {
-            result.options = options2;
-          }
-          if (annotation !== void 0) {
-            result.annotationId = annotation;
-          }
-          return result;
-        }
-        CreateFile3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && candidate.kind === "create" && Is2.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is2.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is2.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier2.is(candidate.annotationId));
-        }
-        CreateFile3.is = is;
-      })(CreateFile2 || (exports3.CreateFile = CreateFile2 = {}));
-      var RenameFile2;
-      (function(RenameFile3) {
-        function create(oldUri, newUri, options2, annotation) {
-          var result = {
-            kind: "rename",
-            oldUri,
-            newUri
-          };
-          if (options2 !== void 0 && (options2.overwrite !== void 0 || options2.ignoreIfExists !== void 0)) {
-            result.options = options2;
-          }
-          if (annotation !== void 0) {
-            result.annotationId = annotation;
-          }
-          return result;
-        }
-        RenameFile3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && candidate.kind === "rename" && Is2.string(candidate.oldUri) && Is2.string(candidate.newUri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is2.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is2.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier2.is(candidate.annotationId));
-        }
-        RenameFile3.is = is;
-      })(RenameFile2 || (exports3.RenameFile = RenameFile2 = {}));
-      var DeleteFile2;
-      (function(DeleteFile3) {
-        function create(uri, options2, annotation) {
-          var result = {
-            kind: "delete",
-            uri
-          };
-          if (options2 !== void 0 && (options2.recursive !== void 0 || options2.ignoreIfNotExists !== void 0)) {
-            result.options = options2;
-          }
-          if (annotation !== void 0) {
-            result.annotationId = annotation;
-          }
-          return result;
-        }
-        DeleteFile3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && candidate.kind === "delete" && Is2.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.recursive === void 0 || Is2.boolean(candidate.options.recursive)) && (candidate.options.ignoreIfNotExists === void 0 || Is2.boolean(candidate.options.ignoreIfNotExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier2.is(candidate.annotationId));
-        }
-        DeleteFile3.is = is;
-      })(DeleteFile2 || (exports3.DeleteFile = DeleteFile2 = {}));
-      var WorkspaceEdit7;
-      (function(WorkspaceEdit8) {
-        function is(value) {
-          var candidate = value;
-          return candidate && (candidate.changes !== void 0 || candidate.documentChanges !== void 0) && (candidate.documentChanges === void 0 || candidate.documentChanges.every(function(change) {
-            if (Is2.string(change.kind)) {
-              return CreateFile2.is(change) || RenameFile2.is(change) || DeleteFile2.is(change);
-            } else {
-              return TextDocumentEdit2.is(change);
-            }
-          }));
-        }
-        WorkspaceEdit8.is = is;
-      })(WorkspaceEdit7 || (exports3.WorkspaceEdit = WorkspaceEdit7 = {}));
-      var TextEditChangeImpl2 = (
-        /** @class */
-        function() {
-          function TextEditChangeImpl3(edits, changeAnnotations) {
-            this.edits = edits;
-            this.changeAnnotations = changeAnnotations;
-          }
-          TextEditChangeImpl3.prototype.insert = function(position, newText, annotation) {
-            var edit2;
-            var id2;
-            if (annotation === void 0) {
-              edit2 = TextEdit10.insert(position, newText);
-            } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id2 = annotation;
-              edit2 = AnnotatedTextEdit2.insert(position, newText, annotation);
-            } else {
-              this.assertChangeAnnotations(this.changeAnnotations);
-              id2 = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.insert(position, newText, id2);
-            }
-            this.edits.push(edit2);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          TextEditChangeImpl3.prototype.replace = function(range, newText, annotation) {
-            var edit2;
-            var id2;
-            if (annotation === void 0) {
-              edit2 = TextEdit10.replace(range, newText);
-            } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id2 = annotation;
-              edit2 = AnnotatedTextEdit2.replace(range, newText, annotation);
-            } else {
-              this.assertChangeAnnotations(this.changeAnnotations);
-              id2 = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.replace(range, newText, id2);
-            }
-            this.edits.push(edit2);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          TextEditChangeImpl3.prototype.delete = function(range, annotation) {
-            var edit2;
-            var id2;
-            if (annotation === void 0) {
-              edit2 = TextEdit10.del(range);
-            } else if (ChangeAnnotationIdentifier2.is(annotation)) {
-              id2 = annotation;
-              edit2 = AnnotatedTextEdit2.del(range, annotation);
-            } else {
-              this.assertChangeAnnotations(this.changeAnnotations);
-              id2 = this.changeAnnotations.manage(annotation);
-              edit2 = AnnotatedTextEdit2.del(range, id2);
-            }
-            this.edits.push(edit2);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          TextEditChangeImpl3.prototype.add = function(edit2) {
-            this.edits.push(edit2);
-          };
-          TextEditChangeImpl3.prototype.all = function() {
-            return this.edits;
-          };
-          TextEditChangeImpl3.prototype.clear = function() {
-            this.edits.splice(0, this.edits.length);
-          };
-          TextEditChangeImpl3.prototype.assertChangeAnnotations = function(value) {
-            if (value === void 0) {
-              throw new Error("Text edit change is not configured to manage change annotations.");
-            }
-          };
-          return TextEditChangeImpl3;
-        }()
-      );
-      var ChangeAnnotations2 = (
-        /** @class */
-        function() {
-          function ChangeAnnotations3(annotations) {
-            this._annotations = annotations === void 0 ? /* @__PURE__ */ Object.create(null) : annotations;
-            this._counter = 0;
-            this._size = 0;
-          }
-          ChangeAnnotations3.prototype.all = function() {
-            return this._annotations;
-          };
-          Object.defineProperty(ChangeAnnotations3.prototype, "size", {
-            get: function() {
-              return this._size;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          ChangeAnnotations3.prototype.manage = function(idOrAnnotation, annotation) {
-            var id2;
-            if (ChangeAnnotationIdentifier2.is(idOrAnnotation)) {
-              id2 = idOrAnnotation;
-            } else {
-              id2 = this.nextId();
-              annotation = idOrAnnotation;
-            }
-            if (this._annotations[id2] !== void 0) {
-              throw new Error("Id ".concat(id2, " is already in use."));
-            }
-            if (annotation === void 0) {
-              throw new Error("No annotation provided for id ".concat(id2));
-            }
-            this._annotations[id2] = annotation;
-            this._size++;
-            return id2;
-          };
-          ChangeAnnotations3.prototype.nextId = function() {
-            this._counter++;
-            return this._counter.toString();
-          };
-          return ChangeAnnotations3;
-        }()
-      );
-      var WorkspaceChange2 = (
-        /** @class */
-        function() {
-          function WorkspaceChange3(workspaceEdit) {
-            var _this = this;
-            this._textEditChanges = /* @__PURE__ */ Object.create(null);
-            if (workspaceEdit !== void 0) {
-              this._workspaceEdit = workspaceEdit;
-              if (workspaceEdit.documentChanges) {
-                this._changeAnnotations = new ChangeAnnotations2(workspaceEdit.changeAnnotations);
-                workspaceEdit.changeAnnotations = this._changeAnnotations.all();
-                workspaceEdit.documentChanges.forEach(function(change) {
-                  if (TextDocumentEdit2.is(change)) {
-                    var textEditChange = new TextEditChangeImpl2(change.edits, _this._changeAnnotations);
-                    _this._textEditChanges[change.textDocument.uri] = textEditChange;
-                  }
-                });
-              } else if (workspaceEdit.changes) {
-                Object.keys(workspaceEdit.changes).forEach(function(key) {
-                  var textEditChange = new TextEditChangeImpl2(workspaceEdit.changes[key]);
-                  _this._textEditChanges[key] = textEditChange;
-                });
-              }
-            } else {
-              this._workspaceEdit = {};
-            }
-          }
-          Object.defineProperty(WorkspaceChange3.prototype, "edit", {
-            /**
-             * Returns the underlying {@link WorkspaceEdit} literal
-             * use to be returned from a workspace edit operation like rename.
-             */
-            get: function() {
-              this.initDocumentChanges();
-              if (this._changeAnnotations !== void 0) {
-                if (this._changeAnnotations.size === 0) {
-                  this._workspaceEdit.changeAnnotations = void 0;
-                } else {
-                  this._workspaceEdit.changeAnnotations = this._changeAnnotations.all();
-                }
-              }
-              return this._workspaceEdit;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          WorkspaceChange3.prototype.getTextEditChange = function(key) {
-            if (OptionalVersionedTextDocumentIdentifier2.is(key)) {
-              this.initDocumentChanges();
-              if (this._workspaceEdit.documentChanges === void 0) {
-                throw new Error("Workspace edit is not configured for document changes.");
-              }
-              var textDocument = { uri: key.uri, version: key.version };
-              var result = this._textEditChanges[textDocument.uri];
-              if (!result) {
-                var edits = [];
-                var textDocumentEdit = {
-                  textDocument,
-                  edits
-                };
-                this._workspaceEdit.documentChanges.push(textDocumentEdit);
-                result = new TextEditChangeImpl2(edits, this._changeAnnotations);
-                this._textEditChanges[textDocument.uri] = result;
-              }
-              return result;
-            } else {
-              this.initChanges();
-              if (this._workspaceEdit.changes === void 0) {
-                throw new Error("Workspace edit is not configured for normal text edit changes.");
-              }
-              var result = this._textEditChanges[key];
-              if (!result) {
-                var edits = [];
-                this._workspaceEdit.changes[key] = edits;
-                result = new TextEditChangeImpl2(edits);
-                this._textEditChanges[key] = result;
-              }
-              return result;
-            }
-          };
-          WorkspaceChange3.prototype.initDocumentChanges = function() {
-            if (this._workspaceEdit.documentChanges === void 0 && this._workspaceEdit.changes === void 0) {
-              this._changeAnnotations = new ChangeAnnotations2();
-              this._workspaceEdit.documentChanges = [];
-              this._workspaceEdit.changeAnnotations = this._changeAnnotations.all();
-            }
-          };
-          WorkspaceChange3.prototype.initChanges = function() {
-            if (this._workspaceEdit.documentChanges === void 0 && this._workspaceEdit.changes === void 0) {
-              this._workspaceEdit.changes = /* @__PURE__ */ Object.create(null);
-            }
-          };
-          WorkspaceChange3.prototype.createFile = function(uri, optionsOrAnnotation, options2) {
-            this.initDocumentChanges();
-            if (this._workspaceEdit.documentChanges === void 0) {
-              throw new Error("Workspace edit is not configured for document changes.");
-            }
-            var annotation;
-            if (ChangeAnnotation5.is(optionsOrAnnotation) || ChangeAnnotationIdentifier2.is(optionsOrAnnotation)) {
-              annotation = optionsOrAnnotation;
-            } else {
-              options2 = optionsOrAnnotation;
-            }
-            var operation;
-            var id2;
-            if (annotation === void 0) {
-              operation = CreateFile2.create(uri, options2);
-            } else {
-              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = CreateFile2.create(uri, options2, id2);
-            }
-            this._workspaceEdit.documentChanges.push(operation);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          WorkspaceChange3.prototype.renameFile = function(oldUri, newUri, optionsOrAnnotation, options2) {
-            this.initDocumentChanges();
-            if (this._workspaceEdit.documentChanges === void 0) {
-              throw new Error("Workspace edit is not configured for document changes.");
-            }
-            var annotation;
-            if (ChangeAnnotation5.is(optionsOrAnnotation) || ChangeAnnotationIdentifier2.is(optionsOrAnnotation)) {
-              annotation = optionsOrAnnotation;
-            } else {
-              options2 = optionsOrAnnotation;
-            }
-            var operation;
-            var id2;
-            if (annotation === void 0) {
-              operation = RenameFile2.create(oldUri, newUri, options2);
-            } else {
-              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = RenameFile2.create(oldUri, newUri, options2, id2);
-            }
-            this._workspaceEdit.documentChanges.push(operation);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          WorkspaceChange3.prototype.deleteFile = function(uri, optionsOrAnnotation, options2) {
-            this.initDocumentChanges();
-            if (this._workspaceEdit.documentChanges === void 0) {
-              throw new Error("Workspace edit is not configured for document changes.");
-            }
-            var annotation;
-            if (ChangeAnnotation5.is(optionsOrAnnotation) || ChangeAnnotationIdentifier2.is(optionsOrAnnotation)) {
-              annotation = optionsOrAnnotation;
-            } else {
-              options2 = optionsOrAnnotation;
-            }
-            var operation;
-            var id2;
-            if (annotation === void 0) {
-              operation = DeleteFile2.create(uri, options2);
-            } else {
-              id2 = ChangeAnnotationIdentifier2.is(annotation) ? annotation : this._changeAnnotations.manage(annotation);
-              operation = DeleteFile2.create(uri, options2, id2);
-            }
-            this._workspaceEdit.documentChanges.push(operation);
-            if (id2 !== void 0) {
-              return id2;
-            }
-          };
-          return WorkspaceChange3;
-        }()
-      );
-      exports3.WorkspaceChange = WorkspaceChange2;
-      var TextDocumentIdentifier3;
-      (function(TextDocumentIdentifier4) {
-        function create(uri) {
-          return { uri };
-        }
-        TextDocumentIdentifier4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.uri);
-        }
-        TextDocumentIdentifier4.is = is;
-      })(TextDocumentIdentifier3 || (exports3.TextDocumentIdentifier = TextDocumentIdentifier3 = {}));
-      var VersionedTextDocumentIdentifier2;
-      (function(VersionedTextDocumentIdentifier3) {
-        function create(uri, version2) {
-          return { uri, version: version2 };
-        }
-        VersionedTextDocumentIdentifier3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.uri) && Is2.integer(candidate.version);
-        }
-        VersionedTextDocumentIdentifier3.is = is;
-      })(VersionedTextDocumentIdentifier2 || (exports3.VersionedTextDocumentIdentifier = VersionedTextDocumentIdentifier2 = {}));
-      var OptionalVersionedTextDocumentIdentifier2;
-      (function(OptionalVersionedTextDocumentIdentifier3) {
-        function create(uri, version2) {
-          return { uri, version: version2 };
-        }
-        OptionalVersionedTextDocumentIdentifier3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.uri) && (candidate.version === null || Is2.integer(candidate.version));
-        }
-        OptionalVersionedTextDocumentIdentifier3.is = is;
-      })(OptionalVersionedTextDocumentIdentifier2 || (exports3.OptionalVersionedTextDocumentIdentifier = OptionalVersionedTextDocumentIdentifier2 = {}));
-      var TextDocumentItem2;
-      (function(TextDocumentItem3) {
-        function create(uri, languageId, version2, text) {
-          return { uri, languageId, version: version2, text };
-        }
-        TextDocumentItem3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.uri) && Is2.string(candidate.languageId) && Is2.integer(candidate.version) && Is2.string(candidate.text);
-        }
-        TextDocumentItem3.is = is;
-      })(TextDocumentItem2 || (exports3.TextDocumentItem = TextDocumentItem2 = {}));
-      var MarkupKind2;
-      (function(MarkupKind3) {
-        MarkupKind3.PlainText = "plaintext";
-        MarkupKind3.Markdown = "markdown";
-        function is(value) {
-          var candidate = value;
-          return candidate === MarkupKind3.PlainText || candidate === MarkupKind3.Markdown;
-        }
-        MarkupKind3.is = is;
-      })(MarkupKind2 || (exports3.MarkupKind = MarkupKind2 = {}));
-      var MarkupContent2;
-      (function(MarkupContent3) {
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(value) && MarkupKind2.is(candidate.kind) && Is2.string(candidate.value);
-        }
-        MarkupContent3.is = is;
-      })(MarkupContent2 || (exports3.MarkupContent = MarkupContent2 = {}));
-      var CompletionItemKind2;
-      (function(CompletionItemKind3) {
-        CompletionItemKind3.Text = 1;
-        CompletionItemKind3.Method = 2;
-        CompletionItemKind3.Function = 3;
-        CompletionItemKind3.Constructor = 4;
-        CompletionItemKind3.Field = 5;
-        CompletionItemKind3.Variable = 6;
-        CompletionItemKind3.Class = 7;
-        CompletionItemKind3.Interface = 8;
-        CompletionItemKind3.Module = 9;
-        CompletionItemKind3.Property = 10;
-        CompletionItemKind3.Unit = 11;
-        CompletionItemKind3.Value = 12;
-        CompletionItemKind3.Enum = 13;
-        CompletionItemKind3.Keyword = 14;
-        CompletionItemKind3.Snippet = 15;
-        CompletionItemKind3.Color = 16;
-        CompletionItemKind3.File = 17;
-        CompletionItemKind3.Reference = 18;
-        CompletionItemKind3.Folder = 19;
-        CompletionItemKind3.EnumMember = 20;
-        CompletionItemKind3.Constant = 21;
-        CompletionItemKind3.Struct = 22;
-        CompletionItemKind3.Event = 23;
-        CompletionItemKind3.Operator = 24;
-        CompletionItemKind3.TypeParameter = 25;
-      })(CompletionItemKind2 || (exports3.CompletionItemKind = CompletionItemKind2 = {}));
-      var InsertTextFormat2;
-      (function(InsertTextFormat3) {
-        InsertTextFormat3.PlainText = 1;
-        InsertTextFormat3.Snippet = 2;
-      })(InsertTextFormat2 || (exports3.InsertTextFormat = InsertTextFormat2 = {}));
-      var CompletionItemTag2;
-      (function(CompletionItemTag3) {
-        CompletionItemTag3.Deprecated = 1;
-      })(CompletionItemTag2 || (exports3.CompletionItemTag = CompletionItemTag2 = {}));
-      var InsertReplaceEdit2;
-      (function(InsertReplaceEdit3) {
-        function create(newText, insert, replace) {
-          return { newText, insert, replace };
-        }
-        InsertReplaceEdit3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && Is2.string(candidate.newText) && Range11.is(candidate.insert) && Range11.is(candidate.replace);
-        }
-        InsertReplaceEdit3.is = is;
-      })(InsertReplaceEdit2 || (exports3.InsertReplaceEdit = InsertReplaceEdit2 = {}));
-      var InsertTextMode3;
-      (function(InsertTextMode4) {
-        InsertTextMode4.asIs = 1;
-        InsertTextMode4.adjustIndentation = 2;
-      })(InsertTextMode3 || (exports3.InsertTextMode = InsertTextMode3 = {}));
-      var CompletionItemLabelDetails3;
-      (function(CompletionItemLabelDetails4) {
-        function is(value) {
-          var candidate = value;
-          return candidate && (Is2.string(candidate.detail) || candidate.detail === void 0) && (Is2.string(candidate.description) || candidate.description === void 0);
-        }
-        CompletionItemLabelDetails4.is = is;
-      })(CompletionItemLabelDetails3 || (exports3.CompletionItemLabelDetails = CompletionItemLabelDetails3 = {}));
-      var CompletionItem6;
-      (function(CompletionItem7) {
-        function create(label) {
-          return { label };
-        }
-        CompletionItem7.create = create;
-      })(CompletionItem6 || (exports3.CompletionItem = CompletionItem6 = {}));
-      var CompletionList4;
-      (function(CompletionList5) {
-        function create(items, isIncomplete) {
-          return { items: items ? items : [], isIncomplete: !!isIncomplete };
-        }
-        CompletionList5.create = create;
-      })(CompletionList4 || (exports3.CompletionList = CompletionList4 = {}));
-      var MarkedString2;
-      (function(MarkedString3) {
-        function fromPlainText(plainText) {
-          return plainText.replace(/[\\`*_{}[\]()#+\-.!]/g, "\\$&");
-        }
-        MarkedString3.fromPlainText = fromPlainText;
-        function is(value) {
-          var candidate = value;
-          return Is2.string(candidate) || Is2.objectLiteral(candidate) && Is2.string(candidate.language) && Is2.string(candidate.value);
-        }
-        MarkedString3.is = is;
-      })(MarkedString2 || (exports3.MarkedString = MarkedString2 = {}));
-      var Hover4;
-      (function(Hover5) {
-        function is(value) {
-          var candidate = value;
-          return !!candidate && Is2.objectLiteral(candidate) && (MarkupContent2.is(candidate.contents) || MarkedString2.is(candidate.contents) || Is2.typedArray(candidate.contents, MarkedString2.is)) && (value.range === void 0 || Range11.is(value.range));
-        }
-        Hover5.is = is;
-      })(Hover4 || (exports3.Hover = Hover4 = {}));
-      var ParameterInformation2;
-      (function(ParameterInformation3) {
-        function create(label, documentation) {
-          return documentation ? { label, documentation } : { label };
-        }
-        ParameterInformation3.create = create;
-      })(ParameterInformation2 || (exports3.ParameterInformation = ParameterInformation2 = {}));
-      var SignatureInformation2;
-      (function(SignatureInformation3) {
-        function create(label, documentation) {
-          var parameters = [];
-          for (var _i = 2; _i < arguments.length; _i++) {
-            parameters[_i - 2] = arguments[_i];
-          }
-          var result = { label };
-          if (Is2.defined(documentation)) {
-            result.documentation = documentation;
-          }
-          if (Is2.defined(parameters)) {
-            result.parameters = parameters;
-          } else {
-            result.parameters = [];
-          }
-          return result;
-        }
-        SignatureInformation3.create = create;
-      })(SignatureInformation2 || (exports3.SignatureInformation = SignatureInformation2 = {}));
-      var DocumentHighlightKind2;
-      (function(DocumentHighlightKind3) {
-        DocumentHighlightKind3.Text = 1;
-        DocumentHighlightKind3.Read = 2;
-        DocumentHighlightKind3.Write = 3;
-      })(DocumentHighlightKind2 || (exports3.DocumentHighlightKind = DocumentHighlightKind2 = {}));
-      var DocumentHighlight4;
-      (function(DocumentHighlight5) {
-        function create(range, kind) {
-          var result = { range };
-          if (Is2.number(kind)) {
-            result.kind = kind;
-          }
-          return result;
-        }
-        DocumentHighlight5.create = create;
-      })(DocumentHighlight4 || (exports3.DocumentHighlight = DocumentHighlight4 = {}));
-      var SymbolKind5;
-      (function(SymbolKind6) {
-        SymbolKind6.File = 1;
-        SymbolKind6.Module = 2;
-        SymbolKind6.Namespace = 3;
-        SymbolKind6.Package = 4;
-        SymbolKind6.Class = 5;
-        SymbolKind6.Method = 6;
-        SymbolKind6.Property = 7;
-        SymbolKind6.Field = 8;
-        SymbolKind6.Constructor = 9;
-        SymbolKind6.Enum = 10;
-        SymbolKind6.Interface = 11;
-        SymbolKind6.Function = 12;
-        SymbolKind6.Variable = 13;
-        SymbolKind6.Constant = 14;
-        SymbolKind6.String = 15;
-        SymbolKind6.Number = 16;
-        SymbolKind6.Boolean = 17;
-        SymbolKind6.Array = 18;
-        SymbolKind6.Object = 19;
-        SymbolKind6.Key = 20;
-        SymbolKind6.Null = 21;
-        SymbolKind6.EnumMember = 22;
-        SymbolKind6.Struct = 23;
-        SymbolKind6.Event = 24;
-        SymbolKind6.Operator = 25;
-        SymbolKind6.TypeParameter = 26;
-      })(SymbolKind5 || (exports3.SymbolKind = SymbolKind5 = {}));
-      var SymbolTag2;
-      (function(SymbolTag3) {
-        SymbolTag3.Deprecated = 1;
-      })(SymbolTag2 || (exports3.SymbolTag = SymbolTag2 = {}));
-      var SymbolInformation5;
-      (function(SymbolInformation6) {
-        function create(name2, kind, range, uri, containerName) {
-          var result = {
-            name: name2,
-            kind,
-            location: { uri, range }
-          };
-          if (containerName) {
-            result.containerName = containerName;
-          }
-          return result;
-        }
-        SymbolInformation6.create = create;
-      })(SymbolInformation5 || (exports3.SymbolInformation = SymbolInformation5 = {}));
-      var WorkspaceSymbol6;
-      (function(WorkspaceSymbol7) {
-        function create(name2, kind, uri, range) {
-          return range !== void 0 ? { name: name2, kind, location: { uri, range } } : { name: name2, kind, location: { uri } };
-        }
-        WorkspaceSymbol7.create = create;
-      })(WorkspaceSymbol6 || (exports3.WorkspaceSymbol = WorkspaceSymbol6 = {}));
-      var DocumentSymbol7;
-      (function(DocumentSymbol8) {
-        function create(name2, detail, kind, range, selectionRange, children) {
-          var result = {
-            name: name2,
-            detail,
-            kind,
-            range,
-            selectionRange
-          };
-          if (children !== void 0) {
-            result.children = children;
-          }
-          return result;
-        }
-        DocumentSymbol8.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && Is2.string(candidate.name) && Is2.number(candidate.kind) && Range11.is(candidate.range) && Range11.is(candidate.selectionRange) && (candidate.detail === void 0 || Is2.string(candidate.detail)) && (candidate.deprecated === void 0 || Is2.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
-        }
-        DocumentSymbol8.is = is;
-      })(DocumentSymbol7 || (exports3.DocumentSymbol = DocumentSymbol7 = {}));
-      var CodeActionKind6;
-      (function(CodeActionKind7) {
-        CodeActionKind7.Empty = "";
-        CodeActionKind7.QuickFix = "quickfix";
-        CodeActionKind7.Refactor = "refactor";
-        CodeActionKind7.RefactorExtract = "refactor.extract";
-        CodeActionKind7.RefactorInline = "refactor.inline";
-        CodeActionKind7.RefactorRewrite = "refactor.rewrite";
-        CodeActionKind7.Source = "source";
-        CodeActionKind7.SourceOrganizeImports = "source.organizeImports";
-        CodeActionKind7.SourceFixAll = "source.fixAll";
-      })(CodeActionKind6 || (exports3.CodeActionKind = CodeActionKind6 = {}));
-      var CodeActionTriggerKind2;
-      (function(CodeActionTriggerKind3) {
-        CodeActionTriggerKind3.Invoked = 1;
-        CodeActionTriggerKind3.Automatic = 2;
-      })(CodeActionTriggerKind2 || (exports3.CodeActionTriggerKind = CodeActionTriggerKind2 = {}));
-      var CodeActionContext5;
-      (function(CodeActionContext6) {
-        function create(diagnostics, only, triggerKind) {
-          var result = { diagnostics };
-          if (only !== void 0 && only !== null) {
-            result.only = only;
-          }
-          if (triggerKind !== void 0 && triggerKind !== null) {
-            result.triggerKind = triggerKind;
-          }
-          return result;
-        }
-        CodeActionContext6.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.typedArray(candidate.diagnostics, Diagnostic8.is) && (candidate.only === void 0 || Is2.typedArray(candidate.only, Is2.string)) && (candidate.triggerKind === void 0 || candidate.triggerKind === CodeActionTriggerKind2.Invoked || candidate.triggerKind === CodeActionTriggerKind2.Automatic);
-        }
-        CodeActionContext6.is = is;
-      })(CodeActionContext5 || (exports3.CodeActionContext = CodeActionContext5 = {}));
-      var CodeAction7;
-      (function(CodeAction8) {
-        function create(title, kindOrCommandOrEdit, kind) {
-          var result = { title };
-          var checkKind = true;
-          if (typeof kindOrCommandOrEdit === "string") {
-            checkKind = false;
-            result.kind = kindOrCommandOrEdit;
-          } else if (Command3.is(kindOrCommandOrEdit)) {
-            result.command = kindOrCommandOrEdit;
-          } else {
-            result.edit = kindOrCommandOrEdit;
-          }
-          if (checkKind && kind !== void 0) {
-            result.kind = kind;
-          }
-          return result;
-        }
-        CodeAction8.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate && Is2.string(candidate.title) && (candidate.diagnostics === void 0 || Is2.typedArray(candidate.diagnostics, Diagnostic8.is)) && (candidate.kind === void 0 || Is2.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command3.is(candidate.command)) && (candidate.isPreferred === void 0 || Is2.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit7.is(candidate.edit));
-        }
-        CodeAction8.is = is;
-      })(CodeAction7 || (exports3.CodeAction = CodeAction7 = {}));
-      var CodeLens3;
-      (function(CodeLens4) {
-        function create(range, data) {
-          var result = { range };
-          if (Is2.defined(data)) {
-            result.data = data;
-          }
-          return result;
-        }
-        CodeLens4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Range11.is(candidate.range) && (Is2.undefined(candidate.command) || Command3.is(candidate.command));
-        }
-        CodeLens4.is = is;
-      })(CodeLens3 || (exports3.CodeLens = CodeLens3 = {}));
-      var FormattingOptions6;
-      (function(FormattingOptions7) {
-        function create(tabSize, insertSpaces) {
-          return { tabSize, insertSpaces };
-        }
-        FormattingOptions7.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.uinteger(candidate.tabSize) && Is2.boolean(candidate.insertSpaces);
-        }
-        FormattingOptions7.is = is;
-      })(FormattingOptions6 || (exports3.FormattingOptions = FormattingOptions6 = {}));
-      var DocumentLink3;
-      (function(DocumentLink4) {
-        function create(range, target, data) {
-          return { range, target, data };
-        }
-        DocumentLink4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Range11.is(candidate.range) && (Is2.undefined(candidate.target) || Is2.string(candidate.target));
-        }
-        DocumentLink4.is = is;
-      })(DocumentLink3 || (exports3.DocumentLink = DocumentLink3 = {}));
-      var SelectionRange5;
-      (function(SelectionRange6) {
-        function create(range, parent) {
-          return { range, parent };
-        }
-        SelectionRange6.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Range11.is(candidate.range) && (candidate.parent === void 0 || SelectionRange6.is(candidate.parent));
-        }
-        SelectionRange6.is = is;
-      })(SelectionRange5 || (exports3.SelectionRange = SelectionRange5 = {}));
-      var SemanticTokenTypes2;
-      (function(SemanticTokenTypes3) {
-        SemanticTokenTypes3["namespace"] = "namespace";
-        SemanticTokenTypes3["type"] = "type";
-        SemanticTokenTypes3["class"] = "class";
-        SemanticTokenTypes3["enum"] = "enum";
-        SemanticTokenTypes3["interface"] = "interface";
-        SemanticTokenTypes3["struct"] = "struct";
-        SemanticTokenTypes3["typeParameter"] = "typeParameter";
-        SemanticTokenTypes3["parameter"] = "parameter";
-        SemanticTokenTypes3["variable"] = "variable";
-        SemanticTokenTypes3["property"] = "property";
-        SemanticTokenTypes3["enumMember"] = "enumMember";
-        SemanticTokenTypes3["event"] = "event";
-        SemanticTokenTypes3["function"] = "function";
-        SemanticTokenTypes3["method"] = "method";
-        SemanticTokenTypes3["macro"] = "macro";
-        SemanticTokenTypes3["keyword"] = "keyword";
-        SemanticTokenTypes3["modifier"] = "modifier";
-        SemanticTokenTypes3["comment"] = "comment";
-        SemanticTokenTypes3["string"] = "string";
-        SemanticTokenTypes3["number"] = "number";
-        SemanticTokenTypes3["regexp"] = "regexp";
-        SemanticTokenTypes3["operator"] = "operator";
-        SemanticTokenTypes3["decorator"] = "decorator";
-      })(SemanticTokenTypes2 || (exports3.SemanticTokenTypes = SemanticTokenTypes2 = {}));
-      var SemanticTokenModifiers2;
-      (function(SemanticTokenModifiers3) {
-        SemanticTokenModifiers3["declaration"] = "declaration";
-        SemanticTokenModifiers3["definition"] = "definition";
-        SemanticTokenModifiers3["readonly"] = "readonly";
-        SemanticTokenModifiers3["static"] = "static";
-        SemanticTokenModifiers3["deprecated"] = "deprecated";
-        SemanticTokenModifiers3["abstract"] = "abstract";
-        SemanticTokenModifiers3["async"] = "async";
-        SemanticTokenModifiers3["modification"] = "modification";
-        SemanticTokenModifiers3["documentation"] = "documentation";
-        SemanticTokenModifiers3["defaultLibrary"] = "defaultLibrary";
-      })(SemanticTokenModifiers2 || (exports3.SemanticTokenModifiers = SemanticTokenModifiers2 = {}));
-      var SemanticTokens6;
-      (function(SemanticTokens7) {
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && (candidate.resultId === void 0 || typeof candidate.resultId === "string") && Array.isArray(candidate.data) && (candidate.data.length === 0 || typeof candidate.data[0] === "number");
-        }
-        SemanticTokens7.is = is;
-      })(SemanticTokens6 || (exports3.SemanticTokens = SemanticTokens6 = {}));
-      var InlineValueText2;
-      (function(InlineValueText3) {
-        function create(range, text) {
-          return { range, text };
-        }
-        InlineValueText3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && Is2.string(candidate.text);
-        }
-        InlineValueText3.is = is;
-      })(InlineValueText2 || (exports3.InlineValueText = InlineValueText2 = {}));
-      var InlineValueVariableLookup2;
-      (function(InlineValueVariableLookup3) {
-        function create(range, variableName, caseSensitiveLookup) {
-          return { range, variableName, caseSensitiveLookup };
-        }
-        InlineValueVariableLookup3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && Is2.boolean(candidate.caseSensitiveLookup) && (Is2.string(candidate.variableName) || candidate.variableName === void 0);
-        }
-        InlineValueVariableLookup3.is = is;
-      })(InlineValueVariableLookup2 || (exports3.InlineValueVariableLookup = InlineValueVariableLookup2 = {}));
-      var InlineValueEvaluatableExpression2;
-      (function(InlineValueEvaluatableExpression3) {
-        function create(range, expression) {
-          return { range, expression };
-        }
-        InlineValueEvaluatableExpression3.create = create;
-        function is(value) {
-          var candidate = value;
-          return candidate !== void 0 && candidate !== null && Range11.is(candidate.range) && (Is2.string(candidate.expression) || candidate.expression === void 0);
-        }
-        InlineValueEvaluatableExpression3.is = is;
-      })(InlineValueEvaluatableExpression2 || (exports3.InlineValueEvaluatableExpression = InlineValueEvaluatableExpression2 = {}));
-      var InlineValueContext3;
-      (function(InlineValueContext4) {
-        function create(frameId, stoppedLocation) {
-          return { frameId, stoppedLocation };
-        }
-        InlineValueContext4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Range11.is(value.stoppedLocation);
-        }
-        InlineValueContext4.is = is;
-      })(InlineValueContext3 || (exports3.InlineValueContext = InlineValueContext3 = {}));
-      var InlayHintKind2;
-      (function(InlayHintKind3) {
-        InlayHintKind3.Type = 1;
-        InlayHintKind3.Parameter = 2;
-        function is(value) {
-          return value === 1 || value === 2;
-        }
-        InlayHintKind3.is = is;
-      })(InlayHintKind2 || (exports3.InlayHintKind = InlayHintKind2 = {}));
-      var InlayHintLabelPart2;
-      (function(InlayHintLabelPart3) {
-        function create(value) {
-          return { value };
-        }
-        InlayHintLabelPart3.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.location === void 0 || Location3.is(candidate.location)) && (candidate.command === void 0 || Command3.is(candidate.command));
-        }
-        InlayHintLabelPart3.is = is;
-      })(InlayHintLabelPart2 || (exports3.InlayHintLabelPart = InlayHintLabelPart2 = {}));
-      var InlayHint3;
-      (function(InlayHint4) {
-        function create(position, label, kind) {
-          var result = { position, label };
-          if (kind !== void 0) {
-            result.kind = kind;
-          }
-          return result;
-        }
-        InlayHint4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && Position10.is(candidate.position) && (Is2.string(candidate.label) || Is2.typedArray(candidate.label, InlayHintLabelPart2.is)) && (candidate.kind === void 0 || InlayHintKind2.is(candidate.kind)) && candidate.textEdits === void 0 || Is2.typedArray(candidate.textEdits, TextEdit10.is) && (candidate.tooltip === void 0 || Is2.string(candidate.tooltip) || MarkupContent2.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is2.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is2.boolean(candidate.paddingRight));
-        }
-        InlayHint4.is = is;
-      })(InlayHint3 || (exports3.InlayHint = InlayHint3 = {}));
-      var StringValue2;
-      (function(StringValue3) {
-        function createSnippet(value) {
-          return { kind: "snippet", value };
-        }
-        StringValue3.createSnippet = createSnippet;
-      })(StringValue2 || (exports3.StringValue = StringValue2 = {}));
-      var InlineCompletionItem2;
-      (function(InlineCompletionItem3) {
-        function create(insertText, filterText, range, command) {
-          return { insertText, filterText, range, command };
-        }
-        InlineCompletionItem3.create = create;
-      })(InlineCompletionItem2 || (exports3.InlineCompletionItem = InlineCompletionItem2 = {}));
-      var InlineCompletionList2;
-      (function(InlineCompletionList3) {
-        function create(items) {
-          return { items };
-        }
-        InlineCompletionList3.create = create;
-      })(InlineCompletionList2 || (exports3.InlineCompletionList = InlineCompletionList2 = {}));
-      var InlineCompletionTriggerKind2;
-      (function(InlineCompletionTriggerKind3) {
-        InlineCompletionTriggerKind3.Invoked = 0;
-        InlineCompletionTriggerKind3.Automatic = 1;
-      })(InlineCompletionTriggerKind2 || (exports3.InlineCompletionTriggerKind = InlineCompletionTriggerKind2 = {}));
-      var SelectedCompletionInfo2;
-      (function(SelectedCompletionInfo3) {
-        function create(range, text) {
-          return { range, text };
-        }
-        SelectedCompletionInfo3.create = create;
-      })(SelectedCompletionInfo2 || (exports3.SelectedCompletionInfo = SelectedCompletionInfo2 = {}));
-      var InlineCompletionContext2;
-      (function(InlineCompletionContext3) {
-        function create(triggerKind, selectedCompletionInfo) {
-          return { triggerKind, selectedCompletionInfo };
-        }
-        InlineCompletionContext3.create = create;
-      })(InlineCompletionContext2 || (exports3.InlineCompletionContext = InlineCompletionContext2 = {}));
-      var WorkspaceFolder2;
-      (function(WorkspaceFolder3) {
-        function is(value) {
-          var candidate = value;
-          return Is2.objectLiteral(candidate) && URI3.is(candidate.uri) && Is2.string(candidate.name);
-        }
-        WorkspaceFolder3.is = is;
-      })(WorkspaceFolder2 || (exports3.WorkspaceFolder = WorkspaceFolder2 = {}));
-      exports3.EOL = ["\n", "\r\n", "\r"];
-      var TextDocument3;
-      (function(TextDocument4) {
-        function create(uri, languageId, version2, content) {
-          return new FullTextDocument3(uri, languageId, version2, content);
-        }
-        TextDocument4.create = create;
-        function is(value) {
-          var candidate = value;
-          return Is2.defined(candidate) && Is2.string(candidate.uri) && (Is2.undefined(candidate.languageId) || Is2.string(candidate.languageId)) && Is2.uinteger(candidate.lineCount) && Is2.func(candidate.getText) && Is2.func(candidate.positionAt) && Is2.func(candidate.offsetAt) ? true : false;
-        }
-        TextDocument4.is = is;
-        function applyEdits3(document2, edits) {
-          var text = document2.getText();
-          var sortedEdits = mergeSort3(edits, function(a, b) {
-            var diff = a.range.start.line - b.range.start.line;
-            if (diff === 0) {
-              return a.range.start.character - b.range.start.character;
-            }
-            return diff;
-          });
-          var lastModifiedOffset = text.length;
-          for (var i = sortedEdits.length - 1; i >= 0; i--) {
-            var e = sortedEdits[i];
-            var startOffset = document2.offsetAt(e.range.start);
-            var endOffset = document2.offsetAt(e.range.end);
-            if (endOffset <= lastModifiedOffset) {
-              text = text.substring(0, startOffset) + e.newText + text.substring(endOffset, text.length);
-            } else {
-              throw new Error("Overlapping edit");
-            }
-            lastModifiedOffset = startOffset;
-          }
-          return text;
-        }
-        TextDocument4.applyEdits = applyEdits3;
-        function mergeSort3(data, compare2) {
-          if (data.length <= 1) {
-            return data;
-          }
-          var p = data.length / 2 | 0;
-          var left = data.slice(0, p);
-          var right = data.slice(p);
-          mergeSort3(left, compare2);
-          mergeSort3(right, compare2);
-          var leftIdx = 0;
-          var rightIdx = 0;
-          var i = 0;
-          while (leftIdx < left.length && rightIdx < right.length) {
-            var ret = compare2(left[leftIdx], right[rightIdx]);
-            if (ret <= 0) {
-              data[i++] = left[leftIdx++];
-            } else {
-              data[i++] = right[rightIdx++];
-            }
-          }
-          while (leftIdx < left.length) {
-            data[i++] = left[leftIdx++];
-          }
-          while (rightIdx < right.length) {
-            data[i++] = right[rightIdx++];
-          }
-          return data;
-        }
-      })(TextDocument3 || (exports3.TextDocument = TextDocument3 = {}));
-      var FullTextDocument3 = (
-        /** @class */
-        function() {
-          function FullTextDocument4(uri, languageId, version2, content) {
-            this._uri = uri;
-            this._languageId = languageId;
-            this._version = version2;
-            this._content = content;
-            this._lineOffsets = void 0;
-          }
-          Object.defineProperty(FullTextDocument4.prototype, "uri", {
-            get: function() {
-              return this._uri;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          Object.defineProperty(FullTextDocument4.prototype, "languageId", {
-            get: function() {
-              return this._languageId;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          Object.defineProperty(FullTextDocument4.prototype, "version", {
-            get: function() {
-              return this._version;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          FullTextDocument4.prototype.getText = function(range) {
-            if (range) {
-              var start = this.offsetAt(range.start);
-              var end = this.offsetAt(range.end);
-              return this._content.substring(start, end);
-            }
-            return this._content;
-          };
-          FullTextDocument4.prototype.update = function(event, version2) {
-            this._content = event.text;
-            this._version = version2;
-            this._lineOffsets = void 0;
-          };
-          FullTextDocument4.prototype.getLineOffsets = function() {
-            if (this._lineOffsets === void 0) {
-              var lineOffsets = [];
-              var text = this._content;
-              var isLineStart = true;
-              for (var i = 0; i < text.length; i++) {
-                if (isLineStart) {
-                  lineOffsets.push(i);
-                  isLineStart = false;
-                }
-                var ch = text.charAt(i);
-                isLineStart = ch === "\r" || ch === "\n";
-                if (ch === "\r" && i + 1 < text.length && text.charAt(i + 1) === "\n") {
-                  i++;
-                }
-              }
-              if (isLineStart && text.length > 0) {
-                lineOffsets.push(text.length);
-              }
-              this._lineOffsets = lineOffsets;
-            }
-            return this._lineOffsets;
-          };
-          FullTextDocument4.prototype.positionAt = function(offset) {
-            offset = Math.max(Math.min(offset, this._content.length), 0);
-            var lineOffsets = this.getLineOffsets();
-            var low = 0, high = lineOffsets.length;
-            if (high === 0) {
-              return Position10.create(0, offset);
-            }
-            while (low < high) {
-              var mid = Math.floor((low + high) / 2);
-              if (lineOffsets[mid] > offset) {
-                high = mid;
-              } else {
-                low = mid + 1;
-              }
-            }
-            var line = low - 1;
-            return Position10.create(line, offset - lineOffsets[line]);
-          };
-          FullTextDocument4.prototype.offsetAt = function(position) {
-            var lineOffsets = this.getLineOffsets();
-            if (position.line >= lineOffsets.length) {
-              return this._content.length;
-            } else if (position.line < 0) {
-              return 0;
-            }
-            var lineOffset = lineOffsets[position.line];
-            var nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this._content.length;
-            return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
-          };
-          Object.defineProperty(FullTextDocument4.prototype, "lineCount", {
-            get: function() {
-              return this.getLineOffsets().length;
-            },
-            enumerable: false,
-            configurable: true
-          });
-          return FullTextDocument4;
-        }()
-      );
-      var Is2;
-      (function(Is3) {
-        var toString = Object.prototype.toString;
-        function defined(value) {
-          return typeof value !== "undefined";
-        }
-        Is3.defined = defined;
-        function undefined2(value) {
-          return typeof value === "undefined";
-        }
-        Is3.undefined = undefined2;
-        function boolean2(value) {
-          return value === true || value === false;
-        }
-        Is3.boolean = boolean2;
-        function string2(value) {
-          return toString.call(value) === "[object String]";
-        }
-        Is3.string = string2;
-        function number2(value) {
-          return toString.call(value) === "[object Number]";
-        }
-        Is3.number = number2;
-        function numberRange(value, min, max) {
-          return toString.call(value) === "[object Number]" && min <= value && value <= max;
-        }
-        Is3.numberRange = numberRange;
-        function integer3(value) {
-          return toString.call(value) === "[object Number]" && -2147483648 <= value && value <= 2147483647;
-        }
-        Is3.integer = integer3;
-        function uinteger4(value) {
-          return toString.call(value) === "[object Number]" && 0 <= value && value <= 2147483647;
-        }
-        Is3.uinteger = uinteger4;
-        function func2(value) {
-          return toString.call(value) === "[object Function]";
-        }
-        Is3.func = func2;
-        function objectLiteral2(value) {
-          return value !== null && typeof value === "object";
-        }
-        Is3.objectLiteral = objectLiteral2;
-        function typedArray2(value, check) {
-          return Array.isArray(value) && value.every(check);
-        }
-        Is3.typedArray = typedArray2;
-      })(Is2 || (Is2 = {}));
-    });
   }
 });
 
@@ -22825,8 +22001,8 @@ var require_messages2 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/messages.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.ProtocolNotificationType = exports2.ProtocolNotificationType0 = exports2.ProtocolRequestType = exports2.ProtocolRequestType0 = exports2.RegistrationType = exports2.MessageDirection = void 0;
-    var vscode_jsonrpc_1 = require_main();
+    exports2.CM = exports2.ProtocolNotificationType = exports2.ProtocolNotificationType0 = exports2.ProtocolRequestType = exports2.ProtocolRequestType0 = exports2.RegistrationType = exports2.MessageDirection = void 0;
+    var vscode_jsonrpc_1 = require_api2();
     var MessageDirection;
     (function(MessageDirection2) {
       MessageDirection2["clientToServer"] = "clientToServer";
@@ -22834,35 +22010,72 @@ var require_messages2 = __commonJS({
       MessageDirection2["both"] = "both";
     })(MessageDirection || (exports2.MessageDirection = MessageDirection = {}));
     var RegistrationType = class {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      ____;
+      method;
       constructor(method) {
         this.method = method;
       }
     };
     exports2.RegistrationType = RegistrationType;
-    var ProtocolRequestType02 = class extends vscode_jsonrpc_1.RequestType0 {
+    var ProtocolRequestType03 = class extends vscode_jsonrpc_1.RequestType0 {
+      /**
+       * Clients must not use these properties. They are here to ensure correct typing.
+       * in TypeScript
+       */
+      __;
+      ___;
+      ____;
+      _pr;
       constructor(method) {
         super(method);
       }
     };
-    exports2.ProtocolRequestType0 = ProtocolRequestType02;
-    var ProtocolRequestType2 = class extends vscode_jsonrpc_1.RequestType {
+    exports2.ProtocolRequestType0 = ProtocolRequestType03;
+    var ProtocolRequestType3 = class extends vscode_jsonrpc_1.RequestType {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      __;
+      ___;
+      ____;
+      _pr;
       constructor(method) {
         super(method, vscode_jsonrpc_1.ParameterStructures.byName);
       }
     };
-    exports2.ProtocolRequestType = ProtocolRequestType2;
-    var ProtocolNotificationType02 = class extends vscode_jsonrpc_1.NotificationType0 {
+    exports2.ProtocolRequestType = ProtocolRequestType3;
+    var ProtocolNotificationType03 = class extends vscode_jsonrpc_1.NotificationType0 {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      ___;
+      ____;
       constructor(method) {
         super(method);
       }
     };
-    exports2.ProtocolNotificationType0 = ProtocolNotificationType02;
-    var ProtocolNotificationType2 = class extends vscode_jsonrpc_1.NotificationType {
+    exports2.ProtocolNotificationType0 = ProtocolNotificationType03;
+    var ProtocolNotificationType3 = class extends vscode_jsonrpc_1.NotificationType {
+      /**
+       * Clients must not use this property. It is here to ensure correct typing.
+       */
+      ___;
+      ____;
       constructor(method) {
         super(method, vscode_jsonrpc_1.ParameterStructures.byName);
       }
     };
-    exports2.ProtocolNotificationType = ProtocolNotificationType2;
+    exports2.ProtocolNotificationType = ProtocolNotificationType3;
+    var CM;
+    (function(CM2) {
+      function create(client, server) {
+        return { client, server };
+      }
+      CM2.create = create;
+    })(CM || (exports2.CM = CM = {}));
   }
 });
 
@@ -22871,43 +22084,42 @@ var require_is2 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/utils/is.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.objectLiteral = exports2.typedArray = exports2.stringArray = exports2.array = exports2.func = exports2.error = exports2.number = exports2.string = exports2.boolean = void 0;
+    exports2.boolean = boolean2;
+    exports2.string = string2;
+    exports2.number = number2;
+    exports2.error = error;
+    exports2.func = func2;
+    exports2.array = array;
+    exports2.stringArray = stringArray;
+    exports2.typedArray = typedArray2;
+    exports2.objectLiteral = objectLiteral2;
     function boolean2(value) {
       return value === true || value === false;
     }
-    exports2.boolean = boolean2;
     function string2(value) {
       return typeof value === "string" || value instanceof String;
     }
-    exports2.string = string2;
     function number2(value) {
       return typeof value === "number" || value instanceof Number;
     }
-    exports2.number = number2;
     function error(value) {
       return value instanceof Error;
     }
-    exports2.error = error;
     function func2(value) {
       return typeof value === "function";
     }
-    exports2.func = func2;
     function array(value) {
       return Array.isArray(value);
     }
-    exports2.array = array;
     function stringArray(value) {
       return array(value) && value.every((elem) => string2(elem));
     }
-    exports2.stringArray = stringArray;
     function typedArray2(value, check) {
       return Array.isArray(value) && value.every(check);
     }
-    exports2.typedArray = typedArray2;
     function objectLiteral2(value) {
       return value !== null && typeof value === "object";
     }
-    exports2.objectLiteral = objectLiteral2;
   }
 });
 
@@ -22918,12 +22130,13 @@ var require_protocol_implementation = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ImplementationRequest = void 0;
     var messages_1 = require_messages2();
-    var ImplementationRequest2;
-    (function(ImplementationRequest3) {
-      ImplementationRequest3.method = "textDocument/implementation";
-      ImplementationRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      ImplementationRequest3.type = new messages_1.ProtocolRequestType(ImplementationRequest3.method);
-    })(ImplementationRequest2 || (exports2.ImplementationRequest = ImplementationRequest2 = {}));
+    var ImplementationRequest3;
+    (function(ImplementationRequest4) {
+      ImplementationRequest4.method = "textDocument/implementation";
+      ImplementationRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      ImplementationRequest4.type = new messages_1.ProtocolRequestType(ImplementationRequest4.method);
+      ImplementationRequest4.capabilities = messages_1.CM.create("textDocument.implementation", "implementationProvider");
+    })(ImplementationRequest3 || (exports2.ImplementationRequest = ImplementationRequest3 = {}));
   }
 });
 
@@ -22934,12 +22147,13 @@ var require_protocol_typeDefinition = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.TypeDefinitionRequest = void 0;
     var messages_1 = require_messages2();
-    var TypeDefinitionRequest2;
-    (function(TypeDefinitionRequest3) {
-      TypeDefinitionRequest3.method = "textDocument/typeDefinition";
-      TypeDefinitionRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      TypeDefinitionRequest3.type = new messages_1.ProtocolRequestType(TypeDefinitionRequest3.method);
-    })(TypeDefinitionRequest2 || (exports2.TypeDefinitionRequest = TypeDefinitionRequest2 = {}));
+    var TypeDefinitionRequest3;
+    (function(TypeDefinitionRequest4) {
+      TypeDefinitionRequest4.method = "textDocument/typeDefinition";
+      TypeDefinitionRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      TypeDefinitionRequest4.type = new messages_1.ProtocolRequestType(TypeDefinitionRequest4.method);
+      TypeDefinitionRequest4.capabilities = messages_1.CM.create("textDocument.typeDefinition", "typeDefinitionProvider");
+    })(TypeDefinitionRequest3 || (exports2.TypeDefinitionRequest = TypeDefinitionRequest3 = {}));
   }
 });
 
@@ -22955,13 +22169,15 @@ var require_protocol_workspaceFolder = __commonJS({
       WorkspaceFoldersRequest3.method = "workspace/workspaceFolders";
       WorkspaceFoldersRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       WorkspaceFoldersRequest3.type = new messages_1.ProtocolRequestType0(WorkspaceFoldersRequest3.method);
+      WorkspaceFoldersRequest3.capabilities = messages_1.CM.create("workspace.workspaceFolders", "workspace.workspaceFolders");
     })(WorkspaceFoldersRequest2 || (exports2.WorkspaceFoldersRequest = WorkspaceFoldersRequest2 = {}));
-    var DidChangeWorkspaceFoldersNotification2;
-    (function(DidChangeWorkspaceFoldersNotification3) {
-      DidChangeWorkspaceFoldersNotification3.method = "workspace/didChangeWorkspaceFolders";
-      DidChangeWorkspaceFoldersNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidChangeWorkspaceFoldersNotification3.type = new messages_1.ProtocolNotificationType(DidChangeWorkspaceFoldersNotification3.method);
-    })(DidChangeWorkspaceFoldersNotification2 || (exports2.DidChangeWorkspaceFoldersNotification = DidChangeWorkspaceFoldersNotification2 = {}));
+    var DidChangeWorkspaceFoldersNotification3;
+    (function(DidChangeWorkspaceFoldersNotification4) {
+      DidChangeWorkspaceFoldersNotification4.method = "workspace/didChangeWorkspaceFolders";
+      DidChangeWorkspaceFoldersNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidChangeWorkspaceFoldersNotification4.type = new messages_1.ProtocolNotificationType(DidChangeWorkspaceFoldersNotification4.method);
+      DidChangeWorkspaceFoldersNotification4.capabilities = messages_1.CM.create(void 0, "workspace.workspaceFolders.changeNotifications");
+    })(DidChangeWorkspaceFoldersNotification3 || (exports2.DidChangeWorkspaceFoldersNotification = DidChangeWorkspaceFoldersNotification3 = {}));
   }
 });
 
@@ -22972,12 +22188,13 @@ var require_protocol_configuration = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ConfigurationRequest = void 0;
     var messages_1 = require_messages2();
-    var ConfigurationRequest2;
-    (function(ConfigurationRequest3) {
-      ConfigurationRequest3.method = "workspace/configuration";
-      ConfigurationRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
-      ConfigurationRequest3.type = new messages_1.ProtocolRequestType(ConfigurationRequest3.method);
-    })(ConfigurationRequest2 || (exports2.ConfigurationRequest = ConfigurationRequest2 = {}));
+    var ConfigurationRequest3;
+    (function(ConfigurationRequest4) {
+      ConfigurationRequest4.method = "workspace/configuration";
+      ConfigurationRequest4.messageDirection = messages_1.MessageDirection.serverToClient;
+      ConfigurationRequest4.type = new messages_1.ProtocolRequestType(ConfigurationRequest4.method);
+      ConfigurationRequest4.capabilities = messages_1.CM.create("workspace.configuration", void 0);
+    })(ConfigurationRequest3 || (exports2.ConfigurationRequest = ConfigurationRequest3 = {}));
   }
 });
 
@@ -22988,12 +22205,13 @@ var require_protocol_colorProvider = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.ColorPresentationRequest = exports2.DocumentColorRequest = void 0;
     var messages_1 = require_messages2();
-    var DocumentColorRequest2;
-    (function(DocumentColorRequest3) {
-      DocumentColorRequest3.method = "textDocument/documentColor";
-      DocumentColorRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentColorRequest3.type = new messages_1.ProtocolRequestType(DocumentColorRequest3.method);
-    })(DocumentColorRequest2 || (exports2.DocumentColorRequest = DocumentColorRequest2 = {}));
+    var DocumentColorRequest3;
+    (function(DocumentColorRequest4) {
+      DocumentColorRequest4.method = "textDocument/documentColor";
+      DocumentColorRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentColorRequest4.type = new messages_1.ProtocolRequestType(DocumentColorRequest4.method);
+      DocumentColorRequest4.capabilities = messages_1.CM.create("textDocument.colorProvider", "colorProvider");
+    })(DocumentColorRequest3 || (exports2.DocumentColorRequest = DocumentColorRequest3 = {}));
     var ColorPresentationRequest2;
     (function(ColorPresentationRequest3) {
       ColorPresentationRequest3.method = "textDocument/colorPresentation";
@@ -23010,17 +22228,19 @@ var require_protocol_foldingRange = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.FoldingRangeRefreshRequest = exports2.FoldingRangeRequest = void 0;
     var messages_1 = require_messages2();
-    var FoldingRangeRequest2;
-    (function(FoldingRangeRequest3) {
-      FoldingRangeRequest3.method = "textDocument/foldingRange";
-      FoldingRangeRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      FoldingRangeRequest3.type = new messages_1.ProtocolRequestType(FoldingRangeRequest3.method);
-    })(FoldingRangeRequest2 || (exports2.FoldingRangeRequest = FoldingRangeRequest2 = {}));
+    var FoldingRangeRequest3;
+    (function(FoldingRangeRequest4) {
+      FoldingRangeRequest4.method = "textDocument/foldingRange";
+      FoldingRangeRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      FoldingRangeRequest4.type = new messages_1.ProtocolRequestType(FoldingRangeRequest4.method);
+      FoldingRangeRequest4.capabilities = messages_1.CM.create("textDocument.foldingRange", "foldingRangeProvider");
+    })(FoldingRangeRequest3 || (exports2.FoldingRangeRequest = FoldingRangeRequest3 = {}));
     var FoldingRangeRefreshRequest;
     (function(FoldingRangeRefreshRequest2) {
       FoldingRangeRefreshRequest2.method = `workspace/foldingRange/refresh`;
       FoldingRangeRefreshRequest2.messageDirection = messages_1.MessageDirection.serverToClient;
       FoldingRangeRefreshRequest2.type = new messages_1.ProtocolRequestType0(FoldingRangeRefreshRequest2.method);
+      FoldingRangeRefreshRequest2.capabilities = messages_1.CM.create("workspace.foldingRange.refreshSupport", void 0);
     })(FoldingRangeRefreshRequest || (exports2.FoldingRangeRefreshRequest = FoldingRangeRefreshRequest = {}));
   }
 });
@@ -23032,12 +22252,13 @@ var require_protocol_declaration = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DeclarationRequest = void 0;
     var messages_1 = require_messages2();
-    var DeclarationRequest2;
-    (function(DeclarationRequest3) {
-      DeclarationRequest3.method = "textDocument/declaration";
-      DeclarationRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DeclarationRequest3.type = new messages_1.ProtocolRequestType(DeclarationRequest3.method);
-    })(DeclarationRequest2 || (exports2.DeclarationRequest = DeclarationRequest2 = {}));
+    var DeclarationRequest3;
+    (function(DeclarationRequest4) {
+      DeclarationRequest4.method = "textDocument/declaration";
+      DeclarationRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DeclarationRequest4.type = new messages_1.ProtocolRequestType(DeclarationRequest4.method);
+      DeclarationRequest4.capabilities = messages_1.CM.create("textDocument.declaration", "declarationProvider");
+    })(DeclarationRequest3 || (exports2.DeclarationRequest = DeclarationRequest3 = {}));
   }
 });
 
@@ -23048,12 +22269,13 @@ var require_protocol_selectionRange = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.SelectionRangeRequest = void 0;
     var messages_1 = require_messages2();
-    var SelectionRangeRequest2;
-    (function(SelectionRangeRequest3) {
-      SelectionRangeRequest3.method = "textDocument/selectionRange";
-      SelectionRangeRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      SelectionRangeRequest3.type = new messages_1.ProtocolRequestType(SelectionRangeRequest3.method);
-    })(SelectionRangeRequest2 || (exports2.SelectionRangeRequest = SelectionRangeRequest2 = {}));
+    var SelectionRangeRequest3;
+    (function(SelectionRangeRequest4) {
+      SelectionRangeRequest4.method = "textDocument/selectionRange";
+      SelectionRangeRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      SelectionRangeRequest4.type = new messages_1.ProtocolRequestType(SelectionRangeRequest4.method);
+      SelectionRangeRequest4.capabilities = messages_1.CM.create("textDocument.selectionRange", "selectionRangeProvider");
+    })(SelectionRangeRequest3 || (exports2.SelectionRangeRequest = SelectionRangeRequest3 = {}));
   }
 });
 
@@ -23063,7 +22285,7 @@ var require_protocol_progress = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.WorkDoneProgressCancelNotification = exports2.WorkDoneProgressCreateRequest = exports2.WorkDoneProgress = void 0;
-    var vscode_jsonrpc_1 = require_main();
+    var vscode_jsonrpc_1 = require_api2();
     var messages_1 = require_messages2();
     var WorkDoneProgress2;
     (function(WorkDoneProgress3) {
@@ -23073,12 +22295,13 @@ var require_protocol_progress = __commonJS({
       }
       WorkDoneProgress3.is = is;
     })(WorkDoneProgress2 || (exports2.WorkDoneProgress = WorkDoneProgress2 = {}));
-    var WorkDoneProgressCreateRequest2;
-    (function(WorkDoneProgressCreateRequest3) {
-      WorkDoneProgressCreateRequest3.method = "window/workDoneProgress/create";
-      WorkDoneProgressCreateRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
-      WorkDoneProgressCreateRequest3.type = new messages_1.ProtocolRequestType(WorkDoneProgressCreateRequest3.method);
-    })(WorkDoneProgressCreateRequest2 || (exports2.WorkDoneProgressCreateRequest = WorkDoneProgressCreateRequest2 = {}));
+    var WorkDoneProgressCreateRequest3;
+    (function(WorkDoneProgressCreateRequest4) {
+      WorkDoneProgressCreateRequest4.method = "window/workDoneProgress/create";
+      WorkDoneProgressCreateRequest4.messageDirection = messages_1.MessageDirection.serverToClient;
+      WorkDoneProgressCreateRequest4.type = new messages_1.ProtocolRequestType(WorkDoneProgressCreateRequest4.method);
+      WorkDoneProgressCreateRequest4.capabilities = messages_1.CM.create("window.workDoneProgress", void 0);
+    })(WorkDoneProgressCreateRequest3 || (exports2.WorkDoneProgressCreateRequest = WorkDoneProgressCreateRequest3 = {}));
     var WorkDoneProgressCancelNotification2;
     (function(WorkDoneProgressCancelNotification3) {
       WorkDoneProgressCancelNotification3.method = "window/workDoneProgress/cancel";
@@ -23095,12 +22318,13 @@ var require_protocol_callHierarchy = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.CallHierarchyOutgoingCallsRequest = exports2.CallHierarchyIncomingCallsRequest = exports2.CallHierarchyPrepareRequest = void 0;
     var messages_1 = require_messages2();
-    var CallHierarchyPrepareRequest2;
-    (function(CallHierarchyPrepareRequest3) {
-      CallHierarchyPrepareRequest3.method = "textDocument/prepareCallHierarchy";
-      CallHierarchyPrepareRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      CallHierarchyPrepareRequest3.type = new messages_1.ProtocolRequestType(CallHierarchyPrepareRequest3.method);
-    })(CallHierarchyPrepareRequest2 || (exports2.CallHierarchyPrepareRequest = CallHierarchyPrepareRequest2 = {}));
+    var CallHierarchyPrepareRequest3;
+    (function(CallHierarchyPrepareRequest4) {
+      CallHierarchyPrepareRequest4.method = "textDocument/prepareCallHierarchy";
+      CallHierarchyPrepareRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      CallHierarchyPrepareRequest4.type = new messages_1.ProtocolRequestType(CallHierarchyPrepareRequest4.method);
+      CallHierarchyPrepareRequest4.capabilities = messages_1.CM.create("textDocument.callHierarchy", "callHierarchyProvider");
+    })(CallHierarchyPrepareRequest3 || (exports2.CallHierarchyPrepareRequest = CallHierarchyPrepareRequest3 = {}));
     var CallHierarchyIncomingCallsRequest2;
     (function(CallHierarchyIncomingCallsRequest3) {
       CallHierarchyIncomingCallsRequest3.method = "callHierarchy/incomingCalls";
@@ -23127,37 +22351,41 @@ var require_protocol_semanticTokens = __commonJS({
     (function(TokenFormat3) {
       TokenFormat3.Relative = "relative";
     })(TokenFormat2 || (exports2.TokenFormat = TokenFormat2 = {}));
-    var SemanticTokensRegistrationType2;
-    (function(SemanticTokensRegistrationType3) {
-      SemanticTokensRegistrationType3.method = "textDocument/semanticTokens";
-      SemanticTokensRegistrationType3.type = new messages_1.RegistrationType(SemanticTokensRegistrationType3.method);
-    })(SemanticTokensRegistrationType2 || (exports2.SemanticTokensRegistrationType = SemanticTokensRegistrationType2 = {}));
+    var SemanticTokensRegistrationType3;
+    (function(SemanticTokensRegistrationType4) {
+      SemanticTokensRegistrationType4.method = "textDocument/semanticTokens";
+      SemanticTokensRegistrationType4.type = new messages_1.RegistrationType(SemanticTokensRegistrationType4.method);
+    })(SemanticTokensRegistrationType3 || (exports2.SemanticTokensRegistrationType = SemanticTokensRegistrationType3 = {}));
     var SemanticTokensRequest2;
     (function(SemanticTokensRequest3) {
       SemanticTokensRequest3.method = "textDocument/semanticTokens/full";
       SemanticTokensRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       SemanticTokensRequest3.type = new messages_1.ProtocolRequestType(SemanticTokensRequest3.method);
-      SemanticTokensRequest3.registrationMethod = SemanticTokensRegistrationType2.method;
+      SemanticTokensRequest3.registrationMethod = SemanticTokensRegistrationType3.method;
+      SemanticTokensRequest3.capabilities = messages_1.CM.create("textDocument.semanticTokens", "semanticTokensProvider");
     })(SemanticTokensRequest2 || (exports2.SemanticTokensRequest = SemanticTokensRequest2 = {}));
     var SemanticTokensDeltaRequest2;
     (function(SemanticTokensDeltaRequest3) {
       SemanticTokensDeltaRequest3.method = "textDocument/semanticTokens/full/delta";
       SemanticTokensDeltaRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       SemanticTokensDeltaRequest3.type = new messages_1.ProtocolRequestType(SemanticTokensDeltaRequest3.method);
-      SemanticTokensDeltaRequest3.registrationMethod = SemanticTokensRegistrationType2.method;
+      SemanticTokensDeltaRequest3.registrationMethod = SemanticTokensRegistrationType3.method;
+      SemanticTokensDeltaRequest3.capabilities = messages_1.CM.create("textDocument.semanticTokens.requests.full.delta", "semanticTokensProvider.full.delta");
     })(SemanticTokensDeltaRequest2 || (exports2.SemanticTokensDeltaRequest = SemanticTokensDeltaRequest2 = {}));
     var SemanticTokensRangeRequest2;
     (function(SemanticTokensRangeRequest3) {
       SemanticTokensRangeRequest3.method = "textDocument/semanticTokens/range";
       SemanticTokensRangeRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       SemanticTokensRangeRequest3.type = new messages_1.ProtocolRequestType(SemanticTokensRangeRequest3.method);
-      SemanticTokensRangeRequest3.registrationMethod = SemanticTokensRegistrationType2.method;
+      SemanticTokensRangeRequest3.registrationMethod = SemanticTokensRegistrationType3.method;
+      SemanticTokensRangeRequest3.capabilities = messages_1.CM.create("textDocument.semanticTokens.requests.range", "semanticTokensProvider.range");
     })(SemanticTokensRangeRequest2 || (exports2.SemanticTokensRangeRequest = SemanticTokensRangeRequest2 = {}));
     var SemanticTokensRefreshRequest2;
     (function(SemanticTokensRefreshRequest3) {
       SemanticTokensRefreshRequest3.method = `workspace/semanticTokens/refresh`;
       SemanticTokensRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       SemanticTokensRefreshRequest3.type = new messages_1.ProtocolRequestType0(SemanticTokensRefreshRequest3.method);
+      SemanticTokensRefreshRequest3.capabilities = messages_1.CM.create("workspace.semanticTokens.refreshSupport", void 0);
     })(SemanticTokensRefreshRequest2 || (exports2.SemanticTokensRefreshRequest = SemanticTokensRefreshRequest2 = {}));
   }
 });
@@ -23174,6 +22402,7 @@ var require_protocol_showDocument = __commonJS({
       ShowDocumentRequest3.method = "window/showDocument";
       ShowDocumentRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       ShowDocumentRequest3.type = new messages_1.ProtocolRequestType(ShowDocumentRequest3.method);
+      ShowDocumentRequest3.capabilities = messages_1.CM.create("window.showDocument.support", void 0);
     })(ShowDocumentRequest2 || (exports2.ShowDocumentRequest = ShowDocumentRequest2 = {}));
   }
 });
@@ -23185,12 +22414,13 @@ var require_protocol_linkedEditingRange = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LinkedEditingRangeRequest = void 0;
     var messages_1 = require_messages2();
-    var LinkedEditingRangeRequest2;
-    (function(LinkedEditingRangeRequest3) {
-      LinkedEditingRangeRequest3.method = "textDocument/linkedEditingRange";
-      LinkedEditingRangeRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      LinkedEditingRangeRequest3.type = new messages_1.ProtocolRequestType(LinkedEditingRangeRequest3.method);
-    })(LinkedEditingRangeRequest2 || (exports2.LinkedEditingRangeRequest = LinkedEditingRangeRequest2 = {}));
+    var LinkedEditingRangeRequest3;
+    (function(LinkedEditingRangeRequest4) {
+      LinkedEditingRangeRequest4.method = "textDocument/linkedEditingRange";
+      LinkedEditingRangeRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      LinkedEditingRangeRequest4.type = new messages_1.ProtocolRequestType(LinkedEditingRangeRequest4.method);
+      LinkedEditingRangeRequest4.capabilities = messages_1.CM.create("textDocument.linkedEditingRange", "linkedEditingRangeProvider");
+    })(LinkedEditingRangeRequest3 || (exports2.LinkedEditingRangeRequest = LinkedEditingRangeRequest3 = {}));
   }
 });
 
@@ -23206,42 +22436,48 @@ var require_protocol_fileOperations = __commonJS({
       FileOperationPatternKind3.file = "file";
       FileOperationPatternKind3.folder = "folder";
     })(FileOperationPatternKind2 || (exports2.FileOperationPatternKind = FileOperationPatternKind2 = {}));
-    var WillCreateFilesRequest2;
-    (function(WillCreateFilesRequest3) {
-      WillCreateFilesRequest3.method = "workspace/willCreateFiles";
-      WillCreateFilesRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WillCreateFilesRequest3.type = new messages_1.ProtocolRequestType(WillCreateFilesRequest3.method);
-    })(WillCreateFilesRequest2 || (exports2.WillCreateFilesRequest = WillCreateFilesRequest2 = {}));
-    var DidCreateFilesNotification2;
-    (function(DidCreateFilesNotification3) {
-      DidCreateFilesNotification3.method = "workspace/didCreateFiles";
-      DidCreateFilesNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidCreateFilesNotification3.type = new messages_1.ProtocolNotificationType(DidCreateFilesNotification3.method);
-    })(DidCreateFilesNotification2 || (exports2.DidCreateFilesNotification = DidCreateFilesNotification2 = {}));
-    var WillRenameFilesRequest2;
-    (function(WillRenameFilesRequest3) {
-      WillRenameFilesRequest3.method = "workspace/willRenameFiles";
-      WillRenameFilesRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WillRenameFilesRequest3.type = new messages_1.ProtocolRequestType(WillRenameFilesRequest3.method);
-    })(WillRenameFilesRequest2 || (exports2.WillRenameFilesRequest = WillRenameFilesRequest2 = {}));
-    var DidRenameFilesNotification2;
-    (function(DidRenameFilesNotification3) {
-      DidRenameFilesNotification3.method = "workspace/didRenameFiles";
-      DidRenameFilesNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidRenameFilesNotification3.type = new messages_1.ProtocolNotificationType(DidRenameFilesNotification3.method);
-    })(DidRenameFilesNotification2 || (exports2.DidRenameFilesNotification = DidRenameFilesNotification2 = {}));
-    var DidDeleteFilesNotification2;
-    (function(DidDeleteFilesNotification3) {
-      DidDeleteFilesNotification3.method = "workspace/didDeleteFiles";
-      DidDeleteFilesNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidDeleteFilesNotification3.type = new messages_1.ProtocolNotificationType(DidDeleteFilesNotification3.method);
-    })(DidDeleteFilesNotification2 || (exports2.DidDeleteFilesNotification = DidDeleteFilesNotification2 = {}));
-    var WillDeleteFilesRequest2;
-    (function(WillDeleteFilesRequest3) {
-      WillDeleteFilesRequest3.method = "workspace/willDeleteFiles";
-      WillDeleteFilesRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WillDeleteFilesRequest3.type = new messages_1.ProtocolRequestType(WillDeleteFilesRequest3.method);
-    })(WillDeleteFilesRequest2 || (exports2.WillDeleteFilesRequest = WillDeleteFilesRequest2 = {}));
+    var WillCreateFilesRequest3;
+    (function(WillCreateFilesRequest4) {
+      WillCreateFilesRequest4.method = "workspace/willCreateFiles";
+      WillCreateFilesRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WillCreateFilesRequest4.type = new messages_1.ProtocolRequestType(WillCreateFilesRequest4.method);
+      WillCreateFilesRequest4.capabilities = messages_1.CM.create("workspace.fileOperations.willCreate", "workspace.fileOperations.willCreate");
+    })(WillCreateFilesRequest3 || (exports2.WillCreateFilesRequest = WillCreateFilesRequest3 = {}));
+    var DidCreateFilesNotification3;
+    (function(DidCreateFilesNotification4) {
+      DidCreateFilesNotification4.method = "workspace/didCreateFiles";
+      DidCreateFilesNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidCreateFilesNotification4.type = new messages_1.ProtocolNotificationType(DidCreateFilesNotification4.method);
+      DidCreateFilesNotification4.capabilities = messages_1.CM.create("workspace.fileOperations.didCreate", "workspace.fileOperations.didCreate");
+    })(DidCreateFilesNotification3 || (exports2.DidCreateFilesNotification = DidCreateFilesNotification3 = {}));
+    var WillRenameFilesRequest3;
+    (function(WillRenameFilesRequest4) {
+      WillRenameFilesRequest4.method = "workspace/willRenameFiles";
+      WillRenameFilesRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WillRenameFilesRequest4.type = new messages_1.ProtocolRequestType(WillRenameFilesRequest4.method);
+      WillRenameFilesRequest4.capabilities = messages_1.CM.create("workspace.fileOperations.willRename", "workspace.fileOperations.willRename");
+    })(WillRenameFilesRequest3 || (exports2.WillRenameFilesRequest = WillRenameFilesRequest3 = {}));
+    var DidRenameFilesNotification3;
+    (function(DidRenameFilesNotification4) {
+      DidRenameFilesNotification4.method = "workspace/didRenameFiles";
+      DidRenameFilesNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidRenameFilesNotification4.type = new messages_1.ProtocolNotificationType(DidRenameFilesNotification4.method);
+      DidRenameFilesNotification4.capabilities = messages_1.CM.create("workspace.fileOperations.didRename", "workspace.fileOperations.didRename");
+    })(DidRenameFilesNotification3 || (exports2.DidRenameFilesNotification = DidRenameFilesNotification3 = {}));
+    var DidDeleteFilesNotification3;
+    (function(DidDeleteFilesNotification4) {
+      DidDeleteFilesNotification4.method = "workspace/didDeleteFiles";
+      DidDeleteFilesNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidDeleteFilesNotification4.type = new messages_1.ProtocolNotificationType(DidDeleteFilesNotification4.method);
+      DidDeleteFilesNotification4.capabilities = messages_1.CM.create("workspace.fileOperations.didDelete", "workspace.fileOperations.didDelete");
+    })(DidDeleteFilesNotification3 || (exports2.DidDeleteFilesNotification = DidDeleteFilesNotification3 = {}));
+    var WillDeleteFilesRequest3;
+    (function(WillDeleteFilesRequest4) {
+      WillDeleteFilesRequest4.method = "workspace/willDeleteFiles";
+      WillDeleteFilesRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WillDeleteFilesRequest4.type = new messages_1.ProtocolRequestType(WillDeleteFilesRequest4.method);
+      WillDeleteFilesRequest4.capabilities = messages_1.CM.create("workspace.fileOperations.willDelete", "workspace.fileOperations.willDelete");
+    })(WillDeleteFilesRequest3 || (exports2.WillDeleteFilesRequest = WillDeleteFilesRequest3 = {}));
   }
 });
 
@@ -23271,6 +22507,7 @@ var require_protocol_moniker = __commonJS({
       MonikerRequest2.method = "textDocument/moniker";
       MonikerRequest2.messageDirection = messages_1.MessageDirection.clientToServer;
       MonikerRequest2.type = new messages_1.ProtocolRequestType(MonikerRequest2.method);
+      MonikerRequest2.capabilities = messages_1.CM.create("textDocument.moniker", "monikerProvider");
     })(MonikerRequest || (exports2.MonikerRequest = MonikerRequest = {}));
   }
 });
@@ -23282,12 +22519,13 @@ var require_protocol_typeHierarchy = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.TypeHierarchySubtypesRequest = exports2.TypeHierarchySupertypesRequest = exports2.TypeHierarchyPrepareRequest = void 0;
     var messages_1 = require_messages2();
-    var TypeHierarchyPrepareRequest2;
-    (function(TypeHierarchyPrepareRequest3) {
-      TypeHierarchyPrepareRequest3.method = "textDocument/prepareTypeHierarchy";
-      TypeHierarchyPrepareRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      TypeHierarchyPrepareRequest3.type = new messages_1.ProtocolRequestType(TypeHierarchyPrepareRequest3.method);
-    })(TypeHierarchyPrepareRequest2 || (exports2.TypeHierarchyPrepareRequest = TypeHierarchyPrepareRequest2 = {}));
+    var TypeHierarchyPrepareRequest3;
+    (function(TypeHierarchyPrepareRequest4) {
+      TypeHierarchyPrepareRequest4.method = "textDocument/prepareTypeHierarchy";
+      TypeHierarchyPrepareRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      TypeHierarchyPrepareRequest4.type = new messages_1.ProtocolRequestType(TypeHierarchyPrepareRequest4.method);
+      TypeHierarchyPrepareRequest4.capabilities = messages_1.CM.create("textDocument.typeHierarchy", "typeHierarchyProvider");
+    })(TypeHierarchyPrepareRequest3 || (exports2.TypeHierarchyPrepareRequest = TypeHierarchyPrepareRequest3 = {}));
     var TypeHierarchySupertypesRequest2;
     (function(TypeHierarchySupertypesRequest3) {
       TypeHierarchySupertypesRequest3.method = "typeHierarchy/supertypes";
@@ -23310,17 +22548,19 @@ var require_protocol_inlineValue = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.InlineValueRefreshRequest = exports2.InlineValueRequest = void 0;
     var messages_1 = require_messages2();
-    var InlineValueRequest2;
-    (function(InlineValueRequest3) {
-      InlineValueRequest3.method = "textDocument/inlineValue";
-      InlineValueRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      InlineValueRequest3.type = new messages_1.ProtocolRequestType(InlineValueRequest3.method);
-    })(InlineValueRequest2 || (exports2.InlineValueRequest = InlineValueRequest2 = {}));
+    var InlineValueRequest3;
+    (function(InlineValueRequest4) {
+      InlineValueRequest4.method = "textDocument/inlineValue";
+      InlineValueRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      InlineValueRequest4.type = new messages_1.ProtocolRequestType(InlineValueRequest4.method);
+      InlineValueRequest4.capabilities = messages_1.CM.create("textDocument.inlineValue", "inlineValueProvider");
+    })(InlineValueRequest3 || (exports2.InlineValueRequest = InlineValueRequest3 = {}));
     var InlineValueRefreshRequest2;
     (function(InlineValueRefreshRequest3) {
       InlineValueRefreshRequest3.method = `workspace/inlineValue/refresh`;
       InlineValueRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       InlineValueRefreshRequest3.type = new messages_1.ProtocolRequestType0(InlineValueRefreshRequest3.method);
+      InlineValueRefreshRequest3.capabilities = messages_1.CM.create("workspace.inlineValue.refreshSupport", void 0);
     })(InlineValueRefreshRequest2 || (exports2.InlineValueRefreshRequest = InlineValueRefreshRequest2 = {}));
   }
 });
@@ -23337,18 +22577,21 @@ var require_protocol_inlayHint = __commonJS({
       InlayHintRequest3.method = "textDocument/inlayHint";
       InlayHintRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       InlayHintRequest3.type = new messages_1.ProtocolRequestType(InlayHintRequest3.method);
+      InlayHintRequest3.capabilities = messages_1.CM.create("textDocument.inlayHint", "inlayHintProvider");
     })(InlayHintRequest2 || (exports2.InlayHintRequest = InlayHintRequest2 = {}));
     var InlayHintResolveRequest2;
     (function(InlayHintResolveRequest3) {
       InlayHintResolveRequest3.method = "inlayHint/resolve";
       InlayHintResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       InlayHintResolveRequest3.type = new messages_1.ProtocolRequestType(InlayHintResolveRequest3.method);
+      InlayHintResolveRequest3.capabilities = messages_1.CM.create("textDocument.inlayHint.resolveSupport", "inlayHintProvider.resolveProvider");
     })(InlayHintResolveRequest2 || (exports2.InlayHintResolveRequest = InlayHintResolveRequest2 = {}));
     var InlayHintRefreshRequest2;
     (function(InlayHintRefreshRequest3) {
       InlayHintRefreshRequest3.method = `workspace/inlayHint/refresh`;
       InlayHintRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       InlayHintRefreshRequest3.type = new messages_1.ProtocolRequestType0(InlayHintRefreshRequest3.method);
+      InlayHintRefreshRequest3.capabilities = messages_1.CM.create("workspace.inlayHint.refreshSupport", void 0);
     })(InlayHintRefreshRequest2 || (exports2.InlayHintRefreshRequest = InlayHintRefreshRequest2 = {}));
   }
 });
@@ -23357,10 +22600,47 @@ var require_protocol_inlayHint = __commonJS({
 var require_protocol_diagnostic = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/protocol.diagnostic.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DiagnosticRefreshRequest = exports2.WorkspaceDiagnosticRequest = exports2.DocumentDiagnosticRequest = exports2.DocumentDiagnosticReportKind = exports2.DiagnosticServerCancellationData = void 0;
-    var vscode_jsonrpc_1 = require_main();
-    var Is2 = require_is2();
+    var vscode_jsonrpc_1 = require_api2();
+    var Is2 = __importStar(require_is2());
     var messages_1 = require_messages2();
     var DiagnosticServerCancellationData2;
     (function(DiagnosticServerCancellationData3) {
@@ -23375,25 +22655,28 @@ var require_protocol_diagnostic = __commonJS({
       DocumentDiagnosticReportKind3.Full = "full";
       DocumentDiagnosticReportKind3.Unchanged = "unchanged";
     })(DocumentDiagnosticReportKind2 || (exports2.DocumentDiagnosticReportKind = DocumentDiagnosticReportKind2 = {}));
-    var DocumentDiagnosticRequest2;
-    (function(DocumentDiagnosticRequest3) {
-      DocumentDiagnosticRequest3.method = "textDocument/diagnostic";
-      DocumentDiagnosticRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentDiagnosticRequest3.type = new messages_1.ProtocolRequestType(DocumentDiagnosticRequest3.method);
-      DocumentDiagnosticRequest3.partialResult = new vscode_jsonrpc_1.ProgressType();
-    })(DocumentDiagnosticRequest2 || (exports2.DocumentDiagnosticRequest = DocumentDiagnosticRequest2 = {}));
+    var DocumentDiagnosticRequest3;
+    (function(DocumentDiagnosticRequest4) {
+      DocumentDiagnosticRequest4.method = "textDocument/diagnostic";
+      DocumentDiagnosticRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentDiagnosticRequest4.type = new messages_1.ProtocolRequestType(DocumentDiagnosticRequest4.method);
+      DocumentDiagnosticRequest4.partialResult = new vscode_jsonrpc_1.ProgressType();
+      DocumentDiagnosticRequest4.capabilities = messages_1.CM.create("textDocument.diagnostic", "diagnosticProvider");
+    })(DocumentDiagnosticRequest3 || (exports2.DocumentDiagnosticRequest = DocumentDiagnosticRequest3 = {}));
     var WorkspaceDiagnosticRequest2;
     (function(WorkspaceDiagnosticRequest3) {
       WorkspaceDiagnosticRequest3.method = "workspace/diagnostic";
       WorkspaceDiagnosticRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       WorkspaceDiagnosticRequest3.type = new messages_1.ProtocolRequestType(WorkspaceDiagnosticRequest3.method);
       WorkspaceDiagnosticRequest3.partialResult = new vscode_jsonrpc_1.ProgressType();
+      WorkspaceDiagnosticRequest3.capabilities = messages_1.CM.create("workspace.diagnostics", "diagnosticProvider.workspaceDiagnostics");
     })(WorkspaceDiagnosticRequest2 || (exports2.WorkspaceDiagnosticRequest = WorkspaceDiagnosticRequest2 = {}));
     var DiagnosticRefreshRequest2;
     (function(DiagnosticRefreshRequest3) {
       DiagnosticRefreshRequest3.method = `workspace/diagnostic/refresh`;
       DiagnosticRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       DiagnosticRefreshRequest3.type = new messages_1.ProtocolRequestType0(DiagnosticRefreshRequest3.method);
+      DiagnosticRefreshRequest3.capabilities = messages_1.CM.create("workspace.diagnostics.refreshSupport", void 0);
     })(DiagnosticRefreshRequest2 || (exports2.DiagnosticRefreshRequest = DiagnosticRefreshRequest2 = {}));
   }
 });
@@ -23402,10 +22685,47 @@ var require_protocol_diagnostic = __commonJS({
 var require_protocol_notebook = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/protocol.notebook.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DidCloseNotebookDocumentNotification = exports2.DidSaveNotebookDocumentNotification = exports2.DidChangeNotebookDocumentNotification = exports2.NotebookCellArrayChange = exports2.DidOpenNotebookDocumentNotification = exports2.NotebookDocumentSyncRegistrationType = exports2.NotebookDocument = exports2.NotebookCell = exports2.ExecutionSummary = exports2.NotebookCellKind = void 0;
-    var vscode_languageserver_types_1 = require_main2();
-    var Is2 = require_is2();
+    var vscode_languageserver_types_1 = (init_main(), __toCommonJS(main_exports));
+    var Is2 = __importStar(require_is2());
     var messages_1 = require_messages2();
     var NotebookCellKind;
     (function(NotebookCellKind2) {
@@ -23594,12 +22914,36 @@ var require_protocol_inlineCompletion = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.InlineCompletionRequest = void 0;
     var messages_1 = require_messages2();
-    var InlineCompletionRequest;
-    (function(InlineCompletionRequest2) {
-      InlineCompletionRequest2.method = "textDocument/inlineCompletion";
-      InlineCompletionRequest2.messageDirection = messages_1.MessageDirection.clientToServer;
-      InlineCompletionRequest2.type = new messages_1.ProtocolRequestType(InlineCompletionRequest2.method);
-    })(InlineCompletionRequest || (exports2.InlineCompletionRequest = InlineCompletionRequest = {}));
+    var InlineCompletionRequest3;
+    (function(InlineCompletionRequest4) {
+      InlineCompletionRequest4.method = "textDocument/inlineCompletion";
+      InlineCompletionRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      InlineCompletionRequest4.type = new messages_1.ProtocolRequestType(InlineCompletionRequest4.method);
+      InlineCompletionRequest4.capabilities = messages_1.CM.create("textDocument.inlineCompletion", "inlineCompletionProvider");
+    })(InlineCompletionRequest3 || (exports2.InlineCompletionRequest = InlineCompletionRequest3 = {}));
+  }
+});
+
+// node_modules/vscode-languageserver-protocol/lib/common/protocol.textDocumentContent.js
+var require_protocol_textDocumentContent = __commonJS({
+  "node_modules/vscode-languageserver-protocol/lib/common/protocol.textDocumentContent.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.TextDocumentContentRefreshRequest = exports2.TextDocumentContentRequest = void 0;
+    var messages_1 = require_messages2();
+    var TextDocumentContentRequest3;
+    (function(TextDocumentContentRequest4) {
+      TextDocumentContentRequest4.method = "workspace/textDocumentContent";
+      TextDocumentContentRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      TextDocumentContentRequest4.type = new messages_1.ProtocolRequestType(TextDocumentContentRequest4.method);
+      TextDocumentContentRequest4.capabilities = messages_1.CM.create("workspace.textDocumentContent", "workspace.textDocumentContent");
+    })(TextDocumentContentRequest3 || (exports2.TextDocumentContentRequest = TextDocumentContentRequest3 = {}));
+    var TextDocumentContentRefreshRequest2;
+    (function(TextDocumentContentRefreshRequest3) {
+      TextDocumentContentRefreshRequest3.method = `workspace/textDocumentContent/refresh`;
+      TextDocumentContentRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
+      TextDocumentContentRefreshRequest3.type = new messages_1.ProtocolRequestType(TextDocumentContentRefreshRequest3.method);
+    })(TextDocumentContentRefreshRequest2 || (exports2.TextDocumentContentRefreshRequest = TextDocumentContentRefreshRequest2 = {}));
   }
 });
 
@@ -23607,13 +22951,50 @@ var require_protocol_inlineCompletion = __commonJS({
 var require_protocol = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/protocol.js"(exports2) {
     "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    }();
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.WorkspaceSymbolRequest = exports2.CodeActionResolveRequest = exports2.CodeActionRequest = exports2.DocumentSymbolRequest = exports2.DocumentHighlightRequest = exports2.ReferencesRequest = exports2.DefinitionRequest = exports2.SignatureHelpRequest = exports2.SignatureHelpTriggerKind = exports2.HoverRequest = exports2.CompletionResolveRequest = exports2.CompletionRequest = exports2.CompletionTriggerKind = exports2.PublishDiagnosticsNotification = exports2.WatchKind = exports2.RelativePattern = exports2.FileChangeType = exports2.DidChangeWatchedFilesNotification = exports2.WillSaveTextDocumentWaitUntilRequest = exports2.WillSaveTextDocumentNotification = exports2.TextDocumentSaveReason = exports2.DidSaveTextDocumentNotification = exports2.DidCloseTextDocumentNotification = exports2.DidChangeTextDocumentNotification = exports2.TextDocumentContentChangeEvent = exports2.DidOpenTextDocumentNotification = exports2.TextDocumentSyncKind = exports2.TelemetryEventNotification = exports2.LogMessageNotification = exports2.ShowMessageRequest = exports2.ShowMessageNotification = exports2.MessageType = exports2.DidChangeConfigurationNotification = exports2.ExitNotification = exports2.ShutdownRequest = exports2.InitializedNotification = exports2.InitializeErrorCodes = exports2.InitializeRequest = exports2.WorkDoneProgressOptions = exports2.TextDocumentRegistrationOptions = exports2.StaticRegistrationOptions = exports2.PositionEncodingKind = exports2.FailureHandlingKind = exports2.ResourceOperationKind = exports2.UnregistrationRequest = exports2.RegistrationRequest = exports2.DocumentSelector = exports2.NotebookCellTextDocumentFilter = exports2.NotebookDocumentFilter = exports2.TextDocumentFilter = void 0;
-    exports2.MonikerRequest = exports2.MonikerKind = exports2.UniquenessLevel = exports2.WillDeleteFilesRequest = exports2.DidDeleteFilesNotification = exports2.WillRenameFilesRequest = exports2.DidRenameFilesNotification = exports2.WillCreateFilesRequest = exports2.DidCreateFilesNotification = exports2.FileOperationPatternKind = exports2.LinkedEditingRangeRequest = exports2.ShowDocumentRequest = exports2.SemanticTokensRegistrationType = exports2.SemanticTokensRefreshRequest = exports2.SemanticTokensRangeRequest = exports2.SemanticTokensDeltaRequest = exports2.SemanticTokensRequest = exports2.TokenFormat = exports2.CallHierarchyPrepareRequest = exports2.CallHierarchyOutgoingCallsRequest = exports2.CallHierarchyIncomingCallsRequest = exports2.WorkDoneProgressCancelNotification = exports2.WorkDoneProgressCreateRequest = exports2.WorkDoneProgress = exports2.SelectionRangeRequest = exports2.DeclarationRequest = exports2.FoldingRangeRefreshRequest = exports2.FoldingRangeRequest = exports2.ColorPresentationRequest = exports2.DocumentColorRequest = exports2.ConfigurationRequest = exports2.DidChangeWorkspaceFoldersNotification = exports2.WorkspaceFoldersRequest = exports2.TypeDefinitionRequest = exports2.ImplementationRequest = exports2.ApplyWorkspaceEditRequest = exports2.ExecuteCommandRequest = exports2.PrepareRenameRequest = exports2.RenameRequest = exports2.PrepareSupportDefaultBehavior = exports2.DocumentOnTypeFormattingRequest = exports2.DocumentRangesFormattingRequest = exports2.DocumentRangeFormattingRequest = exports2.DocumentFormattingRequest = exports2.DocumentLinkResolveRequest = exports2.DocumentLinkRequest = exports2.CodeLensRefreshRequest = exports2.CodeLensResolveRequest = exports2.CodeLensRequest = exports2.WorkspaceSymbolResolveRequest = void 0;
-    exports2.InlineCompletionRequest = exports2.DidCloseNotebookDocumentNotification = exports2.DidSaveNotebookDocumentNotification = exports2.DidChangeNotebookDocumentNotification = exports2.NotebookCellArrayChange = exports2.DidOpenNotebookDocumentNotification = exports2.NotebookDocumentSyncRegistrationType = exports2.NotebookDocument = exports2.NotebookCell = exports2.ExecutionSummary = exports2.NotebookCellKind = exports2.DiagnosticRefreshRequest = exports2.WorkspaceDiagnosticRequest = exports2.DocumentDiagnosticRequest = exports2.DocumentDiagnosticReportKind = exports2.DiagnosticServerCancellationData = exports2.InlayHintRefreshRequest = exports2.InlayHintResolveRequest = exports2.InlayHintRequest = exports2.InlineValueRefreshRequest = exports2.InlineValueRequest = exports2.TypeHierarchySupertypesRequest = exports2.TypeHierarchySubtypesRequest = exports2.TypeHierarchyPrepareRequest = void 0;
+    exports2.CodeActionRequest = exports2.DocumentSymbolRequest = exports2.DocumentHighlightRequest = exports2.ReferencesRequest = exports2.DefinitionRequest = exports2.SignatureHelpRequest = exports2.SignatureHelpTriggerKind = exports2.HoverRequest = exports2.CompletionResolveRequest = exports2.CompletionRequest = exports2.CompletionTriggerKind = exports2.PublishDiagnosticsNotification = exports2.WatchKind = exports2.GlobPattern = exports2.RelativePattern = exports2.FileChangeType = exports2.DidChangeWatchedFilesNotification = exports2.WillSaveTextDocumentWaitUntilRequest = exports2.WillSaveTextDocumentNotification = exports2.TextDocumentSaveReason = exports2.DidSaveTextDocumentNotification = exports2.DidCloseTextDocumentNotification = exports2.DidChangeTextDocumentNotification = exports2.TextDocumentContentChangeEvent = exports2.DidOpenTextDocumentNotification = exports2.TextDocumentSyncKind = exports2.TelemetryEventNotification = exports2.LogMessageNotification = exports2.ShowMessageRequest = exports2.ShowMessageNotification = exports2.MessageType = exports2.DidChangeConfigurationNotification = exports2.ExitNotification = exports2.ShutdownRequest = exports2.InitializedNotification = exports2.InitializeErrorCodes = exports2.InitializeRequest = exports2.WorkDoneProgressOptions = exports2.TextDocumentRegistrationOptions = exports2.StaticRegistrationOptions = exports2.PositionEncodingKind = exports2.RegularExpressionEngineKind = exports2.FailureHandlingKind = exports2.ResourceOperationKind = exports2.UnregistrationRequest = exports2.RegistrationRequest = exports2.DocumentSelector = exports2.NotebookCellTextDocumentFilter = exports2.NotebookDocumentFilter = exports2.TextDocumentFilter = void 0;
+    exports2.UniquenessLevel = exports2.WillDeleteFilesRequest = exports2.DidDeleteFilesNotification = exports2.WillRenameFilesRequest = exports2.DidRenameFilesNotification = exports2.WillCreateFilesRequest = exports2.DidCreateFilesNotification = exports2.FileOperationPatternKind = exports2.LinkedEditingRangeRequest = exports2.ShowDocumentRequest = exports2.SemanticTokensRegistrationType = exports2.SemanticTokensRefreshRequest = exports2.SemanticTokensRangeRequest = exports2.SemanticTokensDeltaRequest = exports2.SemanticTokensRequest = exports2.TokenFormat = exports2.CallHierarchyPrepareRequest = exports2.CallHierarchyOutgoingCallsRequest = exports2.CallHierarchyIncomingCallsRequest = exports2.WorkDoneProgressCancelNotification = exports2.WorkDoneProgressCreateRequest = exports2.WorkDoneProgress = exports2.SelectionRangeRequest = exports2.DeclarationRequest = exports2.FoldingRangeRefreshRequest = exports2.FoldingRangeRequest = exports2.ColorPresentationRequest = exports2.DocumentColorRequest = exports2.ConfigurationRequest = exports2.DidChangeWorkspaceFoldersNotification = exports2.WorkspaceFoldersRequest = exports2.TypeDefinitionRequest = exports2.ImplementationRequest = exports2.ApplyWorkspaceEditRequest = exports2.ExecuteCommandRequest = exports2.PrepareRenameRequest = exports2.RenameRequest = exports2.PrepareSupportDefaultBehavior = exports2.DocumentOnTypeFormattingRequest = exports2.DocumentRangesFormattingRequest = exports2.DocumentRangeFormattingRequest = exports2.DocumentFormattingRequest = exports2.DocumentLinkResolveRequest = exports2.DocumentLinkRequest = exports2.CodeLensRefreshRequest = exports2.CodeLensResolveRequest = exports2.CodeLensRequest = exports2.WorkspaceSymbolResolveRequest = exports2.WorkspaceSymbolRequest = exports2.CodeActionResolveRequest = void 0;
+    exports2.TextDocumentContentRefreshRequest = exports2.TextDocumentContentRequest = exports2.InlineCompletionRequest = exports2.DidCloseNotebookDocumentNotification = exports2.DidSaveNotebookDocumentNotification = exports2.DidChangeNotebookDocumentNotification = exports2.NotebookCellArrayChange = exports2.DidOpenNotebookDocumentNotification = exports2.NotebookDocumentSyncRegistrationType = exports2.NotebookDocument = exports2.NotebookCell = exports2.ExecutionSummary = exports2.NotebookCellKind = exports2.DiagnosticRefreshRequest = exports2.WorkspaceDiagnosticRequest = exports2.DocumentDiagnosticRequest = exports2.DocumentDiagnosticReportKind = exports2.DiagnosticServerCancellationData = exports2.InlayHintRefreshRequest = exports2.InlayHintResolveRequest = exports2.InlayHintRequest = exports2.InlineValueRefreshRequest = exports2.InlineValueRequest = exports2.TypeHierarchySupertypesRequest = exports2.TypeHierarchySubtypesRequest = exports2.TypeHierarchyPrepareRequest = exports2.MonikerRequest = exports2.MonikerKind = void 0;
     var messages_1 = require_messages2();
-    var vscode_languageserver_types_1 = require_main2();
-    var Is2 = require_is2();
+    var vscode_languageserver_types_1 = (init_main(), __toCommonJS(main_exports));
+    var Is2 = __importStar(require_is2());
     var protocol_implementation_1 = require_protocol_implementation();
     Object.defineProperty(exports2, "ImplementationRequest", { enumerable: true, get: function() {
       return protocol_implementation_1.ImplementationRequest;
@@ -23812,11 +23193,18 @@ var require_protocol = __commonJS({
     Object.defineProperty(exports2, "InlineCompletionRequest", { enumerable: true, get: function() {
       return protocol_inlineCompletion_1.InlineCompletionRequest;
     } });
+    var protocol_textDocumentContent_1 = require_protocol_textDocumentContent();
+    Object.defineProperty(exports2, "TextDocumentContentRequest", { enumerable: true, get: function() {
+      return protocol_textDocumentContent_1.TextDocumentContentRequest;
+    } });
+    Object.defineProperty(exports2, "TextDocumentContentRefreshRequest", { enumerable: true, get: function() {
+      return protocol_textDocumentContent_1.TextDocumentContentRefreshRequest;
+    } });
     var TextDocumentFilter2;
     (function(TextDocumentFilter3) {
       function is(value) {
         const candidate = value;
-        return Is2.string(candidate) || (Is2.string(candidate.language) || Is2.string(candidate.scheme) || Is2.string(candidate.pattern));
+        return Is2.string(candidate) || (Is2.string(candidate.language) || Is2.string(candidate.scheme) || GlobPattern.is(candidate.pattern));
       }
       TextDocumentFilter3.is = is;
     })(TextDocumentFilter2 || (exports2.TextDocumentFilter = TextDocumentFilter2 = {}));
@@ -23836,21 +23224,21 @@ var require_protocol = __commonJS({
       }
       NotebookCellTextDocumentFilter2.is = is;
     })(NotebookCellTextDocumentFilter || (exports2.NotebookCellTextDocumentFilter = NotebookCellTextDocumentFilter = {}));
-    var DocumentSelector;
-    (function(DocumentSelector2) {
+    var DocumentSelector3;
+    (function(DocumentSelector4) {
       function is(value) {
         if (!Array.isArray(value)) {
           return false;
         }
-        for (let elem of value) {
+        for (const elem of value) {
           if (!Is2.string(elem) && !TextDocumentFilter2.is(elem) && !NotebookCellTextDocumentFilter.is(elem)) {
             return false;
           }
         }
         return true;
       }
-      DocumentSelector2.is = is;
-    })(DocumentSelector || (exports2.DocumentSelector = DocumentSelector = {}));
+      DocumentSelector4.is = is;
+    })(DocumentSelector3 || (exports2.DocumentSelector = DocumentSelector3 = {}));
     var RegistrationRequest2;
     (function(RegistrationRequest3) {
       RegistrationRequest3.method = "client/registerCapability";
@@ -23876,28 +23264,32 @@ var require_protocol = __commonJS({
       FailureHandlingKind3.TextOnlyTransactional = "textOnlyTransactional";
       FailureHandlingKind3.Undo = "undo";
     })(FailureHandlingKind2 || (exports2.FailureHandlingKind = FailureHandlingKind2 = {}));
+    var RegularExpressionEngineKind;
+    (function(RegularExpressionEngineKind2) {
+      RegularExpressionEngineKind2.ES2020 = "ES2020";
+    })(RegularExpressionEngineKind || (exports2.RegularExpressionEngineKind = RegularExpressionEngineKind = {}));
     var PositionEncodingKind2;
     (function(PositionEncodingKind3) {
       PositionEncodingKind3.UTF8 = "utf-8";
       PositionEncodingKind3.UTF16 = "utf-16";
       PositionEncodingKind3.UTF32 = "utf-32";
     })(PositionEncodingKind2 || (exports2.PositionEncodingKind = PositionEncodingKind2 = {}));
-    var StaticRegistrationOptions2;
-    (function(StaticRegistrationOptions3) {
+    var StaticRegistrationOptions3;
+    (function(StaticRegistrationOptions4) {
       function hasId(value) {
         const candidate = value;
         return candidate && Is2.string(candidate.id) && candidate.id.length > 0;
       }
-      StaticRegistrationOptions3.hasId = hasId;
-    })(StaticRegistrationOptions2 || (exports2.StaticRegistrationOptions = StaticRegistrationOptions2 = {}));
-    var TextDocumentRegistrationOptions2;
-    (function(TextDocumentRegistrationOptions3) {
+      StaticRegistrationOptions4.hasId = hasId;
+    })(StaticRegistrationOptions3 || (exports2.StaticRegistrationOptions = StaticRegistrationOptions3 = {}));
+    var TextDocumentRegistrationOptions3;
+    (function(TextDocumentRegistrationOptions4) {
       function is(value) {
         const candidate = value;
-        return candidate && (candidate.documentSelector === null || DocumentSelector.is(candidate.documentSelector));
+        return candidate && (candidate.documentSelector === null || DocumentSelector3.is(candidate.documentSelector));
       }
-      TextDocumentRegistrationOptions3.is = is;
-    })(TextDocumentRegistrationOptions2 || (exports2.TextDocumentRegistrationOptions = TextDocumentRegistrationOptions2 = {}));
+      TextDocumentRegistrationOptions4.is = is;
+    })(TextDocumentRegistrationOptions3 || (exports2.TextDocumentRegistrationOptions = TextDocumentRegistrationOptions3 = {}));
     var WorkDoneProgressOptions2;
     (function(WorkDoneProgressOptions3) {
       function is(value) {
@@ -23939,12 +23331,13 @@ var require_protocol = __commonJS({
       ExitNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
       ExitNotification3.type = new messages_1.ProtocolNotificationType0(ExitNotification3.method);
     })(ExitNotification2 || (exports2.ExitNotification = ExitNotification2 = {}));
-    var DidChangeConfigurationNotification2;
-    (function(DidChangeConfigurationNotification3) {
-      DidChangeConfigurationNotification3.method = "workspace/didChangeConfiguration";
-      DidChangeConfigurationNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidChangeConfigurationNotification3.type = new messages_1.ProtocolNotificationType(DidChangeConfigurationNotification3.method);
-    })(DidChangeConfigurationNotification2 || (exports2.DidChangeConfigurationNotification = DidChangeConfigurationNotification2 = {}));
+    var DidChangeConfigurationNotification3;
+    (function(DidChangeConfigurationNotification4) {
+      DidChangeConfigurationNotification4.method = "workspace/didChangeConfiguration";
+      DidChangeConfigurationNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidChangeConfigurationNotification4.type = new messages_1.ProtocolNotificationType(DidChangeConfigurationNotification4.method);
+      DidChangeConfigurationNotification4.capabilities = messages_1.CM.create("workspace.didChangeConfiguration", void 0);
+    })(DidChangeConfigurationNotification3 || (exports2.DidChangeConfigurationNotification = DidChangeConfigurationNotification3 = {}));
     var MessageType2;
     (function(MessageType3) {
       MessageType3.Error = 1;
@@ -23958,12 +23351,14 @@ var require_protocol = __commonJS({
       ShowMessageNotification3.method = "window/showMessage";
       ShowMessageNotification3.messageDirection = messages_1.MessageDirection.serverToClient;
       ShowMessageNotification3.type = new messages_1.ProtocolNotificationType(ShowMessageNotification3.method);
+      ShowMessageNotification3.capabilities = messages_1.CM.create("window.showMessage", void 0);
     })(ShowMessageNotification2 || (exports2.ShowMessageNotification = ShowMessageNotification2 = {}));
     var ShowMessageRequest2;
     (function(ShowMessageRequest3) {
       ShowMessageRequest3.method = "window/showMessageRequest";
       ShowMessageRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       ShowMessageRequest3.type = new messages_1.ProtocolRequestType(ShowMessageRequest3.method);
+      ShowMessageRequest3.capabilities = messages_1.CM.create("window.showMessage", void 0);
     })(ShowMessageRequest2 || (exports2.ShowMessageRequest = ShowMessageRequest2 = {}));
     var LogMessageNotification2;
     (function(LogMessageNotification3) {
@@ -23983,67 +23378,74 @@ var require_protocol = __commonJS({
       TextDocumentSyncKind3.Full = 1;
       TextDocumentSyncKind3.Incremental = 2;
     })(TextDocumentSyncKind2 || (exports2.TextDocumentSyncKind = TextDocumentSyncKind2 = {}));
-    var DidOpenTextDocumentNotification2;
-    (function(DidOpenTextDocumentNotification3) {
-      DidOpenTextDocumentNotification3.method = "textDocument/didOpen";
-      DidOpenTextDocumentNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidOpenTextDocumentNotification3.type = new messages_1.ProtocolNotificationType(DidOpenTextDocumentNotification3.method);
-    })(DidOpenTextDocumentNotification2 || (exports2.DidOpenTextDocumentNotification = DidOpenTextDocumentNotification2 = {}));
+    var DidOpenTextDocumentNotification3;
+    (function(DidOpenTextDocumentNotification4) {
+      DidOpenTextDocumentNotification4.method = "textDocument/didOpen";
+      DidOpenTextDocumentNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidOpenTextDocumentNotification4.type = new messages_1.ProtocolNotificationType(DidOpenTextDocumentNotification4.method);
+      DidOpenTextDocumentNotification4.capabilities = messages_1.CM.create("textDocument.synchronization", "textDocumentSync.openClose");
+    })(DidOpenTextDocumentNotification3 || (exports2.DidOpenTextDocumentNotification = DidOpenTextDocumentNotification3 = {}));
     var TextDocumentContentChangeEvent;
     (function(TextDocumentContentChangeEvent2) {
       function isIncremental(event) {
-        let candidate = event;
+        const candidate = event;
         return candidate !== void 0 && candidate !== null && typeof candidate.text === "string" && candidate.range !== void 0 && (candidate.rangeLength === void 0 || typeof candidate.rangeLength === "number");
       }
       TextDocumentContentChangeEvent2.isIncremental = isIncremental;
       function isFull(event) {
-        let candidate = event;
+        const candidate = event;
         return candidate !== void 0 && candidate !== null && typeof candidate.text === "string" && candidate.range === void 0 && candidate.rangeLength === void 0;
       }
       TextDocumentContentChangeEvent2.isFull = isFull;
     })(TextDocumentContentChangeEvent || (exports2.TextDocumentContentChangeEvent = TextDocumentContentChangeEvent = {}));
-    var DidChangeTextDocumentNotification2;
-    (function(DidChangeTextDocumentNotification3) {
-      DidChangeTextDocumentNotification3.method = "textDocument/didChange";
-      DidChangeTextDocumentNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidChangeTextDocumentNotification3.type = new messages_1.ProtocolNotificationType(DidChangeTextDocumentNotification3.method);
-    })(DidChangeTextDocumentNotification2 || (exports2.DidChangeTextDocumentNotification = DidChangeTextDocumentNotification2 = {}));
-    var DidCloseTextDocumentNotification2;
-    (function(DidCloseTextDocumentNotification3) {
-      DidCloseTextDocumentNotification3.method = "textDocument/didClose";
-      DidCloseTextDocumentNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidCloseTextDocumentNotification3.type = new messages_1.ProtocolNotificationType(DidCloseTextDocumentNotification3.method);
-    })(DidCloseTextDocumentNotification2 || (exports2.DidCloseTextDocumentNotification = DidCloseTextDocumentNotification2 = {}));
-    var DidSaveTextDocumentNotification2;
-    (function(DidSaveTextDocumentNotification3) {
-      DidSaveTextDocumentNotification3.method = "textDocument/didSave";
-      DidSaveTextDocumentNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidSaveTextDocumentNotification3.type = new messages_1.ProtocolNotificationType(DidSaveTextDocumentNotification3.method);
-    })(DidSaveTextDocumentNotification2 || (exports2.DidSaveTextDocumentNotification = DidSaveTextDocumentNotification2 = {}));
+    var DidChangeTextDocumentNotification3;
+    (function(DidChangeTextDocumentNotification4) {
+      DidChangeTextDocumentNotification4.method = "textDocument/didChange";
+      DidChangeTextDocumentNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidChangeTextDocumentNotification4.type = new messages_1.ProtocolNotificationType(DidChangeTextDocumentNotification4.method);
+      DidChangeTextDocumentNotification4.capabilities = messages_1.CM.create("textDocument.synchronization", "textDocumentSync");
+    })(DidChangeTextDocumentNotification3 || (exports2.DidChangeTextDocumentNotification = DidChangeTextDocumentNotification3 = {}));
+    var DidCloseTextDocumentNotification3;
+    (function(DidCloseTextDocumentNotification4) {
+      DidCloseTextDocumentNotification4.method = "textDocument/didClose";
+      DidCloseTextDocumentNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidCloseTextDocumentNotification4.type = new messages_1.ProtocolNotificationType(DidCloseTextDocumentNotification4.method);
+      DidCloseTextDocumentNotification4.capabilities = messages_1.CM.create("textDocument.synchronization", "textDocumentSync.openClose");
+    })(DidCloseTextDocumentNotification3 || (exports2.DidCloseTextDocumentNotification = DidCloseTextDocumentNotification3 = {}));
+    var DidSaveTextDocumentNotification3;
+    (function(DidSaveTextDocumentNotification4) {
+      DidSaveTextDocumentNotification4.method = "textDocument/didSave";
+      DidSaveTextDocumentNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidSaveTextDocumentNotification4.type = new messages_1.ProtocolNotificationType(DidSaveTextDocumentNotification4.method);
+      DidSaveTextDocumentNotification4.capabilities = messages_1.CM.create("textDocument.synchronization.didSave", "textDocumentSync.save");
+    })(DidSaveTextDocumentNotification3 || (exports2.DidSaveTextDocumentNotification = DidSaveTextDocumentNotification3 = {}));
     var TextDocumentSaveReason3;
     (function(TextDocumentSaveReason4) {
       TextDocumentSaveReason4.Manual = 1;
       TextDocumentSaveReason4.AfterDelay = 2;
       TextDocumentSaveReason4.FocusOut = 3;
     })(TextDocumentSaveReason3 || (exports2.TextDocumentSaveReason = TextDocumentSaveReason3 = {}));
-    var WillSaveTextDocumentNotification2;
-    (function(WillSaveTextDocumentNotification3) {
-      WillSaveTextDocumentNotification3.method = "textDocument/willSave";
-      WillSaveTextDocumentNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WillSaveTextDocumentNotification3.type = new messages_1.ProtocolNotificationType(WillSaveTextDocumentNotification3.method);
-    })(WillSaveTextDocumentNotification2 || (exports2.WillSaveTextDocumentNotification = WillSaveTextDocumentNotification2 = {}));
-    var WillSaveTextDocumentWaitUntilRequest2;
-    (function(WillSaveTextDocumentWaitUntilRequest3) {
-      WillSaveTextDocumentWaitUntilRequest3.method = "textDocument/willSaveWaitUntil";
-      WillSaveTextDocumentWaitUntilRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WillSaveTextDocumentWaitUntilRequest3.type = new messages_1.ProtocolRequestType(WillSaveTextDocumentWaitUntilRequest3.method);
-    })(WillSaveTextDocumentWaitUntilRequest2 || (exports2.WillSaveTextDocumentWaitUntilRequest = WillSaveTextDocumentWaitUntilRequest2 = {}));
-    var DidChangeWatchedFilesNotification2;
-    (function(DidChangeWatchedFilesNotification3) {
-      DidChangeWatchedFilesNotification3.method = "workspace/didChangeWatchedFiles";
-      DidChangeWatchedFilesNotification3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DidChangeWatchedFilesNotification3.type = new messages_1.ProtocolNotificationType(DidChangeWatchedFilesNotification3.method);
-    })(DidChangeWatchedFilesNotification2 || (exports2.DidChangeWatchedFilesNotification = DidChangeWatchedFilesNotification2 = {}));
+    var WillSaveTextDocumentNotification3;
+    (function(WillSaveTextDocumentNotification4) {
+      WillSaveTextDocumentNotification4.method = "textDocument/willSave";
+      WillSaveTextDocumentNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WillSaveTextDocumentNotification4.type = new messages_1.ProtocolNotificationType(WillSaveTextDocumentNotification4.method);
+      WillSaveTextDocumentNotification4.capabilities = messages_1.CM.create("textDocument.synchronization.willSave", "textDocumentSync.willSave");
+    })(WillSaveTextDocumentNotification3 || (exports2.WillSaveTextDocumentNotification = WillSaveTextDocumentNotification3 = {}));
+    var WillSaveTextDocumentWaitUntilRequest3;
+    (function(WillSaveTextDocumentWaitUntilRequest4) {
+      WillSaveTextDocumentWaitUntilRequest4.method = "textDocument/willSaveWaitUntil";
+      WillSaveTextDocumentWaitUntilRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WillSaveTextDocumentWaitUntilRequest4.type = new messages_1.ProtocolRequestType(WillSaveTextDocumentWaitUntilRequest4.method);
+      WillSaveTextDocumentWaitUntilRequest4.capabilities = messages_1.CM.create("textDocument.synchronization.willSaveWaitUntil", "textDocumentSync.willSaveWaitUntil");
+    })(WillSaveTextDocumentWaitUntilRequest3 || (exports2.WillSaveTextDocumentWaitUntilRequest = WillSaveTextDocumentWaitUntilRequest3 = {}));
+    var DidChangeWatchedFilesNotification3;
+    (function(DidChangeWatchedFilesNotification4) {
+      DidChangeWatchedFilesNotification4.method = "workspace/didChangeWatchedFiles";
+      DidChangeWatchedFilesNotification4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DidChangeWatchedFilesNotification4.type = new messages_1.ProtocolNotificationType(DidChangeWatchedFilesNotification4.method);
+      DidChangeWatchedFilesNotification4.capabilities = messages_1.CM.create("workspace.didChangeWatchedFiles", void 0);
+    })(DidChangeWatchedFilesNotification3 || (exports2.DidChangeWatchedFilesNotification = DidChangeWatchedFilesNotification3 = {}));
     var FileChangeType2;
     (function(FileChangeType3) {
       FileChangeType3.Created = 1;
@@ -24058,6 +23460,14 @@ var require_protocol = __commonJS({
       }
       RelativePattern4.is = is;
     })(RelativePattern3 || (exports2.RelativePattern = RelativePattern3 = {}));
+    var GlobPattern;
+    (function(GlobPattern2) {
+      function is(value) {
+        const candidate = value;
+        return Is2.string(candidate) || RelativePattern3.is(candidate);
+      }
+      GlobPattern2.is = is;
+    })(GlobPattern || (exports2.GlobPattern = GlobPattern = {}));
     var WatchKind2;
     (function(WatchKind3) {
       WatchKind3.Create = 1;
@@ -24069,6 +23479,7 @@ var require_protocol = __commonJS({
       PublishDiagnosticsNotification3.method = "textDocument/publishDiagnostics";
       PublishDiagnosticsNotification3.messageDirection = messages_1.MessageDirection.serverToClient;
       PublishDiagnosticsNotification3.type = new messages_1.ProtocolNotificationType(PublishDiagnosticsNotification3.method);
+      PublishDiagnosticsNotification3.capabilities = messages_1.CM.create("textDocument.publishDiagnostics", void 0);
     })(PublishDiagnosticsNotification2 || (exports2.PublishDiagnosticsNotification = PublishDiagnosticsNotification2 = {}));
     var CompletionTriggerKind2;
     (function(CompletionTriggerKind3) {
@@ -24076,165 +23487,190 @@ var require_protocol = __commonJS({
       CompletionTriggerKind3.TriggerCharacter = 2;
       CompletionTriggerKind3.TriggerForIncompleteCompletions = 3;
     })(CompletionTriggerKind2 || (exports2.CompletionTriggerKind = CompletionTriggerKind2 = {}));
-    var CompletionRequest2;
-    (function(CompletionRequest3) {
-      CompletionRequest3.method = "textDocument/completion";
-      CompletionRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      CompletionRequest3.type = new messages_1.ProtocolRequestType(CompletionRequest3.method);
-    })(CompletionRequest2 || (exports2.CompletionRequest = CompletionRequest2 = {}));
+    var CompletionRequest3;
+    (function(CompletionRequest4) {
+      CompletionRequest4.method = "textDocument/completion";
+      CompletionRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      CompletionRequest4.type = new messages_1.ProtocolRequestType(CompletionRequest4.method);
+      CompletionRequest4.capabilities = messages_1.CM.create("textDocument.completion", "completionProvider");
+    })(CompletionRequest3 || (exports2.CompletionRequest = CompletionRequest3 = {}));
     var CompletionResolveRequest2;
     (function(CompletionResolveRequest3) {
       CompletionResolveRequest3.method = "completionItem/resolve";
       CompletionResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       CompletionResolveRequest3.type = new messages_1.ProtocolRequestType(CompletionResolveRequest3.method);
+      CompletionResolveRequest3.capabilities = messages_1.CM.create("textDocument.completion.completionItem.resolveSupport", "completionProvider.resolveProvider");
     })(CompletionResolveRequest2 || (exports2.CompletionResolveRequest = CompletionResolveRequest2 = {}));
-    var HoverRequest2;
-    (function(HoverRequest3) {
-      HoverRequest3.method = "textDocument/hover";
-      HoverRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      HoverRequest3.type = new messages_1.ProtocolRequestType(HoverRequest3.method);
-    })(HoverRequest2 || (exports2.HoverRequest = HoverRequest2 = {}));
+    var HoverRequest3;
+    (function(HoverRequest4) {
+      HoverRequest4.method = "textDocument/hover";
+      HoverRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      HoverRequest4.type = new messages_1.ProtocolRequestType(HoverRequest4.method);
+      HoverRequest4.capabilities = messages_1.CM.create("textDocument.hover", "hoverProvider");
+    })(HoverRequest3 || (exports2.HoverRequest = HoverRequest3 = {}));
     var SignatureHelpTriggerKind2;
     (function(SignatureHelpTriggerKind3) {
       SignatureHelpTriggerKind3.Invoked = 1;
       SignatureHelpTriggerKind3.TriggerCharacter = 2;
       SignatureHelpTriggerKind3.ContentChange = 3;
     })(SignatureHelpTriggerKind2 || (exports2.SignatureHelpTriggerKind = SignatureHelpTriggerKind2 = {}));
-    var SignatureHelpRequest2;
-    (function(SignatureHelpRequest3) {
-      SignatureHelpRequest3.method = "textDocument/signatureHelp";
-      SignatureHelpRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      SignatureHelpRequest3.type = new messages_1.ProtocolRequestType(SignatureHelpRequest3.method);
-    })(SignatureHelpRequest2 || (exports2.SignatureHelpRequest = SignatureHelpRequest2 = {}));
-    var DefinitionRequest2;
-    (function(DefinitionRequest3) {
-      DefinitionRequest3.method = "textDocument/definition";
-      DefinitionRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DefinitionRequest3.type = new messages_1.ProtocolRequestType(DefinitionRequest3.method);
-    })(DefinitionRequest2 || (exports2.DefinitionRequest = DefinitionRequest2 = {}));
-    var ReferencesRequest2;
-    (function(ReferencesRequest3) {
-      ReferencesRequest3.method = "textDocument/references";
-      ReferencesRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      ReferencesRequest3.type = new messages_1.ProtocolRequestType(ReferencesRequest3.method);
-    })(ReferencesRequest2 || (exports2.ReferencesRequest = ReferencesRequest2 = {}));
-    var DocumentHighlightRequest2;
-    (function(DocumentHighlightRequest3) {
-      DocumentHighlightRequest3.method = "textDocument/documentHighlight";
-      DocumentHighlightRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentHighlightRequest3.type = new messages_1.ProtocolRequestType(DocumentHighlightRequest3.method);
-    })(DocumentHighlightRequest2 || (exports2.DocumentHighlightRequest = DocumentHighlightRequest2 = {}));
-    var DocumentSymbolRequest2;
-    (function(DocumentSymbolRequest3) {
-      DocumentSymbolRequest3.method = "textDocument/documentSymbol";
-      DocumentSymbolRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentSymbolRequest3.type = new messages_1.ProtocolRequestType(DocumentSymbolRequest3.method);
-    })(DocumentSymbolRequest2 || (exports2.DocumentSymbolRequest = DocumentSymbolRequest2 = {}));
-    var CodeActionRequest2;
-    (function(CodeActionRequest3) {
-      CodeActionRequest3.method = "textDocument/codeAction";
-      CodeActionRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      CodeActionRequest3.type = new messages_1.ProtocolRequestType(CodeActionRequest3.method);
-    })(CodeActionRequest2 || (exports2.CodeActionRequest = CodeActionRequest2 = {}));
+    var SignatureHelpRequest3;
+    (function(SignatureHelpRequest4) {
+      SignatureHelpRequest4.method = "textDocument/signatureHelp";
+      SignatureHelpRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      SignatureHelpRequest4.type = new messages_1.ProtocolRequestType(SignatureHelpRequest4.method);
+      SignatureHelpRequest4.capabilities = messages_1.CM.create("textDocument.signatureHelp", "signatureHelpProvider");
+    })(SignatureHelpRequest3 || (exports2.SignatureHelpRequest = SignatureHelpRequest3 = {}));
+    var DefinitionRequest3;
+    (function(DefinitionRequest4) {
+      DefinitionRequest4.method = "textDocument/definition";
+      DefinitionRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DefinitionRequest4.type = new messages_1.ProtocolRequestType(DefinitionRequest4.method);
+      DefinitionRequest4.capabilities = messages_1.CM.create("textDocument.definition", "definitionProvider");
+    })(DefinitionRequest3 || (exports2.DefinitionRequest = DefinitionRequest3 = {}));
+    var ReferencesRequest3;
+    (function(ReferencesRequest4) {
+      ReferencesRequest4.method = "textDocument/references";
+      ReferencesRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      ReferencesRequest4.type = new messages_1.ProtocolRequestType(ReferencesRequest4.method);
+      ReferencesRequest4.capabilities = messages_1.CM.create("textDocument.references", "referencesProvider");
+    })(ReferencesRequest3 || (exports2.ReferencesRequest = ReferencesRequest3 = {}));
+    var DocumentHighlightRequest3;
+    (function(DocumentHighlightRequest4) {
+      DocumentHighlightRequest4.method = "textDocument/documentHighlight";
+      DocumentHighlightRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentHighlightRequest4.type = new messages_1.ProtocolRequestType(DocumentHighlightRequest4.method);
+      DocumentHighlightRequest4.capabilities = messages_1.CM.create("textDocument.documentHighlight", "documentHighlightProvider");
+    })(DocumentHighlightRequest3 || (exports2.DocumentHighlightRequest = DocumentHighlightRequest3 = {}));
+    var DocumentSymbolRequest3;
+    (function(DocumentSymbolRequest4) {
+      DocumentSymbolRequest4.method = "textDocument/documentSymbol";
+      DocumentSymbolRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentSymbolRequest4.type = new messages_1.ProtocolRequestType(DocumentSymbolRequest4.method);
+      DocumentSymbolRequest4.capabilities = messages_1.CM.create("textDocument.documentSymbol", "documentSymbolProvider");
+    })(DocumentSymbolRequest3 || (exports2.DocumentSymbolRequest = DocumentSymbolRequest3 = {}));
+    var CodeActionRequest3;
+    (function(CodeActionRequest4) {
+      CodeActionRequest4.method = "textDocument/codeAction";
+      CodeActionRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      CodeActionRequest4.type = new messages_1.ProtocolRequestType(CodeActionRequest4.method);
+      CodeActionRequest4.capabilities = messages_1.CM.create("textDocument.codeAction", "codeActionProvider");
+    })(CodeActionRequest3 || (exports2.CodeActionRequest = CodeActionRequest3 = {}));
     var CodeActionResolveRequest2;
     (function(CodeActionResolveRequest3) {
       CodeActionResolveRequest3.method = "codeAction/resolve";
       CodeActionResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       CodeActionResolveRequest3.type = new messages_1.ProtocolRequestType(CodeActionResolveRequest3.method);
+      CodeActionResolveRequest3.capabilities = messages_1.CM.create("textDocument.codeAction.resolveSupport", "codeActionProvider.resolveProvider");
     })(CodeActionResolveRequest2 || (exports2.CodeActionResolveRequest = CodeActionResolveRequest2 = {}));
-    var WorkspaceSymbolRequest2;
-    (function(WorkspaceSymbolRequest3) {
-      WorkspaceSymbolRequest3.method = "workspace/symbol";
-      WorkspaceSymbolRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      WorkspaceSymbolRequest3.type = new messages_1.ProtocolRequestType(WorkspaceSymbolRequest3.method);
-    })(WorkspaceSymbolRequest2 || (exports2.WorkspaceSymbolRequest = WorkspaceSymbolRequest2 = {}));
+    var WorkspaceSymbolRequest3;
+    (function(WorkspaceSymbolRequest4) {
+      WorkspaceSymbolRequest4.method = "workspace/symbol";
+      WorkspaceSymbolRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      WorkspaceSymbolRequest4.type = new messages_1.ProtocolRequestType(WorkspaceSymbolRequest4.method);
+      WorkspaceSymbolRequest4.capabilities = messages_1.CM.create("workspace.symbol", "workspaceSymbolProvider");
+    })(WorkspaceSymbolRequest3 || (exports2.WorkspaceSymbolRequest = WorkspaceSymbolRequest3 = {}));
     var WorkspaceSymbolResolveRequest2;
     (function(WorkspaceSymbolResolveRequest3) {
       WorkspaceSymbolResolveRequest3.method = "workspaceSymbol/resolve";
       WorkspaceSymbolResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       WorkspaceSymbolResolveRequest3.type = new messages_1.ProtocolRequestType(WorkspaceSymbolResolveRequest3.method);
+      WorkspaceSymbolResolveRequest3.capabilities = messages_1.CM.create("workspace.symbol.resolveSupport", "workspaceSymbolProvider.resolveProvider");
     })(WorkspaceSymbolResolveRequest2 || (exports2.WorkspaceSymbolResolveRequest = WorkspaceSymbolResolveRequest2 = {}));
-    var CodeLensRequest2;
-    (function(CodeLensRequest3) {
-      CodeLensRequest3.method = "textDocument/codeLens";
-      CodeLensRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      CodeLensRequest3.type = new messages_1.ProtocolRequestType(CodeLensRequest3.method);
-    })(CodeLensRequest2 || (exports2.CodeLensRequest = CodeLensRequest2 = {}));
+    var CodeLensRequest3;
+    (function(CodeLensRequest4) {
+      CodeLensRequest4.method = "textDocument/codeLens";
+      CodeLensRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      CodeLensRequest4.type = new messages_1.ProtocolRequestType(CodeLensRequest4.method);
+      CodeLensRequest4.capabilities = messages_1.CM.create("textDocument.codeLens", "codeLensProvider");
+    })(CodeLensRequest3 || (exports2.CodeLensRequest = CodeLensRequest3 = {}));
     var CodeLensResolveRequest2;
     (function(CodeLensResolveRequest3) {
       CodeLensResolveRequest3.method = "codeLens/resolve";
       CodeLensResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       CodeLensResolveRequest3.type = new messages_1.ProtocolRequestType(CodeLensResolveRequest3.method);
+      CodeLensResolveRequest3.capabilities = messages_1.CM.create("textDocument.codeLens.resolveSupport", "codeLensProvider.resolveProvider");
     })(CodeLensResolveRequest2 || (exports2.CodeLensResolveRequest = CodeLensResolveRequest2 = {}));
     var CodeLensRefreshRequest2;
     (function(CodeLensRefreshRequest3) {
       CodeLensRefreshRequest3.method = `workspace/codeLens/refresh`;
       CodeLensRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       CodeLensRefreshRequest3.type = new messages_1.ProtocolRequestType0(CodeLensRefreshRequest3.method);
+      CodeLensRefreshRequest3.capabilities = messages_1.CM.create("workspace.codeLens", void 0);
     })(CodeLensRefreshRequest2 || (exports2.CodeLensRefreshRequest = CodeLensRefreshRequest2 = {}));
-    var DocumentLinkRequest2;
-    (function(DocumentLinkRequest3) {
-      DocumentLinkRequest3.method = "textDocument/documentLink";
-      DocumentLinkRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentLinkRequest3.type = new messages_1.ProtocolRequestType(DocumentLinkRequest3.method);
-    })(DocumentLinkRequest2 || (exports2.DocumentLinkRequest = DocumentLinkRequest2 = {}));
+    var DocumentLinkRequest3;
+    (function(DocumentLinkRequest4) {
+      DocumentLinkRequest4.method = "textDocument/documentLink";
+      DocumentLinkRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentLinkRequest4.type = new messages_1.ProtocolRequestType(DocumentLinkRequest4.method);
+      DocumentLinkRequest4.capabilities = messages_1.CM.create("textDocument.documentLink", "documentLinkProvider");
+    })(DocumentLinkRequest3 || (exports2.DocumentLinkRequest = DocumentLinkRequest3 = {}));
     var DocumentLinkResolveRequest2;
     (function(DocumentLinkResolveRequest3) {
       DocumentLinkResolveRequest3.method = "documentLink/resolve";
       DocumentLinkResolveRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       DocumentLinkResolveRequest3.type = new messages_1.ProtocolRequestType(DocumentLinkResolveRequest3.method);
+      DocumentLinkResolveRequest3.capabilities = messages_1.CM.create("textDocument.documentLink", "documentLinkProvider.resolveProvider");
     })(DocumentLinkResolveRequest2 || (exports2.DocumentLinkResolveRequest = DocumentLinkResolveRequest2 = {}));
-    var DocumentFormattingRequest2;
-    (function(DocumentFormattingRequest3) {
-      DocumentFormattingRequest3.method = "textDocument/formatting";
-      DocumentFormattingRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentFormattingRequest3.type = new messages_1.ProtocolRequestType(DocumentFormattingRequest3.method);
-    })(DocumentFormattingRequest2 || (exports2.DocumentFormattingRequest = DocumentFormattingRequest2 = {}));
-    var DocumentRangeFormattingRequest2;
-    (function(DocumentRangeFormattingRequest3) {
-      DocumentRangeFormattingRequest3.method = "textDocument/rangeFormatting";
-      DocumentRangeFormattingRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentRangeFormattingRequest3.type = new messages_1.ProtocolRequestType(DocumentRangeFormattingRequest3.method);
-    })(DocumentRangeFormattingRequest2 || (exports2.DocumentRangeFormattingRequest = DocumentRangeFormattingRequest2 = {}));
+    var DocumentFormattingRequest3;
+    (function(DocumentFormattingRequest4) {
+      DocumentFormattingRequest4.method = "textDocument/formatting";
+      DocumentFormattingRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentFormattingRequest4.type = new messages_1.ProtocolRequestType(DocumentFormattingRequest4.method);
+      DocumentFormattingRequest4.capabilities = messages_1.CM.create("textDocument.formatting", "documentFormattingProvider");
+    })(DocumentFormattingRequest3 || (exports2.DocumentFormattingRequest = DocumentFormattingRequest3 = {}));
+    var DocumentRangeFormattingRequest3;
+    (function(DocumentRangeFormattingRequest4) {
+      DocumentRangeFormattingRequest4.method = "textDocument/rangeFormatting";
+      DocumentRangeFormattingRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentRangeFormattingRequest4.type = new messages_1.ProtocolRequestType(DocumentRangeFormattingRequest4.method);
+      DocumentRangeFormattingRequest4.capabilities = messages_1.CM.create("textDocument.rangeFormatting", "documentRangeFormattingProvider");
+    })(DocumentRangeFormattingRequest3 || (exports2.DocumentRangeFormattingRequest = DocumentRangeFormattingRequest3 = {}));
     var DocumentRangesFormattingRequest;
     (function(DocumentRangesFormattingRequest2) {
       DocumentRangesFormattingRequest2.method = "textDocument/rangesFormatting";
       DocumentRangesFormattingRequest2.messageDirection = messages_1.MessageDirection.clientToServer;
       DocumentRangesFormattingRequest2.type = new messages_1.ProtocolRequestType(DocumentRangesFormattingRequest2.method);
+      DocumentRangesFormattingRequest2.capabilities = messages_1.CM.create("textDocument.rangeFormatting.rangesSupport", "documentRangeFormattingProvider.rangesSupport");
     })(DocumentRangesFormattingRequest || (exports2.DocumentRangesFormattingRequest = DocumentRangesFormattingRequest = {}));
-    var DocumentOnTypeFormattingRequest2;
-    (function(DocumentOnTypeFormattingRequest3) {
-      DocumentOnTypeFormattingRequest3.method = "textDocument/onTypeFormatting";
-      DocumentOnTypeFormattingRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      DocumentOnTypeFormattingRequest3.type = new messages_1.ProtocolRequestType(DocumentOnTypeFormattingRequest3.method);
-    })(DocumentOnTypeFormattingRequest2 || (exports2.DocumentOnTypeFormattingRequest = DocumentOnTypeFormattingRequest2 = {}));
+    var DocumentOnTypeFormattingRequest3;
+    (function(DocumentOnTypeFormattingRequest4) {
+      DocumentOnTypeFormattingRequest4.method = "textDocument/onTypeFormatting";
+      DocumentOnTypeFormattingRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      DocumentOnTypeFormattingRequest4.type = new messages_1.ProtocolRequestType(DocumentOnTypeFormattingRequest4.method);
+      DocumentOnTypeFormattingRequest4.capabilities = messages_1.CM.create("textDocument.onTypeFormatting", "documentOnTypeFormattingProvider");
+    })(DocumentOnTypeFormattingRequest3 || (exports2.DocumentOnTypeFormattingRequest = DocumentOnTypeFormattingRequest3 = {}));
     var PrepareSupportDefaultBehavior2;
     (function(PrepareSupportDefaultBehavior3) {
       PrepareSupportDefaultBehavior3.Identifier = 1;
     })(PrepareSupportDefaultBehavior2 || (exports2.PrepareSupportDefaultBehavior = PrepareSupportDefaultBehavior2 = {}));
-    var RenameRequest2;
-    (function(RenameRequest3) {
-      RenameRequest3.method = "textDocument/rename";
-      RenameRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      RenameRequest3.type = new messages_1.ProtocolRequestType(RenameRequest3.method);
-    })(RenameRequest2 || (exports2.RenameRequest = RenameRequest2 = {}));
+    var RenameRequest3;
+    (function(RenameRequest4) {
+      RenameRequest4.method = "textDocument/rename";
+      RenameRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      RenameRequest4.type = new messages_1.ProtocolRequestType(RenameRequest4.method);
+      RenameRequest4.capabilities = messages_1.CM.create("textDocument.rename", "renameProvider");
+    })(RenameRequest3 || (exports2.RenameRequest = RenameRequest3 = {}));
     var PrepareRenameRequest2;
     (function(PrepareRenameRequest3) {
       PrepareRenameRequest3.method = "textDocument/prepareRename";
       PrepareRenameRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       PrepareRenameRequest3.type = new messages_1.ProtocolRequestType(PrepareRenameRequest3.method);
+      PrepareRenameRequest3.capabilities = messages_1.CM.create("textDocument.rename.prepareSupport", "renameProvider.prepareProvider");
     })(PrepareRenameRequest2 || (exports2.PrepareRenameRequest = PrepareRenameRequest2 = {}));
-    var ExecuteCommandRequest2;
-    (function(ExecuteCommandRequest3) {
-      ExecuteCommandRequest3.method = "workspace/executeCommand";
-      ExecuteCommandRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
-      ExecuteCommandRequest3.type = new messages_1.ProtocolRequestType(ExecuteCommandRequest3.method);
-    })(ExecuteCommandRequest2 || (exports2.ExecuteCommandRequest = ExecuteCommandRequest2 = {}));
+    var ExecuteCommandRequest3;
+    (function(ExecuteCommandRequest4) {
+      ExecuteCommandRequest4.method = "workspace/executeCommand";
+      ExecuteCommandRequest4.messageDirection = messages_1.MessageDirection.clientToServer;
+      ExecuteCommandRequest4.type = new messages_1.ProtocolRequestType(ExecuteCommandRequest4.method);
+      ExecuteCommandRequest4.capabilities = messages_1.CM.create("workspace.executeCommand", "executeCommandProvider");
+    })(ExecuteCommandRequest3 || (exports2.ExecuteCommandRequest = ExecuteCommandRequest3 = {}));
     var ApplyWorkspaceEditRequest2;
     (function(ApplyWorkspaceEditRequest3) {
       ApplyWorkspaceEditRequest3.method = "workspace/applyEdit";
       ApplyWorkspaceEditRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
       ApplyWorkspaceEditRequest3.type = new messages_1.ProtocolRequestType("workspace/applyEdit");
+      ApplyWorkspaceEditRequest3.capabilities = messages_1.CM.create("workspace.applyEdit", void 0);
     })(ApplyWorkspaceEditRequest2 || (exports2.ApplyWorkspaceEditRequest = ApplyWorkspaceEditRequest2 = {}));
   }
 });
@@ -24244,15 +23680,14 @@ var require_connection3 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/common/connection.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.createProtocolConnection = void 0;
-    var vscode_jsonrpc_1 = require_main();
-    function createProtocolConnection2(input, output, logger60, options2) {
+    exports2.createProtocolConnection = createProtocolConnection2;
+    var vscode_jsonrpc_1 = require_api2();
+    function createProtocolConnection2(input, output, logger61, options2) {
       if (vscode_jsonrpc_1.ConnectionStrategy.is(options2)) {
         options2 = { connectionStrategy: options2 };
       }
-      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger60, options2);
+      return (0, vscode_jsonrpc_1.createMessageConnection)(input, output, logger61, options2);
     }
-    exports2.createProtocolConnection = createProtocolConnection2;
   }
 });
 
@@ -24278,8 +23713,8 @@ var require_api3 = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.LSPErrorCodes = exports2.createProtocolConnection = void 0;
-    __exportStar(require_main(), exports2);
-    __exportStar(require_main2(), exports2);
+    __exportStar(require_api2(), exports2);
+    __exportStar((init_main(), __toCommonJS(main_exports)), exports2);
     __exportStar(require_messages2(), exports2);
     __exportStar(require_protocol(), exports2);
     var connection_1 = require_connection3();
@@ -24299,7 +23734,7 @@ var require_api3 = __commonJS({
 });
 
 // node_modules/vscode-languageserver-protocol/lib/node/main.js
-var require_main3 = __commonJS({
+var require_main2 = __commonJS({
   "node_modules/vscode-languageserver-protocol/lib/node/main.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
@@ -24319,22 +23754,13 @@ var require_main3 = __commonJS({
       for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.createProtocolConnection = void 0;
-    var node_1 = require_node();
-    __exportStar(require_node(), exports2);
-    __exportStar(require_api3(), exports2);
-    function createProtocolConnection2(input, output, logger60, options2) {
-      return (0, node_1.createMessageConnection)(input, output, logger60, options2);
-    }
     exports2.createProtocolConnection = createProtocolConnection2;
-  }
-});
-
-// node_modules/vscode-languageserver-protocol/node.js
-var require_node2 = __commonJS({
-  "node_modules/vscode-languageserver-protocol/node.js"(exports2, module2) {
-    "use strict";
-    module2.exports = require_main3();
+    var node_1 = require_main();
+    __exportStar(require_main(), exports2);
+    __exportStar(require_api3(), exports2);
+    function createProtocolConnection2(input, output, logger61, options2) {
+      return (0, node_1.createMessageConnection)(input, output, logger61, options2);
+    }
   }
 });
 
@@ -24343,7 +23769,7 @@ var import_node4;
 var init_protocol = __esm({
   "src/util/protocol.ts"() {
     "use strict";
-    import_node4 = __toESM(require_node2());
+    import_node4 = __toESM(require_main2());
   }
 });
 
@@ -24764,6 +24190,8 @@ var init_events = __esm({
         this._completing = false;
         this._requesting = false;
         this._ready = false;
+        this._mode = "n";
+        this._pumInserted = false;
         this.timeout = 1e3;
       }
       // public completing = false
@@ -24778,6 +24206,9 @@ var init_events = __esm({
       }
       get mode() {
         return this._mode;
+      }
+      get pumInserted() {
+        return this._pumInserted;
       }
       fireVisibleEvent(ev) {
         let { winid } = ev;
@@ -24798,6 +24229,7 @@ var init_events = __esm({
       set completing(completing) {
         this._completing = completing;
         this._pumVisible = completing;
+        this._pumInserted = false;
       }
       get completing() {
         return this._completing;
@@ -24815,7 +24247,7 @@ var init_events = __esm({
         return this._pumAlignTop;
       }
       get insertMode() {
-        return this._insertMode;
+        return this._insertMode && this._mode.startsWith("i");
       }
       get lastChangeTs() {
         return this._lastChange;
@@ -24872,6 +24304,7 @@ var init_events = __esm({
         } else if (event == "MenuPopupChanged" /* MenuPopupChanged */) {
           this._pumVisible = true;
           this._pumAlignTop = args[1] > args[0].row;
+          this._pumInserted = args[0].inserted;
         } else if (event == "InsertCharPre" /* InsertCharPre */) {
           this._recentInserts.push([args[1], args[0]]);
         } else if (event == "TextChanged" /* TextChanged */) {
@@ -26487,125 +25920,125 @@ var init_esm = __esm({
   "node_modules/vscode-uri/lib/esm/index.mjs"() {
     (() => {
       "use strict";
-      var t = { 470: (t2) => {
+      var t = { 975: (t2) => {
         function e2(t3) {
           if ("string" != typeof t3) throw new TypeError("Path must be a string. Received " + JSON.stringify(t3));
         }
         function r2(t3, e3) {
-          for (var r3, n3 = "", i = 0, o = -1, s = 0, h = 0; h <= t3.length; ++h) {
-            if (h < t3.length) r3 = t3.charCodeAt(h);
+          for (var r3, n3 = "", i2 = 0, o2 = -1, s2 = 0, h2 = 0; h2 <= t3.length; ++h2) {
+            if (h2 < t3.length) r3 = t3.charCodeAt(h2);
             else {
               if (47 === r3) break;
               r3 = 47;
             }
             if (47 === r3) {
-              if (o === h - 1 || 1 === s) ;
-              else if (o !== h - 1 && 2 === s) {
-                if (n3.length < 2 || 2 !== i || 46 !== n3.charCodeAt(n3.length - 1) || 46 !== n3.charCodeAt(n3.length - 2)) {
+              if (o2 === h2 - 1 || 1 === s2) ;
+              else if (o2 !== h2 - 1 && 2 === s2) {
+                if (n3.length < 2 || 2 !== i2 || 46 !== n3.charCodeAt(n3.length - 1) || 46 !== n3.charCodeAt(n3.length - 2)) {
                   if (n3.length > 2) {
-                    var a = n3.lastIndexOf("/");
-                    if (a !== n3.length - 1) {
-                      -1 === a ? (n3 = "", i = 0) : i = (n3 = n3.slice(0, a)).length - 1 - n3.lastIndexOf("/"), o = h, s = 0;
+                    var a2 = n3.lastIndexOf("/");
+                    if (a2 !== n3.length - 1) {
+                      -1 === a2 ? (n3 = "", i2 = 0) : i2 = (n3 = n3.slice(0, a2)).length - 1 - n3.lastIndexOf("/"), o2 = h2, s2 = 0;
                       continue;
                     }
                   } else if (2 === n3.length || 1 === n3.length) {
-                    n3 = "", i = 0, o = h, s = 0;
+                    n3 = "", i2 = 0, o2 = h2, s2 = 0;
                     continue;
                   }
                 }
-                e3 && (n3.length > 0 ? n3 += "/.." : n3 = "..", i = 2);
-              } else n3.length > 0 ? n3 += "/" + t3.slice(o + 1, h) : n3 = t3.slice(o + 1, h), i = h - o - 1;
-              o = h, s = 0;
-            } else 46 === r3 && -1 !== s ? ++s : s = -1;
+                e3 && (n3.length > 0 ? n3 += "/.." : n3 = "..", i2 = 2);
+              } else n3.length > 0 ? n3 += "/" + t3.slice(o2 + 1, h2) : n3 = t3.slice(o2 + 1, h2), i2 = h2 - o2 - 1;
+              o2 = h2, s2 = 0;
+            } else 46 === r3 && -1 !== s2 ? ++s2 : s2 = -1;
           }
           return n3;
         }
         var n2 = { resolve: function() {
-          for (var t3, n3 = "", i = false, o = arguments.length - 1; o >= -1 && !i; o--) {
-            var s;
-            o >= 0 ? s = arguments[o] : (void 0 === t3 && (t3 = process.cwd()), s = t3), e2(s), 0 !== s.length && (n3 = s + "/" + n3, i = 47 === s.charCodeAt(0));
+          for (var t3, n3 = "", i2 = false, o2 = arguments.length - 1; o2 >= -1 && !i2; o2--) {
+            var s2;
+            o2 >= 0 ? s2 = arguments[o2] : (void 0 === t3 && (t3 = process.cwd()), s2 = t3), e2(s2), 0 !== s2.length && (n3 = s2 + "/" + n3, i2 = 47 === s2.charCodeAt(0));
           }
-          return n3 = r2(n3, !i), i ? n3.length > 0 ? "/" + n3 : "/" : n3.length > 0 ? n3 : ".";
+          return n3 = r2(n3, !i2), i2 ? n3.length > 0 ? "/" + n3 : "/" : n3.length > 0 ? n3 : ".";
         }, normalize: function(t3) {
           if (e2(t3), 0 === t3.length) return ".";
-          var n3 = 47 === t3.charCodeAt(0), i = 47 === t3.charCodeAt(t3.length - 1);
-          return 0 !== (t3 = r2(t3, !n3)).length || n3 || (t3 = "."), t3.length > 0 && i && (t3 += "/"), n3 ? "/" + t3 : t3;
+          var n3 = 47 === t3.charCodeAt(0), i2 = 47 === t3.charCodeAt(t3.length - 1);
+          return 0 !== (t3 = r2(t3, !n3)).length || n3 || (t3 = "."), t3.length > 0 && i2 && (t3 += "/"), n3 ? "/" + t3 : t3;
         }, isAbsolute: function(t3) {
           return e2(t3), t3.length > 0 && 47 === t3.charCodeAt(0);
         }, join: function() {
           if (0 === arguments.length) return ".";
           for (var t3, r3 = 0; r3 < arguments.length; ++r3) {
-            var i = arguments[r3];
-            e2(i), i.length > 0 && (void 0 === t3 ? t3 = i : t3 += "/" + i);
+            var i2 = arguments[r3];
+            e2(i2), i2.length > 0 && (void 0 === t3 ? t3 = i2 : t3 += "/" + i2);
           }
           return void 0 === t3 ? "." : n2.normalize(t3);
         }, relative: function(t3, r3) {
           if (e2(t3), e2(r3), t3 === r3) return "";
           if ((t3 = n2.resolve(t3)) === (r3 = n2.resolve(r3))) return "";
-          for (var i = 1; i < t3.length && 47 === t3.charCodeAt(i); ++i) ;
-          for (var o = t3.length, s = o - i, h = 1; h < r3.length && 47 === r3.charCodeAt(h); ++h) ;
-          for (var a = r3.length - h, c = s < a ? s : a, f = -1, u = 0; u <= c; ++u) {
-            if (u === c) {
-              if (a > c) {
-                if (47 === r3.charCodeAt(h + u)) return r3.slice(h + u + 1);
-                if (0 === u) return r3.slice(h + u);
-              } else s > c && (47 === t3.charCodeAt(i + u) ? f = u : 0 === u && (f = 0));
+          for (var i2 = 1; i2 < t3.length && 47 === t3.charCodeAt(i2); ++i2) ;
+          for (var o2 = t3.length, s2 = o2 - i2, h2 = 1; h2 < r3.length && 47 === r3.charCodeAt(h2); ++h2) ;
+          for (var a2 = r3.length - h2, c2 = s2 < a2 ? s2 : a2, f2 = -1, u2 = 0; u2 <= c2; ++u2) {
+            if (u2 === c2) {
+              if (a2 > c2) {
+                if (47 === r3.charCodeAt(h2 + u2)) return r3.slice(h2 + u2 + 1);
+                if (0 === u2) return r3.slice(h2 + u2);
+              } else s2 > c2 && (47 === t3.charCodeAt(i2 + u2) ? f2 = u2 : 0 === u2 && (f2 = 0));
               break;
             }
-            var l = t3.charCodeAt(i + u);
-            if (l !== r3.charCodeAt(h + u)) break;
-            47 === l && (f = u);
+            var l2 = t3.charCodeAt(i2 + u2);
+            if (l2 !== r3.charCodeAt(h2 + u2)) break;
+            47 === l2 && (f2 = u2);
           }
-          var g = "";
-          for (u = i + f + 1; u <= o; ++u) u !== o && 47 !== t3.charCodeAt(u) || (0 === g.length ? g += ".." : g += "/..");
-          return g.length > 0 ? g + r3.slice(h + f) : (h += f, 47 === r3.charCodeAt(h) && ++h, r3.slice(h));
+          var g2 = "";
+          for (u2 = i2 + f2 + 1; u2 <= o2; ++u2) u2 !== o2 && 47 !== t3.charCodeAt(u2) || (0 === g2.length ? g2 += ".." : g2 += "/..");
+          return g2.length > 0 ? g2 + r3.slice(h2 + f2) : (h2 += f2, 47 === r3.charCodeAt(h2) && ++h2, r3.slice(h2));
         }, _makeLong: function(t3) {
           return t3;
         }, dirname: function(t3) {
           if (e2(t3), 0 === t3.length) return ".";
-          for (var r3 = t3.charCodeAt(0), n3 = 47 === r3, i = -1, o = true, s = t3.length - 1; s >= 1; --s) if (47 === (r3 = t3.charCodeAt(s))) {
-            if (!o) {
-              i = s;
+          for (var r3 = t3.charCodeAt(0), n3 = 47 === r3, i2 = -1, o2 = true, s2 = t3.length - 1; s2 >= 1; --s2) if (47 === (r3 = t3.charCodeAt(s2))) {
+            if (!o2) {
+              i2 = s2;
               break;
             }
-          } else o = false;
-          return -1 === i ? n3 ? "/" : "." : n3 && 1 === i ? "//" : t3.slice(0, i);
+          } else o2 = false;
+          return -1 === i2 ? n3 ? "/" : "." : n3 && 1 === i2 ? "//" : t3.slice(0, i2);
         }, basename: function(t3, r3) {
           if (void 0 !== r3 && "string" != typeof r3) throw new TypeError('"ext" argument must be a string');
           e2(t3);
-          var n3, i = 0, o = -1, s = true;
+          var n3, i2 = 0, o2 = -1, s2 = true;
           if (void 0 !== r3 && r3.length > 0 && r3.length <= t3.length) {
             if (r3.length === t3.length && r3 === t3) return "";
-            var h = r3.length - 1, a = -1;
+            var h2 = r3.length - 1, a2 = -1;
             for (n3 = t3.length - 1; n3 >= 0; --n3) {
-              var c = t3.charCodeAt(n3);
-              if (47 === c) {
-                if (!s) {
-                  i = n3 + 1;
+              var c2 = t3.charCodeAt(n3);
+              if (47 === c2) {
+                if (!s2) {
+                  i2 = n3 + 1;
                   break;
                 }
-              } else -1 === a && (s = false, a = n3 + 1), h >= 0 && (c === r3.charCodeAt(h) ? -1 == --h && (o = n3) : (h = -1, o = a));
+              } else -1 === a2 && (s2 = false, a2 = n3 + 1), h2 >= 0 && (c2 === r3.charCodeAt(h2) ? -1 == --h2 && (o2 = n3) : (h2 = -1, o2 = a2));
             }
-            return i === o ? o = a : -1 === o && (o = t3.length), t3.slice(i, o);
+            return i2 === o2 ? o2 = a2 : -1 === o2 && (o2 = t3.length), t3.slice(i2, o2);
           }
           for (n3 = t3.length - 1; n3 >= 0; --n3) if (47 === t3.charCodeAt(n3)) {
-            if (!s) {
-              i = n3 + 1;
+            if (!s2) {
+              i2 = n3 + 1;
               break;
             }
-          } else -1 === o && (s = false, o = n3 + 1);
-          return -1 === o ? "" : t3.slice(i, o);
+          } else -1 === o2 && (s2 = false, o2 = n3 + 1);
+          return -1 === o2 ? "" : t3.slice(i2, o2);
         }, extname: function(t3) {
           e2(t3);
-          for (var r3 = -1, n3 = 0, i = -1, o = true, s = 0, h = t3.length - 1; h >= 0; --h) {
-            var a = t3.charCodeAt(h);
-            if (47 !== a) -1 === i && (o = false, i = h + 1), 46 === a ? -1 === r3 ? r3 = h : 1 !== s && (s = 1) : -1 !== r3 && (s = -1);
-            else if (!o) {
-              n3 = h + 1;
+          for (var r3 = -1, n3 = 0, i2 = -1, o2 = true, s2 = 0, h2 = t3.length - 1; h2 >= 0; --h2) {
+            var a2 = t3.charCodeAt(h2);
+            if (47 !== a2) -1 === i2 && (o2 = false, i2 = h2 + 1), 46 === a2 ? -1 === r3 ? r3 = h2 : 1 !== s2 && (s2 = 1) : -1 !== r3 && (s2 = -1);
+            else if (!o2) {
+              n3 = h2 + 1;
               break;
             }
           }
-          return -1 === r3 || -1 === i || 0 === s || 1 === s && r3 === i - 1 && r3 === n3 + 1 ? "" : t3.slice(r3, i);
+          return -1 === r3 || -1 === i2 || 0 === s2 || 1 === s2 && r3 === i2 - 1 && r3 === n3 + 1 ? "" : t3.slice(r3, i2);
         }, format: function(t3) {
           if (null === t3 || "object" != typeof t3) throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof t3);
           return function(t4, e3) {
@@ -26616,22 +26049,22 @@ var init_esm = __esm({
           e2(t3);
           var r3 = { root: "", dir: "", base: "", ext: "", name: "" };
           if (0 === t3.length) return r3;
-          var n3, i = t3.charCodeAt(0), o = 47 === i;
-          o ? (r3.root = "/", n3 = 1) : n3 = 0;
-          for (var s = -1, h = 0, a = -1, c = true, f = t3.length - 1, u = 0; f >= n3; --f) if (47 !== (i = t3.charCodeAt(f))) -1 === a && (c = false, a = f + 1), 46 === i ? -1 === s ? s = f : 1 !== u && (u = 1) : -1 !== s && (u = -1);
-          else if (!c) {
-            h = f + 1;
+          var n3, i2 = t3.charCodeAt(0), o2 = 47 === i2;
+          o2 ? (r3.root = "/", n3 = 1) : n3 = 0;
+          for (var s2 = -1, h2 = 0, a2 = -1, c2 = true, f2 = t3.length - 1, u2 = 0; f2 >= n3; --f2) if (47 !== (i2 = t3.charCodeAt(f2))) -1 === a2 && (c2 = false, a2 = f2 + 1), 46 === i2 ? -1 === s2 ? s2 = f2 : 1 !== u2 && (u2 = 1) : -1 !== s2 && (u2 = -1);
+          else if (!c2) {
+            h2 = f2 + 1;
             break;
           }
-          return -1 === s || -1 === a || 0 === u || 1 === u && s === a - 1 && s === h + 1 ? -1 !== a && (r3.base = r3.name = 0 === h && o ? t3.slice(1, a) : t3.slice(h, a)) : (0 === h && o ? (r3.name = t3.slice(1, s), r3.base = t3.slice(1, a)) : (r3.name = t3.slice(h, s), r3.base = t3.slice(h, a)), r3.ext = t3.slice(s, a)), h > 0 ? r3.dir = t3.slice(0, h - 1) : o && (r3.dir = "/"), r3;
+          return -1 === s2 || -1 === a2 || 0 === u2 || 1 === u2 && s2 === a2 - 1 && s2 === h2 + 1 ? -1 !== a2 && (r3.base = r3.name = 0 === h2 && o2 ? t3.slice(1, a2) : t3.slice(h2, a2)) : (0 === h2 && o2 ? (r3.name = t3.slice(1, s2), r3.base = t3.slice(1, a2)) : (r3.name = t3.slice(h2, s2), r3.base = t3.slice(h2, a2)), r3.ext = t3.slice(s2, a2)), h2 > 0 ? r3.dir = t3.slice(0, h2 - 1) : o2 && (r3.dir = "/"), r3;
         }, sep: "/", delimiter: ":", win32: null, posix: null };
         n2.posix = n2, t2.exports = n2;
       } }, e = {};
       function r(n2) {
-        var i = e[n2];
-        if (void 0 !== i) return i.exports;
-        var o = e[n2] = { exports: {} };
-        return t[n2](o, o.exports, r), o.exports;
+        var i2 = e[n2];
+        if (void 0 !== i2) return i2.exports;
+        var o2 = e[n2] = { exports: {} };
+        return t[n2](o2, o2.exports, r), o2.exports;
       }
       r.d = (t2, e2) => {
         for (var n2 in e2) r.o(e2, n2) && !r.o(t2, n2) && Object.defineProperty(t2, n2, { enumerable: true, get: e2[n2] });
@@ -26639,184 +26072,182 @@ var init_esm = __esm({
         "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(t2, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(t2, "__esModule", { value: true });
       };
       var n = {};
-      (() => {
-        let t2;
-        if (r.r(n), r.d(n, { URI: () => f, Utils: () => P }), "object" == typeof process) t2 = "win32" === process.platform;
-        else if ("object" == typeof navigator) {
-          let e3 = navigator.userAgent;
-          t2 = e3.indexOf("Windows") >= 0;
+      let i;
+      if (r.r(n), r.d(n, { URI: () => l, Utils: () => I }), "object" == typeof process) i = "win32" === process.platform;
+      else if ("object" == typeof navigator) {
+        let t2 = navigator.userAgent;
+        i = t2.indexOf("Windows") >= 0;
+      }
+      const o = /^\w[\w\d+.-]*$/, s = /^\//, h = /^\/\//;
+      function a(t2, e2) {
+        if (!t2.scheme && e2) throw new Error(`[UriError]: Scheme is missing: {scheme: "", authority: "${t2.authority}", path: "${t2.path}", query: "${t2.query}", fragment: "${t2.fragment}"}`);
+        if (t2.scheme && !o.test(t2.scheme)) throw new Error("[UriError]: Scheme contains illegal characters.");
+        if (t2.path) {
+          if (t2.authority) {
+            if (!s.test(t2.path)) throw new Error('[UriError]: If a URI contains an authority component, then the path component must either be empty or begin with a slash ("/") character');
+          } else if (h.test(t2.path)) throw new Error('[UriError]: If a URI does not contain an authority component, then the path cannot begin with two slash characters ("//")');
         }
-        const e2 = /^\w[\w\d+.-]*$/, i = /^\//, o = /^\/\//;
-        function s(t3, r2) {
-          if (!t3.scheme && r2) throw new Error(`[UriError]: Scheme is missing: {scheme: "", authority: "${t3.authority}", path: "${t3.path}", query: "${t3.query}", fragment: "${t3.fragment}"}`);
-          if (t3.scheme && !e2.test(t3.scheme)) throw new Error("[UriError]: Scheme contains illegal characters.");
-          if (t3.path) {
-            if (t3.authority) {
-              if (!i.test(t3.path)) throw new Error('[UriError]: If a URI contains an authority component, then the path component must either be empty or begin with a slash ("/") character');
-            } else if (o.test(t3.path)) throw new Error('[UriError]: If a URI does not contain an authority component, then the path cannot begin with two slash characters ("//")');
-          }
+      }
+      const c = "", f = "/", u = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+      class l {
+        static isUri(t2) {
+          return t2 instanceof l || !!t2 && "string" == typeof t2.authority && "string" == typeof t2.fragment && "string" == typeof t2.path && "string" == typeof t2.query && "string" == typeof t2.scheme && "string" == typeof t2.fsPath && "function" == typeof t2.with && "function" == typeof t2.toString;
         }
-        const h = "", a = "/", c = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
-        class f {
-          static isUri(t3) {
-            return t3 instanceof f || !!t3 && "string" == typeof t3.authority && "string" == typeof t3.fragment && "string" == typeof t3.path && "string" == typeof t3.query && "string" == typeof t3.scheme && "string" == typeof t3.fsPath && "function" == typeof t3.with && "function" == typeof t3.toString;
-          }
-          scheme;
-          authority;
-          path;
-          query;
-          fragment;
-          constructor(t3, e3, r2, n2, i2, o2 = false) {
-            "object" == typeof t3 ? (this.scheme = t3.scheme || h, this.authority = t3.authority || h, this.path = t3.path || h, this.query = t3.query || h, this.fragment = t3.fragment || h) : (this.scheme = /* @__PURE__ */ function(t4, e4) {
-              return t4 || e4 ? t4 : "file";
-            }(t3, o2), this.authority = e3 || h, this.path = function(t4, e4) {
-              switch (t4) {
-                case "https":
-                case "http":
-                case "file":
-                  e4 ? e4[0] !== a && (e4 = a + e4) : e4 = a;
-              }
-              return e4;
-            }(this.scheme, r2 || h), this.query = n2 || h, this.fragment = i2 || h, s(this, o2));
-          }
-          get fsPath() {
-            return m(this, false);
-          }
-          with(t3) {
-            if (!t3) return this;
-            let { scheme: e3, authority: r2, path: n2, query: i2, fragment: o2 } = t3;
-            return void 0 === e3 ? e3 = this.scheme : null === e3 && (e3 = h), void 0 === r2 ? r2 = this.authority : null === r2 && (r2 = h), void 0 === n2 ? n2 = this.path : null === n2 && (n2 = h), void 0 === i2 ? i2 = this.query : null === i2 && (i2 = h), void 0 === o2 ? o2 = this.fragment : null === o2 && (o2 = h), e3 === this.scheme && r2 === this.authority && n2 === this.path && i2 === this.query && o2 === this.fragment ? this : new l(e3, r2, n2, i2, o2);
-          }
-          static parse(t3, e3 = false) {
-            const r2 = c.exec(t3);
-            return r2 ? new l(r2[2] || h, C(r2[4] || h), C(r2[5] || h), C(r2[7] || h), C(r2[9] || h), e3) : new l(h, h, h, h, h);
-          }
-          static file(e3) {
-            let r2 = h;
-            if (t2 && (e3 = e3.replace(/\\/g, a)), e3[0] === a && e3[1] === a) {
-              const t3 = e3.indexOf(a, 2);
-              -1 === t3 ? (r2 = e3.substring(2), e3 = a) : (r2 = e3.substring(2, t3), e3 = e3.substring(t3) || a);
+        scheme;
+        authority;
+        path;
+        query;
+        fragment;
+        constructor(t2, e2, r2, n2, i2, o2 = false) {
+          "object" == typeof t2 ? (this.scheme = t2.scheme || c, this.authority = t2.authority || c, this.path = t2.path || c, this.query = t2.query || c, this.fragment = t2.fragment || c) : (this.scheme = /* @__PURE__ */ function(t3, e3) {
+            return t3 || e3 ? t3 : "file";
+          }(t2, o2), this.authority = e2 || c, this.path = function(t3, e3) {
+            switch (t3) {
+              case "https":
+              case "http":
+              case "file":
+                e3 ? e3[0] !== f && (e3 = f + e3) : e3 = f;
             }
-            return new l("file", r2, e3, h, h);
-          }
-          static from(t3) {
-            const e3 = new l(t3.scheme, t3.authority, t3.path, t3.query, t3.fragment);
-            return s(e3, true), e3;
-          }
-          toString(t3 = false) {
-            return y(this, t3);
-          }
-          toJSON() {
-            return this;
-          }
-          static revive(t3) {
-            if (t3) {
-              if (t3 instanceof f) return t3;
-              {
-                const e3 = new l(t3);
-                return e3._formatted = t3.external, e3._fsPath = t3._sep === u ? t3.fsPath : null, e3;
-              }
-            }
-            return t3;
-          }
+            return e3;
+          }(this.scheme, r2 || c), this.query = n2 || c, this.fragment = i2 || c, a(this, o2));
         }
-        const u = t2 ? 1 : void 0;
-        class l extends f {
-          _formatted = null;
-          _fsPath = null;
-          get fsPath() {
-            return this._fsPath || (this._fsPath = m(this, false)), this._fsPath;
-          }
-          toString(t3 = false) {
-            return t3 ? y(this, true) : (this._formatted || (this._formatted = y(this, false)), this._formatted);
-          }
-          toJSON() {
-            const t3 = { $mid: 1 };
-            return this._fsPath && (t3.fsPath = this._fsPath, t3._sep = u), this._formatted && (t3.external = this._formatted), this.path && (t3.path = this.path), this.scheme && (t3.scheme = this.scheme), this.authority && (t3.authority = this.authority), this.query && (t3.query = this.query), this.fragment && (t3.fragment = this.fragment), t3;
-          }
+        get fsPath() {
+          return v(this, false);
         }
-        const g = { 58: "%3A", 47: "%2F", 63: "%3F", 35: "%23", 91: "%5B", 93: "%5D", 64: "%40", 33: "%21", 36: "%24", 38: "%26", 39: "%27", 40: "%28", 41: "%29", 42: "%2A", 43: "%2B", 44: "%2C", 59: "%3B", 61: "%3D", 32: "%20" };
-        function d(t3, e3, r2) {
-          let n2, i2 = -1;
-          for (let o2 = 0; o2 < t3.length; o2++) {
-            const s2 = t3.charCodeAt(o2);
-            if (s2 >= 97 && s2 <= 122 || s2 >= 65 && s2 <= 90 || s2 >= 48 && s2 <= 57 || 45 === s2 || 46 === s2 || 95 === s2 || 126 === s2 || e3 && 47 === s2 || r2 && 91 === s2 || r2 && 93 === s2 || r2 && 58 === s2) -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), void 0 !== n2 && (n2 += t3.charAt(o2));
-            else {
-              void 0 === n2 && (n2 = t3.substr(0, o2));
-              const e4 = g[s2];
-              void 0 !== e4 ? (-1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2, o2)), i2 = -1), n2 += e4) : -1 === i2 && (i2 = o2);
+        with(t2) {
+          if (!t2) return this;
+          let { scheme: e2, authority: r2, path: n2, query: i2, fragment: o2 } = t2;
+          return void 0 === e2 ? e2 = this.scheme : null === e2 && (e2 = c), void 0 === r2 ? r2 = this.authority : null === r2 && (r2 = c), void 0 === n2 ? n2 = this.path : null === n2 && (n2 = c), void 0 === i2 ? i2 = this.query : null === i2 && (i2 = c), void 0 === o2 ? o2 = this.fragment : null === o2 && (o2 = c), e2 === this.scheme && r2 === this.authority && n2 === this.path && i2 === this.query && o2 === this.fragment ? this : new d(e2, r2, n2, i2, o2);
+        }
+        static parse(t2, e2 = false) {
+          const r2 = u.exec(t2);
+          return r2 ? new d(r2[2] || c, w(r2[4] || c), w(r2[5] || c), w(r2[7] || c), w(r2[9] || c), e2) : new d(c, c, c, c, c);
+        }
+        static file(t2) {
+          let e2 = c;
+          if (i && (t2 = t2.replace(/\\/g, f)), t2[0] === f && t2[1] === f) {
+            const r2 = t2.indexOf(f, 2);
+            -1 === r2 ? (e2 = t2.substring(2), t2 = f) : (e2 = t2.substring(2, r2), t2 = t2.substring(r2) || f);
+          }
+          return new d("file", e2, t2, c, c);
+        }
+        static from(t2) {
+          const e2 = new d(t2.scheme, t2.authority, t2.path, t2.query, t2.fragment);
+          return a(e2, true), e2;
+        }
+        toString(t2 = false) {
+          return b(this, t2);
+        }
+        toJSON() {
+          return this;
+        }
+        static revive(t2) {
+          if (t2) {
+            if (t2 instanceof l) return t2;
+            {
+              const e2 = new d(t2);
+              return e2._formatted = t2.external, e2._fsPath = t2._sep === g ? t2.fsPath : null, e2;
             }
           }
-          return -1 !== i2 && (n2 += encodeURIComponent(t3.substring(i2))), void 0 !== n2 ? n2 : t3;
+          return t2;
         }
-        function p(t3) {
-          let e3;
-          for (let r2 = 0; r2 < t3.length; r2++) {
-            const n2 = t3.charCodeAt(r2);
-            35 === n2 || 63 === n2 ? (void 0 === e3 && (e3 = t3.substr(0, r2)), e3 += g[n2]) : void 0 !== e3 && (e3 += t3[r2]);
-          }
-          return void 0 !== e3 ? e3 : t3;
+      }
+      const g = i ? 1 : void 0;
+      class d extends l {
+        _formatted = null;
+        _fsPath = null;
+        get fsPath() {
+          return this._fsPath || (this._fsPath = v(this, false)), this._fsPath;
         }
-        function m(e3, r2) {
-          let n2;
-          return n2 = e3.authority && e3.path.length > 1 && "file" === e3.scheme ? `//${e3.authority}${e3.path}` : 47 === e3.path.charCodeAt(0) && (e3.path.charCodeAt(1) >= 65 && e3.path.charCodeAt(1) <= 90 || e3.path.charCodeAt(1) >= 97 && e3.path.charCodeAt(1) <= 122) && 58 === e3.path.charCodeAt(2) ? r2 ? e3.path.substr(1) : e3.path[1].toLowerCase() + e3.path.substr(2) : e3.path, t2 && (n2 = n2.replace(/\//g, "\\")), n2;
+        toString(t2 = false) {
+          return t2 ? b(this, true) : (this._formatted || (this._formatted = b(this, false)), this._formatted);
         }
-        function y(t3, e3) {
-          const r2 = e3 ? p : d;
-          let n2 = "", { scheme: i2, authority: o2, path: s2, query: h2, fragment: c2 } = t3;
-          if (i2 && (n2 += i2, n2 += ":"), (o2 || "file" === i2) && (n2 += a, n2 += a), o2) {
-            let t4 = o2.indexOf("@");
-            if (-1 !== t4) {
-              const e4 = o2.substr(0, t4);
-              o2 = o2.substr(t4 + 1), t4 = e4.lastIndexOf(":"), -1 === t4 ? n2 += r2(e4, false, false) : (n2 += r2(e4.substr(0, t4), false, false), n2 += ":", n2 += r2(e4.substr(t4 + 1), false, true)), n2 += "@";
-            }
-            o2 = o2.toLowerCase(), t4 = o2.lastIndexOf(":"), -1 === t4 ? n2 += r2(o2, false, true) : (n2 += r2(o2.substr(0, t4), false, true), n2 += o2.substr(t4));
-          }
-          if (s2) {
-            if (s2.length >= 3 && 47 === s2.charCodeAt(0) && 58 === s2.charCodeAt(2)) {
-              const t4 = s2.charCodeAt(1);
-              t4 >= 65 && t4 <= 90 && (s2 = `/${String.fromCharCode(t4 + 32)}:${s2.substr(3)}`);
-            } else if (s2.length >= 2 && 58 === s2.charCodeAt(1)) {
-              const t4 = s2.charCodeAt(0);
-              t4 >= 65 && t4 <= 90 && (s2 = `${String.fromCharCode(t4 + 32)}:${s2.substr(2)}`);
-            }
-            n2 += r2(s2, true, false);
-          }
-          return h2 && (n2 += "?", n2 += r2(h2, false, false)), c2 && (n2 += "#", n2 += e3 ? c2 : d(c2, false, false)), n2;
+        toJSON() {
+          const t2 = { $mid: 1 };
+          return this._fsPath && (t2.fsPath = this._fsPath, t2._sep = g), this._formatted && (t2.external = this._formatted), this.path && (t2.path = this.path), this.scheme && (t2.scheme = this.scheme), this.authority && (t2.authority = this.authority), this.query && (t2.query = this.query), this.fragment && (t2.fragment = this.fragment), t2;
         }
-        function v(t3) {
-          try {
-            return decodeURIComponent(t3);
-          } catch {
-            return t3.length > 3 ? t3.substr(0, 3) + v(t3.substr(3)) : t3;
+      }
+      const p = { 58: "%3A", 47: "%2F", 63: "%3F", 35: "%23", 91: "%5B", 93: "%5D", 64: "%40", 33: "%21", 36: "%24", 38: "%26", 39: "%27", 40: "%28", 41: "%29", 42: "%2A", 43: "%2B", 44: "%2C", 59: "%3B", 61: "%3D", 32: "%20" };
+      function m(t2, e2, r2) {
+        let n2, i2 = -1;
+        for (let o2 = 0; o2 < t2.length; o2++) {
+          const s2 = t2.charCodeAt(o2);
+          if (s2 >= 97 && s2 <= 122 || s2 >= 65 && s2 <= 90 || s2 >= 48 && s2 <= 57 || 45 === s2 || 46 === s2 || 95 === s2 || 126 === s2 || e2 && 47 === s2 || r2 && 91 === s2 || r2 && 93 === s2 || r2 && 58 === s2) -1 !== i2 && (n2 += encodeURIComponent(t2.substring(i2, o2)), i2 = -1), void 0 !== n2 && (n2 += t2.charAt(o2));
+          else {
+            void 0 === n2 && (n2 = t2.substr(0, o2));
+            const e3 = p[s2];
+            void 0 !== e3 ? (-1 !== i2 && (n2 += encodeURIComponent(t2.substring(i2, o2)), i2 = -1), n2 += e3) : -1 === i2 && (i2 = o2);
           }
         }
-        const b = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
-        function C(t3) {
-          return t3.match(b) ? t3.replace(b, (t4) => v(t4)) : t3;
+        return -1 !== i2 && (n2 += encodeURIComponent(t2.substring(i2))), void 0 !== n2 ? n2 : t2;
+      }
+      function y(t2) {
+        let e2;
+        for (let r2 = 0; r2 < t2.length; r2++) {
+          const n2 = t2.charCodeAt(r2);
+          35 === n2 || 63 === n2 ? (void 0 === e2 && (e2 = t2.substr(0, r2)), e2 += p[n2]) : void 0 !== e2 && (e2 += t2[r2]);
         }
-        var A = r(470);
-        const w = A.posix || A, x = "/";
-        var P;
-        !function(t3) {
-          t3.joinPath = function(t4, ...e3) {
-            return t4.with({ path: w.join(t4.path, ...e3) });
-          }, t3.resolvePath = function(t4, ...e3) {
-            let r2 = t4.path, n2 = false;
-            r2[0] !== x && (r2 = x + r2, n2 = true);
-            let i2 = w.resolve(r2, ...e3);
-            return n2 && i2[0] === x && !t4.authority && (i2 = i2.substring(1)), t4.with({ path: i2 });
-          }, t3.dirname = function(t4) {
-            if (0 === t4.path.length || t4.path === x) return t4;
-            let e3 = w.dirname(t4.path);
-            return 1 === e3.length && 46 === e3.charCodeAt(0) && (e3 = ""), t4.with({ path: e3 });
-          }, t3.basename = function(t4) {
-            return w.basename(t4.path);
-          }, t3.extname = function(t4) {
-            return w.extname(t4.path);
-          };
-        }(P || (P = {}));
-      })(), LIB = n;
+        return void 0 !== e2 ? e2 : t2;
+      }
+      function v(t2, e2) {
+        let r2;
+        return r2 = t2.authority && t2.path.length > 1 && "file" === t2.scheme ? `//${t2.authority}${t2.path}` : 47 === t2.path.charCodeAt(0) && (t2.path.charCodeAt(1) >= 65 && t2.path.charCodeAt(1) <= 90 || t2.path.charCodeAt(1) >= 97 && t2.path.charCodeAt(1) <= 122) && 58 === t2.path.charCodeAt(2) ? e2 ? t2.path.substr(1) : t2.path[1].toLowerCase() + t2.path.substr(2) : t2.path, i && (r2 = r2.replace(/\//g, "\\")), r2;
+      }
+      function b(t2, e2) {
+        const r2 = e2 ? y : m;
+        let n2 = "", { scheme: i2, authority: o2, path: s2, query: h2, fragment: a2 } = t2;
+        if (i2 && (n2 += i2, n2 += ":"), (o2 || "file" === i2) && (n2 += f, n2 += f), o2) {
+          let t3 = o2.indexOf("@");
+          if (-1 !== t3) {
+            const e3 = o2.substr(0, t3);
+            o2 = o2.substr(t3 + 1), t3 = e3.lastIndexOf(":"), -1 === t3 ? n2 += r2(e3, false, false) : (n2 += r2(e3.substr(0, t3), false, false), n2 += ":", n2 += r2(e3.substr(t3 + 1), false, true)), n2 += "@";
+          }
+          o2 = o2.toLowerCase(), t3 = o2.lastIndexOf(":"), -1 === t3 ? n2 += r2(o2, false, true) : (n2 += r2(o2.substr(0, t3), false, true), n2 += o2.substr(t3));
+        }
+        if (s2) {
+          if (s2.length >= 3 && 47 === s2.charCodeAt(0) && 58 === s2.charCodeAt(2)) {
+            const t3 = s2.charCodeAt(1);
+            t3 >= 65 && t3 <= 90 && (s2 = `/${String.fromCharCode(t3 + 32)}:${s2.substr(3)}`);
+          } else if (s2.length >= 2 && 58 === s2.charCodeAt(1)) {
+            const t3 = s2.charCodeAt(0);
+            t3 >= 65 && t3 <= 90 && (s2 = `${String.fromCharCode(t3 + 32)}:${s2.substr(2)}`);
+          }
+          n2 += r2(s2, true, false);
+        }
+        return h2 && (n2 += "?", n2 += r2(h2, false, false)), a2 && (n2 += "#", n2 += e2 ? a2 : m(a2, false, false)), n2;
+      }
+      function C(t2) {
+        try {
+          return decodeURIComponent(t2);
+        } catch {
+          return t2.length > 3 ? t2.substr(0, 3) + C(t2.substr(3)) : t2;
+        }
+      }
+      const A = /(%[0-9A-Za-z][0-9A-Za-z])+/g;
+      function w(t2) {
+        return t2.match(A) ? t2.replace(A, (t3) => C(t3)) : t2;
+      }
+      var x = r(975);
+      const P = x.posix || x, _ = "/";
+      var I;
+      !function(t2) {
+        t2.joinPath = function(t3, ...e2) {
+          return t3.with({ path: P.join(t3.path, ...e2) });
+        }, t2.resolvePath = function(t3, ...e2) {
+          let r2 = t3.path, n2 = false;
+          r2[0] !== _ && (r2 = _ + r2, n2 = true);
+          let i2 = P.resolve(r2, ...e2);
+          return n2 && i2[0] === _ && !t3.authority && (i2 = i2.substring(1)), t3.with({ path: i2 });
+        }, t2.dirname = function(t3) {
+          if (0 === t3.path.length || t3.path === _) return t3;
+          let e2 = P.dirname(t3.path);
+          return 1 === e2.length && 46 === e2.charCodeAt(0) && (e2 = ""), t3.with({ path: e2 });
+        }, t2.basename = function(t3) {
+          return P.basename(t3.path);
+        }, t2.extname = function(t3) {
+          return P.extname(t3.path);
+        };
+      }(I || (I = {})), LIB = n;
     })();
     ({ URI: URI2, Utils } = LIB);
   }
@@ -33227,9 +32658,13 @@ function has(env, feature) {
   if (env.isVim) {
     let [_, major, minor, patch] = env.version.match(/^(\d)(\d{2})(\d+)$/);
     let version2 = `${major}.${parseInt(minor, 10)}.${parseInt(patch, 10)}`;
-    return semver.gte(version2, feature.slice(6));
+    return semver.gte(version2, convertVersion(feature.slice(6)));
   }
   return semver.gte(env.version, feature.slice(5));
+}
+function convertVersion(version2) {
+  let parts = version2.split(".");
+  return `${parseInt(parts[0], 10)}.${parseInt(parts[1], 10)}.${parseInt(parts[2], 10)}`;
 }
 function callAsync(nvim, method, args) {
   return mutex.use(() => {
@@ -33263,6 +32698,7 @@ function resolveModule(name2) {
   return resolver.resolveModule(name2);
 }
 function score(selector, uri, languageId, caseInsensitive = isWindows || isMacintosh) {
+  let u = URI2.parse(uri);
   if (Array.isArray(selector)) {
     let ret = 0;
     for (const filter2 of selector) {
@@ -33284,7 +32720,6 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
       return 0;
     }
   } else if (selector && import_node4.TextDocumentFilter.is(selector)) {
-    let u = URI2.parse(uri);
     const { language, pattern, scheme } = selector;
     let ret = 0;
     if (scheme) {
@@ -33306,7 +32741,17 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
       }
     }
     if (pattern) {
-      let p = caseInsensitive ? pattern.toLowerCase() : pattern;
+      let relativePattern;
+      if (import_node4.RelativePattern.is(pattern)) {
+        relativePattern = pattern.pattern;
+        let baseUri = URI2.parse(typeof pattern.baseUri === "string" ? pattern.baseUri : pattern.baseUri.uri);
+        if (u.scheme !== "file" || !isParentFolder(baseUri.fsPath, u.fsPath, true)) {
+          return 0;
+        }
+      } else {
+        relativePattern = pattern;
+      }
+      let p = caseInsensitive ? relativePattern.toLowerCase() : relativePattern;
       let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath;
       if (p === f || minimatch(f, p, { dot: true })) {
         ret = Math.max(ret, 5);
@@ -38332,7 +37777,7 @@ var init_schema = __esm({
         "languageserver.trace.server.verbosity": {
           type: "string",
           default: "off",
-          enum: ["off", "messages", "verbose"],
+          enum: ["off", "messages", "compact", "verbose"],
           description: "Trace level of communication between server and client"
         },
         "languageserver.trace.server.format": {
@@ -38603,9 +38048,9 @@ var init_schema = __esm({
               description: "Detach the languageserver process"
             },
             shell: {
-              type: "boolean",
+              type: ["boolean", "string"],
               default: false,
-              description: "Use shell for process"
+              description: "If true runs command inside of a shell, always true on windows."
             },
             enable: {
               $ref: "#/definitions/languageserver.enable"
@@ -40487,7 +39932,7 @@ var init_schema = __esm({
           type: "integer",
           default: 0,
           minimum: 0,
-          maximum: 50,
+          maximum: 10,
           scope: "language-overridable",
           description: "Wait time between text change and completion start, completion is canceled when text changed during wait."
         },
@@ -40496,6 +39941,20 @@ var init_schema = __esm({
           scope: "application",
           description: "Show virtual text for insert word of the selected item if any",
           default: false
+        },
+        "inlineSuggest.autoTrigger": {
+          type: "boolean",
+          scope: "language-overridable",
+          description: "Enable automatically trigger inline completion on insert mode cursor hold.",
+          default: true
+        },
+        "inlineSuggest.triggerCompletionWait": {
+          type: "integer",
+          default: 0,
+          minimum: 0,
+          maximum: 1e3,
+          scope: "language-overridable",
+          description: "Wait time in milliseconds between text change and trigger inline completion."
         },
         "tree.closedIcon": {
           type: "string",
@@ -40721,7 +40180,7 @@ function mergeSort(data, compare2) {
   let rightIdx = 0;
   let i = 0;
   while (leftIdx < left.length && rightIdx < right.length) {
-    let ret = compare2(left[leftIdx], right[rightIdx]);
+    const ret = compare2(left[leftIdx], right[rightIdx]);
     if (ret <= 0) {
       data[i++] = left[leftIdx++];
     } else {
@@ -40739,8 +40198,8 @@ function mergeSort(data, compare2) {
 function computeLineOffsets(text, isAtLineStart, textOffset = 0) {
   const result = isAtLineStart ? [textOffset] : [];
   for (let i = 0; i < text.length; i++) {
-    let ch = text.charCodeAt(i);
-    if (ch === 13 || ch === 10) {
+    const ch = text.charCodeAt(i);
+    if (isEOL2(ch)) {
       if (ch === 13 && i + 1 < text.length && text.charCodeAt(i + 1) === 10) {
         i++;
       }
@@ -40748,6 +40207,9 @@ function computeLineOffsets(text, isAtLineStart, textOffset = 0) {
     }
   }
   return result;
+}
+function isEOL2(char) {
+  return char === 13 || char === 10;
 }
 function getWellformedRange(range) {
   const start = range.start;
@@ -40794,7 +40256,7 @@ var init_main3 = __esm({
         return this._content;
       }
       update(changes, version2) {
-        for (let change of changes) {
+        for (const change of changes) {
           if (_FullTextDocument.isIncremental(change)) {
             const range = getWellformedRange(change.range);
             const startOffset = this.offsetAt(range.start);
@@ -40838,42 +40300,53 @@ var init_main3 = __esm({
       }
       positionAt(offset) {
         offset = Math.max(Math.min(offset, this._content.length), 0);
-        let lineOffsets = this.getLineOffsets();
+        const lineOffsets = this.getLineOffsets();
         let low = 0, high = lineOffsets.length;
         if (high === 0) {
           return { line: 0, character: offset };
         }
         while (low < high) {
-          let mid = Math.floor((low + high) / 2);
+          const mid = Math.floor((low + high) / 2);
           if (lineOffsets[mid] > offset) {
             high = mid;
           } else {
             low = mid + 1;
           }
         }
-        let line = low - 1;
+        const line = low - 1;
+        offset = this.ensureBeforeEOL(offset, lineOffsets[line]);
         return { line, character: offset - lineOffsets[line] };
       }
       offsetAt(position) {
-        let lineOffsets = this.getLineOffsets();
+        const lineOffsets = this.getLineOffsets();
         if (position.line >= lineOffsets.length) {
           return this._content.length;
         } else if (position.line < 0) {
           return 0;
         }
-        let lineOffset = lineOffsets[position.line];
-        let nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this._content.length;
-        return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
+        const lineOffset = lineOffsets[position.line];
+        if (position.character <= 0) {
+          return lineOffset;
+        }
+        const nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this._content.length;
+        const offset = Math.min(lineOffset + position.character, nextLineOffset);
+        return this.ensureBeforeEOL(offset, lineOffset);
+      }
+      ensureBeforeEOL(offset, lineOffset) {
+        while (offset > lineOffset && isEOL2(this._content.charCodeAt(offset - 1))) {
+          offset--;
+        }
+        return offset;
       }
       get lineCount() {
         return this.getLineOffsets().length;
       }
       static isIncremental(event) {
-        let candidate = event;
+        const candidate = event;
         return candidate !== void 0 && candidate !== null && typeof candidate.text === "string" && candidate.range !== void 0 && (candidate.rangeLength === void 0 || typeof candidate.rangeLength === "number");
       }
       static isFull(event) {
-        let candidate = event;
+        const candidate = event;
         return candidate !== void 0 && candidate !== null && typeof candidate.text === "string" && candidate.range === void 0 && candidate.rangeLength === void 0;
       }
     };
@@ -40892,9 +40365,9 @@ var init_main3 = __esm({
       }
       TextDocument3.update = update;
       function applyEdits3(document2, edits) {
-        let text = document2.getText();
-        let sortedEdits = mergeSort(edits.map(getWellformedEdit), (a, b) => {
-          let diff = a.range.start.line - b.range.start.line;
+        const text = document2.getText();
+        const sortedEdits = mergeSort(edits.map(getWellformedEdit), (a, b) => {
+          const diff = a.range.start.line - b.range.start.line;
           if (diff === 0) {
             return a.range.start.character - b.range.start.character;
           }
@@ -40903,7 +40376,7 @@ var init_main3 = __esm({
         let lastModifiedOffset = 0;
         const spans = [];
         for (const e of sortedEdits) {
-          let startOffset = document2.offsetAt(e.range.start);
+          const startOffset = document2.offsetAt(e.range.start);
           if (startOffset < lastModifiedOffset) {
             throw new Error("Overlapping edit");
           } else if (startOffset > lastModifiedOffset) {
@@ -42861,6 +42334,207 @@ var init_position = __esm({
   }
 });
 
+// src/util/diff.ts
+function diffLines(oldLines, newLines, startLine) {
+  let endOffset = 0;
+  let startOffset = 0;
+  let parts = oldLines.slice(startLine + 1);
+  for (let i = 0; i < Math.min(parts.length, newLines.length); i++) {
+    if (parts[parts.length - 1 - i] == newLines[newLines.length - 1 - i]) {
+      endOffset = endOffset + 1;
+    } else {
+      break;
+    }
+  }
+  for (let i = 0; i <= Math.min(startLine, newLines.length - 1 - endOffset); i++) {
+    if (oldLines[i] == newLines[i]) {
+      startOffset = startOffset + 1;
+    } else {
+      break;
+    }
+  }
+  let replacement = newLines.slice(startOffset, newLines.length - endOffset);
+  let end = oldLines.length - endOffset;
+  if (end > startOffset && replacement.length) {
+    let offset = 0;
+    for (let i = 0; i < Math.min(replacement.length, end - startOffset); i++) {
+      if (replacement[i] == oldLines[startOffset + i]) {
+        offset = offset + 1;
+      } else {
+        break;
+      }
+    }
+    if (offset) {
+      return {
+        start: startOffset + offset,
+        end,
+        replacement: replacement.slice(offset)
+      };
+    }
+  }
+  return {
+    start: startOffset,
+    end,
+    replacement
+  };
+}
+function patchLine(from, to, fill = " ") {
+  if (from == to) return to;
+  let idx = to.indexOf(from);
+  if (idx !== -1) return fill.repeat(byteLength(to.substring(0, idx))) + from;
+  let result = fastDiff(from, to);
+  let str = "";
+  for (let item of result) {
+    if (item[0] == fastDiff.DELETE) {
+      return to;
+    } else if (item[0] == fastDiff.INSERT) {
+      str = str + fill.repeat(byteLength(item[1]));
+    } else {
+      str = str + item[1];
+    }
+  }
+  return str;
+}
+function getTextEdit(oldLines, newLines, cursor, insertMode) {
+  let ol = oldLines.length;
+  let nl = newLines.length;
+  let n;
+  if (cursor) {
+    n = nl > ol && insertMode && cursor.line > 0 ? cursor.line - 1 : cursor.line;
+  } else {
+    n = Math.min(ol, nl);
+  }
+  let used = 0;
+  for (let i = 0; i < n; i++) {
+    if (newLines[i] === oldLines[i]) {
+      used += 1;
+    } else {
+      break;
+    }
+  }
+  if (ol == nl && used == ol) return void 0;
+  let delta = nl - ol;
+  let r = Math.min(ol - used, nl - used);
+  let e = 0;
+  for (let i = 0; i < r; i++) {
+    if (newLines[nl - i - 1] === oldLines[ol - i - 1]) {
+      e += 1;
+    } else {
+      break;
+    }
+  }
+  let inserted = e == 0 ? newLines.slice(used) : newLines.slice(used, -e);
+  if (delta == 0 && cursor && inserted.length == 1) {
+    let newLine = newLines[used];
+    let oldLine = oldLines[used];
+    let nl2 = newLine.length;
+    let ol2 = oldLine.length;
+    if (nl2 === 0) return TextEdit.del(Range.create(used, 0, used, ol2));
+    if (ol2 === 0) return TextEdit.insert(Position.create(used, 0), newLine);
+    let character = Math.min(cursor.character, nl2);
+    if (!insertMode && nl2 >= ol2 && character !== nl2) {
+      character += 1;
+    }
+    let r2 = 0;
+    for (let i = 0; i < nl2 - character; i++) {
+      let idx = ol2 - 1 - i;
+      if (idx === -1) break;
+      if (newLine[nl2 - 1 - i] === oldLine[idx]) {
+        r2 += 1;
+      } else {
+        break;
+      }
+    }
+    let l = 0;
+    for (let i = 0; i < Math.min(ol2 - r2, nl2 - r2); i++) {
+      if (newLine[i] === oldLine[i]) {
+        l += 1;
+      } else {
+        break;
+      }
+    }
+    let newText = r2 === 0 ? newLine.slice(l) : newLine.slice(l, -r2);
+    return TextEdit.replace(Range.create(used, l, used, ol2 - r2), newText);
+  }
+  let text = inserted.length > 0 ? inserted.join("\n") + "\n" : "";
+  if (text.length === 0 && used === ol - e) return void 0;
+  let original = oldLines.slice(used, ol - e).join("\n") + "\n";
+  let edit2 = TextEdit.replace(Range.create(used, 0, ol - e, 0), text);
+  return reduceReplaceEdit(edit2, original, cursor);
+}
+function getCommonSuffixLen(a, b, max) {
+  if (max === 0) return 0;
+  let al = a.length;
+  let bl = b.length;
+  let n = 0;
+  for (let i = 0; i < max; i++) {
+    if (a[al - 1 - i] === b[bl - 1 - i]) {
+      n++;
+    } else {
+      break;
+    }
+  }
+  return n;
+}
+function getCommonPrefixLen(a, b, max) {
+  if (max === 0) return 0;
+  let n = 0;
+  for (let i = 0; i < max; i++) {
+    if (a[i] === b[i]) {
+      n++;
+    } else {
+      break;
+    }
+  }
+  return n;
+}
+function reduceReplaceEdit(edit2, original, cursor) {
+  let { newText, range } = edit2;
+  if (emptyRange(range) || newText === "") return edit2;
+  let endOffset;
+  if (cursor) {
+    let newEnd = getEnd(range.start, newText);
+    if (positionInRange(cursor, Range.create(range.start, newEnd)) === 0) {
+      endOffset = 0;
+      let lc = newEnd.line - cursor.line + 1;
+      let lines = newText.split("\n");
+      let len = lines.length;
+      for (let i = 0; i < lc; i++) {
+        let idx = len - i - 1;
+        if (i == lc - 1) {
+          let s2 = idx === 0 ? range.start.character : 0;
+          endOffset += lines[idx].slice(cursor.character - s2).length;
+        } else {
+          endOffset += lines[idx].length + 1;
+        }
+      }
+    }
+  }
+  let sl;
+  let pl;
+  let min = Math.min(original.length, newText.length);
+  if (endOffset) {
+    sl = getCommonSuffixLen(original, newText, endOffset);
+    pl = getCommonPrefixLen(original, newText, min - sl);
+  } else {
+    pl = getCommonPrefixLen(original, newText, min);
+    sl = getCommonSuffixLen(original, newText, min - pl);
+  }
+  let s = pl === 0 ? range.start : getEnd(range.start, original.slice(0, pl));
+  let e = sl === 0 ? range.end : getEnd(range.start, original.slice(0, -sl));
+  let text = newText.slice(pl, sl === 0 ? void 0 : -sl);
+  return TextEdit.replace(Range.create(s, e), text);
+}
+var init_diff = __esm({
+  "src/util/diff.ts"() {
+    "use strict";
+    init_main();
+    init_node();
+    init_position();
+    init_string();
+  }
+});
+
 // src/util/textedit.ts
 function getStartLine(edit2) {
   let { start, end } = edit2.range;
@@ -43228,11 +42902,19 @@ function reduceTextEdit(edit2, oldText) {
   if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo));
   return TextEdit.replace(Range.create(start, end), text);
 }
+function getRevertEdit(oldLines, newLines, startLine) {
+  if (equals(oldLines, newLines)) return void 0;
+  let changed = diffLines(oldLines, newLines, startLine);
+  let original = oldLines.slice(changed.start, changed.end);
+  let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0);
+  return TextEdit.replace(range, original.join("\n") + (original.length > 0 ? "\n" : ""));
+}
 var init_textedit = __esm({
   "src/util/textedit.ts"() {
     "use strict";
     init_main();
     init_array();
+    init_diff();
     init_object();
     init_position();
     init_string();
@@ -45555,6 +45237,69 @@ var init_inlayHintManager = __esm({
   }
 });
 
+// src/provider/inlineCompletionItemManager.ts
+var InlineCompletionItemManager;
+var init_inlineCompletionItemManager = __esm({
+  "src/provider/inlineCompletionItemManager.ts"() {
+    "use strict";
+    init_esm_node();
+    init_array();
+    init_errors();
+    init_lodash();
+    init_manager2();
+    InlineCompletionItemManager = class extends Manager {
+      register(selector, provider) {
+        return this.addProvider({
+          id: v4_default(),
+          selector,
+          provider
+        });
+      }
+      get isEmpty() {
+        return this.providers.size === 0;
+      }
+      /**
+       * Multiple providers can be registered for a language. In that case providers are asked in
+       * parallel and the results are merged. A failing provider (rejected promise or exception) will
+       * not cause a failure of the whole operation.
+       */
+      async provideInlineCompletionItems(document2, position, context, token) {
+        let providers = [];
+        if (context.provider) {
+          let item = this.getProvideByExtension(document2, context.provider);
+          if (item) providers = [item];
+        } else {
+          providers = this.getProviders(document2);
+        }
+        const items = [];
+        const promise = Promise.allSettled(providers.map((item) => {
+          let provider = item.provider;
+          return Promise.resolve(provider.provideInlineCompletionItems(document2, position, omit(context, ["provider"]), token)).then((result) => {
+            let list2 = Array.isArray(result) ? result : toArray(result?.items);
+            for (let item2 of list2) {
+              Object.defineProperty(item2, "provider", {
+                get: () => provider["__extensionName"],
+                enumerable: false
+              });
+              items.push(item2);
+            }
+          });
+        }));
+        let disposable;
+        await Promise.race([new Promise((resolve) => {
+          disposable = token.onCancellationRequested(() => {
+            resolve(void 0);
+          });
+        }), promise.then((results) => {
+          if (!token.isCancellationRequested) this.handleResults(results, "provideInlineCompletionItems");
+        })]).catch(onUnexpectedError);
+        if (disposable) disposable.dispose();
+        return items;
+      }
+    };
+  }
+});
+
 // src/provider/inlineValueManager.ts
 var InlineValueManager;
 var init_inlineValueManager = __esm({
@@ -46759,7 +46504,7 @@ var require_supports_color = __commonJS({
 });
 
 // node_modules/debug/src/node.js
-var require_node3 = __commonJS({
+var require_node = __commonJS({
   "node_modules/debug/src/node.js"(exports2, module2) {
     var tty = require("tty");
     var util = require("util");
@@ -46938,7 +46683,7 @@ var require_src = __commonJS({
     if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
       module2.exports = require_browser();
     } else {
-      module2.exports = require_node3();
+      module2.exports = require_node();
     }
   }
 });
@@ -58910,6 +58655,14 @@ var init_ui2 = __esm({
           this.window = null;
           this._onDidClose.fire(bufnr);
         }, null, this.disposables);
+        events_default.on("WinClosed", (winid) => {
+          if (this.winid == winid) {
+            let { bufnr } = this;
+            this.window = null;
+            this.buffer = null;
+            this._onDidClose.fire(bufnr);
+          }
+        }, null, this.disposables);
         events_default.on("CursorMoved", async (bufnr, cursor) => {
           if (bufnr != this.bufnr) return;
           let idx = this.lnumToIndex(cursor[0]);
@@ -59461,207 +59214,6 @@ var init_async = __esm({
         return false;
       }
     };
-  }
-});
-
-// src/util/diff.ts
-function diffLines(oldLines, newLines, startLine) {
-  let endOffset = 0;
-  let startOffset = 0;
-  let parts = oldLines.slice(startLine + 1);
-  for (let i = 0; i < Math.min(parts.length, newLines.length); i++) {
-    if (parts[parts.length - 1 - i] == newLines[newLines.length - 1 - i]) {
-      endOffset = endOffset + 1;
-    } else {
-      break;
-    }
-  }
-  for (let i = 0; i <= Math.min(startLine, newLines.length - 1 - endOffset); i++) {
-    if (oldLines[i] == newLines[i]) {
-      startOffset = startOffset + 1;
-    } else {
-      break;
-    }
-  }
-  let replacement = newLines.slice(startOffset, newLines.length - endOffset);
-  let end = oldLines.length - endOffset;
-  if (end > startOffset && replacement.length) {
-    let offset = 0;
-    for (let i = 0; i < Math.min(replacement.length, end - startOffset); i++) {
-      if (replacement[i] == oldLines[startOffset + i]) {
-        offset = offset + 1;
-      } else {
-        break;
-      }
-    }
-    if (offset) {
-      return {
-        start: startOffset + offset,
-        end,
-        replacement: replacement.slice(offset)
-      };
-    }
-  }
-  return {
-    start: startOffset,
-    end,
-    replacement
-  };
-}
-function patchLine(from, to, fill = " ") {
-  if (from == to) return to;
-  let idx = to.indexOf(from);
-  if (idx !== -1) return fill.repeat(byteLength(to.substring(0, idx))) + from;
-  let result = fastDiff(from, to);
-  let str = "";
-  for (let item of result) {
-    if (item[0] == fastDiff.DELETE) {
-      return to;
-    } else if (item[0] == fastDiff.INSERT) {
-      str = str + fill.repeat(byteLength(item[1]));
-    } else {
-      str = str + item[1];
-    }
-  }
-  return str;
-}
-function getTextEdit(oldLines, newLines, cursor, insertMode) {
-  let ol = oldLines.length;
-  let nl = newLines.length;
-  let n;
-  if (cursor) {
-    n = nl > ol && insertMode && cursor.line > 0 ? cursor.line - 1 : cursor.line;
-  } else {
-    n = Math.min(ol, nl);
-  }
-  let used = 0;
-  for (let i = 0; i < n; i++) {
-    if (newLines[i] === oldLines[i]) {
-      used += 1;
-    } else {
-      break;
-    }
-  }
-  if (ol == nl && used == ol) return void 0;
-  let delta = nl - ol;
-  let r = Math.min(ol - used, nl - used);
-  let e = 0;
-  for (let i = 0; i < r; i++) {
-    if (newLines[nl - i - 1] === oldLines[ol - i - 1]) {
-      e += 1;
-    } else {
-      break;
-    }
-  }
-  let inserted = e == 0 ? newLines.slice(used) : newLines.slice(used, -e);
-  if (delta == 0 && cursor && inserted.length == 1) {
-    let newLine = newLines[used];
-    let oldLine = oldLines[used];
-    let nl2 = newLine.length;
-    let ol2 = oldLine.length;
-    if (nl2 === 0) return TextEdit.del(Range.create(used, 0, used, ol2));
-    if (ol2 === 0) return TextEdit.insert(Position.create(used, 0), newLine);
-    let character = Math.min(cursor.character, nl2);
-    if (!insertMode && nl2 >= ol2 && character !== nl2) {
-      character += 1;
-    }
-    let r2 = 0;
-    for (let i = 0; i < nl2 - character; i++) {
-      let idx = ol2 - 1 - i;
-      if (idx === -1) break;
-      if (newLine[nl2 - 1 - i] === oldLine[idx]) {
-        r2 += 1;
-      } else {
-        break;
-      }
-    }
-    let l = 0;
-    for (let i = 0; i < Math.min(ol2 - r2, nl2 - r2); i++) {
-      if (newLine[i] === oldLine[i]) {
-        l += 1;
-      } else {
-        break;
-      }
-    }
-    let newText = r2 === 0 ? newLine.slice(l) : newLine.slice(l, -r2);
-    return TextEdit.replace(Range.create(used, l, used, ol2 - r2), newText);
-  }
-  let text = inserted.length > 0 ? inserted.join("\n") + "\n" : "";
-  if (text.length === 0 && used === ol - e) return void 0;
-  let original = oldLines.slice(used, ol - e).join("\n") + "\n";
-  let edit2 = TextEdit.replace(Range.create(used, 0, ol - e, 0), text);
-  return reduceReplaceEdit(edit2, original, cursor);
-}
-function getCommonSuffixLen(a, b, max) {
-  if (max === 0) return 0;
-  let al = a.length;
-  let bl = b.length;
-  let n = 0;
-  for (let i = 0; i < max; i++) {
-    if (a[al - 1 - i] === b[bl - 1 - i]) {
-      n++;
-    } else {
-      break;
-    }
-  }
-  return n;
-}
-function getCommonPrefixLen(a, b, max) {
-  if (max === 0) return 0;
-  let n = 0;
-  for (let i = 0; i < max; i++) {
-    if (a[i] === b[i]) {
-      n++;
-    } else {
-      break;
-    }
-  }
-  return n;
-}
-function reduceReplaceEdit(edit2, original, cursor) {
-  let { newText, range } = edit2;
-  if (emptyRange(range) || newText === "") return edit2;
-  let endOffset;
-  if (cursor) {
-    let newEnd = getEnd(range.start, newText);
-    if (positionInRange(cursor, Range.create(range.start, newEnd)) === 0) {
-      endOffset = 0;
-      let lc = newEnd.line - cursor.line + 1;
-      let lines = newText.split("\n");
-      let len = lines.length;
-      for (let i = 0; i < lc; i++) {
-        let idx = len - i - 1;
-        if (i == lc - 1) {
-          let s2 = idx === 0 ? range.start.character : 0;
-          endOffset += lines[idx].slice(cursor.character - s2).length;
-        } else {
-          endOffset += lines[idx].length + 1;
-        }
-      }
-    }
-  }
-  let sl;
-  let pl;
-  let min = Math.min(original.length, newText.length);
-  if (endOffset) {
-    sl = getCommonSuffixLen(original, newText, endOffset);
-    pl = getCommonPrefixLen(original, newText, min - sl);
-  } else {
-    pl = getCommonPrefixLen(original, newText, min);
-    sl = getCommonSuffixLen(original, newText, min - pl);
-  }
-  let s = pl === 0 ? range.start : getEnd(range.start, original.slice(0, pl));
-  let e = sl === 0 ? range.end : getEnd(range.start, original.slice(0, -sl));
-  let text = newText.slice(pl, sl === 0 ? void 0 : -sl);
-  return TextEdit.replace(Range.create(s, e), text);
-}
-var init_diff = __esm({
-  "src/util/diff.ts"() {
-    "use strict";
-    init_main();
-    init_node();
-    init_position();
-    init_string();
   }
 });
 
@@ -61386,6 +60938,7 @@ var init_features = __esm({
     init_protocol();
     init_workspace();
     init_uuid();
+    init_util();
     LSPCancellationError = class extends CancellationError {
       constructor(data) {
         super();
@@ -61438,6 +60991,10 @@ var init_features = __esm({
         const registrations = count > 0;
         return { kind: "document", id: this.registrationType.method, registrations, matches: false };
       }
+      sendWithMiddleware(fn, key, ...params) {
+        const middleware = this._client.middleware;
+        return middleware[key] ? middleware[key](...params, fn) : fn(...params);
+      }
     };
     TextDocumentEventFeature = class extends DynamicDocumentFeature {
       static textDocumentFilter(selectors, textDocument) {
@@ -61476,13 +61033,15 @@ var init_features = __esm({
       }
       async callback(data) {
         if (!this.matches(data)) return;
+        return await this.sendNotification(data);
+      }
+      async sendNotification(data) {
         const doSend = async (data2) => {
           const params = this._createParams(data2);
-          await this._client.sendNotification(this._type, params).catch();
+          await this._client.sendNotification(this._type, params);
           this.notificationSent(data2, this._type, params);
         };
-        const middleware = this._client.middleware[this._middleware];
-        return Promise.resolve(middleware ? middleware(data, (data2) => doSend(data2)) : doSend(data));
+        return this.sendWithMiddleware(doSend, this._middleware, data);
       }
       matches(data) {
         return !this._selectorFilter || this._selectorFilter(this._selectors.values(), data);
@@ -61499,6 +61058,7 @@ var init_features = __esm({
       dispose() {
         this._selectors.clear();
         this._onNotificationSent.dispose();
+        this._onNotificationSent = new import_node4.Emitter();
         if (this._listener) {
           this._listener.dispose();
           this._listener = void 0;
@@ -61526,10 +61086,9 @@ var init_features = __esm({
       *getDocumentSelectors() {
         for (const registration of this._registrations.values()) {
           const selector = registration.data.registerOptions.documentSelector;
-          if (selector === null) {
-            continue;
+          if (selector != null) {
+            yield selector;
           }
-          yield selector;
         }
       }
       get registrationType() {
@@ -61548,6 +61107,7 @@ var init_features = __esm({
       unregister(id2) {
         let registration = this._registrations.get(id2);
         if (registration !== void 0) {
+          this._registrations.delete(id2);
           registration.disposable.dispose();
         }
       }
@@ -61558,18 +61118,15 @@ var init_features = __esm({
         this._registrations.clear();
       }
       getRegistration(documentSelector, capability) {
-        if (!capability) return [void 0, void 0];
-        if (boolean(capability) && capability === true) {
-          return [generateUuid(), { documentSelector }];
-        }
-        if (import_node4.TextDocumentRegistrationOptions.is(capability)) {
+        if (!capability) {
+          return [void 0, void 0];
+        } else if (import_node4.TextDocumentRegistrationOptions.is(capability)) {
           const id2 = import_node4.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
-          const selector = capability.documentSelector ?? documentSelector;
+          const selector = defaultValue(capability.documentSelector, documentSelector);
           return [id2, Object.assign({}, capability, { documentSelector: selector })];
-        }
-        if (import_node4.WorkDoneProgressOptions.is(capability)) {
-          const id2 = import_node4.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
-          return [id2, Object.assign({}, capability, { documentSelector })];
+        } else if (boolean(capability) && capability === true || import_node4.WorkDoneProgressOptions.is(capability)) {
+          const options2 = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector });
+          return [generateUuid(), options2];
         }
         return [void 0, void 0];
       }
@@ -61719,9 +61276,8 @@ var init_codeAction = __esm({
             };
             return client.sendRequest(import_node4.ExecuteCommandRequest.type, params);
           };
-          const middleware = client.middleware;
           this.disposables.push(commands_default.registerCommand(id2, (...args) => {
-            return middleware.executeCommand ? middleware.executeCommand(id2, args, executeCommand) : executeCommand(id2, args);
+            return this.sendWithMiddleware(executeCommand, "executeCommand", id2, args);
           }, null, true));
         };
         const provider = {
@@ -62019,6 +61575,7 @@ var init_configuration4 = __esm({
   "src/language-client/configuration.ts"() {
     "use strict";
     init_util2();
+    init_util();
     init_is();
     init_protocol();
     init_workspace();
@@ -62092,7 +61649,7 @@ var init_configuration4 = __esm({
         ensure(ensure(capabilities, "workspace"), "didChangeConfiguration").dynamicRegistration = true;
       }
       initialize() {
-        let section2 = this._client.clientOptions.synchronize?.configurationSection;
+        let section2 = defaultValue(this._client.clientOptions.synchronize, {}).configurationSection;
         if (section2 !== void 0) {
           let id2 = this.configuredUID = generateUuid();
           this.register({
@@ -62641,6 +62198,7 @@ var init_diagnostic = __esm({
   "src/language-client/diagnostic.ts"() {
     "use strict";
     init_esm_node();
+    init_main();
     init_esm();
     init_languages();
     init_util();
@@ -62692,12 +62250,12 @@ var init_diagnostic = __esm({
         }
       }
       unTrack(kind, document2) {
-        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
+        const key = DocumentOrUri.asKey(document2);
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         states.delete(key);
       }
       tracks(kind, document2) {
-        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
+        const key = DocumentOrUri.asKey(document2);
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         return states.has(key);
       }
@@ -62705,7 +62263,7 @@ var init_diagnostic = __esm({
         return Array.from(this.documentPullStates.keys());
       }
       getResultId(kind, document2) {
-        const key = document2 instanceof URI2 ? document2.toString() : document2.uri;
+        const key = DocumentOrUri.asKey(document2);
         const states = kind === 1 /* document */ ? this.documentPullStates : this.workspacePullStates;
         return states.get(key)?.resultId;
       }
@@ -62731,44 +62289,48 @@ var init_diagnostic = __esm({
         this.isDisposed = false;
         this.onDidChangeDiagnosticsEmitter = new import_node4.Emitter();
         this.provider = this.createProvider();
-        this.diagnostics = languages_default.createDiagnosticCollection(options2.identifier ? options2.identifier : client.id);
+        this.diagnostics = languages_default.createDiagnosticCollection(defaultValue(options2.identifier, client.id));
         this.openRequests = /* @__PURE__ */ new Map();
         this.documentStates = new DocumentPullStateTracker();
         this.workspaceErrorCounter = 0;
       }
-      knows(kind, textDocument) {
-        return this.documentStates.tracks(kind, textDocument);
-      }
-      trackingDocuments() {
-        return this.documentStates.trackingDocuments();
+      knows(kind, document2) {
+        return this.documentStates.tracks(kind, document2) || this.openRequests.has(DocumentOrUri.asKey(document2));
       }
       forget(kind, document2) {
         this.documentStates.unTrack(kind, document2);
       }
       pull(document2, cb) {
+        if (this.isDisposed) {
+          return;
+        }
+        const uri = DocumentOrUri.asKey(document2);
         this.pullAsync(document2).then(() => {
           if (cb) {
             cb();
           }
         }, (error) => {
-          this.client.error(`Document pull failed for text document ${document2.uri}`, error);
+          this.client.error(`Document pull failed for text document ${uri.toString()}`, error, false);
         });
       }
-      async pullAsync(document2) {
-        if (this.isDisposed) return;
-        const uri = document2.uri;
-        const version2 = document2.version;
-        const currentRequestState = this.openRequests.get(uri);
-        const documentState = this.documentStates.track(1 /* document */, document2);
+      async pullAsync(document2, version2) {
+        if (this.isDisposed) {
+          return;
+        }
+        const isUri = document2 instanceof URI2;
+        const key = DocumentOrUri.asKey(document2);
+        version2 = isUri ? version2 : document2.version;
+        const currentRequestState = this.openRequests.get(key);
+        const documentState = isUri ? this.documentStates.track(1 /* document */, document2, version2) : this.documentStates.track(1 /* document */, document2);
         if (currentRequestState === void 0) {
           const tokenSource = new import_node4.CancellationTokenSource();
-          this.openRequests.set(uri, { state: "open" /* active */, document: document2, version: version2, tokenSource });
+          this.openRequests.set(key, { state: "open" /* active */, document: document2, version: version2, tokenSource });
           let report;
           let afterState;
           try {
             report = await this.provider.provideDiagnostics(document2, documentState.resultId, tokenSource.token) ?? { kind: import_node4.DocumentDiagnosticReportKind.Full, items: [] };
           } catch (error) {
-            if (error instanceof LSPCancellationError && error.data && import_node4.DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
+            if (error instanceof LSPCancellationError && import_node4.DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
               afterState = { state: "drop" /* outDated */, document: document2 };
             }
             if (afterState === void 0 && error instanceof CancellationError) {
@@ -62777,22 +62339,23 @@ var init_diagnostic = __esm({
               throw error;
             }
           }
-          afterState = afterState ?? this.openRequests.get(uri);
+          afterState = afterState ?? this.openRequests.get(key);
           if (afterState === void 0) {
-            this.client.error(`Lost request state in diagnostic pull model. Clearing diagnostics for ${uri}`);
-            this.diagnostics.delete(uri);
+            this.client.error(`Lost request state in diagnostic pull model. Clearing diagnostics for ${key}`);
+            this.diagnostics.delete(key);
             return;
           }
-          this.openRequests.delete(uri);
-          const visible = window_default.visibleTextEditors.some((editor) => editor.document.uri === uri);
-          if (!visible) {
+          this.openRequests.delete(key);
+          if (!workspace_default.tabs.isVisible(document2)) {
             this.documentStates.unTrack(1 /* document */, document2);
             return;
           }
-          if (afterState.state === "drop" /* outDated */) return;
+          if (afterState.state === "drop" /* outDated */) {
+            return;
+          }
           if (report !== void 0) {
             if (report.kind === import_node4.DocumentDiagnosticReportKind.Full) {
-              this.diagnostics.set(uri, report.items);
+              this.diagnostics.set(key, report.items);
             }
             documentState.pulledVersion = version2;
             documentState.resultId = report.resultId;
@@ -62803,18 +62366,18 @@ var init_diagnostic = __esm({
         } else {
           if (currentRequestState.state === "open" /* active */) {
             currentRequestState.tokenSource.cancel();
-            this.openRequests.set(uri, { state: "reschedule" /* reschedule */, document: currentRequestState.document });
+            this.openRequests.set(key, { state: "reschedule" /* reschedule */, document: currentRequestState.document });
           } else if (currentRequestState.state === "drop" /* outDated */) {
-            this.openRequests.set(uri, { state: "reschedule" /* reschedule */, document: currentRequestState.document });
+            this.openRequests.set(key, { state: "reschedule" /* reschedule */, document: currentRequestState.document });
           }
         }
       }
       forgetDocument(document2) {
-        const uri = document2.uri;
-        const request2 = this.openRequests.get(uri);
-        if (this.enableWorkspace) {
+        const key = DocumentOrUri.asKey(document2);
+        const request2 = this.openRequests.get(key);
+        if (this.options.workspaceDiagnostics) {
           if (request2 !== void 0) {
-            this.openRequests.set(uri, { state: "reschedule" /* reschedule */, document: document2 });
+            this.openRequests.set(key, { state: "reschedule" /* reschedule */, document: document2 });
           } else {
             this.pull(document2, () => {
               this.forget(1 /* document */, document2);
@@ -62825,9 +62388,9 @@ var init_diagnostic = __esm({
             if (request2.state === "open" /* active */) {
               request2.tokenSource.cancel();
             }
-            this.openRequests.delete(uri);
+            this.openRequests.set(key, { state: "drop" /* outDated */, document: document2 });
           }
-          this.diagnostics.delete(uri.toString());
+          this.diagnostics.delete(key);
           this.forget(1 /* document */, document2);
         }
       }
@@ -62962,16 +62525,13 @@ var init_diagnostic = __esm({
         this.lastDocumentToPull = document2;
       }
       remove(document2) {
-        const key = document2.uri;
-        if (this.documents.has(key)) {
-          this.documents.delete(key);
-          this.diagnosticRequestor.pull(document2);
-        }
+        const key = DocumentOrUri.asKey(document2);
+        this.documents.delete(key);
         if (this.documents.size === 0) {
           this.stop();
           return;
         }
-        if (document2.uri === this.lastDocumentToPullKey()) {
+        if (key === this.lastDocumentToPullKey()) {
           const before = this.documents.before(key);
           if (before === void 0) {
             this.stop();
@@ -63039,9 +62599,7 @@ var init_diagnostic = __esm({
           if (diagnosticPullOptions.match !== void 0) {
             return diagnosticPullOptions.match(selector, URI2.parse(document2.uri));
           }
-          if (workspace_default.match(selector, document2) <= 0) return false;
-          const visible = window_default.visibleTextEditors.some((editor) => editor.document.uri === document2.uri);
-          if (!visible) return false;
+          if (workspace_default.match(selector, document2) <= 0 || !workspace_default.tabs.isVisible(document2)) return false;
           if (ignored.length > 0 && ignored.some((p) => minimatch(URI2.parse(document2.uri).fsPath, p, { dot: true }))) return false;
           return true;
         };
@@ -63058,26 +62616,43 @@ var init_diagnostic = __esm({
           this.backgroundScheduler.add(document2);
         };
         this.activeTextDocument = window_default.activeTextEditor?.document.textDocument;
-        window_default.onDidChangeActiveTextEditor((editor) => {
+        disposables.push(window_default.onDidChangeActiveTextEditor((editor) => {
           const oldActive = this.activeTextDocument;
-          let textDocument = this.activeTextDocument = editor?.document.textDocument;
+          this.activeTextDocument = editor?.document.textDocument;
           if (oldActive !== void 0) {
             addToBackgroundIfNeeded(oldActive);
           }
-          if (textDocument != null) {
-            this.backgroundScheduler.remove(textDocument);
+          if (this.activeTextDocument !== void 0) {
+            this.backgroundScheduler.remove(this.activeTextDocument);
             if (diagnosticPullOptions.onFocus === true && matches(this.activeTextDocument) && considerDocument(this.activeTextDocument, "onFocus" /* onFocus */)) {
-              this.diagnosticRequestor.pull(textDocument);
+              this.diagnosticRequestor.pull(this.activeTextDocument);
             }
           }
-        }, null, disposables);
+        }));
         const openFeature = client.getFeature(import_node4.DidOpenTextDocumentNotification.method);
         disposables.push(openFeature.onNotificationSent((event) => {
           const textDocument = event.original;
+          if (this.diagnosticRequestor.knows(1 /* document */, textDocument)) {
+            return;
+          }
           if (matches(textDocument)) {
             this.diagnosticRequestor.pull(textDocument, () => {
               addToBackgroundIfNeeded(textDocument);
             });
+          }
+        }));
+        disposables.push(workspace_default.tabs.onOpen((opened) => {
+          for (const resource of opened) {
+            if (this.diagnosticRequestor.knows(1 /* document */, resource)) {
+              continue;
+            }
+            const uriStr = resource.toString();
+            let textDocument = workspace_default.getDocument(uriStr).textDocument;
+            if (textDocument !== void 0 && matches(textDocument)) {
+              this.diagnosticRequestor.pull(textDocument, () => {
+                addToBackgroundIfNeeded(textDocument);
+              });
+            }
           }
         }));
         for (const textDocument of workspace_default.textDocuments) {
@@ -63111,6 +62686,11 @@ var init_diagnostic = __esm({
         disposables.push(closeFeature.onNotificationSent((event) => {
           this.cleanUpDocument(event.original);
         }));
+        disposables.push(workspace_default.tabs.onClose((closed) => {
+          for (const document2 of closed) {
+            this.cleanUpDocument(document2);
+          }
+        }));
         this.diagnosticRequestor.onDidChangeDiagnosticsEmitter.event(() => {
           for (const textDocument of workspace_default.textDocuments) {
             if (matches(textDocument)) {
@@ -63118,25 +62698,6 @@ var init_diagnostic = __esm({
             }
           }
         });
-        window_default.onDidChangeVisibleTextEditors((editors) => {
-          const handled = /* @__PURE__ */ new Set();
-          const tracking = this.diagnosticRequestor.trackingDocuments();
-          editors.forEach((editor) => {
-            let { uri, textDocument } = editor.document;
-            if (handled.has(uri)) return;
-            handled.add(uri);
-            if (matches(textDocument) && !tracking.includes(uri)) {
-              this.diagnosticRequestor.pull(textDocument, () => {
-                addToBackgroundIfNeeded(textDocument);
-              });
-            }
-          });
-          tracking.forEach((uri) => {
-            if (handled.has(uri)) return;
-            let doc = workspace_default.getDocument(uri);
-            if (doc && doc.attached) this.cleanUpDocument(doc.textDocument);
-          });
-        }, null, disposables);
         if (options2.workspaceDiagnostics === true && options2.identifier !== "da348dc5-c30a-4515-9d98-31ff3be38d14") {
           this.diagnosticRequestor.pullWorkspace();
         }
@@ -63167,6 +62728,10 @@ var init_diagnostic = __esm({
       }
       fillClientCapabilities(capabilities) {
         let capability = ensure(ensure(capabilities, "textDocument"), "diagnostic");
+        capability.relatedInformation = true;
+        capability.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] };
+        capability.codeDescriptionSupport = true;
+        capability.dataSupport = true;
         capability.dynamicRegistration = true;
         capability.relatedDocumentSupport = true;
         ensure(ensure(capabilities, "workspace"), "diagnostics").refreshSupport = true;
@@ -63399,9 +62964,9 @@ var ExecuteCommandFeature;
 var init_executeCommand = __esm({
   "src/language-client/executeCommand.ts"() {
     "use strict";
+    init_commands();
     init_protocol();
     init_features();
-    init_commands();
     init_uuid();
     ExecuteCommandFeature = class extends BaseFeature {
       constructor(client) {
@@ -63434,7 +62999,12 @@ var init_executeCommand = __esm({
             command,
             arguments: args
           };
-          return this.sendRequest(import_node4.ExecuteCommandRequest.type, params, import_node4.CancellationToken.None);
+          return client.sendRequest(import_node4.ExecuteCommandRequest.type, params, import_node4.CancellationToken.None).then(
+            void 0,
+            (error) => {
+              client.handleFailedRequest(import_node4.ExecuteCommandRequest.type, void 0, error, void 0);
+            }
+          );
         };
         if (data.registerOptions.commands) {
           let disposables = [];
@@ -63449,6 +63019,7 @@ var init_executeCommand = __esm({
       unregister(id2) {
         let disposables = this._commands.get(id2);
         if (disposables) {
+          this._commands.delete(id2);
           disposables.forEach((disposable) => disposable.dispose());
         }
       }
@@ -63473,8 +63044,9 @@ var FileOperationFeature, NotificationFileOperationFeature, DidCreateFilesFeatur
 var init_fileOperations = __esm({
   "src/language-client/fileOperations.ts"() {
     "use strict";
-    init_node();
+    init_util();
     init_fs();
+    init_node();
     init_protocol();
     init_workspace();
     init_features();
@@ -63530,6 +63102,10 @@ var init_fileOperations = __esm({
           return { scheme: filter2.scheme, matcher, kind: filter2.pattern.matches };
         });
         this._filters.set(data.id, minimatchFilter);
+      }
+      sendWithMiddleware(fn, key, ...params) {
+        const middleware = defaultValue(defaultValue(this._client.middleware, {}).workspace, {});
+        return middleware[key] ? middleware[key](...params, fn) : fn(...params);
       }
       unregister(id2) {
         this._filters.delete(id2);
@@ -63598,7 +63174,6 @@ var init_fileOperations = __esm({
         const filteredEvent = await this.filter(originalEvent, this._accessUri);
         if (filteredEvent.files.length) {
           const next = async (event) => {
-            if (!this._client.isRunning()) return;
             return this._client.sendNotification(
               this._notificationType,
               this._createParams(event)
@@ -63626,8 +63201,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.didCreateFiles ? middleware.didCreateFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "didCreateFiles", event);
       }
     };
     DidRenameFilesFeature = class extends NotificationFileOperationFeature {
@@ -63643,8 +63217,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.didRenameFiles ? middleware.didRenameFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "didRenameFiles", event);
       }
     };
     DidDeleteFilesFeature = class extends NotificationFileOperationFeature {
@@ -63660,8 +63233,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.didDeleteFiles ? middleware.didDeleteFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "didDeleteFiles", event);
       }
     };
     RequestFileOperationFeature = class extends FileOperationFeature {
@@ -63700,8 +63272,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.willCreateFiles ? middleware.willCreateFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "willCreateFiles", event);
       }
     };
     WillRenameFilesFeature = class extends RequestFileOperationFeature {
@@ -63717,8 +63288,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.willRenameFiles ? middleware.willRenameFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "willRenameFiles", event);
       }
     };
     WillDeleteFilesFeature = class extends RequestFileOperationFeature {
@@ -63734,8 +63304,7 @@ var init_fileOperations = __esm({
         );
       }
       doSend(event, next) {
-        const middleware = this._client.middleware.workspace;
-        return middleware?.willDeleteFiles ? middleware.willDeleteFiles(event, next) : next(event);
+        return this.sendWithMiddleware(next, "willDeleteFiles", event);
       }
     };
   }
@@ -63785,50 +63354,25 @@ function asRelativePattern(rp) {
   }
   return new RelativePattern2(baseUri, pattern);
 }
-var debounceTime5, FileSystemWatcherFeature;
+var FileSystemWatcherFeature;
 var init_fileSystemWatcher = __esm({
   "src/language-client/fileSystemWatcher.ts"() {
     "use strict";
+    init_esm();
+    init_relativePattern();
     init_util();
     init_is();
-    init_node();
     init_protocol();
     init_workspace();
     init_features();
     init_uuid();
-    init_relativePattern();
-    init_esm();
-    debounceTime5 = getConditionValue(200, 20);
     FileSystemWatcherFeature = class {
-      constructor(_client) {
-        this._client = _client;
+      constructor(client, notifyFileEvent) {
         this._watchers = /* @__PURE__ */ new Map();
         this._fileEventsMap = /* @__PURE__ */ new Map();
-        this.debouncedFileNotify = debounce(() => {
-          void this._notifyFileEvent();
-        }, debounceTime5);
-      }
-      async _notifyFileEvent() {
-        let map = this._fileEventsMap;
-        if (map.size == 0) return;
-        await this._client.forceDocumentSync();
-        this._client.sendNotification(import_node4.DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch((error) => {
-          this._client.error(`Notify file events failed.`, error);
-        });
-        map.clear();
-      }
-      notifyFileEvent(event) {
-        let self = this;
-        function didChangeWatchedFile(event2) {
-          self._fileEventsMap.set(event2.uri, event2);
-          self.debouncedFileNotify();
-        }
-        const workSpaceMiddleware = this._client.middleware.workspace;
-        if (workSpaceMiddleware?.didChangeWatchedFile) {
-          void workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile);
-        } else {
-          didChangeWatchedFile(event);
-        }
+        this._client = client;
+        this._notifyFileEvent = notifyFileEvent;
+        this._watchers = /* @__PURE__ */ new Map();
       }
       getState() {
         return { kind: "workspace", id: this.registrationType.method, registrations: this._watchers.size > 0 };
@@ -63841,7 +63385,7 @@ var init_fileSystemWatcher = __esm({
         ensure(ensure(capabilities, "workspace"), "didChangeWatchedFiles").relativePatternSupport = true;
       }
       initialize(_capabilities, _documentSelector) {
-        let fileEvents = this._client.clientOptions.synchronize?.fileEvents;
+        let fileEvents = defaultValue(this._client.clientOptions.synchronize, {}).fileEvents;
         if (!fileEvents) return;
         let watchers = Array.isArray(fileEvents) ? fileEvents : [fileEvents];
         let disposables = [];
@@ -63900,7 +63444,7 @@ var init_fileSystemWatcher = __esm({
         const client = this._client;
         if (watchCreate) {
           fileSystemWatcher.onDidCreate(
-            (resource) => this.notifyFileEvent({
+            (resource) => this._notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node4.FileChangeType.Created
             }),
@@ -63910,7 +63454,7 @@ var init_fileSystemWatcher = __esm({
         }
         if (watchChange) {
           fileSystemWatcher.onDidChange(
-            (resource) => this.notifyFileEvent({
+            (resource) => this._notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node4.FileChangeType.Changed
             }),
@@ -63920,7 +63464,7 @@ var init_fileSystemWatcher = __esm({
         }
         if (watchDelete) {
           fileSystemWatcher.onDidDelete(
-            (resource) => this.notifyFileEvent({
+            (resource) => this._notifyFileEvent({
               uri: client.code2ProtocolConverter.asUri(resource),
               type: import_node4.FileChangeType.Deleted
             }),
@@ -63932,19 +63476,14 @@ var init_fileSystemWatcher = __esm({
       unregister(id2) {
         let disposables = this._watchers.get(id2);
         if (disposables) {
-          for (let disposable of disposables) {
-            disposable.dispose();
-          }
           this._watchers.delete(id2);
+          disposeAll(disposables);
         }
       }
       dispose() {
         this._fileEventsMap.clear();
-        this.debouncedFileNotify.clear();
         this._watchers.forEach((disposables) => {
-          for (let disposable of disposables) {
-            disposable.dispose();
-          }
+          disposeAll(disposables);
         });
         this._watchers.clear();
       }
@@ -64280,16 +63819,63 @@ var init_inlayHint = __esm({
           }
         };
         provider.resolveInlayHint = options2.resolveProvider === true ? (hint, token) => {
-          const client = this._client;
           const resolveInlayHint = (item, token2) => {
             return this.sendRequest(import_node4.InlayHintResolveRequest.type, item, token2);
           };
-          const middleware = client.middleware;
-          return middleware.resolveInlayHint ? middleware.resolveInlayHint(hint, token, resolveInlayHint) : resolveInlayHint(hint, token);
+          return this.sendWithMiddleware(resolveInlayHint, "resolveInlayHint", hint, token);
         } : void 0;
         const selector = options2.documentSelector;
         this._client.attachExtensionName(provider);
         return [languages_default.registerInlayHintsProvider(selector, provider), { provider, onDidChangeInlayHints: eventEmitter }];
+      }
+    };
+  }
+});
+
+// src/language-client/inlineCompletion.ts
+var import_vscode_languageserver_protocol, InlineCompletionItemFeature;
+var init_inlineCompletion = __esm({
+  "src/language-client/inlineCompletion.ts"() {
+    "use strict";
+    import_vscode_languageserver_protocol = __toESM(require_api3());
+    init_languages();
+    init_features();
+    init_uuid();
+    InlineCompletionItemFeature = class extends TextDocumentLanguageFeature {
+      constructor(client) {
+        super(client, import_vscode_languageserver_protocol.InlineCompletionRequest.type);
+      }
+      fillClientCapabilities(capabilities) {
+        const inlineCompletion = ensure(ensure(capabilities, "textDocument"), "inlineCompletion");
+        inlineCompletion.dynamicRegistration = true;
+      }
+      initialize(capabilities, documentSelector) {
+        const options2 = this.getRegistrationOptions(documentSelector, capabilities.inlineCompletionProvider);
+        if (!options2) {
+          return;
+        }
+        this.register({
+          id: generateUuid(),
+          registerOptions: options2
+        });
+      }
+      registerLanguageProvider(options2) {
+        const provider = {
+          provideInlineCompletionItems: (document2, position, context, token) => {
+            const provideInlineCompletionItems = (document3, position2, context2, token2) => {
+              const params = {
+                textDocument: { uri: document3.uri },
+                position: position2,
+                context: context2
+              };
+              return this.sendRequest(import_vscode_languageserver_protocol.InlineCompletionRequest.type, params, token2, null);
+            };
+            const middleware = this._client.middleware;
+            return middleware.provideInlineCompletionItems ? middleware.provideInlineCompletionItems(document2, position, context, token, provideInlineCompletionItems) : provideInlineCompletionItems(document2, position, context, token);
+          }
+        };
+        this._client.attachExtensionName(provider);
+        return [languages_default.registerInlineCompletionItemProvider(options2.documentSelector, provider), provider];
       }
     };
   }
@@ -64451,15 +64037,16 @@ var init_progressPart = __esm({
         return true;
       }
       report(params) {
-        if (!this.progress) return;
-        let msg = {};
-        if (params.message) msg.message = params.message;
-        if (validPercent(params.percentage)) {
-          msg.increment = Math.round(params.percentage) - this._percent;
-          this._percent = Math.round(params.percentage);
-        }
-        if (Object.keys(msg).length > 0) {
-          this.progress.report(msg);
+        if (this.progress) {
+          let msg = {};
+          if (params.message) msg.message = params.message;
+          if (validPercent(params.percentage)) {
+            msg.increment = Math.round(params.percentage) - this._percent;
+            this._percent = Math.round(params.percentage);
+          }
+          if (Object.keys(msg).length > 0) {
+            this.progress.report(msg);
+          }
         }
       }
       cancel() {
@@ -64509,6 +64096,8 @@ var init_progress2 = __esm({
       }
       get method() {
         return import_node4.WorkDoneProgressCreateRequest.method;
+      }
+      fillInitializeParams(_params) {
       }
       fillClientCapabilities(capabilities) {
         ensure(capabilities, "window").workDoneProgress = true;
@@ -64914,17 +64503,128 @@ var init_signatureHelp = __esm({
   }
 });
 
+// src/language-client/textDocumentContent.ts
+var import_vscode_languageserver_protocol2, TextDocumentContentFeature;
+var init_textDocumentContent = __esm({
+  "src/language-client/textDocumentContent.ts"() {
+    "use strict";
+    import_vscode_languageserver_protocol2 = __toESM(require_api3());
+    init_esm();
+    init_util();
+    init_array();
+    init_workspace();
+    init_features();
+    init_uuid();
+    TextDocumentContentFeature = class {
+      constructor(client) {
+        this._registrations = /* @__PURE__ */ new Map();
+        this._client = client;
+      }
+      getState() {
+        const registrations = this._registrations.size > 0;
+        return { kind: "workspace", id: import_vscode_languageserver_protocol2.TextDocumentContentRequest.method, registrations };
+      }
+      get registrationType() {
+        return import_vscode_languageserver_protocol2.TextDocumentContentRequest.type;
+      }
+      getProviders() {
+        const result = [];
+        for (const registration of this._registrations.values()) {
+          result.push(...registration.providers);
+        }
+        return result;
+      }
+      fillClientCapabilities(capabilities) {
+        const textDocumentContent = ensure(ensure(capabilities, "workspace"), "textDocumentContent");
+        textDocumentContent.dynamicRegistration = true;
+      }
+      initialize(capabilities) {
+        const client = this._client;
+        client.onRequest(import_vscode_languageserver_protocol2.TextDocumentContentRefreshRequest.type, async (params) => {
+          const uri = URI2.parse(params.uri);
+          for (const registrations of this._registrations.values()) {
+            for (const provider of registrations.providers) {
+              if (provider.scheme === uri.scheme) {
+                provider.onDidChangeEmitter.fire(uri);
+              }
+            }
+          }
+        });
+        const capability = defaultValue(defaultValue(capabilities, {}).workspace, {}).textDocumentContent;
+        if (capability) {
+          const id2 = import_vscode_languageserver_protocol2.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+          this.register({
+            id: id2,
+            registerOptions: capability
+          });
+        }
+      }
+      register(data) {
+        const registrations = [];
+        const disposables = [];
+        for (const scheme of toArray(data.registerOptions.schemes)) {
+          const [disposable, registration] = this.registerTextDocumentContentProvider(scheme);
+          disposables.push(disposable);
+          registrations.push(registration);
+        }
+        this._registrations.set(data.id, {
+          disposable: import_vscode_languageserver_protocol2.Disposable.create(() => {
+            disposeAll(disposables);
+          }),
+          providers: registrations
+        });
+      }
+      registerTextDocumentContentProvider(scheme) {
+        const eventEmitter = new import_vscode_languageserver_protocol2.Emitter();
+        const provider = {
+          onDidChange: eventEmitter.event,
+          provideTextDocumentContent: (uri, token) => {
+            const client = this._client;
+            const provideTextDocumentContent = (uri2, token2) => {
+              const params = {
+                uri: uri2.toString()
+              };
+              return client.sendRequest(import_vscode_languageserver_protocol2.TextDocumentContentRequest.type, params, token2).then((result) => {
+                return result?.text;
+              }, (error) => {
+                return client.handleFailedRequest(import_vscode_languageserver_protocol2.TextDocumentContentRequest.type, token2, error, null);
+              });
+            };
+            const middleware = client.middleware;
+            return middleware.provideTextDocumentContent ? middleware.provideTextDocumentContent(uri, token, provideTextDocumentContent) : provideTextDocumentContent(uri, token);
+          }
+        };
+        return [workspace_default.registerTextDocumentContentProvider(scheme, provider), { scheme, onDidChangeEmitter: eventEmitter, provider }];
+      }
+      unregister(id2) {
+        const registration = this._registrations.get(id2);
+        if (registration !== void 0) {
+          this._registrations.delete(id2);
+          registration.disposable.dispose();
+        }
+      }
+      dispose() {
+        this._registrations.forEach((value) => {
+          value.disposable.dispose();
+        });
+        this._registrations.clear();
+      }
+    };
+  }
+});
+
 // src/language-client/textSynchronization.ts
 var DidOpenTextDocumentFeature, DidCloseTextDocumentFeature, DidChangeTextDocumentFeature, WillSaveFeature, WillSaveWaitUntilFeature, DidSaveTextDocumentFeature;
 var init_textSynchronization = __esm({
   "src/language-client/textSynchronization.ts"() {
     "use strict";
+    init_util();
     init_protocol();
     init_workspace();
     init_features();
     init_uuid();
     DidOpenTextDocumentFeature = class extends TextDocumentEventFeature {
-      constructor(client, _syncedDocuments) {
+      constructor(client, syncedDocuments) {
         super(
           client,
           workspace_default.onDidOpenTextDocument,
@@ -64933,10 +64633,24 @@ var init_textSynchronization = __esm({
           (textDocument) => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument),
           TextDocumentEventFeature.textDocumentFilter
         );
-        this._syncedDocuments = _syncedDocuments;
+        this._syncedDocuments = syncedDocuments;
+        this._pendingOpenNotifications = /* @__PURE__ */ new Map();
+        this._delayOpen = defaultValue(defaultValue(client.clientOptions.textSynchronization, {}).delayOpenNotifications, false);
       }
-      get registrationType() {
-        return import_node4.DidOpenTextDocumentNotification.type;
+      async callback(document2) {
+        if (!this._delayOpen) {
+          return super.callback(document2);
+        } else {
+          if (!this.matches(document2)) {
+            return;
+          }
+          const tabsModel = workspace_default.tabs;
+          if (tabsModel.isVisible(document2)) {
+            return super.callback(document2);
+          } else {
+            this._pendingOpenNotifications.set(document2.uri.toString(), document2);
+          }
+        }
       }
       fillClientCapabilities(capabilities) {
         ensure(ensure(capabilities, "textDocument"), "synchronization").dynamicRegistration = true;
@@ -64953,18 +64667,63 @@ var init_textSynchronization = __esm({
           });
         }
       }
+      get registrationType() {
+        return import_node4.DidOpenTextDocumentNotification.type;
+      }
       register(data) {
         super.register(data);
         if (!data.registerOptions.documentSelector) return;
+        const onError = (error) => {
+          this._client.error(`Sending document notification ${this._type.method} failed`, error);
+        };
         workspace_default.textDocuments.forEach((textDocument) => {
           let uri = textDocument.uri;
-          if (this._syncedDocuments.has(uri)) return;
-          void this.callback(textDocument);
+          if (!this._syncedDocuments.has(uri)) {
+            this.callback(textDocument).catch(onError);
+          }
         });
+        if (this._delayOpen && this._pendingOpenListeners === void 0) {
+          this._pendingOpenListeners = [];
+          const tabsModel = workspace_default.tabs;
+          this._pendingOpenListeners.push(tabsModel.onClose((closed) => {
+            for (const uri of closed) {
+              this._pendingOpenNotifications.delete(uri.toString());
+            }
+          }));
+          this._pendingOpenListeners.push(tabsModel.onOpen((opened) => {
+            for (const uri of opened) {
+              const document2 = this._pendingOpenNotifications.get(uri.toString());
+              if (document2 !== void 0) {
+                super.callback(document2).catch(onError);
+                this._pendingOpenNotifications.delete(uri.toString());
+              }
+            }
+          }));
+          this._pendingOpenListeners.push(workspace_default.onDidCloseTextDocument((document2) => {
+            this._pendingOpenNotifications.delete(document2.uri);
+          }));
+        }
+      }
+      async sendPendingOpenNotifications(closingDocument) {
+        if (!this._delayOpen) return;
+        const notifications = Array.from(this._pendingOpenNotifications.values());
+        this._pendingOpenNotifications.clear();
+        for (const notification of notifications) {
+          if (closingDocument !== void 0 && notification.uri.toString() === closingDocument) {
+            continue;
+          }
+          await super.callback(notification);
+        }
       }
       notificationSent(textDocument, type, params) {
         super.notificationSent(textDocument, type, params);
         this._syncedDocuments.set(textDocument.uri.toString(), textDocument);
+      }
+      dispose() {
+        this._pendingOpenNotifications.clear();
+        disposeAll(this._pendingOpenListeners ?? []);
+        this._pendingOpenListeners = void 0;
+        super.dispose();
       }
     };
     DidCloseTextDocumentFeature = class extends TextDocumentEventFeature {
@@ -65008,17 +64767,9 @@ var init_textSynchronization = __esm({
         let selectors = this._selectors.values();
         this._syncedDocuments.forEach((textDocument) => {
           if (workspace_default.match(selector, textDocument) > 0 && !this._selectorFilter(selectors, textDocument)) {
-            let middleware = this._client.middleware;
-            let didClose = (textDocument2) => {
-              return this._client.sendNotification(this._type, this._createParams(textDocument2));
-            };
-            this._syncedDocuments.delete(textDocument.uri.toString());
-            let promise = middleware.didClose ? middleware.didClose(textDocument, didClose) : didClose(textDocument);
-            if (promise) {
-              promise.catch((error) => {
-                this._client.error(`Sending document notification ${this._type.method} failed`, error);
-              });
-            }
+            this.sendNotification(textDocument).catch((error) => {
+              this._client.error(`Sending document notification ${this._type.method} failed`, error);
+            });
           }
         });
       }
@@ -65067,13 +64818,10 @@ var init_textSynchronization = __esm({
         if (event.contentChanges.length === 0) {
           return;
         }
-        let doc = workspace_default.getDocument(event.textDocument.uri);
-        let { textDocument } = doc;
         const promises = [];
         for (const changeData of this._changeData.values()) {
-          if (workspace_default.match(changeData.documentSelector, textDocument) > 0) {
+          if (workspace_default.match(changeData.documentSelector, event.document) > 0) {
             let middleware = this._client.middleware;
-            let promise;
             let didChange;
             const client = this._client;
             if (changeData.syncKind === import_node4.TextDocumentSyncKind.Incremental) {
@@ -65084,20 +64832,18 @@ var init_textSynchronization = __esm({
               };
             } else if (changeData.syncKind === import_node4.TextDocumentSyncKind.Full) {
               didChange = async (event2) => {
-                const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(textDocument);
+                const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(event2.document);
                 await this._client.sendNotification(import_node4.DidChangeTextDocumentNotification.type, params);
                 this.notificationSent(event2, import_node4.DidChangeTextDocumentNotification.type, params);
               };
-            } else {
-              didChange = () => Promise.resolve(void 0);
             }
-            promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event);
-            if (promise) promises.push(promise);
+            if (didChange) {
+              promises.push(middleware.didChange ? middleware.didChange(event, didChange) : didChange(event));
+            }
           }
         }
         return Promise.all(promises).then(void 0, (error) => {
           this._client.error(`Sending document notification ${import_node4.DidChangeTextDocumentNotification.type.method} failed`, error);
-          throw error;
         });
       }
       get onNotificationSent() {
@@ -65182,13 +64928,12 @@ var init_textSynchronization = __esm({
         }
       }
       register(data) {
-        if (!data.registerOptions.documentSelector) {
-          return;
+        if (data.registerOptions.documentSelector) {
+          if (!this._listener) {
+            this._listener = workspace_default.onWillSaveTextDocument(this.callback, this);
+          }
+          this._selectors.set(data.id, data.registerOptions.documentSelector);
         }
-        if (!this._listener) {
-          this._listener = workspace_default.onWillSaveTextDocument(this.callback, this);
-        }
-        this._selectors.set(data.id, data.registerOptions.documentSelector);
       }
       callback(event) {
         if (TextDocumentEventFeature.textDocumentFilter(
@@ -65369,11 +65114,19 @@ function toMethod(type) {
 function currentTimeStamp() {
   return (/* @__PURE__ */ new Date()).toLocaleTimeString();
 }
-function getTraceMessage(data) {
+function getTracePrefix(data) {
   if (data.isLSPMessage && data.type) {
-    return `[LSP   - ${currentTimeStamp()}] `;
+    return `[LSP - ${currentTimeStamp()}] `;
   }
   return `[Trace - ${currentTimeStamp()}] `;
+}
+function fixType(type, params) {
+  if (typeof type === "string" || typeof type.numberOfParams === "number") return type;
+  let len = params.length;
+  Object.defineProperty(type, "numberOfParams", {
+    get: () => len
+  });
+  return type;
 }
 function data2String(data, color = false) {
   if (data instanceof import_node4.ResponseError) {
@@ -65392,27 +65145,137 @@ function data2String(data, color = false) {
   }
   return (0, import_util.inspect)(data, false, null, color);
 }
-function parseTraceData(data) {
-  if (typeof data !== "string") return data2String(data);
-  let prefixes = ["Params: ", "Result: "];
-  for (let prefix of prefixes) {
-    if (data.startsWith(prefix)) {
-      try {
-        let obj = JSON.parse(data.slice(prefix.length));
-        return prefix + data2String(obj, true);
-      } catch (_e) {
-        return data;
-      }
-    }
-  }
-  return data;
+function createClientPipeTransport(pipeName, encoding2 = "utf-8") {
+  let connectResolve;
+  const connected = new Promise((resolve, _reject) => {
+    connectResolve = resolve;
+  });
+  return new Promise((resolve, reject) => {
+    const server = net.createServer((socket) => {
+      server.close();
+      connectResolve([
+        new import_node39.SocketMessageReader(socket, encoding2),
+        new import_node39.SocketMessageWriter(socket, encoding2)
+      ]);
+    });
+    server.on("error", reject);
+    server.listen(pipeName, () => {
+      server.removeListener("error", reject);
+      resolve({
+        onConnected: () => {
+          return connected;
+        },
+        dispose: () => {
+          server.close();
+        }
+      });
+    });
+  });
 }
+function createClientSocketTransport(port, encoding2 = "utf-8") {
+  let connectResolve;
+  const connected = new Promise((resolve, _reject) => {
+    connectResolve = resolve;
+  });
+  return new Promise((resolve, reject) => {
+    const server = net.createServer((socket) => {
+      server.close();
+      connectResolve([
+        new import_node39.SocketMessageReader(socket, encoding2),
+        new import_node39.SocketMessageWriter(socket, encoding2)
+      ]);
+    });
+    server.on("error", reject);
+    server.listen(port, "127.0.0.1", () => {
+      server.removeListener("error", reject);
+      resolve({
+        onConnected: () => {
+          return connected;
+        },
+        dispose: () => {
+          server.close();
+        }
+      });
+    });
+  });
+}
+var import_node39;
 var init_utils = __esm({
   "src/language-client/utils/index.ts"() {
     "use strict";
+    import_node39 = __toESM(require_main2());
     init_is();
     init_node();
     init_protocol();
+  }
+});
+
+// src/language-client/utils/async.ts
+var Delayer;
+var init_async2 = __esm({
+  "src/language-client/utils/async.ts"() {
+    "use strict";
+    init_protocol();
+    Delayer = class {
+      constructor(defaultDelay) {
+        this.defaultDelay = defaultDelay;
+        this.timeout = void 0;
+        this.completionPromise = void 0;
+        this.onSuccess = void 0;
+        this.task = void 0;
+      }
+      trigger(task, delay3 = this.defaultDelay) {
+        this.task = task;
+        if (delay3 >= 0) {
+          this.cancelTimeout();
+        }
+        if (!this.completionPromise) {
+          this.completionPromise = new Promise((resolve) => {
+            this.onSuccess = resolve;
+          }).then(() => {
+            this.completionPromise = void 0;
+            this.onSuccess = void 0;
+            let result = this.task();
+            this.task = void 0;
+            return result;
+          });
+        }
+        if (delay3 >= 0 || this.timeout === void 0) {
+          this.timeout = (0, import_node4.RAL)().timer.setTimeout(() => {
+            this.timeout = void 0;
+            this.onSuccess(void 0);
+          }, delay3 >= 0 ? delay3 : this.defaultDelay);
+        }
+        return this.completionPromise;
+      }
+      forceDelivery() {
+        if (!this.completionPromise) {
+          return void 0;
+        }
+        this.cancelTimeout();
+        let result = this.task();
+        this.completionPromise = void 0;
+        this.onSuccess = void 0;
+        this.task = void 0;
+        return result;
+      }
+      isTriggered() {
+        return this.timeout !== void 0;
+      }
+      cancel() {
+        this.cancelTimeout();
+        this.completionPromise = void 0;
+      }
+      dispose() {
+        this.cancelTimeout();
+      }
+      cancelTimeout() {
+        if (this.timeout !== void 0) {
+          this.timeout.dispose();
+          this.timeout = void 0;
+        }
+      }
+    };
   }
 });
 
@@ -65596,6 +65459,10 @@ var init_codeConverter = __esm({
 });
 
 // src/language-client/utils/errorHandler.ts
+function toCloseHandlerResult(result) {
+  if (typeof result === "number") return { action: result };
+  return result;
+}
 var CloseAction, ErrorAction, DefaultErrorHandler;
 var init_errorHandler = __esm({
   "src/language-client/utils/errorHandler.ts"() {
@@ -65611,30 +65478,34 @@ var init_errorHandler = __esm({
       return ErrorAction2;
     })(ErrorAction || {});
     DefaultErrorHandler = class {
-      constructor(name2, maxRestartCount) {
+      constructor(name2, maxRestartCount, outputChannel) {
         this.name = name2;
         this.maxRestartCount = maxRestartCount;
+        this.outputChannel = outputChannel;
         this.milliseconds = 3 * 60 * 1e3;
         this.restarts = [];
       }
       error(_error, _message, count) {
         if (count && count <= 3) {
-          return 1 /* Continue */;
+          return { action: 1 /* Continue */ };
         }
-        return 2 /* Shutdown */;
+        return { action: 2 /* Shutdown */ };
       }
       closed() {
         this.restarts.push(Date.now());
         if (this.restarts.length < this.maxRestartCount) {
-          return 2 /* Restart */;
+          return { action: 2 /* Restart */ };
         } else {
           let diff = this.restarts[this.restarts.length - 1] - this.restarts[0];
           if (diff <= this.milliseconds) {
-            console.error(`The "${this.name}" server crashed ${this.maxRestartCount} times in the last 3 minutes. The server will not be restarted.`);
-            return 1 /* DoNotRestart */;
+            if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`);
+            return {
+              action: 1 /* DoNotRestart */,
+              message: `The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`
+            };
           } else {
             this.restarts.shift();
-            return 2 /* Restart */;
+            return { action: 2 /* Restart */ };
           }
         }
       }
@@ -65691,6 +65562,8 @@ var init_workspaceFolders = __esm({
   "src/language-client/workspaceFolders.ts"() {
     "use strict";
     init_esm();
+    init_util();
+    init_array();
     init_fs();
     init_protocol();
     init_workspace();
@@ -65708,19 +65581,17 @@ var init_workspaceFolders = __esm({
       }
       getValidWorkspaceFolders() {
         let { workspaceFolders } = workspace_default;
-        if (!workspaceFolders || workspaceFolders.length == 0) return void 0;
-        let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths ?? [];
-        let arr = workspaceFolders.filter((o) => {
+        let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths;
+        let arr = isFalsyOrEmpty(ignoredRootPaths) ? workspaceFolders.slice(0) : workspaceFolders.filter((o) => {
           let fsPath2 = URI2.parse(o.uri).fsPath;
           return ignoredRootPaths.every((p) => !sameFile(p, fsPath2));
         });
-        return arr.length ? arr : void 0;
+        return arr.length > 0 ? arr : void 0;
       }
       fillInitializeParams(params) {
         const folders = this.getValidWorkspaceFolders();
         this.initializeWithFolders(folders);
-        if (folders === void 0) {
-          this._client.warn(`No valid workspaceFolder exists`);
+        if (folders == null) {
           params.workspaceFolders = null;
         } else {
           params.workspaceFolders = folders.map((folder) => this.asProtocol(folder));
@@ -65730,7 +65601,7 @@ var init_workspaceFolders = __esm({
         this._initialFolders = currentWorkspaceFolders;
       }
       fillClientCapabilities(capabilities) {
-        capabilities.workspace = capabilities.workspace || {};
+        capabilities.workspace = defaultValue(capabilities.workspace, {});
         capabilities.workspace.workspaceFolders = true;
       }
       initialize(capabilities) {
@@ -65738,14 +65609,13 @@ var init_workspaceFolders = __esm({
         client.onRequest(import_node4.WorkspaceFoldersRequest.type, (token) => {
           let workspaceFolders = () => {
             let folders = this.getValidWorkspaceFolders();
-            if (folders === void 0) {
+            if (folders == null) {
               return null;
             }
-            let result = folders.map((folder) => this.asProtocol(folder));
-            return result;
+            return folders.map((folder) => this.asProtocol(folder));
           };
           const middleware = client.middleware.workspace;
-          return middleware?.workspaceFolders ? middleware.workspaceFolders(token, workspaceFolders) : workspaceFolders(token);
+          return middleware && middleware.workspaceFolders ? middleware.workspaceFolders(token, workspaceFolders) : workspaceFolders(token);
         });
         const value = access2(access2(access2(capabilities, "workspace"), "workspaceFolders"), "changeNotifications");
         let id2;
@@ -65755,20 +65625,8 @@ var init_workspaceFolders = __esm({
           id2 = generateUuid();
         }
         if (id2) {
-          this.register({
-            id: id2,
-            registerOptions: void 0
-          });
+          this.register({ id: id2, registerOptions: void 0 });
         }
-      }
-      doSendEvent(addedFolders, removedFolders) {
-        let params = {
-          event: {
-            added: addedFolders.map((folder) => this.asProtocol(folder)),
-            removed: removedFolders.map((folder) => this.asProtocol(folder))
-          }
-        };
-        return this._client.sendNotification(import_node4.DidChangeWorkspaceFoldersNotification.type, params);
       }
       sendInitialEvent(currentWorkspaceFolders) {
         let promise;
@@ -65784,32 +65642,47 @@ var init_workspaceFolders = __esm({
           promise = this.doSendEvent(currentWorkspaceFolders, []);
         }
         if (promise) {
-          promise.catch((error) => {
-            this._client.error(`Sending notification ${import_node4.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
-          });
+          promise.catch(this.onNotificationError.bind(this));
         }
+      }
+      onNotificationError(error) {
+        this._client.error(`Sending notification ${import_node4.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
+      }
+      doSendEvent(addedFolders, removedFolders) {
+        let params = {
+          event: {
+            added: addedFolders.map((folder) => this.asProtocol(folder)),
+            removed: removedFolders.map((folder) => this.asProtocol(folder))
+          }
+        };
+        return this._client.sendNotification(import_node4.DidChangeWorkspaceFoldersNotification.type, params);
       }
       register(data) {
         let id2 = data.id;
         let client = this._client;
-        if (this._listeners.size > 0) return;
-        let disposable = workspace_default.onDidChangeWorkspaceFolders((event) => {
-          let didChangeWorkspaceFolders = (e) => {
-            return this.doSendEvent(e.added, e.removed);
-          };
-          let middleware = client.middleware.workspace;
-          const promise = middleware?.didChangeWorkspaceFolders ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders) : didChangeWorkspaceFolders(event);
-          if (promise) {
-            promise.catch((error) => {
-              this._client.error(`Sending notification ${import_node4.DidChangeWorkspaceFoldersNotification.type.method} failed`, error);
-            });
-          }
-        });
-        this._listeners.set(id2, disposable);
-        let workspaceFolders = this.getValidWorkspaceFolders();
-        this.sendInitialEvent(workspaceFolders);
+        if (this._listeners.size == 0) {
+          let disposable = workspace_default.onDidChangeWorkspaceFolders((event) => {
+            let didChangeWorkspaceFolders = (e) => {
+              return this.doSendEvent(e.added, e.removed);
+            };
+            let middleware = client.middleware.workspace;
+            const promise = middleware && middleware.didChangeWorkspaceFolders ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders) : didChangeWorkspaceFolders(event);
+            if (promise) {
+              promise.catch(this.onNotificationError.bind(this));
+            }
+          });
+          this._listeners.set(id2, disposable);
+          let workspaceFolders = this.getValidWorkspaceFolders();
+          this.sendInitialEvent(workspaceFolders);
+        }
       }
       unregister(id2) {
+        const disposable = this._listeners.get(id2);
+        if (disposable === void 0) {
+          return;
+        }
+        this._listeners.delete(id2);
+        disposable.dispose();
       }
       dispose() {
         for (let disposable of this._listeners.values()) {
@@ -65818,7 +65691,6 @@ var init_workspaceFolders = __esm({
         this._listeners.clear();
       }
       asProtocol(workspaceFolder) {
-        if (workspaceFolder == null) return null;
         return { uri: this._client.code2ProtocolConverter.asUri(URI2.parse(workspaceFolder.uri)), name: workspaceFolder.name };
       }
     };
@@ -65854,7 +65726,10 @@ var init_workspaceSymbol = __esm({
       }
       unregister(id2) {
         const registration = this._registrations.get(id2);
-        if (registration) registration.disposable.dispose();
+        if (registration) {
+          this._registrations.delete(id2);
+          registration.disposable.dispose();
+        }
       }
       dispose() {
         this._registrations.forEach((value) => {
@@ -65922,28 +65797,24 @@ var init_workspaceSymbol = __esm({
 
 // src/language-client/client.ts
 function createConnection(input, output, errorHandler, closeHandler, options2) {
-  let logger60 = new ConsoleLogger();
-  let connection = (0, import_node4.createProtocolConnection)(input, output, logger60, options2);
+  let logger61 = new ConsoleLogger();
+  let connection = (0, import_node4.createProtocolConnection)(input, output, logger61, options2);
   connection.onError((data) => {
     errorHandler(data[0], data[1], data[2]);
   });
   connection.onClose(closeHandler);
   let result = {
     id: "",
-    hasPendingResponse: () => connection.hasPendingResponse(),
     listen: () => connection.listen(),
-    sendRequest: (type, ...params) => {
-      return connection.sendRequest(toMethod(type), ...params);
-    },
-    onRequest: (type, handler) => connection.onRequest(toMethod(type), handler),
-    sendNotification: (type, params) => {
-      return connection.sendNotification(toMethod(type), params);
-    },
-    onNotification: (type, handler) => connection.onNotification(toMethod(type), handler),
+    hasPendingResponse: connection.hasPendingResponse,
+    sendRequest: connection.sendRequest,
+    onRequest: connection.onRequest,
+    sendNotification: connection.sendNotification,
+    onNotification: connection.onNotification,
     onProgress: connection.onProgress,
     sendProgress: connection.sendProgress,
-    trace: (value, tracer, sendNotificationOrTraceOptions) => {
-      return connection.trace(value, tracer, sendNotificationOrTraceOptions);
+    trace: (value, tracer, traceOptions) => {
+      return connection.trace(value, tracer, traceOptions);
     },
     initialize: (params) => {
       return connection.sendRequest(import_node4.InitializeRequest.type, params);
@@ -65959,10 +65830,11 @@ function createConnection(input, output, errorHandler, closeHandler, options2) {
   };
   return result;
 }
-var logger22, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, BaseLanguageClient, ProposedFeatures;
+var import_vscode_languageserver_protocol3, logger22, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
 var init_client = __esm({
   "src/language-client/client.ts"() {
     "use strict";
+    import_vscode_languageserver_protocol3 = __toESM(require_api3());
     init_main();
     init_esm();
     init_languages();
@@ -66000,6 +65872,7 @@ var init_client = __esm({
     init_hover();
     init_implementation();
     init_inlayHint();
+    init_inlineCompletion();
     init_inlineValue();
     init_linkedEditingRange();
     init_progress2();
@@ -66009,10 +65882,12 @@ var init_client = __esm({
     init_selectionRange();
     init_semanticTokens();
     init_signatureHelp();
+    init_textDocumentContent();
     init_textSynchronization();
     init_typeDefinition();
     init_typeHierarchy();
     init_utils();
+    init_async2();
     init_codeConverter();
     init_errorHandler();
     init_logger2();
@@ -66023,6 +65898,7 @@ var init_client = __esm({
     redOpen = "\x1B[31m";
     redClose = "\x1B[39m";
     RevealOutputChannelOn = /* @__PURE__ */ ((RevealOutputChannelOn2) => {
+      RevealOutputChannelOn2[RevealOutputChannelOn2["Debug"] = 0] = "Debug";
       RevealOutputChannelOn2[RevealOutputChannelOn2["Info"] = 1] = "Info";
       RevealOutputChannelOn2[RevealOutputChannelOn2["Warn"] = 2] = "Warn";
       RevealOutputChannelOn2[RevealOutputChannelOn2["Error"] = 3] = "Error";
@@ -66033,6 +65909,7 @@ var init_client = __esm({
       State2[State2["Stopped"] = 1] = "Stopped";
       State2[State2["Running"] = 2] = "Running";
       State2[State2["Starting"] = 3] = "Starting";
+      State2[State2["StartFailed"] = 4] = "StartFailed";
       return State2;
     })(State || {});
     ClientState = /* @__PURE__ */ ((ClientState2) => {
@@ -66051,6 +65928,7 @@ var init_client = __esm({
       }
       MessageTransports2.is = is;
     })(MessageTransports || (MessageTransports = {}));
+    delayTime = getConditionValue(250, 10);
     BaseLanguageClient = class _BaseLanguageClient {
       constructor(id2, name2, clientOptions) {
         this._consoleDebug = false;
@@ -66063,6 +65941,7 @@ var init_client = __esm({
         } else {
           this._outputChannel = void 0;
         }
+        this._traceOutputChannel = clientOptions.traceOutputChannel;
         this._clientOptions = this.resolveClientOptions(clientOptions);
         this.$state = 0 /* Initial */;
         this._connection = void 0;
@@ -66078,6 +65957,8 @@ var init_client = __esm({
         this._progressHandlers = /* @__PURE__ */ new Map();
         this._pendingProgressHandlers = /* @__PURE__ */ new Map();
         this._progressDisposables = /* @__PURE__ */ new Map();
+        this._fileEvents = [];
+        this._fileEventDelayer = new Delayer(delayTime);
         this._ignoredRegistrations = /* @__PURE__ */ new Set();
         this._onStop = void 0;
         this._stateChangeEmitter = new import_node4.Emitter();
@@ -66085,9 +65966,9 @@ var init_client = __esm({
         this._tracer = {
           log: (messageOrDataObject, data) => {
             if (string(messageOrDataObject)) {
-              this.logTrace(messageOrDataObject, data);
+              this.traceMessage(messageOrDataObject, data);
             } else {
-              this.logObjectTrace(messageOrDataObject);
+              this.traceObject(messageOrDataObject);
             }
           }
         };
@@ -66098,9 +65979,7 @@ var init_client = __esm({
       }
       switchConsole() {
         this._consoleDebug = !this._consoleDebug;
-        if (!this._consoleDebug) {
-          this.enableVerboseTrace();
-        }
+        this.changeTrace(import_node4.Trace.Verbose, import_node4.TraceFormat.Text);
       }
       resolveClientOptions(clientOptions) {
         const markdown = { isTrusted: false, supportHtml: false };
@@ -66135,26 +66014,34 @@ var init_client = __esm({
           disableMarkdown,
           disableSnippetCompletion,
           diagnosticPullOptions: pullOption,
-          rootPatterns: clientOptions.rootPatterns ?? [],
+          rootPatterns: defaultValue(clientOptions.rootPatterns, []),
           requireRootPattern: clientOptions.requireRootPattern,
           disableDynamicRegister: clientOptions.disableDynamicRegister,
-          formatterPriority: clientOptions.formatterPriority ?? 0,
-          ignoredRootPaths: clientOptions.ignoredRootPaths ?? [],
-          documentSelector: clientOptions.documentSelector ?? [],
-          synchronize: clientOptions.synchronize ?? {},
+          formatterPriority: defaultValue(clientOptions.formatterPriority, 0),
+          ignoredRootPaths: defaultValue(clientOptions.ignoredRootPaths, []),
+          documentSelector: defaultValue(clientOptions.documentSelector, []),
+          synchronize: defaultValue(clientOptions.synchronize, {}),
           diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-          outputChannelName: clientOptions.outputChannelName ?? this._id,
-          revealOutputChannelOn: clientOptions.revealOutputChannelOn ?? 4 /* Never */,
-          stdioEncoding: clientOptions.stdioEncoding ?? "utf8",
+          outputChannelName: defaultValue(clientOptions.outputChannelName, this._id),
+          revealOutputChannelOn: defaultValue(clientOptions.revealOutputChannelOn, 4 /* Never */),
+          stdioEncoding: defaultValue(clientOptions.stdioEncoding, "utf8"),
           initializationOptions: clientOptions.initializationOptions,
           initializationFailedHandler: clientOptions.initializationFailedHandler,
           progressOnInitialization: clientOptions.progressOnInitialization === true,
           errorHandler: clientOptions.errorHandler ?? this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
-          middleware: clientOptions.middleware ?? {},
+          middleware: defaultValue(clientOptions.middleware, {}),
           workspaceFolder: clientOptions.workspaceFolder,
           connectionOptions: clientOptions.connectionOptions,
+          uriConverter: clientOptions.uriConverter,
+          textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
           markdown
         };
+      }
+      createTextSynchronizationOptions(options2) {
+        if (options2 && typeof options2.delayOpenNotifications === "boolean") {
+          return { delayOpenNotifications: options2.delayOpenNotifications };
+        }
+        return { delayOpenNotifications: false };
       }
       get supportedMarkupKind() {
         if (!this.clientOptions.disableMarkdown) return [MarkupKind.Markdown, MarkupKind.PlainText];
@@ -66187,25 +66074,56 @@ var init_client = __esm({
         return this._c2p;
       }
       getPublicState() {
-        if (this.$state === 3 /* Running */) {
-          return 2 /* Running */;
-        } else if (this.$state === 1 /* Starting */) {
-          return 3 /* Starting */;
-        } else {
-          return 1 /* Stopped */;
+        switch (this.$state) {
+          case 1 /* Starting */:
+            return 3 /* Starting */;
+          case 3 /* Running */:
+            return 2 /* Running */;
+          case 2 /* StartFailed */:
+            return 4 /* StartFailed */;
+          default:
+            return 1 /* Stopped */;
         }
       }
       get initializeResult() {
         return this._initializeResult;
       }
       async sendRequest(type, ...params) {
-        this.checkState();
-        try {
-          const connection = await this.$start();
-          return await connection.sendRequest(type, ...params);
-        } catch (error) {
-          this.error(`Sending request ${toMethod(type)} failed.`, error);
-          throw error;
+        if (this.$state === 2 /* StartFailed */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */) {
+          return Promise.reject(new import_node4.ResponseError(import_node4.ErrorCodes.ConnectionInactive, `Client is not running`));
+        }
+        const connection = await this.$start();
+        await this._didOpenTextDocumentFeature.sendPendingOpenNotifications();
+        let param;
+        let token;
+        if (params.length === 1) {
+          if (import_vscode_languageserver_protocol3.CancellationToken.is(params[0])) {
+            token = params[0];
+          } else {
+            param = params[0];
+          }
+        } else if (params.length === 2) {
+          param = params[0];
+          token = params[1];
+        }
+        if (token !== void 0 && token.isCancellationRequested) {
+          return Promise.reject(new import_node4.ResponseError(import_node4.LSPErrorCodes.RequestCancelled, "Request got cancelled"));
+        }
+        type = fixType(type, params);
+        const _sendRequest = this._clientOptions.middleware.sendRequest;
+        if (_sendRequest !== void 0) {
+          return _sendRequest(type, param, token, (type2, param2, token2) => {
+            const params2 = [];
+            if (param2 !== void 0) {
+              params2.push(param2);
+            }
+            if (token2 !== void 0) {
+              params2.push(token2);
+            }
+            return connection.sendRequest(type2, ...params2);
+          });
+        } else {
+          return connection.sendRequest(type, ...params);
         }
       }
       onRequest(type, handler) {
@@ -66246,13 +66164,22 @@ var init_client = __esm({
       }
       async sendNotification(type, params) {
         if (this.$state === 2 /* StartFailed */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */) {
+          this.error(`Client is not running when send notification`, type);
           return;
         }
         try {
+          let documentToClose;
+          if (typeof type !== "string" && type.method === import_vscode_languageserver_protocol3.DidCloseTextDocumentNotification.method) {
+            documentToClose = params.textDocument.uri;
+          }
           const connection = await this.$start();
-          return await connection.sendNotification(type, params);
+          await this._didOpenTextDocumentFeature.sendPendingOpenNotifications(documentToClose);
+          type = fixType(type, params == null ? [] : [params]);
+          const _sendNotification = this._clientOptions.middleware.sendNotification;
+          return await Promise.resolve(_sendNotification ? _sendNotification(type, connection.sendNotification.bind(connection), params) : connection.sendNotification(type, params));
         } catch (error) {
           this.error(`Sending notification ${toMethod(type)} failed.`, error);
+          if ([4 /* Stopping */, 5 /* Stopped */].includes(this._state)) return;
           throw error;
         }
       }
@@ -66332,7 +66259,9 @@ var init_client = __esm({
         };
       }
       async sendProgress(type, token, value) {
-        this.checkState();
+        if (this.$state === 2 /* StartFailed */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */) {
+          return Promise.reject(new import_node4.ResponseError(import_node4.ErrorCodes.ConnectionInactive, `Client is not running`));
+        }
         try {
           const connection = await this.$start();
           await connection.sendProgress(type, token, value);
@@ -66345,7 +66274,7 @@ var init_client = __esm({
        * languageserver.xxx.settings or undefined
        */
       get configuredSection() {
-        let section2 = this._clientOptions.synchronize?.configurationSection;
+        let section2 = defaultValue(this._clientOptions.synchronize, {}).configurationSection;
         return typeof section2 === "string" && section2.startsWith("languageserver.") ? section2 : void 0;
       }
       get clientOptions() {
@@ -66361,72 +66290,67 @@ var init_client = __esm({
         }
         return this._outputChannel;
       }
+      get traceOutputChannel() {
+        return this._traceOutputChannel ? this._traceOutputChannel : this.outputChannel;
+      }
       get diagnostics() {
         return this._diagnostics;
       }
       createDefaultErrorHandler(maxRestartCount) {
-        return new DefaultErrorHandler(this._id, maxRestartCount ?? 4);
+        return new DefaultErrorHandler(this._id, maxRestartCount ?? 4, this._outputChannel);
       }
       set trace(value) {
-        this._trace = value;
-        const connection = this.activeConnection();
-        if (connection !== void 0) {
-          void connection.trace(this._trace, this._tracer, {
-            sendNotification: false,
-            traceFormat: this._traceFormat
-          });
-        }
+        this.changeTrace(value, this._traceFormat);
       }
-      logObjectTrace(data) {
-        this.outputChannel.append(getTraceMessage(data));
-        this.traceData(data);
-      }
-      traceData(data, error = false) {
-        this.outputChannel.appendLine(data2String(data));
-        if (this._consoleDebug) error ? console.error(redOpen + data2String(data) + redClose) : console.log(parseTraceData(data));
-      }
-      consoleMessage(prefix, message, error = false) {
+      consoleMessage(message, error = false) {
         if (this._consoleDebug) {
-          let msg = prefix + " " + message;
-          error ? console.error(redOpen + msg + redClose) : console.log(msg);
+          error ? console.error(redOpen + message + redClose) : console.log(message);
         }
+      }
+      debug(message, data, showNotification = true) {
+        this.logOutputMessage(import_node4.MessageType.Debug, 0 /* Debug */, "Debug", message, data, showNotification);
       }
       info(message, data, showNotification = true) {
-        let prefix = `[Info  - ${currentTimeStamp()}]`;
-        this.outputChannel.appendLine(`${prefix} ${message}`);
-        this.consoleMessage(prefix, message);
-        if (data != null) this.traceData(data);
-        if (showNotification && this._clientOptions.revealOutputChannelOn <= 1 /* Info */) {
-          this.showNotificationMessage(import_node4.MessageType.Info, message);
-        }
+        this.logOutputMessage(import_node4.MessageType.Info, 1 /* Info */, "Info", message, data, showNotification);
       }
       warn(message, data, showNotification = true) {
-        let prefix = `[Warn  - ${currentTimeStamp()}]`;
-        this.outputChannel.appendLine(`${prefix} ${message}`);
-        this.consoleMessage(prefix, message);
-        if (data != null) this.traceData(data);
-        if (showNotification && this._clientOptions.revealOutputChannelOn <= 2 /* Warn */) {
-          this.showNotificationMessage(import_node4.MessageType.Warning, message);
-        }
+        this.logOutputMessage(import_node4.MessageType.Warning, 2 /* Warn */, "Warn", message, data, showNotification);
       }
       error(message, data, showNotification = true) {
-        let prefix = `[Error - ${currentTimeStamp()}]`;
-        this.outputChannel.appendLine(`${prefix} ${message}`);
-        this.consoleMessage(prefix, message, true);
-        if (data != null) this.traceData(data, true);
-        if (showNotification === "force" || showNotification && this._clientOptions.revealOutputChannelOn <= 3 /* Error */) {
-          this.showNotificationMessage(import_node4.MessageType.Error, message);
+        this.logOutputMessage(import_node4.MessageType.Error, 3 /* Error */, "Error", message, data, showNotification);
+      }
+      logOutputMessage(type, reveal, name2, message, data, showNotification) {
+        const msg = `[${name2.padEnd(5)} - ${currentTimeStamp()}] ${this.getLogMessage(message, data)}`;
+        this.outputChannel.appendLine(msg);
+        this.consoleMessage(msg, type === import_node4.MessageType.Error);
+        if (showNotification === "force" || showNotification && this._clientOptions.revealOutputChannelOn <= reveal) {
+          this.showNotificationMessage(type, message, data);
         }
       }
-      logTrace(message, data) {
-        let prefix = `[Trace - ${currentTimeStamp()}]`;
-        this.outputChannel.appendLine(`${prefix} ${message}`);
-        this.consoleMessage(prefix, message);
-        if (data != null) this.traceData(data);
+      traceObject(data) {
+        this.traceOutputChannel.appendLine(`${getTracePrefix(data)}${data2String(data)}`);
       }
-      showNotificationMessage(type, message) {
+      traceMessage(message, data) {
+        const msg = `[Trace - ${currentTimeStamp()}] ${this.getLogMessage(message, data)}`;
+        this.traceOutputChannel.appendLine(msg);
+        this.consoleMessage(msg);
+      }
+      getLogMessage(message, data) {
+        return data != null ? `${message}
+${data2String(data)}` : message;
+      }
+      showNotificationMessage(type, message, data) {
+        message = message ?? "A request has failed. See the output for more information.";
+        if (data) {
+          message += "\n" + data2String(data);
+        }
         const messageFunc = type === import_node4.MessageType.Error ? window_default.showErrorMessage.bind(window_default) : type === import_node4.MessageType.Warning ? window_default.showWarningMessage.bind(window_default) : window_default.showInformationMessage.bind(window_default);
-        void messageFunc(message);
+        let fn = getConditionValue(messageFunc, (_, _obj) => Promise.resolve(global.__showOutput));
+        fn(message, { title: "Go to output" }).then((selection) => {
+          if (selection !== void 0) {
+            this.outputChannel.show(true);
+          }
+        }, onUnexpectedError);
       }
       needsStart() {
         return this.$state === 0 /* Initial */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */;
@@ -66538,6 +66462,9 @@ var init_client = __esm({
             case import_node4.MessageType.Info:
               this.info(message.message);
               break;
+            case import_node4.MessageType.Debug:
+              this.debug(message.message);
+              break;
             default:
               this.outputChannel.appendLine(message.message);
           }
@@ -66573,11 +66500,9 @@ var init_client = __esm({
               messageFunc = window_default.showInformationMessage.bind(window_default);
           }
           let actions = toArray(params.actions);
-          return messageFunc(params.message, ...actions).then((res) => {
-            return res == null ? null : res;
-          });
+          return messageFunc(params.message, ...actions);
         });
-        connection.onRequest(import_node4.ShowDocumentRequest.type, async (params) => {
+        connection.onRequest(import_node4.ShowDocumentRequest.type, async (params, token) => {
           const showDocument = async (params2) => {
             try {
               if (params2.external === true || /^https?:\/\//.test(params2.uri)) {
@@ -66601,7 +66526,7 @@ var init_client = __esm({
           };
           const middleware = this._clientOptions.middleware.window?.showDocument;
           if (middleware !== void 0) {
-            return middleware(params, showDocument);
+            return middleware(params, token, showDocument);
           } else {
             return showDocument(params);
           }
@@ -66634,7 +66559,7 @@ var init_client = __esm({
       }
       initialize(connection) {
         let { initializationOptions, workspaceFolder, progressOnInitialization } = this._clientOptions;
-        this.refreshTrace(connection, false);
+        this.refreshTrace(false);
         let rootPath = this._rootPath;
         let initParams = {
           processId: process.pid,
@@ -66672,10 +66597,6 @@ var init_client = __esm({
         try {
           const result = await connection.initialize(initParams);
           if (result.capabilities.positionEncoding !== void 0 && result.capabilities.positionEncoding !== import_node4.PositionEncodingKind.UTF16) {
-            await connection.shutdown();
-            await connection.exit();
-            connection.end();
-            connection.dispose();
             throw new Error(`Unsupported position encoding (${result.capabilities.positionEncoding}) received from server ${this.name}`);
           }
           this._initializeResult = result;
@@ -66702,10 +66623,12 @@ var init_client = __esm({
           }
           this._capabilities = Object.assign({}, result.capabilities, { resolvedTextDocumentSync: textDocumentSyncOptions });
           connection.onNotification(import_node4.PublishDiagnosticsNotification.type, (params) => this.handleDiagnostics(params));
-          connection.onRequest(import_node4.RegistrationRequest.type, (params) => this.handleRegistrationRequest(params));
-          connection.onRequest("client/registerFeature", (params) => this.handleRegistrationRequest(params));
-          connection.onRequest(import_node4.UnregistrationRequest.type, (params) => this.handleUnregistrationRequest(params));
-          connection.onRequest("client/unregisterFeature", (params) => this.handleUnregistrationRequest(params));
+          for (let requestType of [import_node4.RegistrationRequest.type, "client/registerFeature"]) {
+            connection.onRequest(requestType, (params) => this.handleRegistrationRequest(params));
+          }
+          for (let requestType of [import_node4.UnregistrationRequest.type, "client/unregisterFeature"]) {
+            connection.onRequest(requestType, (params) => this.handleUnregistrationRequest(params));
+          }
           connection.onRequest(import_node4.ApplyWorkspaceEditRequest.type, (params) => this.handleApplyWorkspaceEdit(params));
           for (const [method, handler] of this._pendingNotificationHandlers) {
             this._notificationDisposables.set(method, connection.onNotification(method, handler));
@@ -66720,52 +66643,55 @@ var init_client = __esm({
           }
           this._pendingProgressHandlers.clear();
           await connection.sendNotification(import_node4.InitializedNotification.type, {});
-          this.hookConfigurationChanged(connection);
+          this.hookConfigurationChanged();
           this.initializeFeatures(connection);
           return result;
         } catch (error) {
+          this.error("Server initialization failed.", error);
+          logger22.error(`Server "${this.id}" initialization failed.`, error);
           let cb = (retry) => {
-            if (retry) {
-              this.initialize(connection).catch(() => {
+            process.nextTick(() => {
+              new Promise((resolve, reject) => {
+                if (retry) {
+                  this.initialize(connection).then(resolve, reject);
+                } else {
+                  this.stop().then(resolve, reject);
+                }
+              }).catch((err) => {
+                this.error(`Unexpected error`, err, false);
               });
-            } else {
-              this.stop().catch(() => {
-              });
-            }
+            });
           };
           if (this._clientOptions.initializationFailedHandler) {
             cb(this._clientOptions.initializationFailedHandler(error));
           } else if (error instanceof import_node4.ResponseError && error.data && error.data.retry) {
-            if (this._connection) {
-              let connection2 = this._connection;
-              connection2.end();
-              this._connection.dispose();
-              this._connection = null;
-            }
             void window_default.showErrorMessage(error.message, { title: "Retry", id: "retry" }).then((item) => {
               cb(item && item.id === "retry");
             });
           } else {
-            void window_default.showErrorMessage(toText(error.message));
-            this.error("Server initialization failed.", error);
-            logger22.error(`Server ${this.id} initialization failed.`, error);
+            if (error && error.message) {
+              void window_default.showErrorMessage(toText(error.message));
+            }
             cb(false);
           }
           throw error;
         }
       }
       stop(timeout2 = 2e3) {
-        return this.shutdown("stop", timeout2);
+        return this.shutdown("stop" /* Stop */, timeout2);
       }
       async shutdown(mode, timeout2) {
         if (this.$state === 5 /* Stopped */ || this.$state === 0 /* Initial */) {
           return;
         }
+        if (this.$state === 1 /* Starting */ && this._onStart) {
+          await this._onStart;
+        }
         if (this.$state === 4 /* Stopping */) {
           return this._onStop;
         }
-        const connection = this.activeConnection();
-        if (connection === void 0 || this.$state !== 3 /* Running */ && this.$state !== 1 /* Starting */) {
+        const connection = this._connection;
+        if (connection === void 0 || this.$state !== 3 /* Running */ && this.$state !== 2 /* StartFailed */) {
           throw new Error(`Client is not running and can't be stopped. It's current state is: ${this.$state}`);
         }
         this._initializeResult = void 0;
@@ -66814,19 +66740,20 @@ var init_client = __esm({
         }
       }
       cleanUp(mode) {
+        this._fileEvents = [];
+        this._fileEventDelayer.cancel();
         if (this._listeners) {
-          this._listeners.forEach((listener) => listener.dispose());
-          this._listeners = [];
+          disposeAll(this._listeners);
         }
         if (this._syncedDocuments) {
           this._syncedDocuments.clear();
         }
-        for (let feature of this._features.values()) {
+        for (const feature of Array.from(this._features.entries()).map((entry) => entry[1]).reverse()) {
           if (typeof feature.dispose === "function") {
             feature.dispose();
           }
         }
-        if (mode === "stop" && this._diagnostics) {
+        if ((mode === "stop" /* Stop */ || mode === "restart" /* Restart */) && this._diagnostics !== void 0) {
           this._diagnostics.dispose();
           this._diagnostics = void 0;
         }
@@ -66837,60 +66764,73 @@ var init_client = __esm({
           this._outputChannel = void 0;
         }
       }
-      async forceDocumentSync() {
-        let textDocuments = Array.from(this._syncedDocuments.values());
-        await Promise.all(textDocuments.map((textDocument) => {
-          let doc = workspace_default.getDocument(textDocument.uri);
-          return doc ? doc.synchronize() : null;
-        }));
+      notifyFileEvent(event) {
+        const didChangeWatchedFile = async (event2) => {
+          if (event2) this._fileEvents.push(event2);
+          return this._fileEventDelayer.trigger(async () => {
+            const fileEvents = this._fileEvents;
+            if (fileEvents.length === 0) return;
+            this._fileEvents = [];
+            try {
+              await this.sendNotification(import_vscode_languageserver_protocol3.DidChangeWatchedFilesNotification.type, { changes: fileEvents });
+            } catch (error) {
+              this._fileEvents = fileEvents;
+              throw error;
+            }
+          });
+        };
+        const workSpaceMiddleware = this.clientOptions.middleware.workspace;
+        (workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)).catch((error) => {
+          this.error(`Notifying ${import_vscode_languageserver_protocol3.DidChangeWatchedFilesNotification.method} failed.`, error);
+        });
       }
-      handleDiagnostics(params) {
-        let { uri, diagnostics, version: version2 } = params;
-        if (number(version2) && !workspace_default.hasDocument(uri, version2)) return;
-        let middleware = this.clientOptions.middleware.handleDiagnostics;
-        if (middleware) {
-          middleware(
-            uri,
-            diagnostics,
-            (uri2, diagnostics2) => this.setDiagnostics(uri2, diagnostics2)
-          );
-        } else {
-          this.setDiagnostics(uri, diagnostics);
-        }
+      /**
+       * @deprecated
+       */
+      async forceDocumentSync() {
+      }
+      isSynced(uri) {
+        return this._syncedDocuments ? this._syncedDocuments.has(uri) : false;
       }
       async createConnection() {
+        let onError = (error) => {
+          this.error(`Unexpected connection error: `, error);
+        };
         let errorHandler = (error, message, count) => {
-          this.handleConnectionError(error, message, count);
+          this.handleConnectionError(error, message, count).catch(onError);
         };
         let closeHandler = () => {
-          this.handleConnectionClosed();
+          this.handleConnectionClosed().catch(onError);
         };
         const transports = await this.createMessageTransports(defaultValue(this._clientOptions.stdioEncoding, "utf8"));
         this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions);
         return this._connection;
       }
-      handleConnectionClosed() {
+      async handleConnectionClosed() {
         if (this.$state === 5 /* Stopped */) {
-          logger22.debug(`client ${this._id} normal closed`);
+          logger22.info(`client ${this._id} normal closed`);
           return;
         }
         try {
-          if (this._connection) {
+          if (this._connection !== void 0) {
             this._connection.dispose();
           }
         } catch (error) {
         }
-        let action = 1 /* DoNotRestart */;
-        if (this.$state !== 4 /* Stopping */ && this._clientOptions.errorHandler) {
+        let handlerResult = { action: 1 /* DoNotRestart */ };
+        let err;
+        if (this.$state !== 4 /* Stopping */) {
           try {
-            action = this._clientOptions.errorHandler.closed();
+            let result = await this._clientOptions.errorHandler.closed();
+            handlerResult = toCloseHandlerResult(result);
           } catch (error) {
+            err = error;
           }
         }
         this._connection = void 0;
-        if (action === 1 /* DoNotRestart */) {
-          this.error("Connection to server got closed. Server will not be restarted.", void 0, "force");
-          this.cleanUp("stop");
+        if (handlerResult.action === 1 /* DoNotRestart */) {
+          this.error(handlerResult.message ?? "Connection to server got closed. Server will not be restarted.", void 0, handlerResult.handled === true ? false : "force");
+          this.cleanUp("stop" /* Stop */);
           if (this.$state === 1 /* Starting */) {
             this.$state = 2 /* StartFailed */;
           } else {
@@ -66898,36 +66838,43 @@ var init_client = __esm({
           }
           this._onStop = Promise.resolve();
           this._onStart = void 0;
-        } else if (action === 2 /* Restart */) {
-          this.info("Connection to server got closed. Server will restart.");
-          this.cleanUp("restart");
+        } else if (handlerResult.action === 2 /* Restart */) {
+          this.info(handlerResult.message ?? "Connection to server got closed. Server will restart.", void 0, !handlerResult.handled);
+          this.cleanUp("restart" /* Restart */);
           this.$state = 0 /* Initial */;
           this._onStop = Promise.resolve();
           this._onStart = void 0;
-          this.start().catch(this.error.bind(this, `Restarting server failed`));
+          this.start().catch((error) => {
+            this.error(`Restarting server failed`, error, "force");
+          });
+        }
+        if (err) throw err;
+      }
+      async handleConnectionError(error, message, count) {
+        let res = await this._clientOptions.errorHandler.error(error, message, count);
+        let result = typeof res === "number" ? { action: res } : defaultValue(res, { action: 2 /* Shutdown */ });
+        const showNotification = result.handled === true ? false : "force";
+        if (result.action === 2 /* Shutdown */) {
+          const msg = result.message ?? `Client ${this._name}: connection to server is erroring.
+${error.message}
+Shutting down server.`;
+          this.error(msg, error, showNotification);
+          return this.stop();
+        } else {
+          const msg = result.message ?? `Client ${this._name}: connection to server is erroring.
+${error.message}`;
+          this.error(msg, error, showNotification);
         }
       }
-      checkState() {
-        if (this.$state === 2 /* StartFailed */ || this.$state === 4 /* Stopping */ || this.$state === 5 /* Stopped */) {
-          throw new import_node4.ResponseError(import_node4.ErrorCodes.ConnectionInactive, `Client is not running`);
-        }
-      }
-      handleConnectionError(error, message, count) {
-        let action = this._clientOptions.errorHandler.error(error, message, count);
-        if (action === 2 /* Shutdown */) {
-          this.error(`Connection to server ${this._name} is erroring, ${error.message}. Shutting down server.`, error, "force");
-          this.stop().catch(this.error.bind(this, `Stopping server failed`));
-        }
-      }
-      hookConfigurationChanged(connection) {
+      hookConfigurationChanged() {
         workspace_default.onDidChangeConfiguration((e) => {
           if (e.affectsConfiguration(this._id)) {
-            this.refreshTrace(connection, true);
+            this.refreshTrace(true);
           }
         }, null, this._listeners);
       }
-      refreshTrace(connection, sendNotification) {
-        let config = workspace_default.getConfiguration(this._id, this.clientOptions.workspaceFolder);
+      refreshTrace(sendNotification) {
+        let config = workspace_default.getConfiguration(this._id, null);
         let trace = import_node4.Trace.Off;
         let traceFormat = import_node4.TraceFormat.Text;
         if (config) {
@@ -66942,20 +66889,19 @@ var init_client = __esm({
         if (sendNotification && this._trace == trace && this._traceFormat == traceFormat) {
           return;
         }
+        this.changeTrace(trace, traceFormat, sendNotification);
+      }
+      changeTrace(trace, traceFormat, sendNotification = true) {
         this._trace = trace;
         this._traceFormat = traceFormat;
-        connection.trace(this._trace, this._tracer, {
-          sendNotification,
-          traceFormat: this._traceFormat
-        }).catch(this.error.bind(this, `Updating trace failed with error`));
-      }
-      enableVerboseTrace() {
-        this._trace = import_node4.Trace.Verbose;
-        this._traceFormat = import_node4.TraceFormat.Text;
-        this._connection.trace(this._trace, this._tracer, {
-          sendNotification: true,
-          traceFormat: this._traceFormat
-        }).catch(this.error.bind(this, `Updating trace failed with error`));
+        if (this._connection && (this.$state === 3 /* Running */ || this.$state === 1 /* Starting */)) {
+          this._connection.trace(this._trace, this._tracer, {
+            sendNotification,
+            traceFormat: this._traceFormat
+          }).catch((error) => {
+            this.error(`Updating trace failed with error`, error, false);
+          });
+        }
       }
       registerFeatures(features) {
         for (let feature of features) {
@@ -66979,13 +66925,14 @@ var init_client = __esm({
       }
       registerBuiltinFeatures() {
         this.registerFeature(new SyncConfigurationFeature(this), "configuration");
-        this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments), "document");
+        this._didOpenTextDocumentFeature = new DidOpenTextDocumentFeature(this, this._syncedDocuments);
+        this.registerFeature(this._didOpenTextDocumentFeature, "document");
         this.registerFeature(new DidChangeTextDocumentFeature(this), "document");
         this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments), "document");
         this.registerFeature(new WillSaveFeature(this), "willSave");
         this.registerFeature(new WillSaveWaitUntilFeature(this), "willSaveWaitUntil");
         this.registerFeature(new DidSaveTextDocumentFeature(this), "didSave");
-        this.registerFeature(new FileSystemWatcherFeature(this), "fileSystemWatcher");
+        this.registerFeature(new FileSystemWatcherFeature(this, this.notifyFileEvent.bind(this)), "fileSystemWatcher");
         this.registerFeature(new CompletionItemFeature(this), "completion");
         this.registerFeature(new HoverFeature(this), "hover");
         this.registerFeature(new SignatureHelpFeature(this), "signatureHelp");
@@ -67019,6 +66966,8 @@ var init_client = __esm({
         this.registerFeature(new WillDeleteFilesFeature(this), "fileEvents");
         this.registerFeature(new SemanticTokensFeature(this), "semanticTokens");
         this.registerFeature(new InlayHintsFeature(this), "inlayHint");
+        this.registerFeature(new InlineCompletionItemFeature(this), "inlineCompletion");
+        this.registerFeature(new TextDocumentContentFeature(this), "textDocumentContent");
         this.registerFeature(new InlineValueFeature(this), "inlineValue");
         this.registerFeature(new DiagnosticFeature(this), "pullDiagnostic");
         this.registerFeature(new TypeHierarchyFeature(this), "typeHierarchy");
@@ -67048,25 +66997,32 @@ var init_client = __esm({
         workspaceEdit.changeAnnotationSupport = {
           groupsOnLabel: false
         };
+        workspaceEdit.metadataSupport = true;
+        workspaceEdit.snippetEditSupport = true;
         const diagnostics = ensure(ensure(result, "textDocument"), "publishDiagnostics");
         diagnostics.relatedInformation = true;
         diagnostics.versionSupport = true;
         diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] };
         diagnostics.codeDescriptionSupport = true;
         diagnostics.dataSupport = true;
+        const textDocumentFilter = ensure(ensure(result, "textDocument"), "filters");
+        textDocumentFilter.relativePatternSupport = true;
         const windowCapabilities = ensure(result, "window");
         const showMessage = ensure(windowCapabilities, "showMessage");
         showMessage.messageActionItem = { additionalPropertiesSupport: true };
         const showDocument = ensure(windowCapabilities, "showDocument");
         showDocument.support = true;
         const generalCapabilities = ensure(result, "general");
-        generalCapabilities.regularExpressions = { engine: "ECMAScript", version: "ES2020" };
-        generalCapabilities.markdown = { parser: "marked", version: "7.0.5" };
-        generalCapabilities.positionEncodings = ["utf-16"];
         generalCapabilities.staleRequestSupport = {
           cancel: true,
           retryOnContentModified: Array.from(_BaseLanguageClient.RequestsToCancelOnContentModified)
         };
+        generalCapabilities.regularExpressions = { engine: "ECMAScript", version: "ES2020" };
+        generalCapabilities.markdown = { parser: "marked", version: "7.0.5" };
+        generalCapabilities.positionEncodings = ["utf-16"];
+        if (this._clientOptions.markdown.supportHtml) {
+          generalCapabilities.markdown.allowedTags = ["ul", "li", "p", "code", "blockquote", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "em", "pre", "table", "thead", "tbody", "tr", "th", "td", "div", "del", "a", "strong", "br", "span"];
+        }
         for (let feature of this._features) {
           feature.fillClientCapabilities(result);
         }
@@ -67085,6 +67041,14 @@ var init_client = __esm({
       }
       handleRegistrationRequest(params) {
         if (this.clientOptions.disableDynamicRegister) return;
+        const middleware = this.clientOptions.middleware.handleRegisterCapability;
+        if (middleware) {
+          return middleware(params, (nextParams) => this.doRegisterCapability(nextParams));
+        } else {
+          return this.doRegisterCapability(params);
+        }
+      }
+      async doRegisterCapability(params) {
         if (!this.isRunning()) {
           for (const registration of params.registrations) {
             this._ignoredRegistrations.add(registration.id);
@@ -67094,10 +67058,10 @@ var init_client = __esm({
         for (const registration of params.registrations) {
           const feature = this._dynamicFeatures.get(registration.method);
           if (!feature) {
-            this.error(`No feature implementation for ${registration.method} found. Registration failed.`);
+            this.error(`No feature implementation for "${registration.method}" found. Registration failed.`, void 0, false);
             return;
           }
-          const options2 = registration.registerOptions ?? {};
+          const options2 = defaultValue(registration.registerOptions, {});
           options2.documentSelector = options2.documentSelector ?? this._clientOptions.documentSelector;
           const data = {
             id: registration.id,
@@ -67107,41 +67071,60 @@ var init_client = __esm({
         }
       }
       handleUnregistrationRequest(params) {
-        return new Promise((resolve) => {
-          for (let unregistration of params.unregisterations) {
-            if (this._ignoredRegistrations.has(unregistration.id)) continue;
-            const feature = this._dynamicFeatures.get(unregistration.method);
-            if (feature) feature.unregister(unregistration.id);
+        const middleware = this._clientOptions.middleware.handleUnregisterCapability;
+        if (middleware) {
+          return middleware(params, (nextParams) => this.doUnregisterCapability(nextParams));
+        } else {
+          return this.doUnregisterCapability(params);
+        }
+      }
+      async doUnregisterCapability(params) {
+        for (const unregistration of params.unregisterations) {
+          if (this._ignoredRegistrations.has(unregistration.id)) {
+            continue;
           }
-          resolve();
-        });
+          const feature = this._dynamicFeatures.get(unregistration.method);
+          if (feature) feature.unregister(unregistration.id);
+        }
+      }
+      handleDiagnostics(params) {
+        let { uri, diagnostics, version: version2 } = params;
+        if (number(version2) && !workspace_default.hasDocument(uri, version2)) return;
+        let middleware = this.clientOptions.middleware.handleDiagnostics;
+        if (middleware) {
+          middleware(
+            uri,
+            diagnostics,
+            (uri2, diagnostics2) => this.setDiagnostics(uri2, diagnostics2)
+          );
+        } else {
+          this.setDiagnostics(uri, diagnostics);
+        }
       }
       setDiagnostics(uri, diagnostics) {
         if (!this._diagnostics) return;
         this._diagnostics.set(uri, diagnostics);
       }
-      handleApplyWorkspaceEdit(params) {
-        let workspaceEdit = params.edit;
-        let openTextDocuments = /* @__PURE__ */ new Map();
-        workspace_default.textDocuments.forEach((document2) => openTextDocuments.set(document2.uri.toString(), document2));
-        let versionMismatch = false;
-        if (workspaceEdit.documentChanges) {
-          for (const change of workspaceEdit.documentChanges) {
-            if (TextDocumentEdit.is(change) && change.textDocument.version && change.textDocument.version >= 0) {
-              let textDocument = openTextDocuments.get(change.textDocument.uri);
-              if (textDocument && textDocument.version !== change.textDocument.version) {
-                versionMismatch = true;
-                break;
-              }
-            }
-          }
-        }
-        if (versionMismatch) {
-          return Promise.resolve({ applied: false });
-        }
-        return workspace_default.applyEdit(params.edit).then((value) => {
-          return { applied: value };
+      doHandleApplyWorkspaceEdit(params) {
+        return workspace_default.applyEdit(params.edit).then((applied) => {
+          return { applied };
         });
+      }
+      async handleApplyWorkspaceEdit(params) {
+        const middleware = this.clientOptions.middleware.workspace?.handleApplyEdit;
+        if (middleware) {
+          try {
+            let resultOrError = await Promise.resolve(middleware(params, (nextParams) => this.doHandleApplyWorkspaceEdit(nextParams)));
+            if (resultOrError instanceof import_node4.ResponseError) {
+              throw resultOrError;
+            }
+          } catch (error) {
+            this.error(`Error on apply workspace edit`, error, false);
+            return { applied: false };
+          }
+        } else {
+          return this.doHandleApplyWorkspaceEdit(params);
+        }
       }
       static {
         this.RequestsToCancelOnContentModified = /* @__PURE__ */ new Set([
@@ -67151,7 +67134,7 @@ var init_client = __esm({
           import_node4.SemanticTokensDeltaRequest.method
         ]);
       }
-      handleFailedRequest(type, token, error, defaultValue2) {
+      handleFailedRequest(type, token, error, defaultValue2, showNotification = true) {
         if (token && token.isCancellationRequested) return defaultValue2;
         if (error instanceof import_node4.ResponseError) {
           if (error.code === import_node4.ErrorCodes.PendingResponseRejected || error.code === import_node4.ErrorCodes.ConnectionInactive) {
@@ -67171,7 +67154,7 @@ var init_client = __esm({
             }
           }
         }
-        this.error(`Request ${type.method} failed.`, error);
+        this.error(`Request ${type.method} failed.`, error, showNotification);
         throw error;
       }
       // Should be keeped
@@ -67239,8 +67222,7 @@ function mainGetRootPath() {
   if (!folders || folders.length === 0) {
     return void 0;
   }
-  let folder = folders[0];
-  return folder.uri;
+  return URI2.parse(folders[0].uri).fsPath;
 }
 function getServerWorkingDir(options2) {
   let cwd2 = options2 && options2.cwd;
@@ -67260,10 +67242,33 @@ function startedInDebugMode(args) {
   }
   return false;
 }
-var logger23, debugStartWith, debugEquals, STOP_TIMEOUT, Executable, TransportKind, Transport, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
+function handleChildProcessStartError(childProcess, message) {
+  if (childProcess === null) {
+    return Promise.reject(message);
+  }
+  childProcess.unref();
+  return new Promise((_, reject) => {
+    childProcess.on("error", (err) => {
+      reject(`${message} ${err}`);
+    });
+    setImmediate(() => reject(message));
+  });
+}
+function checkProcessDied(childProcess) {
+  if (!childProcess || childProcess.pid === void 0) return;
+  setTimeout(() => {
+    try {
+      process.kill(childProcess.pid, 0);
+      terminate(childProcess);
+    } catch (error) {
+    }
+  }, STOP_TIMEOUT);
+}
+var logger23, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esm({
   "src/language-client/index.ts"() {
     "use strict";
+    init_esm();
     init_logger();
     init_util();
     init_is();
@@ -67272,17 +67277,13 @@ var init_language_client = __esm({
     init_protocol();
     init_workspace();
     init_client();
+    init_utils();
     init_client();
     logger23 = createLogger("language-client-index");
     debugStartWith = ["--debug=", "--debug-brk=", "--inspect=", "--inspect-brk="];
     debugEquals = ["--debug", "--debug-brk", "--inspect", "--inspect-brk"];
-    STOP_TIMEOUT = getConditionValue(2e3, 100);
-    ((Executable3) => {
-      function is(value) {
-        return string(value.command);
-      }
-      Executable3.is = is;
-    })(Executable || (Executable = {}));
+    STOP_TIMEOUT = getConditionValue(2e3, 10);
+    RESTART_TIMEOUT = getConditionValue(1e3, 10);
     TransportKind = /* @__PURE__ */ ((TransportKind2) => {
       TransportKind2[TransportKind2["stdio"] = 0] = "stdio";
       TransportKind2[TransportKind2["ipc"] = 1] = "ipc";
@@ -67297,6 +67298,12 @@ var init_language_client = __esm({
       }
       Transport3.isSocket = isSocket;
     })(Transport || (Transport = {}));
+    ((Executable3) => {
+      function is(value) {
+        return string(value.command);
+      }
+      Executable3.is = is;
+    })(Executable || (Executable = {}));
     ((NodeModule2) => {
       function is(value) {
         return string(value.module);
@@ -67342,13 +67349,13 @@ var init_language_client = __esm({
         this._forceDebug = !!forceDebug;
         this._isInDebugMode = !!forceDebug;
       }
-      stop(timeout2 = STOP_TIMEOUT) {
-        return super.stop(timeout2).then(() => {
+      shutdown(mode, timeout2) {
+        return super.shutdown(mode, timeout2).then(() => {
           if (this._serverProcess) {
             let toCheck = this._serverProcess;
             this._serverProcess = void 0;
             if (this._isDetached === void 0 || !this._isDetached) {
-              this.checkProcessDied(toCheck);
+              checkProcessDied(toCheck);
             }
             this._isDetached = void 0;
           }
@@ -67364,19 +67371,9 @@ var init_language_client = __esm({
       get serviceState() {
         return this._state;
       }
-      checkProcessDied(childProcess) {
-        if (!childProcess || childProcess.pid === void 0) return;
-        setTimeout(() => {
-          try {
-            process.kill(childProcess.pid, 0);
-            terminate(childProcess);
-          } catch (error) {
-          }
-        }, STOP_TIMEOUT);
-      }
       handleConnectionClosed() {
         this._serverProcess = void 0;
-        super.handleConnectionClosed();
+        return super.handleConnectionClosed();
       }
       get isInDebugMode() {
         return this._isInDebugMode;
@@ -67384,7 +67381,7 @@ var init_language_client = __esm({
       async restart() {
         await this.stop();
         if (this.isInDebugMode) {
-          await new Promise((resolve) => setTimeout(resolve, 1e3));
+          await new Promise((resolve) => setTimeout(resolve, RESTART_TIMEOUT));
           await this._start();
         } else {
           await this._start();
@@ -67404,11 +67401,31 @@ var init_language_client = __esm({
         }
         function assertStdio(process2) {
           if (process2.stdin === null || process2.stdout === null || process2.stderr === null) {
+            process2.kill("SIGKILL");
             throw new Error("Process created without stdio streams");
           }
         }
+        function logMessage(kind, data, outputChannel) {
+          let msg = `[${kind} - ${currentTimeStamp()}] ${data}`;
+          outputChannel.append(msg);
+        }
+        function pipeStdoutToLogOutputChannel(input, outputChannel) {
+          readline.createInterface({
+            input,
+            crlfDelay: Infinity,
+            terminal: false,
+            historySize: 0
+          }).on("line", (data) => logMessage("Stdout", data, outputChannel));
+        }
+        function pipeStderrToLogOutputChannel(input, outputChannel) {
+          readline.createInterface({
+            input,
+            crlfDelay: Infinity,
+            terminal: false,
+            historySize: 0
+          }).on("line", (data) => logMessage("Stderr", data, outputChannel));
+        }
         let server = this._serverOptions;
-        const logMessage = this.logMessage.bind(this);
         if (func(server)) {
           return server().then((result) => {
             if (MessageTransports.is(result)) {
@@ -67429,7 +67446,7 @@ var init_language_client = __esm({
                 cp = result;
                 this._isDetached = false;
               }
-              cp.stderr.on("data", logMessage);
+              pipeStderrToLogOutputChannel(cp.stderr, this.outputChannel);
               return {
                 reader: new import_node4.StreamMessageReader(cp.stdout),
                 writer: new import_node4.StreamMessageWriter(cp.stdin)
@@ -67476,37 +67493,37 @@ var init_language_client = __esm({
               options2.silent = true;
               if (runtime) options2.execPath = runtime;
               if (transport === 1 /* ipc */ || transport === 0 /* stdio */) {
-                let sp = child_process.fork(node.module, args || [], options2);
+                let sp = child_process.fork(node.module, args, options2);
                 assertStdio(sp);
                 this._serverProcess = sp;
                 logger23.info(`Language server "${this.id}" started with ${sp.pid}`);
-                sp.stderr.on("data", logMessage);
+                pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
                 if (transport === 1 /* ipc */) {
-                  sp.stdout.on("data", logMessage);
+                  pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
                   resolve({ reader: new import_node4.IPCMessageReader(this._serverProcess), writer: new import_node4.IPCMessageWriter(this._serverProcess) });
                 } else {
                   resolve({ reader: new import_node4.StreamMessageReader(sp.stdout), writer: new import_node4.StreamMessageWriter(sp.stdin) });
                 }
               } else if (transport === 2 /* pipe */) {
-                return (0, import_node4.createClientPipeTransport)(pipeName).then((transport2) => {
-                  let sp = child_process.fork(node.module, args || [], options2);
+                return createClientPipeTransport(pipeName).then((transport2) => {
+                  let sp = child_process.fork(node.module, args, options2);
                   assertStdio(sp);
                   logger23.info(`Language server "${this.id}" started with ${sp.pid}`);
                   this._serverProcess = sp;
-                  sp.stderr.on("data", logMessage);
-                  sp.stdout.on("data", logMessage);
+                  pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
+                  pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
                   void transport2.onConnected().then((protocol2) => {
                     resolve({ reader: protocol2[0], writer: protocol2[1] });
                   });
                 });
               } else if (Transport.isSocket(transport)) {
-                return (0, import_node4.createClientSocketTransport)(transport.port).then((transport2) => {
-                  let sp = child_process.fork(node.module, args || [], options2);
+                return createClientSocketTransport(transport.port).then((transport2) => {
+                  let sp = child_process.fork(node.module, args, options2);
                   assertStdio(sp);
                   this._serverProcess = sp;
                   logger23.info(`Language server "${this.id}" started with ${sp.pid}`);
-                  sp.stderr.on("data", logMessage);
-                  sp.stdout.on("data", logMessage);
+                  pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
+                  pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
                   void transport2.onConnected().then((protocol2) => {
                     resolve({ reader: protocol2[0], writer: protocol2[1] });
                   });
@@ -67515,34 +67532,73 @@ var init_language_client = __esm({
             });
           } else if (Executable.is(json) && json.command) {
             let command = json;
-            let args = command.args || [];
-            let options2 = Object.assign({}, command.options);
-            options2.env = options2.env ? Object.assign({}, process.env, options2.env) : process.env;
-            options2.cwd = options2.cwd || serverWorkingDir;
-            options2.shell = process.platform === "win32" || !!options2.shell;
-            let cmd = workspace_default.expand(json.command);
-            let serverProcess = child_process.spawn(cmd, args, options2);
-            serverProcess.on("error", (e) => {
-              this.error(e.message, e);
-            });
-            if (!serverProcess || !serverProcess.pid) {
-              return Promise.reject(new Error(`Launching server "${this.id}" using command ${command.command} failed.`));
+            let args = Array.isArray(command.args) ? command.args.slice(0) : [];
+            let pipeName;
+            const transport = json.transport;
+            if (transport === 0 /* stdio */) {
+              args.push("--stdio");
+            } else if (transport === 2 /* pipe */) {
+              pipeName = (0, import_node4.generateRandomPipeName)();
+              args.push(`--pipe=${pipeName}`);
+            } else if (Transport.isSocket(transport)) {
+              args.push(`--socket=${transport.port}`);
+            } else if (transport === 1 /* ipc */) {
+              throw new Error(`Transport kind ipc is not supported for command executable`);
             }
-            logger23.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
-            serverProcess.on("exit", (code) => {
-              if (code != 0) this.error(`${command.command} exited with code: ${code}`);
-            });
-            serverProcess.stderr.on("data", (data) => this.outputChannel.append(string(data) ? data : data.toString(encoding2)));
-            this._serverProcess = serverProcess;
-            this._isDetached = !!options2.detached;
-            return Promise.resolve({ reader: new import_node4.StreamMessageReader(serverProcess.stdout), writer: new import_node4.StreamMessageWriter(serverProcess.stdin) });
+            let options2 = Object.assign({ shell: process.platform === "win32" }, command.options);
+            options2.env = getEnvironment(options2.env, false);
+            options2.cwd = options2.cwd ?? serverWorkingDir;
+            options2.windowsHide = true;
+            const attachProcess = (serverProcess, pipiStdout = true) => {
+              this._serverProcess = serverProcess;
+              this._isDetached = !!options2.detached;
+              logger23.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
+              if (pipiStdout) pipeStdoutToLogOutputChannel(serverProcess.stdout, this.outputChannel);
+              pipeStderrToLogOutputChannel(serverProcess.stderr, this.outputChannel);
+            };
+            let cmd = workspace_default.expand(json.command);
+            if (transport === void 0 || transport === 0 /* stdio */) {
+              const serverProcess = child_process.spawn(cmd, args, options2);
+              if (!serverProcess || !serverProcess.pid) {
+                return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`);
+              }
+              attachProcess(serverProcess, false);
+              return Promise.resolve({ reader: new import_node4.StreamMessageReader(serverProcess.stdout), writer: new import_node4.StreamMessageWriter(serverProcess.stdin) });
+            } else if (transport === 2 /* pipe */ || Transport.isSocket(transport)) {
+              let promise;
+              if (transport === 2 /* pipe */) {
+                promise = createClientPipeTransport(pipeName);
+              } else {
+                promise = createClientSocketTransport(transport.port);
+              }
+              return promise.then((transport2) => {
+                const serverProcess = child_process.spawn(cmd, args, options2);
+                if (!serverProcess || !serverProcess.pid) {
+                  transport2.dispose();
+                  return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`);
+                }
+                attachProcess(serverProcess);
+                return transport2.onConnected().then((protocol2) => {
+                  return { reader: protocol2[0], writer: protocol2[1] };
+                });
+              });
+            }
           }
           return Promise.reject(new Error(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`));
+        }).finally(() => {
+          if (this._serverProcess !== void 0) {
+            this._serverProcess.on("exit", (code, signal) => {
+              if (code === 0) {
+                this.info("Server process exited successfully", void 0, false);
+              } else if (code !== null) {
+                this.error(`Server process exited with code ${code}.`, void 0, false);
+              }
+              if (signal !== null) {
+                this.error(`Server process exited with signal ${signal}.`, void 0, false);
+              }
+            });
+          }
         });
-      }
-      logMessage(data) {
-        let encoding2 = this.clientOptions.stdioEncoding;
-        this.outputChannel.append(string(data) ? data : data.toString(encoding2));
       }
     };
     SettingMonitor = class {
@@ -67569,7 +67625,7 @@ var init_language_client = __esm({
         let index = this._setting.indexOf(".");
         let primary = index >= 0 ? this._setting.substr(0, index) : this._setting;
         let rest = index >= 0 ? this._setting.substr(index + 1) : void 0;
-        let enabled = rest ? workspace_default.getConfiguration(primary).get(rest, true) : workspace_default.getConfiguration(primary);
+        let enabled = rest ? workspace_default.getConfiguration(primary).get(rest, true) : workspace_default.getConfiguration().get(primary, true);
         if (enabled && this._client.needsStart()) {
           this._client.start().catch((error) => this._client.error("Start failed after configuration change", error, "force"));
         } else if (!enabled && this._client.needsStop()) {
@@ -67762,6 +67818,8 @@ function stateString(state) {
       return "starting";
     case 1 /* Stopped */:
       return "stopped";
+    case 4 /* StartFailed */:
+      return "startFailed";
     default:
       return "unknown";
   }
@@ -68941,86 +68999,6 @@ var init_eval = __esm({
   }
 });
 
-// src/snippets/string.ts
-var SnippetString;
-var init_string2 = __esm({
-  "src/snippets/string.ts"() {
-    "use strict";
-    SnippetString = class _SnippetString {
-      constructor(value) {
-        this._tabstop = 1;
-        this.value = value || "";
-      }
-      static isSnippetString(thing) {
-        if (thing instanceof _SnippetString) {
-          return true;
-        }
-        if (!thing) {
-          return false;
-        }
-        return typeof thing.value === "string";
-      }
-      static _escape(value) {
-        return value.replace(/\$|}|\\/g, "\\$&");
-      }
-      appendText(str) {
-        this.value += _SnippetString._escape(str);
-        return this;
-      }
-      appendTabstop(num = this._tabstop++) {
-        this.value += "$";
-        this.value += num;
-        return this;
-      }
-      appendPlaceholder(value, num = this._tabstop++) {
-        if (typeof value === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          value(nested);
-          this._tabstop = nested._tabstop;
-          value = nested.value;
-        } else {
-          value = _SnippetString._escape(value);
-        }
-        this.value += "${";
-        this.value += num;
-        this.value += ":";
-        this.value += value;
-        this.value += "}";
-        return this;
-      }
-      appendChoice(values, num = this._tabstop++) {
-        const value = values.map((s) => s.replaceAll(/[|\\,]/g, "\\$&")).join(",");
-        this.value += "${";
-        this.value += num;
-        this.value += "|";
-        this.value += value;
-        this.value += "|}";
-        return this;
-      }
-      appendVariable(name2, defaultValue2) {
-        if (typeof defaultValue2 === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          defaultValue2(nested);
-          this._tabstop = nested._tabstop;
-          defaultValue2 = nested.value;
-        } else if (typeof defaultValue2 === "string") {
-          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
-        }
-        this.value += "${";
-        this.value += name2;
-        if (defaultValue2) {
-          this.value += ":";
-          this.value += defaultValue2;
-        }
-        this.value += "}";
-        return this;
-      }
-    };
-  }
-});
-
 // src/snippets/util.ts
 var util_exports = {};
 __export(util_exports, {
@@ -69128,10 +69106,13 @@ function getTextAfter(range, text, pos) {
   return newLines.join("\n");
 }
 function toSnippetString(snippet) {
-  if (typeof snippet !== "string" && !SnippetString.isSnippetString(snippet)) {
-    throw new TypeError(`snippet should be string or SnippetString`);
+  if (typeof snippet === "string") {
+    return snippet;
   }
-  return SnippetString.isSnippetString(snippet) ? snippet.value : snippet;
+  if (typeof snippet.value === "string") {
+    return snippet.value;
+  }
+  throw new TypeError(`Snippet should be string or has value as string`);
 }
 var stringStartRe, conditionRe, commentRe, namedCaptureRe, namedReferenceRe, regex, WordsSource, wordsSource;
 var init_util4 = __esm({
@@ -69140,7 +69121,6 @@ var init_util4 = __esm({
     init_main();
     init_util();
     init_position();
-    init_string2();
     stringStartRe = /\\A/;
     conditionRe = /\(\?\(\w+\).+\|/;
     commentRe = /\(\?#.*?\)/;
@@ -71983,6 +71963,12 @@ var init_manager4 = __esm({
             return await this.insertSnippet(edit2.newText, true, edit2.range, InsertTextMode.adjustIndentation, opts ? opts : void 0);
           }
         }, true);
+        commands_default.register({
+          id: "editor.action.insertBufferSnippets",
+          execute: async (bufnr, edits, select) => {
+            return await this.insertBufferSnippets(bufnr, edits, select);
+          }
+        }, true);
       }
       get nvim() {
         return workspace_default.nvim;
@@ -72186,267 +72172,83 @@ var init_manager4 = __esm({
   }
 });
 
-// src/model/line.ts
-var LineBuilder;
-var init_line = __esm({
-  "src/model/line.ts"() {
+// src/snippets/string.ts
+var SnippetString;
+var init_string2 = __esm({
+  "src/snippets/string.ts"() {
     "use strict";
-    init_string();
-    LineBuilder = class {
-      constructor(addSpace = false) {
-        this.addSpace = addSpace;
-        this._label = "";
-        this._len = 0;
-        this._highlights = [];
+    SnippetString = class _SnippetString {
+      constructor(value) {
+        this._tabstop = 1;
+        this.value = value || "";
       }
-      append(text, hlGroup, nested) {
-        if (text.length == 0) return;
-        let space = this._len > 0 && this.addSpace ? " " : "";
-        let start = this._len + space.length;
-        this._label = this._label + space + text;
-        this._len = this._len + byteLength(text) + space.length;
-        if (hlGroup) {
-          this._highlights.push({
-            hlGroup,
-            span: [start, start + byteLength(text)]
-          });
+      static isSnippetString(thing) {
+        if (thing instanceof _SnippetString) {
+          return true;
         }
-        if (nested) {
-          for (let item of nested) {
-            let s = start + byteIndex(text, item.offset);
-            let e = start + byteIndex(text, item.offset + item.length);
-            this._highlights.push({
-              hlGroup: item.hlGroup,
-              span: [s, e]
-            });
-          }
+        if (!thing) {
+          return false;
         }
+        return typeof thing.value === "string";
       }
-      appendBuilder(builder) {
-        let space = this._len > 0 && this.addSpace ? " " : "";
-        let curr = this._len + space.length;
-        this._label = this._label + space + builder.label;
-        this._len = this._len + byteLength(builder.label) + space.length;
-        this._highlights.push(...builder.highlights.map((item) => {
-          return {
-            hlGroup: item.hlGroup,
-            span: item.span.map((v) => {
-              return curr + v;
-            })
-          };
-        }));
+      static _escape(value) {
+        return value.replace(/\$|}|\\/g, "\\$&");
       }
-      get label() {
-        return this._label;
+      appendText(str) {
+        this.value += _SnippetString._escape(str);
+        return this;
       }
-      get highlights() {
-        return this._highlights;
+      appendTabstop(num = this._tabstop++) {
+        this.value += "$";
+        this.value += num;
+        return this;
       }
-    };
-  }
-});
-
-// src/model/semanticTokensBuilder.ts
-function isStringArray(value) {
-  return Array.isArray(value) && value.every((elem) => typeof elem === "string");
-}
-function isStrArrayOrUndefined(arg) {
-  return typeof arg === "undefined" || isStringArray(arg);
-}
-var SemanticTokensBuilder;
-var init_semanticTokensBuilder = __esm({
-  "src/model/semanticTokensBuilder.ts"() {
-    "use strict";
-    init_main();
-    SemanticTokensBuilder = class _SemanticTokensBuilder {
-      constructor(legend) {
-        this._prevLine = 0;
-        this._prevChar = 0;
-        this._dataIsSortedAndDeltaEncoded = true;
-        this._data = [];
-        this._dataLen = 0;
-        this._tokenTypeStrToInt = /* @__PURE__ */ new Map();
-        this._tokenModifierStrToInt = /* @__PURE__ */ new Map();
-        this._hasLegend = false;
-        if (legend) {
-          this._hasLegend = true;
-          for (let i = 0, len = legend.tokenTypes.length; i < len; i++) {
-            this._tokenTypeStrToInt.set(legend.tokenTypes[i], i);
-          }
-          for (let i = 0, len = legend.tokenModifiers.length; i < len; i++) {
-            this._tokenModifierStrToInt.set(legend.tokenModifiers[i], i);
-          }
-        }
-      }
-      push(arg0, arg1, arg2, arg3, arg4) {
-        if (typeof arg0 === "number" && typeof arg1 === "number" && typeof arg2 === "number" && typeof arg3 === "number" && (typeof arg4 === "number" || typeof arg4 === "undefined")) {
-          if (typeof arg4 === "undefined") {
-            arg4 = 0;
-          }
-          return this._pushEncoded(arg0, arg1, arg2, arg3, arg4);
-        }
-        if (Range.is(arg0) && typeof arg1 === "string" && isStrArrayOrUndefined(arg2)) {
-          return this._push(arg0, arg1, arg2);
-        }
-        throw new Error("Illegal argument");
-      }
-      _push(range, tokenType, tokenModifiers) {
-        if (!this._hasLegend) {
-          throw new Error("Legend must be provided in constructor");
-        }
-        if (range.start.line !== range.end.line) {
-          throw new Error("`range` cannot span multiple lines");
-        }
-        if (!this._tokenTypeStrToInt.has(tokenType)) {
-          throw new Error("`tokenType` is not in the provided legend");
-        }
-        const line = range.start.line;
-        const char = range.start.character;
-        const length = range.end.character - range.start.character;
-        const nTokenType = this._tokenTypeStrToInt.get(tokenType);
-        let nTokenModifiers = 0;
-        if (tokenModifiers) {
-          for (const tokenModifier of tokenModifiers) {
-            if (!this._tokenModifierStrToInt.has(tokenModifier)) {
-              throw new Error("`tokenModifier` is not in the provided legend");
-            }
-            const nTokenModifier = this._tokenModifierStrToInt.get(tokenModifier);
-            nTokenModifiers |= 1 << nTokenModifier >>> 0;
-          }
-        }
-        this._pushEncoded(line, char, length, nTokenType, nTokenModifiers);
-      }
-      _pushEncoded(line, char, length, tokenType, tokenModifiers) {
-        if (this._dataIsSortedAndDeltaEncoded && (line < this._prevLine || line === this._prevLine && char < this._prevChar)) {
-          this._dataIsSortedAndDeltaEncoded = false;
-          const tokenCount = this._data.length / 5 | 0;
-          let prevLine = 0;
-          let prevChar = 0;
-          for (let i = 0; i < tokenCount; i++) {
-            let line2 = this._data[5 * i];
-            let char2 = this._data[5 * i + 1];
-            if (line2 === 0) {
-              line2 = prevLine;
-              char2 += prevChar;
-            } else {
-              line2 += prevLine;
-            }
-            this._data[5 * i] = line2;
-            this._data[5 * i + 1] = char2;
-            prevLine = line2;
-            prevChar = char2;
-          }
-        }
-        let pushLine = line;
-        let pushChar = char;
-        if (this._dataIsSortedAndDeltaEncoded && this._dataLen > 0) {
-          pushLine -= this._prevLine;
-          if (pushLine === 0) {
-            pushChar -= this._prevChar;
-          }
-        }
-        this._data[this._dataLen++] = pushLine;
-        this._data[this._dataLen++] = pushChar;
-        this._data[this._dataLen++] = length;
-        this._data[this._dataLen++] = tokenType;
-        this._data[this._dataLen++] = tokenModifiers;
-        this._prevLine = line;
-        this._prevChar = char;
-      }
-      static _sortAndDeltaEncode(data) {
-        let pos = [];
-        const tokenCount = data.length / 5 | 0;
-        for (let i = 0; i < tokenCount; i++) {
-          pos[i] = i;
-        }
-        pos.sort((a, b) => {
-          const aLine = data[5 * a];
-          const bLine = data[5 * b];
-          if (aLine === bLine) {
-            const aChar = data[5 * a + 1];
-            const bChar = data[5 * b + 1];
-            return aChar - bChar;
-          }
-          return aLine - bLine;
-        });
-        const result = new Array(data.length);
-        let prevLine = 0;
-        let prevChar = 0;
-        for (let i = 0; i < tokenCount; i++) {
-          const srcOffset = 5 * pos[i];
-          const line = data[srcOffset + 0];
-          const char = data[srcOffset + 1];
-          const length = data[srcOffset + 2];
-          const tokenType = data[srcOffset + 3];
-          const tokenModifiers = data[srcOffset + 4];
-          const pushLine = line - prevLine;
-          const pushChar = pushLine === 0 ? char - prevChar : char;
-          const dstOffset = 5 * i;
-          result[dstOffset + 0] = pushLine;
-          result[dstOffset + 1] = pushChar;
-          result[dstOffset + 2] = length;
-          result[dstOffset + 3] = tokenType;
-          result[dstOffset + 4] = tokenModifiers;
-          prevLine = line;
-          prevChar = char;
-        }
-        return result;
-      }
-      /**
-       * Finish and create a `SemanticTokens` instance.
-       */
-      build(resultId) {
-        if (!this._dataIsSortedAndDeltaEncoded) {
-          return { data: _SemanticTokensBuilder._sortAndDeltaEncode(this._data), resultId };
-        }
-        return { data: this._data, resultId };
-      }
-    };
-  }
-});
-
-// src/tree/TreeItem.ts
-function getItemLabel(item) {
-  return TreeItemLabel.is(item.label) ? item.label.label : item.label;
-}
-var TreeItemLabel, TreeItemCollapsibleState, TreeItem;
-var init_TreeItem = __esm({
-  "src/tree/TreeItem.ts"() {
-    "use strict";
-    init_esm();
-    init_node();
-    ((TreeItemLabel3) => {
-      function is(obj) {
-        return typeof obj.label == "string";
-      }
-      TreeItemLabel3.is = is;
-    })(TreeItemLabel || (TreeItemLabel = {}));
-    TreeItemCollapsibleState = /* @__PURE__ */ ((TreeItemCollapsibleState2) => {
-      TreeItemCollapsibleState2[TreeItemCollapsibleState2["None"] = 0] = "None";
-      TreeItemCollapsibleState2[TreeItemCollapsibleState2["Collapsed"] = 1] = "Collapsed";
-      TreeItemCollapsibleState2[TreeItemCollapsibleState2["Expanded"] = 2] = "Expanded";
-      return TreeItemCollapsibleState2;
-    })(TreeItemCollapsibleState || {});
-    TreeItem = class {
-      constructor(label, collapsibleState = 0 /* None */) {
-        this.collapsibleState = collapsibleState;
-        if (URI2.isUri(label)) {
-          this.resourceUri = label;
-          this.label = path.basename(label.path);
-          this.id = label.toString();
+      appendPlaceholder(value, num = this._tabstop++) {
+        if (typeof value === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          value(nested);
+          this._tabstop = nested._tabstop;
+          value = nested.value;
         } else {
-          this.label = label;
+          value = _SnippetString._escape(value);
         }
+        this.value += "${";
+        this.value += num;
+        this.value += ":";
+        this.value += value;
+        this.value += "}";
+        return this;
+      }
+      appendChoice(values, num = this._tabstop++) {
+        const value = values.map((s) => s.replaceAll(/[|\\,]/g, "\\$&")).join(",");
+        this.value += "${";
+        this.value += num;
+        this.value += "|";
+        this.value += value;
+        this.value += "|}";
+        return this;
+      }
+      appendVariable(name2, defaultValue2) {
+        if (typeof defaultValue2 === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          defaultValue2(nested);
+          this._tabstop = nested._tabstop;
+          defaultValue2 = nested.value;
+        } else if (typeof defaultValue2 === "string") {
+          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
+        }
+        this.value += "${";
+        this.value += name2;
+        if (defaultValue2) {
+          this.value += ":";
+          this.value += defaultValue2;
+        }
+        this.value += "}";
+        return this;
       }
     };
-  }
-});
-
-// src/tree/index.ts
-var init_tree = __esm({
-  "src/tree/index.ts"() {
-    "use strict";
-    init_TreeItem();
   }
 });
 
@@ -72730,6 +72532,270 @@ var init_workspaceFolder = __esm({
   }
 });
 
+// src/model/line.ts
+var LineBuilder;
+var init_line = __esm({
+  "src/model/line.ts"() {
+    "use strict";
+    init_string();
+    LineBuilder = class {
+      constructor(addSpace = false) {
+        this.addSpace = addSpace;
+        this._label = "";
+        this._len = 0;
+        this._highlights = [];
+      }
+      append(text, hlGroup, nested) {
+        if (text.length == 0) return;
+        let space = this._len > 0 && this.addSpace ? " " : "";
+        let start = this._len + space.length;
+        this._label = this._label + space + text;
+        this._len = this._len + byteLength(text) + space.length;
+        if (hlGroup) {
+          this._highlights.push({
+            hlGroup,
+            span: [start, start + byteLength(text)]
+          });
+        }
+        if (nested) {
+          for (let item of nested) {
+            let s = start + byteIndex(text, item.offset);
+            let e = start + byteIndex(text, item.offset + item.length);
+            this._highlights.push({
+              hlGroup: item.hlGroup,
+              span: [s, e]
+            });
+          }
+        }
+      }
+      appendBuilder(builder) {
+        let space = this._len > 0 && this.addSpace ? " " : "";
+        let curr = this._len + space.length;
+        this._label = this._label + space + builder.label;
+        this._len = this._len + byteLength(builder.label) + space.length;
+        this._highlights.push(...builder.highlights.map((item) => {
+          return {
+            hlGroup: item.hlGroup,
+            span: item.span.map((v) => {
+              return curr + v;
+            })
+          };
+        }));
+      }
+      get label() {
+        return this._label;
+      }
+      get highlights() {
+        return this._highlights;
+      }
+    };
+  }
+});
+
+// src/model/semanticTokensBuilder.ts
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((elem) => typeof elem === "string");
+}
+function isStrArrayOrUndefined(arg) {
+  return typeof arg === "undefined" || isStringArray(arg);
+}
+var SemanticTokensBuilder;
+var init_semanticTokensBuilder = __esm({
+  "src/model/semanticTokensBuilder.ts"() {
+    "use strict";
+    init_main();
+    SemanticTokensBuilder = class _SemanticTokensBuilder {
+      constructor(legend) {
+        this._prevLine = 0;
+        this._prevChar = 0;
+        this._dataIsSortedAndDeltaEncoded = true;
+        this._data = [];
+        this._dataLen = 0;
+        this._tokenTypeStrToInt = /* @__PURE__ */ new Map();
+        this._tokenModifierStrToInt = /* @__PURE__ */ new Map();
+        this._hasLegend = false;
+        if (legend) {
+          this._hasLegend = true;
+          for (let i = 0, len = legend.tokenTypes.length; i < len; i++) {
+            this._tokenTypeStrToInt.set(legend.tokenTypes[i], i);
+          }
+          for (let i = 0, len = legend.tokenModifiers.length; i < len; i++) {
+            this._tokenModifierStrToInt.set(legend.tokenModifiers[i], i);
+          }
+        }
+      }
+      push(arg0, arg1, arg2, arg3, arg4) {
+        if (typeof arg0 === "number" && typeof arg1 === "number" && typeof arg2 === "number" && typeof arg3 === "number" && (typeof arg4 === "number" || typeof arg4 === "undefined")) {
+          if (typeof arg4 === "undefined") {
+            arg4 = 0;
+          }
+          return this._pushEncoded(arg0, arg1, arg2, arg3, arg4);
+        }
+        if (Range.is(arg0) && typeof arg1 === "string" && isStrArrayOrUndefined(arg2)) {
+          return this._push(arg0, arg1, arg2);
+        }
+        throw new Error("Illegal argument");
+      }
+      _push(range, tokenType, tokenModifiers) {
+        if (!this._hasLegend) {
+          throw new Error("Legend must be provided in constructor");
+        }
+        if (range.start.line !== range.end.line) {
+          throw new Error("`range` cannot span multiple lines");
+        }
+        if (!this._tokenTypeStrToInt.has(tokenType)) {
+          throw new Error("`tokenType` is not in the provided legend");
+        }
+        const line = range.start.line;
+        const char = range.start.character;
+        const length = range.end.character - range.start.character;
+        const nTokenType = this._tokenTypeStrToInt.get(tokenType);
+        let nTokenModifiers = 0;
+        if (tokenModifiers) {
+          for (const tokenModifier of tokenModifiers) {
+            if (!this._tokenModifierStrToInt.has(tokenModifier)) {
+              throw new Error("`tokenModifier` is not in the provided legend");
+            }
+            const nTokenModifier = this._tokenModifierStrToInt.get(tokenModifier);
+            nTokenModifiers |= 1 << nTokenModifier >>> 0;
+          }
+        }
+        this._pushEncoded(line, char, length, nTokenType, nTokenModifiers);
+      }
+      _pushEncoded(line, char, length, tokenType, tokenModifiers) {
+        if (this._dataIsSortedAndDeltaEncoded && (line < this._prevLine || line === this._prevLine && char < this._prevChar)) {
+          this._dataIsSortedAndDeltaEncoded = false;
+          const tokenCount = this._data.length / 5 | 0;
+          let prevLine = 0;
+          let prevChar = 0;
+          for (let i = 0; i < tokenCount; i++) {
+            let line2 = this._data[5 * i];
+            let char2 = this._data[5 * i + 1];
+            if (line2 === 0) {
+              line2 = prevLine;
+              char2 += prevChar;
+            } else {
+              line2 += prevLine;
+            }
+            this._data[5 * i] = line2;
+            this._data[5 * i + 1] = char2;
+            prevLine = line2;
+            prevChar = char2;
+          }
+        }
+        let pushLine = line;
+        let pushChar = char;
+        if (this._dataIsSortedAndDeltaEncoded && this._dataLen > 0) {
+          pushLine -= this._prevLine;
+          if (pushLine === 0) {
+            pushChar -= this._prevChar;
+          }
+        }
+        this._data[this._dataLen++] = pushLine;
+        this._data[this._dataLen++] = pushChar;
+        this._data[this._dataLen++] = length;
+        this._data[this._dataLen++] = tokenType;
+        this._data[this._dataLen++] = tokenModifiers;
+        this._prevLine = line;
+        this._prevChar = char;
+      }
+      static _sortAndDeltaEncode(data) {
+        let pos = [];
+        const tokenCount = data.length / 5 | 0;
+        for (let i = 0; i < tokenCount; i++) {
+          pos[i] = i;
+        }
+        pos.sort((a, b) => {
+          const aLine = data[5 * a];
+          const bLine = data[5 * b];
+          if (aLine === bLine) {
+            const aChar = data[5 * a + 1];
+            const bChar = data[5 * b + 1];
+            return aChar - bChar;
+          }
+          return aLine - bLine;
+        });
+        const result = new Array(data.length);
+        let prevLine = 0;
+        let prevChar = 0;
+        for (let i = 0; i < tokenCount; i++) {
+          const srcOffset = 5 * pos[i];
+          const line = data[srcOffset + 0];
+          const char = data[srcOffset + 1];
+          const length = data[srcOffset + 2];
+          const tokenType = data[srcOffset + 3];
+          const tokenModifiers = data[srcOffset + 4];
+          const pushLine = line - prevLine;
+          const pushChar = pushLine === 0 ? char - prevChar : char;
+          const dstOffset = 5 * i;
+          result[dstOffset + 0] = pushLine;
+          result[dstOffset + 1] = pushChar;
+          result[dstOffset + 2] = length;
+          result[dstOffset + 3] = tokenType;
+          result[dstOffset + 4] = tokenModifiers;
+          prevLine = line;
+          prevChar = char;
+        }
+        return result;
+      }
+      /**
+       * Finish and create a `SemanticTokens` instance.
+       */
+      build(resultId) {
+        if (!this._dataIsSortedAndDeltaEncoded) {
+          return { data: _SemanticTokensBuilder._sortAndDeltaEncode(this._data), resultId };
+        }
+        return { data: this._data, resultId };
+      }
+    };
+  }
+});
+
+// src/tree/TreeItem.ts
+function getItemLabel(item) {
+  return TreeItemLabel.is(item.label) ? item.label.label : item.label;
+}
+var TreeItemLabel, TreeItemCollapsibleState, TreeItem;
+var init_TreeItem = __esm({
+  "src/tree/TreeItem.ts"() {
+    "use strict";
+    init_esm();
+    init_node();
+    ((TreeItemLabel3) => {
+      function is(obj) {
+        return typeof obj.label == "string";
+      }
+      TreeItemLabel3.is = is;
+    })(TreeItemLabel || (TreeItemLabel = {}));
+    TreeItemCollapsibleState = /* @__PURE__ */ ((TreeItemCollapsibleState2) => {
+      TreeItemCollapsibleState2[TreeItemCollapsibleState2["None"] = 0] = "None";
+      TreeItemCollapsibleState2[TreeItemCollapsibleState2["Collapsed"] = 1] = "Collapsed";
+      TreeItemCollapsibleState2[TreeItemCollapsibleState2["Expanded"] = 2] = "Expanded";
+      return TreeItemCollapsibleState2;
+    })(TreeItemCollapsibleState || {});
+    TreeItem = class {
+      constructor(label, collapsibleState = 0 /* None */) {
+        this.collapsibleState = collapsibleState;
+        if (URI2.isUri(label)) {
+          this.resourceUri = label;
+          this.label = path.basename(label.path);
+          this.id = label.toString();
+        } else {
+          this.label = label;
+        }
+      }
+    };
+  }
+});
+
+// src/tree/index.ts
+var init_tree = __esm({
+  "src/tree/index.ts"() {
+    "use strict";
+    init_TreeItem();
+  }
+});
+
 // src/index.ts
 var require_src3 = __commonJS({
   "src/index.ts"(exports2, module2) {
@@ -72737,6 +72803,7 @@ var require_src3 = __commonJS({
     init_main();
     init_esm();
     init_commands();
+    init_sources2();
     init_manager();
     init_events();
     init_extension();
@@ -72752,7 +72819,6 @@ var require_src3 = __commonJS({
     init_services();
     init_manager4();
     init_string2();
-    init_sources2();
     init_ansiparse();
     init_errors();
     init_mutex();
@@ -72760,15 +72826,15 @@ var require_src3 = __commonJS({
     init_window();
     init_workspace();
     init_language_client();
+    init_types2();
+    init_types();
+    init_workspaceFolder();
     init_line();
     init_semanticTokensBuilder();
     init_tree();
     init_util();
     init_fs();
     init_processes();
-    init_types();
-    init_types2();
-    init_workspaceFolder();
     module2.exports = {
       get nvim() {
         return workspace_default.nvim;
@@ -72801,9 +72867,16 @@ var require_src3 = __commonJS({
       CancellationError,
       WorkspaceChange,
       ResponseError: import_node4.ResponseError,
+      StringValue,
+      SnippetTextEdit,
       Trace: import_node4.Trace,
       DocumentUri,
       WorkspaceFolder,
+      SelectedCompletionInfo,
+      InlineCompletionContext: import_node4.InlineCompletionContext,
+      InlineCompletionItem: import_node4.InlineCompletionItem,
+      InlineCompletionList,
+      InlineCompletionTriggerKind,
       InlineValueText,
       InlineValueVariableLookup,
       InlineValueEvaluatableExpression,
@@ -72909,6 +72982,7 @@ var require_src3 = __commonJS({
       listManager: manager_default2,
       TreeItemCollapsibleState,
       DiagnosticPullMode,
+      ApplyKind,
       terminate,
       fetch,
       download,
@@ -72968,19 +73042,19 @@ function copyGlobalProperties(sandbox, globalObj) {
   }
   return sandbox;
 }
-function createConsole(con, logger60) {
+function createConsole(con, logger61) {
   let result = {};
   let methods2 = ["debug", "log", "info", "error", "warn"];
   for (let key of Object.keys(con)) {
     if (methods2.includes(key)) {
       result[key] = (...args) => {
-        logger60[key].apply(logger60, args);
+        logger61[key].apply(logger61, args);
       };
     } else {
       let fn = con[key];
       if (typeof fn === "function") {
         result[key] = () => {
-          logger60.warn(`function console.${key} not supported`);
+          logger61.warn(`function console.${key} not supported`);
         };
       } else {
         result[key] = fn;
@@ -72989,7 +73063,7 @@ function createConsole(con, logger60) {
   }
   return result;
 }
-function createSandbox(filename, logger60, name2, noExport = false) {
+function createSandbox(filename, logger61, name2, noExport = false) {
   const module2 = new Module(filename);
   module2.paths = Module._nodeModulePaths(filename);
   const sandbox = vm.createContext({
@@ -72997,7 +73071,7 @@ function createSandbox(filename, logger60, name2, noExport = false) {
     Buffer,
     URL: globalThis.URL,
     WebAssembly: globalThis.WebAssembly,
-    console: createConsole(console, logger60)
+    console: createConsole(console, logger61)
   }, { name: name2 });
   copyGlobalProperties(sandbox, global);
   let cocExports = noExport ? void 0 : require_src3();
@@ -73037,8 +73111,8 @@ function createExtension(id2, filename, isEmpty2) {
     },
     deactivate: null
   };
-  const logger60 = getLogger(!global.__isMain && true, id2);
-  const sandbox = createSandbox(filename, logger60, id2);
+  const logger61 = getLogger(!global.__isMain && true, id2);
+  const sandbox = createSandbox(filename, logger61, id2);
   delete Module._cache[require.resolve(filename)];
   const defaultImport = sandbox.require(filename);
   const activate = defaultImport && defaultImport.activate || defaultImport;
@@ -74108,7 +74182,7 @@ var init_status = __esm({
 });
 
 // src/extension/ui.ts
-var interval, InstallChannel, debounceTime6, InstallBuffer;
+var interval, InstallChannel, debounceTime5, InstallBuffer;
 var init_ui3 = __esm({
   "src/extension/ui.ts"() {
     "use strict";
@@ -74151,7 +74225,7 @@ var init_ui3 = __esm({
         }
       }
     };
-    debounceTime6 = getConditionValue(500, 10);
+    debounceTime5 = getConditionValue(500, 10);
     InstallBuffer = class {
       constructor(settings) {
         this.settings = settings;
@@ -74168,7 +74242,7 @@ var init_ui3 = __esm({
             let docs = msgs.length > 0 ? [{ content: msgs.join("\n"), filetype: "txt" }] : [];
             await floatFactory4.show(docs);
           }
-        }, debounceTime6);
+        }, debounceTime5);
         this.disposables.push(import_node4.Disposable.create(() => {
           fn.clear();
         }));
@@ -74675,6 +74749,7 @@ var init_keywords = __esm({
     "use strict";
     init_esm();
     init_events();
+    init_util();
     init_async();
     init_fs();
     init_protocol();
@@ -74748,7 +74823,7 @@ var init_keywords = __esm({
         if (line >= lineWords.length) line = lineWords.length - 1;
         for (let i = 0; i < lineWords.length; i++) {
           let idx = i < line ? line - i - 1 : i;
-          let words = lineWords[idx];
+          let words = defaultValue(lineWords[idx], []);
           for (let word of words) {
             yield word;
           }
@@ -76605,6 +76680,7 @@ var init_languages = __esm({
     init_hoverManager();
     init_implementationManager();
     init_inlayHintManager();
+    init_inlineCompletionItemManager();
     init_inlineValueManager();
     init_linkedEditingRangeManager();
     init_onTypeFormatManager();
@@ -76650,6 +76726,7 @@ var init_languages = __esm({
       ProviderName3["LinkedEditing"] = "linkedEditing";
       ProviderName3["InlayHint"] = "inlayHint";
       ProviderName3["InlineValue"] = "inlineValue";
+      ProviderName3["InlineCompletion"] = "inlineCompletion";
       ProviderName3["TypeHierarchy"] = "typeHierarchy";
       return ProviderName3;
     })(ProviderName || {});
@@ -76691,6 +76768,7 @@ var init_languages = __esm({
         this.semanticTokensRangeManager = new SemanticTokensRangeManager();
         this.linkedEditingManager = new LinkedEditingRangeManager();
         this.inlayHintManager = new InlayHintManger();
+        this.inlineCompletionItemManager = new InlineCompletionItemManager();
         this.inlineValueManager = new InlineValueManager();
         this.registerReferenceProvider = this.registerReferencesProvider;
         this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider;
@@ -76713,6 +76791,9 @@ var init_languages = __esm({
         let sources = (init_sources2(), __toCommonJS(sources_exports)).default;
         sources.removeSource(name2);
         return sources.createLanguageSource(name2, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters);
+      }
+      registerInlineCompletionItemProvider(selector, provider) {
+        return this.inlineCompletionItemManager.register(selector, provider);
       }
       registerCodeActionProvider(selector, provider, clientId, codeActionKinds) {
         return this.codeActionManager.register(selector, provider, clientId, codeActionKinds);
@@ -76900,6 +76981,9 @@ var init_languages = __esm({
       async provideColorPresentations(color, document2, token) {
         return await this.documentColorManager.provideColorPresentations(color, document2, token);
       }
+      async provideInlineCompletionItems(document2, position, context, token) {
+        return this.inlineCompletionItemManager.provideInlineCompletionItems(document2, position, context, token);
+      }
       async getCodeLens(document2, token) {
         return await this.codeLensManager.provideCodeLenses(document2, token);
       }
@@ -77035,6 +77119,8 @@ var init_languages = __esm({
             return this.linkedEditingManager.hasProvider(document2);
           case "inlayHint" /* InlayHint */:
             return this.inlayHintManager.hasProvider(document2);
+          case "inlineCompletion" /* InlineCompletion */:
+            return this.inlineCompletionItemManager.hasProvider(document2);
           case "inlineValue" /* InlineValue */:
             return this.inlineValueManager.hasProvider(document2);
           case "typeHierarchy" /* TypeHierarchy */:
@@ -77071,7 +77157,7 @@ function getNotAttachReason(buftype, enabled, size) {
   }
   return `buffer size ${size} exceed coc.preferences.maxFileSize`;
 }
-var import_buffer2, logger35, MAX_EDITS, debounceTime7, Document;
+var import_buffer2, logger35, MAX_EDITS, debounceTime6, Document;
 var init_document = __esm({
   "src/model/document.ts"() {
     "use strict";
@@ -77080,6 +77166,7 @@ var init_document = __esm({
     init_esm();
     init_events();
     init_logger();
+    init_array();
     init_constants();
     init_diff();
     init_util();
@@ -77094,7 +77181,7 @@ var init_document = __esm({
     init_textdocument();
     logger35 = createLogger("document");
     MAX_EDITS = getConditionValue(200, 400);
-    debounceTime7 = getConditionValue(150, 15);
+    debounceTime6 = getConditionValue(150, 15);
     Document = class {
       constructor(buffer, nvim, filetype, opts) {
         this.buffer = buffer;
@@ -77106,6 +77193,7 @@ var init_document = __esm({
         this._notAttachReason = "";
         this._previewwindow = false;
         this._winid = -1;
+        this._winids = [];
         this._commandLine = false;
         this._applying = false;
         this.disposables = [];
@@ -77115,7 +77203,7 @@ var init_document = __esm({
         this.onDocumentChange = this._onDocumentChange.event;
         this.fireContentChanges = debounce(() => {
           this._fireContentChanges();
-        }, debounceTime7);
+        }, debounceTime6);
         this.init(filetype, opts);
       }
       /**
@@ -77189,6 +77277,9 @@ var init_document = __esm({
       get winid() {
         return this._winid;
       }
+      get winids() {
+        return this._winids;
+      }
       /**
        * Returns if current document is opened with previewwindow
        * @deprecated
@@ -77205,6 +77296,7 @@ var init_document = __esm({
         this._commandLine = opts.commandline === 1;
         this._previewwindow = !!opts.previewwindow;
         this._winid = opts.winid;
+        this._winids = toArray(opts.winids);
         this.variables = toObject(opts.variables);
         this._changedtick = opts.changedtick;
         this.eol = opts.eol == 1;
@@ -77243,7 +77335,7 @@ var init_document = __esm({
             }
             this.lines = lines;
             fireLinesChanged(bufnr);
-            if (events_default.completing) return;
+            if (events_default.pumInserted) return;
             this.fireContentChanges();
           }
         };
@@ -77592,7 +77684,7 @@ var init_document = __esm({
         let { changedtick } = this;
         await this.patchChange();
         if (changedtick != this.changedtick) {
-          await wait(50);
+          await wait(30);
         }
       }
       /**
@@ -78430,15 +78522,20 @@ var init_editors = __esm({
     init_events();
     init_logger();
     init_convert();
+    init_errors();
     init_fs();
+    init_mutex();
     init_protocol();
     logger37 = createLogger("core-editors");
     Editors = class {
       constructor(documents) {
         this.documents = documents;
         this.disposables = [];
+        this.winid = -1;
+        this.mutex = new Mutex();
         this.editors = /* @__PURE__ */ new Map();
         this.tabIds = /* @__PURE__ */ new Set();
+        this.creating = /* @__PURE__ */ new Set();
         this._onDidTabClose = new import_node4.Emitter();
         this._onDidChangeActiveTextEditor = new import_node4.Emitter();
         this._onDidChangeVisibleTextEditors = new import_node4.Emitter();
@@ -78466,6 +78563,7 @@ var init_editors = __esm({
         return winids;
       }
       onChangeCurrent(editor) {
+        if (!editor) return;
         let id2 = editor.id;
         if (id2 === this.previousId) return;
         this.previousId = id2;
@@ -78474,17 +78572,10 @@ var init_editors = __esm({
       async attach(nvim) {
         this.nvim = nvim;
         let [winid, infos] = await nvim.eval(`[win_getid(),coc#util#editor_infos()]`);
-        this.winid = winid;
         await Promise.allSettled(infos.map((info) => {
           return this.createTextEditor(info.winid);
         }));
-        events_default.on("BufUnload", (bufnr) => {
-          for (let [winid2, editor] of this.editors.entries()) {
-            if (bufnr == editor.bufnr) {
-              this.editors.delete(winid2);
-            }
-          }
-        }, null, this.disposables);
+        this.winid = winid;
         events_default.on("CursorHold", this.checkEditors, this, this.disposables);
         events_default.on("TabNew", (tabid) => {
           this.tabIds.add(tabid);
@@ -78504,6 +78595,18 @@ var init_editors = __esm({
         events_default.on("BufWinEnter", async (_, winid2) => {
           this.winid = winid2;
           let changed = await this.createTextEditor(winid2);
+          if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+        }, null, this.disposables);
+        this.documents.onDidOpenTextDocument(async (e) => {
+          let document2 = this.documents.getDocument(e.bufnr);
+          let changed = false;
+          for (let winid2 of document2.winids) {
+            let editor = this.editors.get(winid2);
+            if (editor?.document !== document2) {
+              let res = await this.createTextEditor(winid2).catch(onUnexpectedError);
+              if (res) changed = true;
+            }
+          }
           if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
         }, null, this.disposables);
       }
@@ -78529,34 +78632,38 @@ var init_editors = __esm({
         }
       }
       async checkEditors() {
-        let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`);
-        this.winid = winid;
-        this.checkUnloadedBuffers(bufnrs);
-        let changed = false;
-        let winids = /* @__PURE__ */ new Set();
-        for (let info of infos) {
-          let editor = this.editors.get(info.winid);
-          let create = false;
-          if (!editor) {
-            create = true;
-          } else if (renamed(editor, info)) {
-            await events_default.fire("BufRename", [info.bufnr]);
-            create = true;
-          } else if (editor.document.bufnr != info.bufnr || editor.tabpageid != info.tabid) {
-            create = true;
+        let { documents } = this;
+        await this.mutex.use(async () => {
+          let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`);
+          this.winid = winid;
+          this.checkUnloadedBuffers(bufnrs);
+          let changed = false;
+          let winids = /* @__PURE__ */ new Set();
+          for (let info of infos) {
+            let editor = this.editors.get(info.winid);
+            let create = false;
+            if (!editor) {
+              create = true;
+            } else if (renamed(editor, info)) {
+              void events_default.fire("BufRename", [info.bufnr]);
+              create = true;
+            } else if (editor.document.bufnr != info.bufnr || editor.document !== documents.getDocument(info.bufnr) || editor.tabpageid != info.tabid) {
+              create = true;
+            }
+            if (create) {
+              await this.createTextEditor(info.winid);
+              changed = true;
+            }
+            winids.add(info.winid);
           }
-          if (create) {
-            await this.createTextEditor(info.winid);
+          if (this.cleanUpEditors(winids)) {
             changed = true;
           }
-          winids.add(info.winid);
-        }
-        if (this.cleanupEditors(winids)) {
-          changed = true;
-        }
-        if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+          this.onChangeCurrent(this.activeTextEditor);
+          if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+        });
       }
-      cleanupEditors(winids) {
+      cleanUpEditors(winids) {
         let changed = false;
         for (let winid of Array.from(this.editors.keys())) {
           if (!winids.has(winid)) {
@@ -78567,25 +78674,32 @@ var init_editors = __esm({
         return changed;
       }
       async createTextEditor(winid) {
-        let { documents, nvim } = this;
+        let { documents, creating, nvim } = this;
+        if (creating.has(winid)) return false;
+        let changed = false;
+        creating.add(winid);
         let opts = await nvim.call("coc#util#get_editoroption", [winid]);
-        if (!opts) return false;
-        this.tabIds.add(opts.tabpageid);
-        let doc = documents.getDocument(opts.bufnr);
-        if (doc && doc.attached) {
-          let editor = this.fromOptions(opts);
-          this.editors.set(winid, editor);
-          if (winid == this.winid) this.onChangeCurrent(editor);
-          logger37.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
-          return true;
-        } else {
-          this.editors.delete(opts.winid);
+        if (opts) {
+          this.tabIds.add(opts.tabpageid);
+          let doc = documents.getDocument(opts.bufnr);
+          if (doc && doc.attached) {
+            let editor = this.fromOptions(opts);
+            this.editors.set(winid, editor);
+            if (winid == this.winid) this.onChangeCurrent(editor);
+            logger37.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
+            changed = true;
+          } else if (this.editors.has(winid)) {
+            this.editors.delete(winid);
+            changed = true;
+          }
         }
-        return false;
+        creating.delete(winid);
+        return changed;
       }
       fromOptions(opts) {
         let { visibleRanges, bufnr, formatOptions } = opts;
-        let document2 = this.documents.getDocument(bufnr);
+        let { documents } = this;
+        let document2 = documents.getDocument(bufnr);
         return {
           id: `${opts.tabpageid}-${opts.winid}-${document2.uri}`,
           tabpageid: opts.tabpageid,
@@ -79866,7 +79980,8 @@ function getOriginalLine(item, change) {
   if (typeof item.lnum !== "number") return void 0;
   let lnum = item.lnum;
   if (change) {
-    let edits = mergeSortEdits(change.edits);
+    let edits = change.edits.map((o) => SnippetTextEdit.is(o) ? { range: o.range, newText: o.snippet.value } : o);
+    edits = mergeSortEdits(edits);
     let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits);
     lnum = pos.line + 1;
   }
@@ -80073,6 +80188,7 @@ var init_files = __esm({
     "use strict";
     init_main();
     init_esm();
+    init_commands();
     init_events();
     init_logger();
     init_editInspect();
@@ -80392,7 +80508,21 @@ var init_files = __esm({
               let { textDocument, edits } = change;
               let { uri } = textDocument;
               let doc = await this.loadResource(uri);
-              let revertEdit = await doc.applyEdits(edits, false, uri === currentUri);
+              let revertEdit;
+              if (edits.some((o) => SnippetTextEdit.is(o))) {
+                let snippetEdits = mergeSortEdits(edits.map((edit3) => {
+                  if (SnippetTextEdit.is(edit3)) {
+                    return { range: edit3.range, snippet: edit3.snippet.value };
+                  }
+                  return { range: edit3.range, snippet: edit3.newText };
+                }));
+                let oldLines = doc.textDocument.lines;
+                await commands_default.executeCommand("editor.action.insertBufferSnippets", doc.bufnr, snippetEdits, doc.bufnr === events_default.bufnr);
+                let startLine = snippetEdits[0].range.start.line;
+                revertEdit = getRevertEdit(oldLines, doc.textDocument.lines, startLine);
+              } else {
+                revertEdit = await doc.applyEdits(edits, false, uri === currentUri);
+              }
               if (revertEdit) {
                 let version2 = doc.version;
                 let { newText, range } = revertEdit;
@@ -80999,6 +81129,79 @@ var init_db2 = __esm({
   }
 });
 
+// src/model/tabs.ts
+var Tabs;
+var init_tabs = __esm({
+  "src/model/tabs.ts"() {
+    "use strict";
+    init_esm();
+    init_protocol();
+    Tabs = class {
+      constructor(editors) {
+        this.editors = editors;
+        this.open = /* @__PURE__ */ new Set();
+        this._onOpen = new import_node4.Emitter();
+        this._onClose = new import_node4.Emitter();
+        this.editors.onDidChangeVisibleTextEditors((editors2) => {
+          let uris = Array.from(this.open);
+          let seen = /* @__PURE__ */ new Set();
+          let opened = /* @__PURE__ */ new Set();
+          let closed = /* @__PURE__ */ new Set();
+          for (let editor of editors2) {
+            if (!seen.has(editor.uri) && !uris.includes(editor.uri)) {
+              this.open.add(editor.uri);
+              opened.add(URI2.parse(editor.uri));
+            }
+            seen.add(editor.uri);
+          }
+          for (let uri of uris) {
+            if (!seen.has(uri)) {
+              this.open.delete(uri);
+              closed.add(URI2.parse(uri));
+            }
+          }
+          if (opened.size > 0) {
+            this._onOpen.fire(opened);
+          }
+          if (closed.size > 0) {
+            this._onClose.fire(closed);
+          }
+        });
+      }
+      attach() {
+        for (let editor of this.editors.visibleTextEditors) {
+          this.open.add(editor.uri);
+        }
+      }
+      get onClose() {
+        return this._onClose.event;
+      }
+      get onOpen() {
+        return this._onOpen.event;
+      }
+      isActive(document2) {
+        const uri = document2 instanceof URI2 ? document2 : document2.uri;
+        return this.editors.activeTextEditor?.document.uri === uri.toString();
+      }
+      isVisible(document2) {
+        const uri = document2 instanceof URI2 ? document2 : document2.uri;
+        return this.open.has(uri.toString());
+      }
+      getTabResources() {
+        const result = /* @__PURE__ */ new Set();
+        let seen = /* @__PURE__ */ new Set();
+        for (let editor of this.editors.visibleTextEditors) {
+          if (!seen.has(editor.uri)) {
+            result.add(URI2.parse(editor.uri));
+            seen.add(editor.uri);
+          }
+        }
+        return result;
+      }
+    };
+  }
+});
+
 // src/model/task.ts
 var Task;
 var init_task = __esm({
@@ -81104,6 +81307,7 @@ var init_workspace = __esm({
     init_mru();
     init_status();
     init_strwidth();
+    init_tabs();
     init_task();
     init_util();
     init_constants();
@@ -81161,6 +81365,7 @@ var init_workspace = __esm({
         this.keymaps = new Keymaps();
         this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps);
         this.editors = new Editors(documents);
+        this.tabs = new Tabs(this.editors);
         this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders;
         this.onDidChangeConfiguration = this.configurations.onDidChange;
         this.onDidOpenTextDocument = documents.onDidOpenTextDocument;
@@ -81254,6 +81459,7 @@ var init_workspace = __esm({
         });
         await this.documentsManager.attach(this.nvim, this._env);
         await this.editors.attach(nvim);
+        this.tabs.attach();
         let channel = channels_default.create("watchman", nvim);
         this.fileSystemWatchers.attach(channel);
         if (this.strWdith) this.strWdith.setAmbw(!env.ambiguousIsNarrow);
@@ -81355,7 +81561,7 @@ var init_workspace = __esm({
         return this.documentsManager.languageIds;
       }
       /**
-       * @deprecated
+       * @deprecated Use nvim.createNamespace() instead.
        */
       createNameSpace(name2) {
         return createNameSpace(name2);
@@ -84014,6 +84220,14 @@ var init_completion2 = __esm({
         if (!this.popupEvent) return void 0;
         return this.activeItems[this.popupEvent.index];
       }
+      get selectedCompletionInfo() {
+        let item = this.selectedItem;
+        let { pretext } = this;
+        if (!pretext || !item) return void 0;
+        let line = this.option.linenr - 1;
+        let end = pretext.length;
+        return { range: Range.create(line, item.character, line, end), text: item.word };
+      }
       /**
        * Configuration for current document
        */
@@ -85487,7 +85701,7 @@ function getCommands(line, codeLenses) {
   }
   return commands;
 }
-var logger50, srcId, debounceTime8, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
+var logger50, srcId, debounceTime7, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer3 = __esm({
   "src/handler/codelens/buffer.ts"() {
     "use strict";
@@ -85503,7 +85717,7 @@ var init_buffer3 = __esm({
     init_window();
     init_workspace();
     logger50 = createLogger("codelens-buffer");
-    debounceTime8 = getConditionValue(200, 20);
+    debounceTime7 = getConditionValue(200, 20);
     CODELENS_HL = "CocCodeLens";
     NORMAL_HL = "Normal";
     CodeLensBuffer = class {
@@ -85512,10 +85726,10 @@ var init_buffer3 = __esm({
         this.document = document2;
         this.resolveCodeLens = debounce(() => {
           this._resolveCodeLenses().catch(onUnexpectedError);
-        }, debounceTime8);
+        }, debounceTime7);
         this.debounceFetch = debounce(() => {
           this.fetchCodeLenses().catch(onUnexpectedError);
-        }, debounceTime8);
+        }, debounceTime7);
         if (this.hasProvider) this.debounceFetch();
       }
       get config() {
@@ -85715,7 +85929,7 @@ var init_buffer3 = __esm({
 });
 
 // src/handler/codelens/index.ts
-var debounceTime9, CodeLensManager2;
+var debounceTime8, CodeLensManager2;
 var init_codelens = __esm({
   "src/handler/codelens/index.ts"() {
     "use strict";
@@ -85728,7 +85942,7 @@ var init_codelens = __esm({
     init_window();
     init_workspace();
     init_buffer3();
-    debounceTime9 = getConditionValue(200, 0);
+    debounceTime8 = getConditionValue(200, 0);
     CodeLensManager2 = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -85759,7 +85973,7 @@ var init_codelens = __esm({
             item.abandonResult();
             await item.forceFetch();
           }
-        }, debounceTime9);
+        }, debounceTime8);
         this.disposables.push(import_node4.Disposable.create(() => {
           debounced.clear();
         }));
@@ -85836,7 +86050,7 @@ var init_color = __esm({
 function getHighlightGroup2(color) {
   return `BG${toHexString(color)}`;
 }
-var NAMESPACE2, debounceTime10, ColorBuffer;
+var NAMESPACE2, debounceTime9, ColorBuffer;
 var init_colorBuffer = __esm({
   "src/handler/colors/colorBuffer.ts"() {
     "use strict";
@@ -85850,7 +86064,7 @@ var init_colorBuffer = __esm({
     init_window();
     init_workspace();
     NAMESPACE2 = "color";
-    debounceTime10 = getConditionValue(200, 10);
+    debounceTime9 = getConditionValue(200, 10);
     ColorBuffer = class {
       // last highlight version
       constructor(nvim, doc, config, usedColors) {
@@ -85861,7 +86075,7 @@ var init_colorBuffer = __esm({
         this._colors = [];
         this.highlight = debounce(() => {
           void this.doHighlight();
-        }, debounceTime10);
+        }, debounceTime9);
         if (this.hasProvider) this.highlight();
       }
       get enable() {
@@ -87119,8 +87333,373 @@ var init_inlayHint2 = __esm({
   }
 });
 
+// src/handler/inline.ts
+function formatInsertText(text, opts) {
+  let lines = text.split(/\r?\n/);
+  let tabSize = defaultValue(opts.tabSize, 2);
+  let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
+  lines = lines.map((line) => {
+    let space = line.match(/^\s*/)[0];
+    let isTab = space.startsWith("	");
+    let len = space.length;
+    if (isTab && opts.insertSpaces) {
+      space = ind.repeat(space.length);
+    } else if (!isTab && !opts.insertSpaces) {
+      space = ind.repeat(space.length / tabSize);
+    }
+    return space + line.slice(len);
+  });
+  return lines.join("\n");
+}
+function getInsertText(item, formatOptions) {
+  if (StringValue.isSnippet(item.insertText)) {
+    const parser2 = new SnippetParser(false);
+    const snippet = parser2.parse(item.insertText.value, true);
+    return formatInsertText(snippet.toString(), formatOptions);
+  }
+  return formatInsertText(item.insertText, formatOptions);
+}
+function getInserted(curr, synced, character) {
+  if (curr.length < synced.length) return void 0;
+  let after = curr.slice(character);
+  if (!synced.endsWith(after)) return void 0;
+  let start = synced.length - after.length;
+  if (!curr.startsWith(synced.slice(0, start))) return void 0;
+  return { start, text: curr.slice(start, character) };
+}
+function getPumInserted(document2, cursor) {
+  const { line, character } = cursor;
+  let synced = toText(document2.textDocument.lines[line]);
+  let curr = document2.getline(cursor.line);
+  if (synced === curr) return "";
+  let change = getInserted(curr, synced, character);
+  return change ? change.text : void 0;
+}
+function checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item) {
+  if (!item.range) {
+    if (StringValue.isSnippet(item.insertText)) {
+      return item.insertText.value.startsWith(inserted);
+    }
+    return item.insertText.startsWith(inserted);
+  }
+  let current = currentLine.slice(item.range.start.character, triggerCharacter + inserted.length);
+  if (StringValue.isSnippet(item.insertText)) {
+    return item.insertText.value.startsWith(current);
+  }
+  return item.insertText.startsWith(current);
+}
+function fixRange(range, inserted) {
+  if (!inserted || !range) return range;
+  return Range.create(range.start, Position.create(range.end.line, range.end.character + inserted.length));
+}
+var logger53, NAMESPACE3, InlineSesion, InlineCompletion;
+var init_inline = __esm({
+  "src/handler/inline.ts"() {
+    "use strict";
+    init_main();
+    init_commands();
+    init_completion2();
+    init_events();
+    init_languages();
+    init_logger();
+    init_parser3();
+    init_util();
+    init_errors();
+    init_position();
+    init_protocol();
+    init_string();
+    init_window();
+    init_workspace();
+    logger53 = createLogger("handler-inline");
+    NAMESPACE3 = "inlineSuggest";
+    InlineSesion = class {
+      constructor(bufnr, cursor, items, index = 0, vtext = void 0) {
+        this.bufnr = bufnr;
+        this.cursor = cursor;
+        this.items = items;
+        this.index = index;
+        this.vtext = vtext;
+      }
+      get length() {
+        return this.items.length;
+      }
+      get selected() {
+        return this.items[this.index];
+      }
+      clearNamespace() {
+        if (this.vtext) {
+          workspace_default.nvim.createBuffer(this.bufnr).clearNamespace(NAMESPACE3);
+          this.vtext = void 0;
+        }
+      }
+      get extra() {
+        return this.length > 1 ? `(${this.index + 1}/${this.length})` : "";
+      }
+      get nextIndex() {
+        return this.index === this.length - 1 ? 0 : this.index + 1;
+      }
+      get prevIndex() {
+        return this.index === 0 ? this.length - 1 : this.index - 1;
+      }
+    };
+    InlineCompletion = class {
+      constructor(nvim, handler) {
+        this.nvim = nvim;
+        this.handler = handler;
+        this.disposables = [];
+        this._applying = false;
+        this.loadConfiguration();
+        workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
+        window_default.onDidChangeActiveTextEditor(() => {
+          this.loadConfiguration();
+        }, this, this.disposables);
+        const triggerOption = { autoTrigger: true };
+        workspace_default.onDidChangeTextDocument((e) => {
+          if (languages_default.inlineCompletionItemManager.isEmpty === false && this.config.autoTrigger && e.bufnr === defaultValue(window_default.activeTextEditor, {}).bufnr && !this._applying && events_default.insertMode) {
+            const wait2 = this.config.triggerCompletionWait;
+            this.trigger(e.bufnr, triggerOption, wait2).catch(onUnexpectedError);
+          }
+        }, null, this.disposables);
+        events_default.on("TextChangedI", (bufnr) => {
+          if (events_default.pumInserted && !languages_default.inlineCompletionItemManager.isEmpty) {
+            const wait2 = this.config.triggerCompletionWait;
+            this.trigger(bufnr, triggerOption, wait2).catch(onUnexpectedError);
+          }
+        }, null, this.disposables);
+        events_default.on("ModeChanged", (ev) => {
+          if (!ev.new_mode.startsWith("i")) {
+            this.cancel();
+          }
+        }, null, this.disposables);
+        events_default.on("InsertCharPre", () => {
+          this.cancel();
+        }, null, this.disposables);
+        events_default.on("LinesChanged", (bufnr) => {
+          if (bufnr === this.bufnr) {
+            this.cancel();
+          }
+        }, null, this.disposables);
+        workspace_default.onDidCloseTextDocument((e) => {
+          if (e.bufnr === this.bufnr) {
+            this.cancel();
+          }
+        }, null, this.disposables);
+        commands_default.titles.set("document.checkInlineCompletion", "check inline completion state of current buffer");
+        this.handler.addDisposable(commands_default.registerCommand("document.checkInlineCompletion", async () => {
+          if (!this.supported) {
+            void window_default.showWarningMessage(`Inline completion is not supported on current vim ${workspace_default.env.version}`);
+            return;
+          }
+          let bufnr = await this.nvim.eval('bufnr("%")');
+          let doc = workspace_default.getDocument(bufnr);
+          if (!doc || !doc.attached) {
+            void window_default.showWarningMessage(`Buffer ${bufnr} is not attached, see ':h coc-document-attached'.`);
+            return;
+          }
+          let disable = await nvim.createBuffer(bufnr).getVar("coc_inline_disable");
+          if (disable == 1) {
+            void window_default.showWarningMessage(`Trigger inline compation is disabled by b:coc_inline_disable.`);
+            return;
+          }
+          let providers = languages_default.inlineCompletionItemManager.getProviders(doc.textDocument);
+          if (providers.length === 0) {
+            void window_default.showWarningMessage(`Inline completion provider not found for buffer ${bufnr}.`);
+            return;
+          }
+          let names = providers.map((item) => item.provider["__extensionName"] ?? "unknown");
+          void window_default.showInformationMessage(`Inline completion is supported by ${names.join(", ")}.`);
+        }));
+      }
+      loadConfiguration(e) {
+        if (!e || e.affectsConfiguration("inlineSuggest")) {
+          let doc = defaultValue(window_default.activeTextEditor, {}).document;
+          let config = workspace_default.getConfiguration("inlineSuggest", doc);
+          let autoTrigger = defaultValue(config.inspect("autoTrigger").globalValue, true);
+          this.config = Object.assign(this.config ?? {}, {
+            autoTrigger,
+            triggerCompletionWait: defaultValue(config.inspect("triggerCompletionWait").globalValue, 10)
+          });
+        }
+      }
+      get supported() {
+        return workspace_default.has("patch-9.0.0185") || workspace_default.has("nvim-0.7.0");
+      }
+      get selected() {
+        return this.session?.selected;
+      }
+      async visible() {
+        let result = await this.nvim.call("coc#inline#visible");
+        return !!result;
+      }
+      get vtextBufnr() {
+        return this.session?.vtext == null ? -1 : this.session.bufnr;
+      }
+      async trigger(bufnr, option, delay3) {
+        if (!this.supported) return false;
+        this.cancel();
+        option = option ?? {};
+        let document2 = workspace_default.getDocument(bufnr);
+        if (!document2 || !document2.attached || !languages_default.hasProvider("inlineCompletion" /* InlineCompletion */, document2)) return false;
+        let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
+        this.bufnr = bufnr;
+        this._inserted = void 0;
+        let token = tokenSource.token;
+        if (delay3) await waitWithToken(delay3, token);
+        if (option.autoTrigger !== true && document2.hasChanged) {
+          this._applying = true;
+          await document2.synchronize();
+          this._applying = false;
+        }
+        if (token.isCancellationRequested) return false;
+        let state = await this.handler.getCurrentState();
+        let disable = await document2.buffer.getVar("coc_inline_disable");
+        if (disable == 1 || state.doc.bufnr !== bufnr || !state.mode.startsWith("i") || token.isCancellationRequested) return false;
+        let cursor = state.position;
+        let triggerPositon = cursor;
+        let curr = document2.getline(cursor.line);
+        if (option.autoTrigger) {
+          let inserted = this._inserted = getPumInserted(document2, cursor);
+          if (inserted == null) return false;
+          triggerPositon = Position.create(cursor.line, cursor.character - inserted.length);
+        }
+        const selectedCompletionInfo = completion_default.selectedCompletionInfo;
+        if (selectedCompletionInfo && this._inserted) selectedCompletionInfo.range.end.character -= this._inserted.length;
+        let items = await languages_default.provideInlineCompletionItems(document2.textDocument, triggerPositon, {
+          provider: option.provider,
+          selectedCompletionInfo,
+          triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
+        }, token);
+        this.tokenSource = void 0;
+        if (!Array.isArray(items) || token.isCancellationRequested) return false;
+        items = items.filter((item) => !item.range || positionInRange(triggerPositon, item.range) === 0);
+        if (this._inserted) items = items.filter((item) => checkInsertedAtBeginning(curr, triggerPositon.character, this._inserted, item));
+        if (items.length === 0) {
+          if (!option.autoTrigger && !option.silent) {
+            void window_default.showWarningMessage(`No inline completion items from provider.`);
+          }
+          return false;
+        }
+        this.session = new InlineSesion(bufnr, cursor, items);
+        await this.insertVtext(items[0]);
+        return true;
+      }
+      async accept(bufnr, kind = "all") {
+        if (bufnr !== this.vtextBufnr || !this.selected) return false;
+        let item = this.selected;
+        let cursor = this.session.cursor;
+        let insertedText = this.session.vtext;
+        this.cancel();
+        let doc = workspace_default.getAttachedDocument(bufnr);
+        let insertedLength = 0;
+        const itemRange = fixRange(item.range, this._inserted);
+        if (StringValue.isSnippet(item.insertText) && kind == "all") {
+          let range = defaultValue(itemRange, Range.create(cursor, cursor));
+          let text = item.insertText.value;
+          if (!itemRange && this._inserted) text = text.slice(this._inserted.length);
+          let edit2 = TextEdit.replace(range, text);
+          await commands_default.executeCommand("editor.action.insertSnippet", edit2);
+        } else {
+          let range = Range.create(cursor, cursor);
+          if (kind == "word") {
+            let total = 0;
+            for (let i = 1; i < insertedText.length; i++) {
+              if (doc.isWord(insertedText[i])) {
+                total = i;
+              } else {
+                break;
+              }
+            }
+            insertedText = insertedText.slice(0, total + 1);
+            insertedLength = insertedText.length;
+          } else if (kind == "line") {
+            const insertText = insertedText.split("\n")[0];
+            insertedLength = insertText.length;
+          } else {
+            insertedText = getInsertText(item, window_default.activeTextEditor.options);
+            if (itemRange) {
+              range = itemRange;
+            } else if (this._inserted) {
+              insertedText = insertedText.slice(this._inserted.length);
+            }
+          }
+          await doc.applyEdits([TextEdit.replace(range, insertedText)], false, false);
+          await window_default.moveTo(getEnd(range.start, insertedText));
+        }
+        if (item.command) {
+          try {
+            await commands_default.execute(item.command);
+          } catch (err) {
+            logger53.error(`Error on execute command "${item.command.command}"`, err);
+          }
+        }
+        await events_default.fire("InlineAccept", [insertedLength, item]);
+        return true;
+      }
+      async next(bufnr) {
+        await this._navigate(true, bufnr);
+      }
+      async prev(bufnr) {
+        await this._navigate(false, bufnr);
+      }
+      async _navigate(next, bufnr) {
+        if (bufnr !== this.vtextBufnr || this.session.length <= 1) return;
+        let idx = next ? this.session.nextIndex : this.session.prevIndex;
+        this.session.index = idx;
+        await this.insertVtext(this.session.selected);
+      }
+      async insertVtext(item) {
+        if (!this.session || !item) return;
+        const { bufnr, extra, cursor } = this.session;
+        let doc = workspace_default.getDocument(bufnr);
+        let formatOptions = window_default.activeTextEditor.options;
+        let text = getInsertText(item, formatOptions);
+        const line = doc.getline(cursor.line);
+        const itemRange = fixRange(item.range, this._inserted);
+        if (itemRange && !emptyRange(itemRange)) {
+          let current = line.slice(itemRange.start.character, cursor.character);
+          text = text.slice(current.length);
+          if (comparePosition(cursor, itemRange.end) !== 0) {
+            let after = line.slice(cursor.character, itemRange.end.character);
+            if (text.endsWith(after)) {
+              text = text.slice(0, -after.length);
+            }
+          }
+        } else if (this._inserted) {
+          text = text.slice(this._inserted.length);
+        }
+        const col = byteIndex(line, cursor.character) + 1;
+        let shown = await this.nvim.call("coc#inline#_insert", [bufnr, cursor.line, col, text.split("\n"), extra]);
+        if (!this.session) return;
+        if (shown) {
+          this.session.vtext = text;
+          this.nvim.redrawVim();
+          void events_default.fire("InlineShown", [item]);
+        } else {
+          this.session.clearNamespace();
+          this.session = void 0;
+        }
+      }
+      cancel() {
+        if (this.tokenSource) {
+          this.tokenSource.cancel();
+          this.tokenSource.dispose();
+          this.tokenSource = void 0;
+        }
+        if (this.session) {
+          this.session.clearNamespace();
+          this.session = void 0;
+        }
+        this.bufnr = void 0;
+      }
+      dispose() {
+        disposeAll(this.disposables);
+      }
+    };
+  }
+});
+
 // src/handler/linkedEditing.ts
-var debounceTime11, LinkedEditingHandler;
+var debounceTime10, LinkedEditingHandler;
 var init_linkedEditing = __esm({
   "src/handler/linkedEditing.ts"() {
     "use strict";
@@ -87136,12 +87715,12 @@ var init_linkedEditing = __esm({
     init_string();
     init_window();
     init_workspace();
-    debounceTime11 = getConditionValue(200, 10);
+    debounceTime10 = getConditionValue(200, 10);
     LinkedEditingHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
         this.changing = false;
-        this.checkPosition = debounce(this._checkPosition, debounceTime11);
+        this.checkPosition = debounce(this._checkPosition, debounceTime10);
         handler.addDisposable(events_default.on("CursorMoved", (bufnr, cursor) => {
           this.cancel();
           this.checkPosition(bufnr, [cursor[0], cursor[1]]);
@@ -87278,7 +87857,7 @@ function sameLinks(links2, other) {
   }
   return true;
 }
-var import_debounce, floatFactory2, debounceTime12, NAMESPACE3, highlightGroup, Links, LinkBuffer;
+var import_debounce, floatFactory2, debounceTime11, NAMESPACE4, highlightGroup, Links, LinkBuffer;
 var init_links2 = __esm({
   "src/handler/links.ts"() {
     "use strict";
@@ -87293,8 +87872,8 @@ var init_links2 = __esm({
     init_protocol();
     init_window();
     init_workspace();
-    debounceTime12 = getConditionValue(200, 10);
-    NAMESPACE3 = "links";
+    debounceTime11 = getConditionValue(200, 10);
+    NAMESPACE4 = "links";
     highlightGroup = "CocLink";
     Links = class {
       constructor(nvim, handler) {
@@ -87409,7 +87988,7 @@ var init_links2 = __esm({
         this.links = [];
         this.fetchLinks = (0, import_debounce.default)(() => {
           void this.getLinks();
-        }, debounceTime12);
+        }, debounceTime11);
         if (this.hasProvider) this.fetchLinks();
       }
       get config() {
@@ -87445,11 +88024,11 @@ var init_links2 = __esm({
           links2.forEach((link) => {
             doc.addHighlights(highlights, highlightGroup, link.range);
           });
-          this.doc.buffer.updateHighlights(NAMESPACE3, highlights, { priority: 2048 });
+          this.doc.buffer.updateHighlights(NAMESPACE4, highlights, { priority: 2048 });
         }
       }
       clearHighlight() {
-        this.buffer.clearNamespace(NAMESPACE3);
+        this.buffer.clearNamespace(NAMESPACE4);
       }
       get buffer() {
         return this.doc.buffer;
@@ -87752,7 +88331,7 @@ function fixChangeParams(e) {
   }
   return { contentChanges: changes, bufnr, textDocument, document: document2, original, originalLines };
 }
-var logger53, SEPARATOR, RefactorBuffer;
+var logger54, SEPARATOR, RefactorBuffer;
 var init_buffer5 = __esm({
   "src/handler/refactor/buffer.ts"() {
     "use strict";
@@ -87773,7 +88352,7 @@ var init_buffer5 = __esm({
     init_window();
     init_workspace();
     init_changes();
-    logger53 = createLogger("handler-refactorBuffer");
+    logger54 = createLogger("handler-refactorBuffer");
     SEPARATOR = "\u3000";
     RefactorBuffer = class {
       constructor(bufnr, srcId4, nvim, config, opts) {
@@ -88114,7 +88693,7 @@ var init_buffer5 = __esm({
           await window_default.cursors.addRanges(hlRanges);
         } catch (e) {
           this.changing = false;
-          logger53.error(`Error on add file item:`, e);
+          logger54.error(`Error on add file item:`, e);
         }
         release();
       }
@@ -88296,11 +88875,11 @@ function getPathFromArgs(args) {
   if (args[len - 2].startsWith("-")) return void 0;
   return args[len - 1];
 }
-var import_events53, spawn2, logger54, defaultArgs, controlCode2, Task2, Search;
+var import_events54, spawn2, logger55, defaultArgs, controlCode2, Task2, Search;
 var init_search = __esm({
   "src/handler/refactor/search.ts"() {
     "use strict";
-    import_events53 = require("events");
+    import_events54 = require("events");
     init_main();
     init_logger();
     init_highlighter();
@@ -88309,10 +88888,10 @@ var init_search = __esm({
     init_node();
     init_window();
     ({ spawn: spawn2 } = child_process);
-    logger54 = createLogger("handler-search");
+    logger55 = createLogger("handler-search");
     defaultArgs = ["--color", "ansi", "--colors", "path:fg:black", "--colors", "line:fg:green", "--colors", "match:fg:red", "--no-messages", "--heading", "-n"];
     controlCode2 = "\x1B";
-    Task2 = class extends import_events53.EventEmitter {
+    Task2 = class extends import_events54.EventEmitter {
       start(cmd, args, cwd2) {
         this.process = spawn2(cmd, args, { cwd: cwd2, shell: process.platform === "win32" });
         this.process.on("error", (e) => {
@@ -88410,7 +88989,7 @@ var init_search = __esm({
           try {
             await refactorBuf.addFileItems(items);
           } catch (e) {
-            logger54.error(e);
+            logger55.error(e);
           }
           release();
         };
@@ -88488,6 +89067,7 @@ var init_refactor = __esm({
     init_languages();
     init_util();
     init_fs();
+    init_position();
     init_protocol();
     init_textedit();
     init_workspace();
@@ -88627,41 +89207,41 @@ var init_refactor = __esm({
         let items = [];
         let { beforeContext, afterContext } = this.config;
         let { changes, documentChanges } = edit2;
-        if (!changes) {
-          changes = {};
+        const rangesMap = /* @__PURE__ */ new Map();
+        if (documentChanges) {
           for (let change of documentChanges || []) {
             if (TextDocumentEdit.is(change)) {
               let { textDocument, edits } = change;
-              changes[textDocument.uri] = edits;
+              rangesMap.set(textDocument.uri, edits.map((o) => o.range));
             }
           }
+        } else if (changes) {
+          for (let [uri, edits] of Object.entries(changes)) {
+            rangesMap.set(uri, edits.map((o) => o.range));
+          }
         }
-        for (let key of Object.keys(changes)) {
+        for (let [key, editRanges] of rangesMap.entries()) {
           let max = await this.getLineCount(key);
-          let edits = changes[key];
           let ranges = [];
           let start = null;
           let end = null;
           let highlights = [];
-          edits.sort((a, b) => a.range.start.line - b.range.start.line);
-          for (let edit3 of edits) {
-            let { line } = edit3.range.start;
+          editRanges.sort(compareRangesUsingStarts);
+          for (let range of editRanges) {
+            let { line } = range.start;
             let s = Math.max(0, line - beforeContext);
             if (start != null && s < end) {
               end = Math.min(max, line + afterContext + 1);
-              highlights.push(adjustRange2(edit3.range, start));
+              highlights.push(adjustRange2(range, start));
             } else {
               if (start != null) ranges.push({ start, end, highlights });
               start = s;
               end = Math.min(max, line + afterContext + 1);
-              highlights = [adjustRange2(edit3.range, start)];
+              highlights = [adjustRange2(range, start)];
             }
           }
           if (start != null) ranges.push({ start, end, highlights });
-          items.push({
-            ranges,
-            filepath: URI2.parse(key).fsPath
-          });
+          items.push({ ranges, filepath: URI2.parse(key).fsPath });
         }
         let buf = await this.createRefactorBuffer(filetype);
         await buf.addFileItems(items);
@@ -88857,7 +89437,7 @@ function toHighlightPart(token) {
   highlightGroupMap.set(token, part);
   return part;
 }
-var logger55, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE4, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
+var logger56, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE5, debounceInterval2, requestDelay2, highlightGroupMap, SemanticTokensBuffer;
 var init_buffer6 = __esm({
   "src/handler/semanticTokens/buffer.ts"() {
     "use strict";
@@ -88874,10 +89454,10 @@ var init_buffer6 = __esm({
     init_string();
     init_window();
     init_workspace();
-    logger55 = createLogger("semanticTokens-buffer");
+    logger56 = createLogger("semanticTokens-buffer");
     yieldEveryMilliseconds = getConditionValue(15, 5);
     HLGROUP_PREFIX = "CocSem";
-    NAMESPACE4 = "semanticTokens";
+    NAMESPACE5 = "semanticTokens";
     debounceInterval2 = getConditionValue(100, 20);
     requestDelay2 = getConditionValue(500, 20);
     highlightGroupMap = /* @__PURE__ */ new Map();
@@ -89133,10 +89713,10 @@ var init_buffer6 = __esm({
       async addHighlights(highlights, span, token) {
         const { bufnr, regions, doc, config } = this;
         let items = this.toHighlightItems(highlights, span);
-        let diff = await window_default.diffHighlights(bufnr, NAMESPACE4, items, span, token);
+        let diff = await window_default.diffHighlights(bufnr, NAMESPACE5, items, span, token);
         if (!diff || token.isCancellationRequested) return false;
         const priority = config.highlightPriority;
-        await window_default.applyDiffHighlights(bufnr, NAMESPACE4, priority, diff, true);
+        await window_default.applyDiffHighlights(bufnr, NAMESPACE5, priority, diff, true);
         this._dirty = true;
         if (span) {
           regions.add(span[0], span[1]);
@@ -89153,7 +89733,7 @@ var init_buffer6 = __esm({
             if (e instanceof CancellationError) {
               this.doHighlight(true, requestDelay2).catch(onUnexpectedError);
             } else {
-              logger55.error("Error on request semanticTokens: ", e);
+              logger56.error("Error on request semanticTokens: ", e);
             }
           }
           return void 0;
@@ -89248,7 +89828,7 @@ var init_buffer6 = __esm({
       }
       clearHighlight() {
         this.reset();
-        this.buffer.clearNamespace(NAMESPACE4);
+        this.buffer.clearNamespace(NAMESPACE5);
       }
       onProviderChange() {
         if (!this.hasProvider) {
@@ -89337,7 +89917,7 @@ var init_semanticTokens2 = __esm({
           id: "semanticTokens.clearCurrent",
           execute: async () => {
             let buf = await nvim.buffer;
-            buf.clearNamespace(NAMESPACE4, 0, -1);
+            buf.clearNamespace(NAMESPACE5, 0, -1);
           }
         }, false, "clear semantic tokens highlight of current buffer");
         commands_default.register({
@@ -89345,7 +89925,7 @@ var init_semanticTokens2 = __esm({
           execute: async () => {
             let bufs = await nvim.buffers;
             for (let buf of bufs) {
-              buf.clearNamespace(NAMESPACE4, 0, -1);
+              buf.clearNamespace(NAMESPACE5, 0, -1);
             }
           }
         }, false, "clear semantic tokens highlight of all buffers");
@@ -89522,7 +90102,7 @@ var init_util7 = __esm({
 });
 
 // src/handler/signature.ts
-var debounceTime13, Signature;
+var debounceTime12, Signature;
 var init_signature = __esm({
   "src/handler/signature.ts"() {
     "use strict";
@@ -89536,7 +90116,7 @@ var init_signature = __esm({
     init_window();
     init_workspace();
     init_util7();
-    debounceTime13 = getConditionValue(100, 10);
+    debounceTime12 = getConditionValue(100, 10);
     Signature = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -89550,7 +90130,7 @@ var init_signature = __esm({
         }, this.config.floatConfig));
         this.disposables.push(this.signatureFactory);
         workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
-        events_default.on("CursorMovedI", debounce(this.checkCurosr.bind(this), debounceTime13), null, this.disposables);
+        events_default.on("CursorMovedI", debounce(this.checkCurosr.bind(this), debounceTime12), null, this.disposables);
         events_default.on("BufEnter", () => {
           this.tokenSource?.cancel();
         }, null, this.disposables);
@@ -89772,7 +90352,7 @@ var init_signature = __esm({
 });
 
 // src/handler/symbols/buffer.ts
-var logger56, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
+var logger57, DEBEBOUNCE_INTERVAL, SymbolsBuffer;
 var init_buffer7 = __esm({
   "src/handler/symbols/buffer.ts"() {
     "use strict";
@@ -89782,7 +90362,7 @@ var init_buffer7 = __esm({
     init_errors();
     init_node();
     init_protocol();
-    logger56 = createLogger("symbols-buffer");
+    logger57 = createLogger("symbols-buffer");
     DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
     SymbolsBuffer = class {
       constructor(doc, autoUpdateBufnrs) {
@@ -90510,7 +91090,7 @@ var init_symbols2 = __esm({
           return buf;
         });
         this.outline = new SymbolsOutline(nvim, this.buffers, handler);
-        const debounceTime14 = workspace_default.initialConfiguration.get("coc.preferences.currentFunctionSymbolDebounceTime", 300);
+        const debounceTime13 = workspace_default.initialConfiguration.get("coc.preferences.currentFunctionSymbolDebounceTime", 300);
         let prev = "";
         let debounced = debounce(async (bufnr, cursor) => {
           if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return;
@@ -90524,7 +91104,7 @@ var init_symbols2 = __esm({
             buffer.setVar("coc_current_function", func2, true);
             this.nvim.callTimer("coc#util#do_autocmd", ["CocStatusChange"], true);
           }
-        }, getConditionValue(debounceTime14, 0));
+        }, getConditionValue(debounceTime13, 0));
         events_default.on("CursorMoved", debounced, this, this.disposables);
         this.disposables.push(import_node4.Disposable.create(() => {
           debounced.clear();
@@ -91020,7 +91600,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-67b9429 2025-06-06 19:07:24 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-e07c356c6 2025-06-12 00:03:53 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -91049,7 +91629,7 @@ var init_workspace2 = __esm({
 });
 
 // src/handler/index.ts
-var logger57, requestTimeout, Handler;
+var logger58, requestTimeout, Handler;
 var init_handler = __esm({
   "src/handler/index.ts"() {
     "use strict";
@@ -91076,6 +91656,7 @@ var init_handler = __esm({
     init_highlights2();
     init_hover2();
     init_inlayHint2();
+    init_inline();
     init_linkedEditing();
     init_links2();
     init_locations();
@@ -91087,7 +91668,7 @@ var init_handler = __esm({
     init_symbols2();
     init_typeHierarchy2();
     init_workspace2();
-    logger57 = createLogger("Handler");
+    logger58 = createLogger("Handler");
     requestTimeout = getConditionValue(500, 10);
     Handler = class {
       constructor(nvim) {
@@ -91120,6 +91701,7 @@ var init_handler = __esm({
         this.selectionRange = new SelectionRangeHandler(nvim, this);
         this.linkedEditingHandler = new LinkedEditingHandler(nvim, this);
         this.inlayHintHandler = new InlayHintHandler(nvim, this);
+        this.inlineCompletion = new InlineCompletion(nvim, this);
         this.disposables.push({
           dispose: () => {
             this.callHierarchy.dispose();
@@ -91133,6 +91715,7 @@ var init_handler = __esm({
             this.colors.dispose();
             this.documentHighlighter.dispose();
             this.semanticHighlighter.dispose();
+            this.inlineCompletion.dispose();
           }
         });
         this.registerCommands();
@@ -91188,6 +91771,10 @@ var init_handler = __esm({
           let locs = locations.filter((o) => Location.is(o));
           return await this.refactor.fromLocations(locs);
         });
+        this.register("editor.action.triggerInlineCompletion", async (option) => {
+          let bufnr = await this.nvim.eval('bufnr("%")');
+          return await this.inlineCompletion.trigger(bufnr, option);
+        });
       }
       register(key, handler) {
         this.disposables.push(commands_default.registerCommand(key, handler, null, true));
@@ -91202,7 +91789,7 @@ var init_handler = __esm({
         return configuration2.get("suggest.completionItemKindLabels", {});
       }
       get uri() {
-        return window_default.activeTextEditor?.document.uri;
+        return window_default.activeTextEditor?.uri;
       }
       async getCurrentState() {
         let { nvim } = this;
@@ -91249,7 +91836,7 @@ var init_handler = __esm({
         try {
           res = await Promise.resolve(fn(token));
         } catch (e) {
-          logger57.error(`Error on request ${name2}`, e);
+          logger58.error(`Error on request ${name2}`, e);
           this.nvim.errWriteLine(`Error on ${name2}: ${e}`);
         }
         if (this.requestTokenSource) {
@@ -91299,7 +91886,7 @@ var init_handler = __esm({
 });
 
 // src/plugin.ts
-var logger58, Plugin;
+var logger59, Plugin;
 var init_plugin = __esm({
   "src/plugin.ts"() {
     "use strict";
@@ -91319,7 +91906,7 @@ var init_plugin = __esm({
     init_util();
     init_window();
     init_workspace();
-    logger58 = createLogger("plugin");
+    logger59 = createLogger("plugin");
     Plugin = class {
       constructor(nvim) {
         this.nvim = nvim;
@@ -91476,6 +92063,11 @@ var init_plugin = __esm({
         this.addAction("inspectSemanticToken", () => this.handler.semanticHighlighter.inspectSemanticToken());
         this.addAction("semanticHighlight", () => this.handler.semanticHighlighter.highlightCurrent());
         this.addAction("showSemanticHighlightInfo", () => this.handler.semanticHighlighter.showHighlightInfo());
+        this.addAction("inlineTrigger", (bufnr, option) => this.handler.inlineCompletion.trigger(bufnr, option));
+        this.addAction("inlineCancel", () => this.handler.inlineCompletion.cancel());
+        this.addAction("inlineAccept", (bufnr, kind) => this.handler.inlineCompletion.accept(bufnr, kind));
+        this.addAction("inlineNext", (bufnr) => this.handler.inlineCompletion.next(bufnr));
+        this.addAction("inlinePrev", (bufnr) => this.handler.inlineCompletion.prev(bufnr));
       }
       get workspace() {
         return workspace_default;
@@ -91514,7 +92106,7 @@ var init_plugin = __esm({
         nvim.setVar("coc_service_initialized", 1, true);
         nvim.call("coc#util#do_autocmd", ["CocNvimInit"], true);
         nvim.resumeNotification(false, true);
-        logger58.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
+        logger59.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
         this.ready = true;
         await events_default.fire("ready", []);
       }
@@ -91554,7 +92146,7 @@ var attach_exports = {};
 __export(attach_exports, {
   default: () => attach_default
 });
-var import_neovim, logger59, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
+var import_neovim, logger60, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
 var init_attach = __esm({
   "src/attach.ts"() {
     "use strict";
@@ -91566,7 +92158,7 @@ var init_attach = __esm({
     init_node();
     init_string();
     init_timing();
-    logger59 = createLogger("attach");
+    logger60 = createLogger("attach");
     ACTIONS_NO_WAIT = ["installExtensions", "updateExtensions"];
     semVer = semver.parse(VERSION);
     pendingNotifications = [];
@@ -91581,7 +92173,7 @@ var init_attach = __esm({
         for (let [method, args] of pendingNotifications) {
           plugin.cocAction(method, ...args).catch((e) => {
             console.error(`Error on notification "${method}": ${e}`);
-            logger59.error(`Error on notification ${method}`, e);
+            logger60.error(`Error on notification ${method}`, e);
           });
         }
         pendingNotifications = [];
@@ -91593,7 +92185,7 @@ var init_attach = __esm({
             break;
           }
           case "Log": {
-            logger59.debug("Vim log", ...args);
+            logger60.debug("Vim log", ...args);
             break;
           }
           case "TaskExit":
@@ -91608,18 +92200,18 @@ var init_attach = __esm({
           case "FloatBtnClick":
           case "InputListSelect":
           case "PumNavigate":
-            logger59.trace("Event: ", method, ...args);
+            logger60.trace("Event: ", method, ...args);
             await events_default.fire(method, args);
             break;
           case "CocAutocmd":
-            logger59.trace("Notification autocmd:", ...args);
+            logger60.trace("Notification autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             break;
           case "redraw":
             break;
           default: {
             try {
-              logger59.info("receive notification:", method, args);
+              logger60.info("receive notification:", method, args);
               if (!plugin.isReady) {
                 pendingNotifications.push([method, args]);
                 return;
@@ -91627,7 +92219,7 @@ var init_attach = __esm({
               await plugin.cocAction(method, ...args);
             } catch (e) {
               console.error(`Error on notification "${method}": ${toErrorText(e)}`);
-              logger59.error(`Error on notification ${method}`, e);
+              logger60.error(`Error on notification ${method}`, e);
             }
           }
         }
@@ -91638,15 +92230,15 @@ var init_attach = __esm({
         try {
           events_default.requesting = true;
           if (method == "CocAutocmd") {
-            logger59.trace("Request autocmd:", ...args);
+            logger60.trace("Request autocmd:", ...args);
             await events_default.fire(args[0], args.slice(1));
             resp.send(void 0);
           } else {
             if (!plugin.isReady && !ACTIONS_NO_WAIT.includes(method)) {
-              logger59.warn(`Plugin not ready on request "${method}"`, args);
+              logger60.warn(`Plugin not ready on request "${method}"`, args);
               resp.send("Plugin not ready", true);
             } else {
-              logger59.info("Request action:", method, args);
+              logger60.info("Request action:", method, args);
               let res = await plugin.cocAction(method, ...args);
               resp.send(res);
             }
@@ -91660,7 +92252,7 @@ var init_attach = __esm({
           } else {
             resp.send(toErrorText(e), true);
           }
-          logger59.error(`Request error:`, method, args, e);
+          logger60.error(`Request error:`, method, args, e);
         }
         timing.stop();
       });
@@ -91673,15 +92265,15 @@ var init_attach = __esm({
 if (global.__isMain) {
   Object.defineProperty(console, "log", {
     value() {
-      if (logger60) logger60.info(...arguments);
+      if (logger61) logger61.info(...arguments);
     }
   });
   const { createLogger: createLogger2 } = (init_logger(), __toCommonJS(logger_exports));
-  const logger60 = createLogger2("server");
+  const logger61 = createLogger2("server");
   process.on("uncaughtException", function(err) {
     let msg = "Uncaught exception: " + err.message;
     console.error(msg);
-    logger60.error("uncaughtException", err.stack);
+    logger61.error("uncaughtException", err.stack);
   });
   process.on("unhandledRejection", function(reason, p) {
     if (reason instanceof Error) {
@@ -91698,15 +92290,15 @@ if (global.__isMain) {
     } else {
       console.error("UnhandledRejection: " + reason);
     }
-    logger60.error("unhandledRejection ", p, reason);
+    logger61.error("unhandledRejection ", p, reason);
   });
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
   attach2({ reader: process.stdin, writer: process.stdout });
 } else {
   const exports2 = require_src3();
-  const logger60 = (init_logger(), __toCommonJS(logger_exports)).logger;
+  const logger61 = (init_logger(), __toCommonJS(logger_exports)).logger;
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
-  module.exports = { attach: attach2, exports: exports2, logger: logger60, loadExtension: (filepath, active) => {
+  module.exports = { attach: attach2, exports: exports2, logger: logger61, loadExtension: (filepath, active) => {
     return exports2.extensions.manager.load(filepath, active);
   } };
 }

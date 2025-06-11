@@ -102,7 +102,7 @@ function! coc#snippet#jump(direction, complete) abort
     endif
     if coc#pum#visible()
       " Discard the return value, otherwise weird characters will be inserted
-      call coc#pum#confirm()
+      call coc#pum#close('confirm')
       return ''
     endif
   endif

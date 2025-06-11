@@ -334,7 +334,9 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
   const line = opts.line
   const blocks = opts.blocks
   var blockList: list<list<string>> = blocks
-  if !empty(blocks) && (align ==# 'above' || align ==# 'below')
+  const virt_lines = get(opts, 'virt_lines', [])
+  var isAboveBelow = align ==# 'above' || align ==# 'below'
+  if !empty(blocks) && isAboveBelow
     # only first highlight can be used
     const highlightGroup: string = blocks[0][1]
     const text: string = blocks->mapnew((_, block: list<string>): string => block[0])->join('')
@@ -349,19 +351,35 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
   if has_key(opts, 'text_wrap')
     base.text_wrap = opts.text_wrap
   endif
-  for [text, highlightGroup] in blockList
+  var before: string = ''
+  for blockItem in blockList
+    const text = empty(before) ? blockItem[0] : $'{before}{blockItem[0]}'
+    const highlightGroup: string = get(blockItem, 1, '')
+    if empty(highlightGroup)
+      # should be spaces
+      before = text
+      continue
+    endif
+    before = ''
     const type: string = coc#api#CreateType(ns, highlightGroup, opts)
     final propOpts: dict<any> = extend({ 'text': text, 'type': type, 'bufnr': bufnr }, base)
-    if first
+    if first && propColumn == 0
       # add a whitespace, same as neovim.
-      if propColumn == 0 && align ==# 'after'
+      if align ==# 'after'
         propOpts.text_padding_left = 1
-      elseif !empty(pre)
+      elseif !empty(pre) && isAboveBelow
         propOpts['text_padding_left'] = Calc_padding_size(bufnr, pre)
       endif
     endif
     prop_add(line + 1, propColumn, propOpts)
     first = false
+  endfor
+  for item_list in virt_lines
+    for [text, highlightGroup] in item_list
+      const type: string = coc#api#CreateType(ns, highlightGroup, opts)
+      final propOpts: dict<any> = { 'text': text, 'type': type, 'bufnr': bufnr, 'text_align': 'below'}
+      prop_add(line + 1, 0, propOpts)
+    endfor
   endfor
 enddef
 
