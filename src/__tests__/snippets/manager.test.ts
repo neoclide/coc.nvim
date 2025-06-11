@@ -259,16 +259,26 @@ describe('snippet provider', () => {
     })
 
     it('should respect preferCompleteThanJumpPlaceholder', async () => {
-      let fn = helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true)
-      let doc = await workspace.document
-      await nvim.input('o')
+      helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true, disposables)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'foot',
+          insertTextFormat: InsertTextFormat.Snippet,
+          insertText: '${1:foot}',
+          textEdit: { range: Range.create(0, 0, 0, 0), newText: '${1:foot}' },
+          preselect: true
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'E', ['*'], provider))
       await snippetManager.insertSnippet('${1} ${2:bar} foot')
-      await doc.synchronize()
-      await nvim.input('f')
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('i')
+      nvim.call('coc#start', { source: 'edits' }, true)
       await helper.waitPopup()
-      await helper.confirmCompletion(0)
+      await nvim.input('<C-j>')
       await helper.waitFor('getline', ['.'], 'foot bar foot')
-      fn()
+      let placeholder = snippetManager.session.placeholder
+      expect(placeholder.index).toBe(1)
     })
   })
 
