@@ -100,8 +100,7 @@ describe('completion', () => {
       await commands.executeCommand('editor.action.triggerSuggest', name)
       await helper.waitPopup()
       await helper.confirmCompletion(0)
-      let line = await nvim.line
-      expect(line).toBe('foofoo')
+      await helper.waitFor('getline', ['.'], 'foofoo')
     })
 
     it('should use ascii match', async () => {

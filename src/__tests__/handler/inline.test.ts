@@ -50,14 +50,14 @@ describe('InlineCompletion', () => {
   describe('events', () => {
     it('should trigger on document change', async () => {
       helper.updateConfiguration('inline.autoTrigger', true, disposables)
+      await nvim.command('startinsert')
+      let doc = await helper.createDocument()
       let mockProvider = jest.fn()
       let providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         { provideInlineCompletionItems: mockProvider }
       )
       disposables.push(providerDisposable)
-      await nvim.command('startinsert')
-      let doc = await workspace.document
       const spy = jest.spyOn(inlineCompletion, 'trigger')
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'test')])
       expect(spy).toHaveBeenCalledTimes(1)

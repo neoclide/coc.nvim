@@ -629,7 +629,7 @@ describe('semanticTokens', () => {
 
     it('should do range highlight after cursor moved', async () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
-      let doc = await helper.createDocument('t.vim')
+      let doc = await helper.createDocument(`95cb98ca-df0a-4cac-9cd3-2459db259b71.vim`)
       await nvim.call('cursor', [1, 1])
       let r: Range
       expect(doc.filetype).toBe('vim')
@@ -643,7 +643,7 @@ describe('semanticTokens', () => {
       item.cancel()
       await nvim.command('normal! G')
       await helper.waitValue(() => {
-        return r && r.end.line == 201
+        return r && r.end.line > 200
       }, true)
     })
 

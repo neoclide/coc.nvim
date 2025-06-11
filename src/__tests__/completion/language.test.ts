@@ -162,8 +162,8 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
       await nvim.call('cursor', [1, 1])
-      await nvim.setLine('')
       await nvim.command('startinsert')
+      await nvim.setLine('')
       nvim.call('coc#start', [{ source: 'language' }], true)
       await helper.waitPopup()
       expect(completion.selectedItem).toBeDefined()
