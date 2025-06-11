@@ -2333,7 +2333,7 @@
       "type": "integer",
       "default": 0,
       "minimum": 0,
-      "maximum": 50,
+      "maximum": 10,
       "scope": "language-overridable",
       "description": "Wait time between text change and completion start, completion is canceled when text changed during wait."
     },

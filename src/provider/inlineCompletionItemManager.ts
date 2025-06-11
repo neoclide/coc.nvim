@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineCompletionContext, InlineCompletionItem, Position } from 'vscode-languageserver-types'
+import { toArray } from '../util/array'
 import { onUnexpectedError } from '../util/errors'
 import { omit } from '../util/lodash'
 import { CancellationToken, Disposable } from '../util/protocol'
@@ -45,11 +46,15 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
     }
     const items: InlineCompletionItem[] = []
     const promise = Promise.allSettled(providers.map(item => {
-      return Promise.resolve(item.provider.provideInlineCompletionItems(document, position, omit(context, ['provider']), token)).then(result => {
-        if (Array.isArray(result)) {
-          items.push(...result)
-        } else if (result?.items) {
-          items.push(...result.items)
+      let provider = item.provider
+      return Promise.resolve(provider.provideInlineCompletionItems(document, position, omit(context, ['provider']), token)).then(result => {
+        let list = Array.isArray(result) ? result : toArray(result?.items)
+        for (let item of list) {
+          Object.defineProperty(item, 'provider', {
+            get: () => provider['__extensionName'],
+            enumerable: false
+          })
+          items.push(item)
         }
       })
     }))

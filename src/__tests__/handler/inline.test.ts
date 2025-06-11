@@ -1,30 +1,34 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../../commands'
-import InlineCompletion, { formatInsertText, getInsertText, InlineSesion } from '../../handler/inline'
+import sources from '../../completion/sources'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../completion/types'
+import events from '../../events'
+import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSesion } from '../../handler/inline'
 import languages from '../../languages'
 import { Disposable } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
+let nvim: Neovim
+let inlineCompletion: InlineCompletion
+let disposables: Disposable[] = []
+
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+  inlineCompletion = helper.plugin.handler.inlineCompletion
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
+
 describe('InlineCompletion', () => {
-  let nvim: Neovim
-  let inlineCompletion: InlineCompletion
-  let disposables: Disposable[] = []
-
-  beforeAll(async () => {
-    await helper.setup()
-    nvim = helper.nvim
-    inlineCompletion = helper.plugin.handler.inlineCompletion
-  })
-
-  afterAll(async () => {
-    await helper.shutdown()
-  })
-
   afterEach(async () => {
     jest.clearAllMocks()
+    inlineCompletion['_inserted'] = undefined
     await helper.reset()
     disposables.forEach(d => d.dispose())
     disposables = []
@@ -65,11 +69,146 @@ describe('InlineCompletion', () => {
         insertText: 'completion text',
         range: Range.create(0, 5, 0, 5)
       }
+      inlineCompletion['bufnr'] = doc.bufnr
       inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
       const spy = jest.spyOn(inlineCompletion, 'cancel')
       await nvim.command('bwipeout!')
       workspace.documentsManager.detachBuffer(doc.bufnr)
       expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not cancel when mode changed from i to ic', async () => {
+      let doc = await workspace.document
+      const item: InlineCompletionItem = {
+        insertText: 'completion text',
+        range: Range.create(0, 5, 0, 5)
+      }
+      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      const spy = jest.spyOn(inlineCompletion, 'cancel')
+      await events.fire('ModeChanged', [{ old_mode: 'i', new_mode: 'ic' }])
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('should trigger on pum navigate', async () => {
+      let doc = await workspace.document
+      let providerDisposable = languages.registerInlineCompletionItemProvider(
+        [{ language: '*' }],
+        {
+          provideInlineCompletionItems: () => {
+            return Promise.resolve([{ insertText: 'bar()' }])
+          }
+        }
+      )
+      disposables.push(providerDisposable)
+      disposables.push(sources.createSource({
+        name: 'test',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        })
+      }))
+      let mode = await nvim.mode
+      if (mode.mode !== 'i') {
+        await nvim.command('startinsert')
+      }
+      nvim.call('coc#start', { source: 'test' }, true)
+      await helper.waitPopup()
+      await nvim.call('coc#pum#_navigate', [1, 1])
+      await helper.waitFor('coc#inline#visible', [], 1)
+      await inlineCompletion.accept(doc.bufnr)
+      let line = await nvim.line
+      expect(line).toBe('bar()')
+    })
+
+    it('should accept snippet inlineCompletion on pum navigate', async () => {
+      let doc = await workspace.document
+      // Set up a line to work with
+      await nvim.setLine('prefix ')
+      await doc.patchChange()
+      // Register inline completion provider that returns snippet items
+      let providerDisposable = languages.registerInlineCompletionItemProvider(
+        [{ language: '*' }],
+        {
+          provideInlineCompletionItems: () => {
+            return Promise.resolve([{
+              insertText: {
+                value: 'snippet ${1:param1} ${2:param2}',
+                kind: 'snippet'
+              }
+            }])
+          }
+        }
+      )
+      disposables.push(providerDisposable)
+      // Create a completion source
+      disposables.push(sources.createSource({
+        name: 'snippet-test',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
+          resolve({ items: [{ word: 'snip' }, { word: 'snippet' }] })
+        })
+      }))
+      // Start insert mode if not already
+      let mode = await nvim.mode
+      if (mode.mode !== 'i') {
+        await nvim.command('startinsert')
+      }
+      // Move cursor to end of line
+      await nvim.call('cursor', [1, 8]) // After "prefix "
+      // Start completion
+      nvim.call('coc#start', { source: 'snippet-test' }, true)
+      await helper.waitPopup()
+      // Navigate in popup to trigger inline completion
+      await nvim.call('coc#pum#_navigate', [1, 1])
+      await helper.waitFor('coc#inline#visible', [], 1)
+      // Spy on executeCommand to check if snippet command is executed
+      const executeCommandSpy = jest.spyOn(commands, 'executeCommand')
+      // Accept the completion
+      let res = await inlineCompletion.accept(doc.bufnr)
+      // Check result
+      expect(res).toBe(true)
+      expect(inlineCompletion.session).toBeUndefined() // Session should be cleared
+      expect(executeCommandSpy).toHaveBeenCalledWith(
+        'editor.action.insertSnippet',
+        expect.objectContaining({
+          range: expect.any(Object),
+          newText: ' ${1:param1} ${2:param2}'
+        })
+      )
+      // Cleanup
+      executeCommandSpy.mockRestore()
+      await inlineCompletion.accept(doc.bufnr)
+      let line = await nvim.line
+      expect(line).toBe('prefix snippet param1 param2')
+    })
+
+    it('should adjust range based on _inserted in insertVtext', async () => {
+      let doc = await workspace.document
+      // Set up document with "prefix in" where "in" is what would be inserted by pum
+      await nvim.setLine('prefix in')
+      await doc.patchChange()
+      // Create a completion item with range covering "in" and insertText that extends it
+      const item: InlineCompletionItem = {
+        insertText: 'inserted text',
+        range: Range.create(0, 7, 0, 7)
+      }
+      // Create session with cursor at end of "in"
+      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 9), [item])
+      // Set _inserted to simulate pum insertion
+      inlineCompletion['_inserted'] = 'in'
+      // Mock inline insert
+      mockInlineInsert(true)
+      // Call insertVtext
+      await inlineCompletion.insertVtext(item)
+      // // Verify that vtext starts after "in"
+      expect(inlineCompletion.session.vtext).toBe('serted text')
+      // Check that the range was adjusted in the call to coc#inline#_insert
+      // The col should be 10 (byte index of position after "in" + 1)
+      expect(nvim.call).toHaveBeenCalledWith(
+        'coc#inline#_insert',
+        [doc.bufnr, 0, 10, ['serted text'], '']
+      )
+      await inlineCompletion.accept(doc.bufnr)
+      let line = await nvim.line
+      expect(line).toBe('prefix inserted text')
     })
   })
 
@@ -774,6 +913,67 @@ describe('Utility functions', () => {
     })
   })
 
+  describe('getPumInserted', () => {
+    it('should return empty string when current line matches synced line', async () => {
+      const doc = await workspace.document
+      await nvim.setLine('test line')
+      await doc.patchChange() // Synchronize to ensure lines match
+      const cursor = Position.create(0, 5)
+      const result = getPumInserted(doc, cursor)
+      expect(result).toBe('')
+    })
+
+    it('should return inserted text when current line differs from synced line', async () => {
+      const doc = await workspace.document
+      // Set the line in the buffer but don't sync document
+      await nvim.setLine('test inserted line')
+      // Mock the textDocument.lines to simulate a synced state that's different
+      const originalLines = doc.textDocument.lines
+      doc.textDocument.lines = ['test line']
+      const cursor = Position.create(0, 13) // Position after "test inserted"
+      const result = getPumInserted(doc, cursor)
+      // Restore original lines
+      doc.textDocument.lines = originalLines
+      expect(result).toBe(' inserted')
+    })
+
+    it('should return undefined when no valid insertion is detected', async () => {
+      const doc = await workspace.document
+      // Current line is completely different, not just an insertion
+      await nvim.setLine('completely different')
+      // Mock the textDocument.lines to simulate a synced state
+      const originalLines = doc.textDocument.lines
+      doc.textDocument.lines = ['original text']
+      const cursor = Position.create(0, 10)
+      const result = getPumInserted(doc, cursor)
+      // Restore original lines
+      doc.textDocument.lines = originalLines
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle cursor at beginning of line', async () => {
+      const doc = await workspace.document
+      await nvim.setLine('prefix original')
+      const originalLines = doc.textDocument.lines
+      doc.textDocument.lines = ['original']
+      const cursor = Position.create(0, 7) // Position after "prefix "
+      const result = getPumInserted(doc, cursor)
+      doc.textDocument.lines = originalLines
+      expect(result).toBe('prefix ')
+    })
+
+    it('should handle cursor at end of line', async () => {
+      const doc = await workspace.document
+      await nvim.setLine('original suffix')
+      const originalLines = doc.textDocument.lines
+      doc.textDocument.lines = ['original']
+      const cursor = Position.create(0, 15) // End of "original suffix"
+      const result = getPumInserted(doc, cursor)
+      doc.textDocument.lines = originalLines
+      expect(result).toBe(' suffix')
+    })
+  })
+
   describe('getInsertText', () => {
     it('should handle plain text', () => {
       const item: InlineCompletionItem = {
@@ -794,6 +994,186 @@ describe('Utility functions', () => {
       const options: FormattingOptions = { tabSize: 2, insertSpaces: true }
       const result = getInsertText(item, options)
       expect(result).toBe('snippet text')
+    })
+  })
+
+  describe('getInserted', () => {
+    it('should return undefined when current string is shorter than synced string', () => {
+      const curr = 'foo'
+      const synced = 'foobar'
+      const character = 3
+      const result = getInserted(curr, synced, character)
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined when text after cursor does not match end of synced string', () => {
+      const curr = 'fooXYZ'
+      const synced = 'foobar'
+      const character = 3
+      const result = getInserted(curr, synced, character)
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined when beginning of current does not match beginning of synced', () => {
+      const curr = 'abcbar'
+      const synced = 'foobar'
+      const character = 3
+      const result = getInserted(curr, synced, character)
+      expect(result).toBeUndefined()
+    })
+
+    it('should identify simple insertion in the middle', () => {
+      const curr = 'fooinsertedbartexthere'
+      const synced = 'foobartexthere'
+      const character = 11 // Position after "fooinserted"
+      const result = getInserted(curr, synced, character)
+      expect(result).toEqual({ start: 3, text: 'inserted' })
+    })
+
+    it('should identify insertion at the end', () => {
+      const curr = 'foobarappended'
+      const synced = 'foobar'
+      const character = 14 // Position at the end of curr
+      const result = getInserted(curr, synced, character)
+      expect(result).toEqual({ start: 6, text: 'appended' })
+    })
+
+    it('should identify insertion at the beginning', () => {
+      const curr = 'prefixfoobar'
+      const synced = 'foobar'
+      const character = 6 // Position after "prefix"
+      const result = getInserted(curr, synced, character)
+      expect(result).toEqual({ start: 0, text: 'prefix' })
+    })
+
+    it('should handle insertion with special characters', () => {
+      const curr = 'foo\t\n🚀bar'
+      const synced = 'foobar'
+      const character = 7 // After special chars (note emoji is a single character)
+      const result = getInserted(curr, synced, character)
+      expect(result).toEqual({ start: 3, text: '\t\n🚀' })
+    })
+
+    it('should handle empty insertion', () => {
+      const curr = 'foobar'
+      const synced = 'foobar'
+      const character = 3 // Position in the middle, but no change
+      const result = getInserted(curr, synced, character)
+      expect(result).toEqual({ start: 3, text: '' })
+    })
+  })
+
+  describe('checkInsertedAtBeginning', () => {
+    it('should return true when item has no range and insertText starts with inserted string', () => {
+      const currentLine = 'some text'
+      const triggerCharacter = 4
+      const inserted = 'comp'
+      const item: InlineCompletionItem = {
+        insertText: 'completion'
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when item has no range and insertText does not start with inserted string', () => {
+      const currentLine = 'some text'
+      const triggerCharacter = 4
+      const inserted = 'diff'
+      const item: InlineCompletionItem = {
+        insertText: 'completion'
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(false)
+    })
+
+    it('should return true when item has no range and snippet value starts with inserted string', () => {
+      const currentLine = 'some text'
+      const triggerCharacter = 4
+      const inserted = 'comp'
+      const item: InlineCompletionItem = {
+        insertText: {
+          value: 'completion ${1:param}',
+          kind: 'snippet'
+        }
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when item has no range and snippet value does not start with inserted string', () => {
+      const currentLine = 'some text'
+      const triggerCharacter = 4
+      const inserted = 'diff'
+      const item: InlineCompletionItem = {
+        insertText: {
+          value: 'completion ${1:param}',
+          kind: 'snippet'
+        }
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(false)
+    })
+
+    it('should return true when item has range and current line portion matches start of insertText', () => {
+      const currentLine = 'prefix completion suffix'
+      const triggerCharacter = 10 // After "prefix com"
+      const inserted = 'com'
+      const item: InlineCompletionItem = {
+        insertText: 'completion',
+        range: Range.create(0, 7, 0, 16) // "completion"
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when item has range and current line portion does not match start of insertText', () => {
+      const currentLine = 'prefix different suffix'
+      const triggerCharacter = 10 // After "prefix dif"
+      const inserted = 'dif'
+      const item: InlineCompletionItem = {
+        insertText: 'completion',
+        range: Range.create(0, 7, 0, 16) // "different"
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(false)
+    })
+
+    it('should return true when item has range and current line portion matches start of snippet value', () => {
+      const currentLine = 'prefix completion suffix'
+      const triggerCharacter = 10 // After "prefix com"
+      const inserted = 'com'
+      const item: InlineCompletionItem = {
+        insertText: {
+          value: 'completion ${1:param}',
+          kind: 'snippet'
+        },
+        range: Range.create(0, 7, 0, 16) // "completion"
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true)
+    })
+
+    it('should handle case with empty inserted string', () => {
+      const currentLine = 'prefix'
+      const triggerCharacter = 6
+      const inserted = ''
+      const item: InlineCompletionItem = {
+        insertText: 'completion'
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true) // Empty string is always at beginning
+    })
+
+    it('should handle special characters in inserted string', () => {
+      const currentLine = 'prefix\t\n🚀completion'
+      const triggerCharacter = 6 // After the emoji
+      const inserted = '\t\n🚀'
+      const item: InlineCompletionItem = {
+        insertText: '\t\n🚀suffix',
+        range: Range.create(0, 6, 0, 9)
+      }
+      const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
+      expect(result).toBe(true)
     })
   })
 })

@@ -852,7 +852,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('if')
       await helper.waitPopup()
-      await nvim.call('coc#pum#next', [1])
+      await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.wait(20)
       await nvim.input('o')
       await helper.waitPopup()
@@ -982,7 +982,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return called
       }, true)
-      await nvim.call('coc#pum#next', [0])
+      await nvim.call('coc#pum#_navigate', [1, 0])
       await helper.waitValue(() => {
         return cancelled
       }, true)

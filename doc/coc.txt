@@ -2496,6 +2496,8 @@ coc#inline#trigger([{option}]) 				*coc#inline#trigger()*
 		  Language Client id which register inline completion
 		  provider), all valid providers will be requested in parallel
 		  when not specified.
+		- `silent` when truthy no message would be shown when no
+		  inline completion items exists.
 
 	Return `""`
 
