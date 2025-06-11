@@ -7,9 +7,9 @@ import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
+import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
 import { defaultValue, disposeAll, waitWithToken } from '../util'
-import { toArray } from '../util/array'
 import { onUnexpectedError } from '../util/errors'
 import { comparePosition, emptyRange, getEnd, positionInRange } from '../util/position'
 import { CancellationTokenSource, Disposable, InlineCompletionItem } from '../util/protocol'
@@ -22,6 +22,7 @@ const logger = createLogger('handler-inline')
 const NAMESPACE = 'inlineSuggest'
 
 export interface InlineSuggestOption {
+  silent?: boolean
   provider?: string
   autoTrigger?: boolean
 }
@@ -58,6 +59,45 @@ export function getInsertText(item: InlineCompletionItem, formatOptions: Formatt
     return formatInsertText(snippet.toString(), formatOptions)
   }
   return formatInsertText(item.insertText, formatOptions)
+}
+
+export function getInserted(curr: string, synced: string, character: number): { start: number, text: string } | undefined {
+  if (curr.length < synced.length) return undefined
+  let after = curr.slice(character)
+  if (!synced.endsWith(after)) return undefined
+  let start = synced.length - after.length
+  if (!curr.startsWith(synced.slice(0, start))) return undefined
+  return { start, text: curr.slice(start, character) }
+}
+
+export function getPumInserted(document: Document, cursor: Position): string | undefined {
+  const { line, character } = cursor
+  let synced = toText(document.textDocument.lines[line])
+  let curr = document.getline(cursor.line)
+  if (synced === curr) return ''
+  let change = getInserted(curr, synced, character)
+  return change ? change.text : undefined
+}
+
+export function checkInsertedAtBeginning(currentLine: string, triggerCharacter: number, inserted: string, item: InlineCompletionItem): boolean {
+  if (!item.range) {
+    // check if inserted string is at the beginning item's insertText
+    if (StringValue.isSnippet(item.insertText)) {
+      return item.insertText.value.startsWith(inserted)
+    }
+    return item.insertText.startsWith(inserted)
+  }
+  // check if inserted string is at the beginning of item's range
+  let current = currentLine.slice(item.range.start.character, triggerCharacter + inserted.length)
+  if (StringValue.isSnippet(item.insertText)) {
+    return item.insertText.value.startsWith(current)
+  }
+  return item.insertText.startsWith(current)
+}
+
+function fixRange(range: Range | undefined, inserted: string | undefined): Range | undefined {
+  if (!inserted || !range) return range
+  return Range.create(range.start, Position.create(range.end.line, range.end.character + inserted.length))
 }
 
 export class InlineSesion {
@@ -100,9 +140,12 @@ export class InlineSesion {
 
 export default class InlineCompletion {
   public session: InlineSesion | undefined
+  private bufnr: number
   private tokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
   private config: InlineSuggestConfig
+  private _applying = false
+  private _inserted: string | undefined
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
@@ -110,23 +153,40 @@ export default class InlineCompletion {
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
     }, this, this.disposables)
+    const triggerOption = { autoTrigger: true }
     workspace.onDidChangeTextDocument(e => {
       if (languages.inlineCompletionItemManager.isEmpty === false
         && this.config.autoTrigger
         && e.bufnr === defaultValue(window.activeTextEditor, {} as any).bufnr
+        && !this._applying
         && events.insertMode
       ) {
         const wait = this.config.triggerCompletionWait
-        const option = { autoTrigger: true }
-        this.trigger(e.bufnr, option, wait).catch(onUnexpectedError)
+        this.trigger(e.bufnr, triggerOption, wait).catch(onUnexpectedError)
       }
     }, null, this.disposables)
-
-    events.on(['InsertCharPre', 'CursorMovedI', 'ModeChanged'], () => {
+    events.on('TextChangedI', bufnr => {
+      // Try trigger on pum navigate.
+      if (events.pumInserted && !languages.inlineCompletionItemManager.isEmpty) {
+        const wait = this.config.triggerCompletionWait
+        this.trigger(bufnr, triggerOption, wait).catch(onUnexpectedError)
+      }
+    }, null, this.disposables)
+    events.on('ModeChanged', ev => {
+      if (!ev.new_mode.startsWith('i')) {
+        this.cancel()
+      }
+    }, null, this.disposables)
+    events.on('InsertCharPre', () => {
       this.cancel()
     }, null, this.disposables)
+    events.on('LinesChanged', bufnr => {
+      if (bufnr === this.bufnr) {
+        this.cancel()
+      }
+    }, null, this.disposables)
     workspace.onDidCloseTextDocument(e => {
-      if (e.bufnr === this.session?.bufnr) {
+      if (e.bufnr === this.bufnr) {
         this.cancel()
       }
     }, null, this.disposables)
@@ -191,13 +251,19 @@ export default class InlineCompletion {
     if (!this.supported) return false
     this.cancel()
     option = option ?? {}
-    let document = workspace.getAttachedDocument(bufnr)
-    if (document.getVar('inline_disable') == 1 || !languages.hasProvider(ProviderName.InlineCompletion, document)) return false
+    let document = workspace.getDocument(bufnr)
+    if (!document
+      || !document.attached
+      || !languages.hasProvider(ProviderName.InlineCompletion, document)) return false
     let tokenSource = this.tokenSource = new CancellationTokenSource()
+    this.bufnr = bufnr
+    this._inserted = undefined
     let token = tokenSource.token
     if (delay) await waitWithToken(delay, token)
     if (option.autoTrigger !== true && document.hasChanged) {
+      this._applying = true
       await document.synchronize()
+      this._applying = false
     }
     if (token.isCancellationRequested) return false
     let state = await this.handler.getCurrentState()
@@ -206,24 +272,33 @@ export default class InlineCompletion {
       || state.doc.bufnr !== bufnr
       || !state.mode.startsWith('i')
       || token.isCancellationRequested) return false
-    let position = state.position
-    let items = await languages.provideInlineCompletionItems(document.textDocument, state.position, {
+    let cursor = state.position
+    let triggerPositon = cursor
+    let curr = document.getline(cursor.line)
+    if (option.autoTrigger) {
+      let inserted = this._inserted = getPumInserted(document, cursor)
+      if (inserted == null) return false
+      triggerPositon = Position.create(cursor.line, cursor.character - inserted.length)
+    }
+    const selectedCompletionInfo = completion.selectedCompletionInfo
+    if (selectedCompletionInfo && this._inserted) selectedCompletionInfo.range.end.character -= this._inserted.length
+    let items = await languages.provideInlineCompletionItems(document.textDocument, triggerPositon, {
       provider: option.provider,
-      selectedCompletionInfo: completion.selectedCompletionInfo,
+      selectedCompletionInfo,
       triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
     }, token)
-    if (token.isCancellationRequested) return false
-    items = toArray(items).filter(item => {
-      if (item.range) return positionInRange(position, item.range) === 0
-      return true
-    })
+    this.tokenSource = undefined
+    if (!Array.isArray(items) || token.isCancellationRequested) return false
+    items = items.filter(item => !item.range || positionInRange(triggerPositon, item.range) === 0)
+    // Inserted by pum navigate
+    if (this._inserted) items = items.filter(item => checkInsertedAtBeginning(curr, triggerPositon.character, this._inserted, item))
     if (items.length === 0) {
-      if (!option.autoTrigger) {
+      if (!option.autoTrigger && !option.silent) {
         void window.showWarningMessage(`No inline completion items from provider.`)
       }
       return false
     }
-    this.session = new InlineSesion(bufnr, position, items)
+    this.session = new InlineSesion(bufnr, cursor, items)
     await this.insertVtext(items[0])
     return true
   }
@@ -236,9 +311,12 @@ export default class InlineCompletion {
     this.cancel()
     let doc = workspace.getAttachedDocument(bufnr)
     let insertedLength = 0
+    const itemRange = fixRange(item.range, this._inserted)
     if (StringValue.isSnippet(item.insertText) && kind == 'all') {
-      let range = defaultValue(item.range, Range.create(cursor, cursor))
-      let edit = TextEdit.replace(range, item.insertText.value)
+      let range = defaultValue(itemRange, Range.create(cursor, cursor))
+      let text = item.insertText.value
+      if (!itemRange && this._inserted) text = text.slice(this._inserted.length)
+      let edit = TextEdit.replace(range, text)
       await commands.executeCommand('editor.action.insertSnippet', edit)
     } else {
       let range = Range.create(cursor, cursor)
@@ -259,7 +337,11 @@ export default class InlineCompletion {
         insertedLength = insertText.length
       } else {
         insertedText = getInsertText(item, window.activeTextEditor.options)
-        if (item.range) range = item.range
+        if (itemRange) {
+          range = itemRange
+        } else if (this._inserted) {
+          insertedText = insertedText.slice(this._inserted.length)
+        }
       }
       await doc.applyEdits([TextEdit.replace(range, insertedText)], false, false)
       await window.moveTo(getEnd(range.start, insertedText))
@@ -293,27 +375,31 @@ export default class InlineCompletion {
   public async insertVtext(item: InlineCompletionItem): Promise<void> {
     if (!this.session || !item) return
     const { bufnr, extra, cursor } = this.session
-    let textDocument = workspace.getAttachedDocument(bufnr).textDocument
+    let doc = workspace.getDocument(bufnr)
     let formatOptions = window.activeTextEditor.options
     let text = getInsertText(item, formatOptions)
-    if (item.range && !emptyRange(item.range)) {
-      let current = textDocument.getText(Range.create(item.range.start, cursor))
+    const line = doc.getline(cursor.line)
+    const itemRange = fixRange(item.range, this._inserted)
+    if (itemRange && !emptyRange(itemRange)) {
+      let current = line.slice(itemRange.start.character, cursor.character)
       text = text.slice(current.length)
-      if (comparePosition(cursor, item.range.end) !== 0) {
-        let after = textDocument.getText(Range.create(cursor, item.range.end))
+      if (comparePosition(cursor, itemRange.end) !== 0) {
+        let after = line.slice(cursor.character, itemRange.end.character)
         if (text.endsWith(after)) {
           text = text.slice(0, -after.length)
         }
       }
+    } else if (this._inserted) {
+      text = text.slice(this._inserted.length)
     }
-    const line = toText(textDocument.lines[cursor.line])
     const col = byteIndex(line, cursor.character) + 1
     let shown = await this.nvim.call('coc#inline#_insert', [bufnr, cursor.line, col, text.split('\n'), extra])
+    if (!this.session) return
     if (shown) {
       this.session.vtext = text
       this.nvim.redrawVim()
       void events.fire('InlineShown', [item])
-    } else if (this.session) {
+    } else {
       this.session.clearNamespace()
       this.session = undefined
     }
@@ -329,6 +415,7 @@ export default class InlineCompletion {
       this.session.clearNamespace()
       this.session = undefined
     }
+    this.bufnr = undefined
   }
 
   public dispose(): void {

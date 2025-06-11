@@ -78,9 +78,9 @@ export enum EventName {
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
-  | 'BufDetach' | 'Enter' | 'LinesChanged'
+  | 'BufDetach' | 'Enter' | 'LinesChanged' | 'PumNavigate'
 
-export type EmptyEvents = 'FocusGained' | 'ColorScheme' | 'FocusLost' | 'InsertSnippet' | 'VimLeavePre' | 'ready' | 'PumNavigate'
+export type EmptyEvents = 'FocusGained' | 'ColorScheme' | 'FocusLost' | 'InsertSnippet' | 'VimLeavePre' | 'ready'
 
 export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 

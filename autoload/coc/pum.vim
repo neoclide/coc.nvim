@@ -282,7 +282,7 @@ function! coc#pum#_navigate(next, insert) abort
     call s:save_indentkeys()
     let index = s:get_index(a:next)
     call s:select_by_index(index, a:insert)
-    call coc#rpc#notify('PumNavigate', [])
+    call coc#rpc#notify('PumNavigate', [bufnr('%')])
   endif
   return ''
 endfunction

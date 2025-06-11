@@ -1953,7 +1953,7 @@ INLINE COMPLETION
 	Wait time in milliseconds between text synchronize and trigger inline
 	completion.
 
-	Scope: `language-overridable`, default: `0`
+	Scope: `language-overridable`, default: `10`
 
 ------------------------------------------------------------------------------
 TYPEHIERARCHY
