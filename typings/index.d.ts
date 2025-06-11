@@ -7986,6 +7986,15 @@ declare module 'coc.nvim' {
      * @return A {@link Disposable} that unregisters this provider when being disposed.
      */
     export function registerTypeHierarchyProvider(selector: DocumentSelector, provider: TypeHierarchyProvider): Disposable
+
+    /**
+     * Register a inline completion item provider.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider A InlineCompletion provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerInlineCompletionItemProvider(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable
   }
   // }}
 
@@ -9447,7 +9456,7 @@ declare module 'coc.nvim' {
     /**
      * Apply WorkspaceEdit.
      */
-    export function applyEdit(edit: WorkspaceEdit): Promise<boolean>
+    export function applyEdit(edit: WorkspaceEdit, metadata?: WorkspaceEditMetadata): Promise<boolean>
 
     /**
      * Convert location to quickfix item.
@@ -12120,6 +12129,10 @@ declare module 'coc.nvim' {
     (this: void, event: FileEvent): void
   }
 
+  export interface ProvideInlineCompletionItemsSignature {
+    (this: void, document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+  }
+
   export interface _WorkspaceMiddleware {
     didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
@@ -12291,7 +12304,11 @@ declare module 'coc.nvim' {
     provideTextDocumentContent?: (this: void, uri: Uri, token: CancellationToken, next: ProvideTextDocumentContentSignature) => ProviderResult<string>
   }
 
-  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware & TextDocumentContentMiddleware
+  export interface InlineCompletionMiddleware {
+    provideInlineCompletionItems?: (this: void, document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken, next: ProvideInlineCompletionItemsSignature) => ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+  }
+
+  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware & TextDocumentContentMiddleware & InlineCompletionMiddleware
 
   export interface ConnectionOptions {
     maxRestartCount?: number

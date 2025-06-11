@@ -2,6 +2,43 @@
 
 Notable changes of coc.nvim:
 
+## 2025-06-11
+
+- LSP 3.18 and latest vscode-languageclient features:
+    - SnippetTextEdit support
+        - Add `SnippetTextEdit` interface and namespace.
+        - The `TextDocumentEdit.edits` array now allows `SnippetTextEdit`.
+        - API `workspace.applyEdits()` now accepts `SnippetTextEdit`.
+        - Introduced `StringValue` to represent snippet strings (kind: 'snippet', value: string).
+    - Inline completion support, see `:h coc-inlineCompletion`
+        - Add `InlineCompletionItem` `InlineCompletionList` interface and namespace.
+        - Add enum `InlineCompletionTriggerKind`.
+        - Add interfaces `InlineCompletionContext` `InlineCompletionItemProvider`.
+        - Add method `languages.registerInlineCompletionItemProvider()`.
+        - Inline completion support of LanguageClient.
+        - Support `LanguageClient.getFeature('textDocument/inlineCompletion')`.
+        - Support inline completion middleware `Middleware.provideInlineCompletionItems`.
+    - Workspace‐edit metadata & applyEdit
+        - Add `metadata` to `ApplyWorkspaceEditParams`.
+        - Add `metadata` parameter to `workspace.applyEdit()`.
+    - Richer `ErrorHandler.error()` and `ErrorHandler.closed()` return types
+        - New interfaces `ErrorHandlerResult` and `CloseHandlerResult` (include
+            `action`, optional `message`, optional `handled` flag)
+        - `error()` and `closed()` may now return these richer results instead of bare enums.
+    - Trace & output‐channel improvements.
+        - Add `traceOutputChannel` to `LanguageClientOptions`.
+        - Middleware can now intercept all requests and notifications via
+            `sendRequest` and `sendNotification`.
+    - Delayed “didOpen” notifications
+        - Option `textSynchronization.delayOpenNotifications` was added to
+            `LanguageClientOptions` so that `didOpen` can wait until a document is
+            actually visible (or until another message is sent).
+    - Text‐document‐content provider support
+        - Registration type workspace/textDocumentContent to support custom‐
+            scheme content providers.
+        - Support `middleware.provideTextDocumentContent` of LanguageClient.
+        - Support `LanguageClient.getFeature('workspace/textDocumentContent')`.
+
 ## 2025-06-02
 
 - Add function keys support to notification popups on vim9.
