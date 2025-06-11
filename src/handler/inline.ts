@@ -225,7 +225,7 @@ export default class InlineCompletion {
       let autoTrigger = defaultValue<boolean>(config.inspect('autoTrigger').globalValue as boolean, true)
       this.config = Object.assign(this.config ?? {}, {
         autoTrigger,
-        triggerCompletionWait: defaultValue(config.inspect('triggerCompletionWait').globalValue as number, 100)
+        triggerCompletionWait: defaultValue(config.inspect('triggerCompletionWait').globalValue as number, 10)
       })
     }
   }
