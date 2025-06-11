@@ -641,7 +641,7 @@ describe('semanticTokens', () => {
       }))
       let item = semanticTokens.getItem(doc.bufnr)
       item.cancel()
-      await nvim.command('normal! G')
+      nvim.call('cursor', [201, 1], true)
       await helper.waitValue(() => {
         return r && r.end.line > 200
       }, true)
