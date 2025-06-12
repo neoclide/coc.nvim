@@ -478,16 +478,16 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
         for idx in range(0, len(curr_lines) - 1)
           var oldStr = get(original, idx, '')
           var newStr = get(curr_lines, idx, '')
-          var repalceStr = get(replace, idx, null)
+          var replaceStr = get(replace, idx, null)
           var colIdx = idx == row ? pos[2] - 1 : -1
-          if oldStr !=# newStr && repalceStr != null
-            if repalceStr ==# oldStr
-              repalceStr = newStr
+          if oldStr !=# newStr && replaceStr != null
+            if replaceStr ==# oldStr
+              replaceStr = newStr
             else
-              repalceStr = coc#text#DiffApply(oldStr, newStr, repalceStr, colIdx)
+              replaceStr = coc#text#DiffApply(oldStr, newStr, replaceStr, colIdx)
             endif
-            if repalceStr != null
-              replace[idx] = repalceStr
+            if replaceStr != null
+              replace[idx] = replaceStr
             endif
             change_list = []
           endif
