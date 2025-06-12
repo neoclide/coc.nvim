@@ -1120,7 +1120,7 @@
     "diagnostic.virtualTextAlign": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Position of virtual text, default 'after'. Vim9 only",
+      "description": "Position of virtual text, default 'after'",
       "default": "after",
       "enum": ["after", "right", "below"]
     },

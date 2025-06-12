@@ -345,7 +345,7 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
   endif
   var first: bool = true
   final base: dict<any> = { 'priority': priority }
-  if propColumn == 0
+  if propColumn == 0 && align != 'overlay'
     base.text_align = align
   endif
   if has_key(opts, 'text_wrap')
@@ -368,7 +368,7 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
       if align ==# 'after'
         propOpts.text_padding_left = 1
       elseif !empty(pre) && isAboveBelow
-        propOpts['text_padding_left'] = Calc_padding_size(bufnr, pre)
+        propOpts.text_padding_left = Calc_padding_size(bufnr, pre)
       endif
     endif
     prop_add(line + 1, propColumn, propOpts)

@@ -969,7 +969,7 @@ DIAGNOSTIC
 
 "diagnostic.virtualTextAlign"				*coc-config-diagnostic-virtualTextAlign*
 
-	Position of virtual text. Vim9 only.
+	Position of virtual text.
 
 	Scope: `language-overridable`, default: `"after"`
 
