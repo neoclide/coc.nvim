@@ -100,7 +100,7 @@ function fixRange(range: Range | undefined, inserted: string | undefined): Range
   return Range.create(range.start, Position.create(range.end.line, range.end.character + inserted.length))
 }
 
-export class InlineSesion {
+export class InlineSession {
   constructor(
     public readonly bufnr: number,
     public readonly cursor: Position,
@@ -139,7 +139,7 @@ export class InlineSesion {
 }
 
 export default class InlineCompletion {
-  public session: InlineSesion | undefined
+  public session: InlineSession | undefined
   private bufnr: number
   private tokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
@@ -205,7 +205,7 @@ export default class InlineCompletion {
       }
       let disable = await nvim.createBuffer(bufnr).getVar('coc_inline_disable') as number
       if (disable == 1) {
-        void window.showWarningMessage(`Trigger inline compation is disabled by b:coc_inline_disable.`)
+        void window.showWarningMessage(`Trigger inline completion is disabled by b:coc_inline_disable.`)
         return
       }
       let providers = languages.inlineCompletionItemManager.getProviders(doc.textDocument)
@@ -273,32 +273,32 @@ export default class InlineCompletion {
       || !state.mode.startsWith('i')
       || token.isCancellationRequested) return false
     let cursor = state.position
-    let triggerPositon = cursor
+    let triggerPosition = cursor
     let curr = document.getline(cursor.line)
     if (option.autoTrigger) {
       let inserted = this._inserted = getPumInserted(document, cursor)
       if (inserted == null) return false
-      triggerPositon = Position.create(cursor.line, cursor.character - inserted.length)
+      triggerPosition = Position.create(cursor.line, cursor.character - inserted.length)
     }
     const selectedCompletionInfo = completion.selectedCompletionInfo
     if (selectedCompletionInfo && this._inserted) selectedCompletionInfo.range.end.character -= this._inserted.length
-    let items = await languages.provideInlineCompletionItems(document.textDocument, triggerPositon, {
+    let items = await languages.provideInlineCompletionItems(document.textDocument, triggerPosition, {
       provider: option.provider,
       selectedCompletionInfo,
       triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
     }, token)
     this.tokenSource = undefined
     if (!Array.isArray(items) || token.isCancellationRequested) return false
-    items = items.filter(item => !item.range || positionInRange(triggerPositon, item.range) === 0)
+    items = items.filter(item => !item.range || positionInRange(triggerPosition, item.range) === 0)
     // Inserted by pum navigate
-    if (this._inserted) items = items.filter(item => checkInsertedAtBeginning(curr, triggerPositon.character, this._inserted, item))
+    if (this._inserted) items = items.filter(item => checkInsertedAtBeginning(curr, triggerPosition.character, this._inserted, item))
     if (items.length === 0) {
       if (!option.autoTrigger && !option.silent) {
         void window.showWarningMessage(`No inline completion items from provider.`)
       }
       return false
     }
-    this.session = new InlineSesion(bufnr, cursor, items)
+    this.session = new InlineSession(bufnr, cursor, items)
     await this.insertVtext(items[0])
     return true
   }

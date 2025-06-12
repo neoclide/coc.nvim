@@ -4,7 +4,7 @@ import commands from '../../commands'
 import sources from '../../completion/sources'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../completion/types'
 import events from '../../events'
-import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSesion } from '../../handler/inline'
+import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSession } from '../../handler/inline'
 import languages from '../../languages'
 import { Disposable } from '../../util/protocol'
 import window from '../../window'
@@ -70,7 +70,7 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 5, 0, 5)
       }
       inlineCompletion['bufnr'] = doc.bufnr
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
       const spy = jest.spyOn(inlineCompletion, 'cancel')
       await nvim.command('bwipeout!')
       workspace.documentsManager.detachBuffer(doc.bufnr)
@@ -83,7 +83,7 @@ describe('InlineCompletion', () => {
         insertText: 'completion text',
         range: Range.create(0, 5, 0, 5)
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
       const spy = jest.spyOn(inlineCompletion, 'cancel')
       await events.fire('ModeChanged', [{ old_mode: 'i', new_mode: 'ic' }])
       expect(spy).not.toHaveBeenCalled()
@@ -191,7 +191,7 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 7, 0, 7)
       }
       // Create session with cursor at end of "in"
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 9), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 9), [item])
       // Set _inserted to simulate pum insertion
       inlineCompletion['_inserted'] = 'in'
       // Mock inline insert
@@ -222,7 +222,7 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 5, 0, 5)
       }
       await inlineCompletion.insertVtext(undefined)
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(nvim.call).toHaveBeenCalledWith(
@@ -236,7 +236,7 @@ describe('InlineCompletion', () => {
       let doc = await workspace.document
       const item1: InlineCompletionItem = { insertText: 'first' }
       const item2: InlineCompletionItem = { insertText: 'second' }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 0), [item1, item2])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item1, item2])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item1)
       expect(nvim.call).toHaveBeenCalledWith(
@@ -252,7 +252,7 @@ describe('InlineCompletion', () => {
         insertText: 'complete method()',
         range: Range.create(0, 0, 0, 8) // Assume "complete" is already typed
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 8), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 8), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(inlineCompletion.session.vtext).toBe(' method()')
@@ -266,7 +266,7 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 0, 0, 7) // "compl()"
       }
       // Cursor is at "compl|()"
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(inlineCompletion.session.vtext).toBe('eteMethod')
@@ -279,7 +279,7 @@ describe('InlineCompletion', () => {
         insertText: 'initialTextReplacement',
         range: Range.create(0, 0, 0, 11) // "initialText"
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 11), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 11), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(inlineCompletion.session.vtext).toBe('Replacement')
@@ -292,7 +292,7 @@ describe('InlineCompletion', () => {
         insertText: 'prefixReplacementSuffix',
         range: Range.create(0, 0, 0, 20) // "prefixMismatchSuffix"
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 6), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(inlineCompletion.session.vtext).toBe('ReplacementSuffix')
@@ -301,7 +301,7 @@ describe('InlineCompletion', () => {
     it('should clean up when insertion fails', async () => {
       let doc = await workspace.document
       const item: InlineCompletionItem = { insertText: 'text' }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 5), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
       mockInlineInsert(false)
       await inlineCompletion.insertVtext(item)
       expect(inlineCompletion.session).toBeUndefined()
@@ -314,7 +314,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'line1\nline2\nline3',
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 0), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item])
       mockInlineInsert(true)
       await inlineCompletion.insertVtext(item)
       expect(nvim.call).toHaveBeenCalledWith(
@@ -331,7 +331,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'bar',
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 3), [item], -1, 'bar')
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 3), [item], -1, 'bar')
       let res = await helper.doAction('inlineAccept', doc.bufnr, 'all')
       expect(res).toBe(false)
     })
@@ -343,7 +343,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'bar',
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 3), [item], 0, 'bar')
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 3), [item], 0, 'bar')
       const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
       const moveToSpy = jest.spyOn(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
@@ -367,7 +367,7 @@ describe('InlineCompletion', () => {
         insertText: 'replacement',
         range: Range.create(0, 6, 0, 6) // Replacing nothing, just inserting at cursor
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 6), [item], 0, 'replacement')
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item], 0, 'replacement')
       const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
       const moveToSpy = jest.spyOn(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
@@ -393,7 +393,7 @@ describe('InlineCompletion', () => {
           value: snippetString
         }
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 6), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item])
       inlineCompletion.session.vtext = 'snippet one then two' // What vtext might show
       let res = await inlineCompletion.accept(doc.bufnr)
       expect(inlineCompletion.session).toBeUndefined()
@@ -407,7 +407,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'firstWord secondWord'
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 7), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'firstWord secondWord'
 
       // Mock isWord
@@ -427,7 +427,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'onlyword' // No spaces or punctuation
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 6), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item])
       inlineCompletion.session.vtext = 'onlyword'
 
       const originalIsWord = doc.isWord
@@ -453,7 +453,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'firstLine\nsecondLine'
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 7), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'firstLine\nsecondLine'
       await inlineCompletion.accept(doc.bufnr, 'line')
       expect(inlineCompletion.session).toBeUndefined()
@@ -468,7 +468,7 @@ describe('InlineCompletion', () => {
       const item: InlineCompletionItem = {
         insertText: 'singleLineText'
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 7), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'singleLineText'
 
       const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
@@ -491,7 +491,7 @@ describe('InlineCompletion', () => {
         insertText: 'text',
         command: { command: 'test.command', title: 'Test' }
       }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 4), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 4), [item])
       inlineCompletion.session.vtext = 'text'
       let res = await inlineCompletion.accept(doc.bufnr)
       expect(inlineCompletion.session).toBeUndefined() // Session should still be cleared
@@ -501,7 +501,7 @@ describe('InlineCompletion', () => {
     it('should do nothing if bufnr does not match session bufnr', async () => {
       let doc = await workspace.document
       const item: InlineCompletionItem = { insertText: 'text' }
-      inlineCompletion.session = new InlineSesion(doc.bufnr, Position.create(0, 0), [item])
+      inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item])
       inlineCompletion.session.vtext = 'text' // Simulate vtext is shown
       let res = await inlineCompletion.accept(doc.bufnr + 1) // Different bufnr
       expect(res).toBe(false)
@@ -684,7 +684,7 @@ describe('InlineCompletion', () => {
     let mockInsertVtext: jest.SpyInstance
 
     const setupSession = (items: InlineCompletionItem[], initialIndex = 0, sessionBufnr = bufnr) => {
-      const session = new InlineSesion(sessionBufnr, Position.create(0, 0), items)
+      const session = new InlineSession(sessionBufnr, Position.create(0, 0), items)
       session.index = initialIndex
       inlineCompletion.session = session
       // Simulate that a previous insertVtext call set this
