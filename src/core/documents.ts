@@ -467,10 +467,10 @@ export default class Documents implements Disposable {
 
   public detachBuffer(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
-    if (!doc) return
+    this.buffers.delete(bufnr)
+    if (!doc || !doc.attached) return
     logger.debug('document detach', bufnr, doc.uri)
     this._onDidCloseDocument.fire(doc.textDocument)
-    this.buffers.delete(bufnr)
     doc.detach()
     const uris = this.textDocuments.map(o => URI.parse(o.uri))
     this.workspaceFolder.onDocumentDetach(uris)
