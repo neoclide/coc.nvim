@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, LocationLink, Location, Range, Position, CancellationTokenSource, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Location, LocationLink, Position, Range } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import LocationHandler from '../../handler/locations'
 import languages from '../../languages'
 import services from '../../services'
-import workspace from '../../workspace'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
-import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 let locations: LocationHandler
@@ -250,6 +250,13 @@ describe('locations', () => {
     it('should return null when provider does not exist', async () => {
       await nvim.setLine('foo')
       await nvim.command('normal! ^')
+      let res = await locations.getTagList()
+      expect(res).toBe(null)
+    })
+
+    it('should null when buffer not attached', async () => {
+      let doc = await workspace.document
+      if (doc) doc.detach()
       let res = await locations.getTagList()
       expect(res).toBe(null)
     })

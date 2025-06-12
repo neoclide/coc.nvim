@@ -6,11 +6,12 @@ import { URI } from 'vscode-uri'
 import languages, { ProviderName } from '../languages'
 import services from '../services'
 import { LocationWithTarget } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { hasOwnProperty } from '../util/object'
 import { CancellationToken, CancellationTokenSource } from '../util/protocol'
+import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
-import { isFalsyOrEmpty } from '../util/array'
 
 export interface TagDefinition {
   name: string
@@ -114,7 +115,10 @@ export default class LocationsHandler {
   }
 
   public async getTagList(): Promise<TagDefinition[] | null> {
-    let { doc, position } = await this.handler.getCurrentState()
+    let bufnr = await this.nvim.call('bufnr', '%') as number
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return null
+    let position = await window.getCursorPosition()
     let word = await this.nvim.call('expand', '<cword>') as string
     if (!word) return null
     if (!languages.hasProvider(ProviderName.Definition, doc.textDocument)) return null
