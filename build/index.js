@@ -38719,7 +38719,7 @@ var init_schema = __esm({
         "diagnostic.virtualTextAlign": {
           type: "string",
           scope: "language-overridable",
-          description: "Position of virtual text, default 'after'. Vim9 only",
+          description: "Position of virtual text, default 'after'",
           default: "after",
           enum: ["after", "right", "below"]
         },
@@ -78206,10 +78206,10 @@ var init_documents = __esm({
       }
       detachBuffer(bufnr) {
         let doc = this.buffers.get(bufnr);
-        if (!doc) return;
+        this.buffers.delete(bufnr);
+        if (!doc || !doc.attached) return;
         logger36.debug("document detach", bufnr, doc.uri);
         this._onDidCloseDocument.fire(doc.textDocument);
-        this.buffers.delete(bufnr);
         doc.detach();
         const uris = this.textDocuments.map((o) => URI2.parse(o.uri));
         this.workspaceFolder.onDocumentDetach(uris);
@@ -87392,7 +87392,7 @@ function fixRange(range, inserted) {
   if (!inserted || !range) return range;
   return Range.create(range.start, Position.create(range.end.line, range.end.character + inserted.length));
 }
-var logger53, NAMESPACE3, InlineSesion, InlineCompletion;
+var logger53, NAMESPACE3, InlineSession, InlineCompletion;
 var init_inline = __esm({
   "src/handler/inline.ts"() {
     "use strict";
@@ -87412,7 +87412,7 @@ var init_inline = __esm({
     init_workspace();
     logger53 = createLogger("handler-inline");
     NAMESPACE3 = "inlineSuggest";
-    InlineSesion = class {
+    InlineSession = class {
       constructor(bufnr, cursor, items, index = 0, vtext = void 0) {
         this.bufnr = bufnr;
         this.cursor = cursor;
@@ -87498,7 +87498,7 @@ var init_inline = __esm({
           }
           let disable = await nvim.createBuffer(bufnr).getVar("coc_inline_disable");
           if (disable == 1) {
-            void window_default.showWarningMessage(`Trigger inline compation is disabled by b:coc_inline_disable.`);
+            void window_default.showWarningMessage(`Trigger inline completion is disabled by b:coc_inline_disable.`);
             return;
           }
           let providers = languages_default.inlineCompletionItemManager.getProviders(doc.textDocument);
@@ -87555,31 +87555,31 @@ var init_inline = __esm({
         let disable = await document2.buffer.getVar("coc_inline_disable");
         if (disable == 1 || state.doc.bufnr !== bufnr || !state.mode.startsWith("i") || token.isCancellationRequested) return false;
         let cursor = state.position;
-        let triggerPositon = cursor;
+        let triggerPosition = cursor;
         let curr = document2.getline(cursor.line);
         if (option.autoTrigger) {
           let inserted = this._inserted = getPumInserted(document2, cursor);
           if (inserted == null) return false;
-          triggerPositon = Position.create(cursor.line, cursor.character - inserted.length);
+          triggerPosition = Position.create(cursor.line, cursor.character - inserted.length);
         }
         const selectedCompletionInfo = completion_default.selectedCompletionInfo;
         if (selectedCompletionInfo && this._inserted) selectedCompletionInfo.range.end.character -= this._inserted.length;
-        let items = await languages_default.provideInlineCompletionItems(document2.textDocument, triggerPositon, {
+        let items = await languages_default.provideInlineCompletionItems(document2.textDocument, triggerPosition, {
           provider: option.provider,
           selectedCompletionInfo,
           triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked
         }, token);
         this.tokenSource = void 0;
         if (!Array.isArray(items) || token.isCancellationRequested) return false;
-        items = items.filter((item) => !item.range || positionInRange(triggerPositon, item.range) === 0);
-        if (this._inserted) items = items.filter((item) => checkInsertedAtBeginning(curr, triggerPositon.character, this._inserted, item));
+        items = items.filter((item) => !item.range || positionInRange(triggerPosition, item.range) === 0);
+        if (this._inserted) items = items.filter((item) => checkInsertedAtBeginning(curr, triggerPosition.character, this._inserted, item));
         if (items.length === 0) {
           if (!option.autoTrigger && !option.silent) {
             void window_default.showWarningMessage(`No inline completion items from provider.`);
           }
           return false;
         }
-        this.session = new InlineSesion(bufnr, cursor, items);
+        this.session = new InlineSession(bufnr, cursor, items);
         await this.insertVtext(items[0]);
         return true;
       }
@@ -88068,10 +88068,11 @@ var init_locations = __esm({
     init_esm();
     init_languages();
     init_services();
+    init_array();
     init_object();
     init_protocol();
+    init_window();
     init_workspace();
-    init_array();
     LocationsHandler = class {
       constructor(nvim, handler) {
         this.nvim = nvim;
@@ -88156,7 +88157,10 @@ var init_locations = __esm({
         return !isFalsyOrEmpty(definition);
       }
       async getTagList() {
-        let { doc, position } = await this.handler.getCurrentState();
+        let bufnr = await this.nvim.call("bufnr", "%");
+        let doc = workspace_default.getDocument(bufnr);
+        if (!doc || !doc.attached) return null;
+        let position = await window_default.getCursorPosition();
         let word = await this.nvim.call("expand", "<cword>");
         if (!word) return null;
         if (!languages_default.hasProvider("definition" /* Definition */, doc.textDocument)) return null;
@@ -91600,7 +91604,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-e07c356c6 2025-06-12 00:03:53 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-b02ede9 2025-06-16 14:29:38 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

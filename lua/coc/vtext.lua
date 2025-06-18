@@ -27,6 +27,8 @@ local function addVirtualText(bufnr, ns, opts, pre, priority)
       elseif type(opts.virt_text_win_col) == 'number' then
         config.virt_text_win_col = opts.virt_text_win_col
         config.virt_text_pos = 'overlay'
+      elseif align == 'overlay' then
+        config.virt_text_pos = 'overlay'
       else
         config.virt_text_pos = 'eol'
       end

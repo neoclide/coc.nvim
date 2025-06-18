@@ -38,6 +38,8 @@ Notable changes of coc.nvim:
             scheme content providers.
         - Support `middleware.provideTextDocumentContent` of LanguageClient.
         - Support `LanguageClient.getFeature('workspace/textDocumentContent')`.
+    - Support `transport` of `Executable` server option.  Transport could be
+      `pipe` and `socket`
 
 ## 2025-06-02
 

@@ -741,6 +741,7 @@ trigger inline completion completely.
 
 Related Highlight groups:
 	|CocInlineVirtualText| for virtual text highlight.
+	|CocInlineAnnotation| for annotation highlight.
 
 ------------------------------------------------------------------------------
 DIAGNOSTICS SUPPORT 					*coc-diagnostics*
