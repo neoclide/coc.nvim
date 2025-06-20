@@ -1,8 +1,38 @@
 import type { Disposable, MessageReader, MessageSignature, MessageWriter } from 'vscode-languageserver-protocol'
-import { PipeTransport, SocketMessageReader, SocketMessageWriter, SocketTransport } from 'vscode-languageserver-protocol/node'
+import { NotificationType, NotificationType0, NotificationType1, NotificationType2, NotificationType3, NotificationType4, NotificationType5, NotificationType6, NotificationType7, NotificationType8, NotificationType9, ParameterStructures, PipeTransport, RequestType, RequestType0, RequestType1, RequestType2, RequestType3, RequestType4, RequestType5, RequestType6, RequestType7, RequestType8, RequestType9, SocketMessageReader, SocketMessageWriter, SocketTransport } from 'vscode-languageserver-protocol/node'
 import * as Is from '../../util/is'
 import { inspect, net } from '../../util/node'
 import { ResponseError } from '../../util/protocol'
+
+const requestTypes = [
+  RequestType,
+  RequestType0,
+]
+
+const notificationTypes = [
+  NotificationType,
+  NotificationType0,
+]
+
+export function isValidRequestType(type: any): type is string | MessageSignature {
+  if (typeof type == 'string') return true
+  for (let clz of requestTypes) {
+    if (type instanceof clz) {
+      return true
+    }
+  }
+  return false
+}
+
+export function isValidNotificationType(type: any): type is string | MessageSignature {
+  if (typeof type == 'string') return true
+  for (let clz of notificationTypes) {
+    if (type instanceof clz) {
+      return true
+    }
+  }
+  return false
+}
 
 export function getLocale(): string {
   const lang = process.env.LANG
@@ -25,13 +55,83 @@ export function getTracePrefix(data: any): string {
   return `[Trace - ${currentTimeStamp()}] `
 }
 
-export function fixType<T extends string | { method: string, numberOfParams?: number }>(type: T, params: any[]): T {
-  if (typeof type === 'string' || typeof type.numberOfParams === 'number') return type
-  let len = params.length
-  Object.defineProperty(type, 'numberOfParams', {
-    get: () => len
-  })
-  return type
+export function getParameterStructures(kind: string): ParameterStructures {
+  switch (kind) {
+    case 'auto':
+      return ParameterStructures.auto
+    case 'byPosition':
+      return ParameterStructures.byPosition
+    case 'byName':
+      return ParameterStructures.byName
+    default:
+      return ParameterStructures.auto
+  }
+}
+
+// The extension may use old version vscode-languageserver-protocol, and vscode-json-rpc checks the instanceof
+export function fixRequestType(type: { method: string, numberOfParams?: number } | string, params: any[]): MessageSignature | string {
+  if (isValidRequestType(type)) return type
+  let n = typeof type.numberOfParams === 'number' ? type.numberOfParams : params.length
+  switch (n) {
+    case 0:
+      return new RequestType0(type.method)
+    case 1:
+      if (type['parameterStructures'] != null) {
+        return new RequestType1(type.method, getParameterStructures(type['parameterStructures'].toString()))
+      }
+      return new RequestType1(type.method)
+    case 2:
+      return new RequestType2(type.method)
+    case 3:
+      return new RequestType3(type.method)
+    case 4:
+      return new RequestType4(type.method)
+    case 5:
+      return new RequestType5(type.method)
+    case 6:
+      return new RequestType6(type.method)
+    case 7:
+      return new RequestType7(type.method)
+    case 8:
+      return new RequestType8(type.method)
+    case 9:
+      return new RequestType9(type.method)
+    default:
+      return new RequestType(type.method)
+  }
+}
+
+// The extension may use old version vscode-languageserver-protocol, and vscode-json-rpc checks the instanceof
+export function fixNotifycationType(type: { method: string, numberOfParams?: number } | string, params: any[]): MessageSignature | string {
+  if (isValidNotificationType(type)) return type
+  let n = typeof type.numberOfParams === 'number' ? type.numberOfParams : params.length
+  switch (n) {
+    case 0:
+      return new NotificationType0(type.method)
+    case 1:
+      if (type['parameterStructures'] != null) {
+        return new NotificationType1(type.method, getParameterStructures(type['parameterStructures'].toString()))
+      }
+      return new NotificationType1(type.method)
+    case 2:
+      return new NotificationType2(type.method)
+    case 3:
+      return new NotificationType3(type.method)
+    case 4:
+      return new NotificationType4(type.method)
+    case 5:
+      return new NotificationType5(type.method)
+    case 6:
+      return new NotificationType6(type.method)
+    case 7:
+      return new NotificationType7(type.method)
+    case 8:
+      return new NotificationType8(type.method)
+    case 9:
+      return new NotificationType9(type.method)
+    default:
+      return new NotificationType(type.method)
+  }
 }
 
 export function data2String(data: any, color = false): string {

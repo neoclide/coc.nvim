@@ -1,8 +1,9 @@
 /* eslint-disable */
 import assert from 'assert'
 import { spawn } from 'child_process'
+import { NotificationType, NotificationType1, RequestType, RequestType1 } from 'vscode-languageserver-protocol'
 import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'
-import { data2String, fixType, getLocale, getTracePrefix, parseTraceData } from '../../language-client/utils'
+import { data2String, fixNotifycationType, fixRequestType, getLocale, getParameterStructures, getTracePrefix, isValidNotificationType, isValidRequestType, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
 import { CloseAction, DefaultErrorHandler, ErrorAction, toCloseHandlerResult } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
@@ -44,8 +45,48 @@ test('getTraceMessage', () => {
   expect(getTracePrefix({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
 })
 
-test('fixType', () => {
-  expect(fixType({ method: 'method' }, [])['numberOfParams']).toEqual(0)
+test('getParameterStructures', () => {
+  expect(getParameterStructures('auto').toString()).toBe('auto')
+  // test all the cased of getParameterStructures
+  expect(getParameterStructures('byPosition').toString()).toBe('byPosition')
+  expect(getParameterStructures('byName').toString()).toBe('byName')
+  expect(getParameterStructures('unknown').toString()).toBe('auto')
+})
+
+test('isValidRequestType', () => {
+  expect(isValidRequestType('test')).toBe(true)
+  expect(isValidRequestType({ method: 'test' })).toBe(false)
+  expect(isValidRequestType(new RequestType('test'))).toBe(true)
+})
+
+test('isValidNotificationType', () => {
+  expect(isValidNotificationType('test')).toBe(true)
+  expect(isValidNotificationType({ method: 'test' })).toBe(false)
+  expect(isValidNotificationType(new NotificationType('test'))).toBe(true)
+})
+
+test('fixRequestType', () => {
+  expect(fixRequestType('test', [])).toBe('test')
+  for (let i = 0; i <= 10; i++) {
+    let type = { method: 'test', numberOfParams: i }
+    expect(fixRequestType(type, [])).toBeDefined()
+  }
+  let type = { method: 'test', numberOfParams: 1, parameterStructures: 'auto' }
+  let res = fixRequestType(type, []) as RequestType1<unknown, undefined, undefined>
+  expect(res.numberOfParams).toBe(1)
+  expect(res.parameterStructures).toBeDefined()
+})
+
+test('fixNotifycationType', () => {
+  expect(fixNotifycationType('test', [])).toBe('test')
+  for (let i = 0; i <= 10; i++) {
+    let type = { method: 'test', numberOfParams: i }
+    expect(fixNotifycationType(type, [])).toBeDefined()
+  }
+  let type = { method: 'test', numberOfParams: 1, parameterStructures: 'auto' }
+  let res = fixNotifycationType(type, []) as NotificationType1<unknown>
+  expect(res.numberOfParams).toBe(1)
+  expect(res.parameterStructures).toBeDefined()
 })
 
 test('data2String', () => {

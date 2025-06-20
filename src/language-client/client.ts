@@ -59,7 +59,7 @@ import { TextDocumentContentFeature, TextDocumentContentMiddleware, TextDocument
 import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeature, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeature, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeature, DidSaveTextDocumentFeatureShape, ResolvedTextDocumentSyncCapabilities, TextDocumentSynchronizationMiddleware, WillSaveFeature, WillSaveWaitUntilFeature } from './textSynchronization'
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
-import { currentTimeStamp, data2String, fixType, getLocale, getTracePrefix, toMethod } from './utils'
+import { currentTimeStamp, data2String, fixNotifycationType, fixRequestType, getLocale, getTracePrefix, toMethod } from './utils'
 import { Delayer } from './utils/async'
 import * as c2p from './utils/codeConverter'
 import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler, toCloseHandlerResult } from './utils/errorHandler'
@@ -568,7 +568,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (token !== undefined && token.isCancellationRequested) {
       return Promise.reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
     }
-    type = fixType(type, params)
+    type = fixRequestType(type, params)
     const _sendRequest = this._clientOptions.middleware.sendRequest
     if (_sendRequest !== undefined) {
       // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
@@ -655,7 +655,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       // Send only depending open notifications
       await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
 
-      type = fixType(type, params == null ? [] : [params])
+      type = fixNotifycationType(type, params == null ? [] : [params])
       const _sendNotification = this._clientOptions.middleware.sendNotification
       return await Promise.resolve(_sendNotification
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)
