@@ -1,6 +1,5 @@
 import fs from 'fs'
 import http, { Server } from 'http'
-import net from 'net'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
@@ -10,7 +9,7 @@ import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { getEtag, getExtname } from '../../model/download'
 import fetch, { getAgent, getDataType, getRequestModule, getSystemProxyURI, getText, request, resolveRequestOptions, toPort, toURL } from '../../model/fetch'
-import helper from '../helper'
+import helper, { getPort } from '../helper'
 
 process.env.NO_PROXY = '*'
 let port: number
@@ -30,28 +29,6 @@ afterAll(async () => {
 afterEach(() => {
   helper.workspace.configurations.reset()
 })
-
-let httpPort = 7000
-export function getPort(): Promise<number> {
-  let port = httpPort
-  let fn = cb => {
-    let server = net.createServer()
-    server.listen(port, () => {
-      server.once('close', () => {
-        httpPort = port + 1
-        cb(port)
-      })
-      server.close()
-    })
-    server.on('error', () => {
-      port += 1
-      fn(cb)
-    })
-  }
-  return new Promise(resolve => {
-    fn(resolve)
-  })
-}
 
 let servers: Server[] = []
 async function createServer(): Promise<number> {

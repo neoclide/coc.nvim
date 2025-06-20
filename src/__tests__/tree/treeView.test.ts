@@ -10,6 +10,7 @@ import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { createNodes } from './basicProvider.test'
 
 type NodeDef = [string, NodeDef[]?]
 
@@ -44,16 +45,6 @@ function createNode(label: string, children?: TreeNode[], key?: string, tooltip?
   if (tooltip) res.tooltip = tooltip
   if (key) res.key = key
   return res
-}
-
-function createNodes(defs: NodeDef[]): TreeNode[] {
-  return defs.map(o => {
-    let children
-    if (Array.isArray(o[1])) {
-      children = createNodes(o[1])
-    }
-    return createNode(o[0], children)
-  })
 }
 
 function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>> = {}, providerOpts: Partial<ProviderOptions<TreeNode>> = {}) {

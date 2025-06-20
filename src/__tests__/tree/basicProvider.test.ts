@@ -63,7 +63,7 @@ function findNode(label: string, nodes: ReadonlyArray<TreeNode>): TreeNode | und
   }
 }
 
-function createNodes(defs: NodeDef[]): TreeNode[] {
+export function createNodes(defs: NodeDef[]): TreeNode[] {
   return defs.map(o => {
     let children
     if (Array.isArray(o[1])) {
