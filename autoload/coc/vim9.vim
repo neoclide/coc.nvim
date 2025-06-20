@@ -442,7 +442,10 @@ def Apply_changes(bufnr: number, changes: list<any>): void
   var i = total - 1
   while i >= 0
     const item = changes[i]
-    coc#api#SetBufferText(bufnr, item[1], item[2], item[3], item[4], item[0])
+    # item is null for some unknown reason
+    if !empty(item)
+      coc#api#SetBufferText(bufnr, item[1], item[2], item[3], item[4], item[0])
+    endif
     i -= 1
   endwhile
   const duration = (start_time->reltime()->reltimefloat()) * 1000

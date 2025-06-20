@@ -18464,7 +18464,7 @@ var require_messages = __commonJS({
       }
     };
     exports2.ResponseError = ResponseError2;
-    var ParameterStructures = class _ParameterStructures {
+    var ParameterStructures2 = class _ParameterStructures {
       kind;
       /**
        * The parameter structure is automatically inferred on the number of parameters
@@ -18492,7 +18492,7 @@ var require_messages = __commonJS({
         return this.kind;
       }
     };
-    exports2.ParameterStructures = ParameterStructures;
+    exports2.ParameterStructures = ParameterStructures2;
     var AbstractMessageSignature = class {
       method;
       numberOfParams;
@@ -18501,11 +18501,11 @@ var require_messages = __commonJS({
         this.numberOfParams = numberOfParams;
       }
       get parameterStructures() {
-        return ParameterStructures.auto;
+        return ParameterStructures2.auto;
       }
     };
     exports2.AbstractMessageSignature = AbstractMessageSignature;
-    var RequestType03 = class extends AbstractMessageSignature {
+    var RequestType04 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18514,14 +18514,14 @@ var require_messages = __commonJS({
         super(method, 0);
       }
     };
-    exports2.RequestType0 = RequestType03;
-    var RequestType3 = class extends AbstractMessageSignature {
+    exports2.RequestType0 = RequestType04;
+    var RequestType11 = class extends AbstractMessageSignature {
       _parameterStructures;
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
       _;
-      constructor(method, _parameterStructures = ParameterStructures.auto) {
+      constructor(method, _parameterStructures = ParameterStructures2.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
       }
@@ -18529,14 +18529,14 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.RequestType = RequestType3;
-    var RequestType1 = class extends AbstractMessageSignature {
+    exports2.RequestType = RequestType11;
+    var RequestType12 = class extends AbstractMessageSignature {
       _parameterStructures;
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
       _;
-      constructor(method, _parameterStructures = ParameterStructures.auto) {
+      constructor(method, _parameterStructures = ParameterStructures2.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
       }
@@ -18544,8 +18544,8 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.RequestType1 = RequestType1;
-    var RequestType22 = class extends AbstractMessageSignature {
+    exports2.RequestType1 = RequestType12;
+    var RequestType23 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18554,7 +18554,7 @@ var require_messages = __commonJS({
         super(method, 2);
       }
     };
-    exports2.RequestType2 = RequestType22;
+    exports2.RequestType2 = RequestType23;
     var RequestType32 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
@@ -18565,7 +18565,7 @@ var require_messages = __commonJS({
       }
     };
     exports2.RequestType3 = RequestType32;
-    var RequestType4 = class extends AbstractMessageSignature {
+    var RequestType42 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18574,8 +18574,8 @@ var require_messages = __commonJS({
         super(method, 4);
       }
     };
-    exports2.RequestType4 = RequestType4;
-    var RequestType5 = class extends AbstractMessageSignature {
+    exports2.RequestType4 = RequestType42;
+    var RequestType52 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18584,8 +18584,8 @@ var require_messages = __commonJS({
         super(method, 5);
       }
     };
-    exports2.RequestType5 = RequestType5;
-    var RequestType6 = class extends AbstractMessageSignature {
+    exports2.RequestType5 = RequestType52;
+    var RequestType62 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18594,8 +18594,8 @@ var require_messages = __commonJS({
         super(method, 6);
       }
     };
-    exports2.RequestType6 = RequestType6;
-    var RequestType7 = class extends AbstractMessageSignature {
+    exports2.RequestType6 = RequestType62;
+    var RequestType72 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18604,8 +18604,8 @@ var require_messages = __commonJS({
         super(method, 7);
       }
     };
-    exports2.RequestType7 = RequestType7;
-    var RequestType8 = class extends AbstractMessageSignature {
+    exports2.RequestType7 = RequestType72;
+    var RequestType82 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18614,8 +18614,8 @@ var require_messages = __commonJS({
         super(method, 8);
       }
     };
-    exports2.RequestType8 = RequestType8;
-    var RequestType9 = class extends AbstractMessageSignature {
+    exports2.RequestType8 = RequestType82;
+    var RequestType92 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18624,14 +18624,14 @@ var require_messages = __commonJS({
         super(method, 9);
       }
     };
-    exports2.RequestType9 = RequestType9;
-    var NotificationType3 = class extends AbstractMessageSignature {
+    exports2.RequestType9 = RequestType92;
+    var NotificationType11 = class extends AbstractMessageSignature {
       _parameterStructures;
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
       _;
-      constructor(method, _parameterStructures = ParameterStructures.auto) {
+      constructor(method, _parameterStructures = ParameterStructures2.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
       }
@@ -18639,8 +18639,8 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.NotificationType = NotificationType3;
-    var NotificationType03 = class extends AbstractMessageSignature {
+    exports2.NotificationType = NotificationType11;
+    var NotificationType04 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18649,14 +18649,14 @@ var require_messages = __commonJS({
         super(method, 0);
       }
     };
-    exports2.NotificationType0 = NotificationType03;
-    var NotificationType1 = class extends AbstractMessageSignature {
+    exports2.NotificationType0 = NotificationType04;
+    var NotificationType12 = class extends AbstractMessageSignature {
       _parameterStructures;
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
       _;
-      constructor(method, _parameterStructures = ParameterStructures.auto) {
+      constructor(method, _parameterStructures = ParameterStructures2.auto) {
         super(method, 1);
         this._parameterStructures = _parameterStructures;
       }
@@ -18664,8 +18664,8 @@ var require_messages = __commonJS({
         return this._parameterStructures;
       }
     };
-    exports2.NotificationType1 = NotificationType1;
-    var NotificationType22 = class extends AbstractMessageSignature {
+    exports2.NotificationType1 = NotificationType12;
+    var NotificationType23 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18674,7 +18674,7 @@ var require_messages = __commonJS({
         super(method, 2);
       }
     };
-    exports2.NotificationType2 = NotificationType22;
+    exports2.NotificationType2 = NotificationType23;
     var NotificationType32 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
@@ -18685,7 +18685,7 @@ var require_messages = __commonJS({
       }
     };
     exports2.NotificationType3 = NotificationType32;
-    var NotificationType4 = class extends AbstractMessageSignature {
+    var NotificationType42 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18694,8 +18694,8 @@ var require_messages = __commonJS({
         super(method, 4);
       }
     };
-    exports2.NotificationType4 = NotificationType4;
-    var NotificationType5 = class extends AbstractMessageSignature {
+    exports2.NotificationType4 = NotificationType42;
+    var NotificationType52 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18704,8 +18704,8 @@ var require_messages = __commonJS({
         super(method, 5);
       }
     };
-    exports2.NotificationType5 = NotificationType5;
-    var NotificationType6 = class extends AbstractMessageSignature {
+    exports2.NotificationType5 = NotificationType52;
+    var NotificationType62 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18714,8 +18714,8 @@ var require_messages = __commonJS({
         super(method, 6);
       }
     };
-    exports2.NotificationType6 = NotificationType6;
-    var NotificationType7 = class extends AbstractMessageSignature {
+    exports2.NotificationType6 = NotificationType62;
+    var NotificationType72 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18724,8 +18724,8 @@ var require_messages = __commonJS({
         super(method, 7);
       }
     };
-    exports2.NotificationType7 = NotificationType7;
-    var NotificationType8 = class extends AbstractMessageSignature {
+    exports2.NotificationType7 = NotificationType72;
+    var NotificationType82 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18734,8 +18734,8 @@ var require_messages = __commonJS({
         super(method, 8);
       }
     };
-    exports2.NotificationType8 = NotificationType8;
-    var NotificationType9 = class extends AbstractMessageSignature {
+    exports2.NotificationType8 = NotificationType82;
+    var NotificationType92 = class extends AbstractMessageSignature {
       /**
        * Clients must not use this property. It is here to ensure correct typing.
        */
@@ -18744,7 +18744,7 @@ var require_messages = __commonJS({
         super(method, 9);
       }
     };
-    exports2.NotificationType9 = NotificationType9;
+    exports2.NotificationType9 = NotificationType92;
     var Message2;
     (function(Message3) {
       function isRequest(message) {
@@ -65103,6 +65103,24 @@ var init_typeHierarchy = __esm({
 });
 
 // src/language-client/utils/index.ts
+function isValidRequestType(type) {
+  if (typeof type == "string") return true;
+  for (let clz of requestTypes) {
+    if (type instanceof clz) {
+      return true;
+    }
+  }
+  return false;
+}
+function isValidNotificationType(type) {
+  if (typeof type == "string") return true;
+  for (let clz of notificationTypes) {
+    if (type instanceof clz) {
+      return true;
+    }
+  }
+  return false;
+}
 function getLocale() {
   const lang = process.env.LANG;
   if (!lang) return "en";
@@ -65120,13 +65138,79 @@ function getTracePrefix(data) {
   }
   return `[Trace - ${currentTimeStamp()}] `;
 }
-function fixType(type, params) {
-  if (typeof type === "string" || typeof type.numberOfParams === "number") return type;
-  let len = params.length;
-  Object.defineProperty(type, "numberOfParams", {
-    get: () => len
-  });
-  return type;
+function getParameterStructures(kind) {
+  switch (kind) {
+    case "auto":
+      return import_node39.ParameterStructures.auto;
+    case "byPosition":
+      return import_node39.ParameterStructures.byPosition;
+    case "byName":
+      return import_node39.ParameterStructures.byName;
+    default:
+      return import_node39.ParameterStructures.auto;
+  }
+}
+function fixRequestType(type, params) {
+  if (isValidRequestType(type)) return type;
+  let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
+  switch (n) {
+    case 0:
+      return new import_node39.RequestType0(type.method);
+    case 1:
+      if (type["parameterStructures"] != null) {
+        return new import_node39.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+      }
+      return new import_node39.RequestType1(type.method);
+    case 2:
+      return new import_node39.RequestType2(type.method);
+    case 3:
+      return new import_node39.RequestType3(type.method);
+    case 4:
+      return new import_node39.RequestType4(type.method);
+    case 5:
+      return new import_node39.RequestType5(type.method);
+    case 6:
+      return new import_node39.RequestType6(type.method);
+    case 7:
+      return new import_node39.RequestType7(type.method);
+    case 8:
+      return new import_node39.RequestType8(type.method);
+    case 9:
+      return new import_node39.RequestType9(type.method);
+    default:
+      return new import_node39.RequestType(type.method);
+  }
+}
+function fixNotifycationType(type, params) {
+  if (isValidNotificationType(type)) return type;
+  let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
+  switch (n) {
+    case 0:
+      return new import_node39.NotificationType0(type.method);
+    case 1:
+      if (type["parameterStructures"] != null) {
+        return new import_node39.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+      }
+      return new import_node39.NotificationType1(type.method);
+    case 2:
+      return new import_node39.NotificationType2(type.method);
+    case 3:
+      return new import_node39.NotificationType3(type.method);
+    case 4:
+      return new import_node39.NotificationType4(type.method);
+    case 5:
+      return new import_node39.NotificationType5(type.method);
+    case 6:
+      return new import_node39.NotificationType6(type.method);
+    case 7:
+      return new import_node39.NotificationType7(type.method);
+    case 8:
+      return new import_node39.NotificationType8(type.method);
+    case 9:
+      return new import_node39.NotificationType9(type.method);
+    default:
+      return new import_node39.NotificationType(type.method);
+  }
 }
 function data2String(data, color = false) {
   if (data instanceof import_node4.ResponseError) {
@@ -65199,7 +65283,7 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     });
   });
 }
-var import_node39;
+var import_node39, requestTypes, notificationTypes;
 var init_utils = __esm({
   "src/language-client/utils/index.ts"() {
     "use strict";
@@ -65207,6 +65291,14 @@ var init_utils = __esm({
     init_is();
     init_node();
     init_protocol();
+    requestTypes = [
+      import_node39.RequestType,
+      import_node39.RequestType0
+    ];
+    notificationTypes = [
+      import_node39.NotificationType,
+      import_node39.NotificationType0
+    ];
   }
 });
 
@@ -66109,7 +66201,7 @@ var init_client = __esm({
         if (token !== void 0 && token.isCancellationRequested) {
           return Promise.reject(new import_node4.ResponseError(import_node4.LSPErrorCodes.RequestCancelled, "Request got cancelled"));
         }
-        type = fixType(type, params);
+        type = fixRequestType(type, params);
         const _sendRequest = this._clientOptions.middleware.sendRequest;
         if (_sendRequest !== void 0) {
           return _sendRequest(type, param, token, (type2, param2, token2) => {
@@ -66174,7 +66266,7 @@ var init_client = __esm({
           }
           const connection = await this.$start();
           await this._didOpenTextDocumentFeature.sendPendingOpenNotifications(documentToClose);
-          type = fixType(type, params == null ? [] : [params]);
+          type = fixNotifycationType(type, params == null ? [] : [params]);
           const _sendNotification = this._clientOptions.middleware.sendNotification;
           return await Promise.resolve(_sendNotification ? _sendNotification(type, connection.sendNotification.bind(connection), params) : connection.sendNotification(type, params));
         } catch (error) {
@@ -73052,7 +73144,7 @@ function createConsole(con, logger61) {
       };
     } else {
       let fn = con[key];
-      if (typeof fn === "function") {
+      if (key !== "Console" && typeof fn === "function") {
         result[key] = () => {
           logger61.warn(`function console.${key} not supported`);
         };
@@ -91604,7 +91696,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-b02ede9 2025-06-16 14:29:38 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-08cf6ae04 2025-06-21 06:22:30 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
