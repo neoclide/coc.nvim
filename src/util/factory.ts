@@ -139,7 +139,7 @@ export function createConsole(con: object, logger: ILogger): object {
       }
     } else {
       let fn = con[key]
-      if (typeof fn === 'function') {
+      if (key !== 'Console' && typeof fn === 'function') {
         result[key] = () => {
           logger.warn(`function console.${key} not supported`)
         }
