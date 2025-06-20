@@ -12900,6 +12900,48 @@ declare module 'coc.nvim' {
     Verbose = 2
   }
 
+  export interface RequestProtocolSignature<P, R, PR, E, RO> {
+    method: string
+    numberOfParams?: number
+    parameterStructures?: unknown
+  }
+
+  export interface RequestProtocolSignature0<R, PR, E, RO> {
+    method: string
+  }
+
+  export interface RequestSignature<P, R, E> {
+    method: string
+    numberOfParams?: number
+    parameterStructures?: unknown
+  }
+
+  export interface RequestSignature0<R, E> {
+    method: string
+  }
+
+  export interface NotificationProtocolSignature<P, RO> {
+    method: string
+    numberOfParams?: number
+    parameterStructures?: unknown
+  }
+
+  export interface NotificationProtocolSignature0<RO> {
+    readonly ____: [RO, _EM] | undefined
+    method: string
+  }
+
+  export interface NotificationSignature<P> {
+    readonly _: [P, _EM] | undefined
+    method: string
+    numberOfParams?: number
+    parameterStructures?: unknown
+  }
+
+  export interface NotificationSignature0 {
+    method: string
+  }
+
   export class ProtocolRequestType0<R, PR, E, RO> extends RequestType0<R, E> implements ProgressType<PR>, RegistrationType<RO> {
     /**
      * Clients must not use these properties. They are here to ensure correct typing.
@@ -13092,19 +13134,10 @@ declare module 'coc.nvim' {
      */
     constructor(name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
 
-    sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
-    sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
-    /**
-     * R => result
-     * E => Error result
-     */
-    sendRequest<R, E>(type: RequestType0<R, E>, token?: CancellationToken): Promise<R>
-    /**
-     * P => params
-     * R => result
-     * E => Error result
-     */
-    sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token?: CancellationToken): Promise<R>
+    sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO> | RequestProtocolSignature0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
+    sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO> | RequestProtocolSignature<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
+    sendRequest<R, E>(type: RequestType0<R, E> | RequestSignature0<R, E>, token?: CancellationToken): Promise<R>
+    sendRequest<P, R, E>(type: RequestType<P, R, E> | RequestSignature<P, R, E>, params: P, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
 
@@ -13114,10 +13147,10 @@ declare module 'coc.nvim' {
     onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
     onRequest<R, E>(method: string, handler: (...params: any[]) => HandlerResult<R, E>): Disposable
 
-    sendNotification<RO>(type: ProtocolNotificationType0<RO>): Promise<void>
-    sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): Promise<void>
-    sendNotification(type: NotificationType0): Promise<void>
-    sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
+    sendNotification<RO>(type: ProtocolNotificationType0<RO> | NotificationProtocolSignature0<RO>): Promise<void>
+    sendNotification<P, RO>(type: ProtocolNotificationType<P, RO> | NotificationSignature<P>, params?: P): Promise<void>
+    sendNotification(type: NotificationType0 | NotificationSignature0): Promise<void>
+    sendNotification<P>(type: NotificationType<P> | NotificationSignature<P>, params?: P): Promise<void>
     sendNotification(method: string): Promise<void>
     sendNotification(method: string, params: any): Promise<void>
 
