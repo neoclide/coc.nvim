@@ -102,7 +102,7 @@ export function fixRequestType(type: { method: string, numberOfParams?: number }
 }
 
 // The extension may use old version vscode-languageserver-protocol, and vscode-json-rpc checks the instanceof
-export function fixNotifycationType(type: { method: string, numberOfParams?: number } | string, params: any[]): MessageSignature | string {
+export function fixNotificationType(type: { method: string, numberOfParams?: number } | string, params: any[]): MessageSignature | string {
   if (isValidNotificationType(type)) return type
   let n = typeof type.numberOfParams === 'number' ? type.numberOfParams : params.length
   switch (n) {
