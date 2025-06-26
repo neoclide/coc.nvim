@@ -65181,7 +65181,7 @@ function fixRequestType(type, params) {
       return new import_node39.RequestType(type.method);
   }
 }
-function fixNotifycationType(type, params) {
+function fixNotificationType(type, params) {
   if (isValidNotificationType(type)) return type;
   let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n) {
@@ -66266,7 +66266,7 @@ var init_client = __esm({
           }
           const connection = await this.$start();
           await this._didOpenTextDocumentFeature.sendPendingOpenNotifications(documentToClose);
-          type = fixNotifycationType(type, params == null ? [] : [params]);
+          type = fixNotificationType(type, params == null ? [] : [params]);
           const _sendNotification = this._clientOptions.middleware.sendNotification;
           return await Promise.resolve(_sendNotification ? _sendNotification(type, connection.sendNotification.bind(connection), params) : connection.sendNotification(type, params));
         } catch (error) {
@@ -91696,7 +91696,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-08cf6ae 2025-06-21 06:22:30 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-95fcd6d 2025-06-26 09:25:47 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
