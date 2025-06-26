@@ -3,7 +3,7 @@ import assert from 'assert'
 import { spawn } from 'child_process'
 import { NotificationType, NotificationType1, RequestType, RequestType1 } from 'vscode-languageserver-protocol'
 import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'
-import { data2String, fixNotifycationType, fixRequestType, getLocale, getParameterStructures, getTracePrefix, isValidNotificationType, isValidRequestType, parseTraceData } from '../../language-client/utils'
+import { data2String, fixNotificationType, fixRequestType, getLocale, getParameterStructures, getTracePrefix, isValidNotificationType, isValidRequestType, parseTraceData } from '../../language-client/utils'
 import { Delayer } from '../../language-client/utils/async'
 import { CloseAction, DefaultErrorHandler, ErrorAction, toCloseHandlerResult } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
@@ -77,14 +77,14 @@ test('fixRequestType', () => {
   expect(res.parameterStructures).toBeDefined()
 })
 
-test('fixNotifycationType', () => {
-  expect(fixNotifycationType('test', [])).toBe('test')
+test('fixNotificationType', () => {
+  expect(fixNotificationType('test', [])).toBe('test')
   for (let i = 0; i <= 10; i++) {
     let type = { method: 'test', numberOfParams: i }
-    expect(fixNotifycationType(type, [])).toBeDefined()
+    expect(fixNotificationType(type, [])).toBeDefined()
   }
   let type = { method: 'test', numberOfParams: 1, parameterStructures: 'auto' }
-  let res = fixNotifycationType(type, []) as NotificationType1<unknown>
+  let res = fixNotificationType(type, []) as NotificationType1<unknown>
   expect(res.numberOfParams).toBe(1)
   expect(res.parameterStructures).toBeDefined()
 })
