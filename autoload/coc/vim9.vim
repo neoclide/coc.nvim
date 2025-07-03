@@ -516,6 +516,9 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
       winrestview(view)
     endif
     coc#api#OnTextChange(bufnr)
+    if !empty(cursor) && current
+      cursor(cursor[0], cursor[1] + delta)
+    endif
   endif
 enddef
 
