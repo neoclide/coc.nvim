@@ -341,7 +341,6 @@ function M.set_lines(bufnr, changedtick, originalLines, replacement, startLine, 
   end
   local applied = nil
   local idx = 0
-  local linecountChange = false
   local currentBuf = api.nvim_get_current_buf() == bufnr
   local current = currentBuf and vim.fn.getline('.') or ''
   if currentBuf and api.nvim_buf_get_var(bufnr, 'changedtick') > changedtick then
@@ -421,7 +420,7 @@ function M.set_lines(bufnr, changedtick, originalLines, replacement, startLine, 
       api.nvim_buf_set_lines(bufnr, startLine, endLine, false, replacement)
     end
   end
-  if currentBuf and not linecountChange and type(cursor) == 'table' then
+  if currentBuf and type(cursor) == 'table' then
     vim.fn.cursor({cursor[1], cursor[2] + delta})
   end
 end
