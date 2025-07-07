@@ -270,7 +270,7 @@ export class LanguageClient extends BaseLanguageClient {
 
     function logMessage(kind: string, data: string, outputChannel: OutputChannel): void {
       let msg = `[${kind} - ${currentTimeStamp()}] ${data}`
-      outputChannel.append(msg)
+      outputChannel.appendLine(msg)
     }
 
     function pipeStdoutToLogOutputChannel(input: stream.Readable, outputChannel: OutputChannel) {
