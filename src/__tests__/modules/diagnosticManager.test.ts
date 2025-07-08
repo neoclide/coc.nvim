@@ -169,7 +169,7 @@ describe('diagnostic manager', () => {
       let doc = await helper.createDocument('doc')
       await helper.wait(30)
       let val = await doc.buffer.getVar('coc_diagnostic_info') as any
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
       expect(val).toBeDefined()
       expect(val.error).toBe(1)
       collection.dispose()

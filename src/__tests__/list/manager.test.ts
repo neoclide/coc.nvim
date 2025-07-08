@@ -539,7 +539,7 @@ describe('list', () => {
       helper.updateConfiguration('list.source.test.defaultAction', 'open')
       let disposable = manager.registerList(list, true)
       disposable.dispose()
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
     })
   })
 

@@ -268,7 +268,7 @@ describe('codeLenes featrue', () => {
     await helper.waitPrompt()
     await nvim.input('<cr>')
     await p
-    expect(fn).toBeCalledWith(1, 2, 3)
+    expect(fn).toHaveBeenCalledWith(1, 2, 3)
   })
 
   it('should refresh for failed codeLens request', async () => {

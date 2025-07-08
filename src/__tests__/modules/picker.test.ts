@@ -105,7 +105,7 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await picker.onInputChar('picker', '<esc>')
-    expect(fn).toBeCalledTimes(1)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should confirm by <CR>', async () => {
@@ -122,7 +122,7 @@ describe('Picker key mappings', () => {
     await picker.onInputChar('picker', ' ')
     await events.fire('FloatBtnClick', [picker.bufnr + 1, 0])
     await events.fire('FloatBtnClick', [picker.bufnr, 0])
-    expect(fn).toBeCalledTimes(1)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should move cursor by j, k, g & G', async () => {

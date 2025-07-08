@@ -88,7 +88,7 @@ describe('Configuration utils', () => {
       fn()
     }, true)
     addToValueTree(obj, 'x.y', '3', () => {})
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should addToValueTree conflict #2', () => {
@@ -97,7 +97,7 @@ describe('Configuration utils', () => {
       fn()
     })
     addToValueTree(undefined, 'x', '3', () => {})
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should addToValueTree conflict #3', () => {
@@ -106,7 +106,7 @@ describe('Configuration utils', () => {
     addToValueTree(obj, 'x.y', ['foo'], () => {
       fn()
     })
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('removeFromValueTree: remove a non existing key', () => {

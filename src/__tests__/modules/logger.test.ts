@@ -93,14 +93,14 @@ describe('FileLogger', () => {
     })
     logger.error('error')
     spy.mockRestore()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
     fn = jest.fn()
     spy = jest.spyOn(console, 'log').mockImplementation(() => {
       fn()
     })
     logger.info('info')
     spy.mockRestore()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should enable color', async () => {
@@ -189,7 +189,7 @@ describe('FileLogger', () => {
     })
     logger.log('msg\n')
     await logger.flush()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
     s.mockRestore()
     spy.mockRestore()
   })

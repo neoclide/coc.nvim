@@ -98,7 +98,7 @@ describe('diagnostic collection', () => {
     collection.onDidDiagnosticsChange(fn)
     collection.clear()
     expect(collection.get(uri).length).toBe(0)
-    expect(fn).toBeCalledTimes(1)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should call for every uri with diagnostics', () => {

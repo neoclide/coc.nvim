@@ -251,7 +251,7 @@ describe('Configurations', () => {
       conf.updateMemoryConfig({ x: 1 })
       let config = conf.configuration.memory
       expect(config.contents).toEqual({ x: 1 })
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
       expect(conf.configuration.workspace).toBeDefined()
     })
 
@@ -322,7 +322,7 @@ describe('Configurations', () => {
       await config.update('bar', 6)
       config = configurations.getConfiguration('foo', resource)
       expect(config.get<number>('bar')).toBe(6)
-      expect(fn).toBeCalledTimes(1)
+      expect(fn).toHaveBeenCalledTimes(1)
     })
 
     it('should remove configuration', async () => {
@@ -342,7 +342,7 @@ describe('Configurations', () => {
       await config.update('bar', null, true)
       config = configurations.getConfiguration('foo', resource)
       expect(config.get<any>('bar')).toBeUndefined()
-      expect(fn).toBeCalledTimes(1)
+      expect(fn).toHaveBeenCalledTimes(1)
     })
   })
 

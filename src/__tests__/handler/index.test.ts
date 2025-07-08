@@ -68,7 +68,7 @@ describe('Handler', () => {
       })
       await commands.executeCommand('vscode.open', 'http://www.example.com')
       spy.mockRestore()
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
     })
 
     it('should restart', async () => {
@@ -79,7 +79,7 @@ describe('Handler', () => {
       })
       await commands.executeCommand('workbench.action.reloadWindow')
       spy.mockRestore()
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
     })
   })
 
