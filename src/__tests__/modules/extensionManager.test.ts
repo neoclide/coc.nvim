@@ -483,7 +483,7 @@ describe('ExtensionManager', () => {
       res = manager.getExtension('name')
       expect(res).toBeUndefined()
       await manager.unloadExtension('name')
-      expect(fn).toBeCalledTimes(1)
+      expect(fn).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -693,7 +693,7 @@ describe('ExtensionManager', () => {
       await helper.waitValue(() => {
         return called
       }, true)
-      expect(fn).toBeCalled()
+      expect(fn).toHaveBeenCalled()
       r.mockRestore()
       spy.mockRestore()
       s.mockRestore()

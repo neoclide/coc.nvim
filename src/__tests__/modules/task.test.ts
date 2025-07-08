@@ -44,7 +44,7 @@ describe('task test', () => {
     await task.start({ cmd: 'sleep', args: ['50'] })
     await helper.wait(10)
     await task.stop()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should emit stdout event', async () => {

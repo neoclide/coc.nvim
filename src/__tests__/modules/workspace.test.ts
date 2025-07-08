@@ -551,7 +551,7 @@ describe('workspace events', () => {
     let content = doc.getDocumentContent()
     expect(content.startsWith('foobar')).toBe(true)
     disposable.dispose()
-    expect(fn).toBeCalledTimes(1)
+    expect(fn).toHaveBeenCalledTimes(1)
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath)
     }

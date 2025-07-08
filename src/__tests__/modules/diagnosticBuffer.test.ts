@@ -150,7 +150,7 @@ describe('diagnostic buffer', () => {
         fn()
       }
       buf.update('c', [])
-      expect(fn).toBeCalledTimes(0)
+      expect(fn).toHaveBeenCalledTimes(0)
     })
 
     it('should refresh when content changes is empty', async () => {

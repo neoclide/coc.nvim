@@ -84,7 +84,7 @@ describe('sources', () => {
     disposables.push(sources.addSource(source))
     let buffer = await nvim.buffer
     await events.fire('BufEnter', [buffer.id])
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should get sources by split filetypes', async () => {
@@ -150,7 +150,7 @@ describe('sources#refresh', () => {
     }
     disposables.push(sources.addSource(source))
     await helper.doAction('refreshSource', 'refresh')
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should work if refresh not defined', async () => {

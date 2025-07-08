@@ -163,7 +163,7 @@ describe('document highlights', () => {
     await helper.wait(50)
     await nvim.call('cursor', [1, 2])
     await p
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should cancel on timeout', async () => {
@@ -173,7 +173,7 @@ describe('document highlights', () => {
     await helper.edit()
     await nvim.setLine('foo')
     await highlights.highlight()
-    expect(fn).toBeCalled()
+    expect(fn).toHaveBeenCalled()
   })
 
   it('should add highlights to symbols', async () => {
