@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
@@ -58,6 +59,23 @@ describe('diagnostic buffer', () => {
       let diagnostics = [createDiagnostic('foo')]
       let res = await buf.showFloat(diagnostics)
       expect(res).toBe(false)
+    })
+
+    it('should show related information in floating window', async () => {
+      let buf = await createDiagnosticBuffer()
+      let range = Range.create(0, 0, 0, 10)
+      let location = Location.create(URI.file(__filename).toString(), range)
+      let diagnostic = Diagnostic.create(range, 'msg', 1, 1000, 'test', [{ location, message: 'this is a related information' }])
+      await buf.showFloat([diagnostic])
+      await nvim.call('cursor', [1, 1])
+
+      let winid = await helper.waitFloat()
+      let win = nvim.createWindow(winid)
+      let floatBuf = await win.buffer
+      let lines = await floatBuf.lines
+      expect(lines.length).toBe(7)
+      expect(lines[2]).toBe('Related information:')
+      expect(lines[4].includes('this is a related information')).toBe(true)
     })
   })
 
