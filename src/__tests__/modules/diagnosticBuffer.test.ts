@@ -77,6 +77,20 @@ describe('diagnostic buffer', () => {
       expect(lines[2]).toBe('Related information:')
       expect(lines[4].includes('this is a related information')).toBe(true)
     })
+
+    it('should show formated diagnostics', async () => {
+      helper.updateConfiguration('diagnostic.format', '[%source] %message')
+      let buf = await createDiagnosticBuffer()
+      let diagnostic = createDiagnostic('foo')
+      await buf.showFloat([diagnostic])
+      await nvim.call('cursor', [1, 1])
+
+      let winid = await helper.waitFloat()
+      let win = nvim.createWindow(winid)
+      let floatBuf = await win.buffer
+      let lines = await floatBuf.lines
+      expect(lines[0]).toEqual('[test] foo')
+    })
   })
 
   describe('refresh()', () => {
@@ -237,6 +251,16 @@ describe('diagnostic buffer', () => {
       await buf.setState(false)
       res = await buf.showVirtualTextCurrentLine(1)
       expect(res).toBe(false)
+    })
+
+    it('should change format of virtualText message', async () => {
+      helper.updateConfiguration('diagnostic.virtualTextFormat', '%source %message')
+      let buf = await createDiagnosticBuffer()
+      let diagnostic = createDiagnostic('foo')
+      await buf.update('', [diagnostic])
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
+      let texts = res[0][3].virt_text
+      expect(texts[0][0]).toBe(' test foo')
     })
 
     it('should show virtual text on current line', async () => {
