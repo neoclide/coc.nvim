@@ -4,7 +4,7 @@ import path from 'path'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import manager from '../../diagnostic/manager'
-import { getNameFromSeverity, severityLevel } from '../../diagnostic/util'
+import { getHighlightGroup, getNameFromSeverity, getSeverityName, getSeverityType, severityLevel, sortDiagnostics } from '../../diagnostic/util'
 import Document from '../../model/document'
 import window from '../../window'
 import commands from '../../commands'
@@ -648,7 +648,7 @@ describe('diagnostic manager', () => {
     })
   })
 
-  describe('severityLevel & getNameFromSeverity', () => {
+  describe('diagnostic util', () => {
     it('should get severity level', () => {
       expect(severityLevel('hint')).toBe(DiagnosticSeverity.Hint)
       expect(severityLevel('error')).toBe(DiagnosticSeverity.Error)
@@ -657,8 +657,50 @@ describe('diagnostic manager', () => {
       expect(severityLevel('')).toBe(DiagnosticSeverity.Hint)
     })
 
-    it('should get severity name', () => {
+    it('should get Coc severity name', () => {
       expect(getNameFromSeverity(null as any)).toBe('CocError')
+      expect(getNameFromSeverity(DiagnosticSeverity.Error)).toBe('CocError')
+      expect(getNameFromSeverity(DiagnosticSeverity.Warning)).toBe('CocWarning')
+      expect(getNameFromSeverity(DiagnosticSeverity.Information)).toBe('CocInfo')
+      expect(getNameFromSeverity(DiagnosticSeverity.Hint)).toBe('CocHint')
+    })
+
+    it('should get severity name', () => {
+      expect(getSeverityName(DiagnosticSeverity.Error)).toBe('Error')
+      expect(getSeverityName(DiagnosticSeverity.Warning)).toBe('Warning')
+      expect(getSeverityName(DiagnosticSeverity.Information)).toBe('Information')
+      expect(getSeverityName(DiagnosticSeverity.Hint)).toBe('Hint')
+    })
+
+    it('should get severity type', () => {
+      expect(getSeverityType(DiagnosticSeverity.Error)).toBe('E')
+      expect(getSeverityType(DiagnosticSeverity.Warning)).toBe('W')
+      expect(getSeverityType(DiagnosticSeverity.Information)).toBe('I')
+      expect(getSeverityType(DiagnosticSeverity.Hint)).toBe('I')
+    })
+
+    it('should sort diagnostics', () => {
+      let diagnostics: Diagnostic[] = [
+        { range: Range.create(1, 0, 1, 10), message: 'a', severity: DiagnosticSeverity.Warning },
+        { range: Range.create(0, 0, 0, 10), message: 'b', severity: DiagnosticSeverity.Error },
+        { range: Range.create(0, 0, 0, 10), message: 'c', severity: DiagnosticSeverity.Error, source: 'c' },
+        { range: Range.create(0, 0, 0, 10), message: 'd', severity: DiagnosticSeverity.Error, source: 'd' },
+      ]
+      diagnostics.sort(sortDiagnostics)
+      expect(diagnostics.map(d => d.message)).toEqual(['c', 'd', 'b', 'a'])
+    })
+
+    it('should get highlight group', () => {
+      let diagnostic: Diagnostic = {
+        range: Range.create(0, 0, 0, 10),
+        message: 'error message',
+        severity: DiagnosticSeverity.Error,
+        tags: [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
+      }
+      let groups = getHighlightGroup(diagnostic)
+      expect(groups).toContain('CocDeprecatedHighlight')
+      expect(groups).toContain('CocUnusedHighlight')
+      expect(groups).toContain('CocErrorHighlight')
     })
   })
 
