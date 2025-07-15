@@ -15,6 +15,7 @@ import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { Registry } from '../util/registry'
+import type { LanguageServerConfig } from '../services'
 
 export enum PatternType {
   Buffer,
@@ -58,15 +59,18 @@ export default class WorkspaceFolderController {
   private _tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(private configurations: Configurations) {
     events.on('VimLeavePre', this.cancelAll, this)
-    this.updateConfiguration(true)
+    this.updateConfiguration()
     this.configurations.onDidChange(e => {
       if (e.affectsConfiguration('workspace') || e.affectsConfiguration('coc.preferences')) {
-        this.updateConfiguration(false)
+        this.updateConfiguration()
+      }
+      if (e.affectsConfiguration('languageserver')) {
+        this.updateServerRootPatterns()
       }
     })
   }
 
-  private updateConfiguration(init: boolean): void {
+  private updateConfiguration(): void {
     const allConfig = this.configurations.initialConfiguration
     let config = allConfig.get<WorkspaceConfig>('workspace')
     let oldConfig = allConfig.get<string[] | null>('coc.preferences.rootPatterns')
@@ -78,15 +82,12 @@ export default class WorkspaceFolderController {
       workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
       workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
     }
-    if (init) {
-      const lspConfig = allConfig.get<Record<string, unknown>>('languageserver', {})
-      this.addServerRootPatterns(lspConfig)
-    }
   }
 
-  public addServerRootPatterns(lspConfig: Record<string, unknown> | undefined): void {
-    for (let key of Object.keys(toObject(lspConfig))) {
-      let config = lspConfig[key] as any
+  private updateServerRootPatterns(): void {
+    let lspConfig = this.configurations.getConfiguration('languageserver', null)
+    this.rootPatterns.clear()
+    for (let config of Object.values(toObject<Record<string, LanguageServerConfig>>(lspConfig))) {
       let { filetypes, rootPatterns } = config
       if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) {
         filetypes.filter(s => typeof s === 'string').forEach(filetype => {
