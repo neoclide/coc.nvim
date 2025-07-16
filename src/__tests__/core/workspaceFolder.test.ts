@@ -131,12 +131,10 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should add patterns from languageserver', () => {
-      workspaceFolder.addServerRootPatterns({
-        test: {
-          filetypes: ['vim'],
-          rootPatterns: ['bar']
-        }
-      })
+      updateConfiguration('languageserver.test', {
+        filetypes: ['vim'],
+        rootPatterns: ['bar']
+      }, undefined)
       workspaceFolder.addRootPattern('vim', ['foo'])
       let res = workspaceFolder.getServerRootPatterns('vim')
       expect(res.includes('foo')).toBe(true)
