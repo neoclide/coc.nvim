@@ -33,7 +33,7 @@ export class Window {
   private nvim: Neovim
   public highlights: Highlights = new Highlights()
   private terminalManager: Terminals = new Terminals()
-  public readonly notifications: Notifications = new Notifications()
+  public readonly notifications = new Notifications()
   public readonly dialogs = new Dialogs()
   public readonly cursors: Cursors
   private workspace: Workspace
