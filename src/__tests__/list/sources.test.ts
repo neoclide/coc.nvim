@@ -829,6 +829,25 @@ describe('list sources', () => {
     })
   })
 
+  describe('notifications', () => {
+    it('should load notifications history', async () => {
+      await window.showInformationMessage('Info message')
+
+      await manager.start(['notifications'])
+      await manager.session?.ui.ready
+      expect(manager.isActivated).toBe(true)
+      let items = await manager.loadItems('notifications')
+      expect(items.at(-1).label).toContain('INFO'.padEnd(7))
+      expect(items.at(-1).filterText).toBe('Info message')
+
+      const action = manager.session.defaultAction
+      expect(action.name).toBe('clear')
+      await manager.session.doAction()
+      items = await manager.loadItems('notifications')
+      expect(items.length).toBe(0)
+    })
+  })
+
   describe('symbols', () => {
     it('should create list item', () => {
       let source = new SymbolsList()

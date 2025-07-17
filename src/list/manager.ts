@@ -27,6 +27,7 @@ import FolderList from './source/folders'
 import LinksList from './source/links'
 import ListsList from './source/lists'
 import LocationList from './source/location'
+import NotificationsList from './source/notifications'
 import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
@@ -96,6 +97,7 @@ export class ListManager implements Disposable {
     this.registerList(new CommandsList(), true)
     this.registerList(new ExtensionList(extensions.manager), true)
     this.registerList(new DiagnosticsList(this), true)
+    this.registerList(new NotificationsList(), true)
     this.registerList(new SourcesList(), true)
     this.registerList(new ServicesList(), true)
     this.registerList(new ListsList(this.listMap), true)

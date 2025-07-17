@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-07-17
+
+- Add notifications history, view with `:CocList notifications`
+
 ## 2025-06-11
 
 - LSP 3.18 and latest vscode-languageclient features:
