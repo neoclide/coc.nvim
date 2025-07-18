@@ -14,6 +14,12 @@ import { echoMessages, MsgTypes } from './ui'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 
+interface NotificationItem {
+  time: string
+  message: string
+  kind: MessageKind
+}
+
 interface NotificationConfiguration {
   statusLineProgress: boolean
   border: boolean
@@ -54,10 +60,24 @@ export class Notifications {
   public nvim: Neovim
   public configuration: WorkspaceConfiguration
   public statusLine: StatusLine
-  constructor() {
+  private _history: NotificationItem[] = []
+  constructor() {}
+
+  private getCurrentTimestamp(): string {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    const day = now.getDate().toString().padStart(2, '0')
+    const hours = now.getHours().toString().padStart(2, '0')
+    const minutes = now.getMinutes().toString().padStart(2, '0')
+    const seconds = now.getSeconds().toString().padStart(2, '0')
+    const ms = now.getMilliseconds().toString().padStart(3, '0')
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`
   }
 
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
+    this._history.push({ time: this.getCurrentTimestamp(), kind, message })
     if (!this.enableMessageDialog) {
       if (items.length > 0) {
         return await this.showConfirm(message, items, kind)
@@ -69,6 +89,14 @@ export class Notifications {
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
     return items[idx]
+  }
+
+  public get history(): NotificationItem[] {
+    return this._history
+  }
+
+  public clearHistory(): void {
+    this._history = []
   }
 
   public createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
