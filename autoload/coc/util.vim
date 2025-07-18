@@ -221,7 +221,15 @@ function! s:safer_open(cmd, file) abort
       endif
       let saved = &wildignore
       set wildignore=
-      execute a:cmd.' '.fnameescape(a:file)
+      let l:current_page_num = tabpagenr()
+      let l:max_page_num = tabpagenr('$')
+      execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
+      if tabpagenr('$') > l:max_page_num
+        doautocmd TabNew
+      endif
+      if tabpagenr() != l:current_page_num
+        doautocmd TabEnter
+      endif
       execute 'set wildignore='.saved
     else
       execute a:cmd.' '.fnameescape(a:file)

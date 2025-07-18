@@ -37418,8 +37418,21 @@ var init_notifications = __esm({
     init_ui();
     Notifications = class {
       constructor() {
+        this._history = [];
+      }
+      getCurrentTimestamp() {
+        const now = /* @__PURE__ */ new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, "0");
+        const day = now.getDate().toString().padStart(2, "0");
+        const hours = now.getHours().toString().padStart(2, "0");
+        const minutes = now.getMinutes().toString().padStart(2, "0");
+        const seconds = now.getSeconds().toString().padStart(2, "0");
+        const ms = now.getMilliseconds().toString().padStart(3, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}`;
       }
       async _showMessage(kind, message, items) {
+        this._history.push({ time: this.getCurrentTimestamp(), kind, message });
         if (!this.enableMessageDialog) {
           if (items.length > 0) {
             return await this.showConfirm(message, items, kind);
@@ -37431,6 +37444,12 @@ var init_notifications = __esm({
         let texts = items.map((o) => typeof o === "string" ? o : o.title);
         let idx = await this.createNotification(kind.toLowerCase(), message, texts);
         return items[idx];
+      }
+      get history() {
+        return this._history;
+      }
+      clearHistory() {
+        this._history = [];
       }
       createNotification(kind, message, items) {
         return new Promise((resolve, reject) => {
@@ -60763,6 +60782,48 @@ var init_lists = __esm({
   }
 });
 
+// src/list/source/notifications.ts
+var NotificationsList;
+var init_notifications2 = __esm({
+  "src/list/source/notifications.ts"() {
+    "use strict";
+    init_window();
+    init_basic();
+    NotificationsList = class extends BasicList {
+      constructor() {
+        super();
+        this.defaultAction = "clear";
+        this.description = "notifications history";
+        this.name = "notifications";
+        this.addAction("clear", async () => {
+          window_default.notifications.clearHistory();
+        });
+      }
+      async loadItems() {
+        return window_default.notifications.history.map((item) => {
+          return {
+            label: `${item.time} ${item.kind.toUpperCase().padEnd(7)} ${item.message}`,
+            filterText: item.message
+          };
+        });
+      }
+      doHighlight() {
+        let { nvim } = this;
+        nvim.pauseNotification();
+        nvim.command("syntax match CocNotificationTime /\\v^\\s*\\S+/ contained containedin=CocNotificationsLine", true);
+        nvim.command("syntax match CocNotificationInfo /\\<INFO\\>/ contained containedin=CocNotificationsLine", true);
+        nvim.command("syntax match CocNotificationError /\\<ERROR\\>/ contained containedin=CocNotificationsLine", true);
+        nvim.command("syntax match CocNotificationWarning /\\<WARNING\\>/ contained containedin=CocNotificationsLine", true);
+        nvim.command("highlight default link CocNotificationTime Comment", true);
+        nvim.command("highlight default link CocNotificationInfo CocInfoSign", true);
+        nvim.command("highlight default link CocNotificationError CocErrorSign", true);
+        nvim.command("highlight default link CocNotificationWarning CocWarningSign", true);
+        nvim.resumeNotification(false, true);
+      }
+    };
+  }
+});
+
 // src/util/convert.ts
 function convertFormatOptions(opts) {
   let obj = { tabSize: opts.tabsize, insertSpaces: opts.expandtab == 1 };
@@ -68589,6 +68650,7 @@ var init_manager3 = __esm({
     init_links();
     init_lists();
     init_location();
+    init_notifications2();
     init_outline();
     init_services2();
     init_sources();
@@ -68648,6 +68710,7 @@ var init_manager3 = __esm({
         this.registerList(new CommandsList(), true);
         this.registerList(new ExtensionList(extension_default.manager), true);
         this.registerList(new DiagnosticsList(this), true);
+        this.registerList(new NotificationsList(), true);
         this.registerList(new SourcesList(), true);
         this.registerList(new ServicesList(), true);
         this.registerList(new ListsList(this.listMap), true);
@@ -72465,14 +72528,17 @@ var init_workspaceFolder = __esm({
         this._workspaceFolders = [];
         this._tokenSources = /* @__PURE__ */ new Set();
         events_default.on("VimLeavePre", this.cancelAll, this);
-        this.updateConfiguration(true);
+        this.updateConfiguration();
         this.configurations.onDidChange((e) => {
           if (e.affectsConfiguration("workspace") || e.affectsConfiguration("coc.preferences")) {
-            this.updateConfiguration(false);
+            this.updateConfiguration();
+          }
+          if (e.affectsConfiguration("languageserver")) {
+            this.updateServerRootPatterns();
           }
         });
       }
-      updateConfiguration(init) {
+      updateConfiguration() {
         const allConfig = this.configurations.initialConfiguration;
         let config = allConfig.get("workspace");
         let oldConfig = allConfig.get("coc.preferences.rootPatterns");
@@ -72484,14 +72550,11 @@ var init_workspaceFolder = __esm({
           workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
           workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
         };
-        if (init) {
-          const lspConfig = allConfig.get("languageserver", {});
-          this.addServerRootPatterns(lspConfig);
-        }
       }
-      addServerRootPatterns(lspConfig) {
-        for (let key of Object.keys(toObject(lspConfig))) {
-          let config = lspConfig[key];
+      updateServerRootPatterns() {
+        let lspConfig = this.configurations.getConfiguration("languageserver", null);
+        this.rootPatterns.clear();
+        for (let config of Object.values(toObject(lspConfig))) {
           let { filetypes, rootPatterns } = config;
           if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) {
             filetypes.filter((s) => typeof s === "string").forEach((filetype) => {
@@ -83066,8 +83129,8 @@ var init_window = __esm({
       constructor() {
         this.highlights = new Highlights();
         this.terminalManager = new Terminals();
-        this.dialogs = new Dialogs();
         this.notifications = new Notifications();
+        this.dialogs = new Dialogs();
         Object.defineProperty(this.highlights, "nvim", {
           get: () => this.nvim
         });
@@ -91756,7 +91819,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-208d38a 2025-07-14 17:52:36 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-52ac7ec 2025-07-18 12:02:02 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
