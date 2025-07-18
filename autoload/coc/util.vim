@@ -226,9 +226,16 @@ function! s:safer_open(cmd, file) abort
       execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
       if tabpagenr('$') > l:max_page_num
         doautocmd TabNew
+        doautocmd BufNew
+        doautocmd BufAdd
       endif
+      doautocmd TabEnter
+      doautocmd BufReadPre
+      doautocmd BufRead
+      doautocmd BufReadPost
+      doautocmd BufEnter
       if tabpagenr() != l:current_page_num
-        doautocmd TabEnter
+        doautocmd BufWinEnter
       endif
       execute 'set wildignore='.saved
     else
