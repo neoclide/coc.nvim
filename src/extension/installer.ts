@@ -168,7 +168,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (required && !semver.satisfies(workspace.version, required)) {
       throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
     }
-    let updated = await this.doInstall(info)
+    let updated = await this.doInstall(info, new Set())
     return { name, updated, version, url: this.url, folder: path.join(this.root, info.name) }
   }
 
@@ -194,7 +194,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (required && !semver.satisfies(workspace.version, required)) {
       throw new Error(`${info.version} requires coc.nvim ${required}, please update coc.nvim.`)
     }
-    let succeed = await this.doInstall(info)
+    let succeed = await this.doInstall(info, new Set())
     if (!succeed) return
     let jsonFile = path.join(this.root, info.name, 'package.json')
     this.log(`Updated to v${info.version}`)
@@ -237,7 +237,7 @@ export class Installer extends EventEmitter implements IInstaller {
   public installDependencies(folder: string, dependencies: string[]): Promise<void> {
     if (dependencies.length == 0) return Promise.resolve()
     return new Promise<void>((resolve, reject) => {
-      let {env, args} = this.getInstallArguments(this.npm, this.url)
+      let { env, args } = this.getInstallArguments(this.npm, this.url)
       this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
       const cmd = process.platform === 'win32' && this.npm.includes(' ') ? `"${this.npm}"` : this.npm
       const child = child_process.spawn(cmd, args, {
@@ -260,14 +260,21 @@ export class Installer extends EventEmitter implements IInstaller {
     })
   }
 
-  public async doInstall(info: Info): Promise<boolean> {
+  public async doInstall(info: Info, installing: Set<string> = new Set()): Promise<boolean> {
     let dest = path.join(this.root, info.name)
     if (isSymbolicLink(dest)) return false
+    if (installing.has(info.name)) {
+      this.log(`Skipping circular dependency: ${info.name}`)
+      return false
+    }
+    installing.add(info.name)
+
     let key = info.name.replace(/\//g, '_')
     let downloadFolder = path.join(this.root, `${key}-${uuid()}`)
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined
+    let obj: any
     try {
       await this.download(url, {
         dest: downloadFolder,
@@ -276,7 +283,7 @@ export class Installer extends EventEmitter implements IInstaller {
         onProgress: p => this.log(`Download progress ${p}%`, true),
       })
       this.log(`Extension download at ${downloadFolder}`)
-      let obj = loadJson(path.join(downloadFolder, 'package.json')) as any
+      obj = loadJson(path.join(downloadFolder, 'package.json')) as any
       await this.installDependencies(downloadFolder, getDependencies(obj))
     } catch (e) {
       fs.rmSync(downloadFolder, { recursive: true, force: true })
@@ -287,6 +294,19 @@ export class Installer extends EventEmitter implements IInstaller {
     if (fs.existsSync(dest)) fs.rmSync(dest, { force: true, recursive: true })
     fs.renameSync(downloadFolder, dest)
     this.log(`Move extension ${info.name}@${info.version} to ${dest}`)
+
+    const extensionDependencies = getExtensionDependencies(obj)
+    if (extensionDependencies.length > 0) {
+      this.log(`Installing extension dependencies: ${extensionDependencies.join(', ')}`)
+      for (const dependency of extensionDependencies) {
+        const installer = new Installer(this.root, this.npm, dependency)
+        installer.on('message', (msg, isProgress) => {
+          this.log(msg, isProgress)
+        })
+        await installer.doInstall(await installer.getInfo(), installing)
+      }
+    }
+
     return true
   }
 
@@ -301,4 +321,11 @@ export class Installer extends EventEmitter implements IInstaller {
 
 export function getDependencies(obj: { dependencies?: { [key: string]: string } }): string[] {
   return Object.keys(obj.dependencies ?? {}).filter(id => !local_dependencies.includes(id))
+}
+
+export function getExtensionDependencies(obj: { extensionDependencies?: string[] }): string[] {
+  if (obj.extensionDependencies?.length > 0) {
+    return [...new Set(obj.extensionDependencies)]
+  }
+  return []
 }
