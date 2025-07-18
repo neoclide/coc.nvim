@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-07-18
+
+- Add `extensionDependencies` support, declare dependencies on other extensions: `"extensionDependencies": ["extension-1", "extension-2"]`
+
 ## 2025-07-17
 
 - Add notifications history, view with `:CocList notifications`

@@ -2,7 +2,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { getDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
+import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
@@ -14,9 +14,11 @@ afterEach(() => {
 })
 
 describe('utils', () => {
-  it('should getDependencies', async () => {
+  it('should getDependencies & getExtensionDependencies', async () => {
     expect(getDependencies({})).toEqual([])
     expect(getDependencies({ dependencies: { 'coc.nvim': '0.0.1' } })).toEqual([])
+    expect(getExtensionDependencies({})).toEqual([])
+    expect(getExtensionDependencies({ extensionDependencies: ['extension-1', 'extension-1'] })).toEqual(['extension-1'])
   })
 
   it('should check command is npm or yarn', async () => {
@@ -428,5 +430,35 @@ describe('Installer', () => {
       await expect(fn()).rejects.toThrow(Error)
       spy.mockRestore()
     })
+
+    it('should install extension dependencies', async () => {
+      let getInfoSpy = jest.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+        // @ts-expect-error this
+        const name = this.info.name
+        return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
+      })
+      let downloadSpy = jest.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+        fs.mkdirSync(options.dest, { recursive: true })
+        let name = path.basename(url, '.tgz')
+        let pkg = {
+          name,
+          version: '1.0.0',
+          engines: { coc: '>=0.0.1' },
+          extensionDependencies: name === 'coc-extension-with-dependencies' ? ['coc-dependency-1', 'coc-dependency-2'] : []
+        }
+        fs.writeFileSync(path.join(options.dest, 'package.json'), JSON.stringify(pkg))
+      })
+
+      tmpfolder = path.join(os.tmpdir(), 'coc-test')
+      let installer = new Installer(tmpfolder, 'npm', 'coc-extension-with-dependencies@1.0.0')
+      await installer.install()
+
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-extension-with-dependencies'))).toBe(true)
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-dependency-1'))).toBe(true)
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-dependency-2'))).toBe(true)
+
+      getInfoSpy.mockRestore()
+      downloadSpy.mockRestore()
+    }, 30000)
   })
 })

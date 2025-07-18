@@ -32,6 +32,7 @@ export interface ExtensionJson {
     [key: string]: string
   }
   activationEvents?: string[]
+  extensionDependencies?: string[]
   version?: string
   [key: string]: any
 }
