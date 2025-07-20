@@ -222,9 +222,9 @@ function! s:safer_open(cmd, file) abort
       let saved = &wildignore
       set wildignore=
       let l:old_page_idx = tabpagenr()
-      let l:old_page_num = tabpagenr('$')
+      let l:old_page_cnt = tabpagenr('$')
       execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
-      if tabpagenr('$') > l:old_page_num
+      if tabpagenr('$') > l:old_page_cnt
         doautocmd TabNew
         doautocmd BufNew
         doautocmd BufAdd
