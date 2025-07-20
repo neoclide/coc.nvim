@@ -221,7 +221,7 @@ function! s:safer_open(cmd, file) abort
       endif
       let saved = &wildignore
       set wildignore=
-      let l:last_page_num = tabpagenr()
+      let l:old_page_num = tabpagenr()
       let l:max_page_num = tabpagenr('$')
       execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
       if tabpagenr('$') > l:max_page_num
@@ -229,19 +229,19 @@ function! s:safer_open(cmd, file) abort
         doautocmd BufNew
         doautocmd BufAdd
       endif
-      let l:curr_page_num = tabpagenr()
-      if l:curr_page_num != l:last_page_num
-        exec 'noautocmd tabnext '.l:last_page_num
+      let l:new_page_num = tabpagenr()
+      if l:new_page_num != l:old_page_num
+        exec 'noautocmd tabnext '.l:old_page_num
         doautocmd TabLeave
         doautocmd BufLeave
-        exec 'noautocmd tabnext '.l:curr_page_num
+        exec 'noautocmd tabnext '.l:new_page_num
       endif
       doautocmd TabEnter
       doautocmd BufReadPre
       doautocmd BufRead
       doautocmd BufReadPost
       doautocmd BufEnter
-      if l:curr_page_num != l:last_page_num
+      if l:new_page_num != l:old_page_num
         doautocmd BufWinEnter
       endif
       execute 'set wildignore='.saved
