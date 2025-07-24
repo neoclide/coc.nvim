@@ -326,6 +326,83 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow(Error)
     })
+
+    it('should activate extension with dependencies', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+
+      let depFolder = path.join(tmpfolder, 'coc-ext-dep')
+      createExtension(depFolder, {
+        name: 'coc-ext-dep',
+        engines: { coc: '>=0.0.1' }
+      }, `exports.activate = () => { return { name: 'coc-ext-dep' } }`)
+
+      let mainFolder = path.join(tmpfolder, 'coc-ext-main')
+      createExtension(mainFolder, {
+        name: 'coc-ext-main',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-ext-dep']
+      }, `exports.activate = () => { return { name: 'coc-ext-main' } }`)
+
+      await manager.loadExtension(depFolder)
+      await manager.loadExtension(mainFolder)
+
+      await manager.activate('coc-ext-main')
+
+      expect(manager.getExtension('coc-ext-dep').extension.isActive).toBe(true)
+      expect(manager.getExtension('coc-ext-main').extension.isActive).toBe(true)
+    })
+
+    it('should fail when dependency activation fails', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+
+      let depFolder = path.join(tmpfolder, 'coc-ext-dep')
+      createExtension(depFolder, {
+        name: 'coc-ext-dep',
+        engines: { coc: '>=0.0.1' }
+      }, `exports.activate = () => { throw new Error('Dependency failed') }`)
+
+      let mainFolder = path.join(tmpfolder, 'coc-ext-main')
+      createExtension(mainFolder, {
+        name: 'coc-ext-main',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-ext-dep']
+      }, `exports.activate = () => { return { name: 'coc-ext-main' } }`)
+
+      await manager.loadExtension(depFolder)
+      await manager.loadExtension(mainFolder)
+
+      let result = await manager.activate('coc-ext-main')
+
+      expect(result).toBe(false)
+      expect(manager.getExtension('coc-ext-main').extension.isActive).toBe(false)
+    })
+
+    it('should fail on circular dependencies', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+
+      let ext1Folder = path.join(tmpfolder, 'coc-ext1')
+      createExtension(ext1Folder, {
+        name: 'coc-ext1',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-ext2']
+      }, `exports.activate = () => { return { name: 'coc-ext1' } }`)
+
+      let ext2Folder = path.join(tmpfolder, 'coc-ext2')
+      createExtension(ext2Folder, {
+        name: 'coc-ext2',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-ext1']
+      }, `exports.activate = () => { return { name: 'coc-ext2' } }`)
+
+      await manager.loadExtension(ext1Folder)
+      await manager.loadExtension(ext2Folder)
+
+      let result = await manager.activate('coc-ext1')
+      expect(result).toBe(false)
+    })
   })
 
   describe('call()', () => {

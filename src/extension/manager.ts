@@ -103,6 +103,7 @@ const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Con
  * Manage loaded extensions
  */
 export class ExtensionManager {
+  private activating: Set<string> = new Set()
   private activated = false
   private disposables: Disposable[] = []
   public readonly configurationNodes: IConfigurationNode[] = []
@@ -262,8 +263,28 @@ export class ExtensionManager {
     if (!item) throw new Error(`Extension ${id} not registered!`)
     let { extension } = item
     if (extension.isActive) return true
-    await Promise.resolve(extension.activate())
-    return extension.isActive === true
+    if (this.activating.has(id)) {
+      logger.warn(`Circular dependency detected: ${id}`)
+      return false
+    }
+    this.activating.add(id)
+    try {
+      const { packageJSON } = extension
+      if (packageJSON.extensionDependencies?.length > 0) {
+        const results = await Promise.allSettled(packageJSON.extensionDependencies.map(dep => this.activate(dep)))
+        for (const result of results) {
+          if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
+            logger.error(`Could not activate dependency for ${id}, activation failed.`)
+            return false
+          }
+        }
+      }
+
+      await extension.activate()
+      return extension.isActive === true
+    } finally {
+      this.activating.delete(id)
+    }
   }
 
   public async deactivate(id: string): Promise<void> {
