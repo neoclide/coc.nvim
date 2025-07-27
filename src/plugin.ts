@@ -186,6 +186,7 @@ export default class Plugin {
     this.addAction('inlineAccept', (bufnr: number, kind?: AcceptKind) => this.handler.inlineCompletion.accept(bufnr, kind))
     this.addAction('inlineNext', (bufnr: number) => this.handler.inlineCompletion.next(bufnr))
     this.addAction('inlinePrev', (bufnr: number) => this.handler.inlineCompletion.prev(bufnr))
+    this.addAction('notificationHistory', () => window.notifications.history)
   }
 
   public get workspace(): Workspace {
