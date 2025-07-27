@@ -103,7 +103,6 @@ const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Con
  * Manage loaded extensions
  */
 export class ExtensionManager {
-  private activating: Set<string> = new Set()
   private activated = false
   private disposables: Disposable[] = []
   public readonly configurationNodes: IConfigurationNode[] = []
@@ -132,7 +131,7 @@ export class ExtensionManager {
       const { extension } = this.extensions.get(key)
       const activationEvents = extension.packageJSON.activationEvents
       if (!activationEvents || activationEvents.includes('*')) {
-        promises.push(void extension.activate())
+        promises.push(void this.activate(key))
       } else {
         void this.autoActivate(key, extension)
       }
@@ -202,7 +201,7 @@ export class ExtensionManager {
       let { extension } = item
       let activationEvents = getActivationEvents(extension.packageJSON)
       void Promise.resolve(check(activationEvents)).then(checked => {
-        if (checked) void Promise.resolve(extension.activate())
+        if (checked) void Promise.resolve(this.activate(extension.id))
       })
     }
   }
@@ -258,33 +257,29 @@ export class ExtensionManager {
    * Activate extension, throw error if disabled or doesn't exist.
    * Returns true if extension successfully activated.
    */
-  public async activate(id: string): Promise<boolean> {
+  public async activate(id: string, activating: Set<string> = new Set()): Promise<boolean> {
     let item = this.extensions.get(id)
     if (!item) throw new Error(`Extension ${id} not registered!`)
     let { extension } = item
     if (extension.isActive) return true
-    if (this.activating.has(id)) {
+    if (activating.has(id)) {
       logger.warn(`Circular dependency detected: ${id}`)
       return false
     }
-    this.activating.add(id)
-    try {
-      const { packageJSON } = extension
-      if (packageJSON.extensionDependencies?.length > 0) {
-        const results = await Promise.allSettled(packageJSON.extensionDependencies.map(dep => this.activate(dep)))
-        for (const result of results) {
-          if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
-            logger.error(`Could not activate dependency for ${id}, activation failed.`)
-            return false
-          }
+    activating = new Set([...activating, id])
+    const { packageJSON } = extension
+    if (packageJSON.extensionDependencies?.length > 0) {
+      const results = await Promise.allSettled(packageJSON.extensionDependencies.map(dep => this.activate(dep, activating)))
+      for (const result of results) {
+        if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
+          logger.error(`Could not activate dependency for ${id}, activation failed.`)
+          return false
         }
       }
-
-      await extension.activate()
-      return extension.isActive === true
-    } finally {
-      this.activating.delete(id)
     }
+
+    await extension.activate()
+    return extension.isActive === true
   }
 
   public async deactivate(id: string): Promise<void> {
@@ -419,7 +414,7 @@ export class ExtensionManager {
   public async autoActivate(id: string, extension: Extension<API>): Promise<void> {
     try {
       let checked = await this.checkAutoActivate(extension.packageJSON)
-      if (checked) await Promise.resolve(extension.activate())
+      if (checked) await Promise.resolve(this.activate(id))
     } catch (e) {
       logger.error(`Error on activate ${id}`, e)
     }
@@ -645,7 +640,7 @@ export class ExtensionManager {
     let disabled = this.states.isDisabled(name)
     if (disabled) throw new Error(`extension ${name} is disabled`)
     let item = this.getExtension(name)
-    if (active) await item.extension.activate()
+    if (active) await this.activate(name)
     return {
       get isActive() {
         return item.extension.isActive
