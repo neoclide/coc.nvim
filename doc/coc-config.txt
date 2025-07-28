@@ -815,6 +815,13 @@ DIAGNOSTIC
 
 	Scope: `language-overridable`, default: `false`
 
+"diagnostic.displayByVimDiagnostic"			*coc-config-diagnostic-displayByVimDiagnostic*
+
+	Set diagnostics to nvim's `vim.diagnostic`, and prevent coc.nvim's
+	handler to display in virtualText/floating window etc.
+
+	Scope: `language-overridable`, default: `false`
+
 "diagnostic.enable"					*coc-config-diagnostic-enable*
 
 	Set to false to disable diagnostic display.
