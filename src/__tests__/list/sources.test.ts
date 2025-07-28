@@ -846,6 +846,14 @@ describe('list sources', () => {
       items = await manager.loadItems('notifications')
       expect(items.length).toBe(0)
     })
+
+    it('should load notifications from action', async () => {
+      await window.showInformationMessage('Info message')
+
+      const res = await helper.doAction('notificationHistory')
+      expect(res.length).toBe(1)
+      expect(res[0].message).toBe('Info message')
+    })
   })
 
   describe('symbols', () => {
