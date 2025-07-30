@@ -290,7 +290,7 @@ export class CocSnippet {
     }
     // Try keep relative position with marker, since no more change for marker.
     let sp = this.getMarkerPosition(marker)
-    let changeCharacter = cursor && sp.line === cursor.line
+    let changeCharacter = sp && cursor && sp.line === cursor.line
     const reset = () => {
       this._tmSnippet = cloned
       this.synchronize()
