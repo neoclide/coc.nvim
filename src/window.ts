@@ -33,9 +33,9 @@ export class Window {
   private nvim: Neovim
   public highlights: Highlights = new Highlights()
   private terminalManager: Terminals = new Terminals()
-  public readonly notifications = new Notifications()
-  public readonly dialogs = new Dialogs()
   public readonly cursors: Cursors
+  public readonly dialogs = new Dialogs()
+  public readonly notifications = new Notifications(this.dialogs)
   private workspace: Workspace
   constructor() {
     Object.defineProperty(this.highlights, 'nvim', {
