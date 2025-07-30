@@ -52,7 +52,6 @@ export class TextLine {
    * by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
    */
   public get firstNonWhitespaceCharacterIndex(): number {
-    // TODO@api, rename to 'leadingWhitespaceLength'
     return /^(\s*)/.exec(this._text)![1].length
   }
 
