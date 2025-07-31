@@ -213,7 +213,7 @@ PREFERENCES
 
 	Configure the type of user interaction when a message dialog occurs with more than one actions to trigger.
 
-	Scope: `application`, default: `confirm'
+	Scope: `application`, default: `confirm`
 
 "coc.preferences.excludeImageLinksInMarkdownDocument"	*coc-preferences-excludeImageLinksInMarkdownDocument*
 
