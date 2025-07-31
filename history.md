@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-07-30
+
+- Add configurable kind for dialog messages, through the use of the new configuration
+  'messageDialogKind' which can be set to 'menu', 'notification', or 'confirm'.
+
 ## 2025-07-18
 
 - Add `extensionDependencies` support, declare dependencies on other extensions: `"extensionDependencies": ["extension-1", "extension-2"]`

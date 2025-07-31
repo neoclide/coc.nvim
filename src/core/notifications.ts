@@ -11,6 +11,7 @@ import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
 import { callAsync } from './funcs'
 import { echoMessages, MsgTypes } from './ui'
+import { Dialogs } from './dialogs'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 
@@ -61,7 +62,9 @@ export class Notifications {
   public configuration: WorkspaceConfiguration
   public statusLine: StatusLine
   private _history: NotificationItem[] = []
-  constructor() {}
+
+  constructor(private dialogs: Dialogs) {
+  }
 
   private getCurrentTimestamp(): string {
     const now = new Date()
@@ -78,13 +81,23 @@ export class Notifications {
 
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
     this._history.push({ time: this.getCurrentTimestamp(), kind, message })
-    if (!this.enableMessageDialog) {
-      if (items.length > 0) {
-        return await this.showConfirm(message, items, kind)
-      }
+
+    let notificationKind = this.messageDialogKind === 'notification' || this.enableMessageDialog === true
+    if (notificationKind !== true) {
       let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
-      this.echoMessages(message, msgType)
-      return undefined
+      if (msgType === 'error' || items.length === 0) {
+        this.echoMessages(message, msgType)
+        return undefined
+      } else {
+        switch (this.messageDialogKind) {
+          case 'confirm':
+            return await this.showConfirm(message, items, kind)
+          case 'menu':
+            return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+          default:
+            throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
+        }
+      }
     }
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
@@ -117,22 +130,32 @@ export class Notifications {
     })
   }
 
-  // fallback for vim without dialog
-  private async showConfirm<T extends MessageItem | string>(message: string, items: T[], kind: MessageKind): Promise<T> {
+  public async showConfirm<T extends MessageItem | string>(message: string, items: T[], kind: MessageKind): Promise<T> {
     let titles = toTitles(items)
     let choices = titles.map((s, i) => `${i + 1}${s}`)
     let res = await callAsync(this.nvim, 'confirm', [message, choices.join('\n'), 1, kind]) as number
     return items[res - 1]
   }
 
-  public echoMessages(msg: string, messageType: MsgTypes): void {
-    let level = this.configuration.get<string>('coc.preferences.messageLevel', 'more')
-    echoMessages(this.nvim, msg, messageType, level)
+  public async showMenuPicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T> {
+    let texts = items.map(o => typeof o === 'string' ? o : o.title)
+    let res = await this.dialogs.showMenuPicker(texts, {
+      position: 'center',
+      content,
+      title: title.replace(/\r?\n/, ' '),
+      borderhighlight: hlGroup
+    })
+    return items[res]
   }
 
   public async showNotification(config: NotificationConfig, stack: string): Promise<void> {
     let notification = new Notification(this.nvim, config)
     await notification.show(this.getNotificationPreference(stack))
+  }
+
+  public echoMessages(msg: string, messageType: MsgTypes): void {
+    let level = this.configuration.get<string>('coc.preferences.messageLevel', 'more')
+    echoMessages(this.nvim, msg, messageType, level)
   }
 
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
@@ -173,6 +196,10 @@ export class Notifications {
 
   private get enableMessageDialog(): boolean {
     return this.configuration.get<boolean>('coc.preferences.enableMessageDialog', false)
+  }
+
+  private get messageDialogKind(): string {
+    return this.configuration.get<string>('coc.preferences.messageDialogKind', 'confirm')
   }
 
   private getNotificationPreference(source?: string, isProgress = false): NotificationPreferences {

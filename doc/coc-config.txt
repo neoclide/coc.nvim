@@ -205,9 +205,15 @@ PREFERENCES
 
 "coc.preferences.enableMessageDialog"			*coc-preferences-enableMessageDialog*
 
-	Enable messages shown in notification dialog.
+	Enable messages shown in notification dialog. Deprecated, prefer configuration 'coc.preferences.messageDialogKind' instead.
 
 	Scope: `application`, default: `false`
+
+"coc.preferences.messageDialogKind"			*coc-preferences-messageDialogKind*
+
+	Configure the type of user interaction when a message dialog occurs with more than one actions to trigger.
+
+	Scope: `application`, default: `confirm`
 
 "coc.preferences.excludeImageLinksInMarkdownDocument"	*coc-preferences-excludeImageLinksInMarkdownDocument*
 
