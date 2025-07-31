@@ -89,7 +89,14 @@ export class Notifications {
         this.echoMessages(message, msgType)
         return undefined
       } else {
-        return this.messageDialogKind === 'confirm' ? await this.showConfirm(message, items, kind) : await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+        switch (this.messageDialogKind) {
+          case 'confirm':
+            return await this.showConfirm(message, items, kind)
+          case 'menu':
+            return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+          default:
+            throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
+        }
       }
     }
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
