@@ -373,6 +373,75 @@ describe('window', () => {
       spy.mockRestore()
       expect(res).toBe('second')
     })
+
+    it('should use messageDialogKind for confirm mode', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
+      let spy = jest.spyOn(nvim, 'call').mockImplementationOnce((method, args) => {
+        expect(method).toBe('confirm')
+        expect(args[0]).toBe('test message')
+        expect(args[1]).toBe('1first\n2second')
+        return Promise.resolve('1') as any
+      })
+      let p = window.showInformationMessage('test message', 'first', 'second')
+      let res = await p
+      spy.mockRestore()
+      expect(res).toBe('first')
+    })
+
+    it('should use messageDialogKind for menu mode', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
+      let spy = jest.spyOn(window.dialogs, 'showMenuPicker').mockImplementation(() => {
+        return Promise.resolve(1) as any
+      })
+      let res = await window.notifications._showMessage('Warning', 'test message', ['first', 'second'])
+      expect(spy).toHaveBeenCalledWith(['first', 'second'], {
+        position: 'center',
+        content: 'test message',
+        title: 'Choose an action',
+        borderhighlight: 'CocWarningFloat'
+      })
+      expect(res).toBe('second')
+      spy.mockRestore()
+    })
+
+    it('should use messageDialogKind for notification mode', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'notification')
+      let p = window.showInformationMessage('notification message', 'first', 'second')
+      await ensureNotification(0)
+      let res = await p
+      expect(res).toBe('first')
+    })
+
+    it('should echo error messages regardless of messageDialogKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
+      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      await window.showErrorMessage('error message')
+      expect(spy).toHaveBeenCalledWith('error message', 'error')
+      spy.mockRestore()
+    })
+
+    it('should echo messages without items regardless of messageDialogKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
+      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      await window.showInformationMessage('info message')
+      expect(spy).toHaveBeenCalledWith('info message', 'more')
+      spy.mockRestore()
+    })
+
+    it('should handle unexpected messageDialogKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'invalid')
+      let p = window.showInformationMessage('test message', 'first', 'second')
+      await expect(p).rejects.toThrow('Unexpected messageDialogKind: invalid')
+    })
+
+    it('should respect enableMessageDialog for backward compatibility', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
+      let p = window.showInformationMessage('notification message', 'first', 'second')
+      await ensureNotification(0)
+      let res = await p
+      expect(res).toBe('first')
+    })
   })
 
   describe('window notifications', () => {
