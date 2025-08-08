@@ -205,9 +205,15 @@ PREFERENCES
 
 "coc.preferences.enableMessageDialog"			*coc-preferences-enableMessageDialog*
 
-	Enable messages shown in notification dialog.
+	Enable messages shown in notification dialog. Deprecated, prefer configuration 'coc.preferences.messageDialogKind' instead.
 
 	Scope: `application`, default: `false`
+
+"coc.preferences.messageDialogKind"			*coc-preferences-messageDialogKind*
+
+	Configure the type of user interaction when a message dialog occurs with more than one actions to trigger.
+
+	Scope: `application`, default: `confirm`
 
 "coc.preferences.excludeImageLinksInMarkdownDocument"	*coc-preferences-excludeImageLinksInMarkdownDocument*
 
@@ -812,6 +818,13 @@ DIAGNOSTIC
 	Use Ale, coc-diagnostics-shim.nvim, or other provider to display
 	diagnostics in vim. This setting will disable diagnostic display using
 	coc's handler. A restart required on change.
+
+	Scope: `language-overridable`, default: `false`
+
+"diagnostic.displayByVimDiagnostic"			*coc-config-diagnostic-displayByVimDiagnostic*
+
+	Set diagnostics to nvim's `vim.diagnostic`, and prevent coc.nvim's
+	handler to display in virtualText/floating window etc.
 
 	Scope: `language-overridable`, default: `false`
 

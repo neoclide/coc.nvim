@@ -403,6 +403,9 @@ Configure |coc-preferences-enableMessageDialog| to show messages as
 notifications (except for the messages of unexpected errors which are always
 echoed).
 
+Use |coc-preferences-messageDialogKind| to configure how the messages are shown
+this configuration supersedes the |coc-preferences-enableMessageDialog|. 
+
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
 

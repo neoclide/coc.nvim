@@ -37417,7 +37417,8 @@ var init_notifications = __esm({
     init_funcs();
     init_ui();
     Notifications = class {
-      constructor() {
+      constructor(dialogs) {
+        this.dialogs = dialogs;
         this._history = [];
       }
       getCurrentTimestamp() {
@@ -37433,13 +37434,22 @@ var init_notifications = __esm({
       }
       async _showMessage(kind, message, items) {
         this._history.push({ time: this.getCurrentTimestamp(), kind, message });
-        if (!this.enableMessageDialog) {
-          if (items.length > 0) {
-            return await this.showConfirm(message, items, kind);
-          }
+        let notificationKind = this.messageDialogKind === "notification" || this.enableMessageDialog === true;
+        if (notificationKind !== true) {
           let msgType = kind == "Info" ? "more" : kind == "Error" ? "error" : "warning";
-          this.echoMessages(message, msgType);
-          return void 0;
+          if (msgType === "error" || items.length === 0) {
+            this.echoMessages(message, msgType);
+            return void 0;
+          } else {
+            switch (this.messageDialogKind) {
+              case "confirm":
+                return await this.showConfirm(message, items, kind);
+              case "menu":
+                return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items);
+              default:
+                throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`);
+            }
+          }
         }
         let texts = items.map((o) => typeof o === "string" ? o : o.title);
         let idx = await this.createNotification(kind.toLowerCase(), message, texts);
@@ -37468,20 +37478,29 @@ var init_notifications = __esm({
           }
         });
       }
-      // fallback for vim without dialog
       async showConfirm(message, items, kind) {
         let titles = toTitles(items);
         let choices = titles.map((s, i) => `${i + 1}${s}`);
         let res = await callAsync(this.nvim, "confirm", [message, choices.join("\n"), 1, kind]);
         return items[res - 1];
       }
-      echoMessages(msg, messageType) {
-        let level2 = this.configuration.get("coc.preferences.messageLevel", "more");
-        echoMessages(this.nvim, msg, messageType, level2);
+      async showMenuPicker(title, content, hlGroup, items) {
+        let texts = items.map((o) => typeof o === "string" ? o : o.title);
+        let res = await this.dialogs.showMenuPicker(texts, {
+          position: "center",
+          content,
+          title: title.replace(/\r?\n/, " "),
+          borderhighlight: hlGroup
+        });
+        return items[res];
       }
       async showNotification(config, stack) {
         let notification = new Notification(this.nvim, config);
         await notification.show(this.getNotificationPreference(stack));
+      }
+      echoMessages(msg, messageType) {
+        let level2 = this.configuration.get("coc.preferences.messageLevel", "more");
+        echoMessages(this.nvim, msg, messageType, level2);
       }
       async withProgress(options2, task) {
         let config = this.configuration.get("notification");
@@ -37519,6 +37538,9 @@ var init_notifications = __esm({
       }
       get enableMessageDialog() {
         return this.configuration.get("coc.preferences.enableMessageDialog", false);
+      }
+      get messageDialogKind() {
+        return this.configuration.get("coc.preferences.messageDialogKind", "confirm");
       }
       getNotificationPreference(source, isProgress = false) {
         if (!source) source = parseExtensionName(Error().stack);
@@ -38257,7 +38279,15 @@ var init_schema = __esm({
           type: "boolean",
           scope: "application",
           default: false,
-          description: "Enable messages shown in notification dialog."
+          deprecationMessage: "Use configuration 'coc.preferences.messageDialogKind' instead.",
+          description: "Enable messages shown in notification dialog, or fallback to native vim confirm action."
+        },
+        "coc.preferences.messageDialogKind": {
+          type: "string",
+          scope: "application",
+          default: "confirm",
+          description: "The kind of interactive element to show the messages with.",
+          enum: ["notification", "confirm", "menu"]
         },
         "coc.preferences.excludeImageLinksInMarkdownDocument": {
           type: "boolean",
@@ -57054,6 +57084,12 @@ function isSymbolicLink(folder) {
 function getDependencies(obj) {
   return Object.keys(obj.dependencies ?? {}).filter((id2) => !local_dependencies.includes(id2));
 }
+function getExtensionDependencies(obj) {
+  if (obj.extensionDependencies?.length > 0) {
+    return [...new Set(obj.extensionDependencies)];
+  }
+  return [];
+}
 var import_events16, import_url3, logger16, local_dependencies, Installer;
 var init_installer = __esm({
   "src/extension/installer.ts"() {
@@ -57070,7 +57106,7 @@ var init_installer = __esm({
     init_workspace();
     logger16 = createLogger("extension-installer");
     local_dependencies = ["coc.nvim", "esbuild", "webpack", "@types/node"];
-    Installer = class extends import_events16.EventEmitter {
+    Installer = class _Installer extends import_events16.EventEmitter {
       constructor(root, npm, def) {
         super();
         this.root = root;
@@ -57145,7 +57181,7 @@ var init_installer = __esm({
         if (required && !semver.satisfies(workspace_default.version, required)) {
           throw new Error(`${name2} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
         }
-        let updated = await this.doInstall(info);
+        let updated = await this.doInstall(info, /* @__PURE__ */ new Set());
         return { name: name2, updated, version: version2, url: this.url, folder: path.join(this.root, info.name) };
       }
       async update(url) {
@@ -57170,7 +57206,7 @@ var init_installer = __esm({
         if (required && !semver.satisfies(workspace_default.version, required)) {
           throw new Error(`${info.version} requires coc.nvim ${required}, please update coc.nvim.`);
         }
-        let succeed = await this.doInstall(info);
+        let succeed = await this.doInstall(info, /* @__PURE__ */ new Set());
         if (!succeed) return;
         let jsonFile = path.join(this.root, info.name, "package.json");
         this.log(`Updated to v${info.version}`);
@@ -57232,14 +57268,20 @@ var init_installer = __esm({
           });
         });
       }
-      async doInstall(info) {
+      async doInstall(info, installing = /* @__PURE__ */ new Set()) {
         let dest = path.join(this.root, info.name);
         if (isSymbolicLink(dest)) return false;
+        if (installing.has(info.name)) {
+          this.log(`Skipping circular dependency: ${info.name}`);
+          return false;
+        }
+        installing.add(info.name);
         let key = info.name.replace(/\//g, "_");
         let downloadFolder = path.join(this.root, `${key}-${v4_default()}`);
         let url = info["dist.tarball"];
         this.log(`Downloading from ${url}`);
         let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
+        let obj;
         try {
           await this.download(url, {
             dest: downloadFolder,
@@ -57248,7 +57290,7 @@ var init_installer = __esm({
             onProgress: (p) => this.log(`Download progress ${p}%`, true)
           });
           this.log(`Extension download at ${downloadFolder}`);
-          let obj = loadJson(path.join(downloadFolder, "package.json"));
+          obj = loadJson(path.join(downloadFolder, "package.json"));
           await this.installDependencies(downloadFolder, getDependencies(obj));
         } catch (e) {
           fs.rmSync(downloadFolder, { recursive: true, force: true });
@@ -57259,6 +57301,17 @@ var init_installer = __esm({
         if (fs.existsSync(dest)) fs.rmSync(dest, { force: true, recursive: true });
         fs.renameSync(downloadFolder, dest);
         this.log(`Move extension ${info.name}@${info.version} to ${dest}`);
+        const extensionDependencies = getExtensionDependencies(obj);
+        if (extensionDependencies.length > 0) {
+          this.log(`Installing extension dependencies: ${extensionDependencies.join(", ")}`);
+          for (const dependency of extensionDependencies) {
+            const installer = new _Installer(this.root, this.npm, dependency);
+            installer.on("message", (msg, isProgress) => {
+              this.log(msg, isProgress);
+            });
+            await installer.doInstall(await installer.getInfo(), installing);
+          }
+        }
         return true;
       }
       async download(url, options2) {
@@ -71331,7 +71384,7 @@ var init_snippet = __esm({
           return { snippetText, marker };
         }
         let sp = this.getMarkerPosition(marker);
-        let changeCharacter = cursor && sp.line === cursor.line;
+        let changeCharacter = sp && cursor && sp.line === cursor.line;
         const reset = () => {
           this._tmSnippet = cloned;
           this.synchronize();
@@ -73821,7 +73874,7 @@ var init_manager5 = __esm({
           const { extension } = this.extensions.get(key);
           const activationEvents = extension.packageJSON.activationEvents;
           if (!activationEvents || activationEvents.includes("*")) {
-            promises.push(void extension.activate());
+            promises.push(void this.activate(key));
           } else {
             void this.autoActivate(key, extension);
           }
@@ -73887,7 +73940,7 @@ var init_manager5 = __esm({
           let { extension } = item;
           let activationEvents = getActivationEvents(extension.packageJSON);
           void Promise.resolve(check(activationEvents)).then((checked) => {
-            if (checked) void Promise.resolve(extension.activate());
+            if (checked) void Promise.resolve(this.activate(extension.id));
           });
         }
       }
@@ -73937,12 +73990,27 @@ var init_manager5 = __esm({
        * Activate extension, throw error if disabled or doesn't exist.
        * Returns true if extension successfully activated.
        */
-      async activate(id2) {
+      async activate(id2, activating = /* @__PURE__ */ new Set()) {
         let item = this.extensions.get(id2);
         if (!item) throw new Error(`Extension ${id2} not registered!`);
         let { extension } = item;
         if (extension.isActive) return true;
-        await Promise.resolve(extension.activate());
+        if (activating.has(id2)) {
+          logger31.warn(`Circular dependency detected: ${id2}`);
+          return false;
+        }
+        activating = /* @__PURE__ */ new Set([...activating, id2]);
+        const { packageJSON } = extension;
+        if (packageJSON.extensionDependencies?.length > 0) {
+          const results = await Promise.allSettled(packageJSON.extensionDependencies.map((dep) => this.activate(dep, activating)));
+          for (const result of results) {
+            if (result.status === "rejected" || result.status === "fulfilled" && !result.value) {
+              logger31.error(`Could not activate dependency for ${id2}, activation failed.`);
+              return false;
+            }
+          }
+        }
+        await extension.activate();
         return extension.isActive === true;
       }
       async deactivate(id2) {
@@ -74068,7 +74136,7 @@ var init_manager5 = __esm({
       async autoActivate(id2, extension) {
         try {
           let checked = await this.checkAutoActivate(extension.packageJSON);
-          if (checked) await Promise.resolve(extension.activate());
+          if (checked) await Promise.resolve(this.activate(id2));
         } catch (e) {
           logger31.error(`Error on activate ${id2}`, e);
         }
@@ -74285,7 +74353,7 @@ var init_manager5 = __esm({
         let disabled = this.states.isDisabled(name2);
         if (disabled) throw new Error(`extension ${name2} is disabled`);
         let item = this.getExtension(name2);
-        if (active) await item.extension.activate();
+        if (active) await this.activate(name2);
         return {
           get isActive() {
             return item.extension.isActive;
@@ -83129,8 +83197,8 @@ var init_window = __esm({
       constructor() {
         this.highlights = new Highlights();
         this.terminalManager = new Terminals();
-        this.notifications = new Notifications();
         this.dialogs = new Dialogs();
+        this.notifications = new Notifications(this.dialogs);
         Object.defineProperty(this.highlights, "nvim", {
           get: () => this.nvim
         });
@@ -91819,7 +91887,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-29774cf 2025-07-21 11:21:14 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-13d0416 2025-07-31 16:32:31 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -92287,6 +92355,7 @@ var init_plugin = __esm({
         this.addAction("inlineAccept", (bufnr, kind) => this.handler.inlineCompletion.accept(bufnr, kind));
         this.addAction("inlineNext", (bufnr) => this.handler.inlineCompletion.next(bufnr));
         this.addAction("inlinePrev", (bufnr) => this.handler.inlineCompletion.prev(bufnr));
+        this.addAction("notificationHistory", () => window_default.notifications.history);
       }
       get workspace() {
         return workspace_default;
