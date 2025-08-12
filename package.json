@@ -108,7 +108,6 @@
     "semver": "^7.6.3",
     "strip-ansi": "^6.0.1",
     "tar": "^6.2.1",
-    "tslib": "^2.6.3",
     "unidecode": "^1.0.1",
     "unzip-stream": "^0.3.4",
     "uuid": "^9.0.1",
