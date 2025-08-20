@@ -5715,6 +5715,12 @@ declare module 'coc.nvim' {
    * [Folding](https://code.visualstudio.com/docs/editor/codebasics#_folding) in the editor.
    */
   export interface FoldingRangeProvider {
+
+    /**
+     * An optional event to signal that the folding ranges from this provider have changed.
+     */
+    onDidChangeFoldingRanges?: Event<void>
+
     /**
      * Returns a list of folding ranges or null and undefined if the provider
      * does not want to participate or was cancelled.
@@ -13096,6 +13102,11 @@ declare module 'coc.nvim' {
     onDidChangeInlayHints: Emitter<void>
   }
 
+  export interface FoldingRangeProviderShape {
+    provider: FoldingRangeProvider;
+    onDidChangeFoldingRange: Emitter<void>;
+  }
+
   export interface DiagnosticProviderShape {
     /**
      * An event that signals that the diagnostics should be refreshed for
@@ -13289,7 +13300,7 @@ declare module 'coc.nvim' {
     getFeature(request: 'textDocument/documentLink'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentLinkProvider>
     getFeature(request: 'textDocument/documentColor'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentColorProvider>
     getFeature(request: 'textDocument/declaration'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DeclarationProvider>
-    getFeature(request: 'textDocument/foldingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<FoldingRangeProvider>
+    getFeature(request: 'textDocument/foldingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<FoldingRangeProviderShape>
     getFeature(request: 'textDocument/implementation'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<ImplementationProvider>
     getFeature(request: 'textDocument/selectionRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SelectionRangeProvider>
     getFeature(request: 'textDocument/typeDefinition'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeDefinitionProvider>

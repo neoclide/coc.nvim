@@ -84,11 +84,13 @@ export enum ProviderName {
 
 class Languages {
   private readonly _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
+  private readonly _onDidFoldingRangeRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidInlayHintRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidCodeLensRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidColorsRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidLinksRefresh = new Emitter<DocumentSelector>()
   public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
+  public readonly onDidFoldingRangeRefresh: Event<DocumentSelector> = this._onDidFoldingRangeRefresh.event
   public readonly onDidInlayHintRefresh: Event<DocumentSelector> = this._onDidInlayHintRefresh.event
   public readonly onDidCodeLensRefresh: Event<DocumentSelector> = this._onDidCodeLensRefresh.event
   public readonly onDidColorsRefresh: Event<DocumentSelector> = this._onDidColorsRefresh.event
@@ -195,7 +197,7 @@ class Languages {
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
-    return this.foldingRangeManager.register(selector, provider)
+    return this.registerProviderWithEvent(selector, provider, 'onDidChangeFoldingRanges', this.foldingRangeManager, this._onDidFoldingRangeRefresh)
   }
 
   public registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable {
