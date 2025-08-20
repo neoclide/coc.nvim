@@ -1,5 +1,5 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
+import { Emitter, FoldingRangeRefreshRequest, type CancellationToken, type ClientCapabilities, type Disposable, type DocumentSelector, type FoldingRange, type FoldingRangeOptions, type FoldingRangeParams, type FoldingRangeRegistrationOptions, type ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
@@ -23,8 +23,13 @@ export interface FoldingRangeProviderMiddleware {
   ) => ProviderResult<FoldingRange[]>
 }
 
+export interface FoldingRangeProviderShape {
+  provider: FoldingRangeProvider;
+  onDidChangeFoldingRange: Emitter<void>;
+}
+
 export class FoldingRangeFeature extends TextDocumentLanguageFeature<
-  boolean | FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeProvider, FoldingRangeProviderMiddleware
+  boolean | FoldingRangeOptions, FoldingRangeRegistrationOptions, FoldingRangeProviderShape, FoldingRangeProviderMiddleware
 > {
   constructor(client: FeatureClient<FoldingRangeProviderMiddleware>) {
     super(client, FoldingRangeRequest.type)
@@ -37,12 +42,19 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
     capability.lineFoldingOnly = true
     capability.foldingRangeKind = { valueSet: [FoldingRangeKind.Comment, FoldingRangeKind.Imports, FoldingRangeKind.Region] }
     capability.foldingRange = { collapsedText: false }
+    ensure(ensure(capabilities, 'workspace')!, 'foldingRange')!.refreshSupport = true
   }
 
   public initialize(
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
+    this._client.onRequest(FoldingRangeRefreshRequest.type, async () => {
+      for (const provider of this.getAllProviders()) {
+        provider.onDidChangeFoldingRange.fire()
+      }
+    })
+
     const [id, options] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider)
     if (!id || !options) {
       return
@@ -52,8 +64,10 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
 
   protected registerLanguageProvider(
     options: FoldingRangeRegistrationOptions
-  ): [Disposable, FoldingRangeProvider] {
+  ): [Disposable, FoldingRangeProviderShape] {
+    const eventEmitter: Emitter<void> = new Emitter<void>()
     const provider: FoldingRangeProvider = {
+      onDidChangeFoldingRanges: eventEmitter.event,
       provideFoldingRanges: (document, context, token) => {
         const client = this._client
         const provideFoldingRanges: ProvideFoldingRangeSignature = (document, _, token) => {
@@ -70,6 +84,6 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
     }
 
     this._client.attachExtensionName(provider)
-    return [languages.registerFoldingRangeProvider(options.documentSelector, provider), provider]
+    return [languages.registerFoldingRangeProvider(options.documentSelector, provider), { provider, onDidChangeFoldingRange: eventEmitter }]
   }
 }

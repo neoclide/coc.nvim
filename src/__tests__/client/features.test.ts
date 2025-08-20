@@ -11,6 +11,7 @@ import { InlayHintsFeature } from '../../language-client/inlayHint'
 import languages from '../../languages'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { FoldingRangeFeature } from '../../language-client/foldingRange'
 
 beforeAll(async () => {
   await helper.setup()
@@ -766,7 +767,11 @@ describe('Client integration', () => {
   })
 
   test('Folding Ranges', async () => {
-    const provider = client.getFeature(FoldingRangeRequest.method).getProvider(document)
+    const feature = client.getFeature(FoldingRangeRequest.method) as FoldingRangeFeature
+    const providerData = feature.getProvider(document)
+    isDefined(providerData)
+
+    const provider = providerData.provider
     isDefined(provider)
     const result = (await provider.provideFoldingRanges(document, {}, tokenSource.token))
 
