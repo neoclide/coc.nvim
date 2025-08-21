@@ -19327,7 +19327,7 @@ var require_events = __commonJS({
         this._contexts = void 0;
       }
     };
-    var Emitter3 = class _Emitter {
+    var Emitter4 = class _Emitter {
       _options;
       static _noop = function() {
       };
@@ -19386,7 +19386,7 @@ var require_events = __commonJS({
         }
       }
     };
-    exports2.Emitter = Emitter3;
+    exports2.Emitter = Emitter4;
   }
 });
 
@@ -22277,6 +22277,7 @@ var require_protocol_colorProvider = __commonJS({
       ColorPresentationRequest3.method = "textDocument/colorPresentation";
       ColorPresentationRequest3.messageDirection = messages_1.MessageDirection.clientToServer;
       ColorPresentationRequest3.type = new messages_1.ProtocolRequestType(ColorPresentationRequest3.method);
+      ColorPresentationRequest3.capabilities = messages_1.CM.create("textDocument.colorProvider", "colorProvider");
     })(ColorPresentationRequest2 || (exports2.ColorPresentationRequest = ColorPresentationRequest2 = {}));
   }
 });
@@ -22295,13 +22296,13 @@ var require_protocol_foldingRange = __commonJS({
       FoldingRangeRequest4.type = new messages_1.ProtocolRequestType(FoldingRangeRequest4.method);
       FoldingRangeRequest4.capabilities = messages_1.CM.create("textDocument.foldingRange", "foldingRangeProvider");
     })(FoldingRangeRequest3 || (exports2.FoldingRangeRequest = FoldingRangeRequest3 = {}));
-    var FoldingRangeRefreshRequest;
-    (function(FoldingRangeRefreshRequest2) {
-      FoldingRangeRefreshRequest2.method = `workspace/foldingRange/refresh`;
-      FoldingRangeRefreshRequest2.messageDirection = messages_1.MessageDirection.serverToClient;
-      FoldingRangeRefreshRequest2.type = new messages_1.ProtocolRequestType0(FoldingRangeRefreshRequest2.method);
-      FoldingRangeRefreshRequest2.capabilities = messages_1.CM.create("workspace.foldingRange.refreshSupport", void 0);
-    })(FoldingRangeRefreshRequest || (exports2.FoldingRangeRefreshRequest = FoldingRangeRefreshRequest = {}));
+    var FoldingRangeRefreshRequest2;
+    (function(FoldingRangeRefreshRequest3) {
+      FoldingRangeRefreshRequest3.method = `workspace/foldingRange/refresh`;
+      FoldingRangeRefreshRequest3.messageDirection = messages_1.MessageDirection.serverToClient;
+      FoldingRangeRefreshRequest3.type = new messages_1.ProtocolRequestType0(FoldingRangeRefreshRequest3.method);
+      FoldingRangeRefreshRequest3.capabilities = messages_1.CM.create("workspace.foldingRange.refreshSupport", void 0);
+    })(FoldingRangeRefreshRequest2 || (exports2.FoldingRangeRefreshRequest = FoldingRangeRefreshRequest2 = {}));
   }
 });
 
@@ -63666,10 +63667,11 @@ var init_fileSystemWatcher = __esm({
 });
 
 // src/language-client/foldingRange.ts
-var FoldingRangeFeature;
+var import_vscode_languageserver_protocol, FoldingRangeFeature;
 var init_foldingRange = __esm({
   "src/language-client/foldingRange.ts"() {
     "use strict";
+    import_vscode_languageserver_protocol = __toESM(require_api3());
     init_languages();
     init_protocol();
     init_features();
@@ -63684,8 +63686,14 @@ var init_foldingRange = __esm({
         capability.lineFoldingOnly = true;
         capability.foldingRangeKind = { valueSet: [import_node4.FoldingRangeKind.Comment, import_node4.FoldingRangeKind.Imports, import_node4.FoldingRangeKind.Region] };
         capability.foldingRange = { collapsedText: false };
+        ensure(ensure(capabilities, "workspace"), "foldingRange").refreshSupport = true;
       }
       initialize(capabilities, documentSelector) {
+        this._client.onRequest(import_vscode_languageserver_protocol.FoldingRangeRefreshRequest.type, async () => {
+          for (const provider of this.getAllProviders()) {
+            provider.onDidChangeFoldingRange.fire();
+          }
+        });
         const [id2, options2] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider);
         if (!id2 || !options2) {
           return;
@@ -63693,7 +63701,9 @@ var init_foldingRange = __esm({
         this.register({ id: id2, registerOptions: options2 });
       }
       registerLanguageProvider(options2) {
+        const eventEmitter = new import_vscode_languageserver_protocol.Emitter();
         const provider = {
+          onDidChangeFoldingRanges: eventEmitter.event,
           provideFoldingRanges: (document2, context, token) => {
             const client = this._client;
             const provideFoldingRanges = (document3, _, token2) => {
@@ -63707,7 +63717,7 @@ var init_foldingRange = __esm({
           }
         };
         this._client.attachExtensionName(provider);
-        return [languages_default.registerFoldingRangeProvider(options2.documentSelector, provider), provider];
+        return [languages_default.registerFoldingRangeProvider(options2.documentSelector, provider), { provider, onDidChangeFoldingRange: eventEmitter }];
       }
     };
   }
@@ -64007,17 +64017,17 @@ var init_inlayHint = __esm({
 });
 
 // src/language-client/inlineCompletion.ts
-var import_vscode_languageserver_protocol, InlineCompletionItemFeature;
+var import_vscode_languageserver_protocol2, InlineCompletionItemFeature;
 var init_inlineCompletion = __esm({
   "src/language-client/inlineCompletion.ts"() {
     "use strict";
-    import_vscode_languageserver_protocol = __toESM(require_api3());
+    import_vscode_languageserver_protocol2 = __toESM(require_api3());
     init_languages();
     init_features();
     init_uuid();
     InlineCompletionItemFeature = class extends TextDocumentLanguageFeature {
       constructor(client) {
-        super(client, import_vscode_languageserver_protocol.InlineCompletionRequest.type);
+        super(client, import_vscode_languageserver_protocol2.InlineCompletionRequest.type);
       }
       fillClientCapabilities(capabilities) {
         const inlineCompletion = ensure(ensure(capabilities, "textDocument"), "inlineCompletion");
@@ -64042,7 +64052,7 @@ var init_inlineCompletion = __esm({
                 position: position2,
                 context: context2
               };
-              return this.sendRequest(import_vscode_languageserver_protocol.InlineCompletionRequest.type, params, token2, null);
+              return this.sendRequest(import_vscode_languageserver_protocol2.InlineCompletionRequest.type, params, token2, null);
             };
             const middleware = this._client.middleware;
             return middleware.provideInlineCompletionItems ? middleware.provideInlineCompletionItems(document2, position, context, token, provideInlineCompletionItems) : provideInlineCompletionItems(document2, position, context, token);
@@ -64678,11 +64688,11 @@ var init_signatureHelp = __esm({
 });
 
 // src/language-client/textDocumentContent.ts
-var import_vscode_languageserver_protocol2, TextDocumentContentFeature;
+var import_vscode_languageserver_protocol3, TextDocumentContentFeature;
 var init_textDocumentContent = __esm({
   "src/language-client/textDocumentContent.ts"() {
     "use strict";
-    import_vscode_languageserver_protocol2 = __toESM(require_api3());
+    import_vscode_languageserver_protocol3 = __toESM(require_api3());
     init_esm();
     init_util();
     init_array();
@@ -64696,10 +64706,10 @@ var init_textDocumentContent = __esm({
       }
       getState() {
         const registrations = this._registrations.size > 0;
-        return { kind: "workspace", id: import_vscode_languageserver_protocol2.TextDocumentContentRequest.method, registrations };
+        return { kind: "workspace", id: import_vscode_languageserver_protocol3.TextDocumentContentRequest.method, registrations };
       }
       get registrationType() {
-        return import_vscode_languageserver_protocol2.TextDocumentContentRequest.type;
+        return import_vscode_languageserver_protocol3.TextDocumentContentRequest.type;
       }
       getProviders() {
         const result = [];
@@ -64714,7 +64724,7 @@ var init_textDocumentContent = __esm({
       }
       initialize(capabilities) {
         const client = this._client;
-        client.onRequest(import_vscode_languageserver_protocol2.TextDocumentContentRefreshRequest.type, async (params) => {
+        client.onRequest(import_vscode_languageserver_protocol3.TextDocumentContentRefreshRequest.type, async (params) => {
           const uri = URI2.parse(params.uri);
           for (const registrations of this._registrations.values()) {
             for (const provider of registrations.providers) {
@@ -64726,7 +64736,7 @@ var init_textDocumentContent = __esm({
         });
         const capability = defaultValue(defaultValue(capabilities, {}).workspace, {}).textDocumentContent;
         if (capability) {
-          const id2 = import_vscode_languageserver_protocol2.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+          const id2 = import_vscode_languageserver_protocol3.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
           this.register({
             id: id2,
             registerOptions: capability
@@ -64742,14 +64752,14 @@ var init_textDocumentContent = __esm({
           registrations.push(registration);
         }
         this._registrations.set(data.id, {
-          disposable: import_vscode_languageserver_protocol2.Disposable.create(() => {
+          disposable: import_vscode_languageserver_protocol3.Disposable.create(() => {
             disposeAll(disposables);
           }),
           providers: registrations
         });
       }
       registerTextDocumentContentProvider(scheme) {
-        const eventEmitter = new import_vscode_languageserver_protocol2.Emitter();
+        const eventEmitter = new import_vscode_languageserver_protocol3.Emitter();
         const provider = {
           onDidChange: eventEmitter.event,
           provideTextDocumentContent: (uri, token) => {
@@ -64758,10 +64768,10 @@ var init_textDocumentContent = __esm({
               const params = {
                 uri: uri2.toString()
               };
-              return client.sendRequest(import_vscode_languageserver_protocol2.TextDocumentContentRequest.type, params, token2).then((result) => {
+              return client.sendRequest(import_vscode_languageserver_protocol3.TextDocumentContentRequest.type, params, token2).then((result) => {
                 return result?.text;
               }, (error) => {
-                return client.handleFailedRequest(import_vscode_languageserver_protocol2.TextDocumentContentRequest.type, token2, error, null);
+                return client.handleFailedRequest(import_vscode_languageserver_protocol3.TextDocumentContentRequest.type, token2, error, null);
               });
             };
             const middleware = client.middleware;
@@ -66096,11 +66106,11 @@ function createConnection(input, output, errorHandler, closeHandler, options2) {
   };
   return result;
 }
-var import_vscode_languageserver_protocol3, logger22, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
+var import_vscode_languageserver_protocol4, logger22, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
 var init_client = __esm({
   "src/language-client/client.ts"() {
     "use strict";
-    import_vscode_languageserver_protocol3 = __toESM(require_api3());
+    import_vscode_languageserver_protocol4 = __toESM(require_api3());
     init_main();
     init_esm();
     init_languages();
@@ -66363,7 +66373,7 @@ var init_client = __esm({
         let param;
         let token;
         if (params.length === 1) {
-          if (import_vscode_languageserver_protocol3.CancellationToken.is(params[0])) {
+          if (import_vscode_languageserver_protocol4.CancellationToken.is(params[0])) {
             token = params[0];
           } else {
             param = params[0];
@@ -66435,7 +66445,7 @@ var init_client = __esm({
         }
         try {
           let documentToClose;
-          if (typeof type !== "string" && type.method === import_vscode_languageserver_protocol3.DidCloseTextDocumentNotification.method) {
+          if (typeof type !== "string" && type.method === import_vscode_languageserver_protocol4.DidCloseTextDocumentNotification.method) {
             documentToClose = params.textDocument.uri;
           }
           const connection = await this.$start();
@@ -67038,7 +67048,7 @@ ${data2String(data)}` : message;
             if (fileEvents.length === 0) return;
             this._fileEvents = [];
             try {
-              await this.sendNotification(import_vscode_languageserver_protocol3.DidChangeWatchedFilesNotification.type, { changes: fileEvents });
+              await this.sendNotification(import_vscode_languageserver_protocol4.DidChangeWatchedFilesNotification.type, { changes: fileEvents });
             } catch (error) {
               this._fileEvents = fileEvents;
               throw error;
@@ -67047,7 +67057,7 @@ ${data2String(data)}` : message;
         };
         const workSpaceMiddleware = this.clientOptions.middleware.workspace;
         (workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)).catch((error) => {
-          this.error(`Notifying ${import_vscode_languageserver_protocol3.DidChangeWatchedFilesNotification.method} failed.`, error);
+          this.error(`Notifying ${import_vscode_languageserver_protocol4.DidChangeWatchedFilesNotification.method} failed.`, error);
         });
       }
       /**
@@ -77016,11 +77026,13 @@ var init_languages = __esm({
     Languages = class {
       constructor() {
         this._onDidSemanticTokensRefresh = new import_node4.Emitter();
+        this._onDidFoldingRangeRefresh = new import_node4.Emitter();
         this._onDidInlayHintRefresh = new import_node4.Emitter();
         this._onDidCodeLensRefresh = new import_node4.Emitter();
         this._onDidColorsRefresh = new import_node4.Emitter();
         this._onDidLinksRefresh = new import_node4.Emitter();
         this.onDidSemanticTokensRefresh = this._onDidSemanticTokensRefresh.event;
+        this.onDidFoldingRangeRefresh = this._onDidFoldingRangeRefresh.event;
         this.onDidInlayHintRefresh = this._onDidInlayHintRefresh.event;
         this.onDidCodeLensRefresh = this._onDidCodeLensRefresh.event;
         this.onDidColorsRefresh = this._onDidColorsRefresh.event;
@@ -77095,7 +77107,7 @@ var init_languages = __esm({
         return this.documentSymbolManager.register(selector, provider);
       }
       registerFoldingRangeProvider(selector, provider) {
-        return this.foldingRangeManager.register(selector, provider);
+        return this.registerProviderWithEvent(selector, provider, "onDidChangeFoldingRanges", this.foldingRangeManager, this._onDidFoldingRangeRefresh);
       }
       registerDocumentHighlightProvider(selector, provider) {
         return this.documentHighlightManager.register(selector, provider);
@@ -91887,7 +91899,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-13d0416 2025-07-31 16:32:31 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-911d33a 2025-08-20 20:30:00 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
