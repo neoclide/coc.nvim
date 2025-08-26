@@ -41,6 +41,7 @@ describe('Folds', () => {
         return []
       }
     }))
+    await helper.wait(50)
     let res = await helper.doAction('fold')
     expect(res).toBe(false)
   })
@@ -51,6 +52,7 @@ describe('Folds', () => {
         return [FoldingRange.create(1, 3), FoldingRange.create(4, 6, 0, 0, 'comment')]
       }
     }))
+    await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']])
     let res = await folds.fold()
     expect(res).toBe(true)
@@ -72,6 +74,7 @@ describe('Folds', () => {
         return [FoldingRange.create(1, 2), FoldingRange.create(5, 6), FoldingRange.create(7, 8)]
       }
     }))
+    await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
     await doc.synchronize()
     let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
@@ -90,6 +93,7 @@ describe('Folds', () => {
         return [FoldingRange.create(4, 5)]
       }
     }))
+    await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
     await doc.synchronize()
     let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
@@ -102,6 +106,7 @@ describe('Folds', () => {
         return [FoldingRange.create(1, 3), FoldingRange.create(4, 6, 0, 0, 'comment')]
       }
     }))
+    await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']])
     let res = await folds.fold('comment')
     expect(res).toBe(true)
