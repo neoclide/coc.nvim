@@ -342,7 +342,9 @@ end
 -- @param opts - Optional table with priority and clear, combine as boolean.
 function M.highlight_ranges(id, key, hl_group, ranges, opts)
   local bufnr = id == 0 and api.nvim_get_current_buf() or id
-  opts = is_null(opts) and {} or opts
+  if is_null(opts) or type(opts) ~= 'table' then
+    opts = {}
+  end
   if api.nvim_buf_is_loaded(bufnr) then
     if opts.clear then
       local ns = create_namespace(key)
