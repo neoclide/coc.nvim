@@ -91899,7 +91899,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-911d33a 2025-08-20 20:30:00 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-0205987 2025-08-27 09:32:44 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
