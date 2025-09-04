@@ -1155,7 +1155,7 @@
       "type": "integer",
       "scope": "language-overridable",
       "minimum": 1,
-      "description": "The maximum number of diagnostic messages to disaply in one line",
+      "description": "The maximum number of diagnostic messages to display in one line",
       "default": 999
     },
     "diagnostic.virtualTextLineSeparator": {

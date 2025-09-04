@@ -54,7 +54,7 @@ describe('Configuration utils', () => {
     expect(res).toEqual([])
   })
 
-  it('should merge preperties', () => {
+  it('should merge properties', () => {
     let res = mergeConfigProperties({
       foo: 'bar',
       "x.y.a": "x",
