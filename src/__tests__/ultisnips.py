@@ -267,7 +267,7 @@ def coc_UltiSnips_create():
         trackable maner.
 
         Vim marks offers limited functionality for tracking line additions and
-        deletions, but nothing offered for tracking changes withing single line.
+        deletions, but nothing offered for tracking changes within single line.
 
         Instance of this class is passed to all snippet actions and behaves as
         internal vim.current.window.buffer.
@@ -294,7 +294,7 @@ def coc_UltiSnips_create():
 
         def validate_buffer(self):
             """
-            Raises exception if buffer is changes beyound proxy object.
+            Raises exception if buffer is changed beyond proxy object.
             """
             if self.is_buffer_changed_outside():
                 raise os.error(

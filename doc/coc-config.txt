@@ -1007,7 +1007,7 @@ DIAGNOSTIC
 
 "diagnostic.virtualTextLimitInOneLine"			*coc-config-diagnostic-virtualTextLimitInOneLine*
 
-	The maximum number of diagnostic messages to disaply in one line.
+	The maximum number of diagnostic messages to display in one line.
 
 	Scope: `language-overridable`, default: `999`
 
