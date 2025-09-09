@@ -38856,7 +38856,7 @@ var init_schema = __esm({
           type: "integer",
           scope: "language-overridable",
           minimum: 1,
-          description: "The maximum number of diagnostic messages to disaply in one line",
+          description: "The maximum number of diagnostic messages to display in one line",
           default: 999
         },
         "diagnostic.virtualTextLineSeparator": {
@@ -91899,7 +91899,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-0205987 2025-08-27 09:32:44 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-fa73958 2025-09-04 15:07:40 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
