@@ -230,7 +230,7 @@ export default class Document {
         }
         this.lines = lines
         fireLinesChanged(bufnr)
-        if (events.pumInserted) return
+        if (events.completing) return
         this.fireContentChanges()
       }
     }
