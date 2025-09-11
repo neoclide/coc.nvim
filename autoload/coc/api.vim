@@ -409,13 +409,13 @@ def ChangeBufferLines(bufnr: number, start_row: number, start_col: number, end_r
   endif
 enddef
 
-# make sure inserted space first.
+# make sure inserted space last.
 def SortProp(a: dict<any>, b: dict<any>): number
   if a.col != b.col
     return a.col > b.col ? 1 : -1
   endif
   if has_key(a, 'text') && has_key(b, 'text')
-    return a.text ==# ' ' ? -1 : 1
+    return a.text ==# ' ' ? 1 : -1
   endif
   return 0
 enddef
