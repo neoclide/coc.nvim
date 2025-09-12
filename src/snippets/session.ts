@@ -344,7 +344,7 @@ export class SnippetSession {
     if (tokenSource.token.isCancellationRequested) return
     let change = documentChange?.change
     if (!change) {
-      let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
+      let edit = getTextEdit(textDocument.lines, newDocument.lines, null, events.insertMode)
       change = { range: edit.range, text: edit.newText }
     }
     const { range, start } = snippet
