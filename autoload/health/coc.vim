@@ -9,11 +9,11 @@ function! s:report_ok(report) abort
   endif
 endfunction
 
-function! s:report_error(report) abort
+function! s:report_error(report, advises) abort
   if has('nvim-0.10')
-    call v:lua.vim.health.error(a:report)
+    call v:lua.vim.health.error(a:report, a:advises)
   else
-    call health#report_error(a:report)
+    call health#report_error(a:report, a:advises)
   endif
 endfunction
 
@@ -115,7 +115,7 @@ function! s:checkInitialize() abort
   endif
   call s:report_error('service could not be initialized', [
         \ 'Use command ":messages" to get error messages.',
-        \ 'Open a issue at https://github.com/neoclide/coc.nvim/issues for feedback.'
+        \ 'Open an issue at https://github.com/neoclide/coc.nvim/issues for feedback.'
         \])
   return 0
 endfunction
