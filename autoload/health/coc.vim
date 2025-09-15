@@ -105,6 +105,10 @@ function! s:checkAutocmd()
 endfunction
 
 function! s:checkInitialize() abort
+  if get(g:, 'coc_start_at_startup', 1) == 0
+    call s:report_warn('coc.nvim was disabled on startup, run :CocStart to start manually')
+    return 1
+  endif
   if coc#client#is_running('coc')
     call s:report_ok('Service started')
     return 1
