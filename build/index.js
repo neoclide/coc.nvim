@@ -77630,7 +77630,7 @@ var init_document = __esm({
             }
             this.lines = lines;
             fireLinesChanged(bufnr);
-            if (events_default.pumInserted) return;
+            if (events_default.completing) return;
             this.fireContentChanges();
           }
         };
@@ -91899,7 +91899,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-fa73958 2025-09-04 15:07:40 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-a3c65de 2025-09-15 15:17:26 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
