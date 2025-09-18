@@ -111,6 +111,11 @@ export default class InputBox implements Disposable {
         this.dispose()
       }
     }, null, this.disposables)
+    events.on('PromptExit', bufnr => {
+      if (bufnr == this._bufnr) {
+        this.dispose()
+      }
+    }, null, this.disposables)
     events.on('TextChangedI', (bufnr, info) => {
       if (bufnr == this._bufnr && this._input !== info.line) {
         this.clearVirtualText()

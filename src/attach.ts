@@ -48,6 +48,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
       case 'TaskStdout':
       case 'GlobalChange':
       case 'PromptInsert':
+      case 'PromptExit':
       case 'InputChar':
       case 'MenuInput':
       case 'OptionSet':
