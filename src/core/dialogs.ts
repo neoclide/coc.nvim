@@ -167,9 +167,9 @@ export class Dialogs {
 
   public async requestInput(title: string, env: Env, value?: string, option?: InputOptions): Promise<string | undefined> {
     let { nvim } = this
-    let noPompt = !env.terminal || !env.dialog || (env.isVim && isWindows && !env.isCygwin)
+    let noPrompt = !env.terminal || !env.dialog || (env.isVim && isWindows && !env.isCygwin)
     const promptInput = this.configuration.get('coc.preferences.promptInput')
-    if (promptInput && !noPompt) {
+    if (promptInput && !noPrompt) {
       return await this.mutex.use(async () => {
         let input = new InputBox(nvim, toText(value))
         await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})))

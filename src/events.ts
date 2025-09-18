@@ -94,7 +94,7 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre' | 'ModeChanged'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled' | 'CompleteStart'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'PromptExit' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
 export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
@@ -343,7 +343,7 @@ class Events {
     }
   }
 
-  public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: BufEvents | 'PromptExit', handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number], winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

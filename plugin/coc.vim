@@ -52,6 +52,8 @@ function! CocPopupCallback(bufnr, arglist) abort
     if a:arglist[0] == 'confirm'
       call coc#rpc#notify('PromptInsert', [a:arglist[1], a:bufnr])
     elseif a:arglist[0] == 'exit'
+      " notify exit for vim terminal prompt to ensure cleanup
+      call coc#rpc#notify('PromptExit', [a:bufnr])
       execute 'silent! bd! '.a:bufnr
       "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])
     elseif a:arglist[0] == 'change'
