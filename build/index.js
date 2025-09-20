@@ -27437,6 +27437,11 @@ var init_input = __esm({
             this.dispose();
           }
         }, null, this.disposables);
+        events_default.on("PromptExit", (bufnr) => {
+          if (bufnr == this._bufnr) {
+            this.dispose();
+          }
+        }, null, this.disposables);
         events_default.on("TextChangedI", (bufnr, info) => {
           if (bufnr == this._bufnr && this._input !== info.line) {
             this.clearVirtualText();
@@ -37093,9 +37098,9 @@ var init_dialogs = __esm({
       }
       async requestInput(title, env, value, option) {
         let { nvim } = this;
-        let noPompt = !env.terminal || !env.dialog || env.isVim && isWindows && !env.isCygwin;
+        let noPrompt = !env.terminal || !env.dialog || env.isVim && isWindows && !env.isCygwin;
         const promptInput = this.configuration.get("coc.preferences.promptInput");
-        if (promptInput && !noPompt) {
+        if (promptInput && !noPrompt) {
           return await this.mutex.use(async () => {
             let input = new InputBox(nvim, toText(value));
             await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})));
@@ -91899,7 +91904,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-a3c65de 2025-09-15 15:17:26 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-5552eb7 2025-09-20 11:57:09 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -92493,6 +92498,7 @@ var init_attach = __esm({
           case "TaskStdout":
           case "GlobalChange":
           case "PromptInsert":
+          case "PromptExit":
           case "InputChar":
           case "MenuInput":
           case "OptionSet":
