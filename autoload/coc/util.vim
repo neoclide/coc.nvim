@@ -238,7 +238,6 @@ function! s:safer_open(cmd, file) abort
       endif
       doautocmd TabEnter
       doautocmd BufReadPre
-      doautocmd BufRead
       doautocmd BufReadPost
       doautocmd BufEnter
       if l:new_page_idx != l:old_page_idx
