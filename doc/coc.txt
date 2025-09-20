@@ -3677,7 +3677,7 @@ disable creation of these highlight groups.
 The highlight groups rules:
 >
 `CocSemType + type` for types
-`CocSemTypeMode + type + modifier` for modifier with type
+`CocSemTypeMod + type + modifier` for modifier with type
 <
 
 Only semantic tokens types and `deprecated` modifier have default
