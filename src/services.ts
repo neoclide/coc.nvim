@@ -516,7 +516,7 @@ export function getTransportKind(config: LanguageServerConfig): Transport {
 
 export function getForkOptions(config: LanguageServerConfig): ForkOptions {
   return {
-    cwd: config.cwd,
+    cwd: config.cwd && workspace.expand(config.cwd),
     execArgv: config.execArgv ?? [],
     env: config.env ?? undefined
   }
@@ -524,7 +524,7 @@ export function getForkOptions(config: LanguageServerConfig): ForkOptions {
 
 export function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   return {
-    cwd: config.cwd,
+    cwd: config.cwd && workspace.expand(config.cwd),
     detached: !!config.detached,
     shell: !!config.shell,
     env: config.env ?? undefined
