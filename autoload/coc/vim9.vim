@@ -461,7 +461,6 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
     start: number, end: number, changes: any, cursor: any, col: any, linecount: number): void
   if bufloaded(bufnr)
     const current = bufnr == bufnr('%')
-    const view = current ? winsaveview() : null
     var start_row: number = start
     var end_row: number = end
     var replace = copy(replacement)
@@ -511,9 +510,6 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
       Apply_changes(bufnr, change_list)
     else
       coc#api#SetBufferLines(bufnr, start_row + 1, end_row, replace)
-    endif
-    if current
-      winrestview(view)
     endif
     coc#api#OnTextChange(bufnr)
     if !empty(cursor) && current
