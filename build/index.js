@@ -68066,14 +68066,14 @@ function getTransportKind(config) {
 }
 function getForkOptions(config) {
   return {
-    cwd: config.cwd,
+    cwd: config.cwd && workspace_default.expand(config.cwd),
     execArgv: config.execArgv ?? [],
     env: config.env ?? void 0
   };
 }
 function getSpawnOptions(config) {
   return {
-    cwd: config.cwd,
+    cwd: config.cwd && workspace_default.expand(config.cwd),
     detached: !!config.detached,
     shell: !!config.shell,
     env: config.env ?? void 0
@@ -91904,7 +91904,7 @@ var init_workspace2 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-5552eb7 2025-09-20 11:57:09 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-b0a699d 2025-09-22 17:34:21 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
