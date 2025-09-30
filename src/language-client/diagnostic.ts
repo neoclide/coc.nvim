@@ -786,6 +786,7 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
     let capability = ensure(ensure(capabilities, 'textDocument')!, 'diagnostic')!
     capability.dynamicRegistration = true
     capability.relatedDocumentSupport = true
+    capability.markupMessageSupport = true
 
     ensure(ensure(capabilities, 'workspace')!, 'diagnostics')!.refreshSupport = true
   }
