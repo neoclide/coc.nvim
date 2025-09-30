@@ -784,10 +784,6 @@ export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOpt
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let capability = ensure(ensure(capabilities, 'textDocument')!, 'diagnostic')!
-    capability.relatedInformation = true
-    capability.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
-    capability.codeDescriptionSupport = true
-    capability.dataSupport = true
     capability.dynamicRegistration = true
     capability.relatedDocumentSupport = true
 
