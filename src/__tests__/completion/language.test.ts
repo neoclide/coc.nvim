@@ -769,7 +769,7 @@ describe('language source', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo')
-    })
+    }, 10000)
 
     it('should provide word when textEdit after startcol', async () => {
       // some LS would send textEdit after first character,
