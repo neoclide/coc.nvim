@@ -143,7 +143,8 @@ export function getAgent(endpoint: URL, options: ProxyOptions): Agent {
     }
     let rejectUnauthorized = typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
     logger.info(`Using proxy ${proxy} from ${options.proxy ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
-    return endpoint.protocol === 'http:' ? new HttpProxyAgent(proxyURL) : new HttpsProxyAgent(proxyURL, { rejectUnauthorized })
+    const agentOptions = { rejectUnauthorized }
+    return endpoint.protocol === 'http:' ? new HttpProxyAgent(proxyURL, agentOptions) : new HttpsProxyAgent(proxyURL, agentOptions)
   }
   return null
 }
