@@ -101,6 +101,7 @@ export default class Watchman {
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid || !resp.files) return
       for (let listener of this._listeners) {
+        // @ts-expect-error file change item
         listener(resp)
       }
     })
@@ -109,7 +110,9 @@ export default class Watchman {
 
   private command(args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
+      // @ts-expect-error any type
       this.client.command(args, (error, resp) => {
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         if (error) return reject(error)
         resolve(resp)
       })

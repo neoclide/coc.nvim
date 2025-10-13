@@ -102,11 +102,6 @@ export class Helper extends EventEmitter {
         this.nvim.on('vim_error', err => {
           if (this.reportError) console.error('Error from vim: ', err)
         })
-        this.nvim._transport.on('notification', (...args) => {
-          if (args[0] == 'Log') {
-            // console.log(args[1])
-          }
-        })
         resolve()
       })
     })
