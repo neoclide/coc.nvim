@@ -459,6 +459,6 @@ describe('Installer', () => {
 
       getInfoSpy.mockRestore()
       downloadSpy.mockRestore()
-    }, 30000)
+    }, 10000)
   })
 })

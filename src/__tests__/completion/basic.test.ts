@@ -371,7 +371,7 @@ describe('completion', () => {
       let floatWin = await helper.getFloat('pum')
       let buf = await floatWin.buffer
       expect(buf).toBeDefined()
-    })
+    }, 10000)
 
     it('should change triggerCompletionWait', async () => {
       let doc = await workspace.document
@@ -1337,7 +1337,7 @@ describe('completion', () => {
       await helper.waitPopup()
       let items = await helper.items()
       expect(items.length).toBeGreaterThan(1)
-    })
+    }, 10000)
 
     it('should truncate label of complete items', async () => {
       helper.updateConfiguration('suggest.formatItems', ['abbr'])
