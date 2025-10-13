@@ -177,30 +177,39 @@ describe('utils', () => {
 
     agent = getAgent(new URL('https://google.com'), { proxy: 'https://domain.com' })
     let proxy = (agent as any).proxy
-    expect(proxy.port).toBe(443)
+    expect(proxy.host).toBe('domain.com')
+    expect(proxy.protocol).toBe('https:')
+    expect((agent as any).connectOpts.port).toBe(443)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'http://domain.com', proxyStrictSSL: true })
     proxy = (agent as any).proxy
-    expect(proxy.port).toBe(80)
+    expect(proxy.host).toBe('domain.com')
+    expect(proxy.protocol).toBe('http:')
+    expect((agent as any).connectOpts.port).toBe(80)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'https://domain.com:1234' })
     proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.port).toBe(1234)
+    expect(proxy.host).toBe('domain.com:1234')
+    expect(proxy.hostname).toBe('domain.com')
+    expect(proxy.port).toBe('1234')
+    expect((agent as any).connectOpts.port).toBe(1234)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'http://user:pass@domain.com:1234' })
     proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.port).toBe(1234)
-    expect(proxy.auth).toBe('user:pass')
+    expect(proxy.host).toBe('domain.com:1234')
+    expect(proxy.hostname).toBe('domain.com')
+    expect(proxy.port).toBe('1234')
+    expect((agent as any).connectOpts.port).toBe(1234)
+    expect(proxy.username).toBe('user')
+    expect(proxy.password).toBe('pass')
   })
 
   it('should getAgent from proxy', () => {
     let agent = getAgent(new URL('http://google.com'), { proxy: 'http://user:@domain.com' })
     let proxy = (agent as any).proxy
     expect(proxy.host).toBe('domain.com')
-    expect(proxy.auth).toBe('user:')
-    expect(proxy.port).toBe(80)
+    expect(proxy.username).toBe('user')
+    expect((agent as any).connectOpts.port).toBe(80)
   })
 
   it('should getSystemProxyURI', () => {

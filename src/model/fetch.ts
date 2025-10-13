@@ -1,8 +1,8 @@
 'use strict'
 import decompressResponse from 'decompress-response'
 import { http, https } from 'follow-redirects'
-import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
-import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
+import { HttpProxyAgent } from 'http-proxy-agent'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import { ParsedUrlQueryInput, stringify } from 'querystring'
 import { Readable } from 'stream'
 import { URL } from 'url'
@@ -14,6 +14,7 @@ import { fs } from '../util/node'
 import { CancellationToken } from '../util/protocol'
 import { toText } from '../util/string'
 import workspace from '../workspace'
+import { Agent } from 'node:http'
 const logger = createLogger('model-fetch')
 export const timeout = getConditionValue(500, 50)
 
@@ -130,7 +131,7 @@ export function getSystemProxyURI(endpoint: URL, env = process.env): string | nu
   return proxyUri
 }
 
-export function getAgent(endpoint: URL, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
+export function getAgent(endpoint: URL, options: ProxyOptions): Agent {
   let proxy = options.proxy || getSystemProxyURI(endpoint)
   if (proxy) {
     let proxyURL: URL
@@ -140,14 +141,9 @@ export function getAgent(endpoint: URL, options: ProxyOptions): HttpsProxyAgent 
     } catch (e) {
       return null
     }
-    let opts = {
-      host: proxyURL.hostname,
-      port: toPort(proxyURL.port, proxyURL.protocol),
-      auth: proxyURL.username ? `${proxyURL.username}:${toText(proxyURL.password)}` : undefined,
-      rejectUnauthorized: typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
-    }
+    let rejectUnauthorized = typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
     logger.info(`Using proxy ${proxy} from ${options.proxy ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
-    return endpoint.protocol === 'http:' ? createHttpProxyAgent(opts) : createHttpsProxyAgent(opts)
+    return endpoint.protocol === 'http:' ? new HttpProxyAgent(proxyURL) : new HttpsProxyAgent(proxyURL, { rejectUnauthorized })
   }
   return null
 }
