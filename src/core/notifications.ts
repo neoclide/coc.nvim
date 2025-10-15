@@ -83,24 +83,15 @@ export class Notifications {
     this._history.push({ time: this.getCurrentTimestamp(), kind, message })
 
     let notificationKind = this.messageDialogKind === 'notification' || this.enableMessageDialog === true
-    if (notificationKind !== true) {
-      let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
-      if (msgType === 'error' || items.length === 0) {
-        this.echoMessages(message, msgType)
-        return undefined
-      } else {
+    if (notificationKind !== true && items.length > 0) {
         switch (this.messageDialogKind) {
-          case 'confirm':
-            return await this.showConfirm(message, items, kind)
-          case 'menu':
-            return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
-          default:
-            throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
+            case 'confirm':
+                return await this.showConfirm(message, items, kind)
+            case 'menu':
+                return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
         }
-      }
     }
-    let texts = items.map(o => typeof o === 'string' ? o : o.title)
-    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
+    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, items)
     return items[idx]
   }
 
@@ -112,12 +103,13 @@ export class Notifications {
     this._history = []
   }
 
-  public createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
+  public createNotification<T extends MessageItem | string>(kind: NotificationKind, message: string, items: T[]): Promise<number> {
     return new Promise((resolve, reject) => {
+      let labels = items.map(o => typeof o === 'string' ? o : o.title)
       let config: NotificationConfig = {
         kind,
         content: message,
-        buttons: toButtons(items),
+        buttons: toButtons(labels),
         callback: idx => {
           resolve(idx)
         }
