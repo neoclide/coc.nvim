@@ -84,12 +84,12 @@ export class Notifications {
 
     let notificationKind = this.messageDialogKind === 'notification' || this.enableMessageDialog === true
     if (notificationKind !== true && items.length > 0) {
-        switch (this.messageDialogKind) {
-            case 'confirm':
-                return await this.showConfirm(message, items, kind)
-            case 'menu':
-                return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
-        }
+      switch (this.messageDialogKind) {
+        case 'confirm':
+          return await this.showConfirm(message, items, kind)
+        case 'menu':
+          return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+      }
     }
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, items)
     return items[idx]
