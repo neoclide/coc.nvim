@@ -91,7 +91,8 @@ export class Notifications {
           return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
       }
     }
-    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, items)
+    let texts = items.map(o => typeof o === 'string' ? o : o.title)
+    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
     return items[idx]
   }
 
@@ -103,13 +104,12 @@ export class Notifications {
     this._history = []
   }
 
-  public createNotification<T extends MessageItem | string>(kind: NotificationKind, message: string, items: T[]): Promise<number> {
+  public createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
     return new Promise((resolve, reject) => {
-      let labels = items.map(o => typeof o === 'string' ? o : o.title)
       let config: NotificationConfig = {
         kind,
         content: message,
-        buttons: toButtons(labels),
+        buttons: toButtons(items),
         callback: idx => {
           resolve(idx)
         }
