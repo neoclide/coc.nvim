@@ -354,6 +354,11 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
           this.forget(PullState.document, document)
         })
       }
+
+      // The previous resultId from the workspace pull state can map to diagnostics we no longer have
+      // (e.g. they came from a workspace report but were overwritten by a later document pull request).
+      // Clear the workspace pull state for this document as well to ensure we get fresh diagnostics.
+      this.forget(PullState.workspace, document)
     } else {
       // We have normal pull or inter file dependencies. In this case we
       // clear the diagnostics (to have the same start as after startup).
