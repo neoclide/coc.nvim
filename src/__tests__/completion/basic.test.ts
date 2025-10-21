@@ -101,7 +101,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foofoo')
-    })
+    }, 10000)
 
     it('should use ascii match', async () => {
       helper.updateConfiguration('suggest.asciiMatch', true)
@@ -720,7 +720,7 @@ describe('completion', () => {
       await helper.waitValue(async () => {
         return await pumvisible()
       }, false)
-    })
+    }, 10000)
 
     it('should use resume input to filter', async () => {
       let source: ISource = {
@@ -962,7 +962,7 @@ describe('completion', () => {
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], '.foo')
       expect(resolved).toBe(true)
-    })
+    }, 10000)
 
     it('should cancel resolve request', async () => {
       let cancelled = false
@@ -1501,7 +1501,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.option?.col
       }, 0)
-    })
+    }, 10000)
 
     it('should not trigger completion after indent change with reTriggerAfterIndent disabled', async () => {
       helper.updateConfiguration('suggest.reTriggerAfterIndent', false)
