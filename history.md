@@ -1472,7 +1472,7 @@ Use `extensions` section for extension related configurations. Deprecated config
 
 - **Break change** configuration for module language server, transport now
   require specified value.
-- **Break change** new algorithm for socre complete items.
+- **Break change** new algorithm for score complete items.
 - Add command `workspace.clearWatchman`.
 - Add `quickfixs`, `doCodeAction` and `doQuickfix` actions.
 - Add `g:vim_node_rpc_args` for debug purpose.
