@@ -390,7 +390,7 @@ Uncaught errors: ~
 
 When an uncaught error raised on the NodeJS process, the error message would
 be send to vim through stderr, and echoed by vim (unless
-|g:coc_disable_uncaught_error| is enabeld).
+|g:coc_disable_uncaught_error| is enabled).
 
 The error messages are not stored by vim's message history, use
 |:CocPrintErrors| to show previous errors.

@@ -83,15 +83,15 @@ export class Workspace {
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
 
   private fuzzyExports: FuzzyWasi
-  private strWdith: StrWidth
+  private strWidth: StrWidth
   private _env: Env
 
   constructor() {
     void initFuzzyWasm().then(api => {
       this.fuzzyExports = api
     }, onUnexpectedError)
-    void StrWidth.create().then(strWdith => {
-      this.strWdith = strWdith
+    void StrWidth.create().then(strWidth => {
+      this.strWidth = strWidth
     }, onUnexpectedError)
     events.on('VimResized', (columns, lines) => {
       Object.assign(toObject(this.env), { columns, lines })
@@ -209,7 +209,7 @@ export class Workspace {
     this.tabs.attach()
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
-    if (this.strWdith) this.strWdith.setAmbw(!env.ambiguousIsNarrow)
+    if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow)
   }
 
   public checkVersion(version: number) {
@@ -220,7 +220,7 @@ export class Workspace {
   }
 
   public getDisplayWidth(text: string, cache = false): number {
-    return this.strWdith.getWidth(text, cache)
+    return this.strWidth.getWidth(text, cache)
   }
 
   public get version(): string {

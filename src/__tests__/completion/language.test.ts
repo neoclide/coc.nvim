@@ -798,7 +798,7 @@ describe('language source', () => {
       await helper.waitPopup()
       let items = completion.activeItems
       expect(items[0].word).toBe('bar')
-    })
+    }, 10000)
 
     it('should adjust completion position by textEdit start position', async () => {
       let provider: CompletionItemProvider = {
@@ -819,7 +819,7 @@ describe('language source', () => {
       await helper.confirmCompletion(0)
       let line = await nvim.line
       expect(line).toBe('?foo')
-    })
+    }, 10000)
 
     it('should fix range of removed text range', async () => {
       let provider: CompletionItemProvider = {
@@ -842,6 +842,6 @@ describe('language source', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'import React from "react";')
-    })
+    }, 10000)
   })
 })

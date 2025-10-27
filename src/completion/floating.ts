@@ -8,7 +8,7 @@ import * as Is from '../util/is'
 import { CancellationToken, CancellationTokenSource } from '../util/protocol'
 import workspace from '../workspace'
 import { CompleteItem, CompleteOption, ISource } from './types'
-import { getDocumentaions } from './util'
+import { getDocumentations } from './util'
 const logger = createLogger('completion-floating')
 const RESOLVE_TIMEOUT = getConditionValue(500, 50)
 
@@ -31,7 +31,7 @@ export default class Floating {
       }
     }
     if (showDocs) {
-      this.show(getDocumentaions(item, opt.filetype, detailRendered))
+      this.show(getDocumentations(item, opt.filetype, detailRendered))
     }
   }
 

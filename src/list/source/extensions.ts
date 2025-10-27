@@ -113,13 +113,13 @@ export default class ExtensionList extends BasicList {
   public doHighlight(): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command('syntax match CocExtensionsActivited /\\v^\\*/ contained containedin=CocExtensionsLine', true)
+    nvim.command('syntax match CocExtensionsActivated /\\v^\\*/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsLoaded /\\v^\\+/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsDisabled /\\v^-/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsName /\\v%3c\\S+/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsRoot /\\v\\t[^\\t]*$/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsLocal /\\v\\[RTP\\]/ contained containedin=CocExtensionsLine', true)
-    nvim.command('highlight default link CocExtensionsActivited Special', true)
+    nvim.command('highlight default link CocExtensionsActivated Special', true)
     nvim.command('highlight default link CocExtensionsLoaded Normal', true)
     nvim.command('highlight default link CocExtensionsDisabled Comment', true)
     nvim.command('highlight default link CocExtensionsName String', true)

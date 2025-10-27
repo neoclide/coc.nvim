@@ -4,7 +4,7 @@ import { sortItems } from '../../completion/complete'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ISource, SortMethod } from '../../completion/types'
-import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
+import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentations, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events, { InsertChange } from '../../events'
 import languages from '../../languages'
@@ -43,19 +43,19 @@ describe('util functions', () => {
   })
 
   it('should add documentation', () => {
-    let docs = getDocumentaions({ label: 'word', detail: 'detail' }, '')
+    let docs = getDocumentations({ label: 'word', detail: 'detail' }, '')
     expect(docs).toEqual([{ filetype: 'txt', content: 'detail' }])
-    docs = getDocumentaions({ label: 'word', documentation: { kind: 'plaintext', value: '' } }, '')
+    docs = getDocumentations({ label: 'word', documentation: { kind: 'plaintext', value: '' } }, '')
     expect(docs).toEqual([])
-    docs = getDocumentaions({ label: 'word', detail: 'detail' }, '', true)
+    docs = getDocumentations({ label: 'word', detail: 'detail' }, '', true)
     expect(docs).toEqual([])
-    docs = getDocumentaions({ label: 'word', detail: 'detail', documentation: { kind: 'markdown', value: 'markdown' } }, 'vim')
+    docs = getDocumentations({ label: 'word', detail: 'detail', documentation: { kind: 'markdown', value: 'markdown' } }, 'vim')
     expect(docs.length).toBe(2)
-    docs = getDocumentaions({ word: '' }, '', true)
+    docs = getDocumentations({ word: '' }, '', true)
     expect(docs).toEqual([])
-    docs = getDocumentaions({ word: '', documentation: [{ content: 'content', filetype: 'vim' }] }, '', true)
+    docs = getDocumentations({ word: '', documentation: [{ content: 'content', filetype: 'vim' }] }, '', true)
     expect(docs).toEqual([{ content: 'content', filetype: 'vim' }])
-    docs = getDocumentaions({ word: '', info: 'info' }, '', true)
+    docs = getDocumentations({ word: '', info: 'info' }, '', true)
     expect(docs).toEqual([{ content: 'info', filetype: 'txt' }])
   })
 

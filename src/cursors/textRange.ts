@@ -2,7 +2,7 @@
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { getEnd } from '../util/position'
 import { getChangedPosition } from '../util/textedit'
-import { isSurrondChange, SurrondChange, TextChange } from './util'
+import { isSurroundChange, SurroundChange, TextChange } from './util'
 
 export default class TextRange {
   private start: Position
@@ -38,15 +38,15 @@ export default class TextRange {
     }
   }
 
-  public applyChange(change: SurrondChange | TextChange): void {
-    if (isSurrondChange(change)) {
-      this.applySurrondChange(change)
+  public applyChange(change: SurroundChange | TextChange): void {
+    if (isSurroundChange(change)) {
+      this.applySurroundChange(change)
     } else {
       this.applyTextChange(change)
     }
   }
 
-  public applySurrondChange(change: SurrondChange): void {
+  public applySurroundChange(change: SurroundChange): void {
     let { prepend, append, remove } = change
     if (remove) {
       this._text = ''

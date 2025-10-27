@@ -13,7 +13,7 @@ export interface TextChange {
   fromEnd?: boolean
 }
 
-export interface SurrondChange {
+export interface SurroundChange {
   /**
    * delete count & insert text
    */
@@ -58,25 +58,25 @@ export function getVisualRanges(doc: Document, range: Range): Range[] {
   return ranges
 }
 
-export function isSurrondChange(change: TextChange | SurrondChange): change is SurrondChange {
+export function isSurroundChange(change: TextChange | SurroundChange): change is SurroundChange {
   return Array.isArray(change['prepend']) && Array.isArray(change['append'])
 }
 
-export function isTextChange(change: TextChange | SurrondChange): change is TextChange {
+export function isTextChange(change: TextChange | SurroundChange): change is TextChange {
   return typeof change['offset'] === 'number' && typeof change['remove'] === 'number'
 }
 
-export function getDelta(change: TextChange | SurrondChange): number {
-  if (isSurrondChange(change)) {
+export function getDelta(change: TextChange | SurroundChange): number {
+  if (isSurroundChange(change)) {
     return change.append[1].length + change.prepend[1].length - change.append[0] - change.prepend[0]
   }
   return change.insert.length - change.remove
 }
 
-export function getChange(r: TextRange, range: Range, newText: string): TextChange | SurrondChange {
+export function getChange(r: TextRange, range: Range, newText: string): TextChange | SurroundChange {
   let text = r.text
   if (equals(r.range, range)) {
-    // surrond
+    // surround
     let idx = text.indexOf(newText)
     if (idx !== -1) {
       let prepend: [number, string] = [idx, '']
