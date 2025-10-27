@@ -128,7 +128,7 @@ export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, i
   }, item)
 }
 
-export function getDocumentaions(completeItem: CompleteItem, filetype: string, detailRendered = false): Documentation[] {
+export function getDocumentations(completeItem: CompleteItem, filetype: string, detailRendered = false): Documentation[] {
   let docs: Documentation[] = []
   if (Is.isCompletionItem(completeItem)) {
     let { documentation } = completeItem

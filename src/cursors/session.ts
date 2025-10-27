@@ -13,7 +13,7 @@ import { lineCountChange } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import TextRange from './textRange'
-import { getBeforeCount, getChange, getDelta, SurrondChange, TextChange } from './util'
+import { getBeforeCount, getChange, getDelta, SurroundChange, TextChange } from './util'
 const logger = createLogger('cursors-session')
 
 export interface CursorsConfig {
@@ -314,14 +314,14 @@ export default class CursorSession {
       return false
     }
     let doc = TextDocument.create('file:///1', '', 0, originalLines.join('\n'))
-    let change: TextChange | SurrondChange
+    let change: TextChange | SurroundChange
     if (changes.length == 1) {
       change = {
         offset: changes[0].offset,
         remove: changes[0].remove ? changes[0].remove.length : 0,
         insert: changes[0].add ?? ''
       }
-    } else if (surrondChanges(changes, len)) {
+    } else if (surroundChanges(changes, len)) {
       change = {
         prepend: [changes[0].remove ? changes[0].remove.length : 0, changes[0].add ?? ''],
         append: [changes[1].remove ? changes[1].remove.length : 0, changes[1].add ?? ''],
@@ -376,7 +376,7 @@ export default class CursorSession {
   }
 }
 
-export function surrondChanges(changes: DiffItem[], len: number): boolean {
+export function surroundChanges(changes: DiffItem[], len: number): boolean {
   if (changes.length != 2 || changes[0].offset != 0) return false
   let end = changes[1].offset + (changes[1].remove ? changes[1].remove.length : 0)
   if (end !== len) return false

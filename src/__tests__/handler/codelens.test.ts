@@ -54,7 +54,7 @@ async function createBufferWithCodeLens(): Promise<CodeLensBuffer> {
   return codeLens.buffers.getItem(doc.bufnr)
 }
 
-describe('codeLenes featrue', () => {
+describe('codeLenes feature', () => {
   it('should get text align', async () => {
     expect(getTextAlign(undefined)).toBe('above')
     expect(getTextAlign('top')).toBe('above')

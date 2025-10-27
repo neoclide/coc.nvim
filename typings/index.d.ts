@@ -5038,7 +5038,7 @@ declare module 'coc.nvim' {
     addHighlight(opts: BufferHighlight): Promise<number | null>
 
     /**
-     * Clear highlights of specified lins.
+     * Clear highlights of specified lines.
      *
      * @deprecated use clearNamespace() instead.
      */
@@ -13103,8 +13103,8 @@ declare module 'coc.nvim' {
   }
 
   export interface FoldingRangeProviderShape {
-    provider: FoldingRangeProvider;
-    onDidChangeFoldingRange: Emitter<void>;
+    provider: FoldingRangeProvider
+    onDidChangeFoldingRange: Emitter<void>
   }
 
   export interface DiagnosticProviderShape {

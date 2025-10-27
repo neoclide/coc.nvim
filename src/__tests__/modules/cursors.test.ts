@@ -2,9 +2,9 @@ import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../../commands'
 import Cursors from '../../cursors'
-import CursorsSession, { surrondChanges } from '../../cursors/session'
+import CursorsSession, { surroundChanges } from '../../cursors/session'
 import TextRange from '../../cursors/textRange'
-import { getChange, getDelta, getVisualRanges, isSurrondChange, isTextChange, splitRange, SurrondChange, TextChange } from '../../cursors/util'
+import { getChange, getDelta, getVisualRanges, isSurroundChange, isTextChange, splitRange, SurroundChange, TextChange } from '../../cursors/util'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -45,18 +45,18 @@ describe('cursors utils', () => {
     })
   })
 
-  describe('surrondChanges()', () => {
-    it('should check surrond changes', async () => {
-      expect(surrondChanges([], 0)).toBe(false)
-      expect(surrondChanges([{ offset: 1, add: 'f' }, { offset: 3, add: 'f' }], 0)).toBe(false)
+  describe('surroundChanges()', () => {
+    it('should check surround changes', async () => {
+      expect(surroundChanges([], 0)).toBe(false)
+      expect(surroundChanges([{ offset: 1, add: 'f' }, { offset: 3, add: 'f' }], 0)).toBe(false)
     })
 
-    it('should get surrond change', async () => {
+    it('should get surround change', async () => {
       const getText = (newText: string): string => {
         let r = new TextRange(0, 0, 'foo')
-        let res = getChange(r, Range.create(0, 0, 0, 3), newText) as SurrondChange
-        expect(isSurrondChange(res)).toBe(true)
-        r.applySurrondChange(res)
+        let res = getChange(r, Range.create(0, 0, 0, 3), newText) as SurroundChange
+        expect(isSurroundChange(res)).toBe(true)
+        r.applySurroundChange(res)
         return r.text
       }
       expect(getText('"foo"')).toBe('"foo"')
@@ -359,7 +359,7 @@ describe('cursors', () => {
       expect(col).toBe(5)
     })
 
-    it('should adjust on text detete', async () => {
+    it('should adjust on text delete', async () => {
       await assertEdits([edit(0, 2, 0, 3, '')], [0, 2, 3, 5, 6, 8], 'fo fo fo')
       await assertEdits([edit(0, 3, 0, 4, '')], [0, 3, 3, 6, 7, 10], 'foofoo foo')
       await assertEdits([edit(0, 4, 0, 7, '')], [0, 0, 1, 1, 2, 2], '  ')
@@ -524,7 +524,7 @@ describe('cursors', () => {
       ])
     })
 
-    it('should check content detete #1', async () => {
+    it('should check content delete #1', async () => {
       let s = await setup()
       let doc = await workspace.document
       let res = s.applyComposedEdit(doc.textDocument.lines.slice(), ['bar oo oo', 'oo'])
@@ -620,7 +620,7 @@ describe('cursors', () => {
       ])
     })
 
-    it('should check surrond add', async () => {
+    it('should check surround add', async () => {
       let s = await setup()
       let doc = await workspace.document
       let res = s.applyComposedEdit(doc.textDocument.lines.slice(), ['bar "foo" "foo"', '"foo"'])
@@ -632,7 +632,7 @@ describe('cursors', () => {
       ])
     })
 
-    it('should check surrond remove', async () => {
+    it('should check surround remove', async () => {
       let doc = await workspace.document
       await nvim.call('setline', [1, ['bar "foo" "foo"', '"foo"']])
       await doc.synchronize()
@@ -651,7 +651,7 @@ describe('cursors', () => {
       ])
     })
 
-    it('should check surrond change', async () => {
+    it('should check surround change', async () => {
       let doc = await workspace.document
       await nvim.call('setline', [1, ['bar "foo" "foo"', '"foo"']])
       await doc.synchronize()

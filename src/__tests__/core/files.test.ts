@@ -517,7 +517,7 @@ describe('getOriginalLine', () => {
       return buf
     }
 
-    it('should show wanring when edit not exists', async () => {
+    it('should show warning when edit not exists', async () => {
       (workspace.files as any).editState = undefined
       await workspace.files.inspectEdit()
     })
