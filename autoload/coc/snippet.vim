@@ -123,7 +123,7 @@ function! coc#snippet#select(start, end, text) abort
     call cursor([cursor[0], cursor[1]])
     let cmd = ''
     let cmd .= mode()[0] ==# 'i' ? "\<Esc>".(col('.') == 1 ? '' : 'l') : ''
-    let cmd .= printf('v%s', strchars(a:text) . 'l')
+    let cmd .= printf('zvv%s', strchars(a:text) . 'l')
     let cmd .= "\<C-g>"
   else
     let cursor = coc#snippet#to_cursor(a:end)
@@ -131,7 +131,7 @@ function! coc#snippet#select(start, end, text) abort
     let len = strchars(a:text) - 1
     let cmd = ''
     let cmd .= mode()[0] ==# 'i' ? "\<Esc>".(col('.') == 1 ? '' : 'l') : ''
-    let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
+    let cmd .= printf('zvv%s', len > 0 ? len . 'h' : '')
     let cmd .= "o\<C-g>"
   endif
   if s:is_vim
