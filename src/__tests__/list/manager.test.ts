@@ -439,11 +439,11 @@ describe('list', () => {
     it('should show error for bad option', async () => {
       manager.parseArgs(['$x', 'location'])
       await helper.wait(20)
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('Invalid list option')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Invalid list option')
       manager.parseArgs(['-xyz', 'location'])
-      msg = await helper.getCmdline()
-      expect(msg).toMatch('Invalid option')
+      res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Invalid option')
     })
 
     it('should parse valid arguments', async () => {
@@ -455,8 +455,8 @@ describe('list', () => {
 
     it('should show error for interactive with list not support interactive', async () => {
       manager.parseArgs(['--interactive', 'location'])
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('not supported')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not supported')
     })
   })
 
@@ -470,8 +470,8 @@ describe('list', () => {
       await helper.doAction('listResume')
       expect(manager.isActivated).toBe(true)
       await manager.resume('not_exists')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Can\'t find')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Can\'t find')
     })
   })
 

@@ -596,8 +596,8 @@ describe('TreeView', () => {
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
       await helper.waitValue(async () => {
-        let cmdline = await helper.getCmdline()
-        return cmdline.includes('No actions')
+        const res = await helper.doAction('notificationHistory')
+        return res[res.length - 1].message.includes('No actions')
       }, true)
     })
 
@@ -611,8 +611,8 @@ describe('TreeView', () => {
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
       await helper.waitValue(async () => {
-        let cmdline = await helper.getCmdline()
-        return cmdline.includes('No actions')
+        const res = await helper.doAction('notificationHistory')
+        return res[res.length - 1].message.includes('No actions')
       }, true)
     })
 

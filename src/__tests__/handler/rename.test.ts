@@ -163,8 +163,8 @@ describe('rename handler', () => {
 
     it('should renameCurrentWord by cursors', async () => {
       await commands.executeCommand('document.renameCurrentWord')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Invalid position')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Invalid position')
       let doc = await helper.createDocument('t.js')
       await nvim.setLine('foo foo foo')
       await commands.executeCommand('document.renameCurrentWord')

@@ -110,11 +110,11 @@ describe('handler codeActions', () => {
       await helper.createDocument()
       currActions = []
       await helper.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
-      let line = await helper.getCmdline()
-      expect(line).toMatch(/No quickfix code action/)
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('No quickfix code action')
       await helper.doAction('codeActionRange', 1, 2)
-      line = await helper.getCmdline()
-      expect(line).toMatch(/No code action available/)
+      res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('No code action available')
     })
 
     it('should apply chosen action', async () => {
@@ -388,8 +388,8 @@ describe('handler codeActions', () => {
         await codeActions.doCodeAction(null, 'command', true)
       }).rejects.toThrow(Error)
       await codeActions.doCodeAction(null, 'cmd', true)
-      let line = await helper.getCmdline()
-      expect(line).toMatch('No cmd code action')
+      let notifications = await helper.doAction('notificationHistory')
+      expect(notifications[notifications.length - 1].message).toMatch('No cmd code action')
     })
 
     it('should use quickpick', async () => {
@@ -415,8 +415,8 @@ describe('handler codeActions', () => {
       currActions = []
       await helper.createDocument()
       await helper.doAction('doQuickfix')
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('No quickfix')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('No quickfix')
     })
 
     it('should do preferred quickfix action', async () => {

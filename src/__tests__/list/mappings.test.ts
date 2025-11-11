@@ -122,30 +122,30 @@ describe('User mappings', () => {
     expect(ListConfiguration).toBeDefined()
     expect(listConfiguration.fixKey('<c-a>')).toBe('<C-a>')
     listConfiguration.fixKey('<a')
-    let msg = await helper.getCmdline()
-    expect(msg).toMatch('not supported')
+    let res = await helper.doAction('notificationHistory')
+    expect(res[res.length - 1].message).toMatch('not supported')
     let revert = helper.updateConfiguration('list.insertMappings', {
       xy: 'action:tabe',
     })
     await helper.wait(30)
-    msg = await helper.getCmdline()
+    res = await helper.doAction('notificationHistory')
     revert()
     await nvim.command('echo ""')
-    expect(msg).toMatch('Invalid configuration')
+    expect(res[res.length - 1].message).toMatch('Invalid configuration')
     revert = helper.updateConfiguration('list.insertMappings', {
       '<M-x>': 'action:tabe',
     })
     await helper.wait(30)
-    msg = await helper.getCmdline()
+    res = await helper.doAction('notificationHistory')
     revert()
-    expect(msg).toMatch('Invalid configuration')
+    expect(res[res.length - 1].message).toMatch('Invalid configuration')
     revert = helper.updateConfiguration('list.insertMappings', {
       '<C-a>': 'foo:bar',
     })
     await helper.wait(30)
-    msg = await helper.getCmdline()
+    res = await helper.doAction('notificationHistory')
     revert()
-    expect(msg).toMatch('Invalid configuration')
+    expect(res[res.length - 1].message).toMatch('Invalid configuration')
   })
 
   it('should execute action keymap', async () => {

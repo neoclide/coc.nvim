@@ -308,8 +308,8 @@ describe('InlayHint', () => {
     it('should show message when inlayHint not supported', async () => {
       let doc = await workspace.document
       handler.setState('toggle', doc.bufnr)
-      let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\sfound/)
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not found')
     })
 
     it('should show message when not enabled', async () => {
@@ -318,8 +318,8 @@ describe('InlayHint', () => {
       let disposable = await registerProvider('')
       disposables.push(disposable)
       handler.setState('toggle', doc.bufnr)
-      let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\senabled/)
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not enabled')
     })
 
     it('should toggle inlayHints', async () => {

@@ -84,8 +84,8 @@ describe('codeLenes feature', () => {
 
   it('should toggle codeLens display', async () => {
     await codeLens.toggle(999)
-    let line = await helper.getCmdline()
-    expect(line).toMatch('not exists')
+    let notifications = await helper.doAction('notificationHistory')
+    expect(notifications[notifications.length - 1].message).toMatch('not exists')
     await createBufferWithCodeLens()
     await commands.executeCommand('document.toggleCodeLens')
     let doc = await workspace.document

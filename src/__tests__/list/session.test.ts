@@ -101,8 +101,8 @@ describe('list session', () => {
       lastItems = undefined
       await manager.session.doPreview(0)
       await manager.doAction('not_exists')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('not found')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not found')
     })
 
     it('should invoke parallel action', async () => {

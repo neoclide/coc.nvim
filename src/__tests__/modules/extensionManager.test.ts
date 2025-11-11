@@ -450,8 +450,8 @@ describe('ExtensionManager', () => {
     it('should show message for extensions not found', async () => {
       let manager = create(tmpfolder)
       await manager.uninstallExtensions(['foo'])
-      let line = await helper.getCmdline()
-      expect(line).toMatch('not found')
+      const res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not found')
     })
   })
 

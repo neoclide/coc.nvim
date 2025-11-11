@@ -267,8 +267,8 @@ describe('Colors', () => {
     it('should show warning when color does not exist', async () => {
       await helper.createDocument()
       await colors.pickPresentation()
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('Color not found')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Color not found')
     })
 
     it('should not throw when presentations do not exist', async () => {
@@ -300,8 +300,8 @@ describe('Colors', () => {
     it('should show warning when color does not exist', async () => {
       await helper.createDocument()
       await colors.pickColor()
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('not found')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not found')
     })
 
     it('should pickColor', async () => {

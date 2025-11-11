@@ -385,8 +385,8 @@ fun1() {}
       await nvim.command(`edit +setl\\ buftype=nofile t`)
       await workspace.document
       await symbols.showOutline(1)
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Unable to show outline')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Unable to show outline')
     })
 
     it('should not throw when provider does not exist', async () => {
