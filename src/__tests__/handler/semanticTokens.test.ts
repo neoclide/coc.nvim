@@ -234,15 +234,15 @@ describe('semanticTokens', () => {
       let item = semanticTokens.getItem(doc.bufnr)
       await item.onCursorHold(winid, 1)
       await semanticTokens.inspectSemanticToken()
-      let line = await helper.getCmdline()
-      expect(line).toMatch('not enabled')
+      const res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('not enabled')
     })
 
     it('should show error message for buffer not attached', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       await helper.doAction('inspectSemanticToken')
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch(/not attached/)
+      const res = await helper.doAction('notificationHistory')
+      expect(res[1].message).toMatch('not attached')
     })
 
     it('should show message when not enabled', async () => {

@@ -193,8 +193,8 @@ describe('TypeHierarchy', () => {
       await plugin.cocAction('showSuperTypes')
       await nvim.command('echo ""')
       await plugin.cocAction('showSubTypes')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Unable')
+      let res = await helper.doAction('notificationHistory')
+      expect(res[res.length - 1].message).toMatch('Unable')
     })
 
     it('should invoke super types and sub types action', async () => {

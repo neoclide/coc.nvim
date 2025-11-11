@@ -205,8 +205,8 @@ describe('vim source', () => {
   it('should show error for bad source file', async () => {
     let filepath = createSourceFile('tmp', '')
     await sources.createVimSourceExtension(filepath)
-    let line = await helper.getCmdline()
-    expect(line).toMatch('Error')
+    let res = await helper.doAction('notificationHistory')
+    expect(res[res.length - 1].message).toMatch('Error')
   })
 
   it('should register filetypes extension for vim source', async () => {
