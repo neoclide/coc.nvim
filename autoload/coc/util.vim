@@ -134,7 +134,9 @@ function! coc#util#job_command()
     endif
     return
   endif
-  return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
+
+  let default = ['--no-warnings', '--localstorage-file=' . coc#util#get_data_home() . '/localstorage']
+  return [node] + get(g:, 'coc_node_args', default) + [s:root.'/build/index.js']
 endfunction
 
 function! coc#util#open_file(cmd, file)
