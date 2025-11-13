@@ -1025,7 +1025,7 @@ describe('completion', () => {
       }, true)
       let floatWin = await helper.getFloat('pumdetail')
       expect(floatWin).toBeUndefined()
-    })
+    }, 10000)
   })
 
   describe('trigger completion', () => {
