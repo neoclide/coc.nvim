@@ -137,16 +137,25 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     }
   }
 
-  public async sendPendingOpenNotifications(closingDocument?: string): Promise<void> {
+  /**
+   * Sends any pending open notifications unless they are for the document
+   * being closed.
+   * @param closingDocument The document being closed.
+   * @returns Whether a pending open notification was dropped because it was for the closing document.
+   */
+  public async sendPendingOpenNotifications(closingDocument?: string): Promise<boolean> {
     if (!this._delayOpen) return
     const notifications = Array.from(this._pendingOpenNotifications.values())
     this._pendingOpenNotifications.clear()
+    let didDropOpenNotification = false
     for (const notification of notifications) {
       if (closingDocument !== undefined && notification.uri.toString() === closingDocument) {
+        didDropOpenNotification = true
         continue
       }
       await super.callback(notification)
     }
+    return didDropOpenNotification
   }
 
   protected notificationSent(textDocument: TextDocument, type: ProtocolNotificationType<DidOpenTextDocumentParams, TextDocumentRegistrationOptions>, params: DidOpenTextDocumentParams): void {

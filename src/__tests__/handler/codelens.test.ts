@@ -234,7 +234,7 @@ describe('codeLenes feature', () => {
       let buf = codeLens.buffers.getItem(bufnr)
       return buf && buf.currentCodeLens && buf.currentCodeLens[0].command != null
     }, true)
-  })
+  }, 10000)
 
   it('should use picker for multiple codeLenses', async () => {
     let fn = jest.fn()

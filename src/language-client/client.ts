@@ -652,8 +652,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         documentToClose = (params as DidCloseTextDocumentParams).textDocument.uri
       }
       const connection = await this.$start()
-      // Send only depending open notifications
-      await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
+      // Send any depending open notifications
+      const didDropOpenNotification = await this._didOpenTextDocumentFeature!.sendPendingOpenNotifications(documentToClose)
+      if (didDropOpenNotification) {
+        // Don't forward this close notification if we dropped the
+        // corresponding open notification.
+        return
+      }
 
       type = fixNotificationType(type, params == null ? [] : [params])
       const _sendNotification = this._clientOptions.middleware.sendNotification
