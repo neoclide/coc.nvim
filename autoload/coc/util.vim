@@ -135,7 +135,20 @@ function! coc#util#job_command()
     return
   endif
 
-  let default = ['--no-warnings', '--localstorage-file=' . coc#util#get_data_home() . '/localstorage']
+  let default = ['--no-warnings']
+  let output = system(node . ' --version')
+  if v:shell_error
+    echohl Error | echom '[coc.nvim] Unexpected result from "'.node.' --version"' | echohl None
+    return
+  endif
+  let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
+  if empty(ms)
+    echohl Error | echom '[coc.nvim] Unable to get node version by "'.node.' --version"' | echohl None
+    return
+  endif
+  if str2nr(ms[1]) >= 25
+    let default += ['--localstorage-file=' . coc#util#get_data_home() . '/localstorage']
+  endif
   return [node] + get(g:, 'coc_node_args', default) + [s:root.'/build/index.js']
 endfunction
 
