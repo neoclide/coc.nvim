@@ -1,5 +1,5 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentHighlightRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, OnTypeFormattingEditProvider, ProviderResult } from '../provider'
@@ -71,7 +71,7 @@ export interface FormattingMiddleware {
 }
 
 export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
-  boolean | DocumentFormattingOptions, DocumentHighlightRegistrationOptions, DocumentFormattingEditProvider, FormattingMiddleware, $FormattingOptions
+  boolean | DocumentFormattingOptions, DocumentFormattingRegistrationOptions, DocumentFormattingEditProvider, FormattingMiddleware, $FormattingOptions
 > {
 
   constructor(client: FeatureClient<FormattingMiddleware>) {
