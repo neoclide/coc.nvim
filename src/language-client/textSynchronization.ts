@@ -217,7 +217,7 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
   }
 
   public unregister(id: string): void {
-    let selector = this._selectors.get(id)!
+    let selector = this._selectors.get(id)
     if (!selector) return
     // The super call removed the selector from the map
     // of selectors.
