@@ -101,9 +101,9 @@ function! coc#rpc#kill()
   let pid = get(g:, 'coc_process_pid', 0)
   if !pid | return | endif
   if s:is_win
-    call system('taskkill /PID '.pid)
+    call system('taskkill /PID ' . shellescape(pid, 1))
   else
-    call system('kill -9 '.pid)
+    call system('kill -9 ' . shellescape(pid, 1))
   endif
 endfunction
 
