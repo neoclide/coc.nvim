@@ -83,12 +83,20 @@ export class Notifications {
     this._history.push({ time: this.getCurrentTimestamp(), kind, message })
 
     let notificationKind = this.messageDialogKind === 'notification' || this.enableMessageDialog === true
-    if (notificationKind !== true && items.length > 0) {
-      switch (this.messageDialogKind) {
-        case 'confirm':
-          return await this.showConfirm(message, items, kind)
-        case 'menu':
-          return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+    if (notificationKind !== true) {
+      let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
+      if (msgType === 'error' || items.length === 0) {
+        this.echoMessages(message, msgType)
+        return undefined
+      } else {
+        switch (this.messageDialogKind) {
+          case 'confirm':
+            return await this.showConfirm(message, items, kind)
+          case 'menu':
+            return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+          default:
+            throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
+        }
       }
     }
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
