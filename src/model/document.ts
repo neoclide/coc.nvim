@@ -294,6 +294,9 @@ export default class Document {
   public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<TextEdit | undefined> {
     if (Array.isArray(arguments[1])) edits = arguments[1]
     if (!this._attached || edits.length === 0) return
+    if (isVim && this._applying) {
+      await this.synchronize()
+    }
     const { bufnr } = this
     this._forceSync()
     let textDocument = this.textDocument
