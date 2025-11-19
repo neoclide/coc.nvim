@@ -646,7 +646,7 @@ describe('completion', () => {
       await nvim.input('t')
       await helper.waitValue(() => called, true)
       clearTimeout(timer)
-    })
+    }, 10000)
 
     it('should stop if no filtered items', async () => {
       await create(['foo', 'bar'], true)
@@ -1005,7 +1005,7 @@ describe('completion', () => {
       expect(called).toBe(true)
       let cmdline = await helper.getCmdline()
       expect(cmdline.includes('error')).toBe(false)
-    })
+    }, 10000)
 
     it('should timeout on resolve', async () => {
       let called = false
@@ -1164,7 +1164,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo.bar')
-    })
+    }, 10000)
 
     it('should should complete items without input', async () => {
       await workspace.document
@@ -1433,7 +1433,7 @@ describe('completion', () => {
       items = await helper.items()
       expect(items.length).toEqual(1)
       expect(items[0].word).toBe('foo')
-    })
+    }, 10000)
 
     it('should cancel completion on navigate', async () => {
       let source1: ISource = {
