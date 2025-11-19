@@ -150,8 +150,8 @@ describe('applyEdits()', () => {
     }
     let res = await workspace.applyEdit(workspaceEdit)
     expect(res).toBe(false)
-    const notifications = await helper.doAction('notificationHistory')
-    expect(notifications[notifications.length - 1].message).toMatch('Error')
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error')
   })
 
   it('should apply TextEdit of documentChanges', async () => {

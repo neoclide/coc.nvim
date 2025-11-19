@@ -415,7 +415,7 @@ describe('window', () => {
     it('should echo error messages regardless of messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
       let spy = jest.spyOn(window.notifications, 'echoMessages')
-      window.notifications.echoMessages('error message', 'error')
+      await window.showErrorMessage('error message')
       expect(spy).toHaveBeenCalledWith('error message', 'error')
       spy.mockRestore()
     })
@@ -423,9 +423,15 @@ describe('window', () => {
     it('should echo messages without items regardless of messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
       let spy = jest.spyOn(window.notifications, 'echoMessages')
-      window.notifications.echoMessages('info message', 'more')
+      await window.showInformationMessage('info message')
       expect(spy).toHaveBeenCalledWith('info message', 'more')
       spy.mockRestore()
+    })
+
+    it('should handle unexpected messageDialogKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageDialogKind', 'invalid')
+      let p = window.showInformationMessage('test message', 'first', 'second')
+      await expect(p).rejects.toThrow('Unexpected messageDialogKind: invalid')
     })
 
     it('should respect enableMessageDialog for backward compatibility', async () => {

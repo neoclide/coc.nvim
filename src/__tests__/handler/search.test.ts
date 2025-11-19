@@ -75,8 +75,8 @@ describe('search', () => {
       err = e
     }
     expect(err).toBeDefined()
-    let res = await helper.doAction('notificationHistory')
-    expect(res[res.length - 1].message).toMatch('Error on command "rrg"')
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch(/Error on command "rrg"/)
   })
 
   it('should show empty result when no result found', async () => {
