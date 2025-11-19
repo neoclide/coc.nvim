@@ -363,8 +363,8 @@ describe('services', () => {
       let service = services.getService('test')
       await service.start()
       spy.mockRestore()
-      let res = await helper.doAction('notificationHistory')
-      expect(res[res.length - 1].message).toMatch('failed to start')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('failed to start')
     })
 
     it('should sendRequest & sendNotification', async () => {

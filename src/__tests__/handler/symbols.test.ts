@@ -180,8 +180,8 @@ describe('symbols handler', () => {
       await helper.createDocument()
       await nvim.call('cursor', [3, 0])
       await symbols.selectSymbolRange(false, '', ['Function'])
-      let res = await helper.doAction('notificationHistory')
-      expect(res[res.length - 1].message).toMatch('No symbols found')
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch(/No symbols found/)
     })
 
     it('should select symbol range at cursor position', async () => {

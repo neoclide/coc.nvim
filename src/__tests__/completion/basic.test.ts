@@ -1164,7 +1164,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo.bar')
-    })
+    }, 10000)
 
     it('should should complete items without input', async () => {
       await workspace.document

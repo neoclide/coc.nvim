@@ -103,8 +103,8 @@ describe('CallHierarchy', () => {
 
   it('should show warning when provider does not exist', async () => {
     await helper.doAction('showIncomingCalls')
-    let res = await helper.doAction('notificationHistory')
-    expect(res[res.length - 1].message).toMatch('not found')
+    let line = await helper.getCmdline()
+    expect(line).toMatch('not found')
   })
 
   it('should show message when no result returned.', async () => {
@@ -120,8 +120,8 @@ describe('CallHierarchy', () => {
       }
     }))
     await callHierarchy.showCallHierarchyTree('incoming')
-    let res = await helper.doAction('notificationHistory')
-    expect(res[res.length - 1].message).toMatch('Unable')
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Unable')
   })
 
   it('should render description and support default action', async () => {

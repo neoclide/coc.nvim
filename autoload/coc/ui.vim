@@ -166,7 +166,7 @@ function! coc#ui#echo_messages(hl, msgs)
     return
   endif
   execute 'echohl '.a:hl
-  echo join(msgs, "\n")
+  echom join(msgs, "\n")
   echohl None
 endfunction
 
