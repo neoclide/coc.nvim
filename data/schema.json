@@ -580,14 +580,21 @@
       "scope": "application",
       "default": false,
       "deprecationMessage": "Use configuration 'coc.preferences.messageDialogKind' instead.",
-      "description": "Enable messages shown in notification dialog, or fallback to native vim confirm action."
+      "description": "Enable interactive messages in notification dialog, or fallback to native vim confirm action."
     },
     "coc.preferences.messageDialogKind": {
       "type": "string",
       "scope": "application",
       "default": "confirm",
-      "description": "The kind of interactive element to show the messages with.",
-      "enum": ["notification", "confirm", "menu"]
+      "description": "Method to use when showing interactive messages to the user",
+      "enum": ["notification", "menu", "confirm"]
+    },
+    "coc.preferences.messageReportKind": {
+      "type": "string",
+      "scope": "application",
+      "default": "echo",
+      "description": "Method to use when printing or showing plain user messages",
+      "enum": ["notification", "echo"]
     },
     "coc.preferences.excludeImageLinksInMarkdownDocument": {
       "type": "boolean",

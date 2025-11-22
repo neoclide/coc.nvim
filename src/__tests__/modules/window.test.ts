@@ -428,6 +428,22 @@ describe('window', () => {
       spy.mockRestore()
     })
 
+    it('should echo messages without items when configured messageReportKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageReportKind', 'echo')
+      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      await window.showInformationMessage('info message')
+      expect(spy).toHaveBeenCalledWith('info message', 'more')
+      spy.mockRestore()
+    })
+
+    it('should use notification messages without items when configured messageReportKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageReportKind', 'notification')
+      let spy = jest.spyOn(window.notifications, 'createNotification')
+      await window.showInformationMessage('info message')
+      expect(spy).toHaveBeenCalledWith('info', 'info message', [])
+      spy.mockRestore()
+    })
+
     it('should handle unexpected messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'invalid')
       let p = window.showInformationMessage('test message', 'first', 'second')

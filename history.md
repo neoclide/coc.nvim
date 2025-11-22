@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2025-11-22
+
+- Add configurable front end for reporting regular messages to the user, by using
+  'messageReportKind' which can be set to 'echo', 'echom', or 'notification'.
+
 ## 2025-07-30
 
 - Add configurable kind for dialog messages, through the use of the new configuration

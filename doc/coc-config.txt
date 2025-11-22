@@ -211,9 +211,15 @@ PREFERENCES
 
 "coc.preferences.messageDialogKind"			*coc-preferences-messageDialogKind*
 
-	Configure the type of user interaction when a message dialog occurs with more than one actions to trigger.
+	Configure the type of user interaction when an interactive message dialog occurs with more than zero actions to trigger.
 
 	Scope: `application`, default: `confirm`
+
+"coc.preferences.messageReportKind"			*coc-preferences-messageReportKind*
+
+	Configure the type of user interaction when a non-interactive message dialog occurs with more zero actions to trigger.
+
+	Scope: `application`, default: `echo`
 
 "coc.preferences.excludeImageLinksInMarkdownDocument"	*coc-preferences-excludeImageLinksInMarkdownDocument*
 
