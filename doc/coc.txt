@@ -399,12 +399,18 @@ configurations. For further customization, use:
 For customize dialog windows, use |coc-config-dialog|.
 For customize notification windows, use |coc-config-notification|.
 
-Configure |coc-preferences-enableMessageDialog| to show messages as
-notifications (except for the messages of unexpected errors which are always
-echoed).
+Configure |coc-preferences-enableMessageDialog| to show user non-interactive
+or interactive messages as notifications. To enable a more flexible user
+interaction with the messages check |coc-preferences-messageDialogKind| and
+|coc-preferences-messageReportKind|
 
-Use |coc-preferences-messageDialogKind| to configure how the messages are shown
-this configuration supersedes the |coc-preferences-enableMessageDialog|. 
+Use |coc-preferences-messageDialogKind| to configure how interactive messages
+which require some user input are shown to the user this configuration
+supersedes the |coc-preferences-enableMessageDialog|.
+
+Use |coc-preferences-messageReportKind| to configure how regular non-interactive
+messages are reported to the user, that will tell coc how to show regular
+plain text messages to the user.
 
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
