@@ -217,7 +217,7 @@ PREFERENCES
 
 "coc.preferences.messageReportKind"			*coc-preferences-messageReportKind*
 
-	Configure the type of user interaction when a non-interactive message dialog occurs with more zero actions to trigger.
+	Configure the type of user interaction when a non-interactive message dialog occurs with zero actions to trigger.
 
 	Scope: `application`, default: `echo`
 
