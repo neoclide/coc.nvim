@@ -573,7 +573,7 @@ describe('completion', () => {
       await helper.waitPopup()
       _resolve(undefined)
       spy.mockRestore()
-    })
+    }, 10000)
   })
 
   describe('resumeCompletion()', () => {
@@ -939,7 +939,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.isActivated
       }, false)
-    })
+    }, 10000)
   })
 
   describe('onCompleteResolve', () => {

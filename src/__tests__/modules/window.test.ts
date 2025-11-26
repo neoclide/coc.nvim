@@ -444,6 +444,12 @@ describe('window', () => {
       spy.mockRestore()
     })
 
+    it('should handle unexpected messageReportKind', async () => {
+      helper.updateConfiguration('coc.preferences.messageReportKind', 'invalid')
+      let p = window.showInformationMessage('invalid info message')
+      await expect(p).rejects.toThrow('Unexpected messageReportKind: invalid')
+    })
+
     it('should handle unexpected messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'invalid')
       let p = window.showInformationMessage('test message', 'first', 'second')
