@@ -82,26 +82,47 @@ export class Notifications {
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
     this._history.push({ time: this.getCurrentTimestamp(), kind, message })
 
-    let notificationKind = this.messageDialogKind === 'notification' || this.enableMessageDialog === true
-    if (notificationKind !== true) {
-      let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
-      if (msgType === 'error' || items.length === 0) {
-        this.echoMessages(message, msgType)
-        return undefined
-      } else {
-        switch (this.messageDialogKind) {
-          case 'confirm':
-            return await this.showConfirm(message, items, kind)
-          case 'menu':
-            return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
-          default:
-            throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
-        }
-      }
+    let msgDialogKind = this.messageDialogKind
+    if (this.enableMessageDialog === true) {
+      // maintain backwards compatibility, with the original implementation, set the default message kind to use
+      // notification interface even when action items are present.
+      msgDialogKind = 'notification'
     }
-    let texts = items.map(o => typeof o === 'string' ? o : o.title)
-    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
-    return items[idx]
+    if (items.length > 0) {
+      switch (msgDialogKind) {
+        case 'confirm':
+          return await this.showConfirm(message, items, kind)
+        case 'menu':
+          return await this.showMenuPicker(`Choose an action`, message, `Coc${kind}Float`, items)
+        case 'notification': {
+          let texts = items.map(o => typeof o === 'string' ? o : o.title)
+          let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts)
+          return items[idx]
+        }
+        default:
+          throw new Error(`Unexpected messageDialogKind: ${this.messageDialogKind}`)
+      }
+    } else {
+      // by default the report kind will be echo, meaning that we still keep backwards compatibility with the original
+      // behavior where the user expects that messages are printed to the echo area, with the added caveat that all
+      // message kinds will go there now, information, warning or error
+      let msgReportKind = this.messageReportKind
+      switch (msgReportKind) {
+        case 'echo':
+        case 'echom': {
+          let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
+          this.echoMessages(message, msgType)
+          break
+        }
+        case 'notification': {
+          await this.createNotification(kind.toLowerCase() as NotificationKind, message, [])
+          break
+        }
+        default:
+          throw new Error(`Unexpected messageReportKind: ${msgReportKind}`)
+      }
+      return undefined
+    }
   }
 
   public get history(): NotificationItem[] {
@@ -200,6 +221,10 @@ export class Notifications {
 
   private get messageDialogKind(): string {
     return this.configuration.get<string>('coc.preferences.messageDialogKind', 'confirm')
+  }
+
+  private get messageReportKind(): string {
+    return this.configuration.get<string>('coc.preferences.messageReportKind', 'echo')
   }
 
   private getNotificationPreference(source?: string, isProgress = false): NotificationPreferences {
