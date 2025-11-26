@@ -408,7 +408,7 @@ Use |coc-preferences-messageDialogKind| to configure how interactive messages
 which require some user input are shown to the user this configuration
 supersedes the |coc-preferences-enableMessageDialog|.
 
-Use |coc-preferences-messageReportKind| configure how regular non-interactive
+Use |coc-preferences-messageReportKind| to configure how regular non-interactive
 messages are reported to the user, that will tell coc how to show regular
 plain text messages to the user.
 
