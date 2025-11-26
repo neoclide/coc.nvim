@@ -108,8 +108,7 @@ export class Notifications {
       // message kinds will go there now, information, warning or error
       let msgReportKind = this.messageReportKind
       switch (msgReportKind) {
-        case 'echo':
-        case 'echom': {
+        case 'echo': {
           let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
           this.echoMessages(message, msgType)
           break
