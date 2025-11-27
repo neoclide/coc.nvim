@@ -95,7 +95,7 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
 
     const lastChar = pattern.charAt(pattern.length - 1);
 
-    if ((/[a-zA-Z0-9]/.test(lastChar))) {
+    if (/[a-zA-Z0-9]/.test(lastChar)) {
       // Loop for removing characters at all positions
       for (let i = 0; i < pattern.length; i++) {
         const newPattern = pattern.slice(0, i) + pattern.slice(i + 1);
