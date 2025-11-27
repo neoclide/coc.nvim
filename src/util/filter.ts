@@ -86,7 +86,6 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
     // maybe the last few letters are typos. For example,
     // `conson` could be a typo for `console`
     const maxTriesPermutation = Math.min(7, pattern.length - 1);
-    const maxTries = maxTriesPermutation + pattern.length;
 
     // Loop for existing permutations
     for (let i = 1; i <= maxTriesPermutation; i++) {
