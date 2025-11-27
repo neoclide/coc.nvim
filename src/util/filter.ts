@@ -105,7 +105,7 @@ function fuzzyScoreWithPermutations(pattern: string, lowPattern: string, pattern
       // Loop for removing last characters
       for (let i = 1; i < 3; i++) {
         const newPattern = pattern.slice(0, pattern.length - i);
-        checkAndUpdateTopCandidate(newPattern, i+4);
+        checkAndUpdateTopCandidate(newPattern, i + 4);
       }
     }
 
