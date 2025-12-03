@@ -39,6 +39,9 @@ if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
 endif
 
 function! CocTagFunc(pattern, flags, info) abort
+  # tagfunc can't be set in the sandbox mode, preload the following functions
+  silent! call coc#cursor#move_to()
+  silent! call coc#string#character_index()
   if a:flags !=# 'c'
     " use standard tag search
     return v:null
