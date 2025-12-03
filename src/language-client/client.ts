@@ -1258,7 +1258,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     // We can't stop a client that is not running (e.g. has no connection). Especially not
     // on that us starting since it can't be correctly synchronized.
     if (connection === undefined || (this.$state !== ClientState.Running && this.$state !== ClientState.StartFailed)) {
-      throw new Error(`Client is not running and can't be stopped. It's current state is: ${this.$state}`)
+      throw new Error(`Client is not running and can't be stopped. Its current state is: ${this.$state}`)
     }
     this._initializeResult = undefined
     this.$state = ClientState.Stopping
