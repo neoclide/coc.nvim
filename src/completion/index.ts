@@ -267,6 +267,7 @@ export class Completion implements Disposable {
       }
       if (shouldStop(bufnr, info, option) || (filterOnBackspace === false && info.pre.length < this.pretext.length)) {
         this.cancelAndClose()
+        return
       }
     }
     if (info.pre === this.pretext) return
