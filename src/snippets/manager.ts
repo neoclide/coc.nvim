@@ -121,14 +121,14 @@ export class SnippetManager {
     let document = workspace.getAttachedDocument(bufnr)
     const session = this.bufferSync.getItem(bufnr)
     session.cancel(true)
-    let snippetEdit: SnippetEdit[] = []
+    let snippetEdits: SnippetEdit[] = []
     for (const edit of edits) {
       let currentLine = document.getline(edit.range.start.line)
       let inserted = await this.normalizeInsertText(bufnr, toSnippetString(edit.snippet), currentLine, InsertTextMode.asIs)
-      snippetEdit.push({ range: edit.range, snippet: inserted })
+      snippetEdits.push({ range: edit.range, snippet: inserted })
     }
     await session.synchronize()
-    let isActive = await session.insertSnippetEdits(edits)
+    let isActive = await session.insertSnippetEdits(snippetEdits)
     if (isActive && select && workspace.bufnr === bufnr) {
       await session.selectCurrentPlaceholder()
     }
