@@ -5,7 +5,7 @@ local maxCount = vim.g.coc_highlight_maximum_count or 500
 
 local function addVirtualText(bufnr, ns, opts, pre, priority)
     local align = opts.text_align or 'after'
-    local config = { hl_mode = opts.hl_mode or 'combine' }
+    local config = { hl_mode = opts.hl_mode or 'combine', right_gravity = opts.right_gravity }
     local column = opts.col or 0
     if align == 'above' or align == 'below' then
       if #pre == 0 then

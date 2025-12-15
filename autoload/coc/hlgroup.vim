@@ -22,16 +22,12 @@ function! coc#hlgroup#compose(fg, bg) abort
   endif
   if !empty(ctermfg)
     let cmd .= ' ctermfg=' . ctermfg
-  elseif guifg =~# '^#'
-    let cmd .= ' ctermfg=' . coc#color#rgb2term(strpart(guifg, 1))
   endif
   if !empty(guibg)
     let cmd .= ' guibg=' . guibg
   endif
   if !empty(ctermbg)
     let cmd .= ' ctermbg=' . ctermbg
-  elseif guibg =~# '^#'
-    let cmd .= ' ctermbg=' . coc#color#rgb2term(strpart(guibg, 1))
   endif
   if bold
     let cmd .= ' cterm=bold gui=bold'
