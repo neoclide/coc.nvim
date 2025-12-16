@@ -104,7 +104,7 @@ export class Sources {
     let { nvim } = this
     try {
       let name = path.basename(filepath, '.vim')
-      await nvim.command(`source ${filepath}`)
+      await nvim.command(`source ${filepath.split(path.sep).join(path.posix.sep)}`)
       let fns = await nvim.call('coc#_remote_fns', name) as string[]
       let lowercased = fns.map(fn => fn[0].toLowerCase() + fn.slice(1))
       for (let fn of ['init', 'complete']) {
