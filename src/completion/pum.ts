@@ -282,7 +282,7 @@ export default class PopupMenu {
           if (!isFalsyOrEmpty(item.positions)) {
             let pre = highlightOffset(len, item)
             if (pre != -1) {
-              positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
+              positionHighlights(hls, item.filterText, item.positions, pre, index, labelMaxLength)
             } else {
               let score = anyScore(input, lowInput, 0, item.abbr, item.abbr.toLowerCase(), 0)
               positionHighlights(hls, item.abbr, score, 0, index, labelMaxLength)
