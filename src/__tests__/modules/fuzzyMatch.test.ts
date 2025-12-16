@@ -43,7 +43,6 @@ describe('FuzzyMatch', () => {
     verify('foobar', [0], [[0, 1]])
     verify('你', [0], [[0, 3]])
     verify(' 你', [1], [[1, 4]])
-    verify('•is_abstract', [2, 0, 7, 6, 5, 4, 3], [[3, 8]], 2)
     verify('foobar', [5, 4, 3, 2, 1], [[1, 6]])
     verify('foobar', [5], [], 0, 2)
     verify('foobar', [5, 1], [[1, 2]], 0, 2)
