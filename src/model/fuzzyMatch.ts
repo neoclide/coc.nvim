@@ -51,10 +51,6 @@ export function toSpans(label: string, score: FuzzyScore): [number, number][] {
  * Positions should be sorted numbers from big to small
  */
 export function* matchSpansReverse(text: string, positions: ArrayLike<number>, endIndex = 0, max = Number.MAX_SAFE_INTEGER): Iterable<[number, number]> {
-  // TODO: quick fix for clangd's lebel startsWith •
-  if (text.startsWith('•')) {
-    text = text.substring('•'.length)
-  }
   let len = positions.length
   if (len <= endIndex) return
   let byteIndex = bytes(text, Math.min(positions[endIndex] + 1, max))
