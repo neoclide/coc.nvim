@@ -7,13 +7,13 @@ import type {
   FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineCompletionRequest, InlineValueRequest,
   LinkedEditingRangeRequest, MarkupKind, MessageSignature, NotificationHandler, NotificationHandler0,
   NotificationType, NotificationType0, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, ReferencesRequest,
-  RegistrationType, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities,
+  RegistrationType, RenameRequest, RequestHandler, RequestHandler0, RequestParam, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities,
   SignatureHelpRequest, TextEdit, Trace, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest,
   WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkspaceSymbolRequest
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
-import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
+import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, InlineCompletionItemProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { CancellationError } from '../util/errors'
 import * as Is from '../util/is'
 import { Emitter, Event, StaticRegistrationOptions, TextDocumentRegistrationOptions, WorkDoneProgressOptions } from '../util/protocol'
@@ -35,32 +35,32 @@ export interface Connection {
 
   hasPendingResponse(): boolean
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
-  sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
+  sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: NoInfer<RequestParam<P>>, token?: CancellationToken): Promise<R>
   sendRequest<R, E>(type: RequestType0<R, E>, token?: CancellationToken): Promise<R>
-  sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token?: CancellationToken): Promise<R>
+  sendRequest<P, R, E>(type: RequestType<P, R, E>, params: NoInfer<RequestParam<P>>, token?: CancellationToken): Promise<R>
   sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
   sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
   sendRequest<R>(type: string | MessageSignature, ...params: any[]): Promise<R>
 
-  onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: RequestHandler0<R, E>): Disposable
-  onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: RequestHandler<P, R, E>): Disposable
-  onRequest<R, E>(type: RequestType0<R, E>, handler: RequestHandler0<R, E>): Disposable
-  onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
+  onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: NoInfer<RequestHandler0<R, E>>): Disposable
+  onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: NoInfer<RequestHandler<P, R, E>>): Disposable
+  onRequest<R, E>(type: RequestType0<R, E>, handler: NoInfer<RequestHandler0<R, E>>): Disposable
+  onRequest<P, R, E>(type: RequestType<P, R, E>, handler: NoInfer<RequestHandler<P, R, E>>): Disposable
   onRequest<R, E>(method: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable
 
   sendNotification<RO>(type: ProtocolNotificationType0<RO>): Promise<void>
-  sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): Promise<void>
+  sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: NoInfer<RequestParam<P>>): Promise<void>
   sendNotification(type: NotificationType0): Promise<void>
-  sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
+  sendNotification<P>(type: NotificationType<P>, params?: NoInfer<RequestParam<P>>): Promise<void>
   sendNotification(method: string | MessageSignature, params?: any): Promise<void>
 
   onNotification<RO>(type: ProtocolNotificationType0<RO>, handler: NotificationHandler0): Disposable
-  onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NotificationHandler<P>): Disposable
+  onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NoInfer<NotificationHandler<P>>): Disposable
   onNotification(type: NotificationType0, handler: NotificationHandler0): Disposable
-  onNotification<P>(type: NotificationType<P>, handler: NotificationHandler<P>): Disposable
+  onNotification<P>(type: NotificationType<P>, handler: NoInfer<NotificationHandler<P>>): Disposable
   onNotification(method: string | MessageSignature, handler: GenericNotificationHandler): Disposable
 
-  onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable
+  onProgress<P>(type: ProgressType<P>, token: string | number, handler: NoInfer<NotificationHandler<P>>): Disposable
   sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
   trace(value: Trace, tracer: Tracer, sendNotification?: boolean | TraceOptions): Promise<void>
@@ -77,7 +77,7 @@ export class BaseFeature<MW, CO = object> {
     this._client = client
   }
 
-  protected sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token: CancellationToken, defaultValue?: R): Promise<R> {
+  protected sendRequest<P, R, E>(type: RequestType<P, R, E>, params: RequestParam<P>, token: CancellationToken, defaultValue?: R): Promise<R> {
     return this._client.sendRequest(type, params, token).then((res => {
       return token.isCancellationRequested || res == null ? defaultValue ?? null : res
     }), error => {
@@ -306,7 +306,7 @@ export namespace DynamicFeature {
 }
 
 interface CreateParamsSignature<E, P> {
-  (data: E): P
+  (data: E): RequestParam<P>
 }
 
 /**
@@ -368,7 +368,7 @@ export interface TextDocumentSendFeature<T extends Function> {
 export interface NotificationSendEvent<E, P> {
   original: E
   type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>
-  params: P
+  params: RequestParam<P>
 }
 
 export interface NotifyingFeature<E, P> {
@@ -400,7 +400,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   }
 
   constructor(client: FeatureClient<M>, event: Event<E>, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>,
-    middleware: string, createParams: CreateParamsSignature<E, P>,
+    middleware: string, createParams: NoInfer<CreateParamsSignature<E, P>>,
     selectorFilter?: (selectors: IterableIterator<DocumentSelector>, data: E) => boolean
   ) {
     super(client)
@@ -455,7 +455,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     return this._onNotificationSent.event
   }
 
-  protected notificationSent(data: E, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>, params: P): void {
+  protected notificationSent(data: E, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>, params: RequestParam<P>): void {
     this._onNotificationSent.fire({ original: data, type, params })
   }
 
@@ -613,31 +613,31 @@ export interface FeatureClient<M, CO = object> {
   attachExtensionName<T extends object>(provider: T): void
 
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
-  sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
+  sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: NoInfer<RequestParam<P>>, token?: CancellationToken): Promise<R>
   sendRequest<R, E>(type: RequestType0<R, E>, token?: CancellationToken): Promise<R>
-  sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token?: CancellationToken): Promise<R>
+  sendRequest<P, R, E>(type: RequestType<P, R, E>, params: NoInfer<RequestParam<P>>, token?: CancellationToken): Promise<R>
   sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
   sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
 
-  onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: RequestHandler0<R, E>): Disposable
-  onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: RequestHandler<P, R, E>): Disposable
-  onRequest<R, E>(type: RequestType0<R, E>, handler: RequestHandler0<R, E>): Disposable
-  onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
+  onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: NoInfer<RequestHandler0<R, E>>): Disposable
+  onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: NoInfer<RequestHandler<P, R, E>>): Disposable
+  onRequest<R, E>(type: RequestType0<R, E>, handler: NoInfer<RequestHandler0<R, E>>): Disposable
+  onRequest<P, R, E>(type: RequestType<P, R, E>, handler: NoInfer<RequestHandler<P, R, E>>): Disposable
   onRequest<R, E>(method: string, handler: GenericRequestHandler<R, E>): Disposable
 
   sendNotification<RO>(type: ProtocolNotificationType0<RO>): Promise<void>
-  sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): Promise<void>
+  sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: NoInfer<RequestParam<P>>): Promise<void>
   sendNotification(type: NotificationType0): Promise<void>
-  sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
+  sendNotification<P>(type: NotificationType<P>, params?: NoInfer<RequestParam<P>>): Promise<void>
   sendNotification(method: string, params?: any): Promise<void>
 
   onNotification<RO>(type: ProtocolNotificationType0<RO>, handler: NotificationHandler0): Disposable
-  onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NotificationHandler<P>): Disposable
+  onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NoInfer<NotificationHandler<P>>): Disposable
   onNotification(type: NotificationType0, handler: NotificationHandler0): Disposable
-  onNotification<P>(type: NotificationType<P>, handler: NotificationHandler<P>): Disposable
+  onNotification<P>(type: NotificationType<P>, handler: NoInfer<NotificationHandler<P>>): Disposable
   onNotification(method: string, handler: GenericNotificationHandler): Disposable
 
-  onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable
+  onProgress<P>(type: ProgressType<P>, token: string | number, handler: NoInfer<NotificationHandler<P>>): Disposable
 
   info(message: string, data?: any, showNotification?: boolean): void
   warn(message: string, data?: any, showNotification?: boolean): void

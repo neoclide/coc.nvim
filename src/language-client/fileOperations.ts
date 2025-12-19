@@ -1,6 +1,6 @@
 'use strict'
 import { Minimatch, MinimatchOptions } from 'minimatch'
-import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, RequestParam, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../core/files'
 import { defaultValue } from '../util'
@@ -205,7 +205,7 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
 
   private _notificationType: ProtocolNotificationType<P, FileOperationRegistrationOptions>
   private _accessUri: (i: I) => URI
-  private _createParams: (e: E) => P
+  private _createParams: (e: E) => RequestParam<P>
 
   constructor(
     client: FeatureClient<FileOperationsWorkspaceMiddleware>,
@@ -214,7 +214,7 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
     clientCapability: keyof FileOperationClientCapabilities,
     serverCapability: keyof FileOperationOptions,
     accessUri: (i: I) => URI,
-    createParams: (e: E) => P
+    createParams: (e: E) => RequestParam<P>
   ) {
     super(client, event, notificationType, clientCapability, serverCapability)
     this._notificationType = notificationType
@@ -307,7 +307,7 @@ interface RequestEvent<I> {
 abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> extends FileOperationFeature<I, E> {
   private _requestType: ProtocolRequestType<P, WorkspaceEdit | null, never, void, FileOperationRegistrationOptions>
   private _accessUri: (i: I) => URI
-  private _createParams: (e: EventWithFiles<I>) => P
+  private _createParams: (e: EventWithFiles<I>) => RequestParam<P>
 
   constructor(
     client: FeatureClient<FileOperationsWorkspaceMiddleware>,
@@ -316,7 +316,7 @@ abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> exte
     clientCapability: keyof FileOperationClientCapabilities,
     serverCapability: keyof FileOperationOptions,
     accessUri: (i: I) => URI,
-    createParams: (e: EventWithFiles<I>) => P
+    createParams: (e: EventWithFiles<I>) => RequestParam<P>
   ) {
     super(client, event, requestType, clientCapability, serverCapability)
     this._requestType = requestType
