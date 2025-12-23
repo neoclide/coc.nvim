@@ -43,8 +43,7 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
   endfunction
 
   if s:is_vim
-    let cmd = s:is_win ? join(a:cmd, ' ') : a:cmd
-    let res = term_start(cmd, {
+    let res = term_start(a:cmd, {
           \ 'cwd': cwd,
           \ 'term_kill': s:is_win ? 'kill' : 'term',
           \ 'term_finish': 'close',
