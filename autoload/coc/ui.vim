@@ -102,7 +102,7 @@ function! coc#ui#open_terminal(opts) abort
 
   if s:is_vim
     if s:is_win
-      let cmd = 'cmd.exe /C '.shellescape(cmd)
+      let cmd = ['cmd.exe', '/C', cmd]
     endif
     call term_start(cmd, {
           \ 'cwd': cwd,
