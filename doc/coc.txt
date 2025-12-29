@@ -4027,6 +4027,7 @@ p           - Preview action.
 t           - Do 'tabe' action.
 d           - Do 'drop' action.
 s           - Do 'split' action.
+r           - Do 'refactor' action.
 
 Use |coc-list-mappings-custom| to override default mappings.
 

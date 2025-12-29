@@ -164,6 +164,7 @@ export default class Mappings {
     // normal
     this.addKeyMapping('normal', 't', 'action:tabe')
     this.addKeyMapping('normal', 's', 'action:split')
+    this.addKeyMapping('normal', 'r', 'action:refactor')
     this.addKeyMapping('normal', 'd', 'action:drop')
     this.addKeyMapping('normal', ['<cr>', '<C-m>', '\r'], 'do:defaultaction')
     this.addKeyMapping('normal', '<C-a>', 'do:selectall')
