@@ -120,7 +120,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = a:bufnr
   try
-    let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
+    let bufnr = coc#float#create_buf(a:bufnr, lines, get(a:config, 'bufhidden', 'hide'))
   catch /E523:/
     " happens when using getchar() #3921
     return []

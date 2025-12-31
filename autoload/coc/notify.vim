@@ -207,6 +207,7 @@ function! coc#notify#create(lines, config) abort
       \ 'winblend': winblend,
       \ 'close': s:is_vim,
       \ 'border': border,
+      \ 'bufhidden': 'wipe',
       \ })
   let result = coc#float#create_float_win(0, 0, opts)
   if empty(result)
