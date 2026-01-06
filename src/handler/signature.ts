@@ -54,7 +54,7 @@ export default class Signature {
     }, this.config.floatConfig))
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    events.on('CursorMovedI', debounce(this.checkCurosr.bind(this), debounceTime), null, this.disposables)
+    events.on('CursorMovedI', debounce(this.checkCursor.bind(this), debounceTime), null, this.disposables)
     events.on('BufEnter', () => {
       this.tokenSource?.cancel()
     }, null, this.disposables)
@@ -88,7 +88,7 @@ export default class Signature {
     return true
   }
 
-  private checkCurosr(bufnr: number, cursor: [number, number]): void {
+  private checkCursor(bufnr: number, cursor: [number, number]): void {
     let pos = this.lastPosition
     let floatFactory = this.signatureFactory
     if (!pos || bufnr !== pos.bufnr || floatFactory.window == null) return
