@@ -360,7 +360,9 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
 enddef
 
 def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
-  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start, end + added - 1)])
+  const new_len = end - start + 1 + added
+  const lines: list<string> = new_len > 0 ? getbufline(bufnr, start, start + new_len - 1) : []
+  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, lines])
 enddef
 
 export def DetachListener(bufnr: number): bool
