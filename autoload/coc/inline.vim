@@ -53,6 +53,11 @@ function! coc#inline#_insert(bufnr, lineidx, col, lines, annot) abort
   endif
   call coc#inline#clear(a:bufnr)
   call coc#pum#clear_vtext()
+
+  if empty(get(a:lines, 0, ''))
+    return v:false
+  endif
+
   let option = {
       \ 'col': a:col,
       \ 'hl_mode': 'replace',
