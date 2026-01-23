@@ -105,7 +105,7 @@ export default class WorkspaceFolderController {
 
   public setWorkspaceFolders(folders: string[] | undefined): void {
     if (!folders || !Array.isArray(folders)) return
-    let arr = folders.map(f => toWorkspaceFolder(f))
+    let arr = folders.filter(f => f.length > 0).map(f => toWorkspaceFolder(f))
     this._workspaceFolders = arr.filter(o => o != null)
   }
 
