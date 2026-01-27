@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CodeAction, CodeActionContext, CodeActionKind, CodeActionTriggerKind, Range } from 'vscode-languageserver-types'
+import { CodeAction, CodeActionContext, CodeActionKind, CodeActionTriggerKind, Position, Range } from 'vscode-languageserver-types'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
@@ -69,7 +69,7 @@ export default class CodeActions {
   }
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
-    let { doc } = await this.handler.getCurrentState()
+    let { doc, position } = await this.handler.getCurrentState()
     await doc.synchronize()
     let line = doc.getline(end - 1)
     let range = Range.create(start - 1, 0, end - 1, line.length)
@@ -81,7 +81,7 @@ export default class CodeActions {
     }
     let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
     let action = codeActions[idx]
-    if (action) await this.applyCodeAction(action)
+    if (action) await this.applyCodeAction(action, undefined, position)
   }
 
   public async organizeImport(): Promise<boolean> {
@@ -125,7 +125,7 @@ export default class CodeActions {
   }
 
   public async doCodeAction(mode: string | null, only: CodeActionKind[] | string, showDisable = false): Promise<void> {
-    let { doc } = await this.handler.getCurrentState()
+    let { doc, position } = await this.handler.getCurrentState()
     let range: Range | undefined
     if (mode) range = await window.getSelectedRange(mode)
     await doc.synchronize()
@@ -141,7 +141,7 @@ export default class CodeActions {
       return
     }
     if (codeActions.length == 1 && !codeActions[0].disabled && shouldAutoApply(only)) {
-      await this.applyCodeAction(codeActions[0])
+      await this.applyCodeAction(codeActions[0], undefined, position)
       return
     }
     let idx = this.floatActions
@@ -153,7 +153,7 @@ export default class CodeActions {
       )
       : await window.requestInputList('Choose action by number', codeActions.map(o => o.title))
     let action = codeActions[idx]
-    if (action) await this.applyCodeAction(action)
+    if (action) await this.applyCodeAction(action, undefined, position)
   }
 
   /**
@@ -171,16 +171,17 @@ export default class CodeActions {
    * Invoke preferred quickfix at current position
    */
   public async doQuickfix(): Promise<void> {
+    let { position } = await this.handler.getCurrentState()
     let actions = await this.getCurrentCodeActions('currline', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
       void window.showWarningMessage(`No quickfix action available`)
       return
     }
-    await this.applyCodeAction(actions[0])
+    await this.applyCodeAction(actions[0], undefined, position)
     this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`, true)
   }
 
-  public async applyCodeAction(action: CodeAction, token?: CancellationToken): Promise<void> {
+  public async applyCodeAction(action: CodeAction, token?: CancellationToken, cursorPosition?: Position): Promise<void> {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
     }
@@ -188,7 +189,7 @@ export default class CodeActions {
     let resolved = await languages.resolveCodeAction(action, token)
     if (!resolved || token.isCancellationRequested) return
     let { edit, command } = resolved
-    if (edit) await workspace.applyEdit(edit)
+    if (edit) await workspace.applyEdit(edit, undefined, cursorPosition)
     if (command) await commandManager.execute(command)
   }
 }
