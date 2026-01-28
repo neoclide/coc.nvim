@@ -579,8 +579,8 @@ export class Workspace {
   /**
    * Apply WorkspaceEdit.
    */
-  public applyEdit(edit: WorkspaceEdit): Promise<boolean> {
-    return this.files.applyEdit(edit)
+  public applyEdit(edit: WorkspaceEdit, nested?: boolean, cursorPosition?: Position): Promise<boolean> {
+    return this.files.applyEdit(edit, nested, cursorPosition)
   }
 
   /**

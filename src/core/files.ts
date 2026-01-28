@@ -516,7 +516,7 @@ export default class Files {
   /**
    * Apply WorkspaceEdit.
    */
-  public async applyEdit(edit: WorkspaceEdit, nested?: boolean): Promise<boolean> {
+  public async applyEdit(edit: WorkspaceEdit, nested?: boolean, cursorPosition?: Position): Promise<boolean> {
     let documentChanges = toDocumentChanges(edit)
     let recovers: RecoverFunc[] = []
     let currentOnly = false
@@ -546,7 +546,7 @@ export default class Files {
             let startLine = snippetEdits[0].range.start.line
             revertEdit = getRevertEdit(oldLines, doc.textDocument.lines, startLine)
           } else {
-            revertEdit = await doc.applyEdits(edits as TextEdit[], false, uri === currentUri)
+            revertEdit = await doc.applyEdits(edits as TextEdit[], false, cursorPosition ?? (uri === currentUri))
           }
           if (revertEdit) {
             let version = doc.version
