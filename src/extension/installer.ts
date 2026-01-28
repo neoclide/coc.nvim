@@ -203,21 +203,24 @@ export class Installer extends EventEmitter implements IInstaller {
 
   public getInstallArguments(exePath: string, url: string | undefined): { env: string, args: string[] } {
     let env = 'production'
-    let args = ['install', '--ignore-scripts', '--no-lockfile']
+    let args = ['install', '--ignore-scripts']
     if (url && url.startsWith('https://github.com')) {
       args = ['install']
       env = 'development'
     } else {
       if (isNpmCommand(exePath)) {
+        args.push('--no-package-lock')
         args.push('--omit=dev')
         args.push('--legacy-peer-deps')
         args.push('--no-global')
       }
       if (isYarn(exePath)) {
+        args.push('--no-lockfile')
         args.push('--production')
         args.push('--ignore-engines')
       }
       if (isPnpm(exePath)) {
+        args.push('--no-lockfile')
         args.push('--production')
         args.push('--config.strict-peer-dependencies=false')
       }
