@@ -60,6 +60,7 @@ export default class WorkspaceFolderController {
   constructor(private configurations: Configurations) {
     events.on('VimLeavePre', this.cancelAll, this)
     this.updateConfiguration()
+    this.updateServerRootPatterns()
     this.configurations.onDidChange(e => {
       if (e.affectsConfiguration('workspace') || e.affectsConfiguration('coc.preferences')) {
         this.updateConfiguration()
