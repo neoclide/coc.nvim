@@ -527,7 +527,7 @@ export function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   return {
     cwd: config.cwd && workspace.expand(config.cwd),
     detached: !!config.detached,
-    shell: !!config.shell,
+    shell: process.platform === 'win32' || !!config.shell,
     env: config.env ?? undefined
   }
 }
