@@ -202,6 +202,13 @@ export class DocumentPullStateTracker {
     return Array.from(this.documentPullStates.keys())
   }
 
+  public tracksSameVersion(kind: PullState, document: TextDocument): boolean {
+    const key = document.uri.toString()
+    const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
+    const state = states.get(key)
+    return state !== undefined && state.pulledVersion === document.version
+  }
+
   public getResultId(kind: PullState, document: TextDocument | URI): string | undefined {
     const key = DocumentOrUri.asKey(document)
     const states = kind === PullState.document ? this.documentPullStates : this.workspacePullStates
@@ -256,6 +263,22 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
 
   public knows(kind: PullState, document: TextDocument | URI): boolean {
     return this.documentStates.tracks(kind, document) || this.openRequests.has(DocumentOrUri.asKey(document))
+  }
+
+  public knowsSameVersion(kind: PullState, document: TextDocument): boolean {
+    const requestState = this.openRequests.get(document.uri.toString())
+    if (requestState === undefined) {
+      return this.documentStates.tracksSameVersion(kind, document)
+    }
+    // A reschedule request is independent of a version so it will trigger
+    // on the latest version no matter what.
+    if (requestState.state === RequestStateKind.reschedule) {
+      return true
+    }
+    if (requestState.state === RequestStateKind.outDated) {
+      return false
+    }
+    return requestState.version === document.version
   }
 
   public forget(kind: PullState, document: TextDocument | URI): void {
@@ -675,7 +698,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     const openFeature = client.getFeature(DidOpenTextDocumentNotification.method)
     disposables.push(openFeature.onNotificationSent(event => {
       const textDocument = event.original
-      if (this.diagnosticRequestor.knows(PullState.document, textDocument)) {
+      if (this.diagnosticRequestor.knowsSameVersion(PullState.document, textDocument)) {
         return
       }
       if (matches(textDocument)) {
