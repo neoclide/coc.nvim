@@ -107,7 +107,7 @@
     "minimatch": "^9.0.4",
     "semver": "^7.7.3",
     "strip-ansi": "^6.0.1",
-    "tar": "^7.5.7",
+    "tar": "^7.5.8",
     "tslib": "^2.8.1",
     "unidecode": "^1.1.0",
     "unzip-stream": "^0.3.4",
