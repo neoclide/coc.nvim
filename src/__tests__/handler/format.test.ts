@@ -319,9 +319,9 @@ describe('format handler', () => {
       await nvim.command(`normal! gg$`)
       await nvim.input('i')
       await nvim.eval(`feedkeys("\\<CR>", 'im')`)
-      await helper.waitFor('getline', [2], '  ')
+      await helper.waitFor('getline', [2], '    ')
       let lines = await buf.lines
-      expect(lines).toEqual(['  {', '  ', '  }'])
+      expect(lines).toEqual(['  {', '    ', '  }'])
     })
   })
 
