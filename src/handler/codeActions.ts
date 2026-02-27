@@ -125,9 +125,13 @@ export default class CodeActions {
   }
 
   public async doCodeAction(mode: string | null, only: CodeActionKind[] | string, showDisable = false): Promise<void> {
-    let { doc } = await this.handler.getCurrentState()
+    let { doc, position } = await this.handler.getCurrentState()
     let range: Range | undefined
-    if (mode) range = await window.getSelectedRange(mode)
+    if (mode) {
+      range = await window.getSelectedRange(mode)
+    } else {
+      range = Range.create(position, position)
+    }
     await doc.synchronize()
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
     if (typeof only == 'string') {
