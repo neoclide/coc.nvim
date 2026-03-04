@@ -283,7 +283,10 @@ endfunction
 function! s:Call(method, args)
   try
     call call(a:method, a:args)
-    redraw
+    " don't redraw for command-line/prompt mode
+    if mode() !~# '^[cr]'
+      redraw
+    endif
   catch /.*/
     return 0
   endtry
