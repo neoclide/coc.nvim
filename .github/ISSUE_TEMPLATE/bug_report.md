@@ -36,7 +36,7 @@ reproduce it**
   set hidden
   ```
 
-- Start (neo)vim with command: `vim -u mini.vim`
+- Start (neo)vim with command: `vim -Nu mini.vim`
 
 - Operate vim.
 
