@@ -2,6 +2,7 @@
   "eslint.validate": ["typescript"],
   "eslint.lintTask.options": ["."],
   "sumneko-lua.enableNvimLuaDev": true,
+  "typescript.format.enable": true,
   "javascript.format.semicolons": "remove",
   "typescript.format.semicolons": "remove",
   "typescript.preferences.importModuleSpecifier": "relative",
