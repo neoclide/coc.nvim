@@ -359,7 +359,12 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   return type
 enddef
 
-def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
+# Callback of `listener_add()`
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, _bufchanges: list<any>): void
+  # Trigger `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which then triggers `src/model/document.ts vim_lines`
+  #
+  # Convert parameters to the ones of `nvim_buf_lines_event`
+  # @see https://neovim.io/doc/user/api/#nvim_buf_lines_event
   coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start, end + added - 1)])
 enddef
 
