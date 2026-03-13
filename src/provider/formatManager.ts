@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FormattingOptions, TextEdit } from 'vscode-languageserver-types'
 import { CancellationToken, Disposable } from '../util/protocol'
+import { TextDocumentMatch } from '../types'
 import { DocumentFormattingEditProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
@@ -15,6 +16,10 @@ export default class FormatManager extends Manager<DocumentFormattingEditProvide
       priority,
       provider
     })
+  }
+
+  public hasFormatProvider(document: TextDocumentMatch): boolean {
+    return this.getFormatProvider(document) != null
   }
 
   public async provideDocumentFormattingEdits(

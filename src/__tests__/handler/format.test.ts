@@ -79,6 +79,39 @@ describe('format handler', () => {
       expect(res.length).toBe(1)
     })
 
+    it('should not fallback to range formatter when document formatter returns null', async () => {
+      let called = false
+      disposables.push(languages.registerDocumentFormatProvider([{ language: 'text' }], {
+        provideDocumentFormattingEdits: () => {
+          return null
+        }
+      }))
+      disposables.push(languages.registerDocumentRangeFormatProvider([{ language: 'text' }], {
+        provideDocumentRangeFormattingEdits: () => {
+          called = true
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      let doc = await helper.createDocument('t.txt')
+      let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
+      expect(edits).toBeNull()
+      expect(called).toBe(false)
+    })
+
+    it('should fallback to range formatter when document formatter not exists', async () => {
+      let called = false
+      disposables.push(languages.registerDocumentRangeFormatProvider([{ language: 'text' }], {
+        provideDocumentRangeFormattingEdits: () => {
+          called = true
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      let doc = await helper.createDocument('t.txt')
+      let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
+      expect(called).toBe(true)
+      expect(edits.length).toBe(1)
+    })
+
     it('should format current buffer', async () => {
       disposables.push(languages.registerDocumentFormatProvider([{ language: 'vim' }], {
         provideDocumentFormattingEdits: () => {

@@ -370,15 +370,15 @@ class Languages {
   }
 
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
-    let res = await this.formatManager.provideDocumentFormattingEdits(document, options, token)
-    if (res == null) {
+    let hasDocumentFormatter = this.formatManager.hasFormatProvider(document)
+    if (!hasDocumentFormatter) {
       let hasRangeFormatter = this.formatRangeManager.hasProvider(document)
       if (!hasRangeFormatter) return null
       let end = document.positionAt(document.getText().length)
       let range = Range.create(Position.create(0, 0), end)
       return await this.provideDocumentRangeFormattingEdits(document, range, options, token)
     }
-    return res
+    return await this.formatManager.provideDocumentFormattingEdits(document, options, token)
   }
 
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
