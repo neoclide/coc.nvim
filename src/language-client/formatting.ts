@@ -127,7 +127,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
 }
 
 export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
-  boolean | DocumentRangeFormattingOptions, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingEditProvider, FormattingMiddleware
+  boolean | DocumentRangeFormattingOptions, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingEditProvider, FormattingMiddleware, $FormattingOptions
 > {
   constructor(client: FeatureClient<FormattingMiddleware>) {
     super(client, DocumentRangeFormattingRequest.type)
@@ -176,7 +176,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
     }
     this._client.attachExtensionName(provider)
     return [
-      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, undefined),
+      languages.registerDocumentRangeFormatProvider(options.documentSelector, provider, this._client.clientOptions.formatterPriority),
       provider
     ]
   }
