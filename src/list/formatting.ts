@@ -31,17 +31,17 @@ export function formatListItems(align: boolean, list: UnformattedListItem[]): Li
 
   let processedList: ListItem[] = []
   if (align) {
-    const maxWidths = Array(Math.min(...list.map(item => item.label.length))).fill(0)
+    const maxWidths = Array(Math.max(...list.map(item => item.label.length))).fill(0)
     for (let item of list) {
-      for (let i = 0; i < maxWidths.length; i++) {
-        maxWidths[i] = Math.max(maxWidths[i], item.label[i].length)
+      for (let i = 0; i < item.label.length; i++) {
+        maxWidths[i] = Math.max(maxWidths[i], (item.label[i] ?? '').length)
       }
     }
     processedList = list
       .map(item => ({
         ...item,
         label: item.label
-          .map((element, idx) => element.padEnd(maxWidths[idx]))
+          .map((element, idx) => (element ?? '').padEnd(maxWidths[idx]))
           .join("\t")
       }))
   } else {
