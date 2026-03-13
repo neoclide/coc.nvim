@@ -892,6 +892,34 @@ describe('document', () => {
     await doc.patchChange()
   })
 
+  // #5524
+  it('should synchronize changes after undo', async () => {
+    const filepath = await createTmpFile('abc', disposables)
+    const doc = await helper.createDocument(filepath)
+    nvim.pauseNotification()
+    await nvim.command('normal! Ofoo')
+    await nvim.command('normal! u')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+  it('should synchronize changes after undo (2)', async () => {
+    const filepath2 = await createTmpFile('abc\ndef', disposables)
+    const doc2 = await helper.createDocument(filepath2)
+    nvim.pauseNotification()
+    await nvim.command('normal! Ofoo')
+    await nvim.command('normal! u')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc2)
+  })
+
+  it('should synchronize changes after executing a command with count', async () => {
+    const doc = await helper.createDocument()
+    nvim.pauseNotification()
+    await nvim.command('normal! 2o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+
   it('should patch change of current line', async () => {
     let doc = await helper.createDocument()
     nvim.call('setline', ['.', 'foo'], true)
