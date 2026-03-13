@@ -151,7 +151,8 @@ export default class LanguageSource implements ISource<CompletionItem> {
       range = Range.create(pos.line, characterIndex(line, col), pos.line, end)
     }
     // replace range must contains cursor position.
-    if (range.end.character < character) range.end.character = character
+    let invalidRangeEnd = range.end.character < character
+    if (invalidRangeEnd) range.end.character = character
     let newText = textEdit ? textEdit.newText : (textEditText && this.hasDefaultRange ? textEditText : insertText) ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, pos.text, range)
@@ -160,7 +161,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
     let next = pos.text[range.end.character]
-    if (next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) {
+    if (invalidRangeEnd && next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) {
       range.end.character += 1
     }
     if (option.snippetsSupport !== false && isSnippetItem(item, this.itemDefaults)) {

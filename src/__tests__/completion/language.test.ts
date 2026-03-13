@@ -739,6 +739,30 @@ describe('language source', () => {
       await helper.waitFor('getline', ['.'], '<foo>')
     })
 
+    it('should not eat existing paired character on valid range', async () => {
+      await nvim.setLine('fn bar() {}')
+      await nvim.call('cursor', [1, 7])
+      await nvim.input('a')
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_, position): Promise<CompletionItem[]> => [{
+          label: '(x, y): (i32, i32)',
+          filterText: '(x, y): (i32, i32)',
+          textEdit: { range: Range.create(position.line, position.character, position.line, position.character), newText: '(x, y): (i32, i32)' },
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      let source = sources.getSource('edits')
+      expect(source).toBeDefined()
+      let opt = await nvim.call('coc#util#get_complete_option') as any
+      await source.doComplete(opt, CancellationToken.None)
+      await source.onCompleteDone({
+        label: '(x, y): (i32, i32)',
+        filterText: '(x, y): (i32, i32)',
+        textEdit: { range: Range.create(0, 7, 0, 7), newText: '(x, y): (i32, i32)' },
+      }, opt)
+      await helper.waitFor('getline', ['.'], 'fn bar((x, y): (i32, i32)) {}')
+    })
+
     it('should fix bad range', async () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
