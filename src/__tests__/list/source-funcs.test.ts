@@ -185,6 +185,15 @@ describe('formatting', () => {
     }, {
       label: 'foo\tbar\tgo'
     }])
+
+    // items with different column counts (e.g. local vs non-local extensions)
+    items = [{
+      label: ['* foo', '[RTP]', '1.0.0', '/tmp/foo']
+    }, {
+      label: ['+ bar', '2.0.0', '/tmp/bar']
+    }]
+    let result = formatListItems(true, items)
+    expect(result[0].label.split('\t')).toEqual(['* foo', '[RTP]', '1.0.0   ', '/tmp/foo'])
+    expect(result[1].label.split('\t')).toEqual(['+ bar', '2.0.0', '/tmp/bar'])
   })
 })
-
