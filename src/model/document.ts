@@ -239,7 +239,9 @@ export default class Document {
         lastline: number,
         linedata: string[]
       ) => {
-        if (tick > this._changedtick) {
+        // `=` is required
+        // When executing `normal! 5o`, this callback will be triggered 5 times with last two changedticks the same
+        if (tick >= this._changedtick) {
           this._changedtick = tick
           lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
           if (lines.length === 0) lines = ['']

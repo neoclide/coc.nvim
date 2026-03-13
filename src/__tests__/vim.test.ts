@@ -918,6 +918,18 @@ describe('document', () => {
     await nvim.command('normal! 2o')
     await nvim.resumeNotification(true)
     await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('normal! 5o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+  it('should synchronize changes after executing a command with count (2)', async () => {
+    const doc2 = await helper.createDocument()
+    nvim.pauseNotification()
+    await nvim.command('normal! 5o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc2)
   })
 
   it('should patch change of current line', async () => {
