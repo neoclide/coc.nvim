@@ -226,34 +226,35 @@ export default class Document {
        * Corresponds to `nvim_buf_lines_event`
        * @see {@link https://neovim.io/doc/user/api/#nvim_buf_lines_event}
        */
-      const vim_onLinesChange = (_buf: number, tick: number,
+      const vim_onLinesChange = (_buf: number,
+        /**
+         * Always >= the tick of previous call
+         * @example When executing `normal! 5o`, this callback will be triggered 5 times with last two ticks the same
+         */
+        tick: number,
         /**
          * First changed line number(zero-based), always >= 0
          * Converted from `start` of `listener_add()` callback
-         * */
+         */
         firstline: number,
         /**
          * First line number below the change(zero-based), always >= `firstline`
          * Converted from `end` of `listener_add()` callback
-         * */
+         */
         lastline: number,
         linedata: string[]
       ) => {
-        // `=` is required
-        // When executing `normal! 5o`, this callback will be triggered 5 times with last two changedticks the same
-        if (tick >= this._changedtick) {
-          this._changedtick = tick
-          lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
-          if (lines.length === 0) lines = ['']
-          if (this._applying) {
-            this._applyLines = lines
-            return
-          }
-          this.lines = lines
-          fireLinesChanged(bufnr)
-          if (events.completing) return
-          this.fireContentChanges()
+        this._changedtick = tick
+        lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
+        if (lines.length === 0) lines = ['']
+        if (this._applying) {
+          this._applyLines = lines
+          return
         }
+        this.lines = lines
+        fireLinesChanged(bufnr)
+        if (events.completing) return
+        this.fireContentChanges()
       }
       this.buffer.listen('vim_lines', vim_onLinesChange, this.disposables)
     } else { // isNvim
