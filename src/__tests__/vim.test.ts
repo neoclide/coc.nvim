@@ -932,6 +932,25 @@ describe('document', () => {
     await shouldEqual(doc2)
   })
 
+  // #5542
+  it('should synchronize buffered changes after setlines', async () => {
+    const fileContents = [
+      'import { equal } from "assert"',
+      '',
+      'An extra line required to let Vim buffer the changes caused by `undo`, can also be an empty line',
+      'console.log(0)',
+    ]
+    const filepath = await createTmpFile(fileContents.join('\n'), disposables)
+    const doc = await helper.createDocument(filepath)
+    nvim.pauseNotification()
+    // Simulate auto-import
+    await nvim.command(`call setline(4, 'console.log(path)') | call appendbufline('%', 1, 'import path from "path"')`)
+    await nvim.command('normal! u')
+
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+
   it('should patch change of current line', async () => {
     let doc = await helper.createDocument()
     nvim.call('setline', ['.', 'foo'], true)
