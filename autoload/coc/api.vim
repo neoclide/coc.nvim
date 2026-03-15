@@ -359,10 +359,16 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   return type
 enddef
 
-def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
-  const new_len = end - start + added
-  const lines: list<string> = new_len > 0 ? getbufline(bufnr, start, start + new_len - 1) : []
-  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, lines])
+# Callback of `listener_add()` with its `unbuffered` flag defaulting to `false`
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, _bufchanges: list<any>): void
+  # Trigger `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which then triggers `src/model/document.ts vim_lines`
+  #
+  # Convert parameters to the ones of `nvim_buf_lines_event`
+  # @see https://neovim.io/doc/user/api/#nvim_buf_lines_event
+  #
+  # Note: When executing `normal! 5o`, this callback will be triggered 5 times with last two changedticks the same
+  #       due to `unbuffered` flag defaulting to `false`
+  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start, end + added - 1)])
 enddef
 
 export def DetachListener(bufnr: number): bool
