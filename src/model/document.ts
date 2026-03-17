@@ -233,13 +233,13 @@ export default class Document {
          */
         tick: number,
         /**
-         * First line to be changed(zero-based), **before** the change is made,
+         * First line of the change(zero-based), **before** the change is made,
          * Always >= 0
          * Converted from `change.lnum` of `listener_add()` callback
          */
         firstline: number,
         /**
-         * First line below the last line to be changed(zero-based), **before** the change is made,
+         * First line below the change(zero-based), **before** the change is made,
          * Always >= `firstline`
          * Converted from `change.end` of `listener_add()` callback
          */

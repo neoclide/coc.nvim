@@ -371,10 +371,10 @@ def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, 
   #    And it's hard to calculate last line before all changes are made in various cases
   #
   for change: dict<any> in changes
-    # First line to be changed, before the change is made
+    # First line of the change, before the change is made
     const firstLine_beforeChange: number = change.lnum
-    # Last line to be changed, before the change is made
-    const lastLine_beforeChange: number = change.end - 1
+    # First line below the change, before the change is made
+    const firstLineBelow_beforeChange: number = change.end
     # First changed line, after the change is made
     const firstLine_afterChange: number = change.lnum
     # Last changed line, after the change is made
@@ -392,10 +392,7 @@ def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, 
       #       due to `unbuffered` flag defaulting to `false`
       getbufvar(bufnr, 'changedtick'),
       # `- 1`: zero-based
-      firstLine_beforeChange - 1,
-      # `+ 1`: so that it's end-exclusive
-      # `- 1`: zero-based
-      lastLine_beforeChange + 1 - 1,
+      firstLine_beforeChange - 1, firstLineBelow_beforeChange - 1,
       getbufline(bufnr, firstLine_afterChange, lastLine_afterChange)
     ])
   endfor
