@@ -233,15 +233,20 @@ export default class Document {
          */
         tick: number,
         /**
-         * First changed line number(zero-based), always >= 0
-         * Converted from `start` of `listener_add()` callback
+         * First line to be changed(zero-based), **before** the change is made,
+         * Always >= 0
+         * Converted from `change.lnum` of `listener_add()` callback
          */
         firstline: number,
         /**
-         * First line number below the change(zero-based), always >= `firstline`
-         * Converted from `end` of `listener_add()` callback
+         * First line below the last line to be changed(zero-based), **before** the change is made,
+         * Always >= `firstline`
+         * Converted from `change.end` of `listener_add()` callback
          */
         lastline: number,
+        /**
+         * Updated line content, **after** the change is made
+         */
         linedata: string[]
       ) => {
         this._changedtick = tick
