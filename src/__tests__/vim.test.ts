@@ -932,6 +932,31 @@ describe('document', () => {
     await shouldEqual(doc2)
   })
 
+  it('should synchronize changes after single line change', async () => {
+    const filepath = await createTmpFile(['a', 'b', 'c'].join('\n'), disposables)
+    const doc = await helper.createDocument(filepath)
+
+    nvim.pauseNotification()
+    await nvim.command('normal! O')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call append(0, "append")')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call setline(2, "set")')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call deletebufline("%", 2)')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+
   // #5542
   it('should synchronize buffered changes after setlines', async () => {
     const fileContents = [
