@@ -364,9 +364,9 @@ def OnBufferChange(bufnr: number, start: number, end: number, added: number, cha
   # When selecting an item in Coc's popup menu or Vim's insert completion menu,
   # this callback will be triggered multiple times with only `change.col` different
   if added == 0 && end - start == 1
-   # See comments below for more details
-   coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start)])
-   return
+    # See comments below for more details
+    coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start)])
+    return
   endif
 
   # Simulate unbuffered changes
