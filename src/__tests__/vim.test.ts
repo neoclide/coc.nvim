@@ -952,6 +952,15 @@ describe('document', () => {
     await shouldEqual(doc)
 
     nvim.pauseNotification()
+    await nvim.command('normal! a123')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+    nvim.pauseNotification()
+    await nvim.command('normal! 5a456')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
     await nvim.command('call deletebufline("%", 2)')
     await nvim.resumeNotification(true)
     await shouldEqual(doc)

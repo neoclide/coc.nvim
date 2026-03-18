@@ -360,7 +360,15 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
 enddef
 
 # Callback of `listener_add()` with its `unbuffered` flag defaulting to `false`
-def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, changes: list<dict<any>>): void
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, changes: list<dict<any>>): void
+  # When selecting an item in Coc's popup menu or Vim's insert completion menu,
+  # this callback will be triggered multiple times with only `change.col` different
+  if added == 0 && end - start == 1
+   # See comments below for more details
+   coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start)])
+   return
+  endif
+
   # Simulate unbuffered changes
   #
   # Can't simply use `getbufline(bufnr, start, end - 1 + added)` to get updated line content after all changes
