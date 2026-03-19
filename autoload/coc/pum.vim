@@ -22,6 +22,38 @@ if s:is_vim
   endif
 endif
 
+function! s:screen_col(lnum, bytecol) abort
+  let line = getline(a:lnum)
+  if &conceallevel == 0
+    return strdisplaywidth(strpart(line, 0, a:bytecol - 1)) + 1
+  endif
+  let width = 0
+  let last_conceal = 0
+  let idx = 0
+  let nchars = strchars(line)
+  while idx < nchars
+    let col = byteidx(line, idx) + 1
+    if col >= a:bytecol
+      break
+    endif
+    let [concealed, text, conceal_id] = synconcealed(a:lnum, col)
+    if concealed
+      if conceal_id != last_conceal
+        if !empty(text)
+          let width += strdisplaywidth(text, width)
+        endif
+        let last_conceal = conceal_id
+      endif
+    else
+      let last_conceal = 0
+      let char = strcharpart(line, idx, 1)
+      let width += max([1, strdisplaywidth(char, width)])
+    endif
+    let idx += 1
+  endwhile
+  return width + 1
+endfunction
+
 function! coc#pum#has_item_selected() abort
     return coc#pum#visible() && s:pum_index != -1
 endfunction
@@ -369,14 +401,13 @@ function! coc#pum#create(lines, opt, config) abort
   if empty(config)
     return
   endif
-  let s:reversed = get(a:config, 'reverse', 0) && config['row'] < 0
+  let s:reversed = get(a:config, 'reverse', 0) && config['above']
   let s:virtual_text = get(a:opt, 'virtualText', v:false)
   let s:pum_size = len(a:lines)
   let s:pum_index = a:opt['index']
   let lnum = s:index_to_lnum(s:pum_index)
   call extend(config, {
         \ 'lines': s:reversed ? reverse(copy(a:lines)) : a:lines,
-        \ 'relative': 'cursor',
         \ 'nopad': 1,
         \ 'cursorline': 1,
         \ 'index': lnum - 1,
@@ -391,7 +422,7 @@ function! coc#pum#create(lines, opt, config) abort
   if empty(get(config, 'winblend', 0)) && exists('&pumblend')
     let config['winblend'] = &pumblend
   endif
-  let result =  coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
+  let result = coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
   if empty(result)
     return
   endif
@@ -399,7 +430,7 @@ function! coc#pum#create(lines, opt, config) abort
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
   let s:start_col = a:opt['startcol']
-  call setwinvar(s:pum_winid, 'above', config['row'] < 0)
+  call setwinvar(s:pum_winid, 'above', config['above'])
   let firstline = s:get_firstline(lnum, s:pum_size, config['height'])
   if s:is_vim
     call popup_setoptions(s:pum_winid, { 'firstline': firstline })
@@ -486,11 +517,24 @@ function! s:get_pum_dimension(lines, col, config) abort
   if height <= 0
     return v:null
   endif
-  " should use strdiplaywidth here
-  let text = strpart(getline('.'), a:col, col('.') - 1 - a:col)
-  let col = - strdisplaywidth(text, a:col) - 1
-  let row = showTop ? - height : 1
-  let delta = colIdx + col
+  let lnum = line('.')
+  if s:is_vim
+    let leftcol = winsaveview()['leftcol']
+    let col = (colIdx - wincol() + 1) + s:screen_col(lnum, a:col + 1) - leftcol - 2
+    let row = showTop ? lineIdx - height : lineIdx + 1
+    let delta = col
+  else
+    let curcol = col('.')
+    let start = screenpos(0, lnum, a:col + 1)
+    let curr = screenpos(0, lnum, curcol)
+    if get(start, 'col', 0) > 0 && get(curr, 'col', 0) > 0
+      let col = -(curr['col'] - start['col']) - 1
+    else
+      let col = - strdisplaywidth(strpart(getline(lnum), a:col, curcol - 1 - a:col), a:col) - 1
+    endif
+    let row = showTop ? - height : 1
+    let delta = colIdx + col
+  endif
   if width > pumwidth && delta + width > columns
     let width = max([columns - delta, pumwidth])
   endif
@@ -502,6 +546,8 @@ function! s:get_pum_dimension(lines, col, config) abort
   return {
         \ 'row': row,
         \ 'col': col,
+        \ 'relative': s:is_vim ? 'editor' : 'cursor',
+        \ 'above': showTop,
         \ 'width': width,
         \ 'height': height
         \ }
