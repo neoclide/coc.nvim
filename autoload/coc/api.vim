@@ -124,12 +124,12 @@ const API_FUNCTIONS = [
 # Create a window with bufnr for execute win_execute
 def CreatePopup(bufnr: number): number
   noa const id = popup_create(bufnr, {
-      \ 'line': 1,
-      \ 'col': &columns,
-      \ 'maxwidth': 1,
-      \ 'maxheight': 1,
-      \ })
-  popup_hide(id)
+    'line': 1,
+    'col': &columns,
+    'maxwidth': 1,
+    'maxheight': 1,
+    'hidden': true,
+  })
   return id
 enddef
 
