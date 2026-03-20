@@ -112,10 +112,12 @@ export default class WorkspaceFolderController {
 
   public getWorkspaceFolder(uri: URI): WorkspaceFolder | undefined {
     if (uri.scheme !== 'file') return undefined
+    if (this._workspaceFolders.length === 0) return undefined
     let folders = Array.from(this._workspaceFolders).map(o => URI.parse(o.uri).fsPath)
     folders.sort((a, b) => b.length - a.length)
     let fsPath = uri.fsPath
     let folder = folders.find(f => isParentFolder(f, fsPath, true))
+    if (folder === undefined) return undefined
     return toWorkspaceFolder(folder)
   }
 
