@@ -118,6 +118,10 @@ describe('WorkspaceFolderController', () => {
       workspaceFolder.setWorkspaceFolders([process.cwd()])
       res = workspaceFolder.getWorkspaceFolder(URI.file(filepath))
       expect(URI.parse(res.uri).fsPath).toBe(process.cwd())
+
+      const nonWorkspaceFolderFilePath=path.join(path.dirname(process.cwd()), 'NonWorkspaceFolder/file')
+      res = workspaceFolder.getWorkspaceFolder(URI.file(nonWorkspaceFolderFilePath))
+      expect(res).toBeUndefined()
     })
   })
 
