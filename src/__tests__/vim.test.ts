@@ -892,6 +892,99 @@ describe('document', () => {
     await doc.patchChange()
   })
 
+  // FIXME #5524
+  it.skip('should synchronize changes after undo', async () => {
+    const filepath = await createTmpFile('abc', disposables)
+    const doc = await helper.createDocument(filepath)
+    nvim.pauseNotification()
+    await nvim.command('normal! Ofoo')
+    await nvim.command('normal! u')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+  it('should synchronize changes after undo (2)', async () => {
+    const filepath2 = await createTmpFile('abc\ndef', disposables)
+    const doc2 = await helper.createDocument(filepath2)
+    nvim.pauseNotification()
+    await nvim.command('normal! Ofoo')
+    await nvim.command('normal! u')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc2)
+  })
+
+  it('should synchronize changes after executing a command with count', async () => {
+    const doc = await helper.createDocument()
+    nvim.pauseNotification()
+    await nvim.command('normal! 2o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('normal! 5o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+  it('should synchronize changes after executing a command with count (2)', async () => {
+    const doc2 = await helper.createDocument()
+    nvim.pauseNotification()
+    await nvim.command('normal! 5o')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc2)
+  })
+
+  it('should synchronize changes after single line change', async () => {
+    const filepath = await createTmpFile(['a', 'b', 'c'].join('\n'), disposables)
+    const doc = await helper.createDocument(filepath)
+
+    nvim.pauseNotification()
+    await nvim.command('normal! O')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call append(0, "append")')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call setline(2, "set")')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('normal! a123')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+    nvim.pauseNotification()
+    await nvim.command('normal! 5a456')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+
+    nvim.pauseNotification()
+    await nvim.command('call deletebufline("%", 2)')
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+
+  // #5542
+  it('should synchronize buffered changes after setlines', async () => {
+    const fileContents = [
+      'import { equal } from "assert"',
+      '',
+      'An extra line required to let Vim buffer the changes caused by `undo`, can also be an empty line',
+      'console.log(0)',
+    ]
+    const filepath = await createTmpFile(fileContents.join('\n'), disposables)
+    const doc = await helper.createDocument(filepath)
+    nvim.pauseNotification()
+    // Simulate auto-import
+    await nvim.command(`call setline(4, 'console.log(path)') | call appendbufline('%', 1, 'import path from "path"')`)
+    await nvim.command('normal! u')
+
+    await nvim.resumeNotification(true)
+    await shouldEqual(doc)
+  })
+
   it('should patch change of current line', async () => {
     let doc = await helper.createDocument()
     nvim.call('setline', ['.', 'foo'], true)

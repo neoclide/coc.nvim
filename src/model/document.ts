@@ -219,11 +219,39 @@ export default class Document {
     }, _e => {
       fireDetach(this.bufnr)
     })
-    const onLinesChange = (_buf: number | Buffer, tick: number | null, firstline: number, lastline: number, linedata: string[]) => {
-      if (tick && tick > this._changedtick) {
+    if (isVim) {
+      /**
+       * Triggered by `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which is triggered by `autoload/coc/api.vim OnBufferChange`
+       *
+       * Corresponds to `nvim_buf_lines_event`
+       * @see {@link https://neovim.io/doc/user/api/#nvim_buf_lines_event}
+       */
+      const vim_onLinesChange = (_buf: number,
+        /**
+         * Always >= the tick of previous call
+         * @example When executing `normal! 5o`, this callback will be triggered 5 times with last two ticks the same
+         */
+        tick: number,
+        /**
+         * First line of the change(zero-based), **before** the change is made,
+         * Always >= 0
+         * Converted from `change.lnum` of `listener_add()` callback
+         */
+        firstline: number,
+        /**
+         * First line below the change(zero-based), **before** the change is made,
+         * Always >= `firstline`
+         * Converted from `change.end` of `listener_add()` callback
+         */
+        lastline: number,
+        /**
+         * Updated line content, **after** the change is made
+         */
+        linedata: string[]
+      ) => {
         this._changedtick = tick
-        lines = [...lines.slice(0, firstline), ...linedata, ...(lastline < 0 ? [] : lines.slice(lastline))]
-        if (lines.length == 0) lines = ['']
+        lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
+        if (lines.length === 0) lines = ['']
         if (this._applying) {
           this._applyLines = lines
           return
@@ -233,10 +261,23 @@ export default class Document {
         if (events.completing) return
         this.fireContentChanges()
       }
-    }
-    if (isVim) {
-      this.buffer.listen('vim_lines', onLinesChange, this.disposables)
-    } else {
+      this.buffer.listen('vim_lines', vim_onLinesChange, this.disposables)
+    } else { // isNvim
+      const onLinesChange = (_buf: number | Buffer, tick: number | null, firstline: number, lastline: number, linedata: string[]) => {
+        if (tick && tick > this._changedtick) {
+          this._changedtick = tick
+          lines = [...lines.slice(0, firstline), ...linedata, ...(lastline < 0 ? [] : lines.slice(lastline))]
+          if (lines.length == 0) lines = ['']
+          if (this._applying) {
+            this._applyLines = lines
+            return
+          }
+          this.lines = lines
+          fireLinesChanged(bufnr)
+          if (events.completing) return
+          this.fireContentChanges()
+        }
+      }
       this.buffer.listen('lines', onLinesChange, this.disposables)
       this.buffer.listen('detach', () => {
         fireDetach(this.bufnr)
