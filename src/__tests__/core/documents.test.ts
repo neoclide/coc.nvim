@@ -302,15 +302,26 @@ describe('formatOnSave', () => {
 
   it('should enable format on save', async () => {
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', null)
-    helper.updateConfiguration('coc.preferences.formatOnSave', true)
     let doc = await workspace.document
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', false)
     let res = documents.shouldFormatOnSave(doc)
     expect(res).toBe(false)
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', true)
+    res = documents.shouldFormatOnSave(doc)
+    expect(res).toBe(false)
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', false)
     disposables.push(languages.registerDocumentFormatProvider(['*'], {
       provideDocumentFormattingEdits: () => {
         return []
       }
     }))
+    res = documents.shouldFormatOnSave(doc)
+    expect(res).toBe(false)
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', true)
     res = documents.shouldFormatOnSave(doc)
     expect(res).toBe(true)
   })

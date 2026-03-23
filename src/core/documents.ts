@@ -588,6 +588,13 @@ export default class Documents implements Disposable {
   }
 
   public shouldFormatOnSave(document: Document): boolean {
+    const config = this.configurations.getConfiguration('coc.preferences', document)
+    const filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null) ?? []
+    const enabledInConfiguration = (
+      filetypes.includes('*') || filetypes.includes(document.languageId)
+      || config.get<boolean>('formatOnSave', false)
+    )
+    if (!enabledInConfiguration) return false
     if (!languages.hasFormatProvider(document)) {
       logger.warn(`Format provider not found for ${document.uri}`)
       return false
@@ -596,11 +603,8 @@ export default class Documents implements Disposable {
       logger.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`)
       return false
     }
-    let config = this.configurations.getConfiguration('coc.preferences', document)
-    let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
-    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(document.languageId)
-    let formatOnSave = config.get<boolean>('formatOnSave', false)
-    return formatOnSave
+
+    return true
   }
 
   public onFileTypeChange(filetype: string, bufnr: number): void {
