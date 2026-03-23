@@ -359,10 +359,51 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
   return type
 enddef
 
-def OnBufferChange(bufnr: number, start: number, end: number, added: number, bufchanges: list<any>): void
-  const new_len = end - start + added
-  const lines: list<string> = new_len > 0 ? getbufline(bufnr, start, start + new_len - 1) : []
-  coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, lines])
+# Callback of `listener_add()` with its `unbuffered` flag defaulting to `false`
+def OnBufferChange(bufnr: number, start: number, end: number, added: number, changes: list<dict<any>>): void
+  # When selecting an item in Coc's popup menu or Vim's insert completion menu,
+  # this callback will be triggered multiple times with only `change.col` different
+  if added == 0 && end - start == 1
+    # See comments below for more details
+    coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start)])
+    return
+  endif
+
+  # Simulate unbuffered changes
+  #
+  # Can't simply use `getbufline(bufnr, start, end - 1 + added)` to get updated line content after all changes
+  # @example
+  #    For start == 2 && end == 5 && added == -1
+  #        && changes == [{'lnum': 2, 'col': 1, 'added': -1, 'end': 3}, {'lnum': 4, 'col': 1, 'added': 0, 'end': 5}]
+  #    last line after all changes are made should be `changes[1].end - 1 + changes[1].added == 4`, rather than `end - 1 + added == 5`
+  #    And it's hard to calculate last line before all changes are made in various cases
+  #
+  for change: dict<any> in changes
+    # First line of the change, before the change is made
+    const firstLine_beforeChange: number = change.lnum
+    # First line below the change, before the change is made
+    const firstLineBelow_beforeChange: number = change.end
+    # First changed line, after the change is made
+    const firstLine_afterChange: number = change.lnum
+    # Last changed line, after the change is made
+    const lastLine_afterChange: number = change.end - 1 + change.added
+
+    # Send the range of affected lines(before `change` is made) and the updated line content(after `change` is made)
+    #
+    # Trigger `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which then triggers `src/model/document.ts vim_lines`
+    #
+    # Convert parameters to the ones of `nvim_buf_lines_event`
+    # @see https://neovim.io/doc/user/api/#nvim_buf_lines_event
+    #
+    coc#rpc#notify('vim_buf_change_event', [bufnr,
+      # Note: When executing `normal! 5o`, this callback will be triggered 5 times with last two changedticks the same
+      #       due to `unbuffered` flag defaulting to `false`
+      getbufvar(bufnr, 'changedtick'),
+      # `- 1`: zero-based
+      firstLine_beforeChange - 1, firstLineBelow_beforeChange - 1,
+      getbufline(bufnr, firstLine_afterChange, lastLine_afterChange)
+    ])
+  endfor
 enddef
 
 export def DetachListener(bufnr: number): bool
