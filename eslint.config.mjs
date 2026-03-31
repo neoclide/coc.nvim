@@ -1,35 +1,18 @@
 import {defineConfig, globalIgnores} from "eslint/config"
+import globals from "globals"
 import jsdoc from "eslint-plugin-jsdoc"
 import jest from "eslint-plugin-jest"
-import typescriptEslint from "@typescript-eslint/eslint-plugin"
-import globals from "globals"
-import tsParser from "@typescript-eslint/parser"
-import path from "node:path"
-import {fileURLToPath} from "node:url"
-import js from "@eslint/js"
-import {FlatCompat} from "@eslint/eslintrc"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all
-})
+import typescriptEslint from "typescript-eslint"
 
 export default defineConfig([
   globalIgnores(["**/node_modules", "**/coverage", "**/build", "**/lib", "**/typings"]),
   {
     files: ['**/*.ts'],
-    extends: compat.extends(
-      "plugin:@typescript-eslint/recommended",
-      "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    ),
+    extends: typescriptEslint.configs.recommendedTypeChecked,
 
     plugins: {
       jsdoc,
       jest,
-      "@typescript-eslint": typescriptEslint,
     },
 
     languageOptions: {
@@ -38,7 +21,6 @@ export default defineConfig([
         ...jest.environments.globals.globals,
       },
 
-      parser: tsParser,
       ecmaVersion: 5,
       sourceType: "module",
 
@@ -170,7 +152,7 @@ export default defineConfig([
       "@typescript-eslint/prefer-namespace-keyword": "error",
       "@typescript-eslint/quotes": "off",
       "@typescript-eslint/no-require-imports": "off",
-      "@/semi": ["error", "never"],
+      "semi": ["error", "never"],
 
       "@typescript-eslint/triple-slash-reference": ["error", {
         path: "always",
