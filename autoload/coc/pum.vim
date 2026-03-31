@@ -24,7 +24,8 @@ endif
 
 function! s:screen_col(lnum, bytecol) abort
   let line = getline(a:lnum)
-  if &conceallevel == 0
+  let conceal_cursor = a:lnum != line('.') || &concealcursor =~# 'i'
+  if &conceallevel == 0 || !conceal_cursor
     return strdisplaywidth(strpart(line, 0, a:bytecol - 1)) + 1
   endif
   let width = 0
@@ -519,8 +520,9 @@ function! s:get_pum_dimension(lines, col, config) abort
   endif
   let lnum = line('.')
   if s:is_vim
+    let wininfo = getwininfo(win_getid())[0]
     let leftcol = winsaveview()['leftcol']
-    let col = (colIdx - wincol() + 1) + s:screen_col(lnum, a:col + 1) - leftcol - 2
+    let col = wininfo['wincol'] + get(wininfo, 'textoff', 0) + s:screen_col(lnum, a:col + 1) - leftcol - 3
     let row = showTop ? lineIdx - height - bh : lineIdx + 1
     let delta = col
   else
