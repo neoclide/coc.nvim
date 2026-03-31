@@ -521,7 +521,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   if s:is_vim
     let leftcol = winsaveview()['leftcol']
     let col = (colIdx - wincol() + 1) + s:screen_col(lnum, a:col + 1) - leftcol - 2
-    let row = showTop ? lineIdx - height : lineIdx + 1
+    let row = showTop ? lineIdx - height - bh : lineIdx + 1
     let delta = col
   else
     let curcol = col('.')
