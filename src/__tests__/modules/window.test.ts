@@ -231,12 +231,14 @@ describe('window', () => {
 
     it('should show menu', async () => {
       let p = window.showMenuPicker(['a', 'b', 'c'], 'choose item')
-      await helper.waitValue(async () => {
-        return await nvim.call('coc#float#has_float', [])
-      }, 1)
+      let winid = await helper.waitFloat()
+      let bufnr = await nvim.call('winbufnr', [winid]) as number
       await nvim.input('2')
       let res = await p
       expect(res).toBe(1)
+      await helper.waitValue(async () => {
+        return await nvim.call('bufexists', [bufnr])
+      }, 0)
       res = await window.showMenuPicker(['foo'], { title: 'title', position: 'center' }, CancellationToken.Cancelled)
       expect(res).toBe(-1)
     })
