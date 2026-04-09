@@ -72,7 +72,7 @@ export function formatDiagnostic(format: string, diagnostic: Diagnostic): string
   return format.replace('%source', source)
     .replace('%code', codeStr)
     .replace('%severity', s)
-    .replace('%message', message)
+    .replace('%message', () => message)
 }
 
 export function getSeverityName(severity: DiagnosticSeverity): string {
