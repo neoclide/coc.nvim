@@ -286,7 +286,7 @@ class Renderer {
       Object.assign(
         {},
         {
-          head: generateTableRow(header)[0]
+          head: generateTableRow(header, this.transform)[0]
         },
         this.tableSettings
       )

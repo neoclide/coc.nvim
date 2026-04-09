@@ -172,6 +172,16 @@ bar
     ])
   })
 
+  it('should render code span in table header', () => {
+    let content = [
+      '|Type|`size_of::<Type>()`|',
+      '|----|-------------------|',
+      '|()|0|'
+    ].join('\n')
+    let res = parseMarkdown(content, {})
+    expect(res.lines).toContain('│ Type │ size_of::<Type>() │')
+  })
+
   it('should render html', () => {
     let content = '<div>foo</div>'
     let res = parseMarkdown(content, {})
