@@ -1,7 +1,6 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:root = expand('<sfile>:h:h:h')
-let s:prompt_win_bufnr = 0
 let s:list_win_bufnr = 0
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:frames = ['·  ', '·· ', '···', ' ··', '  ·', '   ']
@@ -128,6 +127,7 @@ function! coc#dialog#_create_prompt_vim(title, default, opts) abort
     return
   endif
   let winid = res[0]
+  call setwinvar(winid, 'prompt', 1)
   " call win_gotoid(winid)
   call coc#util#do_autocmd('CocOpenFloatPrompt')
   let pos = popup_getpos(winid)
@@ -138,14 +138,14 @@ endfunction
 
 " Use normal buffer on neovim
 function! coc#dialog#_create_prompt_nvim(title, default, opts) abort
-  let result = s:create_prompt_win(s:prompt_win_bufnr, a:title, a:default, a:opts)
+  let result = s:create_prompt_win(0, a:title, a:default, a:opts)
   if empty(result)
     return
   endif
   let winid = result[0]
-  let s:prompt_win_bufnr = result[1]
-  let bufnr = s:prompt_win_bufnr
-  call sign_unplace(s:sign_group, { 'buffer': s:prompt_win_bufnr })
+  let bufnr = result[1]
+  call setwinvar(winid, 'prompt', 1)
+  call sign_unplace(s:sign_group, { 'buffer': bufnr })
   call nvim_set_current_win(winid)
   inoremap <buffer> <C-a> <Home>
   inoremap <buffer><expr><C-e> pumvisible() ? "\<C-e>" : "\<End>"
@@ -267,6 +267,7 @@ function! coc#dialog#create_menu(lines, config) abort
   endif
   let opts = {
     \ 'lines': lines,
+    \ 'bufhidden': 'wipe',
     \ 'highlight': highlight,
     \ 'title': get(a:config, 'title', ''),
     \ 'borderhighlight': borderhighlight,
@@ -283,11 +284,10 @@ function! coc#dialog#create_menu(lines, config) abort
     let dimension = coc#dialog#get_config_cursor(lines, opts)
   endif
   call extend(opts, dimension)
-  let ids = coc#float#create_float_win(0, s:prompt_win_bufnr, opts)
+  let ids = coc#float#create_float_win(0, 0, opts)
   if empty(ids)
     return
   endif
-  let s:prompt_win_bufnr = ids[1]
   call coc#dialog#set_cursor(ids[0], ids[1], contentCount + 1)
   redraw
   if !s:is_vim
@@ -353,11 +353,12 @@ function! coc#dialog#prompt_confirm(title, cb) abort
   let width = coc#math#min(maxWidth, strdisplaywidth(text))
   let maxHeight = &lines - &cmdheight - 1
   let height = coc#math#min(maxHeight, float2nr(ceil(str2float(string(strdisplaywidth(text)))/width)))
-  let arr =  coc#float#create_float_win(0, s:prompt_win_bufnr, {
+  let arr =  coc#float#create_float_win(0, 0, {
         \ 'col': &columns/2 - width/2 - 1,
         \ 'row': maxHeight/2 - height/2 - 1,
         \ 'width': width,
         \ 'height': height,
+        \ 'bufhidden': 'wipe',
         \ 'border': [1,1,1,1],
         \ 'focusable': v:false,
         \ 'relative': 'editor',
@@ -371,8 +372,8 @@ function! coc#dialog#prompt_confirm(title, cb) abort
     return
   endif
   let winid = arr[0]
-  let s:prompt_win_bufnr = arr[1]
-  call sign_unplace(s:sign_group, { 'buffer': s:prompt_win_bufnr })
+  call setwinvar(winid, 'prompt', 1)
+  call sign_unplace(s:sign_group, { 'buffer': arr[1] })
   let res = 0
   redraw
   " same result as vim
@@ -395,10 +396,12 @@ endfunction
 
 " works on neovim only
 function! coc#dialog#get_prompt_win() abort
-  if s:prompt_win_bufnr == 0
-    return -1
-  endif
-  return get(win_findbuf(s:prompt_win_bufnr), 0, -1)
+  for winid in coc#float#get_float_win_list()
+    if getwinvar(winid, 'prompt', 0)
+      return winid
+    endif
+  endfor
+  return -1
 endfunction
 
 function! coc#dialog#get_config_editor(lines, config) abort
@@ -663,6 +666,7 @@ endfunction
 function! s:create_prompt_win(bufnr, title, default, opts) abort
   let config = s:get_prompt_dimension(a:title, a:default, a:opts)
   return coc#float#create_float_win(0, a:bufnr, extend(config, {
+        \ 'bufhidden': 'wipe',
         \ 'style': 'minimal',
         \ 'border': get(a:opts, 'border', [1,1,1,1]),
         \ 'rounded': get(a:opts, 'rounded', 1),
