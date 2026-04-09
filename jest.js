@@ -9,7 +9,7 @@ process.on('uncaughtException', err => {
 })
 
 process.on('exit', () => {
-  fs.rmdirSync(process.env.TMPDIR, {recursive: true, force: true})
+  fs.rmSync(process.env.TMPDIR, {recursive: true, force: true})
 })
 
 module.exports = async () => {
