@@ -63,6 +63,17 @@ export default class Signature {
         this.signatureFactory.close()
       }
     }, null, this.disposables)
+    events.on('MenuPopupChanged', () => {
+      if (this.config.hideOnChange) return
+      process.nextTick(async () => {
+        if (this.signatureFactory.window != null) return
+        let bufnr = this.lastPosition?.bufnr
+        if (!bufnr) return
+        let { doc, position } = await this.handler.getCurrentState()
+        if (!doc || !doc.attached || doc.bufnr !== bufnr) return
+        await this._triggerSignatureHelp(doc, position, false)
+      })
+    }, null, this.disposables)
     events.on('TextInsert', async (bufnr, info, character) => {
       if (!this.shouldAutoTrigger(bufnr, character)) return
       let doc = workspace.getDocument(bufnr)
@@ -74,6 +85,7 @@ export default class Signature {
       await wait(50)
       if (!this.shouldAutoTrigger(bufnr, info.charbefore)) return
       let doc = workspace.getDocument(bufnr)
+      if (!doc || !doc.attached) return
       await this._triggerSignatureHelp(doc, info.range.start, false)
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(() => {
