@@ -392,6 +392,20 @@ describe('signatureHelp', () => {
       configurations.updateMemoryConfig({ 'signature.hideOnTextChange': false })
     })
 
+    it('should not retrigger signature on MenuPopupChanged when hideOnTextChange enabled', async () => {
+      configurations.updateMemoryConfig({ 'signature.hideOnTextChange': true })
+      let doc = await helper.createDocument()
+      Object.assign(signature as any, {
+        lastPosition: { bufnr: doc.bufnr, lnum: 1, col: 1 }
+      })
+      let spy = jest.spyOn(signature as any, '_triggerSignatureHelp').mockResolvedValue(true)
+      await events.fire('MenuPopupChanged', [{}])
+      await helper.wait(30)
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+      configurations.updateMemoryConfig({ 'signature.hideOnTextChange': false })
+    })
+
     it('should disable signature help trigger', async () => {
       configurations.updateMemoryConfig({ 'signature.enable': false })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
