@@ -526,10 +526,10 @@ function! s:get_pum_dimension(lines, col, config) abort
     let screen_col = s:screen_col(lnum, a:col + 1)
     if &wrap
       let wrapwidth = max([1, wininfo['width'] - textoff])
-      let offset = screen_col - 1 - get(view, 'skipcol', 0)
-      let col = wininfo['wincol'] + textoff + (offset < 0 ? offset : offset % wrapwidth) - 2
+      let offset = screen_col - 1
+      let col = wininfo['wincol'] + textoff + (offset % wrapwidth) - 1
     else
-      let col = wininfo['wincol'] + textoff + screen_col - view['leftcol'] - 3
+      let col = wininfo['wincol'] + textoff + screen_col - view['leftcol'] - 2
     endif
     let row = showTop ? lineIdx - height - bh : lineIdx + 1
     let delta = col
@@ -551,7 +551,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   if delta < 0
     let col = col - delta
   elseif delta + width > columns
-    let col = max([-colIdx, col - (delta + width - columns)])
+    let col = max([s:is_vim ? 0 : -colIdx, col - (delta + width - columns)])
   endif
   return {
         \ 'row': row,
