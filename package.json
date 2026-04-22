@@ -108,7 +108,7 @@
     "tslib": "^2.8.1",
     "unidecode": "^1.1.0",
     "unzip-stream": "^0.3.4",
-    "uuid": "^9.0.1",
+    "uuid": "^14.0.0",
     "vscode-languageserver-protocol": "^3.17.6-next.17",
     "vscode-languageserver-textdocument": "^1.0.12",
     "vscode-languageserver-types": "^3.17.6-next.6",
