@@ -94,7 +94,9 @@ export default class LocationsDataProvider<T extends LocationDataItem<T>, P> imp
     if (this.config.enableTooltip) {
       item.tooltip = path.relative(workspace.cwd, URI.parse(element.uri).fsPath)
     }
-    item.description = element.detail
+    if (element.name != element.detail) {
+      item.description = element.detail
+    }
     item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
     item.icon = this.getIcon(element.kind)
     item.command = {
