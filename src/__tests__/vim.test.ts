@@ -225,7 +225,7 @@ describe('client API', () => {
 
   it('should set current buffer', async () => {
     let bufnr = await nvim.call('bufadd', ['foo']) as number
-    await nvim.call('bufload', [bufnr])
+    await nvim.command(`call bufload(${bufnr})`)
     await nvim.setBuffer(nvim.createBuffer(bufnr))
     let b = await nvim.buffer
     expect(b.id).toBe(bufnr)
@@ -662,7 +662,7 @@ describe('Window API', () => {
 
   it('should set buffer', async () => {
     let bufnr = await nvim.call('bufadd', ['foo']) as number
-    await nvim.call('bufload', [bufnr])
+    await nvim.command(`call bufload(${bufnr})`)
     await win.setBuffer(nvim.createBuffer(bufnr))
     let buf = await win.buffer
     expect(buf.id).toBe(bufnr)
@@ -801,7 +801,7 @@ describe('Popup', () => {
     let tabpage = await win.tabpage
     expect(tabpage.id).toBeGreaterThan(0)
     await win.close(true)
-    await nvim.call('popup_clear', [])
+    await nvim.command(`call popup_clear()`)
   })
 
   it('should create inputBox', async () => {
@@ -893,7 +893,7 @@ describe('document', () => {
   })
 
   // FIXME #5524
-  it.skip('should synchronize changes after undo', async () => {
+  it.failing('[FAILED] should synchronize changes after undo', async () => {
     const filepath = await createTmpFile('abc', disposables)
     const doc = await helper.createDocument(filepath)
     nvim.pauseNotification()

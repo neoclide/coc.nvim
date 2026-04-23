@@ -495,7 +495,7 @@ class DiagnosticManager implements Disposable {
     let buf = this.buffers.getItem(bufnr)
     if (buf) {
       let isEnabled = enable == undefined ? await buf.isEnabled() : enable == 0
-      await this.nvim.call('setbufvar', [bufnr, 'coc_diagnostic_disable', isEnabled ? 1 : 0])
+      await buf.doc.buffer.setVar('coc_diagnostic_disable', isEnabled ? 1 : 0)
       await buf.setState(!isEnabled)
     }
   }
