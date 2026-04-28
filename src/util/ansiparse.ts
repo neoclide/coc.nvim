@@ -129,7 +129,7 @@ export function ansiparse(str: string): AnsiItem[] {
     let index
     let text
     if (matchingText.length) {
-      matchingText = matchingText.substr(0, matchingText.length - 1)
+      matchingText = matchingText.slice(0, matchingText.length - 1)
     }
     else if (result.length) {
       index = result.length - 1
@@ -141,7 +141,7 @@ export function ansiparse(str: string): AnsiItem[] {
         result.pop()
       }
       else {
-        result[index].text = text.substr(0, text.length - 1)
+        result[index].text = text.slice(0, text.length - 1)
       }
     }
   }

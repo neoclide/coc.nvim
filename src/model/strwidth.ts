@@ -1,5 +1,5 @@
 import { pluginRoot } from '../util/constants'
-import { fs, path, promisify } from '../util/node'
+import { fs, path } from '../util/node'
 
 export interface StrWidthWasi {
   strWidth: (textPtr: number) => number
@@ -14,7 +14,7 @@ export interface StrWidthWasi {
 const wasmPath = path.join(pluginRoot, 'bin/strwidth.wasm')
 
 export async function initStrWidthWasm(): Promise<StrWidthWasi> {
-  const buffer = await promisify(fs.readFile)(wasmPath)
+  const buffer = await fs.promises.readFile(wasmPath)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as StrWidthWasi
 }

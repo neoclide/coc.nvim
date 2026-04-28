@@ -2,7 +2,7 @@ import { createLogger } from '../logger'
 import { toArray } from '../util/array'
 import { readFile, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
-import { fs, path, promisify, semver } from '../util/node'
+import { fs, path, semver } from '../util/node'
 import { toObject } from '../util/object'
 const logger = createLogger('extension-stat')
 
@@ -351,7 +351,7 @@ export function checkExtensionRoot(root: string): boolean {
 
 export async function getJsFiles(folder: string): Promise<string[]> {
   if (!fs.existsSync(folder)) return []
-  let files = await promisify(fs.readdir)(folder)
+  let files = await fs.promises.readdir(folder)
   return files.filter(f => f.endsWith('.js'))
 }
 

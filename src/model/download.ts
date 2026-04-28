@@ -1,6 +1,5 @@
 'use strict'
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
-import { URL } from 'url'
 import { v1 as uuidv1 } from 'uuid'
 import { createLogger } from '../logger'
 import { crypto, fs, path } from '../util/node'

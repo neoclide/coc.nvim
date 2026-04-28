@@ -140,7 +140,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return item.value
   }
 
-  public forEach(callbackfn: (value: V, key: K, map: LinkedMap<K, V>) => void, thisArg?: any): void {
+  public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
     const state = this._state
     let current = this._head
     while (current) {
@@ -156,13 +156,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
     }
   }
 
-  public keys(): IterableIterator<K> {
+  public keys(): MapIterator<K> {
     const state = this._state
     let current = this._head
-    const iterator: IterableIterator<K> = {
+    const iterator: MapIterator<K> = {
       [Symbol.iterator]: () => {
         return iterator
       },
+      [Symbol.dispose]: () => {},
       next: (): IteratorResult<K> => {
         if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
@@ -179,13 +180,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return iterator
   }
 
-  public values(): IterableIterator<V> {
+  public values(): MapIterator<V> {
     const state = this._state
     let current = this._head
-    const iterator: IterableIterator<V> = {
+    const iterator: MapIterator<V> = {
       [Symbol.iterator]: () => {
         return iterator
       },
+      [Symbol.dispose]: () => {},
       next: (): IteratorResult<V> => {
         if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
@@ -202,13 +204,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return iterator
   }
 
-  public entries(): IterableIterator<[K, V]> {
+  public entries(): MapIterator<[K, V]> {
     const state = this._state
     let current = this._head
-    const iterator: IterableIterator<[K, V]> = {
+    const iterator: MapIterator<[K, V]> = {
       [Symbol.iterator]: () => {
         return iterator
       },
+      [Symbol.dispose]: () => {},
       next: (): IteratorResult<[K, V]> => {
         if (this._state !== state) {
           throw new Error(`LinkedMap got modified during iteration.`)
@@ -225,7 +228,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
     return iterator
   }
 
-  public [Symbol.iterator](): IterableIterator<[K, V]> {
+  public [Symbol.iterator](): MapIterator<[K, V]> {
     return this.entries()
   }
 

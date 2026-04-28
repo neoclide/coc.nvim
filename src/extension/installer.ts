@@ -1,6 +1,5 @@
 'use strict'
 import { EventEmitter } from 'events'
-import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
 import { createLogger } from '../logger'
 import download, { DownloadOptions } from '../model/download'
@@ -139,7 +138,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (url.includes('@')) {
       // https://github.com/sdras/vue-vscode-snippets@main
       let idx = url.indexOf('@')
-      branch = url.substr(idx + 1)
+      branch = url.substring(idx + 1)
       url = url.substring(0, idx)
     }
     let fileUrl = url.replace('github.com', 'raw.githubusercontent.com') + `/${branch}/package.json`

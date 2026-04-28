@@ -1,10 +1,10 @@
-import { marked } from 'marked'
+import { marked, Renderer as MarkedRenderer } from 'marked'
 import Renderer, { bulletPointLine, fixHardReturn, generateTableRow, identify, numberedLine, toSpaces, toSpecialSpaces } from '../../markdown/renderer'
 import * as styles from '../../markdown/styles'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'
 
 marked.setOptions({
-  renderer: new Renderer(),
+  renderer: new Renderer() as MarkedRenderer,
   hooks: Renderer.hooks,
 })
 

@@ -495,8 +495,8 @@ export class SettingMonitor {
 
   private onDidChangeConfiguration(): void {
     let index = this._setting.indexOf('.')
-    let primary = index >= 0 ? this._setting.substr(0, index) : this._setting
-    let rest = index >= 0 ? this._setting.substr(index + 1) : undefined
+    let primary = index >= 0 ? this._setting.substring(0, index) : this._setting
+    let rest = index >= 0 ? this._setting.substring(index + 1) : undefined
     let enabled = rest
       ? workspace.getConfiguration(primary).get(rest, true)
       : workspace.getConfiguration().get(primary, true)

@@ -9,7 +9,7 @@ import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { readFileLines, statAsync } from '../util/fs'
 import * as Is from '../util/is'
-import { fs, path, promisify } from '../util/node'
+import { fs, path } from '../util/node'
 import { Disposable } from '../util/protocol'
 import { toText } from '../util/string'
 import window from '../window'
@@ -213,7 +213,7 @@ export class Sources {
     let folder = path.join(pluginPath, 'autoload/coc/source')
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
-      let arr = await promisify(fs.readdir)(folder)
+      let arr = await fs.promises.readdir(folder)
       let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
       await Promise.allSettled(files.map(p => this.createVimSourceExtension(p)))
     }

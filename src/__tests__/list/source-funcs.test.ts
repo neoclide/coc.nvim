@@ -26,7 +26,7 @@ afterAll(async () => {
 
 class SimpleList extends BasicList {
   public name = 'simple'
-  public defaultAction: 'preview'
+  public declare defaultAction: 'preview'
   constructor() {
     super()
   }

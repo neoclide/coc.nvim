@@ -2,7 +2,7 @@
 import { distinct } from '../util/array'
 import { dataHome } from '../util/constants'
 import { readFileLines, writeFile } from '../util/fs'
-import { fs, path, promisify } from '../util/node'
+import { fs, path } from '../util/node'
 
 /**
  * Mru - manage string items as lines in mru file.
@@ -64,7 +64,7 @@ export default class Mru {
     } catch (e) {
       buf = Buffer.concat([Buffer.from(item, 'utf8'), new Uint8Array([10])])
     }
-    await promisify(fs.writeFile)(this.file, buf)
+    await fs.promises.writeFile(this.file, buf)
   }
 
   /**
@@ -84,7 +84,7 @@ export default class Mru {
    */
   public async clean(): Promise<void> {
     try {
-      await promisify(fs.unlink)(this.file)
+      await fs.promises.unlink(this.file)
     } catch (e) {
       // noop
     }

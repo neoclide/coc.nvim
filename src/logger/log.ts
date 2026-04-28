@@ -1,5 +1,5 @@
 'use strict'
-import { fs, inspect, path, promisify } from '../util/node'
+import { fs, inspect, path } from '../util/node'
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 export enum LogLevel {
@@ -209,11 +209,11 @@ export class FileLogger extends AbstractLogger {
           } else {
             text = message
           }
-          await promisify(fs.appendFile)(this.fsPath, text, { encoding: 'utf8', flag: 'a+' })
-          let stat = await promisify(fs.stat)(this.fsPath)
+          await fs.promises.appendFile(this.fsPath, text, { encoding: 'utf8', flag: 'a+' })
+          let stat = await fs.promises.stat(this.fsPath)
           if (this.shouldBackup(stat.size)) {
             let newFile = this.getBackupResource()
-            await promisify(fs.rename)(this.fsPath, newFile)
+            await fs.promises.rename(this.fsPath, newFile)
           }
         }
         return fn()

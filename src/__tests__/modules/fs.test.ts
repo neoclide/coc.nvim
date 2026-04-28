@@ -145,14 +145,11 @@ describe('fs', () => {
       res = await getFileType(newPath)
       expect(res).toBe(FileType.SymbolicLink)
       fs.unlinkSync(newPath)
-      let spy = jest.spyOn(fs, 'lstat').mockImplementation((...args) => {
-        let cb = args[args.length - 1] as Function
-        return cb(undefined, {
-          isFile: () => { return false },
-          isDirectory: () => { return false },
-          isSymbolicLink: () => { return false }
-        })
-      })
+      let spy = jest.spyOn(fs.promises, 'lstat').mockResolvedValue({
+        isFile: () => false,
+        isDirectory: () => false,
+        isSymbolicLink: () => false
+      } as any)
       res = await getFileType('__file')
       expect(res).toBe(FileType.Unknown)
       spy.mockRestore()

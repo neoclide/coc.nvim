@@ -89,7 +89,7 @@ export class Scanner {
   }
 
   public tokenText(token: Token): string {
-    return this.value.substr(token.pos, token.len)
+    return this.value.slice(token.pos, token.pos + token.len)
   }
 
   public isEnd(): boolean {
@@ -324,7 +324,7 @@ export class CodeBlock extends Marker {
     let opts: ExecOptions = { windowsHide: true }
     Object.assign(opts, { shell: process.env.SHELL })
     let res = await promisify(exec)(this.code, opts)
-    return res.stdout.replace(/\s*$/, '')
+    return res.stdout.toString().replace(/\s*$/, '')
   }
 
   public async evalVim(nvim: Neovim): Promise<string> {
@@ -632,7 +632,7 @@ export class FormatString extends Marker {
     } else if (this.shorthandName === 'downcase') {
       return !value ? '' : value.toLocaleLowerCase()
     } else if (this.shorthandName === 'capitalize') {
-      return !value ? '' : (value[0].toLocaleUpperCase() + value.substr(1))
+      return !value ? '' : (value[0].toLocaleUpperCase() + value.slice(1))
     } else if (this.shorthandName === 'pascalcase') {
       return !value ? '' : this._toPascalCase(value)
     } else if (Boolean(value) && typeof this.ifValue === 'string') {
@@ -650,7 +650,7 @@ export class FormatString extends Marker {
       return value
     }
     return match.map(word => word.charAt(0).toUpperCase()
-      + word.substr(1).toLowerCase())
+      + word.slice(1).toLowerCase())
       .join('')
   }
 
