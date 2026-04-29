@@ -87,8 +87,8 @@ export class PullConfigurationFeature implements StaticFeature {
       if (index === -1) {
         result = toJSONObject(workspace.getConfiguration(undefined, resource).get(section))
       } else {
-        let config = workspace.getConfiguration(section.substr(0, index), resource)
-        result = toJSONObject(mergeConfigProperties(config))[section.substr(index + 1)]
+        let config = workspace.getConfiguration(section.substring(0, index), resource)
+        result = toJSONObject(mergeConfigProperties(config))[section.substring(index + 1)]
       }
     } else {
       let config = workspace.getConfiguration(section, resource)
@@ -231,7 +231,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       let index: number = key.indexOf('.')
       let config: WorkspaceConfiguration
       if (index >= 0) {
-        config = workspace.getConfiguration(key.substr(0, index), workspaceFolder).get(key.substr(index + 1))
+        config = workspace.getConfiguration(key.substring(0, index), workspaceFolder).get(key.substring(index + 1))
       } else {
         config = workspace.getConfiguration(key, workspaceFolder)
       }

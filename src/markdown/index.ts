@@ -1,5 +1,5 @@
 'use strict'
-import { marked } from 'marked'
+import { marked, Renderer as MarkedRenderer } from 'marked'
 import { Documentation, HighlightItem } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import * as Is from '../util/is'
@@ -155,7 +155,7 @@ export function getHighlightItems(content: string, currline: number, active: [nu
  */
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
   marked.setOptions({
-    renderer: new Renderer(),
+    renderer: new Renderer() as MarkedRenderer,
     gfm: true,
     breaks: Is.boolean(opts.breaks) ? opts.breaks : true,
     hooks: Renderer.hooks,

@@ -86,7 +86,7 @@ export function writeJson(filepath: string, obj: any): void {
 export async function statAsync(filepath: string): Promise<Stats | null> {
   let stat = null
   try {
-    stat = await promisify(fs.stat)(filepath)
+    stat = await fs.promises.stat(filepath)
   } catch (e) {}
   return stat
 }
@@ -109,7 +109,7 @@ export function renameAsync(oldPath: string, newPath: string): Promise<void> {
 export async function remove(filepath: string | undefined): Promise<void> {
   if (!filepath) return
   try {
-    await promisify(fs.rm)(filepath, { force: true, recursive: true })
+    await fs.promises.rm(filepath, { force: true, recursive: true })
   } catch (e) {
     return
   }
@@ -117,7 +117,7 @@ export async function remove(filepath: string | undefined): Promise<void> {
 
 export async function getFileType(filepath: string): Promise<FileType | undefined> {
   try {
-    const stat = await promisify(fs.lstat)(filepath)
+    const stat = await fs.promises.lstat(filepath)
     if (stat.isFile()) {
       return FileType.File
     }
@@ -393,7 +393,7 @@ export function fileStartsWith(dir: string, pdir: string, caseInsensitive = plat
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {
-  await promisify(fs.writeFile)(fullpath, content, { encoding: 'utf8' })
+  await fs.promises.writeFile(fullpath, content, { encoding: 'utf8' })
 }
 
 export function isFile(uri: string): boolean {

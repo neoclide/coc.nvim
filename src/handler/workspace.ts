@@ -18,7 +18,7 @@ import { CONFIG_FILE_NAME, isVim } from '../util/constants'
 import { directoryNotExists } from '../util/errors'
 import { isDirectory } from '../util/fs'
 import * as Is from '../util/is'
-import { fs, os, path } from '../util/node'
+import { fs, os, path, stripAnsi } from '../util/node'
 import { toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -279,7 +279,6 @@ export default class WorkspaceHandler {
     lines.push('## Log of coc.nvim')
     lines.push('')
     let file = getLoggerFile()
-    const stripAnsi = require('strip-ansi')
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
       lines.push(...content.split(/\r?\n/).map(line => stripAnsi(line)))

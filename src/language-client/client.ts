@@ -1672,7 +1672,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       retryOnContentModified: Array.from(BaseLanguageClient.RequestsToCancelOnContentModified)
     }
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
-    generalCapabilities.markdown = { parser: 'marked', version: '7.0.5' }
+    generalCapabilities.markdown = { parser: 'marked', version: '10.0.0' }
     generalCapabilities.positionEncodings = ['utf-16']
     // Added in 3.17.0
     if (this._clientOptions.markdown.supportHtml) {

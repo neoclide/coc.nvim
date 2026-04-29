@@ -1,8 +1,7 @@
 'use strict'
-import { fs, path } from '../util/node'
+import { fs, path, stripAnsi } from '../util/node'
 import { statAsync } from '../util/fs'
 import { executable, runCommand } from '../util/processes'
-import stripAnsi from 'strip-ansi'
 
 export default class Resolver {
   private _npmFolder: string

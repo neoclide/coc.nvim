@@ -1,7 +1,7 @@
 'use strict'
 import { CompletionItemKind } from 'vscode-languageserver-types'
 import { statAsync } from '../../util/fs'
-import { fs, minimatch, path, promisify } from '../../util/node'
+import { fs, minimatch, path } from '../../util/node'
 import { isWindows } from '../../util/platform'
 import { CancellationToken } from '../../util/protocol'
 import { byteSlice } from '../../util/string'
@@ -81,7 +81,7 @@ export async function getItemsFromRoot(pathstr: string, root: string, ignoreHidd
   let dir = getDirectory(pathstr, root)
   let stat = await statAsync(dir)
   if (stat && stat.isDirectory()) {
-    let files = await promisify(fs.readdir)(dir)
+    let files = await fs.promises.readdir(dir)
     files = filterFiles(files, ignoreHidden, ignorePatterns)
     let items = await Promise.all(files.map(filename => getFileItem(dir, filename)))
     res = res.concat(items)
@@ -132,11 +132,11 @@ export class File extends Source {
     } else if (!this.isWindows && pathstr.startsWith("/")) {
       root = pathstr.endsWith("/") ? pathstr : path.posix.dirname(pathstr)
     } else if (part) {
-      let exists = await promisify(fs.exists)(path.join(dirname, part))
+      let exists = await fs.promises.access(path.join(dirname, part)).then(() => true, () => false)
       if (exists) {
         root = dirname
       } else {
-        exists = await promisify(fs.exists)(path.join(cwd, part))
+        exists = await fs.promises.access(path.join(cwd, part)).then(() => true, () => false)
         if (exists) root = cwd
       }
     } else {

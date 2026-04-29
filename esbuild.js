@@ -82,7 +82,7 @@ async function start() {
     mainFields: ['module', 'main'],
     platform: 'node',
     treeShaking: true,
-    target: 'node16.18',
+    target: 'node20',
     plugins: [entryPlugin],
     banner: {
       js: `"use strict";

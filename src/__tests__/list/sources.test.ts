@@ -57,7 +57,7 @@ class OptionList extends BasicList {
 let previewOptions: PreviewOptions
 class SimpleList extends BasicList {
   public name = 'simple'
-  public defaultAction: 'preview'
+  public declare defaultAction: 'preview'
   constructor() {
     super()
     this.addAction('preview', async (_item, context) => {

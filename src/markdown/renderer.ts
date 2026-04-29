@@ -271,7 +271,7 @@ class Renderer {
   }
 
   public checkbox(checked): string {
-    return '[' + (checked ? 'X' : ' ') + '] '
+    return '[' + (checked ? 'X' : ' ') + ']'
   }
 
   public paragraph(text: string): string {

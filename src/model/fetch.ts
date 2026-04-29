@@ -3,9 +3,7 @@ import decompressResponse from 'decompress-response'
 import { http, https } from 'follow-redirects'
 import { HttpProxyAgent } from 'http-proxy-agent'
 import { HttpsProxyAgent } from 'https-proxy-agent'
-import { ParsedUrlQueryInput, stringify } from 'querystring'
 import { Readable } from 'stream'
-import { URL } from 'url'
 import { createLogger } from '../logger'
 import { getConditionValue } from '../util'
 import { CancellationError } from '../util/errors'
@@ -49,7 +47,7 @@ export interface FetchOptions {
   /**
    * Plain object added as query of url
    */
-  query?: ParsedUrlQueryInput
+  query?: Record<string, string | number>
   headers?: any
   /**
    * User for http basic auth, should use with password
@@ -159,7 +157,7 @@ export function resolveRequestOptions(url: URL, options: FetchOptions): any {
     proxyCA: config.get<string | null>('proxyCA', null)
   }
   if (options.query && !url.search) {
-    url.search = `?${stringify(options.query)}`
+    url.search = `?${new URLSearchParams(options.query as Record<string, string>).toString()}`
   }
   let agent = getAgent(url, proxyOptions)
   let opts: any = {
