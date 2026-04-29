@@ -87,15 +87,15 @@ describe('FileLogger', () => {
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {})
     let logger = fileLogger.createLogger('scope')
     fileLogger.switchConsole()
-    let fn = jest.fn()
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+    let fn = vi.fn()
+    let spy = vi.spyOn(console, 'error').mockImplementation(() => {
       fn()
     })
     logger.error('error')
     spy.mockRestore()
     expect(fn).toHaveBeenCalled()
-    fn = jest.fn()
-    spy = jest.spyOn(console, 'log').mockImplementation(() => {
+    fn = vi.fn()
+    spy = vi.spyOn(console, 'log').mockImplementation(() => {
       fn()
     })
     logger.info('info')
@@ -162,7 +162,7 @@ describe('FileLogger', () => {
       userFormatters: true
     })
     let logger = fileLogger.createLogger('scope')
-    let spy = jest.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
+    let spy = vi.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
       return true
     })
     for (let i = 0; i < 6; i++) {
@@ -180,11 +180,11 @@ describe('FileLogger', () => {
       userFormatters: false
     })
     let logger = fileLogger.createLogger('scope')
-    let fn = jest.fn()
-    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+    let fn = vi.fn()
+    let s = vi.spyOn(console, 'error').mockImplementation(() => {
       fn()
     })
-    let spy = jest.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
+    let spy = vi.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
       throw new Error('my error')
     })
     logger.log('msg\n')

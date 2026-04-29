@@ -185,7 +185,7 @@ export default class Source implements ISource<ExtendedCompleteItem> {
         i++
         if (i % 100 === 0) {
           let curr = Date.now()
-          if (curr - prev > 15) {
+          if (curr - prev > 15 || prev === start) {
             await waitImmediate()
             prev = curr
           }

@@ -23,7 +23,7 @@ async function setLines(doc: Document, lines: string[]): Promise<void> {
 }
 
 describe('LinesTextDocument', () => {
-  it('should get first diff line ', async () => {
+  it('should get first diff line', async () => {
     {
       let res = firstDiffLine(['a', 'b'], ['a', 'b'])
       expect(res).toBeUndefined()
@@ -344,7 +344,7 @@ describe('Document', () => {
     it('should not attach when buffer not loaded', async () => {
       await nvim.command('tabe foo | doautocmd CursorHold')
       let doc = await workspace.document
-      let spy = jest.spyOn(doc.buffer, 'attach').mockImplementation(() => {
+      let spy = vi.spyOn(doc.buffer, 'attach').mockImplementation(() => {
         return Promise.reject(new Error('detached'))
       })
       doc.attach()

@@ -73,12 +73,12 @@ jobs:
           vim --version
           nvim --version
 
-      - name: Run jest
+      - name: Run tests
         env:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
-          node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
+          ./node_modules/.bin/vitest run --coverage
 
       - name: Codecov
         uses: codecov/codecov-action@v5

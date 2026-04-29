@@ -1,4 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
+vi.mock('v8', async importOriginal => {
+  const actual = await importOriginal<typeof import('v8')>()
+  return { ...actual, writeHeapSnapshot: vi.fn(() => '') }
+})
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -83,15 +87,12 @@ describe('Workspace handler', () => {
     })
 
     it('should write writeHeapSnapshot', async () => {
-      const v8 = require('v8')
-      let called = false
-      let spy = jest.spyOn(v8, 'writeHeapSnapshot').mockImplementation(() => {
-        called = true
-      })
+      const v8 = await import('v8')
+      const mock = v8.writeHeapSnapshot as unknown as ReturnType<typeof vi.fn>
+      mock.mockClear()
       let filepath = await commands.executeCommand('workspace.writeHeapSnapshot')
-      spy.mockRestore()
       expect(filepath).toBeDefined()
-      expect(called).toBe(true)
+      expect(mock).toHaveBeenCalled()
     })
 
     it('should show output', async () => {
@@ -117,7 +118,7 @@ describe('Workspace handler', () => {
 
     it('should clear watchman roots', async () => {
       let success = true
-      let spy = jest.spyOn(window, 'runTerminalCommand').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'runTerminalCommand').mockImplementation(() => {
         return Promise.resolve({ success, bufnr: 1 })
       })
       let res = await commands.executeCommand('workspace.clearWatchman')
@@ -159,7 +160,7 @@ describe('Workspace handler', () => {
       fs.writeFileSync(newPath, '', 'utf8')
       fs.writeFileSync(fsPath, 'foo', 'utf8')
       await helper.createDocument(fsPath)
-      let spy = jest.spyOn(window, 'showPrompt').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'showPrompt').mockImplementation(() => {
         return Promise.resolve(true)
       })
       let p = commands.executeCommand('workspace.renameCurrentFile')
@@ -184,7 +185,7 @@ describe('Workspace handler', () => {
       }))
       fs.writeFileSync(newPath, '', 'utf8')
       await helper.createDocument(fsPath)
-      let spy = jest.spyOn(window, 'showPrompt').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'showPrompt').mockImplementation(() => {
         return Promise.resolve(false)
       })
       let p = handler.renameCurrent()
@@ -228,7 +229,7 @@ describe('Workspace handler', () => {
       await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
       await nvim.command('setf vim')
       let called = false
-      let spy = jest.spyOn(window, 'showWarningMessage').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'showWarningMessage').mockImplementation(() => {
         called = true
         return Promise.resolve(undefined)
       })
@@ -298,7 +299,7 @@ describe('Workspace handler', () => {
     })
 
     it('should check json extension', async () => {
-      let spy = jest.spyOn(extensions, 'has').mockImplementation(() => {
+      let spy = vi.spyOn(extensions, 'has').mockImplementation(() => {
         return true
       })
       await helper.doAction('checkJsonExtension')
@@ -369,7 +370,7 @@ describe('Workspace handler', () => {
         expect(await handler.snippetCheck(true, false)).toBe(false)
       }
       await expect(fn()).rejects.toThrow(Error)
-      let spy = jest.spyOn(extensions.manager, 'call').mockImplementation(() => {
+      let spy = vi.spyOn(extensions.manager, 'call').mockImplementation(() => {
         return Promise.resolve(true)
       })
       expect(await handler.snippetCheck(true, false)).toBe(true)
@@ -378,7 +379,7 @@ describe('Workspace handler', () => {
 
     it('should check jump', async () => {
       expect(await handler.snippetCheck(false, true)).toBe(false)
-      let spy = jest.spyOn(snippetManager, 'jumpable').mockImplementation(() => {
+      let spy = vi.spyOn(snippetManager, 'jumpable').mockImplementation(() => {
         return true
       })
       expect(await handler.snippetCheck(false, true)).toBe(true)

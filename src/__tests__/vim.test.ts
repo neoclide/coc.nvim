@@ -1,4 +1,6 @@
-process.env.VIM_NODE_RPC = '1'
+vi.hoisted(() => {
+  process.env.VIM_NODE_RPC = '1'
+})
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
@@ -10,9 +12,7 @@ import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import { sameFile } from '../util/fs'
-import { type Helper } from './helper'
-// make sure VIM_NODE_RPC take effect first
-const helper = require('./helper').default as Helper
+import helper from './helper'
 
 function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
@@ -130,9 +130,7 @@ describe('call_function', () => {
   })
 
   it('should throw when call vim9 void function', async () => {
-    await expect(async () => {
-      await nvim.call('vim9#Execute', ['g:x = $"foo"'])
-    }).rejects.toThrow(Error)
+    await expect(nvim.call('vim9#Execute', ['g:x = $"foo"'])).rejects.toThrow(Error)
     // should not report error
     nvim.call('vim9#Execute', ['g:x = $"abc"'], true)
     let x = await nvim.getVar('x')
@@ -306,9 +304,7 @@ describe('client API', () => {
   })
 
   it('should not throw for silent error command', async () => {
-    await expect(async () => {
-      await nvim.command('abcdefg')
-    }).rejects.toThrow(/E492/)
+    await expect(nvim.command('abcdefg')).rejects.toThrow(/E492/)
     await nvim.command('silent! abcdefg')
   })
 
@@ -343,9 +339,7 @@ describe('client API', () => {
   it('should get command output', async () => {
     let res = await nvim.commandOutput('echo "foo"."bar"')
     expect(res).toMatch(/foobar/)
-    await expect(async () => {
-      await nvim.commandOutput('echonot_exists')
-    }).rejects.toThrow(/E492/)
+    await expect(nvim.commandOutput('echonot_exists')).rejects.toThrow(/E492/)
   })
 
   it('should get line & set line', async () => {
@@ -709,12 +703,8 @@ describe('Window API', () => {
     relative = await win.getOption('relativenumber')
     expect(relative).toBe(true)
     await win.setOption('relativenumber', false)
-    await expect(async () => {
-      await win.getOption('not_exists')
-    }).rejects.toThrow('Invalid')
-    await expect(async () => {
-      await win.setOption('not_exists', '')
-    }).rejects.toThrow('Invalid')
+    await expect(win.getOption('not_exists')).rejects.toThrow('Invalid')
+    await expect(win.setOption('not_exists', '')).rejects.toThrow('Invalid')
   })
 
   it('should get and set var', async () => {
@@ -893,7 +883,7 @@ describe('document', () => {
   })
 
   // FIXME #5524
-  it.failing('[FAILED] should synchronize changes after undo', async () => {
+  it.fails('[FAILED] should synchronize changes after undo', async () => {
     const filepath = await createTmpFile('abc', disposables)
     const doc = await helper.createDocument(filepath)
     nvim.pauseNotification()

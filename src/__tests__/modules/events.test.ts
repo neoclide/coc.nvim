@@ -10,7 +10,7 @@ afterEach(async () => {
 
 describe('register handler', () => {
   it('should fire InsertEnter and InsertLeave when necessary', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     events.on('InsertEnter', fn, null, disposables)
     events.on('InsertLeave', fn, null, disposables)
     expect(events.pumvisible).toBe(false)
@@ -23,7 +23,7 @@ describe('register handler', () => {
   })
 
   it('should fire only once', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     events.once('ready', () => {
       fn()
     })
@@ -34,7 +34,7 @@ describe('register handler', () => {
   })
 
   it('should fire visible event once', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let event
     events.once('WindowVisible', ev => {
       event = ev
@@ -49,7 +49,7 @@ describe('register handler', () => {
   })
 
   it('should cancel visible event', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     events.once('WindowVisible', () => {
       fn()
     })
@@ -81,7 +81,7 @@ describe('register handler', () => {
   })
 
   it('should register single handler', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let obj = {}
     let disposable = events.on('BufEnter', fn, obj)
     disposables.push(disposable)
@@ -90,7 +90,7 @@ describe('register handler', () => {
   })
 
   it('should register multiple events', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = events.on(['TaskExit', 'TaskStderr'], fn)
     disposables.push(disposable)
     await events.fire('TaskExit', [])

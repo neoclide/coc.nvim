@@ -220,7 +220,7 @@ describe('documents', () => {
   })
 
   it('should not fire document event when filetype not changed', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     disposables.push(documents.onDidOpenTextDocument(e => {
       fn()
     }))

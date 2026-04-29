@@ -295,7 +295,7 @@ describe('Client integration', () => {
   test('warn and show output', async () => {
     global.__showOutput = true
     let called = false
-    let spy = jest.spyOn(client.outputChannel, 'show').mockImplementation(() => {
+    let spy = vi.spyOn(client.outputChannel, 'show').mockImplementation(() => {
       called = true
     })
     client.warn(undefined, { x: 1 }, true)
@@ -1537,7 +1537,7 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareEvents[0].label, 'Apply Edit')
     error = true
     let called = false
-    let spy = jest.spyOn(client, 'error').mockImplementation(() => {
+    let spy = vi.spyOn(client, 'error').mockImplementation(() => {
       called = true
     })
     await client.sendRequest(
@@ -1615,7 +1615,7 @@ describe('sever tests', () => {
     }
     const clientOptions: LanguageClientOptions = {}
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    let spy = jest.spyOn(client, 'createConnection' as any).mockReturnValue(Promise.reject(new Error('myerror')))
+    let spy = vi.spyOn(client, 'createConnection' as any).mockReturnValue(Promise.reject(new Error('myerror')))
     await assert.rejects(async () => {
       await client.start()
     }, Error)
@@ -1625,7 +1625,7 @@ describe('sever tests', () => {
     spy.mockRestore()
   })
 
-  test('Test state change events', async () => {
+  test('state change events', async () => {
     const serverOptions: ServerOptions = {
       module: path.join(__dirname, './server/nullServer.js'),
       transport: TransportKind.ipc,
@@ -1649,7 +1649,7 @@ describe('sever tests', () => {
     assert.strictEqual(state, State.Stopped, 'Second stop')
   })
 
-  test('Test state change events on crash', async () => {
+  test('state change events on crash', async () => {
     const serverOptions: ServerOptions = {
       module: path.join(__dirname, './server/crashServer.js'),
       transport: TransportKind.ipc,

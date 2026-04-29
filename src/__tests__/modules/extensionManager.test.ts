@@ -144,7 +144,7 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       await manager.loadExtension(tmpfolder)
       let extension = manager.getExtension('name').extension
-      let spy = jest.spyOn(manager, 'checkAutoActivate' as any).mockImplementation(() => {
+      let spy = vi.spyOn(manager, 'checkAutoActivate' as any).mockImplementation(() => {
         throw new Error('test error')
       })
       await manager.autoActivate('name', extension)
@@ -174,7 +174,7 @@ describe('ExtensionManager', () => {
         }
       }, code)
       let manager = create(tmpfolder)
-      let spy = jest.spyOn(workspace, 'checkPatterns').mockImplementation(() => {
+      let spy = vi.spyOn(workspace, 'checkPatterns').mockImplementation(() => {
         return Promise.resolve(true)
       })
       disposables.push(Disposable.create(() => {
@@ -552,7 +552,7 @@ describe('ExtensionManager', () => {
       await manager.loadExtension(extFolder)
       let res = manager.getExtension('name')
       expect(res).toBeDefined()
-      let fn = jest.fn()
+      let fn = vi.fn()
       manager.onDidUnloadExtension(() => {
         fn()
       })
@@ -651,7 +651,7 @@ describe('ExtensionManager', () => {
 
     it('should not throw on register error', async () => {
       let manager = create()
-      let spy = jest.spyOn(manager, 'registerExtension').mockImplementation(() => {
+      let spy = vi.spyOn(manager, 'registerExtension').mockImplementation(() => {
         throw new Error('my error')
       })
       manager.registerExtensions([{
@@ -725,7 +725,7 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder)
       let res = await manager.loadExtension(extFolder)
       expect(res).toBe(true)
-      let spy = jest.spyOn(workspace.fileSystemWatchers, 'getWatchmanPath').mockImplementation(() => {
+      let spy = vi.spyOn(workspace.fileSystemWatchers, 'getWatchmanPath').mockImplementation(() => {
         return Promise.reject(new Error('not found'))
       })
       let fn = async () => {
@@ -733,9 +733,7 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow(Error)
       spy.mockRestore()
-      await expect(async () => {
-        await helper.doAction('watchExtension', 'not_exists_extension')
-      }).rejects.toThrow(/not found/)
+      await expect(helper.doAction('watchExtension', 'not_exists_extension')).rejects.toThrow(/not found/)
     })
 
     it('should reload extension on file change', async () => {
@@ -747,15 +745,15 @@ describe('ExtensionManager', () => {
       let res = await manager.loadExtension(extFolder)
       expect(res).toBe(true)
       let called = false
-      let fn = jest.fn()
-      let r = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
+      let fn = vi.fn()
+      let r = vi.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
         return 'watchman'
       })
-      let s = jest.spyOn(manager, 'reloadExtension').mockImplementation(() => {
+      let s = vi.spyOn(manager, 'reloadExtension').mockImplementation(() => {
         fn()
         return Promise.resolve()
       })
-      let spy = jest.spyOn(workspace.fileSystemWatchers, 'createClient').mockImplementation(() => {
+      let spy = vi.spyOn(workspace.fileSystemWatchers, 'createClient').mockImplementation(() => {
         return {
           dispose: () => {},
           subscribe: (_key: string, cb: Function) => {
@@ -789,7 +787,7 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow(Error)
       let called = false
-      let spy = jest.spyOn(manager, 'loadExtensionFile').mockImplementation(() => {
+      let spy = vi.spyOn(manager, 'loadExtensionFile').mockImplementation(() => {
         called = true
         return Promise.resolve('')
       })
@@ -884,16 +882,12 @@ describe('ExtensionManager', () => {
     it('should throw for invalid extension', async () => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder, false)
-      await expect(async () => {
-        await manager.load('file_not_exists', false)
-      }).rejects.toThrow(Error)
+      await expect(manager.load('file_not_exists', false)).rejects.toThrow(Error)
       let id = uuid()
       let filpath = path.join(os.tmpdir(), id)
       fs.writeFileSync(filpath, '', 'utf8')
       await manager.toggleExtension(`single-${id}`)
-      await expect(async () => {
-        await manager.load(filpath, false)
-      }).rejects.toThrow(/disabled/)
+      await expect(manager.load(filpath, false)).rejects.toThrow(/disabled/)
       fs.rmSync(filpath, { force: true })
     })
 

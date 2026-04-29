@@ -170,7 +170,7 @@ describe('Source', () => {
     expect(res).toBe(true)
     let n = Date.now()
     p = s.getResults([words], '_$a', '', items, CancellationToken.None)
-    let spy = jest.spyOn(Date, 'now').mockImplementation(() => {
+    let spy = vi.spyOn(Date, 'now').mockImplementation(() => {
       return n + 200
     })
     res = await p
@@ -306,7 +306,7 @@ endfunction `
       isSnippet: true,
       insertText: 'word($1)'
     }
-    let spy = jest.spyOn(nvim, 'call').mockImplementation(() => {
+    let spy = vi.spyOn(nvim, 'call').mockImplementation(() => {
       return undefined
     })
     await source.refresh()
@@ -350,7 +350,7 @@ describe('native sources', () => {
     for (const name of ['around', 'buffer', 'file']) {
       let source = sources.getSource(name)
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
-      let spy = jest.spyOn(source, 'checkComplete' as any).mockReturnValue(Promise.resolve(false))
+      let spy = vi.spyOn(source, 'checkComplete' as any).mockReturnValue(Promise.resolve(false))
       let res = await source.doComplete(opt, tokenSource.token)
       spy.mockRestore()
       expect(res).toBeNull()

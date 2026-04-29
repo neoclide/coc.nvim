@@ -543,14 +543,14 @@ describe('list sources', () => {
       {
         let res = await list.filterDiagnostics({})
         expect(res.length).toBe(20)
-        let spy = jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
+        let spy = vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
           name: 'workspace-folder1',
           uri: URI.file(workspaceFolder).toString()
         })
         res = await list.filterDiagnostics({ 'workspace-folder': true })
         expect(res.length).toBe(10)
         spy.mockRestore()
-        spy = jest.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(undefined)
+        spy = vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(undefined)
         res = await list.filterDiagnostics({ 'workspace-folder': true })
         expect(res.length).toBe(20)
         spy.mockRestore()
@@ -611,7 +611,7 @@ describe('list sources', () => {
         isLocked: false,
         packageJSON: { name: 'bar', engines: {} }
       })
-      let spy = jest.spyOn(extensions, 'getExtensionStates').mockImplementation(() => {
+      let spy = vi.spyOn(extensions, 'getExtensionStates').mockImplementation(() => {
         return Promise.resolve(infos)
       })
       const doAction = async (name: string, item: any) => {
@@ -627,9 +627,7 @@ describe('list sources', () => {
       await doAction('toggle', items[0])
       await doAction('toggle', items[1])
       items[1].data.state = 'loaded'
-      await expect(async () => {
-        await doAction('toggle', items[1])
-      }).rejects.toThrow(Error)
+      await expect(doAction('toggle', items[1])).rejects.toThrow(Error)
       await doAction('configuration', items[0])
       let jsonfile = path.join(folder, 'bar/package.json')
       fs.writeFileSync(jsonfile, '{}', 'utf8')
@@ -643,9 +641,7 @@ describe('list sources', () => {
       await doAction('enable', items[0])
       await doAction('enable', items[1])
       await doAction('lock', items[0])
-      await expect(async () => {
-        await doAction('reload', items[0])
-      }).rejects.toThrow(Error)
+      await expect(doAction('reload', items[0])).rejects.toThrow(Error)
       await doAction('uninstall', items)
       await doAction('help', items[0])
       let helpfile = path.join(folder, 'bar/readme.md')
@@ -680,12 +676,12 @@ describe('list sources', () => {
       await nvim.input('<C-u>')
       await nvim.input('<cr>')
       await p
-      let spy = jest.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(''))
+      let spy = vi.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(''))
       await doAction('newfile', res[0])
       spy.mockRestore()
       fs.rmSync(path.join(os.tmpdir(), uid), { recursive: true, force: true })
       let filepath = path.join(os.tmpdir(), uid, 'bar')
-      spy = jest.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(filepath))
+      spy = vi.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(filepath))
       await doAction('newfile', res[0])
       let exists = fs.existsSync(filepath)
       expect(exists).toBe(true)
@@ -907,9 +903,7 @@ describe('list sources', () => {
     it('should load items', async () => {
       let source = new SymbolsList()
       let context = await createContext({ interactive: true })
-      await expect(async () => {
-        await source.loadItems(context, CancellationToken.None)
-      }).rejects.toThrow(Error)
+      await expect(source.loadItems(context, CancellationToken.None)).rejects.toThrow(Error)
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => [
           SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), URI.file(__filename).toString())

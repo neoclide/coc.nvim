@@ -81,7 +81,7 @@ describe('Installer', () => {
 
     it('should getInfo from url', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      let spy = jest.spyOn(installer, 'getInfoFromUri').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfoFromUri').mockImplementation(() => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0' })
       })
       let res = await installer.getInfo()
@@ -91,7 +91,7 @@ describe('Installer', () => {
 
     it('should use latest version', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(url => {
+      let spy = vi.spyOn(installer, 'fetch').mockImplementation(url => {
         expect(url.toString()).toMatch('coc-omni')
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
@@ -112,7 +112,7 @@ describe('Installer', () => {
 
     it('should throw when version not found', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni@1.0.2')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
@@ -134,7 +134,7 @@ describe('Installer', () => {
 
     it('should throw when not coc.nvim extension', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
@@ -165,7 +165,7 @@ describe('Installer', () => {
 
     it('should get info from url #1', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({ name: 'vue-vscode-snippets', version: '1.0.0' }))
       })
       let info = await installer.getInfoFromUri()
@@ -175,7 +175,7 @@ describe('Installer', () => {
 
     it('should get info from url #2', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets@main')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0', engines: { coc: '>=0.0.1' } })
       })
       let info = await installer.getInfoFromUri()
@@ -200,10 +200,10 @@ describe('Installer', () => {
     it('should update from url', async () => {
       let url = 'https://github.com/sdras/vue-vscode-snippets@main'
       let installer = new Installer(__dirname, 'npm', url)
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version: '1.0.0', name: 'vue-vscode-snippets' })
       })
-      let s = jest.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
         return Promise.resolve(true)
       })
       let res = await installer.update(url)
@@ -216,7 +216,7 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '1.0.0'
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version })
       })
       let info = await installer.getInfo()
@@ -231,7 +231,7 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version, 'engines.coc': '>=99.0.0' })
       })
       fs.mkdirSync(tmpfolder)
@@ -247,10 +247,10 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version })
       })
-      let s = jest.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
         return Promise.resolve(false)
       })
       fs.mkdirSync(tmpfolder)
@@ -265,10 +265,10 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version, name: 'coc-pairs' })
       })
-      let s = jest.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
         return Promise.resolve(true)
       })
       fs.mkdirSync(tmpfolder, { recursive: true })
@@ -284,7 +284,7 @@ describe('Installer', () => {
   describe('install()', () => {
     it('should throw when version not match required', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({
           name: 'coc-omni',
           version: '1.0.0',
@@ -301,7 +301,7 @@ describe('Installer', () => {
 
     it('should return install info', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({
           name: 'coc-omni',
           version: '1.0.0',
@@ -309,7 +309,7 @@ describe('Installer', () => {
           'engines.coc': '>=0.0.1'
         })
       })
-      let s = jest.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
         return Promise.resolve(true)
       })
       let res = await installer.install()
@@ -323,7 +323,7 @@ describe('Installer', () => {
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let folder: string
       let option: any
-      let spy = jest.spyOn(installer, 'download').mockImplementation((_url, opt) => {
+      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, opt) => {
         folder = opt.dest
         option = opt
         fs.mkdirSync(folder, { recursive: true })
@@ -346,7 +346,7 @@ describe('Installer', () => {
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
-      let spy = jest.spyOn(installer, 'download').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'download').mockImplementation(() => {
         throw new Error('my error')
       })
       let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
@@ -363,7 +363,7 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
-      let spy = jest.spyOn(installer, 'download').mockImplementation((_url, option) => {
+      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, option) => {
         if (option.onProgress) {
           option.onProgress('10')
         }
@@ -386,7 +386,7 @@ describe('Installer', () => {
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
-      let spy = jest.spyOn(installer, 'download').mockImplementation((_url, option) => {
+      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, option) => {
         if (option.onProgress) {
           option.onProgress('10')
         }
@@ -421,7 +421,7 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
-      let spy = jest.spyOn(installer, 'getInstallArguments').mockImplementation(() => {
+      let spy = vi.spyOn(installer, 'getInstallArguments').mockImplementation(() => {
         return { env: 'production', args: ['--error'] }
       })
       let fn = async () => {
@@ -432,12 +432,12 @@ describe('Installer', () => {
     })
 
     it('should install extension dependencies', async () => {
-      let getInfoSpy = jest.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
         // @ts-expect-error this
         const name = this.info.name
         return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
       })
-      let downloadSpy = jest.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
         fs.mkdirSync(options.dest, { recursive: true })
         let name = path.basename(url, '.tgz')
         let pkg = {

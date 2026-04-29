@@ -61,8 +61,8 @@ describe('Handler', () => {
 
   describe('commands', () => {
     it('should open url', async () => {
-      let fn = jest.fn()
-      let spy = jest.spyOn(nvim, 'call').mockImplementation(() => {
+      let fn = vi.fn()
+      let spy = vi.spyOn(nvim, 'call').mockImplementation(() => {
         fn()
         return null
       })
@@ -72,8 +72,8 @@ describe('Handler', () => {
     })
 
     it('should restart', async () => {
-      let fn = jest.fn()
-      let spy = jest.spyOn(nvim, 'command').mockImplementation(() => {
+      let fn = vi.fn()
+      let spy = vi.spyOn(nvim, 'command').mockImplementation(() => {
         fn()
         return null
       })

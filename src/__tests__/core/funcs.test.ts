@@ -15,7 +15,7 @@ beforeAll(async () => {
 
 describe('Resolver()', () => {
   it('should return empty string when file not exists', async () => {
-    let spy = jest.spyOn(fs, 'existsSync').mockImplementation(() => {
+    let spy = vi.spyOn(fs, 'existsSync').mockImplementation(() => {
       return false
     })
     let r = new Resolver()
@@ -26,7 +26,7 @@ describe('Resolver()', () => {
 
   it('should resolve null', async () => {
     let r = new Resolver()
-    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+    let spy = vi.spyOn(which, 'sync').mockImplementation(() => {
       throw new Error('not found')
     })
     let res = await r.resolveModule('mode')
@@ -103,7 +103,7 @@ describe('getWatchmanPath()', () => {
 })
 
 describe('findUp()', () => {
-  it('should return null when can not find ', async () => {
+  it('should return null when can not find', async () => {
     let nvim: any = {
       call: () => {
         return __filename

@@ -82,7 +82,7 @@ describe('Outline util', () => {
 
   it('should load items by ctags', async () => {
     let doc = await workspace.document
-    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+    let spy = vi.spyOn(which, 'sync').mockImplementation(() => {
       return ''
     })
     let items = await loadCtagsSymbols(doc, nvim, CancellationToken.None)

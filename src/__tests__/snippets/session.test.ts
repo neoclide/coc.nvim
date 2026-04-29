@@ -320,7 +320,7 @@ describe('SnippetSession', () => {
       await session.start('${1} `!p snip.rv = t[1]`', defaultRange, false, defaultContext)
       await nvim.setLine('b ')
       let cancelled = false
-      let spy = jest.spyOn(session.snippet['_tmSnippet'], 'updatePythonCodes').mockImplementation(() => {
+      let spy = vi.spyOn(session.snippet['_tmSnippet'], 'updatePythonCodes').mockImplementation(() => {
         return new Promise(resolve => {
           session.cancel()
           setImmediate(() => {
@@ -482,7 +482,7 @@ describe('SnippetSession', () => {
       let session = await createSession()
       let res = await session.start('${1:foo}', defaultRange)
       expect(res).toBe(true)
-      let spy = jest.spyOn(session.snippet, 'replaceWithText').mockImplementation(() => {
+      let spy = vi.spyOn(session.snippet, 'replaceWithText').mockImplementation(() => {
         return Promise.resolve({ snippetText: 'xy', marker: undefined })
       })
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'p')])

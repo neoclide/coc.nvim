@@ -93,7 +93,7 @@ describe('diagnostic collection', () => {
     let collection = new DiagnosticCollection('test')
     let diagnostic = createDiagnostic('error')
     let uri = 'file:///1'
-    let fn = jest.fn()
+    let fn = vi.fn()
     collection.set(uri, [diagnostic])
     collection.onDidDiagnosticsChange(fn)
     collection.clear()

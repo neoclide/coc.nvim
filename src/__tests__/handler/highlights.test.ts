@@ -66,7 +66,7 @@ describe('document highlights', () => {
   }
 
   it('should not throw when no range to jump', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     registerTimerProvider(fn, 10)
     await commands.executeCommand('document.jumpToNextSymbol')
     await commands.executeCommand('document.jumpToPrevSymbol')
@@ -155,7 +155,7 @@ describe('document highlights', () => {
   })
 
   it('should cancel request on CursorMoved', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     registerTimerProvider(fn, 3000)
     await helper.edit()
     await nvim.setLine('foo')
@@ -168,7 +168,7 @@ describe('document highlights', () => {
 
   it('should cancel on timeout', async () => {
     helper.updateConfiguration('documentHighlight.timeout', 10)
-    let fn = jest.fn()
+    let fn = vi.fn()
     registerTimerProvider(fn, 3000)
     await helper.edit()
     await nvim.setLine('foo')

@@ -20,6 +20,7 @@ import type QuickPick from './model/quickpick'
 import type { StatusBarItem } from './model/status'
 import type { TerminalModel, TerminalOptions } from './model/terminal'
 import type { TreeView, TreeViewOptions } from './tree'
+import BasicTreeView from './tree/TreeView'
 import type { FloatConfig, FloatFactory, HighlightItem, OutputChannel, QuickPickItem } from './types'
 import { toObject } from './util/object'
 import { CancellationToken, Event } from './util/protocol'
@@ -206,7 +207,6 @@ export class Window {
    * @returns a {@link TreeView}.
    */
   public createTreeView<T>(viewId: string, options: TreeViewOptions<T>): TreeView<T> {
-    const BasicTreeView = require('./tree/TreeView').default
     return new BasicTreeView(viewId, options)
   }
 

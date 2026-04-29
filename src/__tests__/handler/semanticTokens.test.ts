@@ -420,7 +420,7 @@ describe('semanticTokens', () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       await item.doHighlight(false, 0)
       cancel = false
-      let spy = jest.spyOn(window, 'diffHighlights').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'diffHighlights').mockImplementation(() => {
         return Promise.resolve(null)
       })
       let winid = await nvim.call('win_getid') as number
@@ -525,7 +525,7 @@ describe('semanticTokens', () => {
       let item = semanticTokens.getItem(buf.id)
       await item.doHighlight(false, 0)
       let tokenSource = new CancellationTokenSource()
-      let spy = jest.spyOn(window, 'diffHighlights').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'diffHighlights').mockImplementation(() => {
         tokenSource.cancel()
         return Promise.resolve(null)
       })
@@ -553,7 +553,7 @@ describe('semanticTokens', () => {
       expect(res).toBeNull()
     })
 
-    it('should return null when convert tokens canceled ', async () => {
+    it('should return null when convert tokens canceled', async () => {
       let doc = await workspace.document
       let item = semanticTokens.getItem(doc.bufnr)
       let tokenSource = new CancellationTokenSource()
@@ -562,7 +562,7 @@ describe('semanticTokens', () => {
           return { data: [1, 0, 0, 1, 0] }
         }
       }, legend))
-      let spy = jest.spyOn(item, 'getTokenRanges').mockImplementation(() => {
+      let spy = vi.spyOn(item, 'getTokenRanges').mockImplementation(() => {
         return Promise.resolve(null)
       })
       let winid = await nvim.call('win_getid') as number

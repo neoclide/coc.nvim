@@ -115,9 +115,7 @@ describe('snippet provider', () => {
   describe('insertSnippet()', () => {
     it('should throw when current buffer not attached', async () => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
-      await expect(async () => {
-        await snippetManager.insertSnippet('foo')
-      }).rejects.toThrow(Error)
+      await expect(snippetManager.insertSnippet('foo')).rejects.toThrow(Error)
     })
 
     it('should replace range for ultisnip with python code', async () => {
@@ -206,9 +204,7 @@ describe('snippet provider', () => {
       expect(snippetManager.jumpable()).toBe(false)
       let res = await snippetManager.resolveSnippet('${1:foo}')
       expect(res).toBeUndefined()
-      await expect(async () => {
-        await snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))
-      }).rejects.toThrow(Error)
+      await expect(snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))).rejects.toThrow(Error)
     })
   })
 
@@ -403,7 +399,7 @@ describe('snippet provider', () => {
 
     it('should throw when resolve throw error', async () => {
       let s = snippetManager.session
-      let spy = jest.spyOn(s, 'resolveSnippet').mockImplementation(() => {
+      let spy = vi.spyOn(s, 'resolveSnippet').mockImplementation(() => {
         throw new Error('custom error')
       })
       await expect(() => {

@@ -313,9 +313,7 @@ describe('language source', () => {
       expect(n - p).toBe(1)
       res = new Error('resolve error')
       item = createCompletionItem('this')
-      await expect(async () => {
-        await source.onCompleteResolve(item, opt, CancellationToken.None)
-      }).rejects.toThrow(Error)
+      await expect(source.onCompleteResolve(item, opt, CancellationToken.None)).rejects.toThrow(Error)
     })
   })
 

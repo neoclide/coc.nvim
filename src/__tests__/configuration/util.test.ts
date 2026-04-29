@@ -82,7 +82,7 @@ describe('Configuration utils', () => {
   })
 
   it('should addToValueTree conflict #1', () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let obj = { x: 66 }
     addToValueTree(obj, 'x.y', '3', () => {
       fn()
@@ -92,7 +92,7 @@ describe('Configuration utils', () => {
   })
 
   it('should addToValueTree conflict #2', () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     addToValueTree(undefined, 'x', '3', () => {
       fn()
     })
@@ -102,7 +102,7 @@ describe('Configuration utils', () => {
 
   it('should addToValueTree conflict #3', () => {
     let obj = { x: true }
-    let fn = jest.fn()
+    let fn = vi.fn()
     addToValueTree(obj, 'x.y', ['foo'], () => {
       fn()
     })

@@ -184,7 +184,7 @@ describe('DynamicFeature', () => {
 
   describe('CodeLensFeature', () => {
     it('should use codeLens middleware', async () => {
-      let fn = jest.fn()
+      let fn = vi.fn()
       let client = await startServer({}, {
         provideCodeLenses: (doc, token, next) => {
           fn()
@@ -279,7 +279,7 @@ describe('DynamicFeature', () => {
       expect(res).toEqual({ success: true })
       expect(called).toBe(true)
       let err
-      let spy = jest.spyOn(client, 'handleFailedRequest').mockImplementation((_type, _token, error) => {
+      let spy = vi.spyOn(client, 'handleFailedRequest').mockImplementation((_type, _token, error) => {
         err = error
       })
       await commands.executeCommand('other_command')
@@ -453,7 +453,7 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(1)
       let called = false
-      let fn = jest.fn()
+      let fn = vi.fn()
       let client = await startServer({ changeNotifications: true }, {
         workspace: {
           workspaceFolders: (token, next) => {
@@ -512,18 +512,16 @@ describe('DynamicFeature', () => {
       await client.sendNotification('fireDocumentContentRefresh')
       await helper.waitValue(() => times, 1)
       let uri = URI.parse('lsptest:///1')
-      let spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve(undefined))
+      let spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve(undefined))
       let res = await provider.provider.provideTextDocumentContent(uri, token)
       expect(res).toBeUndefined()
       spy.mockRestore()
-      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve({ text: 'foo' }))
+      spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve({ text: 'foo' }))
       res = await provider.provider.provideTextDocumentContent(uri, token)
       expect(res).toBe('foo')
       spy.mockRestore()
-      spy = jest.spyOn(client, 'sendRequest').mockReturnValue(Promise.reject(new Error('myerror')))
-      await expect(async () => {
-        await provider.provider.provideTextDocumentContent(uri, token)
-      }).rejects.toThrow(Error)
+      spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.reject(new Error('myerror')))
+      await expect(provider.provider.provideTextDocumentContent(uri, token)).rejects.toThrow(Error)
       spy.mockRestore()
       feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
       expect(feature.getState()['registrations']).toBe(false)

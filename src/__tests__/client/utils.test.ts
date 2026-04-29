@@ -104,7 +104,7 @@ test('parseTraceData', () => {
 })
 
 test('DefaultErrorHandler', async () => {
-  let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+  let spy = vi.spyOn(console, 'error').mockImplementation(() => {
     // ignore
   })
   let handler = new DefaultErrorHandler('test', 2)

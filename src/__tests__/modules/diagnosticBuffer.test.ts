@@ -177,7 +177,7 @@ describe('diagnostic buffer', () => {
 
     it('should not refresh for empty diagnostics', async () => {
       let buf: any = await createDiagnosticBuffer()
-      let fn = jest.fn()
+      let fn = vi.fn()
       buf.refresh = () => {
         fn()
       }

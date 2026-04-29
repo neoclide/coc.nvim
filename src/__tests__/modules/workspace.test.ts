@@ -270,7 +270,7 @@ describe('workspace methods', () => {
     expect(Workspace).toBeDefined()
     expect(workspace['onDidOpenTerminal']).toBeDefined()
     expect(workspace['onDidCloseTerminal']).toBeDefined()
-    let spy = jest.spyOn(workspace.nvim, 'call').mockImplementation(() => {
+    let spy = vi.spyOn(workspace.nvim, 'call').mockImplementation(() => {
       return null
     })
     workspace.checkVersion(0)
@@ -375,7 +375,7 @@ describe('workspace utility', () => {
     expect(filepath).toMatch('tsconfig.json')
   })
 
-  it('should findUp from current file ', async () => {
+  it('should findUp from current file', async () => {
     await helper.edit('foo')
     let filepath = await workspace.findUp('tsconfig.json')
     expect(filepath).toMatch('tsconfig.json')
@@ -487,7 +487,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onDidOpenTextDocument', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     workspace.onDidOpenTextDocument(fn, null, disposables)
     await helper.edit()
     await helper.wait(30)
@@ -495,7 +495,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onDidChangeTextDocument', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     await helper.edit()
     workspace.onDidChangeTextDocument(fn, null, disposables)
     await nvim.setLine('foo')
@@ -506,7 +506,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onDidChangeConfiguration', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = workspace.onDidChangeConfiguration(e => {
       disposable.dispose()
       expect(e.affectsConfiguration('tsserver')).toBe(true)
@@ -532,7 +532,7 @@ describe('workspace events', () => {
   it('should fire onWillSaveUntil', async () => {
     let doc = await workspace.document
     let filepath = URI.parse(doc.uri).fsPath
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = workspace.onWillSaveTextDocument(event => {
       let promise = new Promise<TextEdit[]>(resolve => {
         fn()

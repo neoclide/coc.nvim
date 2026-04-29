@@ -191,9 +191,7 @@ describe('Hover', () => {
     })
 
     it('should throw when buffer not attached', async () => {
-      await expect(async () => {
-        await hover.getHover({ bufnr: 999, line: 1, col: 2 })
-      }).rejects.toThrow(/not exists/)
+      await expect(hover.getHover({ bufnr: 999, line: 1, col: 2 })).rejects.toThrow(/not exists/)
     })
   })
 

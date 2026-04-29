@@ -37,7 +37,7 @@ describe('task test', () => {
   })
 
   it('should emit exit event', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let task = workspace.createTask('sleep')
     disposables.push(task)
     task.onExit(fn)

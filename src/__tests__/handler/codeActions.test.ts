@@ -57,7 +57,7 @@ describe('handler codeActions', () => {
   })
 
   describe('organizeImport', () => {
-    it('should filter command ', () => {
+    it('should filter command', () => {
       let cmd = Command.create('title', 'command')
       let res = checkAction([CodeActionKind.Refactor], cmd)
       expect(res).toBe(false)
@@ -384,9 +384,7 @@ describe('handler codeActions', () => {
       expect(res.length).toBe(1)
       let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
       expect(resolved).toBeDefined()
-      await expect(async () => {
-        await codeActions.doCodeAction(null, 'command', true)
-      }).rejects.toThrow(Error)
+      await expect(codeActions.doCodeAction(null, 'command', true)).rejects.toThrow(Error)
       await codeActions.doCodeAction(null, 'cmd', true)
       let line = await helper.getCmdline()
       expect(line).toMatch('No cmd code action')
@@ -395,9 +393,9 @@ describe('handler codeActions', () => {
     it('should use quickpick', async () => {
       helper.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), CodeAction.create('bar', CodeActionKind.QuickFix)]
-      let spy = jest.spyOn(window.dialogs, 'requestInputList').mockReturnValue(Promise.resolve(0))
+      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockReturnValue(Promise.resolve(0))
       let action
-      let s = jest.spyOn(codeActions, 'applyCodeAction').mockImplementation((a, _token) => {
+      let s = vi.spyOn(codeActions, 'applyCodeAction').mockImplementation((a, _token) => {
         action = a
         return Promise.resolve()
       })
@@ -464,9 +462,7 @@ describe('handler codeActions', () => {
     it('should throw for disabled action', async () => {
       let action: any = CodeAction.create('my action', CodeActionKind.Empty)
       action.disabled = { reason: 'disabled', providerId: 'x' }
-      await expect(async () => {
-        await helper.doAction('doCodeAction', action)
-      }).rejects.toThrow(Error)
+      await expect(helper.doAction('doCodeAction', action)).rejects.toThrow(Error)
     })
 
     it('should invoke registered command after apply edit', async () => {

@@ -121,7 +121,7 @@ describe('FileSystemWatcherFeature', () => {
       return received?.length
     }, 1)
     let called = false
-    let spy = jest.spyOn(client, 'sendNotification').mockImplementation(() => {
+    let spy = vi.spyOn(client, 'sendNotification').mockImplementation(() => {
       called = true
       return Promise.reject(new Error('myerror'))
     })
