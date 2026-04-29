@@ -87,7 +87,7 @@ describe('DynamicFeature', () => {
 
       await client.sendRequest('setPrepareResponse', { defaultBehavior: true })
       res = await provider.prepareRename(textDocument, position, token)
-      expect(res).toBeNull()
+      expect(res).toEqual({ defaultBehavior: true })
       await client.sendRequest('setPrepareResponse', { range: Range.create(0, 0, 0, 3), placeholder: 'placeholder' })
       res = await provider.prepareRename(textDocument, position, token)
       expect((res as any).placeholder).toBe('placeholder')
