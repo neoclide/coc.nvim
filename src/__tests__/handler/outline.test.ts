@@ -96,7 +96,7 @@ describe('symbols outline', () => {
         return id != null
       }, true)
       await nvim.call('cursor', [3, 1])
-      let spy = jest.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
         return Promise.resolve(0)
       })
       await nvim.input('<tab>')

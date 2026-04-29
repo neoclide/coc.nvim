@@ -14,7 +14,6 @@ let codeLens: CodeLensHandler
 let disposables: Disposable[] = []
 let srcId: number
 
-jest.setTimeout(10000)
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -70,7 +69,7 @@ describe('codeLenes feature', () => {
   })
 
   it('should invoke codeLenes action', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
@@ -237,7 +236,7 @@ describe('codeLenes feature', () => {
   }, 10000)
 
   it('should use picker for multiple codeLenses', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let resolved = false
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
@@ -273,7 +272,7 @@ describe('codeLenes feature', () => {
 
   it('should refresh for failed codeLens request', async () => {
     let called = 0
-    let fn = jest.fn()
+    let fn = vi.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))

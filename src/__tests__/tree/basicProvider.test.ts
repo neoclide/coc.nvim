@@ -110,9 +110,7 @@ describe('BasicDataProvider', () => {
         }
       })
       disposables.push(provider)
-      await expect(async () => {
-        await provider.getChildren()
-      }).rejects.toThrow(Error)
+      await expect(provider.getChildren()).rejects.toThrow(Error)
       expect(provider.getLevel(undefined)).toBe(0)
     })
 

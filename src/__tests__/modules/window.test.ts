@@ -366,7 +366,7 @@ describe('window', () => {
 
     it('should show confirm for message', async () => {
       helper.updateConfiguration('coc.preferences.enableMessageDialog', false)
-      let spy = jest.spyOn(nvim, 'call').mockImplementationOnce((method, _args) => {
+      let spy = vi.spyOn(nvim, 'call').mockImplementationOnce((method, _args) => {
         expect(method).toBe('confirm')
         return Promise.resolve('2') as any
       })
@@ -378,7 +378,7 @@ describe('window', () => {
 
     it('should use messageDialogKind for confirm mode', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
-      let spy = jest.spyOn(nvim, 'call').mockImplementationOnce((method, args) => {
+      let spy = vi.spyOn(nvim, 'call').mockImplementationOnce((method, args) => {
         expect(method).toBe('confirm')
         expect(args[0]).toBe('test message')
         expect(args[1]).toBe('1first\n2second')
@@ -392,7 +392,7 @@ describe('window', () => {
 
     it('should use messageDialogKind for menu mode', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
-      let spy = jest.spyOn(window.dialogs, 'showMenuPicker').mockImplementation(() => {
+      let spy = vi.spyOn(window.dialogs, 'showMenuPicker').mockImplementation(() => {
         return Promise.resolve(1) as any
       })
       let res = await window.notifications._showMessage('Warning', 'test message', ['first', 'second'])
@@ -416,7 +416,7 @@ describe('window', () => {
 
     it('should echo error messages regardless of messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
-      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      let spy = vi.spyOn(window.notifications, 'echoMessages')
       await window.showErrorMessage('error message')
       expect(spy).toHaveBeenCalledWith('error message', 'error')
       spy.mockRestore()
@@ -424,7 +424,7 @@ describe('window', () => {
 
     it('should echo messages without items regardless of messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
-      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      let spy = vi.spyOn(window.notifications, 'echoMessages')
       await window.showInformationMessage('info message')
       expect(spy).toHaveBeenCalledWith('info message', 'more')
       spy.mockRestore()
@@ -432,7 +432,7 @@ describe('window', () => {
 
     it('should echo messages without items when configured messageReportKind', async () => {
       helper.updateConfiguration('coc.preferences.messageReportKind', 'echo')
-      let spy = jest.spyOn(window.notifications, 'echoMessages')
+      let spy = vi.spyOn(window.notifications, 'echoMessages')
       await window.showInformationMessage('info message')
       expect(spy).toHaveBeenCalledWith('info message', 'more')
       spy.mockRestore()
@@ -440,7 +440,7 @@ describe('window', () => {
 
     it('should use notification messages without items when configured messageReportKind', async () => {
       helper.updateConfiguration('coc.preferences.messageReportKind', 'notification')
-      let spy = jest.spyOn(window.notifications, 'createNotification')
+      let spy = vi.spyOn(window.notifications, 'createNotification')
       await window.showInformationMessage('info message')
       expect(spy).toHaveBeenCalledWith('info', 'info message', [])
       spy.mockRestore()

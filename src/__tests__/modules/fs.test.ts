@@ -116,7 +116,7 @@ describe('fs', () => {
     })
 
     it('should not throw error', async () => {
-      let spy = jest.spyOn(fs, 'rm').mockImplementation(() => {
+      let spy = vi.spyOn(fs, 'rm').mockImplementation(() => {
         throw new Error('my error')
       })
       let p = path.join(os.tmpdir(), uuid())
@@ -145,7 +145,7 @@ describe('fs', () => {
       res = await getFileType(newPath)
       expect(res).toBe(FileType.SymbolicLink)
       fs.unlinkSync(newPath)
-      let spy = jest.spyOn(fs.promises, 'lstat').mockResolvedValue({
+      let spy = vi.spyOn(fs.promises, 'lstat').mockResolvedValue({
         isFile: () => false,
         isDirectory: () => false,
         isSymbolicLink: () => false

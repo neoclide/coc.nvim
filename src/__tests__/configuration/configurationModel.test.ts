@@ -140,7 +140,7 @@ describe('ConfigurationModelParser', () => {
   test('parse conflict properties', async () => {
     let parser = new ConfigurationModelParser('test')
     let called = false
-    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+    let s = vi.spyOn(console, 'error').mockImplementation(() => {
       called = true
     })
     parser.parse(JSON.stringify({ x: 1, 'x.y': {} }, null, 2))
@@ -186,7 +186,7 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(testObject.contents, { a: { b: 1 }, f: 1 })
     assert.deepStrictEqual(testObject.keys, ['a.b', 'f'])
     let called = false
-    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+    let s = vi.spyOn(console, 'error').mockImplementation(() => {
       called = true
     })
     testObject.setValue('a.b.c.d', { x: 3 })
@@ -388,7 +388,7 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(result.keys, ['a.b', 'f'])
   })
 
-  test('Test contents while getting an existing property', () => {
+  test('contents while getting an existing property', () => {
     let testObject = new ConfigurationModel({ a: 1 })
     assert.deepStrictEqual(testObject.getValue('a'), 1)
 
@@ -396,19 +396,19 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(testObject.getValue('a'), { b: 1 })
   })
 
-  test('Test contents are undefined for non existing properties', () => {
+  test('contents are undefined for non existing properties', () => {
     const testObject = new ConfigurationModel({ awesome: true })
 
     assert.deepStrictEqual(testObject.getValue('unknownproperty'), undefined)
   })
 
-  test('Test override gives all content merged with overrides', () => {
+  test('override gives all content merged with overrides', () => {
     const testObject = new ConfigurationModel({ a: 1, c: 1 }, [], [{ identifiers: ['b'], contents: { a: 2 }, keys: ['a'] }])
 
     assert.deepStrictEqual(testObject.override('b').contents, { a: 2, c: 1 })
   })
 
-  test('Test override when an override has multiple identifiers', () => {
+  test('override when an override has multiple identifiers', () => {
     const testObject = new ConfigurationModel({ a: 1, c: 1 }, ['a', 'c'], [{ identifiers: ['x', 'y'], contents: { a: 2 }, keys: ['a'] }])
 
     let actual = testObject.override('x')
@@ -422,7 +422,7 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(testObject.getKeysForOverrideIdentifier('y'), ['a'])
   })
 
-  test('Test override when an identifier is defined in multiple overrides', () => {
+  test('override when an identifier is defined in multiple overrides', () => {
     const testObject = new ConfigurationModel({ a: 1, c: 1 }, ['a', 'c'], [{ identifiers: ['x'], contents: { a: 3, b: 1 }, keys: ['a', 'b'] }, { identifiers: ['x', 'y'], contents: { a: 2 }, keys: ['a'] }])
 
     const actual = testObject.override('x')
@@ -432,7 +432,7 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(testObject.getKeysForOverrideIdentifier('x'), ['a', 'b'])
   })
 
-  test('Test merge when configuration models have multiple identifiers', () => {
+  test('merge when configuration models have multiple identifiers', () => {
     const testObject = new ConfigurationModel({ a: 1, c: 1 }, ['a', 'c'], [{ identifiers: ['y'], contents: { c: 1 }, keys: ['c'] }, { identifiers: ['x', 'y'], contents: { a: 2 }, keys: ['a'] }])
     const target = new ConfigurationModel({ a: 2, b: 1 }, ['a', 'b'], [{ identifiers: ['x'], contents: { a: 3, b: 2 }, keys: ['a', 'b'] }, { identifiers: ['x', 'y'], contents: { b: 3 }, keys: ['b'] }])
 
@@ -489,7 +489,7 @@ describe('CustomConfigurationModel', () => {
     assert.deepStrictEqual(result.contents, { a: { b: 2 } })
   })
 
-  test('Test contents while getting an existing property', () => {
+  test('contents while getting an existing property', () => {
     const testObject = new ConfigurationModelParser('test')
     testObject.parse(JSON.stringify({ a: 1 }))
     assert.deepStrictEqual(testObject.configurationModel.getValue('a'), 1)
@@ -498,7 +498,7 @@ describe('CustomConfigurationModel', () => {
     assert.deepStrictEqual(testObject.configurationModel.getValue('a'), { b: 1 })
   })
 
-  test('Test contents are undefined for non existing properties', () => {
+  test('contents are undefined for non existing properties', () => {
     const testObject = new ConfigurationModelParser('test')
     testObject.parse(JSON.stringify({
       awesome: true
@@ -507,26 +507,26 @@ describe('CustomConfigurationModel', () => {
     assert.deepStrictEqual(testObject.configurationModel.getValue('unknownproperty'), undefined)
   })
 
-  test('Test contents are undefined for undefined config', () => {
+  test('contents are undefined for undefined config', () => {
     const testObject = new ConfigurationModelParser('test')
 
     assert.deepStrictEqual(testObject.configurationModel.getValue('unknownproperty'), undefined)
   })
 
-  test('Test configWithOverrides gives all content merged with overrides', () => {
+  test('configWithOverrides gives all content merged with overrides', () => {
     const testObject = new ConfigurationModelParser('test')
     testObject.parse(JSON.stringify({ a: 1, c: 1, '[b]': { a: 2 } }))
 
     assert.deepStrictEqual(testObject.configurationModel.override('b').contents, { a: 2, c: 1, '[b]': { a: 2 } })
   })
 
-  test('Test configWithOverrides gives empty contents', () => {
+  test('configWithOverrides gives empty contents', () => {
     const testObject = new ConfigurationModelParser('test')
 
     assert.deepStrictEqual(testObject.configurationModel.override('b').contents, {})
   })
 
-  test('Test update with empty data', () => {
+  test('update with empty data', () => {
     const testObject = new ConfigurationModelParser('test')
     testObject.parse('')
 
@@ -544,7 +544,7 @@ describe('CustomConfigurationModel', () => {
     assert.deepStrictEqual(testObject.configurationModel.keys, [])
   })
 
-  test('Test empty property is not ignored', () => {
+  test('empty property is not ignored', () => {
     const testObject = new ConfigurationModelParser('test')
     testObject.parse(JSON.stringify({ '': 1 }))
 
@@ -556,7 +556,7 @@ describe('CustomConfigurationModel', () => {
 })
 
 describe('Configuration', () => {
-  test('Test getConfigurationModel', () => {
+  test('getConfigurationModel', () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const con: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
@@ -567,7 +567,7 @@ describe('Configuration', () => {
     expect(con.getConfigurationModel(ConfigurationTarget.Memory)).toBeDefined()
   })
 
-  test('Test resolveFolder', async () => {
+  test('resolveFolder', async () => {
     const con: Configuration = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     con.addFolderConfiguration('/a/b/c', new ConfigurationModel())
     con.addFolderConfiguration('/a', new ConfigurationModel())
@@ -575,7 +575,7 @@ describe('Configuration', () => {
     expect(res).toBe('/a/b/c')
   })
 
-  test('Test inspect for overrideIdentifiers', () => {
+  test('inspect for overrideIdentifiers', () => {
     const defaultConfigurationModel = toConfigurationModel({ '[l1]': { a: 1 }, '[l2]': { b: 1 } })
     const userConfigurationModel = toConfigurationModel({ '[l3]': { a: 2 } })
     const workspaceConfigurationModel = toConfigurationModel({ '[l1]': { a: 3 }, '[l4]': { a: 3 } })
@@ -606,7 +606,7 @@ describe('Configuration', () => {
     expect(res.workspaceFolderValue).toBe(4)
   })
 
-  test('Test update value', () => {
+  test('update value', () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const testObject: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
@@ -614,7 +614,7 @@ describe('Configuration', () => {
     assert.strictEqual(testObject.getValue('a', {}), 2)
   })
 
-  test('Test update by resource', async () => {
+  test('update by resource', async () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const testObject: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
@@ -625,7 +625,7 @@ describe('Configuration', () => {
     assert.strictEqual(testObject.getValue('a', { resource: 'file' }), 1)
   })
 
-  test('Test update value after inspect', () => {
+  test('update value after inspect', () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const testObject: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
@@ -634,7 +634,7 @@ describe('Configuration', () => {
     assert.strictEqual(testObject.getValue('a', {}), 2)
   })
 
-  test('Test compare and update default configuration', () => {
+  test('compare and update default configuration', () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     testObject.updateDefaultConfiguration(toConfigurationModel({
       'editor.lineNumbers': 'on',
@@ -675,7 +675,7 @@ describe('Configuration', () => {
     ])
   })
 
-  test('Test compare and update same configurationModel', async () => {
+  test('compare and update same configurationModel', async () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     let res = testObject.compareAndUpdateUserConfiguration(testObject.user)
     expect(res.keys).toEqual([])
@@ -686,7 +686,7 @@ describe('Configuration', () => {
     testObject.compareAndDeleteFolderConfiguration('/a/b')
   })
 
-  test('Test compare and update user configuration', () => {
+  test('compare and update user configuration', () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     testObject.updateUserConfiguration(toConfigurationModel({
       'editor.lineNumbers': 'off',
@@ -708,7 +708,7 @@ describe('Configuration', () => {
     assert.deepStrictEqual(actual, { keys: ['window.zoomLevel', 'editor.lineNumbers', '[typescript]', 'editor.fontSize'], overrides: [['typescript', ['editor.insertSpaces', 'editor.wordWrap']]] })
   })
 
-  test('Test compare and update workspace configuration', () => {
+  test('compare and update workspace configuration', () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     testObject.updateWorkspaceConfiguration(toConfigurationModel({
       'editor.lineNumbers': 'off',
@@ -731,7 +731,7 @@ describe('Configuration', () => {
 
   })
 
-  test('Test compare and update workspace folder configuration', () => {
+  test('compare and update workspace folder configuration', () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     testObject.updateFolderConfiguration(URI.file('file1').fsPath, toConfigurationModel({
       'editor.lineNumbers': 'off',

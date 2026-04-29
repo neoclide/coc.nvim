@@ -183,7 +183,7 @@ describe('TextDocumentSynchronization', () => {
       await workspace.loadFile(uri.toString())
       await helper.wait(10)
       feature.unregister('unknown')
-      let spy = jest.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
+      let spy = vi.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
       feature.unregister(id)
       spy.mockRestore()
       let res = await client.sendRequest('getLastClose') as any
@@ -194,7 +194,7 @@ describe('TextDocumentSynchronization', () => {
   })
 
   describe('DidChangeTextDocumentFeature', () => {
-    it('should send full change event ', async () => {
+    it('should send full change event', async () => {
       let called = false
       let throwError = false
       let client = createClient([{ language: 'vim' }], {

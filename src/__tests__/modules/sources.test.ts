@@ -12,6 +12,12 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  // Native sources (around/buffer/file) are loaded via dynamic import
+  // without awaiting in completion/sources.ts; wait until they are ready.
+  for (let i = 0; i < 50; i++) {
+    if (sources.has('around') && sources.has('buffer') && sources.has('file')) break
+    await helper.wait(20)
+  }
 })
 
 afterAll(async () => {
@@ -71,7 +77,7 @@ describe('sources', () => {
   })
 
   it('should do document enter', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let source: ISource = {
       name: 'enter',
       enable: true,
@@ -138,7 +144,7 @@ describe('sources#has', () => {
 
 describe('sources#refresh', () => {
   it('should refresh if possible', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let source: ISource = {
       name: 'refresh',
       enable: true,

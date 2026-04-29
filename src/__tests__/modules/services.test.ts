@@ -79,7 +79,7 @@ describe('services', () => {
       let w = workspace.workspaceFolderControl
       w.addWorkspaceFolder(folder, true)
       let s = services.getService('foo')
-      let spy = jest.spyOn(window as any, 'showErrorMessage').mockImplementation(() => {
+      let spy = vi.spyOn(window as any, 'showErrorMessage').mockImplementation(() => {
         return Promise.resolve()
       })
       expect(s).toBeDefined()
@@ -173,7 +173,7 @@ describe('services', () => {
   })
 
   describe('toggle()', () => {
-    it('should throw when service not found ', async () => {
+    it('should throw when service not found', async () => {
       let fn = async () => {
         await helper.doAction('toggleService', 'id')
       }
@@ -249,7 +249,7 @@ describe('services', () => {
   })
 
   describe('stop()', () => {
-    it('should not throw when service not found ', async () => {
+    it('should not throw when service not found', async () => {
       await services.stop('id')
     })
   })
@@ -356,7 +356,7 @@ describe('services', () => {
         transport: TransportKind.ipc,
       }
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
-      let spy = jest.spyOn(client, 'start').mockImplementation(() => {
+      let spy = vi.spyOn(client, 'start').mockImplementation(() => {
         throw new Error('custom error')
       })
       disposables.push(services.registerLanguageClient(client))
@@ -417,7 +417,7 @@ describe('services', () => {
       })
       services.registerLanguageClient('def', { filetypes: ['.vim'], module: serverModule }, URI.file(__dirname))
       let res
-      let spy = jest.spyOn(services, 'sendNotificationVim' as any).mockImplementation((id, method, result) => {
+      let spy = vi.spyOn(services, 'sendNotificationVim' as any).mockImplementation((id, method, result) => {
         res = { id, method, result }
       })
       let service = services.getService('def')

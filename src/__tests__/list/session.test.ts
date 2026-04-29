@@ -151,7 +151,7 @@ describe('list session', () => {
 
   describe('reloadItems()', () => {
     it('should not reload items when window is hidden', async () => {
-      let fn = jest.fn()
+      let fn = vi.fn()
       let list: IList = {
         name: 'reload',
         defaultAction: 'open',
@@ -232,9 +232,7 @@ describe('list session', () => {
         noQuit: false,
         sort: false
       }, [])
-      await expect(async () => {
-        await session.call('fn_not_exists')
-      }).rejects.toThrow(Error)
+      await expect(session.call('fn_not_exists')).rejects.toThrow(Error)
       await session.doPreview(0)
       await session.first()
       await session.hide(false, true)
@@ -294,7 +292,7 @@ describe('showHelp()', () => {
 describe('chooseAction()', () => {
   it('should filter actions not have shortcuts', async () => {
     labels = ['a', 'b', 'c']
-    let fn = jest.fn()
+    let fn = vi.fn()
     let list = new SimpleList()
     list.actions.push({
       name: 'a',
@@ -325,7 +323,7 @@ describe('chooseAction()', () => {
   it('should choose action by menu picker', async () => {
     helper.updateConfiguration('list.menuAction', true)
     labels = ['a', 'b', 'c']
-    let fn = jest.fn()
+    let fn = vi.fn()
     let list = new SimpleList()
     let len = list.actions.length
     list.actions.splice(0, len)

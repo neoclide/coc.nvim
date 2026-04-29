@@ -64,7 +64,7 @@ beforeAll(async () => {
   await helper.setup()
 })
 
-beforeAll(done => {
+beforeAll(() => new Promise<void>(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
@@ -106,7 +106,7 @@ beforeAll(done => {
     done()
   })
   server.unref()
-})
+}))
 
 afterEach(async () => {
   disposeAll(disposables)
@@ -152,7 +152,7 @@ describe('watchman', () => {
     let client = new Watchman(null)
     disposables.push(client)
     await client.watchProject(cwd)
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = client.subscribe(`${cwd}/*`, fn)
     disposable.dispose()
     client.dispose()
@@ -181,7 +181,7 @@ describe('Watchman#subscribe', () => {
     let client = new Watchman(null, helper.createNullChannel())
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await client.watchProject(cwd)
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = client.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription(client.subscription, cwd, changes)
@@ -198,7 +198,7 @@ describe('Watchman#subscribe', () => {
     disposables.push(c)
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await c.watchProject(cwd)
-    let fn = jest.fn()
+    let fn = vi.fn()
     c.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription('uuid', cwd, changes)
@@ -217,16 +217,12 @@ describe('Watchman#subscribe', () => {
 describe('Watchman#createClient', () => {
   it('should not create client when capabilities not match', async () => {
     capabilities = { relative_root: false }
-    await expect(async () => {
-      await Watchman.createClient(null, cwd)
-    }).rejects.toThrow(Error)
+    await expect(Watchman.createClient(null, cwd)).rejects.toThrow(Error)
   })
 
   it('should not create when watch failed', async () => {
     watchResponse = {}
-    await expect(async () => {
-      await Watchman.createClient(null, cwd)
-    }).rejects.toThrow(Error)
+    await expect(Watchman.createClient(null, cwd)).rejects.toThrow(Error)
   })
 
   it('should create client', async () => {
@@ -259,7 +255,7 @@ describe('fileSystemWatcher', () => {
     expect(folder).toBeDefined()
     let pattern = new RelativePattern(folder, '**/*')
     let watcher = await createWatcher(pattern, false, true, true)
-    let fn = jest.fn()
+    let fn = vi.fn()
     watcher.onDidCreate(fn)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
@@ -420,9 +416,7 @@ describe('create FileSystemWatcherManager', () => {
   it('should get watchman path', async () => {
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'invalid_command' })
     process.env.WATCHMAN_SOCK = ''
-    await expect(async () => {
-      await watcherManager.getWatchmanPath()
-    }).rejects.toThrow(Error)
+    await expect(() => watcherManager.getWatchmanPath()).rejects.toThrow(Error)
     process.env.WATCHMAN_SOCK = sockPath
   })
 })

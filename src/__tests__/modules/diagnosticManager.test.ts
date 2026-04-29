@@ -159,7 +159,7 @@ describe('diagnostic manager', () => {
   describe('refresh()', () => {
     it('should refresh on buffer create', async () => {
       let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
-      let fn = jest.fn()
+      let fn = vi.fn()
       let disposable = manager.onDidRefresh(() => {
         fn()
       })
@@ -226,7 +226,7 @@ describe('diagnostic manager', () => {
       expect(ranges.length).toBe(3)
     })
 
-    it('should load file from disk ', async () => {
+    it('should load file from disk', async () => {
       let fsPath = __filename
       let collection = manager.create('test')
       let diagnostics: Diagnostic[] = []

@@ -98,7 +98,7 @@ describe('History', () => {
 
 describe('DataBase', () => {
   it('should not throw on load', async () => {
-    let spy = jest.spyOn(DataBase.prototype, 'load').mockImplementation(() => {
+    let spy = vi.spyOn(DataBase.prototype, 'load').mockImplementation(() => {
       throw new Error('error')
     })
     new DataBase()

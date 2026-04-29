@@ -29,7 +29,7 @@ describe('watchers', () => {
       times++
     }
     let disposable = workspace.watchOption('showmode', fn)
-    disposables.push(workspace.watchOption('showmode', jest.fn()))
+    disposables.push(workspace.watchOption('showmode', vi.fn()))
     nvim.command('set showmode', true)
     expect(workspace.watchers.options.length).toBeGreaterThan(0)
     await helper.waitValue(() => times, 1)
@@ -129,7 +129,7 @@ describe('setupDynamicAutocmd()', () => {
     expect(res).toBe(`autocmd coc_dynamic_autocmd BufEnter ++once ++nested  call coc#rpc#request('doAutocmd', [1, 3, 4])`)
   })
 
-  it('should convert to autocmd option ', () => {
+  it('should convert to autocmd option', () => {
     let item = new AutocmdItem(1, {
       stack: '',
       buffer: 1,

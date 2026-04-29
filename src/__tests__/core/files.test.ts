@@ -701,9 +701,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should throw when new path exists and not overwrite', async () => {
-      await expect(async () => {
-        await workspace.renameFile('/foo', __filename, {})
-      }).rejects.toThrow(/exists/)
+      await expect(workspace.renameFile('/foo', __filename, {})).rejects.toThrow(/exists/)
     })
 
     it('should rename file on disk', async () => {
@@ -911,9 +909,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should throw when file does not exist', async () => {
-      await expect(async () => {
-        await workspace.openTextDocument('/a/b/c')
-      }).rejects.toThrow(Error)
+      await expect(workspace.openTextDocument('/a/b/c')).rejects.toThrow(Error)
     })
 
     it('should open untitled document', async () => {

@@ -140,7 +140,7 @@ describe('extensions', () => {
   })
 
   it('should force update extensions', async () => {
-    let spy = jest.spyOn(extensions, 'installExtensions').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'installExtensions').mockImplementation(() => {
       return Promise.resolve()
     })
     await commands.executeCommand('extensions.forceUpdateAll')
@@ -148,10 +148,10 @@ describe('extensions', () => {
   })
 
   it('should auto update', async () => {
-    let spy = jest.spyOn(extensions.states, 'shouldUpdate').mockImplementation(() => {
+    let spy = vi.spyOn(extensions.states, 'shouldUpdate').mockImplementation(() => {
       return true
     })
-    let s = jest.spyOn(extensions, 'updateExtensions').mockImplementation(() => {
+    let s = vi.spyOn(extensions, 'updateExtensions').mockImplementation(() => {
       return Promise.reject(new Error('error on update'))
     })
     await extensions.activateExtensions()
@@ -165,7 +165,7 @@ describe('extensions', () => {
   })
 
   it('should not throw when npm not found', async () => {
-    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+    let spy = vi.spyOn(which, 'sync').mockImplementation(() => {
       throw new Error('not executable')
     })
     let res = extensions.npm
@@ -187,7 +187,7 @@ describe('extensions', () => {
   })
 
   it('should catch error when installExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -197,7 +197,7 @@ describe('extensions', () => {
         }
       } as any
     })
-    let s = jest.spyOn(extensions.states, 'setLocked').mockImplementation(() => {
+    let s = vi.spyOn(extensions.states, 'setLocked').mockImplementation(() => {
       throw new Error('my error')
     })
     await extensions.installExtensions(['abc@1.0.0'])
@@ -206,10 +206,10 @@ describe('extensions', () => {
   })
 
   it('should catch error on updateExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }] as any
     })
-    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         update: () => {
@@ -223,10 +223,10 @@ describe('extensions', () => {
   })
 
   it('should update enabled extensions', async () => {
-    let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
     })
-    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -243,11 +243,11 @@ describe('extensions', () => {
   })
 
   it('should update extensions by url', async () => {
-    let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test', exotic: true, uri: 'http://example.com' }] as any
     })
     let called = false
-    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -287,7 +287,7 @@ describe('extensions', () => {
   it('should install global extension', async () => {
     expect(extensions.getExtensionById('coc-omni')).toBeUndefined()
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
-    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    let spy = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         install: async () => {
@@ -329,7 +329,7 @@ describe('extensions', () => {
     fs.writeFileSync(jsonFile, `{"extensions.recommendations": ["coc-abc", "coc-def"]}`)
     let returnValue
     let calledTimes = 0
-    let spy = jest.spyOn(window, 'showInformationMessage').mockImplementation(() => {
+    let spy = vi.spyOn(window, 'showInformationMessage').mockImplementation(() => {
       calledTimes++
       return Promise.resolve(returnValue)
     })
@@ -342,7 +342,7 @@ describe('extensions', () => {
     workspace.workspaceFolderControl.addWorkspaceFolder(tmpfolder, true)
     await helper.waitValue(() => calledTimes, 1)
     let called = false
-    let s = jest.spyOn(extensions, 'installExtensions').mockImplementation(() => {
+    let s = vi.spyOn(extensions, 'installExtensions').mockImplementation(() => {
       called = true
       return Promise.resolve(undefined)
     })

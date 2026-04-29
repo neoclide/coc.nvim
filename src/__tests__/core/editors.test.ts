@@ -260,7 +260,7 @@ describe('Tabs', () => {
 
   it('should fire open and close event', async () => {
     let tabs = workspace.tabs
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = tabs.onOpen(() => {
       fn()
     })
@@ -272,7 +272,7 @@ describe('Tabs', () => {
     disposable.dispose()
     expect(fn).toHaveBeenCalledTimes(1)
     nvim.command('bd', true)
-    fn = jest.fn()
+    fn = vi.fn()
     disposable = tabs.onClose(() => {
       fn()
     })

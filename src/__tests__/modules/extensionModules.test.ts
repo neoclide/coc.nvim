@@ -51,31 +51,23 @@ describe('utils', () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{}', 'utf8')
-      await expect(async () => {
-        await loadGlobalJsonAsync(folder, '0.0.80')
-      }).rejects.toThrow(/Invalid engines/)
+      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/Invalid engines/)
       fs.writeFileSync(file, '{"engines": {}}', 'utf8')
-      await expect(async () => {
-        await loadGlobalJsonAsync(folder, '0.0.80')
-      }).rejects.toThrow(/Invalid engines/)
+      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/Invalid engines/)
     })
 
     it('should throw when version not match', async () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
-      await expect(async () => {
-        await loadGlobalJsonAsync(folder, '0.0.79')
-      }).rejects.toThrow(/not match/)
+      await expect(loadGlobalJsonAsync(folder, '0.0.79')).rejects.toThrow(/not match/)
     })
 
     it('should throw when main file not found', async () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
-      await expect(async () => {
-        await loadGlobalJsonAsync(folder, '0.0.80')
-      }).rejects.toThrow(/not found/)
+      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/not found/)
     })
 
     it('should load json', async () => {
@@ -106,11 +98,11 @@ describe('utils', () => {
   describe('checkExtensionRoot', () => {
 
     it('should not throw on error', async () => {
-      let spy = jest.spyOn(fs, 'existsSync').mockImplementation(() => {
+      let spy = vi.spyOn(fs, 'existsSync').mockImplementation(() => {
         throw new Error('my error')
       })
       let called = false
-      let s = jest.spyOn(console, 'error').mockImplementation(() => {
+      let s = vi.spyOn(console, 'error').mockImplementation(() => {
         called = true
       })
       let root = path.join(os.tmpdir(), 'foo-bar')
@@ -198,7 +190,7 @@ describe('ExtensionStat', () => {
   }
 
   it('should not throw on create', async () => {
-    let spy = jest.spyOn(ExtensionStat.prototype, 'migrate' as any).mockImplementation(() => {
+    let spy = vi.spyOn(ExtensionStat.prototype, 'migrate' as any).mockImplementation(() => {
       throw new Error('my error')
     })
     let folder = path.join(os.tmpdir(), uuid())

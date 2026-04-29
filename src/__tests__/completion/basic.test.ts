@@ -304,7 +304,7 @@ describe('completion', () => {
 
     it('should trigger on trigger character', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
-      let fn = jest.fn()
+      let fn = vi.fn()
       let source: ISource = {
         name: 'trigger',
         enable: true,
@@ -380,7 +380,7 @@ describe('completion', () => {
       triggerCompletion(name)
       let spy
       let p = new Promise<void>(resolve => {
-        spy = jest.spyOn(doc, 'patchChange').mockImplementation(() => {
+        spy = vi.spyOn(doc, 'patchChange').mockImplementation(() => {
           resolve()
           return Promise.resolve()
         })
@@ -563,7 +563,7 @@ describe('completion', () => {
 
     it('should show items when wordDistance is slow', async () => {
       let _resolve
-      let spy = jest.spyOn(WordDistance, 'create').mockImplementation(() => {
+      let spy = vi.spyOn(WordDistance, 'create').mockImplementation(() => {
         return new Promise(resolve => {
           _resolve = resolve
         })
@@ -832,7 +832,7 @@ describe('completion', () => {
 
     it('should filter when type character after item selected without handle complete done', async () => {
       let input: string
-      let fn = jest.fn()
+      let fn = vi.fn()
       let source: ISource = {
         priority: 0,
         enable: true,
@@ -1226,7 +1226,7 @@ describe('completion', () => {
     })
 
     it('should not trigger triggerOnly source', async () => {
-      let fn = jest.fn()
+      let fn = vi.fn()
       let source: ISource = {
         name: 'pattern',
         triggerOnly: true,

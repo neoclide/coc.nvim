@@ -1,24 +1,22 @@
 import {defineConfig, globalIgnores} from "eslint/config"
 import globals from "globals"
 import jsdoc from "eslint-plugin-jsdoc"
-import jest from "eslint-plugin-jest"
+import vitest from "@vitest/eslint-plugin"
 import typescriptEslint from "typescript-eslint"
 
 export default defineConfig([
-  globalIgnores(["**/node_modules", "**/coverage", "**/build", "**/lib", "**/typings"]),
+  globalIgnores(["**/node_modules", "**/coverage", "**/build", "**/lib", "**/typings", "vitest.config.ts", "vitest.setup.ts"]),
   {
     files: ['**/*.ts'],
     extends: typescriptEslint.configs.recommendedTypeChecked,
 
     plugins: {
       jsdoc,
-      jest,
     },
 
     languageOptions: {
       globals: {
         ...globals.node,
-        ...jest.environments.globals.globals,
       },
 
       ecmaVersion: 5,
@@ -232,7 +230,19 @@ export default defineConfig([
     },
   }, {
     files: ['src/__tests__/**/*.ts'],
+    plugins: {
+      vitest,
+    },
+    languageOptions: {
+      globals: {
+        ...vitest.environments.env.globals,
+      },
+    },
     rules: {
+      ...vitest.configs.recommended.rules,
+      "vitest/expect-expect": "off",
+      "vitest/no-conditional-expect": "off",
+      "vitest/no-identical-title": "off",
       "@typescript-eslint/no-unsafe-function-type": "off"
     }
   }

@@ -58,7 +58,7 @@ describe('registerKeymap()', () => {
   it('should throw for invalid key', () => {
     let err
     try {
-      keymaps.registerKeymap(['i'], '', jest.fn())
+      keymaps.registerKeymap(['i'], '', vi.fn())
     } catch (e) {
       err = e
     }
@@ -66,10 +66,10 @@ describe('registerKeymap()', () => {
   })
 
   it('should throw for duplicated key', async () => {
-    keymaps.registerKeymap(['i'], 'tmp', jest.fn())
+    keymaps.registerKeymap(['i'], 'tmp', vi.fn())
     let err
     try {
-      keymaps.registerKeymap(['i'], 'tmp', jest.fn())
+      keymaps.registerKeymap(['i'], 'tmp', vi.fn())
     } catch (e) {
       err = e
     }
@@ -77,7 +77,7 @@ describe('registerKeymap()', () => {
   })
 
   it('should register insert key mapping', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     disposables.push(keymaps.registerKeymap(['i'], 'test', fn))
     let res = await nvim.call('execute', ['verbose imap <Plug>(coc-test)'])
     expect(res).toMatch('coc#_insert_key')
@@ -135,7 +135,7 @@ describe('registerExprKeymap()', () => {
   })
 
   it('should regist key mapping without cancel pum', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     let disposable = keymaps.registerExprKeymap('i', 'x', fn, false, false)
     let res = await nvim.exec('imap x', true)
     expect(res).toMatch('coc#_insert_key')

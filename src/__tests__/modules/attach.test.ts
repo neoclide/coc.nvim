@@ -13,7 +13,7 @@ beforeAll(async () => {
   nvim = plugin.nvim
   nvim.emit('notification', 'updateConfig', ['suggest.timeout', 300])
   nvim.emit('notification', 'action_not_exists', [])
-  let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+  let spy = vi.spyOn(console, 'error').mockImplementation(() => {
     // noop
   })
   await plugin.init('')
@@ -43,7 +43,7 @@ describe('notifications', () => {
   it('should do notifications', async () => {
     nvim.emit('notification', 'listNames', [])
     let called = false
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+    let spy = vi.spyOn(console, 'error').mockImplementation(() => {
       called = true
     })
     nvim.emit('notification', 'name_not_exists', [])
@@ -99,11 +99,11 @@ describe('request', () => {
     let disposable = events.on('CursorHold', async () => {
       throw new Error('my error')
     })
-    let s = jest.spyOn(events, 'fire').mockImplementation(() => {
+    let s = vi.spyOn(events, 'fire').mockImplementation(() => {
       return Promise.reject(new Error('my error'))
     })
     nvim.call('coc#rpc#request', ['CocAutocmd', ['CursorHold', 1, [1, 1]]], true)
-    let spy = jest.spyOn(nvim, 'echoError').mockImplementation(() => {
+    let spy = vi.spyOn(nvim, 'echoError').mockImplementation(() => {
       called = true
     })
     let called = false

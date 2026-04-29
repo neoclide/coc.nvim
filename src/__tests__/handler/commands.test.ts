@@ -52,7 +52,7 @@ describe('Commands', () => {
 
   describe('commandManager', () => {
     it('should replace builtin command', async () => {
-      let fn = jest.fn()
+      let fn = vi.fn()
       commandManager.registerCommand('editor.action.restart', () => {
         fn()
       })
@@ -60,10 +60,8 @@ describe('Commands', () => {
       expect(fn).toHaveBeenCalled()
     })
 
-    it('should throw when command not found', async () => {
-      await expect(async () => {
-        await commandManager.executeCommand('')
-      }).rejects.toThrow(Error)
+    it('should throw when command not found', () => {
+      expect(() => commandManager.executeCommand('')).toThrow(Error)
     })
 
     it('should add to recent', async () => {

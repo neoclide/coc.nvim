@@ -344,7 +344,7 @@ describe('createQuickPick', () => {
 
   it('should throw when unable to open list window', async () => {
     let fn = nvim.call
-    let spy = jest.spyOn(nvim, 'call').mockImplementation((...args: any) => {
+    let spy = vi.spyOn(nvim, 'call').mockImplementation((...args: any) => {
       if (args[0] === 'coc#dialog#create_list') return undefined
       return fn.apply(nvim, args)
     })

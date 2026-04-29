@@ -96,12 +96,12 @@ describe('SettingMonitor', () => {
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let monitor = new lsclient.SettingMonitor(client, 'TestServerEnabled')
-    let spy = jest.spyOn(client, 'start').mockReturnValue(Promise.reject(new Error('myerror')) as any)
+    let spy = vi.spyOn(client, 'start').mockReturnValue(Promise.reject(new Error('myerror')) as any)
     disposables.push(monitor.start())
     spy.mockRestore()
     await client.start()
     let called = false
-    let s = jest.spyOn(client, 'stop').mockImplementation(() => {
+    let s = vi.spyOn(client, 'stop').mockImplementation(() => {
       called = true
       return Promise.reject(new Error('myerror'))
     })
@@ -156,14 +156,14 @@ describe('Client events', () => {
     disposables.push(client)
     await client.start()
     let called = false
-    let spy = jest.spyOn(client, 'error').mockImplementation(() => {
+    let spy = vi.spyOn(client, 'error').mockImplementation(() => {
       called = true
     })
     await client.sendNotification('registerBad')
     await helper.waitValue(() => called, true)
     spy.mockRestore()
     {
-      let spy = jest.spyOn(client['_connection'], 'trace').mockReturnValue(Promise.reject(new Error('myerror')))
+      let spy = vi.spyOn(client['_connection'], 'trace').mockReturnValue(Promise.reject(new Error('myerror')))
       client.trace = Trace.Compact
       spy.mockRestore()
     }
@@ -179,7 +179,7 @@ describe('Client events', () => {
       errorHandler: new DefaultErrorHandler('test', 2)
     })
     let called = false
-    let spy = jest.spyOn(client, 'start').mockImplementation((async () => {
+    let spy = vi.spyOn(client, 'start').mockImplementation((async () => {
       called = true
       throw new Error('myerror')
     }) as any)
@@ -299,21 +299,15 @@ describe('Client events', () => {
     await client.sendProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f548579f', { kind: 'begin', title: 'begin progress' })
     await client.start()
     await helper.waitValue(() => called, true)
-    let spy = jest.spyOn(client['_connection'] as any, 'sendProgress').mockImplementation(() => {
+    let spy = vi.spyOn(client['_connection'] as any, 'sendProgress').mockImplementation(() => {
       throw new Error('error')
     })
-    await expect(async () => {
-      await client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })
-    }).rejects.toThrow(Error)
+    await expect(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })).rejects.toThrow(Error)
     spy.mockRestore()
     let p = client.stop()
-    await expect(async () => {
-      await client._start()
-    }).rejects.toThrow(Error)
+    await expect(client._start()).rejects.toThrow(Error)
     await p
-    await expect(async () => {
-      await client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })
-    }).rejects.toThrow(/not running/)
+    await expect(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })).rejects.toThrow(/not running/)
   })
 
   it('should use custom errorHandler', async () => {
@@ -377,7 +371,7 @@ describe('Client events', () => {
       let names = ['showErrorMessage', 'showWarningMessage', 'showInformationMessage']
       let fns: Function[] = []
       for (let name of names) {
-        let spy = jest.spyOn(window as any, name).mockImplementation(() => {
+        let spy = vi.spyOn(window as any, name).mockImplementation(() => {
           times++
           return Promise.resolve(result)
         })
@@ -401,11 +395,11 @@ describe('Client events', () => {
     let filename = path.join(os.tmpdir(), uuid())
     let uri = URI.file(filename)
     fs.writeFileSync(filename, 'foo', 'utf8')
-    let spy = jest.spyOn(workspace, 'openResource').mockImplementation(() => {
+    let spy = vi.spyOn(workspace, 'openResource').mockImplementation(() => {
       return Promise.resolve()
     })
     let called = false
-    let s = jest.spyOn(window, 'selectRange').mockImplementation(() => {
+    let s = vi.spyOn(window, 'selectRange').mockImplementation(() => {
       called = true
       return Promise.reject(new Error('failed'))
     })
@@ -743,9 +737,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       await client.start()
     }, /failed/)
-    await expect(async () => {
-      await client['$start']()
-    }).rejects.toThrow(/failed/)
+    await expect(client['$start']()).rejects.toThrow(/failed/)
   })
 
   it('should logMessage', async () => {
@@ -784,11 +776,11 @@ describe('Client integration', () => {
       args: [serverModule, '--stdio']
     }
     let client = await testLanguageServer(serverOptions)
-    let fn = jest.fn()
-    let spy = jest.spyOn(console, 'log').mockImplementation(() => {
+    let fn = vi.fn()
+    let spy = vi.spyOn(console, 'log').mockImplementation(() => {
       fn()
     })
-    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+    let s = vi.spyOn(console, 'error').mockImplementation(() => {
       fn()
     })
     client.switchConsole()
@@ -877,26 +869,20 @@ describe('Client integration', () => {
       return client
     }
     let messageReturn = {}
-    let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
+    let spy = vi.spyOn(window, 'showErrorMessage').mockImplementation(() => {
       return Promise.resolve(messageReturn as any)
     })
     let n = 0
-    await expect(async () => {
-      await startServer(() => {
+    await expect(startServer(() => {
         n++
         return n == 1
-      })
-    }).rejects.toThrow(Error)
+      })).rejects.toThrow(Error)
     await helper.waitValue(() => {
       return n
     }, 2)
-    await expect(async () => {
-      await startServer(undefined)
-    }).rejects.toThrow(Error)
+    await expect(startServer(undefined)).rejects.toThrow(Error)
 
-    await expect(async () => {
-      await startServer(undefined, 'normalThrow')
-    }).rejects.toThrow(Error)
+    await expect(startServer(undefined, 'normalThrow')).rejects.toThrow(Error)
     progressOnInitialization = true
     await expect(async () => {
       client = await startServer(undefined, 'utf8')

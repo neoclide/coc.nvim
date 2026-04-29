@@ -66,7 +66,7 @@ function updateData(defs: NodeDef[], reset = false) {
 }
 
 function makeUpdateUIThrowError() {
-  let spy = jest.spyOn(treeView as any, 'updateUI').mockImplementation(() => {
+  let spy = vi.spyOn(treeView as any, 'updateUI').mockImplementation(() => {
     throw new Error('Test error')
   })
   disposables.push(Disposable.create(() => {
@@ -453,7 +453,7 @@ describe('TreeView', () => {
       })
       await treeView.show()
       await nvim.command('exe 2')
-      let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      let spy = vi.spyOn(console, 'error').mockImplementation(() => {
         // noop
       })
       await nvim.input('<cr>')
@@ -546,7 +546,7 @@ describe('TreeView', () => {
       expect(res).toBe(true)
     })
 
-    it('should toggle expand on open/close icon click ', async () => {
+    it('should toggle expand on open/close icon click', async () => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.call('cursor', [1, 1])
@@ -1017,7 +1017,7 @@ describe('TreeView', () => {
 
     it('should not throw error on filter', async () => {
       await createFilterTreeView()
-      let spy = jest.spyOn(treeView as any, 'getRenderedLine').mockImplementation(() => {
+      let spy = vi.spyOn(treeView as any, 'getRenderedLine').mockImplementation(() => {
         throw new Error('Error on updateUI')
       })
       await nvim.input('a')
@@ -1183,7 +1183,7 @@ describe('TreeView', () => {
 
     it('should not throw on filter error', async () => {
       await createFilterTreeView()
-      let spy = jest.spyOn(treeView as any, 'redraw').mockImplementation(() => {
+      let spy = vi.spyOn(treeView as any, 'redraw').mockImplementation(() => {
         throw new Error('test error')
       })
       await nvim.input('a')

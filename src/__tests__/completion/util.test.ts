@@ -480,7 +480,7 @@ describe('util functions', () => {
           }]
         }
       }))
-      let spy = jest.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
+      let spy = vi.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
         return new Promise(resolve => {
           setTimeout(() => {
             resolve(null)
@@ -529,7 +529,7 @@ describe('util functions', () => {
           }]
         }
       }))
-      let spy = jest.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
+      let spy = vi.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
         return Promise.resolve({ foo: [Range.create(0, 0, 0, 0)] })
       })
       let opt = await nvim.call('coc#util#get_complete_option') as any

@@ -81,7 +81,7 @@ describe('factory', () => {
   }
 
   it('should create logger', () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     const sandbox = factory.createSandbox(logfile, {
       log: () => {
         fn()
@@ -1254,7 +1254,7 @@ describe('utility', () => {
 
   it('should check isRunning', () => {
     expect(isRunning(process.pid)).toBe(true)
-    let spy = jest.spyOn(process, 'kill').mockImplementation(() => {
+    let spy = vi.spyOn(process, 'kill').mockImplementation(() => {
       let e = new Error() as any
       e.code = 'EPERM'
       throw e
@@ -1269,9 +1269,7 @@ describe('utility', () => {
   })
 
   it('should run command with timeout', async () => {
-    await expect(async () => {
-      await runCommand('sleep 2', { cwd: __dirname }, 0.01)
-    }).rejects.toThrow(errors.CancellationError)
+    await expect(runCommand('sleep 2', { cwd: __dirname }, 0.01)).rejects.toThrow(errors.CancellationError)
   })
 
   it('should run command with Cancellation token', async () => {
@@ -1280,9 +1278,7 @@ describe('utility', () => {
     setTimeout(() => {
       tokenSource.cancel()
     }, 20)
-    await expect(async () => {
-      await runCommand('sleep 2', { cwd: __dirname, encoding: 'unknown' }, token)
-    }).rejects.toThrow(errors.CancellationError)
+    await expect(runCommand('sleep 2', { cwd: __dirname, encoding: 'unknown' }, token)).rejects.toThrow(errors.CancellationError)
   })
 
   it('should run command with encoding support', async () => {
@@ -1291,13 +1287,11 @@ describe('utility', () => {
   })
 
   it('should throw on command error', async () => {
-    await expect(async () => {
-      await runCommand('command_not_exists', { cwd: __dirname })
-    }).rejects.toThrow(Error)
+    await expect(runCommand('command_not_exists', { cwd: __dirname })).rejects.toThrow(Error)
   })
 
   it('should resolve concurrent with empty task', async () => {
-    let fn = jest.fn()
+    let fn = vi.fn()
     await concurrent([], fn, 3)
     expect(fn).toHaveBeenCalledTimes(0)
   })
@@ -1591,21 +1585,21 @@ describe('terminate', () => {
     expect(res).toBe(false)
     res = terminate(child, process.cwd(), platform.Platform.Unknown)
     expect(res).toBe(true)
-    let spy: any = jest.spyOn(cp, 'execFileSync').mockImplementation(() => {
+    let spy: any = vi.spyOn(cp, 'execFileSync').mockImplementation(() => {
       return undefined
     })
     child = spawn('ls', [], { detached: true })
     res = terminate(child, process.cwd(), platform.Platform.Windows)
     expect(res).toBe(true)
     spy.mockRestore()
-    spy = jest.spyOn(cp, 'spawnSync').mockImplementation(() => {
+    spy = vi.spyOn(cp, 'spawnSync').mockImplementation(() => {
       throw new Error('bad')
     })
     child = spawn('ls', [], { detached: true })
     res = terminate(child, process.cwd(), platform.Platform.Linux)
     expect(res).toBe(false)
     spy.mockRestore()
-    spy = jest.spyOn(cp, 'spawnSync').mockImplementation(() => {
+    spy = vi.spyOn(cp, 'spawnSync').mockImplementation(() => {
       return { error: new Error('bad') } as any
     })
     child = spawn('ls', [], { detached: true })

@@ -392,9 +392,7 @@ describe('list', () => {
           return emitter
         }
       })
-      await expect(async () => {
-        await manager.loadItems('emitter')
-      }).rejects.toThrow(Error)
+      await expect(manager.loadItems('emitter')).rejects.toThrow(Error)
       error = false
       res = await manager.loadItems('emitter')
       expect(res.length).toBe(1)
@@ -521,7 +519,7 @@ describe('list', () => {
 
   describe('registerList()', () => {
     it('should recreate list', async () => {
-      let fn = jest.fn()
+      let fn = vi.fn()
       let list: IList = {
         name: 'test',
         actions: [{

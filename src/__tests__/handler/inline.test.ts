@@ -1,3 +1,4 @@
+import type { Mock, MockInstance } from 'vitest'
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../../commands'
@@ -27,7 +28,7 @@ afterAll(async () => {
 
 describe('InlineCompletion', () => {
   afterEach(async () => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     inlineCompletion['_inserted'] = undefined
     await helper.reset()
     disposables.forEach(d => d.dispose())
@@ -40,7 +41,7 @@ describe('InlineCompletion', () => {
   function mockInlineInsert(returnValue: boolean): void {
     // Mock nvim calls
     let fn = nvim.call
-    nvim.call = jest.fn().mockImplementation((method, ...args) => {
+    nvim.call = vi.fn().mockImplementation((method, ...args) => {
       if (method === 'coc#inline#_insert') return Promise.resolve(returnValue)
       if (method === 'coc#inline#clear') return Promise.resolve()
       return fn.apply(nvim, [method, ...args] as any)
@@ -52,13 +53,13 @@ describe('InlineCompletion', () => {
       helper.updateConfiguration('inline.autoTrigger', true, disposables)
       await nvim.command('startinsert')
       let doc = await helper.createDocument()
-      let mockProvider = jest.fn()
+      let mockProvider = vi.fn()
       let providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         { provideInlineCompletionItems: mockProvider }
       )
       disposables.push(providerDisposable)
-      const spy = jest.spyOn(inlineCompletion, 'trigger')
+      const spy = vi.spyOn(inlineCompletion, 'trigger')
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'test')])
       expect(spy).toHaveBeenCalledTimes(1)
     })
@@ -71,7 +72,7 @@ describe('InlineCompletion', () => {
       }
       inlineCompletion['bufnr'] = doc.bufnr
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      const spy = jest.spyOn(inlineCompletion, 'cancel')
+      const spy = vi.spyOn(inlineCompletion, 'cancel')
       await nvim.command('bwipeout!')
       workspace.documentsManager.detachBuffer(doc.bufnr)
       expect(spy).toHaveBeenCalledTimes(1)
@@ -84,7 +85,7 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 5, 0, 5)
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      const spy = jest.spyOn(inlineCompletion, 'cancel')
+      const spy = vi.spyOn(inlineCompletion, 'cancel')
       await events.fire('ModeChanged', [{ old_mode: 'i', new_mode: 'ic' }])
       expect(spy).not.toHaveBeenCalled()
     })
@@ -160,7 +161,7 @@ describe('InlineCompletion', () => {
       await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitFor('coc#inline#visible', [], 1)
       // Spy on executeCommand to check if snippet command is executed
-      const executeCommandSpy = jest.spyOn(commands, 'executeCommand')
+      const executeCommandSpy = vi.spyOn(commands, 'executeCommand')
       // Accept the completion
       let res = await inlineCompletion.accept(doc.bufnr)
       // Check result
@@ -344,8 +345,8 @@ describe('InlineCompletion', () => {
         insertText: 'bar',
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 3), [item], 0, 'bar')
-      const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
-      const moveToSpy = jest.spyOn(window, 'moveTo')
+      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
+      const moveToSpy = vi.spyOn(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
 
       expect(applyEditsSpy).toHaveBeenCalledWith(
@@ -368,8 +369,8 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 6, 0, 6) // Replacing nothing, just inserting at cursor
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item], 0, 'replacement')
-      const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
-      const moveToSpy = jest.spyOn(window, 'moveTo')
+      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
+      const moveToSpy = vi.spyOn(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
       // The range in item is used for TextEdit.replace
       expect(applyEditsSpy).toHaveBeenCalledWith(
@@ -412,7 +413,7 @@ describe('InlineCompletion', () => {
 
       // Mock isWord
       const originalIsWord = doc.isWord
-      doc.isWord = jest.fn(char => /[a-zA-Z]/.test(char))
+      doc.isWord = vi.fn(char => /[a-zA-Z]/.test(char))
       await inlineCompletion.accept(doc.bufnr, 'word')
       expect(inlineCompletion.session).toBeUndefined()
       const content = await doc.buffer.lines
@@ -431,9 +432,9 @@ describe('InlineCompletion', () => {
       inlineCompletion.session.vtext = 'onlyword'
 
       const originalIsWord = doc.isWord
-      doc.isWord = jest.fn(char => /[a-zA-Z]/.test(char))
+      doc.isWord = vi.fn(char => /[a-zA-Z]/.test(char))
 
-      const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
+      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
       await inlineCompletion.accept(doc.bufnr, 'word')
 
       expect(applyEditsSpy).toHaveBeenCalledWith(
@@ -471,7 +472,7 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'singleLineText'
 
-      const applyEditsSpy = jest.spyOn(doc, 'applyEdits')
+      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
       await inlineCompletion.accept(doc.bufnr, 'line')
 
       expect(applyEditsSpy).toHaveBeenCalledWith(
@@ -510,18 +511,18 @@ describe('InlineCompletion', () => {
   })
 
   describe('trigger()', () => {
-    let mockProvider: jest.Mock
+    let mockProvider: Mock
     let providerDisposable: Disposable
 
     beforeEach(() => {
-      mockProvider = jest.fn()
+      mockProvider = vi.fn()
       providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         { provideInlineCompletionItems: mockProvider }
       )
       disposables.push(providerDisposable)
       // Mock getCurrentState to simulate insert mode
-      jest.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValue({
+      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValue({
         doc: workspace.getDocument(workspace.bufnr),
         position: Position.create(0, 0),
         mode: 'i',
@@ -544,7 +545,7 @@ describe('InlineCompletion', () => {
 
     it('should return false when not supported', async () => {
       let doc = await workspace.document
-      let spy = jest.spyOn(workspace, 'has').mockReturnValue(false) // Simulate inline completion not supported
+      let spy = vi.spyOn(workspace, 'has').mockReturnValue(false) // Simulate inline completion not supported
       let res = await inlineCompletion.trigger(doc.bufnr)
       expect(res).toBe(false)
       expect(inlineCompletion.session).toBeUndefined()
@@ -554,7 +555,7 @@ describe('InlineCompletion', () => {
 
     it('should not trigger if provider returns no items (autoTrigger: true)', async () => {
       mockProvider.mockResolvedValue([])
-      const spy = jest.spyOn(window, 'showWarningMessage')
+      const spy = vi.spyOn(window, 'showWarningMessage')
       await commands.executeCommand('editor.action.triggerInlineCompletion', { autoTrigger: true })
       expect(mockProvider).toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()
@@ -564,7 +565,7 @@ describe('InlineCompletion', () => {
     it('should show warning if provider returns no items (autoTrigger: false)', async () => {
       mockProvider.mockResolvedValue([])
       let doc = await workspace.document
-      const spy = jest.spyOn(window, 'showWarningMessage')
+      const spy = vi.spyOn(window, 'showWarningMessage')
       await inlineCompletion.trigger(doc.bufnr, { autoTrigger: false })
       expect(mockProvider).toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()
@@ -598,7 +599,7 @@ describe('InlineCompletion', () => {
       let doc = await workspace.document
       await nvim.call('setline', ['.', 'foobar'])
       expect(doc.hasChanged).toBe(true)
-      const syncSpy = jest.spyOn(doc, 'synchronize')
+      const syncSpy = vi.spyOn(doc, 'synchronize')
       await inlineCompletion.trigger(doc.bufnr, { autoTrigger: false })
       expect(syncSpy).toHaveBeenCalled()
       expect(inlineCompletion.session).toBeDefined() // Should still trigger after sync
@@ -630,7 +631,7 @@ describe('InlineCompletion', () => {
       mockProvider.mockResolvedValue([{ insertText: 'test' }])
       let prev = await helper.createDocument('foo')
       let doc = await helper.createDocument('bar')
-      jest.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
+      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
         doc: prev,
         position: Position.create(0, 0),
         mode: 'i',
@@ -644,7 +645,7 @@ describe('InlineCompletion', () => {
     it('should not trigger if current mode is not insert', async () => {
       mockProvider.mockResolvedValue([{ insertText: 'test' }])
       let doc = await workspace.document
-      jest.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
+      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
         doc: workspace.getDocument(doc.bufnr),
         position: Position.create(0, 0),
         mode: 'n', // Not insert mode
@@ -656,7 +657,7 @@ describe('InlineCompletion', () => {
     })
 
     it('should use specified provider if option.provider is given', async () => {
-      const specificProviderMock = jest.fn().mockResolvedValue([{ insertText: 'specific' }])
+      const specificProviderMock = vi.fn().mockResolvedValue([{ insertText: 'specific' }])
       const specificProviderDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         {
@@ -681,7 +682,7 @@ describe('InlineCompletion', () => {
     const item1: InlineCompletionItem = { insertText: 'item1' }
     const item2: InlineCompletionItem = { insertText: 'item2' }
     const item3: InlineCompletionItem = { insertText: 'item3' }
-    let mockInsertVtext: jest.SpyInstance
+    let mockInsertVtext: MockInstance
 
     const setupSession = (items: InlineCompletionItem[], initialIndex = 0, sessionBufnr = bufnr) => {
       const session = new InlineSession(sessionBufnr, Position.create(0, 0), items)
@@ -697,7 +698,7 @@ describe('InlineCompletion', () => {
 
     beforeEach(() => {
       // Spy on insertVtext to check if it's called correctly without running its full logic
-      mockInsertVtext = jest.spyOn(inlineCompletion, 'insertVtext').mockResolvedValue(undefined)
+      mockInsertVtext = vi.spyOn(inlineCompletion, 'insertVtext').mockResolvedValue(undefined)
       // Ensure vtextBufnr is reset or managed correctly per test
       if (inlineCompletion.session) inlineCompletion.session.vtext = undefined
     })
@@ -804,24 +805,24 @@ describe('InlineCompletion', () => {
 
   describe('commands', () => {
     describe('document.checkInlineCompletion', () => {
-      let showWarningMessageSpy: jest.SpyInstance
-      let showInformationMessageSpy: jest.SpyInstance
-      let getDocumentSpy: jest.SpyInstance
-      let getProvidersSpy: jest.SpyInstance
+      let showWarningMessageSpy: MockInstance
+      let showInformationMessageSpy: MockInstance
+      let getDocumentSpy: MockInstance
+      let getProvidersSpy: MockInstance
 
       beforeEach(() => {
-        showWarningMessageSpy = jest.spyOn(window, 'showWarningMessage').mockResolvedValue(undefined)
-        showInformationMessageSpy = jest.spyOn(window, 'showInformationMessage').mockResolvedValue(undefined)
-        getDocumentSpy = jest.spyOn(workspace, 'getDocument')
-        getProvidersSpy = jest.spyOn(languages.inlineCompletionItemManager, 'getProviders')
+        showWarningMessageSpy = vi.spyOn(window, 'showWarningMessage').mockResolvedValue(undefined)
+        showInformationMessageSpy = vi.spyOn(window, 'showInformationMessage').mockResolvedValue(undefined)
+        getDocumentSpy = vi.spyOn(workspace, 'getDocument')
+        getProvidersSpy = vi.spyOn(languages.inlineCompletionItemManager, 'getProviders')
       })
 
       afterEach(() => {
-        jest.restoreAllMocks()
+        vi.restoreAllMocks()
       })
 
       it('should show warning if inline completion is not supported', async () => {
-        jest.spyOn(workspace, 'has').mockReturnValue(false)
+        vi.spyOn(workspace, 'has').mockReturnValue(false)
         await commands.executeCommand('document.checkInlineCompletion')
         expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('Inline completion is not supported'))
         expect(showInformationMessageSpy).not.toHaveBeenCalled()

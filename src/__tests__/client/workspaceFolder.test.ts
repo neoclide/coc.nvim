@@ -33,7 +33,7 @@ function testEvent(initial: MaybeFolders, then: MaybeFolders, added: proto.Works
   const client = new TestLanguageClient('foo', 'bar', {})
 
   let arg: any
-  let spy = jest.spyOn(client, 'sendNotification').mockImplementation((_p1, p2) => {
+  let spy = vi.spyOn(client, 'sendNotification').mockImplementation((_p1, p2) => {
     arg = p2
     return Promise.resolve()
   })
@@ -53,7 +53,7 @@ function testEvent(initial: MaybeFolders, then: MaybeFolders, added: proto.Works
 function testNoEvent(initial: MaybeFolders, then: MaybeFolders) {
   const client = new TestLanguageClient('foo', 'bar', {})
 
-  let spy = jest.spyOn(client, 'sendNotification').mockImplementation(() => {
+  let spy = vi.spyOn(client, 'sendNotification').mockImplementation(() => {
     return Promise.resolve()
   })
 

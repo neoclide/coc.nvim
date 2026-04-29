@@ -398,7 +398,7 @@ describe('signatureHelp', () => {
       Object.assign(signature as any, {
         lastPosition: { bufnr: doc.bufnr, lnum: 1, col: 1 }
       })
-      let spy = jest.spyOn(signature as any, '_triggerSignatureHelp').mockResolvedValue(true)
+      let spy = vi.spyOn(signature as any, '_triggerSignatureHelp').mockResolvedValue(true)
       await events.fire('MenuPopupChanged', [{}])
       await helper.wait(30)
       expect(spy).not.toHaveBeenCalled()

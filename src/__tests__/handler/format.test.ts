@@ -40,19 +40,15 @@ describe('format handler', () => {
     })
 
     it('should throw when provider not found', async () => {
-      await expect(async () => {
-        await commands.executeCommand('editor.action.formatDocument', 999)
-      }).rejects.toThrow(Error)
-      await expect(async () => {
-        await commands.executeCommand('editor.action.formatDocument')
-      }).rejects.toThrow(Error)
+      await expect(commands.executeCommand('editor.action.formatDocument', 999)).rejects.toThrow(Error)
+      await expect(commands.executeCommand('editor.action.formatDocument')).rejects.toThrow(Error)
       await expect(async () => {
         let doc = await workspace.document
         await commands.executeCommand('editor.action.formatDocument', doc.uri)
       }).rejects.toThrow(Error)
     })
 
-    it('should return false when get empty edits ', async () => {
+    it('should return false when get empty edits', async () => {
       disposables.push(languages.registerDocumentFormatProvider(['*'], {
         provideDocumentFormattingEdits: () => {
           return []
@@ -167,7 +163,7 @@ describe('format handler', () => {
           return []
         }
       }, 1))
-      let spy = jest.spyOn(window, 'getSelectedRange').mockImplementation(() => {
+      let spy = vi.spyOn(window, 'getSelectedRange').mockImplementation(() => {
         return Promise.resolve(null)
       })
       let doc = await workspace.document

@@ -38,9 +38,7 @@ function createCallItem(name: string, kind: SymbolKind, uri: string, range: Rang
 
 describe('CallHierarchy', () => {
   it('should throw when provider does not exist', async () => {
-    await expect(async () => {
-      await callHierarchy.getIncoming()
-    }).rejects.toThrow(Error)
+    await expect(callHierarchy.getIncoming()).rejects.toThrow(Error)
   })
 
   it('should return null when provider not exist', async () => {

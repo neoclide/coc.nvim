@@ -33,7 +33,7 @@ describe('Dialog module', () => {
   })
 
   it('should invoke callback with index -1', async () => {
-    let callback = jest.fn()
+    let callback = vi.fn()
     let dialog = new Dialog(nvim, { content: '你好', callback, highlights: [] })
     await dialog.show({})
     let winid = await dialog.winid
@@ -43,7 +43,7 @@ describe('Dialog module', () => {
   })
 
   it('should invoke callback on click', async () => {
-    let callback = jest.fn()
+    let callback = vi.fn()
     let buttons: DialogButton[] = [{
       index: 0,
       text: 'yes'

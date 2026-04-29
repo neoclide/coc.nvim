@@ -243,7 +243,7 @@ describe('Configurations', () => {
 
     it('should update memory config #1', () => {
       let conf = new Configurations()
-      let fn = jest.fn()
+      let fn = vi.fn()
       conf.onDidChange(e => {
         expect(e.affectsConfiguration('x')).toBe(true)
         fn()
@@ -309,7 +309,7 @@ describe('Configurations', () => {
       disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let resource = URI.file(path.resolve(workspaceConfigFile, '../..'))
-      let fn = jest.fn()
+      let fn = vi.fn()
       configurations.onDidChange(e => {
         expect(e.affectsConfiguration('foo')).toBe(true)
         expect(e.affectsConfiguration('foo.bar')).toBe(true)
@@ -330,7 +330,7 @@ describe('Configurations', () => {
       disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let resource = URI.file(path.resolve(workspaceConfigFile, '../..'))
-      let fn = jest.fn()
+      let fn = vi.fn()
       configurations.onDidChange(e => {
         expect(e.affectsConfiguration('foo')).toBe(true)
         expect(e.affectsConfiguration('foo.bar')).toBe(true)
@@ -376,7 +376,7 @@ describe('Configurations', () => {
 
     it('should show error when workspace folder not resolved', async () => {
       let called = false
-      let s = jest.spyOn(console, 'error').mockImplementation(() => {
+      let s = vi.spyOn(console, 'error').mockImplementation(() => {
         called = true
       })
       let con = new Configurations(undefined, {
