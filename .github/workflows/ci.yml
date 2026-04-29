@@ -81,7 +81,7 @@ jobs:
           ./node_modules/.bin/vitest run --coverage
 
       - name: Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
