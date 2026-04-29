@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2025-04-29
+
+- Break Change: minimal node version changed from 16.18.0 to 20.19.0.
+
 ## 2025-11-22
 
 - Add configurable front end for reporting regular messages to the user, by using
