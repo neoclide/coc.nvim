@@ -21,11 +21,27 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/__tests__/**/*.{test,spec}.ts'],
     setupFiles: ['./vitest.setup.ts'],
     clearMocks: true,
     pool: 'forks',
-    maxWorkers: 1,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'parallel',
+          include: ['src/__tests__/**/*.{test,spec}.ts'],
+          exclude: ['src/__tests__/completion/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'sequential',
+          include: ['src/__tests__/completion/**/*.{test,spec}.ts'],
+          fileParallelism: false,
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
