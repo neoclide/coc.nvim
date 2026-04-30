@@ -1417,7 +1417,7 @@ Use `extensions` section for extension related configurations. Deprecated config
 - Fix possible invalid package.json.
 - Fix applyEdits not work sometimes.
 - Fix server still started when command search failed.
-- Fix log file not writeable.
+- Fix log file not writable.
 - Improve completion performance.
 
 ## 2019-01-03
