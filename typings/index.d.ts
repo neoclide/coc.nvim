@@ -11151,7 +11151,7 @@ declare module 'coc.nvim' {
      */
     reload?: boolean
     /**
-     * Inovke all selected items in parallel.
+     * Invoke all selected items in parallel.
      */
     parallel?: boolean
     /**
