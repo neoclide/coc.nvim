@@ -778,7 +778,7 @@ function! coc#float#close_related(winid, ...) abort
         call coc#float#close(id, 1)
       elseif s:is_vim
         " vim doesn't throw
-        noa call popup_close(id)
+        call s:close_win(id, 1)
       else
         silent! noa call nvim_win_close(id, 1)
       endif
@@ -1172,7 +1172,28 @@ function! s:close_win(winid, noautocmd) abort
   " vim not throw for none exists winid
   if s:is_vim
     let prefix = a:noautocmd ? 'noa ': ''
-    exe prefix.'call popup_close('.a:winid.')'
+    let pos = popup_getpos(a:winid)
+    if empty(pos)
+      return
+    endif
+    if get(pos, 'visible', 0)
+      exe prefix.'call popup_close('.a:winid.')'
+      return
+    endif
+    " popup_close() is a no-op when called from a tabpage other than the
+    " one that owns the popup. Use popup_getoptions() to find the owning
+    " tab directly and switch to it to close the popup.
+    let owning_tab = get(popup_getoptions(a:winid), 'tabpage', -1)
+    if owning_tab > 0 && owning_tab != tabpagenr()
+      " tab-specific popup owned by another tab; switch there to close it.
+      let saved = tabpagenr()
+      silent! noa exe 'tabnext '.owning_tab
+      exe prefix.'call popup_close('.a:winid.')'
+      silent! noa exe 'tabnext '.saved
+    else
+      " global popup (tabpage == -1): popup_close() works from any tab.
+      exe prefix.'call popup_close('.a:winid.')'
+    endif
   else
     if nvim_win_is_valid(a:winid)
       let prefix = a:noautocmd ? 'noa ': ''
