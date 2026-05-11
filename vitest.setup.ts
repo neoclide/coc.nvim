@@ -2,7 +2,7 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 import Module from 'module'
-import { transformSync } from 'esbuild'
+import ts from 'typescript'
 
 const tsExt = '.ts'
 if (!(Module as any)._extensions[tsExt]) {
@@ -13,13 +13,15 @@ if (!(Module as any)._extensions[tsExt]) {
       return
     }
     const source = fs.readFileSync(filename, 'utf8')
-    const { code } = transformSync(source, {
-      loader: 'ts',
-      format: 'cjs',
-      target: 'node20',
-      sourcefile: filename,
+    const { outputText } = ts.transpileModule(source, {
+      fileName: filename,
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        esModuleInterop: true,
+      },
     })
-    module._compile(code, filename)
+    module._compile(outputText, filename)
   }
 }
 

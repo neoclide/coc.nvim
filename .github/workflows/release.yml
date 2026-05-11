@@ -47,7 +47,7 @@ jobs:
         run: |
           npm i -g bytes
           npm ci
-          NODE_ENV=production node esbuild.js
+          NODE_ENV=production npm run build
           sudo apt-get install -y ripgrep exuberant-ctags
           rg --version
           ctags --version

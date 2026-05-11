@@ -1,33 +1,23 @@
-const cp = require('child_process')
+import cp from 'node:child_process'
+
 let revision = 'master'
 if (process.env.NODE_ENV !== 'development') {
   try {
-    let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
+    let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, { encoding: 'utf8' })
     revision = res.replaceAll('"', '').replace(',', ' ')
-  } catch (e) {
-    // ignore
-  }
+  } catch {}
 }
 
-let entryPlugin = {
-  name: 'entry',
-  setup(build) {
-    build.onResolve({filter: /^index\.js$/}, args => {
-      return {
-        path: args.path,
-        namespace: 'entry-ns'
-      }
-    })
-    build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
-      let contents = `'use strict'
+const entryId = '\0coc-entry'
+const entryContents = `'use strict'
 if (global.__isMain) {
+  const { createLogger } = require('./src/logger/index')
+  const logger = createLogger('server')
   Object.defineProperty(console, 'log', {
     value() {
       if (logger) logger.info(...arguments)
     }
   })
-  const { createLogger } = require('./src/logger/index')
-  const logger = createLogger('server')
   process.on('uncaughtException', function(err) {
     let msg = 'Uncaught exception: ' + err.message
     console.error(msg)
@@ -60,39 +50,40 @@ if (global.__isMain) {
     return exports.extensions.manager.load(filepath, active)
   }}
 }`
-      return {
-        contents,
-        resolveDir: __dirname
-      }
-    })
+
+const entryPlugin = {
+  name: 'entry',
+  resolveId(id) {
+    if (id === 'index.js') return entryId
+  },
+  load(id) {
+    if (id === entryId) return entryContents
   }
 }
 
-async function start() {
-  await require('esbuild').build({
-    entryPoints: ['index.js'],
-    bundle: true,
-    sourcemap: process.env.NODE_ENV === 'development',
+export default {
+  input: 'index.js',
+  platform: 'node',
+  treeshake: true,
+  transform: {
+    target: 'node20',
     define: {
-      REVISION: '"' + revision + '"',
-      ESBUILD: 'true',
+      REVISION: JSON.stringify(revision),
       'process.env.COC_NVIM': '"1"',
       'global.__TEST__': 'false'
-    },
-    mainFields: ['module', 'main'],
-    platform: 'node',
-    treeShaking: true,
-    target: 'node20',
-    plugins: [entryPlugin],
-    banner: {
-      js: `"use strict";
+    }
+  },
+  resolve: {
+    mainFields: ['module', 'main']
+  },
+  plugins: [entryPlugin],
+  output: {
+    file: 'build/index.js',
+    format: 'cjs',
+    codeSplitting: false,
+    sourcemap: process.env.NODE_ENV === 'development',
+    banner: `"use strict";
 global.__starttime = Date.now();
 global.__isMain = require.main === module;`
-    },
-    outfile: 'build/index.js'
-  })
+  }
 }
-
-start().catch(e => {
-  console.error(e)
-})

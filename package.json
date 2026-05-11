@@ -10,10 +10,10 @@
   "scripts": {
     "lint": "eslint . --quiet --concurrency auto",
     "lint:typecheck": "tsc -p tsconfig.json",
-    "build": "node esbuild.js",
+    "build": "rolldown -c",
     "test": "vitest run",
     "test-build": "vitest run --coverage",
-    "prepare": "node esbuild.js"
+    "prepare": "rolldown -c"
   },
   "repository": {
     "type": "git",
@@ -37,16 +37,16 @@
     "@types/semver": "^7.7.1",
     "@types/unidecode": "^1.1.0",
     "@types/which": "^3.0.4",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@vitest/eslint-plugin": "^1.6.16",
-    "esbuild": "^0.28.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/eslint-plugin": "^1.6.17",
     "eslint": "^10.2.1",
     "eslint-formatter-unix": "^9.0.1",
     "eslint-plugin-jsdoc": "^62.9.0",
     "globals": "^17.5.0",
+    "rolldown": "^1.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
-    "vitest": "^4.1.5",
+    "vitest": "^4.1.6",
     "vscode-languageserver": "^10.0.0-next.17"
   },
   "dependencies": {

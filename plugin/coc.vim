@@ -681,7 +681,7 @@ function! s:ShowInfo()
     " check bundle
     let file = s:root.'/build/index.js'
     if !filereadable(file)
-      call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by esbuild.')
+      call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by npm run build.')
     endif
     if !empty(lines)
       botright vnew
