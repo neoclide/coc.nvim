@@ -81,7 +81,7 @@ function! s:checkCommand()
   if filereadable(file)
     call s:report_ok('Javascript bundle build/index.js found')
   else
-    call s:report_error('Javascript entry not found, please compile coc.nvim by esbuild.')
+    call s:report_error('Javascript entry not found, please compile coc.nvim by npm run build.')
   endif
 endfunction
 

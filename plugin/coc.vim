@@ -301,6 +301,7 @@ function! s:HandleInsertLeave(bufnr) abort
 endfunction
 
 function! s:HandleWinScrolled(winid, event) abort
+  call coc#float#reposition_cursor_floats(a:event)
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
   endif
@@ -680,7 +681,7 @@ function! s:ShowInfo()
     " check bundle
     let file = s:root.'/build/index.js'
     if !filereadable(file)
-      call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by esbuild.')
+      call add(lines, 'Error: javascript bundle not found, please compile code of coc.nvim by npm run build.')
     endif
     if !empty(lines)
       botright vnew
