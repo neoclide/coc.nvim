@@ -301,6 +301,7 @@ function! s:HandleInsertLeave(bufnr) abort
 endfunction
 
 function! s:HandleWinScrolled(winid, event) abort
+  call coc#float#reposition_cursor_floats(a:event)
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
   endif
