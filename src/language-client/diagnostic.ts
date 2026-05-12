@@ -255,7 +255,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.onDidChangeDiagnosticsEmitter = new Emitter<void>()
     this.provider = this.createProvider()
 
-    this.diagnostics = languages.createDiagnosticCollection(defaultValue(options.identifier, client.id))
+    this.diagnostics = languages.createDiagnosticCollection(`${client.id}:pull:${defaultValue(options.identifier, client.id)}`)
     this.openRequests = new Map()
     this.documentStates = new DocumentPullStateTracker()
     this.workspaceErrorCounter = 0
