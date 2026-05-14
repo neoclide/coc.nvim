@@ -1,4 +1,4 @@
-import { decode, decodeMultiStream, encode, ExtensionCodec } from '@msgpack/msgpack'
+import { decode, decodeMultiStream, Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { Metadata } from '../api/types'
 import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
@@ -9,6 +9,8 @@ export class NvimTransport extends Transport {
   private reader: NodeJS.ReadableStream
   private writer: NodeJS.WritableStream
   private readonly extensionCodec: ExtensionCodec = this.initializeExtensionCodec()
+  private readonly encoder: Encoder = new Encoder({ extensionCodec: this.extensionCodec, ignoreUndefined: true })
+  private readonly extEncoder: Encoder = new Encoder({ ignoreUndefined: true })
   private attached = false
 
   // Neovim client that holds state
@@ -25,7 +27,7 @@ export class NvimTransport extends Transport {
         type: id,
         encode: (input: any) => {
           if (input instanceof constructor) {
-            return encode(input.data)
+            return this.extEncoder.encode(input.data)
           }
           return null
         },
@@ -40,7 +42,7 @@ export class NvimTransport extends Transport {
   }
 
   private encodeToBuffer(value: unknown): Buffer {
-    const encoded = encode(value, { extensionCodec: this.extensionCodec })
+    const encoded = this.encoder.encode(value)
     return Buffer.from(encoded.buffer, encoded.byteOffset, encoded.byteLength)
   }
 
