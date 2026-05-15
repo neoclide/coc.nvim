@@ -30,14 +30,14 @@ export default defineConfig({
         test: {
           name: 'parallel',
           include: ['src/__tests__/**/*.test.ts'],
-          exclude: ['src/__tests__/completion/**', 'src/__tests__/tree/treeView.test.ts'],
+          exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
         },
       },
       {
         extends: true,
         test: {
           name: 'sequential',
-          include: ['src/__tests__/completion/**/*.test.ts', 'src/__tests__/tree/treeView.test.ts'],
+          include: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
           fileParallelism: false,
         },
       },
