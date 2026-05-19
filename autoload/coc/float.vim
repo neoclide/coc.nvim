@@ -755,14 +755,36 @@ endfunction
 
 function! coc#float#reposition_cursor_floats(event) abort
   if empty(a:event) | return | endif
+  let view_cache = {}
   for winid in coc#float#get_float_win_list()
     let source = getwinvar(winid, 'cursor_float_source', 0)
     if !source | continue | endif
     let evt = get(a:event, string(source), {})
+    if empty(evt) | continue | endif
     let dy = -get(evt, 'topline', 0)
     let dx = -get(evt, 'leftcol', 0)
     if dy == 0 && dx == 0 | continue | endif
+    if !has_key(view_cache, source)
+      let view_cache[source] = s:get_cursor_float_source_view(source)
+    endif
+    let view = view_cache[source]
+    if empty(view)
+      call setwinvar(winid, 'cursor_float_source', 0)
+      call setwinvar(winid, 'cursor_float_source_view', {})
+      continue
+    endif
+    let previous = {
+          \ 'topline': get(view, 'topline', 0) - get(evt, 'topline', 0),
+          \ 'leftcol': get(view, 'leftcol', 0) - get(evt, 'leftcol', 0)
+          \ }
+    let tracked = getwinvar(winid, 'cursor_float_source_view', previous)
+    if get(tracked, 'topline', 0) != get(previous, 'topline', 0)
+          \ || get(tracked, 'leftcol', 0) != get(previous, 'leftcol', 0)
+      call setwinvar(winid, 'cursor_float_source_view', view)
+      continue
+    endif
     call s:move_cursor_float(winid, dy, dx)
+    call setwinvar(winid, 'cursor_float_source_view', view)
   endfor
 endfunction
 
@@ -1414,7 +1436,25 @@ function! s:win_setview(winid, topline, lnum) abort
 endfunction
 
 function! s:track_cursor_float(winid, config) abort
-  call setwinvar(a:winid, 'cursor_float_source', get(a:config, 'relative', '') ==# 'cursor' ? win_getid() : 0)
+  if get(a:config, 'relative', '') ==# 'cursor'
+    let source = win_getid()
+    call setwinvar(a:winid, 'cursor_float_source', source)
+    call setwinvar(a:winid, 'cursor_float_source_view', s:get_cursor_float_source_view(source))
+  else
+    call setwinvar(a:winid, 'cursor_float_source', 0)
+    call setwinvar(a:winid, 'cursor_float_source_view', {})
+  endif
+endfunction
+
+function! s:get_cursor_float_source_view(winid) abort
+  let info = get(getwininfo(a:winid), 0, {})
+  if empty(info)
+    return {}
+  endif
+  return {
+        \ 'topline': get(info, 'topline', 0),
+        \ 'leftcol': get(info, 'leftcol', 0)
+        \ }
 endfunction
 
 function! s:set_float_defaults(winid, config) abort

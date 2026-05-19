@@ -3841,7 +3841,7 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 				}
 				const pad = n.some(isPadded);
 				N = [];
-				for (let i = x; test(i, y); i += incr) {
+				for (let i = x; test(i, y) && N.length < max; i += incr) {
 					let c;
 					if (isAlphaSequence) {
 						c = String.fromCharCode(i);
@@ -136210,7 +136210,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-d6db809 2026-05-12 19:19:23 +0800";
+			let version = workspace_default.version + "-c760883 2026-05-19 16:45:21 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
