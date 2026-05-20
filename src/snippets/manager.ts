@@ -120,7 +120,7 @@ export class SnippetManager {
   public async insertBufferSnippets(bufnr: number, edits: SnippetEdit[], select = false): Promise<boolean> {
     let document = workspace.getAttachedDocument(bufnr)
     const session = this.bufferSync.getItem(bufnr)
-    session.cancel(true)
+    session.deactivate()
     let snippetEdits: SnippetEdit[] = []
     for (const edit of edits) {
       let currentLine = document.getline(edit.range.start.line)
@@ -141,7 +141,7 @@ export class SnippetManager {
   public async insertBufferSnippet(bufnr: number, snippet: string | SnippetString, range: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
     let document = workspace.getAttachedDocument(bufnr)
     const session = this.bufferSync.getItem(bufnr)
-    session.cancel(true)
+    session.deactivate()
     range = toValidRange(range)
     const line = document.getline(range.start.line)
     const snippetStr = toSnippetString(snippet)
