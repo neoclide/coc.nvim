@@ -377,7 +377,7 @@ export class ListManager implements Disposable {
     if (!used) await this.feedkeys(ch)
   }
 
-  private onMouseEvent(key): Promise<void> {
+  private onMouseEvent(key: string): Promise<void> {
     return this.session?.onMouseEvent(key)
   }
 

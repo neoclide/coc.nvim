@@ -436,7 +436,7 @@ export default class ListSession {
     return this.targetBufnr ? this.nvim.createBuffer(this.targetBufnr) : undefined
   }
 
-  public onMouseEvent(key): Promise<void> {
+  public onMouseEvent(key: string): Promise<void> {
     switch (key) {
       case '<LeftMouse>':
         return this.ui.onMouse('mouseDown')

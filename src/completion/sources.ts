@@ -227,7 +227,7 @@ export class Sources {
     return Array.from(this.sourceMap.values())
   }
 
-  public has(name): boolean {
+  public has(name: string): boolean {
     return this.names.findIndex(o => o == name) != -1
   }
 

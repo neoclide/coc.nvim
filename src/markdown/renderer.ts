@@ -51,15 +51,15 @@ let defaultOptions = {
   tableOptions: {}
 }
 
-export function fixHardReturn(text, reflow) {
+export function fixHardReturn(text: string, reflow: boolean): string {
   return reflow ? text.replace(HARD_RETURN, '\n') : text
 }
 
-function indentLines(indent, text) {
+function indentLines(indent: string, text: string): string {
   return text.replace(/(^|\n)(.+)/g, '$1' + indent + '$2')
 }
 
-export function identify(indent, text) {
+export function identify(indent: string, text: string): string {
   if (!text) return text
   return indent + text.split('\n').join('\n' + indent)
 }
@@ -69,7 +69,7 @@ let NUMBERED_POINT_REGEX = '\\d+\\.'
 let POINT_REGEX = '(?:' + [BULLET_POINT_REGEX, NUMBERED_POINT_REGEX].join('|') + ')'
 
 // Prevents nested lists from joining their parent list's last line
-function fixNestedLists(body, indent) {
+function fixNestedLists(body: string, indent: string): string {
   let regex = new RegExp(
     '' +
     '(\\S(?: |  )?)' + // Last char of current point, plus one or two spaces
@@ -85,22 +85,22 @@ function fixNestedLists(body, indent) {
   return body.replace(regex, '$1\n' + indent + '$2$3')
 }
 
-let isPointedLine = function(line, indent) {
+let isPointedLine = function(line: string, indent: string): boolean {
   return line.match('^(?:' + indent + ')*' + POINT_REGEX) != null
 }
 
-export function toSpaces(str) {
+export function toSpaces(str: string): string {
   return ' '.repeat(str.length)
 }
 
 const SPECIAL_SPACE = '\0\0\0'
 const SPACE = ' '
-export function toSpecialSpaces(str) {
+export function toSpecialSpaces(str: string): string {
   return SPECIAL_SPACE.repeat(str.length)
 }
 
 let BULLET_POINT = '* '
-export function bulletPointLine(indent, line) {
+export function bulletPointLine(indent: string, line: string): string {
   if (isPointedLine(line, indent)) {
     return line
   }
@@ -110,7 +110,7 @@ export function bulletPointLine(indent, line) {
   return line
 }
 
-function bulletPointLines(lines, indent) {
+function bulletPointLines(lines: string, indent: string): string {
   let transform = bulletPointLine.bind(null, indent)
   return lines
     .split('\n')
@@ -119,11 +119,11 @@ function bulletPointLines(lines, indent) {
     .join('\n')
 }
 
-let numberedPoint = function(n) {
+let numberedPoint = function(n: number): string {
   return n + '. '
 }
 
-export function numberedLine(indent, line, num) {
+export function numberedLine(indent: string, line: string, num: number): { num: number; line: string } {
   return isPointedLine(line, indent)
     ? {
       num: num + 1,
@@ -135,7 +135,7 @@ export function numberedLine(indent, line, num) {
     }
 }
 
-function numberedLines(lines, indent) {
+function numberedLines(lines: string, indent: string): string {
   let transform = numberedLine.bind(null, indent)
   let num = 0
   return lines
@@ -150,26 +150,26 @@ function numberedLines(lines, indent) {
     .join('\n')
 }
 
-function list(body, ordered, indent) {
+function list(body: string, ordered: boolean, indent: string): string {
   body = body.trim()
   body = ordered ? numberedLines(body, indent) : bulletPointLines(body, indent)
   return body
 }
 
-function section(text) {
+function section(text: string): string {
   return text + '\n\n'
 }
 
-function undoColon(str) {
+function undoColon(str: string): string {
   return str.replace(COLON_REPLACER_REGEXP, ':')
 }
 
-export function generateTableRow(text, escape = null) {
+export function generateTableRow(text: string, escape: ((str: string) => string) | null = null): string[][] {
   if (!text) return []
   escape = escape || identity
   let lines = escape(text).split('\n')
 
-  let data = []
+  let data: string[][] = []
   lines.forEach(function(line) {
     if (!line) return
     let parsed = line
@@ -181,12 +181,12 @@ export function generateTableRow(text, escape = null) {
   return data
 }
 
-function escapeRegExp(str) {
+function escapeRegExp(str: string): string {
   // eslint-disable-next-line no-useless-escape
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&')
 }
 
-function unescapeEntities(html) {
+function unescapeEntities(html: string): string {
   return html
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -257,7 +257,7 @@ class Renderer {
     return `───\n`
   }
 
-  public list(body, ordered): string {
+  public list(body: string, ordered: boolean): string {
     body = this.o.list(body, ordered, this.tab)
     return section(fixNestedLists(indentLines(this.tab, body), this.tab))
   }
@@ -270,7 +270,7 @@ class Renderer {
     return '\n' + BULLET_POINT + transform(text)
   }
 
-  public checkbox(checked): string {
+  public checkbox(checked: boolean): string {
     return '[' + (checked ? 'X' : ' ') + ']'
   }
 
@@ -280,7 +280,7 @@ class Renderer {
     return section(text)
   }
 
-  public table(header, body): string {
+  public table(header: string, body: string): string {
     const Table = require('cli-table')
     let table = new Table(
       Object.assign(
@@ -301,7 +301,7 @@ class Renderer {
     return TABLE_ROW_WRAP + content + TABLE_ROW_WRAP + '\n'
   }
 
-  public tablecell(content, _flags): string {
+  public tablecell(content: string, _flags: { header: boolean; align: 'center' | 'left' | 'right' | null }): string {
     return content + TABLE_CELL_SPLIT
   }
 
@@ -327,7 +327,7 @@ class Renderer {
     return this.o.del(text)
   }
 
-  public link(href, title, text): string {
+  public link(href: string, title: string | null | undefined, text: string): string {
     let prot: string
     try {
       prot = decodeURIComponent(unescape(href))
@@ -347,9 +347,8 @@ class Renderer {
     return this.o.link(out)
   }
 
-  public image(href, title, text): string {
-    let out = '![' + text
-    return out + '](' + href + ')'
+  public image(href: string, title: string | null, text: string): string {
+    return `![${text}](${href}${title ? ` "${title}"` : ''})`
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

@@ -185,7 +185,7 @@ export default class Handler implements HandlerDelegate {
     })
   }
 
-  private register<T>(key, handler: (...args: any[]) => T | Promise<T>): void {
+  private register<T>(key: string, handler: (...args: any[]) => T | Promise<T>): void {
     this.disposables.push(commands.registerCommand(key, handler, null, true))
   }
 
