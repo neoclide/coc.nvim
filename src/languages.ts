@@ -349,7 +349,7 @@ class Languages {
     return this.documentSymbolManager.getMetaData(document)
   }
 
-  public async getSelectionRanges(document: TextDocument, positions: Position[], token): Promise<SelectionRange[] | null> {
+  public async getSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): Promise<SelectionRange[] | null> {
     return await this.selectionRangeManager.provideSelectionRanges(document, positions, token)
   }
 
