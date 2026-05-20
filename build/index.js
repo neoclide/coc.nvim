@@ -86522,7 +86522,7 @@ var init_renderer = __esmMin((() => {
 			return this.o.link(out);
 		}
 		image(href, title, text) {
-			return "![" + text + "](" + href + ")";
+			return `![${text}](${href}${title ? ` "${title}"` : ""})`;
 		}
 		compose(...funcs) {
 			return (...args) => {
@@ -93146,7 +93146,11 @@ var init_buffer$6 = __esmMin((() => {
 				this._refreshing = true;
 				timer = setTimeout(() => {
 					this._refreshing = false;
-					if (!this._autoRefresh) return;
+					if (!this.config.enable || !this.config.autoRefresh || !this.dirty) return;
+					if (this.doc.hasChanged) {
+						if (!events_default.insertMode || this.config.refreshOnInsertMode) this.refreshHighlights();
+						return;
+					}
 					this._refresh(true);
 				}, delay$1);
 			};
@@ -93155,9 +93159,6 @@ var init_buffer$6 = __esmMin((() => {
 				clearTimeout(timer);
 			};
 			this.refreshHighlights = fn;
-		}
-		get _autoRefresh() {
-			return this.config.enable && this.config.autoRefresh && this.dirty && !this.doc.hasChanged;
 		}
 		get config() {
 			return this._config;
@@ -93295,6 +93296,10 @@ var init_buffer$6 = __esmMin((() => {
 			}
 			let info = await this.getDiagnosticInfo(diagnostics.length === 0);
 			if (!info || info.winid == -1) {
+				this._dirties.add(collection);
+				return;
+			}
+			if (this.diagnosticsMap.get(collection) !== diagnostics) {
 				this._dirties.add(collection);
 				return;
 			}
@@ -94027,6 +94032,8 @@ var init_manager$4 = __esmMin((() => {
 			if (pos) {
 				await window_default.moveTo(pos);
 				await item.echoMessage(false, pos);
+				await item.showVirtualTextCurrentLine(pos.line + 1);
+				if (this.messageTimer) clearTimeout(this.messageTimer);
 			} else window_default.showWarningMessage(`No more diagnostic before cursor position`);
 		}
 		/**
@@ -94050,6 +94057,8 @@ var init_manager$4 = __esmMin((() => {
 			if (pos) {
 				await window_default.moveTo(pos);
 				await item.echoMessage(false, pos);
+				await item.showVirtualTextCurrentLine(pos.line + 1);
+				if (this.messageTimer) clearTimeout(this.messageTimer);
 			} else window_default.showWarningMessage(`No more diagnostic after cursor position`);
 		}
 		/**
@@ -136210,7 +136219,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-c760883 2026-05-19 16:45:21 +0800";
+			let version = workspace_default.version + "-0c46e0c 2026-05-20 20:33:29 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
