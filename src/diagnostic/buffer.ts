@@ -73,7 +73,11 @@ export class DiagnosticBuffer implements SyncItem {
       this._refreshing = true
       timer = setTimeout(() => {
         this._refreshing = false
-        if (!this._autoRefresh) return
+        if (!this.config.enable || !this.config.autoRefresh || !this.dirty) return
+        if (this.doc.hasChanged) {
+          if (!events.insertMode || this.config.refreshOnInsertMode) this.refreshHighlights()
+          return
+        }
         void this._refresh(true)
       }, delay)
     }
@@ -82,10 +86,6 @@ export class DiagnosticBuffer implements SyncItem {
       clearTimeout(timer)
     }
     this.refreshHighlights = fn
-  }
-
-  private get _autoRefresh(): boolean {
-    return this.config.enable && this.config.autoRefresh && this.dirty && !this.doc.hasChanged
   }
 
   public get config(): Readonly<DiagnosticConfig> {
@@ -249,6 +249,10 @@ export class DiagnosticBuffer implements SyncItem {
     let info = await this.getDiagnosticInfo(diagnostics.length === 0)
     // avoid highlights on invalid state or buffer hidden.
     if (!info || info.winid == -1) {
+      this._dirties.add(collection)
+      return
+    }
+    if (this.diagnosticsMap.get(collection) !== diagnostics) {
       this._dirties.add(collection)
       return
     }
