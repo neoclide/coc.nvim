@@ -220,7 +220,7 @@ export class Completion implements Disposable {
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
-        this.cancelAndClose(false)
+        this.cancelAndClose()
         return
       }
       await this.filterResults()
