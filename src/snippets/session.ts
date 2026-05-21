@@ -341,7 +341,6 @@ export class SnippetSession {
     const startTs = Date.now()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     const cursor = events.bufnr == document.bufnr ? await window.getCursorPosition() : undefined
-    if (tokenSource.token.isCancellationRequested) return
     let change = documentChange?.change
     if (!change) {
       let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
@@ -386,6 +385,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
+    if (tokenSource.token.isCancellationRequested) return
     const nextPlaceholder = getNextPlaceholder(current, true)
     const id = getPlaceholderId(current)
     const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor)
