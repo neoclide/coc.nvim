@@ -19,7 +19,7 @@ import { filterSortEdits, reduceTextEdit } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
-import { getPlaceholderId, Placeholder, Text, TextmateSnippet } from './parser'
+import { getPlaceholderId, Placeholder, SnippetParser, Text, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { SnippetString } from './string'
 import { toSnippetString, UltiSnippetContext, wordsSource } from './util'
@@ -72,30 +72,17 @@ export class SnippetSession {
     const textDocument = this.document.textDocument
     const textEdits = filterSortEdits(textDocument, edits.map(e => TextEdit.replace(e.range, toSnippetString(e.snippet))))
     const len = textEdits.length
-    const snip = new TextmateSnippet()
+    // Build a single combined snippet by interleaving edit snippets with escaped text between them
+    let combined = ''
     for (let i = 0; i < len; i++) {
-      let range = textEdits[i].range
-      let placeholder = new Placeholder(i + 1)
-      placeholder.appendChild(new Text(textDocument.getText(range)))
-      snip.appendChild(placeholder)
-      if (i != len - 1) {
-        let r = Range.create(range.end, textEdits[i + 1].range.start)
-        snip.appendChild(new Text(textDocument.getText(r)))
+      combined += textEdits[i].newText
+      if (i < len - 1) {
+        let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start)
+        combined += SnippetParser.escape(textDocument.getText(r))
       }
     }
-    this.deactivate()
-    const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
-    let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver)
-    await snippet.init()
-    this.activate(snippet)
-    // reverse insert needed
-    for (let i = len - 1; i >= 0; i--) {
-      let idx = i + 1
-      this.current = snip.placeholders.find(o => o.index === idx)
-      let edit = textEdits[i]
-      await this.start(edit.newText, edit.range, false)
-    }
-    return this.isActive
+    let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end)
+    return await this.start(combined, range, false)
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
