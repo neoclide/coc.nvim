@@ -107681,6 +107681,7 @@ var init_completion$1 = __esmMin((() => {
 	init_main$2();
 	init_languages();
 	init_protocol();
+	init_workspace$1();
 	init_features();
 	init_uuid();
 	SupportedCompletionItemKinds = [
@@ -107715,7 +107716,7 @@ var init_completion$1 = __esmMin((() => {
 			super(client, import_main$1.CompletionRequest.type);
 		}
 		fillClientCapabilities(capabilities) {
-			let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true;
+			let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true && workspace_default.getConfiguration("suggest").get("snippetsSupport", true);
 			let completion = ensure(ensure(capabilities, "textDocument"), "completion");
 			completion.dynamicRegistration = true;
 			completion.contextSupport = true;
@@ -116807,29 +116808,32 @@ var init_session$1 = __esmMin((() => {
 			const textDocument = this.document.textDocument;
 			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
 			const len = textEdits.length;
-			const snip = new TextmateSnippet();
+			const parser = new SnippetParser();
+			let combined = "";
+			let offset = 0;
 			for (let i = 0; i < len; i++) {
-				let range = textEdits[i].range;
-				let placeholder = new Placeholder(i + 1);
-				placeholder.appendChild(new Text(textDocument.getText(range)));
-				snip.appendChild(placeholder);
-				if (i != len - 1) {
-					let r = Range.create(range.end, textEdits[i + 1].range.start);
-					snip.appendChild(new Text(textDocument.getText(r)));
+				const isLast = i === len - 1;
+				const segment = parser.parse(textEdits[i].newText);
+				let localMax = 0;
+				segment.walk((m) => {
+					if (m instanceof Placeholder && m.index > localMax) localMax = m.index;
+					return true;
+				});
+				segment.walk((m) => {
+					if (m instanceof Placeholder) if (m.index === 0) {
+						if (!isLast) m.index = offset + localMax + 1;
+					} else m.index += offset;
+					return true;
+				});
+				combined += segment.toTextmateString();
+				offset += localMax + 1;
+				if (!isLast) {
+					let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start);
+					combined += SnippetParser.escape(textDocument.getText(r));
 				}
 			}
-			this.deactivate();
-			const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
-			let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver);
-			await snippet.init();
-			this.activate(snippet);
-			for (let i = len - 1; i >= 0; i--) {
-				let idx = i + 1;
-				this.current = snip.placeholders.find((o) => o.index === idx);
-				let edit = textEdits[i];
-				await this.start(edit.newText, edit.range, false);
-			}
-			return this.isActive;
+			let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end);
+			return await this.start(combined, range, false);
 		}
 		async start(inserted, range, select = true, context) {
 			let { document, snippet } = this;
@@ -117057,7 +117061,6 @@ var init_session$1 = __esmMin((() => {
 			const startTs = Date.now();
 			let tokenSource = this.tokenSource = new import_main$1.CancellationTokenSource();
 			const cursor = events_default.bufnr == document.bufnr ? await window_default.getCursorPosition() : void 0;
-			if (tokenSource.token.isCancellationRequested) return;
 			let change = documentChange?.change;
 			if (!change) {
 				let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events_default.insertMode);
@@ -117094,6 +117097,7 @@ var init_session$1 = __esmMin((() => {
 				this.deactivate();
 				return;
 			}
+			if (tokenSource.token.isCancellationRequested) return;
 			const nextPlaceholder = getNextPlaceholder(current, true);
 			const id = getPlaceholderId(current);
 			const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor);
@@ -117313,7 +117317,7 @@ var init_manager$1 = __esmMin((() => {
 		async insertBufferSnippets(bufnr, edits, select = false) {
 			let document = workspace_default.getAttachedDocument(bufnr);
 			const session = this.bufferSync.getItem(bufnr);
-			session.cancel(true);
+			session.deactivate();
 			let snippetEdits = [];
 			for (const edit of edits) {
 				let currentLine = document.getline(edit.range.start.line);
@@ -117334,7 +117338,7 @@ var init_manager$1 = __esmMin((() => {
 		async insertBufferSnippet(bufnr, snippet, range, insertTextMode) {
 			let document = workspace_default.getAttachedDocument(bufnr);
 			const session = this.bufferSync.getItem(bufnr);
-			session.cancel(true);
+			session.deactivate();
 			range = toValidRange(range);
 			const line = document.getline(range.start.line);
 			const snippetStr = toSnippetString(snippet);
@@ -129152,7 +129156,7 @@ var init_completion = __esmMin((() => {
 			complete.onDidRefresh(async () => {
 				clearTimeout(this.triggerTimer);
 				if (complete.isEmpty) {
-					this.cancelAndClose(false);
+					this.cancelAndClose();
 					return;
 				}
 				await this.filterResults();
@@ -136219,7 +136223,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-0c46e0c 2026-05-20 20:33:29 +0800";
+			let version = workspace_default.version + "-22e6ea7 2026-05-21 20:56:47 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
