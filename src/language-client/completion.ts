@@ -5,6 +5,7 @@ import { CompletionItem, CompletionItemKind, CompletionItemTag, CompletionList, 
 import languages from '../languages'
 import { CompletionItemProvider, ProviderResult } from '../provider'
 import { CompletionRequest, CompletionResolveRequest, Disposable } from '../util/protocol'
+import workspace from '../workspace'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as UUID from './utils/uuid'
 
@@ -77,7 +78,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true
+    let snippetSupport = this._client.clientOptions.disableSnippetCompletion !== true && workspace.getConfiguration('suggest').get<boolean>('snippetsSupport', true)
     let completion = ensure(ensure(capabilities, 'textDocument')!, 'completion')!
     completion.dynamicRegistration = true
     completion.contextSupport = true
