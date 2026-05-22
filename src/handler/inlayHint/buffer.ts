@@ -123,13 +123,16 @@ export default class InlayHintBuffer implements SyncItem {
     this._changedtick = this.doc.changedtick
     if (this.config.refreshOnInsertMode) return
     this.cancel()
-    // vim's textprop doesn't support nvim's right_gravity like option, will render hints to
-    // wrong column when text inserted. Clear hints during insert and re-render on leave
-    if (workspace.isVim) {
-      this.clearVirtualText()
-      this.regions.clear()
-      this.currentHints = []
-    }
+  }
+
+  // Vim's textprop has no right_gravity like option, so inline hints drift to the wrong column
+  // after completion inserts text at the same column. Force a re-render on CompleteDone to fix it.
+  public onCompleteDone(): void {
+    if (!workspace.isVim) return
+    if (this.config.refreshOnInsertMode) return
+    if (!this.enabled) return
+    this.clearCache()
+    this.render(undefined, 0, true).catch(onUnexpectedError)
   }
 
   public get current(): ReadonlyArray<InlayHintWithProvider> {
@@ -208,9 +211,9 @@ export default class InlayHintBuffer implements SyncItem {
     }, 0).catch(onUnexpectedError)
   }
 
-  public async render(config?: RenderConfig, delay?: number): Promise<void> {
+  public async render(config?: RenderConfig, delay?: number, force = false): Promise<void> {
     if (!this.enabled) return
-    if (!this.config.refreshOnInsertMode && events.bufnr === this.doc.bufnr && events.insertMode) return
+    if (!force && !this.config.refreshOnInsertMode && events.bufnr === this.doc.bufnr && events.insertMode) return
     this.cancel()
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
