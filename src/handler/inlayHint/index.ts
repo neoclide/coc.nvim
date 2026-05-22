@@ -48,6 +48,10 @@ export default class InlayHintHandler {
       let item = this.buffers.getItem(bufnr)
       if (item) item.onInsertEnter()
     }, null, this.disposables)
+    events.on('CompleteDone', (_item, _line, bufnr) => {
+      let item = this.buffers.getItem(bufnr)
+      if (item) item.onCompleteDone()
+    }, null, this.disposables)
     commands.register({
       id: 'document.toggleInlayHint',
       execute: (bufnr?: number) => {
