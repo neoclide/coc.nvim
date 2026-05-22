@@ -161,6 +161,18 @@ describe('SnippetSession', () => {
       let line = await nvim.line
       expect(line).toBe('foo')
     })
+
+    it('should fire onActiveChange when activate and deactivate', async () => {
+      let session = await createSession()
+      let events: boolean[] = []
+      session.onActiveChange(v => {
+        events.push(v)
+      })
+      await session.start('${1:foo}', defaultRange, false)
+      expect(events).toEqual([true])
+      session.deactivate()
+      expect(events).toEqual([true, false])
+    })
   })
 
   describe('insertSnippetEdits', () => {
@@ -365,6 +377,13 @@ describe('SnippetSession', () => {
       expect(session.snippet.text).toBe('foodbar')
     })
 
+    it('should cancel via onTextChange', async () => {
+      let session = await createSession()
+      await session.start('${1:foo}', defaultRange, false)
+      session.onTextChange()
+      expect(session.isActive).toBe(true)
+    })
+
     it('should able to jump when current placeholder destroyed', async () => {
       let session = await createSession()
       await nvim.input('i')
@@ -534,6 +553,13 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(false)
     })
 
+    it('should not throw when selectPlaceholder called with undefined', async () => {
+      let session = await createSession()
+      await session.start('${1:foo}', defaultRange, false)
+      await session.selectPlaceholder(undefined)
+      expect(session.isActive).toBe(true)
+    })
+
     it('should not throw when jump on deactivate session', async () => {
       let session = await createSession()
       session.deactivate()
@@ -691,6 +717,16 @@ describe('SnippetSession', () => {
       let session = await createSession()
       let res = await session.resolveSnippet(nvim, '${1:`!p snip.rv = "foo"`}', { line: 'foo', range: Range.create(0, 0, 0, 3) })
       expect(res).toBe('foo')
+    })
+
+    it('should skip python when noPython is true', async () => {
+      let session = await createSession()
+      let res = await session.resolveSnippet(nvim, 'plain', {
+        line: '',
+        range: Range.create(0, 0, 0, 0),
+        noPython: true
+      })
+      expect(res).toBe('plain')
     })
   })
 
