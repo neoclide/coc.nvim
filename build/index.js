@@ -131826,6 +131826,13 @@ var init_buffer$3 = __esmMin((() => {
 			if (this.config.refreshOnInsertMode) return;
 			this.cancel();
 		}
+		onCompleteDone() {
+			if (!workspace_default.isVim) return;
+			if (this.config.refreshOnInsertMode) return;
+			if (!this.enabled) return;
+			this.clearCache();
+			this.render(void 0, 0, true).catch(onUnexpectedError);
+		}
 		get current() {
 			return this.currentHints;
 		}
@@ -131884,9 +131891,9 @@ var init_buffer$3 = __esmMin((() => {
 				region: [region[0], region[1]]
 			}, 0).catch(onUnexpectedError);
 		}
-		async render(config, delay) {
+		async render(config, delay, force = false) {
 			if (!this.enabled) return;
-			if (!this.config.refreshOnInsertMode && events_default.bufnr === this.doc.bufnr && events_default.insertMode) return;
+			if (!force && !this.config.refreshOnInsertMode && events_default.bufnr === this.doc.bufnr && events_default.insertMode) return;
 			this.cancel();
 			this.tokenSource = new import_main$1.CancellationTokenSource();
 			let token = this.tokenSource.token;
@@ -132040,6 +132047,10 @@ var init_inlayHint = __esmMin((() => {
 			events_default.on("InsertEnter", (bufnr) => {
 				let item = this.buffers.getItem(bufnr);
 				if (item) item.onInsertEnter();
+			}, null, this.disposables);
+			events_default.on("CompleteDone", (_item, _line, bufnr) => {
+				let item = this.buffers.getItem(bufnr);
+				if (item) item.onCompleteDone();
 			}, null, this.disposables);
 			commands_default.register({
 				id: "document.toggleInlayHint",
@@ -136223,7 +136234,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-22e6ea7 2026-05-21 20:56:47 +0800";
+			let version = workspace_default.version + "-e62e589 2026-05-22 17:59:44 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
