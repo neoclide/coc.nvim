@@ -123,6 +123,13 @@ export default class InlayHintBuffer implements SyncItem {
     this._changedtick = this.doc.changedtick
     if (this.config.refreshOnInsertMode) return
     this.cancel()
+    // vim's textprop doesn't support nvim's right_gravity like option, will render hints to
+    // wrong column when text inserted. Clear hints during insert and re-render on leave
+    if (workspace.isVim) {
+      this.clearVirtualText()
+      this.regions.clear()
+      this.currentHints = []
+    }
   }
 
   public get current(): ReadonlyArray<InlayHintWithProvider> {
