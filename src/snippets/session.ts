@@ -19,7 +19,7 @@ import { filterSortEdits, reduceTextEdit } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
-import { getPlaceholderId, Placeholder, SnippetParser, TextmateSnippet } from './parser'
+import { getPlaceholderId, Placeholder, Text, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { SnippetString } from './string'
 import { toSnippetString, UltiSnippetContext, wordsSource } from './util'
@@ -72,40 +72,30 @@ export class SnippetSession {
     const textDocument = this.document.textDocument
     const textEdits = filterSortEdits(textDocument, edits.map(e => TextEdit.replace(e.range, toSnippetString(e.snippet))))
     const len = textEdits.length
-    // Each edit is its own snippet with independent tabstops. Offset the
-    // placeholder indices per segment so they stay unique after merging.
-    // $0 of non-final segments is promoted to a regular tabstop so Tab
-    // navigation visits every edit; only the last $0 remains as the final stop.
-    const parser = new SnippetParser()
-    let combined = ''
-    let offset = 0
+    const snip = new TextmateSnippet()
     for (let i = 0; i < len; i++) {
-      const isLast = i === len - 1
-      const segment = parser.parse(textEdits[i].newText)
-      let localMax = 0
-      segment.walk(m => {
-        if (m instanceof Placeholder && m.index > localMax) localMax = m.index
-        return true
-      })
-      segment.walk(m => {
-        if (m instanceof Placeholder) {
-          if (m.index === 0) {
-            if (!isLast) m.index = offset + localMax + 1
-          } else {
-            m.index += offset
-          }
-        }
-        return true
-      })
-      combined += segment.toTextmateString()
-      offset += localMax + 1
-      if (!isLast) {
-        let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start)
-        combined += SnippetParser.escape(textDocument.getText(r))
+      let range = textEdits[i].range
+      let placeholder = new Placeholder(i + 1)
+      placeholder.appendChild(new Text(textDocument.getText(range)))
+      snip.appendChild(placeholder)
+      if (i != len - 1) {
+        let r = Range.create(range.end, textEdits[i + 1].range.start)
+        snip.appendChild(new Text(textDocument.getText(r)))
       }
     }
-    let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end)
-    return await this.start(combined, range, false)
+    this.deactivate()
+    const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
+    let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver)
+    await snippet.init()
+    this.activate(snippet)
+    // reverse insert needed
+    for (let i = len - 1; i >= 0; i--) {
+      let idx = i + 1
+      this.current = snip.placeholders.find(o => o.index === idx)
+      let edit = textEdits[i]
+      await this.start(edit.newText, edit.range, false)
+    }
+    return this.isActive
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
