@@ -4109,8 +4109,8 @@ var require_ast = /* @__PURE__ */ __commonJSMin(((exports) => {
 	const reSpecials = /* @__PURE__ */ new Set("().*{}+?[]^$\\!");
 	const regExpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 	const qmark = "[^/]";
-	const star = qmark + "*?";
-	const starNoEmpty = qmark + "+?";
+	const star = "[^/]*?";
+	const starNoEmpty = "[^/]+?";
 	let ID = 0;
 	var AST = class {
 		type;
@@ -4455,7 +4455,7 @@ var require_ast = /* @__PURE__ */ __commonJSMin(((exports) => {
 			let final = "";
 			if (this.type === "!" && this.#emptyExt) final = (this.isStart() && !dot ? startNoDot : "") + starNoEmpty;
 			else {
-				const close = this.type === "!" ? "))" + (this.isStart() && !dot && !allowDot ? startNoDot : "") + star + ")" : this.type === "@" ? ")" : this.type === "?" ? ")?" : this.type === "+" && bodyDotAllowed ? ")" : this.type === "*" && bodyDotAllowed ? `)?` : `)${this.type}`;
+				const close = this.type === "!" ? "))" + (this.isStart() && !dot && !allowDot ? startNoDot : "") + "[^/]*?)" : this.type === "@" ? ")" : this.type === "?" ? ")?" : this.type === "+" && bodyDotAllowed ? ")" : this.type === "*" && bodyDotAllowed ? `)?` : `)${this.type}`;
 				final = start + body + close;
 			}
 			return [
@@ -5270,8 +5270,8 @@ var require_index_min$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		var d = (t, e) => t.isFile() && A(t, e), A = (t, e) => {
 			let r = e.uid ?? process.getuid?.(), s = e.groups ?? process.getgroups?.() ?? [], n = e.gid ?? process.getgid?.() ?? s[0];
 			if (r === void 0 || n === void 0) throw new Error("cannot get uid or gid");
-			let u = new Set([n, ...s]), c = t.mode, S = t.uid, P = t.gid, f = parseInt("100", 8), l = parseInt("010", 8), j = parseInt("001", 8), C = f | l;
-			return !!(c & j || c & l && u.has(P) || c & f && S === r || c & C && r === 0);
+			let u = new Set([n, ...s]), c = t.mode, S = t.uid, P = t.gid, f = parseInt("100", 8), l = parseInt("010", 8);
+			return !!(c & parseInt("001", 8) || c & l && u.has(P) || c & f && S === r || c & 72 && r === 0);
 		};
 	});
 	var g = a((o) => {
@@ -6019,6 +6019,39 @@ var require_coerce = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = coerce;
 }));
 //#endregion
+//#region node_modules/semver/functions/truncate.js
+var require_truncate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	const parse = require_parse();
+	const constants = require_constants$1();
+	const SemVer = require_semver$1();
+	const truncate = (version, truncation, options) => {
+		if (!constants.RELEASE_TYPES.includes(truncation)) return null;
+		const clonedVersion = cloneInputVersion(version, options);
+		return clonedVersion && doTruncation(clonedVersion, truncation);
+	};
+	const cloneInputVersion = (version, options) => {
+		return parse(version instanceof SemVer ? version.version : version, options);
+	};
+	const doTruncation = (version, truncation) => {
+		if (isPrerelease(truncation)) return version.version;
+		version.prerelease = [];
+		switch (truncation) {
+			case "major":
+				version.minor = 0;
+				version.patch = 0;
+				break;
+			case "minor":
+				version.patch = 0;
+				break;
+		}
+		return version.format();
+	};
+	const isPrerelease = (type) => {
+		return type.startsWith("pre");
+	};
+	module.exports = truncate;
+}));
+//#endregion
 //#region node_modules/semver/internal/lrucache.js
 var require_lrucache = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var LRUCache = class {
@@ -6106,6 +6139,7 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			return this.range;
 		}
 		parseRange(range) {
+			range = range.replace(BUILDSTRIPRE, "");
 			const memoKey = ((this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE)) + ":" + range;
 			const cached = cache.get(memoKey);
 			if (cached) return cached;
@@ -6164,8 +6198,9 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const Comparator = require_comparator();
 	const debug = require_debug$1();
 	const SemVer = require_semver$1();
-	const { safeRe: re, t, comparatorTrimReplace, tildeTrimReplace, caretTrimReplace } = require_re();
+	const { safeRe: re, src, t, comparatorTrimReplace, tildeTrimReplace, caretTrimReplace } = require_re();
 	const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants$1();
+	const BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
 	const isNullSet = (c) => c.value === "<0.0.0-0";
 	const isAny = (c) => c.value === "";
 	const isSatisfiable = (comparators, options) => {
@@ -6692,7 +6727,7 @@ var require_subset = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (c.operator === ">" || c.operator === ">=") {
 					higher = higherGT(gt, c, options);
 					if (higher === c && higher !== gt) return false;
-				} else if (gt.operator === ">=" && !satisfies(gt.semver, String(c), options)) return false;
+				} else if (gt.operator === ">=" && !c.test(gt.semver)) return false;
 			}
 			if (lt) {
 				if (needDomLTPre) {
@@ -6701,7 +6736,7 @@ var require_subset = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (c.operator === "<" || c.operator === "<=") {
 					lower = lowerLT(lt, c, options);
 					if (lower === c && lower !== lt) return false;
-				} else if (lt.operator === "<=" && !satisfies(lt.semver, String(c), options)) return false;
+				} else if (lt.operator === "<=" && !c.test(lt.semver)) return false;
 			}
 			if (!c.operator && (lt || gt) && gtltComp !== 0) return false;
 		}
@@ -6753,6 +6788,7 @@ var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		lte: require_lte(),
 		cmp: require_cmp(),
 		coerce: require_coerce(),
+		truncate: require_truncate(),
 		Comparator: require_comparator(),
 		Range: require_range(),
 		satisfies: require_satisfies(),
@@ -86469,7 +86505,7 @@ var init_renderer = __esmMin((() => {
 		listitem(text) {
 			let transform = this.compose(this.o.listitem, this.transform);
 			if (text.indexOf("\n") !== -1) text = text.trim();
-			return "\n" + BULLET_POINT + transform(text);
+			return "\n* " + transform(text);
 		}
 		checkbox(checked) {
 			return "[" + (checked ? "X" : " ") + "]";
@@ -86486,7 +86522,7 @@ var init_renderer = __esmMin((() => {
 			return section(this.o.table(table.toString()));
 		}
 		tablerow(content) {
-			return TABLE_ROW_WRAP + content + TABLE_ROW_WRAP + "\n";
+			return TABLE_ROW_WRAP + content + "*|*|*|*\n";
 		}
 		tablecell(content, _flags) {
 			return content + TABLE_CELL_SPLIT;
@@ -116808,32 +116844,29 @@ var init_session$1 = __esmMin((() => {
 			const textDocument = this.document.textDocument;
 			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
 			const len = textEdits.length;
-			const parser = new SnippetParser();
-			let combined = "";
-			let offset = 0;
+			const snip = new TextmateSnippet();
 			for (let i = 0; i < len; i++) {
-				const isLast = i === len - 1;
-				const segment = parser.parse(textEdits[i].newText);
-				let localMax = 0;
-				segment.walk((m) => {
-					if (m instanceof Placeholder && m.index > localMax) localMax = m.index;
-					return true;
-				});
-				segment.walk((m) => {
-					if (m instanceof Placeholder) if (m.index === 0) {
-						if (!isLast) m.index = offset + localMax + 1;
-					} else m.index += offset;
-					return true;
-				});
-				combined += segment.toTextmateString();
-				offset += localMax + 1;
-				if (!isLast) {
-					let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start);
-					combined += SnippetParser.escape(textDocument.getText(r));
+				let range = textEdits[i].range;
+				let placeholder = new Placeholder(i + 1);
+				placeholder.appendChild(new Text(textDocument.getText(range)));
+				snip.appendChild(placeholder);
+				if (i != len - 1) {
+					let r = Range.create(range.end, textEdits[i + 1].range.start);
+					snip.appendChild(new Text(textDocument.getText(r)));
 				}
 			}
-			let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end);
-			return await this.start(combined, range, false);
+			this.deactivate();
+			const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
+			let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver);
+			await snippet.init();
+			this.activate(snippet);
+			for (let i = len - 1; i >= 0; i--) {
+				let idx = i + 1;
+				this.current = snip.placeholders.find((o) => o.index === idx);
+				let edit = textEdits[i];
+				await this.start(edit.newText, edit.range, false);
+			}
+			return this.isActive;
 		}
 		async start(inserted, range, select = true, context) {
 			let { document, snippet } = this;
@@ -134347,7 +134380,7 @@ var init_buffer$1 = __esmMin((() => {
 				range,
 				tokenType,
 				combine,
-				hlGroup: HLGROUP_PREFIX + "Type" + toHighlightPart(tokenType),
+				hlGroup: "CocSemType" + toHighlightPart(tokenType),
 				tokenModifiers
 			});
 			if (tokenModifiers.length) {
@@ -134357,7 +134390,7 @@ var init_buffer$1 = __esmMin((() => {
 					range,
 					tokenType,
 					combine,
-					hlGroup: HLGROUP_PREFIX + "TypeMod" + toHighlightPart(tokenType) + toHighlightPart(modifier),
+					hlGroup: "CocSemTypeMod" + toHighlightPart(tokenType) + toHighlightPart(modifier),
 					tokenModifiers
 				});
 			}
@@ -136234,7 +136267,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-e62e589 2026-05-22 17:59:44 +0800";
+			let version = workspace_default.version + "-0efb89c 2026-05-26 10:58:36 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
