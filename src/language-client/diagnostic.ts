@@ -365,9 +365,12 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
   }
 
   public forgetDocument(document: TextDocument | URI): void {
+    if (this.isDisposed) {
+      return
+    }
     const key = DocumentOrUri.asKey(document)
     const request = this.openRequests.get(key)
-    if (this.options.workspaceDiagnostics) {
+    if (this.options.workspaceDiagnostics && key !== 'untitled') {
       // If we run workspace diagnostic pull a last time for the diagnostics
       // and the rely on getting them from the workspace result.
       if (request !== undefined) {
