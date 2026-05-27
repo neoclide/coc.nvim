@@ -1,10 +1,14 @@
 'use strict'
 import type { VirtualTextOption } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range, TextEdit } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, MarkupContent, Range, TextEdit } from 'vscode-languageserver-types'
 import { FloatConfig } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'
 import { getPosition } from '../util/textedit'
+
+export function getMessageString(message: string | MarkupContent): string {
+  return MarkupContent.is(message) ? message.value : message
+}
 
 export interface LocationListItem {
   bufnr: number
@@ -69,10 +73,11 @@ export function formatDiagnostic(format: string, diagnostic: Diagnostic): string
   let { source, code, severity, message } = diagnostic
   let s = getSeverityName(severity)[0]
   const codeStr = code ? ' ' + code : ''
+  let msg = getMessageString(message)
   return format.replace('%source', source)
     .replace('%code', codeStr)
     .replace('%severity', s)
-    .replace('%message', () => message)
+    .replace('%message', () => msg)
 }
 
 export function getSeverityName(severity: DiagnosticSeverity): string {
@@ -135,7 +140,7 @@ export function getNameFromSeverity(severity: DiagnosticSeverity): string {
 export function getLocationListItem(bufnr: number, diagnostic: Diagnostic, lines?: ReadonlyArray<string>): LocationListItem {
   let { start, end } = diagnostic.range
   let owner = diagnostic.source || 'coc.nvim'
-  let msg = diagnostic.message.split('\n')[0]
+  let msg = getMessageString(diagnostic.message).split('\n')[0]
   let type = getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase()
   return {
     bufnr,
