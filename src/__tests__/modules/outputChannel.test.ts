@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import OutputChannel from '../../model/outputChannel'
 import { wait } from '../../util'
 import helper from '../helper'

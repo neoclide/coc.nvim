@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { AutocmdItem, createCommand, toAutocmdOption } from '../../core/autocmds'

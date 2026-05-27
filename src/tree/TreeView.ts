@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { MarkupContent, MarkupKind, Range } from 'vscode-languageserver-types'
 import commandManager from '../commands'
 import type { LocalMode } from '../core/keymaps'

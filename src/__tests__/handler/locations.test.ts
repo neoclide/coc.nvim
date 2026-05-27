@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, Location, LocationLink, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import LocationHandler from '../../handler/locations'

@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { exec, ExecOptions } from 'child_process'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'

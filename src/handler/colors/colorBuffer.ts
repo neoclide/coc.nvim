@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '../../neovim'
 import { Color, ColorInformation, Position, Range } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { SyncItem } from '../../model/bufferSync'

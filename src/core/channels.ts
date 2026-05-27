@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferChannel from '../model/outputChannel'

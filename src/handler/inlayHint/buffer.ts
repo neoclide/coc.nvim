@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim, VirtualTextOption } from '@chemzqm/neovim'
+import { Neovim, VirtualTextOption } from '../../neovim'
 import { InlayHintKind, Range } from 'vscode-languageserver-types'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'

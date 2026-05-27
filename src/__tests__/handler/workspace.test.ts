@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 vi.mock('v8', async importOriginal => {
   const actual = await importOriginal<typeof import('v8')>()
   return { ...actual, writeHeapSnapshot: vi.fn(() => '') }

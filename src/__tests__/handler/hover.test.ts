@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationToken, Disposable, Hover, MarkedString, MarkupKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import HoverHandler, { addDefinitions, addDocument, isDocumentation, readLines } from '../../handler/hover'

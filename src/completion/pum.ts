@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { CompletionItemKind } from 'vscode-languageserver-types'
 import { matchSpansReverse } from '../model/fuzzyMatch'
 import { FloatConfig, HighlightItem } from '../types'

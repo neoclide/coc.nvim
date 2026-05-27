@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CodeActionKind, DocumentSymbol, Position, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-types'
 import type { IConfigurationChangeEvent } from '../../configuration/types'
 import events from '../../events'

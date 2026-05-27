@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'

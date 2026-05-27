@@ -1,7 +1,7 @@
 vi.hoisted(() => {
   process.env.VIM_NODE_RPC = '1'
 })
-import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
+import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'

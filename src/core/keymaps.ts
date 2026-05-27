@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim, KeymapOption as VimKeymapOption } from '@chemzqm/neovim'
+import { Neovim, KeymapOption as VimKeymapOption } from '../neovim'
 import { createLogger } from '../logger'
 import { KeymapOption } from '../types'
 import { isVim } from '../util/constants'

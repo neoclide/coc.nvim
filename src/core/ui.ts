@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
 import Regions from '../model/regions'

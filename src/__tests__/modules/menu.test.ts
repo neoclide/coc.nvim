@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Menu, { isMenuItem, toIndexText } from '../../model/menu'
 import helper from '../helper'
