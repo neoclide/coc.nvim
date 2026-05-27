@@ -16,7 +16,7 @@ import { Emitter, Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticItem } from './manager'
-import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
+import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getMessageString, getNameFromSeverity, getSeverityName, getSeverityType, LocationListItem, severityLevel, sortDiagnostics } from './util'
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
@@ -523,7 +523,7 @@ export class DiagnosticBuffer implements SyncItem {
             end_col: end.character + 1,
             code: diagnostic.code,
             source: diagnostic.source,
-            message: diagnostic.message,
+            message: getMessageString(diagnostic.message),
             severity: getSeverityName(diagnostic.severity),
             level: diagnostic.severity ?? 0,
             location: Location.create(this.doc.uri, diagnostic.range)
@@ -563,7 +563,7 @@ export class DiagnosticBuffer implements SyncItem {
       }
       let { line } = diagnostic.range.start
       let highlight = getNameFromSeverity(diagnostic.severity) + 'VirtualText'
-      let msg = diagnostic.message.split(/\n/)
+      let msg = getMessageString(diagnostic.message).split(/\n/)
         .map((l: string) => l.trim())
         .filter((l: string) => l.length > 0)
         .slice(0, this._config.virtualTextLines)

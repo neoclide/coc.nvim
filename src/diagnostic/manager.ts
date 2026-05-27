@@ -16,7 +16,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, severityLevel } from './util'
+import { getMessageString, getSeverityName, severityLevel } from './util'
 
 export interface DiagnosticEventParams {
   bufnr: number
@@ -279,7 +279,7 @@ class DiagnosticManager implements Disposable {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
       lines.push(`[${source}${code ? ' ' + code : ''}] [${s}]`)
-      lines.push(...message.split(/\r?\n/))
+      lines.push(...getMessageString(message).split(/\r?\n/))
       lines.push('')
     }
     this.nvim.call('coc#ui#preview_info', [lines, 'txt'], true)
@@ -392,7 +392,7 @@ class DiagnosticManager implements Disposable {
             end_col: Array.isArray(lines) ? byteIndex(lines[end.line] ?? '', end.character) + 1 : end.character + 1,
             code: diagnostic.code,
             source: diagnostic.source ?? collection.name,
-            message: diagnostic.message,
+            message: getMessageString(diagnostic.message),
             severity: getSeverityName(diagnostic.severity),
             level: diagnostic.severity ?? 0,
             location: Location.create(uri, diagnostic.range)
