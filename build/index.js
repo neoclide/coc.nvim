@@ -61566,7 +61566,7 @@ var init_main$2 = __esmMin((() => {
 		function is(value) {
 			var _a;
 			const candidate = value;
-			return Is.defined(candidate) && Range.is(candidate.range) && Is.string(candidate.message) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
+			return Is.defined(candidate) && Range.is(candidate.range) && (Is.string(candidate.message) || MarkupContent.is(candidate.message)) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
 		}
 		Diagnostic.is = is;
 	})(Diagnostic || (Diagnostic = {}));
@@ -62102,7 +62102,7 @@ var init_main$2 = __esmMin((() => {
 		LanguageKind.Erlang = "erlang";
 		LanguageKind.FSharp = "fsharp";
 		LanguageKind.GitCommit = "git-commit";
-		LanguageKind.GitRebase = "rebase";
+		LanguageKind.GitRebase = "git-rebase";
 		LanguageKind.Go = "go";
 		LanguageKind.Groovy = "groovy";
 		LanguageKind.Handlebars = "handlebars";
@@ -62128,6 +62128,7 @@ var init_main$2 = __esmMin((() => {
 		LanguageKind.Perl = "perl";
 		LanguageKind.Perl6 = "perl6";
 		LanguageKind.PHP = "php";
+		LanguageKind.Plaintext = "plaintext";
 		LanguageKind.Powershell = "powershell";
 		LanguageKind.Pug = "jade";
 		LanguageKind.Python = "python";
@@ -66744,7 +66745,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function generateRandomPipeName() {
 		if (process.platform === "win32") return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
 		let randomLength = 32;
-		const fixedLength = 9;
+		const fixedLength = 10;
 		const tmpDir = fs$2.realpathSync(XDG_RUNTIME_DIR ?? os$2.tmpdir());
 		const limit = safeIpcPathLengths.get(process.platform);
 		if (limit !== void 0) randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
@@ -67049,7 +67050,7 @@ var require_protocol_colorProvider = /* @__PURE__ */ __commonJSMin(((exports) =>
 	/**
 	* A request to list all presentation for a color. The request's
 	* parameter is of type {@link ColorPresentationParams} the
-	* response is of type {@link ColorInformation ColorInformation[]} or a Thenable
+	* response is of type {@link ColorPresentation ColorPresentation[]} or a Thenable
 	* that resolves to such.
 	*/
 	var ColorPresentationRequest;
@@ -93023,11 +93024,15 @@ var init_textedit = __esmMin((() => {
 }));
 //#endregion
 //#region src/diagnostic/util.ts
+function getMessageString(message) {
+	return MarkupContent.is(message) ? message.value : message;
+}
 function formatDiagnostic(format, diagnostic) {
 	let { source, code, severity, message } = diagnostic;
 	let s = getSeverityName(severity)[0];
 	const codeStr = code ? " " + code : "";
-	return format.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => message);
+	let msg = getMessageString(message);
+	return format.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
 }
 function getSeverityName(severity) {
 	switch (severity) {
@@ -93067,7 +93072,7 @@ function getNameFromSeverity(severity) {
 function getLocationListItem(bufnr, diagnostic, lines) {
 	let { start, end } = diagnostic.range;
 	let owner = diagnostic.source || "coc.nvim";
-	let msg = diagnostic.message.split("\n")[0];
+	let msg = getMessageString(diagnostic.message).split("\n")[0];
 	let type = getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase();
 	return {
 		bufnr,
@@ -93593,7 +93598,7 @@ var init_buffer$6 = __esmMin((() => {
 						end_col: end.character + 1,
 						code: diagnostic.code,
 						source: diagnostic.source,
-						message: diagnostic.message,
+						message: getMessageString(diagnostic.message),
 						severity: getSeverityName(diagnostic.severity),
 						level: diagnostic.severity ?? 0,
 						location: Location.create(this.doc.uri, diagnostic.range)
@@ -93627,7 +93632,7 @@ var init_buffer$6 = __esmMin((() => {
 				if (virtualTextLevel && diagnostic.severity && diagnostic.severity > virtualTextLevel) continue;
 				let { line } = diagnostic.range.start;
 				let highlight = getNameFromSeverity(diagnostic.severity) + "VirtualText";
-				let msg = diagnostic.message.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0).slice(0, this._config.virtualTextLines).join(this._config.virtualTextLineSeparator);
+				let msg = getMessageString(diagnostic.message).split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0).slice(0, this._config.virtualTextLines).join(this._config.virtualTextLineSeparator);
 				let arr = map.get(line) ?? [];
 				const formattedDiagnostic = formatDiagnostic(this._config.virtualTextFormat, {
 					...diagnostic,
@@ -94031,7 +94036,7 @@ var init_manager$4 = __esmMin((() => {
 				let { source, code, severity, message } = diagnostic;
 				let s = getSeverityName(severity)[0];
 				lines.push(`[${source}${code ? " " + code : ""}] [${s}]`);
-				lines.push(...message.split(/\r?\n/));
+				lines.push(...getMessageString(message).split(/\r?\n/));
 				lines.push("");
 			}
 			this.nvim.call("coc#ui#preview_info", [lines, "txt"], true);
@@ -94126,7 +94131,7 @@ var init_manager$4 = __esmMin((() => {
 						end_col: Array.isArray(lines) ? byteIndex(lines[end.line] ?? "", end.character) + 1 : end.character + 1,
 						code: diagnostic.code,
 						source: diagnostic.source ?? collection.name,
-						message: diagnostic.message,
+						message: getMessageString(diagnostic.message),
 						severity: getSeverityName(diagnostic.severity),
 						level: diagnostic.severity ?? 0,
 						location: Location.create(uri, diagnostic.range)
@@ -108610,9 +108615,10 @@ var init_diagnostic = __esmMin((() => {
 			});
 		}
 		forgetDocument(document) {
+			if (this.isDisposed) return;
 			const key = DocumentOrUri.asKey(document);
 			const request = this.openRequests.get(key);
-			if (this.options.workspaceDiagnostics) {
+			if (this.options.workspaceDiagnostics && key !== "untitled") {
 				if (request !== void 0) this.openRequests.set(key, {
 					state: "reschedule",
 					document
@@ -136267,7 +136273,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-0efb89c 2026-05-26 10:58:36 +0800";
+			let version = workspace_default.version + "-aa2fac5 2026-05-27 13:27:36 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
