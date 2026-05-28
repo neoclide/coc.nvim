@@ -691,7 +691,21 @@ describe('diagnostic manager', () => {
       expect(formatDiagnostic('%severity:%message%code', diagnostic)).toBe('W:plain text')
     })
 
+    it('should format diagnostic with zero code', () => {
+      let diagnostic: Diagnostic = {
+        range: Range.create(0, 0, 0, 1),
+        message: 'message',
+        severity: DiagnosticSeverity.Error,
+        source: 'test',
+        code: 0
+      }
+
+      expect(formatDiagnostic('%source%code %message', diagnostic)).toBe('test 0 message')
+    })
+
     it('should get severity level', () => {
+      expect(severityLevel(null)).toBeUndefined()
+      expect(severityLevel(undefined)).toBeUndefined()
       expect(severityLevel('hint')).toBe(DiagnosticSeverity.Hint)
       expect(severityLevel('error')).toBe(DiagnosticSeverity.Error)
       expect(severityLevel('warning')).toBe(DiagnosticSeverity.Warning)
@@ -712,6 +726,7 @@ describe('diagnostic manager', () => {
       expect(getSeverityName(DiagnosticSeverity.Warning)).toBe('Warning')
       expect(getSeverityName(DiagnosticSeverity.Information)).toBe('Information')
       expect(getSeverityName(DiagnosticSeverity.Hint)).toBe('Hint')
+      expect(getSeverityName(99 as DiagnosticSeverity)).toBe('Error')
     })
 
     it('should get severity type', () => {
@@ -719,6 +734,7 @@ describe('diagnostic manager', () => {
       expect(getSeverityType(DiagnosticSeverity.Warning)).toBe('W')
       expect(getSeverityType(DiagnosticSeverity.Information)).toBe('I')
       expect(getSeverityType(DiagnosticSeverity.Hint)).toBe('I')
+      expect(getSeverityType(99 as DiagnosticSeverity)).toBe('E')
     })
 
     it('should sort diagnostics', () => {
@@ -730,6 +746,16 @@ describe('diagnostic manager', () => {
       ]
       diagnostics.sort(sortDiagnostics)
       expect(diagnostics.map(d => d.message)).toEqual(['c', 'd', 'b', 'a'])
+    })
+
+    it('should sort diagnostics by position', () => {
+      let diagnostics: Diagnostic[] = [
+        { range: Range.create(1, 1, 1, 2), message: 'b', severity: DiagnosticSeverity.Error },
+        { range: Range.create(0, 1, 0, 2), message: 'a' },
+        { range: Range.create(1, 0, 1, 1), message: 'c', severity: DiagnosticSeverity.Error },
+      ]
+      diagnostics.sort(sortDiagnostics)
+      expect(diagnostics.map(d => d.message)).toEqual(['a', 'c', 'b'])
     })
 
     it('should get location list item', () => {
@@ -751,6 +777,29 @@ describe('diagnostic manager', () => {
         text: '[tsserver TS1000] first line [I]',
         type: 'I'
       })
+    })
+
+    it('should get location list item with defaults and bytes index', () => {
+      let diagnostic: Diagnostic = {
+        range: Range.create(0, 1, 0, 2),
+        message: { kind: 'markdown', value: 'markdown message\nnext line' },
+        severity: DiagnosticSeverity.Warning
+      }
+      let item = getLocationListItem(1, diagnostic, ['你a'])
+
+      expect(item).toEqual({
+        bufnr: 1,
+        lnum: 1,
+        end_lnum: 1,
+        col: 4,
+        end_col: 5,
+        text: '[coc.nvim] markdown message [W]',
+        type: 'W'
+      })
+
+      item = getLocationListItem(1, diagnostic)
+      expect(item.col).toBe(2)
+      expect(item.end_col).toBe(3)
     })
 
     it('should get highlight group', () => {
@@ -777,6 +826,14 @@ describe('diagnostic manager', () => {
       expect(getHighlightGroup(diagnostic)).toEqual(['CocHintHighlight'])
     })
 
+    it('should get highlight group without severity', () => {
+      let diagnostic = Diagnostic.create(Range.create(0, 0, 0, 1), 'message')
+      expect(getHighlightGroup(diagnostic)).toEqual([])
+
+      diagnostic.tags = [DiagnosticTag.Unnecessary]
+      expect(getHighlightGroup(diagnostic)).toEqual(['CocUnusedHighlight'])
+    })
+
     it('should adjust diagnostics with text edit', () => {
       let diagnostics: Diagnostic[] = [
         Diagnostic.create(Range.create(0, 0, 0, 1), 'before', DiagnosticSeverity.Hint),
@@ -788,6 +845,18 @@ describe('diagnostic manager', () => {
 
       expect(result.map(o => o.message)).toEqual(['before', 'after'])
       expect(result[1].range).toEqual(Range.create(2, 0, 2, 2))
+    })
+
+    it('should adjust diagnostic character for same line edit', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 1), 'before'),
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 1), 'xy'))
+
+      expect(result.map(o => o.message)).toEqual(['before', 'after'])
+      expect(result[0].range).toEqual(Range.create(0, 0, 0, 1))
+      expect(result[1].range).toEqual(Range.create(0, 5, 0, 7))
     })
   })
 

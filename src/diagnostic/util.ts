@@ -72,7 +72,7 @@ export interface DiagnosticConfig {
 export function formatDiagnostic(format: string, diagnostic: Diagnostic): string {
   let { source, code, severity, message } = diagnostic
   let s = getSeverityName(severity)[0]
-  const codeStr = code ? ' ' + code : ''
+  const codeStr = code !== undefined && code !== null && code !== '' ? ' ' + code : ''
   let msg = getMessageString(message)
   return format.replace('%source', source)
     .replace('%code', codeStr)
