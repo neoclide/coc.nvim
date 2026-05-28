@@ -1,10 +1,29 @@
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range } from 'vscode-languageserver-protocol'
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  DiagnosticTag,
+  Location,
+  Position,
+  Range,
+  TextEdit
+} from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import manager from '../../diagnostic/manager'
-import { getHighlightGroup, getNameFromSeverity, getSeverityName, getSeverityType, severityLevel, sortDiagnostics } from '../../diagnostic/util'
+import {
+  adjustDiagnostics,
+  formatDiagnostic,
+  getHighlightGroup,
+  getLocationListItem,
+  getMessageString,
+  getNameFromSeverity,
+  getSeverityName,
+  getSeverityType,
+  severityLevel,
+  sortDiagnostics
+} from '../../diagnostic/util'
 import Document from '../../model/document'
 import window from '../../window'
 import commands from '../../commands'
@@ -649,6 +668,29 @@ describe('diagnostic manager', () => {
   })
 
   describe('diagnostic util', () => {
+    it('should get message string', () => {
+      expect(getMessageString('plain text')).toBe('plain text')
+      expect(getMessageString({ kind: 'markdown', value: '**markdown**' })).toBe('**markdown**')
+    })
+
+    it('should format diagnostic', () => {
+      let diagnostic: Diagnostic = {
+        range: Range.create(0, 0, 0, 1),
+        message: { kind: 'markdown', value: 'Use $& literally' },
+        severity: DiagnosticSeverity.Warning,
+        source: 'eslint',
+        code: 'no-foo'
+      }
+
+      expect(formatDiagnostic('%source%code [%severity] %message', diagnostic)).toBe(
+        'eslint no-foo [W] Use $& literally'
+      )
+
+      diagnostic.code = undefined
+      diagnostic.message = 'plain text'
+      expect(formatDiagnostic('%severity:%message%code', diagnostic)).toBe('W:plain text')
+    })
+
     it('should get severity level', () => {
       expect(severityLevel('hint')).toBe(DiagnosticSeverity.Hint)
       expect(severityLevel('error')).toBe(DiagnosticSeverity.Error)
@@ -690,6 +732,27 @@ describe('diagnostic manager', () => {
       expect(diagnostics.map(d => d.message)).toEqual(['c', 'd', 'b', 'a'])
     })
 
+    it('should get location list item', () => {
+      let diagnostic: Diagnostic = {
+        range: Range.create(0, 1, 1, 2),
+        message: 'first line\nsecond line',
+        severity: DiagnosticSeverity.Information,
+        source: 'tsserver',
+        code: 'TS1000'
+      }
+      let item = getLocationListItem(3, diagnostic, ['abcd', 'efgh'])
+
+      expect(item).toEqual({
+        bufnr: 3,
+        lnum: 1,
+        end_lnum: 2,
+        col: 2,
+        end_col: 3,
+        text: '[tsserver TS1000] first line [I]',
+        type: 'I'
+      })
+    })
+
     it('should get highlight group', () => {
       let diagnostic: Diagnostic = {
         range: Range.create(0, 0, 0, 10),
@@ -701,6 +764,30 @@ describe('diagnostic manager', () => {
       expect(groups).toContain('CocDeprecatedHighlight')
       expect(groups).toContain('CocUnusedHighlight')
       expect(groups).toContain('CocErrorHighlight')
+    })
+
+    it('should get highlight group by severity', () => {
+      let diagnostic = Diagnostic.create(Range.create(0, 0, 0, 1), 'message', DiagnosticSeverity.Warning)
+      expect(getHighlightGroup(diagnostic)).toEqual(['CocWarningHighlight'])
+
+      diagnostic.severity = DiagnosticSeverity.Information
+      expect(getHighlightGroup(diagnostic)).toEqual(['CocInfoHighlight'])
+
+      diagnostic.severity = DiagnosticSeverity.Hint
+      expect(getHighlightGroup(diagnostic)).toEqual(['CocHintHighlight'])
+    })
+
+    it('should adjust diagnostics with text edit', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 1), 'before', DiagnosticSeverity.Hint),
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'overlap', DiagnosticSeverity.Error),
+        Diagnostic.create(Range.create(1, 0, 1, 2), 'after', DiagnosticSeverity.Warning)
+      ]
+      let edit = TextEdit.replace(Range.create(0, 2, 0, 4), 'a\nb')
+      let result = adjustDiagnostics(diagnostics, edit)
+
+      expect(result.map(o => o.message)).toEqual(['before', 'after'])
+      expect(result[1].range).toEqual(Range.create(2, 0, 2, 2))
     })
   })
 
