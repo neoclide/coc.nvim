@@ -93030,7 +93030,7 @@ function getMessageString(message) {
 function formatDiagnostic(format, diagnostic) {
 	let { source, code, severity, message } = diagnostic;
 	let s = getSeverityName(severity)[0];
-	const codeStr = code ? " " + code : "";
+	const codeStr = code !== void 0 && code !== null && code !== "" ? " " + code : "";
 	let msg = getMessageString(message);
 	return format.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
 }
@@ -136273,7 +136273,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-aa2fac5 2026-05-27 13:27:36 +0800";
+			let version = workspace_default.version + "-5ce0aa0 2026-05-28 14:39:39 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
