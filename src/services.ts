@@ -385,6 +385,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
     return null
   }
   let serverOptions: ServerOptions
+  args = args.map(s => workspace.expand(s))
   if (module) {
     module = workspace.expand(module)
     if (!fs.existsSync(module)) {

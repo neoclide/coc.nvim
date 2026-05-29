@@ -136,6 +136,17 @@ describe('services', () => {
       expect(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', ignoredRootPaths: ['/foo'], initializationOptions: {} }))).toBeDefined()
     })
 
+    it('should expand variables in args', async () => {
+      let basename = path.basename(workspace.root)
+      let opts = getLanguageServerOptions('x', 'y', toConfig({
+        command: 'cmd',
+        args: ['-data', '${workspaceFolderBasename}/.cache', '${env:NODE_ENV}']
+      }))
+      expect(opts).toBeDefined()
+      let serverOptions = opts[1] as { args: string[] }
+      expect(serverOptions.args).toEqual(['-data', `${basename}/.cache`, 'test'])
+    })
+
     it('should use socket port for language server #1', async () => {
       let opts = getLanguageServerOptions('x', 'y', toConfig({ port: 3300, host: '127.0.0.1' }))
       let fn = opts[1] as Function

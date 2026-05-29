@@ -15,6 +15,7 @@ import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { isVim } from '../util/constants'
 import { convertFormatOptions, VimFormatOption } from '../util/convert'
+import { expandVariables } from '../util/expand'
 import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { emptyObject } from '../util/is'
 import { fs, os, path } from '../util/node'
@@ -232,42 +233,11 @@ export default class Documents implements Disposable {
     }
     if (input.includes('$')) {
       let doc = this.getDocument(this.bufnr)
-      let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
-      const root = this._root || this._cwd
-      input = input.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
-        if (name.startsWith('env:')) {
-          let key = name.split(':')[1]
-          let val = key ? process.env[key] : ''
-          return val
-        }
-        switch (name) {
-          case 'tmpdir':
-            return os.tmpdir()
-          case 'userHome':
-            return os.homedir()
-          case 'workspace':
-          case 'workspaceRoot':
-          case 'workspaceFolder':
-            return root
-          case 'workspaceFolderBasename':
-            return path.basename(root)
-          case 'cwd':
-            return this._cwd
-          case 'file':
-            return fsPath
-          case 'fileDirname':
-            return fsPath ? path.dirname(fsPath) : ''
-          case 'fileExtname':
-            return fsPath ? path.extname(fsPath) : ''
-          case 'fileBasename':
-            return fsPath ? path.basename(fsPath) : ''
-          case 'fileBasenameNoExtension': {
-            let base = fsPath ? path.basename(fsPath) : ''
-            return base ? base.slice(0, base.length - path.extname(base).length) : ''
-          }
-          default:
-            return match
-        }
+      let file = doc ? URI.parse(doc.uri).fsPath : ''
+      input = expandVariables(input, {
+        root: this._root || this._cwd,
+        cwd: this._cwd,
+        file
       })
       input = input.replace(/\$[\w]+/g, match => {
         if (match == '$HOME') return os.homedir()
