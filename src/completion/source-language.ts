@@ -1,5 +1,5 @@
 'use strict'
-import { CompletionItem, InsertReplaceEdit, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, InsertReplaceEdit, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import { getLineAndPosition } from '../core/ui'
 import { createLogger } from '../logger'
@@ -125,8 +125,14 @@ export default class LanguageSource implements ISource<CompletionItem> {
     let version = doc.version
     let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt)
     if (additionalEdits) {
-      // move cursor after edit
-      await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet)
+      // Carry the real cursor through the edits for snippets so the placeholder
+      // cursor isn't left at the stale winrestview position on Vim (see #5411).
+      let move: boolean | Position = !isSnippet
+      if (isSnippet) {
+        let pos = await getLineAndPosition(workspace.nvim)
+        move = Position.create(pos.line, pos.character)
+      }
+      await doc.applyEdits(item.additionalTextEdits, doc.version != version, move)
       if (isSnippet) await snippetManager.selectCurrentPlaceholder()
     }
     if (item.command) {

@@ -490,6 +490,34 @@ describe('language source', () => {
       expect(col).toBe(3)
     })
 
+    it('should move cursor to empty placeholder with delete before snippet on additionalTextEdits', async () => {
+      // Faithful rust-analyzer postfix payload (#5411): the snippet textEdit
+      // replaces the trigger char with `$0`, additionalTextEdits delete the
+      // prefix located before the snippet, the cursor must land on `$0`.
+      let text = 'Some(2).'
+      await nvim.setLine(text)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'let',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, text.length, 0, text.length + 1), newText: 'let $0 = Some(2);' },
+          additionalTextEdits: [TextEdit.del(Range.create(0, 0, 0, text.length))],
+          preselect: true
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      await nvim.input('Al')
+      await helper.waitPopup()
+      let res = await helper.items()
+      let idx = res.findIndex(o => o.source?.name == 'edits')
+      await helper.confirmCompletion(idx)
+      await helper.waitFor('getline', ['.'], 'let  = Some(2);')
+      await helper.wait(50)
+      let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
+      expect(lnum).toBe(1)
+      expect(col).toBe(5)
+    })
+
     it('should not cancel current snippet session when additionalTextEdits inside snippet', async () => {
       await nvim.input('i')
       snippetManager.cancel()
