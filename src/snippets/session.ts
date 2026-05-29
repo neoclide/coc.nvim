@@ -19,7 +19,7 @@ import { filterSortEdits, reduceTextEdit } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import { executePythonCode, generateContextId, getInitialPythonCode } from './eval'
-import { getPlaceholderId, Placeholder, Text, TextmateSnippet } from './parser'
+import { getPlaceholderId, Placeholder, SnippetParser, Text, TextmateSnippet } from './parser'
 import { CocSnippet, CocSnippetPlaceholder, getNextPlaceholder, getUltiSnipActionCodes } from "./snippet"
 import { SnippetString } from './string'
 import { toSnippetString, UltiSnippetContext, wordsSource } from './util'
@@ -71,6 +71,90 @@ export class SnippetSession {
     if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false)
     const textDocument = this.document.textDocument
     const textEdits = filterSortEdits(textDocument, edits.map(e => TextEdit.replace(e.range, toSnippetString(e.snippet))))
+    const sharedFinals = this.getSharedEditableFinals(textEdits.map(o => o.newText))
+    if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits)
+    const len = textEdits.length
+    // Merge all edits into a single snippet so placeholders share one
+    // session. Each edit keeps its local tabstop namespace, except repeated
+    // editable final tabstops used by assists like rust-analyzer "Add Label",
+    // which intentionally mirror across edits.
+    let combined = ''
+    const snippets = textEdits.map(o => new SnippetParser().parse(o.newText))
+    let nextIndex = 1
+    for (const snippet of snippets) {
+      const localIndexes = new Set<number>()
+      snippet.walk(m => {
+        if (m instanceof Placeholder && m.index > 0) localIndexes.add(m.index)
+        return true
+      })
+      const indexMap = new Map<number, number>()
+      for (const index of Array.from(localIndexes).sort((a, b) => a - b)) {
+        indexMap.set(index, nextIndex++)
+      }
+      snippet.walk(m => {
+        if (m instanceof Placeholder && m.index > 0) m.index = indexMap.get(m.index)
+        return true
+      })
+    }
+    const sharedIndexMap = new Map<string, number>()
+    let needsFinalTabstop = false
+    for (const snippet of snippets) {
+      const localFinalMap = new Map<string, number>()
+      snippet.walk(m => {
+        if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
+          needsFinalTabstop = true
+          const key = this.getEditableFinalKey(m)
+          let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key)
+          if (index == null) {
+            index = nextIndex++
+            if (sharedFinals.has(key)) {
+              sharedIndexMap.set(key, index)
+            } else {
+              localFinalMap.set(key, index)
+            }
+          }
+          m.index = index
+        }
+        return true
+      })
+    }
+    for (let i = 0; i < len; i++) {
+      combined += snippets[i].toTextmateString()
+      if (i !== len - 1) {
+        let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start)
+        combined += SnippetParser.escape(textDocument.getText(r))
+      }
+    }
+    if (needsFinalTabstop) combined += '$0'
+    this.deactivate()
+    let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end)
+    return await this.start(combined, range, false)
+  }
+
+  private getEditableFinalKey(placeholder: Placeholder): string {
+    return placeholder.toTextmateString()
+  }
+
+  private getSharedEditableFinals(snippets: string[]): Set<string> {
+    const counts = new Map<string, number>()
+    for (const text of snippets) {
+      const keys = new Set<string>()
+      const snippet = new SnippetParser().parse(text)
+      snippet.walk(m => {
+        if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
+          keys.add(this.getEditableFinalKey(m))
+        }
+        return true
+      })
+      for (const key of keys) {
+        counts.set(key, (counts.get(key) ?? 0) + 1)
+      }
+    }
+    return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key))
+  }
+
+  private async insertNestedSnippetEdits(textEdits: TextEdit[]): Promise<boolean> {
+    const textDocument = this.document.textDocument
     const len = textEdits.length
     const snip = new TextmateSnippet()
     for (let i = 0; i < len; i++) {

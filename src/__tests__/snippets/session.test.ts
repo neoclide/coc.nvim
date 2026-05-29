@@ -201,6 +201,86 @@ describe('SnippetSession', () => {
       expect(line).toBe('foo')
       expect(ses.selected).toBe(false)
     })
+
+    it('should keep independent snippet edit tabstop namespaces separate', async () => {
+      let session = await createSession()
+      let doc = session.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\n\nbar')])
+      let edits: SnippetEdit[] = [
+        { range: Range.create(0, 0, 0, 3), snippet: 'foo(${1:one})' },
+        { range: Range.create(2, 0, 2, 3), snippet: 'bar(${1:two})' },
+      ]
+      let res = await session.insertSnippetEdits(edits)
+      expect(res).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo(one)', '', 'bar(two)'])
+      expect(session.placeholder!.range).toEqual(Range.create(0, 4, 0, 7))
+      await nvim.call('cursor', [1, 5])
+      await nvim.setLine('foo(first)')
+      await doc.synchronize()
+      await session.forceSynchronize()
+      lines = await doc.buffer.lines
+      expect(lines).toEqual(['foo(first)', '', 'bar(two)'])
+    })
+
+    it('should mirror same-index placeholders across multiple snippet edits (#5485)', async () => {
+      let session = await createSession()
+      let doc = session.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), [
+        'fn main() {',
+        '    loop {',
+        '        break;',
+        '        continue;',
+        '    }',
+        '}'
+      ].join('\n'))])
+      // edits produced by rust-analyzer "Add Label": the same placeholder
+      // ${0:'l} is reused at every site so the three labels stay linked.
+      let edits: SnippetEdit[] = [
+        { range: Range.create(1, 4, 1, 4), snippet: "${0:'l}: " },
+        { range: Range.create(2, 13, 2, 13), snippet: " ${0:'l}" },
+        { range: Range.create(3, 16, 3, 16), snippet: " ${0:'l}" },
+      ]
+      let res = await session.insertSnippetEdits(edits)
+      expect(res).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual([
+        'fn main() {',
+        "    'l: loop {",
+        "        break 'l;",
+        "        continue 'l;",
+        '    }',
+        '}'
+      ])
+      // selection is "'l" with no leading space, and it is a normal tabstop
+      // (not the final $0) so the session stays active for editing
+      expect(session.placeholder!.index).toBe(1)
+      expect(session.placeholder!.range).toEqual(Range.create(1, 4, 1, 6))
+      // the three labels are mirrors of a single tabstop
+      let ranges = session.snippet.getRanges(session.placeholder!.marker)
+      expect(ranges).toEqual([
+        Range.create(1, 4, 1, 6),
+        Range.create(2, 14, 2, 16),
+        Range.create(3, 17, 3, 19),
+      ])
+      // editing the primary label syncs to every mirror
+      await nvim.call('cursor', [2, 5])
+      await nvim.setLine("    'outer: loop {")
+      await doc.synchronize()
+      await session.forceSynchronize()
+      lines = await doc.buffer.lines
+      expect(lines).toEqual([
+        'fn main() {',
+        "    'outer: loop {",
+        "        break 'outer;",
+        "        continue 'outer;",
+        '    }',
+        '}'
+      ])
+      // Tab from the label jumps to the final tabstop and ends the session
+      await session.nextPlaceholder()
+      expect(session.isActive).toBe(false)
+    })
   })
 
   describe('nested snippet', () => {
