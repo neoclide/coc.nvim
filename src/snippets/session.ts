@@ -346,6 +346,15 @@ export class SnippetSession {
       let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events.insertMode)
       change = { range: edit.range, text: edit.newText }
     }
+    // The reported change can be non-minimal, for example when Vim reports a
+    // stale cursor during pending key mappings the diff engulfs unchanged text
+    // that follows the edit. A non-minimal range makes replaceWithText splice
+    // out and destroy sibling placeholders, so reduce it to the minimal edit
+    // that keeps the change local to the affected placeholder (see #5624).
+    if (!emptyRange(change.range)) {
+      let reduced = reduceTextEdit(TextEdit.replace(change.range, change.text), textDocument.getText(change.range))
+      change = { range: reduced.range, text: reduced.newText }
+    }
     const { range, start } = snippet
     let c = comparePosition(change.range.start, range.end)
     // consider insert at the end
