@@ -4,8 +4,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { distinct } from '../util/array'
+import { expandVariables } from '../util/expand'
 import * as Is from '../util/is'
-import { os } from '../util/node'
 import { equals, hasOwnProperty } from '../util/object'
 import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationOverrides } from './types'
 const documentUri = 'file:///1'
@@ -23,25 +23,13 @@ export const OVERRIDE_PROPERTY_PATTERN = `^(${OVERRIDE_IDENTIFIER_PATTERN})+$`
 export const OVERRIDE_PROPERTY_REGEX = new RegExp(OVERRIDE_PROPERTY_PATTERN)
 
 /**
- * Basic expand for ${env:value}, ${cwd}, ${userHome}
+ * Basic expand for configuration values. Resolves the context-free variables
+ * (`${env:X}`, `${cwd}`, `${userHome}`, `${tmpdir}`); workspace/file variables
+ * are left untouched here and resolved later via `workspace.expand` at use
+ * time, when the workspace folder and current file are known.
  */
 export function expand(input: string): string {
-  return input.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
-    if (name.startsWith('env:')) {
-      let key = name.split(':')[1]
-      return process.env[key] ?? match
-    }
-    switch (name) {
-      case 'tmpdir':
-        return os.tmpdir()
-      case 'userHome':
-        return os.homedir()
-      case 'cwd':
-        return process.cwd()
-      default:
-        return match
-    }
-  })
+  return expandVariables(input)
 }
 
 export function expandObject(obj: any): any {

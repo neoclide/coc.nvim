@@ -302,8 +302,9 @@ You can also reference environment variables through the `${env:name}` syntax
 (for example, `${env:USERNAME}`), no expand happens when env not exists.
 
 Configurations that requires file paths (ex:
-|coc-config-workspace-ignoredFolders|) support expand `~` at the beginning of
-the filepath to user's home and some additional variables:
+|coc-config-workspace-ignoredFolders|) and language server `args`
+(|coc-config-languageserver|) support expand `~` at the beginning of the
+filepath to user's home and some additional variables, resolved at use time:
 
   • `${workspaceFolder}` the current opened file's workspace folder.
   • `${workspaceFolderBasename}` the name of the workspace folder opened in
