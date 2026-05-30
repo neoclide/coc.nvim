@@ -90714,23 +90714,53 @@ var init_main = __esmMin((() => {
 	})(TextDocument || (TextDocument = {}));
 }));
 //#endregion
-//#region src/configuration/util.ts
+//#region src/util/expand.ts
 /**
-* Basic expand for ${env:value}, ${cwd}, ${userHome}
+* Expand `${...}` placeholders in `input`. Variables that need a context
+* value not provided in `ctx` are left untouched (so callers downstream can
+* resolve them later).
 */
-function expand(input) {
+function expandVariables(input, ctx = {}) {
 	return input.replace(/\$\{(.*?)\}/g, (match, name) => {
 		if (name.startsWith("env:")) {
-			let key = name.split(":")[1];
+			const key = name.slice(4);
+			if (!key) return match;
 			return process.env[key] ?? match;
 		}
 		switch (name) {
 			case "tmpdir": return os$3.tmpdir();
 			case "userHome": return os$3.homedir();
-			case "cwd": return process.cwd();
+			case "cwd": return ctx.cwd ?? process.cwd();
+			case "workspace":
+			case "workspaceRoot":
+			case "workspaceFolder": return ctx.root ?? match;
+			case "workspaceFolderBasename": return ctx.root ? path$3.basename(ctx.root) : match;
+			case "file": return ctx.file ?? match;
+			case "fileDirname": return ctx.file ? path$3.dirname(ctx.file) : match;
+			case "fileExtname": return ctx.file ? path$3.extname(ctx.file) : match;
+			case "fileBasename": return ctx.file ? path$3.basename(ctx.file) : match;
+			case "fileBasenameNoExtension": {
+				if (!ctx.file) return match;
+				const base = path$3.basename(ctx.file);
+				return base.slice(0, base.length - path$3.extname(base).length);
+			}
 			default: return match;
 		}
 	});
+}
+var init_expand = __esmMin((() => {
+	init_node();
+}));
+//#endregion
+//#region src/configuration/util.ts
+/**
+* Basic expand for configuration values. Resolves the context-free variables
+* (`${env:X}`, `${cwd}`, `${userHome}`, `${tmpdir}`); workspace/file variables
+* are left untouched here and resolved later via `workspace.expand` at use
+* time, when the workspace folder and current file are known.
+*/
+function expand(input) {
+	return expandVariables(input);
 }
 function expandObject(obj) {
 	if (obj == null) return obj;
@@ -90917,8 +90947,8 @@ var init_util$6 = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_array();
+	init_expand();
 	init_is();
-	init_node();
 	init_object();
 	documentUri = "file:///1";
 	OVERRIDE_IDENTIFIER_PATTERN = `\\[([^\\]]+)\\]`;
@@ -113327,6 +113357,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 		return null;
 	}
 	let serverOptions;
+	args = args.map((s) => workspace_default.expand(s));
 	if (module) {
 		module = workspace_default.expand(module);
 		if (!fs$3.existsSync(module)) {
@@ -122936,6 +122967,7 @@ var init_documents = __esmMin((() => {
 	init_array();
 	init_constants();
 	init_convert();
+	init_expand();
 	init_fs();
 	init_is();
 	init_node();
@@ -123104,31 +123136,11 @@ var init_documents = __esmMin((() => {
 			if (input.startsWith("~")) input = os$3.homedir() + input.slice(1);
 			if (input.includes("$")) {
 				let doc = this.getDocument(this.bufnr);
-				let fsPath = doc ? URI.parse(doc.uri).fsPath : "";
-				const root = this._root || this._cwd;
-				input = input.replace(/\$\{(.*?)\}/g, (match, name) => {
-					if (name.startsWith("env:")) {
-						let key = name.split(":")[1];
-						return key ? process.env[key] : "";
-					}
-					switch (name) {
-						case "tmpdir": return os$3.tmpdir();
-						case "userHome": return os$3.homedir();
-						case "workspace":
-						case "workspaceRoot":
-						case "workspaceFolder": return root;
-						case "workspaceFolderBasename": return path$3.basename(root);
-						case "cwd": return this._cwd;
-						case "file": return fsPath;
-						case "fileDirname": return fsPath ? path$3.dirname(fsPath) : "";
-						case "fileExtname": return fsPath ? path$3.extname(fsPath) : "";
-						case "fileBasename": return fsPath ? path$3.basename(fsPath) : "";
-						case "fileBasenameNoExtension": {
-							let base = fsPath ? path$3.basename(fsPath) : "";
-							return base ? base.slice(0, base.length - path$3.extname(base).length) : "";
-						}
-						default: return match;
-					}
+				let file = doc ? URI.parse(doc.uri).fsPath : "";
+				input = expandVariables(input, {
+					root: this._root || this._cwd,
+					cwd: this._cwd,
+					file
 				});
 				input = input.replace(/\$[\w]+/g, (match) => {
 					if (match == "$HOME") return os$3.homedir();
@@ -136273,7 +136285,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-5ce0aa0 2026-05-28 14:39:39 +0800";
+			let version = workspace_default.version + "-e872497 2026-05-29 15:40:20 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
