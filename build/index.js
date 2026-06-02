@@ -117139,6 +117139,13 @@ var init_session$1 = __esmMin((() => {
 					text: edit.newText
 				};
 			}
+			if (!emptyRange(change.range)) {
+				let reduced = reduceTextEdit(TextEdit.replace(change.range, change.text), textDocument.getText(change.range));
+				change = {
+					range: reduced.range,
+					text: reduced.newText
+				};
+			}
 			const { range, start } = snippet;
 			let c = comparePosition(change.range.start, range.end);
 			let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
@@ -121089,7 +121096,12 @@ var init_source_language = __esmMin((() => {
 			let version = doc.version;
 			let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt);
 			if (additionalEdits) {
-				await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet);
+				let move = !isSnippet;
+				if (isSnippet) {
+					let pos = await getLineAndPosition(workspace_default.nvim);
+					move = Position.create(pos.line, pos.character);
+				}
+				await doc.applyEdits(item.additionalTextEdits, doc.version != version, move);
 				if (isSnippet) await manager_default.selectCurrentPlaceholder();
 			}
 			if (item.command) if (commands_default.has(item.command.command)) commands_default.execute(item.command);
@@ -136285,7 +136297,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-e872497 2026-05-29 15:40:20 +0800";
+			let version = workspace_default.version + "-9fc9c38 2026-06-02 18:48:26 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
