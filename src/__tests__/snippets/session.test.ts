@@ -326,6 +326,30 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(true)
     })
 
+    it('should keep sibling placeholder on non minimal content change', async () => {
+      // A stale cursor reported by Vim during pending key mappings makes the
+      // diff non-minimal: editing placeholder 1 reports a range that engulfs
+      // the unchanged trailing text and placeholder 2. The change must be
+      // reduced so placeholder 2 survives the jump (#5624).
+      let session = await createSession()
+      let doc = await workspace.document
+      await nvim.input('i')
+      await session.start('foo(${1:attrs}, ${2:x})', defaultRange)
+      expect(session.placeholder.index).toBe(1)
+      await nvim.setLine('foo(a, x)')
+      await doc.patchChange()
+      await session.synchronize({
+        version: doc.textDocument.version,
+        change: { range: Range.create(0, 4, 0, 13), text: 'a, x)' }
+      })
+      expect(session.isActive).toBe(true)
+      expect(session.snippet.text).toBe('foo(a, x)')
+      await session.nextPlaceholder()
+      expect(session.isActive).toBe(true)
+      expect(session.placeholder.index).toBe(2)
+      expect(session.placeholder.value).toBe('x')
+    })
+
     it('should reset snippet when cancelled', async () => {
       let session = await createSession()
       await nvim.input('i')
