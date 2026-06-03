@@ -127,14 +127,17 @@ enddef
 
 def Add_highlights(bufnr: number, ns: number, highlights: list<any>, priority: any): void
   final types = coc#api#GetNamespaceTypes(ns)->copy()
+  var orderedPropTypes: list<string> = []
+  var positionsByType: dict<list<list<number>>> = {}
   for highlightItem in highlights
     const item = Convert_item(highlightItem)
-    var [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = item
-    if colEnd == -1
-      colEnd = getbufline(bufnr, lnum + 1)->get(0, '')->strlen()
+    const [ hlGroup: string, lnum: number, colStart: number, colEnd: number; _ ] = item
+    const endCol: number = colEnd == -1 ? getbufline(bufnr, lnum + 1)->get(0, '')->strlen() + 1 : colEnd + 1
+    if endCol <= colStart
+      continue
     endif
-    const type: string = $'{hlGroup}_{ns}'
-    if index(types, type) == -1
+    const propType: string = $'{hlGroup}_{ns}'
+    if index(types, propType) == -1
       const opts: dict<any> = {
         'priority': Get_priority(hlGroup, priority),
         'hl_mode': get(item, 4, 1) ? 'combine' : 'override',
@@ -142,14 +145,17 @@ def Add_highlights(bufnr: number, ns: number, highlights: list<any>, priority: a
         'end_incl': get(item, 6, 0),
       }
       coc#api#CreateType(ns, hlGroup, opts)
-      add(types, type)
+      add(types, propType)
+    endif
+    if !has_key(positionsByType, propType)
+      positionsByType[propType] = []
+      add(orderedPropTypes, propType)
     endif
     const propId: number = coc#api#GeneratePropId(bufnr)
-    try
-      prop_add(lnum + 1, colStart + 1, {'bufnr': bufnr, 'type': type, 'id': propId, 'end_col': colEnd + 1})
-    catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
-      # ignore 967
-    endtry
+    add(positionsByType[propType], [lnum + 1, colStart + 1, lnum + 1, endCol, propId])
+  endfor
+  for propType in orderedPropTypes
+    prop_add_list({'bufnr': bufnr, 'type': propType}, positionsByType[propType])
   endfor
 enddef
 
