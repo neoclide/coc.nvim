@@ -257,6 +257,26 @@ describe('SnippetSession', () => {
       let line = await nvim.line
       expect(line).toBe('foo bar')
     })
+
+    it('should not nest when stale session range contains new snippet', async () => {
+      await nvim.command('startinsert')
+      let doc = await workspace.document
+      let session = new SnippetSession(nvim, doc, { highlight: false, nextOnDelete: false, preferComplete: false })
+      disposables.push(session)
+      await session.start('if let ${1} = ${2:Some(()).and(optb)} {$0', defaultRange, false)
+
+      // Undo can leave the snippet session active while the buffer has returned
+      // to text that only happens to fall inside the old snippet range.
+      await nvim.setLine('    Some(())')
+      await doc.patchChange()
+      expect(session.isActive).toBe(true)
+
+      let res = await session.start('${1:Some(())}', Range.create(0, 4, 0, 12), false)
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('    Some(())')
+      expect(session.snippet.text).toBe('Some(())')
+    })
   })
 
   describe('getRanges()', () => {

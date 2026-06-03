@@ -104,7 +104,7 @@ export class SnippetSession {
     const edits: TextEdit[] = []
     let textmateSnippet: TextmateSnippet
     if (inserted.length === 0) return this.isActive
-    if (snippet && rangeInRange(range, snippet.range)) {
+    if (snippet && this.canNestSnippet(range, snippet)) {
       // update all snippet.
       let oldRange = snippet.range
       let previous = snippet.text
@@ -142,6 +142,11 @@ export class SnippetSession {
     let { placeholder } = this
     if (select && placeholder) await this.selectPlaceholder(placeholder, true)
     return this.isActive
+  }
+
+  private canNestSnippet(range: Range, snippet: CocSnippet): boolean {
+    let placeholder = this.placeholder
+    return !!placeholder && rangeInRange(range, snippet.range) && rangeInRange(range, placeholder.range)
   }
 
   private async tryPostExpand(textmateSnippet: TextmateSnippet): Promise<void> {
