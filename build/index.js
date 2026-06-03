@@ -116911,7 +116911,7 @@ var init_session$1 = __esmMin((() => {
 			const edits = [];
 			let textmateSnippet;
 			if (inserted.length === 0) return this.isActive;
-			if (snippet && rangeInRange(range, snippet.range)) {
+			if (snippet && this.canNestSnippet(range, snippet)) {
 				let oldRange = snippet.range;
 				let previous = snippet.text;
 				textmateSnippet = await this.snippet.replaceWithSnippet(range, inserted, this.current, context);
@@ -116946,6 +116946,10 @@ var init_session$1 = __esmMin((() => {
 			let { placeholder } = this;
 			if (select && placeholder) await this.selectPlaceholder(placeholder, true);
 			return this.isActive;
+		}
+		canNestSnippet(range, snippet) {
+			let placeholder = this.placeholder;
+			return !!placeholder && rangeInRange(range, snippet.range) && rangeInRange(range, placeholder.range);
 		}
 		async tryPostExpand(textmateSnippet) {
 			let result = getUltiSnipActionCodes(textmateSnippet, "postExpand");
@@ -136297,7 +136301,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-9fc9c38 2026-06-02 18:48:26 +0800";
+			let version = workspace_default.version + "-af67459 2026-06-03 13:15:00 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
