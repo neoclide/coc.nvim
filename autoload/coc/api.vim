@@ -475,7 +475,7 @@ def ReplaceBufLines(bufnr: number, start_row: number, end_row: number, replaceme
   endif
 enddef
 
-# Change buffer texts with text properties keeped.
+# Change buffer texts with text properties kept.
 export def SetBufferText(bufnr: number, start_row: number, start_col: number, end_row: number, end_col: number, replacement: list<string>): void
   # Improve speed for replace lines
   if start_col == 0 && end_col == 0 && (empty(replacement) || replacement[len(replacement) - 1] == '')

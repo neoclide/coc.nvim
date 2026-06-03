@@ -1826,7 +1826,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     throw error
   }
 
-  // Should be keeped
+  // Should be kept
   public logFailedRequest(type: any, error: any): void {
     // If we get a request cancel don't log anything.
     if (
