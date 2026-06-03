@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { PassThrough } from 'stream'
+import { Buffer as NvimBuffer, Tabpage, Window as NvimWindow } from '../../neovim'
 import { NvimTransport } from '../../neovim/transport/nvim'
 import { Metadata } from '../../neovim/api/types'
 import { nullLogger } from '../../neovim/utils/logger'
+import helper from '../helper'
 
 /**
  * NvimTransport reads msgpack-RPC frames from a Readable stream and emits
@@ -17,13 +19,13 @@ import { nullLogger } from '../../neovim/utils/logger'
  * request.
  *
  * The key behaviors under test:
- *1. notifications surface via the 'notification' event with method+args
- *2. requests surface via the 'request' event with a working Response
- *3. pending requests get resolved when a matching response arrives
- *4. multiple frames in a single chunk are all decoded
- *5. a frame split across many tiny chunks is reassembled correctly
- *(this is the regression scenario from nvim 0.12)
- *6. invalid (non-array) frames don't terminate the decode loop
+ * 1. notifications surface via the 'notification' event with method+args
+ * 2. requests surface via the 'request' event with a working Response
+ * 3. pending requests get resolved when a matching response arrives
+ * 4. multiple frames in a single chunk are all decoded
+ * 5. a frame split across many tiny chunks is reassembled correctly for the nvim 0.12 regression
+ * 6. invalid (non-array) frames don't terminate the decode loop
+ * 7. Neovim msgpack extension handles round-trip correctly
  */
 describe('NvimTransport message reception', () => {
   // Build an encoder with the same extension registry the transport uses,
@@ -49,15 +51,18 @@ describe('NvimTransport message reception', () => {
   let reader: PassThrough
   let writer: PassThrough
   let transport: NvimTransport
+  let client: object
 
   beforeEach(() => {
     reader = new PassThrough()
     writer = new PassThrough()
     transport = new NvimTransport(nullLogger)
-    // The transport only touches `client` via the extension codec on decode,
-    // and the test frames don't include any ext-typed values, so we can pass
-    // a stub.
-    transport.attach(writer, reader, {} as any)
+    client = { name: 'client' }
+    transport.attach(writer, reader, client as any)
+  })
+
+  afterEach(() => {
+    transport.detach()
   })
 
   it('emits notification with method name and args', async () => {
@@ -67,7 +72,7 @@ describe('NvimTransport message reception', () => {
     // [type=2, method, args] — a notification frame.
     reader.write(encodeFrame([2, 'GreetEvent', ['hello', 42]]))
 
-    await waitFor(() => handler.mock.calls.length === 1)
+    await helper.waitValue(() => handler.mock.calls.length, 1)
     expect(handler).toHaveBeenCalledWith('GreetEvent', ['hello', 42])
   })
 
@@ -80,7 +85,7 @@ describe('NvimTransport message reception', () => {
     const c = encodeFrame([2, 'C', [3]])
     reader.write(Buffer.concat([a, b, c]))
 
-    await waitFor(() => handler.mock.calls.length === 3)
+    await helper.waitValue(() => handler.mock.calls.length, 3)
     expect(handler.mock.calls.map(([m]) => m)).toEqual(['A', 'B', 'C'])
     expect(handler.mock.calls.map(([, args]) => args)).toEqual([[1], [2], [3]])
   })
@@ -101,7 +106,7 @@ describe('NvimTransport message reception', () => {
       reader.write(frame.slice(i, Math.min(i + 64, frame.length)))
     }
 
-    await waitFor(() => handler.mock.calls.length === 1, 2000)
+    await helper.waitValue(() => handler.mock.calls.length, 1)
     expect(handler).toHaveBeenCalledTimes(1)
     const [method, args] = handler.mock.calls[0]
     expect(method).toBe('BufLines')
@@ -117,7 +122,7 @@ describe('NvimTransport message reception', () => {
     // [type=0, id, method, args]
     reader.write(encodeFrame([0, 7, 'doSomething', ['arg1']]))
 
-    await waitFor(() => handler.mock.calls.length === 1)
+    await helper.waitValue(() => handler.mock.calls.length, 1)
     const [method, args, response] = handler.mock.calls[0]
     expect(method).toBe('doSomething')
     expect(args).toEqual(['arg1'])
@@ -126,7 +131,7 @@ describe('NvimTransport message reception', () => {
     const written: Buffer[] = []
     writer.on('data', chunk => written.push(chunk))
     response.send({ ok: true })
-    await waitFor(() => written.length > 0)
+    await helper.waitValue(() => written.length > 0, true)
     // First and only response frame is [1, requestId, errOrNull, result].
     // We're not fully decoding here — just sanity-checking that something
     // went out on the writer.
@@ -139,7 +144,7 @@ describe('NvimTransport message reception', () => {
     writer.on('data', c => written.push(c))
 
     transport.request('nvim_eval', ['1+1'], cb)
-    await waitFor(() => written.length > 0)
+    await helper.waitValue(() => written.length > 0, true)
 
     // Decode the outbound request frame to extract the id the transport
     // chose, then craft a matching response.
@@ -152,7 +157,7 @@ describe('NvimTransport message reception', () => {
     // [type=1, id, errOrNull, result]
     reader.write(encodeFrame([1, id, null, 2]))
 
-    await waitFor(() => cb.mock.calls.length === 1)
+    await helper.waitValue(() => cb.mock.calls.length, 1)
     expect(cb).toHaveBeenCalledWith(null, 2)
   })
 
@@ -170,19 +175,72 @@ describe('NvimTransport message reception', () => {
       good,
     ]))
 
-    await waitFor(() => handler.mock.calls.length === 1, 1000)
+    await helper.waitValue(() => handler.mock.calls.length, 1)
     expect(handler).toHaveBeenCalledWith('After', [])
     expect(errSpy).toHaveBeenCalled()
     errSpy.mockRestore()
   })
-})
 
-/** Simple polling helper so tests don't rely on timer mocks. */
-async function waitFor(predicate: () => boolean, timeoutMs = 500): Promise<void> {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    if (predicate()) return
-    await new Promise(r => setTimeout(r, 5))
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`)
-}
+  it('decodes msgpack extension handles with the attached client', async () => {
+    const handler = vi.fn()
+    transport.on('notification', handler)
+
+    reader.write(encodeFrame([
+      2,
+      'HandleEvent',
+      [
+        new NvimBuffer({ data: 3 }),
+        new NvimWindow({ data: 4 }),
+        new Tabpage({ data: 5 }),
+      ],
+    ]))
+
+    await helper.waitValue(() => handler.mock.calls.length, 1)
+    const [buf, win, tab] = handler.mock.calls[0][1]
+    expect(buf).toBeInstanceOf(NvimBuffer)
+    expect(win).toBeInstanceOf(NvimWindow)
+    expect(tab).toBeInstanceOf(Tabpage)
+    expect(buf.id).toBe(3)
+    expect(win.id).toBe(4)
+    expect(tab.id).toBe(5)
+    expect((buf as any).client).toBe(client)
+    expect((win as any).client).toBe(client)
+    expect((tab as any).client).toBe(client)
+  })
+
+  it('encodes API handles as msgpack extension values', async () => {
+    const written: Buffer[] = []
+    writer.on('data', c => written.push(c))
+
+    transport.request('nvim_win_set_buf', [
+      new NvimWindow({ data: 4 }),
+      new NvimBuffer({ data: 3 }),
+      new Tabpage({ data: 5 }),
+    ], vi.fn())
+
+    await helper.waitValue(() => written.length > 0, true)
+    const { decode, ExtData } = await import('@msgpack/msgpack')
+    const out = decode(Buffer.concat(written)) as any[]
+    const [win, buf, tab] = out[3]
+    expect(win).toBeInstanceOf(ExtData)
+    expect(buf).toBeInstanceOf(ExtData)
+    expect(tab).toBeInstanceOf(ExtData)
+    expect(win.type).toBe(1)
+    expect(buf.type).toBe(0)
+    expect(tab.type).toBe(2)
+    expect(decode(win.data)).toBe(4)
+    expect(decode(buf.data)).toBe(3)
+    expect(decode(tab.data)).toBe(5)
+  })
+
+  it('does not emit messages after detach', async () => {
+    const handler = vi.fn()
+    transport.on('notification', handler)
+
+    transport.detach()
+    reader.write(encodeFrame([2, 'AfterDetach', []]))
+
+    await helper.wait(25)
+    expect(handler).not.toHaveBeenCalled()
+  })
+})

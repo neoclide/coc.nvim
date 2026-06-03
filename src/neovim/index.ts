@@ -4,4 +4,3 @@ export { type AugroupOption, type AutocmdOption, type ButtonAction, type MouseBu
 export { type FloatOptions, type KeymapOption } from './api/types'
 export { type Attach, attach } from './attach/attach'
 export { type VimValue } from './types'
-

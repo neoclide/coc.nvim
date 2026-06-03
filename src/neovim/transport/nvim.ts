@@ -11,6 +11,9 @@ export class NvimTransport extends Transport {
   private readonly extensionCodec: ExtensionCodec = this.initializeExtensionCodec()
   private readonly encoder: Encoder = new Encoder({ extensionCodec: this.extensionCodec, ignoreUndefined: true })
   private readonly extEncoder: Encoder = new Encoder({ ignoreUndefined: true })
+  private decodeIterator: AsyncGenerator<unknown, void, unknown> | undefined
+  private decodeGeneration = 0
+  private onReaderEnd: (() => void) | undefined
   private attached = false
 
   // Neovim client that holds state
@@ -47,6 +50,7 @@ export class NvimTransport extends Transport {
   }
 
   private parseMessage(msg: any[]): void {
+    if (!this.attached) return
     const msgType = msg[0]
     this.debugMessage(msg)
 
@@ -83,8 +87,37 @@ export class NvimTransport extends Transport {
       //   - msg[2]: arguments
       this.emit('notification', msg[1].toString(), msg[2])
     } else {
-      // eslint-disable-next-line no-console
+
       console.error(`Invalid message type ${msgType}`)
+    }
+  }
+
+  private createDecodeSource(reader: NodeJS.ReadableStream): any {
+    let readable = reader as any
+    if (typeof readable.iterator === 'function') {
+      return readable.iterator({ destroyOnReturn: false })
+    }
+    return reader
+  }
+
+  private async decodeLoop(iter: AsyncGenerator<unknown, void, unknown>, generation: number): Promise<void> {
+    try {
+      while (true) {
+        const resolved = await iter.next()
+        if (resolved.done || !this.attached || iter !== this.decodeIterator || generation !== this.decodeGeneration) return
+        if (Array.isArray(resolved.value)) {
+          this.parseMessage(resolved.value)
+        } else {
+
+          console.error('invalid msgpack-RPC message: expected array')
+        }
+      }
+    } catch (err) {
+      if (iter !== this.decodeIterator || generation !== this.decodeGeneration) return
+
+      console.error('Decode stream error:', err)
+      this.detach()
+      this.emit('detach')
     }
   }
 
@@ -97,41 +130,38 @@ export class NvimTransport extends Transport {
     this.reader = reader
     this.client = client
     this.attached = true
+    this.decodeGeneration = this.decodeGeneration + 1
+    const generation = this.decodeGeneration
 
-    this.reader.once('end', () => {
+    this.onReaderEnd = () => {
+      const wasAttached = this.attached
       this.detach()
-      this.emit('detach')
-    })
+      if (wasAttached) this.emit('detach')
+    }
+    this.reader.once('end', this.onReaderEnd)
 
-    const asyncDecodeGenerator = decodeMultiStream(this.reader as any, {
+    const asyncDecodeGenerator = decodeMultiStream(this.createDecodeSource(this.reader), {
       extensionCodec: this.extensionCodec,
     })
-
-    const resolveGeneratorRecursively = (iter: AsyncGenerator<unknown, void, unknown>): void => {
-      iter.next().then(resolved => {
-        if (!resolved.done) {
-          if (Array.isArray(resolved.value)) {
-            this.parseMessage(resolved.value)
-          } else {
-            // eslint-disable-next-line no-console
-            console.error('invalid msgpack-RPC message: expected array')
-          }
-          resolveGeneratorRecursively(iter)
-        }
-      }).catch(err => {
-        // eslint-disable-next-line no-console
-        console.error('Decode stream error:', err)
-        this.detach()
-        this.emit('detach')
-      })
-    }
-
-    resolveGeneratorRecursively(asyncDecodeGenerator)
+    this.decodeIterator = asyncDecodeGenerator
+    void this.decodeLoop(asyncDecodeGenerator, generation)
   }
 
   public detach(): void {
     if (!this.attached) return
     this.attached = false
+    this.decodeGeneration = this.decodeGeneration + 1
+    if (this.onReaderEnd) {
+      this.reader.off('end', this.onReaderEnd)
+      this.onReaderEnd = undefined
+    }
+    let iter = this.decodeIterator
+    this.decodeIterator = undefined
+    if (iter && typeof iter.return === 'function') {
+      void iter.return(undefined).catch(err => {
+        this.debug('decode iterator return error:', err)
+      })
+    }
     for (let handler of this.pending.values()) {
       handler([0, 'transport disconnected'])
     }
