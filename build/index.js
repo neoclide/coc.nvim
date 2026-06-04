@@ -36,11 +36,18 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __hasOwnProp.call(mod, "module.exports") ? mod["module.exports"] : __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 //#endregion
 let util = require("util");
+let fs = require("fs");
+fs = __toESM(fs);
+let path = require("path");
+path = __toESM(path);
+let os = require("os");
+os = __toESM(os);
 let child_process = require("child_process");
 let node_stream = require("node:stream");
 let net = require("net");
 net = __toESM(net, 1);
 let events = require("events");
+events = __toESM(events, 1);
 let buffer = require("buffer");
 let node_zlib = require("node:zlib");
 node_zlib = __toESM(node_zlib, 1);
@@ -5362,7 +5369,7 @@ var require_index_min$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 //#endregion
 //#region node_modules/which/lib/index.js
-var require_lib$3 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_lib$2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const { isexe, sync: isexeSync } = require_index_min$1();
 	const { join, delimiter, sep, posix } = require("path");
 	const isWindows = process.platform === "win32";
@@ -5441,7 +5448,7 @@ var require_lib$3 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region node_modules/semver/internal/constants.js
-var require_constants$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const SEMVER_SPEC_VERSION = "2.0.0";
 	const MAX_LENGTH = 256;
 	const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
@@ -5472,7 +5479,7 @@ var require_debug$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/semver/internal/re.js
 var require_re = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants$1();
+	const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants();
 	const debug = require_debug$1();
 	exports = module.exports = {};
 	const re = exports.re = [];
@@ -5584,7 +5591,7 @@ var require_identifiers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/classes/semver.js
 var require_semver$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const debug = require_debug$1();
-	const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants$1();
+	const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
 	const { safeRe: re, t } = require_re();
 	const parseOptions = require_parse_options();
 	const { compareIdentifiers } = require_identifiers();
@@ -6022,7 +6029,7 @@ var require_coerce = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/functions/truncate.js
 var require_truncate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const parse = require_parse();
-	const constants = require_constants$1();
+	const constants = require_constants();
 	const SemVer = require_semver$1();
 	const truncate = (version, truncation, options) => {
 		if (!constants.RELEASE_TYPES.includes(truncation)) return null;
@@ -6199,7 +6206,7 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const debug = require_debug$1();
 	const SemVer = require_semver$1();
 	const { safeRe: re, src, t, comparatorTrimReplace, tildeTrimReplace, caretTrimReplace } = require_re();
-	const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants$1();
+	const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
 	const BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
 	const isNullSet = (c) => c.value === "<0.0.0-0";
 	const isAny = (c) => c.value === "";
@@ -6761,7 +6768,7 @@ var require_subset = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/index.js
 var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const internalRe = require_re();
-	const constants = require_constants$1();
+	const constants = require_constants();
 	const SemVer = require_semver$1();
 	const identifiers = require_identifiers();
 	module.exports = {
@@ -56657,11 +56664,11 @@ var require_unidecode = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/util/node.ts
-var fs$3, path$3, os$3, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
+var fs$5, path$5, os$5, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
 var init_node = __esmMin((() => {
-	fs$3 = require("fs");
-	path$3 = require("path");
-	os$3 = require("os");
+	fs$5 = require("fs");
+	path$5 = require("path");
+	os$5 = require("os");
 	crypto$1 = require("crypto");
 	styles$1 = (init_ansi_styles(), __toCommonJS(ansi_styles_exports)).default;
 	stripAnsi = (init_strip_ansi(), __toCommonJS(strip_ansi_exports)).default;
@@ -56670,7 +56677,7 @@ var init_node = __esmMin((() => {
 	child_process$1 = require("child_process");
 	glob = require_index_min$2();
 	({minimatch} = require_commonjs());
-	which = require_lib$3();
+	which = require_lib$2();
 	semver = require_semver();
 	vm = require("vm");
 	net$2 = require("net");
@@ -56714,16 +56721,16 @@ function stringifyLogLevel(level) {
 	return "";
 }
 function getTimestamp(date) {
-	return `${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}:${toTwoDigits(date.getSeconds())}.${toThreeDigits(date.getMilliseconds())}`;
+	return `${toTwoDigits$1(date.getHours())}:${toTwoDigits$1(date.getMinutes())}:${toTwoDigits$1(date.getSeconds())}.${toThreeDigits$1(date.getMilliseconds())}`;
 }
-var MAX_FILE_SIZE, yellowOpen, yellowClose, toTwoDigits, toThreeDigits, AbstractLogger, FileLogger;
+var MAX_FILE_SIZE, yellowOpen, yellowClose, toTwoDigits$1, toThreeDigits$1, AbstractLogger, FileLogger;
 var init_log = __esmMin((() => {
 	init_node();
 	MAX_FILE_SIZE = 5 * 1024 * 1024;
 	yellowOpen = "\x1B[33m";
 	yellowClose = "\x1B[39m";
-	toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
-	toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+	toTwoDigits$1 = (v) => v < 10 ? `0${v}` : v.toString();
+	toThreeDigits$1 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
 	AbstractLogger = class {
 		level = 2;
 		setLevel(level) {
@@ -56817,14 +56824,14 @@ var init_log = __esmMin((() => {
 							`[${scope}]`
 						].join(" ")} - ${message}\n`;
 						else text = message;
-						await fs$3.promises.appendFile(this.fsPath, text, {
+						await fs$5.promises.appendFile(this.fsPath, text, {
 							encoding: "utf8",
 							flag: "a+"
 						});
-						let stat = await fs$3.promises.stat(this.fsPath);
+						let stat = await fs$5.promises.stat(this.fsPath);
 						if (this.shouldBackup(stat.size)) {
 							let newFile = this.getBackupResource();
-							await fs$3.promises.rename(this.fsPath, newFile);
+							await fs$5.promises.rename(this.fsPath, newFile);
 						}
 					};
 					return fn();
@@ -56835,11 +56842,11 @@ var init_log = __esmMin((() => {
 		}
 		getCurrentTimestamp() {
 			const currentTime = /* @__PURE__ */ new Date();
-			return `${currentTime.getFullYear()}-${toTwoDigits(currentTime.getMonth() + 1)}-${toTwoDigits(currentTime.getDate())}T${getTimestamp(currentTime)}`;
+			return `${currentTime.getFullYear()}-${toTwoDigits$1(currentTime.getMonth() + 1)}-${toTwoDigits$1(currentTime.getDate())}T${getTimestamp(currentTime)}`;
 		}
 		getBackupResource() {
 			this.backupIndex = this.backupIndex > 5 ? 1 : this.backupIndex;
-			return path$3.join(path$3.dirname(this.fsPath), `${path$3.basename(this.fsPath)}_${this.backupIndex++}`);
+			return path$5.join(path$5.dirname(this.fsPath), `${path$5.basename(this.fsPath)}_${this.backupIndex++}`);
 		}
 	};
 }));
@@ -56925,11 +56932,11 @@ var init_util$7 = __esmMin((() => {
 //#endregion
 //#region src/logger/index.ts
 var logger_exports = /* @__PURE__ */ __exportAll({
-	createLogger: () => createLogger,
+	createLogger: () => createLogger$1,
 	emptyFile: () => emptyFile,
 	getLoggerFile: () => getLoggerFile,
 	getTimestamp: () => getTimestamp,
-	logger: () => logger$53,
+	logger: () => logger$55,
 	resolveLogFilepath: () => resolveLogFilepath
 });
 function resolveLogFilepath() {
@@ -56937,17 +56944,17 @@ function resolveLogFilepath() {
 	if (file) return file;
 	let dir = process.env.XDG_RUNTIME_DIR;
 	if (dir) try {
-		fs$3.accessSync(dir, fs$3.constants.R_OK | fs$3.constants.W_OK);
-		return path$3.join(dir, `coc-nvim-${process.pid}.log`);
+		fs$5.accessSync(dir, fs$5.constants.R_OK | fs$5.constants.W_OK);
+		return path$5.join(dir, `coc-nvim-${process.pid}.log`);
 	} catch (err) {}
-	let tmpdir = os$3.tmpdir();
-	dir = path$3.join(tmpdir, `coc.nvim-${process.pid}`);
-	fs$3.mkdirSync(dir, { recursive: true });
-	return path$3.join(dir, `coc-nvim.log`);
+	let tmpdir = os$5.tmpdir();
+	dir = path$5.join(tmpdir, `coc.nvim-${process.pid}`);
+	fs$5.mkdirSync(dir, { recursive: true });
+	return path$5.join(dir, `coc-nvim.log`);
 }
 function emptyFile(filepath) {
-	if (fs$3.existsSync(filepath)) try {
-		fs$3.writeFileSync(filepath, "", {
+	if (fs$5.existsSync(filepath)) try {
+		fs$5.writeFileSync(filepath, "", {
 			encoding: "utf8",
 			mode: 438
 		});
@@ -56956,1783 +56963,1332 @@ function emptyFile(filepath) {
 function getLoggerFile() {
 	return logfile;
 }
-function createLogger(category = "coc.nvim") {
-	return logger$53.createLogger(category);
+function createLogger$1(category = "coc.nvim") {
+	return logger$55.createLogger(category);
 }
-var logfile, level, logger$53;
-var init_logger$1 = __esmMin((() => {
+var logfile, level$1, logger$55;
+var init_logger$2 = __esmMin((() => {
 	init_log();
 	init_node();
 	init_util$7();
 	logfile = resolveLogFilepath();
 	emptyFile(logfile);
-	level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || "info", "off");
-	logger$53 = new FileLogger(logfile, textToLogLevel(level), {
+	level$1 = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || "info", "off");
+	logger$55 = new FileLogger(logfile, textToLogLevel(level$1), {
 		color: !global.REVISION && process.platform !== "win32",
 		userFormatters: true
 	});
 }));
 //#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/buffer-global.js
-var require_buffer_global = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = c("undefined" !== typeof Buffer && Buffer) || c(exports.Buffer) || c("undefined" !== typeof window && window.Buffer) || exports.Buffer;
-	function c(B) {
-		return B && B.isBuffer && B;
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/bufferish-array.js
-var require_bufferish_array = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Bufferish = require_bufferish();
-	var exports = module.exports = alloc(0);
-	exports.alloc = alloc;
-	exports.concat = Bufferish.concat;
-	exports.from = from;
-	/**
-	* @param size {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function alloc(size) {
-		return new Array(size);
-	}
-	/**
-	* @param value {Array|ArrayBuffer|Buffer|String}
-	* @returns {Array}
-	*/
-	function from(value) {
-		if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) value = Bufferish.Uint8Array.from(value);
-		else if (Bufferish.isArrayBuffer(value)) value = new Uint8Array(value);
-		else if (typeof value === "string") return Bufferish.from.call(exports, value);
-		else if (typeof value === "number") throw new TypeError("\"value\" argument must not be a number");
-		return Array.prototype.slice.call(value);
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/bufferish-buffer.js
-var require_bufferish_buffer = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Bufferish = require_bufferish();
-	var Buffer = Bufferish.global;
-	var exports = module.exports = Bufferish.hasBuffer ? alloc(0) : [];
-	exports.alloc = Bufferish.hasBuffer && Buffer.alloc || alloc;
-	exports.concat = Bufferish.concat;
-	exports.from = from;
-	/**
-	* @param size {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function alloc(size) {
-		return Buffer.alloc(size);
-	}
-	/**
-	* @param value {Array|ArrayBuffer|Buffer|String}
-	* @returns {Buffer}
-	*/
-	function from(value) {
-		if (!Bufferish.isBuffer(value) && Bufferish.isView(value)) value = Bufferish.Uint8Array.from(value);
-		else if (Bufferish.isArrayBuffer(value)) value = new Uint8Array(value);
-		else if (typeof value === "string") return Bufferish.from.call(exports, value);
-		else if (typeof value === "number") throw new TypeError("\"value\" argument must not be a number");
-		if (Buffer.from && Buffer.from.length !== 1) return Buffer.from(value);
-		else return new Buffer(value);
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/bufferish-uint8array.js
-var require_bufferish_uint8array = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Bufferish = require_bufferish();
-	var exports = module.exports = Bufferish.hasArrayBuffer ? alloc(0) : [];
-	exports.alloc = alloc;
-	exports.concat = Bufferish.concat;
-	exports.from = from;
-	/**
-	* @param size {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function alloc(size) {
-		return new Uint8Array(size);
-	}
-	/**
-	* @param value {Array|ArrayBuffer|Buffer|String}
-	* @returns {Uint8Array}
-	*/
-	function from(value) {
-		if (Bufferish.isView(value)) {
-			var byteOffset = value.byteOffset;
-			var byteLength = value.byteLength;
-			value = value.buffer;
-			if (value.byteLength !== byteLength) if (value.slice) value = value.slice(byteOffset, byteOffset + byteLength);
-			else {
-				value = new Uint8Array(value);
-				if (value.byteLength !== byteLength) value = Array.prototype.slice.call(value, byteOffset, byteOffset + byteLength);
-			}
-		} else if (typeof value === "string") return Bufferish.from.call(exports, value);
-		else if (typeof value === "number") throw new TypeError("\"value\" argument must not be a number");
-		return new Uint8Array(value);
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/buffer-lite.js
-var require_buffer_lite = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.copy = copy;
-	exports.toString = toString;
-	exports.write = write;
-	/**
-	* Buffer.prototype.write()
-	*
-	* @param string {String}
-	* @param [offset] {Number}
-	* @returns {Number}
-	*/
-	function write(string, offset) {
-		var buffer = this;
-		var index = offset || (offset |= 0);
-		var length = string.length;
-		var chr = 0;
-		var i = 0;
-		while (i < length) {
-			chr = string.charCodeAt(i++);
-			if (chr < 128) buffer[index++] = chr;
-			else if (chr < 2048) {
-				buffer[index++] = 192 | chr >>> 6;
-				buffer[index++] = 128 | chr & 63;
-			} else if (chr < 55296 || chr > 57343) {
-				buffer[index++] = 224 | chr >>> 12;
-				buffer[index++] = 128 | chr >>> 6 & 63;
-				buffer[index++] = 128 | chr & 63;
-			} else {
-				chr = (chr - 55296 << 10 | string.charCodeAt(i++) - 56320) + 65536;
-				buffer[index++] = 240 | chr >>> 18;
-				buffer[index++] = 128 | chr >>> 12 & 63;
-				buffer[index++] = 128 | chr >>> 6 & 63;
-				buffer[index++] = 128 | chr & 63;
-			}
-		}
-		return index - offset;
-	}
-	/**
-	* Buffer.prototype.toString()
-	*
-	* @param [encoding] {String} ignored
-	* @param [start] {Number}
-	* @param [end] {Number}
-	* @returns {String}
-	*/
-	function toString(encoding, start, end) {
-		var buffer = this;
-		var index = start | 0;
-		if (!end) end = buffer.length;
-		var string = "";
-		var chr = 0;
-		while (index < end) {
-			chr = buffer[index++];
-			if (chr < 128) {
-				string += String.fromCharCode(chr);
-				continue;
-			}
-			if ((chr & 224) === 192) chr = (chr & 31) << 6 | buffer[index++] & 63;
-			else if ((chr & 240) === 224) chr = (chr & 15) << 12 | (buffer[index++] & 63) << 6 | buffer[index++] & 63;
-			else if ((chr & 248) === 240) chr = (chr & 7) << 18 | (buffer[index++] & 63) << 12 | (buffer[index++] & 63) << 6 | buffer[index++] & 63;
-			if (chr >= 65536) {
-				chr -= 65536;
-				string += String.fromCharCode((chr >>> 10) + 55296, (chr & 1023) + 56320);
-			} else string += String.fromCharCode(chr);
-		}
-		return string;
-	}
-	/**
-	* Buffer.prototype.copy()
-	*
-	* @param target {Buffer}
-	* @param [targetStart] {Number}
-	* @param [start] {Number}
-	* @param [end] {Number}
-	* @returns {number}
-	*/
-	function copy(target, targetStart, start, end) {
-		var i;
-		if (!start) start = 0;
-		if (!end && end !== 0) end = this.length;
-		if (!targetStart) targetStart = 0;
-		var len = end - start;
-		if (target === this && start < targetStart && targetStart < end) for (i = len - 1; i >= 0; i--) target[i + targetStart] = this[i + start];
-		else for (i = 0; i < len; i++) target[i + targetStart] = this[i + start];
-		return len;
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/bufferish-proto.js
-var require_bufferish_proto = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var BufferLite = require_buffer_lite();
-	exports.copy = copy;
-	exports.slice = slice;
-	exports.toString = toString;
-	exports.write = gen("write");
-	var Bufferish = require_bufferish();
-	var Buffer = Bufferish.global;
-	var isBufferShim = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer;
-	var brokenTypedArray = isBufferShim && !Buffer.TYPED_ARRAY_SUPPORT;
-	/**
-	* @param target {Buffer|Uint8Array|Array}
-	* @param [targetStart] {Number}
-	* @param [start] {Number}
-	* @param [end] {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function copy(target, targetStart, start, end) {
-		var thisIsBuffer = Bufferish.isBuffer(this);
-		var targetIsBuffer = Bufferish.isBuffer(target);
-		if (thisIsBuffer && targetIsBuffer) return this.copy(target, targetStart, start, end);
-		else if (!brokenTypedArray && !thisIsBuffer && !targetIsBuffer && Bufferish.isView(this) && Bufferish.isView(target)) {
-			var buffer = start || end != null ? slice.call(this, start, end) : this;
-			target.set(buffer, targetStart);
-			return buffer.length;
-		} else return BufferLite.copy.call(this, target, targetStart, start, end);
-	}
-	/**
-	* @param [start] {Number}
-	* @param [end] {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function slice(start, end) {
-		var f = this.slice || !brokenTypedArray && this.subarray;
-		if (f) return f.call(this, start, end);
-		var target = Bufferish.alloc.call(this, end - start);
-		copy.call(this, target, 0, start, end);
-		return target;
-	}
-	/**
-	* Buffer.prototype.toString()
-	*
-	* @param [encoding] {String} ignored
-	* @param [start] {Number}
-	* @param [end] {Number}
-	* @returns {String}
-	*/
-	function toString(encoding, start, end) {
-		return (!isBufferShim && Bufferish.isBuffer(this) ? this.toString : BufferLite.toString).apply(this, arguments);
-	}
-	/**
-	* @private
-	*/
-	function gen(method) {
-		return wrap;
-		function wrap() {
-			return (this[method] || BufferLite[method]).apply(this, arguments);
-		}
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/bufferish.js
-var require_bufferish = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Buffer = exports.global = require_buffer_global();
-	var hasBuffer = exports.hasBuffer = Buffer && !!Buffer.isBuffer;
-	var hasArrayBuffer = exports.hasArrayBuffer = "undefined" !== typeof ArrayBuffer;
-	exports.isArrayBuffer = hasArrayBuffer ? isArrayBuffer : _false;
-	var isBuffer = exports.isBuffer = hasBuffer ? Buffer.isBuffer : _false;
-	var isView = exports.isView = hasArrayBuffer ? ArrayBuffer.isView || _is("ArrayBuffer", "buffer") : _false;
-	exports.alloc = alloc;
-	exports.concat = concat;
-	exports.from = from;
-	var BufferArray = exports.Array = require_bufferish_array();
-	var BufferBuffer = exports.Buffer = require_bufferish_buffer();
-	var BufferUint8Array = exports.Uint8Array = require_bufferish_uint8array();
-	var BufferProto = exports.prototype = require_bufferish_proto();
-	/**
-	* @param value {Array|ArrayBuffer|Buffer|String}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function from(value) {
-		if (typeof value === "string") return fromString.call(this, value);
-		else return auto(this).from(value);
-	}
-	/**
-	* @param size {Number}
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function alloc(size) {
-		return auto(this).alloc(size);
-	}
-	/**
-	* @param list {Array} array of (Buffer|Uint8Array|Array)s
-	* @param [length]
-	* @returns {Buffer|Uint8Array|Array}
-	*/
-	function concat(list, length) {
-		if (!length) {
-			length = 0;
-			Array.prototype.forEach.call(list, dryrun);
-		}
-		var ref = this !== exports && this || list[0];
-		var result = alloc.call(ref, length);
-		var offset = 0;
-		Array.prototype.forEach.call(list, append);
-		return result;
-		function dryrun(buffer) {
-			length += buffer.length;
-		}
-		function append(buffer) {
-			offset += BufferProto.copy.call(buffer, result, offset);
-		}
-	}
-	var _isArrayBuffer = _is("ArrayBuffer");
-	function isArrayBuffer(value) {
-		return value instanceof ArrayBuffer || _isArrayBuffer(value);
-	}
-	/**
-	* @private
-	*/
-	function fromString(value) {
-		var expected = value.length * 3;
-		var that = alloc.call(this, expected);
-		var actual = BufferProto.write.call(that, value);
-		if (expected !== actual) that = BufferProto.slice.call(that, 0, actual);
-		return that;
-	}
-	function auto(that) {
-		return isBuffer(that) ? BufferBuffer : isView(that) ? BufferUint8Array : Array.isArray(that) ? BufferArray : hasBuffer ? BufferBuffer : hasArrayBuffer ? BufferUint8Array : BufferArray;
-	}
-	function _false() {
-		return false;
-	}
-	function _is(name, key) {
-		name = "[object " + name + "]";
-		return function(value) {
-			return value != null && {}.toString.call(key ? value[key] : value) === name;
-		};
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/ext-buffer.js
-var require_ext_buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.ExtBuffer = ExtBuffer;
-	var Bufferish = require_bufferish();
-	function ExtBuffer(buffer, type) {
-		if (!(this instanceof ExtBuffer)) return new ExtBuffer(buffer, type);
-		this.buffer = Bufferish.from(buffer);
-		this.type = type;
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/ext-packer.js
-var require_ext_packer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.setExtPackers = setExtPackers;
-	var Bufferish = require_bufferish();
-	var Buffer = Bufferish.global;
-	var packTypedArray = Bufferish.Uint8Array.from;
-	var _encode;
-	var ERROR_COLUMNS = {
-		name: 1,
-		message: 1,
-		stack: 1,
-		columnNumber: 1,
-		fileName: 1,
-		lineNumber: 1
-	};
-	function setExtPackers(codec) {
-		codec.addExtPacker(14, Error, [packError, encode]);
-		codec.addExtPacker(1, EvalError, [packError, encode]);
-		codec.addExtPacker(2, RangeError, [packError, encode]);
-		codec.addExtPacker(3, ReferenceError, [packError, encode]);
-		codec.addExtPacker(4, SyntaxError, [packError, encode]);
-		codec.addExtPacker(5, TypeError, [packError, encode]);
-		codec.addExtPacker(6, URIError, [packError, encode]);
-		codec.addExtPacker(10, RegExp, [packRegExp, encode]);
-		codec.addExtPacker(11, Boolean, [packValueOf, encode]);
-		codec.addExtPacker(12, String, [packValueOf, encode]);
-		codec.addExtPacker(13, Date, [Number, encode]);
-		codec.addExtPacker(15, Number, [packValueOf, encode]);
-		if ("undefined" !== typeof Uint8Array) {
-			codec.addExtPacker(17, Int8Array, packTypedArray);
-			codec.addExtPacker(18, Uint8Array, packTypedArray);
-			codec.addExtPacker(19, Int16Array, packTypedArray);
-			codec.addExtPacker(20, Uint16Array, packTypedArray);
-			codec.addExtPacker(21, Int32Array, packTypedArray);
-			codec.addExtPacker(22, Uint32Array, packTypedArray);
-			codec.addExtPacker(23, Float32Array, packTypedArray);
-			if ("undefined" !== typeof Float64Array) codec.addExtPacker(24, Float64Array, packTypedArray);
-			if ("undefined" !== typeof Uint8ClampedArray) codec.addExtPacker(25, Uint8ClampedArray, packTypedArray);
-			codec.addExtPacker(26, ArrayBuffer, packTypedArray);
-			codec.addExtPacker(29, DataView, packTypedArray);
-		}
-		if (Bufferish.hasBuffer) codec.addExtPacker(27, Buffer, Bufferish.from);
-	}
-	function encode(input) {
-		if (!_encode) _encode = require_encode().encode;
-		return _encode(input);
-	}
-	function packValueOf(value) {
-		return value.valueOf();
-	}
-	function packRegExp(value) {
-		value = RegExp.prototype.toString.call(value).split("/");
-		value.shift();
-		var out = [value.pop()];
-		out.unshift(value.join("/"));
-		return out;
-	}
-	function packError(value) {
-		var out = {};
-		for (var key in ERROR_COLUMNS) out[key] = value[key];
-		return out;
-	}
-}));
-//#endregion
-//#region node_modules/int64-buffer/int64-buffer.js
-var require_int64_buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	(function(exports$5) {
-		var UNDEFINED = "undefined";
-		var BUFFER = UNDEFINED !== typeof Buffer && Buffer;
-		var UINT8ARRAY = UNDEFINED !== typeof Uint8Array && Uint8Array;
-		var ARRAYBUFFER = UNDEFINED !== typeof ArrayBuffer && ArrayBuffer;
-		var ZERO = [
-			0,
-			0,
-			0,
-			0,
-			0,
-			0,
-			0,
-			0
-		];
-		var isArray = Array.isArray || _isArray;
-		var BIT32 = 4294967296;
-		var BIT24 = 16777216;
-		var storage;
-		factory("Uint64BE", true, true);
-		factory("Int64BE", true, false);
-		factory("Uint64LE", false, true);
-		factory("Int64LE", false, false);
-		function factory(name, bigendian, unsigned) {
-			var posH = bigendian ? 0 : 4;
-			var posL = bigendian ? 4 : 0;
-			var pos0 = bigendian ? 0 : 3;
-			var pos1 = bigendian ? 1 : 2;
-			var pos2 = bigendian ? 2 : 1;
-			var pos3 = bigendian ? 3 : 0;
-			var fromPositive = bigendian ? fromPositiveBE : fromPositiveLE;
-			var fromNegative = bigendian ? fromNegativeBE : fromNegativeLE;
-			var proto = Int64.prototype;
-			var isName = "is" + name;
-			var _isInt64 = "_" + isName;
-			proto.buffer = void 0;
-			proto.offset = 0;
-			proto[_isInt64] = true;
-			proto.toNumber = toNumber;
-			proto.toString = toString;
-			proto.toJSON = toNumber;
-			proto.toArray = toArray;
-			if (BUFFER) proto.toBuffer = toBuffer;
-			if (UINT8ARRAY) proto.toArrayBuffer = toArrayBuffer;
-			Int64[isName] = isInt64;
-			exports$5[name] = Int64;
-			return Int64;
-			function Int64(buffer, offset, value, raddix) {
-				if (!(this instanceof Int64)) return new Int64(buffer, offset, value, raddix);
-				return init(this, buffer, offset, value, raddix);
-			}
-			function isInt64(b) {
-				return !!(b && b[_isInt64]);
-			}
-			function init(that, buffer, offset, value, raddix) {
-				if (UINT8ARRAY && ARRAYBUFFER) {
-					if (buffer instanceof ARRAYBUFFER) buffer = new UINT8ARRAY(buffer);
-					if (value instanceof ARRAYBUFFER) value = new UINT8ARRAY(value);
-				}
-				if (!buffer && !offset && !value && !storage) {
-					that.buffer = newArray(ZERO, 0);
-					return;
-				}
-				if (!isValidBuffer(buffer, offset)) {
-					var _storage = storage || Array;
-					raddix = offset;
-					value = buffer;
-					offset = 0;
-					buffer = new _storage(8);
-				}
-				that.buffer = buffer;
-				that.offset = offset |= 0;
-				if (UNDEFINED === typeof value) return;
-				if ("string" === typeof value) fromString(buffer, offset, value, raddix || 10);
-				else if (isValidBuffer(value, raddix)) fromArray(buffer, offset, value, raddix);
-				else if ("number" === typeof raddix) {
-					writeInt32(buffer, offset + posH, value);
-					writeInt32(buffer, offset + posL, raddix);
-				} else if (value > 0) fromPositive(buffer, offset, value);
-				else if (value < 0) fromNegative(buffer, offset, value);
-				else fromArray(buffer, offset, ZERO, 0);
-			}
-			function fromString(buffer, offset, str, raddix) {
-				var pos = 0;
-				var len = str.length;
-				var high = 0;
-				var low = 0;
-				if (str[0] === "-") pos++;
-				var sign = pos;
-				while (pos < len) {
-					var chr = parseInt(str[pos++], raddix);
-					if (!(chr >= 0)) break;
-					low = low * raddix + chr;
-					high = high * raddix + Math.floor(low / BIT32);
-					low %= BIT32;
-				}
-				if (sign) {
-					high = ~high;
-					if (low) low = BIT32 - low;
-					else high++;
-				}
-				writeInt32(buffer, offset + posH, high);
-				writeInt32(buffer, offset + posL, low);
-			}
-			function toNumber() {
-				var buffer = this.buffer;
-				var offset = this.offset;
-				var high = readInt32(buffer, offset + posH);
-				var low = readInt32(buffer, offset + posL);
-				if (!unsigned) high |= 0;
-				return high ? high * BIT32 + low : low;
-			}
-			function toString(radix) {
-				var buffer = this.buffer;
-				var offset = this.offset;
-				var high = readInt32(buffer, offset + posH);
-				var low = readInt32(buffer, offset + posL);
-				var str = "";
-				var sign = !unsigned && high & 2147483648;
-				if (sign) {
-					high = ~high;
-					low = BIT32 - low;
-				}
-				radix = radix || 10;
-				while (1) {
-					var mod = high % radix * BIT32 + low;
-					high = Math.floor(high / radix);
-					low = Math.floor(mod / radix);
-					str = (mod % radix).toString(radix) + str;
-					if (!high && !low) break;
-				}
-				if (sign) str = "-" + str;
-				return str;
-			}
-			function writeInt32(buffer, offset, value) {
-				buffer[offset + pos3] = value & 255;
-				value = value >> 8;
-				buffer[offset + pos2] = value & 255;
-				value = value >> 8;
-				buffer[offset + pos1] = value & 255;
-				value = value >> 8;
-				buffer[offset + pos0] = value & 255;
-			}
-			function readInt32(buffer, offset) {
-				return buffer[offset + pos0] * BIT24 + (buffer[offset + pos1] << 16) + (buffer[offset + pos2] << 8) + buffer[offset + pos3];
-			}
-		}
-		function toArray(raw) {
-			var buffer = this.buffer;
-			var offset = this.offset;
-			storage = null;
-			if (raw !== false && offset === 0 && buffer.length === 8 && isArray(buffer)) return buffer;
-			return newArray(buffer, offset);
-		}
-		function toBuffer(raw) {
-			var buffer = this.buffer;
-			var offset = this.offset;
-			storage = BUFFER;
-			if (raw !== false && offset === 0 && buffer.length === 8 && Buffer.isBuffer(buffer)) return buffer;
-			var dest = new BUFFER(8);
-			fromArray(dest, 0, buffer, offset);
-			return dest;
-		}
-		function toArrayBuffer(raw) {
-			var buffer = this.buffer;
-			var offset = this.offset;
-			var arrbuf = buffer.buffer;
-			storage = UINT8ARRAY;
-			if (raw !== false && offset === 0 && arrbuf instanceof ARRAYBUFFER && arrbuf.byteLength === 8) return arrbuf;
-			var dest = new UINT8ARRAY(8);
-			fromArray(dest, 0, buffer, offset);
-			return dest.buffer;
-		}
-		function isValidBuffer(buffer, offset) {
-			var len = buffer && buffer.length;
-			offset |= 0;
-			return len && offset + 8 <= len && "string" !== typeof buffer[offset];
-		}
-		function fromArray(destbuf, destoff, srcbuf, srcoff) {
-			destoff |= 0;
-			srcoff |= 0;
-			for (var i = 0; i < 8; i++) destbuf[destoff++] = srcbuf[srcoff++] & 255;
-		}
-		function newArray(buffer, offset) {
-			return Array.prototype.slice.call(buffer, offset, offset + 8);
-		}
-		function fromPositiveBE(buffer, offset, value) {
-			var pos = offset + 8;
-			while (pos > offset) {
-				buffer[--pos] = value & 255;
-				value /= 256;
-			}
-		}
-		function fromNegativeBE(buffer, offset, value) {
-			var pos = offset + 8;
-			value++;
-			while (pos > offset) {
-				buffer[--pos] = -value & 255 ^ 255;
-				value /= 256;
-			}
-		}
-		function fromPositiveLE(buffer, offset, value) {
-			var end = offset + 8;
-			while (offset < end) {
-				buffer[offset++] = value & 255;
-				value /= 256;
-			}
-		}
-		function fromNegativeLE(buffer, offset, value) {
-			var end = offset + 8;
-			value++;
-			while (offset < end) {
-				buffer[offset++] = -value & 255 ^ 255;
-				value /= 256;
-			}
-		}
-		function _isArray(val) {
-			return !!val && "[object Array]" == Object.prototype.toString.call(val);
-		}
-	})(typeof exports === "object" && typeof exports.nodeName !== "string" ? exports : exports || {});
-}));
-//#endregion
-//#region node_modules/ieee754/index.js
-var require_ieee754 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
-	exports.read = function(buffer, offset, isLE, mLen, nBytes) {
-		var e, m;
-		var eLen = nBytes * 8 - mLen - 1;
-		var eMax = (1 << eLen) - 1;
-		var eBias = eMax >> 1;
-		var nBits = -7;
-		var i = isLE ? nBytes - 1 : 0;
-		var d = isLE ? -1 : 1;
-		var s = buffer[offset + i];
-		i += d;
-		e = s & (1 << -nBits) - 1;
-		s >>= -nBits;
-		nBits += eLen;
-		for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8);
-		m = e & (1 << -nBits) - 1;
-		e >>= -nBits;
-		nBits += mLen;
-		for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8);
-		if (e === 0) e = 1 - eBias;
-		else if (e === eMax) return m ? NaN : (s ? -1 : 1) * Infinity;
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
+function utf8Count(str) {
+	const strLength = str.length;
+	let byteLength = 0;
+	let pos = 0;
+	while (pos < strLength) {
+		let value = str.charCodeAt(pos++);
+		if ((value & 4294967168) === 0) {
+			byteLength++;
+			continue;
+		} else if ((value & 4294965248) === 0) byteLength += 2;
 		else {
-			m = m + Math.pow(2, mLen);
-			e = e - eBias;
+			if (value >= 55296 && value <= 56319) {
+				if (pos < strLength) {
+					const extra = str.charCodeAt(pos);
+					if ((extra & 64512) === 56320) {
+						++pos;
+						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
+					}
+				}
+			}
+			if ((value & 4294901760) === 0) byteLength += 3;
+			else byteLength += 4;
 		}
-		return (s ? -1 : 1) * m * Math.pow(2, e - mLen);
-	};
-	exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
-		var e, m, c;
-		var eLen = nBytes * 8 - mLen - 1;
-		var eMax = (1 << eLen) - 1;
-		var eBias = eMax >> 1;
-		var rt = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0;
-		var i = isLE ? 0 : nBytes - 1;
-		var d = isLE ? 1 : -1;
-		var s = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
-		value = Math.abs(value);
-		if (isNaN(value) || value === Infinity) {
-			m = isNaN(value) ? 1 : 0;
-			e = eMax;
-		} else {
-			e = Math.floor(Math.log(value) / Math.LN2);
-			if (value * (c = Math.pow(2, -e)) < 1) {
-				e--;
-				c *= 2;
+	}
+	return byteLength;
+}
+function utf8EncodeJs(str, output, outputOffset) {
+	const strLength = str.length;
+	let offset = outputOffset;
+	let pos = 0;
+	while (pos < strLength) {
+		let value = str.charCodeAt(pos++);
+		if ((value & 4294967168) === 0) {
+			output[offset++] = value;
+			continue;
+		} else if ((value & 4294965248) === 0) output[offset++] = value >> 6 & 31 | 192;
+		else {
+			if (value >= 55296 && value <= 56319) {
+				if (pos < strLength) {
+					const extra = str.charCodeAt(pos);
+					if ((extra & 64512) === 56320) {
+						++pos;
+						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
+					}
+				}
 			}
-			if (e + eBias >= 1) value += rt / c;
-			else value += rt * Math.pow(2, 1 - eBias);
-			if (value * c >= 2) {
-				e++;
-				c /= 2;
-			}
-			if (e + eBias >= eMax) {
-				m = 0;
-				e = eMax;
-			} else if (e + eBias >= 1) {
-				m = (value * c - 1) * Math.pow(2, mLen);
-				e = e + eBias;
+			if ((value & 4294901760) === 0) {
+				output[offset++] = value >> 12 & 15 | 224;
+				output[offset++] = value >> 6 & 63 | 128;
 			} else {
-				m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
-				e = 0;
+				output[offset++] = value >> 18 & 7 | 240;
+				output[offset++] = value >> 12 & 63 | 128;
+				output[offset++] = value >> 6 & 63 | 128;
 			}
 		}
-		for (; mLen >= 8; buffer[offset + i] = m & 255, i += d, m /= 256, mLen -= 8);
-		e = e << mLen | m;
-		eLen += mLen;
-		for (; eLen > 0; buffer[offset + i] = e & 255, i += d, e /= 256, eLen -= 8);
-		buffer[offset + i - d] |= s * 128;
+		output[offset++] = value & 63 | 128;
+	}
+}
+function utf8EncodeTE(str, output, outputOffset) {
+	sharedTextEncoder.encodeInto(str, output.subarray(outputOffset));
+}
+function utf8Encode(str, output, outputOffset) {
+	if (str.length > TEXT_ENCODER_THRESHOLD) utf8EncodeTE(str, output, outputOffset);
+	else utf8EncodeJs(str, output, outputOffset);
+}
+function utf8DecodeJs(bytes, inputOffset, byteLength) {
+	let offset = inputOffset;
+	const end = offset + byteLength;
+	const units = [];
+	let result = "";
+	while (offset < end) {
+		const byte1 = bytes[offset++];
+		if ((byte1 & 128) === 0) units.push(byte1);
+		else if ((byte1 & 224) === 192) {
+			const byte2 = bytes[offset++] & 63;
+			units.push((byte1 & 31) << 6 | byte2);
+		} else if ((byte1 & 240) === 224) {
+			const byte2 = bytes[offset++] & 63;
+			const byte3 = bytes[offset++] & 63;
+			units.push((byte1 & 31) << 12 | byte2 << 6 | byte3);
+		} else if ((byte1 & 248) === 240) {
+			const byte2 = bytes[offset++] & 63;
+			const byte3 = bytes[offset++] & 63;
+			const byte4 = bytes[offset++] & 63;
+			let unit = (byte1 & 7) << 18 | byte2 << 12 | byte3 << 6 | byte4;
+			if (unit > 65535) {
+				unit -= 65536;
+				units.push(unit >>> 10 & 1023 | 55296);
+				unit = 56320 | unit & 1023;
+			}
+			units.push(unit);
+		} else units.push(byte1);
+		if (units.length >= CHUNK_SIZE) {
+			result += String.fromCharCode(...units);
+			units.length = 0;
+		}
+	}
+	if (units.length > 0) result += String.fromCharCode(...units);
+	return result;
+}
+function utf8DecodeTD(bytes, inputOffset, byteLength) {
+	const stringBytes = bytes.subarray(inputOffset, inputOffset + byteLength);
+	return sharedTextDecoder.decode(stringBytes);
+}
+function utf8Decode(bytes, inputOffset, byteLength) {
+	if (byteLength > TEXT_DECODER_THRESHOLD) return utf8DecodeTD(bytes, inputOffset, byteLength);
+	else return utf8DecodeJs(bytes, inputOffset, byteLength);
+}
+var sharedTextEncoder, TEXT_ENCODER_THRESHOLD, CHUNK_SIZE, sharedTextDecoder, TEXT_DECODER_THRESHOLD;
+var init_utf8 = __esmMin((() => {
+	sharedTextEncoder = new TextEncoder();
+	TEXT_ENCODER_THRESHOLD = 50;
+	CHUNK_SIZE = 4096;
+	sharedTextDecoder = new TextDecoder();
+	TEXT_DECODER_THRESHOLD = 200;
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
+var ExtData;
+var init_ExtData = __esmMin((() => {
+	ExtData = class {
+		type;
+		data;
+		constructor(type, data) {
+			this.type = type;
+			this.data = data;
+		}
 	};
 }));
 //#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/write-uint8.js
-var require_write_uint8 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var constant = exports.uint8 = new Array(256);
-	for (var i = 0; i <= 255; i++) constant[i] = write0(i);
-	function write0(type) {
-		return function(encoder) {
-			var offset = encoder.reserve(1);
-			encoder.buffer[offset] = type;
-		};
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/write-token.js
-var require_write_token = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var ieee754 = require_ieee754();
-	var Int64Buffer = require_int64_buffer();
-	var Uint64BE = Int64Buffer.Uint64BE;
-	var Int64BE = Int64Buffer.Int64BE;
-	var uint8 = require_write_uint8().uint8;
-	var Bufferish = require_bufferish();
-	var Buffer = Bufferish.global;
-	var NO_TYPED_ARRAY = Bufferish.hasBuffer && "TYPED_ARRAY_SUPPORT" in Buffer && !Buffer.TYPED_ARRAY_SUPPORT;
-	var Buffer_prototype = Bufferish.hasBuffer && Buffer.prototype || {};
-	exports.getWriteToken = getWriteToken;
-	function getWriteToken(options) {
-		if (options && options.uint8array) return init_uint8array();
-		else if (NO_TYPED_ARRAY || Bufferish.hasBuffer && options && options.safe) return init_safe();
-		else return init_token();
-	}
-	function init_uint8array() {
-		var token = init_token();
-		token[202] = writeN(202, 4, writeFloatBE);
-		token[203] = writeN(203, 8, writeDoubleBE);
-		return token;
-	}
-	function init_token() {
-		var token = uint8.slice();
-		token[196] = write1(196);
-		token[197] = write2(197);
-		token[198] = write4(198);
-		token[199] = write1(199);
-		token[200] = write2(200);
-		token[201] = write4(201);
-		token[202] = writeN(202, 4, Buffer_prototype.writeFloatBE || writeFloatBE, true);
-		token[203] = writeN(203, 8, Buffer_prototype.writeDoubleBE || writeDoubleBE, true);
-		token[204] = write1(204);
-		token[205] = write2(205);
-		token[206] = write4(206);
-		token[207] = writeN(207, 8, writeUInt64BE);
-		token[208] = write1(208);
-		token[209] = write2(209);
-		token[210] = write4(210);
-		token[211] = writeN(211, 8, writeInt64BE);
-		token[217] = write1(217);
-		token[218] = write2(218);
-		token[219] = write4(219);
-		token[220] = write2(220);
-		token[221] = write4(221);
-		token[222] = write2(222);
-		token[223] = write4(223);
-		return token;
-	}
-	function init_safe() {
-		var token = uint8.slice();
-		token[196] = writeN(196, 1, Buffer.prototype.writeUInt8);
-		token[197] = writeN(197, 2, Buffer.prototype.writeUInt16BE);
-		token[198] = writeN(198, 4, Buffer.prototype.writeUInt32BE);
-		token[199] = writeN(199, 1, Buffer.prototype.writeUInt8);
-		token[200] = writeN(200, 2, Buffer.prototype.writeUInt16BE);
-		token[201] = writeN(201, 4, Buffer.prototype.writeUInt32BE);
-		token[202] = writeN(202, 4, Buffer.prototype.writeFloatBE);
-		token[203] = writeN(203, 8, Buffer.prototype.writeDoubleBE);
-		token[204] = writeN(204, 1, Buffer.prototype.writeUInt8);
-		token[205] = writeN(205, 2, Buffer.prototype.writeUInt16BE);
-		token[206] = writeN(206, 4, Buffer.prototype.writeUInt32BE);
-		token[207] = writeN(207, 8, writeUInt64BE);
-		token[208] = writeN(208, 1, Buffer.prototype.writeInt8);
-		token[209] = writeN(209, 2, Buffer.prototype.writeInt16BE);
-		token[210] = writeN(210, 4, Buffer.prototype.writeInt32BE);
-		token[211] = writeN(211, 8, writeInt64BE);
-		token[217] = writeN(217, 1, Buffer.prototype.writeUInt8);
-		token[218] = writeN(218, 2, Buffer.prototype.writeUInt16BE);
-		token[219] = writeN(219, 4, Buffer.prototype.writeUInt32BE);
-		token[220] = writeN(220, 2, Buffer.prototype.writeUInt16BE);
-		token[221] = writeN(221, 4, Buffer.prototype.writeUInt32BE);
-		token[222] = writeN(222, 2, Buffer.prototype.writeUInt16BE);
-		token[223] = writeN(223, 4, Buffer.prototype.writeUInt32BE);
-		return token;
-	}
-	function write1(type) {
-		return function(encoder, value) {
-			var offset = encoder.reserve(2);
-			var buffer = encoder.buffer;
-			buffer[offset++] = type;
-			buffer[offset] = value;
-		};
-	}
-	function write2(type) {
-		return function(encoder, value) {
-			var offset = encoder.reserve(3);
-			var buffer = encoder.buffer;
-			buffer[offset++] = type;
-			buffer[offset++] = value >>> 8;
-			buffer[offset] = value;
-		};
-	}
-	function write4(type) {
-		return function(encoder, value) {
-			var offset = encoder.reserve(5);
-			var buffer = encoder.buffer;
-			buffer[offset++] = type;
-			buffer[offset++] = value >>> 24;
-			buffer[offset++] = value >>> 16;
-			buffer[offset++] = value >>> 8;
-			buffer[offset] = value;
-		};
-	}
-	function writeN(type, len, method, noAssert) {
-		return function(encoder, value) {
-			var offset = encoder.reserve(len + 1);
-			encoder.buffer[offset++] = type;
-			method.call(encoder.buffer, value, offset, noAssert);
-		};
-	}
-	function writeUInt64BE(value, offset) {
-		new Uint64BE(this, offset, value);
-	}
-	function writeInt64BE(value, offset) {
-		new Int64BE(this, offset, value);
-	}
-	function writeFloatBE(value, offset) {
-		ieee754.write(this, value, offset, false, 23, 4);
-	}
-	function writeDoubleBE(value, offset) {
-		ieee754.write(this, value, offset, false, 52, 8);
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/write-type.js
-var require_write_type = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var Int64Buffer = require_int64_buffer();
-	var Uint64BE = Int64Buffer.Uint64BE;
-	var Int64BE = Int64Buffer.Int64BE;
-	var Bufferish = require_bufferish();
-	var BufferProto = require_bufferish_proto();
-	var WriteToken = require_write_token();
-	var uint8 = require_write_uint8().uint8;
-	var ExtBuffer = require_ext_buffer().ExtBuffer;
-	var HAS_UINT8ARRAY = "undefined" !== typeof Uint8Array;
-	var HAS_MAP = "undefined" !== typeof Map;
-	var extmap = [];
-	extmap[1] = 212;
-	extmap[2] = 213;
-	extmap[4] = 214;
-	extmap[8] = 215;
-	extmap[16] = 216;
-	exports.getWriteType = getWriteType;
-	function getWriteType(options) {
-		var token = WriteToken.getWriteToken(options);
-		var useraw = options && options.useraw;
-		var binarraybuffer = HAS_UINT8ARRAY && options && options.binarraybuffer;
-		var isBuffer = binarraybuffer ? Bufferish.isArrayBuffer : Bufferish.isBuffer;
-		var bin = binarraybuffer ? bin_arraybuffer : bin_buffer;
-		var map = HAS_MAP && options && options.usemap ? map_to_map : obj_to_map;
-		return {
-			"boolean": bool,
-			"function": nil,
-			"number": number,
-			"object": useraw ? object_raw : object,
-			"string": _string(useraw ? raw_head_size : str_head_size),
-			"symbol": nil,
-			"undefined": nil
-		};
-		function bool(encoder, value) {
-			token[value ? 195 : 194](encoder, value);
+//#region node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs
+var DecodeError;
+var init_DecodeError = __esmMin((() => {
+	DecodeError = class DecodeError extends Error {
+		constructor(message) {
+			super(message);
+			const proto = Object.create(DecodeError.prototype);
+			Object.setPrototypeOf(this, proto);
+			Object.defineProperty(this, "name", {
+				configurable: true,
+				enumerable: false,
+				value: DecodeError.name
+			});
 		}
-		function number(encoder, value) {
-			var ivalue = value | 0;
-			var type;
-			if (value !== ivalue) {
-				type = 203;
-				token[type](encoder, value);
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs
+function setUint64(view, offset, value) {
+	const high = value / 4294967296;
+	const low = value;
+	view.setUint32(offset, high);
+	view.setUint32(offset + 4, low);
+}
+function setInt64(view, offset, value) {
+	const high = Math.floor(value / 4294967296);
+	const low = value;
+	view.setUint32(offset, high);
+	view.setUint32(offset + 4, low);
+}
+function getInt64(view, offset) {
+	const high = view.getInt32(offset);
+	const low = view.getUint32(offset + 4);
+	return high * 4294967296 + low;
+}
+function getUint64(view, offset) {
+	const high = view.getUint32(offset);
+	const low = view.getUint32(offset + 4);
+	return high * 4294967296 + low;
+}
+var init_int = __esmMin((() => {}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs
+function encodeTimeSpecToTimestamp({ sec, nsec }) {
+	if (sec >= 0 && nsec >= 0 && sec <= TIMESTAMP64_MAX_SEC) if (nsec === 0 && sec <= TIMESTAMP32_MAX_SEC) {
+		const rv = new Uint8Array(4);
+		new DataView(rv.buffer).setUint32(0, sec);
+		return rv;
+	} else {
+		const secHigh = sec / 4294967296;
+		const secLow = sec & 4294967295;
+		const rv = new Uint8Array(8);
+		const view = new DataView(rv.buffer);
+		view.setUint32(0, nsec << 2 | secHigh & 3);
+		view.setUint32(4, secLow);
+		return rv;
+	}
+	else {
+		const rv = new Uint8Array(12);
+		const view = new DataView(rv.buffer);
+		view.setUint32(0, nsec);
+		setInt64(view, 4, sec);
+		return rv;
+	}
+}
+function encodeDateToTimeSpec(date) {
+	const msec = date.getTime();
+	const sec = Math.floor(msec / 1e3);
+	const nsec = (msec - sec * 1e3) * 1e6;
+	const nsecInSec = Math.floor(nsec / 1e9);
+	return {
+		sec: sec + nsecInSec,
+		nsec: nsec - nsecInSec * 1e9
+	};
+}
+function encodeTimestampExtension(object) {
+	if (object instanceof Date) return encodeTimeSpecToTimestamp(encodeDateToTimeSpec(object));
+	else return null;
+}
+function decodeTimestampToTimeSpec(data) {
+	const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+	switch (data.byteLength) {
+		case 4: return {
+			sec: view.getUint32(0),
+			nsec: 0
+		};
+		case 8: {
+			const nsec30AndSecHigh2 = view.getUint32(0);
+			const secLow32 = view.getUint32(4);
+			return {
+				sec: (nsec30AndSecHigh2 & 3) * 4294967296 + secLow32,
+				nsec: nsec30AndSecHigh2 >>> 2
+			};
+		}
+		case 12: return {
+			sec: getInt64(view, 4),
+			nsec: view.getUint32(0)
+		};
+		default: throw new DecodeError(`Unrecognized data size for timestamp (expected 4, 8, or 12): ${data.length}`);
+	}
+}
+function decodeTimestampExtension(data) {
+	const timeSpec = decodeTimestampToTimeSpec(data);
+	return /* @__PURE__ */ new Date(timeSpec.sec * 1e3 + timeSpec.nsec / 1e6);
+}
+var TIMESTAMP32_MAX_SEC, TIMESTAMP64_MAX_SEC, timestampExtension;
+var init_timestamp = __esmMin((() => {
+	init_DecodeError();
+	init_int();
+	TIMESTAMP32_MAX_SEC = 4294967295;
+	TIMESTAMP64_MAX_SEC = 17179869183;
+	timestampExtension = {
+		type: -1,
+		encode: encodeTimestampExtension,
+		decode: decodeTimestampExtension
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs
+var ExtensionCodec;
+var init_ExtensionCodec = __esmMin((() => {
+	init_ExtData();
+	init_timestamp();
+	ExtensionCodec = class ExtensionCodec {
+		static defaultCodec = new ExtensionCodec();
+		__brand;
+		builtInEncoders = [];
+		builtInDecoders = [];
+		encoders = [];
+		decoders = [];
+		constructor() {
+			this.register(timestampExtension);
+		}
+		register({ type, encode, decode }) {
+			if (type >= 0) {
+				this.encoders[type] = encode;
+				this.decoders[type] = decode;
+			} else {
+				const index = -1 - type;
+				this.builtInEncoders[index] = encode;
+				this.builtInDecoders[index] = decode;
+			}
+		}
+		tryToEncode(object, context) {
+			for (let i = 0; i < this.builtInEncoders.length; i++) {
+				const encodeExt = this.builtInEncoders[i];
+				if (encodeExt != null) {
+					const data = encodeExt(object, context);
+					if (data != null) return new ExtData(-1 - i, data);
+				}
+			}
+			for (let i = 0; i < this.encoders.length; i++) {
+				const encodeExt = this.encoders[i];
+				if (encodeExt != null) {
+					const data = encodeExt(object, context);
+					if (data != null) return new ExtData(i, data);
+				}
+			}
+			if (object instanceof ExtData) return object;
+			return null;
+		}
+		decode(data, type, context) {
+			const decodeExt = type < 0 ? this.builtInDecoders[-1 - type] : this.decoders[type];
+			if (decodeExt) return decodeExt(data, type, context);
+			else return new ExtData(type, data);
+		}
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
+function isArrayBufferLike(buffer) {
+	return buffer instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer;
+}
+function ensureUint8Array(buffer) {
+	if (buffer instanceof Uint8Array) return buffer;
+	else if (ArrayBuffer.isView(buffer)) return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+	else if (isArrayBufferLike(buffer)) return new Uint8Array(buffer);
+	else return Uint8Array.from(buffer);
+}
+var init_typedArrays = __esmMin((() => {})), Encoder;
+var init_Encoder = __esmMin((() => {
+	init_utf8();
+	init_ExtensionCodec();
+	init_int();
+	init_typedArrays();
+	Encoder = class Encoder {
+		extensionCodec;
+		context;
+		useBigInt64;
+		maxDepth;
+		initialBufferSize;
+		sortKeys;
+		forceFloat32;
+		ignoreUndefined;
+		forceIntegerToFloat;
+		pos;
+		view;
+		bytes;
+		entered = false;
+		constructor(options) {
+			this.extensionCodec = options?.extensionCodec ?? ExtensionCodec.defaultCodec;
+			this.context = options?.context;
+			this.useBigInt64 = options?.useBigInt64 ?? false;
+			this.maxDepth = options?.maxDepth ?? 100;
+			this.initialBufferSize = options?.initialBufferSize ?? 2048;
+			this.sortKeys = options?.sortKeys ?? false;
+			this.forceFloat32 = options?.forceFloat32 ?? false;
+			this.ignoreUndefined = options?.ignoreUndefined ?? false;
+			this.forceIntegerToFloat = options?.forceIntegerToFloat ?? false;
+			this.pos = 0;
+			this.view = new DataView(new ArrayBuffer(this.initialBufferSize));
+			this.bytes = new Uint8Array(this.view.buffer);
+		}
+		clone() {
+			return new Encoder({
+				extensionCodec: this.extensionCodec,
+				context: this.context,
+				useBigInt64: this.useBigInt64,
+				maxDepth: this.maxDepth,
+				initialBufferSize: this.initialBufferSize,
+				sortKeys: this.sortKeys,
+				forceFloat32: this.forceFloat32,
+				ignoreUndefined: this.ignoreUndefined,
+				forceIntegerToFloat: this.forceIntegerToFloat
+			});
+		}
+		reinitializeState() {
+			this.pos = 0;
+		}
+		/**
+		* This is almost equivalent to {@link Encoder#encode}, but it returns an reference of the encoder's internal buffer and thus much faster than {@link Encoder#encode}.
+		*
+		* @returns Encodes the object and returns a shared reference the encoder's internal buffer.
+		*/
+		encodeSharedRef(object) {
+			if (this.entered) return this.clone().encodeSharedRef(object);
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.doEncode(object, 1);
+				return this.bytes.subarray(0, this.pos);
+			} finally {
+				this.entered = false;
+			}
+		}
+		/**
+		* @returns Encodes the object and returns a copy of the encoder's internal buffer.
+		*/
+		encode(object) {
+			if (this.entered) return this.clone().encode(object);
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.doEncode(object, 1);
+				return this.bytes.slice(0, this.pos);
+			} finally {
+				this.entered = false;
+			}
+		}
+		doEncode(object, depth) {
+			if (depth > this.maxDepth) throw new Error(`Too deep objects in depth ${depth}`);
+			if (object == null) this.encodeNil();
+			else if (typeof object === "boolean") this.encodeBoolean(object);
+			else if (typeof object === "number") if (!this.forceIntegerToFloat) this.encodeNumber(object);
+			else this.encodeNumberAsFloat(object);
+			else if (typeof object === "string") this.encodeString(object);
+			else if (this.useBigInt64 && typeof object === "bigint") this.encodeBigInt64(object);
+			else this.encodeObject(object, depth);
+		}
+		ensureBufferSizeToWrite(sizeToWrite) {
+			const requiredSize = this.pos + sizeToWrite;
+			if (this.view.byteLength < requiredSize) this.resizeBuffer(requiredSize * 2);
+		}
+		resizeBuffer(newSize) {
+			const newBuffer = new ArrayBuffer(newSize);
+			const newBytes = new Uint8Array(newBuffer);
+			const newView = new DataView(newBuffer);
+			newBytes.set(this.bytes);
+			this.view = newView;
+			this.bytes = newBytes;
+		}
+		encodeNil() {
+			this.writeU8(192);
+		}
+		encodeBoolean(object) {
+			if (object === false) this.writeU8(194);
+			else this.writeU8(195);
+		}
+		encodeNumber(object) {
+			if (!this.forceIntegerToFloat && Number.isSafeInteger(object)) if (object >= 0) if (object < 128) this.writeU8(object);
+			else if (object < 256) {
+				this.writeU8(204);
+				this.writeU8(object);
+			} else if (object < 65536) {
+				this.writeU8(205);
+				this.writeU16(object);
+			} else if (object < 4294967296) {
+				this.writeU8(206);
+				this.writeU32(object);
+			} else if (!this.useBigInt64) {
+				this.writeU8(207);
+				this.writeU64(object);
+			} else this.encodeNumberAsFloat(object);
+			else if (object >= -32) this.writeU8(224 | object + 32);
+			else if (object >= -128) {
+				this.writeU8(208);
+				this.writeI8(object);
+			} else if (object >= -32768) {
+				this.writeU8(209);
+				this.writeI16(object);
+			} else if (object >= -2147483648) {
+				this.writeU8(210);
+				this.writeI32(object);
+			} else if (!this.useBigInt64) {
+				this.writeU8(211);
+				this.writeI64(object);
+			} else this.encodeNumberAsFloat(object);
+			else this.encodeNumberAsFloat(object);
+		}
+		encodeNumberAsFloat(object) {
+			if (this.forceFloat32) {
+				this.writeU8(202);
+				this.writeF32(object);
+			} else {
+				this.writeU8(203);
+				this.writeF64(object);
+			}
+		}
+		encodeBigInt64(object) {
+			if (object >= BigInt(0)) {
+				this.writeU8(207);
+				this.writeBigUint64(object);
+			} else {
+				this.writeU8(211);
+				this.writeBigInt64(object);
+			}
+		}
+		writeStringHeader(byteLength) {
+			if (byteLength < 32) this.writeU8(160 + byteLength);
+			else if (byteLength < 256) {
+				this.writeU8(217);
+				this.writeU8(byteLength);
+			} else if (byteLength < 65536) {
+				this.writeU8(218);
+				this.writeU16(byteLength);
+			} else if (byteLength < 4294967296) {
+				this.writeU8(219);
+				this.writeU32(byteLength);
+			} else throw new Error(`Too long string: ${byteLength} bytes in UTF-8`);
+		}
+		encodeString(object) {
+			const maxHeaderSize = 5;
+			const byteLength = utf8Count(object);
+			this.ensureBufferSizeToWrite(maxHeaderSize + byteLength);
+			this.writeStringHeader(byteLength);
+			utf8Encode(object, this.bytes, this.pos);
+			this.pos += byteLength;
+		}
+		encodeObject(object, depth) {
+			const ext = this.extensionCodec.tryToEncode(object, this.context);
+			if (ext != null) this.encodeExtension(ext);
+			else if (Array.isArray(object)) this.encodeArray(object, depth);
+			else if (ArrayBuffer.isView(object)) this.encodeBinary(object);
+			else if (typeof object === "object") this.encodeMap(object, depth);
+			else throw new Error(`Unrecognized object: ${Object.prototype.toString.apply(object)}`);
+		}
+		encodeBinary(object) {
+			const size = object.byteLength;
+			if (size < 256) {
+				this.writeU8(196);
+				this.writeU8(size);
+			} else if (size < 65536) {
+				this.writeU8(197);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(198);
+				this.writeU32(size);
+			} else throw new Error(`Too large binary: ${size}`);
+			const bytes = ensureUint8Array(object);
+			this.writeU8a(bytes);
+		}
+		encodeArray(object, depth) {
+			const size = object.length;
+			if (size < 16) this.writeU8(144 + size);
+			else if (size < 65536) {
+				this.writeU8(220);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(221);
+				this.writeU32(size);
+			} else throw new Error(`Too large array: ${size}`);
+			for (const item of object) this.doEncode(item, depth + 1);
+		}
+		countWithoutUndefined(object, keys) {
+			let count = 0;
+			for (const key of keys) if (object[key] !== void 0) count++;
+			return count;
+		}
+		encodeMap(object, depth) {
+			const keys = Object.keys(object);
+			if (this.sortKeys) keys.sort();
+			const size = this.ignoreUndefined ? this.countWithoutUndefined(object, keys) : keys.length;
+			if (size < 16) this.writeU8(128 + size);
+			else if (size < 65536) {
+				this.writeU8(222);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(223);
+				this.writeU32(size);
+			} else throw new Error(`Too large map object: ${size}`);
+			for (const key of keys) {
+				const value = object[key];
+				if (!(this.ignoreUndefined && value === void 0)) {
+					this.encodeString(key);
+					this.doEncode(value, depth + 1);
+				}
+			}
+		}
+		encodeExtension(ext) {
+			if (typeof ext.data === "function") {
+				const data = ext.data(this.pos + 6);
+				const size = data.length;
+				if (size >= 4294967296) throw new Error(`Too large extension object: ${size}`);
+				this.writeU8(201);
+				this.writeU32(size);
+				this.writeI8(ext.type);
+				this.writeU8a(data);
 				return;
-			} else if (-32 <= ivalue && ivalue <= 127) type = ivalue & 255;
-			else if (0 <= ivalue) type = ivalue <= 255 ? 204 : ivalue <= 65535 ? 205 : 206;
-			else type = -128 <= ivalue ? 208 : -32768 <= ivalue ? 209 : 210;
-			token[type](encoder, ivalue);
-		}
-		function uint64(encoder, value) {
-			token[207](encoder, value.toArray());
-		}
-		function int64(encoder, value) {
-			token[211](encoder, value.toArray());
-		}
-		function str_head_size(length) {
-			return length < 32 ? 1 : length <= 255 ? 2 : length <= 65535 ? 3 : 5;
-		}
-		function raw_head_size(length) {
-			return length < 32 ? 1 : length <= 65535 ? 3 : 5;
-		}
-		function _string(head_size) {
-			return string;
-			function string(encoder, value) {
-				var length = value.length;
-				var maxsize = 5 + length * 3;
-				encoder.offset = encoder.reserve(maxsize);
-				var buffer = encoder.buffer;
-				var expected = head_size(length);
-				var start = encoder.offset + expected;
-				length = BufferProto.write.call(buffer, value, start);
-				var actual = head_size(length);
-				if (expected !== actual) {
-					var targetStart = start + actual - expected;
-					var end = start + length;
-					BufferProto.copy.call(buffer, buffer, targetStart, start, end);
-				}
-				token[actual === 1 ? 160 + length : actual <= 3 ? 215 + actual : 219](encoder, length);
-				encoder.offset += length;
 			}
+			const size = ext.data.length;
+			if (size === 1) this.writeU8(212);
+			else if (size === 2) this.writeU8(213);
+			else if (size === 4) this.writeU8(214);
+			else if (size === 8) this.writeU8(215);
+			else if (size === 16) this.writeU8(216);
+			else if (size < 256) {
+				this.writeU8(199);
+				this.writeU8(size);
+			} else if (size < 65536) {
+				this.writeU8(200);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(201);
+				this.writeU32(size);
+			} else throw new Error(`Too large extension object: ${size}`);
+			this.writeI8(ext.type);
+			this.writeU8a(ext.data);
 		}
-		function object(encoder, value) {
-			if (value === null) return nil(encoder, value);
-			if (isBuffer(value)) return bin(encoder, value);
-			if (Array.isArray(value)) return array(encoder, value);
-			if (Uint64BE.isUint64BE(value)) return uint64(encoder, value);
-			if (Int64BE.isInt64BE(value)) return int64(encoder, value);
-			var packer = encoder.codec.getExtPacker(value);
-			if (packer) value = packer(value);
-			if (value instanceof ExtBuffer) return ext(encoder, value);
-			map(encoder, value);
+		writeU8(value) {
+			this.ensureBufferSizeToWrite(1);
+			this.view.setUint8(this.pos, value);
+			this.pos++;
 		}
-		function object_raw(encoder, value) {
-			if (isBuffer(value)) return raw(encoder, value);
-			object(encoder, value);
+		writeU8a(values) {
+			const size = values.length;
+			this.ensureBufferSizeToWrite(size);
+			this.bytes.set(values, this.pos);
+			this.pos += size;
 		}
-		function nil(encoder, value) {
-			token[192](encoder, value);
+		writeI8(value) {
+			this.ensureBufferSizeToWrite(1);
+			this.view.setInt8(this.pos, value);
+			this.pos++;
 		}
-		function array(encoder, value) {
-			var length = value.length;
-			token[length < 16 ? 144 + length : length <= 65535 ? 220 : 221](encoder, length);
-			var encode = encoder.codec.encode;
-			for (var i = 0; i < length; i++) encode(encoder, value[i]);
+		writeU16(value) {
+			this.ensureBufferSizeToWrite(2);
+			this.view.setUint16(this.pos, value);
+			this.pos += 2;
 		}
-		function bin_buffer(encoder, value) {
-			var length = value.length;
-			token[length < 255 ? 196 : length <= 65535 ? 197 : 198](encoder, length);
-			encoder.send(value);
+		writeI16(value) {
+			this.ensureBufferSizeToWrite(2);
+			this.view.setInt16(this.pos, value);
+			this.pos += 2;
 		}
-		function bin_arraybuffer(encoder, value) {
-			bin_buffer(encoder, new Uint8Array(value));
+		writeU32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setUint32(this.pos, value);
+			this.pos += 4;
 		}
-		function ext(encoder, value) {
-			var buffer = value.buffer;
-			var length = buffer.length;
-			token[extmap[length] || (length < 255 ? 199 : length <= 65535 ? 200 : 201)](encoder, length);
-			uint8[value.type](encoder);
-			encoder.send(buffer);
+		writeI32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setInt32(this.pos, value);
+			this.pos += 4;
 		}
-		function obj_to_map(encoder, value) {
-			var keys = [];
-			for (let [key, val] of Object.entries(value)) if (val !== void 0) keys.push(key);
-			var length = keys.length;
-			token[length < 16 ? 128 + length : length <= 65535 ? 222 : 223](encoder, length);
-			var encode = encoder.codec.encode;
-			keys.forEach(function(key) {
-				encode(encoder, key);
-				encode(encoder, value[key]);
+		writeF32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setFloat32(this.pos, value);
+			this.pos += 4;
+		}
+		writeF64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setFloat64(this.pos, value);
+			this.pos += 8;
+		}
+		writeU64(value) {
+			this.ensureBufferSizeToWrite(8);
+			setUint64(this.view, this.pos, value);
+			this.pos += 8;
+		}
+		writeI64(value) {
+			this.ensureBufferSizeToWrite(8);
+			setInt64(this.view, this.pos, value);
+			this.pos += 8;
+		}
+		writeBigUint64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setBigUint64(this.pos, value);
+			this.pos += 8;
+		}
+		writeBigInt64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setBigInt64(this.pos, value);
+			this.pos += 8;
+		}
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
+function prettyByte(byte) {
+	return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
+}
+var init_prettyByte = __esmMin((() => {}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
+var DEFAULT_MAX_KEY_LENGTH, DEFAULT_MAX_LENGTH_PER_KEY, CachedKeyDecoder;
+var init_CachedKeyDecoder = __esmMin((() => {
+	init_utf8();
+	DEFAULT_MAX_KEY_LENGTH = 16;
+	DEFAULT_MAX_LENGTH_PER_KEY = 16;
+	CachedKeyDecoder = class {
+		hit = 0;
+		miss = 0;
+		caches;
+		maxKeyLength;
+		maxLengthPerKey;
+		constructor(maxKeyLength = DEFAULT_MAX_KEY_LENGTH, maxLengthPerKey = DEFAULT_MAX_LENGTH_PER_KEY) {
+			this.maxKeyLength = maxKeyLength;
+			this.maxLengthPerKey = maxLengthPerKey;
+			this.caches = [];
+			for (let i = 0; i < this.maxKeyLength; i++) this.caches.push([]);
+		}
+		canBeCached(byteLength) {
+			return byteLength > 0 && byteLength <= this.maxKeyLength;
+		}
+		find(bytes, inputOffset, byteLength) {
+			const records = this.caches[byteLength - 1];
+			FIND_CHUNK: for (const record of records) {
+				const recordBytes = record.bytes;
+				for (let j = 0; j < byteLength; j++) if (recordBytes[j] !== bytes[inputOffset + j]) continue FIND_CHUNK;
+				return record.str;
+			}
+			return null;
+		}
+		store(bytes, value) {
+			const records = this.caches[bytes.length - 1];
+			const record = {
+				bytes,
+				str: value
+			};
+			if (records.length >= this.maxLengthPerKey) records[Math.random() * records.length | 0] = record;
+			else records.push(record);
+		}
+		decode(bytes, inputOffset, byteLength) {
+			const cachedValue = this.find(bytes, inputOffset, byteLength);
+			if (cachedValue != null) {
+				this.hit++;
+				return cachedValue;
+			}
+			this.miss++;
+			const str = utf8DecodeJs(bytes, inputOffset, byteLength);
+			const slicedCopyOfBytes = Uint8Array.prototype.slice.call(bytes, inputOffset, inputOffset + byteLength);
+			this.store(slicedCopyOfBytes, str);
+			return str;
+		}
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs
+var STATE_ARRAY, STATE_MAP_KEY, STATE_MAP_VALUE, mapKeyConverter, StackPool, HEAD_BYTE_REQUIRED, EMPTY_VIEW, EMPTY_BYTES, MORE_DATA, sharedCachedKeyDecoder, Decoder;
+var init_Decoder = __esmMin((() => {
+	init_prettyByte();
+	init_ExtensionCodec();
+	init_int();
+	init_utf8();
+	init_typedArrays();
+	init_CachedKeyDecoder();
+	init_DecodeError();
+	STATE_ARRAY = "array";
+	STATE_MAP_KEY = "map_key";
+	STATE_MAP_VALUE = "map_value";
+	mapKeyConverter = (key) => {
+		if (typeof key === "string" || typeof key === "number") return key;
+		throw new DecodeError("The type of key must be string or number but " + typeof key);
+	};
+	StackPool = class {
+		stack = [];
+		stackHeadPosition = -1;
+		get length() {
+			return this.stackHeadPosition + 1;
+		}
+		top() {
+			return this.stack[this.stackHeadPosition];
+		}
+		pushArrayState(size) {
+			const state = this.getUninitializedStateFromPool();
+			state.type = STATE_ARRAY;
+			state.position = 0;
+			state.size = size;
+			state.array = new Array(size);
+		}
+		pushMapState(size) {
+			const state = this.getUninitializedStateFromPool();
+			state.type = STATE_MAP_KEY;
+			state.readCount = 0;
+			state.size = size;
+			state.map = {};
+		}
+		getUninitializedStateFromPool() {
+			this.stackHeadPosition++;
+			if (this.stackHeadPosition === this.stack.length) this.stack.push({
+				type: void 0,
+				size: 0,
+				array: void 0,
+				position: 0,
+				readCount: 0,
+				map: void 0,
+				key: null
+			});
+			return this.stack[this.stackHeadPosition];
+		}
+		release(state) {
+			if (this.stack[this.stackHeadPosition] !== state) throw new Error("Invalid stack state. Released state is not on top of the stack.");
+			if (state.type === STATE_ARRAY) {
+				const partialState = state;
+				partialState.size = 0;
+				partialState.array = void 0;
+				partialState.position = 0;
+				partialState.type = void 0;
+			}
+			if (state.type === STATE_MAP_KEY || state.type === STATE_MAP_VALUE) {
+				const partialState = state;
+				partialState.size = 0;
+				partialState.map = void 0;
+				partialState.readCount = 0;
+				partialState.type = void 0;
+			}
+			this.stackHeadPosition--;
+		}
+		reset() {
+			this.stack.length = 0;
+			this.stackHeadPosition = -1;
+		}
+	};
+	HEAD_BYTE_REQUIRED = -1;
+	EMPTY_VIEW = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(0));
+	EMPTY_BYTES = new Uint8Array(EMPTY_VIEW.buffer);
+	try {
+		EMPTY_VIEW.getInt8(0);
+	} catch (e) {
+		if (!(e instanceof RangeError)) throw new Error("This module is not supported in the current JavaScript engine because DataView does not throw RangeError on out-of-bounds access");
+	}
+	MORE_DATA = /* @__PURE__ */ new RangeError("Insufficient data");
+	sharedCachedKeyDecoder = new CachedKeyDecoder();
+	Decoder = class Decoder {
+		extensionCodec;
+		context;
+		useBigInt64;
+		rawStrings;
+		maxStrLength;
+		maxBinLength;
+		maxArrayLength;
+		maxMapLength;
+		maxExtLength;
+		keyDecoder;
+		mapKeyConverter;
+		totalPos = 0;
+		pos = 0;
+		view = EMPTY_VIEW;
+		bytes = EMPTY_BYTES;
+		headByte = HEAD_BYTE_REQUIRED;
+		stack = new StackPool();
+		entered = false;
+		constructor(options) {
+			this.extensionCodec = options?.extensionCodec ?? ExtensionCodec.defaultCodec;
+			this.context = options?.context;
+			this.useBigInt64 = options?.useBigInt64 ?? false;
+			this.rawStrings = options?.rawStrings ?? false;
+			this.maxStrLength = options?.maxStrLength ?? 4294967295;
+			this.maxBinLength = options?.maxBinLength ?? 4294967295;
+			this.maxArrayLength = options?.maxArrayLength ?? 4294967295;
+			this.maxMapLength = options?.maxMapLength ?? 4294967295;
+			this.maxExtLength = options?.maxExtLength ?? 4294967295;
+			this.keyDecoder = options?.keyDecoder !== void 0 ? options.keyDecoder : sharedCachedKeyDecoder;
+			this.mapKeyConverter = options?.mapKeyConverter ?? mapKeyConverter;
+		}
+		clone() {
+			return new Decoder({
+				extensionCodec: this.extensionCodec,
+				context: this.context,
+				useBigInt64: this.useBigInt64,
+				rawStrings: this.rawStrings,
+				maxStrLength: this.maxStrLength,
+				maxBinLength: this.maxBinLength,
+				maxArrayLength: this.maxArrayLength,
+				maxMapLength: this.maxMapLength,
+				maxExtLength: this.maxExtLength,
+				keyDecoder: this.keyDecoder
 			});
 		}
-		function map_to_map(encoder, value) {
-			if (!(value instanceof Map)) return obj_to_map(encoder, value);
-			var length = value.size;
-			token[length < 16 ? 128 + length : length <= 65535 ? 222 : 223](encoder, length);
-			var encode = encoder.codec.encode;
-			value.forEach(function(val, key, m) {
-				encode(encoder, key);
-				encode(encoder, val);
-			});
+		reinitializeState() {
+			this.totalPos = 0;
+			this.headByte = HEAD_BYTE_REQUIRED;
+			this.stack.reset();
 		}
-		function raw(encoder, value) {
-			var length = value.length;
-			token[length < 32 ? 160 + length : length <= 65535 ? 218 : 219](encoder, length);
-			encoder.send(value);
+		setBuffer(buffer) {
+			const bytes = ensureUint8Array(buffer);
+			this.bytes = bytes;
+			this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+			this.pos = 0;
 		}
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/codec-base.js
-var require_codec_base = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.createCodec = createCodec;
-	exports.install = install;
-	exports.filter = filter;
-	var Bufferish = require_bufferish();
-	function Codec(options) {
-		if (!(this instanceof Codec)) return new Codec(options);
-		this.options = options;
-		this.init();
-	}
-	Codec.prototype.init = function() {
-		var options = this.options;
-		if (options && options.uint8array) this.bufferish = Bufferish.Uint8Array;
-		return this;
-	};
-	function install(props) {
-		for (var key in props) Codec.prototype[key] = add(Codec.prototype[key], props[key]);
-	}
-	function add(a, b) {
-		return a && b ? ab : a || b;
-		function ab() {
-			a.apply(this, arguments);
-			return b.apply(this, arguments);
+		appendBuffer(buffer) {
+			if (this.headByte === HEAD_BYTE_REQUIRED && !this.hasRemaining(1)) this.setBuffer(buffer);
+			else {
+				const remainingData = this.bytes.subarray(this.pos);
+				const newData = ensureUint8Array(buffer);
+				const newBuffer = new Uint8Array(remainingData.length + newData.length);
+				newBuffer.set(remainingData);
+				newBuffer.set(newData, remainingData.length);
+				this.setBuffer(newBuffer);
+			}
 		}
-	}
-	function join(filters) {
-		filters = filters.slice();
-		return function(value) {
-			return filters.reduce(iterator, value);
-		};
-		function iterator(value, filter) {
-			return filter(value);
+		hasRemaining(size) {
+			return this.view.byteLength - this.pos >= size;
 		}
-	}
-	function filter(filter) {
-		return Array.isArray(filter) ? join(filter) : filter;
-	}
-	function createCodec(options) {
-		return new Codec(options);
-	}
-	exports.preset = createCodec({ preset: true });
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/write-core.js
-var require_write_core = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var ExtBuffer = require_ext_buffer().ExtBuffer;
-	var ExtPacker = require_ext_packer();
-	var WriteType = require_write_type();
-	var CodecBase = require_codec_base();
-	CodecBase.install({
-		addExtPacker,
-		getExtPacker,
-		init
-	});
-	exports.preset = init.call(CodecBase.preset);
-	function getEncoder(options) {
-		var writeType = WriteType.getWriteType(options);
-		return encode;
-		function encode(encoder, value) {
-			var func = writeType[typeof value];
-			if (!func) throw new Error("Unsupported type \"" + typeof value + "\": " + value);
-			func(encoder, value);
+		createExtraByteError(posToShow) {
+			const { view, pos } = this;
+			return /* @__PURE__ */ new RangeError(`Extra ${view.byteLength - pos} of ${view.byteLength} byte(s) found at buffer[${posToShow}]`);
 		}
-	}
-	function init() {
-		var options = this.options;
-		this.encode = getEncoder(options);
-		if (options && options.preset) ExtPacker.setExtPackers(this);
-		return this;
-	}
-	function addExtPacker(etype, Class, packer) {
-		packer = CodecBase.filter(packer);
-		var name = Class.name;
-		if (name && name !== "Object") {
-			var packers = this.extPackers || (this.extPackers = {});
-			packers[name] = extPacker;
-		} else (this.extEncoderList || (this.extEncoderList = [])).unshift([Class, extPacker]);
-		function extPacker(value) {
-			if (packer) value = packer(value);
-			return new ExtBuffer(value, etype);
+		/**
+		* @throws {@link DecodeError}
+		* @throws {@link RangeError}
+		*/
+		decode(buffer) {
+			if (this.entered) return this.clone().decode(buffer);
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.setBuffer(buffer);
+				const object = this.doDecodeSync();
+				if (this.hasRemaining(1)) throw this.createExtraByteError(this.pos);
+				return object;
+			} finally {
+				this.entered = false;
+			}
 		}
-	}
-	function getExtPacker(value) {
-		var packers = this.extPackers || (this.extPackers = {});
-		var c = value.constructor;
-		var e = c && c.name && packers[c.name];
-		if (e) return e;
-		var list = this.extEncoderList || (this.extEncoderList = []);
-		var len = list.length;
-		for (var i = 0; i < len; i++) {
-			var pair = list[i];
-			if (c === pair[0]) return pair[1];
+		*decodeMulti(buffer) {
+			if (this.entered) {
+				yield* this.clone().decodeMulti(buffer);
+				return;
+			}
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.setBuffer(buffer);
+				while (this.hasRemaining(1)) yield this.doDecodeSync();
+			} finally {
+				this.entered = false;
+			}
 		}
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/flex-buffer.js
-var require_flex_buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.FlexDecoder = FlexDecoder;
-	exports.FlexEncoder = FlexEncoder;
-	var Bufferish = require_bufferish();
-	var MIN_BUFFER_SIZE = 2048;
-	var MAX_BUFFER_SIZE = 65536;
-	var BUFFER_SHORTAGE = "BUFFER_SHORTAGE";
-	function FlexDecoder() {
-		if (!(this instanceof FlexDecoder)) return new FlexDecoder();
-	}
-	function FlexEncoder() {
-		if (!(this instanceof FlexEncoder)) return new FlexEncoder();
-	}
-	FlexDecoder.mixin = mixinFactory(getDecoderMethods());
-	FlexDecoder.mixin(FlexDecoder.prototype);
-	FlexEncoder.mixin = mixinFactory(getEncoderMethods());
-	FlexEncoder.mixin(FlexEncoder.prototype);
-	function getDecoderMethods() {
-		return {
-			bufferish: Bufferish,
-			write,
-			fetch,
-			flush,
-			push,
-			pull,
-			read,
-			reserve,
-			offset: 0
-		};
-		function write(chunk) {
-			var prev = this.offset ? Bufferish.prototype.slice.call(this.buffer, this.offset) : this.buffer;
-			this.buffer = prev ? chunk ? this.bufferish.concat([prev, chunk]) : prev : chunk;
-			this.offset = 0;
-		}
-		function flush() {
-			while (this.offset < this.buffer.length) {
-				var start = this.offset;
-				var value;
-				try {
-					value = this.fetch();
-				} catch (e) {
-					if (e && e.message != BUFFER_SHORTAGE) throw e;
-					this.offset = start;
-					break;
+		async decodeAsync(stream) {
+			if (this.entered) return this.clone().decodeAsync(stream);
+			try {
+				this.entered = true;
+				let decoded = false;
+				let object;
+				for await (const buffer of stream) {
+					if (decoded) {
+						this.entered = false;
+						throw this.createExtraByteError(this.totalPos);
+					}
+					this.appendBuffer(buffer);
+					try {
+						object = this.doDecodeSync();
+						decoded = true;
+					} catch (e) {
+						if (!(e instanceof RangeError)) throw e;
+					}
+					this.totalPos += this.pos;
 				}
-				this.push(value);
-			}
-		}
-		function reserve(length) {
-			var start = this.offset;
-			var end = start + length;
-			if (end > this.buffer.length) throw new Error(BUFFER_SHORTAGE);
-			this.offset = end;
-			return start;
-		}
-	}
-	function getEncoderMethods() {
-		return {
-			bufferish: Bufferish,
-			write,
-			fetch,
-			flush,
-			push,
-			pull,
-			read,
-			reserve,
-			send,
-			maxBufferSize: MAX_BUFFER_SIZE,
-			minBufferSize: MIN_BUFFER_SIZE,
-			offset: 0,
-			start: 0
-		};
-		function fetch() {
-			var start = this.start;
-			if (start < this.offset) {
-				var end = this.start = this.offset;
-				return Bufferish.prototype.slice.call(this.buffer, start, end);
-			}
-		}
-		function flush() {
-			while (this.start < this.offset) {
-				var value = this.fetch();
-				if (value) this.push(value);
-			}
-		}
-		function pull() {
-			var buffers = this.buffers || (this.buffers = []);
-			var chunk = buffers.length > 1 ? this.bufferish.concat(buffers) : buffers[0];
-			buffers.length = 0;
-			return chunk;
-		}
-		function reserve(length) {
-			var req = length | 0;
-			if (this.buffer) {
-				var size = this.buffer.length;
-				var start = this.offset | 0;
-				var end = start + req;
-				if (end < size) {
-					this.offset = end;
-					return start;
+				if (decoded) {
+					if (this.hasRemaining(1)) throw this.createExtraByteError(this.totalPos);
+					return object;
 				}
-				this.flush();
-				length = Math.max(length, Math.min(size * 2, this.maxBufferSize));
-			}
-			length = Math.max(length, this.minBufferSize);
-			this.buffer = this.bufferish.alloc(length);
-			this.start = 0;
-			this.offset = req;
-			return 0;
-		}
-		function send(buffer) {
-			var length = buffer.length;
-			if (length > this.minBufferSize) {
-				this.flush();
-				this.push(buffer);
-			} else {
-				var offset = this.reserve(length);
-				Bufferish.prototype.copy.call(buffer, this.buffer, offset);
+				const { headByte, pos, totalPos } = this;
+				throw new RangeError(`Insufficient data in parsing ${prettyByte(headByte)} at ${totalPos} (${pos} in the current buffer)`);
+			} finally {
+				this.entered = false;
 			}
 		}
-	}
-	function write() {
-		throw new Error("method not implemented: write()");
-	}
-	function fetch() {
-		throw new Error("method not implemented: fetch()");
-	}
-	function read() {
-		if (!(this.buffers && this.buffers.length)) return this.fetch();
-		this.flush();
-		return this.pull();
-	}
-	function push(chunk) {
-		(this.buffers || (this.buffers = [])).push(chunk);
-	}
-	function pull() {
-		return (this.buffers || (this.buffers = [])).shift();
-	}
-	function mixinFactory(source) {
-		return mixin;
-		function mixin(target) {
-			for (var key in source) target[key] = source[key];
-			return target;
+		decodeArrayStream(stream) {
+			return this.decodeMultiAsync(stream, true);
 		}
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/encode-buffer.js
-var require_encode_buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.EncodeBuffer = EncodeBuffer;
-	var preset = require_write_core().preset;
-	require_flex_buffer().FlexEncoder.mixin(EncodeBuffer.prototype);
-	function EncodeBuffer(options) {
-		if (!(this instanceof EncodeBuffer)) return new EncodeBuffer(options);
-		if (options) {
-			this.options = options;
-			if (options.codec) {
-				var codec = this.codec = options.codec;
-				if (codec.bufferish) this.bufferish = codec.bufferish;
+		decodeStream(stream) {
+			return this.decodeMultiAsync(stream, false);
+		}
+		async *decodeMultiAsync(stream, isArray) {
+			if (this.entered) {
+				yield* this.clone().decodeMultiAsync(stream, isArray);
+				return;
+			}
+			try {
+				this.entered = true;
+				let isArrayHeaderRequired = isArray;
+				let arrayItemsLeft = -1;
+				for await (const buffer of stream) {
+					if (isArray && arrayItemsLeft === 0) throw this.createExtraByteError(this.totalPos);
+					this.appendBuffer(buffer);
+					if (isArrayHeaderRequired) {
+						arrayItemsLeft = this.readArraySize();
+						isArrayHeaderRequired = false;
+						this.complete();
+					}
+					try {
+						while (true) {
+							yield this.doDecodeSync();
+							if (--arrayItemsLeft === 0) break;
+						}
+					} catch (e) {
+						if (!(e instanceof RangeError)) throw e;
+					}
+					this.totalPos += this.pos;
+				}
+			} finally {
+				this.entered = false;
 			}
 		}
-	}
-	EncodeBuffer.prototype.codec = preset;
-	EncodeBuffer.prototype.write = function(input) {
-		this.codec.encode(this, input);
-	};
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/encode.js
-var require_encode = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.encode = encode;
-	var EncodeBuffer = require_encode_buffer().EncodeBuffer;
-	function encode(input, options) {
-		var encoder = new EncodeBuffer(options);
-		encoder.write(input);
-		return encoder.read();
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/ext-unpacker.js
-var require_ext_unpacker = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.setExtUnpackers = setExtUnpackers;
-	var Bufferish = require_bufferish();
-	var Buffer = Bufferish.global;
-	var _decode;
-	var ERROR_COLUMNS = {
-		name: 1,
-		message: 1,
-		stack: 1,
-		columnNumber: 1,
-		fileName: 1,
-		lineNumber: 1
-	};
-	function setExtUnpackers(codec) {
-		codec.addExtUnpacker(14, [decode, unpackError(Error)]);
-		codec.addExtUnpacker(1, [decode, unpackError(EvalError)]);
-		codec.addExtUnpacker(2, [decode, unpackError(RangeError)]);
-		codec.addExtUnpacker(3, [decode, unpackError(ReferenceError)]);
-		codec.addExtUnpacker(4, [decode, unpackError(SyntaxError)]);
-		codec.addExtUnpacker(5, [decode, unpackError(TypeError)]);
-		codec.addExtUnpacker(6, [decode, unpackError(URIError)]);
-		codec.addExtUnpacker(10, [decode, unpackRegExp]);
-		codec.addExtUnpacker(11, [decode, unpackClass(Boolean)]);
-		codec.addExtUnpacker(12, [decode, unpackClass(String)]);
-		codec.addExtUnpacker(13, [decode, unpackClass(Date)]);
-		codec.addExtUnpacker(15, [decode, unpackClass(Number)]);
-		if ("undefined" !== typeof Uint8Array) {
-			codec.addExtUnpacker(17, unpackClass(Int8Array));
-			codec.addExtUnpacker(18, unpackClass(Uint8Array));
-			codec.addExtUnpacker(19, [unpackArrayBuffer, unpackClass(Int16Array)]);
-			codec.addExtUnpacker(20, [unpackArrayBuffer, unpackClass(Uint16Array)]);
-			codec.addExtUnpacker(21, [unpackArrayBuffer, unpackClass(Int32Array)]);
-			codec.addExtUnpacker(22, [unpackArrayBuffer, unpackClass(Uint32Array)]);
-			codec.addExtUnpacker(23, [unpackArrayBuffer, unpackClass(Float32Array)]);
-			if ("undefined" !== typeof Float64Array) codec.addExtUnpacker(24, [unpackArrayBuffer, unpackClass(Float64Array)]);
-			if ("undefined" !== typeof Uint8ClampedArray) codec.addExtUnpacker(25, unpackClass(Uint8ClampedArray));
-			codec.addExtUnpacker(26, unpackArrayBuffer);
-			codec.addExtUnpacker(29, [unpackArrayBuffer, unpackClass(DataView)]);
+		doDecodeSync() {
+			DECODE: while (true) {
+				const headByte = this.readHeadByte();
+				let object;
+				if (headByte >= 224) object = headByte - 256;
+				else if (headByte < 192) if (headByte < 128) object = headByte;
+				else if (headByte < 144) {
+					const size = headByte - 128;
+					if (size !== 0) {
+						this.pushMapState(size);
+						this.complete();
+						continue DECODE;
+					} else object = {};
+				} else if (headByte < 160) {
+					const size = headByte - 144;
+					if (size !== 0) {
+						this.pushArrayState(size);
+						this.complete();
+						continue DECODE;
+					} else object = [];
+				} else {
+					const byteLength = headByte - 160;
+					object = this.decodeString(byteLength, 0);
+				}
+				else if (headByte === 192) object = null;
+				else if (headByte === 194) object = false;
+				else if (headByte === 195) object = true;
+				else if (headByte === 202) object = this.readF32();
+				else if (headByte === 203) object = this.readF64();
+				else if (headByte === 204) object = this.readU8();
+				else if (headByte === 205) object = this.readU16();
+				else if (headByte === 206) object = this.readU32();
+				else if (headByte === 207) if (this.useBigInt64) object = this.readU64AsBigInt();
+				else object = this.readU64();
+				else if (headByte === 208) object = this.readI8();
+				else if (headByte === 209) object = this.readI16();
+				else if (headByte === 210) object = this.readI32();
+				else if (headByte === 211) if (this.useBigInt64) object = this.readI64AsBigInt();
+				else object = this.readI64();
+				else if (headByte === 217) {
+					const byteLength = this.lookU8();
+					object = this.decodeString(byteLength, 1);
+				} else if (headByte === 218) {
+					const byteLength = this.lookU16();
+					object = this.decodeString(byteLength, 2);
+				} else if (headByte === 219) {
+					const byteLength = this.lookU32();
+					object = this.decodeString(byteLength, 4);
+				} else if (headByte === 220) {
+					const size = this.readU16();
+					if (size !== 0) {
+						this.pushArrayState(size);
+						this.complete();
+						continue DECODE;
+					} else object = [];
+				} else if (headByte === 221) {
+					const size = this.readU32();
+					if (size !== 0) {
+						this.pushArrayState(size);
+						this.complete();
+						continue DECODE;
+					} else object = [];
+				} else if (headByte === 222) {
+					const size = this.readU16();
+					if (size !== 0) {
+						this.pushMapState(size);
+						this.complete();
+						continue DECODE;
+					} else object = {};
+				} else if (headByte === 223) {
+					const size = this.readU32();
+					if (size !== 0) {
+						this.pushMapState(size);
+						this.complete();
+						continue DECODE;
+					} else object = {};
+				} else if (headByte === 196) {
+					const size = this.lookU8();
+					object = this.decodeBinary(size, 1);
+				} else if (headByte === 197) {
+					const size = this.lookU16();
+					object = this.decodeBinary(size, 2);
+				} else if (headByte === 198) {
+					const size = this.lookU32();
+					object = this.decodeBinary(size, 4);
+				} else if (headByte === 212) object = this.decodeExtension(1, 0);
+				else if (headByte === 213) object = this.decodeExtension(2, 0);
+				else if (headByte === 214) object = this.decodeExtension(4, 0);
+				else if (headByte === 215) object = this.decodeExtension(8, 0);
+				else if (headByte === 216) object = this.decodeExtension(16, 0);
+				else if (headByte === 199) {
+					const size = this.lookU8();
+					object = this.decodeExtension(size, 1);
+				} else if (headByte === 200) {
+					const size = this.lookU16();
+					object = this.decodeExtension(size, 2);
+				} else if (headByte === 201) {
+					const size = this.lookU32();
+					object = this.decodeExtension(size, 4);
+				} else throw new DecodeError(`Unrecognized type byte: ${prettyByte(headByte)}`);
+				this.complete();
+				const stack = this.stack;
+				while (stack.length > 0) {
+					const state = stack.top();
+					if (state.type === STATE_ARRAY) {
+						state.array[state.position] = object;
+						state.position++;
+						if (state.position === state.size) {
+							object = state.array;
+							stack.release(state);
+						} else continue DECODE;
+					} else if (state.type === STATE_MAP_KEY) {
+						if (object === "__proto__") throw new DecodeError("The key __proto__ is not allowed");
+						state.key = this.mapKeyConverter(object);
+						state.type = STATE_MAP_VALUE;
+						continue DECODE;
+					} else {
+						state.map[state.key] = object;
+						state.readCount++;
+						if (state.readCount === state.size) {
+							object = state.map;
+							stack.release(state);
+						} else {
+							state.key = null;
+							state.type = STATE_MAP_KEY;
+							continue DECODE;
+						}
+					}
+				}
+				return object;
+			}
 		}
-		if (Bufferish.hasBuffer) codec.addExtUnpacker(27, unpackClass(Buffer));
-	}
-	function decode(input) {
-		if (!_decode) _decode = require_decode().decode;
-		return _decode(input);
-	}
-	function unpackRegExp(value) {
-		return RegExp.apply(null, value);
-	}
-	function unpackError(Class) {
-		return function(value) {
-			var out = new Class();
-			for (var key in ERROR_COLUMNS) out[key] = value[key];
-			return out;
-		};
-	}
-	function unpackClass(Class) {
-		return function(value) {
-			return new Class(value);
-		};
-	}
-	function unpackArrayBuffer(value) {
-		return new Uint8Array(value).buffer;
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/read-format.js
-var require_read_format = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var ieee754 = require_ieee754();
-	var Int64Buffer = require_int64_buffer();
-	var Uint64BE = Int64Buffer.Uint64BE;
-	var Int64BE = Int64Buffer.Int64BE;
-	exports.getReadFormat = getReadFormat;
-	exports.readUint8 = uint8;
-	var Bufferish = require_bufferish();
-	var BufferProto = require_bufferish_proto();
-	var HAS_MAP = "undefined" !== typeof Map;
-	var NO_ASSERT = true;
-	function getReadFormat(options) {
-		var binarraybuffer = Bufferish.hasArrayBuffer && options && options.binarraybuffer;
-		var int64 = options && options.int64;
-		return {
-			map: HAS_MAP && options && options.usemap ? map_to_map : map_to_obj,
-			array,
-			str,
-			bin: binarraybuffer ? bin_arraybuffer : bin_buffer,
-			ext,
-			uint8,
-			uint16,
-			uint32,
-			uint64: read(8, int64 ? readUInt64BE_int64 : readUInt64BE),
-			int8,
-			int16,
-			int32,
-			int64: read(8, int64 ? readInt64BE_int64 : readInt64BE),
-			float32: read(4, readFloatBE),
-			float64: read(8, readDoubleBE)
-		};
-	}
-	function map_to_obj(decoder, len) {
-		var value = {};
-		var i;
-		var k = new Array(len);
-		var v = new Array(len);
-		var decode = decoder.codec.decode;
-		for (i = 0; i < len; i++) {
-			k[i] = decode(decoder);
-			v[i] = decode(decoder);
+		readHeadByte() {
+			if (this.headByte === HEAD_BYTE_REQUIRED) this.headByte = this.readU8();
+			return this.headByte;
 		}
-		for (i = 0; i < len; i++) value[k[i]] = v[i];
-		return value;
-	}
-	function map_to_map(decoder, len) {
-		var value = /* @__PURE__ */ new Map();
-		var i;
-		var k = new Array(len);
-		var v = new Array(len);
-		var decode = decoder.codec.decode;
-		for (i = 0; i < len; i++) {
-			k[i] = decode(decoder);
-			v[i] = decode(decoder);
+		complete() {
+			this.headByte = HEAD_BYTE_REQUIRED;
 		}
-		for (i = 0; i < len; i++) value.set(k[i], v[i]);
-		return value;
-	}
-	function array(decoder, len) {
-		var value = new Array(len);
-		var decode = decoder.codec.decode;
-		for (var i = 0; i < len; i++) value[i] = decode(decoder);
-		return value;
-	}
-	function str(decoder, len) {
-		var start = decoder.reserve(len);
-		var end = start + len;
-		return BufferProto.toString.call(decoder.buffer, "utf-8", start, end);
-	}
-	function bin_buffer(decoder, len) {
-		var start = decoder.reserve(len);
-		var end = start + len;
-		var buf = BufferProto.slice.call(decoder.buffer, start, end);
-		return Bufferish.from(buf);
-	}
-	function bin_arraybuffer(decoder, len) {
-		var start = decoder.reserve(len);
-		var end = start + len;
-		var buf = BufferProto.slice.call(decoder.buffer, start, end);
-		return Bufferish.Uint8Array.from(buf).buffer;
-	}
-	function ext(decoder, len) {
-		var start = decoder.reserve(len + 1);
-		var type = decoder.buffer[start++];
-		var end = start + len;
-		var unpack = decoder.codec.getExtUnpacker(type);
-		if (!unpack) throw new Error("Invalid ext type: " + (type ? "0x" + type.toString(16) : type));
-		return unpack(BufferProto.slice.call(decoder.buffer, start, end));
-	}
-	function uint8(decoder) {
-		var start = decoder.reserve(1);
-		return decoder.buffer[start];
-	}
-	function int8(decoder) {
-		var start = decoder.reserve(1);
-		var value = decoder.buffer[start];
-		return value & 128 ? value - 256 : value;
-	}
-	function uint16(decoder) {
-		var start = decoder.reserve(2);
-		var buffer = decoder.buffer;
-		return buffer[start++] << 8 | buffer[start];
-	}
-	function int16(decoder) {
-		var start = decoder.reserve(2);
-		var buffer = decoder.buffer;
-		var value = buffer[start++] << 8 | buffer[start];
-		return value & 32768 ? value - 65536 : value;
-	}
-	function uint32(decoder) {
-		var start = decoder.reserve(4);
-		var buffer = decoder.buffer;
-		return buffer[start++] * 16777216 + (buffer[start++] << 16) + (buffer[start++] << 8) + buffer[start];
-	}
-	function int32(decoder) {
-		var start = decoder.reserve(4);
-		var buffer = decoder.buffer;
-		return buffer[start++] << 24 | buffer[start++] << 16 | buffer[start++] << 8 | buffer[start];
-	}
-	function read(len, method) {
-		return function(decoder) {
-			var start = decoder.reserve(len);
-			return method.call(decoder.buffer, start, NO_ASSERT);
-		};
-	}
-	function readUInt64BE(start) {
-		return new Uint64BE(this, start).toNumber();
-	}
-	function readInt64BE(start) {
-		return new Int64BE(this, start).toNumber();
-	}
-	function readUInt64BE_int64(start) {
-		return new Uint64BE(this, start);
-	}
-	function readInt64BE_int64(start) {
-		return new Int64BE(this, start);
-	}
-	function readFloatBE(start) {
-		return ieee754.read(this, start, false, 23, 4);
-	}
-	function readDoubleBE(start) {
-		return ieee754.read(this, start, false, 52, 8);
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/read-token.js
-var require_read_token = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var ReadFormat = require_read_format();
-	exports.getReadToken = getReadToken;
-	function getReadToken(options) {
-		var format = ReadFormat.getReadFormat(options);
-		if (options && options.useraw) return init_useraw(format);
-		else return init_token(format);
-	}
-	function init_token(format) {
-		var i;
-		var token = new Array(256);
-		for (i = 0; i <= 127; i++) token[i] = constant(i);
-		for (i = 128; i <= 143; i++) token[i] = fix(i - 128, format.map);
-		for (i = 144; i <= 159; i++) token[i] = fix(i - 144, format.array);
-		for (i = 160; i <= 191; i++) token[i] = fix(i - 160, format.str);
-		token[192] = constant(null);
-		token[193] = null;
-		token[194] = constant(false);
-		token[195] = constant(true);
-		token[196] = flex(format.uint8, format.bin);
-		token[197] = flex(format.uint16, format.bin);
-		token[198] = flex(format.uint32, format.bin);
-		token[199] = flex(format.uint8, format.ext);
-		token[200] = flex(format.uint16, format.ext);
-		token[201] = flex(format.uint32, format.ext);
-		token[202] = format.float32;
-		token[203] = format.float64;
-		token[204] = format.uint8;
-		token[205] = format.uint16;
-		token[206] = format.uint32;
-		token[207] = format.uint64;
-		token[208] = format.int8;
-		token[209] = format.int16;
-		token[210] = format.int32;
-		token[211] = format.int64;
-		token[212] = fix(1, format.ext);
-		token[213] = fix(2, format.ext);
-		token[214] = fix(4, format.ext);
-		token[215] = fix(8, format.ext);
-		token[216] = fix(16, format.ext);
-		token[217] = flex(format.uint8, format.str);
-		token[218] = flex(format.uint16, format.str);
-		token[219] = flex(format.uint32, format.str);
-		token[220] = flex(format.uint16, format.array);
-		token[221] = flex(format.uint32, format.array);
-		token[222] = flex(format.uint16, format.map);
-		token[223] = flex(format.uint32, format.map);
-		for (i = 224; i <= 255; i++) token[i] = constant(i - 256);
-		return token;
-	}
-	function init_useraw(format) {
-		var i;
-		var token = init_token(format).slice();
-		token[217] = token[196];
-		token[218] = token[197];
-		token[219] = token[198];
-		for (i = 160; i <= 191; i++) token[i] = fix(i - 160, format.bin);
-		return token;
-	}
-	function constant(value) {
-		return function() {
+		readArraySize() {
+			const headByte = this.readHeadByte();
+			switch (headByte) {
+				case 220: return this.readU16();
+				case 221: return this.readU32();
+				default: if (headByte < 160) return headByte - 144;
+				else throw new DecodeError(`Unrecognized array type byte: ${prettyByte(headByte)}`);
+			}
+		}
+		pushMapState(size) {
+			if (size > this.maxMapLength) throw new DecodeError(`Max length exceeded: map length (${size}) > maxMapLengthLength (${this.maxMapLength})`);
+			this.stack.pushMapState(size);
+		}
+		pushArrayState(size) {
+			if (size > this.maxArrayLength) throw new DecodeError(`Max length exceeded: array length (${size}) > maxArrayLength (${this.maxArrayLength})`);
+			this.stack.pushArrayState(size);
+		}
+		decodeString(byteLength, headerOffset) {
+			if (!this.rawStrings || this.stateIsMapKey()) return this.decodeUtf8String(byteLength, headerOffset);
+			return this.decodeBinary(byteLength, headerOffset);
+		}
+		/**
+		* @throws {@link RangeError}
+		*/
+		decodeUtf8String(byteLength, headerOffset) {
+			if (byteLength > this.maxStrLength) throw new DecodeError(`Max length exceeded: UTF-8 byte length (${byteLength}) > maxStrLength (${this.maxStrLength})`);
+			if (this.bytes.byteLength < this.pos + headerOffset + byteLength) throw MORE_DATA;
+			const offset = this.pos + headerOffset;
+			let object;
+			if (this.stateIsMapKey() && this.keyDecoder?.canBeCached(byteLength)) object = this.keyDecoder.decode(this.bytes, offset, byteLength);
+			else object = utf8Decode(this.bytes, offset, byteLength);
+			this.pos += headerOffset + byteLength;
+			return object;
+		}
+		stateIsMapKey() {
+			if (this.stack.length > 0) return this.stack.top().type === STATE_MAP_KEY;
+			return false;
+		}
+		/**
+		* @throws {@link RangeError}
+		*/
+		decodeBinary(byteLength, headOffset) {
+			if (byteLength > this.maxBinLength) throw new DecodeError(`Max length exceeded: bin length (${byteLength}) > maxBinLength (${this.maxBinLength})`);
+			if (!this.hasRemaining(byteLength + headOffset)) throw MORE_DATA;
+			const offset = this.pos + headOffset;
+			const object = this.bytes.subarray(offset, offset + byteLength);
+			this.pos += headOffset + byteLength;
+			return object;
+		}
+		decodeExtension(size, headOffset) {
+			if (size > this.maxExtLength) throw new DecodeError(`Max length exceeded: ext length (${size}) > maxExtLength (${this.maxExtLength})`);
+			const extType = this.view.getInt8(this.pos + headOffset);
+			const data = this.decodeBinary(size, headOffset + 1);
+			return this.extensionCodec.decode(data, extType, this.context);
+		}
+		lookU8() {
+			return this.view.getUint8(this.pos);
+		}
+		lookU16() {
+			return this.view.getUint16(this.pos);
+		}
+		lookU32() {
+			return this.view.getUint32(this.pos);
+		}
+		readU8() {
+			const value = this.view.getUint8(this.pos);
+			this.pos++;
 			return value;
-		};
-	}
-	function flex(lenFunc, decodeFunc) {
-		return function(decoder) {
-			return decodeFunc(decoder, lenFunc(decoder));
-		};
-	}
-	function fix(len, method) {
-		return function(decoder) {
-			return method(decoder, len);
-		};
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/read-core.js
-var require_read_core = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var ExtBuffer = require_ext_buffer().ExtBuffer;
-	var ExtUnpacker = require_ext_unpacker();
-	var readUint8 = require_read_format().readUint8;
-	var ReadToken = require_read_token();
-	var CodecBase = require_codec_base();
-	CodecBase.install({
-		addExtUnpacker,
-		getExtUnpacker,
-		init
-	});
-	exports.preset = init.call(CodecBase.preset);
-	function getDecoder(options) {
-		var readToken = ReadToken.getReadToken(options);
-		return decode;
-		function decode(decoder) {
-			var type = readUint8(decoder);
-			var func = readToken[type];
-			if (!func) throw new Error("Invalid type: " + (type ? "0x" + type.toString(16) : type));
-			return func(decoder);
 		}
-	}
-	function init() {
-		var options = this.options;
-		this.decode = getDecoder(options);
-		if (options && options.preset) ExtUnpacker.setExtUnpackers(this);
-		return this;
-	}
-	function addExtUnpacker(etype, unpacker) {
-		var unpackers = this.extUnpackers || (this.extUnpackers = []);
-		unpackers[etype] = CodecBase.filter(unpacker);
-	}
-	function getExtUnpacker(type) {
-		return (this.extUnpackers || (this.extUnpackers = []))[type] || extUnpacker;
-		function extUnpacker(buffer) {
-			return new ExtBuffer(buffer, type);
+		readI8() {
+			const value = this.view.getInt8(this.pos);
+			this.pos++;
+			return value;
 		}
-	}
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/decode-buffer.js
-var require_decode_buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.DecodeBuffer = DecodeBuffer;
-	var preset = require_read_core().preset;
-	require_flex_buffer().FlexDecoder.mixin(DecodeBuffer.prototype);
-	function DecodeBuffer(options) {
-		if (!(this instanceof DecodeBuffer)) return new DecodeBuffer(options);
-		if (options) {
-			this.options = options;
-			if (options.codec) {
-				var codec = this.codec = options.codec;
-				if (codec.bufferish) this.bufferish = codec.bufferish;
-			}
+		readU16() {
+			const value = this.view.getUint16(this.pos);
+			this.pos += 2;
+			return value;
 		}
+		readI16() {
+			const value = this.view.getInt16(this.pos);
+			this.pos += 2;
+			return value;
+		}
+		readU32() {
+			const value = this.view.getUint32(this.pos);
+			this.pos += 4;
+			return value;
+		}
+		readI32() {
+			const value = this.view.getInt32(this.pos);
+			this.pos += 4;
+			return value;
+		}
+		readU64() {
+			const value = getUint64(this.view, this.pos);
+			this.pos += 8;
+			return value;
+		}
+		readI64() {
+			const value = getInt64(this.view, this.pos);
+			this.pos += 8;
+			return value;
+		}
+		readU64AsBigInt() {
+			const value = this.view.getBigUint64(this.pos);
+			this.pos += 8;
+			return value;
+		}
+		readI64AsBigInt() {
+			const value = this.view.getBigInt64(this.pos);
+			this.pos += 8;
+			return value;
+		}
+		readF32() {
+			const value = this.view.getFloat32(this.pos);
+			this.pos += 4;
+			return value;
+		}
+		readF64() {
+			const value = this.view.getFloat64(this.pos);
+			this.pos += 8;
+			return value;
+		}
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/decode.mjs
+/**
+* It decodes a single MessagePack object in a buffer.
+*
+* This is a synchronous decoding function.
+* See other variants for asynchronous decoding: {@link decodeAsync}, {@link decodeMultiStream}, or {@link decodeArrayStream}.
+*
+* @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
+* @throws {@link DecodeError} if the buffer contains invalid data.
+*/
+function decode(buffer, options) {
+	return new Decoder(options).decode(buffer);
+}
+var init_decode = __esmMin((() => {
+	init_Decoder();
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/stream.mjs
+function isAsyncIterable(object) {
+	return object[Symbol.asyncIterator] != null;
+}
+async function* asyncIterableFromStream(stream) {
+	const reader = stream.getReader();
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) return;
+			yield value;
+		}
+	} finally {
+		reader.releaseLock();
 	}
-	DecodeBuffer.prototype.codec = preset;
-	DecodeBuffer.prototype.fetch = function() {
-		return this.codec.decode(this);
-	};
+}
+function ensureAsyncIterable(streamLike) {
+	if (isAsyncIterable(streamLike)) return streamLike;
+	else return asyncIterableFromStream(streamLike);
+}
+var init_stream = __esmMin((() => {}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/decodeAsync.mjs
+/**
+* @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
+* @throws {@link DecodeError} if the buffer contains invalid data.
+*/
+function decodeMultiStream(streamLike, options) {
+	const stream = ensureAsyncIterable(streamLike);
+	return new Decoder(options).decodeStream(stream);
+}
+var init_decodeAsync = __esmMin((() => {
+	init_Decoder();
+	init_stream();
 }));
 //#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/decode.js
-var require_decode = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.decode = decode;
-	var DecodeBuffer = require_decode_buffer().DecodeBuffer;
-	function decode(input, options) {
-		var decoder = new DecodeBuffer(options);
-		decoder.write(input);
-		return decoder.read();
-	}
+//#region node_modules/@msgpack/msgpack/dist.esm/index.mjs
+var init_dist_esm = __esmMin((() => {
+	init_decode();
+	init_decodeAsync();
+	init_Encoder();
+	init_ExtensionCodec();
 }));
 //#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/encoder.js
-var require_encoder = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.Encoder = Encoder;
-	var EncodeBuffer = require_encode_buffer().EncodeBuffer;
-	function Encoder(options) {
-		if (!(this instanceof Encoder)) return new Encoder(options);
-		EncodeBuffer.call(this, options);
-	}
-	Encoder.prototype = new EncodeBuffer();
-	Encoder.prototype.encode = function(chunk) {
-		this.write(chunk);
-	};
-	Encoder.prototype.end = function(chunk) {
-		if (arguments.length) this.encode(chunk);
-		this.flush();
-	};
+//#region src/neovim/utils/constants.ts
+var isTester, isVim$1;
+var init_constants$1 = __esmMin((() => {
+	isTester = process.env.COC_TESTER == "1";
+	isVim$1 = process.env.VIM_NODE_RPC == "1";
 }));
 //#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/decoder.js
-var require_decoder = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.Decoder = Decoder;
-	var DecodeBuffer = require_decode_buffer().DecodeBuffer;
-	function Decoder(options) {
-		if (!(this instanceof Decoder)) return new Decoder(options);
-		DecodeBuffer.call(this, options);
-	}
-	Decoder.prototype = new DecodeBuffer();
-	Decoder.prototype.decode = function(chunk) {
-		if (arguments.length) this.write(chunk);
-		this.flush();
-	};
-	Decoder.prototype.end = function(chunk) {
-		this.decode(chunk);
-	};
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/encode-stream.js
-var require_encode_stream = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.createEncodeStream = EncodeStream;
-	var util$9 = require("util");
-	var Transform$5 = require("stream").Transform;
-	var EncodeBuffer = require_encode_buffer().EncodeBuffer;
-	util$9.inherits(EncodeStream, Transform$5);
-	var DEFAULT_OPTIONS = { objectMode: true };
-	function EncodeStream(options) {
-		if (!(this instanceof EncodeStream)) return new EncodeStream(options);
-		if (options) options.objectMode = true;
-		else options = DEFAULT_OPTIONS;
-		Transform$5.call(this, options);
-		var stream = this;
-		var encoder = this.encoder = new EncodeBuffer(options);
-		encoder.push = function(chunk) {
-			stream.push(chunk);
-		};
-	}
-	EncodeStream.prototype._transform = function(chunk, encoding, callback) {
-		this.encoder.write(chunk);
-		if (callback) callback();
-	};
-	EncodeStream.prototype._flush = function(callback) {
-		this.encoder.flush();
-		if (callback) callback();
-	};
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/decode-stream.js
-var require_decode_stream = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.createDecodeStream = DecodeStream;
-	var util$8 = require("util");
-	var Transform$4 = require("stream").Transform;
-	var DecodeBuffer = require_decode_buffer().DecodeBuffer;
-	util$8.inherits(DecodeStream, Transform$4);
-	var DEFAULT_OPTIONS = { objectMode: true };
-	function DecodeStream(options) {
-		if (!(this instanceof DecodeStream)) return new DecodeStream(options);
-		if (options) options.objectMode = true;
-		else options = DEFAULT_OPTIONS;
-		Transform$4.call(this, options);
-		var stream = this;
-		var decoder = this.decoder = new DecodeBuffer(options);
-		decoder.push = function(chunk) {
-			stream.push(chunk);
-		};
-	}
-	DecodeStream.prototype._transform = function(chunk, encoding, callback) {
-		this.decoder.write(chunk);
-		this.decoder.flush();
-		if (callback) callback();
-	};
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/ext.js
-var require_ext = /* @__PURE__ */ __commonJSMin(((exports) => {
-	require_read_core();
-	require_write_core();
-	exports.createCodec = require_codec_base().createCodec;
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/lib/codec.js
-var require_codec = /* @__PURE__ */ __commonJSMin(((exports) => {
-	require_read_core();
-	require_write_core();
-	exports.codec = { preset: require_codec_base().preset };
-}));
-//#endregion
-//#region node_modules/@chemzqm/msgpack-lite/index.js
-var require_msgpack_lite = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.encode = require_encode().encode;
-	exports.decode = require_decode().decode;
-	exports.Encoder = require_encoder().Encoder;
-	exports.Decoder = require_decoder().Decoder;
-	exports.createEncodeStream = require_encode_stream().createEncodeStream;
-	exports.createDecodeStream = require_decode_stream().createDecodeStream;
-	exports.createCodec = require_ext().createCodec;
-	exports.codec = require_codec().codec;
-}));
-//#endregion
-//#region node_modules/@chemzqm/neovim/lib/utils/constants.js
-var require_constants = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.isVim = exports.isTester = exports.isCocNvim = void 0;
-	exports.isCocNvim = true;
-	exports.isTester = process.env.COC_TESTER == "1";
-	exports.isVim = process.env.VIM_NODE_RPC == "1";
-}));
-//#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/Base.js
-var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.BaseApi = void 0;
-	const constants_1 = require_constants();
-	var BaseApi = class {
+//#region src/neovim/api/Base.ts
+var BaseApi;
+var init_Base = __esmMin((() => {
+	init_constants$1();
+	BaseApi = class {
+		prefix;
+		data;
+		client;
 		constructor({ data, client }) {
 			this.data = data;
 			if (client) this.client = client;
@@ -58753,7 +58309,6 @@ var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		async request(name, args = [], skipConvert = false, skipErrorLog = false) {
 			Error.captureStackTrace(args);
-			const self = this;
 			return new Promise((resolve, reject) => {
 				let converted = skipConvert ? args : this.getArgsByPrefix(args);
 				this.transport.request(name, converted, (err, res) => {
@@ -58761,7 +58316,7 @@ var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
 						let e = new Error(err[1]);
 						if (!skipErrorLog) {
 							e.stack = `Error: request error on "${name}" - ${err[1]}\n` + args["stack"].split(/\r?\n/).slice(3).join("\n");
-							this.client.logError(`request error on "${name}"`, converted.map((o) => o === self ? self.data : o), e);
+							this.client.logError(`request error on "${name}"`, converted.map((o) => o === this ? this.data : o), e);
 						}
 						reject(e);
 					} else resolve(res);
@@ -58769,7 +58324,7 @@ var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
 			});
 		}
 		getArgsByPrefix(args) {
-			if (this.prefix !== "nvim_" && args[0] !== this) return [constants_1.isVim ? this.data : this, ...args];
+			if (this.prefix !== "nvim_" && args[0] !== this) return [isVim$1 ? this.data : this, ...args];
 			return args;
 		}
 		/** Retrieves a scoped variable depending on type (using `this.prefix`) */
@@ -58805,30 +58360,24 @@ var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.transport.notify(name, skipConvert ? args : this.getArgsByPrefix(args));
 		}
 		toJSON() {
-			var _a;
-			return (_a = this.data) !== null && _a !== void 0 ? _a : 0;
+			return this.data ?? 0;
 		}
 	};
-	exports.BaseApi = BaseApi;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/Buffer.js
-var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Buffer = void 0;
-	const constants_1 = require_constants();
-	const Base_1 = require_Base();
-	var Buffer = class extends Base_1.BaseApi {
-		constructor() {
-			super(...arguments);
-			this.prefix = "nvim_buf_";
-		}
+//#region src/neovim/api/Buffer.ts
+var Buffer$2;
+var init_Buffer = __esmMin((() => {
+	init_constants$1();
+	init_Base();
+	Buffer$2 = class extends BaseApi {
+		prefix = "nvim_buf_";
 		/**
 		* Attach to buffer to listen to buffer events
 		* @param sendBuffer Set to true if the initial notification should contain
-		*        the whole buffer. If so, the first notification will be a
-		*        `nvim_buf_lines_event`. Otherwise, the first notification will be
-		*        a `nvim_buf_changedtick_event`
+		* the whole buffer. If so, the first notification will be a
+		* `nvim_buf_lines_event`. Otherwise, the first notification will be
+		* a `nvim_buf_changedtick_event`
 		*/
 		async attach(sendBuffer = false, options = {}) {
 			return await this.request(`${this.prefix}attach`, [sendBuffer, options]);
@@ -58841,16 +58390,14 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			if (constants_1.isCocNvim) return this.request(`nvim_get_option_value`, [name, { buf: this.id }], true);
-			return super.getOption(name);
+			return this.request(`nvim_get_option_value`, [name, { buf: this.id }], true);
 		}
 		setOption(name, value, isNotify) {
-			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
+			return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
 				name,
 				value,
 				{ buf: this.id }
 			], true);
-			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/**
 		* Get the bufnr of Buffer
@@ -58890,10 +58437,10 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 			]);
 		}
 		setLines(lines, opts, notify = false) {
-			let { start, end, strictIndexing } = opts !== null && opts !== void 0 ? opts : {};
-			start = start !== null && start !== void 0 ? start : 0;
-			end = end !== null && end !== void 0 ? end : start + 1;
-			const indexing = strictIndexing !== null && strictIndexing !== void 0 ? strictIndexing : true;
+			let { start, end, strictIndexing } = opts ?? {};
+			start = start ?? 0;
+			end = end ?? start + 1;
+			const indexing = strictIndexing ?? true;
 			const method = notify ? "notify" : "request";
 			return this[method](`${this.prefix}set_lines`, [
 				start,
@@ -58904,7 +58451,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Set virtual text for a line, works on nvim >= 0.5.0 and vim9
-		*
 		* @public
 		* @param {number} src_id - Source group to use or 0 to use a new group, or -1
 		* @param {number} line - Line to annotate with virtual text (zero-indexed)
@@ -58924,7 +58470,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Removes an ext mark by notification.
-		*
 		* @public
 		* @param {number} ns_id - Namespace id
 		* @param {number} id - Extmark id
@@ -58934,7 +58479,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Gets the position (0-indexed) of an extmark.
-		*
 		* @param {number} ns_id - Namespace id
 		* @param {number} id - Extmark id
 		* @param {Object} opts - Optional parameters.
@@ -58955,9 +58499,8 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		* positions define the bounds). 0 and -1 are understood as (0,0) and (-1,-1)
 		* respectively, thus the following are equivalent:
 		*
-		*     nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
-		*     nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
-		*
+		* nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
+		* nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
 		* @param {number} ns_id - Namespace id
 		* @param {[number, number] | number} start
 		* @param {[number, number] | number} end
@@ -58974,7 +58517,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Creates or updates an extmark by notification, `:h nvim_buf_set_extmark`.
-		*
 		* @param {number} ns_id
 		* @param {number} line
 		* @param {number} col
@@ -59075,35 +58617,35 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		*
 		* Unlike |line2byte()|, throws error for out-of-bounds indexing.
 		* Returns -1 for unloaded buffer.
-		*
 		* @return {Number} Integer byte offset, or -1 for unloaded buffer.
 		*/
 		getOffset(index) {
 			return this.request(`${this.prefix}get_offset`, [index]);
 		}
 		/**
-		Adds a highlight to buffer.
-		
-		This can be used for plugins which dynamically generate
-		highlights to a buffer (like a semantic highlighter or
-		linter). The function adds a single highlight to a buffer.
-		Unlike matchaddpos() highlights follow changes to line
-		numbering (as lines are inserted/removed above the highlighted
-		line), like signs and marks do.
-		
-		"src_id" is useful for batch deletion/updating of a set of
-		highlights. When called with src_id = 0, an unique source id
-		is generated and returned. Succesive calls can pass in it as
-		"src_id" to add new highlights to the same source group. All
-		highlights in the same group can then be cleared with
-		nvim_buf_clear_namespace. If the highlight never will be
-		manually deleted pass in -1 for "src_id".
-		
-		If "hl_group" is the empty string no highlight is added, but a
-		new src_id is still returned. This is useful for an external
-		plugin to synchrounously request an unique src_id at
-		initialization, and later asynchronously add and clear
-		highlights in response to buffer changes. */
+		* Adds a highlight to buffer.
+		*
+		* This can be used for plugins which dynamically generate
+		* highlights to a buffer (like a semantic highlighter or
+		* linter). The function adds a single highlight to a buffer.
+		* Unlike matchaddpos() highlights follow changes to line
+		* numbering (as lines are inserted/removed above the highlighted
+		* line), like signs and marks do.
+		*
+		* "src_id" is useful for batch deletion/updating of a set of
+		* highlights. When called with src_id = 0, an unique source id
+		* is generated and returned. Succesive calls can pass in it as
+		* "src_id" to add new highlights to the same source group. All
+		* highlights in the same group can then be cleared with
+		* nvim_buf_clear_namespace. If the highlight never will be
+		* manually deleted pass in -1 for "src_id".
+		*
+		* If "hl_group" is the empty string no highlight is added, but a
+		* new src_id is still returned. This is useful for an external
+		* plugin to synchrounously request an unique src_id at
+		* initialization, and later asynchronously add and clear
+		* highlights in response to buffer changes.
+		*/
 		addHighlight({ hlGroup, line, colStart: _start, colEnd: _end, srcId: _srcId }) {
 			if (!hlGroup) throw new Error("hlGroup should not empty");
 			const colEnd = typeof _end !== "undefined" ? _end : -1;
@@ -59121,7 +58663,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Clear highlights of specified lins.
-		*
 		* @deprecated use clearNamespace() instead.
 		*/
 		clearHighlight(args = {}) {
@@ -59138,7 +58679,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Add highlight to ranges by notification.
-		*
 		* @param {string | number} srcId Unique key or namespace number.
 		* @param {string} hlGroup Highlight group.
 		* @param {Range[]} ranges List of highlight ranges
@@ -59149,12 +58689,11 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 				srcId,
 				hlGroup,
 				ranges,
-				option !== null && option !== void 0 ? option : {}
+				option ?? {}
 			], true);
 		}
 		/**
 		* Clear namespace by id or name.
-		*
 		* @param key Unique key or namespace number, use -1 for all namespaces
 		* @param lineStart Start of line, 0 based, default to 0.
 		* @param lineEnd End of line, 0 based, default to -1.
@@ -59169,7 +58708,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Add sign to buffer by notification.
-		*
 		* @param {SignPlaceOption} sign
 		* @returns {void}
 		*/
@@ -59194,7 +58732,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Get signs by group name or id and lnum.
-		*
 		* @param {SignPlacedOption} opts
 		* @returns {Promise<SignItem[]>}
 		*/
@@ -59203,7 +58740,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Get highlight items by name space (end inclusive).
-		*
 		* @param {string} ns Namespace key.
 		* @param {number} start 0 based line number.
 		* @param {number} end 0 based line number.
@@ -59228,7 +58764,6 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Update highlight items by notification.
-		*
 		* @param {string | number} ns Namespace key or id.
 		* @param {HighlightItem[]} highlights Highlight items.
 		* @param {HighlightOption} opts Optional options.
@@ -59282,19 +58817,14 @@ var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
 			} });
 		}
 	};
-	exports.Buffer = Buffer;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/Tabpage.js
-var require_Tabpage = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Tabpage = void 0;
-	const Base_1 = require_Base();
-	var Tabpage = class extends Base_1.BaseApi {
-		constructor() {
-			super(...arguments);
-			this.prefix = "nvim_tabpage_";
-		}
+//#region src/neovim/api/Tabpage.ts
+var Tabpage;
+var init_Tabpage = __esmMin((() => {
+	init_Base();
+	Tabpage = class extends BaseApi {
+		prefix = "nvim_tabpage_";
 		/**
 		* The windowid that not change within a Vim session
 		*/
@@ -59326,20 +58856,15 @@ var require_Tabpage = /* @__PURE__ */ __commonJSMin(((exports) => {
 			throw new Error("Tabpage does not have `setOption`");
 		}
 	};
-	exports.Tabpage = Tabpage;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/Window.js
-var require_Window = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Window = void 0;
-	const constants_1 = require_constants();
-	const Base_1 = require_Base();
-	var Window = class extends Base_1.BaseApi {
-		constructor() {
-			super(...arguments);
-			this.prefix = "nvim_win_";
-		}
+//#region src/neovim/api/Window.ts
+var Window$1;
+var init_Window = __esmMin((() => {
+	init_constants$1();
+	init_Base();
+	Window$1 = class extends BaseApi {
+		prefix = "nvim_win_";
 		/**
 		* The windowid that not change within a Vim session
 		*/
@@ -59351,16 +58876,14 @@ var require_Window = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			if (constants_1.isCocNvim) return this.request(`nvim_get_option_value`, [name, { win: this.id }], true);
-			return super.getOption(name);
+			return this.request(`nvim_get_option_value`, [name, { win: this.id }], true);
 		}
 		setOption(name, value, isNotify) {
-			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
+			return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
 				name,
 				value,
 				{ win: this.id }
 			], true);
-			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/** Get current buffer of window */
 		get buffer() {
@@ -59460,168 +58983,106 @@ var require_Window = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.client.call("coc#window#clear_matches", [this.id, ids], true);
 		}
 	};
-	exports.Window = Window;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/types.js
-var require_types = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Metadata = exports.ExtType = void 0;
-	const Buffer_1 = require_Buffer();
-	const Tabpage_1 = require_Tabpage();
-	const Window_1 = require_Window();
-	var ExtType;
-	(function(ExtType) {
-		ExtType[ExtType["Buffer"] = 0] = "Buffer";
-		ExtType[ExtType["Window"] = 1] = "Window";
-		ExtType[ExtType["Tabpage"] = 2] = "Tabpage";
-	})(ExtType || (exports.ExtType = ExtType = {}));
-	exports.Metadata = [
+//#region src/neovim/api/types.ts
+var Metadata;
+var init_types$2 = __esmMin((() => {
+	init_Buffer();
+	init_Tabpage();
+	init_Window();
+	Metadata = [
 		{
-			constructor: Buffer_1.Buffer,
+			constructor: Buffer$2,
 			name: "Buffer",
 			prefix: "nvim_buf_"
 		},
 		{
-			constructor: Window_1.Window,
+			constructor: Window$1,
 			name: "Window",
 			prefix: "nvim_win_"
 		},
 		{
-			constructor: Tabpage_1.Tabpage,
+			constructor: Tabpage,
 			name: "Tabpage",
 			prefix: "nvim_tabpage_"
 		}
 	];
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/utils/buffered.js
-var require_buffered = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	const stream_1 = require("stream");
-	const MIN_SIZE = Buffer.poolSize;
-	const waterMark = 10 * 1024 * 1024;
-	var Buffered = class extends stream_1.Transform {
-		constructor() {
-			super({
-				readableHighWaterMark: waterMark,
-				writableHighWaterMark: waterMark
-			});
-			this.chunks = null;
-			this.timer = null;
-		}
-		sendData() {
-			const { chunks } = this;
-			if (chunks) {
-				this.chunks = null;
-				this.push(Buffer.concat(chunks));
-			}
-		}
-		_transform(chunk, _encoding, callback) {
-			const { chunks, timer } = this;
-			if (timer) clearTimeout(timer);
-			if (chunk.length < MIN_SIZE) {
-				if (!chunks) return callback(null, chunk);
-				chunks.push(chunk);
-				this.sendData();
-				callback();
-			} else {
-				if (!chunks) this.chunks = [chunk];
-				else chunks.push(chunk);
-				this.timer = setTimeout(this.sendData.bind(this), 20);
-				callback();
-			}
-		}
-		_flush(callback) {
-			const { chunks } = this;
-			if (chunks) {
-				this.chunks = null;
-				callback(null, Buffer.concat(chunks));
-			} else callback();
-		}
-	};
-	exports.default = Buffered;
-}));
-//#endregion
-//#region node_modules/@chemzqm/neovim/lib/utils/logger.js
-var require_logger = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var __importDefault = exports && exports.__importDefault || function(mod) {
-		return mod && mod.__esModule ? mod : { "default": mod };
-	};
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.level = exports.nullLogger = void 0;
-	exports.createLogger = createLogger;
-	const fs_1 = __importDefault(require("fs"));
-	const os_1 = __importDefault(require("os"));
-	const path_1 = __importDefault(require("path"));
-	const util_1$1 = require("util");
-	exports.nullLogger = {
+//#region src/neovim/utils/logger.ts
+function getLogFile() {
+	let file = process.env.NODE_CLIENT_LOG_FILE;
+	if (file) return file;
+	let dir = process.env.XDG_RUNTIME_DIR;
+	if (dir) return path.default.join(dir, "node-client.log");
+	return path.default.join(os.default.tmpdir(), `node-client-${process.pid}.log`);
+}
+function toObject$1(arg) {
+	if (arg == null) return arg;
+	if (Array.isArray(arg)) return arg.map((o) => toObject$1(o));
+	if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") return "[" + arg.prefix + arg.data + "]";
+	return arg;
+}
+function toString(arg) {
+	if (debugging) return (0, util.inspect)(arg, {
+		depth: null,
+		colors: true,
+		compact: false
+	});
+	if (arg == null) return String(arg);
+	if (arg instanceof Error) return arg.stack;
+	if (typeof arg == "object") return JSON.stringify(arg, null, 2);
+	return String(arg);
+}
+function toTimeString(currentTime) {
+	return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`;
+}
+function createLogger(name) {
+	return new Logger(name);
+}
+var nullLogger, debugging, LOG_FILE_PATH, level, invalid, toTwoDigits, toThreeDigits, writableStream, Logger;
+var init_logger$1 = __esmMin((() => {
+	nullLogger = {
 		debug: () => {},
 		info: () => {},
 		warn: () => {},
 		error: () => {},
 		trace: () => {}
 	};
-	function getLogFile() {
-		let file = process.env.NODE_CLIENT_LOG_FILE;
-		if (file) return file;
-		let dir = process.env.XDG_RUNTIME_DIR;
-		if (dir) return path_1.default.join(dir, "node-client.log");
-		return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
-	}
-	const debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
-	const LOG_FILE_PATH = getLogFile();
-	exports.level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
-	let invalid = !debugging && process.getuid && process.getuid() == 0;
+	debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
+	LOG_FILE_PATH = getLogFile();
+	level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
+	invalid = !debugging && process.getuid && process.getuid() == 0;
 	if (!invalid && !debugging) try {
-		fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
-		fs_1.default.writeFileSync(LOG_FILE_PATH, "", {
+		fs.default.mkdirSync(path.default.dirname(LOG_FILE_PATH), { recursive: true });
+		fs.default.writeFileSync(LOG_FILE_PATH, "", {
 			encoding: "utf8",
 			mode: 438
 		});
 	} catch (_e) {
 		invalid = true;
 	}
-	function toObject(arg) {
-		if (arg == null) return arg;
-		if (Array.isArray(arg)) return arg.map((o) => toObject(o));
-		if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") return "[" + arg.prefix + arg.data + "]";
-		return arg;
-	}
-	function toString(arg) {
-		if (debugging) return (0, util_1$1.inspect)(arg, {
-			depth: null,
-			colors: true,
-			compact: false
-		});
-		if (arg == null) return String(arg);
-		if (arg instanceof Error) return arg.stack;
-		if (typeof arg == "object") return JSON.stringify(arg, null, 2);
-		return String(arg);
-	}
-	const toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
-	const toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
-	function toTimeString(currentTime) {
-		return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`;
-	}
-	let writableStream = void 0;
-	var Logger = class {
+	toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
+	toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+	Logger = class {
+		name;
 		constructor(name) {
 			this.name = name;
 		}
 		get stream() {
 			if (writableStream) return writableStream;
 			if (debugging) writableStream = process.stdout;
-			else writableStream = fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
+			else writableStream = fs.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
 			return writableStream;
 		}
 		getText(level, data, meta) {
 			let more = "";
-			if (meta.length) more = " " + toObject(meta).map((o) => toString(o)).join(", ");
+			if (meta.length) more = " " + toObject$1(meta).map((o) => toString(o)).join(", ");
 			return `${toTimeString(/* @__PURE__ */ new Date())} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`;
 		}
 		debug(data, ...meta) {
-			if (exports.level != "debug" || invalid) return;
+			if (level != "debug" || invalid) return;
 			this.stream.write(this.getText("debug", data, meta));
 		}
 		info(data, ...meta) {
@@ -59637,43 +59098,41 @@ var require_logger = /* @__PURE__ */ __commonJSMin(((exports) => {
 			(debugging ? process.stderr : this.stream).write(this.getText("error", data, meta));
 		}
 		trace(data, ...meta) {
-			if (exports.level != "trace" || invalid) return;
+			if (level != "trace" || invalid) return;
 			this.stream.write(this.getText("trace", data, meta));
 		}
 	};
-	function createLogger(name) {
-		return new Logger(name);
-	}
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/transport/base.js
-var require_base = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	const events_1$2 = require("events");
-	const logger_1 = require_logger();
-	const debug = logger_1.level === "debug";
-	const logger = (0, logger_1.createLogger)("transport");
-	var Transport = class extends events_1$2.EventEmitter {
+//#region src/neovim/transport/base.ts
+var debug$3, logger$54, Transport$1;
+var init_base = __esmMin((() => {
+	init_logger$1();
+	debug$3 = level === "debug";
+	logger$54 = createLogger("transport");
+	Transport$1 = class extends events.EventEmitter {
+		logger;
+		isVim;
+		pauseLevel = 0;
+		paused = /* @__PURE__ */ new Map();
 		constructor(logger, isVim) {
 			super();
 			this.logger = logger;
 			this.isVim = isVim;
-			this.pauseLevel = 0;
-			this.paused = /* @__PURE__ */ new Map();
 		}
 		debug(key, ...meta) {
-			if (!debug) return;
-			logger.debug(key, ...meta);
+			if (!debug$3) return;
+			logger$54.debug(key, ...meta);
 		}
 		info(key, ...meta) {
-			logger.info(key, ...meta);
+			logger$54.info(key, ...meta);
 		}
 		debugMessage(msg) {
-			if (!debug) return;
+			if (!debug$3) return;
 			const msgType = msg[0];
-			if (msgType == 0) logger.debug("receive request:", msg.slice(1));
-			else if (msgType == 1) {} else if (msgType == 2) logger.debug("receive notification:", msg.slice(1));
-			else logger.debug("unknown message:", msg);
+			if (msgType == 0) logger$54.debug("receive request:", msg.slice(1));
+			else if (msgType == 1) {} else if (msgType == 2) logger$54.debug("receive notification:", msg.slice(1));
+			else logger$54.debug("unknown message:", msg);
 		}
 		pauseNotification() {
 			this.pauseLevel = this.pauseLevel + 1;
@@ -59717,79 +59176,56 @@ var require_base = /* @__PURE__ */ __commonJSMin(((exports) => {
 			return isNotify ? null : Promise.resolve([[], void 0]);
 		}
 	};
-	exports.default = Transport;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/transport/nvim.js
-var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
-		if (k2 === void 0) k2 = k;
-		var desc = Object.getOwnPropertyDescriptor(m, k);
-		if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) desc = {
-			enumerable: true,
-			get: function() {
-				return m[k];
-			}
-		};
-		Object.defineProperty(o, k2, desc);
-	}) : (function(o, m, k, k2) {
-		if (k2 === void 0) k2 = k;
-		o[k2] = m[k];
-	}));
-	var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
-		Object.defineProperty(o, "default", {
-			enumerable: true,
-			value: v
+//#region src/neovim/transport/nvim.ts
+var NvimTransport;
+var init_nvim = __esmMin((() => {
+	init_dist_esm();
+	init_types$2();
+	init_base();
+	NvimTransport = class extends Transport$1 {
+		pending = /* @__PURE__ */ new Map();
+		nextRequestId = 1;
+		reader;
+		writer;
+		extensionCodec = this.initializeExtensionCodec();
+		encoder = new Encoder({
+			extensionCodec: this.extensionCodec,
+			ignoreUndefined: true
 		});
-	}) : function(o, v) {
-		o["default"] = v;
-	});
-	var __importStar = exports && exports.__importStar || (function() {
-		var ownKeys = function(o) {
-			ownKeys = Object.getOwnPropertyNames || function(o) {
-				var ar = [];
-				for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-				return ar;
-			};
-			return ownKeys(o);
-		};
-		return function(mod) {
-			if (mod && mod.__esModule) return mod;
-			var result = {};
-			if (mod != null) {
-				for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-			}
-			__setModuleDefault(result, mod);
-			return result;
-		};
-	})();
-	var __importDefault = exports && exports.__importDefault || function(mod) {
-		return mod && mod.__esModule ? mod : { "default": mod };
-	};
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.NvimTransport = void 0;
-	const msgpack = __importStar(require_msgpack_lite());
-	const types_1 = require_types();
-	const buffered_1 = __importDefault(require_buffered());
-	const base_1 = __importDefault(require_base());
-	var NvimTransport = class extends base_1.default {
+		extEncoder = new Encoder({ ignoreUndefined: true });
+		decodeIterator;
+		decodeGeneration = 0;
+		onReaderEnd;
+		attached = false;
+		client;
 		constructor(logger) {
 			super(logger, false);
-			this.pending = /* @__PURE__ */ new Map();
-			this.nextRequestId = 1;
-			this.attached = false;
-			const codec = this.setupCodec();
-			this.encodeStream = msgpack.createEncodeStream({ codec });
-			this.decodeStream = msgpack.createDecodeStream({ codec });
-			this.decodeStream.on("data", (msg) => {
-				this.parseMessage(msg);
+		}
+		initializeExtensionCodec() {
+			const codec = new ExtensionCodec();
+			Metadata.forEach(({ constructor }, id) => {
+				codec.register({
+					type: id,
+					encode: (input) => {
+						if (input instanceof constructor) return this.extEncoder.encode(input.data);
+						return null;
+					},
+					decode: (data) => new constructor({
+						client: this.client,
+						data: decode(data)
+					})
+				});
 			});
-			this.decodeStream.on("end", () => {
-				this.detach();
-				this.emit("detach");
-			});
+			return codec;
+		}
+		encodeToBuffer(value) {
+			const encoded = this.encoder.encode(value);
+			return Buffer.from(encoded.buffer, encoded.byteOffset, encoded.byteLength);
 		}
 		parseMessage(msg) {
+			if (!this.attached) return;
 			const msgType = msg[0];
 			this.debugMessage(msg);
 			if (msgType === 0) {
@@ -59807,32 +59243,56 @@ var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			} else if (msgType === 2) this.emit("notification", msg[1].toString(), msg[2]);
 			else console.error(`Invalid message type ${msgType}`);
 		}
-		setupCodec() {
-			const codec = msgpack.createCodec();
-			types_1.Metadata.forEach(({ constructor }, id) => {
-				codec.addExtPacker(id, constructor, (obj) => msgpack.encode(obj.data));
-				codec.addExtUnpacker(id, (data) => new constructor({
-					client: this.client,
-					data: msgpack.decode(data)
-				}));
-			});
-			this.codec = codec;
-			return this.codec;
+		createDecodeSource(reader) {
+			let readable = reader;
+			if (typeof readable.iterator === "function") return readable.iterator({ destroyOnReturn: false });
+			return reader;
+		}
+		async decodeLoop(iter, generation) {
+			try {
+				while (true) {
+					const resolved = await iter.next();
+					if (resolved.done || !this.attached || iter !== this.decodeIterator || generation !== this.decodeGeneration) return;
+					if (Array.isArray(resolved.value)) this.parseMessage(resolved.value);
+					else console.error("invalid msgpack-RPC message: expected array");
+				}
+			} catch (err) {
+				if (iter !== this.decodeIterator || generation !== this.decodeGeneration) return;
+				console.error("Decode stream error:", err);
+				this.detach();
+				this.emit("detach");
+			}
 		}
 		attach(writer, reader, client) {
-			this.encodeStream = this.encodeStream.pipe(writer);
-			const buffered = new buffered_1.default();
-			reader.pipe(buffered).pipe(this.decodeStream);
 			this.writer = writer;
 			this.reader = reader;
 			this.client = client;
 			this.attached = true;
+			this.decodeGeneration = this.decodeGeneration + 1;
+			const generation = this.decodeGeneration;
+			this.onReaderEnd = () => {
+				const wasAttached = this.attached;
+				this.detach();
+				if (wasAttached) this.emit("detach");
+			};
+			this.reader.once("end", this.onReaderEnd);
+			const asyncDecodeGenerator = decodeMultiStream(this.createDecodeSource(this.reader), { extensionCodec: this.extensionCodec });
+			this.decodeIterator = asyncDecodeGenerator;
+			this.decodeLoop(asyncDecodeGenerator, generation);
 		}
 		detach() {
 			if (!this.attached) return;
 			this.attached = false;
-			this.encodeStream.unpipe(this.writer);
-			this.reader.unpipe(this.decodeStream);
+			this.decodeGeneration = this.decodeGeneration + 1;
+			if (this.onReaderEnd) {
+				this.reader.off("end", this.onReaderEnd);
+				this.onReaderEnd = void 0;
+			}
+			let iter = this.decodeIterator;
+			this.decodeIterator = void 0;
+			if (iter && typeof iter.return === "function") iter.return(void 0).catch((err) => {
+				this.debug("decode iterator return error:", err);
+			});
 			for (let handler of this.pending.values()) handler([0, "transport disconnected"]);
 			this.pending.clear();
 		}
@@ -59842,12 +59302,12 @@ var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.nextRequestId = this.nextRequestId + 1;
 			let startTs = Date.now();
 			this.debug("request to nvim:", id, method, args);
-			this.encodeStream.write(msgpack.encode([
+			this.writer.write(this.encodeToBuffer([
 				0,
 				id,
 				method,
 				args
-			], { codec: this.codec }));
+			]));
 			this.pending.set(id, (err, res) => {
 				this.debug("response of nvim:", id, Date.now() - startTs, res, err);
 				cb(err, res);
@@ -59863,14 +59323,14 @@ var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
 				}
 			}
 			this.debug("nvim notification:", method, args);
-			this.encodeStream.write(msgpack.encode([
+			this.writer.write(this.encodeToBuffer([
 				2,
 				method,
 				args
-			], { codec: this.codec }));
+			]));
 		}
 		send(arr) {
-			this.encodeStream.write(msgpack.encode(arr, { codec: this.codec }));
+			this.writer.write(this.encodeToBuffer(arr));
 		}
 		vimCommand(command, ..._args) {
 			throw new Error(`Command "${command}"  not exists on nvim`);
@@ -59879,14 +59339,13 @@ var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			throw new Error(`Command "${command}"  not exists on nvim`);
 		}
 		createResponse(_method, requestId) {
-			let { encodeStream } = this;
 			let startTs = Date.now();
 			let called = false;
 			return { send: (resp, isError) => {
 				if (called || !this.attached) return;
 				this.debug("response of client:", requestId, `${Date.now() - startTs}ms`, resp, isError == true);
 				called = true;
-				encodeStream.write(msgpack.encode([
+				this.writer.write(this.encodeToBuffer([
 					1,
 					requestId,
 					isError ? resp : null,
@@ -59895,19 +59354,17 @@ var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			} };
 		}
 	};
-	exports.NvimTransport = NvimTransport;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/transport/connection.js
-var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var __importDefault = exports && exports.__importDefault || function(mod) {
-		return mod && mod.__esModule ? mod : { "default": mod };
-	};
-	Object.defineProperty(exports, "__esModule", { value: true });
-	const events_1$1 = __importDefault(require("events"));
-	const logger = (0, require_logger().createLogger)("connection");
-	const NR_CODE = 10;
-	var Connection = class extends events_1$1.default {
+//#region src/neovim/transport/connection.ts
+var logger$53, NR_CODE, Connection;
+var init_connection = __esmMin((() => {
+	init_logger$1();
+	logger$53 = createLogger("connection");
+	NR_CODE = 10;
+	Connection = class extends events.default {
+		writeable;
+		clean;
 		constructor(readable, writeable) {
 			super();
 			this.writeable = writeable;
@@ -59937,7 +59394,7 @@ var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			};
 			readable.on("data", onData);
 			let onClose = () => {
-				logger.warn("readable stream closed.");
+				logger$53.warn("readable stream closed.");
 			};
 			readable.on("close", onClose);
 			this.clean = () => {
@@ -59951,18 +59408,18 @@ var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			try {
 				arr = JSON.parse(str);
 			} catch (e) {
-				logger.error(`Invalid data from vim: ${str}`);
+				logger$53.error(`Invalid data from vim: ${str}`);
 				return;
 			}
 			let [id, obj] = arr;
 			if (id > 0) {
-				logger.debug("received request:", id, obj);
+				logger$53.debug("received request:", id, obj);
 				this.emit("request", id, obj);
 			} else if (id == 0) {
-				logger.debug("received notification:", obj);
+				logger$53.debug("received notification:", obj);
 				this.emit("notification", obj);
 			} else {
-				logger.debug("received response:", id, obj);
+				logger$53.debug("received response:", id, obj);
 				this.emit("response", id, obj);
 			}
 		}
@@ -59973,7 +59430,7 @@ var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.send([0, [event, data || null]]);
 		}
 		send(arr) {
-			logger.debug("send to vim:", arr);
+			logger$53.debug("send to vim:", arr);
 			this.writeable.write(JSON.stringify(arr) + "\n");
 		}
 		redraw(force) {
@@ -60017,26 +59474,30 @@ var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.removeAllListeners();
 		}
 	};
-	exports.default = Connection;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/transport/request.js
-var require_request = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	const func = require_constants().isCocNvim ? "coc#api#Call" : "nvim#api#Call";
-	var Request = class {
+//#region src/neovim/transport/request.ts
+var func$1, Request;
+var init_request = __esmMin((() => {
+	init_constants$1();
+	func$1 = "coc#api#Call";
+	Request = class {
+		connection;
+		cb;
+		id;
+		method;
+		_direct = false;
 		constructor(connection, cb, id) {
 			this.connection = connection;
 			this.cb = cb;
 			this.id = id;
-			this._direct = false;
 		}
 		get isDirect() {
 			return this._direct;
 		}
 		request(method, args = []) {
 			this.method = method;
-			this.connection.call(func, [method.slice(5), args], this.id);
+			this.connection.call(func$1, [method.slice(5), args], this.id);
 		}
 		call(method, args = []) {
 			this._direct = true;
@@ -60068,38 +59529,35 @@ var require_request = /* @__PURE__ */ __commonJSMin(((exports) => {
 			}
 		}
 	};
-	exports.default = Request;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/transport/vim.js
-var require_vim = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var __importDefault = exports && exports.__importDefault || function(mod) {
-		return mod && mod.__esModule ? mod : { "default": mod };
-	};
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.VimTransport = void 0;
-	const constants_1 = require_constants();
-	const base_1 = __importDefault(require_base());
-	const connection_1 = __importDefault(require_connection$2());
-	const request_1 = __importDefault(require_request());
-	const notifyMethod = constants_1.isCocNvim ? "coc#api#Notify" : "nvim#api#Notify";
-	var VimTransport = class extends base_1.default {
+//#region src/neovim/transport/vim.ts
+var notifyMethod, VimTransport;
+var init_vim = __esmMin((() => {
+	init_constants$1();
+	init_base();
+	init_connection();
+	init_request();
+	notifyMethod = "coc#api#Notify";
+	VimTransport = class extends Transport$1 {
+		pending = /* @__PURE__ */ new Map();
+		nextRequestId = -1;
+		connection;
+		attached = false;
+		client;
+		/**
+		* Cached error message
+		*/
+		errText = "";
+		/**
+		* Cached out message
+		*/
+		outText = "";
 		constructor(logger) {
 			super(logger, true);
-			this.pending = /* @__PURE__ */ new Map();
-			this.nextRequestId = -1;
-			this.attached = false;
-			/**
-			* Cached error message
-			*/
-			this.errText = "";
-			/**
-			* Cached out message
-			*/
-			this.outText = "";
 		}
 		attach(writer, reader, client) {
-			let connection = this.connection = new connection_1.default(reader, writer);
+			let connection = this.connection = new Connection(reader, writer);
 			this.attached = true;
 			this.client = client;
 			connection.on("request", (id, obj) => {
@@ -60159,13 +59617,13 @@ var require_vim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId - 1;
 			return new Promise((resolve, reject) => {
-				let req = new request_1.default(this.connection, (err, res) => {
+				let req = new Request(this.connection, (err, res) => {
 					if (!err && res === "ERROR") if (command === "eval") err = /* @__PURE__ */ new Error(`Invalid expression "${args[0]}", checkout v:errmsg`);
 					else err = /* @__PURE__ */ new Error(`Error on function "${args[0]}", checkout v:errmsg"`);
 					if (err) {
 						err.stack = `Error: vim "${command}" error - ${err}\n` + args["stack"].split(/\r?\n/).slice(3).join("\n");
 						this.client.logError(`Error on vim command "${command}"`, args, err);
-						reject(err);
+						reject(err instanceof Error ? err : new Error(String(err)));
 						return;
 					}
 					resolve(res);
@@ -60182,7 +59640,7 @@ var require_vim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			if (!this.attached) return cb([0, "transport disconnected"]);
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId - 1;
-			let req = new request_1.default(this.connection, (err, res) => {
+			let req = new Request(this.connection, (err, res) => {
 				cb(err, res);
 			}, id);
 			this.pending.set(id, req);
@@ -60232,28 +59690,20 @@ var require_vim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			} };
 		}
 	};
-	exports.VimTransport = VimTransport;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/Neovim.js
-var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Neovim = void 0;
-	const constants_1 = require_constants();
-	const Base_1 = require_Base();
-	function getArgs(args) {
-		if (!args) return [];
-		if (Array.isArray(args)) return args;
-		return [args];
-	}
-	/**
-	* Neovim API
-	*/
-	var Neovim = class extends Base_1.BaseApi {
-		constructor() {
-			super(...arguments);
-			this.prefix = "nvim_";
-		}
+//#region src/neovim/api/Neovim.ts
+function getArgs(args) {
+	if (!args) return [];
+	if (Array.isArray(args)) return args;
+	return [args];
+}
+var Neovim;
+var init_Neovim = __esmMin((() => {
+	init_constants$1();
+	init_Base();
+	Neovim = class extends BaseApi {
+		prefix = "nvim_";
 		get apiInfo() {
 			return this.request(`${this.prefix}get_api_info`);
 		}
@@ -60267,16 +59717,14 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			if (constants_1.isCocNvim) return this.request(`${this.prefix}get_option_value`, [name, {}]);
-			return super.getOption(name);
+			return this.request(`${this.prefix}get_option_value`, [name, {}]);
 		}
 		setOption(name, value, isNotify) {
-			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`${this.prefix}set_option_value`, [
+			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option_value`, [
 				name,
 				value,
 				{}
 			]);
-			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/** Set current buffer */
 		async setBuffer(buffer) {
@@ -60289,7 +59737,7 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			return this.request(`${this.prefix}get_chan_info`, [chan]);
 		}
 		createNamespace(name = "") {
-			if (constants_1.isCocNvim) name = name.startsWith("coc-") ? name : `coc-${name}`;
+			name = name.startsWith("coc-") ? name : `coc-${name}`;
 			return this.request(`${this.prefix}create_namespace`, [name]);
 		}
 		get namespaces() {
@@ -60431,7 +59879,7 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			]);
 		}
 		callVim(fname, args = [], isNotify) {
-			if (!constants_1.isVim) return this.call(fname, args, isNotify);
+			if (!isVim$1) return this.call(fname, args, isNotify);
 			const _args = getArgs(args);
 			if (isNotify) return this.transport.vimCommand("call", fname, _args);
 			return this.transport.vimRequest("call", [fname, _args]);
@@ -60440,14 +59888,14 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 		* Use direct expr command on vim9
 		*/
 		evalVim(expr) {
-			if (!constants_1.isVim) return this.request(`${this.prefix}eval`, [expr]);
+			if (!isVim$1) return this.request(`${this.prefix}eval`, [expr]);
 			return this.transport.vimRequest("eval", [expr]);
 		}
 		/**
 		* Use direct ex on vim9
 		*/
 		exVim(arg) {
-			if (!constants_1.isVim) return this.notify(`${this.prefix}command`, [arg]);
+			if (!isVim$1) return this.notify(`${this.prefix}command`, [arg]);
 			this.transport.vimCommand("ex", arg);
 		}
 		call(fname, args = [], isNotify) {
@@ -60464,7 +59912,7 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 				this.notify(`${this.prefix}call_function`, ["coc#util#timer", [fname, _args]]);
 				return null;
 			}
-			if (constants_1.isVim) {
+			if (isVim$1) {
 				this.notify(`${this.prefix}call_function`, ["coc#util#timer", [fname, _args]]);
 				return new Promise((resolve) => {
 					setTimeout(() => {
@@ -60495,7 +59943,6 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Runs a command and returns output.
-		*
 		* @deprecated Use exec instead.
 		*/
 		commandOutput(arg) {
@@ -60526,7 +59973,6 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		/**
 		* Send mouse event from GUI. Neovim only.
-		*
 		* @param {MouseButton} button Mouse button: one of "left", "right", "middle", "wheel", "move".
 		* @param {ButtonAction} action For ordinary buttons, one of "press", "drag", "release".
 		* @param {string} modifier String of modifiers each represented by a single char.
@@ -60645,25 +60091,29 @@ var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
 			if (this.transport) this.transport.detach();
 		}
 	};
-	exports.Neovim = Neovim;
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/client.js
-var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.NeovimClient = exports.AsyncResponse = void 0;
-	/**
-	* Handles attaching transport
-	*/
-	const events_1 = require("events");
-	const nvim_1 = require_nvim();
-	const vim_1 = require_vim();
-	const constants_1 = require_constants();
-	const Buffer_1 = require_Buffer();
-	const Neovim_1 = require_Neovim();
-	const Tabpage_1 = require_Tabpage();
-	const Window_1 = require_Window();
-	const functionsOnVim = [
+//#region src/neovim/api/client.ts
+/**
+* Handles attaching transport
+*/
+function applyMixins(derivedCtor, constructors) {
+	constructors.forEach((baseCtor) => {
+		Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+			Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null));
+		});
+	});
+}
+var functionsOnVim, AsyncResponse, NeovimClient;
+var init_client$1 = __esmMin((() => {
+	init_nvim();
+	init_vim();
+	init_constants$1();
+	init_Buffer();
+	init_Neovim();
+	init_Tabpage();
+	init_Window();
+	functionsOnVim = [
 		"nvim_buf_attach",
 		"nvim_get_mode",
 		"nvim_list_runtime_paths",
@@ -60746,11 +60196,13 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 		"nvim_call_function",
 		"nvim_buf_is_valid"
 	];
-	var AsyncResponse = class {
+	AsyncResponse = class {
+		requestId;
+		cb;
+		finished = false;
 		constructor(requestId, cb) {
 			this.requestId = requestId;
 			this.cb = cb;
-			this.finished = false;
 		}
 		finish(err, res) {
 			if (this.finished) return;
@@ -60762,23 +60214,20 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 			this.cb(null, res);
 		}
 	};
-	exports.AsyncResponse = AsyncResponse;
-	function applyMixins(derivedCtor, constructors) {
-		constructors.forEach((baseCtor) => {
-			Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-				Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null));
-			});
-		});
-	}
-	var NeovimClient = class extends Neovim_1.Neovim {
+	NeovimClient = class extends Neovim {
+		logger;
+		isVim;
+		_isReady;
+		requestId = 1;
+		responses = /* @__PURE__ */ new Map();
+		_channelId;
+		attachedBuffers = /* @__PURE__ */ new Map();
+		_transport;
 		constructor(logger, isVim) {
 			super({});
 			this.logger = logger;
 			this.isVim = isVim;
-			this.requestId = 1;
-			this.responses = /* @__PURE__ */ new Map();
-			this.attachedBuffers = /* @__PURE__ */ new Map();
-			const transport = isVim ? new vim_1.VimTransport(logger) : new nvim_1.NvimTransport(logger);
+			const transport = isVim ? new VimTransport(logger) : new NvimTransport(logger);
 			Object.defineProperty(this, "_transport", {
 				enumerable: false,
 				get: () => {
@@ -60792,34 +60241,34 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 			return this._transport;
 		}
 		echoError(msg) {
-			let prefix = constants_1.isCocNvim ? "[coc.nvim] " : "";
+			let prefix = "[coc.nvim] ";
 			if (msg instanceof Error) {
-				if (!constants_1.isTester) this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
+				if (!isTester) this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
 				this.logError(msg.message || "Unknown error", msg);
 			} else {
-				if (!constants_1.isTester) this.errWriteLine(prefix + msg);
+				if (!isTester) this.errWriteLine(prefix + msg);
 				this.logError(msg.toString(), /* @__PURE__ */ new Error());
 			}
 		}
 		logError(msg, ...args) {
-			if (constants_1.isTester) console.error(msg, ...args);
+			if (isTester) console.error(msg, ...args);
 			if (!this.logger) return;
 			this.logger.error(msg, ...args);
 		}
 		createBuffer(id) {
-			return new Buffer_1.Buffer({
+			return new Buffer$2({
 				data: id,
 				client: this
 			});
 		}
 		createWindow(id) {
-			return new Window_1.Window({
+			return new Window$1({
 				data: id,
 				client: this
 			});
 		}
 		createTabpage(id) {
-			return new Tabpage_1.Tabpage({
+			return new Tabpage({
 				data: id,
 				client: this
 			});
@@ -60981,132 +60430,63 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 			return functionsOnVim.includes(name);
 		}
 	};
-	exports.NeovimClient = NeovimClient;
-	applyMixins(NeovimClient, [events_1.EventEmitter]);
+	applyMixins(NeovimClient, [events.EventEmitter]);
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/api/index.js
-var require_api$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Tabpage = exports.Window = exports.Buffer = exports.NeovimClient = exports.Neovim = void 0;
-	var client_1 = require_client();
-	Object.defineProperty(exports, "Neovim", {
-		enumerable: true,
-		get: function() {
-			return client_1.NeovimClient;
-		}
-	});
-	var client_2 = require_client();
-	Object.defineProperty(exports, "NeovimClient", {
-		enumerable: true,
-		get: function() {
-			return client_2.NeovimClient;
-		}
-	});
-	var Buffer_1 = require_Buffer();
-	Object.defineProperty(exports, "Buffer", {
-		enumerable: true,
-		get: function() {
-			return Buffer_1.Buffer;
-		}
-	});
-	var Window_1 = require_Window();
-	Object.defineProperty(exports, "Window", {
-		enumerable: true,
-		get: function() {
-			return Window_1.Window;
-		}
-	});
-	var Tabpage_1 = require_Tabpage();
-	Object.defineProperty(exports, "Tabpage", {
-		enumerable: true,
-		get: function() {
-			return Tabpage_1.Tabpage;
-		}
-	});
+//#region src/neovim/api/index.ts
+var init_api = __esmMin((() => {
+	init_client$1();
+	init_Buffer();
+	init_Window();
+	init_Tabpage();
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/attach/attach.js
-var require_attach = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.attach = attach;
-	const net_1$1 = require("net");
-	const constants_1 = require_constants();
-	const logger_1 = require_logger();
-	const client_1 = require_client();
-	function attach({ reader: _reader, writer: _writer, proc, socket }, logger = null, requestApi = true) {
-		let writer;
-		let reader;
-		let neovim;
-		if (!logger) logger = logger_1.nullLogger;
-		if (socket) {
-			const client = (0, net_1$1.createConnection)(socket);
-			writer = client;
-			reader = client;
-			client.once("close", () => {
-				neovim.detach();
-			});
-		} else if (_reader && _writer) {
-			writer = _writer;
-			reader = _reader;
-		} else if (proc) {
-			writer = proc.stdin;
-			reader = proc.stdout;
-			proc.once("disconnect", () => {
-				neovim.detach();
-			});
-		}
-		writer.on("error", (err) => {
-			if (err.code == "EPIPE") neovim.detach();
+//#region src/neovim/attach/attach.ts
+function attach({ reader: _reader, writer: _writer, proc, socket }, logger = null, requestApi = true) {
+	let writer;
+	let reader;
+	let neovim;
+	if (!logger) logger = nullLogger;
+	if (socket) {
+		const client = (0, net.createConnection)(socket);
+		writer = client;
+		reader = client;
+		client.once("close", () => {
+			neovim.detach();
 		});
-		if (writer && reader) {
-			neovim = new client_1.NeovimClient(logger, constants_1.isVim);
-			neovim.attach({
-				writer,
-				reader
-			}, requestApi);
-			return neovim;
-		}
-		throw new Error("Invalid arguments, could not attach");
+	} else if (_reader && _writer) {
+		writer = _writer;
+		reader = _reader;
+	} else if (proc) {
+		writer = proc.stdin;
+		reader = proc.stdout;
+		proc.once("disconnect", () => {
+			neovim.detach();
+		});
 	}
+	writer.on("error", (err) => {
+		if (err.code == "EPIPE") neovim.detach();
+	});
+	if (writer && reader) {
+		neovim = new NeovimClient(logger, isVim$1);
+		neovim.attach({
+			writer,
+			reader
+		}, requestApi);
+		return neovim;
+	}
+	throw new Error("Invalid arguments, could not attach");
+}
+var init_attach$1 = __esmMin((() => {
+	init_constants$1();
+	init_logger$1();
+	init_client$1();
 }));
 //#endregion
-//#region node_modules/@chemzqm/neovim/lib/index.js
-var require_lib$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.attach = exports.Window = exports.Tabpage = exports.Neovim = exports.Buffer = void 0;
-	var index_1 = require_api$2();
-	Object.defineProperty(exports, "Buffer", {
-		enumerable: true,
-		get: function() {
-			return index_1.Buffer;
-		}
-	});
-	Object.defineProperty(exports, "Neovim", {
-		enumerable: true,
-		get: function() {
-			return index_1.Neovim;
-		}
-	});
-	Object.defineProperty(exports, "Tabpage", {
-		enumerable: true,
-		get: function() {
-			return index_1.Tabpage;
-		}
-	});
-	Object.defineProperty(exports, "Window", {
-		enumerable: true,
-		get: function() {
-			return index_1.Window;
-		}
-	});
-	var attach_1 = require_attach();
-	Object.defineProperty(exports, "attach", {
-		enumerable: true,
-		get: function() {
-			return attach_1.attach;
-		}
-	});
+//#region src/neovim/index.ts
+var init_neovim = __esmMin((() => {
+	init_api();
+	init_attach$1();
 }));
 //#endregion
 //#region src/util/errors.ts
@@ -61569,6 +60949,31 @@ var init_main$2 = __esmMin((() => {
 			return Is.defined(candidate) && Range.is(candidate.range) && (Is.string(candidate.message) || MarkupContent.is(candidate.message)) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
 		}
 		Diagnostic.is = is;
+		/**
+		* Checks whether the given diagnostic's message conforms to the 3.17.0
+		* version of the protocol where the message is a string.
+		*
+		* @param value the diagnostic
+		* @returns true if the diagnostic's message is a string, false otherwise.
+		*/
+		function is3_17(value) {
+			return Is.string(value.message);
+		}
+		Diagnostic.is3_17 = is3_17;
+		/**
+		* Gets the message string of a diagnostic. If the message is already a
+		* string, it is returned as is. If the message is a MarkupContent,
+		* the value of the MarkupContent is returned. Otherwise an error is thrown.
+		*
+		* @param diagnostic the diagnostic to get the message string from.
+		* @returns the message string of the given diagnostic.
+		*/
+		function getMessageString(diagnostic) {
+			if (Is.string(diagnostic.message)) return diagnostic.message;
+			else if (MarkupContent.is(diagnostic.message)) return diagnostic.message.value;
+			else throw new Error(`Unknown message type ${typeof diagnostic.message}`);
+		}
+		Diagnostic.getMessageString = getMessageString;
 	})(Diagnostic || (Diagnostic = {}));
 	(function(Command) {
 		/**
@@ -62087,12 +61492,10 @@ var init_main$2 = __esmMin((() => {
 		LanguageKind.CSS = "css";
 		/**
 		* @since 3.18.0
-		* @proposed
 		*/
 		LanguageKind.D = "d";
 		/**
 		* @since 3.18.0
-		* @proposed
 		*/
 		LanguageKind.Delphi = "pascal";
 		LanguageKind.Diff = "diff";
@@ -62122,7 +61525,6 @@ var init_main$2 = __esmMin((() => {
 		LanguageKind.ObjectiveCPP = "objective-cpp";
 		/**
 		* @since 3.18.0
-		* @proposed
 		*/
 		LanguageKind.Pascal = "pascal";
 		LanguageKind.Perl = "perl";
@@ -62586,7 +61988,6 @@ var init_main$2 = __esmMin((() => {
 		* - ...
 		*
 		* @since 3.18.0
-		* @proposed
 		*/
 		CodeActionKind.RefactorMove = "refactor.move";
 		/**
@@ -66614,9 +66015,9 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.createMessageConnection = createMessageConnection;
 	const ril_1 = __importDefault(require_ril());
 	ril_1.default.install();
-	const path$2 = __importStar(require("path"));
-	const os$2 = __importStar(require("os"));
-	const fs$2 = __importStar(require("fs"));
+	const path$3 = __importStar(require("path"));
+	const os$3 = __importStar(require("os"));
+	const fs$3 = __importStar(require("fs"));
 	const crypto_1 = require("crypto");
 	const net_1 = require("net");
 	const api_1 = require_api$1();
@@ -66746,12 +66147,12 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (process.platform === "win32") return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
 		let randomLength = 32;
 		const fixedLength = 10;
-		const tmpDir = fs$2.realpathSync(XDG_RUNTIME_DIR ?? os$2.tmpdir());
+		const tmpDir = fs$3.realpathSync(XDG_RUNTIME_DIR ?? os$3.tmpdir());
 		const limit = safeIpcPathLengths.get(process.platform);
 		if (limit !== void 0) randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
 		if (randomLength < 16) throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
 		const randomSuffix = (0, crypto_1.randomBytes)(Math.floor(randomLength / 2)).toString("hex");
-		return path$2.join(tmpDir, `lsp-${randomSuffix}.sock`);
+		return path$3.join(tmpDir, `lsp-${randomSuffix}.sock`);
 	}
 	function createClientPipeTransport(pipeName, encoding = "utf-8") {
 		let connectResolve;
@@ -67081,8 +66482,9 @@ var require_protocol_foldingRange = /* @__PURE__ */ __commonJSMin(((exports) => 
 		FoldingRangeRequest.capabilities = messages_1.CM.create("textDocument.foldingRange", "foldingRangeProvider");
 	})(FoldingRangeRequest || (exports.FoldingRangeRequest = FoldingRangeRequest = {}));
 	/**
+	* A request to refresh the folding ranges in a document.
+	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var FoldingRangeRefreshRequest;
 	(function(FoldingRangeRefreshRequest) {
@@ -67958,7 +67360,6 @@ var require_protocol_inlineCompletion = /* @__PURE__ */ __commonJSMin(((exports)
 	* {@link InlineCompletion InlineCompletion[]} or a Thenable that resolves to such.
 	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var InlineCompletionRequest;
 	(function(InlineCompletionRequest) {
@@ -67979,7 +67380,6 @@ var require_protocol_textDocumentContent = /* @__PURE__ */ __commonJSMin(((expor
 	* server to request the content of a text document.
 	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var TextDocumentContentRequest;
 	(function(TextDocumentContentRequest) {
@@ -67993,7 +67393,6 @@ var require_protocol_textDocumentContent = /* @__PURE__ */ __commonJSMin(((expor
 	* the content of a specific text document.
 	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var TextDocumentContentRefreshRequest;
 	(function(TextDocumentContentRefreshRequest) {
@@ -68559,7 +67958,6 @@ var require_protocol = /* @__PURE__ */ __commonJSMin(((exports) => {
 	* Regular Expression Engines
 	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var RegularExpressionEngineKind;
 	(function(RegularExpressionEngineKind) {
@@ -68729,7 +68127,6 @@ var require_protocol = /* @__PURE__ */ __commonJSMin(((exports) => {
 		* A debug message.
 		*
 		* @since 3.18.0
-		* @proposed
 		*/
 		MessageType.Debug = 5;
 	})(MessageType || (exports.MessageType = MessageType = {}));
@@ -69259,7 +68656,6 @@ var require_protocol = /* @__PURE__ */ __commonJSMin(((exports) => {
 	* A request to format ranges in a document.
 	*
 	* @since 3.18.0
-	* @proposed
 	*/
 	var DocumentRangesFormattingRequest;
 	(function(DocumentRangesFormattingRequest) {
@@ -70121,14 +69517,14 @@ var init_string$1 = __esmMin((() => {
 //#region src/events.ts
 var logger$52, debounceTime$11, Events, events_default;
 var init_events = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_errors();
 	init_is();
 	init_object();
 	init_protocol();
 	init_string$1();
-	logger$52 = createLogger("events");
+	logger$52 = createLogger$1("events");
 	debounceTime$11 = getConditionValue(100, 10);
 	Events = class {
 		handlers = /* @__PURE__ */ new Map();
@@ -70395,10 +69791,10 @@ var init_constants = __esmMin((() => {
 	isVim = process.env.VIM_NODE_RPC == "1";
 	floatHighlightGroup = "CocFloating";
 	CONFIG_FILE_NAME = "coc-settings.json";
-	configHome = defaultValue(process.env.COC_VIMCONFIG, path$3.join(os$3.homedir(), ".vim"));
-	dataHome = defaultValue(process.env.COC_DATA_HOME, path$3.join(os$3.homedir(), ".config/coc"));
-	userConfigFile = path$3.join(path$3.normalize(configHome), CONFIG_FILE_NAME);
-	pluginRoot = getConditionValue(path$3.dirname(__dirname), path$3.resolve(__dirname, "../.."));
+	configHome = defaultValue(process.env.COC_VIMCONFIG, path$5.join(os$5.homedir(), ".vim"));
+	dataHome = defaultValue(process.env.COC_DATA_HOME, path$5.join(os$5.homedir(), ".config/coc"));
+	userConfigFile = path$5.join(path$5.normalize(configHome), CONFIG_FILE_NAME);
+	pluginRoot = getConditionValue(path$5.dirname(__dirname), path$5.resolve(__dirname, "../.."));
 }));
 //#endregion
 //#region node_modules/jsonc-parser/lib/esm/impl/scanner.js
@@ -72065,7 +71461,7 @@ var init_platform = __esmMin((() => {
 function watchFile(filepath, onChange, immediate = false) {
 	let callback = debounce(onChange, 100);
 	try {
-		let watcher = fs$3.watch(filepath, {
+		let watcher = fs$5.watch(filepath, {
 			persistent: true,
 			recursive: false,
 			encoding: "utf8"
@@ -72086,7 +71482,7 @@ function watchFile(filepath, onChange, immediate = false) {
 function loadJson$1(filepath) {
 	try {
 		let errors = [];
-		let data = parse(fs$3.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
+		let data = parse(fs$5.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
 		if (errors.length > 0) logger$51.error(`Error on parse json file ${filepath}`, errors);
 		return data ?? {};
 	} catch (e) {
@@ -72094,28 +71490,28 @@ function loadJson$1(filepath) {
 	}
 }
 function writeJson(filepath, obj) {
-	let dir = path$3.dirname(filepath);
-	if (!fs$3.existsSync(dir)) {
-		fs$3.mkdirSync(dir, { recursive: true });
+	let dir = path$5.dirname(filepath);
+	if (!fs$5.existsSync(dir)) {
+		fs$5.mkdirSync(dir, { recursive: true });
 		logger$51.info(`Creating directory ${dir}`);
 	}
-	fs$3.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
+	fs$5.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
 }
 async function statAsync(filepath) {
 	let stat = null;
 	try {
-		stat = await fs$3.promises.stat(filepath);
+		stat = await fs$5.promises.stat(filepath);
 	} catch (e) {}
 	return stat;
 }
 function isDirectory(filepath) {
-	if (!filepath || !path$3.isAbsolute(filepath) || !fs$3.existsSync(filepath)) return false;
-	return fs$3.statSync(filepath).isDirectory();
+	if (!filepath || !path$5.isAbsolute(filepath) || !fs$5.existsSync(filepath)) return false;
+	return fs$5.statSync(filepath).isDirectory();
 }
 async function remove(filepath) {
 	if (!filepath) return;
 	try {
-		await fs$3.promises.rm(filepath, {
+		await fs$5.promises.rm(filepath, {
 			force: true,
 			recursive: true
 		});
@@ -72125,7 +71521,7 @@ async function remove(filepath) {
 }
 async function getFileType(filepath) {
 	try {
-		const stat = await fs$3.promises.lstat(filepath);
+		const stat = await fs$5.promises.lstat(filepath);
 		if (stat.isFile()) return 1;
 		if (stat.isDirectory()) return 2;
 		if (stat.isSymbolicLink()) return 64;
@@ -72140,11 +71536,11 @@ async function isGitIgnored(fullpath) {
 	if (!stat || !stat.isFile()) return false;
 	let root = null;
 	try {
-		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$3.dirname(fullpath) });
+		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$5.dirname(fullpath) });
 		root = stdout.trim();
 	} catch (e) {}
 	if (!root) return false;
-	let file = path$3.relative(root, fullpath);
+	let file = path$5.relative(root, fullpath);
 	try {
 		let { stdout } = await (0, util.promisify)(exec$1)(`git check-ignore ${file}`, { cwd: root });
 		return stdout.trim() == file;
@@ -72158,10 +71554,10 @@ function isFolderIgnored(folder, ignored) {
 function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignored = []) {
 	let dir = normalizeFilePath(folder);
 	if (checkCwd && cwd && isParentFolder(cwd, dir, true) && !isFolderIgnored(cwd, ignored) && inDirectory(cwd, subs)) return cwd;
-	let parts = dir.split(path$3.sep);
+	let parts = dir.split(path$5.sep);
 	if (bottomup) {
 		while (parts.length > 0) {
-			let dir = parts.join(path$3.sep);
+			let dir = parts.join(path$5.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 			parts.pop();
 		}
@@ -72170,7 +71566,7 @@ function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignor
 		let curr = [parts.shift()];
 		for (let part of parts) {
 			curr.push(part);
-			let dir = curr.join(path$3.sep);
+			let dir = curr.join(path$5.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 		}
 		return null;
@@ -72208,7 +71604,7 @@ function checkFolder(dir, patterns, token) {
 }
 function inDirectory(dir, subs) {
 	try {
-		let files = fs$3.readdirSync(dir);
+		let files = fs$5.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*") ? minimatch.match(files, pattern, {
 			nobrace: true,
 			noext: true,
@@ -72224,7 +71620,7 @@ function inDirectory(dir, subs) {
 */
 function findMatch(dir, subs) {
 	try {
-		let files = fs$3.readdirSync(dir);
+		let files = fs$5.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*")) {
 			let filtered = files.filter(minimatch.filter(pattern, {
 				nobrace: true,
@@ -72241,18 +71637,18 @@ function findMatch(dir, subs) {
 	} catch (e) {}
 }
 function findUp$1(name, cwd) {
-	let root = path$3.parse(cwd).root;
+	let root = path$5.parse(cwd).root;
 	let subs = toArray(name);
 	while (cwd && cwd !== root) {
 		let find = findMatch(cwd, subs);
-		if (find) return path$3.join(cwd, find);
-		cwd = path$3.dirname(cwd);
+		if (find) return path$5.join(cwd, find);
+		cwd = path$5.dirname(cwd);
 	}
 	return null;
 }
 function readFile(fullpath, encoding) {
 	return new Promise((resolve, reject) => {
-		fs$3.readFile(fullpath, encoding, (err, content) => {
+		fs$5.readFile(fullpath, encoding, (err, content) => {
 			if (err) reject(err);
 			resolve(content);
 		});
@@ -72262,15 +71658,15 @@ function getFileLineCount(filepath) {
 	let i;
 	let count = 0;
 	return new Promise((resolve, reject) => {
-		fs$3.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
+		fs$5.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
 			for (i = 0; i < chunk.length; ++i) if (chunk[i] == 10) count++;
 		}).on("end", () => resolve(count));
 	});
 }
 function readFileLines(fullpath, start, end) {
-	if (!fs$3.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
 	let res = [];
-	const input = fs$3.createReadStream(fullpath, { encoding: "utf8" });
+	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -72291,8 +71687,8 @@ function readFileLines(fullpath, start, end) {
 	});
 }
 function readFileLine(fullpath, count) {
-	if (!fs$3.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
-	const input = fs$3.createReadStream(fullpath, { encoding: "utf8" });
+	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -72317,8 +71713,8 @@ function readFileLine(fullpath, count) {
 }
 async function lineToLocation(fsPath, match, text) {
 	let uri = URI.file(fsPath).toString();
-	if (!fs$3.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
-	const rl = readline.createInterface({ input: fs$3.createReadStream(fsPath, { encoding: "utf8" }) });
+	if (!fs$5.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
+	const rl = readline.createInterface({ input: fs$5.createReadStream(fsPath, { encoding: "utf8" }) });
 	let n = 0;
 	let line = await new Promise((resolve) => {
 		let find = false;
@@ -72357,26 +71753,26 @@ function fileStartsWith(dir, pdir, caseInsensitive = isWindows || isMacintosh) {
 	return dir.startsWith(pdir);
 }
 async function writeFile(fullpath, content) {
-	await fs$3.promises.writeFile(fullpath, content, { encoding: "utf8" });
+	await fs$5.promises.writeFile(fullpath, content, { encoding: "utf8" });
 }
 function isFile(uri) {
 	return uri.startsWith("file:");
 }
 function normalizeFilePath(filepath) {
-	return URI.file(path$3.resolve(path$3.normalize(filepath))).fsPath;
+	return URI.file(path$5.resolve(path$5.normalize(filepath))).fsPath;
 }
 function isParentFolder(folder, filepath, checkEqual = false) {
 	let pdir = normalizeFilePath(folder);
 	let dir = normalizeFilePath(filepath);
 	if (sameFile(pdir, dir)) return checkEqual ? true : false;
-	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$3.sep;
+	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$5.sep;
 }
 var logger$51, exec$1, FileType;
 var init_fs = __esmMin((() => {
 	init_main$1();
 	init_main$2();
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_node();
 	init_protocol();
 	init_array();
@@ -72384,7 +71780,7 @@ var init_fs = __esmMin((() => {
 	init_object();
 	init_platform();
 	init_string$1();
-	logger$51 = createLogger("util-fs");
+	logger$51 = createLogger$1("util-fs");
 	exec$1 = child_process$1.exec;
 	FileType = /* @__PURE__ */ function(FileType) {
 		/**
@@ -72423,9 +71819,9 @@ var init_mru = __esmMin((() => {
 		*/
 		constructor(name, base, maximum = 5e3) {
 			this.maximum = maximum;
-			this.file = path$3.join(base || dataHome, name);
-			let dir = path$3.dirname(this.file);
-			fs$3.mkdirSync(dir, { recursive: true });
+			this.file = path$5.join(base || dataHome, name);
+			let dir = path$5.dirname(this.file);
+			fs$5.mkdirSync(dir, { recursive: true });
 		}
 		/**
 		* Load lines from mru file
@@ -72445,7 +71841,7 @@ var init_mru = __esmMin((() => {
 		}
 		loadSync() {
 			try {
-				let content = fs$3.readFileSync(this.file, "utf8");
+				let content = fs$5.readFileSync(this.file, "utf8");
 				content = content.trim();
 				return content.length ? content.trim().split("\n") : [];
 			} catch (e) {
@@ -72458,7 +71854,7 @@ var init_mru = __esmMin((() => {
 		async add(item) {
 			let buf;
 			try {
-				buf = fs$3.readFileSync(this.file);
+				buf = fs$5.readFileSync(this.file);
 				if (buf[0] === 239 && buf[1] === 187 && buf[2] === 191) buf = buf.slice(3);
 				buf = Buffer.concat([
 					Buffer.from(item, "utf8"),
@@ -72468,7 +71864,7 @@ var init_mru = __esmMin((() => {
 			} catch (e) {
 				buf = Buffer.concat([Buffer.from(item, "utf8"), new Uint8Array([10])]);
 			}
-			await fs$3.promises.writeFile(this.file, buf);
+			await fs$5.promises.writeFile(this.file, buf);
 		}
 		/**
 		* Remove item from mru file.
@@ -72484,7 +71880,7 @@ var init_mru = __esmMin((() => {
 		*/
 		async clean() {
 			try {
-				await fs$3.promises.unlink(this.file);
+				await fs$5.promises.unlink(this.file);
 			} catch (e) {}
 		}
 	};
@@ -72610,7 +72006,7 @@ var init_extensionRegistry = __esmMin((() => {
 		resolveExtension(filepath) {
 			for (let item of this.extensionsById.values()) {
 				if (item.filepath && sameFile(item.filepath, filepath)) return item;
-				if (!item.name.startsWith("single-") && fs$3.existsSync(item.directory) && isParentFolder(fs$3.realpathSync(item.directory), filepath, false)) return item;
+				if (!item.name.startsWith("single-") && fs$5.existsSync(item.directory) && isParentFolder(fs$5.realpathSync(item.directory), filepath, false)) return item;
 			}
 		}
 		get onCommands() {
@@ -72662,14 +72058,14 @@ var init_extensionRegistry = __esmMin((() => {
 var logger$50, CommandItem, extensionRegistry$3, CommandManager, commands_default;
 var init_commands$2 = __esmMin((() => {
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_mru();
 	init_array();
 	init_extensionRegistry();
 	init_protocol();
 	init_registry$1();
 	init_string$1();
-	logger$50 = createLogger("commands");
+	logger$50 = createLogger$1("commands");
 	CommandItem = class {
 		id;
 		impl;
@@ -73951,7 +73347,7 @@ var init_filter$1 = __esmMin((() => {
 //#endregion
 //#region src/model/fuzzyMatch.ts
 async function initFuzzyWasm() {
-	const buffer = await fs$3.promises.readFile(wasmFile);
+	const buffer = await fs$5.promises.readFile(wasmFile);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 /**
@@ -74026,7 +73422,7 @@ var init_fuzzyMatch = __esmMin((() => {
 	init_filter$1();
 	init_node();
 	init_string$1();
-	wasmFile = path$3.join(pluginRoot, "bin/fuzzy.wasm");
+	wasmFile = path$5.join(pluginRoot, "bin/fuzzy.wasm");
 	FuzzyMatch = class {
 		exports;
 		contentPtr;
@@ -74149,14 +73545,14 @@ var init_fuzzyMatch = __esmMin((() => {
 //#endregion
 //#region src/model/strwidth.ts
 async function initStrWidthWasm() {
-	const buffer = await fs$3.promises.readFile(wasmPath);
+	const buffer = await fs$5.promises.readFile(wasmPath);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 var wasmPath, instance, StrWidth;
 var init_strwidth = __esmMin((() => {
 	init_constants();
 	init_node();
-	wasmPath = path$3.join(pluginRoot, "bin/strwidth.wasm");
+	wasmPath = path$5.join(pluginRoot, "bin/strwidth.wasm");
 	StrWidth = class StrWidth {
 		exports;
 		contentPtr;
@@ -74197,7 +73593,7 @@ var init_strwidth = __esmMin((() => {
 var QuickPick;
 var init_quickpick = __esmMin((() => {
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_filter$1();
@@ -74207,7 +73603,7 @@ var init_quickpick = __esmMin((() => {
 	init_input();
 	init_popup();
 	init_strwidth();
-	createLogger("quickpick");
+	createLogger$1("quickpick");
 	QuickPick = class {
 		nvim;
 		preferences;
@@ -74378,8 +73774,8 @@ var init_quickpick = __esmMin((() => {
 				highlights,
 				linecount: Math.max(1, lincount)
 			};
-			opts.highlight = defaultValue(preferences.floatHighlight, void 0);
-			opts.borderhighlight = defaultValue(preferences.floatBorderHighlight, void 0);
+			if (preferences.floatHighlight !== void 0) opts.highlight = preferences.floatHighlight;
+			if (preferences.floatBorderHighlight !== void 0) opts.borderhighlight = preferences.floatBorderHighlight;
 			let res = await nvim.call("coc#dialog#create_list", [
 				input.winid,
 				input.dimension,
@@ -83314,7 +82710,7 @@ function runCommand(cmd, opts = {}, timeout, isWindows = platform === 3) {
 	if (!isWindows) opts.shell = opts.shell || process.env.SHELL;
 	opts.maxBuffer = opts.maxBuffer ?? 500 * 1024;
 	let encoding = opts.encoding || "utf8";
-	encoding = import_lib$1.default.encodingExists(encoding) ? encoding : "utf8";
+	encoding = import_lib.default.encodingExists(encoding) ? encoding : "utf8";
 	return new Promise((resolve, reject) => {
 		let disposable;
 		let cp;
@@ -83339,7 +82735,7 @@ function runCommand(cmd, opts = {}, timeout, isWindows = platform === 3) {
 				reject(/* @__PURE__ */ new Error(`exited with ${err.code}\n${err}\n${stderr.toString("utf8")}`));
 				return;
 			}
-			resolve(import_lib$1.default.decode(stdout, encoding));
+			resolve(import_lib.default.decode(stdout, encoding));
 		});
 	});
 }
@@ -83363,7 +82759,7 @@ function terminate(process, cwd, pt = platform) {
 		return false;
 	}
 	else if (pt === 2 || pt === 1) try {
-		let filepath = path$3.join(pluginRoot, "bin/terminateProcess.sh");
+		let filepath = path$5.join(pluginRoot, "bin/terminateProcess.sh");
 		return child_process$1.spawnSync(filepath, [process.pid.toString()]).error ? false : true;
 	} catch (err) {
 		return false;
@@ -83373,13 +82769,13 @@ function terminate(process, cwd, pt = platform) {
 		return true;
 	}
 }
-var import_lib$1;
+var import_lib;
 var init_processes = __esmMin((() => {
 	init_constants();
 	init_errors();
 	init_node();
 	init_platform();
-	import_lib$1 = /* @__PURE__ */ __toESM(require_lib$1());
+	import_lib = /* @__PURE__ */ __toESM(require_lib$1());
 	init_protocol();
 	init_lodash();
 }));
@@ -83405,8 +82801,8 @@ var init_resolver = __esmMin((() => {
 			if (!executable("yarnpkg")) return Promise.resolve("");
 			if (this._yarnFolder) return Promise.resolve(this._yarnFolder);
 			return runCommand("yarnpkg global dir", {}, 3e3).then((root) => {
-				let folder = path$3.join(stripAnsi(root).trim(), "node_modules");
-				let exists = fs$3.existsSync(folder);
+				let folder = path$5.join(stripAnsi(root).trim(), "node_modules");
+				let exists = fs$5.existsSync(folder);
 				if (exists) this._yarnFolder = folder;
 				return exists ? folder : "";
 			});
@@ -83415,12 +82811,12 @@ var init_resolver = __esmMin((() => {
 			let nodeFolder = await this.nodeFolder;
 			let yarnFolder = await this.yarnFolder;
 			if (yarnFolder) {
-				let s = await statAsync(path$3.join(yarnFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$3.join(yarnFolder, mod);
+				let s = await statAsync(path$5.join(yarnFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$5.join(yarnFolder, mod);
 			}
 			if (nodeFolder) {
-				let s = await statAsync(path$3.join(nodeFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$3.join(nodeFolder, mod);
+				let s = await statAsync(path$5.join(nodeFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$5.join(nodeFolder, mod);
 			}
 			return null;
 		}
@@ -83475,12 +82871,12 @@ function getWatchmanPath(configurations) {
 }
 async function findUp(nvim, cwd, filename) {
 	let filepath = await nvim.call("coc#util#get_fullpath");
-	filepath = path$3.normalize(filepath);
-	let isFile = filepath && path$3.isAbsolute(filepath);
-	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$3.dirname(filepath));
+	filepath = path$5.normalize(filepath);
+	let isFile = filepath && path$5.isAbsolute(filepath);
+	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$5.dirname(filepath));
 	let res = findUp$1(filename, cwd);
-	if (res && res != os$3.homedir()) return res;
-	if (isFile) return findUp$1(filename, path$3.dirname(filepath));
+	if (res && res != os$5.homedir()) return res;
+	if (isFile) return findUp$1(filename, path$5.dirname(filepath));
 	return null;
 }
 function resolveModule(name) {
@@ -87633,10 +87029,10 @@ function formatMessage(title, message, total) {
 var logger$49, ProgressNotification;
 var init_progress$1 = __esmMin((() => {
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_protocol();
 	init_notification();
-	logger$49 = createLogger("model-progress");
+	logger$49 = createLogger$1("model-progress");
 	ProgressNotification = class extends Notification {
 		option;
 		tokenSource;
@@ -90728,21 +90124,21 @@ function expandVariables(input, ctx = {}) {
 			return process.env[key] ?? match;
 		}
 		switch (name) {
-			case "tmpdir": return os$3.tmpdir();
-			case "userHome": return os$3.homedir();
+			case "tmpdir": return os$5.tmpdir();
+			case "userHome": return os$5.homedir();
 			case "cwd": return ctx.cwd ?? process.cwd();
 			case "workspace":
 			case "workspaceRoot":
 			case "workspaceFolder": return ctx.root ?? match;
-			case "workspaceFolderBasename": return ctx.root ? path$3.basename(ctx.root) : match;
+			case "workspaceFolderBasename": return ctx.root ? path$5.basename(ctx.root) : match;
 			case "file": return ctx.file ?? match;
-			case "fileDirname": return ctx.file ? path$3.dirname(ctx.file) : match;
-			case "fileExtname": return ctx.file ? path$3.extname(ctx.file) : match;
-			case "fileBasename": return ctx.file ? path$3.basename(ctx.file) : match;
+			case "fileDirname": return ctx.file ? path$5.dirname(ctx.file) : match;
+			case "fileExtname": return ctx.file ? path$5.extname(ctx.file) : match;
+			case "fileBasename": return ctx.file ? path$5.basename(ctx.file) : match;
 			case "fileBasenameNoExtension": {
 				if (!ctx.file) return match;
-				const base = path$3.basename(ctx.file);
-				return base.slice(0, base.length - path$3.extname(base).length);
+				const base = path$5.basename(ctx.file);
+				return base.slice(0, base.length - path$5.extname(base).length);
 			}
 			default: return match;
 		}
@@ -91548,10 +90944,10 @@ var ConfigurationModelParser;
 var init_parser$1 = __esmMin((() => {
 	init_main$1();
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_model();
 	init_util$6();
-	createLogger("parser");
+	createLogger$1("parser");
 	ConfigurationModelParser = class {
 		_name;
 		_raw = null;
@@ -91838,7 +91234,7 @@ var init_registry = __esmMin((() => {
 })), logger$48, jsonRegistry, configuration, Configurations;
 var init_configuration$2 = __esmMin((() => {
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_constants();
@@ -91856,7 +91252,7 @@ var init_configuration$2 = __esmMin((() => {
 	init_parser$1();
 	init_registry();
 	init_util$6();
-	logger$48 = createLogger("configurations");
+	logger$48 = createLogger$1("configurations");
 	jsonRegistry = Registry.as(Extensions$2.JSONContribution);
 	configuration = Registry.as(Extensions$1.Configuration);
 	Configurations = class {
@@ -91982,9 +91378,9 @@ var init_configuration$2 = __esmMin((() => {
 			if (hasOwnProperty$1(schemas, uri)) return schemas[uri];
 		}
 		parseConfigurationModel(filepath, filecontents) {
-			if (!filepath || !fs$3.existsSync(filepath)) return new ConfigurationModel();
+			if (!filepath || !fs$5.existsSync(filepath)) return new ConfigurationModel();
 			let parser = new ConfigurationModelParser(filepath);
-			let content = filecontents || fs$3.readFileSync(filepath, "utf8");
+			let content = filecontents || fs$5.readFileSync(filepath, "utf8");
 			let uri = URI.file(filepath).toString();
 			parser.parse(content);
 			if (!isFalsyOrEmpty(parser.errors)) {
@@ -92003,8 +91399,8 @@ var init_configuration$2 = __esmMin((() => {
 			return parser.configurationModel;
 		}
 		folderToConfigfile(folder) {
-			if (sameFile(folder, os$3.homedir())) return void 0;
-			let filepath = path$3.join(folder, ".vim", CONFIG_FILE_NAME);
+			if (sameFile(folder, os$5.homedir())) return void 0;
+			let filepath = path$5.join(folder, ".vim", CONFIG_FILE_NAME);
 			if (sameFile(filepath, this.userConfigFile)) return void 0;
 			return filepath;
 		}
@@ -92026,11 +91422,11 @@ var init_configuration$2 = __esmMin((() => {
 		* Add new folder config file.
 		*/
 		addFolderFile(configFilePath, fromCwd = false, resource) {
-			let folder = normalizeFilePath(path$3.resolve(configFilePath, "../.."));
-			if (this._configuration.hasFolder(folder) || !fs$3.existsSync(configFilePath)) return false;
+			let folder = normalizeFilePath(path$5.resolve(configFilePath, "../.."));
+			if (this._configuration.hasFolder(folder) || !fs$5.existsSync(configFilePath)) return false;
 			let configFile;
 			try {
-				configFile = fs$3.readFileSync(configFilePath, "utf8");
+				configFile = fs$5.readFileSync(configFilePath, "utf8");
 			} catch (_err) {
 				return false;
 			}
@@ -92041,9 +91437,9 @@ var init_configuration$2 = __esmMin((() => {
 			return true;
 		}
 		watchFile(filepath, target) {
-			if (!fs$3.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
+			if (!fs$5.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
 			this._watchedFiles.add(filepath);
-			const folder = normalizeFilePath(path$3.resolve(filepath, "../.."));
+			const folder = normalizeFilePath(path$5.resolve(filepath, "../.."));
 			let disposable = watchFile(filepath, () => {
 				let model = this.parseConfigurationModel(filepath);
 				this.changeConfiguration(target, model, folder);
@@ -92144,7 +91540,7 @@ var init_configuration$2 = __esmMin((() => {
 			if (u.scheme !== "file") return false;
 			let dir = folder = findUp$1(".vim", u.fsPath);
 			if (!dir) return false;
-			folder = path$3.dirname(dir);
+			folder = path$5.dirname(dir);
 			let filepath = this.folderToConfigfile(folder);
 			if (filepath) {
 				this.addFolderFile(filepath, false, uri);
@@ -92162,9 +91558,9 @@ var init_configuration$2 = __esmMin((() => {
 				let fsPath = uri.fsPath;
 				let configFilePath = this.folderToConfigfile(fsPath);
 				if (configFilePath) {
-					if (!fs$3.existsSync(configFilePath)) {
-						fs$3.mkdirSync(path$3.dirname(configFilePath), { recursive: true });
-						fs$3.writeFileSync(configFilePath, "{}", "utf8");
+					if (!fs$5.existsSync(configFilePath)) {
+						fs$5.mkdirSync(path$5.dirname(configFilePath), { recursive: true });
+						fs$5.writeFileSync(configFilePath, "{}", "utf8");
 					}
 					this.addFolderFile(configFilePath, false, resource);
 					return fsPath;
@@ -92193,9 +91589,9 @@ var logger$47, ConfigurationProxy;
 var init_shape = __esmMin((() => {
 	init_main$1();
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_node();
-	logger$47 = createLogger("configuration-shape");
+	logger$47 = createLogger$1("configuration-shape");
 	ConfigurationProxy = class {
 		resolver;
 		_test;
@@ -92209,17 +91605,17 @@ var init_shape = __esmMin((() => {
 		async modifyConfiguration(fsPath, key, value) {
 			if (this._test) return;
 			logger$47.info(`modify configuration file: ${fsPath}`, key, value);
-			let dir = path$3.dirname(fsPath);
+			let dir = path$5.dirname(fsPath);
 			let formattingOptions = {
 				tabSize: 2,
 				insertSpaces: true
 			};
-			if (!fs$3.existsSync(dir)) fs$3.mkdirSync(dir, { recursive: true });
-			let content = fs$3.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
+			if (!fs$5.existsSync(dir)) fs$5.mkdirSync(dir, { recursive: true });
+			let content = fs$5.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
 			content = content || "{}";
 			let edits = modify(content, [key], value, { formattingOptions });
 			content = applyEdits$1(content, edits);
-			fs$3.writeFileSync(fsPath, content, { encoding: "utf8" });
+			fs$5.writeFileSync(fsPath, content, { encoding: "utf8" });
 		}
 		getWorkspaceFolder(resource) {
 			if (typeof this.resolver.getWorkspaceFolder === "function") {
@@ -92254,12 +91650,12 @@ function createCommand(id, event, autocmd) {
 }
 var logger$46, AutocmdItem, groupName, Autocmds;
 var init_autocmds = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_extensionRegistry();
 	init_lodash();
 	init_protocol();
-	logger$46 = createLogger("autocmds");
+	logger$46 = createLogger$1("autocmds");
 	AutocmdItem = class {
 		id;
 		option;
@@ -93471,7 +92867,7 @@ var init_buffer$6 = __esmMin((() => {
 					msg = `${diagnostic.message}\n\nRelated information:\n`;
 					for (const info of diagnostic.relatedInformation) {
 						const fsPath = URI.parse(info.location.uri).fsPath;
-						const basename = path$3.basename(fsPath);
+						const basename = path$5.basename(fsPath);
 						const line = info.location.range.start.line + 1;
 						const column = info.location.range.start.character + 1;
 						msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`;
@@ -94410,14 +93806,14 @@ function addLocation(arr, location) {
 var logger$45, Manager;
 var init_manager$3 = __esmMin((() => {
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_errors();
 	init_extensionRegistry();
 	init_object();
 	init_protocol();
 	init_string$1();
 	init_workspace$1();
-	logger$45 = createLogger("provider-manager");
+	logger$45 = createLogger$1("provider-manager");
 	Manager = class {
 		providers = /* @__PURE__ */ new Set();
 		hasProvider(document) {
@@ -95097,10 +94493,10 @@ var logger$44, InlayHintManger;
 var init_inlayHintManager = __esmMin((() => {
 	init_dist_node();
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_position();
 	init_manager$3();
-	logger$44 = createLogger("inlayHintManger");
+	logger$44 = createLogger$1("inlayHintManger");
 	InlayHintManger = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
@@ -95241,9 +94637,9 @@ var init_inlineValueManager = __esmMin((() => {
 var LinkedEditingRangeManager;
 var init_linkedEditingRangeManager = __esmMin((() => {
 	init_dist_node();
-	init_logger$1();
+	init_logger$2();
 	init_manager$3();
-	createLogger("linkedEditingManager");
+	createLogger$1("linkedEditingManager");
 	LinkedEditingRangeManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
@@ -96293,7 +95689,7 @@ var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/supports-color/index.js
 var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const os$1 = require("os");
+	const os$2 = require("os");
 	const tty$1 = require("tty");
 	const hasFlag = require_has_flag();
 	const { env } = process;
@@ -96320,7 +95716,7 @@ var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 		const min = forceColor || 0;
 		if (env.TERM === "dumb") return min;
 		if (process.platform === "win32") {
-			const osRelease = os$1.release().split(".");
+			const osRelease = os$2.release().split(".");
 			if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) return Number(osRelease[2]) >= 14931 ? 3 : 2;
 			return 1;
 		}
@@ -97475,7 +96871,7 @@ function resolveRequestOptions(url, options) {
 	if (dataType == "object") opts.headers["Content-Type"] = "application/json";
 	else if (dataType == "string") opts.headers["Content-Type"] = "text/plain";
 	if (proxyOptions.proxyAuthorization) opts.headers["Proxy-Authorization"] = proxyOptions.proxyAuthorization;
-	if (proxyOptions.proxyCA) opts.ca = fs$3.readFileSync(proxyOptions.proxyCA);
+	if (proxyOptions.proxyCA) opts.ca = fs$5.readFileSync(proxyOptions.proxyCA);
 	if (options.user) opts.auth = options.user + ":" + toText(options.password);
 	if (url.username) opts.auth = url.username + ":" + toText(url.password);
 	if (options.timeout) opts.timeout = options.timeout;
@@ -97565,14 +96961,14 @@ var init_fetch = __esmMin((() => {
 	import_follow_redirects = require_follow_redirects();
 	init_dist$1();
 	init_dist();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_errors();
 	init_is();
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$43 = createLogger("model-fetch");
+	logger$43 = createLogger$1("model-fetch");
 	timeout = getConditionValue(500, 50);
 }));
 //#endregion
@@ -98716,7 +98112,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return sa.constants;
 			}
 		});
-		var ra = Le.Buffer.concat, qr = Object.getOwnPropertyDescriptor(Le.Buffer, "concat"), na = (s) => s, fs = qr?.writable === !0 || qr?.set !== void 0 ? (s) => {
+		var ra = Le.Buffer.concat, qr = Object.getOwnPropertyDescriptor(Le.Buffer, "concat"), na = (s) => s, fs$6 = qr?.writable === !0 || qr?.set !== void 0 ? (s) => {
 			Le.Buffer.concat = s ? na : ra;
 		} : (s) => {}, Ae = Symbol("_superWrite"), Ie = class extends Error {
 			code;
@@ -98782,13 +98178,13 @@ while (this[zr](this[Ut]()) && this[R].length);
 				let r = this.#t._handle, n = r.close;
 				r.close = () => {};
 				let o = this.#t.close;
-				this.#t.close = () => {}, fs(!0);
+				this.#t.close = () => {}, fs$6(!0);
 				let a;
 				try {
 					let l = typeof e[ds] == "number" ? e[ds] : this.#s;
-					a = this.#t._processChunk(e, l), fs(!1);
+					a = this.#t._processChunk(e, l), fs$6(!1);
 				} catch (l) {
-					fs(!1), this.#o(new Ie(l, this.write));
+					fs$6(!1), this.#o(new Ie(l, this.write));
 				} finally {
 					this.#t && (this.#t._handle = r, r.close = n, this.#t.close = o, this.#t.removeAllListeners("error"));
 				}
@@ -102973,8 +102369,8 @@ var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 //#endregion
 //#region node_modules/unzip-stream/node_modules/mkdirp/index.js
 var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var path$1 = require("path");
-	var fs$1 = require("fs");
+	var path$2 = require("path");
+	var fs$2 = require("fs");
 	var _0777 = parseInt("0777", 8);
 	module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
 	function mkdirP(p, opts, f, made) {
@@ -102983,11 +102379,11 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			opts = {};
 		} else if (!opts || typeof opts !== "object") opts = { mode: opts };
 		var mode = opts.mode;
-		var xfs = opts.fs || fs$1;
+		var xfs = opts.fs || fs$2;
 		if (mode === void 0) mode = _0777;
 		if (!made) made = null;
 		var cb = f || function() {};
-		p = path$1.resolve(p);
+		p = path$2.resolve(p);
 		xfs.mkdir(p, mode, function(er) {
 			if (!er) {
 				made = made || p;
@@ -102996,8 +102392,8 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			switch (er.code) {
 				case "ENOENT":
 					/* istanbul ignore if */
-					if (path$1.dirname(p) === p) return cb(er);
-					mkdirP(path$1.dirname(p), opts, function(er, made) {
+					if (path$2.dirname(p) === p) return cb(er);
+					mkdirP(path$2.dirname(p), opts, function(er, made) {
 						/* istanbul ignore if */
 						if (er) cb(er, made);
 						else mkdirP(p, opts, cb, made);
@@ -103015,17 +102411,17 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	mkdirP.sync = function sync(p, opts, made) {
 		if (!opts || typeof opts !== "object") opts = { mode: opts };
 		var mode = opts.mode;
-		var xfs = opts.fs || fs$1;
+		var xfs = opts.fs || fs$2;
 		if (mode === void 0) mode = _0777;
 		if (!made) made = null;
-		p = path$1.resolve(p);
+		p = path$2.resolve(p);
 		try {
 			xfs.mkdirSync(p, mode);
 			made = made || p;
 		} catch (err0) {
 			switch (err0.code) {
 				case "ENOENT":
-					made = sync(path$1.dirname(p), opts, made);
+					made = sync(path$2.dirname(p), opts, made);
 					sync(p, opts, made);
 					break;
 				default:
@@ -103046,8 +102442,8 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/unzip-stream/lib/extract.js
 var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var fs = require("fs");
-	var path = require("path");
+	var fs$1 = require("fs");
+	var path$1 = require("path");
 	var util$3 = require("util");
 	var mkdirp = require_mkdirp();
 	var Transform$1 = require("stream").Transform;
@@ -103088,11 +102484,11 @@ var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 	Extract.prototype._processEntry = function(entry) {
 		var self = this;
-		var destPath = path.join(this.opts.path, entry.path);
-		var directory = entry.isDirectory ? destPath : path.dirname(destPath);
+		var destPath = path$1.join(this.opts.path, entry.path);
+		var directory = entry.isDirectory ? destPath : path$1.dirname(destPath);
 		this.unfinishedEntries++;
 		var writeFileFn = function() {
-			var pipedStream = fs.createWriteStream(destPath);
+			var pipedStream = fs$1.createWriteStream(destPath);
 			pipedStream.on("close", function() {
 				self.unfinishedEntries--;
 				self._notifyAwaiter();
@@ -103139,7 +102535,7 @@ function getEtag(headers) {
 }
 function getExtname(dispositionHeader) {
 	let filename = require_content_disposition().parse(dispositionHeader).parameters.filename;
-	if (filename) return path$3.extname(filename);
+	if (filename) return path$5.extname(filename);
 }
 /**
 * Download file from url, with optional untar/unzip support.
@@ -103150,16 +102546,16 @@ function download(urlInput, options, token, obj = {}) {
 	let url = toURL(urlInput);
 	let { etagAlgorithm } = options;
 	let { dest, onProgress, extract } = options;
-	if (!dest || !path$3.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
-	if (!fs$3.existsSync(dest)) fs$3.mkdirSync(dest, { recursive: true });
+	if (!dest || !path$5.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
+	if (!fs$5.existsSync(dest)) fs$5.mkdirSync(dest, { recursive: true });
 	else {
-		let stat = fs$3.statSync(dest);
+		let stat = fs$5.statSync(dest);
 		if (stat && !stat.isDirectory()) throw new Error(`${dest} exists, but not directory!`);
 	}
 	let mod = getRequestModule(url);
 	let opts = resolveRequestOptions(url, options);
 	if (!opts.agent && options.agent) opts.agent = options.agent;
-	let extname = path$3.extname(url.pathname);
+	let extname = path$5.extname(url.pathname);
 	return new Promise((resolve, reject) => {
 		if (token) {
 			let disposable = token.onCancellationRequested(() => {
@@ -103213,8 +102609,8 @@ function download(urlInput, options, token, obj = {}) {
 					const unzip = require_unzip();
 					stream = res.pipe(unzip.Extract({ path: dest }));
 				} else {
-					dest = path$3.join(dest, `${v1()}${extname}`);
-					stream = res.pipe(fs$3.createWriteStream(dest));
+					dest = path$5.join(dest, `${v1()}${extname}`);
+					stream = res.pipe(fs$5.createWriteStream(dest));
 				}
 				stream.on("finish", () => {
 					if (hash) {
@@ -103255,18 +102651,18 @@ function download(urlInput, options, token, obj = {}) {
 var logger$42;
 var init_download = __esmMin((() => {
 	init_dist_node();
-	init_logger$1();
+	init_logger$2();
 	init_node();
 	init_fetch();
-	logger$42 = createLogger("model-download");
+	logger$42 = createLogger$1("model-download");
 }));
 //#endregion
 //#region src/extension/installer.ts
-function registryUrl(home = os$3.homedir()) {
+function registryUrl(home = os$5.homedir()) {
 	let res;
-	let filepath = path$3.join(home, ".npmrc");
-	if (fs$3.existsSync(filepath)) try {
-		let content = fs$3.readFileSync(filepath, "utf8");
+	let filepath = path$5.join(home, ".npmrc");
+	if (fs$5.existsSync(filepath)) try {
+		let content = fs$5.readFileSync(filepath, "utf8");
 		let uri;
 		for (let line of content.split(/\r?\n/)) {
 			if (line.startsWith("#")) continue;
@@ -103280,11 +102676,11 @@ function registryUrl(home = os$3.homedir()) {
 	return res ?? new URL("https://registry.npmjs.org");
 }
 function isNpmCommand(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$5.basename(exePath);
 	return name === "npm" || name === "npm.CMD";
 }
 function isYarn(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$5.basename(exePath);
 	return [
 		"yarn",
 		"yarn.CMD",
@@ -103293,12 +102689,12 @@ function isYarn(exePath) {
 	].includes(name);
 }
 function isPnpm(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$5.basename(exePath);
 	return name === "pnpm" || name === "pnpm.CMD";
 }
 function isSymbolicLink(folder) {
-	if (fs$3.existsSync(folder)) {
-		if (fs$3.lstatSync(folder).isSymbolicLink()) return true;
+	if (fs$5.existsSync(folder)) {
+		if (fs$5.lstatSync(folder).isSymbolicLink()) return true;
 	}
 	return false;
 }
@@ -103312,14 +102708,14 @@ function getExtensionDependencies(obj) {
 var logger$41, local_dependencies, Installer;
 var init_installer = __esmMin((() => {
 	init_dist_node();
-	init_logger$1();
+	init_logger$2();
 	init_download();
 	init_fetch();
 	init_fs();
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$41 = createLogger("extension-installer");
+	logger$41 = createLogger$1("extension-installer");
 	local_dependencies = [
 		"coc.nvim",
 		"esbuild",
@@ -103411,19 +102807,19 @@ var init_installer = __esmMin((() => {
 				updated: await this.doInstall(info, /* @__PURE__ */ new Set()),
 				version,
 				url: this.url,
-				folder: path$3.join(this.root, info.name)
+				folder: path$5.join(this.root, info.name)
 			};
 		}
 		async update(url) {
 			if (url) this.url = url;
 			let version;
 			if (this.name) {
-				let folder = path$3.join(this.root, this.name);
+				let folder = path$5.join(this.root, this.name);
 				if (isSymbolicLink(folder)) {
 					this.log(`Skipped update for symbol link`);
 					return;
 				}
-				version = loadJson$1(path$3.join(folder, "package.json")).version;
+				version = loadJson$1(path$5.join(folder, "package.json")).version;
 			}
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
@@ -103434,9 +102830,9 @@ var init_installer = __esmMin((() => {
 			let required = info["engines.coc"] ? info["engines.coc"].replace(/^\^/, ">=") : "";
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${info.version} requires coc.nvim ${required}, please update coc.nvim.`);
 			if (!await this.doInstall(info, /* @__PURE__ */ new Set())) return;
-			let jsonFile = path$3.join(this.root, info.name, "package.json");
+			let jsonFile = path$5.join(this.root, info.name, "package.json");
 			this.log(`Updated to v${info.version}`);
-			return path$3.dirname(jsonFile);
+			return path$5.dirname(jsonFile);
 		}
 		getInstallArguments(exePath, url) {
 			let env = "production";
@@ -103498,7 +102894,7 @@ var init_installer = __esmMin((() => {
 			});
 		}
 		async doInstall(info, installing = /* @__PURE__ */ new Set()) {
-			let dest = path$3.join(this.root, info.name);
+			let dest = path$5.join(this.root, info.name);
 			if (isSymbolicLink(dest)) return false;
 			if (installing.has(info.name)) {
 				this.log(`Skipping circular dependency: ${info.name}`);
@@ -103506,7 +102902,7 @@ var init_installer = __esmMin((() => {
 			}
 			installing.add(info.name);
 			let key = info.name.replace(/\//g, "_");
-			let downloadFolder = path$3.join(this.root, `${key}-${v4()}`);
+			let downloadFolder = path$5.join(this.root, `${key}-${v4()}`);
 			let url = info["dist.tarball"];
 			this.log(`Downloading from ${url}`);
 			let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
@@ -103519,22 +102915,22 @@ var init_installer = __esmMin((() => {
 					onProgress: (p) => this.log(`Download progress ${p}%`, true)
 				});
 				this.log(`Extension download at ${downloadFolder}`);
-				obj = loadJson$1(path$3.join(downloadFolder, "package.json"));
+				obj = loadJson$1(path$5.join(downloadFolder, "package.json"));
 				await this.installDependencies(downloadFolder, getDependencies(obj));
 			} catch (e) {
-				fs$3.rmSync(downloadFolder, {
+				fs$5.rmSync(downloadFolder, {
 					recursive: true,
 					force: true
 				});
 				throw e;
 			}
 			this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`);
-			fs$3.mkdirSync(path$3.dirname(dest), { recursive: true });
-			if (fs$3.existsSync(dest)) fs$3.rmSync(dest, {
+			fs$5.mkdirSync(path$5.dirname(dest), { recursive: true });
+			if (fs$5.existsSync(dest)) fs$5.rmSync(dest, {
 				force: true,
 				recursive: true
 			});
-			fs$3.renameSync(downloadFolder, dest);
+			fs$5.renameSync(downloadFolder, dest);
 			this.log(`Move extension ${info.name}@${info.version} to ${dest}`);
 			const extensionDependencies = getExtensionDependencies(obj);
 			if (extensionDependencies.length > 0) {
@@ -103568,15 +102964,15 @@ var init_memos = __esmMin((() => {
 		filepath;
 		constructor(filepath) {
 			this.filepath = filepath;
-			if (!fs$3.existsSync(filepath)) fs$3.writeFileSync(filepath, "{}", "utf8");
+			if (!fs$5.existsSync(filepath)) fs$5.writeFileSync(filepath, "{}", "utf8");
 		}
 		merge(filepath) {
-			if (!fs$3.existsSync(filepath)) return;
+			if (!fs$5.existsSync(filepath)) return;
 			let obj = loadJson$1(filepath);
 			let current = loadJson$1(this.filepath);
 			Object.assign(current, obj);
 			writeJson(this.filepath, current);
-			fs$3.unlinkSync(filepath);
+			fs$5.unlinkSync(filepath);
 		}
 		fetchContent(id, key) {
 			let obj = loadJson$1(this.filepath)[id];
@@ -103608,12 +103004,12 @@ var init_memos = __esmMin((() => {
 //#region src/list/commandTask.ts
 var spawn$1, logger$40, CommandTask;
 var init_commandTask = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_node();
 	init_workspace$1();
 	spawn$1 = child_process$1.spawn;
-	logger$40 = createLogger("list-commandTask");
+	logger$40 = createLogger$1("list-commandTask");
 	CommandTask = class extends events.EventEmitter {
 		opt;
 		disposables = [];
@@ -104028,11 +103424,11 @@ var init_fuzzy = __esmMin((() => {
 var logger$39, DB_PATH, DataBase, db_default;
 var init_db$1 = __esmMin((() => {
 	init_node();
-	init_logger$1();
+	init_logger$2();
 	init_string$1();
 	init_constants();
-	logger$39 = createLogger("list-db");
-	DB_PATH = path$3.join(dataHome, "list_history.dat");
+	logger$39 = createLogger$1("list-db");
+	DB_PATH = path$5.join(dataHome, "list_history.dat");
 	DataBase = class {
 		folders = [];
 		names = [];
@@ -104101,12 +103497,12 @@ var init_db$1 = __esmMin((() => {
 				nameBuf,
 				...bufs
 			]);
-			fs$3.writeFileSync(DB_PATH, resultBuf);
+			fs$5.writeFileSync(DB_PATH, resultBuf);
 			this._changed = false;
 		}
 		load() {
-			if (!fs$3.existsSync(DB_PATH)) return;
-			let buffer = fs$3.readFileSync(DB_PATH);
+			if (!fs$5.existsSync(DB_PATH)) return;
+			let buffer = fs$5.readFileSync(DB_PATH);
 			let folder_length = buffer.readUInt32BE(1);
 			let name_length = buffer.readUInt32BE(5);
 			let folderBuf = buffer.slice(9, 9 + folder_length);
@@ -104151,12 +103547,12 @@ var init_db$1 = __esmMin((() => {
 var logger$38, InputHistory;
 var init_history = __esmMin((() => {
 	init_node();
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_fuzzy();
 	init_db$1();
 	init_string$1();
-	logger$38 = createLogger("list-history");
+	logger$38 = createLogger$1("list-history");
 	InputHistory = class {
 		prompt;
 		name;
@@ -104182,13 +103578,13 @@ var init_history = __esmMin((() => {
 		}
 		static migrate(folder) {
 			try {
-				let files = fs$3.readdirSync(folder);
-				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$3.statSync(path$3.join(folder, f)).isFile());
+				let files = fs$5.readdirSync(folder);
+				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$5.statSync(path$5.join(folder, f)).isFile());
 				if (files.length === 0) return;
 				let db = new DataBase();
 				for (let file of files) {
 					let name = file.match(/^list-(.*)-history.json$/)[1];
-					let content = fs$3.readFileSync(path$3.join(folder, file), "utf8");
+					let content = fs$5.readFileSync(path$5.join(folder, file), "utf8");
 					let obj = JSON.parse(content);
 					for (let [key, texts] of Object.entries(obj)) {
 						let folder = Buffer.from(key, "base64").toString("utf8");
@@ -104198,7 +103594,7 @@ var init_history = __esmMin((() => {
 					}
 				}
 				files.forEach((f) => {
-					fs$3.unlinkSync(path$3.join(folder, f));
+					fs$5.unlinkSync(path$5.join(folder, f));
 				});
 				db.save();
 			} catch (e) {
@@ -105577,7 +104973,7 @@ function parseInput(input) {
 }
 var logger$37, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_ansiparse();
 	init_array();
@@ -105589,7 +104985,7 @@ var init_worker = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_configuration$1();
-	logger$37 = createLogger("list-worker");
+	logger$37 = createLogger$1("list-worker");
 	controlCode$1 = "\x1B";
 	WHITE_SPACE_CHARS = [32, 9];
 	SEARCH_HL_GROUP = "CocListSearch";
@@ -106440,7 +105836,7 @@ function fixWidth(str, width) {
 function formatUri(uri, cwd) {
 	if (!uri.startsWith("file:")) return uri;
 	let filepath = URI.parse(uri).fsPath;
-	return isParentFolder(cwd, filepath) ? path$3.relative(cwd, filepath) : filepath;
+	return isParentFolder(cwd, filepath) ? path$5.relative(cwd, filepath) : filepath;
 }
 function formatListItems(align, list) {
 	if (list.length === 0) return [];
@@ -106462,11 +105858,11 @@ function formatPath(format, pathToFormat) {
 	if (format === "hidden") return "";
 	else if (format === "full") return pathToFormat;
 	else if (format === "short") {
-		const segments = pathToFormat.split(path$3.sep);
+		const segments = pathToFormat.split(path$5.sep);
 		if (segments.length < 2) return pathToFormat;
-		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$3.sep);
+		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$5.sep);
 	} else {
-		const segments = pathToFormat.split(path$3.sep);
+		const segments = pathToFormat.split(path$5.sep);
 		return toText(segments[segments.length - 1]);
 	}
 }
@@ -106577,7 +105973,7 @@ var init_location = __esmMin((() => {
 			let ignoreFilepath = locs.every((o) => o.bufnr == bufnr);
 			return locs.map((loc) => {
 				let filename = ignoreFilepath ? "" : loc.filename;
-				if (filename.length > 0 && path$3.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$3.relative(context.cwd, filename) : filename;
+				if (filename.length > 0 && path$5.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$5.relative(context.cwd, filename) : filename;
 				return this.createItem(filename, loc);
 			});
 		}
@@ -106641,7 +106037,7 @@ var init_location = __esmMin((() => {
 //#endregion
 //#region src/list/source/diagnostics.ts
 function convertToLabel(item, cwd, includeCode, pathFormat = "full") {
-	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$3.relative(cwd, item.file) : item.file);
+	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$5.relative(cwd, item.file) : item.file);
 	const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : [];
 	const source = includeCode ? `[${item.source} ${defaultValue(item.code, "")}]` : item.source;
 	return [
@@ -106793,9 +106189,9 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("configuration", async (item) => {
 				let { root } = item.data;
-				let jsonFile = path$3.join(root, "package.json");
-				if (fs$3.existsSync(jsonFile)) {
-					let idx = fs$3.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
+				let jsonFile = path$5.join(root, "package.json");
+				if (fs$5.existsSync(jsonFile)) {
+					let idx = fs$5.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
 					await workspace_default.jumpTo(URI.file(jsonFile), {
 						line: idx == -1 ? 0 : idx,
 						character: 0
@@ -106831,8 +106227,8 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("help", async (item) => {
 				let { root } = item.data;
-				let file = fs$3.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
-				if (file) await workspace_default.jumpTo(URI.file(path$3.join(root, file)));
+				let file = fs$5.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
+				if (file) await workspace_default.jumpTo(URI.file(path$5.join(root, file)));
 			});
 			this.addAction("reload", async (item) => {
 				let { id } = item.data;
@@ -106855,14 +106251,14 @@ var init_extensions = __esmMin((() => {
 			let list = await extension_default.getExtensionStates();
 			for (let stat of list) {
 				let prefix = getExtensionPrefix(stat.state);
-				let root = fs$3.realpathSync(stat.root);
+				let root = fs$5.realpathSync(stat.root);
 				let locked = stat.isLocked;
 				items.push({
 					label: [
 						`${prefix} ${stat.id}${locked ? " " : ""}`,
 						...stat.isLocal ? ["[RTP]"] : [],
 						stat.version,
-						root.replace(os$3.homedir(), "~")
+						root.replace(os$5.homedir(), "~")
 					],
 					filterText: stat.id,
 					data: {
@@ -107163,11 +106559,11 @@ function getFilterText(s, kind) {
 async function loadCtagsSymbols(document, nvim, token) {
 	if (!which.sync("ctags", { nothrow: true })) return [];
 	let uri = URI.parse(document.uri);
-	let extname = path$3.extname(uri.fsPath);
+	let extname = path$5.extname(uri.fsPath);
 	let content = "";
 	let tempname = await nvim.call("tempname");
 	let filepath = `${tempname}.${extname}`;
-	let cwd = path$3.dirname(tempname);
+	let cwd = path$5.dirname(tempname);
 	let escaped = await nvim.call("fnameescape", filepath);
 	await writeFile(escaped, document.getDocumentContent());
 	try {
@@ -111415,8 +110811,8 @@ var init_errorHandler = __esmMin((() => {
 //#region src/language-client/utils/logger.ts
 var logger$36, ConsoleLogger, NullLogger;
 var init_logger = __esmMin((() => {
-	init_logger$1();
-	logger$36 = createLogger("language-client");
+	init_logger$2();
+	logger$36 = createLogger$1("language-client");
 	ConsoleLogger = class {
 		error(message) {
 			logger$36.error(message);
@@ -111705,7 +111101,7 @@ var init_client = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -111761,7 +111157,7 @@ var init_client = __esmMin((() => {
 	init_uuid();
 	init_workspaceFolders();
 	init_workspaceSymbol();
-	logger$35 = createLogger("language-client-client");
+	logger$35 = createLogger$1("language-client-client");
 	redOpen = "\x1B[31m";
 	redClose = "\x1B[39m";
 	RevealOutputChannelOn = /* @__PURE__ */ function(RevealOutputChannelOn) {
@@ -112361,7 +111757,7 @@ var init_client = __esmMin((() => {
 			let resolved;
 			if (!isFalsyOrEmpty(rootPatterns)) resolved = workspace_default.documentsManager.resolveRoot(rootPatterns, requireRootPattern);
 			let rootPath = resolved || workspace_default.rootPath;
-			if (sameFile(rootPath, os$3.homedir()) || ignoredRootPaths.some((p) => sameFile(rootPath, p))) {
+			if (sameFile(rootPath, os$5.homedir()) || ignoredRootPaths.some((p) => sameFile(rootPath, p))) {
 				this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`);
 				return null;
 			}
@@ -112924,15 +112320,15 @@ var init_client = __esmMin((() => {
 //#endregion
 //#region src/language-client/index.ts
 function getRuntimePath(runtime, serverWorkingDirectory) {
-	if (path$3.isAbsolute(runtime)) return runtime;
+	if (path$5.isAbsolute(runtime)) return runtime;
 	const mainRootPath = mainGetRootPath();
 	if (mainRootPath !== void 0) {
-		const result = path$3.join(mainRootPath, runtime);
-		if (fs$3.existsSync(result)) return result;
+		const result = path$5.join(mainRootPath, runtime);
+		if (fs$5.existsSync(result)) return result;
 	}
 	if (serverWorkingDirectory !== void 0) {
-		const result = path$3.join(serverWorkingDirectory, runtime);
-		if (fs$3.existsSync(result)) return result;
+		const result = path$5.join(serverWorkingDirectory, runtime);
+		if (fs$5.existsSync(result)) return result;
 	}
 	return runtime;
 }
@@ -112943,10 +112339,10 @@ function mainGetRootPath() {
 }
 function getServerWorkingDir(options) {
 	let cwd = options && options.cwd;
-	if (cwd && !path$3.isAbsolute(cwd)) cwd = path$3.join(workspace_default.cwd, cwd);
+	if (cwd && !path$5.isAbsolute(cwd)) cwd = path$5.join(workspace_default.cwd, cwd);
 	if (!cwd) cwd = workspace_default.cwd;
 	return new Promise((s) => {
-		fs$3.lstat(cwd, (err, stats) => {
+		fs$5.lstat(cwd, (err, stats) => {
 			s(!err && stats.isDirectory() ? cwd : void 0);
 		});
 	});
@@ -112979,7 +112375,7 @@ function checkProcessDied(childProcess) {
 var logger$34, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esmMin((() => {
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_is();
 	init_node();
@@ -112989,7 +112385,7 @@ var init_language_client = __esmMin((() => {
 	init_client();
 	init_utils();
 	init_client();
-	logger$34 = createLogger("language-client-index");
+	logger$34 = createLogger$1("language-client-index");
 	debugStartWith = [
 		"--debug=",
 		"--debug-brk=",
@@ -113360,7 +112756,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	args = args.map((s) => workspace_default.expand(s));
 	if (module) {
 		module = workspace_default.expand(module);
-		if (!fs$3.existsSync(module)) {
+		if (!fs$5.existsSync(module)) {
 			window_default.showErrorMessage(`Module file "${module}" not found for LS "${name}"`);
 			return null;
 		}
@@ -113404,7 +112800,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	let ignoredRootPaths = toArray(config.ignoredRootPaths);
 	let clientOptions = {
 		workspaceFolder: folder == null ? void 0 : {
-			name: path$3.basename(folder.fsPath),
+			name: path$5.basename(folder.fsPath),
 			uri: folder.toString()
 		},
 		rootPatterns: config.rootPatterns,
@@ -113524,7 +112920,7 @@ var init_services$1 = __esmMin((() => {
 	init_esm();
 	init_events();
 	init_language_client();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_node();
@@ -113532,7 +112928,7 @@ var init_services$1 = __esmMin((() => {
 	init_protocol();
 	init_window();
 	init_workspace$1();
-	logger$33 = createLogger("services");
+	logger$33 = createLogger$1("services");
 	ServiceStat = /* @__PURE__ */ function(ServiceStat) {
 		ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
 		ServiceStat[ServiceStat["Starting"] = 1] = "Starting";
@@ -114063,7 +113459,7 @@ var init_manager$2 = __esmMin((() => {
 	init_registry();
 	init_events();
 	init_extension();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_constants();
 	init_errors();
@@ -114091,7 +113487,7 @@ var init_manager$2 = __esmMin((() => {
 	init_services();
 	init_sources$1();
 	init_symbols$1();
-	logger$32 = createLogger("list-manager");
+	logger$32 = createLogger$1("list-manager");
 	mouseKeys = [
 		"<LeftMouse>",
 		"<LeftDrag>",
@@ -114812,7 +114208,7 @@ function getPlaceholderId(p) {
 }
 var logger$31, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_async$1();
 	init_errors();
@@ -114820,7 +114216,7 @@ var init_parser = __esmMin((() => {
 	init_string$1();
 	init_eval();
 	init_util$4();
-	logger$31 = createLogger("snippets-parser");
+	logger$31 = createLogger$1("snippets-parser");
 	ULTISNIP_VARIABLES = [
 		"VISUAL",
 		"YANK",
@@ -116776,9 +116172,9 @@ var init_variableResolve = __esmMin((() => {
 				"TM_FILEPATH"
 			].includes(name)) {
 				let filepath = await nvim.call("coc#util#get_fullpath");
-				if (name === "TM_FILENAME") return path$3.basename(filepath);
-				if (name === "TM_FILENAME_BASE") return path$3.basename(filepath, path$3.extname(filepath));
-				if (name === "TM_DIRECTORY") return path$3.dirname(filepath);
+				if (name === "TM_FILENAME") return path$5.basename(filepath);
+				if (name === "TM_FILENAME_BASE") return path$5.basename(filepath, path$5.extname(filepath));
+				if (name === "TM_DIRECTORY") return path$5.dirname(filepath);
 				if (name === "TM_FILEPATH") return filepath;
 			}
 			if (name === "YANK") return await nvim.call("getreg", ["\"\""]);
@@ -116833,7 +116229,7 @@ var logger$30, NAME_SPACE, SnippetSession;
 var init_session$1 = __esmMin((() => {
 	init_main$2();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_diff();
 	init_errors();
@@ -116851,7 +116247,7 @@ var init_session$1 = __esmMin((() => {
 	init_snippet();
 	init_util$4();
 	init_variableResolve();
-	logger$30 = createLogger("snippets-session");
+	logger$30 = createLogger$1("snippets-session");
 	NAME_SPACE = "snippets";
 	SnippetSession = class {
 		nvim;
@@ -117642,12 +117038,12 @@ var init_types = __esmMin((() => {
 //#endregion
 //#region src/core/workspaceFolder.ts
 function toWorkspaceFolder(fsPath) {
-	if (!fsPath || !path$3.isAbsolute(fsPath)) {
+	if (!fsPath || !path$5.isAbsolute(fsPath)) {
 		logger$29.error(`Invalid folder: ${fsPath}, full path required.`);
 		return;
 	}
 	return {
-		name: path$3.basename(fsPath),
+		name: path$5.basename(fsPath),
 		uri: URI.file(fsPath).toString()
 	};
 }
@@ -117655,7 +117051,7 @@ var PatternType, logger$29, PatternTypes, checkPatternTimeout, extensionRegistry
 var init_workspaceFolder = __esmMin((() => {
 	init_esm();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -117671,7 +117067,7 @@ var init_workspaceFolder = __esmMin((() => {
 		PatternType[PatternType["Global"] = 2] = "Global";
 		return PatternType;
 	}({});
-	logger$29 = createLogger("core-workspaceFolder");
+	logger$29 = createLogger$1("core-workspaceFolder");
 	PatternTypes = [
 		0,
 		1,
@@ -117752,7 +117148,7 @@ var init_workspaceFolder = __esmMin((() => {
 			const folder = this.getWorkspaceFolder(resource);
 			if (!folder) return p;
 			if (typeof includeWorkspace === "undefined" && this._workspaceFolders) includeWorkspace = this._workspaceFolders.length > 1;
-			let result = path$3.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
+			let result = path$5.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
 			result = result == "" ? resource.fsPath : result;
 			if (includeWorkspace && folder.name) result = `${folder.name}/${result}`;
 			return result;
@@ -117768,7 +117164,7 @@ var init_workspaceFolder = __esmMin((() => {
 		resolveRoot(document, cwd, fireEvent, expand) {
 			if (document.buftype !== "" || document.schema !== "file") return null;
 			let u = URI.parse(document.uri);
-			let dir = isDirectory(u.fsPath) ? path$3.normalize(u.fsPath) : path$3.dirname(u.fsPath);
+			let dir = isDirectory(u.fsPath) ? path$5.normalize(u.fsPath) : path$5.dirname(u.fsPath);
 			let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
 			if (ignoredFiletypes?.includes(document.filetype)) return null;
 			ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter((s) => s && s.length > 0).map((s) => expand(s)) : [];
@@ -118120,7 +117516,7 @@ var init_TreeItem = __esmMin((() => {
 			this.collapsibleState = collapsibleState;
 			if (URI.isUri(label)) {
 				this.resourceUri = label;
-				this.label = path$3.basename(label.path);
+				this.label = path$5.basename(label.path);
 				this.id = label.toString();
 			} else this.label = label;
 		}
@@ -118351,7 +117747,7 @@ function makeRequireFunction(cocExports) {
 function compileInSandbox(sandbox, cocExports) {
 	return function(content, filename) {
 		const require = makeRequireFunction.call(this, cocExports);
-		const dirname = path$3.dirname(filename);
+		const dirname = path$5.dirname(filename);
 		const newContent = content.startsWith("#!") ? content.replace(/^#!.*/, "") : content;
 		const wrapper = Module.wrap(newContent);
 		const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename });
@@ -118430,10 +117826,10 @@ function createSandbox(filename, logger, name, noExport = false) {
 	return sandbox;
 }
 function getLogger(useConsole, id) {
-	return useConsole ? consoleLogger : createLogger(`extension:${id}`);
+	return useConsole ? consoleLogger : createLogger$1(`extension:${id}`);
 }
 function createExtension(id, filename, isEmpty) {
-	if (isEmpty || !fs$3.existsSync(filename)) return {
+	if (isEmpty || !fs$5.existsSync(filename)) return {
 		activate: () => {},
 		deactivate: null
 	};
@@ -118446,7 +117842,7 @@ function createExtension(id, filename, isEmpty) {
 }
 var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
 var init_factory = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_node();
 	init_object();
 	consoleLogger = {
@@ -118504,8 +117900,8 @@ function createTiming(name, timeout) {
 }
 var logger$28;
 var init_timing = __esmMin((() => {
-	init_logger$1();
-	logger$28 = createLogger("timing");
+	init_logger$2();
+	logger$28 = createLogger$1("timing");
 }));
 //#endregion
 //#region src/extension/stat.ts
@@ -118522,18 +117918,18 @@ function getEntryFile(main) {
 	return main;
 }
 async function loadGlobalJsonAsync(folder, version) {
-	let content = await readFile(path$3.join(folder, "package.json"), "utf8");
+	let content = await readFile(path$5.join(folder, "package.json"), "utf8");
 	let packageJSON = JSON.parse(content);
 	let { engines } = packageJSON;
 	let main = getEntryFile(packageJSON.main);
 	if (!engines || typeof engines.coc !== "string" && typeof engines.vscode !== "string") throw new Error("Invalid engines field");
 	if (Object.keys(engines).includes("coc") && !semver.satisfies(version, engines["coc"].replace(/^\^/, ">="))) throw new Error(`coc.nvim version not match, required ${engines["coc"]}`);
-	if (!engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
+	if (!engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
 	return packageJSON;
 }
 function loadExtensionJson(folder, version, errors) {
-	let jsonFile = path$3.join(folder, "package.json");
-	if (!fs$3.existsSync(jsonFile)) {
+	let jsonFile = path$5.join(folder, "package.json");
+	if (!fs$5.existsSync(jsonFile)) {
 		errors.push(`package.json not found in ${folder}`);
 		return;
 	}
@@ -118542,7 +117938,7 @@ function loadExtensionJson(folder, version, errors) {
 	let main = getEntryFile(packageJSON.main);
 	if (!name) errors.push(`can't find name in package.json`);
 	if (!engines || !objectLiteral(engines)) errors.push(`invalid engines in ${jsonFile}`);
-	if (engines && !engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
+	if (engines && !engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
 	if (engines) {
 		let keys = Object.keys(engines);
 		if (!keys.includes("coc") && !keys.includes("vscode")) errors.push(`Engines in package.json doesn't have coc or vscode`);
@@ -118563,14 +117959,14 @@ function getExtensionName(def) {
 }
 function checkExtensionRoot(root) {
 	try {
-		if (!fs$3.existsSync(root)) fs$3.mkdirSync(root, { recursive: true });
-		if (!fs$3.statSync(root).isDirectory()) {
+		if (!fs$5.existsSync(root)) fs$5.mkdirSync(root, { recursive: true });
+		if (!fs$5.statSync(root).isDirectory()) {
 			logger$27.info(`Trying to delete ${root}`);
-			fs$3.unlinkSync(root);
-			fs$3.mkdirSync(root, { recursive: true });
+			fs$5.unlinkSync(root);
+			fs$5.mkdirSync(root, { recursive: true });
 		}
-		let jsonFile = path$3.join(root, "package.json");
-		if (!fs$3.existsSync(jsonFile)) fs$3.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
+		let jsonFile = path$5.join(root, "package.json");
+		if (!fs$5.existsSync(jsonFile)) fs$5.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
 	} catch (e) {
 		console.error(`Unexpected error when check data home ${root}: ${e}`);
 		return false;
@@ -118578,12 +117974,12 @@ function checkExtensionRoot(root) {
 	return true;
 }
 async function getJsFiles(folder) {
-	if (!fs$3.existsSync(folder)) return [];
-	return (await fs$3.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
+	if (!fs$5.existsSync(folder)) return [];
+	return (await fs$5.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
 }
 function loadJson(filepath) {
 	try {
-		let text = fs$3.readFileSync(filepath, "utf8");
+		let text = fs$5.readFileSync(filepath, "utf8");
 		return toObject(JSON.parse(text));
 	} catch (e) {
 		logger$27.error(`Error on parse json file ${filepath}`, e);
@@ -118592,13 +117988,13 @@ function loadJson(filepath) {
 }
 var logger$27, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
 var init_stat = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_fs();
 	init_is();
 	init_node();
 	init_object();
-	logger$27 = createLogger("extension-stat");
+	logger$27 = createLogger$1("extension-stat");
 	ONE_DAY = 1440 * 60 * 1e3;
 	DISABLE_PROMPT_KEY = "disablePrompt";
 	ExtensionStat = class {
@@ -118617,9 +118013,9 @@ var init_stat = __esmMin((() => {
 		}
 		migrate() {
 			let curr = loadJson(this.jsonFile);
-			let db = path$3.join(this.folder, "db.json");
+			let db = path$5.join(this.folder, "db.json");
 			let changed = false;
-			if (fs$3.existsSync(db)) {
+			if (fs$5.existsSync(db)) {
 				let obj = loadJson(db);
 				let def = obj.extension ?? {};
 				for (let [key, o] of Object.entries(def)) {
@@ -118629,7 +118025,7 @@ var init_stat = __esmMin((() => {
 				curr.disabled = Array.from(this.disabled);
 				curr.locked = Array.from(this.locked);
 				curr.lastUpdate = obj.lastUpdate;
-				fs$3.unlinkSync(db);
+				fs$5.unlinkSync(db);
 				changed = true;
 			} else {
 				this.disabled = new Set(curr.disabled ?? []);
@@ -118659,7 +118055,7 @@ var init_stat = __esmMin((() => {
 			this.localExtensions.set(name, folder);
 		}
 		getFolder(name) {
-			if (this.extensions.has(name)) return path$3.join(this.folder, "node_modules", name);
+			if (this.extensions.has(name)) return path$5.join(this.folder, "node_modules", name);
 			return this.localExtensions.get(name);
 		}
 		getExtensionsStat() {
@@ -118737,7 +118133,7 @@ var init_stat = __esmMin((() => {
 			});
 			let currentUrls = [];
 			let exists = [];
-			for (let [key, val] of Object.entries(dependencies)) if (fs$3.existsSync(path$3.join(this.folder, "node_modules", key, "package.json"))) {
+			for (let [key, val] of Object.entries(dependencies)) if (fs$5.existsSync(path$5.join(this.folder, "node_modules", key, "package.json"))) {
 				exists.push(key);
 				if (typeof val === "string" && /^https?:/.test(val)) currentUrls.push(val);
 			}
@@ -118756,7 +118152,7 @@ var init_stat = __esmMin((() => {
 			writeJson(this.jsonFile, curr);
 		}
 		get jsonFile() {
-			return path$3.join(this.folder, "package.json");
+			return path$5.join(this.folder, "package.json");
 		}
 	};
 }));
@@ -118819,7 +118215,7 @@ var init_manager = __esmMin((() => {
 	init_esm();
 	init_registry();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_memos();
 	init_util$7();
 	init_array();
@@ -118838,10 +118234,10 @@ var init_manager = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_stat();
-	logger$26 = createLogger("extensions-manager");
+	logger$26 = createLogger$1("extensions-manager");
 	extensionRegistry = Registry.as(Extensions$3.ExtensionContribution);
-	memos = new Memos(path$3.resolve(dataHome, "memos.json"));
-	memos.merge(path$3.resolve(dataHome, "../memos.json"));
+	memos = new Memos(path$5.resolve(dataHome, "memos.json"));
+	memos.merge(path$5.resolve(dataHome, "../memos.json"));
 	configurationRegistry = Registry.as(Extensions$1.Configuration);
 	ExtensionManager = class {
 		states;
@@ -118853,7 +118249,7 @@ var init_manager = __esmMin((() => {
 		_onDidLoadExtension = new import_main$1.Emitter();
 		_onDidActiveExtension = new import_main$1.Emitter();
 		_onDidUnloadExtension = new import_main$1.Emitter();
-		singleExtensionsRoot = path$3.join(configHome, "coc-extensions");
+		singleExtensionsRoot = path$5.join(configHome, "coc-extensions");
 		modulesFolder;
 		onDidLoadExtension = this._onDidLoadExtension.event;
 		onDidActiveExtension = this._onDidActiveExtension.event;
@@ -118861,7 +118257,7 @@ var init_manager = __esmMin((() => {
 		constructor(states, folder) {
 			this.states = states;
 			this.folder = folder;
-			this.modulesFolder = path$3.join(this.folder, "node_modules");
+			this.modulesFolder = path$5.join(this.folder, "node_modules");
 		}
 		activateExtensions() {
 			this.activated = true;
@@ -118881,7 +118277,7 @@ var init_manager = __esmMin((() => {
 			let folder = this.singleExtensionsRoot;
 			let files = await getJsFiles(folder);
 			await Promise.allSettled(files.map((file) => {
-				return this.loadExtensionFile(path$3.join(folder, file));
+				return this.loadExtensionFile(path$5.join(folder, file));
 			}));
 		}
 		attachEvents() {
@@ -119115,16 +118511,16 @@ var init_manager = __esmMin((() => {
 		async loadExtensionFile(filepath, noActive = false) {
 			let stat = await statAsync(filepath);
 			if (!stat || !stat.isFile()) return;
-			let filename = path$3.basename(filepath);
-			let basename = path$3.basename(filepath, ".js");
+			let filename = path$5.basename(filepath);
+			let basename = path$5.basename(filepath, ".js");
 			let name = "single-" + basename;
-			let root = path$3.dirname(filepath);
+			let root = path$5.dirname(filepath);
 			let packageJSON = {
 				name,
 				main: filename,
 				engines: { coc: ">=0.0.82" }
 			};
-			let obj = loadJson$1(path$3.join(root, basename + ".json"));
+			let obj = loadJson$1(path$5.join(root, basename + ".json"));
 			for (const attr of ["activationEvents", "contributes"]) packageJSON[attr] = obj[attr];
 			await this.unloadExtension(name);
 			await this.registerExtension(root, packageJSON, 2, noActive);
@@ -119143,7 +118539,7 @@ var init_manager = __esmMin((() => {
 			if (this.states.isDisabled(id)) return;
 			let isActive = false;
 			let result;
-			let filename = path$3.join(root, packageJSON.main || "index.js");
+			let filename = path$5.join(root, packageJSON.main || "index.js");
 			let extensionPath = extensionType === 2 ? filename : root;
 			let exports;
 			let ext;
@@ -119161,9 +118557,9 @@ var init_manager = __esmMin((() => {
 								extensionPath,
 								globalState: memos.createMemento(`${id}|global`),
 								workspaceState: memos.createMemento(`${id}|${workspace_default.rootPath}`),
-								asAbsolutePath: (relativePath) => path$3.join(root, relativePath),
-								storagePath: path$3.join(this.folder, `${id}-data`),
-								logger: createLogger(`extension:${id}`)
+								asAbsolutePath: (relativePath) => path$5.join(root, relativePath),
+								storagePath: path$5.join(this.folder, `${id}-data`),
+								logger: createLogger$1(`extension:${id}`)
 							};
 							let res = await Promise.resolve(ext.activate(context));
 							isActive = true;
@@ -119253,7 +118649,7 @@ var init_manager = __esmMin((() => {
 				await this.unloadExtension(id);
 				this.states.removeExtension(id);
 				extensionRegistry.unregistExtension(id);
-				await remove(path$3.join(this.modulesFolder, id));
+				await remove(path$5.join(this.modulesFolder, id));
 			}
 			if (filtered.length > 0) window_default.showWarningMessage(`Global extensions ${filtered.join(", ")} not found`);
 			if (globals.length > 0) window_default.showInformationMessage(`Removed extensions: ${globals.join(" ")}`);
@@ -119268,7 +118664,7 @@ var init_manager = __esmMin((() => {
 			} else {
 				this.states.setDisable(id, false);
 				if (id.startsWith("single-")) {
-					let filepath = path$3.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
+					let filepath = path$5.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
 					await this.loadExtensionFile(filepath);
 				} else {
 					let folder = this.states.getFolder(id);
@@ -119303,7 +118699,7 @@ var init_manager = __esmMin((() => {
 		async load(filepath, active) {
 			let name;
 			if (isDirectory(filepath)) {
-				name = loadJson$1(path$3.join(filepath, "package.json")).name;
+				name = loadJson$1(path$5.join(filepath, "package.json")).name;
 				await this.loadExtension(filepath, true);
 			} else name = await this.loadExtensionFile(filepath, true);
 			if (!name) throw new Error(`Unable to load extension at ${filepath}`);
@@ -119626,7 +119022,7 @@ var logger$25, EXTENSIONS_FOLDER, Extensions, extension_default;
 var init_extension = __esmMin((() => {
 	init_commands$2();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_constants();
@@ -119640,12 +119036,12 @@ var init_extension = __esmMin((() => {
 	init_manager();
 	init_stat();
 	init_ui();
-	logger$25 = createLogger("extensions-index");
-	EXTENSIONS_FOLDER = path$3.join(dataHome, "extensions");
+	logger$25 = createLogger$1("extensions-index");
+	EXTENSIONS_FOLDER = path$5.join(dataHome, "extensions");
 	Extensions = class {
 		manager;
 		states;
-		modulesFolder = path$3.join(EXTENSIONS_FOLDER, "node_modules");
+		modulesFolder = path$5.join(EXTENSIONS_FOLDER, "node_modules");
 		globalPromise;
 		constructor() {
 			checkExtensionRoot(EXTENSIONS_FOLDER);
@@ -119883,7 +119279,7 @@ var init_extension = __esmMin((() => {
 			if (process.env.COC_NO_PLUGINS == "1") return [];
 			let res = [];
 			for (let key of this.states.activated()) {
-				let root = path$3.join(this.modulesFolder, key);
+				let root = path$5.join(this.modulesFolder, key);
 				try {
 					let json = await loadGlobalJsonAsync(root, VERSION);
 					res.push({
@@ -119902,7 +119298,7 @@ var init_extension = __esmMin((() => {
 			let lockedExtensions = this.states.lockedExtensions;
 			let infos = [];
 			Object.entries(dependencies).map(([key, val]) => {
-				let root = path$3.join(this.modulesFolder, key);
+				let root = path$5.join(this.modulesFolder, key);
 				let errors = [];
 				let obj = loadExtensionJson(root, VERSION, errors);
 				if (errors.length > 0) {
@@ -119957,14 +119353,14 @@ var init_extension = __esmMin((() => {
 		*/
 		cleanModulesFolder() {
 			let folders = this.states.globalIds.map((s) => s.replace(/\/.*$/, ""));
-			if (!fs$3.existsSync(this.modulesFolder)) return;
-			let files = fs$3.readdirSync(this.modulesFolder);
+			if (!fs$5.existsSync(this.modulesFolder)) return;
+			let files = fs$5.readdirSync(this.modulesFolder);
 			for (let file of files) {
 				if (folders.includes(file)) continue;
-				let p = path$3.join(this.modulesFolder, file);
-				let stat = fs$3.lstatSync(p);
-				if (stat.isSymbolicLink()) fs$3.unlinkSync(p);
-				else if (stat.isDirectory()) fs$3.rmSync(p, {
+				let p = path$5.join(this.modulesFolder, file);
+				let stat = fs$5.lstatSync(p);
+				if (stat.isSymbolicLink()) fs$5.unlinkSync(p);
+				else if (stat.isDirectory()) fs$5.rmSync(p, {
 					recursive: true,
 					force: true
 				});
@@ -120990,7 +120386,7 @@ var init_source_language = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_ui$2();
-	init_logger$1();
+	init_logger$2();
 	init_manager$1();
 	init_util$7();
 	init_array();
@@ -121001,7 +120397,7 @@ var init_source_language = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_util$3();
-	logger$24 = createLogger("source-language");
+	logger$24 = createLogger$1("source-language");
 	LanguageSource = class {
 		name;
 		shortcut;
@@ -121372,7 +120768,7 @@ function getLastPart(text) {
 	return text.slice(begin);
 }
 async function getFileItem(root, filename) {
-	let stat = await statAsync(path$3.join(root, filename));
+	let stat = await statAsync(path$5.join(root, filename));
 	if (stat) {
 		let dir = stat.isDirectory();
 		return {
@@ -121391,15 +120787,15 @@ function filterFiles(files, ignoreHidden, ignorePatterns = []) {
 	});
 }
 function getDirectory(pathstr, root) {
-	let part = /[\\/]$/.test(pathstr) ? pathstr : path$3.dirname(pathstr);
-	return path$3.isAbsolute(pathstr) ? part : path$3.join(root, part);
+	let part = /[\\/]$/.test(pathstr) ? pathstr : path$5.dirname(pathstr);
+	return path$5.isAbsolute(pathstr) ? part : path$5.join(root, part);
 }
 async function getItemsFromRoot(pathstr, root, ignoreHidden, ignorePatterns) {
 	let res = [];
 	let dir = getDirectory(pathstr, root);
 	let stat = await statAsync(dir);
 	if (stat && stat.isDirectory()) {
-		let files = await fs$3.promises.readdir(dir);
+		let files = await fs$5.promises.readdir(dir);
 		files = filterFiles(files, ignoreHidden, ignorePatterns);
 		let items = await Promise.all(files.map((filename) => getFileItem(dir, filename)));
 		res = res.concat(items);
@@ -121476,15 +120872,15 @@ var init_file = __esmMin((() => {
 		}
 		async getRoot(pathstr, part, filepath, cwd) {
 			let root;
-			let dirname = filepath ? path$3.dirname(filepath) : "";
+			let dirname = filepath ? path$5.dirname(filepath) : "";
 			if (pathstr.startsWith(".")) root = filepath ? dirname : cwd;
-			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$3.win32.dirname(pathstr);
-			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$3.posix.dirname(pathstr);
+			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$5.win32.dirname(pathstr);
+			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$5.posix.dirname(pathstr);
 			else if (part) {
-				let exists = await fs$3.promises.access(path$3.join(dirname, part)).then(() => true, () => false);
+				let exists = await fs$5.promises.access(path$5.join(dirname, part)).then(() => true, () => false);
 				if (exists) root = dirname;
 				else {
-					exists = await fs$3.promises.access(path$3.join(cwd, part)).then(() => true, () => false);
+					exists = await fs$5.promises.access(path$5.join(cwd, part)).then(() => true, () => false);
 					if (exists) root = cwd;
 				}
 			} else root = cwd;
@@ -121497,14 +120893,14 @@ var init_file = __esmMin((() => {
 			if (!option || option.startcol < opt.col) return null;
 			let { pathstr, part, startcol } = option;
 			let startPart = opt.col == startcol ? "" : byteSlice(opt.line, opt.col, startcol);
-			let ext = path$3.extname(path$3.basename(filepath));
+			let ext = path$5.extname(path$5.basename(filepath));
 			let cwd = await this.nvim.call("getcwd", []);
 			let root = await this.getRoot(pathstr, part, filepath, cwd);
 			if (!root || token.isCancellationRequested) return null;
 			let items = await getItemsFromRoot(pathstr, root, this.getConfig("ignoreHidden", true), this.getConfig("ignorePatterns", []));
 			let trimExt = this.shouldTrim(ext);
 			return { items: items.map((item) => {
-				let ex = path$3.extname(item.word);
+				let ex = path$5.extname(item.word);
 				item.word = trimExt && ex === ext ? item.word.replace(ext, "") : item.word;
 				return {
 					word: `${startPart}${item.word}`,
@@ -121535,7 +120931,7 @@ var logger$23, Sources, sources_default;
 var init_sources = __esmMin((() => {
 	init_events();
 	init_extension();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_fs();
@@ -121550,7 +120946,7 @@ var init_sources = __esmMin((() => {
 	init_source_language();
 	init_source_vim();
 	init_util$3();
-	logger$23 = createLogger("sources");
+	logger$23 = createLogger$1("sources");
 	Sources = class {
 		sourceMap = /* @__PURE__ */ new Map();
 		disposables = [];
@@ -121602,8 +120998,8 @@ var init_sources = __esmMin((() => {
 		async createVimSourceExtension(filepath) {
 			let { nvim } = this;
 			try {
-				let name = path$3.basename(filepath, ".vim");
-				await nvim.command(`source ${filepath.split(path$3.sep).join(path$3.posix.sep)}`);
+				let name = path$5.basename(filepath, ".vim");
+				await nvim.command(`source ${filepath.split(path$5.sep).join(path$5.posix.sep)}`);
 				let fns = await nvim.call("coc#_remote_fns", name);
 				let lowercased = fns.map((fn) => fn[0].toLowerCase() + fn.slice(1));
 				for (let fn of ["init", "complete"]) if (!lowercased.includes(fn)) throw new Error(`function "coc#source#${name}#${fn}" not found`);
@@ -121688,10 +121084,10 @@ var init_sources = __esmMin((() => {
 		async createVimSources(pluginPath) {
 			if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return;
 			this.remoteSourcePaths.push(pluginPath);
-			let folder = path$3.join(pluginPath, "autoload/coc/source");
+			let folder = path$5.join(pluginPath, "autoload/coc/source");
 			let stat = await statAsync(folder);
 			if (stat && stat.isDirectory()) {
-				let files = (await fs$3.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$3.join(folder, s));
+				let files = (await fs$5.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$5.join(folder, s));
 				await Promise.allSettled(files.map((p) => this.createVimSourceExtension(p)));
 			}
 		}
@@ -122267,7 +121663,7 @@ function fireLinesChanged(bufnr) {
 }
 function getUri(fullpath, id, buftype) {
 	if (!fullpath) return `untitled:${id}`;
-	if (path$3.isAbsolute(fullpath)) return URI.file(path$3.normalize(fullpath)).toString();
+	if (path$5.isAbsolute(fullpath)) return URI.file(path$5.normalize(fullpath)).toString();
 	if (isUrl(fullpath)) return URI.parse(fullpath).toString();
 	if (buftype != "") return `${buftype}:${id}`;
 	return `unknown:${id}`;
@@ -122282,7 +121678,7 @@ var init_document = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_constants();
 	init_diff();
@@ -122296,7 +121692,7 @@ var init_document = __esmMin((() => {
 	init_textedit();
 	init_chars();
 	init_textdocument();
-	logger$22 = createLogger("document");
+	logger$22 = createLogger$1("document");
 	MAX_EDITS = getConditionValue(200, 400);
 	debounceTime$6 = getConditionValue(150, 15);
 	Document = class {
@@ -122977,7 +122373,7 @@ var init_documents = __esmMin((() => {
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_document();
 	init_util$7();
 	init_array();
@@ -122991,7 +122387,7 @@ var init_documents = __esmMin((() => {
 	init_platform();
 	init_protocol();
 	init_string$1();
-	logger$21 = createLogger("core-documents");
+	logger$21 = createLogger$1("core-documents");
 	cwd = normalizeFilePath(process.cwd());
 	filetypeDelay = getConditionValue(50, 10);
 	Documents = class {
@@ -123124,7 +122520,7 @@ var init_documents = __esmMin((() => {
 		resolveRoot(rootPatterns, requireRootPattern = false) {
 			let doc = this.getDocument(this.bufnr);
 			let resolved;
-			if (doc && doc.schema == "file") resolved = resolveRoot(path$3.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
+			if (doc && doc.schema == "file") resolved = resolveRoot(path$5.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
 			else resolved = resolveRoot(this.cwd, rootPatterns);
 			if (requireRootPattern && !resolved) throw new Error(`Required root pattern not resolved.`);
 			return resolved;
@@ -123149,7 +122545,7 @@ var init_documents = __esmMin((() => {
 		* Expand filepath with `~` and/or environment placeholders
 		*/
 		expand(input) {
-			if (input.startsWith("~")) input = os$3.homedir() + input.slice(1);
+			if (input.startsWith("~")) input = os$5.homedir() + input.slice(1);
 			if (input.includes("$")) {
 				let doc = this.getDocument(this.bufnr);
 				let file = doc ? URI.parse(doc.uri).fsPath : "";
@@ -123159,7 +122555,7 @@ var init_documents = __esmMin((() => {
 					file
 				});
 				input = input.replace(/\$[\w]+/g, (match) => {
-					if (match == "$HOME") return os$3.homedir();
+					if (match == "$HOME") return os$5.homedir();
 					return process.env[match.slice(1)] || match;
 				});
 			}
@@ -123215,11 +122611,11 @@ var init_documents = __esmMin((() => {
 		* Get filetype by check same extension name buffer.
 		*/
 		getLanguageId(filepath) {
-			let ext = path$3.extname(filepath);
+			let ext = path$5.extname(filepath);
 			if (!ext) return "";
 			for (let doc of this.attached()) {
 				let fsPath = URI.parse(doc.uri).fsPath;
-				if (path$3.extname(fsPath) == ext) return doc.languageId;
+				if (path$5.extname(fsPath) == ext) return doc.languageId;
 			}
 			return "";
 		}
@@ -123538,7 +122934,7 @@ var init_documents = __esmMin((() => {
 			if (document && document.attached) return document.getline(line) || "";
 			if (!uri.startsWith("file:")) return "";
 			let fsPath = URI.parse(uri).fsPath;
-			if (!fs$3.existsSync(fsPath)) return "";
+			if (!fs$5.existsSync(fsPath)) return "";
 			return await readFileLine(fsPath, line);
 		}
 		/**
@@ -123601,13 +122997,13 @@ var init_editors = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_convert();
 	init_errors();
 	init_fs();
 	init_mutex();
 	init_protocol();
-	logger$20 = createLogger("core-editors");
+	logger$20 = createLogger$1("core-editors");
 	Editors = class {
 		documents;
 		disposables = [];
@@ -123952,10 +123348,10 @@ var require_Int64 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var require_bser = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var EE$1 = require("events").EventEmitter;
 	var util$2 = require("util");
-	var os = require("os");
+	var os$1 = require("os");
 	require("assert");
 	var Int64 = require_Int64();
-	var isBigEndian = os.endianness() == "BE";
+	var isBigEndian = os$1.endianness() == "BE";
 	function nextPow2(size) {
 		return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
 	}
@@ -124586,9 +123982,9 @@ var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var logger$19, requiredCapabilities, Watchman;
 var init_watchman = __esmMin((() => {
 	init_dist_node();
-	init_logger$1();
+	init_logger$2();
 	init_node();
-	logger$19 = createLogger("core-watchman");
+	logger$19 = createLogger$1("core-watchman");
 	requiredCapabilities = [
 		"relative_root",
 		"cmd-watch-project",
@@ -124656,7 +124052,7 @@ var init_watchman = __esmMin((() => {
 			};
 			if (relative_path) {
 				sub.relative_root = relative_path;
-				root = path$3.join(watch, relative_path);
+				root = path$5.join(watch, relative_path);
 			}
 			let uid = v1();
 			let { subscribe } = await this.command([
@@ -124687,7 +124083,7 @@ var init_watchman = __esmMin((() => {
 				files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
 				if (!files.length) return;
 				let ev = Object.assign({}, change);
-				if (this.relative_path) ev.root = path$3.resolve(change.root, this.relative_path);
+				if (this.relative_path) ev.root = path$5.resolve(change.root, this.relative_path);
 				this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
 				cb(ev);
 			};
@@ -124725,14 +124121,14 @@ var init_watchman = __esmMin((() => {
 var WATCHMAN_COMMAND, FileSystemWatcherManager, FileSystemWatcher;
 var init_fileSystemWatcher = __esmMin((() => {
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_fs();
 	init_node();
 	init_protocol();
 	init_watchman();
-	createLogger("fileSystemWatcher");
+	createLogger$1("fileSystemWatcher");
 	WATCHMAN_COMMAND = "watchman";
 	FileSystemWatcherManager = class FileSystemWatcherManager {
 		workspaceFolder;
@@ -124868,13 +124264,13 @@ var init_fileSystemWatcher = __esmMin((() => {
 				let { root, files } = change;
 				if (basePath && !sameFile(root, basePath)) files = files.filter((f) => {
 					if (f.type != "f") return false;
-					let fullpath = path$3.join(root, f.name);
+					let fullpath = path$5.join(root, f.name);
 					if (!isParentFolder(basePath, fullpath)) return false;
-					return minimatch(path$3.relative(basePath, fullpath), pattern, { dot: true });
+					return minimatch(path$5.relative(basePath, fullpath), pattern, { dot: true });
 				});
 				else files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
 				for (let file of files) {
-					let uri = URI.file(path$3.join(root, file.name));
+					let uri = URI.file(path$5.join(root, file.name));
 					if (!file.exists) {
 						if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
 					} else if (file.new === true) {
@@ -124885,8 +124281,8 @@ var init_fileSystemWatcher = __esmMin((() => {
 					let oldFile = files.find((o) => o.exists !== true);
 					let newFile = files.find((o) => o.exists === true);
 					if (oldFile.size == newFile.size) this._onDidRename.fire({
-						oldUri: URI.file(path$3.join(root, oldFile.name)),
-						newUri: URI.file(path$3.join(root, newFile.name))
+						oldUri: URI.file(path$5.join(root, oldFile.name)),
+						newUri: URI.file(path$5.join(root, newFile.name))
 					});
 				}
 				if (files.length > 2 && files.length % 2 == 0) {
@@ -124894,8 +124290,8 @@ var init_fileSystemWatcher = __esmMin((() => {
 					if (oldFiles.length == newFiles.length) for (let oldFile of oldFiles) {
 						let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
 						if (newFile) this._onDidRename.fire({
-							oldUri: URI.file(path$3.join(root, oldFile.name)),
-							newUri: URI.file(path$3.join(root, newFile.name))
+							oldUri: URI.file(path$5.join(root, oldFile.name)),
+							newUri: URI.file(path$5.join(root, newFile.name))
 						});
 					}
 				}
@@ -124986,10 +124382,10 @@ var init_editInspect = __esmMin((() => {
 			this.bufnr = buffer.id;
 			const relpath = (uri) => {
 				let fsPath = URI.parse(uri).fsPath;
-				return isParentFolder(cwd, fsPath, true) ? path$3.relative(cwd, fsPath) : fsPath;
+				return isParentFolder(cwd, fsPath, true) ? path$5.relative(cwd, fsPath) : fsPath;
 			};
 			const absPath = (filepath) => {
-				return path$3.isAbsolute(filepath) ? filepath : path$3.join(cwd, filepath);
+				return path$5.isAbsolute(filepath) ? filepath : path$5.join(cwd, filepath);
 			};
 			let highlighter = new Highlighter();
 			let map = grouByAnnotation(toArray(state.edit.documentChanges), state.edit.changeAnnotations ?? {});
@@ -125138,11 +124534,11 @@ var init_editInspect = __esmMin((() => {
 //#endregion
 //#region src/core/files.ts
 function fileMatch(root, relpath, pattern) {
-	let filepath = path$3.join(root, relpath);
+	let filepath = path$5.join(root, relpath);
 	if (typeof pattern !== "string") {
 		let base = pattern.baseUri.fsPath;
 		if (!isParentFolder(base, filepath)) return false;
-		return minimatch(path$3.relative(base, filepath), pattern.pattern, { dot: true });
+		return minimatch(path$5.relative(base, filepath), pattern.pattern, { dot: true });
 	}
 	return minimatch(relpath, pattern, { dot: true });
 }
@@ -125155,7 +124551,7 @@ var init_files = __esmMin((() => {
 	init_esm();
 	init_commands$2();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_editInspect();
 	init_errors();
 	init_fs();
@@ -125163,7 +124559,7 @@ var init_files = __esmMin((() => {
 	init_protocol();
 	init_string$1();
 	init_textedit();
-	logger$18 = createLogger("core-files");
+	logger$18 = createLogger$1("core-files");
 	Files = class {
 		documents;
 		configurations;
@@ -125203,8 +124599,8 @@ var init_files = __esmMin((() => {
 			if (doc) return doc;
 			const scheme = uri.scheme;
 			if (scheme == "file") {
-				if (!fs$3.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
-				fs$3.accessSync(uri.fsPath, fs$3.constants.R_OK);
+				if (!fs$5.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
+				fs$5.accessSync(uri.fsPath, fs$5.constants.R_OK);
 			}
 			if (scheme == "untitled") {
 				await this.nvim.call("coc#util#open_file", ["tab drop", uri.path]);
@@ -125302,7 +124698,7 @@ var init_files = __esmMin((() => {
 		*/
 		async createFile(filepath, opts = {}, recovers) {
 			let { nvim } = this;
-			let exists = fs$3.existsSync(filepath);
+			let exists = fs$5.existsSync(filepath);
 			if (exists && !opts.overwrite && !opts.ignoreIfExists) throw fileExists(filepath);
 			if (!exists || opts.overwrite) {
 				let tokenSource = new import_main$1.CancellationTokenSource();
@@ -125311,32 +124707,32 @@ var init_files = __esmMin((() => {
 					token: tokenSource.token
 				}, recovers);
 				tokenSource.cancel();
-				let dir = path$3.dirname(filepath);
-				if (!fs$3.existsSync(dir)) {
+				let dir = path$5.dirname(filepath);
+				if (!fs$5.existsSync(dir)) {
 					let folder;
 					let curr = dir;
 					while (![
 						".",
 						"/",
-						path$3.parse(dir).root
+						path$5.parse(dir).root
 					].includes(curr)) {
-						if (fs$3.existsSync(path$3.dirname(curr))) {
+						if (fs$5.existsSync(path$5.dirname(curr))) {
 							folder = curr;
 							break;
 						}
-						curr = path$3.dirname(curr);
+						curr = path$5.dirname(curr);
 					}
-					fs$3.mkdirSync(dir, { recursive: true });
+					fs$5.mkdirSync(dir, { recursive: true });
 					if (Array.isArray(recovers)) recovers.push(() => {
-						fs$3.rmSync(folder, {
+						fs$5.rmSync(folder, {
 							force: true,
 							recursive: true
 						});
 					});
 				}
-				fs$3.writeFileSync(filepath, "", "utf8");
+				fs$5.writeFileSync(filepath, "", "utf8");
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$3.rmSync(filepath, {
+					fs$5.rmSync(filepath, {
 						force: true,
 						recursive: true
 					});
@@ -125370,29 +124766,29 @@ var init_files = __esmMin((() => {
 					});
 				}
 			}
-			let folder = path$3.join(os$3.tmpdir(), "coc-" + process.pid);
-			fs$3.mkdirSync(folder, { recursive: true });
+			let folder = path$5.join(os$5.tmpdir(), "coc-" + process.pid);
+			fs$5.mkdirSync(folder, { recursive: true });
 			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
 			if (isDir && recursive) {
-				let dest = path$3.join(folder, md5);
-				let dir = path$3.dirname(filepath);
-				fs$3.renameSync(filepath, dest);
+				let dest = path$5.join(folder, md5);
+				let dir = path$5.dirname(filepath);
+				fs$5.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(async () => {
-					fs$3.mkdirSync(dir, { recursive: true });
-					fs$3.renameSync(dest, filepath);
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.renameSync(dest, filepath);
 				});
 			} else if (isDir) {
-				fs$3.rmdirSync(filepath);
+				fs$5.rmdirSync(filepath);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$3.mkdirSync(filepath);
+					fs$5.mkdirSync(filepath);
 				});
 			} else {
-				let dest = path$3.join(folder, md5);
-				let dir = path$3.dirname(filepath);
-				fs$3.renameSync(filepath, dest);
+				let dest = path$5.join(folder, md5);
+				let dir = path$5.dirname(filepath);
+				fs$5.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$3.mkdirSync(dir, { recursive: true });
-					fs$3.renameSync(dest, filepath);
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.renameSync(dest, filepath);
 				});
 			}
 			this._onDidDeleteFiles.fire({ files: [uri] });
@@ -125404,7 +124800,7 @@ var init_files = __esmMin((() => {
 			let { nvim } = this;
 			let { overwrite, ignoreIfExists } = opts;
 			if (newPath === oldPath) return;
-			let exists = fs$3.existsSync(newPath);
+			let exists = fs$5.existsSync(newPath);
 			if (exists && ignoreIfExists && !overwrite) return;
 			if (exists && !overwrite) throw fileExists(newPath);
 			let oldStat = await statAsync(oldPath);
@@ -125435,7 +124831,7 @@ var init_files = __esmMin((() => {
 						await this.documents.onBufCreate(bufnr);
 					}
 				}
-				fs$3.renameSync(oldPath, newPath);
+				fs$5.renameSync(oldPath, newPath);
 			}
 			if (Array.isArray(recovers)) recovers.push(() => {
 				return this.renameFile(newPath, oldPath, { skipEvent: true });
@@ -125606,7 +125002,7 @@ var init_files = __esmMin((() => {
 				if (token?.isCancellationRequested) break;
 				for (let file of files) {
 					if (exclude && fileMatch(root, file, exclude)) continue;
-					res.push(URI.file(path$3.join(root, file)));
+					res.push(URI.file(path$5.join(root, file)));
 					if (res.length === maxResults) {
 						exceed = true;
 						break;
@@ -125660,11 +125056,11 @@ function toKeymapOption(option) {
 }
 var logger$17, Keymaps;
 var init_keymaps = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_constants();
 	init_protocol();
 	init_string$1();
-	logger$17 = createLogger("core-keymaps");
+	logger$17 = createLogger$1("core-keymaps");
 	Keymaps = class {
 		keymaps = /* @__PURE__ */ new Map();
 		nvim;
@@ -125781,11 +125177,11 @@ var init_keymaps = __esmMin((() => {
 var logger$16, Watchers;
 var init_watchers = __esmMin((() => {
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_protocol();
 	init_string$1();
-	logger$16 = createLogger("watchers");
+	logger$16 = createLogger$1("watchers");
 	Watchers = class {
 		nvim;
 		optionCallbacks = /* @__PURE__ */ new Map();
@@ -126000,7 +125396,7 @@ var init_db = __esmMin((() => {
 				if (typeof obj[parts[i]] === "undefined") break;
 				if (i == len - 1) {
 					delete obj[parts[i]];
-					fs$3.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
+					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
 					break;
 				}
 				obj = obj[parts[i]];
@@ -126020,9 +125416,9 @@ var init_db = __esmMin((() => {
 				let key = parts[i];
 				if (i == len - 1) {
 					obj[key] = data;
-					let dir = path$3.dirname(this.filepath);
-					fs$3.mkdirSync(dir, { recursive: true });
-					fs$3.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
+					let dir = path$5.dirname(this.filepath);
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
 					break;
 				}
 				if (typeof obj[key] == "undefined") {
@@ -126032,17 +125428,17 @@ var init_db = __esmMin((() => {
 			}
 		}
 		load() {
-			let dir = path$3.dirname(this.filepath);
-			if (!fs$3.existsSync(dir)) {
-				fs$3.mkdirSync(dir, { recursive: true });
-				fs$3.writeFileSync(this.filepath, "{}", "utf8");
+			let dir = path$5.dirname(this.filepath);
+			if (!fs$5.existsSync(dir)) {
+				fs$5.mkdirSync(dir, { recursive: true });
+				fs$5.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 			try {
-				let content = fs$3.readFileSync(this.filepath, "utf8");
+				let content = fs$5.readFileSync(this.filepath, "utf8");
 				return JSON.parse(content.trim());
 			} catch (e) {
-				fs$3.writeFileSync(this.filepath, "{}", "utf8");
+				fs$5.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 		}
@@ -126050,14 +125446,14 @@ var init_db = __esmMin((() => {
 		* Empty db file.
 		*/
 		clear() {
-			if (!fs$3.existsSync(this.filepath)) return;
-			fs$3.writeFileSync(this.filepath, "{}", "utf8");
+			if (!fs$5.existsSync(this.filepath)) return;
+			fs$5.writeFileSync(this.filepath, "{}", "utf8");
 		}
 		/**
 		* Remove db file.
 		*/
 		destroy() {
-			if (fs$3.existsSync(this.filepath)) fs$3.unlinkSync(this.filepath);
+			if (fs$5.existsSync(this.filepath)) fs$5.unlinkSync(this.filepath);
 		}
 	};
 }));
@@ -126214,7 +125610,7 @@ var init_workspace$1 = __esmMin((() => {
 	init_watchers();
 	init_workspaceFolder();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_bufferSync();
 	init_db();
 	init_fuzzyMatch();
@@ -126231,7 +125627,7 @@ var init_workspace$1 = __esmMin((() => {
 	init_object();
 	init_processes();
 	init_protocol();
-	logger$15 = createLogger("workspace");
+	logger$15 = createLogger$1("workspace");
 	methods = [
 		"showMessage",
 		"runTerminalCommand",
@@ -126683,7 +126079,7 @@ var init_workspace$1 = __esmMin((() => {
 		* Create DB instance at extension root.
 		*/
 		createDatabase(name) {
-			return new DB(path$3.join(dataHome, name + ".json"));
+			return new DB(path$5.join(dataHome, name + ".json"));
 		}
 		registerBufferSync(create) {
 			return new BufferSync(create, this.documentsManager);
@@ -126896,7 +126292,7 @@ var init_TreeView = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_fuzzyMatch();
 	init_util$7();
 	init_array();
@@ -126910,7 +126306,7 @@ var init_TreeView = __esmMin((() => {
 	init_workspace$1();
 	init_filter();
 	init_TreeItem();
-	logger$14 = createLogger("BasicTreeView");
+	logger$14 = createLogger$1("BasicTreeView");
 	retryTimeout = getConditionValue(500, 10);
 	maxRetry = getConditionValue(5, 1);
 	highlightNamespace = "tree";
@@ -128270,7 +127666,7 @@ function sortItems(emptyInput, defaultSortMethod, a, b) {
 var logger$13, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
 var init_complete = __esmMin((() => {
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_filter$1();
@@ -128281,7 +127677,7 @@ var init_complete = __esmMin((() => {
 	init_workspace$1();
 	init_util$3();
 	init_wordDistance();
-	logger$13 = createLogger("completion-complete");
+	logger$13 = createLogger$1("completion-complete");
 	MAX_DISTANCE = 2 << 20;
 	MIN_TIMEOUT = 50;
 	MAX_TIMEOUT = 15e3;
@@ -128637,7 +128033,7 @@ var init_complete = __esmMin((() => {
 //#region src/completion/floating.ts
 var logger$12, RESOLVE_TIMEOUT, Floating;
 var init_floating = __esmMin((() => {
-	init_logger$1();
+	init_logger$2();
 	init_markdown();
 	init_util$7();
 	init_errors();
@@ -128645,7 +128041,7 @@ var init_floating = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_util$3();
-	logger$12 = createLogger("completion-floating");
+	logger$12 = createLogger$1("completion-floating");
 	RESOLVE_TIMEOUT = getConditionValue(500, 50);
 	Floating = class {
 		config;
@@ -129034,7 +128430,7 @@ var init_completion = __esmMin((() => {
 	init_esm();
 	init_commands$2();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -129050,7 +128446,7 @@ var init_completion = __esmMin((() => {
 	init_pum();
 	init_sources();
 	init_util$3();
-	logger$11 = createLogger("completion");
+	logger$11 = createLogger$1("completion");
 	TRIGGER_TIMEOUT = getConditionValue(200, 20);
 	CURSORMOVE_DEBOUNCE = getConditionValue(20, 20);
 	Completion = class {
@@ -129653,7 +129049,7 @@ var logger$10, CursorSession;
 var init_session = __esmMin((() => {
 	init_main();
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_node();
 	init_position();
@@ -129663,7 +129059,7 @@ var init_session = __esmMin((() => {
 	init_workspace$1();
 	init_textRange();
 	init_util$2();
-	logger$10 = createLogger("cursors-session");
+	logger$10 = createLogger$1("cursors-session");
 	CursorSession = class {
 		nvim;
 		doc;
@@ -130178,7 +129574,7 @@ var init_LocationsDataProvider = __esmMin((() => {
 		}
 		getTreeItem(element) {
 			let item = new TreeItem(element.name, element.children ? 2 : 1);
-			if (this.config.enableTooltip) item.tooltip = path$3.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
+			if (this.config.enableTooltip) item.tooltip = path$5.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
 			if (typeof element.detail === "string" && element.detail.length > 0 && element.name !== element.detail) item.description = element.detail;
 			item.deprecated = element.tags?.includes(SymbolTag.Deprecated);
 			item.icon = this.getIcon(element.kind);
@@ -130395,14 +129791,14 @@ var init_codeActions = __esmMin((() => {
 	init_commands$2();
 	init_manager$4();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_numbers();
 	init_protocol();
 	init_timing();
 	init_window();
 	init_workspace$1();
-	logger$9 = createLogger("handler-codeActions");
+	logger$9 = createLogger$1("handler-codeActions");
 	CodeActions = class {
 		nvim;
 		handler;
@@ -130580,7 +129976,7 @@ var srcId$2, debounceTime$5, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer$4 = __esmMin((() => {
 	init_commands$2();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -130589,7 +129985,7 @@ var init_buffer$4 = __esmMin((() => {
 	init_protocol();
 	init_window();
 	init_workspace$1();
-	createLogger("codelens-buffer");
+	createLogger$1("codelens-buffer");
 	debounceTime$5 = getConditionValue(200, 20);
 	CODELENS_HL = "CocCodeLens";
 	NORMAL_HL = "Normal";
@@ -131278,13 +130674,13 @@ var init_format = __esmMin((() => {
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_array();
 	init_util$7();
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$8 = createLogger("handler-format");
+	logger$8 = createLogger$1("handler-format");
 	FormatHandler = class {
 		nvim;
 		handler;
@@ -131626,7 +131022,7 @@ async function readLines(uri, start, end) {
 	let doc = workspace_default.getDocument(uri);
 	if (doc) return doc.getLines(start, end + 1);
 	let fsPath = URI.parse(uri).fsPath;
-	if (!fs$3.existsSync(fsPath)) return [];
+	if (!fs$5.existsSync(fsPath)) return [];
 	return await readFileLines(fsPath, start, end);
 }
 var highlightDelay, HoverHandler;
@@ -131828,7 +131224,7 @@ var init_buffer$3 = __esmMin((() => {
 	init_main$2();
 	init_events();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_regions();
 	init_inlayHintManager();
 	init_util$7();
@@ -131838,7 +131234,7 @@ var init_buffer$3 = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$7 = createLogger("inlayHint-buffer");
+	logger$7 = createLogger$1("inlayHint-buffer");
 	debounceInterval$1 = getConditionValue(150, 10);
 	requestDelay$1 = getConditionValue(500, 10);
 	InlayHintBuffer = class {
@@ -132214,7 +131610,7 @@ var init_inline = __esmMin((() => {
 	init_completion();
 	init_events();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_parser();
 	init_util$7();
 	init_errors();
@@ -132223,7 +131619,7 @@ var init_inline = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$6 = createLogger("handler-inline");
+	logger$6 = createLogger$1("handler-inline");
 	NAMESPACE$2 = "inlineSuggest";
 	InlineSession = class {
 		bufnr;
@@ -133112,7 +132508,7 @@ var init_buffer$2 = __esmMin((() => {
 	init_main();
 	init_main$2();
 	init_esm();
-	init_logger$1();
+	init_logger$2();
 	init_highlighter();
 	init_util$7();
 	init_fs();
@@ -133126,7 +132522,7 @@ var init_buffer$2 = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_changes();
-	logger$5 = createLogger("handler-refactorBuffer");
+	logger$5 = createLogger$1("handler-refactorBuffer");
 	RefactorBuffer = class {
 		bufnr;
 		srcId;
@@ -133404,7 +132800,7 @@ var init_buffer$2 = __esmMin((() => {
 						highlighter.addLine("　");
 						highlighter.addLine("　");
 						let lnum = count + highlighter.length;
-						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$3.relative(cwd, item.filepath) : item.filepath}`);
+						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$5.relative(cwd, item.filepath) : item.filepath}`);
 						let n = String(range.start + 1).length + String(range.end).length + 4;
 						if (!this.srcId) highlighter.addText(" ".repeat(n));
 						let base = 0 - highlighter.length - count;
@@ -133515,8 +132911,8 @@ var init_buffer$2 = __esmMin((() => {
 			return await readFileLines(fsPath, start, end - 1);
 		}
 		getAbsolutePath(filepath) {
-			if (path$3.isAbsolute(filepath)) return filepath;
-			return path$3.join(this.opts.cwd, filepath);
+			if (path$5.isAbsolute(filepath)) return filepath;
+			return path$5.join(this.opts.cwd, filepath);
 		}
 		/**
 		* Use conceal/virtual text to add lineNr
@@ -133551,7 +132947,7 @@ var init_buffer$2 = __esmMin((() => {
 				}
 				let id = 2e3;
 				for (let item of fileItems) {
-					let col = byteLength(`${cwd ? path$3.relative(cwd, item.filepath) : item.filepath}`) + 1;
+					let col = byteLength(`${cwd ? path$5.relative(cwd, item.filepath) : item.filepath}`) + 1;
 					for (let range of item.ranges) {
 						let end = range.start + range.lines.length;
 						let text = `:${range.start + 1}:${end}`;
@@ -133643,14 +133039,14 @@ function getPathFromArgs(args) {
 var spawn, logger$4, defaultArgs, controlCode, Task, Search;
 var init_search = __esmMin((() => {
 	init_main$2();
-	init_logger$1();
+	init_logger$2();
 	init_highlighter();
 	init_ansiparse();
 	init_mutex();
 	init_node();
 	init_window();
 	({spawn} = child_process$1);
-	logger$4 = createLogger("handler-search");
+	logger$4 = createLogger$1("handler-search");
 	defaultArgs = [
 		"--color",
 		"ansi",
@@ -133687,7 +133083,7 @@ var init_search = __esmMin((() => {
 					if (items.length == 0) return;
 					if (items[0].foreground == "black") {
 						fileItem = {
-							filepath: path$3.join(cwd, items[0].text),
+							filepath: path$5.join(cwd, items[0].text),
 							ranges: []
 						};
 						return;
@@ -133763,7 +133159,7 @@ var init_search = __esmMin((() => {
 			].concat(defaultArgs, args);
 			let p = getPathFromArgs(args);
 			if (p) argList.pop();
-			argList.push("--", p ? path$3.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
+			argList.push("--", p ? path$5.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
 			this.task = new Task();
 			this.task.start(cmd, argList, cwd);
 			let mutex = new Mutex();
@@ -134234,7 +133630,7 @@ var logger$3, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE, debounceInterva
 var init_buffer$1 = __esmMin((() => {
 	init_main$2();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_regions();
 	init_util$7();
 	init_array();
@@ -134244,7 +133640,7 @@ var init_buffer$1 = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$3 = createLogger("semanticTokens-buffer");
+	logger$3 = createLogger$1("semanticTokens-buffer");
 	yieldEveryMilliseconds = getConditionValue(15, 5);
 	HLGROUP_PREFIX = "CocSem";
 	NAMESPACE = "semanticTokens";
@@ -135139,12 +134535,12 @@ var init_signature = __esmMin((() => {
 var DEBEBOUNCE_INTERVAL, SymbolsBuffer;
 var init_buffer = __esmMin((() => {
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_errors();
 	init_node();
 	init_protocol();
-	createLogger("symbols-buffer");
+	createLogger$1("symbols-buffer");
 	DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
 	SymbolsBuffer = class {
 		doc;
@@ -136061,7 +135457,7 @@ var init_workspace = __esmMin((() => {
 	init_workspaceFolder();
 	init_extension();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_highlighter();
 	init_manager$1();
 	init_util$7();
@@ -136142,7 +135538,7 @@ var init_workspace = __esmMin((() => {
 			commands_default.register({
 				id: "workspace.writeHeapSnapshot",
 				execute: async () => {
-					let filepath = path$3.join(os$3.homedir(), `${v4()}-${process.pid}.heapsnapshot`);
+					let filepath = path$5.join(os$5.homedir(), `${v4()}-${process.pid}.heapsnapshot`);
 					(0, v8.writeHeapSnapshot)(filepath);
 					window_default.showInformationMessage(`Create heapdump at: ${filepath}`);
 					return filepath;
@@ -136174,7 +135570,7 @@ var init_workspace = __esmMin((() => {
 		async openLocalConfig() {
 			let fsPath = await this.nvim.call("coc#util#get_fullpath", []);
 			let filetype = await this.nvim.eval("&filetype");
-			if (!fsPath || !path$3.isAbsolute(fsPath)) {
+			if (!fsPath || !path$5.isAbsolute(fsPath)) {
 				window_default.showWarningMessage(`Current buffer doesn't have valid file path.`);
 				return;
 			}
@@ -136190,12 +135586,12 @@ var init_workspace = __esmMin((() => {
 				return;
 			}
 			let root = URI.parse(folder.uri).fsPath;
-			let dir = path$3.join(root, ".vim");
-			if (!fs$3.existsSync(dir)) {
+			let dir = path$5.join(root, ".vim");
+			if (!fs$5.existsSync(dir)) {
 				if (!await window_default.showPrompt(`Would you like to create folder'${root}/.vim'?`)) return;
-				fs$3.mkdirSync(dir);
+				fs$5.mkdirSync(dir);
 			}
-			await workspace_default.jumpTo(URI.file(path$3.join(dir, CONFIG_FILE_NAME)));
+			await workspace_default.jumpTo(URI.file(path$5.join(dir, CONFIG_FILE_NAME)));
 		}
 		async renameCurrent() {
 			let { nvim } = this;
@@ -136207,7 +135603,7 @@ var init_workspace = __esmMin((() => {
 			]);
 			newPath = newPath.trim();
 			if (newPath === oldPath || !newPath) return;
-			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$3.existsSync(newPath)) {
+			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$5.existsSync(newPath)) {
 				if (!await window_default.showPrompt(`${newPath} exists, overwrite?`)) return;
 			}
 			await workspace_default.renameFile(oldPath, newPath, { overwrite: true });
@@ -136301,22 +135697,22 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-af67459 2026-06-03 13:15:00 +0800";
+			let version = workspace_default.version + "-649c3a2 2026-06-04 11:02:43 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
 			lines.push("vim version: " + first + `${isVim ? " " + workspace_default.env.version : ""}`);
 			lines.push("node version: " + process.version);
 			lines.push("coc.nvim version: " + version);
-			lines.push("coc.nvim directory: " + path$3.dirname(__dirname));
+			lines.push("coc.nvim directory: " + path$5.dirname(__dirname));
 			lines.push("term: " + defaultValue(process.env.TERM_PROGRAM, process.env.TERM));
 			lines.push("platform: " + process.platform);
 			lines.push("");
 			lines.push("## Log of coc.nvim");
 			lines.push("");
 			let file = getLoggerFile();
-			if (fs$3.existsSync(file)) {
-				let content = fs$3.readFileSync(file, { encoding: "utf8" });
+			if (fs$5.existsSync(file)) {
+				let content = fs$5.readFileSync(file, { encoding: "utf8" });
 				lines.push(...content.split(/\r?\n/).map((line) => stripAnsi(line)));
 			}
 			await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted");
@@ -136336,7 +135732,7 @@ var init_handler = __esmMin((() => {
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$1();
+	init_logger$2();
 	init_util$7();
 	init_convert();
 	init_is();
@@ -136367,7 +135763,7 @@ var init_handler = __esmMin((() => {
 	init_symbols();
 	init_typeHierarchy();
 	init_workspace();
-	logger$2 = createLogger("Handler");
+	logger$2 = createLogger$1("Handler");
 	requestTimeout = getConditionValue(500, 10);
 	Handler = class {
 		nvim;
@@ -136619,13 +136015,13 @@ var init_plugin = __esmMin((() => {
 	init_extension();
 	init_handler();
 	init_manager$2();
-	init_logger$1();
+	init_logger$2();
 	init_services$1();
 	init_manager$1();
 	init_util$7();
 	init_window();
 	init_workspace$1();
-	logger$1 = createLogger("plugin");
+	logger$1 = createLogger$1("plugin");
 	Plugin = class {
 		nvim;
 		ready = false;
@@ -136853,23 +136249,23 @@ var init_plugin = __esmMin((() => {
 //#endregion
 //#region src/attach.ts
 var attach_exports = /* @__PURE__ */ __exportAll({ default: () => attach_default });
-var import_lib, logger, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
+var logger, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
 var init_attach = __esmMin((() => {
-	import_lib = require_lib$2();
+	init_neovim();
 	init_events();
-	init_logger$1();
+	init_logger$2();
 	init_plugin();
 	init_constants();
 	init_node();
 	init_string$1();
 	init_timing();
-	logger = createLogger("attach");
+	logger = createLogger$1("attach");
 	ACTIONS_NO_WAIT = ["installExtensions", "updateExtensions"];
 	semVer = semver.parse(VERSION);
 	pendingNotifications = [];
 	NO_ERROR_REQUEST = ["doAutocmd", "CocAutocmd"];
 	attach_default = (opts, requestApi = false) => {
-		const nvim = (0, import_lib.attach)(opts, createLogger("node-client"), requestApi);
+		const nvim = attach(opts, createLogger$1("node-client"), requestApi);
 		nvim.setVar("coc_process_pid", process.pid, true);
 		nvim.setClientInfo("coc", {
 			major: semVer.major,
@@ -136961,7 +136357,7 @@ var init_attach = __esmMin((() => {
 //#endregion
 //#region \0coc-entry
 if (global.__isMain) {
-	const { createLogger } = (init_logger$1(), __toCommonJS(logger_exports));
+	const { createLogger } = (init_logger$2(), __toCommonJS(logger_exports));
 	const logger = createLogger("server");
 	Object.defineProperty(console, "log", { value() {
 		if (logger) logger.info(...arguments);
@@ -136987,7 +136383,7 @@ if (global.__isMain) {
 	});
 } else {
 	const exports = require_src();
-	const logger = (init_logger$1(), __toCommonJS(logger_exports)).logger;
+	const logger = (init_logger$2(), __toCommonJS(logger_exports)).logger;
 	const attach = (init_attach(), __toCommonJS(attach_exports)).default;
 	module.exports = {
 		attach,
