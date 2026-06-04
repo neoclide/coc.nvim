@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { v1 as uuidv1 } from 'uuid'
 import type { Disposable } from '../util/protocol'
 

@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import fs from 'fs'
 import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'

@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '../../neovim'
 import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'

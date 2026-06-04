@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import * as assert from 'assert'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'

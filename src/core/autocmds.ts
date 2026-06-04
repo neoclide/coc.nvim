@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { createLogger } from '../logger'
 import { Autocmd } from '../types'
 import { isFalsyOrEmpty } from '../util/array'

@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, InlineCompletionContext, InlineCompletionItem, InlineCompletionTriggerKind } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { disposeAll } from '../../util'

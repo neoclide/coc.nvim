@@ -1,5 +1,5 @@
 'use strict'
-import type { Buffer, Neovim, VirtualTextOption } from '@chemzqm/neovim'
+import type { Buffer, Neovim, VirtualTextOption } from '../neovim'
 import { Diagnostic, DiagnosticSeverity, Location, Position, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../events'

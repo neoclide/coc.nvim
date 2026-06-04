@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../neovim'
 import { FormattingOptions, InlineCompletionTriggerKind, Position, Range, StringValue, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
 import completion from '../completion'

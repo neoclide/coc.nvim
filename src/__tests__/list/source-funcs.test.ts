@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { DocumentSymbol, Location, Range, SymbolKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'

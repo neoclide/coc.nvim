@@ -29,15 +29,15 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'parallel',
-          include: ['src/__tests__/**/*.{test,spec}.ts'],
-          exclude: ['src/__tests__/completion/**'],
+          include: ['src/__tests__/**/*.test.ts'],
+          exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
         },
       },
       {
         extends: true,
         test: {
           name: 'sequential',
-          include: ['src/__tests__/completion/**/*.{test,spec}.ts'],
+          include: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
           fileParallelism: false,
         },
       },

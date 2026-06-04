@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
 import { disposeAll } from '../../util'

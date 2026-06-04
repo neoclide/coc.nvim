@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import QuickPick from '../../model/quickpick'

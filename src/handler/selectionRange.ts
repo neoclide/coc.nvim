@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '../neovim'
 import { Position, Range, SelectionRange } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../languages'
 import { isFalsyOrEmpty } from '../util/array'

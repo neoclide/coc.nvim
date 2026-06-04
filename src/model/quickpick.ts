@@ -1,9 +1,9 @@
 'use strict'
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '../neovim'
 import events from '../events'
 import { createLogger } from '../logger'
 import { HighlightItem, QuickPickItem } from '../types'
-import { defaultValue, disposeAll } from '../util'
+import { disposeAll } from '../util'
 import { toArray } from '../util/array'
 import { FuzzyScorer, anyScore, fuzzyScoreGracefulAggressive } from '../util/filter'
 import { Disposable, Emitter, Event } from '../util/protocol'
@@ -194,8 +194,8 @@ export default class QuickPick<T extends QuickPickItem> {
       borderhighlight: preferences.floatBorderHighlight
     })
     let opts: any = { lines, rounded, maxHeight, highlights, linecount: Math.max(1, lincount) }
-    opts.highlight = defaultValue(preferences.floatHighlight, undefined)
-    opts.borderhighlight = defaultValue(preferences.floatBorderHighlight, undefined)
+    if (preferences.floatHighlight !== undefined) opts.highlight = preferences.floatHighlight
+    if (preferences.floatBorderHighlight !== undefined) opts.borderhighlight = preferences.floatBorderHighlight
     let res = await nvim.call('coc#dialog#create_list', [input.winid, input.dimension, opts])
     if (!res) throw new Error('Unable to open list window.')
     // let height

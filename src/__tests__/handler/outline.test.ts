@@ -1,4 +1,4 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '../../neovim'
 import { CodeAction, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Symbols from '../../handler/symbols/index'

@@ -1,5 +1,5 @@
 import type { Mock, MockInstance } from 'vitest'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../../commands'
 import sources from '../../completion/sources'

@@ -1,5 +1,5 @@
 process.env.COC_NO_PLUGINS = '1'
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'

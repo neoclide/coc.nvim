@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import Floating from '../../completion/floating'
 import { getInsertWord, prefixWord } from '../../completion/pum'
 import sources from '../../completion/sources'

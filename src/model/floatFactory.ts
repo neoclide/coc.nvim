@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '../neovim'
 import events, { BufEvents } from '../events'
 import { parseDocuments } from '../markdown'
 import { Documentation, FloatConfig } from '../types'

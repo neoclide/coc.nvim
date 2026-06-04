@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim } from '../../neovim'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
