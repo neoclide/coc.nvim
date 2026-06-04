@@ -669,7 +669,8 @@ endfunction
 
 function! coc#util#get_changedtick(bufnr) abort
   if s:is_vim && bufloaded(a:bufnr)
-    call listener_flush(a:bufnr)
+    " Flush buffered listener changes and read deferred content (#5524).
+    call coc#api#Buf_flush(a:bufnr)
   endif
   return getbufvar(a:bufnr, 'changedtick')
 endfunction

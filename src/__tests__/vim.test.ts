@@ -882,8 +882,7 @@ describe('document', () => {
     await doc.patchChange()
   })
 
-  // FIXME #5524
-  it.fails('[FAILED] should synchronize changes after undo', async () => {
+  it('should synchronize changes after undo', async () => {
     const filepath = await createTmpFile('abc', disposables)
     const doc = await helper.createDocument(filepath)
     nvim.pauseNotification()
