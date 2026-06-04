@@ -247,10 +247,19 @@ export default class Document {
         /**
          * Updated line content, **after** the change is made
          */
-        linedata: string[]
+        linedata: string[],
+        /**
+         * When true, `linedata` is the whole buffer and replaces all lines.
+         * Used for the deferred full resync from `autoload/coc/api.vim` (#5524).
+         */
+        replaceAll?: boolean
       ) => {
         this._changedtick = tick
-        lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
+        if (replaceAll) {
+          lines = linedata.slice()
+        } else {
+          lines = [...lines.slice(0, firstline), ...linedata, ...lines.slice(lastline)]
+        }
         if (lines.length === 0) lines = ['']
         if (this._applying) {
           this._applyLines = lines
