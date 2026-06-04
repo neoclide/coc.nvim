@@ -21,7 +21,7 @@ jobs:
           - neovim: "stable"
             vim: "v9.0.0438"
           - neovim: "nightly"
-            vim: "v9.1.1365"
+            vim: "nightly"
         node:
           - "20"
         include:
