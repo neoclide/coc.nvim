@@ -569,7 +569,7 @@ describe('Buffer API', () => {
     let ns = await nvim.createNamespace('virtual-text')
     buf.setVirtualText(ns, 0, [['bar', 'MoreMsg']], { text_align: 'above', indent: true })
     let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
-    let props = await nvim.call('prop_list', [1, { types }]) as any[]
+    let props = await nvim.call('prop_list', [1, { bufnr: buf.id, types }]) as any[]
     expect(props.length).toBe(1)
     let prop = props[0]
     if (featuredPropList) {
@@ -598,7 +598,7 @@ describe('Buffer API', () => {
     }
     await nvim.call('coc#vtext#set', [buf.id, ns, items, false, 900])
     let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
-    let props = await nvim.call('prop_list', [1, { types, end_lnum: len }]) as any[]
+    let props = await nvim.call('prop_list', [1, { bufnr: buf.id, types, end_lnum: len }]) as any[]
     expect(props.length).toBe(10)
     let prop = props[0]
     expect(prop.lnum).toBe(1)

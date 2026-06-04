@@ -373,7 +373,7 @@ export default class Document {
       ], true)
     }
     this._applying = true
-    void this.nvim.resumeNotification(true, true)
+    await this.nvim.resumeNotification(true)
     this.lines = newLines
     await waitNextTick()
     fireLinesChanged(bufnr)
