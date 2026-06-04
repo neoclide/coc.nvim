@@ -27,7 +27,7 @@ _Custom popup menu with snippet support_
 
 ## Quick Start
 
-Make sure use Vim >= 9.0.0438 or Neovim >= 0.8.0.
+Make sure use Vim >= 9.0.0741 or Neovim >= 0.8.0.
 
 Install [nodejs](https://nodejs.org/en/download/) >= 20.19.0:
 

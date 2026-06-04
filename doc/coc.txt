@@ -110,7 +110,7 @@ automatic completion of coc.nvim by use `"suggest.autoTrigger": "none"` (or
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
 
-Neovim >= 0.8.0 or Vim >= 9.0.0483.
+Neovim >= 0.8.0 or Vim >= 9.0.0741.
 
 NodeJS https://nodejs.org/ >= 20.19.0.
 

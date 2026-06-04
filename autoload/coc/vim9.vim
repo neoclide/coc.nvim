@@ -95,7 +95,7 @@ enddef
 #   type HighlightItemDef = [string, number, number, number, number?, number?, number?]
 # type HighlightItem = list<any>
 # type HighlightItemList = list<HighlightItem>
-# NOTE: Can't use type on vim9.0.0438
+# NOTE: Can't use type aliases on supported Vim9 versions.
 export def Set_highlights(bufnr: number, key: any, highlights: list<any>, priority: any = null): void
   if bufloaded(bufnr)
     const changedtick = getbufvar(bufnr, 'changedtick', 0)

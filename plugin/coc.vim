@@ -9,19 +9,19 @@ function! s:checkVersion() abort
   let l:unsupported = 0
   if get(g:, 'coc_disable_startup_warning', 0) != 1
     if s:is_vim
-      let l:unsupported = !has('patch-9.0.0438')
+      let l:unsupported = !has('patch-9.0.0741')
     else
       let l:unsupported = !has('nvim-0.8.0')
     endif
 
     if l:unsupported == 1
       echohl Error
-      echom "coc.nvim requires at least Vim 9.0.0438 or Neovim 0.8.0, but you're using an older version."
+      echom "coc.nvim requires at least Vim 9.0.0741 or Neovim 0.8.0, but you're using an older version."
       echom "Please upgrade your (neo)vim."
       echom "You can add this to your vimrc to avoid this message:"
       echom "    let g:coc_disable_startup_warning = 1"
       echom "Note that some features may error out or behave incorrectly."
-      echom "Please do not report bugs unless you're using at least Vim 9.0.0438 or Neovim 0.8.0."
+      echom "Please do not report bugs unless you're using at least Vim 9.0.0741 or Neovim 0.8.0."
       echohl None
       sleep 2
     endif
