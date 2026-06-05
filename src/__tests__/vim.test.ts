@@ -404,7 +404,7 @@ describe('client API', () => {
     let res = await nvim.exec('nmap <space>', true)
     expect(res).toMatch('normal!')
     nvim.deleteKeymap('n', ' ')
-    res = await nvim.exec('nmap <sapce>', true)
+    res = await nvim.exec('nmap <space>', true)
     expect(res).toMatch('No mapping found')
   })
 })

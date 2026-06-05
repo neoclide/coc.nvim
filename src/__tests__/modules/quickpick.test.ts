@@ -400,11 +400,11 @@ describe('createQuickPick', () => {
     quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
     await quickpick.show()
     disposables.push(quickpick)
-    await nvim.input('<C-sapce>')
+    await nvim.input('<C-space>')
     await helper.wait(10)
     await nvim.input('<C-k>')
     await helper.wait(10)
-    await nvim.input('<C-sapce>')
+    await nvim.input('<C-space>')
     await helper.waitValue(() => {
       return quickpick.selectedItems.length
     }, 0)
