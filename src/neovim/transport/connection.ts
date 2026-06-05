@@ -10,7 +10,7 @@ export default class Connection extends Emitter {
   private clean: () => void
   constructor(
     readable: NodeJS.ReadableStream,
-    private writeable: NodeJS.WritableStream) {
+    private writable: NodeJS.WritableStream) {
     super()
     let cached: Buffer[] = []
     let hasCache = false
@@ -86,7 +86,7 @@ export default class Connection extends Emitter {
 
   public send(arr: any[]): void {
     logger.debug('send to vim:', arr)
-    this.writeable.write(JSON.stringify(arr) + '\n')
+    this.writable.write(JSON.stringify(arr) + '\n')
   }
 
   public redraw(force?: boolean): void {

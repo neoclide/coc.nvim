@@ -458,7 +458,7 @@ export class Buffer extends BaseApi {
    *
    * "src_id" is useful for batch deletion/updating of a set of
    * highlights. When called with src_id = 0, an unique source id
-   * is generated and returned. Succesive calls can pass in it as
+   * is generated and returned. Successive calls can pass in it as
    * "src_id" to add new highlights to the same source group. All
    * highlights in the same group can then be cleared with
    * nvim_buf_clear_namespace. If the highlight never will be
@@ -493,7 +493,7 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Clear highlights of specified lins.
+   * Clear highlights of specified lines.
    * @deprecated use clearNamespace() instead.
    */
   public clearHighlight(args: BufferClearHighlight = {}) {
