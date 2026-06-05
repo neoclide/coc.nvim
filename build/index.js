@@ -58634,7 +58634,7 @@ var init_Buffer = __esmMin((() => {
 		*
 		* "src_id" is useful for batch deletion/updating of a set of
 		* highlights. When called with src_id = 0, an unique source id
-		* is generated and returned. Succesive calls can pass in it as
+		* is generated and returned. Successive calls can pass in it as
 		* "src_id" to add new highlights to the same source group. All
 		* highlights in the same group can then be cleared with
 		* nvim_buf_clear_namespace. If the highlight never will be
@@ -58662,7 +58662,7 @@ var init_Buffer = __esmMin((() => {
 			return method === "request" ? res : Promise.resolve(null);
 		}
 		/**
-		* Clear highlights of specified lins.
+		* Clear highlights of specified lines.
 		* @deprecated use clearNamespace() instead.
 		*/
 		clearHighlight(args = {}) {
@@ -59363,11 +59363,11 @@ var init_connection = __esmMin((() => {
 	logger$53 = createLogger("connection");
 	NR_CODE = 10;
 	Connection = class extends events.default {
-		writeable;
+		writable;
 		clean;
-		constructor(readable, writeable) {
+		constructor(readable, writable) {
 			super();
-			this.writeable = writeable;
+			this.writable = writable;
 			let cached = [];
 			let hasCache = false;
 			readable.once("data", (buf) => {
@@ -59431,7 +59431,7 @@ var init_connection = __esmMin((() => {
 		}
 		send(arr) {
 			logger$53.debug("send to vim:", arr);
-			this.writeable.write(JSON.stringify(arr) + "\n");
+			this.writable.write(JSON.stringify(arr) + "\n");
 		}
 		redraw(force) {
 			this.send(["redraw", force ? "force" : ""]);
@@ -135697,7 +135697,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-649c3a2 2026-06-04 11:02:43 +0800";
+			let version = workspace_default.version + "-6bfddca 2026-06-05 18:36:12 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
