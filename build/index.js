@@ -121856,9 +121856,10 @@ var init_document = __esmMin((() => {
 				* Corresponds to `nvim_buf_lines_event`
 				* @see {@link https://neovim.io/doc/user/api/#nvim_buf_lines_event}
 				*/
-				const vim_onLinesChange = (_buf, tick, firstline, lastline, linedata) => {
+				const vim_onLinesChange = (_buf, tick, firstline, lastline, linedata, replaceAll) => {
 					this._changedtick = tick;
-					lines = [
+					if (replaceAll) lines = linedata.slice();
+					else lines = [
 						...lines.slice(0, firstline),
 						...linedata,
 						...lines.slice(lastline)
@@ -135697,7 +135698,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-6bfddca 2026-06-05 18:36:12 +0800";
+			let version = workspace_default.version + "-7f1393c 2026-06-04 12:02:13 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();

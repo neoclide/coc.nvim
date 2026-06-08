@@ -13,6 +13,10 @@ final buffer_id: dict<any> = {}
 final id_types: dict<any> = {}
 var tab_id: number = 1
 final listener_map: dict<any> = {}
+# bufnr => list of recorded change ranges [before_first, before_below, after_first, after_last]
+final pending_changes: dict<any> = {}
+# bufnr => timer id for the deferred change flush
+final pending_timer: dict<any> = {}
 const prop_offset: number = get(g:, 'coc_text_prop_offset', 1000)
 const keymap_arguments: list<string> = ['nowait', 'silent', 'script', 'expr', 'unique', 'special']
 const known_types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'None', 'Job', 'Channel', 'Blob']
@@ -360,53 +364,80 @@ export def CreateType(ns: number, hl: string, opts: dict<any>): string
 enddef
 
 # Callback of `listener_add()` with its `unbuffered` flag defaulting to `false`
+#
+# IMPORTANT: never read buffer content (getline/getbufline) inside this callback.
+# Doing so corrupts the buffer when the flush processes the undo of an
+# insert-above operation, e.g. `O` then `u` on a single line buffer (#5524).
+# Only the change ranges are recorded here; the updated content is read later by
+# `FlushChanges()`, which always runs outside the listener callback.
 def OnBufferChange(bufnr: number, start: number, end: number, added: number, changes: list<dict<any>>): void
-  # When selecting an item in Coc's popup menu or Vim's insert completion menu,
-  # this callback will be triggered multiple times with only `change.col` different
+  if !has_key(pending_changes, bufnr)
+    pending_changes[bufnr] = []
+  endif
   if added == 0 && end - start == 1
-    # See comments below for more details
-    coc#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), start - 1, end - 1, getbufline(bufnr, start)])
+    # Single line content change (typing, popup/insert completion menu navigation).
+    # When selecting an item in the menu this fires repeatedly with only `change.col`
+    # different, so keep it as one cheap single-line update.
+    pending_changes[bufnr]->add([start, end, start, start])
+  else
+    # Record each change separately, see the example in `FlushChanges()` for why the
+    # aggregate `start`/`end`/`added` can't be used directly.
+    for change: dict<any> in changes
+      pending_changes[bufnr]->add([change.lnum, change.end, change.lnum, change.end - 1 + change.added])
+    endfor
+  endif
+  if !has_key(pending_timer, bufnr)
+    pending_timer[bufnr] = timer_start(0, (_) => FlushChanges(bufnr))
+  endif
+enddef
+
+# Read updated content for the recorded changes of `bufnr` and notify the node side.
+#
+# Must run outside the `listener_add()` callback (see `OnBufferChange`), so it is
+# driven by a 0ms timer and by `Buf_flush()`.
+#
+# Each recorded entry is `[before_first, before_below, after_first, after_last]`
+# (1-based, before/after the change is made).
+def FlushChanges(bufnr: number): void
+  if has_key(pending_timer, bufnr)
+    timer_stop(pending_timer[bufnr])
+    remove(pending_timer, bufnr)
+  endif
+  if !has_key(pending_changes, bufnr)
     return
   endif
-
-  # Simulate unbuffered changes
-  #
-  # Can't simply use `getbufline(bufnr, start, end - 1 + added)` to get updated line content after all changes
-  # @example
-  #    For start == 2 && end == 5 && added == -1
-  #        && changes == [{'lnum': 2, 'col': 1, 'added': -1, 'end': 3}, {'lnum': 4, 'col': 1, 'added': 0, 'end': 5}]
-  #    last line after all changes are made should be `changes[1].end - 1 + changes[1].added == 4`, rather than `end - 1 + added == 5`
-  #    And it's hard to calculate last line before all changes are made in various cases
-  #
-  for change: dict<any> in changes
-    # First line of the change, before the change is made
-    const firstLine_beforeChange: number = change.lnum
-    # First line below the change, before the change is made
-    const firstLineBelow_beforeChange: number = change.end
-    # First changed line, after the change is made
-    const firstLine_afterChange: number = change.lnum
-    # Last changed line, after the change is made
-    const lastLine_afterChange: number = change.end - 1 + change.added
-
-    # Send the range of affected lines(before `change` is made) and the updated line content(after `change` is made)
-    #
-    # Trigger `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which then triggers `src/model/document.ts vim_lines`
-    #
-    # Convert parameters to the ones of `nvim_buf_lines_event`
+  const ops: list<any> = pending_changes[bufnr]
+  remove(pending_changes, bufnr)
+  if empty(ops) || !bufloaded(bufnr)
+    return
+  endif
+  const tick: number = getbufvar(bufnr, 'changedtick')
+  # Trigger `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which then
+  # triggers `src/model/document.ts vim_lines`.
+  if len(ops) == 1
+    # A single change maps cleanly to an incremental update, converted to the
+    # parameters of `nvim_buf_lines_event`.
     # @see https://neovim.io/doc/user/api/#nvim_buf_lines_event
-    #
-    coc#rpc#notify('vim_buf_change_event', [bufnr,
-      # Note: When executing `normal! 5o`, this callback will be triggered 5 times with last two changedticks the same
-      #       due to `unbuffered` flag defaulting to `false`
-      getbufvar(bufnr, 'changedtick'),
-      # `- 1`: zero-based
-      firstLine_beforeChange - 1, firstLineBelow_beforeChange - 1,
-      getbufline(bufnr, firstLine_afterChange, lastLine_afterChange)
-    ])
-  endfor
+    const op: list<number> = ops[0]
+    # `- 1`: zero-based. Content is empty when the change only removes lines.
+    const content: list<string> = op[3] >= op[2] ? getbufline(bufnr, op[2], op[3]) : []
+    coc#rpc#notify('vim_buf_change_event', [bufnr, tick, op[0] - 1, op[1] - 1, content])
+  else
+    # Multiple changes can't be replayed incrementally once content reading is
+    # deferred (later changes shift earlier line numbers), so resync the whole
+    # buffer. The trailing `true` tells the node side to replace all lines.
+    coc#rpc#notify('vim_buf_change_event', [bufnr, tick, 0, 0, getbufline(bufnr, 1, '$'), true])
+  endif
 enddef
 
 export def DetachListener(bufnr: number): bool
+  if has_key(pending_timer, bufnr)
+    timer_stop(pending_timer[bufnr])
+    remove(pending_timer, bufnr)
+  endif
+  if has_key(pending_changes, bufnr)
+    remove(pending_changes, bufnr)
+  endif
   const id: number = get(listener_map, bufnr, 0)
   if id != 0
     remove(listener_map, bufnr)
@@ -1099,6 +1130,7 @@ enddef
 export def Buf_flush(id: any): void
   if type(id) == v:t_number && has_key(listener_map, id)
     listener_flush(id)
+    FlushChanges(id)
   endif
 enddef
 
