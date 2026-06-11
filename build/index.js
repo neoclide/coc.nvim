@@ -135698,7 +135698,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-7f1393c 2026-06-04 12:02:13 +0800";
+			let version = workspace_default.version + "-b79330b 2026-06-11 16:03:08 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
