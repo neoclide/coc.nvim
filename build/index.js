@@ -116276,6 +116276,73 @@ var init_session$1 = __esmMin((() => {
 			if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
 			const textDocument = this.document.textDocument;
 			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
+			const sharedFinals = this.getSharedEditableFinals(textEdits.map((o) => o.newText));
+			if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits);
+			const len = textEdits.length;
+			let combined = "";
+			const snippets = textEdits.map((o) => new SnippetParser().parse(o.newText));
+			let nextIndex = 1;
+			for (const snippet of snippets) {
+				const localIndexes = /* @__PURE__ */ new Set();
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index > 0) localIndexes.add(m.index);
+					return true;
+				});
+				const indexMap = /* @__PURE__ */ new Map();
+				for (const index of Array.from(localIndexes).sort((a, b) => a - b)) indexMap.set(index, nextIndex++);
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index > 0) m.index = indexMap.get(m.index);
+					return true;
+				});
+			}
+			const sharedIndexMap = /* @__PURE__ */ new Map();
+			let needsFinalTabstop = false;
+			for (const snippet of snippets) {
+				const localFinalMap = /* @__PURE__ */ new Map();
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
+						needsFinalTabstop = true;
+						const key = this.getEditableFinalKey(m);
+						let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key);
+						if (index == null) {
+							index = nextIndex++;
+							if (sharedFinals.has(key)) sharedIndexMap.set(key, index);
+							else localFinalMap.set(key, index);
+						}
+						m.index = index;
+					}
+					return true;
+				});
+			}
+			for (let i = 0; i < len; i++) {
+				combined += snippets[i].toTextmateString();
+				if (i !== len - 1) {
+					let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start);
+					combined += SnippetParser.escape(textDocument.getText(r));
+				}
+			}
+			if (needsFinalTabstop) combined += "$0";
+			this.deactivate();
+			let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end);
+			return await this.start(combined, range, false);
+		}
+		getEditableFinalKey(placeholder) {
+			return placeholder.toTextmateString();
+		}
+		getSharedEditableFinals(snippets) {
+			const counts = /* @__PURE__ */ new Map();
+			for (const text of snippets) {
+				const keys = /* @__PURE__ */ new Set();
+				new SnippetParser().parse(text).walk((m) => {
+					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) keys.add(this.getEditableFinalKey(m));
+					return true;
+				});
+				for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+			}
+			return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+		}
+		async insertNestedSnippetEdits(textEdits) {
+			const textDocument = this.document.textDocument;
 			const len = textEdits.length;
 			const snip = new TextmateSnippet();
 			for (let i = 0; i < len; i++) {
@@ -135698,7 +135765,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-b79330b 2026-06-11 16:03:08 +0800";
+			let version = workspace_default.version + "-8739a67 2026-06-12 17:03:37 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
