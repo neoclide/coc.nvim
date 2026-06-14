@@ -105,7 +105,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
               if (Range.is(result)) {
                 return result
               } else if (this.isDefaultBehavior(result)) {
-                return result.defaultBehavior === true ? null : Promise.reject(new Error(`The element can't be renamed.`))
+                return result.defaultBehavior === true ? result : Promise.reject(new Error(`The element can't be renamed.`))
               } else if (result && Range.is(result.range)) {
                 return {
                   range: result.range,
