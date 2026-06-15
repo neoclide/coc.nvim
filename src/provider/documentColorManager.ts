@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { ColorInformation, ColorPresentation } from 'vscode-languageserver-types'
 import { equals } from '../util/object'
@@ -15,7 +14,7 @@ export default class DocumentColorManager extends Manager<DocumentColorProvider>
 
   public register(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

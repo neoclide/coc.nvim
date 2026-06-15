@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import type {
   CancellationToken, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRegistrationOptions, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentSelector, PreviousResultId, ServerCapabilities, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult
 } from 'vscode-languageserver-protocol'
@@ -480,7 +479,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     if (this.options.workspaceDiagnostics) {
       provider.provideWorkspaceDiagnostics = (resultIds, token, resultReporter): ProviderResult<WorkspaceDiagnosticReport> => {
         const provideWorkspaceDiagnostics: ProvideWorkspaceDiagnosticSignature = (resultIds, token, resultReporter): ProviderResult<WorkspaceDiagnosticReport> => {
-          const partialResultToken = uuid()
+          const partialResultToken = crypto.randomUUID()
           const disposable = this.client.onProgress(WorkspaceDiagnosticRequest.partialResult, partialResultToken, partialResult => {
             if (partialResult == undefined) {
               resultReporter(null)

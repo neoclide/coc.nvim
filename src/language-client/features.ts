@@ -19,7 +19,6 @@ import * as Is from '../util/is'
 import { Emitter, Event, StaticRegistrationOptions, TextDocumentRegistrationOptions, WorkDoneProgressOptions } from '../util/protocol'
 import workspace from '../workspace'
 import * as c2p from './utils/codeConverter'
-import * as UUID from './utils/uuid'
 
 export class LSPCancellationError extends CancellationError {
   public readonly data: object
@@ -551,12 +550,12 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
     if (!capability) {
       return [undefined, undefined]
     } else if (TextDocumentRegistrationOptions.is(capability)) {
-      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
+      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : crypto.randomUUID()
       const selector = defaultValue(capability.documentSelector, documentSelector)
       return [id, Object.assign({}, capability, { documentSelector: selector })]
     } else if ((Is.boolean(capability) && capability === true) || WorkDoneProgressOptions.is(capability)) {
       const options = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })
-      return [UUID.generateUuid(), options as RO & { documentSelector: DocumentSelector }]
+      return [crypto.randomUUID(), options as RO & { documentSelector: DocumentSelector }]
     }
     return [undefined, undefined]
   }

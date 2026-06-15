@@ -7,7 +7,6 @@ import { CompletionItemProvider, ProviderResult } from '../provider'
 import { CompletionRequest, CompletionResolveRequest, Disposable } from '../util/protocol'
 import workspace from '../workspace'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 const SupportedCompletionItemKinds: CompletionItemKind[] = [
   CompletionItemKind.Text,
@@ -110,7 +109,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider)
     if (!options) return
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

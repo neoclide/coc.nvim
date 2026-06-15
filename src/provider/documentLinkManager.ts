@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentLink, Range } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
@@ -19,7 +18,7 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

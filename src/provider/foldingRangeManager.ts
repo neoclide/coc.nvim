@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FoldingRange } from 'vscode-languageserver-types'
 import { CancellationToken, Disposable } from '../util/protocol'
@@ -10,7 +9,7 @@ export default class FoldingRangeManager extends Manager<FoldingRangeProvider>  
 
   public register(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

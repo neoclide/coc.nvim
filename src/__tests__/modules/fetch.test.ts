@@ -5,7 +5,6 @@ import path from 'path'
 import semver from 'semver'
 import { URL } from 'url'
 import { promisify } from 'util'
-import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { getEtag, getExtname } from '../../model/download'
 import fetch, { getAgent, getDataType, getRequestModule, getSystemProxyURI, getText, request, resolveRequestOptions, toPort, toURL } from '../../model/fetch'
@@ -238,7 +237,7 @@ describe('utils', () => {
   })
 
   it('should resolve request options #1', async () => {
-    let file = path.join(os.tmpdir(), `${uuid()}/ca`)
+    let file = path.join(os.tmpdir(), `${crypto.randomUUID()}/ca`)
     fs.mkdirSync(path.dirname(file))
     fs.writeFileSync(file, 'ca', 'utf8')
     helper.updateConfiguration('http.proxyAuthorization', 'authorization')
@@ -395,7 +394,7 @@ describe('fetch', () => {
 
 describe('download', () => {
   let binary_file: string
-  let tempdir = path.join(os.tmpdir(), uuid())
+  let tempdir = path.join(os.tmpdir(), crypto.randomUUID())
 
   beforeAll(async () => {
     binary_file = path.join(os.tmpdir(), 'binary_file')

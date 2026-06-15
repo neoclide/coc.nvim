@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FormattingOptions, Range, TextEdit } from 'vscode-languageserver-types'
 import { CancellationToken, Disposable } from '../util/protocol'
@@ -12,7 +11,7 @@ export default class FormatRangeManager extends Manager<DocumentRangeFormattingE
     provider: DocumentRangeFormattingEditProvider,
     priority: number): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider,
       priority

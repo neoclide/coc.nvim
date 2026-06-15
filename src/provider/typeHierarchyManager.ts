@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, TypeHierarchyItem } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
@@ -17,7 +16,7 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
 
   public register(selector: DocumentSelector, provider: TypeHierarchyProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

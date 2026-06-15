@@ -2,7 +2,6 @@ import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuidv4 } from 'uuid'
 import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -62,7 +61,7 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient(undefined)
       await client.start()
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
-      feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
+      feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: null } })
       let res = await client.sendRequest('getLastOpen')
       expect(res).toBe(null)
       let docs = feature.openDocuments
@@ -100,7 +99,7 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.loadFile(uri.toString())
       expect(doc.languageId).toBe('javascript')
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
-      feature.register({ id: uuidv4(), registerOptions: { documentSelector: [{ language: 'javascript' }] } })
+      feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: [{ language: 'javascript' }] } })
       let res = await client.sendRequest('getLastOpen') as any
       expect(res.uri).toBe(doc.uri)
       expect(called).toBe(true)
@@ -174,7 +173,7 @@ describe('TextDocumentSynchronization', () => {
       })
       await client.start()
       let openFeature = client.getFeature(DidOpenTextDocumentNotification.method)
-      let id = uuidv4()
+      let id = crypto.randomUUID()
       let options = { id, registerOptions: { documentSelector: [{ language: 'vim' }] } }
       openFeature.register(options)
       let feature = client.getFeature(DidCloseTextDocumentNotification.method)
@@ -229,7 +228,7 @@ describe('TextDocumentSynchronization', () => {
       feature.onNotificationSent(() => {
         called = true
       })
-      let doc = await helper.createDocument(`${uuidv4()}.vim`)
+      let doc = await helper.createDocument(`${crypto.randomUUID()}.vim`)
       await helper.waitValue(() => {
         return client.isSynced(doc.uri)
       }, true)
@@ -293,7 +292,7 @@ describe('TextDocumentSynchronization', () => {
         }
       })
       await client.start()
-      let fsPath = path.join(os.tmpdir(), `${uuidv4()}.vim`)
+      let fsPath = path.join(os.tmpdir(), `${crypto.randomUUID()}.vim`)
       let uri = URI.file(fsPath)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
@@ -317,7 +316,7 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient([{ scheme: 'lsptest' }])
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      let fsPath = path.join(os.tmpdir(), `${uuidv4()}-foo.vim`)
+      let fsPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-foo.vim`)
       let uri = URI.file(fsPath)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
@@ -348,7 +347,7 @@ describe('TextDocumentSynchronization', () => {
       })
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      let fsPath = path.join(os.tmpdir(), `${uuidv4()}-error.vim`)
+      let fsPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-error.vim`)
       let uri = URI.file(fsPath)
       await helper.waitValue(() => {
         let feature = client.getFeature(DidOpenTextDocumentNotification.method)
@@ -394,7 +393,7 @@ describe('TextDocumentSynchronization', () => {
         }
       })
       await client.start()
-      let fsPath = path.join(os.tmpdir(), `${uuidv4()}.vim`)
+      let fsPath = path.join(os.tmpdir(), `${crypto.randomUUID()}.vim`)
       let uri = URI.file(fsPath)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document

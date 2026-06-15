@@ -1,5 +1,4 @@
 import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, FileType } from '../../util/fs'
-import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -31,7 +30,7 @@ describe('fs', () => {
   })
 
   it('should watch file', async () => {
-    let filepath = path.join(os.tmpdir(), uuid())
+    let filepath = path.join(os.tmpdir(), crypto.randomUUID())
     fs.writeFileSync(filepath, 'file', 'utf8')
     let called = false
     let disposable = watchFile(filepath, () => {
@@ -64,7 +63,7 @@ describe('fs', () => {
     })
 
     it('should loadJson with bad format', async () => {
-      let file = path.join(os.tmpdir(), uuid())
+      let file = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(file, 'foo', 'utf8')
       expect(loadJson(file)).toEqual({})
     })
@@ -72,13 +71,13 @@ describe('fs', () => {
 
   describe('writeJson()', () => {
     it('should writeJson file', async () => {
-      let file = path.join(os.tmpdir(), uuid())
+      let file = path.join(os.tmpdir(), crypto.randomUUID())
       writeJson(file, { x: 1 })
       expect(loadJson(file)).toEqual({ x: 1 })
     })
 
     it('should create file with folder', async () => {
-      let file = path.join(os.tmpdir(), uuid(), 'foo', 'bar')
+      let file = path.join(os.tmpdir(), crypto.randomUUID(), 'foo', 'bar')
       writeJson(file, { foo: '1' })
       expect(loadJson(file)).toEqual({ foo: '1' })
     })
@@ -97,7 +96,7 @@ describe('fs', () => {
     })
 
     it('should get location', async () => {
-      let file = path.join(os.tmpdir(), uuid())
+      let file = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(file, '\nfoo\n', 'utf8')
       let res = await lineToLocation(file, 'foo', 'foo')
       expect(res.range).toEqual(Range.create(1, 0, 1, 3))
@@ -106,8 +105,8 @@ describe('fs', () => {
 
   describe('remove()', () => {
     it('should remove files', async () => {
-      await remove(path.join(os.tmpdir(), uuid()))
-      let p = path.join(os.tmpdir(), uuid())
+      await remove(path.join(os.tmpdir(), crypto.randomUUID()))
+      let p = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(p, 'data', 'utf8')
       await remove(p)
       let exists = fs.existsSync(p)
@@ -119,13 +118,13 @@ describe('fs', () => {
       let spy = vi.spyOn(fs, 'rm').mockImplementation(() => {
         throw new Error('my error')
       })
-      let p = path.join(os.tmpdir(), uuid())
+      let p = path.join(os.tmpdir(), crypto.randomUUID())
       await remove(p)
       spy.mockRestore()
     })
 
     it('should remove folder', async () => {
-      let f = path.join(os.tmpdir(), uuid())
+      let f = path.join(os.tmpdir(), crypto.randomUUID())
       let p = path.join(f, 'a/b/c')
       fs.mkdirSync(p, { recursive: true })
       await remove(f)
@@ -140,7 +139,7 @@ describe('fs', () => {
       expect(res).toBe(FileType.Directory)
       res = await getFileType(__filename)
       expect(res).toBe(FileType.File)
-      let newPath = path.join(os.tmpdir(), uuid())
+      let newPath = path.join(os.tmpdir(), crypto.randomUUID())
       fs.symlinkSync(__filename, newPath)
       res = await getFileType(newPath)
       expect(res).toBe(FileType.SymbolicLink)
@@ -184,7 +183,7 @@ describe('fs', () => {
 
   describe('renameAsync()', () => {
     it('should rename file', async () => {
-      let id = uuid()
+      let id = crypto.randomUUID()
       let filepath = path.join(os.tmpdir(), id)
       await writeFile(filepath, id)
       let dest = path.join(os.tmpdir(), 'bar')
@@ -273,7 +272,7 @@ describe('fs', () => {
 
     it('should be ignored', async () => {
       let res = await isGitIgnored('')
-      let uid = uuid()
+      let uid = crypto.randomUUID()
       expect(res).toBe(false)
       res = await isGitIgnored(path.join(os.tmpdir(), uid))
       expect(res).toBe(false)

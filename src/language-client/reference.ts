@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, ReferenceProvider } from '../provider'
 import { ReferencesRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideReferencesSignature {
   (
@@ -51,7 +50,7 @@ export class ReferencesFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

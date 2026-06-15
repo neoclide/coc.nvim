@@ -3,7 +3,6 @@ import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../../events'
@@ -30,7 +29,7 @@ afterAll(async () => {
 })
 
 function createFolder(): string {
-  let folder = path.join(os.tmpdir(), uuid())
+  let folder = path.join(os.tmpdir(), crypto.randomUUID())
   fs.mkdirSync(folder, { recursive: true })
   disposables.push(Disposable.create(() => {
     fs.rmSync(folder, { recursive: true, force: true })
@@ -83,7 +82,7 @@ describe('utils', () => {
   describe('validExtensionFolder()', () => {
     it('should check validExtensionFolder', async () => {
       expect(validExtensionFolder(__dirname, '')).toBe(false)
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(folder)
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
@@ -122,7 +121,7 @@ describe('utils', () => {
     })
 
     it('should remove unexpted file', async () => {
-      let root = path.join(os.tmpdir(), uuid())
+      let root = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(root, '')
       let res = checkExtensionRoot(root)
       expect(res).toBe(true)
@@ -134,7 +133,7 @@ describe('utils', () => {
 
   describe('loadExtensionJson()', () => {
     function testErrors(data: any, version: string, count, createJs = false): any {
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(folder)
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
@@ -181,7 +180,7 @@ describe('ExtensionStat', () => {
   }
 
   function create(): [ExtensionStat, string] {
-    let folder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(folder)
     disposables.push(Disposable.create(() => {
       fs.rmSync(folder, { force: true, recursive: true })
@@ -193,7 +192,7 @@ describe('ExtensionStat', () => {
     let spy = vi.spyOn(ExtensionStat.prototype, 'migrate' as any).mockImplementation(() => {
       throw new Error('my error')
     })
-    let folder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(folder)
     let stat = new ExtensionStat(folder)
     spy.mockRestore()
@@ -201,7 +200,7 @@ describe('ExtensionStat', () => {
   })
 
   it('should add local extension', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(os.tmpdir(), crypto.randomUUID())
     let stat = new ExtensionStat(folder)
     stat.addLocalExtension('name', folder)
     expect(stat.getFolder('name')).toBe(folder)

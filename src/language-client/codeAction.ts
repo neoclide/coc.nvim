@@ -8,7 +8,6 @@ import { CodeActionProvider, ProviderResult } from '../provider'
 import { CodeActionRequest, CodeActionResolveRequest, ExecuteCommandRequest } from '../util/protocol'
 import { ExecuteCommandMiddleware, ExecuteCommandSignature } from './executeCommand'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideCodeActionsSignature {
   (
@@ -83,7 +82,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
     }
 
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

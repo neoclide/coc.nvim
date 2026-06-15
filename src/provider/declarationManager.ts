@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position } from 'vscode-languageserver-types'
 import { LocationWithTarget } from '../types'
@@ -11,7 +10,7 @@ export default class DeclarationManager extends Manager<DeclarationProvider> {
 
   public register(selector: DocumentSelector, provider: DeclarationProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

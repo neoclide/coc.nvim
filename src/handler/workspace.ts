@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '../neovim'
-import { v4 as uuid } from 'uuid'
 import { writeHeapSnapshot } from 'v8'
 import { Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -104,7 +103,7 @@ export default class WorkspaceHandler {
     commands.register({
       id: 'workspace.writeHeapSnapshot',
       execute: async () => {
-        let filepath = path.join(os.homedir(), `${uuid()}-${process.pid}.heapsnapshot`)
+        let filepath = path.join(os.homedir(), `${crypto.randomUUID()}-${process.pid}.heapsnapshot`)
         writeHeapSnapshot(filepath)
         void window.showInformationMessage(`Create heapdump at: ${filepath}`)
         return filepath

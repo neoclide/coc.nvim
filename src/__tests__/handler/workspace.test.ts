@@ -6,7 +6,6 @@ vi.mock('v8', async importOriginal => {
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
@@ -150,7 +149,7 @@ describe('Workspace handler', () => {
     })
 
     it('should rename file', async () => {
-      let dir = path.join(os.tmpdir(), uuid())
+      let dir = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(dir, { recursive: true })
       let fsPath = path.join(dir, 'x')
       let newPath = path.join(dir, 'b')
@@ -176,7 +175,7 @@ describe('Workspace handler', () => {
     })
 
     it('should not rename when reject overwrite', async () => {
-      let dir = path.join(os.tmpdir(), uuid())
+      let dir = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(dir, { recursive: true })
       let fsPath = path.join(dir, 'x')
       let newPath = path.join(dir, 'b')

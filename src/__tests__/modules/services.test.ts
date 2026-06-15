@@ -3,7 +3,6 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -69,7 +68,7 @@ describe('services', () => {
     })
 
     it('should use languageserver config from workspace folder', async () => {
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(path.join(folder, '.vim'), { recursive: true })
       let configFile = path.join(folder, '.vim/coc-settings.json')
       fs.writeFileSync(configFile, '{"languageserver": {"foo": {"command":"bar", "filetypes": ["vim"]}, "bar": {}}}')

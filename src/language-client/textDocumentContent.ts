@@ -5,7 +5,6 @@ import { defaultValue, disposeAll } from '../util'
 import { toArray } from '../util/array'
 import workspace from '../workspace'
 import { ensure, type DynamicFeature, type FeatureClient, type FeatureState, type RegistrationData } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideTextDocumentContentSignature {
   (this: void, uri: URI, token: CancellationToken): ProviderResult<string>
@@ -67,7 +66,7 @@ export class TextDocumentContentFeature implements DynamicFeature<TextDocumentCo
 
     const capability = defaultValue(defaultValue(capabilities, {}).workspace, {}).textDocumentContent
     if (capability) {
-      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
+      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : crypto.randomUUID()
       this.register({
         id,
         registerOptions: capability

@@ -7,7 +7,6 @@ import {
   DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
 } from '../util/protocol'
 import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentFormattingEditsSignature {
   (
@@ -94,7 +93,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }
@@ -149,7 +148,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }
@@ -200,7 +199,7 @@ export class DocumentOnTypeFormattingFeature extends TextDocumentLanguageFeature
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

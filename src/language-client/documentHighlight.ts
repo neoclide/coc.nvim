@@ -5,7 +5,6 @@ import languages from '../languages'
 import { DocumentHighlightProvider, ProviderResult } from '../provider'
 import { DocumentHighlightRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentHighlightsSignature {
   (
@@ -49,7 +48,7 @@ export class DocumentHighlightFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

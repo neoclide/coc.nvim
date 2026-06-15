@@ -3,10 +3,9 @@ import { DataBase } from '../../list/db'
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 
 function createTmpDir(): string {
-  let dir = path.join(os.tmpdir(), uuid())
+  let dir = path.join(os.tmpdir(), crypto.randomUUID())
   fs.mkdirSync(dir, { recursive: true })
   return dir
 }

@@ -1,6 +1,5 @@
 'use strict'
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
-import { v1 as uuidv1 } from 'uuid'
 import { createLogger } from '../logger'
 import { crypto, fs, path } from '../util/node'
 import { CancellationToken } from '../util/protocol'
@@ -127,7 +126,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
           const unzip = require('unzip-stream')
           stream = res.pipe(unzip.Extract({ path: dest }))
         } else {
-          dest = path.join(dest, `${uuidv1()}${extname}`)
+          dest = path.join(dest, `${crypto.randomUUID()}${extname}`)
           stream = res.pipe(fs.createWriteStream(dest))
         }
         stream.on('finish', () => {

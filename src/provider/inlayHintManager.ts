@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlayHint, Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
@@ -18,7 +17,7 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
 
   public register(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

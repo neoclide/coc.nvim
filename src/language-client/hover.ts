@@ -5,7 +5,6 @@ import languages from '../languages'
 import { HoverProvider, ProviderResult } from '../provider'
 import { HoverRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideHoverSignature {
   (
@@ -51,7 +50,7 @@ export class HoverFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

@@ -1,7 +1,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import which from 'which'
 import Configurations from '../../configuration/index'
 import * as funcs from '../../core/funcs'
@@ -36,7 +35,7 @@ describe('Resolver()', () => {
 
   it('should resolve npm module', async () => {
     let r = new Resolver()
-    let folder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(os.tmpdir(), crypto.randomUUID())
     Object.assign(r, {
       _npmFolder: folder,
       _yarnFolder: __dirname,

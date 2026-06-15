@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable } from '../util/protocol'
 import type { CodeLens } from 'vscode-languageserver-types'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -16,7 +15,7 @@ export default class CodeLensManager extends Manager<CodeLensProvider> {
 
   public register(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

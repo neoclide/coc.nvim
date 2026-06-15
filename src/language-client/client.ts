@@ -64,7 +64,6 @@ import { Delayer } from './utils/async'
 import * as c2p from './utils/codeConverter'
 import { CloseAction, CloseHandlerResult, DefaultErrorHandler, ErrorAction, ErrorHandler, ErrorHandlerResult, InitializationFailedHandler, toCloseHandlerResult } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
-import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
 
@@ -1131,7 +1130,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     this.fillInitializeParams(initParams)
     if (progressOnInitialization) {
-      const token: ProgressToken = UUID.generateUuid()
+      const token: ProgressToken = crypto.randomUUID()
       initParams.workDoneToken = token
       connection.id = this._id
       const part = new ProgressPart(connection, token)

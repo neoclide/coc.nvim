@@ -6,7 +6,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { v4 as uuid } from 'uuid'
 import { Position, Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import events from '../events'
@@ -46,7 +45,7 @@ async function createTmpFile(content: string, disposables?: Disposable[]): Promi
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder)
   }
-  let fsPath = path.join(tmpFolder, uuid())
+  let fsPath = path.join(tmpFolder, crypto.randomUUID())
   await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
   if (disposables) {
     disposables.push({

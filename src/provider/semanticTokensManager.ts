@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-types'
 import type { CancellationToken, Disposable } from '../util/protocol'
@@ -14,7 +13,7 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
 
   public register(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider,
       legend,

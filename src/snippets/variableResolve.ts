@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '../neovim'
-import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
 import WorkspaceFolderController from '../core/workspaceFolder'
 import { path } from '../util/node'
@@ -120,7 +119,7 @@ export class SnippetVariableResolver implements VariableResolver {
       return Math.random().toString(16).slice(-6)
     }
     if (name === 'UUID') {
-      return uuid()
+      return crypto.randomUUID()
     }
     if (['RELATIVE_FILEPATH', 'WORKSPACE_NAME', 'WORKSPACE_FOLDER'].includes(name)) {
       let filepath = await nvim.call('coc#util#get_fullpath') as string

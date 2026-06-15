@@ -1,6 +1,5 @@
 'use strict'
 import type { Client } from 'fb-watchman'
-import { v1 as uuidv1 } from 'uuid'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { minimatch, path } from '../util/node'
@@ -94,7 +93,7 @@ export default class Watchman {
       sub.relative_root = relative_path
       root = path.join(watch, relative_path)
     }
-    let uid = uuidv1()
+    let uid = crypto.randomUUID()
     let { subscribe } = await this.command(['subscribe', watch, uid, sub])
     this.subscription = subscribe
     this.appendOutput(`subscribing events in ${root}`)

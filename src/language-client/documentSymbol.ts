@@ -6,7 +6,6 @@ import languages from '../languages'
 import { DocumentSymbolProvider, ProviderResult } from '../provider'
 import { CancellationToken, Disposable, DocumentSymbolRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export const SupportedSymbolKinds: SymbolKind[] = [
   SymbolKind.File,
@@ -83,7 +82,7 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

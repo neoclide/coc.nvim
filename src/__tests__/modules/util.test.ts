@@ -4,7 +4,6 @@ import cp, { spawn } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import vm from 'vm'
 import { AnnotatedTextEdit, CancellationToken, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { ConfigurationScope } from '../../configuration/types'
@@ -349,7 +348,7 @@ describe('textedit', () => {
   it('should get all annotation ids for confirm', () => {
     let doc = { uri: 'test:///1', version: null }
     let changes: DocumentChange[] = []
-    let ids = [uuid(), uuid(), uuid()]
+    let ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
     changes.push({
       textDocument: doc,
       edits: [
@@ -377,7 +376,7 @@ describe('textedit', () => {
   it('should create filtered changes', () => {
     let doc = { uri: 'test:///1', version: null }
     let changes: DocumentChange[] = []
-    let ids = [uuid(), uuid(), uuid()]
+    let ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
     changes.push({
       textDocument: doc,
       edits: [
@@ -419,7 +418,7 @@ describe('textedit', () => {
   })
 
   it('should check edit is denied', () => {
-    let ids = [uuid(), uuid()]
+    let ids = [crypto.randomUUID(), crypto.randomUUID()]
     let edits = [
       AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
       AnnotatedTextEdit.insert(Position.create(1, 0), 'bar', ids[1]),

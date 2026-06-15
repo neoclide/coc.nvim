@@ -2,7 +2,6 @@ import bser from 'bser'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration/index'
@@ -18,7 +17,7 @@ import helper from '../helper'
 let server: net.Server
 let client: net.Socket
 const cwd = path.resolve(__dirname, '../../..')
-const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuid()}`)
+const sockPath = path.join(os.tmpdir(), `watchman-fake-${crypto.randomUUID()}`)
 process.env.WATCHMAN_SOCK = sockPath
 
 let workspaceFolder: WorkspaceFolderController

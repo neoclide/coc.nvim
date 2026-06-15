@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineCompletionContext, InlineCompletionItem, Position } from 'vscode-languageserver-types'
 import { toArray } from '../util/array'
@@ -16,7 +15,7 @@ export interface ExtendedInlineContext extends InlineCompletionContext {
 export default class InlineCompletionItemManager extends Manager<InlineCompletionItemProvider> {
   public register(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

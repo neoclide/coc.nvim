@@ -1,7 +1,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import commands from '../../commands'
@@ -90,7 +89,7 @@ describe('extensions', () => {
   it('should add global extensions', async () => {
     extensions.states.addExtension('foo', '0.0.1')
     extensions.states.addExtension('bar', '0.0.1')
-    extensions.modulesFolder = path.join(os.tmpdir(), uuid())
+    extensions.modulesFolder = path.join(os.tmpdir(), crypto.randomUUID())
     let folder = path.join(extensions.modulesFolder, 'foo')
     writeJson(path.join(folder, 'package.json'), { name: 'foo', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(folder, 'index.js'), '')
@@ -122,11 +121,11 @@ describe('extensions', () => {
   })
 
   it('should load extension stats from runtimepath', () => {
-    let f1 = path.join(os.tmpdir(), uuid())
+    let f1 = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(f1)
     writeJson(path.join(f1, 'package.json'), { name: 'name', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(f1, 'index.js'), '')
-    let f2 = path.join(os.tmpdir(), uuid())
+    let f2 = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(f2)
     writeJson(path.join(f2, 'package.json'), { name: 'folder', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(f2, 'index.js'), '')
@@ -213,7 +212,7 @@ describe('extensions', () => {
       return {
         on: () => {},
         update: () => {
-          return Promise.resolve(path.join(os.tmpdir(), uuid()))
+          return Promise.resolve(path.join(os.tmpdir(), crypto.randomUUID()))
         }
       } as any
     })
@@ -320,7 +319,7 @@ describe('extensions', () => {
 
   it('should checkRecommendation', async () => {
     await extensions.checkRecommendation({ name: 'tmp', uri: URI.file(__dirname).toString() })
-    tmpfolder = path.join(os.tmpdir(), uuid())
+    tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
     let folder = path.join(tmpfolder, '.vim')
     fs.mkdirSync(folder, { recursive: true })
 

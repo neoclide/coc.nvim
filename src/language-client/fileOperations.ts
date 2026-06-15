@@ -11,7 +11,6 @@ import {
 } from '../util/protocol'
 import workspace from '../workspace'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
-import * as UUID from './utils/uuid'
 
 function access<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]
@@ -93,7 +92,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     if (capability?.filters !== undefined) {
       try {
         this.register({
-          id: UUID.generateUuid(),
+          id: crypto.randomUUID(),
           registerOptions: { filters: capability.filters },
         })
       } catch (e) {

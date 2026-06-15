@@ -1,6 +1,5 @@
 'use strict'
 import { EventEmitter } from 'events'
-import { v4 as uuid } from 'uuid'
 import { createLogger } from '../logger'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
@@ -272,7 +271,7 @@ export class Installer extends EventEmitter implements IInstaller {
     installing.add(info.name)
 
     let key = info.name.replace(/\//g, '_')
-    let downloadFolder = path.join(this.root, `${key}-${uuid()}`)
+    let downloadFolder = path.join(this.root, `${key}-${crypto.randomUUID()}`)
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined

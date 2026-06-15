@@ -5,7 +5,6 @@ import languages from '../languages'
 import { DefinitionProvider, ProviderResult } from '../provider'
 import { DefinitionRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideDefinitionSignature {
   (
@@ -48,7 +47,7 @@ export class DefinitionFeature extends TextDocumentLanguageFeature<
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

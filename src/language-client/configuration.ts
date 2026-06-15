@@ -11,7 +11,6 @@ import {
 } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData, StaticFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ConfigurationMiddleware {
   configuration?: ConfigurationRequest.MiddlewareSignature
@@ -139,7 +138,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   public initialize(): void {
     let section = defaultValue(this._client.clientOptions.synchronize, {}).configurationSection
     if (section !== undefined) {
-      let id = this.configuredUID = UUID.generateUuid()
+      let id = this.configuredUID = crypto.randomUUID()
       this.register({
         id,
         registerOptions: {

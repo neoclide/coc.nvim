@@ -7,7 +7,6 @@ import net, { Server } from 'net'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import attach from '../attach'
 import type { Completion } from '../completion'
@@ -130,7 +129,7 @@ export class Helper extends EventEmitter {
     return new Promise((resolve, reject) => {
       if (!isWindows) {
         // not work on old version vim.
-        const socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
+        const socket = path.join(os.tmpdir(), `coc-test-${crypto.randomUUID()}.sock`)
         server.listen(socket, () => {
           resolve(socket)
         })
@@ -239,7 +238,7 @@ export class Helper extends EventEmitter {
 
   public async edit(file?: string): Promise<Buffer> {
     if (!file || !path.isAbsolute(file)) {
-      file = path.join(__dirname, file ? file : `${uuid()}`)
+      file = path.join(__dirname, file ? file : `${crypto.randomUUID()}`)
     }
     let escaped = await this.nvim.call('fnameescape', file) as string
     await this.nvim.command(`edit ${escaped}`)
@@ -383,7 +382,7 @@ export async function createTmpFile(content: string, disposables?: Disposable[])
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder)
   }
-  let fsPath = path.join(tmpFolder, uuid())
+  let fsPath = path.join(tmpFolder, crypto.randomUUID())
   await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
   if (disposables) {
     disposables.push(Disposable.create(() => {
