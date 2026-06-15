@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Position } from 'vscode-languageserver-types'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -10,7 +9,7 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
 
   public register(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

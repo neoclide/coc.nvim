@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Hover, Position } from 'vscode-languageserver-types'
 import { isHover } from '../util/is'
@@ -12,7 +11,7 @@ export default class HoverManager extends Manager<HoverProvider> {
 
   public register(selector: DocumentSelector, provider: HoverProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

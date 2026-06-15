@@ -3,7 +3,6 @@ import { createLogger, logger, getTimestamp, resolveLogFilepath, emptyFile } fro
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import { v4 as uuid } from 'uuid'
 
 let filepath: string
 afterEach(() => {
@@ -58,7 +57,7 @@ describe('FileLogger', () => {
   })
 
   it('should create logger', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       color: false,
       depth: 2,
@@ -83,7 +82,7 @@ describe('FileLogger', () => {
   })
 
   it('should switch to console', () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {})
     let logger = fileLogger.createLogger('scope')
     fileLogger.switchConsole()
@@ -104,7 +103,7 @@ describe('FileLogger', () => {
   })
 
   it('should enable color', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       color: true
     })
@@ -116,14 +115,14 @@ describe('FileLogger', () => {
   })
 
   it('should change level', () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Off, {})
     fileLogger.setLevel(LogLevel.Debug)
     fileLogger.setLevel(LogLevel.Debug)
   })
 
   it('should work with off level', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Off, {
       color: false,
       depth: 2,
@@ -144,7 +143,7 @@ describe('FileLogger', () => {
   })
 
   it('should work without formatter', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       userFormatters: false
     })
@@ -157,7 +156,7 @@ describe('FileLogger', () => {
   })
 
   it('should use backup file', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       userFormatters: true
     })
@@ -175,7 +174,7 @@ describe('FileLogger', () => {
   })
 
   it('should not throw on error', async () => {
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       userFormatters: false
     })
@@ -213,7 +212,7 @@ describe('FileLogger', () => {
 
   it('should empty file', async () => {
     emptyFile('/file_not_exists')
-    filepath = path.join(os.tmpdir(), uuid())
+    filepath = path.join(os.tmpdir(), crypto.randomUUID())
     fs.writeFileSync(filepath, 'data', 'utf8')
     emptyFile(filepath)
     let content = fs.readFileSync(filepath, 'utf8')

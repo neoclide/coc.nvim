@@ -5,7 +5,6 @@ import languages from '../languages'
 import { CodeLensProvider, ProviderResult } from '../provider'
 import { CodeLensRefreshRequest, CodeLensRequest, CodeLensResolveRequest, Emitter } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideCodeLensesSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
@@ -45,7 +44,7 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
     })
     const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider)
     if (!options) return
-    this.register({ id: UUID.generateUuid(), registerOptions: options })
+    this.register({ id: crypto.randomUUID(), registerOptions: options })
   }
 
   protected registerLanguageProvider(options: CodeLensRegistrationOptions): [Disposable, CodeLensProviderShape] {

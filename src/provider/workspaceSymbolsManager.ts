@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { WorkspaceSymbol } from 'vscode-languageserver-types'
 import type { CancellationToken, Disposable } from '../util/protocol'
 import { WorkspaceSymbolProvider } from './index'
@@ -12,7 +11,7 @@ interface WorkspaceSymbolWithSource extends WorkspaceSymbol {
 export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvider> {
   public register(provider: WorkspaceSymbolProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector: [{ language: '*' }],
       provider
     })

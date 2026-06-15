@@ -7,7 +7,6 @@ import { defaultValue, disposeAll } from '../util'
 import { CancellationToken, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, Emitter, Event, TextDocumentSyncKind, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicDocumentFeature, DynamicFeature, ensure, FeatureClient, NextSignature, NotificationSendEvent, NotifyingFeature, RegistrationData, TextDocumentEventFeature, TextDocumentSendFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface TextDocumentSynchronizationMiddleware {
   didOpen?: NextSignature<TextDocument, Promise<void>>
@@ -92,7 +91,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.openClose) {
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: { documentSelector }
       })
     }
@@ -205,7 +204,7 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
       textDocumentSyncOptions.openClose
     ) {
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: { documentSelector }
       })
     }
@@ -275,7 +274,7 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
       textDocumentSyncOptions.change !== TextDocumentSyncKind.None
     ) {
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: Object.assign(
           {},
           { documentSelector },
@@ -400,7 +399,7 @@ export class WillSaveFeature extends TextDocumentEventFeature<WillSaveTextDocume
       textDocumentSyncOptions.willSave
     ) {
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: { documentSelector }
       })
     }
@@ -441,7 +440,7 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
       textDocumentSyncOptions.willSaveWaitUntil
     ) {
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: { documentSelector }
       })
     }
@@ -524,7 +523,7 @@ export class DidSaveTextDocumentFeature extends TextDocumentEventFeature<DidSave
         ? { includeText: false }
         : { includeText: !!textDocumentSyncOptions.save.includeText }
       this.register({
-        id: UUID.generateUuid(),
+        id: crypto.randomUUID(),
         registerOptions: Object.assign({}, { documentSelector }, saveOptions)
       })
     }

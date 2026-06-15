@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, WorkspaceEdit } from 'vscode-languageserver-types'
 import type { CancellationToken, Disposable } from '../util/protocol'
@@ -10,7 +9,7 @@ export default class RenameManager extends Manager<RenameProvider> {
 
   public register(selector: DocumentSelector, provider: RenameProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

@@ -1,6 +1,5 @@
 import * as assert from 'assert'
 import path from 'path'
-import { v4 as uuidv4 } from 'uuid'
 import { ApplyWorkspaceEditParams, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ErrorCodes, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineCompletionItem, InlineCompletionRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, ResponseError, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentContentRequest, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -1383,7 +1382,7 @@ describe('Client integration', () => {
     let feature = client.getFeature(InlayHintRequest.method) as InlayHintsFeature
     const providerData = feature.getProvider(document)
     expect(feature.getProvider(TextDocument.create('term:///1', 'foo', 1, '\n'))).toBeUndefined()
-    feature.register({ id: uuidv4(), registerOptions: { documentSelector: null } })
+    feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: null } })
     let res = feature.getRegistration([], { id: '1', workDoneProgress: '' } as any)
     expect(res).toEqual([undefined, undefined])
     isDefined(providerData)

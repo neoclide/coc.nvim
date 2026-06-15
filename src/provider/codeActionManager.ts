@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeAction, CodeActionContext, CodeActionKind, Command, Range } from 'vscode-languageserver-types'
 import { isFalsyOrEmpty } from '../util/array'
@@ -35,7 +34,7 @@ export function checkAction(only: CodeActionKind[] | undefined, action: CodeActi
 export default class CodeActionManager extends Manager<CodeActionProvider, ProviderMeta> {
   public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider,
       kinds: codeActionKinds,

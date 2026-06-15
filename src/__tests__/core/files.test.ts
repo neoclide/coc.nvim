@@ -2,7 +2,6 @@ import { Buffer, Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, SnippetTextEdit, StringValue, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -284,7 +283,7 @@ describe('applyEdits()', () => {
         }
       }, 0)
     }, null, disposables)
-    let file = path.join(os.tmpdir(), uuid())
+    let file = path.join(os.tmpdir(), crypto.randomUUID())
     await workspace.createFile(file, { overwrite: true })
     expect(err).toBeDefined()
     fs.rmSync(file, { force: true })
@@ -354,7 +353,7 @@ describe('applyEdits()', () => {
   it('should support changes with edit and rename', async () => {
     let fsPath = await createTmpFile('test')
     let doc = await helper.createDocument(fsPath)
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
     let newUri = URI.file(newFile).toString()
     let edit: WorkspaceEdit = {
       documentChanges: [
@@ -397,7 +396,7 @@ describe('applyEdits()', () => {
   })
 
   it('should support edit new file with CreateFile', async () => {
-    let file = path.join(os.tmpdir(), uuid())
+    let file = path.join(os.tmpdir(), crypto.randomUUID())
     let uri = URI.file(file).toString()
     let workspaceEdit: WorkspaceEdit = {
       documentChanges: [
@@ -417,7 +416,7 @@ describe('applyEdits()', () => {
   })
 
   it('should undo and redo workspace edit', async () => {
-    const folder = path.join(os.tmpdir(), uuid())
+    const folder = path.join(os.tmpdir(), crypto.randomUUID())
     const pathone = path.join(folder, 'a')
     const pathtwo = path.join(folder, 'b')
     await workspace.files.createFile(pathone, { overwrite: true })
@@ -446,7 +445,7 @@ describe('applyEdits()', () => {
 
   it('should should support annotations', async () => {
     async function assertEdit(confirm: boolean, description: string | undefined): Promise<void> {
-      let doc = await helper.createDocument(uuid())
+      let doc = await helper.createDocument(crypto.randomUUID())
       let edit: WorkspaceEdit = {
         documentChanges: [
           {
@@ -525,9 +524,9 @@ describe('getOriginalLine', () => {
     it('should render with changes', async () => {
       let fsPath = await createTmpFile('foo\n1\n2\nbar')
       let doc = await helper.createDocument(fsPath)
-      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
       let newUri = URI.file(newFile).toString()
-      let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${uuid()}`)
+      let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${crypto.randomUUID()}`)
       let deleteFile = await createTmpFile('delete')
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
@@ -571,7 +570,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should render annotation label', async () => {
-      let filepath = path.join(__dirname, uuid())
+      let filepath = path.join(__dirname, crypto.randomUUID())
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(filepath)) {
           fs.unlinkSync(filepath)
@@ -628,7 +627,7 @@ describe('getOriginalLine', () => {
 
   describe('createFile()', () => {
     it('should create and revert parent folder', async () => {
-      const folder = path.join(os.tmpdir(), uuid())
+      const folder = path.join(os.tmpdir(), crypto.randomUUID())
       const filepath = path.join(folder, 'a/b/bar')
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
@@ -668,7 +667,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should revert file create', async () => {
-      let filepath = path.join(os.tmpdir(), uuid())
+      let filepath = path.join(os.tmpdir(), crypto.randomUUID())
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
       }))
@@ -736,7 +735,7 @@ describe('getOriginalLine', () => {
       let doc = await helper.createDocument(file)
       await nvim.setLine('bar')
       await doc.patchChange()
-      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
       }))
@@ -750,8 +749,8 @@ describe('getOriginalLine', () => {
     })
 
     it('should overwrite if file exists', async () => {
-      let filepath = path.join(os.tmpdir(), uuid())
-      let newPath = path.join(os.tmpdir(), uuid())
+      let filepath = path.join(os.tmpdir(), crypto.randomUUID())
+      let newPath = path.join(os.tmpdir(), crypto.randomUUID())
       await workspace.createFile(filepath)
       await workspace.createFile(newPath)
       await workspace.renameFile(filepath, newPath, { overwrite: true })
@@ -761,8 +760,8 @@ describe('getOriginalLine', () => {
     })
 
     it('should rename buffer in directory and revert', async () => {
-      let folder = path.join(os.tmpdir(), uuid())
-      let newFolder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
+      let newFolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(folder)
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
@@ -830,7 +829,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should delete and recover folder', async () => {
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(folder)) fs.rmdirSync(folder)
       }))
@@ -847,7 +846,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should delete and recover folder recursive', async () => {
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
       }))

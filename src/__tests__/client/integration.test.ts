@@ -3,7 +3,6 @@ import cp, { ChildProcess } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { MarkupKind, Range } from 'vscode-languageserver-types'
@@ -392,7 +391,7 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return times >= 3
     }, true)
-    let filename = path.join(os.tmpdir(), uuid())
+    let filename = path.join(os.tmpdir(), crypto.randomUUID())
     let uri = URI.file(filename)
     fs.writeFileSync(filename, 'foo', 'utf8')
     let spy = vi.spyOn(workspace, 'openResource').mockImplementation(() => {

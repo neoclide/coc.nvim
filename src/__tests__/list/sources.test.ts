@@ -1,7 +1,6 @@
 import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
@@ -585,7 +584,7 @@ describe('list sources', () => {
 
   describe('extensions', () => {
     it('should load extensions source', async () => {
-      let folder = path.join(os.tmpdir(), uuid())
+      let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(path.join(folder, 'foo'), { recursive: true })
       fs.mkdirSync(path.join(folder, 'bar'), { recursive: true })
       let infos: ExtensionInfo[] = []
@@ -657,7 +656,7 @@ describe('list sources', () => {
   describe('folders', () => {
     it('should load folders source', async () => {
       await helper.createDocument(__filename)
-      let uid = uuid()
+      let uid = crypto.randomUUID()
       let source = new FolderList()
       const doAction = async (name: string, item: any) => {
         let action = source.actions.find(o => o.name == name)

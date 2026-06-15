@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import type { CancellationToken, Disposable, DocumentSelector, Position, ReferenceContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LocationWithTarget } from '../types'
@@ -10,7 +9,7 @@ export default class ReferenceManager extends Manager<ReferenceProvider>  {
 
   public register(selector: DocumentSelector, provider: ReferenceProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

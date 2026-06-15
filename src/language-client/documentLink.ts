@@ -5,7 +5,6 @@ import languages from '../languages'
 import { DocumentLinkProvider, ProviderResult } from '../provider'
 import { DocumentLinkRequest, DocumentLinkResolveRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideDocumentLinksSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
@@ -50,7 +49,7 @@ export class DocumentLinkFeature extends TextDocumentLanguageFeature<DocumentLin
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

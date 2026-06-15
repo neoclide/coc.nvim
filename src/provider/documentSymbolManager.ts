@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentSymbol, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
 import { isFalsyOrEmpty, toArray } from '../util/array'
@@ -12,7 +11,7 @@ import Manager from './manager'
 export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> {
   public register(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

@@ -4,7 +4,6 @@ import commands from '../commands'
 import { ProviderResult } from '../provider'
 import { CancellationToken, ExecuteCommandRequest } from '../util/protocol'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ExecuteCommandSignature {
   (this: void, command: string, args: any[]): ProviderResult<any>
@@ -37,7 +36,7 @@ export class ExecuteCommandFeature extends BaseFeature<ExecuteCommandMiddleware>
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: Object.assign({}, capabilities.executeCommandProvider)
     })
   }

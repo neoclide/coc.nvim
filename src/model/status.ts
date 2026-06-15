@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '../neovim'
-import { v1 as uuidv1 } from 'uuid'
 import type { Disposable } from '../util/protocol'
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -42,7 +41,7 @@ export default class StatusLine implements Disposable {
   }
 
   public createStatusBarItem(priority: number, isProgress = false): StatusBarItem {
-    let uid = uuidv1()
+    let uid = crypto.randomUUID()
 
     let item: StatusBarItem = {
       text: '',

@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import type { CancellationToken, Disposable, DocumentSelector, LinkedEditingRanges } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { Position } from 'vscode-languageserver-types'
@@ -11,7 +10,7 @@ const logger = createLogger('linkedEditingManager')
 export default class LinkedEditingRangeManager extends Manager<LinkedEditingRangeProvider> {
   public register(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

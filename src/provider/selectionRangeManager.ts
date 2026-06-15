@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, SelectionRange } from 'vscode-languageserver-types'
 import { equals } from '../util/object'
@@ -12,7 +11,7 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
 
   public register(selector: DocumentSelector, provider: SelectionRangeProvider): Disposable {
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider
     })

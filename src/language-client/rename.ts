@@ -7,7 +7,6 @@ import { ProviderResult, RenameProvider } from '../provider'
 import * as Is from '../util/is'
 import { PrepareRenameRequest, PrepareSupportDefaultBehavior, RenameRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 interface DefaultBehavior {
   defaultBehavior: boolean
@@ -69,7 +68,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
       options.prepareProvider = false
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

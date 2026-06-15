@@ -1,7 +1,6 @@
 import { Neovim } from '../../neovim'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -253,9 +252,9 @@ describe('DiagnosticFeature', () => {
   })
 
   it('should pull diagnostic on save', async () => {
-    let doc = await workspace.loadFile(getUri(uuid() + 'filtered'), 'edit')
+    let doc = await workspace.loadFile(getUri(crypto.randomUUID() + 'filtered'), 'edit')
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-    doc = await workspace.loadFile(getUri(uuid() + 'save'), 'tabe')
+    doc = await workspace.loadFile(getUri(crypto.randomUUID() + 'save'), 'tabe')
     let client = await createServer(true, false, {}, opt => {
       opt.diagnosticPullOptions = {
         onSave: true,

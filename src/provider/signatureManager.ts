@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import type { SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, SignatureHelp } from 'vscode-languageserver-types'
@@ -18,7 +17,7 @@ export default class SignatureManager extends Manager<SignatureHelpProvider, Pro
     triggerCharacters = isFalsyOrEmpty(triggerCharacters) ? [] : triggerCharacters
     let characters = triggerCharacters.reduce((p, c) => p.concat(c.length == 1 ? [c] : c.split(/\s*/g)), [] as string[])
     return this.addProvider({
-      id: uuid(),
+      id: crypto.randomUUID(),
       selector,
       provider,
       triggerCharacters: characters

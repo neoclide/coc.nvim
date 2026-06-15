@@ -5,7 +5,6 @@ import { ProviderResult, WorkspaceSymbolProvider } from "../provider"
 import { WorkspaceSymbolRequest, WorkspaceSymbolResolveRequest } from '../util/protocol'
 import { SupportedSymbolKinds, SupportedSymbolTags } from './documentSymbol'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideWorkspaceSymbolsSignature {
   (this: void, query: string, token: CancellationToken): ProviderResult<SymbolInformation[]>
@@ -102,7 +101,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
       return
     }
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
     })
   }

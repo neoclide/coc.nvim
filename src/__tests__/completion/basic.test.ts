@@ -1,5 +1,4 @@
 import { Neovim } from '../../neovim'
-import { v4 as uuidv4 } from 'uuid'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import completion, { Completion } from '../../completion'
@@ -38,7 +37,7 @@ async function pumvisible(): Promise<boolean> {
 }
 
 async function create(items: string[] | VimCompleteItem[], trigger = true, conf?: Partial<SourceConfig>): Promise<string> {
-  let name = uuidv4()
+  let name = crypto.randomUUID()
   disposables.push(sources.createSource({
     ...(conf ?? {}),
     name,

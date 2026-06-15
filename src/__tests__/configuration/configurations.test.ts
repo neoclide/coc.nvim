@@ -1,7 +1,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations, { folderSettingsSchemaId, userSettingsSchemaId } from '../../configuration'
@@ -33,7 +32,7 @@ afterEach(() => {
 })
 
 function generateTmpDir(): string {
-  return path.join(os.tmpdir(), uuid())
+  return path.join(os.tmpdir(), crypto.randomUUID())
 }
 
 describe('FolderConfigutions', () => {
@@ -101,7 +100,7 @@ describe('Configurations', () => {
 
   describe('watchFile', () => {
     it('should watch user config file', async () => {
-      let userConfigFile = path.join(os.tmpdir(), `settings-${uuid()}.json`)
+      let userConfigFile = path.join(os.tmpdir(), `settings-${crypto.randomUUID()}.json`)
       fs.writeFileSync(userConfigFile, '{"foo.bar": true}', { encoding: 'utf8' })
       let conf = new Configurations(userConfigFile, undefined, false)
       disposables.push(conf)
@@ -275,7 +274,7 @@ describe('Configurations', () => {
     })
 
     it('should handle errors', () => {
-      let tmpFile = path.join(os.tmpdir(), uuid())
+      let tmpFile = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(tmpFile, '{"x":', 'utf8')
       let conf = new Configurations(tmpFile)
       disposables.push(conf)
@@ -412,7 +411,7 @@ describe('Configurations', () => {
     })
 
     it('should create config file for workspace folder', async () => {
-      let folder = path.join(os.tmpdir(), `test-workspace-folder-${uuid()}`)
+      let folder = path.join(os.tmpdir(), `test-workspace-folder-${crypto.randomUUID()}`)
       let conf = new Configurations(undefined, {
         modifyConfiguration: async () => {},
         getWorkspaceFolder: () => {

@@ -2,7 +2,6 @@ import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
@@ -35,7 +34,7 @@ afterAll(async () => {
 })
 
 function createFolder(): string {
-  let folder = path.join(os.tmpdir(), uuid())
+  let folder = path.join(os.tmpdir(), crypto.randomUUID())
   fs.mkdirSync(folder, { recursive: true })
   return folder
 }
@@ -195,7 +194,7 @@ describe('ExtensionManager', () => {
 
   describe('activationEvents', () => {
     async function createExtension(manager: ExtensionManager, ...events: string[]): Promise<Extension<API>> {
-      let id = uuid()
+      let id = crypto.randomUUID()
       let isActive = false
       let packageJSON = {
         name: id,
@@ -776,7 +775,7 @@ describe('ExtensionManager', () => {
 
     it('should watch single file extension', async () => {
       let dir = createFolder()
-      let id = uuid()
+      let id = crypto.randomUUID()
       let filepath = path.join(dir, `${id}.js`)
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}};exports.deactivate = () => {}`, 'utf8')
       let manager = create(dir)
@@ -883,7 +882,7 @@ describe('ExtensionManager', () => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder, false)
       await expect(manager.load('file_not_exists', false)).rejects.toThrow(Error)
-      let id = uuid()
+      let id = crypto.randomUUID()
       let filpath = path.join(os.tmpdir(), id)
       fs.writeFileSync(filpath, '', 'utf8')
       await manager.toggleExtension(`single-${id}`)

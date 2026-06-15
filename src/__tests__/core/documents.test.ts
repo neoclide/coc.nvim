@@ -2,7 +2,6 @@ import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -156,7 +155,7 @@ describe('documents', () => {
   it('should check buffer rename on save', async () => {
     let doc = await workspace.document
     let bufnr = doc.bufnr
-    let name = `${uuid()}.vim`
+    let name = `${crypto.randomUUID()}.vim`
     let tmpfile = path.join(os.tmpdir(), name)
     await nvim.command(`write ${tmpfile}`)
     doc = workspace.getDocument(bufnr)

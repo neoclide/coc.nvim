@@ -5,7 +5,6 @@ import languages from '../languages'
 import { ProviderResult, SignatureHelpProvider } from '../provider'
 import { SignatureHelpRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-import * as UUID from './utils/uuid'
 
 export interface ProvideSignatureHelpSignature {
   (
@@ -54,7 +53,7 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
     if (!options) return
 
     this.register({
-      id: UUID.generateUuid(),
+      id: crypto.randomUUID(),
       registerOptions: options
     })
   }

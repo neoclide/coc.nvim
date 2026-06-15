@@ -11,7 +11,6 @@ import * as Is from '../util/is'
 import { DidChangeWatchedFilesNotification, FileChangeType, RelativePattern, WatchKind } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
-import * as UUID from './utils/uuid'
 
 export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void
@@ -70,7 +69,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
         !fileSystemWatcher.ignoreDeleteEvents,
         disposables)
     }
-    this._watchers.set(UUID.generateUuid(), disposables)
+    this._watchers.set(crypto.randomUUID(), disposables)
   }
 
   public register(data: RegistrationData<DidChangeWatchedFilesRegistrationOptions>): void {

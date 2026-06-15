@@ -1,7 +1,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
@@ -319,7 +318,7 @@ describe('Installer', () => {
     })
 
     it('should throw and remove folder when download failed', async () => {
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let folder: string
       let option: any
@@ -341,7 +340,7 @@ describe('Installer', () => {
     })
 
     it('should revert folder when download failed', async () => {
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
@@ -360,7 +359,7 @@ describe('Installer', () => {
     })
 
     it('should install new extension', async () => {
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       let spy = vi.spyOn(installer, 'download').mockImplementation((_url, option) => {
@@ -381,7 +380,7 @@ describe('Installer', () => {
     })
 
     it('should install new version', async () => {
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
@@ -405,7 +404,7 @@ describe('Installer', () => {
 
     it('should install dependencies', async () => {
       let npm = path.resolve(__dirname, '../npm')
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
       let called = false
@@ -418,7 +417,7 @@ describe('Installer', () => {
 
     it('should reject on install error', async () => {
       let npm = path.resolve(__dirname, '../npm')
-      tmpfolder = path.join(os.tmpdir(), uuid())
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
       let spy = vi.spyOn(installer, 'getInstallArguments').mockImplementation(() => {

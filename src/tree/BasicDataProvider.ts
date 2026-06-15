@@ -1,5 +1,4 @@
 'use strict'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, Emitter, Event } from '../util/protocol'
 import { MarkupContent } from 'vscode-languageserver-types'
 import commandsManager from '../commands'
@@ -68,7 +67,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   public resolveActions: (item: TreeItem, element: T) => ProviderResult<TreeItemAction<T>[]>
   // data is shared with TreeView
   constructor(private opts: ProviderOptions<T>) {
-    this.invokeCommand = `_invoke_${uuid()}`
+    this.invokeCommand = `_invoke_${crypto.randomUUID()}`
     this.disposables.push(commandsManager.registerCommand(this.invokeCommand, async (node: T) => {
       await opts.handleClick(node)
     }, null, true))
