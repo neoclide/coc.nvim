@@ -11,9 +11,8 @@ import type OS from 'os'
 import type PATH from 'path'
 import type READLINE from 'readline'
 import type SEMVER from 'semver'
-import type STRIPANSI from 'strip-ansi'
 import type UNIDECODE from 'unidecode'
-import { inspect, promisify } from 'util'
+import { inspect, promisify, stripVTControlCharacters } from 'util'
 import type VM from 'vm'
 import type WHICH from 'which'
 
@@ -22,7 +21,7 @@ export const path = require('path') as typeof PATH
 export const os = require('os') as typeof OS
 export const crypto = require('crypto') as typeof CRYPTO
 export const styles = require('ansi-styles').default as typeof STYLES
-export const stripAnsi = require('strip-ansi').default as typeof STRIPANSI
+export const stripAnsi = stripVTControlCharacters
 export const debounce = require('debounce').default as typeof DEBOUNCE
 export const readline = require('readline') as typeof READLINE
 export const child_process = require('child_process') as typeof CHILD_PROCESS
