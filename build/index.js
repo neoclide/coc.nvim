@@ -235,25 +235,6 @@ var init_ansi_styles = __esmMin((() => {
 	ansiStyles = assembleStyles();
 }));
 //#endregion
-//#region node_modules/strip-ansi/node_modules/ansi-regex/index.js
-function ansiRegex({ onlyFirst = false } = {}) {
-	return new RegExp(`(?:\\u001B\\][\\s\\S]*?(?:\\u0007|\\u001B\\u005C|\\u009C))|[\\u001B\\u009B][[\\]()#;?]*(?:\\d{1,4}(?:[;:]\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]`, onlyFirst ? void 0 : "g");
-}
-var init_ansi_regex = __esmMin((() => {}));
-//#endregion
-//#region node_modules/strip-ansi/index.js
-var strip_ansi_exports = /* @__PURE__ */ __exportAll({ default: () => stripAnsi$1 });
-function stripAnsi$1(string) {
-	if (typeof string !== "string") throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
-	if (!string.includes("\x1B") && !string.includes("")) return string;
-	return string.replace(regex$1, "");
-}
-var regex$1;
-var init_strip_ansi = __esmMin((() => {
-	init_ansi_regex();
-	regex$1 = ansiRegex();
-}));
-//#endregion
 //#region node_modules/debounce/index.js
 var debounce_exports = /* @__PURE__ */ __exportAll({ default: () => debounce$1 });
 function debounce$1(function_, wait = 100, options = {}) {
@@ -56671,7 +56652,7 @@ var init_node = __esmMin((() => {
 	os$5 = require("os");
 	crypto$1 = require("crypto");
 	styles$1 = (init_ansi_styles(), __toCommonJS(ansi_styles_exports)).default;
-	stripAnsi = (init_strip_ansi(), __toCommonJS(strip_ansi_exports)).default;
+	stripAnsi = util.stripVTControlCharacters;
 	debounce = (init_debounce(), __toCommonJS(debounce_exports)).default;
 	readline = require("readline");
 	child_process$1 = require("child_process");
@@ -93664,126 +93645,6 @@ var init_manager$4 = __esmMin((() => {
 	manager_default$2 = new DiagnosticManager();
 }));
 //#endregion
-//#region node_modules/uuid/dist-node/stringify.js
-function unsafeStringify(arr, offset = 0) {
-	return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
-}
-var byteToHex;
-var init_stringify = __esmMin((() => {
-	byteToHex = [];
-	for (let i = 0; i < 256; ++i) byteToHex.push((i + 256).toString(16).slice(1));
-}));
-//#endregion
-//#region node_modules/uuid/dist-node/rng.js
-function rng() {
-	return crypto.getRandomValues(rnds8);
-}
-var rnds8;
-var init_rng = __esmMin((() => {
-	rnds8 = new Uint8Array(16);
-}));
-//#endregion
-//#region node_modules/uuid/dist-node/v1.js
-function v1(options, buf, offset) {
-	let bytes;
-	const isV6 = options?._v6 ?? false;
-	if (options) {
-		const optionsKeys = Object.keys(options);
-		if (optionsKeys.length === 1 && optionsKeys[0] === "_v6") options = void 0;
-	}
-	if (options) bytes = v1Bytes(options.random ?? options.rng?.() ?? rng(), options.msecs, options.nsecs, options.clockseq, options.node, buf, offset);
-	else {
-		const now = Date.now();
-		const rnds = rng();
-		updateV1State(_state, now, rnds);
-		bytes = v1Bytes(rnds, _state.msecs, _state.nsecs, isV6 ? void 0 : _state.clockseq, isV6 ? void 0 : _state.node, buf, offset);
-	}
-	return buf ?? unsafeStringify(bytes);
-}
-function updateV1State(state, now, rnds) {
-	state.msecs ??= -Infinity;
-	state.nsecs ??= 0;
-	if (now === state.msecs) {
-		state.nsecs++;
-		if (state.nsecs >= 1e4) {
-			state.node = void 0;
-			state.nsecs = 0;
-		}
-	} else if (now > state.msecs) state.nsecs = 0;
-	else if (now < state.msecs) state.node = void 0;
-	if (!state.node) {
-		state.node = rnds.slice(10, 16);
-		state.node[0] |= 1;
-		state.clockseq = (rnds[8] << 8 | rnds[9]) & 16383;
-	}
-	state.msecs = now;
-	return state;
-}
-function v1Bytes(rnds, msecs, nsecs, clockseq, node, buf, offset = 0) {
-	if (rnds.length < 16) throw new Error("Random bytes length must be >= 16");
-	if (!buf) {
-		buf = new Uint8Array(16);
-		offset = 0;
-	} else if (offset < 0 || offset + 16 > buf.length) throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-	msecs ??= Date.now();
-	nsecs ??= 0;
-	clockseq ??= (rnds[8] << 8 | rnds[9]) & 16383;
-	node ??= rnds.slice(10, 16);
-	msecs += 0xb1d069b5400;
-	const tl = ((msecs & 268435455) * 1e4 + nsecs) % 4294967296;
-	buf[offset++] = tl >>> 24 & 255;
-	buf[offset++] = tl >>> 16 & 255;
-	buf[offset++] = tl >>> 8 & 255;
-	buf[offset++] = tl & 255;
-	const tmh = msecs / 4294967296 * 1e4 & 268435455;
-	buf[offset++] = tmh >>> 8 & 255;
-	buf[offset++] = tmh & 255;
-	buf[offset++] = tmh >>> 24 & 15 | 16;
-	buf[offset++] = tmh >>> 16 & 255;
-	buf[offset++] = clockseq >>> 8 | 128;
-	buf[offset++] = clockseq & 255;
-	for (let n = 0; n < 6; ++n) buf[offset++] = node[n];
-	return buf;
-}
-var _state;
-var init_v1 = __esmMin((() => {
-	init_rng();
-	init_stringify();
-	_state = {};
-}));
-//#endregion
-//#region node_modules/uuid/dist-node/v4.js
-function v4(options, buf, offset) {
-	if (!buf && !options && crypto.randomUUID) return crypto.randomUUID();
-	return _v4(options, buf, offset);
-}
-function _v4(options, buf, offset) {
-	options = options || {};
-	const rnds = options.random ?? options.rng?.() ?? rng();
-	if (rnds.length < 16) throw new Error("Random bytes length must be >= 16");
-	rnds[6] = rnds[6] & 15 | 64;
-	rnds[8] = rnds[8] & 63 | 128;
-	if (buf) {
-		offset = offset || 0;
-		if (offset < 0 || offset + 16 > buf.length) throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
-		for (let i = 0; i < 16; ++i) buf[offset + i] = rnds[i];
-		return buf;
-	}
-	return unsafeStringify(rnds);
-}
-var init_v4 = __esmMin((() => {
-	init_rng();
-	init_stringify();
-}));
-//#endregion
-//#region node_modules/uuid/dist-node/index.js
-var init_dist_node = __esmMin((() => {
-	init_stringify();
-	init_v1();
-	init_v4();
-	init_rng();
-}));
-//#endregion
 //#region src/provider/manager.ts
 /**
 * Add unique location
@@ -93894,12 +93755,11 @@ var init_manager$3 = __esmMin((() => {
 //#region src/provider/callHierarchyManager.ts
 var CallHierarchyManager;
 var init_callHierarchyManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	CallHierarchyManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -93936,7 +93796,6 @@ function checkAction(only, action) {
 }
 var CodeActionManager;
 var init_codeActionManager = __esmMin((() => {
-	init_dist_node();
 	init_main$2();
 	init_array();
 	init_is();
@@ -93945,7 +93804,7 @@ var init_codeActionManager = __esmMin((() => {
 	CodeActionManager = class extends Manager {
 		register(selector, provider, clientId, codeActionKinds) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider,
 				kinds: codeActionKinds,
@@ -93998,14 +93857,13 @@ var init_codeActionManager = __esmMin((() => {
 //#region src/provider/codeLensManager.ts
 var CodeLensManager$1;
 var init_codeLensManager = __esmMin((() => {
-	init_dist_node();
 	init_lodash();
 	init_manager$3();
 	init_is();
 	CodeLensManager$1 = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94036,12 +93894,11 @@ var init_codeLensManager = __esmMin((() => {
 //#region src/provider/declarationManager.ts
 var DeclarationManager;
 var init_declarationManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	DeclarationManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94063,13 +93920,12 @@ var init_declarationManager = __esmMin((() => {
 //#region src/provider/definitionManager.ts
 var DefinitionManager;
 var init_definitionManager = __esmMin((() => {
-	init_dist_node();
 	init_main$2();
 	init_manager$3();
 	DefinitionManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94104,13 +93960,12 @@ var init_definitionManager = __esmMin((() => {
 //#region src/provider/documentColorManager.ts
 var DocumentColorManager;
 var init_documentColorManager = __esmMin((() => {
-	init_dist_node();
 	init_object();
 	init_manager$3();
 	DocumentColorManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94148,12 +94003,11 @@ var init_documentColorManager = __esmMin((() => {
 //#region src/provider/documentHighlightManager.ts
 var DocumentHighlightManager;
 var init_documentHighlightManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	DocumentHighlightManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94181,13 +94035,12 @@ function rangeToString(range) {
 }
 var DocumentLinkManager;
 var init_documentLinkManager = __esmMin((() => {
-	init_dist_node();
 	init_lodash();
 	init_manager$3();
 	DocumentLinkManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94267,7 +94120,6 @@ function asDocumentSymbolTree(infos) {
 }
 var DocumentSymbolManager;
 var init_documentSymbolManager = __esmMin((() => {
-	init_dist_node();
 	init_main$2();
 	init_array();
 	init_position();
@@ -94276,7 +94128,7 @@ var init_documentSymbolManager = __esmMin((() => {
 	DocumentSymbolManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94310,12 +94162,11 @@ function getParent(line, sortedRanges) {
 }
 var FoldingRangeManager;
 var init_foldingRangeManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	FoldingRangeManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94351,12 +94202,11 @@ var init_foldingRangeManager = __esmMin((() => {
 //#region src/provider/formatManager.ts
 var FormatManager;
 var init_formatManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	FormatManager = class extends Manager {
 		register(selector, provider, priority) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				priority,
 				provider
@@ -94379,12 +94229,11 @@ var init_formatManager = __esmMin((() => {
 //#region src/provider/formatRangeManager.ts
 var FormatRangeManager;
 var init_formatRangeManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	FormatRangeManager = class extends Manager {
 		register(selector, provider, priority) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider,
 				priority
@@ -94409,14 +94258,13 @@ var init_formatRangeManager = __esmMin((() => {
 //#region src/provider/hoverManager.ts
 var HoverManager;
 var init_hoverManager = __esmMin((() => {
-	init_dist_node();
 	init_is();
 	init_object();
 	init_manager$3();
 	HoverManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94439,12 +94287,11 @@ var init_hoverManager = __esmMin((() => {
 //#region src/provider/implementationManager.ts
 var ImplementationManager;
 var init_implementationManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	ImplementationManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94491,7 +94338,6 @@ function getLabel(hint) {
 }
 var logger$44, InlayHintManger;
 var init_inlayHintManager = __esmMin((() => {
-	init_dist_node();
 	init_main$2();
 	init_logger$2();
 	init_position();
@@ -94500,7 +94346,7 @@ var init_inlayHintManager = __esmMin((() => {
 	InlayHintManger = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94543,7 +94389,6 @@ var init_inlayHintManager = __esmMin((() => {
 //#region src/provider/inlineCompletionItemManager.ts
 var InlineCompletionItemManager;
 var init_inlineCompletionItemManager = __esmMin((() => {
-	init_dist_node();
 	init_array();
 	init_errors();
 	init_lodash();
@@ -94551,7 +94396,7 @@ var init_inlineCompletionItemManager = __esmMin((() => {
 	InlineCompletionItemManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94601,13 +94446,12 @@ var init_inlineCompletionItemManager = __esmMin((() => {
 //#region src/provider/inlineValueManager.ts
 var InlineValueManager;
 var init_inlineValueManager = __esmMin((() => {
-	init_dist_node();
 	init_object();
 	init_manager$3();
 	InlineValueManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94636,14 +94480,13 @@ var init_inlineValueManager = __esmMin((() => {
 //#region src/provider/linkedEditingRangeManager.ts
 var LinkedEditingRangeManager;
 var init_linkedEditingRangeManager = __esmMin((() => {
-	init_dist_node();
 	init_logger$2();
 	init_manager$3();
 	createLogger$1("linkedEditingManager");
 	LinkedEditingRangeManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94667,13 +94510,12 @@ var init_linkedEditingRangeManager = __esmMin((() => {
 //#region src/provider/onTypeFormatManager.ts
 var OnTypeFormatManager;
 var init_onTypeFormatManager = __esmMin((() => {
-	init_dist_node();
 	init_workspace$1();
 	init_manager$3();
 	OnTypeFormatManager = class extends Manager {
 		register(selector, provider, triggerCharacters) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider,
 				triggerCharacters: triggerCharacters ?? []
@@ -94698,12 +94540,11 @@ var init_onTypeFormatManager = __esmMin((() => {
 //#region src/provider/referenceManager.ts
 var ReferenceManager;
 var init_referenceManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	ReferenceManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94725,12 +94566,11 @@ var init_referenceManager = __esmMin((() => {
 //#region src/provider/renameManager.ts
 var RenameManager;
 var init_renameManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	RenameManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94772,14 +94612,13 @@ var init_renameManager = __esmMin((() => {
 //#region src/provider/selectionRangeManager.ts
 var SelectionRangeManager;
 var init_selectionRangeManager = __esmMin((() => {
-	init_dist_node();
 	init_object();
 	init_position();
 	init_manager$3();
 	SelectionRangeManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94821,12 +94660,11 @@ var init_selectionRangeManager = __esmMin((() => {
 //#region src/provider/semanticTokensManager.ts
 var SemanticTokensManager;
 var init_semanticTokensManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	SemanticTokensManager = class extends Manager {
 		register(selector, provider, legend) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider,
 				legend
@@ -94858,12 +94696,11 @@ var init_semanticTokensManager = __esmMin((() => {
 //#region src/provider/semanticTokensRangeManager.ts
 var SemanticTokensRangeManager;
 var init_semanticTokensRangeManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	SemanticTokensRangeManager = class extends Manager {
 		register(selector, provider, legend) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				legend,
 				provider
@@ -94886,7 +94723,6 @@ var init_semanticTokensRangeManager = __esmMin((() => {
 //#region src/provider/signatureManager.ts
 var SignatureManager;
 var init_signatureManager = __esmMin((() => {
-	init_dist_node();
 	init_array();
 	init_manager$3();
 	SignatureManager = class extends Manager {
@@ -94894,7 +94730,7 @@ var init_signatureManager = __esmMin((() => {
 			triggerCharacters = isFalsyOrEmpty(triggerCharacters) ? [] : triggerCharacters;
 			let characters = triggerCharacters.reduce((p, c) => p.concat(c.length == 1 ? [c] : c.split(/\s*/g)), []);
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider,
 				triggerCharacters: characters
@@ -94925,12 +94761,11 @@ var init_signatureManager = __esmMin((() => {
 //#region src/provider/typeDefinitionManager.ts
 var TypeDefinitionManager;
 var init_typeDefinitionManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	TypeDefinitionManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -94952,14 +94787,13 @@ var init_typeDefinitionManager = __esmMin((() => {
 //#region src/provider/typeHierarchyManager.ts
 var excludeKeys, TypeHierarchyManager;
 var init_typeHierarchyManager = __esmMin((() => {
-	init_dist_node();
 	init_lodash();
 	init_manager$3();
 	excludeKeys = ["source"];
 	TypeHierarchyManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector,
 				provider
 			});
@@ -95015,12 +94849,11 @@ var init_typeHierarchyManager = __esmMin((() => {
 //#region src/provider/workspaceSymbolsManager.ts
 var WorkspaceSymbolManager;
 var init_workspaceSymbolsManager = __esmMin((() => {
-	init_dist_node();
 	init_manager$3();
 	WorkspaceSymbolManager = class extends Manager {
 		register(provider) {
 			return this.addProvider({
-				id: v4(),
+				id: crypto.randomUUID(),
 				selector: [{ language: "*" }],
 				provider
 			});
@@ -102609,7 +102442,7 @@ function download(urlInput, options, token, obj = {}) {
 					const unzip = require_unzip();
 					stream = res.pipe(unzip.Extract({ path: dest }));
 				} else {
-					dest = path$5.join(dest, `${v1()}${extname}`);
+					dest = path$5.join(dest, `${crypto$1.randomUUID()}${extname}`);
 					stream = res.pipe(fs$5.createWriteStream(dest));
 				}
 				stream.on("finish", () => {
@@ -102650,7 +102483,6 @@ function download(urlInput, options, token, obj = {}) {
 }
 var logger$42;
 var init_download = __esmMin((() => {
-	init_dist_node();
 	init_logger$2();
 	init_node();
 	init_fetch();
@@ -102707,7 +102539,6 @@ function getExtensionDependencies(obj) {
 }
 var logger$41, local_dependencies, Installer;
 var init_installer = __esmMin((() => {
-	init_dist_node();
 	init_logger$2();
 	init_download();
 	init_fetch();
@@ -102902,7 +102733,7 @@ var init_installer = __esmMin((() => {
 			}
 			installing.add(info.name);
 			let key = info.name.replace(/\//g, "_");
-			let downloadFolder = path$5.join(this.root, `${key}-${v4()}`);
+			let downloadFolder = path$5.join(this.root, `${key}-${crypto.randomUUID()}`);
 			let url = info["dist.tarball"];
 			this.log(`Downloading from ${url}`);
 			let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
@@ -106645,14 +106476,6 @@ var init_outline$1 = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/language-client/utils/uuid.ts
-function generateUuid() {
-	return v4();
-}
-var init_uuid = __esmMin((() => {
-	init_dist_node();
-}));
-//#endregion
 //#region src/language-client/features.ts
 function ensure(target, key) {
 	if (target[key] === void 0) target[key] = {};
@@ -106664,7 +106487,6 @@ var init_features = __esmMin((() => {
 	init_is();
 	init_protocol();
 	init_workspace$1();
-	init_uuid();
 	init_util$7();
 	LSPCancellationError = class extends CancellationError {
 		data;
@@ -106854,12 +106676,12 @@ var init_features = __esmMin((() => {
 		getRegistration(documentSelector, capability) {
 			if (!capability) return [void 0, void 0];
 			else if (import_main$1.TextDocumentRegistrationOptions.is(capability)) {
-				const id = import_main$1.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+				const id = import_main$1.StaticRegistrationOptions.hasId(capability) ? capability.id : crypto.randomUUID();
 				const selector = defaultValue(capability.documentSelector, documentSelector);
 				return [id, Object.assign({}, capability, { documentSelector: selector })];
 			} else if (boolean(capability) && capability === true || import_main$1.WorkDoneProgressOptions.is(capability)) {
 				const options = capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector });
-				return [generateUuid(), options];
+				return [crypto.randomUUID(), options];
 			}
 			return [void 0, void 0];
 		}
@@ -106945,7 +106767,6 @@ var init_codeAction = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	CodeActionFeature = class extends TextDocumentLanguageFeature {
 		disposables = [];
 		constructor(client) {
@@ -106974,7 +106795,7 @@ var init_codeAction = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.codeActionProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -107040,7 +106861,6 @@ var init_codeLens = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	CodeLensFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.CodeLensRequest.type);
@@ -107056,7 +106876,7 @@ var init_codeLens = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -107150,7 +106970,6 @@ var init_completion$1 = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	SupportedCompletionItemKinds = [
 		CompletionItemKind.Text,
 		CompletionItemKind.Method,
@@ -107216,7 +107035,7 @@ var init_completion$1 = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -107255,7 +107074,6 @@ var init_configuration = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	PullConfigurationFeature = class {
 		_client;
 		constructor(_client) {
@@ -107324,7 +107142,7 @@ var init_configuration = __esmMin((() => {
 		initialize() {
 			let section = defaultValue(this._client.clientOptions.synchronize, {}).configurationSection;
 			if (section !== void 0) {
-				let id = this.configuredUID = generateUuid();
+				let id = this.configuredUID = crypto.randomUUID();
 				this.register({
 					id,
 					registerOptions: { section }
@@ -107443,7 +107261,6 @@ var init_definition = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	DefinitionFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.DefinitionRequest.type);
@@ -107457,7 +107274,7 @@ var init_definition = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.definitionProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -107818,7 +107635,6 @@ var init_map = __esmMin((() => {
 //#region src/language-client/diagnostic.ts
 var DiagnosticPullMode, DocumentOrUri, workspacePullDebounce, DocumentPullStateTracker, DiagnosticRequestor, timeoutDebounce, BackgroundScheduler, DiagnosticFeatureProviderImpl, DiagnosticFeature;
 var init_diagnostic = __esmMin((() => {
-	init_dist_node();
 	init_main$2();
 	init_esm();
 	init_languages();
@@ -108131,7 +107947,7 @@ var init_diagnostic = __esmMin((() => {
 			};
 			if (this.options.workspaceDiagnostics) provider.provideWorkspaceDiagnostics = (resultIds, token, resultReporter) => {
 				const provideWorkspaceDiagnostics = (resultIds, token, resultReporter) => {
-					const partialResultToken = v4();
+					const partialResultToken = crypto.randomUUID();
 					const disposable = this.client.onProgress(import_main$1.WorkspaceDiagnosticRequest.partialResult, partialResultToken, (partialResult) => {
 						if (partialResult == void 0) {
 							resultReporter(null);
@@ -108391,7 +108207,6 @@ var init_documentHighlight = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	DocumentHighlightFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.DocumentHighlightRequest.type);
@@ -108403,7 +108218,7 @@ var init_documentHighlight = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentHighlightProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -108428,7 +108243,6 @@ var init_documentLink = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	DocumentLinkFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.DocumentLinkRequest.type);
@@ -108442,7 +108256,7 @@ var init_documentLink = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentLinkProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -108478,7 +108292,6 @@ var init_documentSymbol = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	SupportedSymbolKinds = [
 		SymbolKind.File,
 		SymbolKind.Module,
@@ -108524,7 +108337,7 @@ var init_documentSymbol = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentSymbolProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -108552,7 +108365,6 @@ var init_executeCommand = __esmMin((() => {
 	init_commands$2();
 	init_protocol();
 	init_features();
-	init_uuid();
 	ExecuteCommandFeature = class extends BaseFeature {
 		_commands = /* @__PURE__ */ new Map();
 		constructor(client) {
@@ -108574,7 +108386,7 @@ var init_executeCommand = __esmMin((() => {
 		initialize(capabilities) {
 			if (!capabilities.executeCommandProvider) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: Object.assign({}, capabilities.executeCommandProvider)
 			});
 		}
@@ -108629,7 +108441,6 @@ var init_fileOperations = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	FileOperationFeature = class FileOperationFeature extends BaseFeature {
 		_event;
 		_registrationType;
@@ -108664,7 +108475,7 @@ var init_fileOperations = __esmMin((() => {
 			const capability = options !== void 0 ? access$1(options, this._serverCapability) : void 0;
 			if (capability?.filters !== void 0) try {
 				this.register({
-					id: generateUuid(),
+					id: crypto.randomUUID(),
 					registerOptions: { filters: capability.filters }
 				});
 			} catch (e) {
@@ -108868,7 +108679,6 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	FileSystemWatcherFeature = class {
 		_watchers = /* @__PURE__ */ new Map();
 		_fileEventsMap = /* @__PURE__ */ new Map();
@@ -108902,7 +108712,7 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 				disposables.push(fileSystemWatcher);
 				this.hookListeners(fileSystemWatcher, !fileSystemWatcher.ignoreCreateEvents, !fileSystemWatcher.ignoreChangeEvents, !fileSystemWatcher.ignoreDeleteEvents, disposables);
 			}
-			this._watchers.set(generateUuid(), disposables);
+			this._watchers.set(crypto.randomUUID(), disposables);
 		}
 		register(data) {
 			if (!Array.isArray(data.registerOptions.watchers)) return;
@@ -109022,7 +108832,6 @@ var init_formatting = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	DocumentFormattingFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.DocumentFormattingRequest.type);
@@ -109034,7 +108843,7 @@ var init_formatting = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentFormattingProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109066,7 +108875,7 @@ var init_formatting = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentRangeFormattingProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109099,7 +108908,7 @@ var init_formatting = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentOnTypeFormattingProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109132,7 +108941,6 @@ var init_hover$1 = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	HoverFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.HoverRequest.type);
@@ -109146,7 +108954,7 @@ var init_hover$1 = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.hoverProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109273,7 +109081,6 @@ var init_inlineCompletion = __esmMin((() => {
 	import_api$2 = require_api();
 	init_languages();
 	init_features();
-	init_uuid();
 	InlineCompletionItemFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_api$2.InlineCompletionRequest.type);
@@ -109286,7 +109093,7 @@ var init_inlineCompletion = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.inlineCompletionProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109551,7 +109358,6 @@ var init_reference = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	ReferencesFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.ReferencesRequest.type);
@@ -109563,7 +109369,7 @@ var init_reference = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.referencesProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109590,7 +109396,6 @@ var init_rename$1 = __esmMin((() => {
 	init_is();
 	init_protocol();
 	init_features();
-	init_uuid();
 	RenameFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.RenameRequest.type);
@@ -109607,7 +109412,7 @@ var init_rename$1 = __esmMin((() => {
 			if (!options) return;
 			if (boolean(capabilities.renameProvider)) options.prepareProvider = false;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109837,7 +109642,6 @@ var init_signatureHelp = __esmMin((() => {
 	init_languages();
 	init_protocol();
 	init_features();
-	init_uuid();
 	SignatureHelpFeature = class extends TextDocumentLanguageFeature {
 		constructor(client) {
 			super(client, import_main$1.SignatureHelpRequest.type);
@@ -109856,7 +109660,7 @@ var init_signatureHelp = __esmMin((() => {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.signatureHelpProvider);
 			if (!options) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: options
 			});
 		}
@@ -109884,7 +109688,6 @@ var init_textDocumentContent = __esmMin((() => {
 	init_array();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	TextDocumentContentFeature = class {
 		_client;
 		_registrations = /* @__PURE__ */ new Map();
@@ -109918,7 +109721,7 @@ var init_textDocumentContent = __esmMin((() => {
 			});
 			const capability = defaultValue(defaultValue(capabilities, {}).workspace, {}).textDocumentContent;
 			if (capability) {
-				const id = import_api$1.StaticRegistrationOptions.hasId(capability) ? capability.id : generateUuid();
+				const id = import_api$1.StaticRegistrationOptions.hasId(capability) ? capability.id : crypto.randomUUID();
 				this.register({
 					id,
 					registerOptions: capability
@@ -109987,7 +109790,6 @@ var init_textSynchronization = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_features();
-	init_uuid();
 	DidOpenTextDocumentFeature = class extends TextDocumentEventFeature {
 		_syncedDocuments;
 		_pendingOpenNotifications;
@@ -110016,7 +109818,7 @@ var init_textSynchronization = __esmMin((() => {
 		initialize(capabilities, documentSelector) {
 			let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
 			if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.openClose) this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: { documentSelector }
 			});
 		}
@@ -110099,7 +109901,7 @@ var init_textSynchronization = __esmMin((() => {
 		initialize(capabilities, documentSelector) {
 			let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
 			if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.openClose) this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: { documentSelector }
 			});
 		}
@@ -110140,7 +109942,7 @@ var init_textSynchronization = __esmMin((() => {
 		initialize(capabilities, documentSelector) {
 			let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
 			if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.change !== void 0 && textDocumentSyncOptions.change !== import_main$1.TextDocumentSyncKind.None) this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: Object.assign({}, { documentSelector }, { syncKind: textDocumentSyncOptions.change })
 			});
 		}
@@ -110215,7 +110017,7 @@ var init_textSynchronization = __esmMin((() => {
 		initialize(capabilities, documentSelector) {
 			let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
 			if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.willSave) this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: { documentSelector }
 			});
 		}
@@ -110240,7 +110042,7 @@ var init_textSynchronization = __esmMin((() => {
 		initialize(capabilities, documentSelector) {
 			let textDocumentSyncOptions = capabilities.resolvedTextDocumentSync;
 			if (documentSelector && documentSelector.length > 0 && textDocumentSyncOptions && textDocumentSyncOptions.willSaveWaitUntil) this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: { documentSelector }
 			});
 		}
@@ -110292,7 +110094,7 @@ var init_textSynchronization = __esmMin((() => {
 			if (documentSelector && textDocumentSyncOptions && textDocumentSyncOptions.save) {
 				const saveOptions = typeof textDocumentSyncOptions.save === "boolean" ? { includeText: false } : { includeText: !!textDocumentSyncOptions.save.includeText };
 				this.register({
-					id: generateUuid(),
+					id: crypto.randomUUID(),
 					registerOptions: Object.assign({}, { documentSelector }, saveOptions)
 				});
 			}
@@ -110851,7 +110653,6 @@ var init_workspaceFolders = __esmMin((() => {
 	init_fs();
 	init_protocol();
 	init_workspace$1();
-	init_uuid();
 	WorkspaceFoldersFeature = class {
 		_client;
 		_listeners = /* @__PURE__ */ new Map();
@@ -110905,7 +110706,7 @@ var init_workspaceFolders = __esmMin((() => {
 			const value = access(access(access(capabilities, "workspace"), "workspaceFolders"), "changeNotifications");
 			let id;
 			if (typeof value === "string") id = value;
-			else if (value) id = generateUuid();
+			else if (value) id = crypto.randomUUID();
 			if (id) this.register({
 				id,
 				registerOptions: void 0
@@ -110974,7 +110775,6 @@ var init_workspaceSymbol = __esmMin((() => {
 	init_protocol();
 	init_documentSymbol();
 	init_features();
-	init_uuid();
 	WorkspaceFeature = class extends BaseFeature {
 		_registrationType;
 		_registrations = /* @__PURE__ */ new Map();
@@ -111033,7 +110833,7 @@ var init_workspaceSymbol = __esmMin((() => {
 		initialize(capabilities) {
 			if (!capabilities.workspaceSymbolProvider) return;
 			this.register({
-				id: generateUuid(),
+				id: crypto.randomUUID(),
 				registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
 			});
 		}
@@ -111154,7 +110954,6 @@ var init_client = __esmMin((() => {
 	init_codeConverter();
 	init_errorHandler();
 	init_logger();
-	init_uuid();
 	init_workspaceFolders();
 	init_workspaceSymbol();
 	logger$35 = createLogger$1("language-client-client");
@@ -111783,7 +111582,7 @@ var init_client = __esmMin((() => {
 			};
 			this.fillInitializeParams(initParams);
 			if (progressOnInitialization) {
-				const token = generateUuid();
+				const token = crypto.randomUUID();
 				initParams.workDoneToken = token;
 				connection.id = this._id;
 				const part = new ProgressPart(connection, token);
@@ -116115,7 +115914,6 @@ function parseCommentstring(commentstring) {
 }
 var SnippetVariableResolver;
 var init_variableResolve = __esmMin((() => {
-	init_dist_node();
 	init_esm();
 	init_node();
 	init_object();
@@ -116186,7 +115984,7 @@ var init_variableResolve = __esmMin((() => {
 			if (name === "CLIPBOARD") return await nvim.eval("@*");
 			if (name === "RANDOM") return Math.random().toString().slice(-6);
 			if (name === "RANDOM_HEX") return Math.random().toString(16).slice(-6);
-			if (name === "UUID") return v4();
+			if (name === "UUID") return crypto.randomUUID();
 			if ([
 				"RELATIVE_FILEPATH",
 				"WORKSPACE_NAME",
@@ -118800,7 +118598,6 @@ var init_manager = __esmMin((() => {
 //#region src/model/status.ts
 var frames, StatusLine;
 var init_status = __esmMin((() => {
-	init_dist_node();
 	frames = [
 		"⠋",
 		"⠙",
@@ -118834,7 +118631,7 @@ var init_status = __esmMin((() => {
 			this.shownIds.clear();
 		}
 		createStatusBarItem(priority, isProgress = false) {
-			let uid = v1();
+			let uid = crypto.randomUUID();
 			let item = {
 				text: "",
 				priority,
@@ -124049,7 +123846,6 @@ var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region src/core/watchman.ts
 var logger$19, requiredCapabilities, Watchman;
 var init_watchman = __esmMin((() => {
-	init_dist_node();
 	init_logger$2();
 	init_node();
 	logger$19 = createLogger$1("core-watchman");
@@ -124122,7 +123918,7 @@ var init_watchman = __esmMin((() => {
 				sub.relative_root = relative_path;
 				root = path$5.join(watch, relative_path);
 			}
-			let uid = v1();
+			let uid = crypto.randomUUID();
 			let { subscribe } = await this.command([
 				"subscribe",
 				watch,
@@ -134693,7 +134489,6 @@ function sameTreeNodes(one, two) {
 }
 var BasicDataProvider;
 var init_BasicDataProvider = __esmMin((() => {
-	init_dist_node();
 	init_protocol();
 	init_commands$2();
 	init_util$7();
@@ -134709,7 +134504,7 @@ var init_BasicDataProvider = __esmMin((() => {
 		resolveActions;
 		constructor(opts) {
 			this.opts = opts;
-			this.invokeCommand = `_invoke_${v4()}`;
+			this.invokeCommand = `_invoke_${crypto.randomUUID()}`;
 			this.disposables.push(commands_default.registerCommand(this.invokeCommand, async (node) => {
 				await opts.handleClick(node);
 			}, null, true));
@@ -135518,7 +135313,6 @@ var init_typeHierarchy = __esmMin((() => {
 //#region src/handler/workspace.ts
 var WorkspaceHandler;
 var init_workspace = __esmMin((() => {
-	init_dist_node();
 	init_esm();
 	init_commands$2();
 	init_funcs();
@@ -135606,7 +135400,7 @@ var init_workspace = __esmMin((() => {
 			commands_default.register({
 				id: "workspace.writeHeapSnapshot",
 				execute: async () => {
-					let filepath = path$5.join(os$5.homedir(), `${v4()}-${process.pid}.heapsnapshot`);
+					let filepath = path$5.join(os$5.homedir(), `${crypto.randomUUID()}-${process.pid}.heapsnapshot`);
 					(0, v8.writeHeapSnapshot)(filepath);
 					window_default.showInformationMessage(`Create heapdump at: ${filepath}`);
 					return filepath;
@@ -135765,7 +135559,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-8739a67 2026-06-12 17:03:37 +0800";
+			let version = workspace_default.version + "-1321bc8 2026-06-15 11:26:28 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
