@@ -68,7 +68,7 @@
     "marked": "^10.0.0",
     "minimatch": "^10.2.5",
     "semver": "^7.8.1",
-    "tar": "^7.5.13",
+    "tar": "^7.5.16",
     "tslib": "^2.8.1",
     "unidecode": "^1.1.0",
     "unzip-stream": "^0.3.4",
