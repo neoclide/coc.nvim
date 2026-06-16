@@ -56645,9 +56645,9 @@ var require_unidecode = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/util/node.ts
-var fs$5, path$5, os$5, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
+var fs$6, path$5, os$5, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
 var init_node = __esmMin((() => {
-	fs$5 = require("fs");
+	fs$6 = require("fs");
 	path$5 = require("path");
 	os$5 = require("os");
 	crypto$1 = require("crypto");
@@ -56805,14 +56805,14 @@ var init_log = __esmMin((() => {
 							`[${scope}]`
 						].join(" ")} - ${message}\n`;
 						else text = message;
-						await fs$5.promises.appendFile(this.fsPath, text, {
+						await fs$6.promises.appendFile(this.fsPath, text, {
 							encoding: "utf8",
 							flag: "a+"
 						});
-						let stat = await fs$5.promises.stat(this.fsPath);
+						let stat = await fs$6.promises.stat(this.fsPath);
 						if (this.shouldBackup(stat.size)) {
 							let newFile = this.getBackupResource();
-							await fs$5.promises.rename(this.fsPath, newFile);
+							await fs$6.promises.rename(this.fsPath, newFile);
 						}
 					};
 					return fn();
@@ -56925,17 +56925,17 @@ function resolveLogFilepath() {
 	if (file) return file;
 	let dir = process.env.XDG_RUNTIME_DIR;
 	if (dir) try {
-		fs$5.accessSync(dir, fs$5.constants.R_OK | fs$5.constants.W_OK);
+		fs$6.accessSync(dir, fs$6.constants.R_OK | fs$6.constants.W_OK);
 		return path$5.join(dir, `coc-nvim-${process.pid}.log`);
 	} catch (err) {}
 	let tmpdir = os$5.tmpdir();
 	dir = path$5.join(tmpdir, `coc.nvim-${process.pid}`);
-	fs$5.mkdirSync(dir, { recursive: true });
+	fs$6.mkdirSync(dir, { recursive: true });
 	return path$5.join(dir, `coc-nvim.log`);
 }
 function emptyFile(filepath) {
-	if (fs$5.existsSync(filepath)) try {
-		fs$5.writeFileSync(filepath, "", {
+	if (fs$6.existsSync(filepath)) try {
+		fs$6.writeFileSync(filepath, "", {
 			encoding: "utf8",
 			mode: 438
 		});
@@ -65998,7 +65998,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	ril_1.default.install();
 	const path$3 = __importStar(require("path"));
 	const os$3 = __importStar(require("os"));
-	const fs$3 = __importStar(require("fs"));
+	const fs$4 = __importStar(require("fs"));
 	const crypto_1 = require("crypto");
 	const net_1 = require("net");
 	const api_1 = require_api$1();
@@ -66128,7 +66128,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (process.platform === "win32") return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
 		let randomLength = 32;
 		const fixedLength = 10;
-		const tmpDir = fs$3.realpathSync(XDG_RUNTIME_DIR ?? os$3.tmpdir());
+		const tmpDir = fs$4.realpathSync(XDG_RUNTIME_DIR ?? os$3.tmpdir());
 		const limit = safeIpcPathLengths.get(process.platform);
 		if (limit !== void 0) randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
 		if (randomLength < 16) throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
@@ -71442,7 +71442,7 @@ var init_platform = __esmMin((() => {
 function watchFile(filepath, onChange, immediate = false) {
 	let callback = debounce(onChange, 100);
 	try {
-		let watcher = fs$5.watch(filepath, {
+		let watcher = fs$6.watch(filepath, {
 			persistent: true,
 			recursive: false,
 			encoding: "utf8"
@@ -71463,7 +71463,7 @@ function watchFile(filepath, onChange, immediate = false) {
 function loadJson$1(filepath) {
 	try {
 		let errors = [];
-		let data = parse(fs$5.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
+		let data = parse(fs$6.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
 		if (errors.length > 0) logger$51.error(`Error on parse json file ${filepath}`, errors);
 		return data ?? {};
 	} catch (e) {
@@ -71472,27 +71472,27 @@ function loadJson$1(filepath) {
 }
 function writeJson(filepath, obj) {
 	let dir = path$5.dirname(filepath);
-	if (!fs$5.existsSync(dir)) {
-		fs$5.mkdirSync(dir, { recursive: true });
+	if (!fs$6.existsSync(dir)) {
+		fs$6.mkdirSync(dir, { recursive: true });
 		logger$51.info(`Creating directory ${dir}`);
 	}
-	fs$5.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
+	fs$6.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
 }
 async function statAsync(filepath) {
 	let stat = null;
 	try {
-		stat = await fs$5.promises.stat(filepath);
+		stat = await fs$6.promises.stat(filepath);
 	} catch (e) {}
 	return stat;
 }
 function isDirectory(filepath) {
-	if (!filepath || !path$5.isAbsolute(filepath) || !fs$5.existsSync(filepath)) return false;
-	return fs$5.statSync(filepath).isDirectory();
+	if (!filepath || !path$5.isAbsolute(filepath) || !fs$6.existsSync(filepath)) return false;
+	return fs$6.statSync(filepath).isDirectory();
 }
 async function remove(filepath) {
 	if (!filepath) return;
 	try {
-		await fs$5.promises.rm(filepath, {
+		await fs$6.promises.rm(filepath, {
 			force: true,
 			recursive: true
 		});
@@ -71502,7 +71502,7 @@ async function remove(filepath) {
 }
 async function getFileType(filepath) {
 	try {
-		const stat = await fs$5.promises.lstat(filepath);
+		const stat = await fs$6.promises.lstat(filepath);
 		if (stat.isFile()) return 1;
 		if (stat.isDirectory()) return 2;
 		if (stat.isSymbolicLink()) return 64;
@@ -71585,7 +71585,7 @@ function checkFolder(dir, patterns, token) {
 }
 function inDirectory(dir, subs) {
 	try {
-		let files = fs$5.readdirSync(dir);
+		let files = fs$6.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*") ? minimatch.match(files, pattern, {
 			nobrace: true,
 			noext: true,
@@ -71601,7 +71601,7 @@ function inDirectory(dir, subs) {
 */
 function findMatch(dir, subs) {
 	try {
-		let files = fs$5.readdirSync(dir);
+		let files = fs$6.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*")) {
 			let filtered = files.filter(minimatch.filter(pattern, {
 				nobrace: true,
@@ -71629,7 +71629,7 @@ function findUp$1(name, cwd) {
 }
 function readFile(fullpath, encoding) {
 	return new Promise((resolve, reject) => {
-		fs$5.readFile(fullpath, encoding, (err, content) => {
+		fs$6.readFile(fullpath, encoding, (err, content) => {
 			if (err) reject(err);
 			resolve(content);
 		});
@@ -71639,15 +71639,15 @@ function getFileLineCount(filepath) {
 	let i;
 	let count = 0;
 	return new Promise((resolve, reject) => {
-		fs$5.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
+		fs$6.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
 			for (i = 0; i < chunk.length; ++i) if (chunk[i] == 10) count++;
 		}).on("end", () => resolve(count));
 	});
 }
 function readFileLines(fullpath, start, end) {
-	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	if (!fs$6.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
 	let res = [];
-	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
+	const input = fs$6.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -71668,8 +71668,8 @@ function readFileLines(fullpath, start, end) {
 	});
 }
 function readFileLine(fullpath, count) {
-	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
-	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
+	if (!fs$6.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	const input = fs$6.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -71694,8 +71694,8 @@ function readFileLine(fullpath, count) {
 }
 async function lineToLocation(fsPath, match, text) {
 	let uri = URI.file(fsPath).toString();
-	if (!fs$5.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
-	const rl = readline.createInterface({ input: fs$5.createReadStream(fsPath, { encoding: "utf8" }) });
+	if (!fs$6.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
+	const rl = readline.createInterface({ input: fs$6.createReadStream(fsPath, { encoding: "utf8" }) });
 	let n = 0;
 	let line = await new Promise((resolve) => {
 		let find = false;
@@ -71734,7 +71734,7 @@ function fileStartsWith(dir, pdir, caseInsensitive = isWindows || isMacintosh) {
 	return dir.startsWith(pdir);
 }
 async function writeFile(fullpath, content) {
-	await fs$5.promises.writeFile(fullpath, content, { encoding: "utf8" });
+	await fs$6.promises.writeFile(fullpath, content, { encoding: "utf8" });
 }
 function isFile(uri) {
 	return uri.startsWith("file:");
@@ -71802,7 +71802,7 @@ var init_mru = __esmMin((() => {
 			this.maximum = maximum;
 			this.file = path$5.join(base || dataHome, name);
 			let dir = path$5.dirname(this.file);
-			fs$5.mkdirSync(dir, { recursive: true });
+			fs$6.mkdirSync(dir, { recursive: true });
 		}
 		/**
 		* Load lines from mru file
@@ -71822,7 +71822,7 @@ var init_mru = __esmMin((() => {
 		}
 		loadSync() {
 			try {
-				let content = fs$5.readFileSync(this.file, "utf8");
+				let content = fs$6.readFileSync(this.file, "utf8");
 				content = content.trim();
 				return content.length ? content.trim().split("\n") : [];
 			} catch (e) {
@@ -71835,7 +71835,7 @@ var init_mru = __esmMin((() => {
 		async add(item) {
 			let buf;
 			try {
-				buf = fs$5.readFileSync(this.file);
+				buf = fs$6.readFileSync(this.file);
 				if (buf[0] === 239 && buf[1] === 187 && buf[2] === 191) buf = buf.slice(3);
 				buf = Buffer.concat([
 					Buffer.from(item, "utf8"),
@@ -71845,7 +71845,7 @@ var init_mru = __esmMin((() => {
 			} catch (e) {
 				buf = Buffer.concat([Buffer.from(item, "utf8"), new Uint8Array([10])]);
 			}
-			await fs$5.promises.writeFile(this.file, buf);
+			await fs$6.promises.writeFile(this.file, buf);
 		}
 		/**
 		* Remove item from mru file.
@@ -71861,7 +71861,7 @@ var init_mru = __esmMin((() => {
 		*/
 		async clean() {
 			try {
-				await fs$5.promises.unlink(this.file);
+				await fs$6.promises.unlink(this.file);
 			} catch (e) {}
 		}
 	};
@@ -71987,7 +71987,7 @@ var init_extensionRegistry = __esmMin((() => {
 		resolveExtension(filepath) {
 			for (let item of this.extensionsById.values()) {
 				if (item.filepath && sameFile(item.filepath, filepath)) return item;
-				if (!item.name.startsWith("single-") && fs$5.existsSync(item.directory) && isParentFolder(fs$5.realpathSync(item.directory), filepath, false)) return item;
+				if (!item.name.startsWith("single-") && fs$6.existsSync(item.directory) && isParentFolder(fs$6.realpathSync(item.directory), filepath, false)) return item;
 			}
 		}
 		get onCommands() {
@@ -73328,7 +73328,7 @@ var init_filter$1 = __esmMin((() => {
 //#endregion
 //#region src/model/fuzzyMatch.ts
 async function initFuzzyWasm() {
-	const buffer = await fs$5.promises.readFile(wasmFile);
+	const buffer = await fs$6.promises.readFile(wasmFile);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 /**
@@ -73526,7 +73526,7 @@ var init_fuzzyMatch = __esmMin((() => {
 //#endregion
 //#region src/model/strwidth.ts
 async function initStrWidthWasm() {
-	const buffer = await fs$5.promises.readFile(wasmPath);
+	const buffer = await fs$6.promises.readFile(wasmPath);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 var wasmPath, instance, StrWidth;
@@ -82783,7 +82783,7 @@ var init_resolver = __esmMin((() => {
 			if (this._yarnFolder) return Promise.resolve(this._yarnFolder);
 			return runCommand("yarnpkg global dir", {}, 3e3).then((root) => {
 				let folder = path$5.join(stripAnsi(root).trim(), "node_modules");
-				let exists = fs$5.existsSync(folder);
+				let exists = fs$6.existsSync(folder);
 				if (exists) this._yarnFolder = folder;
 				return exists ? folder : "";
 			});
@@ -91359,9 +91359,9 @@ var init_configuration$2 = __esmMin((() => {
 			if (hasOwnProperty$1(schemas, uri)) return schemas[uri];
 		}
 		parseConfigurationModel(filepath, filecontents) {
-			if (!filepath || !fs$5.existsSync(filepath)) return new ConfigurationModel();
+			if (!filepath || !fs$6.existsSync(filepath)) return new ConfigurationModel();
 			let parser = new ConfigurationModelParser(filepath);
-			let content = filecontents || fs$5.readFileSync(filepath, "utf8");
+			let content = filecontents || fs$6.readFileSync(filepath, "utf8");
 			let uri = URI.file(filepath).toString();
 			parser.parse(content);
 			if (!isFalsyOrEmpty(parser.errors)) {
@@ -91404,10 +91404,10 @@ var init_configuration$2 = __esmMin((() => {
 		*/
 		addFolderFile(configFilePath, fromCwd = false, resource) {
 			let folder = normalizeFilePath(path$5.resolve(configFilePath, "../.."));
-			if (this._configuration.hasFolder(folder) || !fs$5.existsSync(configFilePath)) return false;
+			if (this._configuration.hasFolder(folder) || !fs$6.existsSync(configFilePath)) return false;
 			let configFile;
 			try {
-				configFile = fs$5.readFileSync(configFilePath, "utf8");
+				configFile = fs$6.readFileSync(configFilePath, "utf8");
 			} catch (_err) {
 				return false;
 			}
@@ -91418,7 +91418,7 @@ var init_configuration$2 = __esmMin((() => {
 			return true;
 		}
 		watchFile(filepath, target) {
-			if (!fs$5.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
+			if (!fs$6.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
 			this._watchedFiles.add(filepath);
 			const folder = normalizeFilePath(path$5.resolve(filepath, "../.."));
 			let disposable = watchFile(filepath, () => {
@@ -91539,9 +91539,9 @@ var init_configuration$2 = __esmMin((() => {
 				let fsPath = uri.fsPath;
 				let configFilePath = this.folderToConfigfile(fsPath);
 				if (configFilePath) {
-					if (!fs$5.existsSync(configFilePath)) {
-						fs$5.mkdirSync(path$5.dirname(configFilePath), { recursive: true });
-						fs$5.writeFileSync(configFilePath, "{}", "utf8");
+					if (!fs$6.existsSync(configFilePath)) {
+						fs$6.mkdirSync(path$5.dirname(configFilePath), { recursive: true });
+						fs$6.writeFileSync(configFilePath, "{}", "utf8");
 					}
 					this.addFolderFile(configFilePath, false, resource);
 					return fsPath;
@@ -91591,12 +91591,12 @@ var init_shape = __esmMin((() => {
 				tabSize: 2,
 				insertSpaces: true
 			};
-			if (!fs$5.existsSync(dir)) fs$5.mkdirSync(dir, { recursive: true });
-			let content = fs$5.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
+			if (!fs$6.existsSync(dir)) fs$6.mkdirSync(dir, { recursive: true });
+			let content = fs$6.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
 			content = content || "{}";
 			let edits = modify(content, [key], value, { formattingOptions });
 			content = applyEdits$1(content, edits);
-			fs$5.writeFileSync(fsPath, content, { encoding: "utf8" });
+			fs$6.writeFileSync(fsPath, content, { encoding: "utf8" });
 		}
 		getWorkspaceFolder(resource) {
 			if (typeof this.resolver.getWorkspaceFolder === "function") {
@@ -96704,7 +96704,7 @@ function resolveRequestOptions(url, options) {
 	if (dataType == "object") opts.headers["Content-Type"] = "application/json";
 	else if (dataType == "string") opts.headers["Content-Type"] = "text/plain";
 	if (proxyOptions.proxyAuthorization) opts.headers["Proxy-Authorization"] = proxyOptions.proxyAuthorization;
-	if (proxyOptions.proxyCA) opts.ca = fs$5.readFileSync(proxyOptions.proxyCA);
+	if (proxyOptions.proxyCA) opts.ca = fs$6.readFileSync(proxyOptions.proxyCA);
 	if (options.user) opts.auth = options.user + ":" + toText(options.password);
 	if (url.username) opts.auth = url.username + ":" + toText(url.password);
 	if (options.timeout) opts.timeout = options.timeout;
@@ -97151,21 +97151,21 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var d = (s, e) => () => (e || s((e = { exports: {} }).exports, e), e.exports);
 	var We = d((F) => {
 		"use strict";
-		var Oo = F && F.__importDefault || function(s) {
+		var Ro = F && F.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(F, "__esModule", { value: !0 });
 		F.Minipass = F.isWritable = F.isReadable = F.isStream = void 0;
-		var Cr = typeof process == "object" && process ? process : {
+		var Br = typeof process == "object" && process ? process : {
 			stdout: null,
 			stderr: null
-		}, ts = require("node:events"), jr = Oo(require("node:stream")), Ro = require("node:string_decoder"), vo = (s) => !!s && typeof s == "object" && (s instanceof Ht || s instanceof jr.default || (0, F.isReadable)(s) || (0, F.isWritable)(s));
-		F.isStream = vo;
-		var To = (s) => !!s && typeof s == "object" && s instanceof ts.EventEmitter && typeof s.pipe == "function" && s.pipe !== jr.default.Writable.prototype.pipe;
-		F.isReadable = To;
-		var Do = (s) => !!s && typeof s == "object" && s instanceof ts.EventEmitter && typeof s.write == "function" && typeof s.end == "function";
-		F.isWritable = Do;
-		var le = Symbol("EOF"), ue = Symbol("maybeEmitEnd"), _e = Symbol("emittedEnd"), kt = Symbol("emittingEnd"), ft = Symbol("emittedError"), jt = Symbol("closed"), Br = Symbol("read"), xt = Symbol("flush"), zr = Symbol("flushChunk"), K = Symbol("encoding"), Ue = Symbol("decoder"), O = Symbol("flowing"), dt = Symbol("paused"), qe = Symbol("resume"), R = Symbol("buffer"), I = Symbol("pipes"), v = Symbol("bufferLength"), Vi = Symbol("bufferPush"), Ut = Symbol("bufferShift"), N = Symbol("objectMode"), y = Symbol("destroyed"), $i = Symbol("error"), Xi = Symbol("emitData"), kr = Symbol("emitEnd"), Qi = Symbol("emitEnd2"), J = Symbol("async"), Ji = Symbol("abort"), qt = Symbol("aborted"), mt = Symbol("signal"), Pe = Symbol("dataListeners"), k = Symbol("discarded"), pt = (s) => Promise.resolve().then(s), Po = (s) => s(), No = (s) => s === "end" || s === "finish" || s === "prefinish", Mo = (s) => s instanceof ArrayBuffer || !!s && typeof s == "object" && s.constructor && s.constructor.name === "ArrayBuffer" && s.byteLength >= 0, Lo = (s) => !Buffer.isBuffer(s) && ArrayBuffer.isView(s), Wt = class {
+		}, is = require("node:events"), jr = Ro(require("node:stream")), vo = require("node:string_decoder"), To = (s) => !!s && typeof s == "object" && (s instanceof Zt || s instanceof jr.default || (0, F.isReadable)(s) || (0, F.isWritable)(s));
+		F.isStream = To;
+		var Do = (s) => !!s && typeof s == "object" && s instanceof is.EventEmitter && typeof s.pipe == "function" && s.pipe !== jr.default.Writable.prototype.pipe;
+		F.isReadable = Do;
+		var Po = (s) => !!s && typeof s == "object" && s instanceof is.EventEmitter && typeof s.write == "function" && typeof s.end == "function";
+		F.isWritable = Po;
+		var le = Symbol("EOF"), ue = Symbol("maybeEmitEnd"), _e = Symbol("emittedEnd"), xt = Symbol("emittingEnd"), dt = Symbol("emittedError"), jt = Symbol("closed"), zr = Symbol("read"), Ut = Symbol("flush"), kr = Symbol("flushChunk"), K = Symbol("encoding"), Ue = Symbol("decoder"), O = Symbol("flowing"), mt = Symbol("paused"), qe = Symbol("resume"), R = Symbol("buffer"), I = Symbol("pipes"), v = Symbol("bufferLength"), $i = Symbol("bufferPush"), qt = Symbol("bufferShift"), N = Symbol("objectMode"), y = Symbol("destroyed"), Xi = Symbol("error"), Qi = Symbol("emitData"), xr = Symbol("emitEnd"), Ji = Symbol("emitEnd2"), J = Symbol("async"), es = Symbol("abort"), Wt = Symbol("aborted"), pt = Symbol("signal"), Ne = Symbol("dataListeners"), x = Symbol("discarded"), _t = (s) => Promise.resolve().then(s), No = (s) => s(), Mo = (s) => s === "end" || s === "finish" || s === "prefinish", Lo = (s) => s instanceof ArrayBuffer || !!s && typeof s == "object" && s.constructor && s.constructor.name === "ArrayBuffer" && s.byteLength >= 0, Ao = (s) => !Buffer.isBuffer(s) && ArrayBuffer.isView(s), Ht = class {
 			src;
 			dest;
 			opts;
@@ -97180,16 +97180,16 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 			end() {
 				this.unpipe(), this.opts.end && this.dest.end();
 			}
-		}, es = class extends Wt {
+		}, ts = class extends Ht {
 			unpipe() {
 				this.src.removeListener("error", this.proxyErrors), super.unpipe();
 			}
 			constructor(e, t, i) {
 				super(e, t, i), this.proxyErrors = (r) => this.dest.emit("error", r), e.on("error", this.proxyErrors);
 			}
-		}, Ao = (s) => !!s.objectMode, Io = (s) => !s.objectMode && !!s.encoding && s.encoding !== "buffer", Ht = class extends ts.EventEmitter {
+		}, Io = (s) => !!s.objectMode, Fo = (s) => !s.objectMode && !!s.encoding && s.encoding !== "buffer", Zt = class extends is.EventEmitter {
 			[O] = !1;
-			[dt] = !1;
+			[mt] = !1;
 			[I] = [];
 			[R] = [];
 			[N];
@@ -97198,23 +97198,23 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 			[Ue];
 			[le] = !1;
 			[_e] = !1;
-			[kt] = !1;
+			[xt] = !1;
 			[jt] = !1;
-			[ft] = null;
+			[dt] = null;
 			[v] = 0;
 			[y] = !1;
-			[mt];
-			[qt] = !1;
-			[Pe] = 0;
-			[k] = !1;
+			[pt];
+			[Wt] = !1;
+			[Ne] = 0;
+			[x] = !1;
 			writable = !0;
 			readable = !0;
 			constructor(...e) {
 				let t = e[0] || {};
 				if (super(), t.objectMode && typeof t.encoding == "string") throw new TypeError("Encoding and objectMode may not be used together");
-				Ao(t) ? (this[N] = !0, this[K] = null) : Io(t) ? (this[K] = t.encoding, this[N] = !1) : (this[N] = !1, this[K] = null), this[J] = !!t.async, this[Ue] = this[K] ? new Ro.StringDecoder(this[K]) : null, t && t.debugExposeBuffer === !0 && Object.defineProperty(this, "buffer", { get: () => this[R] }), t && t.debugExposePipes === !0 && Object.defineProperty(this, "pipes", { get: () => this[I] });
+				Io(t) ? (this[N] = !0, this[K] = null) : Fo(t) ? (this[K] = t.encoding, this[N] = !1) : (this[N] = !1, this[K] = null), this[J] = !!t.async, this[Ue] = this[K] ? new vo.StringDecoder(this[K]) : null, t && t.debugExposeBuffer === !0 && Object.defineProperty(this, "buffer", { get: () => this[R] }), t && t.debugExposePipes === !0 && Object.defineProperty(this, "pipes", { get: () => this[I] });
 				let { signal: i } = t;
-				i && (this[mt] = i, i.aborted ? this[Ji]() : i.addEventListener("abort", () => this[Ji]()));
+				i && (this[pt] = i, i.aborted ? this[es]() : i.addEventListener("abort", () => this[es]()));
 			}
 			get bufferLength() {
 				return this[v];
@@ -97240,52 +97240,52 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 			set async(e) {
 				this[J] = this[J] || !!e;
 			}
-			[Ji]() {
-				this[qt] = !0, this.emit("abort", this[mt]?.reason), this.destroy(this[mt]?.reason);
+			[es]() {
+				this[Wt] = !0, this.emit("abort", this[pt]?.reason), this.destroy(this[pt]?.reason);
 			}
 			get aborted() {
-				return this[qt];
+				return this[Wt];
 			}
 			set aborted(e) {}
 			write(e, t, i) {
-				if (this[qt]) return !1;
+				if (this[Wt]) return !1;
 				if (this[le]) throw new Error("write after end");
 				if (this[y]) return this.emit("error", Object.assign(/* @__PURE__ */ new Error("Cannot call write after a stream was destroyed"), { code: "ERR_STREAM_DESTROYED" })), !0;
 				typeof t == "function" && (i = t, t = "utf8"), t || (t = "utf8");
-				let r = this[J] ? pt : Po;
+				let r = this[J] ? _t : No;
 				if (!this[N] && !Buffer.isBuffer(e)) {
-					if (Lo(e)) e = Buffer.from(e.buffer, e.byteOffset, e.byteLength);
-					else if (Mo(e)) e = Buffer.from(e);
+					if (Ao(e)) e = Buffer.from(e.buffer, e.byteOffset, e.byteLength);
+					else if (Lo(e)) e = Buffer.from(e);
 					else if (typeof e != "string") throw new Error("Non-contiguous data written to non-objectMode stream");
 				}
-				return this[N] ? (this[O] && this[v] !== 0 && this[xt](!0), this[O] ? this.emit("data", e) : this[Vi](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[O]) : e.length ? (typeof e == "string" && !(t === this[K] && !this[Ue]?.lastNeed) && (e = Buffer.from(e, t)), Buffer.isBuffer(e) && this[K] && (e = this[Ue].write(e)), this[O] && this[v] !== 0 && this[xt](!0), this[O] ? this.emit("data", e) : this[Vi](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[O]) : (this[v] !== 0 && this.emit("readable"), i && r(i), this[O]);
+				return this[N] ? (this[O] && this[v] !== 0 && this[Ut](!0), this[O] ? this.emit("data", e) : this[$i](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[O]) : e.length ? (typeof e == "string" && !(t === this[K] && !this[Ue]?.lastNeed) && (e = Buffer.from(e, t)), Buffer.isBuffer(e) && this[K] && (e = this[Ue].write(e)), this[O] && this[v] !== 0 && this[Ut](!0), this[O] ? this.emit("data", e) : this[$i](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[O]) : (this[v] !== 0 && this.emit("readable"), i && r(i), this[O]);
 			}
 			read(e) {
 				if (this[y]) return null;
-				if (this[k] = !1, this[v] === 0 || e === 0 || e && e > this[v]) return this[ue](), null;
+				if (this[x] = !1, this[v] === 0 || e === 0 || e && e > this[v]) return this[ue](), null;
 				this[N] && (e = null), this[R].length > 1 && !this[N] && (this[R] = [this[K] ? this[R].join("") : Buffer.concat(this[R], this[v])]);
-				let t = this[Br](e || null, this[R][0]);
+				let t = this[zr](e || null, this[R][0]);
 				return this[ue](), t;
 			}
-			[Br](e, t) {
-				if (this[N]) this[Ut]();
+			[zr](e, t) {
+				if (this[N]) this[qt]();
 				else {
 					let i = t;
-					e === i.length || e === null ? this[Ut]() : typeof i == "string" ? (this[R][0] = i.slice(e), t = i.slice(0, e), this[v] -= e) : (this[R][0] = i.subarray(e), t = i.subarray(0, e), this[v] -= e);
+					e === i.length || e === null ? this[qt]() : typeof i == "string" ? (this[R][0] = i.slice(e), t = i.slice(0, e), this[v] -= e) : (this[R][0] = i.subarray(e), t = i.subarray(0, e), this[v] -= e);
 				}
 				return this.emit("data", t), !this[R].length && !this[le] && this.emit("drain"), t;
 			}
 			end(e, t, i) {
-				return typeof e == "function" && (i = e, e = void 0), typeof t == "function" && (i = t, t = "utf8"), e !== void 0 && this.write(e, t), i && this.once("end", i), this[le] = !0, this.writable = !1, (this[O] || !this[dt]) && this[ue](), this;
+				return typeof e == "function" && (i = e, e = void 0), typeof t == "function" && (i = t, t = "utf8"), e !== void 0 && this.write(e, t), i && this.once("end", i), this[le] = !0, this.writable = !1, (this[O] || !this[mt]) && this[ue](), this;
 			}
 			[qe]() {
-				this[y] || (!this[Pe] && !this[I].length && (this[k] = !0), this[dt] = !1, this[O] = !0, this.emit("resume"), this[R].length ? this[xt]() : this[le] ? this[ue]() : this.emit("drain"));
+				this[y] || (!this[Ne] && !this[I].length && (this[x] = !0), this[mt] = !1, this[O] = !0, this.emit("resume"), this[R].length ? this[Ut]() : this[le] ? this[ue]() : this.emit("drain"));
 			}
 			resume() {
 				return this[qe]();
 			}
 			pause() {
-				this[O] = !1, this[dt] = !0, this[k] = !1;
+				this[O] = !1, this[mt] = !0, this[x] = !1;
 			}
 			get destroyed() {
 				return this[y];
@@ -97294,43 +97294,43 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 				return this[O];
 			}
 			get paused() {
-				return this[dt];
+				return this[mt];
 			}
-			[Vi](e) {
+			[$i](e) {
 				this[N] ? this[v] += 1 : this[v] += e.length, this[R].push(e);
 			}
-			[Ut]() {
+			[qt]() {
 				return this[N] ? this[v] -= 1 : this[v] -= this[R][0].length, this[R].shift();
 			}
-			[xt](e = !1) {
+			[Ut](e = !1) {
 				do				;
-while (this[zr](this[Ut]()) && this[R].length);
+while (this[kr](this[qt]()) && this[R].length);
 				!e && !this[R].length && !this[le] && this.emit("drain");
 			}
-			[zr](e) {
+			[kr](e) {
 				return this.emit("data", e), this[O];
 			}
 			pipe(e, t) {
 				if (this[y]) return e;
-				this[k] = !1;
+				this[x] = !1;
 				let i = this[_e];
-				return t = t || {}, e === Cr.stdout || e === Cr.stderr ? t.end = !1 : t.end = t.end !== !1, t.proxyErrors = !!t.proxyErrors, i ? t.end && e.end() : (this[I].push(t.proxyErrors ? new es(this, e, t) : new Wt(this, e, t)), this[J] ? pt(() => this[qe]()) : this[qe]()), e;
+				return t = t || {}, e === Br.stdout || e === Br.stderr ? t.end = !1 : t.end = t.end !== !1, t.proxyErrors = !!t.proxyErrors, i ? t.end && e.end() : (this[I].push(t.proxyErrors ? new ts(this, e, t) : new Ht(this, e, t)), this[J] ? _t(() => this[qe]()) : this[qe]()), e;
 			}
 			unpipe(e) {
 				let t = this[I].find((i) => i.dest === e);
-				t && (this[I].length === 1 ? (this[O] && this[Pe] === 0 && (this[O] = !1), this[I] = []) : this[I].splice(this[I].indexOf(t), 1), t.unpipe());
+				t && (this[I].length === 1 ? (this[O] && this[Ne] === 0 && (this[O] = !1), this[I] = []) : this[I].splice(this[I].indexOf(t), 1), t.unpipe());
 			}
 			addListener(e, t) {
 				return this.on(e, t);
 			}
 			on(e, t) {
 				let i = super.on(e, t);
-				if (e === "data") this[k] = !1, this[Pe]++, !this[I].length && !this[O] && this[qe]();
+				if (e === "data") this[x] = !1, this[Ne]++, !this[I].length && !this[O] && this[qe]();
 				else if (e === "readable" && this[v] !== 0) super.emit("readable");
-				else if (No(e) && this[_e]) super.emit(e), this.removeAllListeners(e);
-				else if (e === "error" && this[ft]) {
+				else if (Mo(e) && this[_e]) super.emit(e), this.removeAllListeners(e);
+				else if (e === "error" && this[dt]) {
 					let r = t;
-					this[J] ? pt(() => r.call(this, this[ft])) : r.call(this, this[ft]);
+					this[J] ? _t(() => r.call(this, this[dt])) : r.call(this, this[dt]);
 				}
 				return i;
 			}
@@ -97339,30 +97339,30 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}
 			off(e, t) {
 				let i = super.off(e, t);
-				return e === "data" && (this[Pe] = this.listeners("data").length, this[Pe] === 0 && !this[k] && !this[I].length && (this[O] = !1)), i;
+				return e === "data" && (this[Ne] = this.listeners("data").length, this[Ne] === 0 && !this[x] && !this[I].length && (this[O] = !1)), i;
 			}
 			removeAllListeners(e) {
 				let t = super.removeAllListeners(e);
-				return (e === "data" || e === void 0) && (this[Pe] = 0, !this[k] && !this[I].length && (this[O] = !1)), t;
+				return (e === "data" || e === void 0) && (this[Ne] = 0, !this[x] && !this[I].length && (this[O] = !1)), t;
 			}
 			get emittedEnd() {
 				return this[_e];
 			}
 			[ue]() {
-				!this[kt] && !this[_e] && !this[y] && this[R].length === 0 && this[le] && (this[kt] = !0, this.emit("end"), this.emit("prefinish"), this.emit("finish"), this[jt] && this.emit("close"), this[kt] = !1);
+				!this[xt] && !this[_e] && !this[y] && this[R].length === 0 && this[le] && (this[xt] = !0, this.emit("end"), this.emit("prefinish"), this.emit("finish"), this[jt] && this.emit("close"), this[xt] = !1);
 			}
 			emit(e, ...t) {
 				let i = t[0];
 				if (e !== "error" && e !== "close" && e !== y && this[y]) return !1;
-				if (e === "data") return !this[N] && !i ? !1 : this[J] ? (pt(() => this[Xi](i)), !0) : this[Xi](i);
-				if (e === "end") return this[kr]();
+				if (e === "data") return !this[N] && !i ? !1 : this[J] ? (_t(() => this[Qi](i)), !0) : this[Qi](i);
+				if (e === "end") return this[xr]();
 				if (e === "close") {
 					if (this[jt] = !0, !this[_e] && !this[y]) return !1;
 					let n = super.emit("close");
 					return this.removeAllListeners("close"), n;
 				} else if (e === "error") {
-					this[ft] = i, super.emit($i, i);
-					let n = !this[mt] || this.listeners("error").length ? super.emit("error", i) : !1;
+					this[dt] = i, super.emit(Xi, i);
+					let n = !this[pt] || this.listeners("error").length ? super.emit("error", i) : !1;
 					return this[ue](), n;
 				} else if (e === "resume") {
 					let n = super.emit("resume");
@@ -97374,20 +97374,20 @@ while (this[zr](this[Ut]()) && this[R].length);
 				let r = super.emit(e, ...t);
 				return this[ue](), r;
 			}
-			[Xi](e) {
+			[Qi](e) {
 				for (let i of this[I]) i.dest.write(e) === !1 && this.pause();
-				let t = this[k] ? !1 : super.emit("data", e);
+				let t = this[x] ? !1 : super.emit("data", e);
 				return this[ue](), t;
 			}
-			[kr]() {
-				return this[_e] ? !1 : (this[_e] = !0, this.readable = !1, this[J] ? (pt(() => this[Qi]()), !0) : this[Qi]());
+			[xr]() {
+				return this[_e] ? !1 : (this[_e] = !0, this.readable = !1, this[J] ? (_t(() => this[Ji]()), !0) : this[Ji]());
 			}
-			[Qi]() {
+			[Ji]() {
 				if (this[Ue]) {
 					let t = this[Ue].end();
 					if (t) {
 						for (let i of this[I]) i.dest.write(t);
-						this[k] || super.emit("data", t);
+						this[x] || super.emit("data", t);
 					}
 				}
 				for (let t of this[I]) t.end();
@@ -97413,7 +97413,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 				});
 			}
 			[Symbol.asyncIterator]() {
-				this[k] = !1;
+				this[x] = !1;
 				let e = !1, t = async () => (this.pause(), e = !0, {
 					value: void 0,
 					done: !0
@@ -97427,21 +97427,21 @@ while (this[zr](this[Ut]()) && this[R].length);
 							value: r
 						});
 						if (this[le]) return t();
-						let n, o, a = (c) => {
-							this.off("data", h), this.off("end", l), this.off(y, u), t(), o(c);
-						}, h = (c) => {
-							this.off("error", a), this.off("end", l), this.off(y, u), this.pause(), n({
+						let n, o, h = (c) => {
+							this.off("data", a), this.off("end", l), this.off(y, u), t(), o(c);
+						}, a = (c) => {
+							this.off("error", h), this.off("end", l), this.off(y, u), this.pause(), n({
 								value: c,
 								done: !!this[le]
 							});
 						}, l = () => {
-							this.off("error", a), this.off("data", h), this.off(y, u), t(), n({
+							this.off("error", h), this.off("data", a), this.off(y, u), t(), n({
 								done: !0,
 								value: void 0
 							});
-						}, u = () => a(/* @__PURE__ */ new Error("stream destroyed"));
+						}, u = () => h(/* @__PURE__ */ new Error("stream destroyed"));
 						return new Promise((c, E) => {
-							o = E, n = c, this.once(y, u), this.once("error", a), this.once("end", l), this.once("data", h);
+							o = E, n = c, this.once(y, u), this.once("error", h), this.once("end", l), this.once("data", a);
 						});
 					},
 					throw: t,
@@ -97453,8 +97453,8 @@ while (this[zr](this[Ut]()) && this[R].length);
 				};
 			}
 			[Symbol.iterator]() {
-				this[k] = !1;
-				let e = !1, t = () => (this.pause(), this.off($i, t), this.off(y, t), this.off("end", t), e = !0, {
+				this[x] = !1;
+				let e = !1, t = () => (this.pause(), this.off(Xi, t), this.off(y, t), this.off("end", t), e = !0, {
 					done: !0,
 					value: void 0
 				}), i = () => {
@@ -97465,7 +97465,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 						value: r
 					};
 				};
-				return this.once("end", t), this.once($i, t), this.once(y, t), {
+				return this.once("end", t), this.once(Xi, t), this.once(y, t), {
 					next: i,
 					throw: t,
 					return: t,
@@ -97477,7 +97477,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}
 			destroy(e) {
 				if (this[y]) return e ? this.emit("error", e) : this.emit(y), this;
-				this[y] = !0, this[k] = !0, this[R].length = 0, this[v] = 0;
+				this[y] = !0, this[x] = !0, this[R].length = 0, this[v] = 0;
 				let t = this;
 				return typeof t.close == "function" && !this[jt] && t.close(), e ? this.emit("error", e) : this.emit(y), this;
 			}
@@ -97485,27 +97485,27 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return F.isStream;
 			}
 		};
-		F.Minipass = Ht;
+		F.Minipass = Zt;
 	});
 	var Ke = d((W) => {
 		"use strict";
-		var xr = W && W.__importDefault || function(s) {
+		var Ur = W && W.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(W, "__esModule", { value: !0 });
 		W.WriteStreamSync = W.WriteStream = W.ReadStreamSync = W.ReadStream = void 0;
-		var Fo = xr(require("events")), B = xr(require("fs")), Co = We(), Bo = B.default.writev, ye = Symbol("_autoClose"), $ = Symbol("_close"), _t = Symbol("_ended"), p = Symbol("_fd"), is = Symbol("_finished"), fe = Symbol("_flags"), ss = Symbol("_flush"), as = Symbol("_handleChunk"), hs = Symbol("_makeBuf"), yt = Symbol("_mode"), Zt = Symbol("_needDrain"), Ge = Symbol("_onerror"), Ye = Symbol("_onopen"), rs = Symbol("_onread"), He = Symbol("_onwrite"), Ee = Symbol("_open"), V = Symbol("_path"), we = Symbol("_pos"), ee = Symbol("_queue"), Ze = Symbol("_read"), ns = Symbol("_readSize"), ce = Symbol("_reading"), wt = Symbol("_remain"), os = Symbol("_size"), Gt = Symbol("_write"), Ne = Symbol("_writing"), Yt = Symbol("_defaultFlag"), Me = Symbol("_errored"), Kt = class extends Co.Minipass {
-			[Me] = !1;
+		var Co = Ur(require("events")), z = Ur(require("fs")), Bo = We(), zo = z.default.writev, ye = Symbol("_autoClose"), $ = Symbol("_close"), wt = Symbol("_ended"), p = Symbol("_fd"), ss = Symbol("_finished"), fe = Symbol("_flags"), rs = Symbol("_flush"), hs = Symbol("_handleChunk"), ls = Symbol("_makeBuf"), Et = Symbol("_mode"), Gt = Symbol("_needDrain"), Ge = Symbol("_onerror"), Ye = Symbol("_onopen"), ns = Symbol("_onread"), He = Symbol("_onwrite"), Ee = Symbol("_open"), V = Symbol("_path"), we = Symbol("_pos"), ee = Symbol("_queue"), Ze = Symbol("_read"), os = Symbol("_readSize"), ce = Symbol("_reading"), yt = Symbol("_remain"), as = Symbol("_size"), Yt = Symbol("_write"), Me = Symbol("_writing"), Kt = Symbol("_defaultFlag"), Le = Symbol("_errored"), Vt = class extends Bo.Minipass {
+			[Le] = !1;
 			[p];
 			[V];
-			[ns];
-			[ce] = !1;
 			[os];
-			[wt];
+			[ce] = !1;
+			[as];
+			[yt];
 			[ye];
 			constructor(e, t) {
 				if (t = t || {}, super(t), this.readable = !0, this.writable = !1, typeof e != "string") throw new TypeError("path must be a string");
-				this[Me] = !1, this[p] = typeof t.fd == "number" ? t.fd : void 0, this[V] = e, this[ns] = t.readSize || 16 * 1024 * 1024, this[ce] = !1, this[os] = typeof t.size == "number" ? t.size : Infinity, this[wt] = this[os], this[ye] = typeof t.autoClose == "boolean" ? t.autoClose : !0, typeof this[p] == "number" ? this[Ze]() : this[Ee]();
+				this[Le] = !1, this[p] = typeof t.fd == "number" ? t.fd : void 0, this[V] = e, this[os] = t.readSize || 16 * 1024 * 1024, this[ce] = !1, this[as] = typeof t.size == "number" ? t.size : Infinity, this[yt] = this[as], this[ye] = typeof t.autoClose == "boolean" ? t.autoClose : !0, typeof this[p] == "number" ? this[Ze]() : this[Ee]();
 			}
 			get fd() {
 				return this[p];
@@ -97520,54 +97520,54 @@ while (this[zr](this[Ut]()) && this[R].length);
 				throw new TypeError("this is a readable stream");
 			}
 			[Ee]() {
-				B.default.open(this[V], "r", (e, t) => this[Ye](e, t));
+				z.default.open(this[V], "r", (e, t) => this[Ye](e, t));
 			}
 			[Ye](e, t) {
 				e ? this[Ge](e) : (this[p] = t, this.emit("open", t), this[Ze]());
 			}
-			[hs]() {
-				return Buffer.allocUnsafe(Math.min(this[ns], this[wt]));
+			[ls]() {
+				return Buffer.allocUnsafe(Math.min(this[os], this[yt]));
 			}
 			[Ze]() {
 				if (!this[ce]) {
 					this[ce] = !0;
-					let e = this[hs]();
-					if (e.length === 0) return process.nextTick(() => this[rs](null, 0, e));
-					B.default.read(this[p], e, 0, e.length, null, (t, i, r) => this[rs](t, i, r));
+					let e = this[ls]();
+					if (e.length === 0) return process.nextTick(() => this[ns](null, 0, e));
+					z.default.read(this[p], e, 0, e.length, null, (t, i, r) => this[ns](t, i, r));
 				}
 			}
-			[rs](e, t, i) {
-				this[ce] = !1, e ? this[Ge](e) : this[as](t, i) && this[Ze]();
+			[ns](e, t, i) {
+				this[ce] = !1, e ? this[Ge](e) : this[hs](t, i) && this[Ze]();
 			}
 			[$]() {
 				if (this[ye] && typeof this[p] == "number") {
 					let e = this[p];
-					this[p] = void 0, B.default.close(e, (t) => t ? this.emit("error", t) : this.emit("close"));
+					this[p] = void 0, z.default.close(e, (t) => t ? this.emit("error", t) : this.emit("close"));
 				}
 			}
 			[Ge](e) {
 				this[ce] = !0, this[$](), this.emit("error", e);
 			}
-			[as](e, t) {
+			[hs](e, t) {
 				let i = !1;
-				return this[wt] -= e, e > 0 && (i = super.write(e < t.length ? t.subarray(0, e) : t)), (e === 0 || this[wt] <= 0) && (i = !1, this[$](), super.end()), i;
+				return this[yt] -= e, e > 0 && (i = super.write(e < t.length ? t.subarray(0, e) : t)), (e === 0 || this[yt] <= 0) && (i = !1, this[$](), super.end()), i;
 			}
 			emit(e, ...t) {
 				switch (e) {
 					case "prefinish":
 					case "finish": return !1;
 					case "drain": return typeof this[p] == "number" && this[Ze](), !1;
-					case "error": return this[Me] ? !1 : (this[Me] = !0, super.emit(e, ...t));
+					case "error": return this[Le] ? !1 : (this[Le] = !0, super.emit(e, ...t));
 					default: return super.emit(e, ...t);
 				}
 			}
 		};
-		W.ReadStream = Kt;
-		var ls = class extends Kt {
+		W.ReadStream = Vt;
+		var us = class extends Vt {
 			[Ee]() {
 				let e = !0;
 				try {
-					this[Ye](null, B.default.openSync(this[V], "r")), e = !1;
+					this[Ye](null, z.default.openSync(this[V], "r")), e = !1;
 				} finally {
 					e && this[$]();
 				}
@@ -97578,8 +97578,8 @@ while (this[zr](this[Ut]()) && this[R].length);
 					if (!this[ce]) {
 						this[ce] = !0;
 						do {
-							let t = this[hs](), i = t.length === 0 ? 0 : B.default.readSync(this[p], t, 0, t.length, null);
-							if (!this[as](i, t)) break;
+							let t = this[ls](), i = t.length === 0 ? 0 : z.default.readSync(this[p], t, 0, t.length, null);
+							if (!this[hs](i, t)) break;
 						} while (!0);
 						this[ce] = !1;
 					}
@@ -97591,36 +97591,36 @@ while (this[zr](this[Ut]()) && this[R].length);
 			[$]() {
 				if (this[ye] && typeof this[p] == "number") {
 					let e = this[p];
-					this[p] = void 0, B.default.closeSync(e), this.emit("close");
+					this[p] = void 0, z.default.closeSync(e), this.emit("close");
 				}
 			}
 		};
-		W.ReadStreamSync = ls;
-		var Vt = class extends Fo.default {
+		W.ReadStreamSync = us;
+		var $t = class extends Co.default {
 			readable = !1;
 			writable = !0;
+			[Le] = !1;
 			[Me] = !1;
-			[Ne] = !1;
-			[_t] = !1;
+			[wt] = !1;
 			[ee] = [];
-			[Zt] = !1;
+			[Gt] = !1;
 			[V];
-			[yt];
+			[Et];
 			[ye];
 			[p];
-			[Yt];
+			[Kt];
 			[fe];
-			[is] = !1;
+			[ss] = !1;
 			[we];
 			constructor(e, t) {
-				t = t || {}, super(t), this[V] = e, this[p] = typeof t.fd == "number" ? t.fd : void 0, this[yt] = t.mode === void 0 ? 438 : t.mode, this[we] = typeof t.start == "number" ? t.start : void 0, this[ye] = typeof t.autoClose == "boolean" ? t.autoClose : !0;
+				t = t || {}, super(t), this[V] = e, this[p] = typeof t.fd == "number" ? t.fd : void 0, this[Et] = t.mode === void 0 ? 438 : t.mode, this[we] = typeof t.start == "number" ? t.start : void 0, this[ye] = typeof t.autoClose == "boolean" ? t.autoClose : !0;
 				let i = this[we] !== void 0 ? "r+" : "w";
-				this[Yt] = t.flags === void 0, this[fe] = t.flags === void 0 ? i : t.flags, this[p] === void 0 && this[Ee]();
+				this[Kt] = t.flags === void 0, this[fe] = t.flags === void 0 ? i : t.flags, this[p] === void 0 && this[Ee]();
 			}
 			emit(e, ...t) {
 				if (e === "error") {
-					if (this[Me]) return !1;
-					this[Me] = !0;
+					if (this[Le]) return !1;
+					this[Le] = !0;
 				}
 				return super.emit(e, ...t);
 			}
@@ -97631,64 +97631,64 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return this[V];
 			}
 			[Ge](e) {
-				this[$](), this[Ne] = !0, this.emit("error", e);
+				this[$](), this[Me] = !0, this.emit("error", e);
 			}
 			[Ee]() {
-				B.default.open(this[V], this[fe], this[yt], (e, t) => this[Ye](e, t));
+				z.default.open(this[V], this[fe], this[Et], (e, t) => this[Ye](e, t));
 			}
 			[Ye](e, t) {
-				this[Yt] && this[fe] === "r+" && e && e.code === "ENOENT" ? (this[fe] = "w", this[Ee]()) : e ? this[Ge](e) : (this[p] = t, this.emit("open", t), this[Ne] || this[ss]());
+				this[Kt] && this[fe] === "r+" && e && e.code === "ENOENT" ? (this[fe] = "w", this[Ee]()) : e ? this[Ge](e) : (this[p] = t, this.emit("open", t), this[Me] || this[rs]());
 			}
 			end(e, t) {
-				return e && this.write(e, t), this[_t] = !0, !this[Ne] && !this[ee].length && typeof this[p] == "number" && this[He](null, 0), this;
+				return e && this.write(e, t), this[wt] = !0, !this[Me] && !this[ee].length && typeof this[p] == "number" && this[He](null, 0), this;
 			}
 			write(e, t) {
-				return typeof e == "string" && (e = Buffer.from(e, t)), this[_t] ? (this.emit("error", /* @__PURE__ */ new Error("write() after end()")), !1) : this[p] === void 0 || this[Ne] || this[ee].length ? (this[ee].push(e), this[Zt] = !0, !1) : (this[Ne] = !0, this[Gt](e), !0);
+				return typeof e == "string" && (e = Buffer.from(e, t)), this[wt] ? (this.emit("error", /* @__PURE__ */ new Error("write() after end()")), !1) : this[p] === void 0 || this[Me] || this[ee].length ? (this[ee].push(e), this[Gt] = !0, !1) : (this[Me] = !0, this[Yt](e), !0);
 			}
-			[Gt](e) {
-				B.default.write(this[p], e, 0, e.length, this[we], (t, i) => this[He](t, i));
+			[Yt](e) {
+				z.default.write(this[p], e, 0, e.length, this[we], (t, i) => this[He](t, i));
 			}
 			[He](e, t) {
-				e ? this[Ge](e) : (this[we] !== void 0 && typeof t == "number" && (this[we] += t), this[ee].length ? this[ss]() : (this[Ne] = !1, this[_t] && !this[is] ? (this[is] = !0, this[$](), this.emit("finish")) : this[Zt] && (this[Zt] = !1, this.emit("drain"))));
+				e ? this[Ge](e) : (this[we] !== void 0 && typeof t == "number" && (this[we] += t), this[ee].length ? this[rs]() : (this[Me] = !1, this[wt] && !this[ss] ? (this[ss] = !0, this[$](), this.emit("finish")) : this[Gt] && (this[Gt] = !1, this.emit("drain"))));
 			}
-			[ss]() {
-				if (this[ee].length === 0) this[_t] && this[He](null, 0);
-				else if (this[ee].length === 1) this[Gt](this[ee].pop());
+			[rs]() {
+				if (this[ee].length === 0) this[wt] && this[He](null, 0);
+				else if (this[ee].length === 1) this[Yt](this[ee].pop());
 				else {
 					let e = this[ee];
-					this[ee] = [], Bo(this[p], e, this[we], (t, i) => this[He](t, i));
+					this[ee] = [], zo(this[p], e, this[we], (t, i) => this[He](t, i));
 				}
 			}
 			[$]() {
 				if (this[ye] && typeof this[p] == "number") {
 					let e = this[p];
-					this[p] = void 0, B.default.close(e, (t) => t ? this.emit("error", t) : this.emit("close"));
+					this[p] = void 0, z.default.close(e, (t) => t ? this.emit("error", t) : this.emit("close"));
 				}
 			}
 		};
-		W.WriteStream = Vt;
-		var us = class extends Vt {
+		W.WriteStream = $t;
+		var cs = class extends $t {
 			[Ee]() {
 				let e;
-				if (this[Yt] && this[fe] === "r+") try {
-					e = B.default.openSync(this[V], this[fe], this[yt]);
+				if (this[Kt] && this[fe] === "r+") try {
+					e = z.default.openSync(this[V], this[fe], this[Et]);
 				} catch (t) {
 					if (t?.code === "ENOENT") return this[fe] = "w", this[Ee]();
 					throw t;
 				}
-				else e = B.default.openSync(this[V], this[fe], this[yt]);
+				else e = z.default.openSync(this[V], this[fe], this[Et]);
 				this[Ye](null, e);
 			}
 			[$]() {
 				if (this[ye] && typeof this[p] == "number") {
 					let e = this[p];
-					this[p] = void 0, B.default.closeSync(e), this.emit("close");
+					this[p] = void 0, z.default.closeSync(e), this.emit("close");
 				}
 			}
-			[Gt](e) {
+			[Yt](e) {
 				let t = !0;
 				try {
-					this[He](null, B.default.writeSync(this[p], e, 0, e.length, this[we])), t = !1;
+					this[He](null, z.default.writeSync(this[p], e, 0, e.length, this[we])), t = !1;
 				} finally {
 					if (t) try {
 						this[$]();
@@ -97696,13 +97696,13 @@ while (this[zr](this[Ut]()) && this[R].length);
 				}
 			}
 		};
-		W.WriteStreamSync = us;
+		W.WriteStreamSync = cs;
 	});
-	var $t = d((b) => {
+	var Xt = d((b) => {
 		"use strict";
 		Object.defineProperty(b, "__esModule", { value: !0 });
 		b.dealias = b.isNoFile = b.isFile = b.isAsync = b.isSync = b.isAsyncNoFile = b.isSyncNoFile = b.isAsyncFile = b.isSyncFile = void 0;
-		var zo = new Map([
+		var ko = new Map([
 			["C", "cwd"],
 			["f", "file"],
 			["z", "gzip"],
@@ -97723,54 +97723,54 @@ while (this[zr](this[Ut]()) && this[R].length);
 			["L", "follow"],
 			["h", "follow"],
 			["onentry", "onReadEntry"]
-		]), ko = (s) => !!s.sync && !!s.file;
-		b.isSyncFile = ko;
+		]), xo = (s) => !!s.sync && !!s.file;
+		b.isSyncFile = xo;
 		var jo = (s) => !s.sync && !!s.file;
 		b.isAsyncFile = jo;
-		var xo = (s) => !!s.sync && !s.file;
-		b.isSyncNoFile = xo;
-		var Uo = (s) => !s.sync && !s.file;
-		b.isAsyncNoFile = Uo;
-		var qo = (s) => !!s.sync;
-		b.isSync = qo;
-		var Wo = (s) => !s.sync;
-		b.isAsync = Wo;
-		var Ho = (s) => !!s.file;
-		b.isFile = Ho;
-		var Zo = (s) => !s.file;
-		b.isNoFile = Zo;
-		var Go = (s) => {
-			return zo.get(s) || s;
-		}, Yo = (s = {}) => {
+		var Uo = (s) => !!s.sync && !s.file;
+		b.isSyncNoFile = Uo;
+		var qo = (s) => !s.sync && !s.file;
+		b.isAsyncNoFile = qo;
+		var Wo = (s) => !!s.sync;
+		b.isSync = Wo;
+		var Ho = (s) => !s.sync;
+		b.isAsync = Ho;
+		var Zo = (s) => !!s.file;
+		b.isFile = Zo;
+		var Go = (s) => !s.file;
+		b.isNoFile = Go;
+		var Yo = (s) => {
+			return ko.get(s) || s;
+		}, Ko = (s = {}) => {
 			if (!s) return {};
 			let e = {};
 			for (let [t, i] of Object.entries(s)) {
-				let r = Go(t);
+				let r = Yo(t);
 				e[r] = i;
 			}
 			return e.chmod === void 0 && e.noChmod === !1 && (e.chmod = !0), delete e.noChmod, e;
 		};
-		b.dealias = Yo;
+		b.dealias = Ko;
 	});
-	var Ve = d((Xt) => {
+	var Ve = d((Qt) => {
 		"use strict";
-		Object.defineProperty(Xt, "__esModule", { value: !0 });
-		Xt.makeCommand = void 0;
-		var Et = $t(), Ko = (s, e, t, i, r) => Object.assign((n = [], o, a) => {
-			Array.isArray(n) && (o = n, n = {}), typeof o == "function" && (a = o, o = void 0), o = o ? Array.from(o) : [];
-			let h = (0, Et.dealias)(n);
-			if (r?.(h, o), (0, Et.isSyncFile)(h)) {
-				if (typeof a == "function") throw new TypeError("callback not supported for sync tar functions");
-				return s(h, o);
-			} else if ((0, Et.isAsyncFile)(h)) {
-				let l = e(h, o);
-				return a ? l.then(() => a(), a) : l;
-			} else if ((0, Et.isSyncNoFile)(h)) {
-				if (typeof a == "function") throw new TypeError("callback not supported for sync tar functions");
-				return t(h, o);
-			} else if ((0, Et.isAsyncNoFile)(h)) {
-				if (typeof a == "function") throw new TypeError("callback only supported with file option");
-				return i(h, o);
+		Object.defineProperty(Qt, "__esModule", { value: !0 });
+		Qt.makeCommand = void 0;
+		var bt = Xt(), Vo = (s, e, t, i, r) => Object.assign((n = [], o, h) => {
+			Array.isArray(n) && (o = n, n = {}), typeof o == "function" && (h = o, o = void 0), o = o ? Array.from(o) : [];
+			let a = (0, bt.dealias)(n);
+			if (r?.(a, o), (0, bt.isSyncFile)(a)) {
+				if (typeof h == "function") throw new TypeError("callback not supported for sync tar functions");
+				return s(a, o);
+			} else if ((0, bt.isAsyncFile)(a)) {
+				let l = e(a, o);
+				return h ? l.then(() => h(), h) : l;
+			} else if ((0, bt.isSyncNoFile)(a)) {
+				if (typeof h == "function") throw new TypeError("callback not supported for sync tar functions");
+				return t(a, o);
+			} else if ((0, bt.isAsyncNoFile)(a)) {
+				if (typeof h == "function") throw new TypeError("callback only supported with file option");
+				return i(a, o);
 			}
 			throw new Error("impossible options??");
 		}, {
@@ -97780,16 +97780,16 @@ while (this[zr](this[Ut]()) && this[R].length);
 			asyncNoFile: i,
 			validate: r
 		});
-		Xt.makeCommand = Ko;
+		Qt.makeCommand = Vo;
 	});
-	var cs = d(($e) => {
+	var fs$3 = d(($e) => {
 		"use strict";
-		var Vo = $e && $e.__importDefault || function(s) {
+		var $o = $e && $e.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty($e, "__esModule", { value: !0 });
 		$e.constants = void 0;
-		var Xo = Vo(require("zlib")).default.constants || { ZLIB_VERNUM: 4736 };
+		var Qo = $o(require("zlib")).default.constants || { ZLIB_VERNUM: 4736 };
 		$e.constants = Object.freeze(Object.assign(Object.create(null), {
 			Z_NO_FLUSH: 0,
 			Z_PARTIAL_FLUSH: 1,
@@ -97897,11 +97897,11 @@ while (this[zr](this[Ut]()) && this[R].length);
 			BROTLI_DECODER_ERROR_ALLOC_RING_BUFFER_2: -27,
 			BROTLI_DECODER_ERROR_ALLOC_BLOCK_TYPE_TREES: -30,
 			BROTLI_DECODER_ERROR_UNREACHABLE: -31
-		}, Xo));
+		}, Qo));
 	});
-	var Ts = d((f) => {
+	var Ds = d((f) => {
 		"use strict";
-		var Qo = f && f.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var Jo = f && f.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -97912,14 +97912,14 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), Jo = f && f.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), ea = f && f.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), ea = f && f.__importStar || (function() {
+		}), ta = f && f.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -97930,24 +97930,24 @@ while (this[zr](this[Ut]()) && this[R].length);
 			return function(e) {
 				if (e && e.__esModule) return e;
 				var t = {};
-				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && Qo(t, e, i[r]);
-				return Jo(t, e), t;
+				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && Jo(t, e, i[r]);
+				return ea(t, e), t;
 			};
-		})(), ta = f && f.__importDefault || function(s) {
+		})(), ia = f && f.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(f, "__esModule", { value: !0 });
 		f.ZstdDecompress = f.ZstdCompress = f.BrotliDecompress = f.BrotliCompress = f.Unzip = f.InflateRaw = f.DeflateRaw = f.Gunzip = f.Gzip = f.Inflate = f.Deflate = f.Zlib = f.ZlibError = f.constants = void 0;
-		var ms = ta(require("assert")), Le = require("buffer"), ia = We(), Ur = ea(require("zlib")), te = cs(), sa = cs();
+		var ps = ia(require("assert")), Ae = require("buffer"), sa = We(), qr = ta(require("zlib")), te = fs$3(), ra = fs$3();
 		Object.defineProperty(f, "constants", {
 			enumerable: !0,
 			get: function() {
-				return sa.constants;
+				return ra.constants;
 			}
 		});
-		var ra = Le.Buffer.concat, qr = Object.getOwnPropertyDescriptor(Le.Buffer, "concat"), na = (s) => s, fs$6 = qr?.writable === !0 || qr?.set !== void 0 ? (s) => {
-			Le.Buffer.concat = s ? na : ra;
-		} : (s) => {}, Ae = Symbol("_superWrite"), Ie = class extends Error {
+		var na = Ae.Buffer.concat, Wr = Object.getOwnPropertyDescriptor(Ae.Buffer, "concat"), oa = (s) => s, ds = Wr?.writable === !0 || Wr?.set !== void 0 ? (s) => {
+			Ae.Buffer.concat = s ? oa : na;
+		} : (s) => {}, Ie = Symbol("_superWrite"), Fe = class extends Error {
 			code;
 			errno;
 			constructor(e, t) {
@@ -97957,8 +97957,8 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return "ZlibError";
 			}
 		};
-		f.ZlibError = Ie;
-		var ds = Symbol("flushFlag"), bt = class extends ia.Minipass {
+		f.ZlibError = Fe;
+		var ms = Symbol("flushFlag"), St = class extends sa.Minipass {
 			#e = !1;
 			#i = !1;
 			#s;
@@ -97977,24 +97977,24 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}
 			constructor(e, t) {
 				if (!e || typeof e != "object") throw new TypeError("invalid options for ZlibBase constructor");
-				if (super(e), this.#s = e.flush ?? 0, this.#n = e.finishFlush ?? 0, this.#r = e.fullFlushFlag ?? 0, typeof Ur[t] != "function") throw new TypeError("Compression method not supported: " + t);
+				if (super(e), this.#s = e.flush ?? 0, this.#n = e.finishFlush ?? 0, this.#r = e.fullFlushFlag ?? 0, typeof qr[t] != "function") throw new TypeError("Compression method not supported: " + t);
 				try {
-					this.#t = new Ur[t](e);
+					this.#t = new qr[t](e);
 				} catch (i) {
-					throw new Ie(i, this.constructor);
+					throw new Fe(i, this.constructor);
 				}
 				this.#o = (i) => {
 					this.#e || (this.#e = !0, this.close(), this.emit("error", i));
-				}, this.#t?.on("error", (i) => this.#o(new Ie(i))), this.once("end", () => this.close);
+				}, this.#t?.on("error", (i) => this.#o(new Fe(i))), this.once("end", () => this.close);
 			}
 			close() {
 				this.#t && (this.#t.close(), this.#t = void 0, this.emit("close"));
 			}
 			reset() {
-				if (!this.#e) return (0, ms.default)(this.#t, "zlib binding closed"), this.#t.reset?.();
+				if (!this.#e) return (0, ps.default)(this.#t, "zlib binding closed"), this.#t.reset?.();
 			}
 			flush(e) {
-				this.ended || (typeof e != "number" && (e = this.#r), this.write(Object.assign(Le.Buffer.alloc(0), { [ds]: e })));
+				this.ended || (typeof e != "number" && (e = this.#r), this.write(Object.assign(Ae.Buffer.alloc(0), { [ms]: e })));
 			}
 			end(e, t, i) {
 				return typeof e == "function" && (i = e, t = void 0, e = void 0), typeof t == "function" && (i = t, t = void 0), e && (t ? this.write(e, t) : this.write(e)), this.flush(this.#n), this.#i = !0, super.end(i);
@@ -98002,35 +98002,35 @@ while (this[zr](this[Ut]()) && this[R].length);
 			get ended() {
 				return this.#i;
 			}
-			[Ae](e) {
+			[Ie](e) {
 				return super.write(e);
 			}
 			write(e, t, i) {
-				if (typeof t == "function" && (i = t, t = "utf8"), typeof e == "string" && (e = Le.Buffer.from(e, t)), this.#e) return;
-				(0, ms.default)(this.#t, "zlib binding closed");
+				if (typeof t == "function" && (i = t, t = "utf8"), typeof e == "string" && (e = Ae.Buffer.from(e, t)), this.#e) return;
+				(0, ps.default)(this.#t, "zlib binding closed");
 				let r = this.#t._handle, n = r.close;
 				r.close = () => {};
 				let o = this.#t.close;
-				this.#t.close = () => {}, fs$6(!0);
-				let a;
+				this.#t.close = () => {}, ds(!0);
+				let h;
 				try {
-					let l = typeof e[ds] == "number" ? e[ds] : this.#s;
-					a = this.#t._processChunk(e, l), fs$6(!1);
+					let l = typeof e[ms] == "number" ? e[ms] : this.#s;
+					h = this.#t._processChunk(e, l), ds(!1);
 				} catch (l) {
-					fs$6(!1), this.#o(new Ie(l, this.write));
+					ds(!1), this.#o(new Fe(l, this.write));
 				} finally {
 					this.#t && (this.#t._handle = r, r.close = n, this.#t.close = o, this.#t.removeAllListeners("error"));
 				}
-				this.#t && this.#t.on("error", (l) => this.#o(new Ie(l, this.write)));
-				let h;
-				if (a) if (Array.isArray(a) && a.length > 0) {
-					let l = a[0];
-					h = this[Ae](Le.Buffer.from(l));
-					for (let u = 1; u < a.length; u++) h = this[Ae](a[u]);
-				} else h = this[Ae](Le.Buffer.from(a));
-				return i && i(), h;
+				this.#t && this.#t.on("error", (l) => this.#o(new Fe(l, this.write)));
+				let a;
+				if (h) if (Array.isArray(h) && h.length > 0) {
+					let l = h[0];
+					a = this[Ie](Ae.Buffer.from(l));
+					for (let u = 1; u < h.length; u++) a = this[Ie](h[u]);
+				} else a = this[Ie](Ae.Buffer.from(h));
+				return i && i(), a;
 			}
-		}, ie = class extends bt {
+		}, ie = class extends St {
 			#e;
 			#i;
 			constructor(e, t) {
@@ -98041,7 +98041,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 					if (!this.handle) throw new Error("cannot switch params when binding is closed");
 					if (!this.handle.params) throw new Error("not supported in this implementation");
 					if (this.#e !== e || this.#i !== t) {
-						this.flush(te.constants.Z_SYNC_FLUSH), (0, ms.default)(this.handle, "zlib binding closed");
+						this.flush(te.constants.Z_SYNC_FLUSH), (0, ps.default)(this.handle, "zlib binding closed");
 						let i = this.handle.flush;
 						this.handle.flush = (r, n) => {
 							typeof r == "function" && (n = r, r = this.flushFlag), this.flush(r), n?.();
@@ -98057,136 +98057,148 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}
 		};
 		f.Zlib = ie;
-		var ps = class extends ie {
+		var _s = class extends ie {
 			constructor(e) {
 				super(e, "Deflate");
 			}
 		};
-		f.Deflate = ps;
-		var _s = class extends ie {
+		f.Deflate = _s;
+		var ws = class extends ie {
 			constructor(e) {
 				super(e, "Inflate");
 			}
 		};
-		f.Inflate = _s;
-		var ws = class extends ie {
+		f.Inflate = ws;
+		var ys = class extends ie {
 			#e;
 			constructor(e) {
 				super(e, "Gzip"), this.#e = e && !!e.portable;
 			}
-			[Ae](e) {
-				return this.#e ? (this.#e = !1, e[9] = 255, super[Ae](e)) : super[Ae](e);
+			[Ie](e) {
+				return this.#e ? (this.#e = !1, e[9] = 255, super[Ie](e)) : super[Ie](e);
 			}
 		};
-		f.Gzip = ws;
-		var ys = class extends ie {
+		f.Gzip = ys;
+		var Es = class extends ie {
 			constructor(e) {
 				super(e, "Gunzip");
 			}
 		};
-		f.Gunzip = ys;
-		var Es = class extends ie {
+		f.Gunzip = Es;
+		var bs = class extends ie {
 			constructor(e) {
 				super(e, "DeflateRaw");
 			}
 		};
-		f.DeflateRaw = Es;
-		var bs = class extends ie {
+		f.DeflateRaw = bs;
+		var Ss = class extends ie {
 			constructor(e) {
 				super(e, "InflateRaw");
 			}
 		};
-		f.InflateRaw = bs;
-		var Ss = class extends ie {
+		f.InflateRaw = Ss;
+		var gs = class extends ie {
 			constructor(e) {
 				super(e, "Unzip");
 			}
 		};
-		f.Unzip = Ss;
-		var Qt = class extends bt {
+		f.Unzip = gs;
+		var Jt = class extends St {
 			constructor(e, t) {
 				e = e || {}, e.flush = e.flush || te.constants.BROTLI_OPERATION_PROCESS, e.finishFlush = e.finishFlush || te.constants.BROTLI_OPERATION_FINISH, e.fullFlushFlag = te.constants.BROTLI_OPERATION_FLUSH, super(e, t);
 			}
-		}, gs = class extends Qt {
+		}, Os = class extends Jt {
 			constructor(e) {
 				super(e, "BrotliCompress");
 			}
 		};
-		f.BrotliCompress = gs;
-		var Os = class extends Qt {
+		f.BrotliCompress = Os;
+		var Rs = class extends Jt {
 			constructor(e) {
 				super(e, "BrotliDecompress");
 			}
 		};
-		f.BrotliDecompress = Os;
-		var Jt = class extends bt {
+		f.BrotliDecompress = Rs;
+		var ei = class extends St {
 			constructor(e, t) {
 				e = e || {}, e.flush = e.flush || te.constants.ZSTD_e_continue, e.finishFlush = e.finishFlush || te.constants.ZSTD_e_end, e.fullFlushFlag = te.constants.ZSTD_e_flush, super(e, t);
 			}
-		}, Rs = class extends Jt {
+		}, vs = class extends ei {
 			constructor(e) {
 				super(e, "ZstdCompress");
 			}
 		};
-		f.ZstdCompress = Rs;
-		var vs = class extends Jt {
+		f.ZstdCompress = vs;
+		var Ts = class extends ei {
 			constructor(e) {
 				super(e, "ZstdDecompress");
 			}
 		};
-		f.ZstdDecompress = vs;
+		f.ZstdDecompress = Ts;
 	});
-	var Zr = d((Xe) => {
+	var Gr = d((Xe) => {
 		"use strict";
 		Object.defineProperty(Xe, "__esModule", { value: !0 });
 		Xe.parse = Xe.encode = void 0;
-		var oa = (s, e) => {
-			if (Number.isSafeInteger(s)) s < 0 ? ha(s, e) : aa(s, e);
+		var aa = (s, e) => {
+			if (Number.isSafeInteger(s)) s < 0 ? la(s, e) : ha(s, e);
 			else throw Error("cannot encode number outside of javascript safe integer range");
 			return e;
 		};
-		Xe.encode = oa;
-		var aa = (s, e) => {
+		Xe.encode = aa;
+		var ha = (s, e) => {
 			e[0] = 128;
 			for (var t = e.length; t > 1; t--) e[t - 1] = s & 255, s = Math.floor(s / 256);
-		}, ha = (s, e) => {
+		}, la = (s, e) => {
 			e[0] = 255;
 			var t = !1;
 			s = s * -1;
 			for (var i = e.length; i > 1; i--) {
 				var r = s & 255;
-				s = Math.floor(s / 256), t ? e[i - 1] = Wr(r) : r === 0 ? e[i - 1] = 0 : (t = !0, e[i - 1] = Hr(r));
+				s = Math.floor(s / 256), t ? e[i - 1] = Hr(r) : r === 0 ? e[i - 1] = 0 : (t = !0, e[i - 1] = Zr(r));
 			}
-		}, la = (s) => {
-			let e = s[0], t = e === 128 ? ca(s.subarray(1, s.length)) : e === 255 ? ua(s) : null;
+		}, ua = (s) => {
+			let e = s[0], t = e === 128 ? fa(s.subarray(1, s.length)) : e === 255 ? ca(s) : null;
 			if (t === null) throw Error("invalid base256 encoding");
 			if (!Number.isSafeInteger(t)) throw Error("parsed number outside of javascript safe integer range");
 			return t;
 		};
-		Xe.parse = la;
-		var ua = (s) => {
+		Xe.parse = ua;
+		var ca = (s) => {
 			for (var e = s.length, t = 0, i = !1, r = e - 1; r > -1; r--) {
 				var n = Number(s[r]), o;
-				i ? o = Wr(n) : n === 0 ? o = n : (i = !0, o = Hr(n)), o !== 0 && (t -= o * Math.pow(256, e - r - 1));
+				i ? o = Hr(n) : n === 0 ? o = n : (i = !0, o = Zr(n)), o !== 0 && (t -= o * Math.pow(256, e - r - 1));
 			}
 			return t;
-		}, ca = (s) => {
+		}, fa = (s) => {
 			for (var e = s.length, t = 0, i = e - 1; i > -1; i--) {
 				var r = Number(s[i]);
 				r !== 0 && (t += r * Math.pow(256, e - i - 1));
 			}
 			return t;
-		}, Wr = (s) => (255 ^ s) & 255, Hr = (s) => (255 ^ s) + 1 & 255;
+		}, Hr = (s) => (255 ^ s) & 255, Zr = (s) => (255 ^ s) + 1 & 255;
 	});
-	var Ds = d((j) => {
+	var Ps = d((C) => {
 		"use strict";
-		Object.defineProperty(j, "__esModule", { value: !0 });
-		j.code = j.name = j.isName = j.isCode = void 0;
-		var fa = (s) => j.name.has(s);
-		j.isCode = fa;
-		var da = (s) => j.code.has(s);
-		j.isName = da;
-		j.name = new Map([
+		Object.defineProperty(C, "__esModule", { value: !0 });
+		C.code = C.name = C.normalFsTypes = C.isName = C.isCode = void 0;
+		var da = (s) => C.name.has(s);
+		C.isCode = da;
+		var ma = (s) => C.code.has(s);
+		C.isName = ma;
+		C.normalFsTypes = new Set([
+			"0",
+			"",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"D"
+		]);
+		C.name = new Map([
 			["0", "File"],
 			["", "OldFile"],
 			["1", "Link"],
@@ -98209,11 +98221,11 @@ while (this[zr](this[Ut]()) && this[R].length);
 			["V", "TapeVolumeHeader"],
 			["X", "OldExtendedHeader"]
 		]);
-		j.code = new Map(Array.from(j.name).map((s) => [s[1], s[0]]));
+		C.code = new Map(Array.from(C.name).map((s) => [s[1], s[0]]));
 	});
-	var Je = d((se) => {
+	var et = d((se) => {
 		"use strict";
-		var ma = se && se.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var pa = se && se.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -98224,14 +98236,14 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), pa = se && se.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), _a = se && se.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), Gr = se && se.__importStar || (function() {
+		}), Yr = se && se.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -98242,13 +98254,13 @@ while (this[zr](this[Ut]()) && this[R].length);
 			return function(e) {
 				if (e && e.__esModule) return e;
 				var t = {};
-				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && ma(t, e, i[r]);
-				return pa(t, e), t;
+				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && pa(t, e, i[r]);
+				return _a(t, e), t;
 			};
 		})();
 		Object.defineProperty(se, "__esModule", { value: !0 });
 		se.Header = void 0;
-		var Qe = require("node:path"), Yr = Gr(Zr()), St = Gr(Ds()), Ms = class {
+		var Qe = require("node:path"), Kr = Yr(Gr()), Je = Yr(Ps()), Ls = class {
 			cksumValid = !1;
 			needPax = !1;
 			nullBlock = !1;
@@ -98275,47 +98287,46 @@ while (this[zr](this[Ut]()) && this[R].length);
 			}
 			decode(e, t, i, r) {
 				if (t || (t = 0), !e || !(e.length >= t + 512)) throw new Error("need 512 bytes for header");
-				this.path = i?.path ?? Fe(e, t, 100), this.mode = i?.mode ?? r?.mode ?? be(e, t + 100, 8), this.uid = i?.uid ?? r?.uid ?? be(e, t + 108, 8), this.gid = i?.gid ?? r?.gid ?? be(e, t + 116, 8), this.size = i?.size ?? r?.size ?? be(e, t + 124, 12), this.mtime = i?.mtime ?? r?.mtime ?? Ps(e, t + 136, 12), this.cksum = be(e, t + 148, 12), r && this.#i(r, !0), i && this.#i(i);
-				let n = Fe(e, t + 156, 1);
-				if (St.isCode(n) && (this.#e = n || "0"), this.#e === "0" && this.path.slice(-1) === "/" && (this.#e = "5"), this.#e === "5" && (this.size = 0), this.linkpath = Fe(e, t + 157, 100), e.subarray(t + 257, t + 265).toString() === "ustar\x0000") if (this.uname = i?.uname ?? r?.uname ?? Fe(e, t + 265, 32), this.gname = i?.gname ?? r?.gname ?? Fe(e, t + 297, 32), this.devmaj = i?.devmaj ?? r?.devmaj ?? be(e, t + 329, 8) ?? 0, this.devmin = i?.devmin ?? r?.devmin ?? be(e, t + 337, 8) ?? 0, e[t + 475] !== 0) {
-					let a = Fe(e, t + 345, 155);
-					this.path = a + "/" + this.path;
+				let n = Ce(e, t + 156, 1), o = Je.normalFsTypes.has(n), h = o ? i : void 0, a = o ? r : void 0;
+				if (this.path = h?.path ?? Ce(e, t, 100), this.mode = h?.mode ?? a?.mode ?? be(e, t + 100, 8), this.uid = h?.uid ?? a?.uid ?? be(e, t + 108, 8), this.gid = h?.gid ?? a?.gid ?? be(e, t + 116, 8), this.size = h?.size ?? a?.size ?? be(e, t + 124, 12), this.mtime = h?.mtime ?? a?.mtime ?? Ns(e, t + 136, 12), this.cksum = be(e, t + 148, 12), a && this.#i(a, !0), h && this.#i(h), Je.isCode(n) && (this.#e = n || "0"), this.#e === "0" && this.path.slice(-1) === "/" && (this.#e = "5"), this.#e === "5" && (this.size = 0), this.linkpath = Ce(e, t + 157, 100), e.subarray(t + 257, t + 265).toString() === "ustar\x0000") if (this.uname = h?.uname ?? a?.uname ?? Ce(e, t + 265, 32), this.gname = h?.gname ?? a?.gname ?? Ce(e, t + 297, 32), this.devmaj = h?.devmaj ?? a?.devmaj ?? be(e, t + 329, 8) ?? 0, this.devmin = h?.devmin ?? a?.devmin ?? be(e, t + 337, 8) ?? 0, e[t + 475] !== 0) {
+					let u = Ce(e, t + 345, 155);
+					this.path = u + "/" + this.path;
 				} else {
-					let a = Fe(e, t + 345, 130);
-					a && (this.path = a + "/" + this.path), this.atime = i?.atime ?? r?.atime ?? Ps(e, t + 476, 12), this.ctime = i?.ctime ?? r?.ctime ?? Ps(e, t + 488, 12);
+					let u = Ce(e, t + 345, 130);
+					u && (this.path = u + "/" + this.path), this.atime = i?.atime ?? r?.atime ?? Ns(e, t + 476, 12), this.ctime = i?.ctime ?? r?.ctime ?? Ns(e, t + 488, 12);
 				}
-				let o = 256;
-				for (let a = t; a < t + 148; a++) o += e[a];
-				for (let a = t + 156; a < t + 512; a++) o += e[a];
-				this.cksumValid = o === this.cksum, this.cksum === void 0 && o === 256 && (this.nullBlock = !0);
+				let l = 256;
+				for (let u = t; u < t + 148; u++) l += e[u];
+				for (let u = t + 156; u < t + 512; u++) l += e[u];
+				this.cksumValid = l === this.cksum, this.cksum === void 0 && l === 256 && (this.nullBlock = !0);
 			}
 			#i(e, t = !1) {
 				Object.assign(this, Object.fromEntries(Object.entries(e).filter(([i, r]) => !(r == null || i === "path" && t || i === "linkpath" && t || i === "global"))));
 			}
 			encode(e, t = 0) {
 				if (e || (e = this.block = Buffer.alloc(512)), this.#e === "Unsupported" && (this.#e = "0"), !(e.length >= t + 512)) throw new Error("need 512 bytes for header");
-				let i = this.ctime || this.atime ? 130 : 155, r = _a(this.path || "", i), n = r[0], o = r[1];
-				this.needPax = !!r[2], this.needPax = Ce(e, t, 100, n) || this.needPax, this.needPax = Se(e, t + 100, 8, this.mode) || this.needPax, this.needPax = Se(e, t + 108, 8, this.uid) || this.needPax, this.needPax = Se(e, t + 116, 8, this.gid) || this.needPax, this.needPax = Se(e, t + 124, 12, this.size) || this.needPax, this.needPax = Ns(e, t + 136, 12, this.mtime) || this.needPax, e[t + 156] = Number(this.#e.codePointAt(0)), this.needPax = Ce(e, t + 157, 100, this.linkpath) || this.needPax, e.write("ustar\x0000", t + 257, 8), this.needPax = Ce(e, t + 265, 32, this.uname) || this.needPax, this.needPax = Ce(e, t + 297, 32, this.gname) || this.needPax, this.needPax = Se(e, t + 329, 8, this.devmaj) || this.needPax, this.needPax = Se(e, t + 337, 8, this.devmin) || this.needPax, this.needPax = Ce(e, t + 345, i, o) || this.needPax, e[t + 475] !== 0 ? this.needPax = Ce(e, t + 345, 155, o) || this.needPax : (this.needPax = Ce(e, t + 345, 130, o) || this.needPax, this.needPax = Ns(e, t + 476, 12, this.atime) || this.needPax, this.needPax = Ns(e, t + 488, 12, this.ctime) || this.needPax);
-				let a = 256;
-				for (let h = t; h < t + 148; h++) a += e[h];
-				for (let h = t + 156; h < t + 512; h++) a += e[h];
-				return this.cksum = a, Se(e, t + 148, 8, this.cksum), this.cksumValid = !0, this.needPax;
+				let i = this.ctime || this.atime ? 130 : 155, r = wa(this.path || "", i), n = r[0], o = r[1];
+				this.needPax = !!r[2], this.needPax = Be(e, t, 100, n) || this.needPax, this.needPax = Se(e, t + 100, 8, this.mode) || this.needPax, this.needPax = Se(e, t + 108, 8, this.uid) || this.needPax, this.needPax = Se(e, t + 116, 8, this.gid) || this.needPax, this.needPax = Se(e, t + 124, 12, this.size) || this.needPax, this.needPax = Ms(e, t + 136, 12, this.mtime) || this.needPax, e[t + 156] = Number(this.#e.codePointAt(0)), this.needPax = Be(e, t + 157, 100, this.linkpath) || this.needPax, e.write("ustar\x0000", t + 257, 8), this.needPax = Be(e, t + 265, 32, this.uname) || this.needPax, this.needPax = Be(e, t + 297, 32, this.gname) || this.needPax, this.needPax = Se(e, t + 329, 8, this.devmaj) || this.needPax, this.needPax = Se(e, t + 337, 8, this.devmin) || this.needPax, this.needPax = Be(e, t + 345, i, o) || this.needPax, e[t + 475] !== 0 ? this.needPax = Be(e, t + 345, 155, o) || this.needPax : (this.needPax = Be(e, t + 345, 130, o) || this.needPax, this.needPax = Ms(e, t + 476, 12, this.atime) || this.needPax, this.needPax = Ms(e, t + 488, 12, this.ctime) || this.needPax);
+				let h = 256;
+				for (let a = t; a < t + 148; a++) h += e[a];
+				for (let a = t + 156; a < t + 512; a++) h += e[a];
+				return this.cksum = h, Se(e, t + 148, 8, this.cksum), this.cksumValid = !0, this.needPax;
 			}
 			get type() {
-				return this.#e === "Unsupported" ? this.#e : St.name.get(this.#e);
+				return this.#e === "Unsupported" ? this.#e : Je.name.get(this.#e);
 			}
 			get typeKey() {
 				return this.#e;
 			}
 			set type(e) {
-				let t = String(St.code.get(e));
-				if (St.isCode(t) || t === "Unsupported") this.#e = t;
-				else if (St.isCode(e)) this.#e = e;
+				let t = String(Je.code.get(e));
+				if (Je.isCode(t) || t === "Unsupported") this.#e = t;
+				else if (Je.isCode(e)) this.#e = e;
 				else throw new TypeError("invalid entry type: " + e);
 			}
 		};
-		se.Header = Ms;
-		var _a = (s, e) => {
+		se.Header = Ls;
+		var wa = (s, e) => {
 			let i = s, r = "", n, o = Qe.posix.parse(s).root || ".";
 			if (Buffer.byteLength(i) < 100) n = [
 				i,
@@ -98342,17 +98353,17 @@ while (this[zr](this[Ut]()) && this[R].length);
 				]);
 			}
 			return n;
-		}, Fe = (s, e, t) => s.subarray(e, e + t).toString("utf8").replace(/\0.*/, ""), Ps = (s, e, t) => wa(be(s, e, t)), wa = (s) => s === void 0 ? void 0 : /* @__PURE__ */ new Date(s * 1e3), be = (s, e, t) => Number(s[e]) & 128 ? Yr.parse(s.subarray(e, e + t)) : Ea(s, e, t), ya = (s) => isNaN(s) ? void 0 : s, Ea = (s, e, t) => ya(parseInt(s.subarray(e, e + t).toString("utf8").replace(/\0.*$/, "").trim(), 8)), ba = {
+		}, Ce = (s, e, t) => s.subarray(e, e + t).toString("utf8").replace(/\0.*/, ""), Ns = (s, e, t) => ya(be(s, e, t)), ya = (s) => s === void 0 ? void 0 : /* @__PURE__ */ new Date(s * 1e3), be = (s, e, t) => Number(s[e]) & 128 ? Kr.parse(s.subarray(e, e + t)) : ba(s, e, t), Ea = (s) => isNaN(s) ? void 0 : s, ba = (s, e, t) => Ea(parseInt(s.subarray(e, e + t).toString("utf8").replace(/\0.*$/, "").trim(), 8)), Sa = {
 			12: 8589934591,
 			8: 2097151
-		}, Se = (s, e, t, i) => i === void 0 ? !1 : i > ba[t] || i < 0 ? (Yr.encode(i, s.subarray(e, e + t)), !0) : (Sa(s, e, t, i), !1), Sa = (s, e, t, i) => s.write(ga(i, t), e, t, "ascii"), ga = (s, e) => Oa(Math.floor(s).toString(8), e), Oa = (s, e) => (s.length === e - 1 ? s : new Array(e - s.length - 1).join("0") + s + " ") + "\0", Ns = (s, e, t, i) => i === void 0 ? !1 : Se(s, e, t, i.getTime() / 1e3), Ra = new Array(156).join("\0"), Ce = (s, e, t, i) => i === void 0 ? !1 : (s.write(i + Ra, e, t, "utf8"), i.length !== Buffer.byteLength(i) || i.length > t);
+		}, Se = (s, e, t, i) => i === void 0 ? !1 : i > Sa[t] || i < 0 ? (Kr.encode(i, s.subarray(e, e + t)), !0) : (ga(s, e, t, i), !1), ga = (s, e, t, i) => s.write(Oa(i, t), e, t, "ascii"), Oa = (s, e) => Ra(Math.floor(s).toString(8), e), Ra = (s, e) => (s.length === e - 1 ? s : new Array(e - s.length - 1).join("0") + s + " ") + "\0", Ms = (s, e, t, i) => i === void 0 ? !1 : Se(s, e, t, i.getTime() / 1e3), va = new Array(156).join("\0"), Be = (s, e, t, i) => i === void 0 ? !1 : (s.write(i + va, e, t, "utf8"), i.length !== Buffer.byteLength(i) || i.length > t);
 	});
-	var ti = d((ei) => {
+	var ii = d((ti) => {
 		"use strict";
-		Object.defineProperty(ei, "__esModule", { value: !0 });
-		ei.Pax = void 0;
-		var va = require("node:path"), Ta = Je();
-		ei.Pax = class s {
+		Object.defineProperty(ti, "__esModule", { value: !0 });
+		ti.Pax = void 0;
+		var Ta = require("node:path"), Da = et();
+		ti.Pax = class s {
 			atime;
 			mtime;
 			ctime;
@@ -98378,8 +98389,8 @@ while (this[zr](this[Ut]()) && this[R].length);
 				if (e === "") return Buffer.allocUnsafe(0);
 				let t = Buffer.byteLength(e), i = 512 * Math.ceil(1 + t / 512), r = Buffer.allocUnsafe(i);
 				for (let n = 0; n < 512; n++) r[n] = 0;
-				new Ta.Header({
-					path: ("PaxHeader/" + (0, va.basename)(this.path ?? "")).slice(0, 99),
+				new Da.Header({
+					path: ("PaxHeader/" + (0, Ta.basename)(this.path ?? "")).slice(0, 99),
 					mode: this.mode || 420,
 					uid: this.uid,
 					gid: this.gid,
@@ -98407,11 +98418,11 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return n + o >= Math.pow(10, o) && (o += 1), o + n + r;
 			}
 			static parse(e, t, i = !1) {
-				return new s(Da(Pa(e), t), i);
+				return new s(Pa(Na(e), t), i);
 			}
 		};
-		var Da = (s, e) => e ? Object.assign({}, e, s) : s, Pa = (s) => s.replace(/\n$/, "").split(`
-`).reduce(Na, Object.create(null)), Na = (s, e) => {
+		var Pa = (s, e) => e ? Object.assign({}, e, s) : s, Na = (s) => s.replace(/\n$/, "").split(`
+`).reduce(Ma, Object.create(null)), Ma = (s, e) => {
 			let t = parseInt(e, 10);
 			if (t !== Buffer.byteLength(e) + 1) return s;
 			e = e.slice((t + " ").length);
@@ -98421,17 +98432,17 @@ while (this[zr](this[Ut]()) && this[R].length);
 			return s[n] = /^([A-Z]+\.)?([mac]|birth|creation)time$/.test(n) ? /* @__PURE__ */ new Date(Number(o) * 1e3) : /^[0-9]+$/.test(o) ? +o : o, s;
 		};
 	});
-	var et = d((ii) => {
+	var tt = d((si) => {
 		"use strict";
-		Object.defineProperty(ii, "__esModule", { value: !0 });
-		ii.normalizeWindowsPath = void 0;
-		ii.normalizeWindowsPath = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) !== "win32" ? (s) => s : (s) => s && s.replaceAll(/\\/g, "/");
+		Object.defineProperty(si, "__esModule", { value: !0 });
+		si.normalizeWindowsPath = void 0;
+		si.normalizeWindowsPath = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) !== "win32" ? (s) => s : (s) => s && s.replaceAll(/\\/g, "/");
 	});
-	var ni = d((ri) => {
+	var Fs = d((ni) => {
 		"use strict";
-		Object.defineProperty(ri, "__esModule", { value: !0 });
-		ri.ReadEntry = void 0;
-		var La = We(), si = et(), As = class extends La.Minipass {
+		Object.defineProperty(ni, "__esModule", { value: !0 });
+		ni.ReadEntry = void 0;
+		var Aa = We(), ri = tt(), Is = class extends Aa.Minipass {
 			extended;
 			globalExtended;
 			header;
@@ -98481,7 +98492,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 					default: this.ignore = !0;
 				}
 				if (!e.path) throw new Error("no path provided for tar.ReadEntry");
-				this.path = (0, si.normalizeWindowsPath)(e.path), this.mode = e.mode, this.mode && (this.mode = this.mode & 4095), this.uid = e.uid, this.gid = e.gid, this.uname = e.uname, this.gname = e.gname, this.size = this.remain, this.mtime = e.mtime, this.atime = e.atime, this.ctime = e.ctime, this.linkpath = e.linkpath ? (0, si.normalizeWindowsPath)(e.linkpath) : void 0, this.uname = e.uname, this.gname = e.gname, t && this.#e(t), i && this.#e(i, !0);
+				this.path = (0, ri.normalizeWindowsPath)(e.path), this.mode = e.mode, this.mode && (this.mode = this.mode & 4095), this.uid = e.uid, this.gid = e.gid, this.uname = e.uname, this.gname = e.gname, this.size = this.remain, this.mtime = e.mtime, this.atime = e.atime, this.ctime = e.ctime, this.linkpath = e.linkpath ? (0, ri.normalizeWindowsPath)(e.linkpath) : void 0, this.uname = e.uname, this.gname = e.gname, t && this.#e(t), i && this.#e(i, !0);
 			}
 			write(e) {
 				let t = e.length;
@@ -98490,30 +98501,30 @@ while (this[zr](this[Ut]()) && this[R].length);
 				return this.remain = Math.max(0, i - t), this.blockRemain = Math.max(0, r - t), this.ignore ? !0 : i >= t ? super.write(e) : super.write(e.subarray(0, i));
 			}
 			#e(e, t = !1) {
-				e.path && (e.path = (0, si.normalizeWindowsPath)(e.path)), e.linkpath && (e.linkpath = (0, si.normalizeWindowsPath)(e.linkpath)), Object.assign(this, Object.fromEntries(Object.entries(e).filter(([i, r]) => !(r == null || i === "path" && t))));
+				e.path && (e.path = (0, ri.normalizeWindowsPath)(e.path)), e.linkpath && (e.linkpath = (0, ri.normalizeWindowsPath)(e.linkpath)), Object.assign(this, Object.fromEntries(Object.entries(e).filter(([i, r]) => !(r == null || i === "path" && t))));
 			}
 		};
-		ri.ReadEntry = As;
+		ni.ReadEntry = Is;
 	});
 	var ai = d((oi) => {
 		"use strict";
 		Object.defineProperty(oi, "__esModule", { value: !0 });
 		oi.warnMethod = void 0;
-		var Aa = (s, e, t, i = {}) => {
+		var Ia = (s, e, t, i = {}) => {
 			s.file && (i.file = s.file), s.cwd && (i.cwd = s.cwd), i.code = t instanceof Error && t.code || e, i.tarCode = e, !s.strict && i.recoverable !== !1 ? (t instanceof Error && (i = Object.assign(t, i), t = t.message), s.emit("warn", e, t, i)) : t instanceof Error ? s.emit("error", Object.assign(t, i)) : s.emit("error", Object.assign(/* @__PURE__ */ new Error(`${e}: ${t}`), i));
 		};
-		oi.warnMethod = Aa;
+		oi.warnMethod = Ia;
 	});
 	var pi = d((mi) => {
 		"use strict";
 		Object.defineProperty(mi, "__esModule", { value: !0 });
 		mi.Parser = void 0;
-		var Ia = require("events"), Is = Ts(), Kr = Je(), Vr = ti(), Fa = ni(), Ca = ai(), Ba = 1024 * 1024, ks = Buffer.from([31, 139]), js = Buffer.from([
+		var Fa = require("events"), Cs = Ds(), Vr = et(), $r = ii(), Ca = Fs(), Ba = ai(), za = 1024 * 1024, js = Buffer.from([31, 139]), Us = Buffer.from([
 			40,
 			181,
 			47,
 			253
-		]), za = Math.max(ks.length, js.length), H = Symbol("state"), Be = Symbol("writeEntry"), de = Symbol("readEntry"), Fs = Symbol("nextEntry"), $r = Symbol("processEntry"), re = Symbol("extendedHeader"), gt = Symbol("globalExtendedHeader"), ge = Symbol("meta"), Xr = Symbol("emitMeta"), _ = Symbol("buffer"), me = Symbol("queue"), Oe = Symbol("ended"), Cs = Symbol("emittedEnd"), ze = Symbol("emit"), S = Symbol("unzip"), hi = Symbol("consumeChunk"), li = Symbol("consumeChunkSub"), Bs = Symbol("consumeBody"), Qr = Symbol("consumeMeta"), Jr = Symbol("consumeHeader"), Ot = Symbol("consuming"), zs = Symbol("bufferConcat"), ui = Symbol("maybeEnd"), tt = Symbol("writing"), Re = Symbol("aborted"), ci = Symbol("onDone"), ke = Symbol("sawValidEntry"), fi = Symbol("sawNullBlock"), di = Symbol("sawEOF"), en = Symbol("closeStream"), ka = () => !0, xs = class extends Ia.EventEmitter {
+		]), ka = Math.max(js.length, Us.length), H = Symbol("state"), ze = Symbol("writeEntry"), de = Symbol("readEntry"), Bs = Symbol("nextEntry"), Xr = Symbol("processEntry"), re = Symbol("extendedHeader"), gt = Symbol("globalExtendedHeader"), ge = Symbol("meta"), Qr = Symbol("emitMeta"), _ = Symbol("buffer"), me = Symbol("queue"), Oe = Symbol("ended"), zs = Symbol("emittedEnd"), ke = Symbol("emit"), S = Symbol("unzip"), hi = Symbol("consumeChunk"), li = Symbol("consumeChunkSub"), ks = Symbol("consumeBody"), Jr = Symbol("consumeMeta"), en = Symbol("consumeHeader"), Ot = Symbol("consuming"), xs = Symbol("bufferConcat"), ui = Symbol("maybeEnd"), it = Symbol("writing"), Re = Symbol("aborted"), ci = Symbol("onDone"), xe = Symbol("sawValidEntry"), fi = Symbol("sawNullBlock"), di = Symbol("sawEOF"), tn = Symbol("closeStream"), xa = () => !0, qs = class extends Fa.EventEmitter {
 			file;
 			strict;
 			maxMetaEntrySize;
@@ -98525,7 +98536,7 @@ while (this[zr](this[Ut]()) && this[R].length);
 			[me] = [];
 			[_];
 			[de];
-			[Be];
+			[ze];
 			[H] = "begin";
 			[ge] = "";
 			[re];
@@ -98533,35 +98544,35 @@ while (this[zr](this[Ut]()) && this[R].length);
 			[Oe] = !1;
 			[S];
 			[Re] = !1;
-			[ke];
+			[xe];
 			[fi] = !1;
 			[di] = !1;
-			[tt] = !1;
+			[it] = !1;
 			[Ot] = !1;
-			[Cs] = !1;
+			[zs] = !1;
 			constructor(e = {}) {
 				super(), this.file = e.file || "", this.on(ci, () => {
-					(this[H] === "begin" || this[ke] === !1) && this.warn("TAR_BAD_ARCHIVE", "Unrecognized archive format");
+					(this[H] === "begin" || this[xe] === !1) && this.warn("TAR_BAD_ARCHIVE", "Unrecognized archive format");
 				}), e.ondone ? this.on(ci, e.ondone) : this.on(ci, () => {
 					this.emit("prefinish"), this.emit("finish"), this.emit("end");
-				}), this.strict = !!e.strict, this.maxMetaEntrySize = e.maxMetaEntrySize || Ba, this.filter = typeof e.filter == "function" ? e.filter : ka;
+				}), this.strict = !!e.strict, this.maxMetaEntrySize = e.maxMetaEntrySize || za, this.filter = typeof e.filter == "function" ? e.filter : xa;
 				let t = e.file && (e.file.endsWith(".tar.br") || e.file.endsWith(".tbr"));
 				this.brotli = !(e.gzip || e.zstd) && e.brotli !== void 0 ? e.brotli : t ? void 0 : !1;
 				let i = e.file && (e.file.endsWith(".tar.zst") || e.file.endsWith(".tzst"));
-				this.zstd = !(e.gzip || e.brotli) && e.zstd !== void 0 ? e.zstd : i ? !0 : void 0, this.on("end", () => this[en]()), typeof e.onwarn == "function" && this.on("warn", e.onwarn), typeof e.onReadEntry == "function" && this.on("entry", e.onReadEntry);
+				this.zstd = !(e.gzip || e.brotli) && e.zstd !== void 0 ? e.zstd : i ? !0 : void 0, this.on("end", () => this[tn]()), typeof e.onwarn == "function" && this.on("warn", e.onwarn), typeof e.onReadEntry == "function" && this.on("entry", e.onReadEntry);
 			}
 			warn(e, t, i = {}) {
-				(0, Ca.warnMethod)(this, e, t, i);
+				(0, Ba.warnMethod)(this, e, t, i);
 			}
-			[Jr](e, t) {
-				this[ke] === void 0 && (this[ke] = !1);
+			[en](e, t) {
+				this[xe] === void 0 && (this[xe] = !1);
 				let i;
 				try {
-					i = new Kr.Header(e, t, this[re], this[gt]);
+					i = new Vr.Header(e, t, this[re], this[gt]);
 				} catch (r) {
 					return this.warn("TAR_ENTRY_INVALID", r);
 				}
-				if (i.nullBlock) this[fi] ? (this[di] = !0, this[H] === "begin" && (this[H] = "header"), this[ze]("eof")) : (this[fi] = !0, this[ze]("nullBlock"));
+				if (i.nullBlock) this[fi] ? (this[di] = !0, this[H] === "begin" && (this[H] = "header"), this[ke]("eof")) : (this[fi] = !0, this[ke]("nullBlock"));
 				else if (this[fi] = !1, !i.cksumValid) this.warn("TAR_ENTRY_INVALID", "checksum failure", { header: i });
 				else if (!i.path) this.warn("TAR_ENTRY_INVALID", "path is required", { header: i });
 				else {
@@ -98569,62 +98580,62 @@ while (this[zr](this[Ut]()) && this[R].length);
 					if (/^(Symbolic)?Link$/.test(r) && !i.linkpath) this.warn("TAR_ENTRY_INVALID", "linkpath required", { header: i });
 					else if (!/^(Symbolic)?Link$/.test(r) && !/^(Global)?ExtendedHeader$/.test(r) && i.linkpath) this.warn("TAR_ENTRY_INVALID", "linkpath forbidden", { header: i });
 					else {
-						let n = this[Be] = new Fa.ReadEntry(i, this[re], this[gt]);
-						if (!this[ke]) if (n.remain) {
+						let n = this[ze] = new Ca.ReadEntry(i, this[re], this[gt]);
+						if (!this[xe]) if (n.remain) {
 							let o = () => {
-								n.invalid || (this[ke] = !0);
+								n.invalid || (this[xe] = !0);
 							};
 							n.on("end", o);
-						} else this[ke] = !0;
-						n.meta ? n.size > this.maxMetaEntrySize ? (n.ignore = !0, this[ze]("ignoredEntry", n), this[H] = "ignore", n.resume()) : n.size > 0 && (this[ge] = "", n.on("data", (o) => this[ge] += o), this[H] = "meta") : (this[re] = void 0, n.ignore = n.ignore || !this.filter(n.path, n), n.ignore ? (this[ze]("ignoredEntry", n), this[H] = n.remain ? "ignore" : "header", n.resume()) : (n.remain ? this[H] = "body" : (this[H] = "header", n.end()), this[de] ? this[me].push(n) : (this[me].push(n), this[Fs]())));
+						} else this[xe] = !0;
+						n.meta ? n.size > this.maxMetaEntrySize ? (n.ignore = !0, this[ke]("ignoredEntry", n), this[H] = "ignore", n.resume()) : n.size > 0 && (this[ge] = "", n.on("data", (o) => this[ge] += o), this[H] = "meta") : (this[re] = void 0, n.ignore = n.ignore || !this.filter(n.path, n), n.ignore ? (this[ke]("ignoredEntry", n), this[H] = n.remain ? "ignore" : "header", n.resume()) : (n.remain ? this[H] = "body" : (this[H] = "header", n.end()), this[de] ? this[me].push(n) : (this[me].push(n), this[Bs]())));
 					}
 				}
 			}
-			[en]() {
+			[tn]() {
 				queueMicrotask(() => this.emit("close"));
 			}
-			[$r](e) {
+			[Xr](e) {
 				let t = !0;
 				if (!e) this[de] = void 0, t = !1;
 				else if (Array.isArray(e)) {
 					let [i, ...r] = e;
 					this.emit(i, ...r);
-				} else this[de] = e, this.emit("entry", e), e.emittedEnd || (e.on("end", () => this[Fs]()), t = !1);
+				} else this[de] = e, this.emit("entry", e), e.emittedEnd || (e.on("end", () => this[Bs]()), t = !1);
 				return t;
 			}
-			[Fs]() {
+			[Bs]() {
 				do				;
-while (this[$r](this[me].shift()));
+while (this[Xr](this[me].shift()));
 				if (this[me].length === 0) {
 					let e = this[de];
-					!e || e.flowing || e.size === e.remain ? this[tt] || this.emit("drain") : e.once("drain", () => this.emit("drain"));
+					!e || e.flowing || e.size === e.remain ? this[it] || this.emit("drain") : e.once("drain", () => this.emit("drain"));
 				}
 			}
-			[Bs](e, t) {
-				let i = this[Be];
+			[ks](e, t) {
+				let i = this[ze];
 				if (!i) throw new Error("attempt to consume body without entry??");
 				let r = i.blockRemain ?? 0, n = r >= e.length && t === 0 ? e : e.subarray(t, t + r);
-				return i.write(n), i.blockRemain || (this[H] = "header", this[Be] = void 0, i.end()), n.length;
+				return i.write(n), i.blockRemain || (this[H] = "header", this[ze] = void 0, i.end()), n.length;
 			}
-			[Qr](e, t) {
-				let i = this[Be], r = this[Bs](e, t);
-				return !this[Be] && i && this[Xr](i), r;
+			[Jr](e, t) {
+				let i = this[ze], r = this[ks](e, t);
+				return !this[ze] && i && this[Qr](i), r;
 			}
-			[ze](e, t, i) {
+			[ke](e, t, i) {
 				this[me].length === 0 && !this[de] ? this.emit(e, t, i) : this[me].push([
 					e,
 					t,
 					i
 				]);
 			}
-			[Xr](e) {
-				switch (this[ze]("meta", this[ge]), e.type) {
+			[Qr](e) {
+				switch (this[ke]("meta", this[ge]), e.type) {
 					case "ExtendedHeader":
 					case "OldExtendedHeader":
-						this[re] = Vr.Pax.parse(this[ge], this[re], !1);
+						this[re] = $r.Pax.parse(this[ge], this[re], !1);
 						break;
 					case "GlobalExtendedHeader":
-						this[gt] = Vr.Pax.parse(this[ge], this[gt], !0);
+						this[gt] = $r.Pax.parse(this[ge], this[gt], !0);
 						break;
 					case "NextFileHasLongPath":
 					case "OldGnuLongPath": {
@@ -98646,57 +98657,57 @@ while (this[$r](this[me].shift()));
 			write(e, t, i) {
 				if (typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, typeof t == "string" ? t : "utf8")), this[Re]) return i?.(), !1;
 				if ((this[S] === void 0 || this.brotli === void 0 && this[S] === !1) && e) {
-					if (this[_] && (e = Buffer.concat([this[_], e]), this[_] = void 0), e.length < za) return this[_] = e, i?.(), !0;
-					for (let h = 0; this[S] === void 0 && h < ks.length; h++) e[h] !== ks[h] && (this[S] = !1);
+					if (this[_] && (e = Buffer.concat([this[_], e]), this[_] = void 0), e.length < ka) return this[_] = e, i?.(), !0;
+					for (let a = 0; this[S] === void 0 && a < js.length; a++) e[a] !== js[a] && (this[S] = !1);
 					let o = !1;
 					if (this[S] === !1 && this.zstd !== !1) {
 						o = !0;
-						for (let h = 0; h < js.length; h++) if (e[h] !== js[h]) {
+						for (let a = 0; a < Us.length; a++) if (e[a] !== Us[a]) {
 							o = !1;
 							break;
 						}
 					}
-					let a = this.brotli === void 0 && !o;
-					if (this[S] === !1 && a) if (e.length < 512) if (this[Oe]) this.brotli = !0;
+					let h = this.brotli === void 0 && !o;
+					if (this[S] === !1 && h) if (e.length < 512) if (this[Oe]) this.brotli = !0;
 					else return this[_] = e, i?.(), !0;
 					else try {
-						new Kr.Header(e.subarray(0, 512)), this.brotli = !1;
+						new Vr.Header(e.subarray(0, 512)), this.brotli = !1;
 					} catch {
 						this.brotli = !0;
 					}
 					if (this[S] === void 0 || this[S] === !1 && (this.brotli || o)) {
-						let h = this[Oe];
-						this[Oe] = !1, this[S] = this[S] === void 0 ? new Is.Unzip({}) : o ? new Is.ZstdDecompress({}) : new Is.BrotliDecompress({}), this[S].on("data", (u) => this[hi](u)), this[S].on("error", (u) => this.abort(u)), this[S].on("end", () => {
+						let a = this[Oe];
+						this[Oe] = !1, this[S] = this[S] === void 0 ? new Cs.Unzip({}) : o ? new Cs.ZstdDecompress({}) : new Cs.BrotliDecompress({}), this[S].on("data", (u) => this[hi](u)), this[S].on("error", (u) => this.abort(u)), this[S].on("end", () => {
 							this[Oe] = !0, this[hi]();
-						}), this[tt] = !0;
-						let l = !!this[S][h ? "end" : "write"](e);
-						return this[tt] = !1, i?.(), l;
+						}), this[it] = !0;
+						let l = !!this[S][a ? "end" : "write"](e);
+						return this[it] = !1, i?.(), l;
 					}
 				}
-				this[tt] = !0, this[S] ? this[S].write(e) : this[hi](e), this[tt] = !1;
+				this[it] = !0, this[S] ? this[S].write(e) : this[hi](e), this[it] = !1;
 				let n = this[me].length > 0 ? !1 : this[de] ? this[de].flowing : !0;
 				return !n && this[me].length === 0 && this[de]?.once("drain", () => this.emit("drain")), i?.(), n;
 			}
-			[zs](e) {
+			[xs](e) {
 				e && !this[Re] && (this[_] = this[_] ? Buffer.concat([this[_], e]) : e);
 			}
 			[ui]() {
-				if (this[Oe] && !this[Cs] && !this[Re] && !this[Ot]) {
-					this[Cs] = !0;
-					let e = this[Be];
+				if (this[Oe] && !this[zs] && !this[Re] && !this[Ot]) {
+					this[zs] = !0;
+					let e = this[ze];
 					if (e && e.blockRemain) {
 						let t = this[_] ? this[_].length : 0;
 						this.warn("TAR_BAD_ARCHIVE", `Truncated input (needed ${e.blockRemain} more bytes, only ${t} available)`, { entry: e }), this[_] && e.write(this[_]), e.end();
 					}
-					this[ze](ci);
+					this[ke](ci);
 				}
 			}
 			[hi](e) {
-				if (this[Ot] && e) this[zs](e);
+				if (this[Ot] && e) this[xs](e);
 				else if (!e && !this[_]) this[ui]();
 				else if (e) {
 					if (this[Ot] = !0, this[_]) {
-						this[zs](e);
+						this[xs](e);
 						let t = this[_];
 						this[_] = void 0, this[li](t);
 					} else this[li](e);
@@ -98713,14 +98724,14 @@ while (this[$r](this[me].shift()));
 				for (; t + 512 <= i && !this[Re] && !this[di];) switch (this[H]) {
 					case "begin":
 					case "header":
-						this[Jr](e, t), t += 512;
+						this[en](e, t), t += 512;
 						break;
 					case "ignore":
 					case "body":
-						t += this[Bs](e, t);
+						t += this[ks](e, t);
 						break;
 					case "meta":
-						t += this[Qr](e, t);
+						t += this[Jr](e, t);
 						break;
 					default: throw new Error("invalid state: " + this[H]);
 				}
@@ -98730,7 +98741,7 @@ while (this[$r](this[me].shift()));
 				return typeof e == "function" && (i = e, t = void 0, e = void 0), typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, t)), i && this.once("finish", i), this[Re] || (this[S] ? (e && this[S].write(e), this[S].end()) : (this[Oe] = !0, (this.brotli === void 0 || this.zstd === void 0) && (e = e || Buffer.alloc(0)), e && this.write(e), this[ui]())), this;
 			}
 		};
-		mi.Parser = xs;
+		mi.Parser = qs;
 	});
 	var wi = d((_i) => {
 		"use strict";
@@ -98743,9 +98754,9 @@ while (this[$r](this[me].shift()));
 		};
 		_i.stripTrailingSlashes = ja;
 	});
-	var st = d((C) => {
+	var rt = d((B) => {
 		"use strict";
-		var xa = C && C.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var Ua = B && B.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -98756,14 +98767,14 @@ while (this[$r](this[me].shift()));
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), Ua = C && C.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), qa = B && B.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), qa = C && C.__importStar || (function() {
+		}), Wa = B && B.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -98774,112 +98785,112 @@ while (this[$r](this[me].shift()));
 			return function(e) {
 				if (e && e.__esModule) return e;
 				var t = {};
-				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && xa(t, e, i[r]);
-				return Ua(t, e), t;
+				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && Ua(t, e, i[r]);
+				return qa(t, e), t;
 			};
-		})(), Wa = C && C.__importDefault || function(s) {
+		})(), Ha = B && B.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(C, "__esModule", { value: !0 });
-		C.list = C.filesFilter = void 0;
-		var Ha = qa(Ke()), it = Wa(require("node:fs")), tn = require("path"), Za = Ve(), yi = pi(), Us = wi(), Ga = (s) => {
+		Object.defineProperty(B, "__esModule", { value: !0 });
+		B.list = B.filesFilter = void 0;
+		var Za = Wa(Ke()), st = Ha(require("node:fs")), sn = require("path"), Ga = Ve(), yi = pi(), Ws = wi(), Ya = (s) => {
 			let e = s.onReadEntry;
 			s.onReadEntry = e ? (t) => {
 				e(t), t.resume();
 			} : (t) => t.resume();
-		}, Ya = (s, e) => {
-			let t = new Map(e.map((n) => [(0, Us.stripTrailingSlashes)(n), !0])), i = s.filter, r = (n, o = "") => {
-				let a = o || (0, tn.parse)(n).root || ".", h;
-				if (n === a) h = !1;
+		}, Ka = (s, e) => {
+			let t = new Map(e.map((n) => [(0, Ws.stripTrailingSlashes)(n), !0])), i = s.filter, r = (n, o = "") => {
+				let h = o || (0, sn.parse)(n).root || ".", a;
+				if (n === h) a = !1;
 				else {
 					let l = t.get(n);
-					h = l !== void 0 ? l : r((0, tn.dirname)(n), a);
+					a = l !== void 0 ? l : r((0, sn.dirname)(n), h);
 				}
-				return t.set(n, h), h;
+				return t.set(n, a), a;
 			};
-			s.filter = i ? (n, o) => i(n, o) && r((0, Us.stripTrailingSlashes)(n)) : (n) => r((0, Us.stripTrailingSlashes)(n));
+			s.filter = i ? (n, o) => i(n, o) && r((0, Ws.stripTrailingSlashes)(n)) : (n) => r((0, Ws.stripTrailingSlashes)(n));
 		};
-		C.filesFilter = Ya;
-		var Ka = (s) => {
+		B.filesFilter = Ka;
+		var Va = (s) => {
 			let e = new yi.Parser(s), t = s.file, i;
 			try {
-				i = it.default.openSync(t, "r");
-				let r = it.default.fstatSync(i), n = s.maxReadSize || 16 * 1024 * 1024;
+				i = st.default.openSync(t, "r");
+				let r = st.default.fstatSync(i), n = s.maxReadSize || 16 * 1024 * 1024;
 				if (r.size < n) {
-					let o = Buffer.allocUnsafe(r.size), a = it.default.readSync(i, o, 0, r.size, 0);
-					e.end(a === o.byteLength ? o : o.subarray(0, a));
+					let o = Buffer.allocUnsafe(r.size), h = st.default.readSync(i, o, 0, r.size, 0);
+					e.end(h === o.byteLength ? o : o.subarray(0, h));
 				} else {
-					let o = 0, a = Buffer.allocUnsafe(n);
+					let o = 0, h = Buffer.allocUnsafe(n);
 					for (; o < r.size;) {
-						let h = it.default.readSync(i, a, 0, n, o);
-						if (h === 0) break;
-						o += h, e.write(a.subarray(0, h));
+						let a = st.default.readSync(i, h, 0, n, o);
+						if (a === 0) break;
+						o += a, e.write(h.subarray(0, a));
 					}
 					e.end();
 				}
 			} finally {
 				if (typeof i == "number") try {
-					it.default.closeSync(i);
+					st.default.closeSync(i);
 				} catch {}
 			}
-		}, Va = (s, e) => {
+		}, $a = (s, e) => {
 			let t = new yi.Parser(s), i = s.maxReadSize || 16 * 1024 * 1024, r = s.file;
-			return new Promise((o, a) => {
-				t.on("error", a), t.on("end", o), it.default.stat(r, (h, l) => {
-					if (h) a(h);
+			return new Promise((o, h) => {
+				t.on("error", h), t.on("end", o), st.default.stat(r, (a, l) => {
+					if (a) h(a);
 					else {
-						let u = new Ha.ReadStream(r, {
+						let u = new Za.ReadStream(r, {
 							readSize: i,
 							size: l.size
 						});
-						u.on("error", a), u.pipe(t);
+						u.on("error", h), u.pipe(t);
 					}
 				});
 			});
 		};
-		C.list = (0, Za.makeCommand)(Ka, Va, (s) => new yi.Parser(s), (s) => new yi.Parser(s), (s, e) => {
-			e?.length && (0, C.filesFilter)(s, e), s.noResume || Ga(s);
+		B.list = (0, Ga.makeCommand)(Va, $a, (s) => new yi.Parser(s), (s) => new yi.Parser(s), (s, e) => {
+			e?.length && (0, B.filesFilter)(s, e), s.noResume || Ya(s);
 		});
 	});
-	var sn = d((Ei) => {
+	var rn = d((Ei) => {
 		"use strict";
 		Object.defineProperty(Ei, "__esModule", { value: !0 });
 		Ei.modeFix = void 0;
-		var $a = (s, e, t) => (s &= 4095, t && (s = (s | 384) & -19), e && (s & 256 && (s |= 64), s & 32 && (s |= 8), s & 4 && (s |= 1)), s);
-		Ei.modeFix = $a;
+		var Xa = (s, e, t) => (s &= 4095, t && (s = (s | 384) & -19), e && (s & 256 && (s |= 64), s & 32 && (s |= 8), s & 4 && (s |= 1)), s);
+		Ei.modeFix = Xa;
 	});
-	var qs = d((bi) => {
+	var Hs = d((bi) => {
 		"use strict";
 		Object.defineProperty(bi, "__esModule", { value: !0 });
 		bi.stripAbsolutePath = void 0;
-		var { isAbsolute: Qa, parse: rn } = require("node:path").win32, Ja = (s) => {
-			let e = "", t = rn(s);
-			for (; Qa(s) || t.root;) {
+		var { isAbsolute: Ja, parse: nn } = require("node:path").win32, eh = (s) => {
+			let e = "", t = nn(s);
+			for (; Ja(s) || t.root;) {
 				let i = s.charAt(0) === "/" && s.slice(0, 4) !== "//?/" ? "/" : t.root;
-				s = s.slice(i.length), e += i, t = rn(s);
+				s = s.slice(i.length), e += i, t = nn(s);
 			}
 			return [e, s];
 		};
-		bi.stripAbsolutePath = Ja;
+		bi.stripAbsolutePath = eh;
 	});
-	var Hs = d((rt) => {
+	var Gs = d((nt) => {
 		"use strict";
-		Object.defineProperty(rt, "__esModule", { value: !0 });
-		rt.decode = rt.encode = void 0;
+		Object.defineProperty(nt, "__esModule", { value: !0 });
+		nt.decode = nt.encode = void 0;
 		var Si = [
 			"|",
 			"<",
 			">",
 			"?",
 			":"
-		], Ws = Si.map((s) => String.fromCodePoint(61440 + Number(s.codePointAt(0)))), eh = new Map(Si.map((s, e) => [s, Ws[e]])), th = new Map(Ws.map((s, e) => [s, Si[e]])), ih = (s) => Si.reduce((e, t) => e.split(t).join(eh.get(t)), s);
-		rt.encode = ih;
-		var sh = (s) => Ws.reduce((e, t) => e.split(t).join(th.get(t)), s);
-		rt.decode = sh;
+		], Zs = Si.map((s) => String.fromCodePoint(61440 + Number(s.codePointAt(0)))), th = new Map(Si.map((s, e) => [s, Zs[e]])), ih = new Map(Zs.map((s, e) => [s, Si[e]])), sh = (s) => Si.reduce((e, t) => e.split(t).join(th.get(t)), s);
+		nt.encode = sh;
+		var rh = (s) => Zs.reduce((e, t) => e.split(t).join(ih.get(t)), s);
+		nt.decode = rh;
 	});
-	var tr = d((M) => {
+	var sr = d((M) => {
 		"use strict";
-		var rh = M && M.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var nh = M && M.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -98890,14 +98901,14 @@ while (this[$r](this[me].shift()));
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), nh = M && M.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), oh = M && M.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), oh = M && M.__importStar || (function() {
+		}), ah = M && M.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -98908,15 +98919,15 @@ while (this[$r](this[me].shift()));
 			return function(e) {
 				if (e && e.__esModule) return e;
 				var t = {};
-				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && rh(t, e, i[r]);
-				return nh(t, e), t;
+				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && nh(t, e, i[r]);
+				return oh(t, e), t;
 			};
-		})(), un = M && M.__importDefault || function(s) {
+		})(), cn = M && M.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(M, "__esModule", { value: !0 });
 		M.WriteEntryTar = M.WriteEntrySync = M.WriteEntry = void 0;
-		var oe = un(require("fs")), cn = We(), nn = un(require("path")), fn = Je(), dn = sn(), ne = et(), mn = $t(), pn = ti(), _n = qs(), ah = wi(), wn = ai(), hh = oh(Hs()), yn = (s, e) => e ? (s = (0, ne.normalizeWindowsPath)(s).replace(/^\.(\/|$)/, ""), (0, ah.stripTrailingSlashes)(e) + "/" + s) : (0, ne.normalizeWindowsPath)(s), lh = 16 * 1024 * 1024, on = Symbol("process"), an = Symbol("file"), hn = Symbol("directory"), Gs = Symbol("symlink"), ln = Symbol("hardlink"), Rt = Symbol("header"), gi = Symbol("read"), Ys = Symbol("lstat"), Oi = Symbol("onlstat"), Ks = Symbol("onread"), Vs = Symbol("onreadlink"), $s = Symbol("openfile"), Xs = Symbol("onopenfile"), ve = Symbol("close"), Ri = Symbol("mode"), Qs = Symbol("awaitDrain"), Zs = Symbol("ondrain"), ae = Symbol("prefix"), vi = class extends cn.Minipass {
+		var oe = cn(require("fs")), fn = We(), on = cn(require("path")), dn = et(), mn = rn(), ne = tt(), pn = Xt(), _n = ii(), wn = Hs(), hh = wi(), yn = ai(), lh = ah(Gs()), En = (s, e) => e ? (s = (0, ne.normalizeWindowsPath)(s).replace(/^\.(\/|$)/, ""), (0, hh.stripTrailingSlashes)(e) + "/" + s) : (0, ne.normalizeWindowsPath)(s), uh = 16 * 1024 * 1024, an = Symbol("process"), hn = Symbol("file"), ln = Symbol("directory"), Ks = Symbol("symlink"), un = Symbol("hardlink"), Rt = Symbol("header"), gi = Symbol("read"), Vs = Symbol("lstat"), Oi = Symbol("onlstat"), $s = Symbol("onread"), Xs = Symbol("onreadlink"), Qs = Symbol("openfile"), Js = Symbol("onopenfile"), ve = Symbol("close"), Ri = Symbol("mode"), er = Symbol("awaitDrain"), Ys = Symbol("ondrain"), ae = Symbol("prefix"), vi = class extends fn.Minipass {
 			path;
 			portable;
 			myuid = process.getuid && process.getuid() || 0;
@@ -98948,52 +98959,52 @@ while (this[$r](this[me].shift()));
 			onWriteEntry;
 			#e = !1;
 			constructor(e, t = {}) {
-				let i = (0, mn.dealias)(t);
-				super(), this.path = (0, ne.normalizeWindowsPath)(e), this.portable = !!i.portable, this.maxReadSize = i.maxReadSize || lh, this.linkCache = i.linkCache || /* @__PURE__ */ new Map(), this.statCache = i.statCache || /* @__PURE__ */ new Map(), this.preservePaths = !!i.preservePaths, this.cwd = (0, ne.normalizeWindowsPath)(i.cwd || process.cwd()), this.strict = !!i.strict, this.noPax = !!i.noPax, this.noMtime = !!i.noMtime, this.mtime = i.mtime, this.prefix = i.prefix ? (0, ne.normalizeWindowsPath)(i.prefix) : void 0, this.onWriteEntry = i.onWriteEntry, typeof i.onwarn == "function" && this.on("warn", i.onwarn);
+				let i = (0, pn.dealias)(t);
+				super(), this.path = (0, ne.normalizeWindowsPath)(e), this.portable = !!i.portable, this.maxReadSize = i.maxReadSize || uh, this.linkCache = i.linkCache || /* @__PURE__ */ new Map(), this.statCache = i.statCache || /* @__PURE__ */ new Map(), this.preservePaths = !!i.preservePaths, this.cwd = (0, ne.normalizeWindowsPath)(i.cwd || process.cwd()), this.strict = !!i.strict, this.noPax = !!i.noPax, this.noMtime = !!i.noMtime, this.mtime = i.mtime, this.prefix = i.prefix ? (0, ne.normalizeWindowsPath)(i.prefix) : void 0, this.onWriteEntry = i.onWriteEntry, typeof i.onwarn == "function" && this.on("warn", i.onwarn);
 				let r = !1;
 				if (!this.preservePaths) {
-					let [o, a] = (0, _n.stripAbsolutePath)(this.path);
-					o && typeof a == "string" && (this.path = a, r = o);
+					let [o, h] = (0, wn.stripAbsolutePath)(this.path);
+					o && typeof h == "string" && (this.path = h, r = o);
 				}
-				this.win32 = !!i.win32 || process.platform === "win32", this.win32 && (this.path = hh.decode(this.path.replaceAll(/\\/g, "/")), e = e.replaceAll(/\\/g, "/")), this.absolute = (0, ne.normalizeWindowsPath)(i.absolute || nn.default.resolve(this.cwd, e)), this.path === "" && (this.path = "./"), r && this.warn("TAR_ENTRY_INFO", `stripping ${r} from absolute path`, {
+				this.win32 = !!i.win32 || process.platform === "win32", this.win32 && (this.path = lh.decode(this.path.replaceAll(/\\/g, "/")), e = e.replaceAll(/\\/g, "/")), this.absolute = (0, ne.normalizeWindowsPath)(i.absolute || on.default.resolve(this.cwd, e)), this.path === "" && (this.path = "./"), r && this.warn("TAR_ENTRY_INFO", `stripping ${r} from absolute path`, {
 					entry: this,
 					path: r + this.path
 				});
 				let n = this.statCache.get(this.absolute);
-				n ? this[Oi](n) : this[Ys]();
+				n ? this[Oi](n) : this[Vs]();
 			}
 			warn(e, t, i = {}) {
-				return (0, wn.warnMethod)(this, e, t, i);
+				return (0, yn.warnMethod)(this, e, t, i);
 			}
 			emit(e, ...t) {
 				return e === "error" && (this.#e = !0), super.emit(e, ...t);
 			}
-			[Ys]() {
+			[Vs]() {
 				oe.default.lstat(this.absolute, (e, t) => {
 					if (e) return this.emit("error", e);
 					this[Oi](t);
 				});
 			}
 			[Oi](e) {
-				this.statCache.set(this.absolute, e), this.stat = e, e.isFile() || (e.size = 0), this.type = uh(e), this.emit("stat", e), this[on]();
+				this.statCache.set(this.absolute, e), this.stat = e, e.isFile() || (e.size = 0), this.type = ch(e), this.emit("stat", e), this[an]();
 			}
-			[on]() {
+			[an]() {
 				switch (this.type) {
-					case "File": return this[an]();
-					case "Directory": return this[hn]();
-					case "SymbolicLink": return this[Gs]();
+					case "File": return this[hn]();
+					case "Directory": return this[ln]();
+					case "SymbolicLink": return this[Ks]();
 					default: return this.end();
 				}
 			}
 			[Ri](e) {
-				return (0, dn.modeFix)(e, this.type === "Directory", this.portable);
+				return (0, mn.modeFix)(e, this.type === "Directory", this.portable);
 			}
 			[ae](e) {
-				return yn(e, this.prefix);
+				return En(e, this.prefix);
 			}
 			[Rt]() {
 				if (!this.stat) throw new Error("cannot write header before stat");
-				this.type === "Directory" && this.portable && (this.noMtime = !0), this.onWriteEntry?.(this), this.header = new fn.Header({
+				this.type === "Directory" && this.portable && (this.noMtime = !0), this.onWriteEntry?.(this), this.header = new dn.Header({
 					path: this[ae](this.path),
 					linkpath: this.type === "Link" && this.linkpath !== void 0 ? this[ae](this.linkpath) : this.linkpath,
 					mode: this[Ri](this.stat.mode),
@@ -99005,7 +99016,7 @@ while (this[$r](this[me].shift()));
 					uname: this.portable ? void 0 : this.stat.uid === this.myuid ? this.myuser : "",
 					atime: this.portable ? void 0 : this.stat.atime,
 					ctime: this.portable ? void 0 : this.stat.ctime
-				}), this.header.encode() && !this.noPax && super.write(new pn.Pax({
+				}), this.header.encode() && !this.noPax && super.write(new _n.Pax({
 					atime: this.portable ? void 0 : this.header.atime,
 					ctime: this.portable ? void 0 : this.header.ctime,
 					gid: this.portable ? void 0 : this.header.gid,
@@ -99023,40 +99034,40 @@ while (this[$r](this[me].shift()));
 				if (!e) throw new Error("failed to encode header");
 				super.write(e);
 			}
-			[hn]() {
+			[ln]() {
 				if (!this.stat) throw new Error("cannot create directory entry without stat");
 				this.path.slice(-1) !== "/" && (this.path += "/"), this.stat.size = 0, this[Rt](), this.end();
 			}
-			[Gs]() {
+			[Ks]() {
 				oe.default.readlink(this.absolute, (e, t) => {
-					if (e) return this.emit("error", e);
-					this[Vs](t);
-				});
-			}
-			[Vs](e) {
-				this.linkpath = (0, ne.normalizeWindowsPath)(e), this[Rt](), this.end();
-			}
-			[ln](e) {
-				if (!this.stat) throw new Error("cannot create link entry without stat");
-				this.type = "Link", this.linkpath = (0, ne.normalizeWindowsPath)(nn.default.relative(this.cwd, e)), this.stat.size = 0, this[Rt](), this.end();
-			}
-			[an]() {
-				if (!this.stat) throw new Error("cannot create file entry without stat");
-				if (this.stat.nlink > 1) {
-					let e = `${this.stat.dev}:${this.stat.ino}`, t = this.linkCache.get(e);
-					if (t?.indexOf(this.cwd) === 0) return this[ln](t);
-					this.linkCache.set(e, this.absolute);
-				}
-				if (this[Rt](), this.stat.size === 0) return this.end();
-				this[$s]();
-			}
-			[$s]() {
-				oe.default.open(this.absolute, "r", (e, t) => {
 					if (e) return this.emit("error", e);
 					this[Xs](t);
 				});
 			}
 			[Xs](e) {
+				this.linkpath = (0, ne.normalizeWindowsPath)(e), this[Rt](), this.end();
+			}
+			[un](e) {
+				if (!this.stat) throw new Error("cannot create link entry without stat");
+				this.type = "Link", this.linkpath = (0, ne.normalizeWindowsPath)(on.default.relative(this.cwd, e)), this.stat.size = 0, this[Rt](), this.end();
+			}
+			[hn]() {
+				if (!this.stat) throw new Error("cannot create file entry without stat");
+				if (this.stat.nlink > 1) {
+					let e = `${this.stat.dev}:${this.stat.ino}`, t = this.linkCache.get(e);
+					if (t?.indexOf(this.cwd) === 0) return this[un](t);
+					this.linkCache.set(e, this.absolute);
+				}
+				if (this[Rt](), this.stat.size === 0) return this.end();
+				this[Qs]();
+			}
+			[Qs]() {
+				oe.default.open(this.absolute, "r", (e, t) => {
+					if (e) return this.emit("error", e);
+					this[Js](t);
+				});
+			}
+			[Js](e) {
 				if (this.fd = e, this.#e) return this[ve]();
 				if (!this.stat) throw new Error("should stat before calling onopenfile");
 				this.blockLen = 512 * Math.ceil(this.stat.size / 512), this.blockRemain = this.blockLen;
@@ -99066,15 +99077,15 @@ while (this[$r](this[me].shift()));
 			[gi]() {
 				let { fd: e, buf: t, offset: i, length: r, pos: n } = this;
 				if (e === void 0 || t === void 0) throw new Error("cannot read file without first opening");
-				oe.default.read(e, t, i, r, n, (o, a) => {
+				oe.default.read(e, t, i, r, n, (o, h) => {
 					if (o) return this[ve](() => this.emit("error", o));
-					this[Ks](a);
+					this[$s](h);
 				});
 			}
 			[ve](e = () => {}) {
 				this.fd !== void 0 && oe.default.close(this.fd, e);
 			}
-			[Ks](e) {
+			[$s](e) {
 				if (e <= 0 && this.remain > 0) {
 					let r = Object.assign(/* @__PURE__ */ new Error("encountered unexpected EOF"), {
 						path: this.absolute,
@@ -99094,9 +99105,9 @@ while (this[$r](this[me].shift()));
 				if (!this.buf) throw new Error("should have created buffer prior to reading");
 				if (e === this.remain) for (let r = e; r < this.length && e < this.blockRemain; r++) this.buf[r + this.offset] = 0, e++, this.remain++;
 				let t = this.offset === 0 && e === this.buf.length ? this.buf : this.buf.subarray(this.offset, this.offset + e);
-				this.write(t) ? this[Zs]() : this[Qs](() => this[Zs]());
+				this.write(t) ? this[Ys]() : this[er](() => this[Ys]());
 			}
-			[Qs](e) {
+			[er](e) {
 				this.once("drain", e);
 			}
 			write(e, t, i) {
@@ -99106,46 +99117,46 @@ while (this[$r](this[me].shift()));
 				}
 				return this.remain -= e.length, this.blockRemain -= e.length, this.pos += e.length, this.offset += e.length, super.write(e, null, i);
 			}
-			[Zs]() {
+			[Ys]() {
 				if (!this.remain) return this.blockRemain && super.write(Buffer.alloc(this.blockRemain)), this[ve]((e) => e ? this.emit("error", e) : this.end());
 				if (!this.buf) throw new Error("buffer lost somehow in ONDRAIN");
 				this.offset >= this.length && (this.buf = Buffer.allocUnsafe(Math.min(this.blockRemain, this.buf.length)), this.offset = 0), this.length = this.buf.length - this.offset, this[gi]();
 			}
 		};
 		M.WriteEntry = vi;
-		var Js = class extends vi {
+		var tr = class extends vi {
 			sync = !0;
-			[Ys]() {
+			[Vs]() {
 				this[Oi](oe.default.lstatSync(this.absolute));
 			}
-			[Gs]() {
-				this[Vs](oe.default.readlinkSync(this.absolute));
+			[Ks]() {
+				this[Xs](oe.default.readlinkSync(this.absolute));
 			}
-			[$s]() {
-				this[Xs](oe.default.openSync(this.absolute, "r"));
+			[Qs]() {
+				this[Js](oe.default.openSync(this.absolute, "r"));
 			}
 			[gi]() {
 				let e = !0;
 				try {
 					let { fd: t, buf: i, offset: r, length: n, pos: o } = this;
 					if (t === void 0 || i === void 0) throw new Error("fd and buf must be set in READ method");
-					let a = oe.default.readSync(t, i, r, n, o);
-					this[Ks](a), e = !1;
+					let h = oe.default.readSync(t, i, r, n, o);
+					this[$s](h), e = !1;
 				} finally {
 					if (e) try {
 						this[ve](() => {});
 					} catch {}
 				}
 			}
-			[Qs](e) {
+			[er](e) {
 				e();
 			}
 			[ve](e = () => {}) {
 				this.fd !== void 0 && oe.default.closeSync(this.fd), e();
 			}
 		};
-		M.WriteEntrySync = Js;
-		var er = class extends cn.Minipass {
+		M.WriteEntrySync = tr;
+		var ir = class extends fn.Minipass {
 			blockLen = 0;
 			blockRemain = 0;
 			buf = 0;
@@ -99174,20 +99185,20 @@ while (this[$r](this[me].shift()));
 			size;
 			onWriteEntry;
 			warn(e, t, i = {}) {
-				return (0, wn.warnMethod)(this, e, t, i);
+				return (0, yn.warnMethod)(this, e, t, i);
 			}
 			constructor(e, t = {}) {
-				let i = (0, mn.dealias)(t);
+				let i = (0, pn.dealias)(t);
 				super(), this.preservePaths = !!i.preservePaths, this.portable = !!i.portable, this.strict = !!i.strict, this.noPax = !!i.noPax, this.noMtime = !!i.noMtime, this.onWriteEntry = i.onWriteEntry, this.readEntry = e;
 				let { type: r } = e;
 				if (r === "Unsupported") throw new Error("writing entry that should be ignored");
 				this.type = r, this.type === "Directory" && this.portable && (this.noMtime = !0), this.prefix = i.prefix, this.path = (0, ne.normalizeWindowsPath)(e.path), this.mode = e.mode !== void 0 ? this[Ri](e.mode) : void 0, this.uid = this.portable ? void 0 : e.uid, this.gid = this.portable ? void 0 : e.gid, this.uname = this.portable ? void 0 : e.uname, this.gname = this.portable ? void 0 : e.gname, this.size = e.size, this.mtime = this.noMtime ? void 0 : i.mtime || e.mtime, this.atime = this.portable ? void 0 : e.atime, this.ctime = this.portable ? void 0 : e.ctime, this.linkpath = e.linkpath !== void 0 ? (0, ne.normalizeWindowsPath)(e.linkpath) : void 0, typeof i.onwarn == "function" && this.on("warn", i.onwarn);
 				let n = !1;
 				if (!this.preservePaths) {
-					let [a, h] = (0, _n.stripAbsolutePath)(this.path);
-					a && typeof h == "string" && (this.path = h, n = a);
+					let [h, a] = (0, wn.stripAbsolutePath)(this.path);
+					h && typeof a == "string" && (this.path = a, n = h);
 				}
-				this.remain = e.size, this.blockRemain = e.startBlockSize, this.onWriteEntry?.(this), this.header = new fn.Header({
+				this.remain = e.size, this.blockRemain = e.startBlockSize, this.onWriteEntry?.(this), this.header = new dn.Header({
 					path: this[ae](this.path),
 					linkpath: this.type === "Link" && this.linkpath !== void 0 ? this[ae](this.linkpath) : this.linkpath,
 					mode: this.mode,
@@ -99202,7 +99213,7 @@ while (this[$r](this[me].shift()));
 				}), n && this.warn("TAR_ENTRY_INFO", `stripping ${n} from absolute path`, {
 					entry: this,
 					path: n + this.path
-				}), this.header.encode() && !this.noPax && super.write(new pn.Pax({
+				}), this.header.encode() && !this.noPax && super.write(new _n.Pax({
 					atime: this.portable ? void 0 : this.atime,
 					ctime: this.portable ? void 0 : this.ctime,
 					gid: this.portable ? void 0 : this.gid,
@@ -99221,10 +99232,10 @@ while (this[$r](this[me].shift()));
 				super.write(o), e.pipe(this);
 			}
 			[ae](e) {
-				return yn(e, this.prefix);
+				return En(e, this.prefix);
 			}
 			[Ri](e) {
-				return (0, dn.modeFix)(e, this.type === "Directory", this.portable);
+				return (0, mn.modeFix)(e, this.type === "Directory", this.portable);
 			}
 			write(e, t, i) {
 				typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, typeof t == "string" ? t : "utf8"));
@@ -99236,14 +99247,14 @@ while (this[$r](this[me].shift()));
 				return this.blockRemain && super.write(Buffer.alloc(this.blockRemain)), typeof e == "function" && (i = e, t = void 0, e = void 0), typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, t ?? "utf8")), i && this.once("finish", i), e ? super.end(e, i) : super.end(i), this;
 			}
 		};
-		M.WriteEntryTar = er;
-		var uh = (s) => s.isFile() ? "File" : s.isDirectory() ? "Directory" : s.isSymbolicLink() ? "SymbolicLink" : "Unsupported";
+		M.WriteEntryTar = ir;
+		var ch = (s) => s.isFile() ? "File" : s.isDirectory() ? "Directory" : s.isSymbolicLink() ? "SymbolicLink" : "Unsupported";
 	});
-	var En = d((ot) => {
+	var bn = d((at) => {
 		"use strict";
-		Object.defineProperty(ot, "__esModule", { value: !0 });
-		ot.Node = ot.Yallist = void 0;
-		ot.Yallist = class s {
+		Object.defineProperty(at, "__esModule", { value: !0 });
+		at.Node = at.Yallist = void 0;
+		at.Yallist = class s {
 			tail;
 			head;
 			length = 0;
@@ -99274,11 +99285,11 @@ while (this[$r](this[me].shift()));
 				e.list = this, e.prev = t, t && (t.next = e), this.tail = e, this.head || (this.head = e), this.length++;
 			}
 			push(...e) {
-				for (let t = 0, i = e.length; t < i; t++) fh(this, e[t]);
+				for (let t = 0, i = e.length; t < i; t++) dh(this, e[t]);
 				return this.length;
 			}
 			unshift(...e) {
-				for (var t = 0, i = e.length; t < i; t++) dh(this, e[t]);
+				for (var t = 0, i = e.length; t < i; t++) mh(this, e[t]);
 				return this.length;
 			}
 			pop() {
@@ -99374,7 +99385,7 @@ while (this[$r](this[me].shift()));
 				let n = [];
 				for (let o = 0; r && o < t; o++) n.push(r.value), r = this.removeNode(r);
 				r ? r !== this.tail && (r = r.prev) : r = this.tail;
-				for (let o of i) r = ch(this, r, o);
+				for (let o of i) r = fh(this, r, o);
 				return n;
 			}
 			reverse() {
@@ -99386,17 +99397,17 @@ while (this[$r](this[me].shift()));
 				return this.head = t, this.tail = e, this;
 			}
 		};
-		function ch(s, e, t) {
-			let n = new nt(t, e, e ? e.next : s.head, s);
+		function fh(s, e, t) {
+			let n = new ot(t, e, e ? e.next : s.head, s);
 			return n.next === void 0 && (s.tail = n), n.prev === void 0 && (s.head = n), s.length++, n;
 		}
-		function fh(s, e) {
-			s.tail = new nt(e, s.tail, void 0, s), s.head || (s.head = s.tail), s.length++;
-		}
 		function dh(s, e) {
-			s.head = new nt(e, void 0, s.head, s), s.tail || (s.tail = s.head), s.length++;
+			s.tail = new ot(e, s.tail, void 0, s), s.head || (s.head = s.tail), s.length++;
 		}
-		var nt = class {
+		function mh(s, e) {
+			s.head = new ot(e, void 0, s.head, s), s.tail || (s.tail = s.head), s.length++;
+		}
+		var ot = class {
 			list;
 			next;
 			prev;
@@ -99405,11 +99416,11 @@ while (this[$r](this[me].shift()));
 				this.list = r, this.value = e, t ? (t.next = this, this.prev = t) : this.prev = void 0, i ? (i.prev = this, this.next = i) : this.next = void 0;
 			}
 		};
-		ot.Node = nt;
+		at.Node = ot;
 	});
-	var Ii = d((L) => {
+	var Fi = d((L) => {
 		"use strict";
-		var mh = L && L.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var ph = L && L.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -99420,14 +99431,14 @@ while (this[$r](this[me].shift()));
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), ph = L && L.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), _h = L && L.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), _h = L && L.__importStar || (function() {
+		}), wh = L && L.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -99438,29 +99449,30 @@ while (this[$r](this[me].shift()));
 			return function(e) {
 				if (e && e.__esModule) return e;
 				var t = {};
-				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && mh(t, e, i[r]);
-				return ph(t, e), t;
+				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && ph(t, e, i[r]);
+				return _h(t, e), t;
 			};
-		})(), Rn = L && L.__importDefault || function(s) {
+		})(), vn = L && L.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(L, "__esModule", { value: !0 });
 		L.PackSync = L.Pack = L.PackJob = void 0;
-		var Li = Rn(require("fs")), lr = tr(), Dt = class {
+		var Ai = vn(require("fs")), ur = sr(), Pt = class {
 			path;
 			absolute;
 			entry;
 			stat;
 			readdir;
 			pending = !1;
+			pendingLink = !1;
 			ignore = !1;
 			piped = !1;
 			constructor(e, t) {
 				this.path = e || "./", this.absolute = t;
 			}
 		};
-		L.PackJob = Dt;
-		var wh = We(), sr = _h(Ts()), yh = En(), Eh = ni(), bh = ai(), bn = Buffer.alloc(1024), Ti = Symbol("onStat"), vt = Symbol("ended"), X = Symbol("queue"), je = Symbol("current"), xe = Symbol("process"), Tt = Symbol("processing"), rr = Symbol("processJob"), Q = Symbol("jobs"), nr = Symbol("jobDone"), Di = Symbol("addFSEntry"), Sn = Symbol("addTarEntry"), ur = Symbol("stat"), cr = Symbol("readdir"), Pi = Symbol("onreaddir"), Ni = Symbol("pipe"), gn = Symbol("entry"), or = Symbol("entryOpt"), Mi = Symbol("writeEntryClass"), vn = Symbol("write"), ar = Symbol("ondrain"), On = Rn(require("path")), hr = et(), Ai = class extends wh.Minipass {
+		L.PackJob = Pt;
+		var yh = We(), nr = wh(Ds()), Eh = bn(), bh = ai(), Sn = Buffer.alloc(1024), Di = Symbol("onStat"), vt = Symbol("ended"), X = Symbol("queue"), Tt = Symbol("pendingLinks"), Te = Symbol("current"), je = Symbol("process"), Dt = Symbol("processing"), Ti = Symbol("processJob"), Q = Symbol("jobs"), or = Symbol("jobDone"), Pi = Symbol("addFSEntry"), gn = Symbol("addTarEntry"), cr = Symbol("stat"), fr = Symbol("readdir"), Ni = Symbol("onreaddir"), Mi = Symbol("pipe"), On = Symbol("entry"), ar = Symbol("entryOpt"), Li = Symbol("writeEntryClass"), Tn = Symbol("write"), hr = Symbol("ondrain"), Rn = vn(require("path")), lr = tt(), Ii = class extends yh.Minipass {
 			sync = !1;
 			opt;
 			cwd;
@@ -99481,106 +99493,122 @@ while (this[$r](this[me].shift()));
 			mtime;
 			filter;
 			jobs;
-			[Mi];
+			[Li];
 			onWriteEntry;
 			[X];
+			[Tt] = /* @__PURE__ */ new Map();
 			[Q] = 0;
-			[Tt] = !1;
+			[Dt] = !1;
 			[vt] = !1;
 			constructor(e = {}) {
-				if (super(), this.opt = e, this.file = e.file || "", this.cwd = e.cwd || process.cwd(), this.maxReadSize = e.maxReadSize, this.preservePaths = !!e.preservePaths, this.strict = !!e.strict, this.noPax = !!e.noPax, this.prefix = (0, hr.normalizeWindowsPath)(e.prefix || ""), this.linkCache = e.linkCache || /* @__PURE__ */ new Map(), this.statCache = e.statCache || /* @__PURE__ */ new Map(), this.readdirCache = e.readdirCache || /* @__PURE__ */ new Map(), this.onWriteEntry = e.onWriteEntry, this[Mi] = lr.WriteEntry, typeof e.onwarn == "function" && this.on("warn", e.onwarn), this.portable = !!e.portable, e.gzip || e.brotli || e.zstd) {
+				if (super(), this.opt = e, this.file = e.file || "", this.cwd = e.cwd || process.cwd(), this.maxReadSize = e.maxReadSize, this.preservePaths = !!e.preservePaths, this.strict = !!e.strict, this.noPax = !!e.noPax, this.prefix = (0, lr.normalizeWindowsPath)(e.prefix || ""), this.linkCache = e.linkCache || /* @__PURE__ */ new Map(), this.statCache = e.statCache || /* @__PURE__ */ new Map(), this.readdirCache = e.readdirCache || /* @__PURE__ */ new Map(), this.onWriteEntry = e.onWriteEntry, this[Li] = ur.WriteEntry, typeof e.onwarn == "function" && this.on("warn", e.onwarn), this.portable = !!e.portable, e.gzip || e.brotli || e.zstd) {
 					if ((e.gzip ? 1 : 0) + (e.brotli ? 1 : 0) + (e.zstd ? 1 : 0) > 1) throw new TypeError("gzip, brotli, zstd are mutually exclusive");
-					if (e.gzip && (typeof e.gzip != "object" && (e.gzip = {}), this.portable && (e.gzip.portable = !0), this.zip = new sr.Gzip(e.gzip)), e.brotli && (typeof e.brotli != "object" && (e.brotli = {}), this.zip = new sr.BrotliCompress(e.brotli)), e.zstd && (typeof e.zstd != "object" && (e.zstd = {}), this.zip = new sr.ZstdCompress(e.zstd)), !this.zip) throw new Error("impossible");
+					if (e.gzip && (typeof e.gzip != "object" && (e.gzip = {}), this.portable && (e.gzip.portable = !0), this.zip = new nr.Gzip(e.gzip)), e.brotli && (typeof e.brotli != "object" && (e.brotli = {}), this.zip = new nr.BrotliCompress(e.brotli)), e.zstd && (typeof e.zstd != "object" && (e.zstd = {}), this.zip = new nr.ZstdCompress(e.zstd)), !this.zip) throw new Error("impossible");
 					let t = this.zip;
-					t.on("data", (i) => super.write(i)), t.on("end", () => super.end()), t.on("drain", () => this[ar]()), this.on("resume", () => t.resume());
-				} else this.on("drain", this[ar]);
-				this.noDirRecurse = !!e.noDirRecurse, this.follow = !!e.follow, this.noMtime = !!e.noMtime, e.mtime && (this.mtime = e.mtime), this.filter = typeof e.filter == "function" ? e.filter : () => !0, this[X] = new yh.Yallist(), this[Q] = 0, this.jobs = Number(e.jobs) || 4, this[Tt] = !1, this[vt] = !1;
+					t.on("data", (i) => super.write(i)), t.on("end", () => super.end()), t.on("drain", () => this[hr]()), this.on("resume", () => t.resume());
+				} else this.on("drain", this[hr]);
+				this.noDirRecurse = !!e.noDirRecurse, this.follow = !!e.follow, this.noMtime = !!e.noMtime, e.mtime && (this.mtime = e.mtime), this.filter = typeof e.filter == "function" ? e.filter : () => !0, this[X] = new Eh.Yallist(), this[Q] = 0, this.jobs = Number(e.jobs) || 4, this[Dt] = !1, this[vt] = !1;
 			}
-			[vn](e) {
+			[Tn](e) {
 				return super.write(e);
 			}
 			add(e) {
 				return this.write(e), this;
 			}
 			end(e, t, i) {
-				return typeof e == "function" && (i = e, e = void 0), typeof t == "function" && (i = t, t = void 0), e && this.add(e), this[vt] = !0, this[xe](), i && i(), this;
+				return typeof e == "function" && (i = e, e = void 0), typeof t == "function" && (i = t, t = void 0), e && this.add(e), this[vt] = !0, this[je](), i && i(), this;
 			}
 			write(e) {
 				if (this[vt]) throw new Error("write after end");
-				return e instanceof Eh.ReadEntry ? this[Sn](e) : this[Di](e), this.flowing;
+				return typeof e == "string" ? this[Pi](e) : this[gn](e), this.flowing;
 			}
-			[Sn](e) {
-				let t = (0, hr.normalizeWindowsPath)(On.default.resolve(this.cwd, e.path));
+			[gn](e) {
+				let t = (0, lr.normalizeWindowsPath)(Rn.default.resolve(this.cwd, e.path));
 				if (!this.filter(e.path, e)) e.resume();
 				else {
-					let i = new Dt(e.path, t);
-					i.entry = new lr.WriteEntryTar(e, this[or](i)), i.entry.on("end", () => this[nr](i)), this[Q] += 1, this[X].push(i);
+					let i = new Pt(e.path, t);
+					i.entry = new ur.WriteEntryTar(e, this[ar](i)), i.entry.on("end", () => this[or](i)), this[Q] += 1, this[X].push(i);
 				}
-				this[xe]();
+				this[je]();
 			}
-			[Di](e) {
-				let t = (0, hr.normalizeWindowsPath)(On.default.resolve(this.cwd, e));
-				this[X].push(new Dt(e, t)), this[xe]();
-			}
-			[ur](e) {
-				e.pending = !0, this[Q] += 1;
-				let t = this.follow ? "stat" : "lstat";
-				Li.default[t](e.absolute, (i, r) => {
-					e.pending = !1, this[Q] -= 1, i ? this.emit("error", i) : this[Ti](e, r);
-				});
-			}
-			[Ti](e, t) {
-				this.statCache.set(e.absolute, t), e.stat = t, this.filter(e.path, t) ? t.isFile() && t.nlink > 1 && e === this[je] && !this.linkCache.get(`${t.dev}:${t.ino}`) && !this.sync && this[rr](e) : e.ignore = !0, this[xe]();
+			[Pi](e) {
+				let t = (0, lr.normalizeWindowsPath)(Rn.default.resolve(this.cwd, e));
+				this[X].push(new Pt(e, t)), this[je]();
 			}
 			[cr](e) {
-				e.pending = !0, this[Q] += 1, Li.default.readdir(e.absolute, (t, i) => {
-					if (e.pending = !1, this[Q] -= 1, t) return this.emit("error", t);
-					this[Pi](e, i);
+				e.pending = !0, this[Q] += 1;
+				let t = this.follow ? "stat" : "lstat";
+				Ai.default[t](e.absolute, (i, r) => {
+					e.pending = !1, this[Q] -= 1, i ? this.emit("error", i) : this[Di](e, r);
 				});
 			}
-			[Pi](e, t) {
-				this.readdirCache.set(e.absolute, t), e.readdir = t, this[xe]();
+			[Di](e, t) {
+				if (this.statCache.set(e.absolute, t), e.stat = t, !this.filter(e.path, t)) e.ignore = !0;
+				else if (t.isFile() && t.nlink > 1 && !this.linkCache.get(`${t.dev}:${t.ino}`) && !this.sync) if (e === this[Te]) this[Ti](e);
+				else {
+					let i = `${t.dev}:${t.ino}`, r = this[Tt].get(i);
+					r ? r.push(e) : this[Tt].set(i, [e]), e.pendingLink = !0, e.pending = !0;
+				}
+				this[je]();
 			}
-			[xe]() {
-				if (!this[Tt]) {
-					this[Tt] = !0;
-					for (let e = this[X].head; e && this[Q] < this.jobs; e = e.next) if (this[rr](e.value), e.value.ignore) {
+			[fr](e) {
+				e.pending = !0, this[Q] += 1, Ai.default.readdir(e.absolute, (t, i) => {
+					if (e.pending = !1, this[Q] -= 1, t) return this.emit("error", t);
+					this[Ni](e, i);
+				});
+			}
+			[Ni](e, t) {
+				this.readdirCache.set(e.absolute, t), e.readdir = t, this[je]();
+			}
+			[je]() {
+				if (!this[Dt]) {
+					this[Dt] = !0;
+					for (let e = this[X].head; e && this[Q] < this.jobs; e = e.next) if (this[Ti](e.value), e.value.ignore) {
 						let t = e.next;
 						this[X].removeNode(e), e.next = t;
 					}
-					this[Tt] = !1, this[vt] && this[X].length === 0 && this[Q] === 0 && (this.zip ? this.zip.end(bn) : (super.write(bn), super.end()));
+					this[Dt] = !1, this[vt] && this[X].length === 0 && this[Q] === 0 && (this.zip ? this.zip.end(Sn) : (super.write(Sn), super.end()));
 				}
 			}
-			get [je]() {
+			get [Te]() {
 				return this[X] && this[X].head && this[X].head.value;
 			}
-			[nr](e) {
-				this[X].shift(), this[Q] -= 1, this[xe]();
+			[or](e) {
+				this[X].shift(), this[Q] -= 1;
+				let { stat: t } = e;
+				if (t && t.isFile() && t.nlink > 1) {
+					let i = `${t.dev}:${t.ino}`, r = this[Tt].get(i);
+					if (r) {
+						this[Tt].delete(i);
+						for (let n of r) n.pending = !1, this[Ti](n);
+					}
+				}
+				this[je]();
 			}
-			[rr](e) {
-				if (!e.pending) {
+			[Ti](e) {
+				if (e.pending && e.pendingLink && e === this[Te] && (e.pending = !1, e.pendingLink = !1), !e.pending) {
 					if (e.entry) {
-						e === this[je] && !e.piped && this[Ni](e);
+						e === this[Te] && !e.piped && this[Mi](e);
 						return;
 					}
 					if (!e.stat) {
 						let t = this.statCache.get(e.absolute);
-						t ? this[Ti](e, t) : this[ur](e);
+						t ? this[Di](e, t) : this[cr](e);
 					}
 					if (e.stat && !e.ignore) {
 						if (!this.noDirRecurse && e.stat.isDirectory() && !e.readdir) {
 							let t = this.readdirCache.get(e.absolute);
-							if (t ? this[Pi](e, t) : this[cr](e), !e.readdir) return;
+							if (t ? this[Ni](e, t) : this[fr](e), !e.readdir) return;
 						}
-						if (e.entry = this[gn](e), !e.entry) {
+						if (e.entry = this[On](e), !e.entry) {
 							e.ignore = !0;
 							return;
 						}
-						e === this[je] && !e.piped && this[Ni](e);
+						e === this[Te] && !e.piped && this[Mi](e);
 					}
 				}
 			}
-			[or](e) {
+			[ar](e) {
 				return {
 					onwarn: (t, i, r) => this.warn(t, i, r),
 					noPax: this.noPax,
@@ -99598,21 +99626,21 @@ while (this[$r](this[me].shift()));
 					onWriteEntry: this.onWriteEntry
 				};
 			}
-			[gn](e) {
+			[On](e) {
 				this[Q] += 1;
 				try {
-					return new this[Mi](e.path, this[or](e)).on("end", () => this[nr](e)).on("error", (i) => this.emit("error", i));
+					return new this[Li](e.path, this[ar](e)).on("end", () => this[or](e)).on("error", (i) => this.emit("error", i));
 				} catch (t) {
 					this.emit("error", t);
 				}
 			}
-			[ar]() {
-				this[je] && this[je].entry && this[je].entry.resume();
+			[hr]() {
+				this[Te] && this[Te].entry && this[Te].entry.resume();
 			}
-			[Ni](e) {
+			[Mi](e) {
 				e.piped = !0, e.readdir && e.readdir.forEach((r) => {
 					let n = e.path, o = n === "./" ? "" : n.replace(/\/*$/, "/");
-					this[Di](o + r);
+					this[Pi](o + r);
 				});
 				let t = e.entry, i = this.zip;
 				if (!t) throw new Error("cannot pipe without source");
@@ -99629,65 +99657,65 @@ while (this[$r](this[me].shift()));
 				(0, bh.warnMethod)(this, e, t, i);
 			}
 		};
-		L.Pack = Ai;
-		var fr = class extends Ai {
+		L.Pack = Ii;
+		var dr = class extends Ii {
 			sync = !0;
 			constructor(e) {
-				super(e), this[Mi] = lr.WriteEntrySync;
+				super(e), this[Li] = ur.WriteEntrySync;
 			}
 			pause() {}
 			resume() {}
-			[ur](e) {
-				let t = this.follow ? "statSync" : "lstatSync";
-				this[Ti](e, Li.default[t](e.absolute));
-			}
 			[cr](e) {
-				this[Pi](e, Li.default.readdirSync(e.absolute));
+				let t = this.follow ? "statSync" : "lstatSync";
+				this[Di](e, Ai.default[t](e.absolute));
 			}
-			[Ni](e) {
+			[fr](e) {
+				this[Ni](e, Ai.default.readdirSync(e.absolute));
+			}
+			[Mi](e) {
 				let t = e.entry, i = this.zip;
 				if (e.readdir && e.readdir.forEach((r) => {
 					let n = e.path, o = n === "./" ? "" : n.replace(/\/*$/, "/");
-					this[Di](o + r);
+					this[Pi](o + r);
 				}), !t) throw new Error("Cannot pipe without source");
 				i ? t.on("data", (r) => {
 					i.write(r);
 				}) : t.on("data", (r) => {
-					super[vn](r);
+					super[Tn](r);
 				});
 			}
 		};
-		L.PackSync = fr;
+		L.PackSync = dr;
 	});
-	var dr = d((at) => {
+	var mr = d((ht) => {
 		"use strict";
-		var Sh = at && at.__importDefault || function(s) {
+		var Sh = ht && ht.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(at, "__esModule", { value: !0 });
-		at.create = void 0;
-		var Tn = Ke(), Dn = Sh(require("node:path")), Pn = st(), gh = Ve(), Fi = Ii(), Oh = (s, e) => {
-			let t = new Fi.PackSync(s), i = new Tn.WriteStreamSync(s.file, { mode: s.mode || 438 });
-			t.pipe(i), Nn(t, e);
+		Object.defineProperty(ht, "__esModule", { value: !0 });
+		ht.create = void 0;
+		var Dn = Ke(), Pn = Sh(require("node:path")), Nn = rt(), gh = Ve(), Ci = Fi(), Oh = (s, e) => {
+			let t = new Ci.PackSync(s), i = new Dn.WriteStreamSync(s.file, { mode: s.mode || 438 });
+			t.pipe(i), Mn(t, e);
 		}, Rh = (s, e) => {
-			let t = new Fi.Pack(s), i = new Tn.WriteStream(s.file, { mode: s.mode || 438 });
+			let t = new Ci.Pack(s), i = new Dn.WriteStream(s.file, { mode: s.mode || 438 });
 			t.pipe(i);
 			let r = new Promise((n, o) => {
 				i.on("error", o), i.on("close", n), t.on("error", o);
 			});
-			return Mn(t, e).catch((n) => t.emit("error", n)), r;
-		}, Nn = (s, e) => {
+			return Ln(t, e).catch((n) => t.emit("error", n)), r;
+		}, Mn = (s, e) => {
 			e.forEach((t) => {
-				t.charAt(0) === "@" ? (0, Pn.list)({
-					file: Dn.default.resolve(s.cwd, t.slice(1)),
+				t.charAt(0) === "@" ? (0, Nn.list)({
+					file: Pn.default.resolve(s.cwd, t.slice(1)),
 					sync: !0,
 					noResume: !0,
 					onReadEntry: (i) => s.add(i)
 				}) : s.add(t);
 			}), s.end();
-		}, Mn = async (s, e) => {
-			for (let t of e) t.charAt(0) === "@" ? await (0, Pn.list)({
-				file: Dn.default.resolve(String(s.cwd), t.slice(1)),
+		}, Ln = async (s, e) => {
+			for (let t of e) t.charAt(0) === "@" ? await (0, Nn.list)({
+				file: Pn.default.resolve(String(s.cwd), t.slice(1)),
 				noResume: !0,
 				onReadEntry: (i) => {
 					s.add(i);
@@ -99695,88 +99723,88 @@ while (this[$r](this[me].shift()));
 			}) : s.add(t);
 			s.end();
 		}, vh = (s, e) => {
-			let t = new Fi.PackSync(s);
-			return Nn(t, e), t;
+			let t = new Ci.PackSync(s);
+			return Mn(t, e), t;
 		}, Th = (s, e) => {
-			let t = new Fi.Pack(s);
-			return Mn(t, e).catch((i) => t.emit("error", i)), t;
+			let t = new Ci.Pack(s);
+			return Ln(t, e).catch((i) => t.emit("error", i)), t;
 		};
-		at.create = (0, gh.makeCommand)(Oh, Rh, vh, Th, (s, e) => {
+		ht.create = (0, gh.makeCommand)(Oh, Rh, vh, Th, (s, e) => {
 			if (!e?.length) throw new TypeError("no paths specified to add to archive");
 		});
 	});
-	var jn = d((ht) => {
+	var jn = d((lt) => {
 		"use strict";
-		var Dh = ht && ht.__importDefault || function(s) {
+		var Dh = lt && lt.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(ht, "__esModule", { value: !0 });
-		ht.getWriteFlag = void 0;
-		var In = Dh(require("fs")), Fn = (process.env.__FAKE_PLATFORM__ || process.platform) === "win32", { O_CREAT: Cn, O_NOFOLLOW: Ln, O_TRUNC: Bn, O_WRONLY: zn } = In.default.constants, kn = Number(process.env.__FAKE_FS_O_FILENAME__) || In.default.constants.UV_FS_O_FILEMAP || 0, Nh = Fn && !!kn, Mh = 512 * 1024, Lh = kn | Bn | Cn | zn, An = !Fn && typeof Ln == "number" ? Ln | Bn | Cn | zn : null;
-		ht.getWriteFlag = An !== null ? () => An : Nh ? (s) => s < Mh ? Lh : "w" : () => "w";
+		Object.defineProperty(lt, "__esModule", { value: !0 });
+		lt.getWriteFlag = void 0;
+		var Fn = Dh(require("fs")), Cn = (process.env.__FAKE_PLATFORM__ || process.platform) === "win32", { O_CREAT: Bn, O_NOFOLLOW: An, O_TRUNC: zn, O_WRONLY: kn } = Fn.default.constants, xn = Number(process.env.__FAKE_FS_O_FILENAME__) || Fn.default.constants.UV_FS_O_FILEMAP || 0, Nh = Cn && !!xn, Mh = 512 * 1024, Lh = xn | zn | Bn | kn, In = !Cn && typeof An == "number" ? An | zn | Bn | kn : null;
+		lt.getWriteFlag = In !== null ? () => In : Nh ? (s) => s < Mh ? Lh : "w" : () => "w";
 	});
-	var Un = d((he) => {
+	var qn = d((he) => {
 		"use strict";
-		var xn = he && he.__importDefault || function(s) {
+		var Un = he && he.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
 		Object.defineProperty(he, "__esModule", { value: !0 });
 		he.chownrSync = he.chownr = void 0;
-		var Bi = xn(require("node:fs")), Pt = xn(require("node:path")), mr = (s, e, t) => {
+		var zi = Un(require("node:fs")), Nt = Un(require("node:path")), pr = (s, e, t) => {
 			try {
-				return Bi.default.lchownSync(s, e, t);
+				return zi.default.lchownSync(s, e, t);
 			} catch (i) {
 				if (i?.code !== "ENOENT") throw i;
 			}
-		}, Ci = (s, e, t, i) => {
-			Bi.default.lchown(s, e, t, (r) => {
+		}, Bi = (s, e, t, i) => {
+			zi.default.lchown(s, e, t, (r) => {
 				i(r && r?.code !== "ENOENT" ? r : null);
 			});
 		}, Ah = (s, e, t, i, r) => {
-			if (e.isDirectory()) (0, he.chownr)(Pt.default.resolve(s, e.name), t, i, (n) => {
+			if (e.isDirectory()) (0, he.chownr)(Nt.default.resolve(s, e.name), t, i, (n) => {
 				if (n) return r(n);
-				Ci(Pt.default.resolve(s, e.name), t, i, r);
+				Bi(Nt.default.resolve(s, e.name), t, i, r);
 			});
-			else Ci(Pt.default.resolve(s, e.name), t, i, r);
+			else Bi(Nt.default.resolve(s, e.name), t, i, r);
 		}, Ih = (s, e, t, i) => {
-			Bi.default.readdir(s, { withFileTypes: !0 }, (r, n) => {
+			zi.default.readdir(s, { withFileTypes: !0 }, (r, n) => {
 				if (r) {
 					if (r.code === "ENOENT") return i();
 					if (r.code !== "ENOTDIR" && r.code !== "ENOTSUP") return i(r);
 				}
-				if (r || !n.length) return Ci(s, e, t, i);
-				let o = n.length, a = null, h = (l) => {
-					if (!a) {
-						if (l) return i(a = l);
-						if (--o === 0) return Ci(s, e, t, i);
+				if (r || !n.length) return Bi(s, e, t, i);
+				let o = n.length, h = null, a = (l) => {
+					if (!h) {
+						if (l) return i(h = l);
+						if (--o === 0) return Bi(s, e, t, i);
 					}
 				};
-				for (let l of n) Ah(s, l, e, t, h);
+				for (let l of n) Ah(s, l, e, t, a);
 			});
 		};
 		he.chownr = Ih;
 		var Fh = (s, e, t, i) => {
-			e.isDirectory() && (0, he.chownrSync)(Pt.default.resolve(s, e.name), t, i), mr(Pt.default.resolve(s, e.name), t, i);
+			e.isDirectory() && (0, he.chownrSync)(Nt.default.resolve(s, e.name), t, i), pr(Nt.default.resolve(s, e.name), t, i);
 		}, Ch = (s, e, t) => {
 			let i;
 			try {
-				i = Bi.default.readdirSync(s, { withFileTypes: !0 });
+				i = zi.default.readdirSync(s, { withFileTypes: !0 });
 			} catch (r) {
 				let n = r;
 				if (n?.code === "ENOENT") return;
-				if (n?.code === "ENOTDIR" || n?.code === "ENOTSUP") return mr(s, e, t);
+				if (n?.code === "ENOTDIR" || n?.code === "ENOTSUP") return pr(s, e, t);
 				throw n;
 			}
 			for (let r of i) Fh(s, r, e, t);
-			return mr(s, e, t);
+			return pr(s, e, t);
 		};
 		he.chownrSync = Ch;
 	});
-	var qn = d((zi) => {
+	var Wn = d((ki) => {
 		"use strict";
-		Object.defineProperty(zi, "__esModule", { value: !0 });
-		zi.CwdError = void 0;
-		var pr = class extends Error {
+		Object.defineProperty(ki, "__esModule", { value: !0 });
+		ki.CwdError = void 0;
+		var _r = class extends Error {
 			path;
 			code;
 			syscall = "chdir";
@@ -99787,13 +99815,13 @@ while (this[$r](this[me].shift()));
 				return "CwdError";
 			}
 		};
-		zi.CwdError = pr;
+		ki.CwdError = _r;
 	});
-	var wr = d((ki) => {
+	var yr = d((xi) => {
 		"use strict";
-		Object.defineProperty(ki, "__esModule", { value: !0 });
-		ki.SymlinkError = void 0;
-		var _r = class extends Error {
+		Object.defineProperty(xi, "__esModule", { value: !0 });
+		xi.SymlinkError = void 0;
+		var wr = class extends Error {
 			path;
 			symlink;
 			syscall = "symlink";
@@ -99805,65 +99833,65 @@ while (this[$r](this[me].shift()));
 				return "SymlinkError";
 			}
 		};
-		ki.SymlinkError = _r;
+		xi.SymlinkError = wr;
 	});
-	var Yn = d((Te) => {
+	var Kn = d((De) => {
 		"use strict";
-		var Er = Te && Te.__importDefault || function(s) {
+		var br = De && De.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(Te, "__esModule", { value: !0 });
-		Te.mkdirSync = Te.mkdir = void 0;
-		var Wn = Un(), x = Er(require("node:fs")), Bh = Er(require("node:fs/promises")), ji = Er(require("node:path")), Hn = qn(), pe = et(), Zn = wr(), zh = (s, e) => {
-			x.default.stat(s, (t, i) => {
-				(t || !i.isDirectory()) && (t = new Hn.CwdError(s, t?.code || "ENOTDIR")), e(t);
+		Object.defineProperty(De, "__esModule", { value: !0 });
+		De.mkdirSync = De.mkdir = void 0;
+		var Hn = qn(), j = br(require("node:fs")), Bh = br(require("node:fs/promises")), ji = br(require("node:path")), Zn = Wn(), pe = tt(), Gn = yr(), zh = (s, e) => {
+			j.default.stat(s, (t, i) => {
+				(t || !i.isDirectory()) && (t = new Zn.CwdError(s, t?.code || "ENOTDIR")), e(t);
 			});
 		}, kh = (s, e, t) => {
 			s = (0, pe.normalizeWindowsPath)(s);
-			let i = e.umask ?? 18, r = e.mode | 448, n = (r & i) !== 0, o = e.uid, a = e.gid, h = typeof o == "number" && typeof a == "number" && (o !== e.processUid || a !== e.processGid), l = e.preserve, u = e.unlink, c = (0, pe.normalizeWindowsPath)(e.cwd), E = (w, P) => {
-				w ? t(w) : P && h ? (0, Wn.chownr)(P, o, a, (zt) => E(zt)) : n ? x.default.chmod(s, r, t) : t();
+			let i = e.umask ?? 18, r = e.mode | 448, n = (r & i) !== 0, o = e.uid, h = e.gid, a = typeof o == "number" && typeof h == "number" && (o !== e.processUid || h !== e.processGid), l = e.preserve, u = e.unlink, c = (0, pe.normalizeWindowsPath)(e.cwd), E = (w, P) => {
+				w ? t(w) : P && a ? (0, Hn.chownr)(P, o, h, (kt) => E(kt)) : n ? j.default.chmod(s, r, t) : t();
 			};
 			if (s === c) return zh(s, E);
 			if (l) return Bh.default.mkdir(s, {
 				mode: r,
 				recursive: !0
 			}).then((w) => E(null, w ?? void 0), E);
-			yr(c, (0, pe.normalizeWindowsPath)(ji.default.relative(c, s)).split("/"), r, u, c, void 0, E);
+			Er(c, (0, pe.normalizeWindowsPath)(ji.default.relative(c, s)).split("/"), r, u, c, void 0, E);
 		};
-		Te.mkdir = kh;
-		var yr = (s, e, t, i, r, n, o) => {
+		De.mkdir = kh;
+		var Er = (s, e, t, i, r, n, o) => {
 			if (e.length === 0) return o(null, n);
-			let a = e.shift(), h = (0, pe.normalizeWindowsPath)(ji.default.resolve(s + "/" + a));
-			x.default.mkdir(h, t, Gn(h, e, t, i, r, n, o));
-		}, Gn = (s, e, t, i, r, n, o) => (a) => {
-			a ? x.default.lstat(s, (h, l) => {
-				if (h) h.path = h.path && (0, pe.normalizeWindowsPath)(h.path), o(h);
-				else if (l.isDirectory()) yr(s, e, t, i, r, n, o);
-				else if (i) x.default.unlink(s, (u) => {
+			let h = e.shift(), a = (0, pe.normalizeWindowsPath)(ji.default.resolve(s + "/" + h));
+			j.default.mkdir(a, t, Yn(a, e, t, i, r, n, o));
+		}, Yn = (s, e, t, i, r, n, o) => (h) => {
+			h ? j.default.lstat(s, (a, l) => {
+				if (a) a.path = a.path && (0, pe.normalizeWindowsPath)(a.path), o(a);
+				else if (l.isDirectory()) Er(s, e, t, i, r, n, o);
+				else if (i) j.default.unlink(s, (u) => {
 					if (u) return o(u);
-					x.default.mkdir(s, t, Gn(s, e, t, i, r, n, o));
+					j.default.mkdir(s, t, Yn(s, e, t, i, r, n, o));
 				});
 				else {
-					if (l.isSymbolicLink()) return o(new Zn.SymlinkError(s, s + "/" + e.join("/")));
-					o(a);
+					if (l.isSymbolicLink()) return o(new Gn.SymlinkError(s, s + "/" + e.join("/")));
+					o(h);
 				}
-			}) : (n = n || s, yr(s, e, t, i, r, n, o));
-		}, jh = (s) => {
+			}) : (n = n || s, Er(s, e, t, i, r, n, o));
+		}, xh = (s) => {
 			let e = !1, t;
 			try {
-				e = x.default.statSync(s).isDirectory();
+				e = j.default.statSync(s).isDirectory();
 			} catch (i) {
 				t = i?.code;
 			} finally {
-				if (!e) throw new Hn.CwdError(s, t ?? "ENOTDIR");
+				if (!e) throw new Zn.CwdError(s, t ?? "ENOTDIR");
 			}
-		}, xh = (s, e) => {
+		}, jh = (s, e) => {
 			s = (0, pe.normalizeWindowsPath)(s);
-			let t = e.umask ?? 18, i = e.mode | 448, r = (i & t) !== 0, n = e.uid, o = e.gid, a = typeof n == "number" && typeof o == "number" && (n !== e.processUid || o !== e.processGid), h = e.preserve, l = e.unlink, u = (0, pe.normalizeWindowsPath)(e.cwd), c = (w) => {
-				w && a && (0, Wn.chownrSync)(w, n, o), r && x.default.chmodSync(s, i);
+			let t = e.umask ?? 18, i = e.mode | 448, r = (i & t) !== 0, n = e.uid, o = e.gid, h = typeof n == "number" && typeof o == "number" && (n !== e.processUid || o !== e.processGid), a = e.preserve, l = e.unlink, u = (0, pe.normalizeWindowsPath)(e.cwd), c = (w) => {
+				w && h && (0, Hn.chownrSync)(w, n, o), r && j.default.chmodSync(s, i);
 			};
-			if (s === u) return jh(u), c();
-			if (h) return c(x.default.mkdirSync(s, {
+			if (s === u) return xh(u), c();
+			if (a) return c(j.default.mkdirSync(s, {
 				mode: i,
 				recursive: !0
 			}) ?? void 0);
@@ -99871,47 +99899,47 @@ while (this[$r](this[me].shift()));
 			for (let w = D.shift(), P = u; w && (P += "/" + w); w = D.shift()) {
 				P = (0, pe.normalizeWindowsPath)(ji.default.resolve(P));
 				try {
-					x.default.mkdirSync(P, i), A = A || P;
+					j.default.mkdirSync(P, i), A = A || P;
 				} catch {
-					let zt = x.default.lstatSync(P);
-					if (zt.isDirectory()) continue;
+					let kt = j.default.lstatSync(P);
+					if (kt.isDirectory()) continue;
 					if (l) {
-						x.default.unlinkSync(P), x.default.mkdirSync(P, i), A = A || P;
+						j.default.unlinkSync(P), j.default.mkdirSync(P, i), A = A || P;
 						continue;
-					} else if (zt.isSymbolicLink()) return new Zn.SymlinkError(P, P + "/" + D.join("/"));
+					} else if (kt.isSymbolicLink()) return new Gn.SymlinkError(P, P + "/" + D.join("/"));
 				}
 			}
 			return c(A);
 		};
-		Te.mkdirSync = xh;
+		De.mkdirSync = jh;
 	});
-	var Vn = d((xi) => {
+	var $n = d((Ui) => {
 		"use strict";
-		Object.defineProperty(xi, "__esModule", { value: !0 });
-		xi.normalizeUnicode = void 0;
-		var br = Object.create(null), Kn = 1e4, lt = /* @__PURE__ */ new Set(), Uh = (s) => {
-			lt.has(s) ? lt.delete(s) : br[s] = s.normalize("NFD").toLocaleLowerCase("en").toLocaleUpperCase("en"), lt.add(s);
-			let e = br[s], t = lt.size - Kn;
-			if (t > Kn / 10) {
-				for (let i of lt) if (lt.delete(i), delete br[i], --t <= 0) break;
+		Object.defineProperty(Ui, "__esModule", { value: !0 });
+		Ui.normalizeUnicode = void 0;
+		var Sr = Object.create(null), Vn = 1e4, ut = /* @__PURE__ */ new Set(), Uh = (s) => {
+			ut.has(s) ? ut.delete(s) : Sr[s] = s.normalize("NFD").toLocaleLowerCase("en").toLocaleUpperCase("en"), ut.add(s);
+			let e = Sr[s], t = ut.size - Vn;
+			if (t > Vn / 10) {
+				for (let i of ut) if (ut.delete(i), delete Sr[i], --t <= 0) break;
 			}
 			return e;
 		};
-		xi.normalizeUnicode = Uh;
+		Ui.normalizeUnicode = Uh;
 	});
-	var Xn = d((Ui) => {
+	var Qn = d((qi) => {
 		"use strict";
-		Object.defineProperty(Ui, "__esModule", { value: !0 });
-		Ui.PathReservations = void 0;
-		var $n = require("node:path"), qh = Vn(), Wh = wi(), Zh = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) === "win32", Gh = (s) => s.split("/").slice(0, -1).reduce((t, i) => {
+		Object.defineProperty(qi, "__esModule", { value: !0 });
+		qi.PathReservations = void 0;
+		var Xn = require("node:path"), qh = $n(), Wh = wi(), Zh = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) === "win32", Gh = (s) => s.split("/").slice(0, -1).reduce((t, i) => {
 			let r = t.at(-1);
-			return r !== void 0 && (i = (0, $n.join)(r, i)), t.push(i || "/"), t;
-		}, []), Sr = class {
+			return r !== void 0 && (i = (0, Xn.join)(r, i)), t.push(i || "/"), t;
+		}, []), gr = class {
 			#e = /* @__PURE__ */ new Map();
 			#i = /* @__PURE__ */ new Map();
 			#s = /* @__PURE__ */ new Set();
 			reserve(e, t) {
-				e = Zh ? ["win32 parallelization disabled"] : e.map((r) => (0, Wh.stripTrailingSlashes)((0, $n.join)((0, qh.normalizeUnicode)(r))));
+				e = Zh ? ["win32 parallelization disabled"] : e.map((r) => (0, Wh.stripTrailingSlashes)((0, Xn.join)((0, qh.normalizeUnicode)(r))));
 				let i = new Set(e.map((r) => Gh(r)).reduce((r, n) => r.concat(n)));
 				this.#i.set(t, {
 					dirs: i,
@@ -99952,42 +99980,42 @@ while (this[$r](this[me].shift()));
 				if (!t) throw new Error("invalid reservation");
 				let { paths: i, dirs: r } = t, n = /* @__PURE__ */ new Set();
 				for (let o of i) {
-					let a = this.#e.get(o);
-					if (!a || a?.[0] !== e) continue;
-					let h = a[1];
-					if (!h) {
+					let h = this.#e.get(o);
+					if (!h || h?.[0] !== e) continue;
+					let a = h[1];
+					if (!a) {
 						this.#e.delete(o);
 						continue;
 					}
-					if (a.shift(), typeof h == "function") n.add(h);
-					else for (let l of h) n.add(l);
+					if (h.shift(), typeof a == "function") n.add(a);
+					else for (let l of a) n.add(l);
 				}
 				for (let o of r) {
-					let a = this.#e.get(o), h = a?.[0];
-					if (!(!a || !(h instanceof Set))) if (h.size === 1 && a.length === 1) {
+					let h = this.#e.get(o), a = h?.[0];
+					if (!(!h || !(a instanceof Set))) if (a.size === 1 && h.length === 1) {
 						this.#e.delete(o);
 						continue;
-					} else if (h.size === 1) {
-						a.shift();
-						let l = a[0];
+					} else if (a.size === 1) {
+						h.shift();
+						let l = h[0];
 						typeof l == "function" && n.add(l);
-					} else h.delete(e);
+					} else a.delete(e);
 				}
 				return this.#s.delete(e), n.forEach((o) => this.#r(o)), !0;
 			}
 		};
-		Ui.PathReservations = Sr;
+		qi.PathReservations = gr;
 	});
-	var Qn = d((qi) => {
+	var Jn = d((Wi) => {
 		"use strict";
-		Object.defineProperty(qi, "__esModule", { value: !0 });
-		qi.umask = void 0;
+		Object.defineProperty(Wi, "__esModule", { value: !0 });
+		Wi.umask = void 0;
 		var Yh = () => process.umask();
-		qi.umask = Yh;
+		Wi.umask = Yh;
 	});
-	var Ar = d((z) => {
+	var Ir = d((k) => {
 		"use strict";
-		var Kh = z && z.__createBinding || (Object.create ? (function(s, e, t, i) {
+		var Kh = k && k.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
 			var r = Object.getOwnPropertyDescriptor(e, t);
 			(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -99998,14 +100026,14 @@ while (this[$r](this[me].shift()));
 			}), Object.defineProperty(s, i, r);
 		}) : (function(s, e, t, i) {
 			i === void 0 && (i = t), s[i] = e[t];
-		})), Vh = z && z.__setModuleDefault || (Object.create ? (function(s, e) {
+		})), Vh = k && k.__setModuleDefault || (Object.create ? (function(s, e) {
 			Object.defineProperty(s, "default", {
 				enumerable: !0,
 				value: e
 			});
 		}) : function(s, e) {
 			s.default = e;
-		}), ho = z && z.__importStar || (function() {
+		}), lo = k && k.__importStar || (function() {
 			var s = function(e) {
 				return s = Object.getOwnPropertyNames || function(t) {
 					var i = [];
@@ -100019,26 +100047,26 @@ while (this[$r](this[me].shift()));
 				if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && Kh(t, e, i[r]);
 				return Vh(t, e), t;
 			};
-		})(), Lr = z && z.__importDefault || function(s) {
+		})(), Ar = k && k.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(z, "__esModule", { value: !0 });
-		z.UnpackSync = z.Unpack = void 0;
-		var $h = ho(Ke()), Xh = Lr(require("node:assert")), lo = require("node:crypto"), m = Lr(require("node:fs")), g = Lr(require("node:path")), uo = jn(), co = Yn(), U = et(), Qh = pi(), Jh = qs(), Jn = ho(Hs()), el = Xn(), fo = wr(), tl = Qn(), eo = Symbol("onEntry"), vr = Symbol("checkFs"), to = Symbol("checkFs2"), Tr = Symbol("isReusable"), Z = Symbol("makeFs"), Dr = Symbol("file"), Pr = Symbol("directory"), Hi = Symbol("link"), io = Symbol("symlink"), so = Symbol("hardlink"), Mt = Symbol("ensureNoSymlink"), ro = Symbol("unsupported"), no = Symbol("checkPath"), gr = Symbol("stripAbsolutePath"), De = Symbol("mkdir"), T = Symbol("onError"), Wi = Symbol("pending"), oo = Symbol("pend"), ut = Symbol("unpend"), Or = Symbol("ended"), Rr = Symbol("maybeClose"), Nr = Symbol("skip"), Lt = Symbol("doChown"), At = Symbol("uid"), It = Symbol("gid"), Ft = Symbol("checkedCwd"), Ct = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) === "win32", sl = 1024, rl = (s, e) => {
-			if (!Ct) return m.default.unlink(s, e);
-			let t = s + ".DELETE." + (0, lo.randomBytes)(16).toString("hex");
+		Object.defineProperty(k, "__esModule", { value: !0 });
+		k.UnpackSync = k.Unpack = void 0;
+		var $h = lo(Ke()), Xh = Ar(require("node:assert")), uo = require("node:crypto"), m = Ar(require("node:fs")), g = Ar(require("node:path")), co = jn(), fo = Kn(), U = tt(), Qh = pi(), Jh = Hs(), eo = lo(Gs()), el = Qn(), mo = yr(), tl = Jn(), to = Symbol("onEntry"), Tr = Symbol("checkFs"), io = Symbol("checkFs2"), Dr = Symbol("isReusable"), Z = Symbol("makeFs"), Pr = Symbol("file"), Nr = Symbol("directory"), Zi = Symbol("link"), so = Symbol("symlink"), ro = Symbol("hardlink"), Lt = Symbol("ensureNoSymlink"), no = Symbol("unsupported"), oo = Symbol("checkPath"), Or = Symbol("stripAbsolutePath"), Pe = Symbol("mkdir"), T = Symbol("onError"), Hi = Symbol("pending"), ao = Symbol("pend"), ct = Symbol("unpend"), Rr = Symbol("ended"), vr = Symbol("maybeClose"), Mr = Symbol("skip"), At = Symbol("doChown"), It = Symbol("uid"), Ft = Symbol("gid"), Ct = Symbol("checkedCwd"), Bt = (process.env.TESTING_TAR_FAKE_PLATFORM || process.platform) === "win32", sl = 1024, rl = (s, e) => {
+			if (!Bt) return m.default.unlink(s, e);
+			let t = s + ".DELETE." + (0, uo.randomBytes)(16).toString("hex");
 			m.default.rename(s, t, (i) => {
 				if (i) return e(i);
 				m.default.unlink(t, e);
 			});
 		}, nl = (s) => {
-			if (!Ct) return m.default.unlinkSync(s);
-			let e = s + ".DELETE." + (0, lo.randomBytes)(16).toString("hex");
+			if (!Bt) return m.default.unlinkSync(s);
+			let e = s + ".DELETE." + (0, uo.randomBytes)(16).toString("hex");
 			m.default.renameSync(s, e), m.default.unlinkSync(e);
-		}, ao = (s, e, t) => s !== void 0 && s === s >>> 0 ? s : e !== void 0 && e === e >>> 0 ? e : t, Zi = class extends Qh.Parser {
-			[Or] = !1;
-			[Ft] = !1;
-			[Wi] = 0;
+		}, ho = (s, e, t) => s !== void 0 && s === s >>> 0 ? s : e !== void 0 && e === e >>> 0 ? e : t, Gi = class extends Qh.Parser {
+			[Rr] = !1;
+			[Ct] = !1;
+			[Hi] = 0;
 			reservations = new el.PathReservations();
 			transform;
 			writable = !0;
@@ -100066,30 +100094,30 @@ while (this[$r](this[me].shift()));
 			chmod;
 			constructor(e = {}) {
 				if (e.ondone = () => {
-					this[Or] = !0, this[Rr]();
+					this[Rr] = !0, this[vr]();
 				}, super(e), this.transform = e.transform, this.chmod = !!e.chmod, typeof e.uid == "number" || typeof e.gid == "number") {
 					if (typeof e.uid != "number" || typeof e.gid != "number") throw new TypeError("cannot set owner without number uid and gid");
 					if (e.preserveOwner) throw new TypeError("cannot preserve owner in archive and also set owner explicitly");
 					this.uid = e.uid, this.gid = e.gid, this.setOwner = !0;
 				} else this.uid = void 0, this.gid = void 0, this.setOwner = !1;
-				this.preserveOwner = e.preserveOwner === void 0 && typeof e.uid != "number" ? !!(process.getuid && process.getuid() === 0) : !!e.preserveOwner, this.processUid = (this.preserveOwner || this.setOwner) && process.getuid ? process.getuid() : void 0, this.processGid = (this.preserveOwner || this.setOwner) && process.getgid ? process.getgid() : void 0, this.maxDepth = typeof e.maxDepth == "number" ? e.maxDepth : sl, this.forceChown = e.forceChown === !0, this.win32 = !!e.win32 || Ct, this.newer = !!e.newer, this.keep = !!e.keep, this.noMtime = !!e.noMtime, this.preservePaths = !!e.preservePaths, this.unlink = !!e.unlink, this.cwd = (0, U.normalizeWindowsPath)(g.default.resolve(e.cwd || process.cwd())), this.strip = Number(e.strip) || 0, this.processUmask = this.chmod ? typeof e.processUmask == "number" ? e.processUmask : (0, tl.umask)() : 0, this.umask = typeof e.umask == "number" ? e.umask : this.processUmask, this.dmode = e.dmode || 511 & ~this.umask, this.fmode = e.fmode || 438 & ~this.umask, this.on("entry", (t) => this[eo](t));
+				this.preserveOwner = e.preserveOwner === void 0 && typeof e.uid != "number" ? !!(process.getuid && process.getuid() === 0) : !!e.preserveOwner, this.processUid = (this.preserveOwner || this.setOwner) && process.getuid ? process.getuid() : void 0, this.processGid = (this.preserveOwner || this.setOwner) && process.getgid ? process.getgid() : void 0, this.maxDepth = typeof e.maxDepth == "number" ? e.maxDepth : sl, this.forceChown = e.forceChown === !0, this.win32 = !!e.win32 || Bt, this.newer = !!e.newer, this.keep = !!e.keep, this.noMtime = !!e.noMtime, this.preservePaths = !!e.preservePaths, this.unlink = !!e.unlink, this.cwd = (0, U.normalizeWindowsPath)(g.default.resolve(e.cwd || process.cwd())), this.strip = Number(e.strip) || 0, this.processUmask = this.chmod ? typeof e.processUmask == "number" ? e.processUmask : (0, tl.umask)() : 0, this.umask = typeof e.umask == "number" ? e.umask : this.processUmask, this.dmode = e.dmode || 511 & ~this.umask, this.fmode = e.fmode || 438 & ~this.umask, this.on("entry", (t) => this[to](t));
 			}
 			warn(e, t, i = {}) {
 				return (e === "TAR_BAD_ARCHIVE" || e === "TAR_ABORT") && (i.recoverable = !1), super.warn(e, t, i);
 			}
-			[Rr]() {
-				this[Or] && this[Wi] === 0 && (this.emit("prefinish"), this.emit("finish"), this.emit("end"));
+			[vr]() {
+				this[Rr] && this[Hi] === 0 && (this.emit("prefinish"), this.emit("finish"), this.emit("end"));
 			}
-			[gr](e, t) {
+			[Or](e, t) {
 				let i = e[t], { type: r } = e;
 				if (!i || this.preservePaths) return !0;
-				let [n, o] = (0, Jh.stripAbsolutePath)(i), a = o.replaceAll(/\\/g, "/").split("/");
-				if (a.includes("..") || Ct && /^[a-z]:\.\.$/i.test(a[0] ?? "")) {
+				let [n, o] = (0, Jh.stripAbsolutePath)(i), h = o.replaceAll(/\\/g, "/").split("/");
+				if (h.includes("..") || Bt && /^[a-z]:\.\.$/i.test(h[0] ?? "")) {
 					if (t === "path" || r === "Link") return this.warn("TAR_ENTRY_ERROR", `${t} contains '..'`, {
 						entry: e,
 						[t]: i
 					}), !1;
-					let h = g.default.posix.dirname(e.path), l = g.default.posix.normalize(g.default.posix.join(h, a.join("/")));
+					let a = g.default.posix.dirname(e.path), l = g.default.posix.normalize(g.default.posix.join(a, h.join("/")));
 					if (l.startsWith("../") || l === "..") return this.warn("TAR_ENTRY_ERROR", `${t} escapes extraction directory`, {
 						entry: e,
 						[t]: i
@@ -100100,7 +100128,7 @@ while (this[$r](this[me].shift()));
 					[t]: i
 				})), !0;
 			}
-			[no](e) {
+			[oo](e) {
 				let t = (0, U.normalizeWindowsPath)(e.path), i = t.split("/");
 				if (this.strip) {
 					if (i.length < this.strip) return !1;
@@ -100117,7 +100145,7 @@ while (this[$r](this[me].shift()));
 					depth: i.length,
 					maxDepth: this.maxDepth
 				}), !1;
-				if (!this[gr](e, "path") || !this[gr](e, "linkpath")) return !1;
+				if (!this[Or](e, "path") || !this[Or](e, "linkpath")) return !1;
 				if (e.absolute = g.default.isAbsolute(e.path) ? (0, U.normalizeWindowsPath)(g.default.resolve(e.path)) : (0, U.normalizeWindowsPath)(g.default.resolve(this.cwd, e.path)), !this.preservePaths && typeof e.absolute == "string" && e.absolute.indexOf(this.cwd + "/") !== 0 && e.absolute !== this.cwd) return this.warn("TAR_ENTRY_ERROR", "path escaped extraction target", {
 					entry: e,
 					path: (0, U.normalizeWindowsPath)(e.path),
@@ -100127,14 +100155,14 @@ while (this[$r](this[me].shift()));
 				if (e.absolute === this.cwd && e.type !== "Directory" && e.type !== "GNUDumpDir") return !1;
 				if (this.win32) {
 					let { root: r } = g.default.win32.parse(String(e.absolute));
-					e.absolute = r + Jn.encode(String(e.absolute).slice(r.length));
+					e.absolute = r + eo.encode(String(e.absolute).slice(r.length));
 					let { root: n } = g.default.win32.parse(e.path);
-					e.path = n + Jn.encode(e.path.slice(n.length));
+					e.path = n + eo.encode(e.path.slice(n.length));
 				}
 				return !0;
 			}
-			[eo](e) {
-				if (!this[no](e)) return e.resume();
+			[to](e) {
+				if (!this[oo](e)) return e.resume();
 				switch (Xh.default.equal(typeof e.absolute, "string"), e.type) {
 					case "Directory":
 					case "GNUDumpDir": e.mode && (e.mode = e.mode | 448);
@@ -100142,15 +100170,15 @@ while (this[$r](this[me].shift()));
 					case "OldFile":
 					case "ContiguousFile":
 					case "Link":
-					case "SymbolicLink": return this[vr](e);
-					default: return this[ro](e);
+					case "SymbolicLink": return this[Tr](e);
+					default: return this[no](e);
 				}
 			}
 			[T](e, t) {
-				e.name === "CwdError" ? this.emit("error", e) : (this.warn("TAR_ENTRY_ERROR", e, { entry: t }), this[ut](), t.resume());
+				e.name === "CwdError" ? this.emit("error", e) : (this.warn("TAR_ENTRY_ERROR", e, { entry: t }), this[ct](), t.resume());
 			}
-			[De](e, t, i) {
-				(0, co.mkdir)((0, U.normalizeWindowsPath)(e), {
+			[Pe](e, t, i) {
+				(0, fo.mkdir)((0, U.normalizeWindowsPath)(e), {
 					uid: this.uid,
 					gid: this.gid,
 					processUid: this.processUid,
@@ -100162,124 +100190,124 @@ while (this[$r](this[me].shift()));
 					mode: t
 				}, i);
 			}
-			[Lt](e) {
+			[At](e) {
 				return this.forceChown || this.preserveOwner && (typeof e.uid == "number" && e.uid !== this.processUid || typeof e.gid == "number" && e.gid !== this.processGid) || typeof this.uid == "number" && this.uid !== this.processUid || typeof this.gid == "number" && this.gid !== this.processGid;
 			}
-			[At](e) {
-				return ao(this.uid, e.uid, this.processUid);
-			}
 			[It](e) {
-				return ao(this.gid, e.gid, this.processGid);
+				return ho(this.uid, e.uid, this.processUid);
 			}
-			[Dr](e, t) {
+			[Ft](e) {
+				return ho(this.gid, e.gid, this.processGid);
+			}
+			[Pr](e, t) {
 				let i = typeof e.mode == "number" ? e.mode & 4095 : this.fmode, r = new $h.WriteStream(String(e.absolute), {
-					flags: (0, uo.getWriteFlag)(e.size),
+					flags: (0, co.getWriteFlag)(e.size),
 					mode: i,
 					autoClose: !1
 				});
-				r.on("error", (h) => {
-					r.fd && m.default.close(r.fd, () => {}), r.write = () => !0, this[T](h, e), t();
+				r.on("error", (a) => {
+					r.fd && m.default.close(r.fd, () => {}), r.write = () => !0, this[T](a, e), t();
 				});
-				let n = 1, o = (h) => {
-					if (h) {
-						r.fd && m.default.close(r.fd, () => {}), this[T](h, e), t();
+				let n = 1, o = (a) => {
+					if (a) {
+						r.fd && m.default.close(r.fd, () => {}), this[T](a, e), t();
 						return;
 					}
 					--n === 0 && r.fd !== void 0 && m.default.close(r.fd, (l) => {
-						l ? this[T](l, e) : this[ut](), t();
+						l ? this[T](l, e) : this[ct](), t();
 					});
 				};
 				r.on("finish", () => {
-					let h = String(e.absolute), l = r.fd;
+					let a = String(e.absolute), l = r.fd;
 					if (typeof l == "number" && e.mtime && !this.noMtime) {
 						n++;
 						let u = e.atime || /* @__PURE__ */ new Date(), c = e.mtime;
-						m.default.futimes(l, u, c, (E) => E ? m.default.utimes(h, u, c, (D) => o(D && E)) : o());
+						m.default.futimes(l, u, c, (E) => E ? m.default.utimes(a, u, c, (D) => o(D && E)) : o());
 					}
-					if (typeof l == "number" && this[Lt](e)) {
+					if (typeof l == "number" && this[At](e)) {
 						n++;
-						let u = this[At](e), c = this[It](e);
-						typeof u == "number" && typeof c == "number" && m.default.fchown(l, u, c, (E) => E ? m.default.chown(h, u, c, (D) => o(D && E)) : o());
+						let u = this[It](e), c = this[Ft](e);
+						typeof u == "number" && typeof c == "number" && m.default.fchown(l, u, c, (E) => E ? m.default.chown(a, u, c, (D) => o(D && E)) : o());
 					}
 					o();
 				});
-				let a = this.transform && this.transform(e) || e;
-				a !== e && (a.on("error", (h) => {
-					this[T](h, e), t();
-				}), e.pipe(a)), a.pipe(r);
+				let h = this.transform && this.transform(e) || e;
+				h !== e && (h.on("error", (a) => {
+					this[T](a, e), t();
+				}), e.pipe(h)), h.pipe(r);
 			}
-			[Pr](e, t) {
+			[Nr](e, t) {
 				let i = typeof e.mode == "number" ? e.mode & 4095 : this.dmode;
-				this[De](String(e.absolute), i, (r) => {
+				this[Pe](String(e.absolute), i, (r) => {
 					if (r) {
 						this[T](r, e), t();
 						return;
 					}
 					let n = 1, o = () => {
-						--n === 0 && (t(), this[ut](), e.resume());
+						--n === 0 && (t(), this[ct](), e.resume());
 					};
-					e.mtime && !this.noMtime && (n++, m.default.utimes(String(e.absolute), e.atime || /* @__PURE__ */ new Date(), e.mtime, o)), this[Lt](e) && (n++, m.default.chown(String(e.absolute), Number(this[At](e)), Number(this[It](e)), o)), o();
+					e.mtime && !this.noMtime && (n++, m.default.utimes(String(e.absolute), e.atime || /* @__PURE__ */ new Date(), e.mtime, o)), this[At](e) && (n++, m.default.chown(String(e.absolute), Number(this[It](e)), Number(this[Ft](e)), o)), o();
 				});
 			}
-			[ro](e) {
+			[no](e) {
 				e.unsupported = !0, this.warn("TAR_ENTRY_UNSUPPORTED", `unsupported entry type: ${e.type}`, { entry: e }), e.resume();
 			}
-			[io](e, t) {
+			[so](e, t) {
 				let i = (0, U.normalizeWindowsPath)(g.default.relative(this.cwd, g.default.resolve(g.default.dirname(String(e.absolute)), String(e.linkpath)))).split("/");
-				this[Mt](e, this.cwd, i, () => this[Hi](e, String(e.linkpath), "symlink", t), (r) => {
+				this[Lt](e, this.cwd, i, () => this[Zi](e, String(e.linkpath), "symlink", t), (r) => {
 					this[T](r, e), t();
 				});
 			}
-			[so](e, t) {
+			[ro](e, t) {
 				let i = (0, U.normalizeWindowsPath)(g.default.resolve(this.cwd, String(e.linkpath))), r = (0, U.normalizeWindowsPath)(String(e.linkpath)).split("/");
-				this[Mt](e, this.cwd, r, () => this[Hi](e, i, "link", t), (n) => {
+				this[Lt](e, this.cwd, r, () => this[Zi](e, i, "link", t), (n) => {
 					this[T](n, e), t();
 				});
 			}
-			[Mt](e, t, i, r, n) {
+			[Lt](e, t, i, r, n) {
 				let o = i.shift();
 				if (this.preservePaths || o === void 0) return r();
-				let a = g.default.resolve(t, o);
-				m.default.lstat(a, (h, l) => {
-					if (h) return r();
-					if (l?.isSymbolicLink()) return n(new fo.SymlinkError(a, g.default.resolve(a, i.join("/"))));
-					this[Mt](e, a, i, r, n);
+				let h = g.default.resolve(t, o);
+				m.default.lstat(h, (a, l) => {
+					if (a) return r();
+					if (l?.isSymbolicLink()) return n(new mo.SymlinkError(h, g.default.resolve(h, i.join("/"))));
+					this[Lt](e, h, i, r, n);
 				});
 			}
-			[oo]() {
-				this[Wi]++;
+			[ao]() {
+				this[Hi]++;
 			}
-			[ut]() {
-				this[Wi]--, this[Rr]();
+			[ct]() {
+				this[Hi]--, this[vr]();
 			}
-			[Nr](e) {
-				this[ut](), e.resume();
+			[Mr](e) {
+				this[ct](), e.resume();
 			}
-			[Tr](e, t) {
-				return e.type === "File" && !this.unlink && t.isFile() && t.nlink <= 1 && !Ct;
+			[Dr](e, t) {
+				return e.type === "File" && !this.unlink && t.isFile() && t.nlink <= 1 && !Bt;
 			}
-			[vr](e) {
-				this[oo]();
+			[Tr](e) {
+				this[ao]();
 				let t = [e.path];
-				e.linkpath && t.push(e.linkpath), this.reservations.reserve(t, (i) => this[to](e, i));
+				e.linkpath && t.push(e.linkpath), this.reservations.reserve(t, (i) => this[io](e, i));
 			}
-			[to](e, t) {
-				let i = (a) => {
-					t(a);
+			[io](e, t) {
+				let i = (h) => {
+					t(h);
 				}, r = () => {
-					this[De](this.cwd, this.dmode, (a) => {
-						if (a) {
-							this[T](a, e), i();
+					this[Pe](this.cwd, this.dmode, (h) => {
+						if (h) {
+							this[T](h, e), i();
 							return;
 						}
-						this[Ft] = !0, n();
+						this[Ct] = !0, n();
 					});
 				}, n = () => {
 					if (e.absolute !== this.cwd) {
-						let a = (0, U.normalizeWindowsPath)(g.default.dirname(String(e.absolute)));
-						if (a !== this.cwd) return this[De](a, this.dmode, (h) => {
-							if (h) {
-								this[T](h, e), i();
+						let h = (0, U.normalizeWindowsPath)(g.default.dirname(String(e.absolute)));
+						if (h !== this.cwd) return this[Pe](h, this.dmode, (a) => {
+							if (a) {
+								this[T](a, e), i();
 								return;
 							}
 							o();
@@ -100287,15 +100315,15 @@ while (this[$r](this[me].shift()));
 					}
 					o();
 				}, o = () => {
-					m.default.lstat(String(e.absolute), (a, h) => {
-						if (h && (this.keep || this.newer && h.mtime > (e.mtime ?? h.mtime))) {
-							this[Nr](e), i();
+					m.default.lstat(String(e.absolute), (h, a) => {
+						if (a && (this.keep || this.newer && a.mtime > (e.mtime ?? a.mtime))) {
+							this[Mr](e), i();
 							return;
 						}
-						if (a || this[Tr](e, h)) return this[Z](null, e, i);
-						if (h.isDirectory()) {
+						if (h || this[Dr](e, a)) return this[Z](null, e, i);
+						if (a.isDirectory()) {
 							if (e.type === "Directory") {
-								let l = this.chmod && e.mode && (h.mode & 4095) !== e.mode, u = (c) => this[Z](c ?? null, e, i);
+								let l = this.chmod && e.mode && (a.mode & 4095) !== e.mode, u = (c) => this[Z](c ?? null, e, i);
 								return l ? m.default.chmod(String(e.absolute), Number(e.mode), u) : u();
 							}
 							if (e.absolute !== this.cwd) return m.default.rmdir(String(e.absolute), (l) => this[Z](l ?? null, e, i));
@@ -100304,7 +100332,7 @@ while (this[$r](this[me].shift()));
 						rl(String(e.absolute), (l) => this[Z](l ?? null, e, i));
 					});
 				};
-				this[Ft] ? n() : r();
+				this[Ct] ? n() : r();
 			}
 			[Z](e, t, i) {
 				if (e) {
@@ -100314,113 +100342,113 @@ while (this[$r](this[me].shift()));
 				switch (t.type) {
 					case "File":
 					case "OldFile":
-					case "ContiguousFile": return this[Dr](t, i);
-					case "Link": return this[so](t, i);
-					case "SymbolicLink": return this[io](t, i);
+					case "ContiguousFile": return this[Pr](t, i);
+					case "Link": return this[ro](t, i);
+					case "SymbolicLink": return this[so](t, i);
 					case "Directory":
-					case "GNUDumpDir": return this[Pr](t, i);
+					case "GNUDumpDir": return this[Nr](t, i);
 				}
 			}
-			[Hi](e, t, i, r) {
+			[Zi](e, t, i, r) {
 				m.default[i](t, String(e.absolute), (n) => {
-					n ? this[T](n, e) : (this[ut](), e.resume()), r();
+					n ? this[T](n, e) : (this[ct](), e.resume()), r();
 				});
 			}
 		};
-		z.Unpack = Zi;
-		var Nt = (s) => {
+		k.Unpack = Gi;
+		var Mt = (s) => {
 			try {
 				return [null, s()];
 			} catch (e) {
 				return [e, null];
 			}
-		}, Mr = class extends Zi {
+		}, Lr = class extends Gi {
 			sync = !0;
 			[Z](e, t) {
 				return super[Z](e, t, () => {});
 			}
-			[vr](e) {
-				if (!this[Ft]) {
-					let n = this[De](this.cwd, this.dmode);
+			[Tr](e) {
+				if (!this[Ct]) {
+					let n = this[Pe](this.cwd, this.dmode);
 					if (n) return this[T](n, e);
-					this[Ft] = !0;
+					this[Ct] = !0;
 				}
 				if (e.absolute !== this.cwd) {
 					let n = (0, U.normalizeWindowsPath)(g.default.dirname(String(e.absolute)));
 					if (n !== this.cwd) {
-						let o = this[De](n, this.dmode);
+						let o = this[Pe](n, this.dmode);
 						if (o) return this[T](o, e);
 					}
 				}
-				let [t, i] = Nt(() => m.default.lstatSync(String(e.absolute)));
-				if (i && (this.keep || this.newer && i.mtime > (e.mtime ?? i.mtime))) return this[Nr](e);
-				if (t || this[Tr](e, i)) return this[Z](null, e);
+				let [t, i] = Mt(() => m.default.lstatSync(String(e.absolute)));
+				if (i && (this.keep || this.newer && i.mtime > (e.mtime ?? i.mtime))) return this[Mr](e);
+				if (t || this[Dr](e, i)) return this[Z](null, e);
 				if (i.isDirectory()) {
 					if (e.type === "Directory") {
-						let [a] = this.chmod && e.mode && (i.mode & 4095) !== e.mode ? Nt(() => {
+						let [h] = this.chmod && e.mode && (i.mode & 4095) !== e.mode ? Mt(() => {
 							m.default.chmodSync(String(e.absolute), Number(e.mode));
 						}) : [];
-						return this[Z](a, e);
+						return this[Z](h, e);
 					}
-					let [n] = Nt(() => m.default.rmdirSync(String(e.absolute)));
+					let [n] = Mt(() => m.default.rmdirSync(String(e.absolute)));
 					this[Z](n, e);
 				}
-				let [r] = e.absolute === this.cwd ? [] : Nt(() => nl(String(e.absolute)));
+				let [r] = e.absolute === this.cwd ? [] : Mt(() => nl(String(e.absolute)));
 				this[Z](r, e);
 			}
-			[Dr](e, t) {
-				let i = typeof e.mode == "number" ? e.mode & 4095 : this.fmode, r = (a) => {
-					let h;
+			[Pr](e, t) {
+				let i = typeof e.mode == "number" ? e.mode & 4095 : this.fmode, r = (h) => {
+					let a;
 					try {
 						m.default.closeSync(n);
 					} catch (l) {
-						h = l;
+						a = l;
 					}
-					(a || h) && this[T](a || h, e), t();
+					(h || a) && this[T](h || a, e), t();
 				}, n;
 				try {
-					n = m.default.openSync(String(e.absolute), (0, uo.getWriteFlag)(e.size), i);
-				} catch (a) {
-					return r(a);
+					n = m.default.openSync(String(e.absolute), (0, co.getWriteFlag)(e.size), i);
+				} catch (h) {
+					return r(h);
 				}
 				let o = this.transform && this.transform(e) || e;
-				o !== e && (o.on("error", (a) => this[T](a, e)), e.pipe(o)), o.on("data", (a) => {
+				o !== e && (o.on("error", (h) => this[T](h, e)), e.pipe(o)), o.on("data", (h) => {
 					try {
-						m.default.writeSync(n, a, 0, a.length);
-					} catch (h) {
-						r(h);
+						m.default.writeSync(n, h, 0, h.length);
+					} catch (a) {
+						r(a);
 					}
 				}), o.on("end", () => {
-					let a = null;
+					let h = null;
 					if (e.mtime && !this.noMtime) {
-						let h = e.atime || /* @__PURE__ */ new Date(), l = e.mtime;
+						let a = e.atime || /* @__PURE__ */ new Date(), l = e.mtime;
 						try {
-							m.default.futimesSync(n, h, l);
+							m.default.futimesSync(n, a, l);
 						} catch (u) {
 							try {
-								m.default.utimesSync(String(e.absolute), h, l);
+								m.default.utimesSync(String(e.absolute), a, l);
 							} catch {
-								a = u;
+								h = u;
 							}
 						}
 					}
-					if (this[Lt](e)) {
-						let h = this[At](e), l = this[It](e);
+					if (this[At](e)) {
+						let a = this[It](e), l = this[Ft](e);
 						try {
-							m.default.fchownSync(n, Number(h), Number(l));
+							m.default.fchownSync(n, Number(a), Number(l));
 						} catch (u) {
 							try {
-								m.default.chownSync(String(e.absolute), Number(h), Number(l));
+								m.default.chownSync(String(e.absolute), Number(a), Number(l));
 							} catch {
-								a = a || u;
+								h = h || u;
 							}
 						}
 					}
-					r(a);
+					r(h);
 				});
 			}
-			[Pr](e, t) {
-				let i = typeof e.mode == "number" ? e.mode & 4095 : this.dmode, r = this[De](String(e.absolute), i);
+			[Nr](e, t) {
+				let i = typeof e.mode == "number" ? e.mode & 4095 : this.dmode, r = this[Pe](String(e.absolute), i);
 				if (r) {
 					this[T](r, e), t();
 					return;
@@ -100428,14 +100456,14 @@ while (this[$r](this[me].shift()));
 				if (e.mtime && !this.noMtime) try {
 					m.default.utimesSync(String(e.absolute), e.atime || /* @__PURE__ */ new Date(), e.mtime);
 				} catch {}
-				if (this[Lt](e)) try {
-					m.default.chownSync(String(e.absolute), Number(this[At](e)), Number(this[It](e)));
+				if (this[At](e)) try {
+					m.default.chownSync(String(e.absolute), Number(this[It](e)), Number(this[Ft](e)));
 				} catch {}
 				t(), e.resume();
 			}
-			[De](e, t) {
+			[Pe](e, t) {
 				try {
-					return (0, co.mkdirSync)((0, U.normalizeWindowsPath)(e), {
+					return (0, fo.mkdirSync)((0, U.normalizeWindowsPath)(e), {
 						uid: this.uid,
 						gid: this.gid,
 						processUid: this.processUid,
@@ -100450,18 +100478,18 @@ while (this[$r](this[me].shift()));
 					return i;
 				}
 			}
-			[Mt](e, t, i, r, n) {
+			[Lt](e, t, i, r, n) {
 				if (this.preservePaths || i.length === 0) return r();
 				let o = t;
-				for (let a of i) {
-					o = g.default.resolve(o, a);
-					let [h, l] = Nt(() => m.default.lstatSync(o));
-					if (h) return r();
-					if (l.isSymbolicLink()) return n(new fo.SymlinkError(o, g.default.resolve(t, i.join("/"))));
+				for (let h of i) {
+					o = g.default.resolve(o, h);
+					let [a, l] = Mt(() => m.default.lstatSync(o));
+					if (a) return r();
+					if (l.isSymbolicLink()) return n(new mo.SymlinkError(o, g.default.resolve(t, i.join("/"))));
 				}
 				r();
 			}
-			[Hi](e, t, i, r) {
+			[Zi](e, t, i, r) {
 				let n = `${i}Sync`;
 				try {
 					m.default[n](t, String(e.absolute)), r(), e.resume();
@@ -100470,9 +100498,9 @@ while (this[$r](this[me].shift()));
 				}
 			}
 		};
-		z.UnpackSync = Mr;
+		k.UnpackSync = Lr;
 	});
-	var Ir = d((G) => {
+	var Fr = d((G) => {
 		"use strict";
 		var ol = G && G.__createBinding || (Object.create ? (function(s, e, t, i) {
 			i === void 0 && (i = t);
@@ -100511,58 +100539,58 @@ while (this[$r](this[me].shift()));
 		};
 		Object.defineProperty(G, "__esModule", { value: !0 });
 		G.extract = void 0;
-		var mo = hl(Ke()), po = ll(require("node:fs")), ul = st(), cl = Ve(), Gi = Ar(), fl = (s) => {
-			let e = new Gi.UnpackSync(s), t = s.file, i = po.default.statSync(t), r = s.maxReadSize || 16 * 1024 * 1024;
-			new mo.ReadStreamSync(t, {
+		var po = hl(Ke()), _o = ll(require("node:fs")), ul = rt(), cl = Ve(), Yi = Ir(), fl = (s) => {
+			let e = new Yi.UnpackSync(s), t = s.file, i = _o.default.statSync(t), r = s.maxReadSize || 16 * 1024 * 1024;
+			new po.ReadStreamSync(t, {
 				readSize: r,
 				size: i.size
 			}).pipe(e);
 		}, dl = (s, e) => {
-			let t = new Gi.Unpack(s), i = s.maxReadSize || 16 * 1024 * 1024, r = s.file;
-			return new Promise((o, a) => {
-				t.on("error", a), t.on("close", o), po.default.stat(r, (h, l) => {
-					if (h) a(h);
+			let t = new Yi.Unpack(s), i = s.maxReadSize || 16 * 1024 * 1024, r = s.file;
+			return new Promise((o, h) => {
+				t.on("error", h), t.on("close", o), _o.default.stat(r, (a, l) => {
+					if (a) h(a);
 					else {
-						let u = new mo.ReadStream(r, {
+						let u = new po.ReadStream(r, {
 							readSize: i,
 							size: l.size
 						});
-						u.on("error", a), u.pipe(t);
+						u.on("error", h), u.pipe(t);
 					}
 				});
 			});
 		};
-		G.extract = (0, cl.makeCommand)(fl, dl, (s) => new Gi.UnpackSync(s), (s) => new Gi.Unpack(s), (s, e) => {
+		G.extract = (0, cl.makeCommand)(fl, dl, (s) => new Yi.UnpackSync(s), (s) => new Yi.Unpack(s), (s, e) => {
 			e?.length && (0, ul.filesFilter)(s, e);
 		});
 	});
-	var Yi = d((ct) => {
+	var Ki = d((ft) => {
 		"use strict";
-		var _o = ct && ct.__importDefault || function(s) {
+		var wo = ft && ft.__importDefault || function(s) {
 			return s && s.__esModule ? s : { default: s };
 		};
-		Object.defineProperty(ct, "__esModule", { value: !0 });
-		ct.replace = void 0;
-		var wo = Ke(), q = _o(require("node:fs")), yo = _o(require("node:path")), Eo = Je(), bo = st(), ml = Ve(), pl = $t(), So = Ii(), _l = (s, e) => {
-			let t = new So.PackSync(s), i = !0, r, n;
+		Object.defineProperty(ft, "__esModule", { value: !0 });
+		ft.replace = void 0;
+		var yo = Ke(), q = wo(require("node:fs")), Eo = wo(require("node:path")), bo = et(), So = rt(), ml = Ve(), pl = Xt(), go = Fi(), _l = (s, e) => {
+			let t = new go.PackSync(s), i = !0, r, n;
 			try {
 				try {
 					r = q.default.openSync(s.file, "r+");
-				} catch (h) {
-					if (h?.code === "ENOENT") r = q.default.openSync(s.file, "w+");
-					else throw h;
+				} catch (a) {
+					if (a?.code === "ENOENT") r = q.default.openSync(s.file, "w+");
+					else throw a;
 				}
-				let o = q.default.fstatSync(r), a = Buffer.alloc(512);
+				let o = q.default.fstatSync(r), h = Buffer.alloc(512);
 				e: for (n = 0; n < o.size; n += 512) {
 					for (let u = 0, c = 0; u < 512; u += c) {
-						if (c = q.default.readSync(r, a, u, a.length - u, n + u), n === 0 && a[0] === 31 && a[1] === 139) throw new Error("cannot append to compressed archives");
+						if (c = q.default.readSync(r, h, u, h.length - u, n + u), n === 0 && h[0] === 31 && h[1] === 139) throw new Error("cannot append to compressed archives");
 						if (!c) break e;
 					}
-					let h = new Eo.Header(a);
-					if (!h.cksumValid) break;
-					let l = 512 * Math.ceil((h.size || 0) / 512);
+					let a = new bo.Header(h);
+					if (!a.cksumValid) break;
+					let l = 512 * Math.ceil((a.size || 0) / 512);
 					if (n + l + 512 > o.size) break;
-					n += l, s.mtimeCache && h.mtime && s.mtimeCache.set(String(h.path), h.mtime);
+					n += l, s.mtimeCache && a.mtime && s.mtimeCache.set(String(a.path), a.mtime);
 				}
 				i = !1, wl(s, t, n, r, e);
 			} finally {
@@ -100571,41 +100599,41 @@ while (this[$r](this[me].shift()));
 				} catch {}
 			}
 		}, wl = (s, e, t, i, r) => {
-			let n = new wo.WriteStreamSync(s.file, {
+			let n = new yo.WriteStreamSync(s.file, {
 				fd: i,
 				start: t
 			});
 			e.pipe(n), El(e, r);
 		}, yl = (s, e) => {
 			e = Array.from(e);
-			let t = new So.Pack(s), i = (n, o, a) => {
-				let h = (D, A) => {
-					D ? q.default.close(n, (w) => a(D)) : a(null, A);
+			let t = new go.Pack(s), i = (n, o, h) => {
+				let a = (D, A) => {
+					D ? q.default.close(n, (w) => h(D)) : h(null, A);
 				}, l = 0;
-				if (o === 0) return h(null, 0);
+				if (o === 0) return a(null, 0);
 				let u = 0, c = Buffer.alloc(512), E = (D, A) => {
-					if (D || A === void 0) return h(D);
+					if (D || A === void 0) return a(D);
 					if (u += A, u < 512 && A) return q.default.read(n, c, u, c.length - u, l + u, E);
-					if (l === 0 && c[0] === 31 && c[1] === 139) return h(/* @__PURE__ */ new Error("cannot append to compressed archives"));
-					if (u < 512) return h(null, l);
-					let w = new Eo.Header(c);
-					if (!w.cksumValid) return h(null, l);
+					if (l === 0 && c[0] === 31 && c[1] === 139) return a(/* @__PURE__ */ new Error("cannot append to compressed archives"));
+					if (u < 512) return a(null, l);
+					let w = new bo.Header(c);
+					if (!w.cksumValid) return a(null, l);
 					let P = 512 * Math.ceil((w.size ?? 0) / 512);
-					if (l + P + 512 > o || (l += P + 512, l >= o)) return h(null, l);
+					if (l + P + 512 > o || (l += P + 512, l >= o)) return a(null, l);
 					s.mtimeCache && w.mtime && s.mtimeCache.set(String(w.path), w.mtime), u = 0, q.default.read(n, c, 0, 512, l, E);
 				};
 				q.default.read(n, c, 0, 512, l, E);
 			};
 			return new Promise((n, o) => {
 				t.on("error", o);
-				let a = "r+", h = (l, u) => {
-					if (l && l.code === "ENOENT" && a === "r+") return a = "w+", q.default.open(s.file, a, h);
+				let h = "r+", a = (l, u) => {
+					if (l && l.code === "ENOENT" && h === "r+") return h = "w+", q.default.open(s.file, h, a);
 					if (l || !u) return o(l);
 					q.default.fstat(u, (c, E) => {
 						if (c) return q.default.close(u, () => o(c));
 						i(u, E.size, (D, A) => {
 							if (D) return o(D);
-							let w = new wo.WriteStream(s.file, {
+							let w = new yo.WriteStream(s.file, {
 								fd: u,
 								start: A
 							});
@@ -100613,26 +100641,26 @@ while (this[$r](this[me].shift()));
 						});
 					});
 				};
-				q.default.open(s.file, a, h);
+				q.default.open(s.file, h, a);
 			});
 		}, El = (s, e) => {
 			e.forEach((t) => {
-				t.charAt(0) === "@" ? (0, bo.list)({
-					file: yo.default.resolve(s.cwd, t.slice(1)),
+				t.charAt(0) === "@" ? (0, So.list)({
+					file: Eo.default.resolve(s.cwd, t.slice(1)),
 					sync: !0,
 					noResume: !0,
 					onReadEntry: (i) => s.add(i)
 				}) : s.add(t);
 			}), s.end();
 		}, bl = async (s, e) => {
-			for (let t of e) t.charAt(0) === "@" ? await (0, bo.list)({
-				file: yo.default.resolve(String(s.cwd), t.slice(1)),
+			for (let t of e) t.charAt(0) === "@" ? await (0, So.list)({
+				file: Eo.default.resolve(String(s.cwd), t.slice(1)),
 				noResume: !0,
 				onReadEntry: (i) => s.add(i)
 			}) : s.add(t);
 			s.end();
 		};
-		ct.replace = (0, ml.makeCommand)(_l, yl, () => {
+		ft.replace = (0, ml.makeCommand)(_l, yl, () => {
 			throw new TypeError("file is required");
 		}, () => {
 			throw new TypeError("file is required");
@@ -100642,20 +100670,20 @@ while (this[$r](this[me].shift()));
 			if (!e?.length) throw new TypeError("no paths specified to add/replace");
 		});
 	});
-	var Fr = d((Ki) => {
+	var Cr = d((Vi) => {
 		"use strict";
-		Object.defineProperty(Ki, "__esModule", { value: !0 });
-		Ki.update = void 0;
-		var Sl = Ve(), Bt = Yi();
-		Ki.update = (0, Sl.makeCommand)(Bt.replace.syncFile, Bt.replace.asyncFile, Bt.replace.syncNoFile, Bt.replace.asyncNoFile, (s, e = []) => {
-			Bt.replace.validate?.(s, e), gl(s);
+		Object.defineProperty(Vi, "__esModule", { value: !0 });
+		Vi.update = void 0;
+		var Sl = Ve(), zt = Ki();
+		Vi.update = (0, Sl.makeCommand)(zt.replace.syncFile, zt.replace.asyncFile, zt.replace.syncNoFile, zt.replace.asyncNoFile, (s, e = []) => {
+			zt.replace.validate?.(s, e), gl(s);
 		});
 		var gl = (s) => {
 			let e = s.filter;
 			s.mtimeCache || (s.mtimeCache = /* @__PURE__ */ new Map()), s.filter = e ? (t, i) => e(t, i) && !((s.mtimeCache?.get(t) ?? i.mtime ?? 0) > (i.mtime ?? 0)) : (t, i) => !((s.mtimeCache?.get(t) ?? i.mtime ?? 0) > (i.mtime ?? 0));
 		};
 	});
-	var go = exports && exports.__createBinding || (Object.create ? (function(s, e, t, i) {
+	var Oo = exports && exports.__createBinding || (Object.create ? (function(s, e, t, i) {
 		i === void 0 && (i = t);
 		var r = Object.getOwnPropertyDescriptor(e, t);
 		(!r || ("get" in r ? !e.__esModule : r.writable || r.configurable)) && (r = {
@@ -100674,7 +100702,7 @@ while (this[$r](this[me].shift()));
 	}) : function(s, e) {
 		s.default = e;
 	}), Y = exports && exports.__exportStar || function(s, e) {
-		for (var t in s) t !== "default" && !Object.prototype.hasOwnProperty.call(e, t) && go(e, s, t);
+		for (var t in s) t !== "default" && !Object.prototype.hasOwnProperty.call(e, t) && Oo(e, s, t);
 	}, Rl = exports && exports.__importStar || (function() {
 		var s = function(e) {
 			return s = Object.getOwnPropertyNames || function(t) {
@@ -100686,60 +100714,60 @@ while (this[$r](this[me].shift()));
 		return function(e) {
 			if (e && e.__esModule) return e;
 			var t = {};
-			if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && go(t, e, i[r]);
+			if (e != null) for (var i = s(e), r = 0; r < i.length; r++) i[r] !== "default" && Oo(t, e, i[r]);
 			return Ol(t, e), t;
 		};
 	})();
 	Object.defineProperty(exports, "__esModule", { value: !0 });
 	exports.u = exports.types = exports.r = exports.t = exports.x = exports.c = void 0;
-	Y(dr(), exports);
-	var vl = dr();
+	Y(mr(), exports);
+	var vl = mr();
 	Object.defineProperty(exports, "c", {
 		enumerable: !0,
 		get: function() {
 			return vl.create;
 		}
 	});
-	Y(Ir(), exports);
-	var Tl = Ir();
+	Y(Fr(), exports);
+	var Tl = Fr();
 	Object.defineProperty(exports, "x", {
 		enumerable: !0,
 		get: function() {
 			return Tl.extract;
 		}
 	});
-	Y(Je(), exports);
-	Y(st(), exports);
-	var Dl = st();
+	Y(et(), exports);
+	Y(rt(), exports);
+	var Dl = rt();
 	Object.defineProperty(exports, "t", {
 		enumerable: !0,
 		get: function() {
 			return Dl.list;
 		}
 	});
-	Y(Ii(), exports);
+	Y(Fi(), exports);
 	Y(pi(), exports);
-	Y(ti(), exports);
-	Y(ni(), exports);
-	Y(Yi(), exports);
-	var Pl = Yi();
+	Y(ii(), exports);
+	Y(Fs(), exports);
+	Y(Ki(), exports);
+	var Pl = Ki();
 	Object.defineProperty(exports, "r", {
 		enumerable: !0,
 		get: function() {
 			return Pl.replace;
 		}
 	});
-	exports.types = Rl(Ds());
-	Y(Ar(), exports);
-	Y(Fr(), exports);
-	var Nl = Fr();
+	exports.types = Rl(Ps());
+	Y(Ir(), exports);
+	Y(Cr(), exports);
+	var Nl = Cr();
 	Object.defineProperty(exports, "u", {
 		enumerable: !0,
 		get: function() {
 			return Nl.update;
 		}
 	});
-	Y(tr(), exports);
+	Y(sr(), exports);
 }));
 //#endregion
 //#region node_modules/traverse/index.js
@@ -102380,9 +102408,9 @@ function download(urlInput, options, token, obj = {}) {
 	let { etagAlgorithm } = options;
 	let { dest, onProgress, extract } = options;
 	if (!dest || !path$5.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
-	if (!fs$5.existsSync(dest)) fs$5.mkdirSync(dest, { recursive: true });
+	if (!fs$6.existsSync(dest)) fs$6.mkdirSync(dest, { recursive: true });
 	else {
-		let stat = fs$5.statSync(dest);
+		let stat = fs$6.statSync(dest);
 		if (stat && !stat.isDirectory()) throw new Error(`${dest} exists, but not directory!`);
 	}
 	let mod = getRequestModule(url);
@@ -102443,7 +102471,7 @@ function download(urlInput, options, token, obj = {}) {
 					stream = res.pipe(unzip.Extract({ path: dest }));
 				} else {
 					dest = path$5.join(dest, `${crypto$1.randomUUID()}${extname}`);
-					stream = res.pipe(fs$5.createWriteStream(dest));
+					stream = res.pipe(fs$6.createWriteStream(dest));
 				}
 				stream.on("finish", () => {
 					if (hash) {
@@ -102493,8 +102521,8 @@ var init_download = __esmMin((() => {
 function registryUrl(home = os$5.homedir()) {
 	let res;
 	let filepath = path$5.join(home, ".npmrc");
-	if (fs$5.existsSync(filepath)) try {
-		let content = fs$5.readFileSync(filepath, "utf8");
+	if (fs$6.existsSync(filepath)) try {
+		let content = fs$6.readFileSync(filepath, "utf8");
 		let uri;
 		for (let line of content.split(/\r?\n/)) {
 			if (line.startsWith("#")) continue;
@@ -102525,8 +102553,8 @@ function isPnpm(exePath) {
 	return name === "pnpm" || name === "pnpm.CMD";
 }
 function isSymbolicLink(folder) {
-	if (fs$5.existsSync(folder)) {
-		if (fs$5.lstatSync(folder).isSymbolicLink()) return true;
+	if (fs$6.existsSync(folder)) {
+		if (fs$6.lstatSync(folder).isSymbolicLink()) return true;
 	}
 	return false;
 }
@@ -102749,19 +102777,19 @@ var init_installer = __esmMin((() => {
 				obj = loadJson$1(path$5.join(downloadFolder, "package.json"));
 				await this.installDependencies(downloadFolder, getDependencies(obj));
 			} catch (e) {
-				fs$5.rmSync(downloadFolder, {
+				fs$6.rmSync(downloadFolder, {
 					recursive: true,
 					force: true
 				});
 				throw e;
 			}
 			this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`);
-			fs$5.mkdirSync(path$5.dirname(dest), { recursive: true });
-			if (fs$5.existsSync(dest)) fs$5.rmSync(dest, {
+			fs$6.mkdirSync(path$5.dirname(dest), { recursive: true });
+			if (fs$6.existsSync(dest)) fs$6.rmSync(dest, {
 				force: true,
 				recursive: true
 			});
-			fs$5.renameSync(downloadFolder, dest);
+			fs$6.renameSync(downloadFolder, dest);
 			this.log(`Move extension ${info.name}@${info.version} to ${dest}`);
 			const extensionDependencies = getExtensionDependencies(obj);
 			if (extensionDependencies.length > 0) {
@@ -102795,15 +102823,15 @@ var init_memos = __esmMin((() => {
 		filepath;
 		constructor(filepath) {
 			this.filepath = filepath;
-			if (!fs$5.existsSync(filepath)) fs$5.writeFileSync(filepath, "{}", "utf8");
+			if (!fs$6.existsSync(filepath)) fs$6.writeFileSync(filepath, "{}", "utf8");
 		}
 		merge(filepath) {
-			if (!fs$5.existsSync(filepath)) return;
+			if (!fs$6.existsSync(filepath)) return;
 			let obj = loadJson$1(filepath);
 			let current = loadJson$1(this.filepath);
 			Object.assign(current, obj);
 			writeJson(this.filepath, current);
-			fs$5.unlinkSync(filepath);
+			fs$6.unlinkSync(filepath);
 		}
 		fetchContent(id, key) {
 			let obj = loadJson$1(this.filepath)[id];
@@ -103328,12 +103356,12 @@ var init_db$1 = __esmMin((() => {
 				nameBuf,
 				...bufs
 			]);
-			fs$5.writeFileSync(DB_PATH, resultBuf);
+			fs$6.writeFileSync(DB_PATH, resultBuf);
 			this._changed = false;
 		}
 		load() {
-			if (!fs$5.existsSync(DB_PATH)) return;
-			let buffer = fs$5.readFileSync(DB_PATH);
+			if (!fs$6.existsSync(DB_PATH)) return;
+			let buffer = fs$6.readFileSync(DB_PATH);
 			let folder_length = buffer.readUInt32BE(1);
 			let name_length = buffer.readUInt32BE(5);
 			let folderBuf = buffer.slice(9, 9 + folder_length);
@@ -103409,13 +103437,13 @@ var init_history = __esmMin((() => {
 		}
 		static migrate(folder) {
 			try {
-				let files = fs$5.readdirSync(folder);
-				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$5.statSync(path$5.join(folder, f)).isFile());
+				let files = fs$6.readdirSync(folder);
+				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$6.statSync(path$5.join(folder, f)).isFile());
 				if (files.length === 0) return;
 				let db = new DataBase();
 				for (let file of files) {
 					let name = file.match(/^list-(.*)-history.json$/)[1];
-					let content = fs$5.readFileSync(path$5.join(folder, file), "utf8");
+					let content = fs$6.readFileSync(path$5.join(folder, file), "utf8");
 					let obj = JSON.parse(content);
 					for (let [key, texts] of Object.entries(obj)) {
 						let folder = Buffer.from(key, "base64").toString("utf8");
@@ -103425,7 +103453,7 @@ var init_history = __esmMin((() => {
 					}
 				}
 				files.forEach((f) => {
-					fs$5.unlinkSync(path$5.join(folder, f));
+					fs$6.unlinkSync(path$5.join(folder, f));
 				});
 				db.save();
 			} catch (e) {
@@ -106021,8 +106049,8 @@ var init_extensions = __esmMin((() => {
 			this.addAction("configuration", async (item) => {
 				let { root } = item.data;
 				let jsonFile = path$5.join(root, "package.json");
-				if (fs$5.existsSync(jsonFile)) {
-					let idx = fs$5.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
+				if (fs$6.existsSync(jsonFile)) {
+					let idx = fs$6.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
 					await workspace_default.jumpTo(URI.file(jsonFile), {
 						line: idx == -1 ? 0 : idx,
 						character: 0
@@ -106058,7 +106086,7 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("help", async (item) => {
 				let { root } = item.data;
-				let file = fs$5.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
+				let file = fs$6.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
 				if (file) await workspace_default.jumpTo(URI.file(path$5.join(root, file)));
 			});
 			this.addAction("reload", async (item) => {
@@ -106082,7 +106110,7 @@ var init_extensions = __esmMin((() => {
 			let list = await extension_default.getExtensionStates();
 			for (let stat of list) {
 				let prefix = getExtensionPrefix(stat.state);
-				let root = fs$5.realpathSync(stat.root);
+				let root = fs$6.realpathSync(stat.root);
 				let locked = stat.isLocked;
 				items.push({
 					label: [
@@ -112123,11 +112151,11 @@ function getRuntimePath(runtime, serverWorkingDirectory) {
 	const mainRootPath = mainGetRootPath();
 	if (mainRootPath !== void 0) {
 		const result = path$5.join(mainRootPath, runtime);
-		if (fs$5.existsSync(result)) return result;
+		if (fs$6.existsSync(result)) return result;
 	}
 	if (serverWorkingDirectory !== void 0) {
 		const result = path$5.join(serverWorkingDirectory, runtime);
-		if (fs$5.existsSync(result)) return result;
+		if (fs$6.existsSync(result)) return result;
 	}
 	return runtime;
 }
@@ -112141,7 +112169,7 @@ function getServerWorkingDir(options) {
 	if (cwd && !path$5.isAbsolute(cwd)) cwd = path$5.join(workspace_default.cwd, cwd);
 	if (!cwd) cwd = workspace_default.cwd;
 	return new Promise((s) => {
-		fs$5.lstat(cwd, (err, stats) => {
+		fs$6.lstat(cwd, (err, stats) => {
 			s(!err && stats.isDirectory() ? cwd : void 0);
 		});
 	});
@@ -112555,7 +112583,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	args = args.map((s) => workspace_default.expand(s));
 	if (module) {
 		module = workspace_default.expand(module);
-		if (!fs$5.existsSync(module)) {
+		if (!fs$6.existsSync(module)) {
 			window_default.showErrorMessage(`Module file "${module}" not found for LS "${name}"`);
 			return null;
 		}
@@ -117694,7 +117722,7 @@ function getLogger(useConsole, id) {
 	return useConsole ? consoleLogger : createLogger$1(`extension:${id}`);
 }
 function createExtension(id, filename, isEmpty) {
-	if (isEmpty || !fs$5.existsSync(filename)) return {
+	if (isEmpty || !fs$6.existsSync(filename)) return {
 		activate: () => {},
 		deactivate: null
 	};
@@ -117789,12 +117817,12 @@ async function loadGlobalJsonAsync(folder, version) {
 	let main = getEntryFile(packageJSON.main);
 	if (!engines || typeof engines.coc !== "string" && typeof engines.vscode !== "string") throw new Error("Invalid engines field");
 	if (Object.keys(engines).includes("coc") && !semver.satisfies(version, engines["coc"].replace(/^\^/, ">="))) throw new Error(`coc.nvim version not match, required ${engines["coc"]}`);
-	if (!engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
+	if (!engines.vscode && !fs$6.existsSync(path$5.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
 	return packageJSON;
 }
 function loadExtensionJson(folder, version, errors) {
 	let jsonFile = path$5.join(folder, "package.json");
-	if (!fs$5.existsSync(jsonFile)) {
+	if (!fs$6.existsSync(jsonFile)) {
 		errors.push(`package.json not found in ${folder}`);
 		return;
 	}
@@ -117803,7 +117831,7 @@ function loadExtensionJson(folder, version, errors) {
 	let main = getEntryFile(packageJSON.main);
 	if (!name) errors.push(`can't find name in package.json`);
 	if (!engines || !objectLiteral(engines)) errors.push(`invalid engines in ${jsonFile}`);
-	if (engines && !engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
+	if (engines && !engines.vscode && !fs$6.existsSync(path$5.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
 	if (engines) {
 		let keys = Object.keys(engines);
 		if (!keys.includes("coc") && !keys.includes("vscode")) errors.push(`Engines in package.json doesn't have coc or vscode`);
@@ -117824,14 +117852,14 @@ function getExtensionName(def) {
 }
 function checkExtensionRoot(root) {
 	try {
-		if (!fs$5.existsSync(root)) fs$5.mkdirSync(root, { recursive: true });
-		if (!fs$5.statSync(root).isDirectory()) {
+		if (!fs$6.existsSync(root)) fs$6.mkdirSync(root, { recursive: true });
+		if (!fs$6.statSync(root).isDirectory()) {
 			logger$27.info(`Trying to delete ${root}`);
-			fs$5.unlinkSync(root);
-			fs$5.mkdirSync(root, { recursive: true });
+			fs$6.unlinkSync(root);
+			fs$6.mkdirSync(root, { recursive: true });
 		}
 		let jsonFile = path$5.join(root, "package.json");
-		if (!fs$5.existsSync(jsonFile)) fs$5.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
+		if (!fs$6.existsSync(jsonFile)) fs$6.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
 	} catch (e) {
 		console.error(`Unexpected error when check data home ${root}: ${e}`);
 		return false;
@@ -117839,12 +117867,12 @@ function checkExtensionRoot(root) {
 	return true;
 }
 async function getJsFiles(folder) {
-	if (!fs$5.existsSync(folder)) return [];
-	return (await fs$5.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
+	if (!fs$6.existsSync(folder)) return [];
+	return (await fs$6.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
 }
 function loadJson(filepath) {
 	try {
-		let text = fs$5.readFileSync(filepath, "utf8");
+		let text = fs$6.readFileSync(filepath, "utf8");
 		return toObject(JSON.parse(text));
 	} catch (e) {
 		logger$27.error(`Error on parse json file ${filepath}`, e);
@@ -117880,7 +117908,7 @@ var init_stat = __esmMin((() => {
 			let curr = loadJson(this.jsonFile);
 			let db = path$5.join(this.folder, "db.json");
 			let changed = false;
-			if (fs$5.existsSync(db)) {
+			if (fs$6.existsSync(db)) {
 				let obj = loadJson(db);
 				let def = obj.extension ?? {};
 				for (let [key, o] of Object.entries(def)) {
@@ -117890,7 +117918,7 @@ var init_stat = __esmMin((() => {
 				curr.disabled = Array.from(this.disabled);
 				curr.locked = Array.from(this.locked);
 				curr.lastUpdate = obj.lastUpdate;
-				fs$5.unlinkSync(db);
+				fs$6.unlinkSync(db);
 				changed = true;
 			} else {
 				this.disabled = new Set(curr.disabled ?? []);
@@ -117998,7 +118026,7 @@ var init_stat = __esmMin((() => {
 			});
 			let currentUrls = [];
 			let exists = [];
-			for (let [key, val] of Object.entries(dependencies)) if (fs$5.existsSync(path$5.join(this.folder, "node_modules", key, "package.json"))) {
+			for (let [key, val] of Object.entries(dependencies)) if (fs$6.existsSync(path$5.join(this.folder, "node_modules", key, "package.json"))) {
 				exists.push(key);
 				if (typeof val === "string" && /^https?:/.test(val)) currentUrls.push(val);
 			}
@@ -119217,14 +119245,14 @@ var init_extension = __esmMin((() => {
 		*/
 		cleanModulesFolder() {
 			let folders = this.states.globalIds.map((s) => s.replace(/\/.*$/, ""));
-			if (!fs$5.existsSync(this.modulesFolder)) return;
-			let files = fs$5.readdirSync(this.modulesFolder);
+			if (!fs$6.existsSync(this.modulesFolder)) return;
+			let files = fs$6.readdirSync(this.modulesFolder);
 			for (let file of files) {
 				if (folders.includes(file)) continue;
 				let p = path$5.join(this.modulesFolder, file);
-				let stat = fs$5.lstatSync(p);
-				if (stat.isSymbolicLink()) fs$5.unlinkSync(p);
-				else if (stat.isDirectory()) fs$5.rmSync(p, {
+				let stat = fs$6.lstatSync(p);
+				if (stat.isSymbolicLink()) fs$6.unlinkSync(p);
+				else if (stat.isDirectory()) fs$6.rmSync(p, {
 					recursive: true,
 					force: true
 				});
@@ -120659,7 +120687,7 @@ async function getItemsFromRoot(pathstr, root, ignoreHidden, ignorePatterns) {
 	let dir = getDirectory(pathstr, root);
 	let stat = await statAsync(dir);
 	if (stat && stat.isDirectory()) {
-		let files = await fs$5.promises.readdir(dir);
+		let files = await fs$6.promises.readdir(dir);
 		files = filterFiles(files, ignoreHidden, ignorePatterns);
 		let items = await Promise.all(files.map((filename) => getFileItem(dir, filename)));
 		res = res.concat(items);
@@ -120741,10 +120769,10 @@ var init_file = __esmMin((() => {
 			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$5.win32.dirname(pathstr);
 			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$5.posix.dirname(pathstr);
 			else if (part) {
-				let exists = await fs$5.promises.access(path$5.join(dirname, part)).then(() => true, () => false);
+				let exists = await fs$6.promises.access(path$5.join(dirname, part)).then(() => true, () => false);
 				if (exists) root = dirname;
 				else {
-					exists = await fs$5.promises.access(path$5.join(cwd, part)).then(() => true, () => false);
+					exists = await fs$6.promises.access(path$5.join(cwd, part)).then(() => true, () => false);
 					if (exists) root = cwd;
 				}
 			} else root = cwd;
@@ -120951,7 +120979,7 @@ var init_sources = __esmMin((() => {
 			let folder = path$5.join(pluginPath, "autoload/coc/source");
 			let stat = await statAsync(folder);
 			if (stat && stat.isDirectory()) {
-				let files = (await fs$5.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$5.join(folder, s));
+				let files = (await fs$6.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$5.join(folder, s));
 				await Promise.allSettled(files.map((p) => this.createVimSourceExtension(p)));
 			}
 		}
@@ -122799,7 +122827,7 @@ var init_documents = __esmMin((() => {
 			if (document && document.attached) return document.getline(line) || "";
 			if (!uri.startsWith("file:")) return "";
 			let fsPath = URI.parse(uri).fsPath;
-			if (!fs$5.existsSync(fsPath)) return "";
+			if (!fs$6.existsSync(fsPath)) return "";
 			return await readFileLine(fsPath, line);
 		}
 		/**
@@ -124463,8 +124491,8 @@ var init_files = __esmMin((() => {
 			if (doc) return doc;
 			const scheme = uri.scheme;
 			if (scheme == "file") {
-				if (!fs$5.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
-				fs$5.accessSync(uri.fsPath, fs$5.constants.R_OK);
+				if (!fs$6.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
+				fs$6.accessSync(uri.fsPath, fs$6.constants.R_OK);
 			}
 			if (scheme == "untitled") {
 				await this.nvim.call("coc#util#open_file", ["tab drop", uri.path]);
@@ -124562,7 +124590,7 @@ var init_files = __esmMin((() => {
 		*/
 		async createFile(filepath, opts = {}, recovers) {
 			let { nvim } = this;
-			let exists = fs$5.existsSync(filepath);
+			let exists = fs$6.existsSync(filepath);
 			if (exists && !opts.overwrite && !opts.ignoreIfExists) throw fileExists(filepath);
 			if (!exists || opts.overwrite) {
 				let tokenSource = new import_main$1.CancellationTokenSource();
@@ -124572,7 +124600,7 @@ var init_files = __esmMin((() => {
 				}, recovers);
 				tokenSource.cancel();
 				let dir = path$5.dirname(filepath);
-				if (!fs$5.existsSync(dir)) {
+				if (!fs$6.existsSync(dir)) {
 					let folder;
 					let curr = dir;
 					while (![
@@ -124580,23 +124608,23 @@ var init_files = __esmMin((() => {
 						"/",
 						path$5.parse(dir).root
 					].includes(curr)) {
-						if (fs$5.existsSync(path$5.dirname(curr))) {
+						if (fs$6.existsSync(path$5.dirname(curr))) {
 							folder = curr;
 							break;
 						}
 						curr = path$5.dirname(curr);
 					}
-					fs$5.mkdirSync(dir, { recursive: true });
+					fs$6.mkdirSync(dir, { recursive: true });
 					if (Array.isArray(recovers)) recovers.push(() => {
-						fs$5.rmSync(folder, {
+						fs$6.rmSync(folder, {
 							force: true,
 							recursive: true
 						});
 					});
 				}
-				fs$5.writeFileSync(filepath, "", "utf8");
+				fs$6.writeFileSync(filepath, "", "utf8");
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.rmSync(filepath, {
+					fs$6.rmSync(filepath, {
 						force: true,
 						recursive: true
 					});
@@ -124631,28 +124659,28 @@ var init_files = __esmMin((() => {
 				}
 			}
 			let folder = path$5.join(os$5.tmpdir(), "coc-" + process.pid);
-			fs$5.mkdirSync(folder, { recursive: true });
+			fs$6.mkdirSync(folder, { recursive: true });
 			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
 			if (isDir && recursive) {
 				let dest = path$5.join(folder, md5);
 				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
+				fs$6.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(async () => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
+					fs$6.mkdirSync(dir, { recursive: true });
+					fs$6.renameSync(dest, filepath);
 				});
 			} else if (isDir) {
-				fs$5.rmdirSync(filepath);
+				fs$6.rmdirSync(filepath);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(filepath);
+					fs$6.mkdirSync(filepath);
 				});
 			} else {
 				let dest = path$5.join(folder, md5);
 				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
+				fs$6.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
+					fs$6.mkdirSync(dir, { recursive: true });
+					fs$6.renameSync(dest, filepath);
 				});
 			}
 			this._onDidDeleteFiles.fire({ files: [uri] });
@@ -124664,7 +124692,7 @@ var init_files = __esmMin((() => {
 			let { nvim } = this;
 			let { overwrite, ignoreIfExists } = opts;
 			if (newPath === oldPath) return;
-			let exists = fs$5.existsSync(newPath);
+			let exists = fs$6.existsSync(newPath);
 			if (exists && ignoreIfExists && !overwrite) return;
 			if (exists && !overwrite) throw fileExists(newPath);
 			let oldStat = await statAsync(oldPath);
@@ -124695,7 +124723,7 @@ var init_files = __esmMin((() => {
 						await this.documents.onBufCreate(bufnr);
 					}
 				}
-				fs$5.renameSync(oldPath, newPath);
+				fs$6.renameSync(oldPath, newPath);
 			}
 			if (Array.isArray(recovers)) recovers.push(() => {
 				return this.renameFile(newPath, oldPath, { skipEvent: true });
@@ -125260,7 +125288,7 @@ var init_db = __esmMin((() => {
 				if (typeof obj[parts[i]] === "undefined") break;
 				if (i == len - 1) {
 					delete obj[parts[i]];
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
+					fs$6.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
 					break;
 				}
 				obj = obj[parts[i]];
@@ -125281,8 +125309,8 @@ var init_db = __esmMin((() => {
 				if (i == len - 1) {
 					obj[key] = data;
 					let dir = path$5.dirname(this.filepath);
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
+					fs$6.mkdirSync(dir, { recursive: true });
+					fs$6.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
 					break;
 				}
 				if (typeof obj[key] == "undefined") {
@@ -125293,16 +125321,16 @@ var init_db = __esmMin((() => {
 		}
 		load() {
 			let dir = path$5.dirname(this.filepath);
-			if (!fs$5.existsSync(dir)) {
-				fs$5.mkdirSync(dir, { recursive: true });
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+			if (!fs$6.existsSync(dir)) {
+				fs$6.mkdirSync(dir, { recursive: true });
+				fs$6.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 			try {
-				let content = fs$5.readFileSync(this.filepath, "utf8");
+				let content = fs$6.readFileSync(this.filepath, "utf8");
 				return JSON.parse(content.trim());
 			} catch (e) {
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+				fs$6.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 		}
@@ -125310,14 +125338,14 @@ var init_db = __esmMin((() => {
 		* Empty db file.
 		*/
 		clear() {
-			if (!fs$5.existsSync(this.filepath)) return;
-			fs$5.writeFileSync(this.filepath, "{}", "utf8");
+			if (!fs$6.existsSync(this.filepath)) return;
+			fs$6.writeFileSync(this.filepath, "{}", "utf8");
 		}
 		/**
 		* Remove db file.
 		*/
 		destroy() {
-			if (fs$5.existsSync(this.filepath)) fs$5.unlinkSync(this.filepath);
+			if (fs$6.existsSync(this.filepath)) fs$6.unlinkSync(this.filepath);
 		}
 	};
 }));
@@ -130886,7 +130914,7 @@ async function readLines(uri, start, end) {
 	let doc = workspace_default.getDocument(uri);
 	if (doc) return doc.getLines(start, end + 1);
 	let fsPath = URI.parse(uri).fsPath;
-	if (!fs$5.existsSync(fsPath)) return [];
+	if (!fs$6.existsSync(fsPath)) return [];
 	return await readFileLines(fsPath, start, end);
 }
 var highlightDelay, HoverHandler;
@@ -135449,9 +135477,9 @@ var init_workspace = __esmMin((() => {
 			}
 			let root = URI.parse(folder.uri).fsPath;
 			let dir = path$5.join(root, ".vim");
-			if (!fs$5.existsSync(dir)) {
+			if (!fs$6.existsSync(dir)) {
 				if (!await window_default.showPrompt(`Would you like to create folder'${root}/.vim'?`)) return;
-				fs$5.mkdirSync(dir);
+				fs$6.mkdirSync(dir);
 			}
 			await workspace_default.jumpTo(URI.file(path$5.join(dir, CONFIG_FILE_NAME)));
 		}
@@ -135465,7 +135493,7 @@ var init_workspace = __esmMin((() => {
 			]);
 			newPath = newPath.trim();
 			if (newPath === oldPath || !newPath) return;
-			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$5.existsSync(newPath)) {
+			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$6.existsSync(newPath)) {
 				if (!await window_default.showPrompt(`${newPath} exists, overwrite?`)) return;
 			}
 			await workspace_default.renameFile(oldPath, newPath, { overwrite: true });
@@ -135559,7 +135587,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-1321bc8 2026-06-15 11:26:28 +0800";
+			let version = workspace_default.version + "-abe7fc8 2026-06-16 09:46:52 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
@@ -135573,8 +135601,8 @@ var init_workspace = __esmMin((() => {
 			lines.push("## Log of coc.nvim");
 			lines.push("");
 			let file = getLoggerFile();
-			if (fs$5.existsSync(file)) {
-				let content = fs$5.readFileSync(file, { encoding: "utf8" });
+			if (fs$6.existsSync(file)) {
+				let content = fs$6.readFileSync(file, { encoding: "utf8" });
 				lines.push(...content.split(/\r?\n/).map((line) => stripAnsi(line)));
 			}
 			await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted");
