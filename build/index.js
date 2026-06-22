@@ -89534,7 +89534,7 @@ var properties = {
 		"type": "string",
 		"scope": "language-overridable",
 		"default": "replace",
-		"description": "Controls whether words are overwritten when accepting completions.",
+		"description": "Controls whether words are overwritten when accepting completions. Use `insert` to only replace the typed prefix before the cursor and keep text after the cursor. Use `replace` to also replace matching text after the cursor.",
 		"enum": ["insert", "replace"]
 	},
 	"suggest.ignoreRegexps": {
@@ -135587,7 +135587,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-abe7fc8 2026-06-16 09:46:52 +0800";
+			let version = workspace_default.version + "-afafbe7 2026-06-22 16:54:51 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
