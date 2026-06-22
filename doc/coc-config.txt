@@ -1804,7 +1804,11 @@ SUGGEST
 
 "suggest.insertMode" 					*coc-config-suggest-insertMode*
 
-	Controls whether words are overwritten when accepting completions.
+	Controls whether words are overwritten when accepting completions. Use
+	`insert` to only replace the typed prefix before the cursor and keep text
+	after the cursor. For example, completing `pri^foo` with `print` results
+	in `print^foo`. Use `replace` to also replace matching text after the
+	cursor.
 
 	Scope: `language-overridable`, default: `“replace"`
 
