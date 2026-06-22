@@ -2206,7 +2206,7 @@
       "type": "string",
       "scope": "language-overridable",
       "default": "replace",
-      "description": "Controls whether words are overwritten when accepting completions.",
+      "description": "Controls whether words are overwritten when accepting completions. Use `insert` to only replace the typed prefix before the cursor and keep text after the cursor. Use `replace` to also replace matching text after the cursor.",
       "enum": ["insert", "replace"]
     },
     "suggest.ignoreRegexps": {
