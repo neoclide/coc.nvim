@@ -640,7 +640,7 @@ connection.onWorkspaceSymbolResolve(symbol => {
 
 connection.onRequest(new ProtocolRequestType('testing/sendApplyEdit'), async (_, __) => {
   const params = {label: 'Apply Edit', edit: {}}
-  await connection.sendRequest(ApplyWorkspaceEditRequest.type, params)
+  return await connection.sendRequest(ApplyWorkspaceEditRequest.type, params)
 })
 
 connection.onRequest(new ProtocolRequestType('testing/sendDiagnostics'), async (_, __) => {

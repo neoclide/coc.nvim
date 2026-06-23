@@ -1520,18 +1520,16 @@ describe('Client integration', () => {
       if (error) return new ResponseError(ErrorCodes.InternalError, 'myerror')
       return next(params, tokenSource.token)
     }
+    const applyEditRequest = new ProtocolRequestType<any, any, never, any, any>('testing/sendApplyEdit')
 
     // Trigger sample applyEdit event.
-    await new Promise<unknown>(resolve => {
+    let result = await new Promise<unknown>(resolve => {
       currentProgressResolver = resolve
-      void client.sendRequest(
-        new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
-        {},
-        tokenSource.token,
-      )
+      client.sendRequest(applyEditRequest, {}, tokenSource.token).then(resolve)
     })
 
     // Ensure event was handled.
+    assert.deepStrictEqual(result, { applied: true })
     assert.strictEqual(middlewareEvents.length, 1)
     assert.strictEqual(middlewareEvents[0].label, 'Apply Edit')
     error = true
@@ -1539,12 +1537,12 @@ describe('Client integration', () => {
     let spy = vi.spyOn(client, 'error').mockImplementation(() => {
       called = true
     })
-    await client.sendRequest(
-      new ProtocolRequestType<any, null, never, any, any>('testing/sendApplyEdit'),
-      {},
-      tokenSource.token,
-    )
+    result = await client.sendRequest(applyEditRequest, {}, tokenSource.token)
+    assert.deepStrictEqual(result, { applied: false, failureReason: 'myerror' })
     await helper.waitValue(() => called, true)
+    middleware.workspace.handleApplyEdit = () => undefined as any
+    result = await client.sendRequest(applyEditRequest, {}, tokenSource.token)
+    assert.deepStrictEqual(result, { applied: false, failureReason: 'Invalid apply workspace edit middleware result' })
     middleware.workspace.handleApplyEdit = undefined
     spy.mockRestore()
   })

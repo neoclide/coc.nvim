@@ -1778,13 +1778,18 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     const middleware = this.clientOptions.middleware.workspace?.handleApplyEdit
     if (middleware) {
       try {
-        let resultOrError = await Promise.resolve(middleware(params, nextParams => this.doHandleApplyWorkspaceEdit(nextParams)))
+        let resultOrError: unknown = await Promise.resolve(middleware(params, nextParams => this.doHandleApplyWorkspaceEdit(nextParams)))
         if (resultOrError instanceof ResponseError) {
           throw resultOrError
         }
+        if (Is.objectLiteral(resultOrError) && Is.boolean((resultOrError as ApplyWorkspaceEditResult).applied)) {
+          return resultOrError as ApplyWorkspaceEditResult
+        }
+        this.error(`Invalid result from apply workspace edit middleware`, resultOrError, false)
+        return { applied: false, failureReason: 'Invalid apply workspace edit middleware result' }
       } catch (error) {
         this.error(`Error on apply workspace edit`, error, false)
-        return { applied: false }
+        return { applied: false, failureReason: error instanceof Error ? error.message : String(error) }
       }
     } else {
       return this.doHandleApplyWorkspaceEdit(params)
