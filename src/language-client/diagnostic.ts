@@ -459,7 +459,13 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
             previousResultId
           }
           return this.sendRequest(DocumentDiagnosticRequest.type, params, token, { kind: DocumentDiagnosticReportKind.Full, items: [] }).then(async result => {
-            if (result === undefined || result === null || this.isDisposed) {
+            if (this.isDisposed) {
+              return { kind: DocumentDiagnosticReportKind.Full, items: [] }
+            }
+            if (token.isCancellationRequested) {
+              throw new CancellationError()
+            }
+            if (result === undefined || result === null) {
               return { kind: DocumentDiagnosticReportKind.Full, items: [] }
             }
             // make handleDiagnostics middleware works
