@@ -67069,6 +67069,7 @@ var require_protocol_diagnostic = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* The document diagnostic request definition.
 	*
+	*
 	* @since 3.17.0
 	*/
 	var DocumentDiagnosticRequest;
@@ -107960,7 +107961,12 @@ var init_diagnostic = __esmMin((() => {
 							kind: import_main$1.DocumentDiagnosticReportKind.Full,
 							items: []
 						}).then(async (result) => {
-							if (result === void 0 || result === null || this.isDisposed) return {
+							if (this.isDisposed) return {
+								kind: import_main$1.DocumentDiagnosticReportKind.Full,
+								items: []
+							};
+							if (token.isCancellationRequested) throw new CancellationError();
+							if (result === void 0 || result === null) return {
 								kind: import_main$1.DocumentDiagnosticReportKind.Full,
 								items: []
 							};
@@ -135587,7 +135593,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-afafbe7 2026-06-22 16:54:51 +0800";
+			let version = workspace_default.version + "-69fb24f 2026-06-23 21:38:01 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
