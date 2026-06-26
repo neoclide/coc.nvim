@@ -38,36 +38,39 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node }}
-          cache: "npm"
+      - parallel:
+        - name: Setup Node.js ${{ matrix.node }}
+          uses: actions/setup-node@v6
+          with:
+            node-version: ${{ matrix.node }}
+            cache: "npm"
 
-      - name: Setup python3
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.x"
-      - run: pip install pynvim
+        - name: Setup python3
+          uses: actions/setup-python@v6
+          with:
+            python-version: "3.x"
 
-      - name: Setup vim
-        uses: rhysd/action-setup-vim@v1
-        id: vim
-        with:
-          version: ${{ matrix.versions.vim }}
+        - name: Setup vim
+          uses: rhysd/action-setup-vim@v1
+          id: vim
+          with:
+            version: ${{ matrix.versions.vim }}
 
-      - name: Setup neovim
-        id: nvim
-        uses: rhysd/action-setup-vim@v1
-        with:
-          neovim: true
-          version: ${{ matrix.versions.neovim }}
+        - name: Setup neovim
+          id: nvim
+          uses: rhysd/action-setup-vim@v1
+          with:
+            neovim: true
+            version: ${{ matrix.versions.neovim }}
+
+        - name: Setup rg/ctags
+          run: sudo apt-get install -y ripgrep exuberant-ctags
 
       - name: Install Dependencies
         run: |
           npm i -g bytes
           npm ci
-          sudo apt-get install -y ripgrep exuberant-ctags
+          pip install pynvim
           rg --version
           ctags --version
           vim --version
