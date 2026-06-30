@@ -491,7 +491,9 @@ describe('Client integration', () => {
     helper.updateConfiguration('css.trace.server.verbosity', 'verbose', disposables)
     helper.updateConfiguration('css.trace.server.format', 'json', disposables)
     let uri = URI.file(__filename)
-    await workspace.loadFile(uri.toString())
+    await helper.edit(path.join(os.tmpdir(), crypto.randomUUID()))
+    await workspace.openResource(uri.toString())
+    assert.equal(await workspace.documentsManager.getCurrentUri(), uri.toString())
     let serverModule = path.join(__dirname, './server/testInitializeResult.js')
     let serverOptions: lsclient.ServerOptions = {
       run: { module: serverModule, transport: lsclient.TransportKind.ipc },
