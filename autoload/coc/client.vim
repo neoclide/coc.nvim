@@ -79,6 +79,10 @@ function! s:start() dict
       return
     endif
     let self['chan_id'] = chan_id
+    " expose channel id for Lua RPC (Neovim only)
+    if self.name ==# 'coc'
+      let g:coc_channel_id = chan_id
+    endif
   endif
   let self['running'] = 1
 endfunction
@@ -128,6 +132,10 @@ function! s:on_exit(name, code) abort
   if client['running'] != 1 | return | endif
   let client['running'] = 0
   let client['chan_id'] = 0
+  " clear channel id when coc main client exits
+  if a:name ==# 'coc'
+    unlet! g:coc_channel_id
+  endif
   let client['channel'] = v:null
   let client['async_req_id'] = 1
   if a:code != 0 && a:code != 143 && a:code != -1
