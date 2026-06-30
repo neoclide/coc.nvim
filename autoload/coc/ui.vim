@@ -325,19 +325,20 @@ function! coc#ui#rename_file(oldPath, newPath, write) abort
   if bufloaded(newPath)
     execute 'silent bdelete! '.bufnr(newPath)
   endif
-  " TODO use nvim_buf_set_name instead
-  let current = bufnr == bufnr('%')
   let bufname = fnamemodify(newPath, ":~:.")
   let filepath = fnamemodify(bufname(bufnr), '%:p')
   let winid = coc#compat#buf_win_id(bufnr)
   let curr = -1
   if winid == -1
     let curr = win_getid()
-    let file = fnamemodify(bufname(bufnr), ':.')
-    execute 'keepalt tab drop '.fnameescape(bufname(bufnr))
+    execute 'keepalt tab sbuffer '.bufnr
     let winid = win_getid()
   endif
-  call win_execute(winid, 'keepalt file '.fnameescape(bufname), 'silent')
+  if s:is_vim
+    call win_execute(winid, 'keepalt file '.fnameescape(bufname), 'silent')
+  else
+    keepalt call nvim_buf_set_name(bufnr, bufname)
+  endif
   call win_execute(winid, 'doautocmd BufEnter')
   if a:write
     call win_execute(winid, 'noa write!', 'silent')
