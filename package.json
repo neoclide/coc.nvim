@@ -29,7 +29,6 @@
   },
   "homepage": "https://github.com/neoclide/coc.nvim#readme",
   "devDependencies": {
-    "@types/cli-table": "^0.3.4",
     "@types/debounce": "^1.2.4",
     "@types/fb-watchman": "^2.0.6",
     "@types/follow-redirects": "^1.14.4",
@@ -40,7 +39,6 @@
     "@vitest/coverage-v8": "^4.1.8",
     "@vitest/eslint-plugin": "^1.6.19",
     "eslint": "^10.4.1",
-    "eslint-formatter-unix": "^9.0.1",
     "eslint-plugin-jsdoc": "^63.0.1",
     "globals": "^17.5.0",
     "rolldown": "^1.0.3",
