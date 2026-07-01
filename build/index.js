@@ -66140,7 +66140,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 	exports.StreamMessageWriter = StreamMessageWriter;
 	const XDG_RUNTIME_DIR = process.env["XDG_RUNTIME_DIR"];
-	const safeIpcPathLengths = /* @__PURE__ */ new Map([["linux", 107], ["darwin", 103]]);
+	const safeIpcPathLengths = /* @__PURE__ */ new Map([["linux", 107], ["darwin", 102]]);
 	function generateRandomPipeName() {
 		if (process.platform === "win32") return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
 		let randomLength = 32;
@@ -111525,6 +111525,12 @@ var init_client = __esmMin((() => {
 			return this._traceOutputChannel ? this._traceOutputChannel : this.outputChannel;
 		}
 		get diagnostics() {
+			if (this._diagnostics === null || this._clientOptions.disabledFeatures.includes("diagnostics")) return;
+			if (this._diagnostics === void 0) {
+				let opts = this._clientOptions;
+				let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id;
+				this._diagnostics = languages_default.createDiagnosticCollection(name);
+			}
 			return this._diagnostics;
 		}
 		createDefaultErrorHandler(maxRestartCount) {
@@ -111608,11 +111614,7 @@ var init_client = __esmMin((() => {
 			this._rootPath = this.resolveRootPath();
 			const [promise, resolve, reject] = this.createOnStartPromise();
 			this._onStart = promise;
-			if (this._diagnostics === void 0) {
-				let opts = this._clientOptions;
-				let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id;
-				if (!opts.disabledFeatures.includes("diagnostics")) this._diagnostics = languages_default.createDiagnosticCollection(name);
-			}
+			this._diagnostics = void 0;
 			for (const [method, handler] of this._notificationHandlers) if (!this._pendingNotificationHandlers.has(method)) this._pendingNotificationHandlers.set(method, handler);
 			for (const [method, handler] of this._requestHandlers) if (!this._pendingRequestHandlers.has(method)) this._pendingRequestHandlers.set(method, handler);
 			for (const [token, data] of this._progressHandlers) if (!this._pendingProgressHandlers.has(token)) this._pendingProgressHandlers.set(token, data);
@@ -111896,9 +111898,9 @@ var init_client = __esmMin((() => {
 			if (this._listeners) disposeAll(this._listeners);
 			if (this._syncedDocuments) this._syncedDocuments.clear();
 			for (const feature of Array.from(this._features.entries()).map((entry) => entry[1]).reverse()) if (typeof feature.dispose === "function") feature.dispose();
-			if ((mode === "stop" || mode === "restart") && this._diagnostics !== void 0) {
-				this._diagnostics.dispose();
-				this._diagnostics = void 0;
+			if (mode === "stop" || mode === "restart") {
+				if (this._diagnostics !== void 0 && this._diagnostics !== null) this._diagnostics.dispose();
+				this._diagnostics = null;
 			}
 		}
 		cleanUpChannel() {
@@ -112221,6 +112223,7 @@ var init_client = __esmMin((() => {
 			}
 		}
 		handleDiagnostics(params) {
+			if (this._diagnostics === null) return;
 			let { uri, diagnostics, version } = params;
 			if (number(version) && !workspace_default.hasDocument(uri, version)) return;
 			let middleware = this.clientOptions.middleware.handleDiagnostics;
@@ -112228,8 +112231,8 @@ var init_client = __esmMin((() => {
 			else this.setDiagnostics(uri, diagnostics);
 		}
 		setDiagnostics(uri, diagnostics) {
-			if (!this._diagnostics) return;
-			this._diagnostics.set(uri, diagnostics);
+			let collection = this.diagnostics;
+			if (collection) collection.set(uri, diagnostics);
 		}
 		doHandleApplyWorkspaceEdit(params) {
 			return workspace_default.applyEdit(params.edit).then((applied) => {
@@ -135738,7 +135741,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-3e06248 2026-06-30 20:25:21 +0800";
+			let version = workspace_default.version + "-163b71a 2026-07-01 13:56:26 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
