@@ -162,6 +162,18 @@ describe('DiagnosticFeature', () => {
     return URI.file(fsPath).toString()
   }
 
+  it('should create push diagnostics collection lazily', async () => {
+    let client = await createServer(true)
+    expect(client['_diagnostics']).toBeUndefined()
+    await client.sendRequest('sendDiagnostics')
+    await helper.waitValue(() => {
+      return client['_diagnostics']?.has('file:///abc.txt')
+    }, true)
+    await client.stop()
+    expect(client['_diagnostics']).toBeNull()
+    expect(client.diagnostics).toBeUndefined()
+  })
+
   it('should work when change visible editor', async () => {
     let doc = await workspace.loadFile(getUri(1), 'edit')
     await workspace.loadFile(getUri(3), 'tabe')
