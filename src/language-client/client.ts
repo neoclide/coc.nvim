@@ -349,7 +349,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _fileEvents: FileEvent[]
   private _fileEventDelayer: Delayer<void>
 
-  private _diagnostics: DiagnosticCollection | undefined
+  // undefined allows lazy creation; null prevents recreation after shutdown.
+  private _diagnostics: DiagnosticCollection | undefined | null
   private _syncedDocuments: Map<string, TextDocument>
 
   private _traceFormat: TraceFormat
@@ -797,6 +798,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public get diagnostics(): DiagnosticCollection | undefined {
+    if (this._diagnostics === null || this._clientOptions.disabledFeatures.includes('diagnostics')) {
+      return undefined
+    }
+    if (this._diagnostics === undefined) {
+      let opts = this._clientOptions
+      let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id
+      this._diagnostics = languages.createDiagnosticCollection(name)
+    }
     return this._diagnostics
   }
 
@@ -932,14 +941,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     const [promise, resolve, reject] = this.createOnStartPromise()
     this._onStart = promise
 
-    // If we restart then the diagnostics collection is reused.
-    if (this._diagnostics === undefined) {
-      let opts = this._clientOptions
-      let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id
-      if (!opts.disabledFeatures.includes('diagnostics')) {
-        this._diagnostics = languages.createDiagnosticCollection(name)
-      }
-    }
+    this._diagnostics = undefined
 
     // When we start make all buffer handlers pending so that they
     // get added.
@@ -1324,9 +1326,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         feature.dispose()
       }
     }
-    if ((mode === ShutdownMode.Stop || mode === ShutdownMode.Restart) && this._diagnostics !== undefined) {
-      this._diagnostics.dispose()
-      this._diagnostics = undefined
+    if (mode === ShutdownMode.Stop || mode === ShutdownMode.Restart) {
+      if (this._diagnostics !== undefined && this._diagnostics !== null) {
+        this._diagnostics.dispose()
+      }
+      this._diagnostics = null
     }
   }
 
@@ -1751,6 +1755,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
+    if (this._diagnostics === null) return
     let { uri, diagnostics, version } = params
     if (Is.number(version) && !workspace.hasDocument(uri, version)) return
     let middleware = this.clientOptions.middleware!.handleDiagnostics
@@ -1764,8 +1769,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
-    if (!this._diagnostics) return
-    this._diagnostics.set(uri, diagnostics)
+    let collection = this.diagnostics
+    if (collection) collection.set(uri, diagnostics)
   }
 
   private doHandleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
