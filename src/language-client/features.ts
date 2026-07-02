@@ -371,6 +371,7 @@ export interface NotificationSendEvent<E, P> {
 }
 
 export interface NotifyingFeature<E, P> {
+  onAboutToSendNotification: Event<NotificationSendEvent<E, P>>
   onNotificationSent: Event<NotificationSendEvent<E, P>>
 }
 
@@ -384,6 +385,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   private _listener: Disposable | undefined
   protected readonly _selectors: Map<string, DocumentSelector>
+  private _onAboutToSendNotification: Emitter<NotificationSendEvent<E, P>>
   private _onNotificationSent: Emitter<NotificationSendEvent<E, P>>
 
   public static textDocumentFilter(
@@ -410,6 +412,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     this._selectorFilter = selectorFilter
 
     this._selectors = new Map<string, DocumentSelector>()
+    this._onAboutToSendNotification = new Emitter<NotificationSendEvent<E, P>>()
     this._onNotificationSent = new Emitter<NotificationSendEvent<E, P>>()
   }
 
@@ -440,6 +443,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   protected async sendNotification(data: E): Promise<void> {
     const doSend = async (data: E): Promise<void> => {
       const params = this._createParams(data)
+      this.aboutToSendNotification(data, this._type, params)
       await this._client.sendNotification(this._type, params)
       this.notificationSent(data, this._type, params)
     }
@@ -454,6 +458,14 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     return this._onNotificationSent.event
   }
 
+  public get onAboutToSendNotification(): Event<NotificationSendEvent<E, P>> {
+    return this._onAboutToSendNotification.event
+  }
+
+  protected aboutToSendNotification(data: E, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>, params: RequestParam<P>): void {
+    this._onAboutToSendNotification.fire({ original: data, type, params })
+  }
+
   protected notificationSent(data: E, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>, params: RequestParam<P>): void {
     this._onNotificationSent.fire({ original: data, type, params })
   }
@@ -464,6 +476,8 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   public dispose(): void {
     this._selectors.clear()
+    this._onAboutToSendNotification.dispose()
+    this._onAboutToSendNotification = new Emitter<NotificationSendEvent<E, P>>()
     this._onNotificationSent.dispose()
     this._onNotificationSent = new Emitter<NotificationSendEvent<E, P>>()
     if (this._listener) {
