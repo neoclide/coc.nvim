@@ -1,7 +1,7 @@
 import { Neovim } from '../../neovim'
 import os from 'os'
 import path from 'path'
-import { CancellationToken, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, DidCloseTextDocumentNotification, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
@@ -188,6 +188,51 @@ describe('DiagnosticFeature', () => {
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
     expect(res).toBe(false)
+    await client.stop()
+  })
+
+  it('should clean up diagnostics before close notification is sent', async () => {
+    let doc = await workspace.loadFile(getUri('close-diagnostic'), 'edit')
+    let client = await createServer(false, false, {}, opt => {
+      opt.diagnosticPullOptions = {
+        workspace: false
+      }
+    })
+    let diagnosticFeature = client.getFeature(DocumentDiagnosticRequest.method)
+    let provider = diagnosticFeature.getProvider(doc.textDocument)
+    await helper.waitValue(() => {
+      return provider.knows(PullState.document, doc.textDocument)
+    }, true)
+    await helper.wait(30)
+
+    let release!: () => void
+    let pending = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let spy = vi.spyOn(client, 'sendNotification').mockImplementation((type: any) => {
+      if (typeof type !== 'string' && type.method === DidCloseTextDocumentNotification.method) {
+        return pending
+      }
+      return Promise.resolve()
+    })
+    let closeSent = false
+    let closeFeature = client.getFeature(DidCloseTextDocumentNotification.method)
+    closeFeature.onNotificationSent(() => {
+      closeSent = true
+    })
+    let closeProvider = closeFeature.getProvider(doc.textDocument)
+    expect(closeProvider).toBeDefined()
+
+    let close = closeProvider!.send(doc.textDocument)
+    await helper.waitValue(() => {
+      return provider.knows(PullState.document, doc.textDocument)
+    }, false)
+    expect(closeSent).toBe(false)
+
+    release()
+    await close
+    expect(closeSent).toBe(true)
+    spy.mockRestore()
     await client.stop()
   })
 

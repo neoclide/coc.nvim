@@ -243,11 +243,13 @@ interface DidChangeTextDocumentData {
 export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDocumentChangeRegistrationOptions, TextDocumentSynchronizationMiddleware> implements DidChangeTextDocumentFeatureShape {
   private _listener: Disposable | undefined
   private readonly _changeData: Map<string, DidChangeTextDocumentData>
+  private _onAboutToSendNotification: Emitter<NotificationSendEvent<TextDocumentChangeEvent, DidChangeTextDocumentParams>>
   private _onNotificationSent: Emitter<NotificationSendEvent<TextDocumentChangeEvent, DidChangeTextDocumentParams>>
 
   constructor(client: FeatureClient<TextDocumentSynchronizationMiddleware>) {
     super(client)
     this._changeData = new Map<string, DidChangeTextDocumentData>()
+    this._onAboutToSendNotification = new Emitter()
     this._onNotificationSent = new Emitter()
   }
 
@@ -313,12 +315,14 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
             const params = client.code2ProtocolConverter.asChangeTextDocumentParams(event)
+            this.aboutToSendNotification(event, DidChangeTextDocumentNotification.type, params)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
             const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(event.document)
+            this.aboutToSendNotification(event, DidChangeTextDocumentNotification.type, params)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
@@ -337,6 +341,14 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
     return this._onNotificationSent.event
   }
 
+  public get onAboutToSendNotification(): Event<NotificationSendEvent<TextDocumentChangeEvent, DidChangeTextDocumentParams>> {
+    return this._onAboutToSendNotification.event
+  }
+
+  private aboutToSendNotification(changeEvent: TextDocumentChangeEvent, type: ProtocolNotificationType<DidChangeTextDocumentParams, TextDocumentRegistrationOptions>, params: DidChangeTextDocumentParams): void {
+    this._onAboutToSendNotification.fire({ original: changeEvent, type, params })
+  }
+
   private notificationSent(changeEvent: TextDocumentChangeEvent, type: ProtocolNotificationType<DidChangeTextDocumentParams, TextDocumentRegistrationOptions>, params: DidChangeTextDocumentParams): void {
     this._onNotificationSent.fire({ original: changeEvent, type, params })
   }
@@ -347,6 +359,8 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
 
   public dispose(): void {
     this._changeData.clear()
+    this._onAboutToSendNotification.dispose()
+    this._onNotificationSent.dispose()
     if (this._listener) {
       this._listener.dispose()
       this._listener = undefined

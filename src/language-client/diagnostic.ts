@@ -756,7 +756,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     }
 
     const closeFeature = client.getFeature(DidCloseTextDocumentNotification.method)
-    disposables.push(closeFeature.onNotificationSent(event => {
+    disposables.push(closeFeature.onAboutToSendNotification(event => {
       this.cleanUpDocument(event.original)
     }))
 

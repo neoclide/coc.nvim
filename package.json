@@ -45,7 +45,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9",
-    "vscode-languageserver": "^10.0.1"
+    "vscode-languageserver": "^10.1.0"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3",
