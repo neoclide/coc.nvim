@@ -106735,6 +106735,7 @@ var init_features = __esmMin((() => {
 		_selectorFilter;
 		_listener;
 		_selectors;
+		_onAboutToSendNotification;
 		_onNotificationSent;
 		static textDocumentFilter(selectors, textDocument) {
 			for (const selector of selectors) if (workspace_default.match(selector, textDocument) > 0) return true;
@@ -106748,6 +106749,7 @@ var init_features = __esmMin((() => {
 			this._createParams = createParams;
 			this._selectorFilter = selectorFilter;
 			this._selectors = /* @__PURE__ */ new Map();
+			this._onAboutToSendNotification = new import_main$1.Emitter();
 			this._onNotificationSent = new import_main$1.Emitter();
 		}
 		getDocumentSelectors() {
@@ -106769,6 +106771,7 @@ var init_features = __esmMin((() => {
 		async sendNotification(data) {
 			const doSend = async (data) => {
 				const params = this._createParams(data);
+				this.aboutToSendNotification(data, this._type, params);
 				await this._client.sendNotification(this._type, params);
 				this.notificationSent(data, this._type, params);
 			};
@@ -106779,6 +106782,16 @@ var init_features = __esmMin((() => {
 		}
 		get onNotificationSent() {
 			return this._onNotificationSent.event;
+		}
+		get onAboutToSendNotification() {
+			return this._onAboutToSendNotification.event;
+		}
+		aboutToSendNotification(data, type, params) {
+			this._onAboutToSendNotification.fire({
+				original: data,
+				type,
+				params
+			});
 		}
 		notificationSent(data, type, params) {
 			this._onNotificationSent.fire({
@@ -106792,6 +106805,8 @@ var init_features = __esmMin((() => {
 		}
 		dispose() {
 			this._selectors.clear();
+			this._onAboutToSendNotification.dispose();
+			this._onAboutToSendNotification = new import_main$1.Emitter();
 			this._onNotificationSent.dispose();
 			this._onNotificationSent = new import_main$1.Emitter();
 			if (this._listener) {
@@ -108312,7 +108327,7 @@ var init_diagnostic = __esmMin((() => {
 				}));
 			}
 			const closeFeature = client.getFeature(import_main$1.DidCloseTextDocumentNotification.method);
-			disposables.push(closeFeature.onNotificationSent((event) => {
+			disposables.push(closeFeature.onAboutToSendNotification((event) => {
 				this.cleanUpDocument(event.original);
 			}));
 			disposables.push(workspace_default.tabs.onClose((closed) => {
@@ -110103,10 +110118,12 @@ var init_textSynchronization = __esmMin((() => {
 	DidChangeTextDocumentFeature = class extends DynamicDocumentFeature {
 		_listener;
 		_changeData;
+		_onAboutToSendNotification;
 		_onNotificationSent;
 		constructor(client) {
 			super(client);
 			this._changeData = /* @__PURE__ */ new Map();
+			this._onAboutToSendNotification = new import_main$1.Emitter();
 			this._onNotificationSent = new import_main$1.Emitter();
 		}
 		*getDocumentSelectors() {
@@ -110142,11 +110159,13 @@ var init_textSynchronization = __esmMin((() => {
 				const client = this._client;
 				if (changeData.syncKind === import_main$1.TextDocumentSyncKind.Incremental) didChange = async (event) => {
 					const params = client.code2ProtocolConverter.asChangeTextDocumentParams(event);
+					this.aboutToSendNotification(event, import_main$1.DidChangeTextDocumentNotification.type, params);
 					await this._client.sendNotification(import_main$1.DidChangeTextDocumentNotification.type, params);
 					this.notificationSent(event, import_main$1.DidChangeTextDocumentNotification.type, params);
 				};
 				else if (changeData.syncKind === import_main$1.TextDocumentSyncKind.Full) didChange = async (event) => {
 					const params = client.code2ProtocolConverter.asFullChangeTextDocumentParams(event.document);
+					this.aboutToSendNotification(event, import_main$1.DidChangeTextDocumentNotification.type, params);
 					await this._client.sendNotification(import_main$1.DidChangeTextDocumentNotification.type, params);
 					this.notificationSent(event, import_main$1.DidChangeTextDocumentNotification.type, params);
 				};
@@ -110158,6 +110177,16 @@ var init_textSynchronization = __esmMin((() => {
 		}
 		get onNotificationSent() {
 			return this._onNotificationSent.event;
+		}
+		get onAboutToSendNotification() {
+			return this._onAboutToSendNotification.event;
+		}
+		aboutToSendNotification(changeEvent, type, params) {
+			this._onAboutToSendNotification.fire({
+				original: changeEvent,
+				type,
+				params
+			});
 		}
 		notificationSent(changeEvent, type, params) {
 			this._onNotificationSent.fire({
@@ -110171,6 +110200,8 @@ var init_textSynchronization = __esmMin((() => {
 		}
 		dispose() {
 			this._changeData.clear();
+			this._onAboutToSendNotification.dispose();
+			this._onNotificationSent.dispose();
 			if (this._listener) {
 				this._listener.dispose();
 				this._listener = void 0;
@@ -135741,7 +135772,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-163b71a 2026-07-01 13:56:26 +0800";
+			let version = workspace_default.version + "-e201c1c 2026-07-02 11:56:34 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
