@@ -105,6 +105,169 @@ describe('vim api', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
+  it('should place popup menu after concealed text on current line', async () => {
+    // Regression for #5582: Vim's popup 'cursor' column anchor ignores concealed
+    // text, so the menu must be positioned with the conceal-aware screen column.
+    const sources = require('../completion/sources').default
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{ word: 'conceal' }, { word: 'conclude' }]
+      })
+    })
+    await nvim.command('syntax match CocConceal /conceal/ conceal')
+    await nvim.command('setl conceallevel=2 concealcursor=i')
+    await nvim.call('setline', [1, 'conceal '])
+    await nvim.input('A')
+    await nvim.input('conc')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      let id = 0
+      await helper.waitValue(async () => {
+        id = await nvim.call('coc#pum#winid', []) as number
+        return id > 0
+      }, true)
+      let pos = await nvim.call('popup_getpos', [id]) as { col: number }
+      let wincol = await nvim.call('wincol') as number
+      let virtcol = await nvim.call('virtcol', ['.']) as number
+      // "conceal" is hidden, so the conceal-aware cursor column is far smaller than
+      // the virtual column; the menu must follow the conceal-aware column and not
+      // land after the hidden text.
+      expect(wincol).toBeLessThan(virtcol)
+      expect(pos.col).toBeLessThanOrEqual(wincol)
+    } finally {
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
+  it('should place popup menu by word start when input wraps on concealed line', async () => {
+    // Regression for #5582 (wrap case): with 'wrap', the typed input can span
+    // multiple display rows. A flat column subtraction underflows below 0 and the
+    // menu was clamped to the left screen edge, while the word visibly starts near
+    // the right edge on an upper row. The menu must anchor under the word start.
+    const sources = require('../completion/sources').default
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{ word: 'conceal' }, { word: 'conclude' }]
+      })
+    })
+    let columns = await nvim.eval('&columns') as number
+    await nvim.command('set columns=40')
+    await nvim.command('setl wrap')
+    await nvim.command('syntax match CocConceal /conceal/ conceal')
+    await nvim.command('setl conceallevel=2 concealcursor=i')
+    await nvim.call('setline', [1, Array(151).join('.')])
+    await nvim.input('Iconceal')
+    await nvim.input('<esc>')
+    await nvim.input('Aconcea')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      let id = 0
+      await helper.waitValue(async () => {
+        id = await nvim.call('coc#pum#winid', []) as number
+        return id > 0
+      }, true)
+      let pos = await nvim.call('popup_getpos', [id]) as { col: number }
+      // The word start is on the right half of the screen on an upper wrap row,
+      // so the menu must be anchored there, not clamped to the left edge (col 1).
+      expect(pos.col).toBeGreaterThan(20)
+    } finally {
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      await nvim.command(`set columns=${columns}`)
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
+  it('should keep popup menu at word start when typed input becomes concealed', async () => {
+    const sources = require('../completion/sources').default
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{ word: 'concealer' }, { word: 'concealment' }]
+      })
+    })
+    let columns = await nvim.eval('&columns') as number
+    await nvim.command('set columns=80')
+    await nvim.command('setl wrap')
+    await nvim.command('syntax match CocConceal /conceal/ conceal')
+    await nvim.command('setl conceallevel=2 concealcursor=i')
+    await nvim.input('150a.')
+    await nvim.input('<esc>')
+    await helper.waitFor('mode', [], 'n')
+    await nvim.input('A')
+    await nvim.input('concea')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      let id = 0
+      await helper.waitValue(async () => {
+        id = await nvim.call('coc#pum#winid', []) as number
+        return id > 0
+      }, true)
+      let before = await nvim.call('popup_getpos', [id]) as { col: number }
+      await nvim.input('l')
+      await helper.waitFor('getline', ['.'], '.'.repeat(150) + 'conceal')
+      let after = await nvim.call('popup_getpos', [id]) as { col: number }
+      expect(after.col).toBe(before.col)
+    } finally {
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      await nvim.command(`set columns=${columns}`)
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
+  it('should keep popup menu at word start after another concealed word', async () => {
+    const sources = require('../completion/sources').default
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{ word: 'concealer' }, { word: 'concealment' }]
+      })
+    })
+    await nvim.command('syntax match CocConceal /conceal/ conceal')
+    await nvim.command('setl conceallevel=2 concealcursor=i')
+    await nvim.input('Iconceal concea')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      let id = 0
+      await helper.waitValue(async () => {
+        id = await nvim.call('coc#pum#winid', []) as number
+        return id > 0
+      }, true)
+      let before = await nvim.call('popup_getpos', [id]) as { col: number }
+      await nvim.input('l')
+      await helper.waitFor('getline', ['.'], 'conceal conceal')
+      let after = await nvim.call('popup_getpos', [id]) as { col: number }
+      expect(after.col).toBe(before.col)
+      let virtcol = await nvim.call('virtcol', ['.']) as number
+      expect(after.col).toBeLessThan(virtcol - 'conceal'.length)
+    } finally {
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
   it('should echo message by callTimer', async () => {
     const ui = require('../core/ui')
     ui.echoMessages(nvim, 'message', 'more', 'more')
