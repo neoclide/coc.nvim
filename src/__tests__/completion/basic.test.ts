@@ -1601,4 +1601,35 @@ describe('completion', () => {
       }, false)
     }, 10000)
   })
+
+  describe('pum position', () => {
+    it('should place popup menu after concealed text on current line', async () => {
+      // Regression for #5582: concealed text before the input shifts the visible
+      // screen column. The pum must align with the conceal-aware screen position,
+      // not the byte/virtual column.
+      await helper.edit()
+      await nvim.command('syntax match CocConceal /conceal/ conceal')
+      await nvim.command('setl conceallevel=2 concealcursor=i')
+      await nvim.setLine('conceal ')
+      await nvim.input('A')
+      let name = await create(['conceal', 'conclude'], false)
+      await nvim.input('conc')
+      await helper.visible('conclude', name)
+      let win: any
+      await helper.waitValue(async () => {
+        win = await helper.getFloat('pum')
+        return win != null
+      }, true)
+      let pos = await nvim.call('nvim_win_get_position', [win.id]) as [number, number]
+      let wincol = await nvim.call('wincol') as number
+      let virtcol = await nvim.call('virtcol', ['.']) as number
+      // "conceal" is hidden, so the cursor screen column is far smaller than the
+      // virtual column; the pum must follow the conceal-aware column.
+      expect(wincol).toBeLessThan(virtcol)
+      // Aligned just left of the conceal-aware cursor column, well away from the
+      // virtual position that would place it after the hidden "conceal ".
+      expect(pos[1]).toBeLessThan(wincol)
+      expect(pos[1]).toBeLessThan(virtcol - byteLength('conc'))
+    })
+  })
 })

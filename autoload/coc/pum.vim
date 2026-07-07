@@ -369,14 +369,13 @@ function! coc#pum#create(lines, opt, config) abort
   if empty(config)
     return
   endif
-  let s:reversed = get(a:config, 'reverse', 0) && config['row'] < 0
+  let s:reversed = get(a:config, 'reverse', 0) && config['above']
   let s:virtual_text = get(a:opt, 'virtualText', v:false)
   let s:pum_size = len(a:lines)
   let s:pum_index = a:opt['index']
   let lnum = s:index_to_lnum(s:pum_index)
   call extend(config, {
         \ 'lines': s:reversed ? reverse(copy(a:lines)) : a:lines,
-        \ 'relative': 'cursor',
         \ 'nopad': 1,
         \ 'cursorline': 1,
         \ 'index': lnum - 1,
@@ -399,7 +398,7 @@ function! coc#pum#create(lines, opt, config) abort
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
   let s:start_col = a:opt['startcol']
-  call setwinvar(s:pum_winid, 'above', config['row'] < 0)
+  call setwinvar(s:pum_winid, 'above', config['above'])
   let firstline = s:get_firstline(lnum, s:pum_size, config['height'])
   if s:is_vim
     call popup_setoptions(s:pum_winid, { 'firstline': firstline })
@@ -462,6 +461,29 @@ function! s:index_to_lnum(index) abort
   return max([1, a:index + 1])
 endfunction
 
+function! s:displaywidth(text, col) abort
+  if !s:is_vim || &conceallevel == 0
+    return strdisplaywidth(a:text, a:col)
+  endif
+  let width = 0
+  let byte = a:col
+  let concealed = 0
+  for ch in split(a:text, '\zs')
+    let info = synconcealed(line('.'), byte + 1)
+    if info[0]
+      if !concealed
+        let width += empty(info[1]) ? (&conceallevel == 1 ? 1 : 0) : strdisplaywidth(info[1])
+      endif
+      let concealed = 1
+    else
+      let width += strdisplaywidth(ch, a:col + width)
+      let concealed = 0
+    endif
+    let byte += strlen(ch)
+  endfor
+  return width
+endfunction
+
 function! s:get_pum_dimension(lines, col, config) abort
   let linecount = len(a:lines)
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
@@ -486,10 +508,20 @@ function! s:get_pum_dimension(lines, col, config) abort
   if height <= 0
     return v:null
   endif
-  " should use strdiplaywidth here
   let text = strpart(getline('.'), a:col, col('.') - 1 - a:col)
-  let col = - strdisplaywidth(text, a:col) - 1
-  let row = showTop ? - height : 1
+  let textwidth = s:displaywidth(text, a:col)
+  let col = - textwidth - 1
+  if s:is_vim
+    let info = getwininfo(win_getid())[0]
+    let textleft = info['wincol'] - 1 + info['textoff']
+    let startcol = colIdx - textleft - textwidth
+    " Wrapped input can start on an earlier screen row; keep nowrap clamped.
+    let textwidth_avail = info['width'] - info['textoff']
+    if &wrap && startcol < 0 && textwidth_avail > 0
+      let startcol = (startcol % textwidth_avail + textwidth_avail) % textwidth_avail
+    endif
+    let col = textleft + startcol - 1 - colIdx
+  endif
   let delta = colIdx + col
   if width > pumwidth && delta + width > columns
     let width = max([columns - delta, pumwidth])
@@ -499,9 +531,22 @@ function! s:get_pum_dimension(lines, col, config) abort
   elseif delta + width > columns
     let col = max([-colIdx, col - (delta + width - columns)])
   endif
+  " Vim's popup cursor anchor ignores concealed text, so use editor coordinates.
+  if s:is_vim
+    return {
+          \ 'row': showTop ? lineIdx - height - bh : lineIdx + 1,
+          \ 'col': colIdx + col,
+          \ 'relative': 'editor',
+          \ 'above': showTop,
+          \ 'width': width,
+          \ 'height': height
+          \ }
+  endif
   return {
-        \ 'row': row,
+        \ 'row': showTop ? - height : 1,
         \ 'col': col,
+        \ 'relative': 'cursor',
+        \ 'above': showTop,
         \ 'width': width,
         \ 'height': height
         \ }
