@@ -224,6 +224,29 @@ endfunction `
     await Promise.resolve(ext.deactivate())
   })
 
+  it('should retry vim source after input becomes eligible', async () => {
+    let content = `
+function! coc#source#issue5539#init() abort
+  return {'filetypes': ['mediawiki']}
+endfunction
+function! coc#source#issue5539#should_complete(opt) abort
+  return strpart(a:opt.line, 0, a:opt.colnr - 1) =~# '\\[\\[\\k\\{2,}$'
+endfunction
+function! coc#source#issue5539#complete(opt, cb) abort
+  call a:cb(['Microsoft Windows'])
+endfunction `
+    let filepath = createSourceFile('issue5539', content)
+    await sources.createVimSourceExtension(filepath)
+    await nvim.command('setfiletype mediawiki')
+    await helper.wait(30)
+
+    await nvim.input('i')
+    for (let character of '[[Mi') await nvim.input(character)
+    await helper.waitPopup()
+
+    expect(helper.completion.activeItems.some(item => item.word == 'Microsoft Windows')).toBe(true)
+  })
+
   it('should not run by check complete', async () => {
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
     let source = new VimSource({
