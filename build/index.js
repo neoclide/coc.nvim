@@ -128542,6 +128542,10 @@ var init_completion = __esmMin((() => {
 		get nvim() {
 			return workspace_default.nvim;
 		}
+		clearTriggerTimer() {
+			clearTimeout(this.triggerTimer);
+			this.triggerTimer = null;
+		}
 		init() {
 			this.loadConfiguration();
 			workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
@@ -128563,7 +128567,7 @@ var init_completion = __esmMin((() => {
 			}, null, this.disposables);
 			events_default.on("CursorMovedI", this._debounced, this, this.disposables);
 			events_default.on("CursorMovedI", () => {
-				clearTimeout(this.triggerTimer);
+				this.clearTriggerTimer();
 			}, null, this.disposables);
 			events_default.on("InsertEnter", this.onInsertEnter, this, this.disposables);
 			events_default.on("TextChangedI", this.onTextChangedI, this, this.disposables);
@@ -128672,7 +128676,7 @@ var init_completion = __esmMin((() => {
 			this.loadLocalConfig(doc);
 		}
 		async startCompletion(opt) {
-			clearTimeout(this.triggerTimer);
+			this.clearTriggerTimer();
 			let sourceList;
 			if (string(opt.source)) sourceList = toArray(sources_default.getSource(opt.source));
 			let doc = workspace_default.getAttachedDocument(events_default.bufnr);
@@ -128694,11 +128698,11 @@ var init_completion = __esmMin((() => {
 			events_default.completing = true;
 			events_default.fire("CompleteStart", [option]);
 			complete.onDidRefresh(async () => {
-				clearTimeout(this.triggerTimer);
 				if (complete.isEmpty) {
-					this.cancelAndClose();
+					if (this.triggerTimer == null) this.cancelAndClose();
 					return;
 				}
+				this.clearTriggerTimer();
 				await this.filterResults();
 			});
 			if (await complete.doComplete()) this.cancelAndClose(false);
@@ -128742,7 +128746,7 @@ var init_completion = __esmMin((() => {
 				}
 			}
 			if (info.pre === this.pretext) return;
-			clearTimeout(this.triggerTimer);
+			this.clearTriggerTimer();
 			let pretext = this.pretext = info.pre;
 			if (!info.insertChar) {
 				if (this.complete) await this.filterResults();
@@ -128783,6 +128787,7 @@ var init_completion = __esmMin((() => {
 			}
 			if (this.complete.isEmpty) {
 				this.triggerTimer = setTimeout(async () => {
+					this.triggerTimer = null;
 					await this.triggerCompletion(doc, info);
 				}, TRIGGER_TIMEOUT);
 				return;
@@ -128838,7 +128843,7 @@ var init_completion = __esmMin((() => {
 			this._mru.add(complete.getTrigger(character), selectedItem);
 		}
 		cancelAndClose(close = true) {
-			clearTimeout(this.triggerTimer);
+			this.clearTriggerTimer();
 			if (!this.complete) return;
 			const { linenr, bufnr } = this.complete.option;
 			this._onFinish("", close);
@@ -128926,10 +128931,7 @@ var init_completion = __esmMin((() => {
 				this.complete.dispose();
 				this.complete = null;
 			}
-			if (this.triggerTimer != null) {
-				clearTimeout(this.triggerTimer);
-				this.triggerTimer = null;
-			}
+			if (this.triggerTimer != null) this.clearTriggerTimer();
 			this.pretext = void 0;
 			this.activeItems = [];
 			this.popupEvent = void 0;
@@ -135772,7 +135774,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-4a040fb 2026-07-07 23:21:15 +0800";
+			let version = workspace_default.version + "-ec1529b 2026-07-14 11:12:44 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
