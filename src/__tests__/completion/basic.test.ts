@@ -647,6 +647,77 @@ describe('completion', () => {
       clearTimeout(timer)
     }, 10000)
 
+    it('should close pum after pending retry is cancelled by results', async () => {
+      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      let resolveInitial: (result: CompleteResult<ExtendedCompleteItem>) => void
+      let resolveIncomplete: (result: CompleteResult<ExtendedCompleteItem>) => void
+      let startedResolve: () => void
+      let started = new Promise<void>(resolve => {
+        startedResolve = resolve
+      })
+      let incompleteStartedResolve: () => void
+      let incompleteStarted = new Promise<void>(resolve => {
+        incompleteStartedResolve = resolve
+      })
+      let name = crypto.randomUUID()
+      disposables.push(sources.createSource({
+        name,
+        doComplete: (opt: CompleteOption) => {
+          if (opt.triggerForInComplete) {
+            return new Promise<CompleteResult<ExtendedCompleteItem>>(resolve => {
+              resolveIncomplete = resolve
+              incompleteStartedResolve()
+            })
+          }
+          return new Promise<CompleteResult<ExtendedCompleteItem>>(resolve => {
+            resolveInitial = resolve
+            startedResolve()
+          })
+        }
+      }))
+      await nvim.input('if')
+      nvim.call('coc#start', { source: name }, true)
+      await started
+      let textChanged = events.race(['TextChangedI'])
+      let input = nvim.input('o')
+      await textChanged
+      resolveInitial({ isIncomplete: true, items: [{ word: 'foo' }] })
+      await input
+      await incompleteStarted
+      await helper.waitPopup()
+
+      resolveIncomplete({ items: [] })
+      await helper.waitValue(pumvisible, false)
+    })
+
+    it('should clear pending retry before trigger returns early', async () => {
+      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      let resolveComplete: (result: CompleteResult<ExtendedCompleteItem>) => void
+      let startedResolve: () => void
+      let started = new Promise<void>(resolve => {
+        startedResolve = resolve
+      })
+      let name = crypto.randomUUID()
+      disposables.push(sources.createSource({
+        name,
+        doComplete: () => new Promise<CompleteResult<ExtendedCompleteItem>>(resolve => {
+          resolveComplete = resolve
+          startedResolve()
+        })
+      }))
+      let shouldTrigger = vi.spyOn(completion, 'shouldTrigger')
+      disposables.push(Disposable.create(() => shouldTrigger.mockRestore()))
+      await nvim.input('i')
+      nvim.call('coc#start', { source: name }, true)
+      await started
+
+      await nvim.input('f')
+      await helper.waitValue(() => shouldTrigger.mock.calls.length > 0, true)
+      resolveComplete({ items: [] })
+
+      await helper.waitValue(() => completion.isActivated, false)
+    })
+
     it('should stop if no filtered items', async () => {
       await create(['foo', 'bar'], true)
       expect(completion.isActivated).toBe(true)

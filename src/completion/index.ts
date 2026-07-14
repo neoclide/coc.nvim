@@ -47,6 +47,11 @@ export class Completion implements Disposable {
     return workspace.nvim
   }
 
+  private clearTriggerTimer(): void {
+    clearTimeout(this.triggerTimer)
+    this.triggerTimer = null
+  }
+
   public init(): void {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
@@ -68,7 +73,7 @@ export class Completion implements Disposable {
     }, null, this.disposables)
     events.on('CursorMovedI', this._debounced, this, this.disposables)
     events.on('CursorMovedI', () => {
-      clearTimeout(this.triggerTimer)
+      this.clearTriggerTimer()
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
@@ -189,7 +194,7 @@ export class Completion implements Disposable {
   }
 
   public async startCompletion(opt?: { source?: string, col?: number }): Promise<void> {
-    clearTimeout(this.triggerTimer)
+    this.clearTriggerTimer()
     let sourceList: ISource[]
     if (Is.string(opt.source)) {
       sourceList = toArray(sources.getSource(opt.source))
@@ -218,11 +223,12 @@ export class Completion implements Disposable {
     events.completing = true
     void events.fire('CompleteStart', [option])
     complete.onDidRefresh(async () => {
-      clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
-        this.cancelAndClose()
+        // Keep the pending retry when input changed while sources were completing.
+        if (this.triggerTimer == null) this.cancelAndClose()
         return
       }
+      this.clearTriggerTimer()
       await this.filterResults()
     })
     let shouldStop = await complete.doComplete()
@@ -271,7 +277,7 @@ export class Completion implements Disposable {
       }
     }
     if (info.pre === this.pretext) return
-    clearTimeout(this.triggerTimer)
+    this.clearTriggerTimer()
     let pretext = this.pretext = info.pre
     if (!info.insertChar) {
       if (this.complete) await this.filterResults()
@@ -315,6 +321,7 @@ export class Completion implements Disposable {
     if (this.complete.isEmpty) {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
+        this.triggerTimer = null
         await this.triggerCompletion(doc, info)
       }, TRIGGER_TIMEOUT)
       return
@@ -379,7 +386,7 @@ export class Completion implements Disposable {
   }
 
   public cancelAndClose(close = true): void {
-    clearTimeout(this.triggerTimer)
+    this.clearTriggerTimer()
     if (!this.complete) return
     const { linenr, bufnr } = this.complete.option
     this._onFinish(CompleteFinishKind.Normal, close)
@@ -471,8 +478,7 @@ export class Completion implements Disposable {
       this.complete = null
     }
     if (this.triggerTimer != null) {
-      clearTimeout(this.triggerTimer)
-      this.triggerTimer = null
+      this.clearTriggerTimer()
     }
     this.pretext = undefined
     this.activeItems = []
