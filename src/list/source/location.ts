@@ -29,9 +29,9 @@ export default class LocationList extends BasicList {
     this.addLocationActions()
   }
 
-  public formatFilepath(file: string): string {
+  public async formatFilepath(file: string): Promise<string> {
     if (typeof global.formatFilepath === 'function') {
-      return global.formatFilepath(file) + ''
+      return (await global.formatFilepath(file)) + ''
     }
     return file
   }
@@ -42,22 +42,22 @@ export default class LocationList extends BasicList {
     locs = toArray(locs)
     let bufnr = context.buffer.id
     let ignoreFilepath = locs.every(o => o.bufnr == bufnr)
-    let items: ListItem[] = locs.map(loc => {
+    let items = await Promise.all(locs.map(loc => {
       let filename = ignoreFilepath ? '' : loc.filename
       if (filename.length > 0 && path.isAbsolute(filename)) {
         filename = isParentFolder(context.cwd, filename) ? path.relative(context.cwd, filename) : filename
       }
       return this.createItem(filename, loc)
-    })
+    }))
     return items
   }
 
-  private createItem(filename: string, loc: QuickfixItem): ListItem {
+  private async createItem(filename: string, loc: QuickfixItem): Promise<ListItem> {
     let uri = loc.uri ?? URI.file(loc.filename).toString()
     let label = ''
     const ansiHighlights: AnsiHighlight[] = []
     let start = 0
-    filename = this.formatFilepath(filename)
+    filename = await this.formatFilepath(filename)
     if (filename.length > 0) {
       label = filename + ' '
       ansiHighlights.push({ span: [start, start + byteLength(filename)], hlGroup: 'Directory' })

@@ -55,10 +55,12 @@ export default class Symbols extends LocationList {
       if (excludes.some(p => minimatch(file, p))) {
         continue
       }
-      let item = this.createListItem(input, s, kind, file)
+      let item = await this.createListItem(input, s, kind, file)
+      if (token.isCancellationRequested) break
       items.push(item)
     }
     this.fuzzyMatch.free()
+    if (token.isCancellationRequested) return []
     items.sort(sortSymbolItems)
     return items
   }
@@ -77,12 +79,12 @@ export default class Symbols extends LocationList {
     return item
   }
 
-  public createListItem(input: string, item: WorkspaceSymbol, kind: string, file: string): ListItem & ItemToSort {
+  public async createListItem(input: string, item: WorkspaceSymbol, kind: string, file: string): Promise<ListItem & ItemToSort> {
     let { name } = item
     let label = ''
     let ansiHighlights: AnsiHighlight[] = []
     // Normal Typedef Comment
-    let parts = [name, `[${kind}]`, this.formatFilepath(file)]
+    let parts = [name, `[${kind}]`, await this.formatFilepath(file)]
     let highlights = ['Normal', 'Typedef', 'Comment']
     for (let index = 0; index < parts.length; index++) {
       const text = parts[index]
