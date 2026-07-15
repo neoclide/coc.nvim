@@ -414,6 +414,13 @@ describe('client API', () => {
     expect(buftype).toBe('nofile')
   })
 
+  it('should name float scratch buffer', async () => {
+    let bufnr = await nvim.call('coc#float#create_buf', [0]) as number
+    let name = await nvim.call('bufname', [bufnr])
+    expect(name).toBe(`coc-float://${bufnr}`)
+    await nvim.command(`silent! bwipeout! ${bufnr}`)
+  })
+
   it('should set current window', async () => {
     let winid = await nvim.call('win_getid') as number
     await nvim.command('sp | sp | sp')

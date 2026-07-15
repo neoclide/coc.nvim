@@ -1025,12 +1025,14 @@ function! coc#float#create_buf(bufnr, ...) abort
     if s:is_vim
       noa let bufnr = bufadd('')
       noa call bufload(bufnr)
+      silent! noa call coc#compat#call('buf_set_name', [bufnr, 'coc-float://' . bufnr])
       call setbufvar(bufnr, '&buflisted', 0)
       call setbufvar(bufnr, '&modeline', 0)
       call setbufvar(bufnr, '&buftype', 'nofile')
       call setbufvar(bufnr, '&swapfile', 0)
     else
       noa let bufnr = nvim_create_buf(v:false, v:true)
+      silent! noa call nvim_buf_set_name(bufnr, 'coc-float://' . bufnr)
     endif
     let bufhidden = get(a:, 2, 'wipe')
     call setbufvar(bufnr, '&bufhidden', bufhidden)
