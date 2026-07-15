@@ -105967,8 +105967,8 @@ var init_location = __esmMin((() => {
 			});
 			this.addLocationActions();
 		}
-		formatFilepath(file) {
-			if (typeof global.formatFilepath === "function") return global.formatFilepath(file) + "";
+		async formatFilepath(file) {
+			if (typeof global.formatFilepath === "function") return await global.formatFilepath(file) + "";
 			return file;
 		}
 		async loadItems(context, _token) {
@@ -105976,18 +105976,18 @@ var init_location = __esmMin((() => {
 			locs = toArray(locs);
 			let bufnr = context.buffer.id;
 			let ignoreFilepath = locs.every((o) => o.bufnr == bufnr);
-			return locs.map((loc) => {
+			return await Promise.all(locs.map((loc) => {
 				let filename = ignoreFilepath ? "" : loc.filename;
 				if (filename.length > 0 && path$5.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$5.relative(context.cwd, filename) : filename;
 				return this.createItem(filename, loc);
-			});
+			}));
 		}
-		createItem(filename, loc) {
+		async createItem(filename, loc) {
 			let uri = loc.uri ?? URI.file(loc.filename).toString();
 			let label = "";
 			const ansiHighlights = [];
 			let start = 0;
-			filename = this.formatFilepath(filename);
+			filename = await this.formatFilepath(filename);
 			if (filename.length > 0) {
 				label = filename + " ";
 				ansiHighlights.push({
@@ -113345,10 +113345,12 @@ var init_symbols$1 = __esmMin((() => {
 				if (filterKind && kind.toLowerCase() != filterKind) continue;
 				let file = formatUri(s.location.uri, workspace_default.cwd);
 				if (excludes.some((p) => minimatch(file, p))) continue;
-				let item = this.createListItem(input, s, kind, file);
+				let item = await this.createListItem(input, s, kind, file);
+				if (token.isCancellationRequested) break;
 				items.push(item);
 			}
 			this.fuzzyMatch.free();
+			if (token.isCancellationRequested) return [];
 			items.sort(sortSymbolItems);
 			return items;
 		}
@@ -113364,14 +113366,14 @@ var init_symbols$1 = __esmMin((() => {
 			}
 			return item;
 		}
-		createListItem(input, item, kind, file) {
+		async createListItem(input, item, kind, file) {
 			let { name } = item;
 			let label = "";
 			let ansiHighlights = [];
 			let parts = [
 				name,
 				`[${kind}]`,
-				this.formatFilepath(file)
+				await this.formatFilepath(file)
 			];
 			let highlights = [
 				"Normal",
@@ -135774,7 +135776,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-ec1529b 2026-07-14 11:12:44 +0800";
+			let version = workspace_default.version + "-953f1b6 2026-07-15 12:52:29 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();

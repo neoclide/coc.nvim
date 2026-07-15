@@ -4149,14 +4149,17 @@ location						*coc-list-location*
 	- 'quickfix': Add selected items to Vim's quickfix.
 
 	To customize filepath displayed in the list, user could inject
-	javascript global function `formatFilepath` which accept filepath and
-	should return string. ex:
+	javascript global function `formatFilepath`, which accepts a filepath and
+	returns a string or a Promise that resolves to a string. ex:
 >
 	const path = require('path')
 	global.formatFilepath = function (file) {
 	  return file.startsWith('jdt:/') ? path.basename(file) : file
 	}
 <
+	An asynchronous function can call Vim or Neovim functions before returning
+	the formatted filepath.
+
 	save the file to `~/custom.js` and make coc load it by add
 >
 	let g:coc_node_args = ['-r', expand('~/custom.js')]
