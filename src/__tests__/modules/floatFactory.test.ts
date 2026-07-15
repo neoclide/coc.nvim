@@ -48,6 +48,8 @@ describe('FloatFactory', () => {
       await floatFactory.show(docs, { rounded: true })
       expect(floatFactory.window).toBeDefined()
       expect(floatFactory.buffer).toBeDefined()
+      let buffer = floatFactory.buffer!
+      expect(await buffer.name).toBe(`coc-float://${buffer.id}`)
       let hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(1)
       await floatFactory.show([{ filetype: 'txt', content: '' }])
