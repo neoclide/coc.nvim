@@ -1,7 +1,7 @@
 import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
-import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
 import events from '../../events'
@@ -322,6 +322,16 @@ describe('list sources', () => {
   })
 
   describe('locations', () => {
+    it('should format filepath with async function', async () => {
+      global.formatFilepath = async () => 'formatted'
+      try {
+        let items = await manager.loadItems('location')
+        expect(items[0].label).toMatch(/^formatted /)
+      } finally {
+        global.formatFilepath = undefined
+      }
+    })
+
     it('should highlight ranges', async () => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
@@ -852,21 +862,58 @@ describe('list sources', () => {
   })
 
   describe('symbols', () => {
-    it('should create list item', () => {
+    it('should format filepath with async function', async () => {
+      global.formatFilepath = async () => 'formatted'
+      try {
+        let source = new SymbolsList()
+        let symbolItem = SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
+        let item = await source.createListItem('', symbolItem, 'kind', './foo')
+        expect(item.label).toBe('root [kind] formatted')
+      } finally {
+        global.formatFilepath = undefined
+      }
+    })
+
+    it('should stop formatting filepath when cancelled', async () => {
+      let source = new SymbolsList()
+      let context = await createContext({ interactive: true })
+      let tokenSource = new CancellationTokenSource()
+      let count = 0
+      global.formatFilepath = async file => {
+        if (++count === 1) tokenSource.cancel()
+        return file
+      }
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: () => [
+          SymbolInformation.create('one', SymbolKind.Method, Range.create(0, 0, 0, 1), URI.file(__filename).toString()),
+          SymbolInformation.create('two', SymbolKind.Method, Range.create(1, 0, 1, 1), URI.file(__filename).toString())
+        ]
+      }))
+      try {
+        let items = await source.loadItems(context, tokenSource.token)
+        expect(items).toEqual([])
+        expect(count).toBe(1)
+      } finally {
+        global.formatFilepath = undefined
+        tokenSource.dispose()
+      }
+    })
+
+    it('should create list item', async () => {
       let source = new SymbolsList()
       let symbolItem = SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
-      let item = source.createListItem('', symbolItem, 'kind', './foo')
+      let item = await source.createListItem('', symbolItem, 'kind', './foo')
       expect(item).toBeDefined()
       symbolItem.tags = [SymbolTag.Deprecated]
-      item = source.createListItem('', symbolItem, 'kind', './foo')
+      item = await source.createListItem('', symbolItem, 'kind', './foo')
       let highlights = item.ansiHighlights
       let find = highlights.find(o => o.hlGroup == 'CocDeprecatedHighlight')
       expect(find).toBeDefined()
       source.fuzzyMatch.setPattern('a')
-      item = source.createListItem('a', symbolItem, 'kind', './foo')
+      item = await source.createListItem('a', symbolItem, 'kind', './foo')
       expect(item).toBeDefined()
       source.fuzzyMatch.setPattern('r')
-      item = source.createListItem('r', symbolItem, 'kind', './foo')
+      item = await source.createListItem('r', symbolItem, 'kind', './foo')
       highlights = item.ansiHighlights
       find = highlights.find(o => o.hlGroup == 'CocListSearch')
       expect(find).toBeDefined()
