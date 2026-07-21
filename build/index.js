@@ -3586,7 +3586,10 @@ while (this[ms](this[zt]()) && this[T].length);
 	exports.globSync = We;
 	exports.globIterateSync = Tt;
 	exports.globIterate = Be;
-	var Ws = H(), tt = je(), Br = Ne(), Is = H();
+	var Ws = H();
+	var tt = je();
+	var Br = Ne();
+	var Is = H();
 	Object.defineProperty(exports, "escape", {
 		enumerable: !0,
 		get: function() {
@@ -3793,15 +3796,18 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function expand_(str, max, isTop) {
 		/** @type {string[]} */
 		const expansions = [];
-		const m = (0, balanced_match_1.balanced)("{", "}", str);
-		if (!m) return [str];
-		const pre = m.pre;
-		const post = m.post.length ? expand_(m.post, max, false) : [""];
-		if (/\$$/.test(m.pre)) for (let k = 0; k < post.length && k < max; k++) {
-			const expansion = pre + "{" + m.body + "}" + post[k];
-			expansions.push(expansion);
-		}
-		else {
+		for (;;) {
+			const m = (0, balanced_match_1.balanced)("{", "}", str);
+			if (!m) return [str];
+			const pre = m.pre;
+			if (/\$$/.test(m.pre)) {
+				const post = m.post.length ? expand_(m.post, max, false) : [""];
+				for (let k = 0; k < post.length && k < max; k++) {
+					const expansion = pre + "{" + m.body + "}" + post[k];
+					expansions.push(expansion);
+				}
+				return expansions;
+			}
 			const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
 			const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
 			const isSequence = isNumericSequence || isAlphaSequence;
@@ -3809,10 +3815,12 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			if (!isSequence && !isOptions) {
 				if (m.post.match(/,(?!,).*\}/)) {
 					str = m.pre + "{" + m.body + escClose + m.post;
-					return expand_(str, max, true);
+					isTop = true;
+					continue;
 				}
 				return [str];
 			}
+			const post = m.post.length ? expand_(m.post, max, false) : [""];
 			let n;
 			if (isSequence) n = m.body.split(/\.\./);
 			else {
@@ -3862,8 +3870,8 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 				const expansion = pre + N[j] + post[k];
 				if (!isTop || isSequence || expansion) expansions.push(expansion);
 			}
+			return expansions;
 		}
-		return expansions;
 	}
 }));
 //#endregion
@@ -3987,12 +3995,15 @@ var require_brace_expressions = /* @__PURE__ */ __commonJSMin(((exports) => {
 			glob.length - pos,
 			true
 		];
-		if (negs.length === 0 && ranges.length === 1 && /^\\?.$/.test(ranges[0]) && !negate) return [
-			regexpEscape(ranges[0].length === 2 ? ranges[0].slice(-1) : ranges[0]),
-			false,
-			endPos - pos,
-			false
-		];
+		if (negs.length === 0 && ranges.length === 1 && /^\\?.$/.test(ranges[0]) && !negate) {
+			const r = ranges[0].length === 2 ? ranges[0].slice(-1) : ranges[0];
+			return [
+				regexpEscape(r),
+				false,
+				endPos - pos,
+				false
+			];
+		}
 		const sranges = "[" + (negate ? "^" : "") + rangesToString(ranges) + "]";
 		const snegs = "[" + (negate ? "" : "^") + rangesToString(negs) + "]";
 		return [
@@ -5320,14 +5331,16 @@ var require_index_min$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}), Object.defineProperty(t, s, n);
 	}) : (function(t, e, r, s) {
 		s === void 0 && (s = r), t[s] = e[r];
-	})), G = exports && exports.__setModuleDefault || (Object.create ? (function(t, e) {
+	}));
+	var G = exports && exports.__setModuleDefault || (Object.create ? (function(t, e) {
 		Object.defineProperty(t, "default", {
 			enumerable: !0,
 			value: e
 		});
 	}) : function(t, e) {
 		t.default = e;
-	}), w = exports && exports.__importStar || (function() {
+	});
+	var w = exports && exports.__importStar || (function() {
 		var t = function(e) {
 			return t = Object.getOwnPropertyNames || function(r) {
 				var s = [];
@@ -5341,7 +5354,8 @@ var require_index_min$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			if (e != null) for (var s = t(e), n = 0; n < s.length; n++) s[n] !== "default" && v(r, e, s[n]);
 			return G(r, e), r;
 		};
-	})(), X = exports && exports.__exportStar || function(t, e) {
+	})();
+	var X = exports && exports.__exportStar || function(t, e) {
 		for (var r in t) r !== "default" && !Object.prototype.hasOwnProperty.call(e, r) && v(e, t, r);
 	};
 	Object.defineProperty(exports, "__esModule", { value: !0 });
@@ -6016,7 +6030,11 @@ var require_coerce = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		if (match === null) return null;
 		const major = match[2];
-		return parse(`${major}.${match[3] || "0"}.${match[4] || "0"}${options.includePrerelease && match[5] ? `-${match[5]}` : ""}${options.includePrerelease && match[6] ? `+${match[6]}` : ""}`, options);
+		const minor = match[3] || "0";
+		const patch = match[4] || "0";
+		const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : "";
+		const build = options.includePrerelease && match[6] ? `+${match[6]}` : "";
+		return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options);
 	};
 	module.exports = coerce;
 }));
@@ -6032,7 +6050,8 @@ var require_truncate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		return clonedVersion && doTruncation(clonedVersion, truncation);
 	};
 	const cloneInputVersion = (version, options) => {
-		return parse(version instanceof SemVer ? version.version : version, options);
+		const versionStringToParse = version instanceof SemVer ? version.version : version;
+		return parse(versionStringToParse, options);
 	};
 	const doTruncation = (version, truncation) => {
 		if (isPrerelease(truncation)) return version.version;
@@ -56906,7 +56925,10 @@ function concurrent(arr, fn, limit = 3) {
 			let cb = () => {
 				finished = finished + 1;
 				if (finished == total) resolve();
-				else if (remain.length) run(remain.shift());
+				else if (remain.length) {
+					let next = remain.shift();
+					run(next);
+				}
 			};
 			fn(val).then(cb, cb);
 		};
@@ -56978,11 +57000,123 @@ var init_logger$2 = __esmMin((() => {
 	});
 }));
 //#endregion
-//#region node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
-function prettyByte(byte) {
-	return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
+function utf8Count(str) {
+	const strLength = str.length;
+	let byteLength = 0;
+	let pos = 0;
+	while (pos < strLength) {
+		let value = str.charCodeAt(pos++);
+		if ((value & 4294967168) === 0) {
+			byteLength++;
+			continue;
+		} else if ((value & 4294965248) === 0) byteLength += 2;
+		else {
+			if (value >= 55296 && value <= 56319) {
+				if (pos < strLength) {
+					const extra = str.charCodeAt(pos);
+					if ((extra & 64512) === 56320) {
+						++pos;
+						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
+					}
+				}
+			}
+			if ((value & 4294901760) === 0) byteLength += 3;
+			else byteLength += 4;
+		}
+	}
+	return byteLength;
 }
-var init_prettyByte = __esmMin((() => {}));
+function utf8EncodeJs(str, output, outputOffset) {
+	const strLength = str.length;
+	let offset = outputOffset;
+	let pos = 0;
+	while (pos < strLength) {
+		let value = str.charCodeAt(pos++);
+		if ((value & 4294967168) === 0) {
+			output[offset++] = value;
+			continue;
+		} else if ((value & 4294965248) === 0) output[offset++] = value >> 6 & 31 | 192;
+		else {
+			if (value >= 55296 && value <= 56319) {
+				if (pos < strLength) {
+					const extra = str.charCodeAt(pos);
+					if ((extra & 64512) === 56320) {
+						++pos;
+						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
+					}
+				}
+			}
+			if ((value & 4294901760) === 0) {
+				output[offset++] = value >> 12 & 15 | 224;
+				output[offset++] = value >> 6 & 63 | 128;
+			} else {
+				output[offset++] = value >> 18 & 7 | 240;
+				output[offset++] = value >> 12 & 63 | 128;
+				output[offset++] = value >> 6 & 63 | 128;
+			}
+		}
+		output[offset++] = value & 63 | 128;
+	}
+}
+function utf8EncodeTE(str, output, outputOffset) {
+	sharedTextEncoder.encodeInto(str, output.subarray(outputOffset));
+}
+function utf8Encode(str, output, outputOffset) {
+	if (str.length > TEXT_ENCODER_THRESHOLD) utf8EncodeTE(str, output, outputOffset);
+	else utf8EncodeJs(str, output, outputOffset);
+}
+function utf8DecodeJs(bytes, inputOffset, byteLength) {
+	let offset = inputOffset;
+	const end = offset + byteLength;
+	const units = [];
+	let result = "";
+	while (offset < end) {
+		const byte1 = bytes[offset++];
+		if ((byte1 & 128) === 0) units.push(byte1);
+		else if ((byte1 & 224) === 192) {
+			const byte2 = bytes[offset++] & 63;
+			units.push((byte1 & 31) << 6 | byte2);
+		} else if ((byte1 & 240) === 224) {
+			const byte2 = bytes[offset++] & 63;
+			const byte3 = bytes[offset++] & 63;
+			units.push((byte1 & 31) << 12 | byte2 << 6 | byte3);
+		} else if ((byte1 & 248) === 240) {
+			const byte2 = bytes[offset++] & 63;
+			const byte3 = bytes[offset++] & 63;
+			const byte4 = bytes[offset++] & 63;
+			let unit = (byte1 & 7) << 18 | byte2 << 12 | byte3 << 6 | byte4;
+			if (unit > 65535) {
+				unit -= 65536;
+				units.push(unit >>> 10 & 1023 | 55296);
+				unit = 56320 | unit & 1023;
+			}
+			units.push(unit);
+		} else units.push(byte1);
+		if (units.length >= CHUNK_SIZE) {
+			result += String.fromCharCode(...units);
+			units.length = 0;
+		}
+	}
+	if (units.length > 0) result += String.fromCharCode(...units);
+	return result;
+}
+function utf8DecodeTD(bytes, inputOffset, byteLength) {
+	const stringBytes = bytes.subarray(inputOffset, inputOffset + byteLength);
+	return sharedTextDecoder.decode(stringBytes);
+}
+function utf8Decode(bytes, inputOffset, byteLength) {
+	if (byteLength > TEXT_DECODER_THRESHOLD) return utf8DecodeTD(bytes, inputOffset, byteLength);
+	else return utf8DecodeJs(bytes, inputOffset, byteLength);
+}
+var sharedTextEncoder, TEXT_ENCODER_THRESHOLD, CHUNK_SIZE, sharedTextDecoder, TEXT_DECODER_THRESHOLD;
+var init_utf8 = __esmMin((() => {
+	sharedTextEncoder = new TextEncoder();
+	TEXT_ENCODER_THRESHOLD = 50;
+	CHUNK_SIZE = 4096;
+	sharedTextDecoder = new TextDecoder();
+	TEXT_DECODER_THRESHOLD = 200;
+}));
 //#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
 var ExtData;
@@ -57166,124 +57300,6 @@ var init_ExtensionCodec = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
-function utf8Count(str) {
-	const strLength = str.length;
-	let byteLength = 0;
-	let pos = 0;
-	while (pos < strLength) {
-		let value = str.charCodeAt(pos++);
-		if ((value & 4294967168) === 0) {
-			byteLength++;
-			continue;
-		} else if ((value & 4294965248) === 0) byteLength += 2;
-		else {
-			if (value >= 55296 && value <= 56319) {
-				if (pos < strLength) {
-					const extra = str.charCodeAt(pos);
-					if ((extra & 64512) === 56320) {
-						++pos;
-						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
-					}
-				}
-			}
-			if ((value & 4294901760) === 0) byteLength += 3;
-			else byteLength += 4;
-		}
-	}
-	return byteLength;
-}
-function utf8EncodeJs(str, output, outputOffset) {
-	const strLength = str.length;
-	let offset = outputOffset;
-	let pos = 0;
-	while (pos < strLength) {
-		let value = str.charCodeAt(pos++);
-		if ((value & 4294967168) === 0) {
-			output[offset++] = value;
-			continue;
-		} else if ((value & 4294965248) === 0) output[offset++] = value >> 6 & 31 | 192;
-		else {
-			if (value >= 55296 && value <= 56319) {
-				if (pos < strLength) {
-					const extra = str.charCodeAt(pos);
-					if ((extra & 64512) === 56320) {
-						++pos;
-						value = ((value & 1023) << 10) + (extra & 1023) + 65536;
-					}
-				}
-			}
-			if ((value & 4294901760) === 0) {
-				output[offset++] = value >> 12 & 15 | 224;
-				output[offset++] = value >> 6 & 63 | 128;
-			} else {
-				output[offset++] = value >> 18 & 7 | 240;
-				output[offset++] = value >> 12 & 63 | 128;
-				output[offset++] = value >> 6 & 63 | 128;
-			}
-		}
-		output[offset++] = value & 63 | 128;
-	}
-}
-function utf8EncodeTE(str, output, outputOffset) {
-	sharedTextEncoder.encodeInto(str, output.subarray(outputOffset));
-}
-function utf8Encode(str, output, outputOffset) {
-	if (str.length > TEXT_ENCODER_THRESHOLD) utf8EncodeTE(str, output, outputOffset);
-	else utf8EncodeJs(str, output, outputOffset);
-}
-function utf8DecodeJs(bytes, inputOffset, byteLength) {
-	let offset = inputOffset;
-	const end = offset + byteLength;
-	const units = [];
-	let result = "";
-	while (offset < end) {
-		const byte1 = bytes[offset++];
-		if ((byte1 & 128) === 0) units.push(byte1);
-		else if ((byte1 & 224) === 192) {
-			const byte2 = bytes[offset++] & 63;
-			units.push((byte1 & 31) << 6 | byte2);
-		} else if ((byte1 & 240) === 224) {
-			const byte2 = bytes[offset++] & 63;
-			const byte3 = bytes[offset++] & 63;
-			units.push((byte1 & 31) << 12 | byte2 << 6 | byte3);
-		} else if ((byte1 & 248) === 240) {
-			const byte2 = bytes[offset++] & 63;
-			const byte3 = bytes[offset++] & 63;
-			const byte4 = bytes[offset++] & 63;
-			let unit = (byte1 & 7) << 18 | byte2 << 12 | byte3 << 6 | byte4;
-			if (unit > 65535) {
-				unit -= 65536;
-				units.push(unit >>> 10 & 1023 | 55296);
-				unit = 56320 | unit & 1023;
-			}
-			units.push(unit);
-		} else units.push(byte1);
-		if (units.length >= CHUNK_SIZE) {
-			result += String.fromCharCode(...units);
-			units.length = 0;
-		}
-	}
-	if (units.length > 0) result += String.fromCharCode(...units);
-	return result;
-}
-function utf8DecodeTD(bytes, inputOffset, byteLength) {
-	const stringBytes = bytes.subarray(inputOffset, inputOffset + byteLength);
-	return sharedTextDecoder.decode(stringBytes);
-}
-function utf8Decode(bytes, inputOffset, byteLength) {
-	if (byteLength > TEXT_DECODER_THRESHOLD) return utf8DecodeTD(bytes, inputOffset, byteLength);
-	else return utf8DecodeJs(bytes, inputOffset, byteLength);
-}
-var sharedTextEncoder, TEXT_ENCODER_THRESHOLD, CHUNK_SIZE, sharedTextDecoder, TEXT_DECODER_THRESHOLD;
-var init_utf8 = __esmMin((() => {
-	sharedTextEncoder = new TextEncoder();
-	TEXT_ENCODER_THRESHOLD = 50;
-	CHUNK_SIZE = 4096;
-	sharedTextDecoder = new TextDecoder();
-	TEXT_DECODER_THRESHOLD = 200;
-}));
-//#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
 function isArrayBufferLike(buffer) {
 	return buffer instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer;
@@ -57294,7 +57310,349 @@ function ensureUint8Array(buffer) {
 	else if (isArrayBufferLike(buffer)) return new Uint8Array(buffer);
 	else return Uint8Array.from(buffer);
 }
-var init_typedArrays = __esmMin((() => {}));
+var init_typedArrays = __esmMin((() => {})), Encoder;
+var init_Encoder = __esmMin((() => {
+	init_utf8();
+	init_ExtensionCodec();
+	init_int();
+	init_typedArrays();
+	Encoder = class Encoder {
+		extensionCodec;
+		context;
+		useBigInt64;
+		maxDepth;
+		initialBufferSize;
+		sortKeys;
+		forceFloat32;
+		ignoreUndefined;
+		forceIntegerToFloat;
+		pos;
+		view;
+		bytes;
+		entered = false;
+		constructor(options) {
+			this.extensionCodec = options?.extensionCodec ?? ExtensionCodec.defaultCodec;
+			this.context = options?.context;
+			this.useBigInt64 = options?.useBigInt64 ?? false;
+			this.maxDepth = options?.maxDepth ?? 100;
+			this.initialBufferSize = options?.initialBufferSize ?? 2048;
+			this.sortKeys = options?.sortKeys ?? false;
+			this.forceFloat32 = options?.forceFloat32 ?? false;
+			this.ignoreUndefined = options?.ignoreUndefined ?? false;
+			this.forceIntegerToFloat = options?.forceIntegerToFloat ?? false;
+			this.pos = 0;
+			this.view = new DataView(new ArrayBuffer(this.initialBufferSize));
+			this.bytes = new Uint8Array(this.view.buffer);
+		}
+		clone() {
+			return new Encoder({
+				extensionCodec: this.extensionCodec,
+				context: this.context,
+				useBigInt64: this.useBigInt64,
+				maxDepth: this.maxDepth,
+				initialBufferSize: this.initialBufferSize,
+				sortKeys: this.sortKeys,
+				forceFloat32: this.forceFloat32,
+				ignoreUndefined: this.ignoreUndefined,
+				forceIntegerToFloat: this.forceIntegerToFloat
+			});
+		}
+		reinitializeState() {
+			this.pos = 0;
+		}
+		/**
+		* This is almost equivalent to {@link Encoder#encode}, but it returns an reference of the encoder's internal buffer and thus much faster than {@link Encoder#encode}.
+		*
+		* @returns Encodes the object and returns a shared reference the encoder's internal buffer.
+		*/
+		encodeSharedRef(object) {
+			if (this.entered) return this.clone().encodeSharedRef(object);
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.doEncode(object, 1);
+				return this.bytes.subarray(0, this.pos);
+			} finally {
+				this.entered = false;
+			}
+		}
+		/**
+		* @returns Encodes the object and returns a copy of the encoder's internal buffer.
+		*/
+		encode(object) {
+			if (this.entered) return this.clone().encode(object);
+			try {
+				this.entered = true;
+				this.reinitializeState();
+				this.doEncode(object, 1);
+				return this.bytes.slice(0, this.pos);
+			} finally {
+				this.entered = false;
+			}
+		}
+		doEncode(object, depth) {
+			if (depth > this.maxDepth) throw new Error(`Too deep objects in depth ${depth}`);
+			if (object == null) this.encodeNil();
+			else if (typeof object === "boolean") this.encodeBoolean(object);
+			else if (typeof object === "number") if (!this.forceIntegerToFloat) this.encodeNumber(object);
+			else this.encodeNumberAsFloat(object);
+			else if (typeof object === "string") this.encodeString(object);
+			else if (this.useBigInt64 && typeof object === "bigint") this.encodeBigInt64(object);
+			else this.encodeObject(object, depth);
+		}
+		ensureBufferSizeToWrite(sizeToWrite) {
+			const requiredSize = this.pos + sizeToWrite;
+			if (this.view.byteLength < requiredSize) this.resizeBuffer(requiredSize * 2);
+		}
+		resizeBuffer(newSize) {
+			const newBuffer = new ArrayBuffer(newSize);
+			const newBytes = new Uint8Array(newBuffer);
+			const newView = new DataView(newBuffer);
+			newBytes.set(this.bytes);
+			this.view = newView;
+			this.bytes = newBytes;
+		}
+		encodeNil() {
+			this.writeU8(192);
+		}
+		encodeBoolean(object) {
+			if (object === false) this.writeU8(194);
+			else this.writeU8(195);
+		}
+		encodeNumber(object) {
+			if (!this.forceIntegerToFloat && Number.isSafeInteger(object)) if (object >= 0) if (object < 128) this.writeU8(object);
+			else if (object < 256) {
+				this.writeU8(204);
+				this.writeU8(object);
+			} else if (object < 65536) {
+				this.writeU8(205);
+				this.writeU16(object);
+			} else if (object < 4294967296) {
+				this.writeU8(206);
+				this.writeU32(object);
+			} else if (!this.useBigInt64) {
+				this.writeU8(207);
+				this.writeU64(object);
+			} else this.encodeNumberAsFloat(object);
+			else if (object >= -32) this.writeU8(224 | object + 32);
+			else if (object >= -128) {
+				this.writeU8(208);
+				this.writeI8(object);
+			} else if (object >= -32768) {
+				this.writeU8(209);
+				this.writeI16(object);
+			} else if (object >= -2147483648) {
+				this.writeU8(210);
+				this.writeI32(object);
+			} else if (!this.useBigInt64) {
+				this.writeU8(211);
+				this.writeI64(object);
+			} else this.encodeNumberAsFloat(object);
+			else this.encodeNumberAsFloat(object);
+		}
+		encodeNumberAsFloat(object) {
+			if (this.forceFloat32) {
+				this.writeU8(202);
+				this.writeF32(object);
+			} else {
+				this.writeU8(203);
+				this.writeF64(object);
+			}
+		}
+		encodeBigInt64(object) {
+			if (object >= BigInt(0)) {
+				this.writeU8(207);
+				this.writeBigUint64(object);
+			} else {
+				this.writeU8(211);
+				this.writeBigInt64(object);
+			}
+		}
+		writeStringHeader(byteLength) {
+			if (byteLength < 32) this.writeU8(160 + byteLength);
+			else if (byteLength < 256) {
+				this.writeU8(217);
+				this.writeU8(byteLength);
+			} else if (byteLength < 65536) {
+				this.writeU8(218);
+				this.writeU16(byteLength);
+			} else if (byteLength < 4294967296) {
+				this.writeU8(219);
+				this.writeU32(byteLength);
+			} else throw new Error(`Too long string: ${byteLength} bytes in UTF-8`);
+		}
+		encodeString(object) {
+			const maxHeaderSize = 5;
+			const byteLength = utf8Count(object);
+			this.ensureBufferSizeToWrite(maxHeaderSize + byteLength);
+			this.writeStringHeader(byteLength);
+			utf8Encode(object, this.bytes, this.pos);
+			this.pos += byteLength;
+		}
+		encodeObject(object, depth) {
+			const ext = this.extensionCodec.tryToEncode(object, this.context);
+			if (ext != null) this.encodeExtension(ext);
+			else if (Array.isArray(object)) this.encodeArray(object, depth);
+			else if (ArrayBuffer.isView(object)) this.encodeBinary(object);
+			else if (typeof object === "object") this.encodeMap(object, depth);
+			else throw new Error(`Unrecognized object: ${Object.prototype.toString.apply(object)}`);
+		}
+		encodeBinary(object) {
+			const size = object.byteLength;
+			if (size < 256) {
+				this.writeU8(196);
+				this.writeU8(size);
+			} else if (size < 65536) {
+				this.writeU8(197);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(198);
+				this.writeU32(size);
+			} else throw new Error(`Too large binary: ${size}`);
+			const bytes = ensureUint8Array(object);
+			this.writeU8a(bytes);
+		}
+		encodeArray(object, depth) {
+			const size = object.length;
+			if (size < 16) this.writeU8(144 + size);
+			else if (size < 65536) {
+				this.writeU8(220);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(221);
+				this.writeU32(size);
+			} else throw new Error(`Too large array: ${size}`);
+			for (const item of object) this.doEncode(item, depth + 1);
+		}
+		countWithoutUndefined(object, keys) {
+			let count = 0;
+			for (const key of keys) if (object[key] !== void 0) count++;
+			return count;
+		}
+		encodeMap(object, depth) {
+			const keys = Object.keys(object);
+			if (this.sortKeys) keys.sort();
+			const size = this.ignoreUndefined ? this.countWithoutUndefined(object, keys) : keys.length;
+			if (size < 16) this.writeU8(128 + size);
+			else if (size < 65536) {
+				this.writeU8(222);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(223);
+				this.writeU32(size);
+			} else throw new Error(`Too large map object: ${size}`);
+			for (const key of keys) {
+				const value = object[key];
+				if (!(this.ignoreUndefined && value === void 0)) {
+					this.encodeString(key);
+					this.doEncode(value, depth + 1);
+				}
+			}
+		}
+		encodeExtension(ext) {
+			if (typeof ext.data === "function") {
+				const data = ext.data(this.pos + 6);
+				const size = data.length;
+				if (size >= 4294967296) throw new Error(`Too large extension object: ${size}`);
+				this.writeU8(201);
+				this.writeU32(size);
+				this.writeI8(ext.type);
+				this.writeU8a(data);
+				return;
+			}
+			const size = ext.data.length;
+			if (size === 1) this.writeU8(212);
+			else if (size === 2) this.writeU8(213);
+			else if (size === 4) this.writeU8(214);
+			else if (size === 8) this.writeU8(215);
+			else if (size === 16) this.writeU8(216);
+			else if (size < 256) {
+				this.writeU8(199);
+				this.writeU8(size);
+			} else if (size < 65536) {
+				this.writeU8(200);
+				this.writeU16(size);
+			} else if (size < 4294967296) {
+				this.writeU8(201);
+				this.writeU32(size);
+			} else throw new Error(`Too large extension object: ${size}`);
+			this.writeI8(ext.type);
+			this.writeU8a(ext.data);
+		}
+		writeU8(value) {
+			this.ensureBufferSizeToWrite(1);
+			this.view.setUint8(this.pos, value);
+			this.pos++;
+		}
+		writeU8a(values) {
+			const size = values.length;
+			this.ensureBufferSizeToWrite(size);
+			this.bytes.set(values, this.pos);
+			this.pos += size;
+		}
+		writeI8(value) {
+			this.ensureBufferSizeToWrite(1);
+			this.view.setInt8(this.pos, value);
+			this.pos++;
+		}
+		writeU16(value) {
+			this.ensureBufferSizeToWrite(2);
+			this.view.setUint16(this.pos, value);
+			this.pos += 2;
+		}
+		writeI16(value) {
+			this.ensureBufferSizeToWrite(2);
+			this.view.setInt16(this.pos, value);
+			this.pos += 2;
+		}
+		writeU32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setUint32(this.pos, value);
+			this.pos += 4;
+		}
+		writeI32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setInt32(this.pos, value);
+			this.pos += 4;
+		}
+		writeF32(value) {
+			this.ensureBufferSizeToWrite(4);
+			this.view.setFloat32(this.pos, value);
+			this.pos += 4;
+		}
+		writeF64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setFloat64(this.pos, value);
+			this.pos += 8;
+		}
+		writeU64(value) {
+			this.ensureBufferSizeToWrite(8);
+			setUint64(this.view, this.pos, value);
+			this.pos += 8;
+		}
+		writeI64(value) {
+			this.ensureBufferSizeToWrite(8);
+			setInt64(this.view, this.pos, value);
+			this.pos += 8;
+		}
+		writeBigUint64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setBigUint64(this.pos, value);
+			this.pos += 8;
+		}
+		writeBigInt64(value) {
+			this.ensureBufferSizeToWrite(8);
+			this.view.setBigInt64(this.pos, value);
+			this.pos += 8;
+		}
+	};
+}));
+//#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
+function prettyByte(byte) {
+	return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
+}
+var init_prettyByte = __esmMin((() => {}));
 //#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
 var DEFAULT_MAX_KEY_LENGTH, DEFAULT_MAX_LENGTH_PER_KEY, CachedKeyDecoder;
@@ -57926,342 +58284,6 @@ function decodeMultiStream(streamLike, options) {
 var init_decodeAsync = __esmMin((() => {
 	init_Decoder();
 	init_stream();
-})), Encoder;
-var init_Encoder = __esmMin((() => {
-	init_utf8();
-	init_ExtensionCodec();
-	init_int();
-	init_typedArrays();
-	Encoder = class Encoder {
-		extensionCodec;
-		context;
-		useBigInt64;
-		maxDepth;
-		initialBufferSize;
-		sortKeys;
-		forceFloat32;
-		ignoreUndefined;
-		forceIntegerToFloat;
-		pos;
-		view;
-		bytes;
-		entered = false;
-		constructor(options) {
-			this.extensionCodec = options?.extensionCodec ?? ExtensionCodec.defaultCodec;
-			this.context = options?.context;
-			this.useBigInt64 = options?.useBigInt64 ?? false;
-			this.maxDepth = options?.maxDepth ?? 100;
-			this.initialBufferSize = options?.initialBufferSize ?? 2048;
-			this.sortKeys = options?.sortKeys ?? false;
-			this.forceFloat32 = options?.forceFloat32 ?? false;
-			this.ignoreUndefined = options?.ignoreUndefined ?? false;
-			this.forceIntegerToFloat = options?.forceIntegerToFloat ?? false;
-			this.pos = 0;
-			this.view = new DataView(new ArrayBuffer(this.initialBufferSize));
-			this.bytes = new Uint8Array(this.view.buffer);
-		}
-		clone() {
-			return new Encoder({
-				extensionCodec: this.extensionCodec,
-				context: this.context,
-				useBigInt64: this.useBigInt64,
-				maxDepth: this.maxDepth,
-				initialBufferSize: this.initialBufferSize,
-				sortKeys: this.sortKeys,
-				forceFloat32: this.forceFloat32,
-				ignoreUndefined: this.ignoreUndefined,
-				forceIntegerToFloat: this.forceIntegerToFloat
-			});
-		}
-		reinitializeState() {
-			this.pos = 0;
-		}
-		/**
-		* This is almost equivalent to {@link Encoder#encode}, but it returns an reference of the encoder's internal buffer and thus much faster than {@link Encoder#encode}.
-		*
-		* @returns Encodes the object and returns a shared reference the encoder's internal buffer.
-		*/
-		encodeSharedRef(object) {
-			if (this.entered) return this.clone().encodeSharedRef(object);
-			try {
-				this.entered = true;
-				this.reinitializeState();
-				this.doEncode(object, 1);
-				return this.bytes.subarray(0, this.pos);
-			} finally {
-				this.entered = false;
-			}
-		}
-		/**
-		* @returns Encodes the object and returns a copy of the encoder's internal buffer.
-		*/
-		encode(object) {
-			if (this.entered) return this.clone().encode(object);
-			try {
-				this.entered = true;
-				this.reinitializeState();
-				this.doEncode(object, 1);
-				return this.bytes.slice(0, this.pos);
-			} finally {
-				this.entered = false;
-			}
-		}
-		doEncode(object, depth) {
-			if (depth > this.maxDepth) throw new Error(`Too deep objects in depth ${depth}`);
-			if (object == null) this.encodeNil();
-			else if (typeof object === "boolean") this.encodeBoolean(object);
-			else if (typeof object === "number") if (!this.forceIntegerToFloat) this.encodeNumber(object);
-			else this.encodeNumberAsFloat(object);
-			else if (typeof object === "string") this.encodeString(object);
-			else if (this.useBigInt64 && typeof object === "bigint") this.encodeBigInt64(object);
-			else this.encodeObject(object, depth);
-		}
-		ensureBufferSizeToWrite(sizeToWrite) {
-			const requiredSize = this.pos + sizeToWrite;
-			if (this.view.byteLength < requiredSize) this.resizeBuffer(requiredSize * 2);
-		}
-		resizeBuffer(newSize) {
-			const newBuffer = new ArrayBuffer(newSize);
-			const newBytes = new Uint8Array(newBuffer);
-			const newView = new DataView(newBuffer);
-			newBytes.set(this.bytes);
-			this.view = newView;
-			this.bytes = newBytes;
-		}
-		encodeNil() {
-			this.writeU8(192);
-		}
-		encodeBoolean(object) {
-			if (object === false) this.writeU8(194);
-			else this.writeU8(195);
-		}
-		encodeNumber(object) {
-			if (!this.forceIntegerToFloat && Number.isSafeInteger(object)) if (object >= 0) if (object < 128) this.writeU8(object);
-			else if (object < 256) {
-				this.writeU8(204);
-				this.writeU8(object);
-			} else if (object < 65536) {
-				this.writeU8(205);
-				this.writeU16(object);
-			} else if (object < 4294967296) {
-				this.writeU8(206);
-				this.writeU32(object);
-			} else if (!this.useBigInt64) {
-				this.writeU8(207);
-				this.writeU64(object);
-			} else this.encodeNumberAsFloat(object);
-			else if (object >= -32) this.writeU8(224 | object + 32);
-			else if (object >= -128) {
-				this.writeU8(208);
-				this.writeI8(object);
-			} else if (object >= -32768) {
-				this.writeU8(209);
-				this.writeI16(object);
-			} else if (object >= -2147483648) {
-				this.writeU8(210);
-				this.writeI32(object);
-			} else if (!this.useBigInt64) {
-				this.writeU8(211);
-				this.writeI64(object);
-			} else this.encodeNumberAsFloat(object);
-			else this.encodeNumberAsFloat(object);
-		}
-		encodeNumberAsFloat(object) {
-			if (this.forceFloat32) {
-				this.writeU8(202);
-				this.writeF32(object);
-			} else {
-				this.writeU8(203);
-				this.writeF64(object);
-			}
-		}
-		encodeBigInt64(object) {
-			if (object >= BigInt(0)) {
-				this.writeU8(207);
-				this.writeBigUint64(object);
-			} else {
-				this.writeU8(211);
-				this.writeBigInt64(object);
-			}
-		}
-		writeStringHeader(byteLength) {
-			if (byteLength < 32) this.writeU8(160 + byteLength);
-			else if (byteLength < 256) {
-				this.writeU8(217);
-				this.writeU8(byteLength);
-			} else if (byteLength < 65536) {
-				this.writeU8(218);
-				this.writeU16(byteLength);
-			} else if (byteLength < 4294967296) {
-				this.writeU8(219);
-				this.writeU32(byteLength);
-			} else throw new Error(`Too long string: ${byteLength} bytes in UTF-8`);
-		}
-		encodeString(object) {
-			const maxHeaderSize = 5;
-			const byteLength = utf8Count(object);
-			this.ensureBufferSizeToWrite(maxHeaderSize + byteLength);
-			this.writeStringHeader(byteLength);
-			utf8Encode(object, this.bytes, this.pos);
-			this.pos += byteLength;
-		}
-		encodeObject(object, depth) {
-			const ext = this.extensionCodec.tryToEncode(object, this.context);
-			if (ext != null) this.encodeExtension(ext);
-			else if (Array.isArray(object)) this.encodeArray(object, depth);
-			else if (ArrayBuffer.isView(object)) this.encodeBinary(object);
-			else if (typeof object === "object") this.encodeMap(object, depth);
-			else throw new Error(`Unrecognized object: ${Object.prototype.toString.apply(object)}`);
-		}
-		encodeBinary(object) {
-			const size = object.byteLength;
-			if (size < 256) {
-				this.writeU8(196);
-				this.writeU8(size);
-			} else if (size < 65536) {
-				this.writeU8(197);
-				this.writeU16(size);
-			} else if (size < 4294967296) {
-				this.writeU8(198);
-				this.writeU32(size);
-			} else throw new Error(`Too large binary: ${size}`);
-			const bytes = ensureUint8Array(object);
-			this.writeU8a(bytes);
-		}
-		encodeArray(object, depth) {
-			const size = object.length;
-			if (size < 16) this.writeU8(144 + size);
-			else if (size < 65536) {
-				this.writeU8(220);
-				this.writeU16(size);
-			} else if (size < 4294967296) {
-				this.writeU8(221);
-				this.writeU32(size);
-			} else throw new Error(`Too large array: ${size}`);
-			for (const item of object) this.doEncode(item, depth + 1);
-		}
-		countWithoutUndefined(object, keys) {
-			let count = 0;
-			for (const key of keys) if (object[key] !== void 0) count++;
-			return count;
-		}
-		encodeMap(object, depth) {
-			const keys = Object.keys(object);
-			if (this.sortKeys) keys.sort();
-			const size = this.ignoreUndefined ? this.countWithoutUndefined(object, keys) : keys.length;
-			if (size < 16) this.writeU8(128 + size);
-			else if (size < 65536) {
-				this.writeU8(222);
-				this.writeU16(size);
-			} else if (size < 4294967296) {
-				this.writeU8(223);
-				this.writeU32(size);
-			} else throw new Error(`Too large map object: ${size}`);
-			for (const key of keys) {
-				const value = object[key];
-				if (!(this.ignoreUndefined && value === void 0)) {
-					this.encodeString(key);
-					this.doEncode(value, depth + 1);
-				}
-			}
-		}
-		encodeExtension(ext) {
-			if (typeof ext.data === "function") {
-				const data = ext.data(this.pos + 6);
-				const size = data.length;
-				if (size >= 4294967296) throw new Error(`Too large extension object: ${size}`);
-				this.writeU8(201);
-				this.writeU32(size);
-				this.writeI8(ext.type);
-				this.writeU8a(data);
-				return;
-			}
-			const size = ext.data.length;
-			if (size === 1) this.writeU8(212);
-			else if (size === 2) this.writeU8(213);
-			else if (size === 4) this.writeU8(214);
-			else if (size === 8) this.writeU8(215);
-			else if (size === 16) this.writeU8(216);
-			else if (size < 256) {
-				this.writeU8(199);
-				this.writeU8(size);
-			} else if (size < 65536) {
-				this.writeU8(200);
-				this.writeU16(size);
-			} else if (size < 4294967296) {
-				this.writeU8(201);
-				this.writeU32(size);
-			} else throw new Error(`Too large extension object: ${size}`);
-			this.writeI8(ext.type);
-			this.writeU8a(ext.data);
-		}
-		writeU8(value) {
-			this.ensureBufferSizeToWrite(1);
-			this.view.setUint8(this.pos, value);
-			this.pos++;
-		}
-		writeU8a(values) {
-			const size = values.length;
-			this.ensureBufferSizeToWrite(size);
-			this.bytes.set(values, this.pos);
-			this.pos += size;
-		}
-		writeI8(value) {
-			this.ensureBufferSizeToWrite(1);
-			this.view.setInt8(this.pos, value);
-			this.pos++;
-		}
-		writeU16(value) {
-			this.ensureBufferSizeToWrite(2);
-			this.view.setUint16(this.pos, value);
-			this.pos += 2;
-		}
-		writeI16(value) {
-			this.ensureBufferSizeToWrite(2);
-			this.view.setInt16(this.pos, value);
-			this.pos += 2;
-		}
-		writeU32(value) {
-			this.ensureBufferSizeToWrite(4);
-			this.view.setUint32(this.pos, value);
-			this.pos += 4;
-		}
-		writeI32(value) {
-			this.ensureBufferSizeToWrite(4);
-			this.view.setInt32(this.pos, value);
-			this.pos += 4;
-		}
-		writeF32(value) {
-			this.ensureBufferSizeToWrite(4);
-			this.view.setFloat32(this.pos, value);
-			this.pos += 4;
-		}
-		writeF64(value) {
-			this.ensureBufferSizeToWrite(8);
-			this.view.setFloat64(this.pos, value);
-			this.pos += 8;
-		}
-		writeU64(value) {
-			this.ensureBufferSizeToWrite(8);
-			setUint64(this.view, this.pos, value);
-			this.pos += 8;
-		}
-		writeI64(value) {
-			this.ensureBufferSizeToWrite(8);
-			setInt64(this.view, this.pos, value);
-			this.pos += 8;
-		}
-		writeBigUint64(value) {
-			this.ensureBufferSizeToWrite(8);
-			this.view.setBigUint64(this.pos, value);
-			this.pos += 8;
-		}
-		writeBigInt64(value) {
-			this.ensureBufferSizeToWrite(8);
-			this.view.setBigInt64(this.pos, value);
-			this.pos += 8;
-		}
-	};
 }));
 //#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/index.mjs
@@ -72753,7 +72775,8 @@ var init_menu = __esmMin((() => {
 				"<tab>",
 				"<C-n>"
 			], () => {
-				setCursorIndex(this.currIndex == this.total - 1 ? 0 : this.currIndex + 1);
+				let idx = this.currIndex == this.total - 1 ? 0 : this.currIndex + 1;
+				setCursorIndex(idx);
 			});
 			this.addKeys([
 				"k",
@@ -72762,7 +72785,8 @@ var init_menu = __esmMin((() => {
 				"<s-tab>",
 				"<C-p>"
 			], () => {
-				setCursorIndex(this.currIndex == 0 ? this.total - 1 : this.currIndex - 1);
+				let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1;
+				setCursorIndex(idx);
 			});
 			this.addKeys(["g"], () => {
 				setCursorIndex(0);
@@ -73582,7 +73606,8 @@ var init_strwidth = __esmMin((() => {
 		}
 		static async create() {
 			if (instance) return instance;
-			instance = new StrWidth(await initStrWidthWasm());
+			let api = await initStrWidthWasm();
+			instance = new StrWidth(api);
 			return instance;
 		}
 	};
@@ -74251,7 +74276,7 @@ var require_utf32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 	Utf32Encoder.prototype.write = function(str) {
 		var src = Buffer.from(str, "ucs2");
-		var dst = Buffer.alloc(src.length * 2);
+		var dst = Buffer.alloc(src.length * 2 + 4);
 		var write32 = this.isLE ? dst.writeUInt32LE : dst.writeUInt32BE;
 		var offset = 0;
 		for (var i = 0; i < src.length; i += 2) {
@@ -74303,8 +74328,8 @@ var require_utf32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (overflow.length > 0) {
 			for (; i < src.length && overflow.length < 4; i++) overflow.push(src[i]);
 			if (overflow.length === 4) {
-				if (isLE) codepoint = overflow[i] | overflow[i + 1] << 8 | overflow[i + 2] << 16 | overflow[i + 3] << 24;
-				else codepoint = overflow[i + 3] | overflow[i + 2] << 8 | overflow[i + 1] << 16 | overflow[i] << 24;
+				if (isLE) codepoint = overflow[0] | overflow[1] << 8 | overflow[2] << 16 | overflow[3] << 24;
+				else codepoint = overflow[3] | overflow[2] << 8 | overflow[1] << 16 | overflow[0] << 24;
 				overflow.length = 0;
 				offset = _writeCodepoint(dst, offset, codepoint, badChar);
 			}
@@ -74331,7 +74356,9 @@ var require_utf32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		return offset;
 	}
 	Utf32Decoder.prototype.end = function() {
+		if (this.overflow.length === 0) return;
 		this.overflow.length = 0;
+		return String.fromCharCode(this.badChar);
 	};
 	exports.utf32 = Utf32AutoCodec;
 	exports.ucs4 = "utf32";
@@ -74869,6 +74896,8 @@ var require_sbcs_data = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		elot928: "iso88597",
 		hebrew: "iso88598",
 		hebrew8: "iso88598",
+		iso88598i: "iso88598",
+		iso88598e: "iso88598",
 		turkish: "iso88599",
 		turkish8: "iso88599",
 		thai: "iso885911",
@@ -85543,7 +85572,11 @@ var require_lib = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* Module dependencies.
 	*/
-	var colors = require_safe(), utils = require_utils(), repeat = utils.repeat, truncate = utils.truncate, pad = utils.pad;
+	var colors = require_safe();
+	var utils = require_utils();
+	var repeat = utils.repeat;
+	var truncate = utils.truncate;
+	var pad = utils.pad;
 	/**
 	* Table constructor
 	*
@@ -97271,7 +97304,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 		F.isReadable = Mo;
 		var Lo = (s) => !!s && typeof s == "object" && s instanceof ss.EventEmitter && typeof s.write == "function" && typeof s.end == "function";
 		F.isWritable = Lo;
-		var ce = Symbol("EOF"), ue = Symbol("maybeEmitEnd"), we = Symbol("emittedEnd"), jt = Symbol("emittingEnd"), dt = Symbol("emittedError"), Ut = Symbol("closed"), xr = Symbol("read"), qt = Symbol("flush"), jr = Symbol("flushChunk"), K = Symbol("encoding"), Ue = Symbol("decoder"), R = Symbol("flowing"), mt = Symbol("paused"), qe = Symbol("resume"), O = Symbol("buffer"), I = Symbol("pipes"), v = Symbol("bufferLength"), Xi = Symbol("bufferPush"), Wt = Symbol("bufferShift"), N = Symbol("objectMode"), y = Symbol("destroyed"), Qi = Symbol("error"), Ji = Symbol("emitData"), Ur = Symbol("emitEnd"), es = Symbol("emitEnd2"), J = Symbol("async"), ts = Symbol("abort"), Ht = Symbol("aborted"), pt = Symbol("signal"), Ne = Symbol("dataListeners"), x = Symbol("discarded"), _t = (s) => Promise.resolve().then(s), Ao = (s) => s(), Io = (s) => s === "end" || s === "finish" || s === "prefinish", Fo = (s) => s instanceof ArrayBuffer || !!s && typeof s == "object" && s.constructor && s.constructor.name === "ArrayBuffer" && s.byteLength >= 0, Co = (s) => !Buffer.isBuffer(s) && ArrayBuffer.isView(s), Gt = class {
+		var ce = Symbol("EOF"), ue = Symbol("maybeEmitEnd"), we = Symbol("emittedEnd"), jt = Symbol("emittingEnd"), dt = Symbol("emittedError"), Ut = Symbol("closed"), xr = Symbol("read"), qt = Symbol("flush"), jr = Symbol("flushChunk"), K = Symbol("encoding"), Ue = Symbol("decoder"), R = Symbol("flowing"), mt = Symbol("paused"), qe = Symbol("resume"), O = Symbol("buffer"), I = Symbol("pipes"), v = Symbol("bufferLength"), Xi = Symbol("bufferPush"), Wt = Symbol("bufferShift"), N = Symbol("objectMode"), E = Symbol("destroyed"), Qi = Symbol("error"), Ji = Symbol("emitData"), Ur = Symbol("emitEnd"), es = Symbol("emitEnd2"), J = Symbol("async"), ts = Symbol("abort"), Ht = Symbol("aborted"), pt = Symbol("signal"), Ne = Symbol("dataListeners"), x = Symbol("discarded"), _t = (s) => Promise.resolve().then(s), Ao = (s) => s(), Io = (s) => s === "end" || s === "finish" || s === "prefinish", Fo = (s) => s instanceof ArrayBuffer || !!s && typeof s == "object" && s.constructor && s.constructor.name === "ArrayBuffer" && s.byteLength >= 0, Co = (s) => !Buffer.isBuffer(s) && ArrayBuffer.isView(s), Gt = class {
 			src;
 			dest;
 			opts;
@@ -97308,7 +97341,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 			[Ut] = !1;
 			[dt] = null;
 			[v] = 0;
-			[y] = !1;
+			[E] = !1;
 			[pt];
 			[Ht] = !1;
 			[Ne] = 0;
@@ -97356,7 +97389,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 			write(e, t, i) {
 				if (this[Ht]) return !1;
 				if (this[ce]) throw new Error("write after end");
-				if (this[y]) return this.emit("error", Object.assign(/* @__PURE__ */ new Error("Cannot call write after a stream was destroyed"), { code: "ERR_STREAM_DESTROYED" })), !0;
+				if (this[E]) return this.emit("error", Object.assign(/* @__PURE__ */ new Error("Cannot call write after a stream was destroyed"), { code: "ERR_STREAM_DESTROYED" })), !0;
 				typeof t == "function" && (i = t, t = "utf8"), t || (t = "utf8");
 				let r = this[J] ? _t : Ao;
 				if (!this[N] && !Buffer.isBuffer(e)) {
@@ -97367,7 +97400,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 				return this[N] ? (this[R] && this[v] !== 0 && this[qt](!0), this[R] ? this.emit("data", e) : this[Xi](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[R]) : e.length ? (typeof e == "string" && !(t === this[K] && !this[Ue]?.lastNeed) && (e = Buffer.from(e, t)), Buffer.isBuffer(e) && this[K] && (e = this[Ue].write(e)), this[R] && this[v] !== 0 && this[qt](!0), this[R] ? this.emit("data", e) : this[Xi](e), this[v] !== 0 && this.emit("readable"), i && r(i), this[R]) : (this[v] !== 0 && this.emit("readable"), i && r(i), this[R]);
 			}
 			read(e) {
-				if (this[y]) return null;
+				if (this[E]) return null;
 				if (this[x] = !1, this[v] === 0 || e === 0 || e && e > this[v]) return this[ue](), null;
 				this[N] && (e = null), this[O].length > 1 && !this[N] && (this[O] = [this[K] ? this[O].join("") : Buffer.concat(this[O], this[v])]);
 				let t = this[xr](e || null, this[O][0]);
@@ -97385,7 +97418,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 				return typeof e == "function" && (i = e, e = void 0), typeof t == "function" && (i = t, t = "utf8"), e !== void 0 && this.write(e, t), i && this.once("end", i), this[ce] = !0, this.writable = !1, (this[R] || !this[mt]) && this[ue](), this;
 			}
 			[qe]() {
-				this[y] || (!this[Ne] && !this[I].length && (this[x] = !0), this[mt] = !1, this[R] = !0, this.emit("resume"), this[O].length ? this[qt]() : this[ce] ? this[ue]() : this.emit("drain"));
+				this[E] || (!this[Ne] && !this[I].length && (this[x] = !0), this[mt] = !1, this[R] = !0, this.emit("resume"), this[O].length ? this[qt]() : this[ce] ? this[ue]() : this.emit("drain"));
 			}
 			resume() {
 				return this[qe]();
@@ -97394,7 +97427,7 @@ var require_index_min = /* @__PURE__ */ __commonJSMin(((exports) => {
 				this[R] = !1, this[mt] = !0, this[x] = !1;
 			}
 			get destroyed() {
-				return this[y];
+				return this[E];
 			}
 			get flowing() {
 				return this[R];
@@ -97417,7 +97450,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 				return this.emit("data", e), this[R];
 			}
 			pipe(e, t) {
-				if (this[y]) return e;
+				if (this[E]) return e;
 				this[x] = !1;
 				let i = this[we];
 				return t = t || {}, e === kr.stdout || e === kr.stderr ? t.end = !1 : t.end = t.end !== !1, t.proxyErrors = !!t.proxyErrors, i ? t.end && e.end() : (this[I].push(t.proxyErrors ? new is(this, e, t) : new Gt(this, e, t)), this[J] ? _t(() => this[qe]()) : this[qe]()), e;
@@ -97455,15 +97488,15 @@ while (this[jr](this[Wt]()) && this[O].length);
 				return this[we];
 			}
 			[ue]() {
-				!this[jt] && !this[we] && !this[y] && this[O].length === 0 && this[ce] && (this[jt] = !0, this.emit("end"), this.emit("prefinish"), this.emit("finish"), this[Ut] && this.emit("close"), this[jt] = !1);
+				!this[jt] && !this[we] && !this[E] && this[O].length === 0 && this[ce] && (this[jt] = !0, this.emit("end"), this.emit("prefinish"), this.emit("finish"), this[Ut] && this.emit("close"), this[jt] = !1);
 			}
 			emit(e, ...t) {
 				let i = t[0];
-				if (e !== "error" && e !== "close" && e !== y && this[y]) return !1;
+				if (e !== "error" && e !== "close" && e !== E && this[E]) return !1;
 				if (e === "data") return !this[N] && !i ? !1 : this[J] ? (_t(() => this[Ji](i)), !0) : this[Ji](i);
 				if (e === "end") return this[Ur]();
 				if (e === "close") {
-					if (this[Ut] = !0, !this[we] && !this[y]) return !1;
+					if (this[Ut] = !0, !this[we] && !this[E]) return !1;
 					let n = super.emit("close");
 					return this.removeAllListeners("close"), n;
 				} else if (e === "error") {
@@ -97515,7 +97548,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			}
 			async promise() {
 				return new Promise((e, t) => {
-					this.on(y, () => t(/* @__PURE__ */ new Error("stream destroyed"))), this.on("error", (i) => t(i)), this.on("end", () => e());
+					this.on(E, () => t(/* @__PURE__ */ new Error("stream destroyed"))), this.on("error", (i) => t(i)), this.on("end", () => e());
 				});
 			}
 			[Symbol.asyncIterator]() {
@@ -97534,20 +97567,20 @@ while (this[jr](this[Wt]()) && this[O].length);
 						});
 						if (this[ce]) return t();
 						let n, o, a = (u) => {
-							this.off("data", h), this.off("end", l), this.off(y, c), t(), o(u);
+							this.off("data", h), this.off("end", l), this.off(E, c), t(), o(u);
 						}, h = (u) => {
-							this.off("error", a), this.off("end", l), this.off(y, c), this.pause(), n({
+							this.off("error", a), this.off("end", l), this.off(E, c), this.pause(), n({
 								value: u,
 								done: !!this[ce]
 							});
 						}, l = () => {
-							this.off("error", a), this.off("data", h), this.off(y, c), t(), n({
+							this.off("error", a), this.off("data", h), this.off(E, c), t(), n({
 								done: !0,
 								value: void 0
 							});
 						}, c = () => a(/* @__PURE__ */ new Error("stream destroyed"));
-						return new Promise((u, E) => {
-							o = E, n = u, this.once(y, c), this.once("error", a), this.once("end", l), this.once("data", h);
+						return new Promise((u, b) => {
+							o = b, n = u, this.once(E, c), this.once("error", a), this.once("end", l), this.once("data", h);
 						});
 					},
 					throw: t,
@@ -97560,7 +97593,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			}
 			[Symbol.iterator]() {
 				this[x] = !1;
-				let e = !1, t = () => (this.pause(), this.off(Qi, t), this.off(y, t), this.off("end", t), e = !0, {
+				let e = !1, t = () => (this.pause(), this.off(Qi, t), this.off(E, t), this.off("end", t), e = !0, {
 					done: !0,
 					value: void 0
 				}), i = () => {
@@ -97571,7 +97604,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 						value: r
 					};
 				};
-				return this.once("end", t), this.once(Qi, t), this.once(y, t), {
+				return this.once("end", t), this.once(Qi, t), this.once(E, t), {
 					next: i,
 					throw: t,
 					return: t,
@@ -97582,10 +97615,10 @@ while (this[jr](this[Wt]()) && this[O].length);
 				};
 			}
 			destroy(e) {
-				if (this[y]) return e ? this.emit("error", e) : this.emit(y), this;
-				this[y] = !0, this[x] = !0, this[O].length = 0, this[v] = 0;
+				if (this[E]) return e ? this.emit("error", e) : this.emit(E), this;
+				this[E] = !0, this[x] = !0, this[O].length = 0, this[v] = 0;
 				let t = this;
-				return typeof t.close == "function" && !this[Ut] && t.close(), e ? this.emit("error", e) : this.emit(y), this;
+				return typeof t.close == "function" && !this[Ut] && t.close(), e ? this.emit("error", e) : this.emit(E), this;
 			}
 			static get isStream() {
 				return F.isStream;
@@ -97804,10 +97837,10 @@ while (this[jr](this[Wt]()) && this[O].length);
 		};
 		W.WriteStreamSync = fs$6;
 	});
-	var Qt = d((b) => {
+	var Qt = d((S) => {
 		"use strict";
-		Object.defineProperty(b, "__esModule", { value: !0 });
-		b.dealias = b.isNoFile = b.isFile = b.isAsync = b.isSync = b.isAsyncNoFile = b.isSyncNoFile = b.isAsyncFile = b.isSyncFile = void 0;
+		Object.defineProperty(S, "__esModule", { value: !0 });
+		S.dealias = S.isNoFile = S.isFile = S.isAsync = S.isSync = S.isAsyncNoFile = S.isSyncNoFile = S.isAsyncFile = S.isSyncFile = void 0;
 		var Uo = /* @__PURE__ */ new Map([
 			["C", "cwd"],
 			["f", "file"],
@@ -97830,21 +97863,21 @@ while (this[jr](this[Wt]()) && this[O].length);
 			["h", "follow"],
 			["onentry", "onReadEntry"]
 		]), qo = (s) => !!s.sync && !!s.file;
-		b.isSyncFile = qo;
+		S.isSyncFile = qo;
 		var Wo = (s) => !s.sync && !!s.file;
-		b.isAsyncFile = Wo;
+		S.isAsyncFile = Wo;
 		var Ho = (s) => !!s.sync && !s.file;
-		b.isSyncNoFile = Ho;
+		S.isSyncNoFile = Ho;
 		var Go = (s) => !s.sync && !s.file;
-		b.isAsyncNoFile = Go;
+		S.isAsyncNoFile = Go;
 		var Zo = (s) => !!s.sync;
-		b.isSync = Zo;
+		S.isSync = Zo;
 		var Yo = (s) => !s.sync;
-		b.isAsync = Yo;
+		S.isAsync = Yo;
 		var Ko = (s) => !!s.file;
-		b.isFile = Ko;
+		S.isFile = Ko;
 		var Vo = (s) => !s.file;
-		b.isNoFile = Vo;
+		S.isNoFile = Vo;
 		var $o = (s) => {
 			return Uo.get(s) || s;
 		}, Xo = (s = {}) => {
@@ -97856,7 +97889,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			}
 			return e.chmod === void 0 && e.noChmod === !1 && (e.chmod = !0), delete e.noChmod, e;
 		};
-		b.dealias = Xo;
+		S.dealias = Xo;
 	});
 	var Ve = d((Jt) => {
 		"use strict";
@@ -98658,7 +98691,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			181,
 			47,
 			253
-		]), qa = Math.max(qs.length, Ws.length), H = Symbol("state"), ze = Symbol("writeEntry"), me = Symbol("readEntry"), zs = Symbol("nextEntry"), Jr = Symbol("processEntry"), re = Symbol("extendedHeader"), gt = Symbol("globalExtendedHeader"), Re = Symbol("meta"), en = Symbol("emitMeta"), _ = Symbol("buffer"), pe = Symbol("queue"), Oe = Symbol("ended"), ks = Symbol("emittedEnd"), ke = Symbol("emit"), S = Symbol("unzip"), li = Symbol("consumeChunk"), ci = Symbol("consumeChunkSub"), xs = Symbol("consumeBody"), tn = Symbol("consumeMeta"), sn = Symbol("consumeHeader"), Rt = Symbol("consuming"), js = Symbol("bufferConcat"), ui = Symbol("maybeEnd"), it = Symbol("writing"), ne = Symbol("aborted"), fi = Symbol("onDone"), xe = Symbol("sawValidEntry"), di = Symbol("sawNullBlock"), mi = Symbol("sawEOF"), rn = Symbol("closeStream"), Wa = 1e3, Ot = Symbol("compressedBytesRead"), Us = Symbol("decompressedBytesRead"), nn = Symbol("checkDecompressionRatio"), Ha = () => !0, Hs = class extends ka.EventEmitter {
+		]), qa = Math.max(qs.length, Ws.length), H = Symbol("state"), ze = Symbol("writeEntry"), me = Symbol("readEntry"), zs = Symbol("nextEntry"), Jr = Symbol("processEntry"), re = Symbol("extendedHeader"), gt = Symbol("globalExtendedHeader"), Re = Symbol("meta"), en = Symbol("emitMeta"), _ = Symbol("buffer"), pe = Symbol("queue"), Oe = Symbol("ended"), ks = Symbol("emittedEnd"), ke = Symbol("emit"), y = Symbol("unzip"), li = Symbol("consumeChunk"), ci = Symbol("consumeChunkSub"), xs = Symbol("consumeBody"), tn = Symbol("consumeMeta"), sn = Symbol("consumeHeader"), Rt = Symbol("consuming"), js = Symbol("bufferConcat"), ui = Symbol("maybeEnd"), it = Symbol("writing"), ne = Symbol("aborted"), fi = Symbol("onDone"), xe = Symbol("sawValidEntry"), di = Symbol("sawNullBlock"), mi = Symbol("sawEOF"), rn = Symbol("closeStream"), Wa = 1e3, Ot = Symbol("compressedBytesRead"), Us = Symbol("decompressedBytesRead"), nn = Symbol("checkDecompressionRatio"), Ha = () => !0, Hs = class extends ka.EventEmitter {
 			file;
 			strict;
 			maxMetaEntrySize;
@@ -98677,7 +98710,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			[re];
 			[gt];
 			[Oe] = !1;
-			[S];
+			[y];
 			[ne] = !1;
 			[xe];
 			[di] = !1;
@@ -98789,7 +98822,13 @@ while (this[Jr](this[pe].shift()));
 				}
 			}
 			abort(e) {
-				this[ne] || (this[ne] = !0, this.emit("abort", e), this.warn("TAR_ABORT", e, { recoverable: !1 }));
+				if (!this[ne]) {
+					if (this[y]) {
+						let t = this[y];
+						t.write = () => !0, t.end = () => t, t.emit = () => !1, t.destroy?.();
+					}
+					this[ne] = !0, this.emit("abort", e), this.warn("TAR_ABORT", e, { recoverable: !1 });
+				}
 			}
 			[nn](e) {
 				this[Us] += e.length;
@@ -98798,11 +98837,11 @@ while (this[Jr](this[pe].shift()));
 			}
 			write(e, t, i) {
 				if (typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, typeof t == "string" ? t : "utf8")), this[ne]) return i?.(), !1;
-				if ((this[S] === void 0 || this.brotli === void 0 && this[S] === !1) && e) {
+				if ((this[y] === void 0 || this.brotli === void 0 && this[y] === !1) && e) {
 					if (this[_] && (e = Buffer.concat([this[_], e]), this[_] = void 0), e.length < qa) return this[_] = e, i?.(), !0;
-					for (let h = 0; this[S] === void 0 && h < qs.length; h++) e[h] !== qs[h] && (this[S] = !1);
+					for (let h = 0; this[y] === void 0 && h < qs.length; h++) e[h] !== qs[h] && (this[y] = !1);
 					let o = !1;
-					if (this[S] === !1 && this.zstd !== !1) {
+					if (this[y] === !1 && this.zstd !== !1) {
 						o = !0;
 						for (let h = 0; h < Ws.length; h++) if (e[h] !== Ws[h]) {
 							o = !1;
@@ -98810,27 +98849,27 @@ while (this[Jr](this[pe].shift()));
 						}
 					}
 					let a = this.brotli === void 0 && !o;
-					if (this[S] === !1 && a) if (e.length < 512) if (this[Oe]) this.brotli = !0;
+					if (this[y] === !1 && a) if (e.length < 512) if (this[Oe]) this.brotli = !0;
 					else return this[_] = e, i?.(), !0;
 					else try {
 						new Xr.Header(e.subarray(0, 512)), this.brotli = !1;
 					} catch {
 						this.brotli = !0;
 					}
-					if (this[S] === void 0 || this[S] === !1 && (this.brotli || o)) {
+					if (this[y] === void 0 || this[y] === !1 && (this.brotli || o)) {
 						let h = this[Oe];
-						this[Oe] = !1, this[S] = this[S] === void 0 ? new Bs.Unzip({}) : o ? new Bs.ZstdDecompress({}) : new Bs.BrotliDecompress({}), this[S].on("data", (c) => {
+						this[Oe] = !1, this[y] = this[y] === void 0 ? new Bs.Unzip({}) : o ? new Bs.ZstdDecompress({}) : new Bs.BrotliDecompress({}), this[y].on("data", (c) => {
 							this[nn](c) && this[li](c);
-						}), this[S].on("error", (c) => {
+						}), this[y].on("error", (c) => {
 							this[ne] || this.abort(c);
-						}), this[S].on("end", () => {
+						}), this[y].on("end", () => {
 							this[Oe] = !0, this[li]();
 						}), this[it] = !0, this[Ot] += e.length;
-						let l = !!this[S][h ? "end" : "write"](e);
+						let l = !!this[y][h ? "end" : "write"](e);
 						return this[it] = !1, i?.(), l;
 					}
 				}
-				this[it] = !0, this[S] ? (this[Ot] += e.length, this[S].write(e)) : this[li](e), this[it] = !1;
+				this[it] = !0, this[y] ? (this[Ot] += e.length, this[y].write(e)) : this[li](e), this[it] = !1;
 				let n = this[pe].length > 0 ? !1 : this[me] ? this[me].flowing : !0;
 				return !n && this[pe].length === 0 && this[me]?.once("drain", () => this.emit("drain")), i?.(), n;
 			}
@@ -98884,7 +98923,7 @@ while (this[Jr](this[pe].shift()));
 				t < i && (this[_] = this[_] ? Buffer.concat([e.subarray(t), this[_]]) : e.subarray(t));
 			}
 			end(e, t, i) {
-				return typeof e == "function" && (i = e, t = void 0, e = void 0), typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, t)), i && this.once("finish", i), this[ne] || (this[S] ? (e && (this[Ot] += e.length, this[S].write(e)), this[S].end()) : (this[Oe] = !0, (this.brotli === void 0 || this.zstd === void 0) && (e = e || Buffer.alloc(0)), e && this.write(e), this[ui]())), this;
+				return typeof e == "function" && (i = e, t = void 0, e = void 0), typeof t == "function" && (i = t, t = void 0), typeof e == "string" && (e = Buffer.from(e, t)), i && this.once("finish", i), this[ne] || (this[y] ? (e && (this[Ot] += e.length, this[y].write(e)), this[y].end()) : (this[Oe] = !0, (this.brotli === void 0 || this.zstd === void 0) && (e = e || Buffer.alloc(0)), e && this.write(e), this[ui]())), this;
 			}
 		};
 		pi.Parser = Hs;
@@ -99994,15 +100033,15 @@ while (this[Jr](this[pe].shift()));
 			});
 		}, Wh = (s, e, t) => {
 			s = (0, _e.normalizeWindowsPath)(s);
-			let i = e.umask ?? 18, r = e.mode | 448, n = (r & i) !== 0, o = e.uid, a = e.gid, h = typeof o == "number" && typeof a == "number" && (o !== e.processUid || a !== e.processGid), l = e.preserve, c = e.unlink, u = (0, _e.normalizeWindowsPath)(e.cwd), E = (w, P) => {
-				w ? t(w) : P && h ? (0, Yn.chownr)(P, o, a, (xt) => E(xt)) : n ? j.default.chmod(s, r, t) : t();
+			let i = e.umask ?? 18, r = e.mode | 448, n = (r & i) !== 0, o = e.uid, a = e.gid, h = typeof o == "number" && typeof a == "number" && (o !== e.processUid || a !== e.processGid), l = e.preserve, c = e.unlink, u = (0, _e.normalizeWindowsPath)(e.cwd), b = (w, P) => {
+				w ? t(w) : P && h ? (0, Yn.chownr)(P, o, a, (xt) => b(xt)) : n ? j.default.chmod(s, r, t) : t();
 			};
-			if (s === u) return qh(s, E);
+			if (s === u) return qh(s, b);
 			if (l) return Uh.default.mkdir(s, {
 				mode: r,
 				recursive: !0
-			}).then((w) => E(null, w ?? void 0), E);
-			Sr(u, (0, _e.normalizeWindowsPath)(Ui.default.relative(u, s)).split("/"), r, c, u, void 0, E);
+			}).then((w) => b(null, w ?? void 0), b);
+			Sr(u, (0, _e.normalizeWindowsPath)(Ui.default.relative(u, s)).split("/"), r, c, u, void 0, b);
 		};
 		De.mkdir = Wh;
 		var Sr = (s, e, t, i, r, n, o) => {
@@ -100368,12 +100407,12 @@ while (this[Jr](this[pe].shift()));
 					if (typeof l == "number" && e.mtime && !this.noMtime) {
 						n++;
 						let c = e.atime || /* @__PURE__ */ new Date(), u = e.mtime;
-						m.default.futimes(l, c, u, (E) => E ? m.default.utimes(h, c, u, (D) => o(D && E)) : o());
+						m.default.futimes(l, c, u, (b) => b ? m.default.utimes(h, c, u, (D) => o(D && b)) : o());
 					}
 					if (typeof l == "number" && this[It](e)) {
 						n++;
 						let c = this[Ft](e), u = this[Ct](e);
-						typeof c == "number" && typeof u == "number" && m.default.fchown(l, c, u, (E) => E ? m.default.chown(h, c, u, (D) => o(D && E)) : o());
+						typeof c == "number" && typeof u == "number" && m.default.fchown(l, c, u, (b) => b ? m.default.chown(h, c, u, (D) => o(D && b)) : o());
 					}
 					o();
 				});
@@ -100757,27 +100796,27 @@ while (this[Jr](this[pe].shift()));
 					D ? q.default.close(n, (w) => a(D)) : a(null, A);
 				}, l = 0;
 				if (o === 0) return h(null, 0);
-				let c = 0, u = Buffer.alloc(512), E = (D, A) => {
+				let c = 0, u = Buffer.alloc(512), b = (D, A) => {
 					if (D || A === void 0) return h(D);
-					if (c += A, c < 512 && A) return q.default.read(n, u, c, u.length - c, l + c, E);
+					if (c += A, c < 512 && A) return q.default.read(n, u, c, u.length - c, l + c, b);
 					if (l === 0 && u[0] === 31 && u[1] === 139) return h(/* @__PURE__ */ new Error("cannot append to compressed archives"));
 					if (c < 512) return h(null, l);
 					let w = new Ro.Header(u);
 					if (!w.cksumValid) return h(null, l);
 					let P = 512 * Math.ceil((w.size ?? 0) / 512);
 					if (l + P + 512 > o || (l += P + 512, l >= o)) return h(null, l);
-					s.mtimeCache && w.mtime && s.mtimeCache.set(String(w.path), w.mtime), c = 0, q.default.read(n, u, 0, 512, l, E);
+					s.mtimeCache && w.mtime && s.mtimeCache.set(String(w.path), w.mtime), c = 0, q.default.read(n, u, 0, 512, l, b);
 				};
-				q.default.read(n, u, 0, 512, l, E);
+				q.default.read(n, u, 0, 512, l, b);
 			};
 			return new Promise((n, o) => {
 				t.on("error", o);
 				let a = "r+", h = (l, c) => {
 					if (l && l.code === "ENOENT" && a === "r+") return a = "w+", q.default.open(s.file, a, h);
 					if (l || !c) return o(l);
-					q.default.fstat(c, (u, E) => {
+					q.default.fstat(c, (u, b) => {
 						if (u) return q.default.close(c, () => o(u));
-						i(c, E.size, (D, A) => {
+						i(c, b.size, (D, A) => {
 							if (D) return o(D);
 							let w = new So.WriteStream(s.file, {
 								fd: c,
@@ -100840,16 +100879,19 @@ while (this[Jr](this[pe].shift()));
 		}), Object.defineProperty(s, i, r);
 	}) : (function(s, e, t, i) {
 		i === void 0 && (i = t), s[i] = e[t];
-	})), Pl = exports && exports.__setModuleDefault || (Object.create ? (function(s, e) {
+	}));
+	var Pl = exports && exports.__setModuleDefault || (Object.create ? (function(s, e) {
 		Object.defineProperty(s, "default", {
 			enumerable: !0,
 			value: e
 		});
 	}) : function(s, e) {
 		s.default = e;
-	}), Y = exports && exports.__exportStar || function(s, e) {
+	});
+	var Y = exports && exports.__exportStar || function(s, e) {
 		for (var t in s) t !== "default" && !Object.prototype.hasOwnProperty.call(e, t) && To(e, s, t);
-	}, Nl = exports && exports.__importStar || (function() {
+	};
+	var Nl = exports && exports.__importStar || (function() {
 		var s = function(e) {
 			return s = Object.getOwnPropertyNames || function(t) {
 				var i = [];
@@ -118631,7 +118673,8 @@ var init_manager = __esmMin((() => {
 					result = new Promise(async (resolve, reject) => {
 						timing.start();
 						try {
-							ext = createExtension(id, filename, typeof packageJSON.engines.coc === "undefined");
+							let isEmpty = typeof packageJSON.engines.coc === "undefined";
+							ext = createExtension(id, filename, isEmpty);
 							let context = {
 								subscriptions,
 								extensionPath,
@@ -127939,10 +127982,11 @@ var init_complete = __esmMin((() => {
 								let line = opt.linenr - 1;
 								range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character);
 							}
+							const priority = getPriority(source, this.config.languageSourcePriority);
 							const option = {
 								source,
 								insertMode,
-								priority: getPriority(source, this.config.languageSourcePriority),
+								priority,
 								asciiMatch,
 								itemDefaults: result.itemDefaults,
 								range
@@ -135776,7 +135820,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-953f1b6 2026-07-15 12:52:29 +0800";
+			let version = workspace_default.version + "-aa4f708 2026-07-21 15:09:37 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
