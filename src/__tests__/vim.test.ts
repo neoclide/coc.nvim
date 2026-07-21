@@ -105,6 +105,32 @@ describe('vim api', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
+  it('should synchronize document before completion done', async () => {
+    const sources = require('../completion/sources').default
+    let line: string
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({ items: [{ word: 'foo' }] }),
+      onCompleteDone: (_item, opt) => {
+        line = helper.workspace.getDocument(opt.bufnr).getline(0)
+      }
+    })
+    await nvim.setLine('')
+    await nvim.input('i')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      await nvim.call('coc#pum#select', [0, 1, 1])
+      await helper.waitValue(() => line, 'foo')
+    } finally {
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
   it('should place popup menu after concealed text on current line', async () => {
     // Regression for #5582: Vim's popup 'cursor' column anchor ignores concealed
     // text, so the menu must be positioned with the conceal-aware screen column.
