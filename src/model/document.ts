@@ -382,8 +382,8 @@ export default class Document {
       ], true)
     }
     this._applying = true
-    void this.nvim.resumeNotification(true, true)
     this.lines = newLines
+    await this.nvim.resumeNotification(true)
     await waitNextTick()
     fireLinesChanged(bufnr)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
