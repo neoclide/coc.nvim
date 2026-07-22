@@ -122104,8 +122104,8 @@ var init_document = __esmMin((() => {
 				lines.length
 			], true);
 			this._applying = true;
-			this.nvim.resumeNotification(true, true);
 			this.lines = newLines;
+			await this.nvim.resumeNotification(true);
 			await waitNextTick();
 			fireLinesChanged(bufnr);
 			let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
@@ -128786,7 +128786,8 @@ var init_completion = __esmMin((() => {
 					await this.triggerCompletion(doc, info);
 					return;
 				}
-				if (shouldStop(bufnr, info, option) || filterOnBackspace === false && info.pre.length < this.pretext.length) {
+				let hasBackspace = info.pre.length < this.pretext.length;
+				if (shouldStop(bufnr, info, option) || hasBackspace && (filterOnBackspace === false || getResumeInput(option, info.pre) === "")) {
 					this.cancelAndClose();
 					return;
 				}
@@ -132112,13 +132113,14 @@ var init_linkedEditing = __esmMin((() => {
 			let delta = getDelta(change);
 			ranges.forEach((r) => r.applyChange(change));
 			let edits = ranges.filter((r) => r !== textRange).map((o) => o.textEdit);
+			if (delta != 0) for (let r of ranges) {
+				let n = getBeforeCount(r, ranges, textRange);
+				r.move(n * delta);
+			}
 			this.changing = true;
 			await doc.applyEdits(edits, true, true);
 			this.changing = false;
-			if (delta != 0) for (let r of ranges) {
-				let n = getBeforeCount(r, this.ranges, textRange);
-				r.move(n * delta);
-			}
+			if (this.ranges !== ranges) return;
 			this.doHighlights();
 		}
 		doHighlights() {
@@ -135820,7 +135822,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-aa4f708 2026-07-21 15:09:37 +0800";
+			let version = workspace_default.version + "-b707584 2026-07-22 18:59:19 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();

@@ -530,7 +530,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   endif
   let delta = colIdx + col
   if width > pumwidth && delta + width > columns
-    let width = max([columns - delta, pumwidth])
+    let width = max([columns - delta - (s:is_vim && linecount > height), pumwidth])
   endif
   if delta < 0
     let col = col - delta
