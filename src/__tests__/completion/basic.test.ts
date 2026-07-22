@@ -938,6 +938,41 @@ describe('completion', () => {
       await helper.waitValue(() => completion.activeItems.length, 2)
     })
 
+    it('should start new completion after backspace clears input', async () => {
+      let calls: string[] = []
+      let name = crypto.randomUUID()
+      disposables.push(sources.createSource({
+        name,
+        doComplete: opt => {
+          calls.push(opt.input)
+          return { items: [{ word: opt.input == 'f' ? 'foo' : 'bar' }] }
+        }
+      }))
+      await nvim.setLine('foo bar -f')
+      await nvim.input('A')
+      triggerCompletion(name)
+      await helper.waitPopup()
+
+      await nvim.exec(`
+        noa call setline('.', 'foo bar -')
+        noa call cursor(1, 10)
+      `)
+      let changedtick = await nvim.eval('b:changedtick')
+      await events.fire('TextChangedI', [events.bufnr, {
+        lnum: 1,
+        col: 10,
+        changedtick,
+        line: 'foo bar -'
+      }])
+      expect(completion.isActivated).toBe(false)
+
+      await nvim.input('b')
+      await helper.waitValue(() => calls.includes('b'), true)
+      await helper.waitValue(() => completion.activeItems.some(item => item.word == 'bar'), true)
+      expect(await helper.visible('bar')).toBe(true)
+      expect(calls).toEqual(['f', 'b'])
+    })
+
     it('should respect commit character', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
       let source: ISource = {

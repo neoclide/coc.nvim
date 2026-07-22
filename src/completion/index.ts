@@ -271,7 +271,8 @@ export class Completion implements Disposable {
         await this.triggerCompletion(doc, info)
         return
       }
-      if (shouldStop(bufnr, info, option) || (filterOnBackspace === false && info.pre.length < this.pretext.length)) {
+      let hasBackspace = info.pre.length < this.pretext.length
+      if (shouldStop(bufnr, info, option) || (hasBackspace && (filterOnBackspace === false || getResumeInput(option, info.pre) === ''))) {
         this.cancelAndClose()
         return
       }
