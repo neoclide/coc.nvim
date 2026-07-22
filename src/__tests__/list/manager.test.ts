@@ -35,6 +35,10 @@ async function getFloats(): Promise<Window[]> {
   return ids.map(id => nvim.createWindow(id))
 }
 
+async function waitCmdline(text: string): Promise<void> {
+  await helper.waitValue(async () => (await helper.getCmdline()).includes(text), true)
+}
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -436,12 +440,9 @@ describe('list', () => {
   describe('parseArgs()', () => {
     it('should show error for bad option', async () => {
       manager.parseArgs(['$x', 'location'])
-      await helper.wait(20)
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('Invalid list option')
+      await waitCmdline('Invalid list option')
       manager.parseArgs(['-xyz', 'location'])
-      msg = await helper.getCmdline()
-      expect(msg).toMatch('Invalid option')
+      await waitCmdline('Invalid option')
     })
 
     it('should parse valid arguments', async () => {
@@ -453,8 +454,7 @@ describe('list', () => {
 
     it('should show error for interactive with list not support interactive', async () => {
       manager.parseArgs(['--interactive', 'location'])
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('not supported')
+      await waitCmdline('not supported')
     })
   })
 
@@ -468,8 +468,7 @@ describe('list', () => {
       await helper.doAction('listResume')
       expect(manager.isActivated).toBe(true)
       await manager.resume('not_exists')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Can\'t find')
+      await waitCmdline('Can\'t find')
     })
   })
 
@@ -581,8 +580,7 @@ describe('list', () => {
     it('should respect input option', async () => {
       await manager.start(['--input=foo', 'location'])
       await manager.session.ui.ready
-      let line = await helper.getCmdline()
-      expect(line).toMatch('foo')
+      await waitCmdline('foo')
       expect(manager.isActivated).toBe(true)
     })
 
