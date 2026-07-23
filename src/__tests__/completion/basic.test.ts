@@ -816,6 +816,41 @@ describe('completion', () => {
       expect(items[0].word).toBe('foo')
     }, 10000)
 
+    it('should keep trigger completion after backspace clears input', async () => {
+      let source: ISource = {
+        priority: 0,
+        enable: true,
+        name: 'source',
+        sourceType: SourceType.Service,
+        triggerCharacters: ['.'],
+        doComplete: () => Promise.resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i.')
+      await helper.waitPopup()
+      await nvim.input('f')
+      await helper.waitValue(() => completion.activeItems.length, 1)
+      await nvim.input('<backspace>')
+      await helper.waitValue(() => completion.activeItems.length, 2)
+      expect(await pumvisible()).toBe(true)
+    }, 10000)
+
+    it('should stop completion when trigger source is not active', async () => {
+      await nvim.setLine('x.f')
+      await nvim.input('A')
+      let name = await create(['foo'], false)
+      disposables.push(sources.addSource({
+        name: crypto.randomUUID(),
+        enable: true,
+        triggerCharacters: ['.'],
+        doComplete: async () => ({ items: [{ word: 'trigger' }] })
+      }))
+      triggerCompletion(name)
+      await helper.waitPopup()
+      await nvim.input('<backspace>')
+      await helper.waitValue(() => completion.isActivated, false)
+    }, 10000)
+
     it('should filter slow source', async () => {
       disposables.push(sources.addSource({
         name: 'fast',
