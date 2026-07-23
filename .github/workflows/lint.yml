@@ -28,5 +28,5 @@ jobs:
       - name: Check Types by TSC
         run: npm run lint:typecheck
 
-      - name: Lint ESLint
+      - name: Lint Oxlint
         run: npm run lint

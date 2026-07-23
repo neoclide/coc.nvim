@@ -1,6 +1,4 @@
 {
-  "eslint.validate": ["typescript"],
-  "eslint.lintTask.options": ["."],
   "sumneko-lua.enableNvimLuaDev": true,
   "typescript.format.enable": true,
   "javascript.format.semicolons": "remove",

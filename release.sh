@@ -12,7 +12,7 @@ fi
 
 npm run lint
 if [ $? -ne 0 ]; then
-  echo "eslint 检查未通过"
+  echo "oxlint 检查未通过"
   exit 1
 fi
 npm test
