@@ -108,6 +108,10 @@ export default class Complete {
     return this.results.size === 0
   }
 
+  public hasSource(source: ISource): boolean {
+    return this.sources.includes(source)
+  }
+
   private get hasInComplete(): boolean {
     for (let result of this.results.values()) {
       if (result.isIncomplete) return true

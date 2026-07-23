@@ -244,12 +244,19 @@ export class Completion implements Disposable {
     return true
   }
 
+  private shouldStopOnBackspace(doc: Document, info: InsertChange, option: CompleteOption): boolean {
+    if (info.pre.length >= this.pretext.length) return false
+    if (this.staticConfig.filterOnBackspace === false) return true
+    if (getResumeInput(option, info.pre) !== '') return false
+    let triggerSources = this.getTriggerSources(doc, info.pre)
+    return !triggerSources.some(source => this.complete?.hasSource(source))
+  }
+
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     const doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
     this._debounced.clear()
     const { option, staticConfig } = this
-    const filterOnBackspace = this.staticConfig.filterOnBackspace
     if (option != null) {
       // detect item word insert
       if (!info.insertChar) {
@@ -271,8 +278,7 @@ export class Completion implements Disposable {
         await this.triggerCompletion(doc, info)
         return
       }
-      let hasBackspace = info.pre.length < this.pretext.length
-      if (shouldStop(bufnr, info, option) || (hasBackspace && (filterOnBackspace === false || getResumeInput(option, info.pre) === ''))) {
+      if (shouldStop(bufnr, info, option) || this.shouldStopOnBackspace(doc, info, option)) {
         this.cancelAndClose()
         return
       }
