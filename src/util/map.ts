@@ -14,7 +14,6 @@ export namespace Touch {
   export const AsNew: 2 = Last
 }
 
-// eslint-disable-next-line no-redeclare
 export type Touch = 0 | 1 | 2
 
 export class LinkedMap<K, V> implements Map<K, V> {

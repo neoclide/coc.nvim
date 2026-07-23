@@ -6,7 +6,8 @@
   },
   "options": {
     "typeAware": true,
-    "typeCheck": true
+    "typeCheck": true,
+    "reportUnusedDisableDirectives": "error"
   },
   "env": {
     "builtin": true
@@ -80,19 +81,24 @@
         "prefer-promise-reject-errors": "off",
         "require-await": "off",
         "typescript/ban-ts-comment": "error",
+        "typescript/await-thenable": "error",
         "typescript/no-duplicate-enum-values": "error",
         "typescript/no-empty-object-type": "error",
         "typescript/no-explicit-any": "off",
         "typescript/no-extra-non-null-assertion": "error",
         "typescript/no-misused-new": "error",
+        "typescript/no-floating-promises": "error",
+        "typescript/no-for-in-array": "error",
         "typescript/no-namespace": "off",
         "typescript/no-non-null-asserted-optional-chain": "error",
         "typescript/no-require-imports": "off",
         "typescript/no-this-alias": "error",
+        "typescript/no-unnecessary-qualifier": "error",
         "typescript/no-unnecessary-type-constraint": "error",
         "typescript/no-unsafe-declaration-merging": "error",
         "typescript/no-unsafe-function-type": "error",
         "typescript/no-wrapper-object-types": "error",
+        "typescript/only-throw-error": "error",
         "typescript/prefer-as-const": "error",
         "typescript/prefer-namespace-keyword": "error",
         "typescript/triple-slash-reference": [

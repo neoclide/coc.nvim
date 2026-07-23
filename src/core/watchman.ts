@@ -111,7 +111,6 @@ export default class Watchman {
     return new Promise((resolve, reject) => {
       // @ts-expect-error any type
       this.client.command(args, (error, resp) => {
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         if (error) return reject(error)
         resolve(resp)
       })

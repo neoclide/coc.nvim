@@ -131,7 +131,6 @@ function applyMixins(derivedCtor: any, constructors: any[]) {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface NeovimClient extends Neovim, EventEmitter {}
 
-// eslint-disable-next-line no-redeclare, @typescript-eslint/no-unsafe-declaration-merging
 export class NeovimClient extends Neovim {
   private _isReady: Promise<boolean>
   private requestId = 1

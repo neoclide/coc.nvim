@@ -2,7 +2,6 @@
 import { Command, CompletionItem, CompletionList, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
 import { EditRange } from '../completion/types'
 
-/* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 export function isUrl(url: any): boolean {

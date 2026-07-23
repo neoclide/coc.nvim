@@ -103,7 +103,6 @@ export interface ISandbox {
   console: { [key in keyof Console]?: Function }
   Buffer: any
   Reflect: any
-  // eslint-disable-next-line id-blacklist
   String: any
   Promise: any
 }
