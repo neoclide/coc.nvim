@@ -127880,6 +127880,9 @@ var init_complete = __esmMin((() => {
 		get isEmpty() {
 			return this.results.size === 0;
 		}
+		hasSource(source) {
+			return this.sources.includes(source);
+		}
 		get hasInComplete() {
 			for (let result of this.results.values()) if (result.isIncomplete) return true;
 			return false;
@@ -128761,12 +128764,17 @@ var init_completion = __esmMin((() => {
 			if (previous == current || pretext.slice(previous.length) !== info.pre.slice(current.length)) return false;
 			return true;
 		}
+		shouldStopOnBackspace(doc, info, option) {
+			if (info.pre.length >= this.pretext.length) return false;
+			if (this.staticConfig.filterOnBackspace === false) return true;
+			if (getResumeInput(option, info.pre) !== "") return false;
+			return !this.getTriggerSources(doc, info.pre).some((source) => this.complete?.hasSource(source));
+		}
 		async onTextChangedI(bufnr, info) {
 			const doc = workspace_default.getDocument(bufnr);
 			if (!doc || !doc.attached) return;
 			this._debounced.clear();
 			const { option, staticConfig } = this;
-			const filterOnBackspace = this.staticConfig.filterOnBackspace;
 			if (option != null) {
 				if (!info.insertChar) {
 					let pre = byteSlice(option.line, 0, option.col);
@@ -128786,8 +128794,7 @@ var init_completion = __esmMin((() => {
 					await this.triggerCompletion(doc, info);
 					return;
 				}
-				let hasBackspace = info.pre.length < this.pretext.length;
-				if (shouldStop(bufnr, info, option) || hasBackspace && (filterOnBackspace === false || getResumeInput(option, info.pre) === "")) {
+				if (shouldStop(bufnr, info, option) || this.shouldStopOnBackspace(doc, info, option)) {
 					this.cancelAndClose();
 					return;
 				}
@@ -135822,7 +135829,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-b707584 2026-07-22 18:59:19 +0800";
+			let version = workspace_default.version + "-ec19c3e 2026-07-23 18:52:57 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
