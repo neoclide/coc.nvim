@@ -297,7 +297,6 @@ export interface MessageTransports {
   detached?: boolean
 }
 
-// eslint-disable-next-line no-redeclare
 export namespace MessageTransports {
   export function is(value: any): value is MessageTransports {
     let candidate: MessageTransports = value
@@ -819,7 +818,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private consoleMessage(message: string, error = false): void {
     if (this._consoleDebug) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       error ? console.error(redOpen + message + redClose) : console.log(message)
     }
   }

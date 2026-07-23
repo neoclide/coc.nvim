@@ -107,7 +107,6 @@ export class Window extends BaseApi {
   }
 
   /** Get window number */
-  // eslint-disable-next-line id-blacklist
   public get number(): Promise<number> {
     return this.request(`${this.prefix}get_number`, [])
   }

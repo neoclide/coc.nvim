@@ -630,7 +630,6 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow()
       fn = async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         item.extension.exports
       }
       await expect(fn()).rejects.toThrow()

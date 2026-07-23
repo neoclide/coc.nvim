@@ -217,7 +217,6 @@ export interface StaticFeature {
   dispose(): void
 }
 
-// eslint-disable-next-line no-redeclare
 export namespace StaticFeature {
   export function is(value: any): value is StaticFeature {
     return value !== undefined && value !== null &&
@@ -293,7 +292,6 @@ export interface DynamicFeature<RO> {
   dispose(): void
 }
 
-// eslint-disable-next-line no-redeclare
 export namespace DynamicFeature {
   export function is<T>(value: any): value is DynamicFeature<T> {
     const candidate: DynamicFeature<T> = value

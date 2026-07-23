@@ -8,7 +8,7 @@
   },
   "type": "commonjs",
   "scripts": {
-    "lint": "oxlint . --quiet",
+    "lint": "oxlint .",
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "rolldown -c",
     "test": "vitest run",

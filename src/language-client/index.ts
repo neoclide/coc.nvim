@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 'use strict'
-/* eslint-disable no-redeclare */
 import { ForkOptions as CForkOptions, ChildProcess, ChildProcessWithoutNullStreams, SpawnOptions } from 'child_process'
 import * as stream from 'stream'
 import { MessageReader, MessageWriter } from 'vscode-languageserver-protocol/node'
