@@ -36,8 +36,6 @@ Then in your terminal:
 - `npm install`
 - Install [coc-tsserver](https://github.com/neoclide/coc-tsserver) by
   `:CocInstall coc-tsserver` in your vim
-- Install [coc-eslint](https://github.com/neoclide/coc-eslint) by
-  `:CocInstall coc-eslint` in your vim.
 
 And you should be ready to go!
 
