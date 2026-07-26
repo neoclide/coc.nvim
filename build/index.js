@@ -3726,7 +3726,7 @@ var require_commonjs$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 //#region node_modules/brace-expansion/dist/commonjs/index.js
 var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.EXPANSION_MAX = void 0;
+	exports.EXPANSION_MAX_LENGTH = exports.EXPANSION_MAX = void 0;
 	exports.expand = expand;
 	const balanced_match_1 = require_commonjs$2();
 	const escSlash = "\0SLASH" + Math.random() + "\0";
@@ -3745,6 +3745,7 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	const commaPattern = /\\,/g;
 	const periodPattern = /\\\./g;
 	exports.EXPANSION_MAX = 1e5;
+	exports.EXPANSION_MAX_LENGTH = 4e6;
 	function numeric(str) {
 		return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
 	}
@@ -3777,9 +3778,9 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 	function expand(str, options = {}) {
 		if (!str) return [];
-		const { max = exports.EXPANSION_MAX } = options;
+		const { max = exports.EXPANSION_MAX, maxLength = exports.EXPANSION_MAX_LENGTH } = options;
 		if (str.slice(0, 2) === "{}") str = "\\{\\}" + str.slice(2);
-		return expand_(escapeBraces(str), max, true).map(unescapeBraces);
+		return expand_(escapeBraces(str), max, maxLength, true).map(unescapeBraces);
 	}
 	function embrace(str) {
 		return "{" + str + "}";
@@ -3793,20 +3794,69 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	function gte(i, y) {
 		return i >= y;
 	}
-	function expand_(str, max, isTop) {
-		/** @type {string[]} */
-		const expansions = [];
+	function combine(acc, pre, values, max, maxLength, dropEmpties) {
+		const out = [];
+		let length = 0;
+		for (let a = 0; a < acc.length; a++) for (let v = 0; v < values.length; v++) {
+			if (out.length >= max) return out;
+			const expansion = acc[a] + pre + values[v];
+			if (dropEmpties && !expansion) continue;
+			if (length + expansion.length > maxLength) return out;
+			out.push(expansion);
+			length += expansion.length;
+		}
+		return out;
+	}
+	function expandSequence(body, isAlphaSequence, max) {
+		const n = body.split(/\.\./);
+		const N = [];
+		/* c8 ignore start */
+		if (n[0] === void 0 || n[1] === void 0) return N;
+		/* c8 ignore stop */
+		const x = numeric(n[0]);
+		const y = numeric(n[1]);
+		const width = Math.max(n[0].length, n[1].length);
+		let incr = n.length === 3 && n[2] !== void 0 ? Math.max(Math.abs(numeric(n[2])), 1) : 1;
+		let test = lte;
+		if (y < x) {
+			incr *= -1;
+			test = gte;
+		}
+		const pad = n.some(isPadded);
+		for (let i = x; test(i, y) && N.length < max; i += incr) {
+			let c;
+			if (isAlphaSequence) {
+				c = String.fromCharCode(i);
+				if (c === "\\") c = "";
+			} else {
+				c = String(i);
+				if (pad) {
+					const need = width - c.length;
+					if (need > 0) {
+						const z = new Array(need + 1).join("0");
+						if (i < 0) c = "-" + z + c.slice(1);
+						else c = z + c;
+					}
+				}
+			}
+			N.push(c);
+		}
+		return N;
+	}
+	function expand_(str, max, maxLength, isTop) {
+		let acc = [""];
+		let dropEmpties = false;
+		let firstGroup = true;
 		for (;;) {
 			const m = (0, balanced_match_1.balanced)("{", "}", str);
-			if (!m) return [str];
+			if (!m) return combine(acc, str, [""], max, maxLength, dropEmpties);
 			const pre = m.pre;
-			if (/\$$/.test(m.pre)) {
-				const post = m.post.length ? expand_(m.post, max, false) : [""];
-				for (let k = 0; k < post.length && k < max; k++) {
-					const expansion = pre + "{" + m.body + "}" + post[k];
-					expansions.push(expansion);
-				}
-				return expansions;
+			if (/\$$/.test(pre)) {
+				acc = combine(acc, pre + "{" + m.body + "}", [""], max, maxLength, dropEmpties && !m.post.length);
+				firstGroup = false;
+				if (!m.post.length) break;
+				str = m.post;
+				continue;
 			}
 			const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
 			const isAlphaSequence = /^[a-zA-Z]\.\.[a-zA-Z](?:\.\.-?\d+)?$/.test(m.body);
@@ -3818,60 +3868,34 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 					isTop = true;
 					continue;
 				}
-				return [str];
+				return combine(acc, pre + "{" + m.body + "}" + m.post, [""], max, maxLength, dropEmpties);
 			}
-			const post = m.post.length ? expand_(m.post, max, false) : [""];
-			let n;
-			if (isSequence) n = m.body.split(/\.\./);
+			if (firstGroup) {
+				dropEmpties = isTop && !isSequence;
+				firstGroup = false;
+			}
+			let values;
+			if (isSequence) values = expandSequence(m.body, isAlphaSequence, max);
 			else {
-				n = parseCommaParts(m.body);
+				let n = parseCommaParts(m.body);
 				if (n.length === 1 && n[0] !== void 0) {
-					n = expand_(n[0], max, false).map(embrace);
+					n = expand_(n[0], max, maxLength, false).map(embrace);
 					/* c8 ignore start */
-					if (n.length === 1) return post.map((p) => m.pre + n[0] + p);
-				}
-			}
-			let N;
-			if (isSequence && n[0] !== void 0 && n[1] !== void 0) {
-				const x = numeric(n[0]);
-				const y = numeric(n[1]);
-				const width = Math.max(n[0].length, n[1].length);
-				let incr = n.length === 3 && n[2] !== void 0 ? Math.max(Math.abs(numeric(n[2])), 1) : 1;
-				let test = lte;
-				if (y < x) {
-					incr *= -1;
-					test = gte;
-				}
-				const pad = n.some(isPadded);
-				N = [];
-				for (let i = x; test(i, y) && N.length < max; i += incr) {
-					let c;
-					if (isAlphaSequence) {
-						c = String.fromCharCode(i);
-						if (c === "\\") c = "";
-					} else {
-						c = String(i);
-						if (pad) {
-							const need = width - c.length;
-							if (need > 0) {
-								const z = new Array(need + 1).join("0");
-								if (i < 0) c = "-" + z + c.slice(1);
-								else c = z + c;
-							}
-						}
+					if (n.length === 1) {
+						acc = combine(acc, pre + n[0], [""], max, maxLength, dropEmpties && !m.post.length);
+						if (!m.post.length) break;
+						str = m.post;
+						continue;
 					}
-					N.push(c);
 				}
-			} else {
-				N = [];
-				for (let j = 0; j < n.length; j++) N.push.apply(N, expand_(n[j], max, false));
+				values = [];
+				for (let j = 0; j < n.length; j++) values.push.apply(values, expand_(n[j], max, maxLength, false));
 			}
-			for (let j = 0; j < N.length; j++) for (let k = 0; k < post.length && expansions.length < max; k++) {
-				const expansion = pre + N[j] + post[k];
-				if (!isTop || isSequence || expansion) expansions.push(expansion);
-			}
-			return expansions;
+			acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length);
+			if (!m.post.length) break;
+			str = m.post;
 		}
+		return acc;
 	}
 }));
 //#endregion
@@ -98984,16 +99008,17 @@ while (this[Jr](this[pe].shift()));
 				e(t), t.resume();
 			} : (t) => t.resume();
 		}, Ja = (s, e) => {
-			let t = new Map(e.map((n) => [(0, Gs.stripTrailingSlashes)(n), !0])), i = s.filter, r = (n, o = "") => {
-				let a = o || (0, on.parse)(n).root || ".", h;
-				if (n === a) h = !1;
+			let t = new Map(e.map((o) => [(0, Gs.stripTrailingSlashes)(o), !0])), i = s.filter, r = 100, n = (o, a = "", h = 0) => {
+				if (h >= r) return t.set(o, !1), !1;
+				let l = a || (0, on.parse)(o).root || ".", c;
+				if (o === l) c = !1;
 				else {
-					let l = t.get(n);
-					h = l !== void 0 ? l : r((0, on.dirname)(n), a);
+					let u = t.get(o);
+					c = u !== void 0 ? u : n((0, on.dirname)(o), l, h + 1);
 				}
-				return t.set(n, h), h;
+				return t.set(o, c), c;
 			};
-			s.filter = i ? (n, o) => i(n, o) && r((0, Gs.stripTrailingSlashes)(n)) : (n) => r((0, Gs.stripTrailingSlashes)(n));
+			s.filter = i ? (o, a) => i(o, a) && n((0, Gs.stripTrailingSlashes)(o)) : (o) => n((0, Gs.stripTrailingSlashes)(o));
 		};
 		B.filesFilter = Ja;
 		var eh = (s) => {
@@ -127797,6 +127822,7 @@ var init_complete = __esmMin((() => {
 	init_protocol();
 	init_string$1();
 	init_workspace$1();
+	init_source_language();
 	init_util$3();
 	init_wordDistance();
 	logger$13 = createLogger$1("completion-complete");
@@ -127883,15 +127909,15 @@ var init_complete = __esmMin((() => {
 		hasSource(source) {
 			return this.sources.includes(source);
 		}
-		get hasInComplete() {
-			for (let result of this.results.values()) if (result.isIncomplete) return true;
-			return false;
-		}
 		getIncompleteSources() {
 			return this.sources.filter((s) => {
 				let res = this.results.get(s.name);
 				return res && res.isIncomplete === true;
 			});
+		}
+		getBackspaceSources() {
+			let sources = this.sources.filter((s) => this.results.has(s.name));
+			return sources.some((s) => this.results.get(s.name)?.isIncomplete === true || s instanceof LanguageSource) ? sources : [];
 		}
 		async doComplete() {
 			let tokenSource = this.createTokenSource(false);
@@ -127964,6 +127990,7 @@ var init_complete = __esmMin((() => {
 			let { asciiMatch } = this;
 			const insertMode = this.config.insertMode;
 			const sourceName = source.name;
+			if (opt.triggerForInComplete && this.results.get(sourceName)?.isIncomplete !== true) opt.triggerForInComplete = false;
 			let added = false;
 			this.completingSources.add(sourceName);
 			try {
@@ -128023,7 +128050,7 @@ var init_complete = __esmMin((() => {
 			this.completingSources.delete(sourceName);
 			return added;
 		}
-		async completeInComplete(resumeInput) {
+		async completeInComplete(resumeInput, sources = this.getIncompleteSources()) {
 			let { document } = this;
 			this.cancelInComplete();
 			let tokenSource = this.createTokenSource(true);
@@ -128042,7 +128069,6 @@ var init_complete = __esmMin((() => {
 				triggerForInComplete: true
 			});
 			this.cid++;
-			const sources = this.getIncompleteSources();
 			await this.completeSources(sources, tokenSource, this.cid);
 		}
 		filterItems(input) {
@@ -128099,10 +128125,11 @@ var init_complete = __esmMin((() => {
 			arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod));
 			return this.limitCompleteItems(arr.slice(0, maxItemCount));
 		}
-		async filterResults(input) {
-			if (input !== this.option.input && this.hasInComplete) {
+		async filterResults(input, backspace = false) {
+			let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources();
+			if (input !== this.option.input && sources.length > 0) {
 				this.fireRefresh(30);
-				this.completeInComplete(input);
+				this.completeInComplete(input, sources);
 				return;
 			}
 			clearTimeout(this.timer);
@@ -128768,6 +128795,7 @@ var init_completion = __esmMin((() => {
 			if (info.pre.length >= this.pretext.length) return false;
 			if (this.staticConfig.filterOnBackspace === false) return true;
 			if (getResumeInput(option, info.pre) !== "") return false;
+			if (this.complete?.getBackspaceSources().length) return false;
 			return !this.getTriggerSources(doc, info.pre).some((source) => this.complete?.hasSource(source));
 		}
 		async onTextChangedI(bufnr, info) {
@@ -128803,7 +128831,7 @@ var init_completion = __esmMin((() => {
 			this.clearTriggerTimer();
 			let pretext = this.pretext = info.pre;
 			if (!info.insertChar) {
-				if (this.complete) await this.filterResults();
+				if (this.complete) await this.filterResults(info);
 				return;
 			}
 			if (this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
@@ -128962,7 +128990,7 @@ var init_completion = __esmMin((() => {
 				this.cancelAndClose();
 				return;
 			}
-			let items = await complete.filterResults(search);
+			let items = await complete.filterResults(search, info != null && !info.insertChar && search === "");
 			if (items === void 0 || !this.option) return;
 			let doc = workspace_default.getDocument(option.bufnr);
 			if (info && info.insertChar && items.length == 0) {
@@ -135829,7 +135857,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-ec19c3e 2026-07-23 18:52:57 +0800";
+			let version = workspace_default.version + "-7329b6a 2026-07-26 11:06:07 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
