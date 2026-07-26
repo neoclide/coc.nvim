@@ -11,6 +11,7 @@ import { clamp } from '../util/numbers'
 import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import workspace from '../workspace'
+import LanguageSource from './source-language'
 import { CompleteConfig, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
 import { Converter, ConvertOption, getPriority, useAscii } from './util'
 import { WordDistance } from './wordDistance'
@@ -112,18 +113,16 @@ export default class Complete {
     return this.sources.includes(source)
   }
 
-  private get hasInComplete(): boolean {
-    for (let result of this.results.values()) {
-      if (result.isIncomplete) return true
-    }
-    return false
-  }
-
   public getIncompleteSources(): ISource[] {
     return this.sources.filter(s => {
       let res = this.results.get(s.name)
       return res && res.isIncomplete === true
     })
+  }
+
+  public getBackspaceSources(): ISource[] {
+    let sources = this.sources.filter(s => this.results.has(s.name))
+    return sources.some(s => this.results.get(s.name)?.isIncomplete === true || s instanceof LanguageSource) ? sources : []
   }
 
   public async doComplete(): Promise<boolean> {
@@ -204,6 +203,9 @@ export default class Complete {
     let { asciiMatch } = this
     const insertMode = this.config.insertMode
     const sourceName = source.name
+    if (opt.triggerForInComplete && this.results.get(sourceName)?.isIncomplete !== true) {
+      opt.triggerForInComplete = false
+    }
     let added = false
     this.completingSources.add(sourceName)
     try {
@@ -258,7 +260,7 @@ export default class Complete {
     return added
   }
 
-  public async completeInComplete(resumeInput: string): Promise<undefined> {
+  public async completeInComplete(resumeInput: string, sources = this.getIncompleteSources()): Promise<undefined> {
     let { document } = this
     this.cancelInComplete()
     let tokenSource = this.createTokenSource(true)
@@ -274,7 +276,6 @@ export default class Complete {
       triggerForInComplete: true
     })
     this.cid++
-    const sources = this.getIncompleteSources()
     await this.completeSources(sources, tokenSource, this.cid)
   }
 
@@ -333,10 +334,11 @@ export default class Complete {
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
-  public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
-    if (input !== this.option.input && this.hasInComplete) {
+  public async filterResults(input: string, backspace = false): Promise<DurationCompleteItem[] | undefined> {
+    let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources()
+    if (input !== this.option.input && sources.length > 0) {
       this.fireRefresh(30)
-      void this.completeInComplete(input)
+      void this.completeInComplete(input, sources)
       return undefined
     }
     clearTimeout(this.timer)

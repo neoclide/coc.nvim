@@ -1,5 +1,5 @@
 import { Neovim } from '../../neovim'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
 import { CompletionItem, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import completion from '../../completion'
@@ -630,6 +630,31 @@ describe('language source', () => {
         let items = await helper.items()
         return items.length
       }, 1)
+    })
+
+    it('should refresh language source after backspace clears input', async () => {
+      let requests: [string, CompletionTriggerKind][] = []
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (_doc, _pos, _token, context): Promise<CompletionList> => {
+          let option = (context as any).option
+          requests.push([option.input, context.triggerKind])
+          return {
+            isIncomplete: option.input.length === 0,
+            items: option.input.length > 0 ? [{ label: 'foo' }] : [{ label: 'foo' }, { label: 'bar' }]
+          }
+        }
+      }
+      disposables.push(languages.registerCompletionItemProvider('backspace', 'B', null, provider))
+      await nvim.setLine('#include <f')
+      await nvim.input('A')
+      nvim.call('coc#start', { source: 'backspace' }, true)
+      await helper.waitPopup()
+      await nvim.input('<backspace>')
+      await helper.waitValue(async () => {
+        let items = await helper.items()
+        return items.length
+      }, 2)
+      expect(requests).toContainEqual(['', CompletionTriggerKind.Invoked])
     })
   })
 

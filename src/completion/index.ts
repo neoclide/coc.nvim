@@ -248,6 +248,7 @@ export class Completion implements Disposable {
     if (info.pre.length >= this.pretext.length) return false
     if (this.staticConfig.filterOnBackspace === false) return true
     if (getResumeInput(option, info.pre) !== '') return false
+    if (this.complete?.getBackspaceSources().length) return false
     let triggerSources = this.getTriggerSources(doc, info.pre)
     return !triggerSources.some(source => this.complete?.hasSource(source))
   }
@@ -287,7 +288,7 @@ export class Completion implements Disposable {
     this.clearTriggerTimer()
     let pretext = this.pretext = info.pre
     if (!info.insertChar) {
-      if (this.complete) await this.filterResults()
+      if (this.complete) await this.filterResults(info)
       return
     }
     // check commit
@@ -456,7 +457,7 @@ export class Completion implements Disposable {
       this.cancelAndClose()
       return
     }
-    let items = await complete.filterResults(search)
+    let items = await complete.filterResults(search, info != null && !info.insertChar && search === '')
     // cancelled or have inserted text
     if (items === undefined || !this.option) return
     let doc = workspace.getDocument(option.bufnr)
