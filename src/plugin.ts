@@ -17,7 +17,7 @@ import { Neovim } from './neovim'
 import services from './services'
 import snippetManager from './snippets/manager'
 import { HoverTarget, UltiSnippetOption } from './types'
-import { Disposable, disposeAll, getConditionValue } from './util'
+import { Disposable, disposeAll } from './util'
 import window, { Window } from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
@@ -232,7 +232,8 @@ export default class Plugin {
     nvim.setVar('coc_service_initialized', 1, true)
     nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
     nvim.resumeNotification(false, true)
-    logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()))
+    const duration = typeof global.__starttime === 'number' ? Date.now() - global.__starttime : 0
+    logger.info(`coc.nvim initialized with node: ${process.version} after`, duration)
     this.ready = true
     await events.fire('ready', [])
   }

@@ -1,4 +1,3 @@
-import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -6,6 +5,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
+import { Neovim } from '../../neovim'
 import { disposeAll } from '../../util'
 import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import { writeJson } from '../../util/fs'
@@ -260,6 +260,7 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder, true)
       let ext = await createExtension(manager, 'workspaceContains:foobar', 'onLanguage:javascript')
       expect(ext.isActive).toBe(false)
+      expect(ext._exports).toBeUndefined()
       await nvim.command('edit /tmp/a.js')
       await nvim.command('setf javascript')
       await helper.wait(50)

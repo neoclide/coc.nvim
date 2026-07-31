@@ -6,12 +6,14 @@ export interface Disposable {
   dispose(): void
 }
 
+export const isTester = process.env.COC_TESTER == '1'
+
 export function sha256(data: string): string {
   return crypto.createHash('sha256').update(data).digest('hex')
 }
 
 export function getConditionValue<T>(value: T, testValue: T): T {
-  return global.__TEST__ ? testValue : value
+  return global.__TEST__ || isTester ? testValue : value
 }
 
 export const pariedCharacters: Map<string, string> = new Map([

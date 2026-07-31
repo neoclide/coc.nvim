@@ -11,6 +11,7 @@
     "lint": "oxlint .",
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "rolldown -c",
+    "watch": "rolldown -c -w",
     "test": "vitest run",
     "test-build": "vitest run --coverage",
     "prepare": "rolldown -c"

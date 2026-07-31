@@ -4,7 +4,7 @@ import { ConfigurationScope } from '../configuration/types'
 import events from '../events'
 import { createLogger } from '../logger'
 import Memos from '../model/memos'
-import { disposeAll, wait } from '../util'
+import { disposeAll, isTester, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
@@ -77,6 +77,7 @@ export interface Extension<T> {
   readonly packageJSON: ExtensionJson
   readonly exports: T
   readonly module: object
+  readonly _exports?: T
   activate(): Promise<T>
 }
 
@@ -494,6 +495,10 @@ export class ExtensionManager {
       packageJSON,
       extensionPath,
       extensionUri: URI.parse(extensionPath),
+      get _exports() {
+        // Can be used by coc-test
+        return isTester ? ext : undefined
+      },
       get isActive() {
         return isActive
       },

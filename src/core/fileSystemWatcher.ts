@@ -3,7 +3,7 @@ import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
 import { FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, isTester } from '../util'
 import { splitArray } from '../util/array'
 import { isFolderIgnored, isParentFolder, sameFile } from '../util/fs'
 import { minimatch, path, which } from '../util/node'
@@ -25,7 +25,7 @@ export class FileSystemWatcherManager {
   private creating: Set<string> = new Set()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
-  public disabled = global.__TEST__ || process.env.COC_TESTER === '1'
+  public disabled = global.__TEST__ || isTester
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
     private workspaceFolder: WorkspaceFolderControl,

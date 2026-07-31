@@ -359,6 +359,7 @@ export class Extensions {
     let infos: ExtensionInfo[] = []
     let localIds: Set<string> = new Set()
     runtimepaths.map(root => {
+      if (!root) return
       let errors: string[] = []
       let obj = loadExtensionJson(root, workspace.version, errors)
       if (errors.length > 0) return
