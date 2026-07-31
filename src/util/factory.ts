@@ -150,12 +150,8 @@ export function createConsole(con: object, logger: ILogger): object {
   return result
 }
 
-const isCommonJS =
-  typeof module !== 'undefined' &&
-  typeof module.exports !== 'undefined' &&
-  typeof require === 'function'
 
-export function createSandbox(filename: string, logger: ILogger, name?: string, noExport = global.__TEST__): ISandbox {
+export function createSandbox(filename: string, logger: ILogger, name?: string, noExport?: boolean): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
 
@@ -168,8 +164,11 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
   }, { name }) as ISandbox
 
   copyGlobalProperties(sandbox, global)
+  if (typeof noExport !== 'boolean') {
+    noExport = global.__isMain === undefined
+  }
   // sandbox.Reflect = Reflect
-  let cocExports = noExport || !isCommonJS ? undefined : require('../index')
+  let cocExports = noExport ? undefined : require('../index')
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = ModuleProto._compile
     ModuleProto._compile = compileInSandbox(sandbox, cocExports)

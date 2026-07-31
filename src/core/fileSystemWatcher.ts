@@ -25,7 +25,7 @@ export class FileSystemWatcherManager {
   private creating: Set<string> = new Set()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
-  public disabled = global.__TEST__
+  public disabled = global.__TEST__ || process.env.COC_TESTER === '1'
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
     private workspaceFolder: WorkspaceFolderControl,
