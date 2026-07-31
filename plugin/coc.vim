@@ -490,7 +490,11 @@ function! s:StaticHighlight() abort
   hi default link CocNotificationWarning CocWarningFloat
   hi default link CocNotificationInfo    CocInfoFloat
   " Snippet
-  hi default link CocSnippetVisual       Visual
+  if hlexists('SnippetTabstop')
+    hi default link CocSnippetVisual       SnippetTabstop
+  else
+    hi default link CocSnippetVisual       Visual
+  endif
   " Tree view highlights
   hi default link CocTreeTitle       Title
   hi default link CocTreeDescription Comment

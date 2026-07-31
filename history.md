@@ -24,6 +24,10 @@ Notable changes of coc.nvim:
 
 - Add notifications history, view with `:CocList notifications`
 
+## 2025-06-22
+
+- Break change: Link highlight group `CocSnippetVisual` to `SnippetTabstop` when exists.
+
 ## 2025-06-11
 
 - LSP 3.18 and latest vscode-languageclient features:

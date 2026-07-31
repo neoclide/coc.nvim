@@ -56,6 +56,8 @@ net = __toESM(net, 1);
 let events = require("events");
 events = __toESM(events, 1);
 let buffer = require("buffer");
+let assert = require("assert");
+assert = __toESM(assert, 1);
 let node_zlib = require("node:zlib");
 node_zlib = __toESM(node_zlib, 1);
 let url = require("url");
@@ -63,8 +65,6 @@ let http = require("http");
 http = __toESM(http, 1);
 let https = require("https");
 https = __toESM(https, 1);
-let assert = require("assert");
-assert = __toESM(assert, 1);
 let tls = require("tls");
 tls = __toESM(tls, 1);
 let v8 = require("v8");
@@ -69679,73 +69679,104 @@ var init_events = __esmMin((() => {
 			});
 		}
 		async fire(event, args) {
-			if (event === "ready") this._ready = true;
-			else if (event == "InsertEnter") this._insertMode = true;
-			else if (event == "InsertLeave") {
-				this._insertMode = false;
-				this._pumVisible = false;
-				this._recentInserts = [];
-			} else if (event == "CursorHoldI" || event == "CursorMovedI") {
-				this._bufnr = args[0];
-				if (!this._insertMode) {
+			switch (event) {
+				case "ready":
+					this._ready = true;
+					break;
+				case "InsertEnter":
 					this._insertMode = true;
-					this.fire("InsertEnter", [args[0]]);
-				}
-			} else if (event == "CursorHold" || event == "CursorMoved") {
-				this._bufnr = args[0];
-				if (this._insertMode) {
+					break;
+				case "InsertLeave":
 					this._insertMode = false;
-					this.fire("InsertLeave", [args[0]]);
-				}
-			} else if (event == "MenuPopupChanged") {
-				this._pumVisible = true;
-				this._pumAlignTop = args[1] > args[0].row;
-				this._pumInserted = args[0].inserted;
-			} else if (event == "InsertCharPre") this._recentInserts.push([args[1], args[0]]);
-			else if (event == "TextChanged") this._lastChange = Date.now();
-			else if (event == "BufEnter") this._bufnr = args[0];
-			else if (event == "TextChangedI" || event == "TextChangedP") {
-				let info = args[1];
-				let pre = byteSlice(info.line ?? "", 0, info.col - 1);
-				let arr;
-				arr = this._recentInserts.filter((o) => o[0] == args[0]);
-				this._bufnr = args[0];
-				this._recentInserts = [];
-				this._lastChange = Date.now();
-				info.pre = pre;
-				info.insertChars = arr.map((o) => o[1]);
-				this._cursor = Object.freeze({
-					bufnr: args[0],
-					lnum: info.lnum,
-					col: info.col,
-					insert: true
-				});
-				if (arr.length && pre.length) {
-					let character = pre.slice(-1);
-					if (arr.findIndex((o) => o[1] == character) !== -1) {
-						info.insertChar = character;
-						process.nextTick(() => {
-							this.fire("TextInsert", [...args, character]);
-						});
+					this._pumVisible = false;
+					this._recentInserts = [];
+					break;
+				case "CursorHoldI":
+				case "CursorMovedI":
+					this._bufnr = args[0];
+					if (!this._insertMode) {
+						this._insertMode = true;
+						this.fire("InsertEnter", [args[0]]);
 					}
+					break;
+				case "CursorHold":
+				case "CursorMoved":
+					this._bufnr = args[0];
+					if (this._insertMode) {
+						this._insertMode = false;
+						this.fire("InsertLeave", [args[0]]);
+					}
+					break;
+				case "MenuPopupChanged":
+					this._pumVisible = true;
+					this._pumAlignTop = args[1] > args[0].row;
+					this._pumInserted = args[0].inserted;
+					break;
+				case "InsertCharPre":
+					this._recentInserts.push([args[1], args[0]]);
+					break;
+				case "TextChanged":
+					this._lastChange = Date.now();
+					break;
+				case "BufEnter":
+					this._bufnr = args[0];
+					break;
+				case "TextChangedI":
+				case "TextChangedP": {
+					this._lastChange = Date.now();
+					let info = args[1];
+					let pre = byteSlice(info.line ?? "", 0, info.col - 1);
+					let arr;
+					arr = this._recentInserts.filter((o) => o[0] == args[0]);
+					this._bufnr = args[0];
+					this._recentInserts = [];
+					info.pre = pre;
+					info.insertChars = arr.map((o) => o[1]);
+					this._cursor = Object.freeze({
+						bufnr: args[0],
+						lnum: info.lnum,
+						col: info.col,
+						insert: true
+					});
+					if (arr.length && pre.length) {
+						let character = pre.slice(-1);
+						if (arr.findIndex((o) => o[1] == character) !== -1) {
+							info.insertChar = character;
+							process.nextTick(() => {
+								this.fire("TextInsert", [...args, character]);
+							});
+						}
+					}
+					break;
 				}
-			} else if (event == "BufWinEnter") {
-				const [bufnr, winid, region] = args;
-				this.fireVisibleEvent({
-					bufnr,
-					winid,
-					region
-				});
-			} else if (event == "WinScrolled") {
-				const [winid, bufnr, region] = args;
-				this.fireVisibleEvent({
-					bufnr,
-					winid,
-					region
-				});
-			} else if (event == "WinClosed") this.clearVisibleTimer(args[0]);
-			else if (event == "BufWinLeave") this.clearVisibleTimer(args[1]);
-			else if (event == "ModeChanged") this._mode = args[0].new_mode;
+				case "BufWinEnter": {
+					const [bufnr, winid, region] = args;
+					this.fireVisibleEvent({
+						bufnr,
+						winid,
+						region
+					});
+					break;
+				}
+				case "WinScrolled": {
+					const [winid, bufnr, region] = args;
+					this.fireVisibleEvent({
+						bufnr,
+						winid,
+						region
+					});
+					break;
+				}
+				case "BufWinLeave":
+					this.clearVisibleTimer(args[1]);
+					break;
+				case "WinClosed":
+					this.clearVisibleTimer(args[0]);
+					break;
+				case "ModeChanged":
+					this._mode = args[0].new_mode;
+					break;
+			}
 			if (event == "CursorMoved" || event == "CursorMovedI") {
 				args.push(this._recentInserts.length > 0);
 				let cursor = {
@@ -91493,7 +91524,7 @@ var init_configuration$2 = __esmMin((() => {
 			return true;
 		}
 		watchFile(filepath, target) {
-			if (!fs$5.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
+			if (!filepath || !fs$5.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
 			this._watchedFiles.add(filepath);
 			const folder = normalizeFilePath(path$5.resolve(filepath, "../.."));
 			let disposable = watchFile(filepath, () => {
@@ -94956,6 +94987,12232 @@ var init_workspaceSymbolsManager = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/languages.ts
+var eventDebounce, ProviderName, Languages, languages_default;
+var init_languages = __esmMin((() => {
+	init_main$2();
+	init_manager$4();
+	init_callHierarchyManager();
+	init_codeActionManager();
+	init_codeLensManager();
+	init_declarationManager();
+	init_definitionManager();
+	init_documentColorManager();
+	init_documentHighlightManager();
+	init_documentLinkManager();
+	init_documentSymbolManager();
+	init_foldingRangeManager();
+	init_formatManager();
+	init_formatRangeManager();
+	init_hoverManager();
+	init_implementationManager();
+	init_inlayHintManager();
+	init_inlineCompletionItemManager();
+	init_inlineValueManager();
+	init_linkedEditingRangeManager();
+	init_onTypeFormatManager();
+	init_referenceManager();
+	init_renameManager();
+	init_selectionRangeManager();
+	init_semanticTokensManager();
+	init_semanticTokensRangeManager();
+	init_signatureManager();
+	init_typeDefinitionManager();
+	init_typeHierarchyManager();
+	init_workspaceSymbolsManager();
+	init_util$7();
+	init_is();
+	init_protocol();
+	init_string$1();
+	eventDebounce = getConditionValue(100, 1);
+	ProviderName = /* @__PURE__ */ function(ProviderName) {
+		ProviderName["FormatOnType"] = "formatOnType";
+		ProviderName["Rename"] = "rename";
+		ProviderName["OnTypeEdit"] = "onTypeEdit";
+		ProviderName["DocumentLink"] = "documentLink";
+		ProviderName["DocumentColor"] = "documentColor";
+		ProviderName["FoldingRange"] = "foldingRange";
+		ProviderName["Format"] = "format";
+		ProviderName["CodeAction"] = "codeAction";
+		ProviderName["FormatRange"] = "formatRange";
+		ProviderName["Hover"] = "hover";
+		ProviderName["Signature"] = "signature";
+		ProviderName["WorkspaceSymbols"] = "workspaceSymbols";
+		ProviderName["DocumentSymbol"] = "documentSymbol";
+		ProviderName["DocumentHighlight"] = "documentHighlight";
+		ProviderName["Definition"] = "definition";
+		ProviderName["Declaration"] = "declaration";
+		ProviderName["TypeDefinition"] = "typeDefinition";
+		ProviderName["Reference"] = "reference";
+		ProviderName["Implementation"] = "implementation";
+		ProviderName["CodeLens"] = "codeLens";
+		ProviderName["SelectionRange"] = "selectionRange";
+		ProviderName["CallHierarchy"] = "callHierarchy";
+		ProviderName["SemanticTokens"] = "semanticTokens";
+		ProviderName["SemanticTokensRange"] = "semanticTokensRange";
+		ProviderName["LinkedEditing"] = "linkedEditing";
+		ProviderName["InlayHint"] = "inlayHint";
+		ProviderName["InlineValue"] = "inlineValue";
+		ProviderName["InlineCompletion"] = "inlineCompletion";
+		ProviderName["TypeHierarchy"] = "typeHierarchy";
+		return ProviderName;
+	}({});
+	Languages = class {
+		_onDidSemanticTokensRefresh = new import_main$1.Emitter();
+		_onDidFoldingRangeRefresh = new import_main$1.Emitter();
+		_onDidInlayHintRefresh = new import_main$1.Emitter();
+		_onDidCodeLensRefresh = new import_main$1.Emitter();
+		_onDidColorsRefresh = new import_main$1.Emitter();
+		_onDidLinksRefresh = new import_main$1.Emitter();
+		onDidSemanticTokensRefresh = this._onDidSemanticTokensRefresh.event;
+		onDidFoldingRangeRefresh = this._onDidFoldingRangeRefresh.event;
+		onDidInlayHintRefresh = this._onDidInlayHintRefresh.event;
+		onDidCodeLensRefresh = this._onDidCodeLensRefresh.event;
+		onDidColorsRefresh = this._onDidColorsRefresh.event;
+		onDidLinksRefresh = this._onDidLinksRefresh.event;
+		onTypeFormatManager = new OnTypeFormatManager();
+		documentLinkManager = new DocumentLinkManager();
+		documentColorManager = new DocumentColorManager();
+		foldingRangeManager = new FoldingRangeManager();
+		renameManager = new RenameManager();
+		formatManager = new FormatManager();
+		codeActionManager = new CodeActionManager();
+		workspaceSymbolsManager = new WorkspaceSymbolManager();
+		formatRangeManager = new FormatRangeManager();
+		hoverManager = new HoverManager();
+		signatureManager = new SignatureManager();
+		documentSymbolManager = new DocumentSymbolManager();
+		documentHighlightManager = new DocumentHighlightManager();
+		definitionManager = new DefinitionManager();
+		declarationManager = new DeclarationManager();
+		typeDefinitionManager = new TypeDefinitionManager();
+		typeHierarchyManager = new TypeHierarchyManager();
+		referenceManager = new ReferenceManager();
+		implementationManager = new ImplementationManager();
+		codeLensManager = new CodeLensManager$1();
+		selectionRangeManager = new SelectionRangeManager();
+		callHierarchyManager = new CallHierarchyManager();
+		semanticTokensManager = new SemanticTokensManager();
+		semanticTokensRangeManager = new SemanticTokensRangeManager();
+		linkedEditingManager = new LinkedEditingRangeManager();
+		inlayHintManager = new InlayHintManger();
+		inlineCompletionItemManager = new InlineCompletionItemManager();
+		inlineValueManager = new InlineValueManager();
+		registerDocumentRangeFormattingEditProvider;
+		registerDocumentFormattingEditProvider;
+		sources;
+		registerReferenceProvider;
+		constructor() {
+			this.registerReferenceProvider = this.registerReferencesProvider;
+			this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider;
+			this.registerDocumentFormattingEditProvider = this.registerDocumentFormatProvider;
+		}
+		hasFormatProvider(doc) {
+			if (this.formatManager.hasProvider(doc)) return true;
+			if (this.formatRangeManager.hasProvider(doc)) return true;
+			return false;
+		}
+		registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
+			return this.onTypeFormatManager.register(selector, provider, triggerCharacters);
+		}
+		registerCompletionItemProvider(name, shortcut, selector, provider, triggerCharacters = [], priority, allCommitCharacters) {
+			selector = string(selector) ? [{ language: selector }] : selector;
+			this.sources.removeSource(name);
+			return this.sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters);
+		}
+		registerInlineCompletionItemProvider(selector, provider) {
+			return this.inlineCompletionItemManager.register(selector, provider);
+		}
+		registerCodeActionProvider(selector, provider, clientId, codeActionKinds) {
+			return this.codeActionManager.register(selector, provider, clientId, codeActionKinds);
+		}
+		registerHoverProvider(selector, provider) {
+			return this.hoverManager.register(selector, provider);
+		}
+		registerSelectionRangeProvider(selector, provider) {
+			return this.selectionRangeManager.register(selector, provider);
+		}
+		registerSignatureHelpProvider(selector, provider, triggerCharacters) {
+			return this.signatureManager.register(selector, provider, triggerCharacters);
+		}
+		registerDocumentSymbolProvider(selector, provider, metadata) {
+			if (metadata) provider.meta = metadata;
+			return this.documentSymbolManager.register(selector, provider);
+		}
+		registerFoldingRangeProvider(selector, provider) {
+			return this.registerProviderWithEvent(selector, provider, "onDidChangeFoldingRanges", this.foldingRangeManager, this._onDidFoldingRangeRefresh);
+		}
+		registerDocumentHighlightProvider(selector, provider) {
+			return this.documentHighlightManager.register(selector, provider);
+		}
+		registerDocumentLinkProvider(selector, provider) {
+			this._onDidLinksRefresh.fire(selector);
+			let disposable = this.documentLinkManager.register(selector, provider);
+			return import_main$1.Disposable.create(() => {
+				disposable.dispose();
+				this._onDidLinksRefresh.fire(selector);
+			});
+		}
+		registerDocumentColorProvider(selector, provider) {
+			this._onDidColorsRefresh.fire(selector);
+			let disposable = this.documentColorManager.register(selector, provider);
+			return import_main$1.Disposable.create(() => {
+				disposable.dispose();
+				this._onDidColorsRefresh.fire(selector);
+			});
+		}
+		registerDefinitionProvider(selector, provider) {
+			return this.definitionManager.register(selector, provider);
+		}
+		registerDeclarationProvider(selector, provider) {
+			return this.declarationManager.register(selector, provider);
+		}
+		registerTypeDefinitionProvider(selector, provider) {
+			return this.typeDefinitionManager.register(selector, provider);
+		}
+		registerTypeHierarchyProvider(selector, provider) {
+			return this.typeHierarchyManager.register(selector, provider);
+		}
+		registerImplementationProvider(selector, provider) {
+			return this.implementationManager.register(selector, provider);
+		}
+		registerReferencesProvider(selector, provider) {
+			return this.referenceManager.register(selector, provider);
+		}
+		registerRenameProvider(selector, provider) {
+			return this.renameManager.register(selector, provider);
+		}
+		registerWorkspaceSymbolProvider(provider) {
+			if (arguments.length > 1 && func(arguments[1].provideWorkspaceSymbols)) provider = arguments[1];
+			return this.workspaceSymbolsManager.register(provider);
+		}
+		registerDocumentFormatProvider(selector, provider, priority = 0) {
+			return this.formatManager.register(selector, provider, priority);
+		}
+		registerDocumentRangeFormatProvider(selector, provider, priority = 0) {
+			return this.formatRangeManager.register(selector, provider, priority);
+		}
+		registerCallHierarchyProvider(selector, provider) {
+			return this.callHierarchyManager.register(selector, provider);
+		}
+		registerCodeLensProvider(selector, provider) {
+			return this.registerProviderWithEvent(selector, provider, "onDidChangeCodeLenses", this.codeLensManager, this._onDidCodeLensRefresh);
+		}
+		registerDocumentSemanticTokensProvider(selector, provider, legend) {
+			return this.registerProviderWithEvent(selector, provider, "onDidChangeSemanticTokens", this.semanticTokensManager, this._onDidSemanticTokensRefresh, legend);
+		}
+		registerDocumentRangeSemanticTokensProvider(selector, provider, legend) {
+			let disposable;
+			let timer = setTimeout(() => {
+				disposable = this.semanticTokensRangeManager.register(selector, provider, legend);
+				this._onDidSemanticTokensRefresh.fire(selector);
+			}, eventDebounce);
+			return import_main$1.Disposable.create(() => {
+				clearTimeout(timer);
+				if (disposable) {
+					disposable.dispose();
+					this._onDidSemanticTokensRefresh.fire(selector);
+				}
+			});
+		}
+		registerInlayHintsProvider(selector, provider) {
+			return this.registerProviderWithEvent(selector, provider, "onDidChangeInlayHints", this.inlayHintManager, this._onDidInlayHintRefresh);
+		}
+		registerInlineValuesProvider(selector, provider) {
+			return this.inlineValueManager.register(selector, provider);
+		}
+		registerLinkedEditingRangeProvider(selector, provider) {
+			return this.linkedEditingManager.register(selector, provider);
+		}
+		shouldTriggerSignatureHelp(document, triggerCharacter) {
+			return this.signatureManager.shouldTrigger(document, triggerCharacter);
+		}
+		async getHover(document, position, token) {
+			return await this.hoverManager.provideHover(document, position, token);
+		}
+		async getSignatureHelp(document, position, token, context) {
+			return await this.signatureManager.provideSignatureHelp(document, position, token, context);
+		}
+		async getDefinition(document, position, token) {
+			return await this.definitionManager.provideDefinition(document, position, token);
+		}
+		async getDefinitionLinks(document, position, token) {
+			return await this.definitionManager.provideDefinitionLinks(document, position, token);
+		}
+		async getDeclaration(document, position, token) {
+			return await this.declarationManager.provideDeclaration(document, position, token);
+		}
+		async getTypeDefinition(document, position, token) {
+			return await this.typeDefinitionManager.provideTypeDefinition(document, position, token);
+		}
+		async getImplementation(document, position, token) {
+			return await this.implementationManager.provideImplementations(document, position, token);
+		}
+		async getReferences(document, context, position, token) {
+			return await this.referenceManager.provideReferences(document, position, context, token);
+		}
+		async getDocumentSymbol(document, token) {
+			return await this.documentSymbolManager.provideDocumentSymbols(document, token);
+		}
+		getDocumentSymbolMetadata(document) {
+			return this.documentSymbolManager.getMetaData(document);
+		}
+		async getSelectionRanges(document, positions, token) {
+			return await this.selectionRangeManager.provideSelectionRanges(document, positions, token);
+		}
+		async getWorkspaceSymbols(query, token) {
+			return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token);
+		}
+		async resolveWorkspaceSymbol(symbol, token) {
+			return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token);
+		}
+		async prepareRename(document, position, token) {
+			return await this.renameManager.prepareRename(document, position, token);
+		}
+		async provideRenameEdits(document, position, newName, token) {
+			return await this.renameManager.provideRenameEdits(document, position, newName, token);
+		}
+		async provideDocumentFormattingEdits(document, options, token) {
+			if (!this.formatManager.hasFormatProvider(document)) {
+				if (!this.formatRangeManager.hasProvider(document)) return null;
+				let end = document.positionAt(document.getText().length);
+				let range = Range.create(Position.create(0, 0), end);
+				return await this.provideDocumentRangeFormattingEdits(document, range, options, token);
+			}
+			return await this.formatManager.provideDocumentFormattingEdits(document, options, token);
+		}
+		async provideDocumentRangeFormattingEdits(document, range, options, token) {
+			return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token);
+		}
+		async getCodeActions(document, range, context, token) {
+			return await this.codeActionManager.provideCodeActions(document, range, context, token);
+		}
+		async getDocumentHighLight(document, position, token) {
+			return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
+		}
+		async getDocumentLinks(document, token) {
+			return await this.documentLinkManager.provideDocumentLinks(document, token);
+		}
+		async resolveDocumentLink(link, token) {
+			return await this.documentLinkManager.resolveDocumentLink(link, token);
+		}
+		async provideDocumentColors(document, token) {
+			return await this.documentColorManager.provideDocumentColors(document, token);
+		}
+		async provideFoldingRanges(document, context, token) {
+			return await this.foldingRangeManager.provideFoldingRanges(document, context, token);
+		}
+		async provideColorPresentations(color, document, token) {
+			return await this.documentColorManager.provideColorPresentations(color, document, token);
+		}
+		async provideInlineCompletionItems(document, position, context, token) {
+			return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token);
+		}
+		async getCodeLens(document, token) {
+			return await this.codeLensManager.provideCodeLenses(document, token);
+		}
+		async resolveCodeLens(codeLens, token) {
+			return await this.codeLensManager.resolveCodeLens(codeLens, token);
+		}
+		async resolveCodeAction(codeAction, token) {
+			return await this.codeActionManager.resolveCodeAction(codeAction, token);
+		}
+		async provideDocumentOnTypeEdits(character, document, position, token) {
+			return this.onTypeFormatManager.onCharacterType(character, document, position, token);
+		}
+		canFormatOnType(character, document) {
+			return this.onTypeFormatManager.couldTrigger(document, character) != null;
+		}
+		async prepareCallHierarchy(document, position, token) {
+			return this.callHierarchyManager.prepareCallHierarchy(document, position, token);
+		}
+		async provideIncomingCalls(document, item, token) {
+			return this.callHierarchyManager.provideCallHierarchyIncomingCalls(document, item, token);
+		}
+		async provideOutgoingCalls(document, item, token) {
+			return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(document, item, token);
+		}
+		getLegend(document, range) {
+			if (range) return this.semanticTokensRangeManager.getLegend(document);
+			return this.semanticTokensManager.getLegend(document);
+		}
+		hasSemanticTokensEdits(document) {
+			return this.semanticTokensManager.hasSemanticTokensEdits(document);
+		}
+		async provideDocumentSemanticTokens(document, token) {
+			return this.semanticTokensManager.provideDocumentSemanticTokens(document, token);
+		}
+		async provideDocumentSemanticTokensEdits(document, previousResultId, token) {
+			return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token);
+		}
+		async provideDocumentRangeSemanticTokens(document, range, token) {
+			return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token);
+		}
+		async provideInlayHints(document, range, token) {
+			return this.inlayHintManager.provideInlayHints(document, range, token);
+		}
+		async resolveInlayHint(hint, token) {
+			return this.inlayHintManager.resolveInlayHint(hint, token);
+		}
+		async provideLinkedEdits(document, position, token) {
+			return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token);
+		}
+		async provideInlineValues(document, viewPort, context, token) {
+			return this.inlineValueManager.provideInlineValues(document, viewPort, context, token);
+		}
+		async prepareTypeHierarchy(document, position, token) {
+			return this.typeHierarchyManager.prepareTypeHierarchy(document, position, token);
+		}
+		async provideTypeHierarchySupertypes(item, token) {
+			return this.typeHierarchyManager.provideTypeHierarchySupertypes(item, token);
+		}
+		async provideTypeHierarchySubtypes(item, token) {
+			return this.typeHierarchyManager.provideTypeHierarchySubtypes(item, token);
+		}
+		createDiagnosticCollection(owner) {
+			return manager_default$2.create(owner);
+		}
+		registerProviderWithEvent(selector, provider, key, manager, emitter, extra) {
+			let disposables = [];
+			let timer = setTimeout(() => {
+				disposables.push(manager.register(selector, provider, extra));
+				emitter.fire(selector);
+				if (func(provider[key])) disposables.push(provider[key](() => {
+					emitter.fire(selector);
+				}));
+			}, eventDebounce);
+			return import_main$1.Disposable.create(() => {
+				clearTimeout(timer);
+				let registered = disposables.length > 0;
+				disposeAll(disposables);
+				if (registered) emitter.fire(selector);
+			});
+		}
+		hasProvider(id, document) {
+			switch (id) {
+				case "onTypeEdit":
+				case "formatOnType": return this.onTypeFormatManager.hasProvider(document);
+				case "rename": return this.renameManager.hasProvider(document);
+				case "documentLink": return this.documentLinkManager.hasProvider(document);
+				case "documentColor": return this.documentColorManager.hasProvider(document);
+				case "foldingRange": return this.foldingRangeManager.hasProvider(document);
+				case "format": return this.formatManager.hasProvider(document) || this.formatRangeManager.hasProvider(document);
+				case "codeAction": return this.codeActionManager.hasProvider(document);
+				case "workspaceSymbols": return this.workspaceSymbolsManager.hasProvider();
+				case "formatRange": return this.formatRangeManager.hasProvider(document);
+				case "hover": return this.hoverManager.hasProvider(document);
+				case "signature": return this.signatureManager.hasProvider(document);
+				case "documentSymbol": return this.documentSymbolManager.hasProvider(document);
+				case "documentHighlight": return this.documentHighlightManager.hasProvider(document);
+				case "definition": return this.definitionManager.hasProvider(document);
+				case "declaration": return this.declarationManager.hasProvider(document);
+				case "typeDefinition": return this.typeDefinitionManager.hasProvider(document);
+				case "reference": return this.referenceManager.hasProvider(document);
+				case "implementation": return this.implementationManager.hasProvider(document);
+				case "codeLens": return this.codeLensManager.hasProvider(document);
+				case "selectionRange": return this.selectionRangeManager.hasProvider(document);
+				case "callHierarchy": return this.callHierarchyManager.hasProvider(document);
+				case "semanticTokens": return this.semanticTokensManager.hasProvider(document);
+				case "semanticTokensRange": return this.semanticTokensRangeManager.hasProvider(document);
+				case "linkedEditing": return this.linkedEditingManager.hasProvider(document);
+				case "inlayHint": return this.inlayHintManager.hasProvider(document);
+				case "inlineCompletion": return this.inlineCompletionItemManager.hasProvider(document);
+				case "inlineValue": return this.inlineValueManager.hasProvider(document);
+				case "typeHierarchy": return this.typeHierarchyManager.hasProvider(document);
+				default: return false;
+			}
+		}
+	};
+	languages_default = new Languages();
+}));
+//#endregion
+//#region src/model/chars.ts
+function getCharCode(str) {
+	if (/^\d+$/.test(str)) return parseInt(str, 10);
+	if (str.length > 0) return str.charCodeAt(0);
+}
+function sameScope(a, b) {
+	if (a < boundary) return b < boundary;
+	return b >= boundary;
+}
+function detectLanguage(code) {
+	if (code >= 19968 && code <= 40959) return "cn";
+	if (code >= 12352 && code <= 12447 || code >= 12448 && code <= 12543) return "ja";
+	if (code >= 44032 && code <= 55215) return "ko";
+	return "";
+}
+function* parseSegments(text, segmenterLocales) {
+	if (Intl === void 0 || typeof Intl["Segmenter"] !== "function") {
+		yield text;
+		return;
+	}
+	let res = [];
+	let items = new Intl["Segmenter"](segmenterLocales === "" ? void 0 : segmenterLocales, { granularity: "word" }).segment(text);
+	for (let item of items) if (item.isWordLike) yield item.segment;
+	return res;
+}
+function splitKeywordOption(iskeyword) {
+	let res = [];
+	let i = 0;
+	let s = 0;
+	let len = iskeyword.length;
+	for (; i < len; i++) {
+		let c = iskeyword[i];
+		if (i + 1 == len && s != len) {
+			res.push(iskeyword.slice(s, len));
+			continue;
+		}
+		if (c == ",") {
+			let d = i - s;
+			if (d == 0) continue;
+			if (d == 1) {
+				let p = iskeyword[i - 1];
+				if (p == "^" || p == ",") {
+					res.push(p == "," ? "," : "^,");
+					s = i + 1;
+					if (p == "^" && iskeyword[i + 1] == ",") {
+						i++;
+						s++;
+					}
+					continue;
+				}
+			}
+			res.push(iskeyword.slice(s, i));
+			s = i + 1;
+		}
+	}
+	return res;
+}
+var WORD_RANGES, MAX_CODE_UNIT, boundary, IntegerRanges, Chars;
+var init_chars = __esmMin((() => {
+	init_main$2();
+	init_util$7();
+	init_array();
+	init_object();
+	init_string$1();
+	WORD_RANGES = [
+		[257, 893],
+		[895, 902],
+		[904, 1369],
+		[1376, 1416],
+		[1418, 1469],
+		[1471, 1471],
+		[1473, 1474],
+		[1476, 1522],
+		[1525, 1547],
+		[1549, 1562],
+		[1564, 1566],
+		[1568, 1641],
+		[1646, 1747],
+		[1749, 1791],
+		[1806, 2403],
+		[2406, 2415],
+		[2417, 3571],
+		[3573, 3662],
+		[3664, 3673],
+		[3676, 3843],
+		[3859, 3897],
+		[3902, 3972],
+		[3974, 4169],
+		[4176, 4346],
+		[4348, 4960],
+		[4969, 5740],
+		[5743, 5759],
+		[5761, 5786],
+		[5789, 5866],
+		[5870, 5940],
+		[5943, 6099],
+		[6109, 6143],
+		[6155, 8191],
+		[10240, 10495],
+		[10649, 10711],
+		[10716, 10747],
+		[10750, 11775],
+		[11904, 12287],
+		[12321, 12335],
+		[12337, 12348],
+		[12350, 64829],
+		[64832, 65071],
+		[65132, 65279],
+		[65296, 65305],
+		[65313, 65338],
+		[65345, 65370],
+		[65382, 65535]
+	];
+	MAX_CODE_UNIT = 65535;
+	boundary = 19968;
+	IntegerRanges = class IntegerRanges {
+		ranges;
+		wordChars;
+		/**
+		* Sorted ranges without overlap
+		*/
+		constructor(ranges = [], wordChars = false) {
+			this.ranges = ranges;
+			this.wordChars = wordChars;
+		}
+		clone() {
+			return new IntegerRanges(this.ranges.slice(), this.wordChars);
+		}
+		/**
+		* Add new range
+		*/
+		add(start, end) {
+			let index = 0;
+			let removeCount = 0;
+			if (end != null && end < start) {
+				let t = end;
+				end = start;
+				start = t;
+			}
+			end = end == null ? start : end;
+			for (let r of this.ranges) {
+				let [s, e] = r;
+				if (e < start) {
+					index++;
+					continue;
+				}
+				if (s > end) break;
+				removeCount++;
+				if (s < start) start = s;
+				if (e > end) {
+					end = e;
+					break;
+				}
+			}
+			this.ranges.splice(index, removeCount, [start, end]);
+		}
+		exclude(start, end) {
+			if (end != null && end < start) {
+				let t = end;
+				end = start;
+				start = t;
+			}
+			end = end == null ? start : end;
+			let index = 0;
+			let removeCount = 0;
+			let created = [];
+			for (let r of this.ranges) {
+				let [s, e] = r;
+				if (e < start) {
+					index++;
+					continue;
+				}
+				if (s > end) break;
+				removeCount++;
+				if (s < start) created.push([s, start - 1]);
+				if (e > end) {
+					created.push([end + 1, e]);
+					break;
+				}
+			}
+			if (removeCount == 0 && created.length == 0) return;
+			this.ranges.splice(index, removeCount, ...created);
+		}
+		flatten() {
+			return this.ranges.reduce((p, c) => p.concat(c), []);
+		}
+		includes(n) {
+			if (n > 256 && this.wordChars) return intable(n, WORD_RANGES);
+			return intable(n, this.ranges);
+		}
+		static fromKeywordOption(iskeyword) {
+			let range = new IntegerRanges();
+			for (let part of splitKeywordOption(iskeyword)) {
+				let exclude = part.length > 1 && part.startsWith("^");
+				let method = exclude ? "exclude" : "add";
+				if (exclude) part = part.slice(1);
+				if (part === "@" && !exclude) {
+					range.wordChars = true;
+					range[method](65, 90);
+					range[method](97, 122);
+					range[method](192, 255);
+				} else if (part == "@-@") range[method]("@".charCodeAt(0));
+				else if (part.length == 1 || /^\d+$/.test(part)) range[method](getCharCode(part));
+				else if (part.includes("-")) {
+					let items = part.split("-", 2);
+					let start = getCharCode(items[0]);
+					let end = getCharCode(items[1]);
+					if (start === void 0 || end === void 0) continue;
+					range[method](start, end);
+				}
+			}
+			return range;
+		}
+	};
+	Chars = class Chars {
+		ranges;
+		constructor(keywordOption) {
+			this.ranges = IntegerRanges.fromKeywordOption(keywordOption);
+		}
+		addKeyword(ch) {
+			this.ranges.add(ch.codePointAt(0));
+		}
+		clone() {
+			let chars = new Chars("");
+			chars.ranges = this.ranges.clone();
+			return chars;
+		}
+		isKeywordCode(code) {
+			if (code === 32 || code > MAX_CODE_UNIT) return false;
+			if (isHighSurrogate(code)) return false;
+			return this.ranges.includes(code);
+		}
+		isKeywordChar(ch) {
+			let code = ch.charCodeAt(0);
+			return this.isKeywordCode(code);
+		}
+		isKeyword(word) {
+			for (let i = 0, l = word.length; i < l; i++) if (!this.isKeywordChar(word[i])) return false;
+			return true;
+		}
+		*iterateWords(text) {
+			let start = -1;
+			let prevCode;
+			for (let i = 0, l = text.length; i < l; i++) {
+				let code = text.charCodeAt(i);
+				if (this.isKeywordCode(code)) {
+					if (start == -1) start = i;
+					else if (prevCode !== void 0 && !sameScope(prevCode, code)) {
+						yield [start, i];
+						start = i;
+					}
+				} else if (start != -1) {
+					yield [start, i];
+					start = -1;
+				}
+				if (i === l - 1 && start != -1) yield [start, i + 1];
+				prevCode = code;
+			}
+		}
+		matchLine(line, segmenterLocales = void 0, min = 2, max = 1024) {
+			let res = /* @__PURE__ */ new Set();
+			let l = line.length;
+			if (l > max) {
+				line = line.slice(0, max);
+				l = max;
+			}
+			for (let [start, end] of this.iterateWords(line)) {
+				if (end - start < min) continue;
+				let word = line.slice(start, end);
+				let code = word.charCodeAt(0);
+				if (segmenterLocales != null && code > 255) {
+					if (segmenterLocales == "") segmenterLocales = detectLanguage(code);
+					for (let text of parseSegments(word, segmenterLocales)) res.add(text);
+				} else res.add(word);
+			}
+			return Array.from(res);
+		}
+		async computeWordRanges(lines, range, token) {
+			let s = range.start.line;
+			let e = range.end.line;
+			let res = {};
+			let ts = Date.now();
+			for (let i = s; i <= e; i++) {
+				let text = lines[i];
+				if (text === void 0) break;
+				let sc = i === s ? range.start.character : 0;
+				if (i === s) text = text.slice(sc);
+				if (i === e) text = text.slice(0, range.end.character - sc);
+				if (Date.now() - ts > 15) {
+					if (token && token.isCancellationRequested) break;
+					await waitImmediate$1();
+					ts = Date.now();
+				}
+				for (let [start, end] of this.iterateWords(text)) {
+					let word = text.slice(start, end);
+					let arr = hasOwnProperty$1(res, word) ? res[word] : [];
+					arr.push(Range.create(i, start + sc, i, end + sc));
+					res[word] = arr;
+				}
+			}
+			return res;
+		}
+	};
+}));
+//#endregion
+//#region src/model/textline.ts
+var TextLine;
+var init_textline = __esmMin((() => {
+	init_main$2();
+	TextLine = class {
+		_line;
+		_text;
+		_isLastLine;
+		constructor(line, text, isLastLine) {
+			this._line = line;
+			this._text = text;
+			this._isLastLine = isLastLine;
+		}
+		/**
+		* The zero-based line number.
+		*/
+		get lineNumber() {
+			return this._line;
+		}
+		/**
+		* The text of this line without the line separator characters.
+		*/
+		get text() {
+			return this._text;
+		}
+		/**
+		* The range this line covers without the line separator characters.
+		*/
+		get range() {
+			return Range.create(this._line, 0, this._line, this._text.length);
+		}
+		/**
+		* The range this line covers with the line separator characters.
+		*/
+		get rangeIncludingLineBreak() {
+			return this._isLastLine ? this.range : Range.create(this._line, 0, this._line + 1, 0);
+		}
+		/**
+		* The offset of the first character which is not a whitespace character as defined
+		* by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
+		*/
+		get firstNonWhitespaceCharacterIndex() {
+			return /^(\s*)/.exec(this._text)[1].length;
+		}
+		/**
+		* Whether this line is whitespace only, shorthand
+		* for {@link TextLine.firstNonWhitespaceCharacterIndex} === {@link TextLine.text TextLine.text.length}.
+		*/
+		get isEmptyOrWhitespace() {
+			return this.firstNonWhitespaceCharacterIndex === this._text.length;
+		}
+	};
+}));
+//#endregion
+//#region src/model/textdocument.ts
+function computeLinesOffsets(lines, eol) {
+	const result = [];
+	let textOffset = 0;
+	for (let line of lines) {
+		result.push(textOffset);
+		textOffset += line.length + 1;
+	}
+	if (eol) result.push(textOffset);
+	return result;
+}
+var LinesTextDocument;
+var init_textdocument = __esmMin((() => {
+	init_main$2();
+	init_textedit();
+	init_textline();
+	LinesTextDocument = class {
+		uri;
+		languageId;
+		version;
+		lines;
+		bufnr;
+		eol;
+		_lineOffsets;
+		_content;
+		constructor(uri, languageId, version, lines, bufnr, eol) {
+			this.uri = uri;
+			this.languageId = languageId;
+			this.version = version;
+			this.lines = lines;
+			this.bufnr = bufnr;
+			this.eol = eol;
+		}
+		get content() {
+			if (!this._content) this._content = this.lines.join("\n") + (this.eol ? "\n" : "");
+			return this._content;
+		}
+		get length() {
+			if (!this._content) {
+				let n = this.lines.reduce((p, c) => {
+					return p + c.length + 1;
+				}, 0);
+				return this.eol ? n : n - 1;
+			}
+			return this._content.length;
+		}
+		get end() {
+			let len = this.lines.length;
+			if (this.eol) return Position.create(len, 0);
+			return Position.create(len - 1, this.lines[len - 1].length);
+		}
+		get lineCount() {
+			return this.lines.length + (this.eol ? 1 : 0);
+		}
+		intersectWith(range) {
+			let start = Position.create(0, 0);
+			if (start.line < range.start.line) start = range.start;
+			else if (range.start.line === start.line) start = Position.create(start.line, Math.max(start.character, range.start.character));
+			let end = this.end;
+			if (range.end.line < end.line) end = range.end;
+			else if (range.end.line === end.line) end = Position.create(end.line, Math.min(end.character, range.end.character));
+			return Range.create(start, end);
+		}
+		getText(range) {
+			if (range) return getRangeText(this.lines, range);
+			return this.content;
+		}
+		lineAt(lineOrPos) {
+			const line = Position.is(lineOrPos) ? lineOrPos.line : lineOrPos;
+			if (typeof line !== "number" || line < 0 || line >= this.lineCount || Math.floor(line) !== line) throw new Error("Illegal value for `line`");
+			return new TextLine(line, this.lines[line] ?? "", line === this.lineCount - 1);
+		}
+		positionAt(offset) {
+			offset = Math.max(Math.min(offset, this.content.length), 0);
+			let lineOffsets = this.getLineOffsets();
+			let low = 0;
+			let high = lineOffsets.length;
+			if (high === 0) return {
+				line: 0,
+				character: offset
+			};
+			while (low < high) {
+				let mid = Math.floor((low + high) / 2);
+				if (lineOffsets[mid] > offset) high = mid;
+				else low = mid + 1;
+			}
+			let line = low - 1;
+			return {
+				line,
+				character: offset - lineOffsets[line]
+			};
+		}
+		offsetAt(position) {
+			let lineOffsets = this.getLineOffsets();
+			if (position.line >= lineOffsets.length) return this.content.length;
+			else if (position.line < 0) return 0;
+			let lineOffset = lineOffsets[position.line];
+			let nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this.content.length;
+			return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
+		}
+		getLineOffsets() {
+			if (this._lineOffsets === void 0) this._lineOffsets = computeLinesOffsets(this.lines, this.eol);
+			return this._lineOffsets;
+		}
+	};
+}));
+//#endregion
+//#region src/model/document.ts
+function fireDetach(bufnr) {
+	events_default.fire("BufDetach", [bufnr]);
+}
+function fireLinesChanged(bufnr) {
+	events_default.fire("LinesChanged", [bufnr]);
+}
+function getUri(fullpath, id, buftype) {
+	if (!fullpath) return `untitled:${id}`;
+	if (path$5.isAbsolute(fullpath)) return URI.file(path$5.normalize(fullpath)).toString();
+	if (isUrl(fullpath)) return URI.parse(fullpath).toString();
+	if (buftype != "") return `${buftype}:${id}`;
+	return `unknown:${id}`;
+}
+function getNotAttachReason(buftype, enabled, size) {
+	if (!["", "acwrite"].includes(buftype)) return `not a normal buffer, buftype "${buftype}"`;
+	if (enabled === 0) return `b:coc_enabled = 0`;
+	return `buffer size ${size} exceed coc.preferences.maxFileSize`;
+}
+var logger$43, MAX_EDITS, debounceTime$9, Document;
+var init_document = __esmMin((() => {
+	init_main$2();
+	init_esm();
+	init_events();
+	init_logger$2();
+	init_array();
+	init_constants();
+	init_diff();
+	init_util$7();
+	init_is();
+	init_node();
+	init_object();
+	init_position();
+	init_protocol();
+	init_string$1();
+	init_textedit();
+	init_chars();
+	init_textdocument();
+	logger$43 = createLogger$1("document");
+	MAX_EDITS = getConditionValue(200, 400);
+	debounceTime$9 = getConditionValue(150, 15);
+	Document = class {
+		buffer;
+		nvim;
+		buftype;
+		isIgnored = false;
+		chars;
+		eol = true;
+		_disposed = false;
+		_attached = false;
+		_notAttachReason = "";
+		_previewwindow = false;
+		_winid = -1;
+		_winids = [];
+		_filetype;
+		_bufname;
+		_commandLine = false;
+		_applying = false;
+		_uri;
+		_changedtick;
+		variables;
+		disposables = [];
+		_textDocument;
+		lines = [];
+		_applyLines;
+		fireContentChanges;
+		fetchContent;
+		_onDocumentChange = new import_main$1.Emitter();
+		onDocumentChange = this._onDocumentChange.event;
+		constructor(buffer$2, nvim, filetype, opts) {
+			this.buffer = buffer$2;
+			this.nvim = nvim;
+			this.fireContentChanges = debounce(() => {
+				this._fireContentChanges();
+			}, debounceTime$9);
+			this.init(filetype, opts);
+		}
+		/**
+		* Synchronize content
+		*/
+		get content() {
+			return this.syncLines.join("\n") + (this.eol ? "\n" : "");
+		}
+		get attached() {
+			return this._attached;
+		}
+		/**
+		* Synchronized textDocument.
+		*/
+		get textDocument() {
+			return this._textDocument;
+		}
+		get syncLines() {
+			return this._textDocument.lines;
+		}
+		get version() {
+			return this._textDocument.version;
+		}
+		/**
+		* Buffer number
+		*/
+		get bufnr() {
+			return this.buffer.id;
+		}
+		get bufname() {
+			return this._bufname;
+		}
+		get filetype() {
+			return this._filetype;
+		}
+		get uri() {
+			return this._uri;
+		}
+		get isCommandLine() {
+			return this._commandLine;
+		}
+		/**
+		* LanguageId of TextDocument, main filetype are used for combined filetypes
+		* with '.'
+		*/
+		get languageId() {
+			let { _filetype } = this;
+			return _filetype.includes(".") ? _filetype.match(/(.*?)\./)[1] : _filetype;
+		}
+		/**
+		* Get current buffer changedtick.
+		*/
+		get changedtick() {
+			return this._changedtick;
+		}
+		/**
+		* Scheme of document.
+		*/
+		get schema() {
+			return URI.parse(this.uri).scheme;
+		}
+		/**
+		* Line count of current buffer.
+		*/
+		get lineCount() {
+			return this.lines.length;
+		}
+		/**
+		* Window ID when buffer create, could be -1 when no window associated.
+		*/
+		get winid() {
+			return this._winid;
+		}
+		get winids() {
+			return this._winids;
+		}
+		/**
+		* Returns if current document is opened with previewwindow
+		* @deprecated
+		*/
+		get previewwindow() {
+			return this._previewwindow;
+		}
+		/**
+		* Initialize document model.
+		*/
+		init(filetype, opts) {
+			let buftype = this.buftype = opts.buftype;
+			this._bufname = opts.bufname;
+			this._commandLine = opts.commandline === 1;
+			this._previewwindow = !!opts.previewwindow;
+			this._winid = opts.winid;
+			this._winids = toArray(opts.winids);
+			this.variables = toObject(opts.variables);
+			this._changedtick = opts.changedtick;
+			this.eol = opts.eol == 1;
+			this._uri = getUri(opts.fullpath, this.bufnr, buftype);
+			if (Array.isArray(opts.lines)) {
+				this.lines = opts.lines.map((line) => toText(line));
+				this._attached = true;
+				this.attach();
+			} else {
+				this.lines = [];
+				this._notAttachReason = getNotAttachReason(buftype, this.variables[`coc_enabled`], opts.size);
+			}
+			this._filetype = filetype;
+			this.setIskeyword(opts.iskeyword, opts.lisp);
+			this.createTextDocument(1, this.lines);
+		}
+		get notAttachReason() {
+			return this._notAttachReason;
+		}
+		attach() {
+			let lines = this.lines;
+			const { bufnr } = this;
+			this.buffer.attach(true).then((res) => {
+				if (!res) fireDetach(this.bufnr);
+			}, (_e) => {
+				fireDetach(this.bufnr);
+			});
+			if (isVim) {
+				/**
+				* Triggered by `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which is triggered by `autoload/coc/api.vim OnBufferChange`
+				*
+				* Corresponds to `nvim_buf_lines_event`
+				* @see {@link https://neovim.io/doc/user/api/#nvim_buf_lines_event}
+				*/
+				const vim_onLinesChange = (_buf, tick, firstline, lastline, linedata, replaceAll) => {
+					this._changedtick = tick;
+					if (replaceAll) lines = linedata.slice();
+					else lines = [
+						...lines.slice(0, firstline),
+						...linedata,
+						...lines.slice(lastline)
+					];
+					if (lines.length === 0) lines = [""];
+					if (this._applying) {
+						this._applyLines = lines;
+						return;
+					}
+					this.lines = lines;
+					fireLinesChanged(bufnr);
+					if (events_default.completing) return;
+					this.fireContentChanges();
+				};
+				this.buffer.listen("vim_lines", vim_onLinesChange, this.disposables);
+			} else {
+				const onLinesChange = (_buf, tick, firstline, lastline, linedata) => {
+					if (tick && tick > this._changedtick) {
+						this._changedtick = tick;
+						lines = [
+							...lines.slice(0, firstline),
+							...linedata,
+							...lastline < 0 ? [] : lines.slice(lastline)
+						];
+						if (lines.length == 0) lines = [""];
+						if (this._applying) {
+							this._applyLines = lines;
+							return;
+						}
+						this.lines = lines;
+						fireLinesChanged(bufnr);
+						if (events_default.completing) return;
+						this.fireContentChanges();
+					}
+				};
+				this.buffer.listen("lines", onLinesChange, this.disposables);
+				this.buffer.listen("detach", () => {
+					fireDetach(this.bufnr);
+				}, this.disposables);
+			}
+		}
+		/**
+		* Check if document changed after last synchronize
+		*/
+		get dirty() {
+			return this.lines !== this.syncLines;
+		}
+		get hasChanged() {
+			if (!this.dirty) return false;
+			return !equals(this.lines, this.syncLines);
+		}
+		/**
+		* Cursor position if document is current document
+		*/
+		get cursor() {
+			let { cursor } = events_default;
+			if (cursor.bufnr !== this.bufnr) return void 0;
+			let content = toText(this.lines[cursor.lnum - 1]);
+			return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1));
+		}
+		_fireContentChanges(edit) {
+			if (this.lines === this.syncLines) return;
+			let textDocument = this._textDocument;
+			let changes = [];
+			if (!edit) edit = getTextEdit(textDocument.lines, this.lines, this.cursor, events_default.cursor.insert);
+			let original;
+			if (edit) {
+				original = textDocument.getText(edit.range);
+				changes.push({
+					range: edit.range,
+					text: edit.newText,
+					rangeLength: original.length
+				});
+			} else original = "";
+			let created = this.createTextDocument(this.version + (edit ? 1 : 0), this.lines);
+			this._onDocumentChange.fire(Object.freeze({
+				bufnr: this.bufnr,
+				original,
+				originalLines: textDocument.lines,
+				textDocument: {
+					version: created.version,
+					uri: this.uri
+				},
+				document: created,
+				contentChanges: changes
+			}));
+		}
+		async applyEdits(edits, joinUndo = false, move = false) {
+			if (Array.isArray(arguments[1])) edits = arguments[1];
+			if (!this._attached || edits.length === 0) return;
+			const { bufnr } = this;
+			this._forceSync();
+			let textDocument = this.textDocument;
+			edits = filterSortEdits(textDocument, edits);
+			let newLines = applyEdits(textDocument, edits);
+			if (!newLines) return;
+			let lines = textDocument.lines;
+			let changed = diffLines(lines, newLines, getStartLine(edits[0]));
+			let isAppend = changed.start === changed.end && changed.start === lines.length;
+			let original = lines.slice(changed.start, changed.end);
+			let changes = [];
+			if (edits.length <= MAX_EDITS && changed.start !== changed.end && changed.replacement.length > 0) changes = toTextChanges(lines, edits);
+			const { cursor, col } = this.getCursorAndCol(move, edits, newLines);
+			this.nvim.pauseNotification();
+			if (joinUndo) this.nvim.command(`if bufnr('%') == ${bufnr} | undojoin | endif`, true);
+			if (isAppend) this.buffer.setLines(changed.replacement, {
+				start: -1,
+				end: -1
+			}, true);
+			else this.nvim.call("coc#ui#set_lines", [
+				this.bufnr,
+				this._changedtick,
+				original,
+				changed.replacement,
+				changed.start,
+				changed.end,
+				changes,
+				cursor,
+				col,
+				lines.length
+			], true);
+			this._applying = true;
+			this.lines = newLines;
+			await this.nvim.resumeNotification(true);
+			await waitNextTick();
+			fireLinesChanged(bufnr);
+			let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
+			this.fireContentChanges.clear();
+			this._fireContentChanges(textEdit);
+			let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0);
+			return TextEdit.replace(range, original.join("\n") + (original.length > 0 ? "\n" : ""));
+		}
+		onTextChange() {
+			let { bufnr } = this;
+			if (this._applying) {
+				this._applying = false;
+				if (this._applyLines != null && !equals(this._applyLines, this.textDocument.lines)) {
+					this.lines = this._applyLines;
+					this._applyLines = void 0;
+					fireLinesChanged(bufnr);
+					this.fireContentChanges();
+				}
+			}
+		}
+		getCursorAndCol(move, edits, newLines) {
+			if (!move) return {};
+			let pos = Position.is(move) ? move : this.cursor;
+			if (pos) {
+				let position = getPositionFromEdits(pos, edits);
+				if (!equals(pos, position)) {
+					let column = byteIndex(toText(newLines[position.line]), position.character) + 1;
+					return {
+						cursor: [position.line + 1, column],
+						col: byteIndex(this.lines[pos.line], pos.character) + 1
+					};
+				}
+			}
+			return {};
+		}
+		async changeLines(lines) {
+			let filtered = [];
+			let newLines = this.lines.slice();
+			for (let [lnum, text] of lines) if (newLines[lnum] != text) {
+				filtered.push([lnum, text]);
+				newLines[lnum] = text;
+			}
+			if (!filtered.length) return;
+			this.nvim.call("coc#ui#change_lines", [this.bufnr, filtered], true);
+			this.nvim.redrawVim();
+			this.lines = newLines;
+			await waitNextTick();
+			fireLinesChanged(this.bufnr);
+			this._forceSync();
+		}
+		_forceSync() {
+			if (!this._attached) return;
+			this.fireContentChanges.clear();
+			this._fireContentChanges();
+		}
+		forceSync() {}
+		/**
+		* Get offset from lnum & col
+		*/
+		getOffset(lnum, col) {
+			return this.textDocument.offsetAt({
+				line: lnum - 1,
+				character: col
+			});
+		}
+		/**
+		* Check string is word.
+		*/
+		isWord(word) {
+			return this.chars.isKeyword(word);
+		}
+		getStartWord(text) {
+			let i = 0;
+			for (; i < text.length; i++) if (!this.chars.isKeywordChar(text[i])) break;
+			return text.slice(0, i);
+		}
+		/**
+		* Current word for replacement
+		*/
+		getWordRangeAtPosition(position, extraChars, current = true) {
+			let chars = this.chars;
+			if (extraChars && extraChars.length) {
+				chars = this.chars.clone();
+				for (let ch of extraChars) chars.addKeyword(ch);
+			}
+			let line = this.getline(position.line, current);
+			let ch = line[position.character];
+			if (ch == null || !chars.isKeywordChar(ch)) return null;
+			let start = position.character;
+			let end = position.character + 1;
+			while (start >= 0) {
+				let ch = line[start - 1];
+				if (!ch || !chars.isKeywordChar(ch)) break;
+				start = start - 1;
+			}
+			while (end <= line.length) {
+				let ch = line[end];
+				if (!ch || !chars.isKeywordChar(ch)) break;
+				end = end + 1;
+			}
+			return Range.create(position.line, start, position.line, end);
+		}
+		createTextDocument(version, lines) {
+			let { uri, languageId, eol } = this;
+			return this._textDocument = new LinesTextDocument(uri, languageId, version, lines, this.bufnr, eol);
+		}
+		/**
+		* Get ranges of word in textDocument.
+		*/
+		getSymbolRanges(word) {
+			let { version, languageId, uri } = this;
+			let textDocument = new LinesTextDocument(uri, languageId, version, this.lines, this.bufnr, this.eol);
+			let res = [];
+			let content = textDocument.getText();
+			let str = "";
+			for (let i = 0, l = content.length; i < l; i++) {
+				let ch = content[i];
+				if ("-" == ch && str.length == 0) continue;
+				let isKeyword = this.chars.isKeywordChar(ch);
+				if (isKeyword) str = str + ch;
+				if (str.length > 0 && !isKeyword && str == word) res.push(Range.create(textDocument.positionAt(i - str.length), textDocument.positionAt(i)));
+				if (!isKeyword) str = "";
+			}
+			return res;
+		}
+		/**
+		* Adjust col with new valid character before position.
+		*/
+		fixStartcol(position, valids) {
+			let line = this.getline(position.line);
+			if (!line) return 0;
+			let { character } = position;
+			let start = line.slice(0, character);
+			let col = byteLength(start);
+			let { chars } = this;
+			for (let i = start.length - 1; i >= 0; i--) {
+				let c = start[i];
+				if (!chars.isKeywordChar(c) && !valids.includes(c)) break;
+				col = col - byteLength(c);
+			}
+			return col;
+		}
+		/**
+		* Add vim highlight items from highlight group and range.
+		* Synchronized lines are used for calculate cols.
+		*/
+		addHighlights(items, hlGroup, range, opts = {}) {
+			let { start, end } = range;
+			if (emptyRange(range)) return;
+			for (let line = start.line; line <= end.line; line++) {
+				const text = this.getline(line, false);
+				let colStart = line == start.line ? byteIndex(text, start.character) : 0;
+				let colEnd = line == end.line ? byteIndex(text, end.character) : buffer.Buffer.byteLength(text);
+				if (colStart >= colEnd) continue;
+				items.push(Object.assign({
+					hlGroup,
+					lnum: line,
+					colStart,
+					colEnd
+				}, opts));
+			}
+		}
+		/**
+		* Line content 0 based line
+		*/
+		getline(line, current = true) {
+			if (current) return this.lines[line] || "";
+			return this.syncLines[line] || "";
+		}
+		/**
+		* Get lines, zero indexed, end exclude.
+		*/
+		getLines(start, end) {
+			return this.lines.slice(start ?? 0, end ?? this.lines.length);
+		}
+		/**
+		* Get current content text.
+		*/
+		getDocumentContent() {
+			let content = this.lines.join("\n");
+			return this.eol ? content + "\n" : content;
+		}
+		/**
+		* Get variable value by key, defined by `b:coc_{key}`
+		*/
+		getVar(key, defaultValue) {
+			let val = this.variables[`coc_${key}`];
+			return val === void 0 ? defaultValue : val;
+		}
+		/**
+		* Get position from lnum & col
+		*/
+		getPosition(lnum, col) {
+			let line = this.getline(lnum - 1);
+			if (!line || col == 0) return {
+				line: lnum - 1,
+				character: 0
+			};
+			let pre = byteSlice(line, 0, col - 1);
+			return {
+				line: lnum - 1,
+				character: pre.length
+			};
+		}
+		/**
+		* Recreate document with new filetype.
+		*/
+		setFiletype(filetype) {
+			this._filetype = filetype;
+			let lines = this.lines;
+			this._textDocument = new LinesTextDocument(this.uri, this.languageId, 1, lines, this.bufnr, this.eol);
+		}
+		/**
+		* Change iskeyword option of document
+		*/
+		setIskeyword(iskeyword, lisp) {
+			let chars = this.chars = new Chars(iskeyword);
+			let additional = this.getVar("additional_keywords", []);
+			if (lisp) chars.addKeyword("-");
+			if (additional && Array.isArray(additional)) for (let ch of additional) chars.addKeyword(ch);
+		}
+		/**
+		* Detach document.
+		*/
+		detach() {
+			disposeAll(this.disposables);
+			if (this._disposed) return;
+			this._disposed = true;
+			this._attached = false;
+			this.lines = [];
+			this.fireContentChanges.clear();
+			this._onDocumentChange.dispose();
+		}
+		/**
+		* Synchronize latest document content
+		*/
+		async synchronize() {
+			if (!this.attached) return;
+			let { changedtick } = this;
+			await this.patchChange();
+			if (changedtick != this.changedtick) await wait(30);
+		}
+		/**
+		* Synchronize buffer change
+		*/
+		async patchChange() {
+			if (!this._attached) return;
+			this._changedtick = await this.nvim.call("coc#util#get_changedtick", [this.bufnr]);
+			this._forceSync();
+		}
+		getSha256() {
+			return sha256(this.lines.join("\n"));
+		}
+		async fetchLines() {
+			let lines = await this.nvim.call("getbufline", [
+				this.bufnr,
+				1,
+				"$"
+			]);
+			this.lines = lines;
+			fireLinesChanged(this.bufnr);
+			this.fireContentChanges();
+			logger$43.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
+		}
+	};
+}));
+//#endregion
+//#region src/util/convert.ts
+function convertFormatOptions(opts) {
+	let obj = {
+		tabSize: opts.tabsize,
+		insertSpaces: opts.expandtab == 1
+	};
+	if (opts.insertFinalNewline) obj.insertFinalNewline = true;
+	if (opts.trimTrailingWhitespace) obj.trimTrailingWhitespace = true;
+	if (opts.trimFinalNewlines) obj.trimFinalNewlines = true;
+	return obj;
+}
+function getSymbolKind(kind) {
+	switch (kind) {
+		case SymbolKind.File: return "File";
+		case SymbolKind.Module: return "Module";
+		case SymbolKind.Namespace: return "Namespace";
+		case SymbolKind.Package: return "Package";
+		case SymbolKind.Class: return "Class";
+		case SymbolKind.Method: return "Method";
+		case SymbolKind.Property: return "Property";
+		case SymbolKind.Field: return "Field";
+		case SymbolKind.Constructor: return "Constructor";
+		case SymbolKind.Enum: return "Enum";
+		case SymbolKind.Interface: return "Interface";
+		case SymbolKind.Function: return "Function";
+		case SymbolKind.Variable: return "Variable";
+		case SymbolKind.Constant: return "Constant";
+		case SymbolKind.String: return "String";
+		case SymbolKind.Number: return "Number";
+		case SymbolKind.Boolean: return "Boolean";
+		case SymbolKind.Array: return "Array";
+		case SymbolKind.Object: return "Object";
+		case SymbolKind.Key: return "Key";
+		case SymbolKind.Null: return "Null";
+		case SymbolKind.EnumMember: return "EnumMember";
+		case SymbolKind.Struct: return "Struct";
+		case SymbolKind.Event: return "Event";
+		case SymbolKind.Operator: return "Operator";
+		case SymbolKind.TypeParameter: return "TypeParameter";
+		default: return "Unknown";
+	}
+}
+var init_convert = __esmMin((() => {
+	init_main$2();
+}));
+//#endregion
+//#region node_modules/bytes/index.js
+/*!
+* bytes
+* Copyright(c) 2012-2014 TJ Holowaychuk
+* Copyright(c) 2015 Jed Watson
+* MIT Licensed
+*/
+var require_bytes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	/**
+	* Module exports.
+	* @public
+	*/
+	module.exports = bytes;
+	module.exports.format = format;
+	module.exports.parse = parse;
+	/**
+	* Module variables.
+	* @private
+	*/
+	var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
+	var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
+	var map = {
+		b: 1,
+		kb: 1024,
+		mb: 1 << 20,
+		gb: 1 << 30,
+		tb: Math.pow(1024, 4),
+		pb: Math.pow(1024, 5)
+	};
+	var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
+	/**
+	* Convert the given value in bytes into a string or parse to string to an integer in bytes.
+	*
+	* @param {string|number} value
+	* @param {{
+	*  case: [string],
+	*  decimalPlaces: [number]
+	*  fixedDecimals: [boolean]
+	*  thousandsSeparator: [string]
+	*  unitSeparator: [string]
+	*  }} [options] bytes options.
+	*
+	* @returns {string|number|null}
+	*/
+	function bytes(value, options) {
+		if (typeof value === "string") return parse(value);
+		if (typeof value === "number") return format(value, options);
+		return null;
+	}
+	/**
+	* Format the given value in bytes into a string.
+	*
+	* If the value is negative, it is kept as such. If it is a float,
+	* it is rounded.
+	*
+	* @param {number} value
+	* @param {object} [options]
+	* @param {number} [options.decimalPlaces=2]
+	* @param {number} [options.fixedDecimals=false]
+	* @param {string} [options.thousandsSeparator=]
+	* @param {string} [options.unit=]
+	* @param {string} [options.unitSeparator=]
+	*
+	* @returns {string|null}
+	* @public
+	*/
+	function format(value, options) {
+		if (!Number.isFinite(value)) return null;
+		var mag = Math.abs(value);
+		var thousandsSeparator = options && options.thousandsSeparator || "";
+		var unitSeparator = options && options.unitSeparator || "";
+		var decimalPlaces = options && options.decimalPlaces !== void 0 ? options.decimalPlaces : 2;
+		var fixedDecimals = Boolean(options && options.fixedDecimals);
+		var unit = options && options.unit || "";
+		if (!unit || !map[unit.toLowerCase()]) if (mag >= map.pb) unit = "PB";
+		else if (mag >= map.tb) unit = "TB";
+		else if (mag >= map.gb) unit = "GB";
+		else if (mag >= map.mb) unit = "MB";
+		else if (mag >= map.kb) unit = "KB";
+		else unit = "B";
+		var str = (value / map[unit.toLowerCase()]).toFixed(decimalPlaces);
+		if (!fixedDecimals) str = str.replace(formatDecimalsRegExp, "$1");
+		if (thousandsSeparator) str = str.split(".").map(function(s, i) {
+			return i === 0 ? s.replace(formatThousandsRegExp, thousandsSeparator) : s;
+		}).join(".");
+		return str + unitSeparator + unit;
+	}
+	/**
+	* Parse the string value into an integer in bytes.
+	*
+	* If no unit is given, it is assumed the value is in bytes.
+	*
+	* @param {number|string} val
+	*
+	* @returns {number|null}
+	* @public
+	*/
+	function parse(val) {
+		if (typeof val === "number" && !isNaN(val)) return val;
+		if (typeof val !== "string") return null;
+		var results = parseRegExp.exec(val);
+		var floatValue;
+		var unit = "b";
+		if (!results) {
+			floatValue = parseInt(val, 10);
+			unit = "b";
+		} else {
+			floatValue = parseFloat(results[1]);
+			unit = results[4].toLowerCase();
+		}
+		if (isNaN(floatValue)) return null;
+		return Math.floor(map[unit] * floatValue);
+	}
+}));
+//#endregion
+//#region src/core/documents.ts
+var logger$42, cwd, filetypeDelay, Documents;
+var init_documents = __esmMin((() => {
+	init_main$2();
+	init_esm();
+	init_commands$2();
+	init_events();
+	init_languages();
+	init_logger$2();
+	init_document();
+	init_util$7();
+	init_array();
+	init_constants();
+	init_convert();
+	init_expand();
+	init_fs();
+	init_is();
+	init_node();
+	init_object();
+	init_platform();
+	init_protocol();
+	init_string$1();
+	logger$42 = createLogger$1("core-documents");
+	cwd = normalizeFilePath(process.cwd());
+	filetypeDelay = getConditionValue(50, 10);
+	Documents = class {
+		configurations;
+		workspaceFolder;
+		_cwd;
+		_env;
+		_bufnr;
+		_root;
+		_attached = false;
+		_currentResolve = false;
+		nvim;
+		config;
+		disposables = [];
+		_filetypeTimer = /* @__PURE__ */ new Map();
+		creating = /* @__PURE__ */ new Map();
+		buffers = /* @__PURE__ */ new Map();
+		resolves = [];
+		_onDidOpenTextDocument = new import_main$1.Emitter();
+		_onDidCloseDocument = new import_main$1.Emitter();
+		_onDidChangeDocument = new import_main$1.Emitter();
+		_onDidSaveDocument = new import_main$1.Emitter();
+		_onWillSaveDocument = new import_main$1.Emitter();
+		onDidOpenTextDocument = this._onDidOpenTextDocument.event;
+		onDidCloseDocument = this._onDidCloseDocument.event;
+		onDidChangeDocument = this._onDidChangeDocument.event;
+		onDidSaveTextDocument = this._onDidSaveDocument.event;
+		onWillSaveTextDocument = this._onWillSaveDocument.event;
+		constructor(configurations, workspaceFolder) {
+			this.configurations = configurations;
+			this.workspaceFolder = workspaceFolder;
+			this._cwd = cwd;
+			this.getConfiguration();
+			this.configurations.onDidChange(this.getConfiguration, this, this.disposables);
+		}
+		async attach(nvim, env) {
+			if (this._attached) return;
+			this.nvim = nvim;
+			this._env = env;
+			this._attached = true;
+			let { bufnrs, bufnr } = await this.nvim.call("coc#util#all_state");
+			this._bufnr = bufnr;
+			await Promise.all(bufnrs.map((bufnr) => this.createDocument(bufnr)));
+			if (isVim) {
+				const checkedTick = /* @__PURE__ */ new Map();
+				events_default.on("CursorHold", async (bufnr) => {
+					let doc = this.getDocument(bufnr);
+					if (doc && doc.attached && checkedTick.get(bufnr) != doc.changedtick) {
+						let sha256 = doc.getSha256();
+						let same = await nvim.callVim("coc#vim9#Check_sha256", [bufnr, sha256]);
+						checkedTick.set(bufnr, doc.changedtick);
+						if (!same) await doc.fetchLines();
+					}
+				}, null, this.disposables);
+			}
+			events_default.on("BufDetach", this.onBufDetach, this, this.disposables);
+			events_default.on("BufRename", async (bufnr) => {
+				this.detachBuffer(bufnr);
+				await this.createDocument(bufnr);
+			}, null, this.disposables);
+			events_default.on("DirChanged", (cwd) => {
+				this._cwd = normalizeFilePath(cwd);
+			}, null, this.disposables);
+			const checkCurrentBuffer = (bufnr) => {
+				this._bufnr = bufnr;
+				this.createDocument(bufnr);
+			};
+			events_default.on("CursorMoved", checkCurrentBuffer, null, this.disposables);
+			events_default.on("CursorMovedI", checkCurrentBuffer, null, this.disposables);
+			events_default.on("BufUnload", this.onBufUnload, this, this.disposables);
+			events_default.on("BufEnter", this.onBufEnter, this, this.disposables);
+			events_default.on("BufCreate", this.onBufCreate, this, this.disposables);
+			events_default.on("TermOpen", this.onBufCreate, this, this.disposables);
+			events_default.on("BufWritePost", this.onBufWritePost, this, this.disposables);
+			events_default.on("BufWritePre", this.onBufWritePre, this, this.disposables);
+			events_default.on("FileType", this.onFileTypeChange, this, this.disposables);
+			events_default.on("BufEnter", (bufnr) => {
+				this.createDocument(bufnr);
+			}, null, this.disposables);
+			events_default.on("TextChanged", this.onTextChange, this, this.disposables);
+			events_default.on("TextChangedI", this.onTextChange, this, this.disposables);
+		}
+		onTextChange(bufnr) {
+			let doc = this.getDocument(bufnr);
+			if (doc) doc.onTextChange();
+		}
+		getConfiguration(e) {
+			if (!e || e.affectsConfiguration("coc.preferences")) {
+				let config = this.configurations.initialConfiguration.get("coc.preferences");
+				const bytes = require_bytes();
+				this.config = {
+					maxFileSize: bytes.parse(config.maxFileSize),
+					willSaveHandlerTimeout: defaultValue(config.willSaveHandlerTimeout, 500),
+					formatOnSaveTimeout: defaultValue(config.formatOnSaveTimeout, 500),
+					useQuickfixForLocations: config.useQuickfixForLocations
+				};
+			}
+		}
+		get bufnr() {
+			return this._bufnr;
+		}
+		get root() {
+			return this._root;
+		}
+		get cwd() {
+			return this._cwd;
+		}
+		get documents() {
+			return Array.from(this.buffers.values()).filter((o) => o.attached);
+		}
+		async getCurrentUri() {
+			let bufnr = await this.nvim.call("bufnr", ["%"]);
+			let doc = this.getDocument(bufnr);
+			return doc ? doc.uri : void 0;
+		}
+		*attached(schema) {
+			for (let doc of this.buffers.values()) {
+				if (!doc.attached) continue;
+				if (schema && doc.schema !== schema) continue;
+				yield doc;
+			}
+		}
+		get bufnrs() {
+			return this.buffers.keys();
+		}
+		detach() {
+			this._attached = false;
+			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
+		}
+		resolveRoot(rootPatterns, requireRootPattern = false) {
+			let doc = this.getDocument(this.bufnr);
+			let resolved;
+			if (doc && doc.schema == "file") resolved = resolveRoot(path$5.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
+			else resolved = resolveRoot(this.cwd, rootPatterns);
+			if (requireRootPattern && !resolved) throw new Error(`Required root pattern not resolved.`);
+			return resolved;
+		}
+		get textDocuments() {
+			let docs = [];
+			for (let b of this.buffers.values()) if (b.attached) docs.push(b.textDocument);
+			return docs;
+		}
+		getDocument(uri, caseInsensitive = isWindows || isMacintosh) {
+			if (typeof uri === "number") return this.buffers.get(uri);
+			let u = URI.parse(uri);
+			uri = u.toString();
+			let isFile = u.scheme === "file";
+			for (let doc of this.buffers.values()) {
+				if (doc.uri === uri) return doc;
+				if (isFile && caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc;
+			}
+			return null;
+		}
+		/**
+		* Expand filepath with `~` and/or environment placeholders
+		*/
+		expand(input) {
+			if (input.startsWith("~")) input = os$5.homedir() + input.slice(1);
+			if (input.includes("$")) {
+				let doc = this.getDocument(this.bufnr);
+				let file = doc ? URI.parse(doc.uri).fsPath : "";
+				input = expandVariables(input, {
+					root: this._root || this._cwd,
+					cwd: this._cwd,
+					file
+				});
+				input = input.replace(/\$[\w]+/g, (match) => {
+					if (match == "$HOME") return os$5.homedir();
+					return process.env[match.slice(1)] || match;
+				});
+			}
+			return input;
+		}
+		/**
+		* Current document.
+		*/
+		get document() {
+			if (this._currentResolve) return new Promise((resolve) => {
+				this.resolves.push(resolve);
+			});
+			this._currentResolve = true;
+			return new Promise((resolve) => {
+				this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`).then((opts) => {
+					let doc;
+					if (opts != null) {
+						this.creating.delete(opts.bufnr);
+						doc = this._createDocument(opts);
+					}
+					this.resolveCurrent(doc);
+					resolve(doc);
+					this._currentResolve = false;
+				}, () => {
+					resolve(void 0);
+					this._currentResolve = false;
+				});
+			});
+		}
+		resolveCurrent(document) {
+			if (this.resolves.length > 0) while (this.resolves.length) {
+				const fn = this.resolves.pop();
+				if (fn) fn(document);
+			}
+		}
+		get uri() {
+			let { bufnr } = this;
+			if (bufnr) {
+				let doc = this.getDocument(bufnr);
+				if (doc) return doc.uri;
+			}
+			return null;
+		}
+		/**
+		* Current filetypes.
+		*/
+		get filetypes() {
+			let res = /* @__PURE__ */ new Set();
+			for (let doc of this.attached()) res.add(doc.filetype);
+			return res;
+		}
+		/**
+		* Get filetype by check same extension name buffer.
+		*/
+		getLanguageId(filepath) {
+			let ext = path$5.extname(filepath);
+			if (!ext) return "";
+			for (let doc of this.attached()) {
+				let fsPath = URI.parse(doc.uri).fsPath;
+				if (path$5.extname(fsPath) == ext) return doc.languageId;
+			}
+			return "";
+		}
+		async getLines(uri) {
+			let doc = this.getDocument(uri);
+			if (doc) return doc.textDocument.lines;
+			let u = URI.parse(uri);
+			if (u.scheme !== "file") return [];
+			try {
+				return (await readFile(u.fsPath, "utf8")).split(/\r?\n/);
+			} catch (e) {
+				return [];
+			}
+		}
+		/**
+		* Current languageIds.
+		*/
+		get languageIds() {
+			let res = /* @__PURE__ */ new Set();
+			for (let doc of this.attached()) res.add(doc.languageId);
+			return res;
+		}
+		/**
+		* Get format options
+		*/
+		async getFormatOptions(uri) {
+			let bufnr = typeof uri === "number" ? uri : this.getBufnr(uri);
+			return convertFormatOptions(await this.nvim.call("coc#util#get_format_opts", [bufnr]));
+		}
+		getBufnr(uri) {
+			if (!uri) return 0;
+			let doc = this.getDocument(uri);
+			return doc ? doc.bufnr : 0;
+		}
+		/**
+		* Create document by bufnr.
+		*/
+		async createDocument(bufnr) {
+			let doc = this.buffers.get(bufnr);
+			if (doc) return doc;
+			if (this.creating.has(bufnr)) return await this.creating.get(bufnr);
+			let promise = new Promise((resolve) => {
+				this.nvim.call("coc#util#get_bufoptions", [bufnr, this.config.maxFileSize]).then((opts) => {
+					if (!this.creating.has(bufnr)) {
+						resolve(void 0);
+						return;
+					}
+					this.creating.delete(bufnr);
+					if (!opts) {
+						resolve(void 0);
+						return;
+					}
+					doc = this._createDocument(opts);
+					resolve(doc);
+				}, () => {
+					this.creating.delete(bufnr);
+					resolve(void 0);
+				});
+			});
+			this.creating.set(bufnr, promise);
+			return await promise;
+		}
+		async onBufCreate(bufnr) {
+			this.onBufUnload(bufnr);
+			await this.createDocument(bufnr);
+		}
+		_createDocument(opts) {
+			let { bufnr } = opts;
+			if (this.buffers.has(bufnr)) return this.buffers.get(bufnr);
+			let doc = new Document(this.nvim.createBuffer(bufnr), this.nvim, this.convertFiletype(opts.filetype), opts);
+			if (opts.size > this.config.maxFileSize) logger$42.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
+			this.buffers.set(bufnr, doc);
+			if (doc.attached) {
+				if (doc.schema == "file") {
+					this.configurations.locateFolderConfigution(doc.uri);
+					let root = this.workspaceFolder.resolveRoot(doc, this._cwd, true, this.expand.bind(this));
+					if (root && bufnr == this._bufnr) this.changeRoot(root);
+				}
+				this._onDidOpenTextDocument.fire(doc.textDocument);
+				doc.onDocumentChange((e) => this._onDidChangeDocument.fire(e));
+			}
+			logger$42.debug("buffer created", bufnr, doc.attached, doc.uri);
+			return doc;
+		}
+		onBufEnter(bufnr) {
+			this._bufnr = bufnr;
+			let doc = this.buffers.get(bufnr);
+			if (doc) {
+				let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri));
+				if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath;
+			}
+		}
+		onBufUnload(bufnr) {
+			this.creating.delete(bufnr);
+			this.onBufDetach(bufnr, false);
+		}
+		async onBufDetach(bufnr, checkReload = true) {
+			this.clearTimer(bufnr);
+			this.detachBuffer(bufnr);
+			if (checkReload) {
+				if (await this.nvim.call("bufloaded", [bufnr])) await this.createDocument(bufnr);
+			}
+		}
+		detachBuffer(bufnr) {
+			let doc = this.buffers.get(bufnr);
+			this.buffers.delete(bufnr);
+			if (!doc || !doc.attached) return;
+			logger$42.debug("document detach", bufnr, doc.uri);
+			this._onDidCloseDocument.fire(doc.textDocument);
+			doc.detach();
+			const uris = this.textDocuments.map((o) => URI.parse(o.uri));
+			this.workspaceFolder.onDocumentDetach(uris);
+		}
+		async onBufWritePost(bufnr, changedtick) {
+			let doc = this.buffers.get(bufnr);
+			if (doc) {
+				if (doc.changedtick != changedtick) await doc.patchChange();
+				this._onDidSaveDocument.fire(doc.textDocument);
+			}
+		}
+		async onBufWritePre(bufnr, bufname, changedtick) {
+			let doc = this.buffers.get(bufnr);
+			if (!doc || !doc.attached) return;
+			if (doc.bufname != bufname) {
+				this.detachBuffer(bufnr);
+				doc = await this.createDocument(bufnr);
+				if (!doc.attached) return;
+			}
+			if (doc.changedtick != changedtick) await doc.synchronize();
+			else await doc.patchChange();
+			let firing = true;
+			let thenables = [];
+			let event = {
+				bufnr: doc.bufnr,
+				document: doc.textDocument,
+				reason: import_main$1.TextDocumentSaveReason.Manual,
+				waitUntil: (thenable) => {
+					if (!firing) this.nvim.echoError(`waitUntil can't be used in async manner, check log for details`);
+					else thenables.push(thenable);
+				}
+			};
+			this._onWillSaveDocument.fire(event);
+			firing = false;
+			let total = thenables.length;
+			if (total) {
+				let edits = await new Promise((resolve) => {
+					const willSaveHandlerTimeout = this.config.willSaveHandlerTimeout;
+					let timer = setTimeout(() => {
+						this.nvim.outWriteLine(`Will save handler timeout after ${willSaveHandlerTimeout}ms`);
+						resolve(void 0);
+					}, willSaveHandlerTimeout);
+					let i = 0;
+					let called = false;
+					for (let p of thenables) {
+						let cb = (res) => {
+							if (called) return;
+							called = true;
+							clearTimeout(timer);
+							resolve(res);
+						};
+						p.then((res) => {
+							if (Array.isArray(res) && res.length && TextEdit.is(res[0])) return cb(res);
+							i = i + 1;
+							if (i == total) cb(void 0);
+						}, (e) => {
+							logger$42.error(`Error on will save handler:`, e);
+							i = i + 1;
+							if (i == total) cb(void 0);
+						});
+					}
+				});
+				if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr);
+			}
+			await this.tryCodeActionsOnSave(doc);
+			await this.tryFormatOnSave(doc);
+		}
+		async tryFormatOnSave(document) {
+			if (!this.shouldFormatOnSave(document)) return;
+			let options = await this.getFormatOptions(document.uri);
+			let formatOnSaveTimeout = this.config.formatOnSaveTimeout;
+			let timer;
+			let tokenSource = new import_main$1.CancellationTokenSource();
+			const tp = new Promise((c) => {
+				timer = setTimeout(() => {
+					logger$42.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
+					tokenSource.cancel();
+					c(void 0);
+				}, formatOnSaveTimeout);
+			});
+			const provideEdits = languages_default.provideDocumentFormattingEdits(document.textDocument, options, tokenSource.token);
+			let textEdits = await Promise.race([tp, provideEdits]);
+			clearTimeout(timer);
+			if (isFalsyOrEmpty(textEdits)) return;
+			await document.applyEdits(textEdits);
+			let extensionName = textEdits["__extensionName"];
+			logger$42.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
+		}
+		async tryCodeActionsOnSave(doc) {
+			let conf = this.configurations.getConfiguration("editor", doc.textDocument).get("codeActionsOnSave", {});
+			if (emptyObject(conf)) return false;
+			const actions = [];
+			for (const key of Object.keys(conf)) if (conf[key] === true || conf[key] === "always") actions.push(key);
+			if (actions.length === 0) return false;
+			await commands_default.executeCommand("editor.action.executeCodeActions", doc, void 0, actions, this.config.willSaveHandlerTimeout);
+			return true;
+		}
+		shouldFormatOnSave(document) {
+			const config = this.configurations.getConfiguration("coc.preferences", document);
+			const filetypes = config.get("formatOnSaveFiletypes", null) ?? [];
+			if (!(filetypes.includes("*") || filetypes.includes(document.languageId) || config.get("formatOnSave", false))) return false;
+			if (!languages_default.hasFormatProvider(document)) {
+				logger$42.warn(`Format provider not found for ${document.uri}`);
+				return false;
+			}
+			if (!document || document.getVar("disable_autoformat", 0)) {
+				logger$42.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
+				return false;
+			}
+			return true;
+		}
+		onFileTypeChange(filetype, bufnr) {
+			let doc = this.getDocument(bufnr);
+			if (!doc) return;
+			this.clearTimer(bufnr);
+			let timer = setTimeout(() => {
+				if (this.creating.has(bufnr) || !doc.attached) return;
+				if (this.convertFiletype(filetype) === doc.filetype) return;
+				this._onDidCloseDocument.fire(doc.textDocument);
+				doc.setFiletype(filetype);
+				this._onDidOpenTextDocument.fire(doc.textDocument);
+			}, filetypeDelay);
+			this._filetypeTimer.set(bufnr, timer);
+		}
+		async getQuickfixList(locations) {
+			let filesLines = {};
+			let filepathList = locations.reduce((pre, curr) => {
+				let u = URI.parse(curr.uri);
+				if (u.scheme == "file" && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) pre.push(u.fsPath);
+				return pre;
+			}, []);
+			await Promise.all(filepathList.map((fsPath) => {
+				return new Promise((resolve) => {
+					readFile(fsPath, "utf8").then((content) => {
+						filesLines[fsPath] = content.split(/\r?\n/);
+						resolve(void 0);
+					}, () => {
+						resolve();
+					});
+				});
+			}));
+			return await Promise.all(locations.map((loc) => {
+				let { uri, range } = loc;
+				let { fsPath } = URI.parse(uri);
+				let text;
+				let lines = filesLines[fsPath];
+				if (lines) text = lines[range.start.line];
+				return this.getQuickfixItem(loc, text);
+			}));
+		}
+		/**
+		* Populate locations to UI.
+		*/
+		async showLocations(locations) {
+			let { nvim } = this;
+			let items = await this.getQuickfixList(locations);
+			if (this.config.useQuickfixForLocations) {
+				let openCommand = await nvim.getVar("coc_quickfix_open_command");
+				if (typeof openCommand != "string") openCommand = items.length < 10 ? `copen ${items.length}` : "copen";
+				nvim.pauseNotification();
+				nvim.call("setqflist", [items], true);
+				nvim.command(openCommand, true);
+				nvim.resumeNotification(false, true);
+			} else {
+				await nvim.setVar("coc_jump_locations", items);
+				if (this._env.locationlist) nvim.command("CocList --normal --auto-preview location", true);
+				else nvim.call("coc#util#do_autocmd", ["CocLocationsChange"], true);
+			}
+		}
+		fixUnixPrefix(filepath) {
+			if (!this._env.isCygwin || !/^\w:/.test(filepath)) return filepath;
+			return this._env.unixPrefix + filepath[0].toLowerCase() + filepath.slice(2).replace(/\\/g, "/");
+		}
+		/**
+		* Convert location to quickfix item.
+		*/
+		async getQuickfixItem(loc, text, type = "", module) {
+			let targetRange = loc.targetRange;
+			if (LocationLink.is(loc)) loc = Location.create(loc.targetUri, loc.targetRange);
+			let doc = this.getDocument(loc.uri);
+			let { uri, range } = loc;
+			let { start, end } = range;
+			let u = URI.parse(uri);
+			if (!text && u.scheme == "file") text = await this.getLine(uri, start.line);
+			let endLine = start.line == end.line ? text : await this.getLine(uri, end.line);
+			let item = {
+				uri,
+				filename: u.scheme == "file" ? this.fixUnixPrefix(u.fsPath) : uri,
+				lnum: start.line + 1,
+				end_lnum: end.line + 1,
+				col: text ? byteIndex(text, start.character) + 1 : start.character + 1,
+				end_col: endLine ? byteIndex(endLine, end.character) + 1 : end.character + 1,
+				text: text || "",
+				range
+			};
+			if (targetRange) item.targetRange = targetRange;
+			if (module) item.module = module;
+			if (type) item.type = type;
+			if (doc) item.bufnr = doc.bufnr;
+			return item;
+		}
+		/**
+		* Get content of line by uri and line.
+		*/
+		async getLine(uri, line) {
+			let document = this.getDocument(uri);
+			if (document && document.attached) return document.getline(line) || "";
+			if (!uri.startsWith("file:")) return "";
+			let fsPath = URI.parse(uri).fsPath;
+			if (!fs$5.existsSync(fsPath)) return "";
+			return await readFileLine(fsPath, line);
+		}
+		/**
+		* Get content from buffer or file by uri.
+		*/
+		async readFile(uri) {
+			let document = this.getDocument(uri);
+			if (document) {
+				await document.patchChange();
+				return document.content;
+			}
+			let u = URI.parse(uri);
+			if (u.scheme != "file") return "";
+			return (await this.nvim.call("readfile", [u.fsPath])).join("\n") + "\n";
+		}
+		clearTimer(bufnr) {
+			let timer = this._filetypeTimer.get(bufnr);
+			if (timer) clearTimeout(timer);
+		}
+		convertFiletype(filetype) {
+			switch (filetype) {
+				case "javascript.jsx": return "javascriptreact";
+				case "typescript.jsx":
+				case "typescript.tsx": return "typescriptreact";
+				case "tex": return "latex";
+				default: {
+					let map = toObject(this._env.filetypeMap);
+					return toText(hasOwnProperty$1(map, filetype) ? map[filetype] : filetype);
+				}
+			}
+		}
+		reset() {
+			this.creating.clear();
+			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
+			this.buffers.clear();
+			this.changeRoot(process.cwd());
+		}
+		changeRoot(dir) {
+			this._root = normalizeFilePath(dir);
+		}
+		dispose() {
+			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
+			this._attached = false;
+			this.buffers.clear();
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/core/editors.ts
+function renamed(editor, info) {
+	let { document, uri } = editor;
+	if (document.bufnr != info.bufnr) return false;
+	let u = URI.parse(uri);
+	if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
+	return false;
+}
+var logger$41, Editors;
+var init_editors = __esmMin((() => {
+	init_main$2();
+	init_esm();
+	init_events();
+	init_logger$2();
+	init_convert();
+	init_errors();
+	init_fs();
+	init_mutex();
+	init_protocol();
+	logger$41 = createLogger$1("core-editors");
+	Editors = class {
+		documents;
+		disposables = [];
+		winid = -1;
+		mutex = new Mutex();
+		previousId;
+		nvim;
+		editors = /* @__PURE__ */ new Map();
+		tabIds = /* @__PURE__ */ new Set();
+		creating = /* @__PURE__ */ new Set();
+		_onDidTabClose = new import_main$1.Emitter();
+		_onDidChangeActiveTextEditor = new import_main$1.Emitter();
+		_onDidChangeVisibleTextEditors = new import_main$1.Emitter();
+		onDidTabClose = this._onDidTabClose.event;
+		onDidChangeActiveTextEditor = this._onDidChangeActiveTextEditor.event;
+		onDidChangeVisibleTextEditors = this._onDidChangeVisibleTextEditors.event;
+		constructor(documents) {
+			this.documents = documents;
+		}
+		get activeTextEditor() {
+			return this.editors.get(this.winid);
+		}
+		get visibleTextEditors() {
+			return Array.from(this.editors.values());
+		}
+		getFormatOptions(bufnr) {
+			for (let editor of this.editors.values()) if (editor.bufnr === bufnr || editor.uri === bufnr) return editor.options;
+		}
+		getBufWinids(bufnr) {
+			let winids = [];
+			for (let editor of this.editors.values()) if (editor.bufnr == bufnr) winids.push(editor.winid);
+			return winids;
+		}
+		onChangeCurrent(editor) {
+			if (!editor) return;
+			let id = editor.id;
+			if (id === this.previousId) return;
+			this.previousId = id;
+			this._onDidChangeActiveTextEditor.fire(editor);
+		}
+		async attach(nvim) {
+			this.nvim = nvim;
+			let [winid, infos] = await nvim.eval(`[win_getid(),coc#util#editor_infos()]`);
+			await Promise.allSettled(infos.map((info) => {
+				return this.createTextEditor(info.winid);
+			}));
+			this.winid = winid;
+			events_default.on("CursorHold", this.checkEditors, this, this.disposables);
+			events_default.on("TabNew", (tabid) => {
+				this.tabIds.add(tabid);
+			}, null, this.disposables);
+			events_default.on("TabClosed", this.checkTabs, this, this.disposables);
+			events_default.on("WinEnter", (winid) => {
+				this.winid = winid;
+				let editor = this.editors.get(winid);
+				if (editor) this.onChangeCurrent(editor);
+			}, null, this.disposables);
+			events_default.on("WinClosed", (winid) => {
+				if (this.editors.has(winid)) {
+					this.editors.delete(winid);
+					this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+				}
+			}, null, this.disposables);
+			events_default.on("BufWinEnter", async (_, winid) => {
+				this.winid = winid;
+				if (await this.createTextEditor(winid)) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+			}, null, this.disposables);
+			this.documents.onDidOpenTextDocument(async (e) => {
+				let document = this.documents.getDocument(e.bufnr);
+				let changed = false;
+				for (let winid of document.winids) if (this.editors.get(winid)?.document !== document) {
+					if (await this.createTextEditor(winid).catch(onUnexpectedError)) changed = true;
+				}
+				if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+			}, null, this.disposables);
+		}
+		checkTabs(ids) {
+			let changed = false;
+			for (let editor of this.editors.values()) if (!ids.includes(editor.tabpageid)) {
+				changed = true;
+				this.editors.delete(editor.winid);
+			}
+			for (let id of Array.from(this.tabIds)) if (!ids.includes(id)) this._onDidTabClose.fire(id);
+			this.tabIds = new Set(ids);
+			if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+		}
+		checkUnloadedBuffers(bufnrs) {
+			for (let bufnr of this.documents.bufnrs) if (!bufnrs.includes(bufnr)) events_default.fire("BufUnload", [bufnr]);
+		}
+		async checkEditors() {
+			let { documents } = this;
+			await this.mutex.use(async () => {
+				let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`);
+				this.winid = winid;
+				this.checkUnloadedBuffers(bufnrs);
+				let changed = false;
+				let winids = /* @__PURE__ */ new Set();
+				for (let info of infos) {
+					let editor = this.editors.get(info.winid);
+					let create = false;
+					if (!editor) create = true;
+					else if (renamed(editor, info)) {
+						events_default.fire("BufRename", [info.bufnr]);
+						create = true;
+					} else if (editor.document.bufnr != info.bufnr || editor.document !== documents.getDocument(info.bufnr) || editor.tabpageid != info.tabid) create = true;
+					if (create) {
+						await this.createTextEditor(info.winid);
+						changed = true;
+					}
+					winids.add(info.winid);
+				}
+				if (this.cleanUpEditors(winids)) changed = true;
+				this.onChangeCurrent(this.activeTextEditor);
+				if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
+			});
+		}
+		cleanUpEditors(winids) {
+			let changed = false;
+			for (let winid of Array.from(this.editors.keys())) if (!winids.has(winid)) {
+				changed = true;
+				this.editors.delete(winid);
+			}
+			return changed;
+		}
+		async createTextEditor(winid) {
+			let { documents, creating, nvim } = this;
+			if (creating.has(winid)) return false;
+			let changed = false;
+			creating.add(winid);
+			let opts = await nvim.call("coc#util#get_editoroption", [winid]);
+			if (opts) {
+				this.tabIds.add(opts.tabpageid);
+				let doc = documents.getDocument(opts.bufnr);
+				if (doc && doc.attached) {
+					let editor = this.fromOptions(opts);
+					this.editors.set(winid, editor);
+					if (winid == this.winid) this.onChangeCurrent(editor);
+					logger$41.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
+					changed = true;
+				} else if (this.editors.has(winid)) {
+					this.editors.delete(winid);
+					changed = true;
+				}
+			}
+			creating.delete(winid);
+			return changed;
+		}
+		fromOptions(opts) {
+			let { visibleRanges, bufnr, formatOptions } = opts;
+			let { documents } = this;
+			let document = documents.getDocument(bufnr);
+			return {
+				id: `${opts.tabpageid}-${opts.winid}-${document.uri}`,
+				tabpageid: opts.tabpageid,
+				winid: opts.winid,
+				winnr: opts.winnr,
+				uri: document.uri,
+				bufnr: document.bufnr,
+				document,
+				visibleRanges: visibleRanges.map((o) => Range.create(o[0] - 1, 0, o[1], 0)),
+				options: convertFormatOptions(formatOptions)
+			};
+		}
+	};
+}));
+//#endregion
+//#region node_modules/node-int64/Int64.js
+var require_Int64 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var VAL32 = 4294967296;
+	var _HEX = [];
+	for (var i = 0; i < 256; i++) _HEX[i] = (i > 15 ? "" : "0") + i.toString(16);
+	/**
+	* Constructor accepts any of the following argument types:
+	*
+	* new Int64(buffer[, offset=0]) - Existing Buffer with byte offset
+	* new Int64(Uint8Array[, offset=0]) - Existing Uint8Array with a byte offset
+	* new Int64(string)             - Hex string (throws if n is outside int64 range)
+	* new Int64(number)             - Number (throws if n is outside int64 range)
+	* new Int64(hi, lo)             - Raw bits as two 32-bit values
+	*/
+	var Int64 = module.exports = function(a1, a2) {
+		if (a1 instanceof Buffer) {
+			this.buffer = a1;
+			this.offset = a2 || 0;
+		} else if (Object.prototype.toString.call(a1) == "[object Uint8Array]") {
+			this.buffer = new Buffer(a1);
+			this.offset = a2 || 0;
+		} else {
+			this.buffer = this.buffer || new Buffer(8);
+			this.offset = 0;
+			this.setValue.apply(this, arguments);
+		}
+	};
+	Int64.MAX_INT = Math.pow(2, 53);
+	Int64.MIN_INT = -Math.pow(2, 53);
+	Int64.prototype = {
+		constructor: Int64,
+		/**
+		* Do in-place 2's compliment.  See
+		* http://en.wikipedia.org/wiki/Two's_complement
+		*/
+		_2scomp: function() {
+			var b = this.buffer, o = this.offset, carry = 1;
+			for (var i = o + 7; i >= o; i--) {
+				var v = (b[i] ^ 255) + carry;
+				b[i] = v & 255;
+				carry = v >> 8;
+			}
+		},
+		/**
+		* Set the value. Takes any of the following arguments:
+		*
+		* setValue(string) - A hexidecimal string
+		* setValue(number) - Number (throws if n is outside int64 range)
+		* setValue(hi, lo) - Raw bits as two 32-bit values
+		*/
+		setValue: function(hi, lo) {
+			var negate = false;
+			if (arguments.length == 1) if (typeof hi == "number") {
+				negate = hi < 0;
+				hi = Math.abs(hi);
+				lo = hi % VAL32;
+				hi = hi / VAL32;
+				if (hi > VAL32) throw new RangeError(hi + " is outside Int64 range");
+				hi = hi | 0;
+			} else if (typeof hi == "string") {
+				hi = (hi + "").replace(/^0x/, "");
+				lo = hi.substr(-8);
+				hi = hi.length > 8 ? hi.substr(0, hi.length - 8) : "";
+				hi = parseInt(hi, 16);
+				lo = parseInt(lo, 16);
+			} else throw new Error(hi + " must be a Number or String");
+			var b = this.buffer, o = this.offset;
+			for (var i = 7; i >= 0; i--) {
+				b[o + i] = lo & 255;
+				lo = i == 4 ? hi : lo >>> 8;
+			}
+			if (negate) this._2scomp();
+		},
+		/**
+		* Convert to a native JS number.
+		*
+		* WARNING: Do not expect this value to be accurate to integer precision for
+		* large (positive or negative) numbers!
+		*
+		* @param allowImprecise If true, no check is performed to verify the
+		* returned value is accurate to integer precision.  If false, imprecise
+		* numbers (very large positive or negative numbers) will be forced to +/-
+		* Infinity.
+		*/
+		toNumber: function(allowImprecise) {
+			var b = this.buffer, o = this.offset;
+			var negate = b[o] & 128, x = 0, carry = 1;
+			for (var i = 7, m = 1; i >= 0; i--, m *= 256) {
+				var v = b[o + i];
+				if (negate) {
+					v = (v ^ 255) + carry;
+					carry = v >> 8;
+					v = v & 255;
+				}
+				x += v * m;
+			}
+			if (!allowImprecise && x >= Int64.MAX_INT) return negate ? -Infinity : Infinity;
+			return negate ? -x : x;
+		},
+		/**
+		* Convert to a JS Number. Returns +/-Infinity for values that can't be
+		* represented to integer precision.
+		*/
+		valueOf: function() {
+			return this.toNumber(false);
+		},
+		/**
+		* Return string value
+		*
+		* @param radix Just like Number#toString()'s radix
+		*/
+		toString: function(radix) {
+			return this.valueOf().toString(radix || 10);
+		},
+		/**
+		* Return a string showing the buffer octets, with MSB on the left.
+		*
+		* @param sep separator string. default is '' (empty string)
+		*/
+		toOctetString: function(sep) {
+			var out = new Array(8);
+			var b = this.buffer, o = this.offset;
+			for (var i = 0; i < 8; i++) out[i] = _HEX[b[o + i]];
+			return out.join(sep || "");
+		},
+		/**
+		* Returns the int64's 8 bytes in a buffer.
+		*
+		* @param {bool} [rawBuffer=false]  If no offset and this is true, return the internal buffer.  Should only be used if
+		*                                  you're discarding the Int64 afterwards, as it breaks encapsulation.
+		*/
+		toBuffer: function(rawBuffer) {
+			if (rawBuffer && this.offset === 0) return this.buffer;
+			var out = new Buffer(8);
+			this.buffer.copy(out, 0, this.offset, this.offset + 8);
+			return out;
+		},
+		/**
+		* Copy 8 bytes of int64 into target buffer at target offset.
+		*
+		* @param {Buffer} targetBuffer       Buffer to copy into.
+		* @param {number} [targetOffset=0]   Offset into target buffer.
+		*/
+		copy: function(targetBuffer, targetOffset) {
+			this.buffer.copy(targetBuffer, targetOffset || 0, this.offset, this.offset + 8);
+		},
+		/**
+		* Returns a number indicating whether this comes before or after or is the
+		* same as the other in sort order.
+		*
+		* @param {Int64} other  Other Int64 to compare.
+		*/
+		compare: function(other) {
+			if ((this.buffer[this.offset] & 128) != (other.buffer[other.offset] & 128)) return other.buffer[other.offset] - this.buffer[this.offset];
+			for (var i = 0; i < 8; i++) if (this.buffer[this.offset + i] !== other.buffer[other.offset + i]) return this.buffer[this.offset + i] - other.buffer[other.offset + i];
+			return 0;
+		},
+		/**
+		* Returns a boolean indicating if this integer is equal to other.
+		*
+		* @param {Int64} other  Other Int64 to compare.
+		*/
+		equals: function(other) {
+			return this.compare(other) === 0;
+		},
+		/**
+		* Pretty output in console.log
+		*/
+		inspect: function() {
+			return "[Int64 value:" + this + " octets:" + this.toOctetString(" ") + "]";
+		}
+	};
+}));
+//#endregion
+//#region node_modules/bser/index.js
+var require_bser = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var EE$1 = require("events").EventEmitter;
+	var util$7 = require("util");
+	var os$2 = require("os");
+	require("assert");
+	var Int64 = require_Int64();
+	var isBigEndian = os$2.endianness() == "BE";
+	function nextPow2(size) {
+		return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
+	}
+	function Accumulator(initsize) {
+		this.buf = Buffer.alloc(nextPow2(initsize || 8192));
+		this.readOffset = 0;
+		this.writeOffset = 0;
+	}
+	exports.Accumulator = Accumulator;
+	Accumulator.prototype.writeAvail = function() {
+		return this.buf.length - this.writeOffset;
+	};
+	Accumulator.prototype.readAvail = function() {
+		return this.writeOffset - this.readOffset;
+	};
+	Accumulator.prototype.reserve = function(size) {
+		if (size < this.writeAvail()) return;
+		if (this.readOffset > 0) {
+			this.buf.copy(this.buf, 0, this.readOffset, this.writeOffset);
+			this.writeOffset -= this.readOffset;
+			this.readOffset = 0;
+		}
+		if (size < this.writeAvail()) return;
+		var buf = Buffer.alloc(nextPow2(this.buf.length + size - this.writeAvail()));
+		this.buf.copy(buf);
+		this.buf = buf;
+	};
+	Accumulator.prototype.append = function(buf) {
+		if (Buffer.isBuffer(buf)) {
+			this.reserve(buf.length);
+			buf.copy(this.buf, this.writeOffset, 0, buf.length);
+			this.writeOffset += buf.length;
+		} else {
+			var size = Buffer.byteLength(buf);
+			this.reserve(size);
+			this.buf.write(buf, this.writeOffset);
+			this.writeOffset += size;
+		}
+	};
+	Accumulator.prototype.assertReadableSize = function(size) {
+		if (this.readAvail() < size) throw new Error("wanted to read " + size + " bytes but only have " + this.readAvail());
+	};
+	Accumulator.prototype.peekString = function(size) {
+		this.assertReadableSize(size);
+		return this.buf.toString("utf-8", this.readOffset, this.readOffset + size);
+	};
+	Accumulator.prototype.readString = function(size) {
+		var str = this.peekString(size);
+		this.readOffset += size;
+		return str;
+	};
+	Accumulator.prototype.peekInt = function(size) {
+		this.assertReadableSize(size);
+		switch (size) {
+			case 1: return this.buf.readInt8(this.readOffset, size);
+			case 2: return isBigEndian ? this.buf.readInt16BE(this.readOffset, size) : this.buf.readInt16LE(this.readOffset, size);
+			case 4: return isBigEndian ? this.buf.readInt32BE(this.readOffset, size) : this.buf.readInt32LE(this.readOffset, size);
+			case 8:
+				var big = this.buf.slice(this.readOffset, this.readOffset + 8);
+				if (isBigEndian) return new Int64(big);
+				return new Int64(byteswap64(big));
+			default: throw new Error("invalid integer size " + size);
+		}
+	};
+	Accumulator.prototype.readInt = function(bytes) {
+		var ival = this.peekInt(bytes);
+		if (ival instanceof Int64 && isFinite(ival.valueOf())) ival = ival.valueOf();
+		this.readOffset += bytes;
+		return ival;
+	};
+	Accumulator.prototype.peekDouble = function() {
+		this.assertReadableSize(8);
+		return isBigEndian ? this.buf.readDoubleBE(this.readOffset) : this.buf.readDoubleLE(this.readOffset);
+	};
+	Accumulator.prototype.readDouble = function() {
+		var dval = this.peekDouble();
+		this.readOffset += 8;
+		return dval;
+	};
+	Accumulator.prototype.readAdvance = function(size) {
+		if (size > 0) this.assertReadableSize(size);
+		else if (size < 0 && this.readOffset + size < 0) throw new Error("advance with negative offset " + size + " would seek off the start of the buffer");
+		this.readOffset += size;
+	};
+	Accumulator.prototype.writeByte = function(value) {
+		this.reserve(1);
+		this.buf.writeInt8(value, this.writeOffset);
+		++this.writeOffset;
+	};
+	Accumulator.prototype.writeInt = function(value, size) {
+		this.reserve(size);
+		switch (size) {
+			case 1:
+				this.buf.writeInt8(value, this.writeOffset);
+				break;
+			case 2:
+				if (isBigEndian) this.buf.writeInt16BE(value, this.writeOffset);
+				else this.buf.writeInt16LE(value, this.writeOffset);
+				break;
+			case 4:
+				if (isBigEndian) this.buf.writeInt32BE(value, this.writeOffset);
+				else this.buf.writeInt32LE(value, this.writeOffset);
+				break;
+			default: throw new Error("unsupported integer size " + size);
+		}
+		this.writeOffset += size;
+	};
+	Accumulator.prototype.writeDouble = function(value) {
+		this.reserve(8);
+		if (isBigEndian) this.buf.writeDoubleBE(value, this.writeOffset);
+		else this.buf.writeDoubleLE(value, this.writeOffset);
+		this.writeOffset += 8;
+	};
+	var BSER_ARRAY = 0;
+	var BSER_OBJECT = 1;
+	var BSER_STRING = 2;
+	var BSER_INT8 = 3;
+	var BSER_INT16 = 4;
+	var BSER_INT32 = 5;
+	var BSER_INT64 = 6;
+	var BSER_REAL = 7;
+	var BSER_TRUE = 8;
+	var BSER_FALSE = 9;
+	var BSER_NULL = 10;
+	var BSER_TEMPLATE = 11;
+	var BSER_SKIP = 12;
+	var ST_NEED_PDU = 0;
+	var ST_FILL_PDU = 1;
+	var MAX_INT8 = 127;
+	var MAX_INT16 = 32767;
+	var MAX_INT32 = 2147483647;
+	function BunserBuf() {
+		EE$1.call(this);
+		this.buf = new Accumulator();
+		this.state = ST_NEED_PDU;
+	}
+	util$7.inherits(BunserBuf, EE$1);
+	exports.BunserBuf = BunserBuf;
+	BunserBuf.prototype.append = function(buf, synchronous) {
+		if (synchronous) {
+			this.buf.append(buf);
+			return this.process(synchronous);
+		}
+		try {
+			this.buf.append(buf);
+		} catch (err) {
+			this.emit("error", err);
+			return;
+		}
+		this.processLater();
+	};
+	BunserBuf.prototype.processLater = function() {
+		var self = this;
+		process.nextTick(function() {
+			try {
+				self.process(false);
+			} catch (err) {
+				self.emit("error", err);
+			}
+		});
+	};
+	BunserBuf.prototype.process = function(synchronous) {
+		if (this.state == ST_NEED_PDU) {
+			if (this.buf.readAvail() < 2) return;
+			this.expectCode(0);
+			this.expectCode(1);
+			this.pduLen = this.decodeInt(true);
+			if (this.pduLen === false) {
+				this.buf.readAdvance(-2);
+				return;
+			}
+			this.buf.reserve(this.pduLen);
+			this.state = ST_FILL_PDU;
+		}
+		if (this.state == ST_FILL_PDU) {
+			if (this.buf.readAvail() < this.pduLen) return;
+			var val = this.decodeAny();
+			if (synchronous) return val;
+			this.emit("value", val);
+			this.state = ST_NEED_PDU;
+		}
+		if (!synchronous && this.buf.readAvail() > 0) this.processLater();
+	};
+	BunserBuf.prototype.raise = function(reason) {
+		throw new Error(reason + ", in Buffer of length " + this.buf.buf.length + " (" + this.buf.readAvail() + " readable) at offset " + this.buf.readOffset + " buffer: " + JSON.stringify(this.buf.buf.slice(this.buf.readOffset, this.buf.readOffset + 32).toJSON()));
+	};
+	BunserBuf.prototype.expectCode = function(expected) {
+		var code = this.buf.readInt(1);
+		if (code != expected) this.raise("expected bser opcode " + expected + " but got " + code);
+	};
+	BunserBuf.prototype.decodeAny = function() {
+		var code = this.buf.peekInt(1);
+		switch (code) {
+			case BSER_INT8:
+			case BSER_INT16:
+			case BSER_INT32:
+			case BSER_INT64: return this.decodeInt();
+			case BSER_REAL:
+				this.buf.readAdvance(1);
+				return this.buf.readDouble();
+			case BSER_TRUE:
+				this.buf.readAdvance(1);
+				return true;
+			case BSER_FALSE:
+				this.buf.readAdvance(1);
+				return false;
+			case BSER_NULL:
+				this.buf.readAdvance(1);
+				return null;
+			case BSER_STRING: return this.decodeString();
+			case BSER_ARRAY: return this.decodeArray();
+			case BSER_OBJECT: return this.decodeObject();
+			case BSER_TEMPLATE: return this.decodeTemplate();
+			default: this.raise("unhandled bser opcode " + code);
+		}
+	};
+	BunserBuf.prototype.decodeArray = function() {
+		this.expectCode(BSER_ARRAY);
+		var nitems = this.decodeInt();
+		var arr = [];
+		for (var i = 0; i < nitems; ++i) arr.push(this.decodeAny());
+		return arr;
+	};
+	BunserBuf.prototype.decodeObject = function() {
+		this.expectCode(BSER_OBJECT);
+		var nitems = this.decodeInt();
+		var res = {};
+		for (var i = 0; i < nitems; ++i) {
+			var key = this.decodeString();
+			res[key] = this.decodeAny();
+		}
+		return res;
+	};
+	BunserBuf.prototype.decodeTemplate = function() {
+		this.expectCode(BSER_TEMPLATE);
+		var keys = this.decodeArray();
+		var nitems = this.decodeInt();
+		var arr = [];
+		for (var i = 0; i < nitems; ++i) {
+			var obj = {};
+			for (var keyidx = 0; keyidx < keys.length; ++keyidx) {
+				if (this.buf.peekInt(1) == BSER_SKIP) {
+					this.buf.readAdvance(1);
+					continue;
+				}
+				var val = this.decodeAny();
+				obj[keys[keyidx]] = val;
+			}
+			arr.push(obj);
+		}
+		return arr;
+	};
+	BunserBuf.prototype.decodeString = function() {
+		this.expectCode(BSER_STRING);
+		var len = this.decodeInt();
+		return this.buf.readString(len);
+	};
+	BunserBuf.prototype.decodeInt = function(relaxSizeAsserts) {
+		if (relaxSizeAsserts && this.buf.readAvail() < 1) return false;
+		else this.buf.assertReadableSize(1);
+		var code = this.buf.peekInt(1);
+		var size = 0;
+		switch (code) {
+			case BSER_INT8:
+				size = 1;
+				break;
+			case BSER_INT16:
+				size = 2;
+				break;
+			case BSER_INT32:
+				size = 4;
+				break;
+			case BSER_INT64:
+				size = 8;
+				break;
+			default: this.raise("invalid bser int encoding " + code);
+		}
+		if (relaxSizeAsserts && this.buf.readAvail() < 1 + size) return false;
+		this.buf.readAdvance(1);
+		return this.buf.readInt(size);
+	};
+	function loadFromBuffer(input) {
+		var buf = new BunserBuf();
+		var result = buf.append(input, true);
+		if (buf.buf.readAvail()) throw Error("excess data found after input buffer, use BunserBuf instead");
+		if (typeof result === "undefined") throw Error("no bser found in string and no error raised!?");
+		return result;
+	}
+	exports.loadFromBuffer = loadFromBuffer;
+	function byteswap64(buf) {
+		var swap = Buffer.alloc(buf.length);
+		for (var i = 0; i < buf.length; i++) swap[i] = buf[buf.length - 1 - i];
+		return swap;
+	}
+	function dump_int64(buf, val) {
+		var be = val.toBuffer();
+		if (isBigEndian) {
+			buf.writeByte(BSER_INT64);
+			buf.append(be);
+			return;
+		}
+		var le = byteswap64(be);
+		buf.writeByte(BSER_INT64);
+		buf.append(le);
+	}
+	function dump_int(buf, val) {
+		var abs = Math.abs(val);
+		if (abs <= MAX_INT8) {
+			buf.writeByte(BSER_INT8);
+			buf.writeInt(val, 1);
+		} else if (abs <= MAX_INT16) {
+			buf.writeByte(BSER_INT16);
+			buf.writeInt(val, 2);
+		} else if (abs <= MAX_INT32) {
+			buf.writeByte(BSER_INT32);
+			buf.writeInt(val, 4);
+		} else dump_int64(buf, new Int64(val));
+	}
+	function dump_any(buf, val) {
+		switch (typeof val) {
+			case "number":
+				if (isFinite(val) && Math.floor(val) === val) dump_int(buf, val);
+				else {
+					buf.writeByte(BSER_REAL);
+					buf.writeDouble(val);
+				}
+				return;
+			case "string":
+				buf.writeByte(BSER_STRING);
+				dump_int(buf, Buffer.byteLength(val));
+				buf.append(val);
+				return;
+			case "boolean":
+				buf.writeByte(val ? BSER_TRUE : BSER_FALSE);
+				return;
+			case "object":
+				if (val === null) {
+					buf.writeByte(BSER_NULL);
+					return;
+				}
+				if (val instanceof Int64) {
+					dump_int64(buf, val);
+					return;
+				}
+				if (Array.isArray(val)) {
+					buf.writeByte(BSER_ARRAY);
+					dump_int(buf, val.length);
+					for (var i = 0; i < val.length; ++i) dump_any(buf, val[i]);
+					return;
+				}
+				buf.writeByte(BSER_OBJECT);
+				var keys = Object.keys(val);
+				var num_keys = keys.length;
+				for (var i = 0; i < keys.length; ++i) {
+					var key = keys[i];
+					var v = val[key];
+					if (typeof v == "undefined") num_keys--;
+				}
+				dump_int(buf, num_keys);
+				for (var i = 0; i < keys.length; ++i) {
+					var key = keys[i];
+					var v = val[key];
+					if (typeof v == "undefined") continue;
+					dump_any(buf, key);
+					try {
+						dump_any(buf, v);
+					} catch (e) {
+						throw new Error(e.message + " (while serializing object property with name `" + key + "')");
+					}
+				}
+				return;
+			default: throw new Error("cannot serialize type " + typeof val + " to BSER");
+		}
+	}
+	function dumpToBuffer(val) {
+		var buf = new Accumulator();
+		buf.writeByte(0);
+		buf.writeByte(1);
+		buf.writeByte(BSER_INT32);
+		buf.writeInt(0, 4);
+		dump_any(buf, val);
+		var off = buf.writeOffset;
+		var len = off - 7;
+		buf.writeOffset = 3;
+		buf.writeInt(len, 4);
+		buf.writeOffset = off;
+		return buf.buf.slice(0, off);
+	}
+	exports.dumpToBuffer = dumpToBuffer;
+}));
+//#endregion
+//#region node_modules/fb-watchman/index.js
+/**
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var net$1 = require("net");
+	var EE = require("events").EventEmitter;
+	var util$6 = require("util");
+	var childProcess = require("child_process");
+	var bser = require_bser();
+	var unilateralTags = ["subscription", "log"];
+	/**
+	* @param options An object with the following optional keys:
+	*   * 'watchmanBinaryPath' (string) Absolute path to the watchman binary.
+	*     If not provided, the Client locates the binary using the PATH specified
+	*     by the node child_process's default env.
+	*/
+	function Client(options) {
+		EE.call(this);
+		this.watchmanBinaryPath = "watchman";
+		if (options && options.watchmanBinaryPath) this.watchmanBinaryPath = options.watchmanBinaryPath.trim();
+		this.commands = [];
+	}
+	util$6.inherits(Client, EE);
+	module.exports.Client = Client;
+	Client.prototype.sendNextCommand = function() {
+		if (this.currentCommand) return;
+		this.currentCommand = this.commands.shift();
+		if (!this.currentCommand) return;
+		this.socket.write(bser.dumpToBuffer(this.currentCommand.cmd));
+	};
+	Client.prototype.cancelCommands = function(why) {
+		var error = new Error(why);
+		var cmds = this.commands;
+		this.commands = [];
+		if (this.currentCommand) {
+			cmds.unshift(this.currentCommand);
+			this.currentCommand = null;
+		}
+		cmds.forEach(function(cmd) {
+			cmd.cb(error);
+		});
+	};
+	Client.prototype.connect = function() {
+		var self = this;
+		function makeSock(sockname) {
+			self.bunser = new bser.BunserBuf();
+			self.bunser.on("value", function(obj) {
+				var unilateral = false;
+				for (var i = 0; i < unilateralTags.length; i++) {
+					var tag = unilateralTags[i];
+					if (tag in obj) unilateral = tag;
+				}
+				if (unilateral) self.emit(unilateral, obj);
+				else if (self.currentCommand) {
+					var cmd = self.currentCommand;
+					self.currentCommand = null;
+					if ("error" in obj) {
+						var error = new Error(obj.error);
+						error.watchmanResponse = obj;
+						cmd.cb(error);
+					} else cmd.cb(null, obj);
+				}
+				self.sendNextCommand();
+			});
+			self.bunser.on("error", function(err) {
+				self.emit("error", err);
+			});
+			self.socket = net$1.createConnection(sockname);
+			self.socket.on("connect", function() {
+				self.connecting = false;
+				self.emit("connect");
+				self.sendNextCommand();
+			});
+			self.socket.on("error", function(err) {
+				self.connecting = false;
+				self.emit("error", err);
+			});
+			self.socket.on("data", function(buf) {
+				if (self.bunser) self.bunser.append(buf);
+			});
+			self.socket.on("end", function() {
+				self.socket = null;
+				self.bunser = null;
+				self.cancelCommands("The watchman connection was closed");
+				self.emit("end");
+			});
+		}
+		if (process.env.WATCHMAN_SOCK) {
+			makeSock(process.env.WATCHMAN_SOCK);
+			return;
+		}
+		var args = ["--no-pretty", "get-sockname"];
+		var proc = null;
+		var spawnFailed = false;
+		function spawnError(error) {
+			if (spawnFailed) return;
+			spawnFailed = true;
+			if (error.code === "EACCES" || error.errno === "EACCES") error.message = "The Watchman CLI is installed but cannot be spawned because of a permission problem";
+			else if (error.code === "ENOENT" || error.errno === "ENOENT") error.message = "Watchman was not found in PATH.  See https://facebook.github.io/watchman/docs/install.html for installation instructions";
+			console.error("Watchman: ", error.message);
+			self.emit("error", error);
+		}
+		try {
+			proc = childProcess.spawn(this.watchmanBinaryPath, args, {
+				stdio: [
+					"ignore",
+					"pipe",
+					"pipe"
+				],
+				windowsHide: true
+			});
+		} catch (error) {
+			spawnError(error);
+			return;
+		}
+		var stdout = [];
+		var stderr = [];
+		proc.stdout.on("data", function(data) {
+			stdout.push(data);
+		});
+		proc.stderr.on("data", function(data) {
+			data = data.toString("utf8");
+			stderr.push(data);
+			console.error(data);
+		});
+		proc.on("error", function(error) {
+			spawnError(error);
+		});
+		proc.on("close", function(code, signal) {
+			if (code !== 0) {
+				spawnError(/* @__PURE__ */ new Error(self.watchmanBinaryPath + " " + args.join(" ") + " returned with exit code=" + code + ", signal=" + signal + ", stderr= " + stderr.join("")));
+				return;
+			}
+			try {
+				var obj = JSON.parse(stdout.join(""));
+				if ("error" in obj) {
+					var error = new Error(obj.error);
+					error.watchmanResponse = obj;
+					self.emit("error", error);
+					return;
+				}
+				makeSock(obj.sockname);
+			} catch (e) {
+				self.emit("error", e);
+			}
+		});
+	};
+	Client.prototype.command = function(args, done) {
+		done = done || function() {};
+		this.commands.push({
+			cmd: args,
+			cb: done
+		});
+		if (!this.socket) {
+			if (!this.connecting) {
+				this.connecting = true;
+				this.connect();
+				return;
+			}
+			return;
+		}
+		this.sendNextCommand();
+	};
+	var cap_versions = {
+		"cmd-watch-del-all": "3.1.1",
+		"cmd-watch-project": "3.1",
+		"relative_root": "3.3",
+		"term-dirname": "3.1",
+		"term-idirname": "3.1",
+		"wildmatch": "3.7"
+	};
+	function vers_compare(a, b) {
+		a = a.split(".");
+		b = b.split(".");
+		for (var i = 0; i < 3; i++) {
+			var d = parseInt(a[i] || "0") - parseInt(b[i] || "0");
+			if (d != 0) return d;
+		}
+		return 0;
+	}
+	function have_cap(vers, name) {
+		if (name in cap_versions) return vers_compare(vers, cap_versions[name]) >= 0;
+		return false;
+	}
+	Client.prototype._synthesizeCapabilityCheck = function(resp, optional, required) {
+		resp.capabilities = {};
+		var version = resp.version;
+		optional.forEach(function(name) {
+			resp.capabilities[name] = have_cap(version, name);
+		});
+		required.forEach(function(name) {
+			var have = have_cap(version, name);
+			resp.capabilities[name] = have;
+			if (!have) resp.error = "client required capability `" + name + "` is not supported by this server";
+		});
+		return resp;
+	};
+	Client.prototype.capabilityCheck = function(caps, done) {
+		var optional = caps.optional || [];
+		var required = caps.required || [];
+		var self = this;
+		this.command(["version", {
+			optional,
+			required
+		}], function(error, resp) {
+			if (error) {
+				done(error);
+				return;
+			}
+			if (!("capabilities" in resp)) {
+				resp = self._synthesizeCapabilityCheck(resp, optional, required);
+				if (resp.error) {
+					error = new Error(resp.error);
+					error.watchmanResponse = resp;
+					done(error);
+					return;
+				}
+			}
+			done(null, resp);
+		});
+	};
+	Client.prototype.end = function() {
+		this.cancelCommands("The client was ended");
+		if (this.socket) {
+			this.socket.end();
+			this.socket = null;
+		}
+		this.bunser = null;
+	};
+}));
+//#endregion
+//#region src/core/watchman.ts
+var logger$40, requiredCapabilities, Watchman;
+var init_watchman = __esmMin((() => {
+	init_logger$2();
+	init_node();
+	logger$40 = createLogger$1("core-watchman");
+	requiredCapabilities = [
+		"relative_root",
+		"cmd-watch-project",
+		"wildmatch",
+		"field-new"
+	];
+	Watchman = class Watchman {
+		channel;
+		client;
+		relative_path;
+		_listeners = [];
+		_root;
+		subscription;
+		constructor(binaryPath, channel) {
+			this.channel = channel;
+			const watchman = require_fb_watchman();
+			this.client = new watchman.Client({ watchmanBinaryPath: binaryPath });
+			this.client.setMaxListeners(300);
+		}
+		get root() {
+			return this._root;
+		}
+		checkCapability() {
+			let { client } = this;
+			return new Promise((resolve) => {
+				client.capabilityCheck({
+					optional: [],
+					required: requiredCapabilities
+				}, (error, resp) => {
+					if (error) return resolve(false);
+					let { capabilities } = resp;
+					for (let key of Object.keys(capabilities)) if (!capabilities[key]) return resolve(false);
+					resolve(true);
+				});
+			});
+		}
+		async watchProject(root) {
+			this._root = root;
+			let { watch, warning, relative_path } = await this.command(["watch-project", root]);
+			if (!watch) return false;
+			if (warning) {
+				logger$40.warn(warning);
+				this.appendOutput(warning, "Warning");
+			}
+			this.relative_path = relative_path;
+			logger$40.info(`watchman watching project: ${root}`);
+			this.appendOutput(`watchman watching project: ${root}`);
+			let { clock } = await this.command(["clock", watch]);
+			let sub = {
+				expression: ["allof", [
+					"type",
+					"f",
+					"wholename"
+				]],
+				fields: [
+					"name",
+					"size",
+					"new",
+					"exists",
+					"type",
+					"mtime_ms",
+					"ctime_ms"
+				],
+				since: clock
+			};
+			if (relative_path) {
+				sub.relative_root = relative_path;
+				root = path$5.join(watch, relative_path);
+			}
+			let uid = crypto.randomUUID();
+			let { subscribe } = await this.command([
+				"subscribe",
+				watch,
+				uid,
+				sub
+			]);
+			this.subscription = subscribe;
+			this.appendOutput(`subscribing events in ${root}`);
+			this.client.on("subscription", (resp) => {
+				if (!resp || resp.subscription != uid || !resp.files) return;
+				for (let listener of this._listeners) listener(resp);
+			});
+			return true;
+		}
+		command(args) {
+			return new Promise((resolve, reject) => {
+				this.client.command(args, (error, resp) => {
+					if (error) return reject(error);
+					resolve(resp);
+				});
+			});
+		}
+		subscribe(globPattern, cb) {
+			let fn = (change) => {
+				let { files } = change;
+				files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
+				if (!files.length) return;
+				let ev = Object.assign({}, change);
+				if (this.relative_path) ev.root = path$5.resolve(change.root, this.relative_path);
+				this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
+				cb(ev);
+			};
+			this._listeners.push(fn);
+			return { dispose: () => {
+				let idx = this._listeners.indexOf(fn);
+				if (idx !== -1) this._listeners.splice(idx, 1);
+			} };
+		}
+		dispose() {
+			if (this.client) {
+				this.client.end();
+				this.client = void 0;
+			}
+		}
+		appendOutput(message, type = "Info") {
+			if (this.channel) this.channel.appendLine(`[${type}  - ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}] ${message}`);
+		}
+		static async createClient(binaryPath, root, channel) {
+			let watchman;
+			try {
+				watchman = new Watchman(binaryPath, channel);
+				if (!await watchman.checkCapability()) throw new Error("required capabilities do not exist.");
+				if (!await watchman.watchProject(root)) throw new Error("unable to watch");
+				return watchman;
+			} catch (e) {
+				if (watchman) watchman.dispose();
+				throw e;
+			}
+		}
+	};
+}));
+//#endregion
+//#region src/core/fileSystemWatcher.ts
+var WATCHMAN_COMMAND, FileSystemWatcherManager, FileSystemWatcher;
+var init_fileSystemWatcher$1 = __esmMin((() => {
+	init_esm();
+	init_logger$2();
+	init_util$7();
+	init_array();
+	init_fs();
+	init_node();
+	init_protocol();
+	init_watchman();
+	createLogger$1("fileSystemWatcher");
+	WATCHMAN_COMMAND = "watchman";
+	FileSystemWatcherManager = class FileSystemWatcherManager {
+		workspaceFolder;
+		config;
+		clientsMap = /* @__PURE__ */ new Map();
+		disposables = [];
+		channel;
+		creating = /* @__PURE__ */ new Set();
+		static watchers = /* @__PURE__ */ new Set();
+		_onDidCreateClient = new import_main$1.Emitter();
+		disabled = false;
+		onDidCreateClient = this._onDidCreateClient.event;
+		constructor(workspaceFolder, config) {
+			this.workspaceFolder = workspaceFolder;
+			this.config = config;
+			this.disabled = config.enable === false;
+		}
+		attach(channel) {
+			this.channel = channel;
+			let createClient = (folder) => {
+				let root = URI.parse(folder.uri).fsPath;
+				this.createClient(root);
+			};
+			this.workspaceFolder.workspaceFolders.forEach((folder) => {
+				createClient(folder);
+			});
+			this.workspaceFolder.onDidChangeWorkspaceFolders((e) => {
+				e.added.forEach((folder) => {
+					createClient(folder);
+				});
+				e.removed.forEach((folder) => {
+					let root = URI.parse(folder.uri).fsPath;
+					let client = this.clientsMap.get(root);
+					if (client) {
+						this.clientsMap.delete(root);
+						client.dispose();
+					}
+				});
+			}, null, this.disposables);
+		}
+		waitClient(root) {
+			if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root));
+			return new Promise((resolve) => {
+				let disposable = this.onDidCreateClient((r) => {
+					if (r == root) {
+						disposable.dispose();
+						resolve(this.clientsMap.get(r));
+					}
+				});
+			});
+		}
+		async createClient(root, skipCheck = false) {
+			if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return;
+			if (this.has(root)) return this.waitClient(root);
+			try {
+				this.creating.add(root);
+				let watchmanPath = await this.getWatchmanPath();
+				let client = await Watchman.createClient(watchmanPath, root, this.channel);
+				this.creating.delete(root);
+				this.clientsMap.set(root, client);
+				for (let watcher of FileSystemWatcherManager.watchers) watcher.listen(root, client);
+				this._onDidCreateClient.fire(root);
+				return client;
+			} catch (e) {
+				this.creating.delete(root);
+				if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`);
+				return false;
+			}
+		}
+		async getWatchmanPath() {
+			let watchmanPath = this.config.watchmanPath ?? WATCHMAN_COMMAND;
+			if (!process.env.WATCHMAN_SOCK) watchmanPath = await which(watchmanPath, { all: false });
+			return watchmanPath;
+		}
+		has(root) {
+			let curr = Array.from(this.clientsMap.keys());
+			curr.push(...this.creating);
+			return curr.some((r) => sameFile(r, root));
+		}
+		createFileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
+			let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents);
+			let base = typeof globPattern === "string" ? void 0 : globPattern.baseUri.fsPath;
+			for (let [root, client] of this.clientsMap.entries()) {
+				if (base && isParentFolder(root, base, true)) base = void 0;
+				fileWatcher.listen(root, client);
+			}
+			if (base) this.createClient(base);
+			FileSystemWatcherManager.watchers.add(fileWatcher);
+			return fileWatcher;
+		}
+		dispose() {
+			this._onDidCreateClient.dispose();
+			for (let client of this.clientsMap.values()) if (client) client.dispose();
+			this.clientsMap.clear();
+			FileSystemWatcherManager.watchers.clear();
+			disposeAll(this.disposables);
+		}
+	};
+	FileSystemWatcher = class {
+		globPattern;
+		ignoreCreateEvents;
+		ignoreChangeEvents;
+		ignoreDeleteEvents;
+		_onDidCreate = new import_main$1.Emitter();
+		_onDidChange = new import_main$1.Emitter();
+		_onDidDelete = new import_main$1.Emitter();
+		_onDidRename = new import_main$1.Emitter();
+		disposables = [];
+		subscribe;
+		onDidCreate = this._onDidCreate.event;
+		onDidChange = this._onDidChange.event;
+		onDidDelete = this._onDidDelete.event;
+		onDidRename = this._onDidRename.event;
+		_onDidListen = new import_main$1.Emitter();
+		onDidListen = this._onDidListen.event;
+		constructor(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
+			this.globPattern = globPattern;
+			this.ignoreCreateEvents = ignoreCreateEvents;
+			this.ignoreChangeEvents = ignoreChangeEvents;
+			this.ignoreDeleteEvents = ignoreDeleteEvents;
+		}
+		listen(root, client) {
+			let { globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents } = this;
+			let pattern;
+			let basePath;
+			if (typeof globPattern === "string") pattern = globPattern;
+			else {
+				pattern = globPattern.pattern;
+				basePath = globPattern.baseUri.fsPath;
+				if (!isParentFolder(root, basePath, true)) return;
+			}
+			const onChange = (change) => {
+				let { root, files } = change;
+				if (basePath && !sameFile(root, basePath)) files = files.filter((f) => {
+					if (f.type != "f") return false;
+					let fullpath = path$5.join(root, f.name);
+					if (!isParentFolder(basePath, fullpath)) return false;
+					return minimatch(path$5.relative(basePath, fullpath), pattern, { dot: true });
+				});
+				else files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
+				for (let file of files) {
+					let uri = URI.file(path$5.join(root, file.name));
+					if (!file.exists) {
+						if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
+					} else if (file.new === true) {
+						if (!ignoreCreateEvents) this._onDidCreate.fire(uri);
+					} else if (!ignoreChangeEvents) this._onDidChange.fire(uri);
+				}
+				if (files.length == 2 && files[0].exists !== files[1].exists) {
+					let oldFile = files.find((o) => o.exists !== true);
+					let newFile = files.find((o) => o.exists === true);
+					if (oldFile.size == newFile.size) this._onDidRename.fire({
+						oldUri: URI.file(path$5.join(root, oldFile.name)),
+						newUri: URI.file(path$5.join(root, newFile.name))
+					});
+				}
+				if (files.length > 2 && files.length % 2 == 0) {
+					let [oldFiles, newFiles] = splitArray(files, (o) => o.exists === false);
+					if (oldFiles.length == newFiles.length) for (let oldFile of oldFiles) {
+						let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
+						if (newFile) this._onDidRename.fire({
+							oldUri: URI.file(path$5.join(root, oldFile.name)),
+							newUri: URI.file(path$5.join(root, newFile.name))
+						});
+					}
+				}
+			};
+			this.subscribe = client.subscription;
+			let disposable = client.subscribe(pattern, onChange);
+			this._onDidListen.fire();
+			this.disposables.push(disposable);
+		}
+		dispose() {
+			FileSystemWatcherManager.watchers.delete(this);
+			this._onDidRename.dispose();
+			this._onDidCreate.dispose();
+			this._onDidChange.dispose();
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/model/highlighter.ts
+var Highlighter;
+var init_highlighter = __esmMin((() => {
+	init_ansiparse();
+	init_string$1();
+	Highlighter = class {
+		lines = [];
+		_highlights = [];
+		addLine(line, hlGroup) {
+			if (line.includes("\n")) {
+				for (let content of line.split(/\r?\n/)) this.addLine(content, hlGroup);
+				return;
+			}
+			if (hlGroup) this._highlights.push({
+				lnum: this.lines.length,
+				colStart: line.match(/^\s*/)[0].length,
+				colEnd: byteLength(line),
+				hlGroup
+			});
+			if (line.includes("\x1B")) {
+				let res = parseAnsiHighlights(line);
+				for (let hl of res.highlights) {
+					let { span, hlGroup } = hl;
+					this._highlights.push({
+						lnum: this.lines.length,
+						colStart: span[0],
+						colEnd: span[1],
+						hlGroup
+					});
+				}
+				this.lines.push(res.line);
+			} else this.lines.push(line);
+		}
+		addLines(lines) {
+			this.lines.push(...lines);
+		}
+		/**
+		* Add texts to new Lines
+		*/
+		addTexts(items) {
+			let len = this.lines.length;
+			let text = "";
+			for (let item of items) {
+				let colStart = byteLength(text);
+				if (item.hlGroup) this._highlights.push({
+					lnum: len,
+					colStart,
+					colEnd: colStart + byteLength(item.text),
+					hlGroup: item.hlGroup
+				});
+				text += item.text;
+			}
+			this.lines.push(text);
+		}
+		addText(text, hlGroup) {
+			if (!text) return;
+			let { lines } = this;
+			let pre = lines[lines.length - 1] || "";
+			if (text.includes("\n")) {
+				let parts = text.split("\n");
+				this.addText(parts[0], hlGroup);
+				for (let line of parts.slice(1)) this.addLine(line, hlGroup);
+				return;
+			}
+			if (hlGroup) {
+				let colStart = byteLength(pre);
+				this._highlights.push({
+					lnum: lines.length ? lines.length - 1 : 0,
+					colStart,
+					colEnd: colStart + byteLength(text),
+					hlGroup
+				});
+			}
+			if (lines.length) lines[lines.length - 1] = `${pre}${text}`;
+			else lines.push(text);
+		}
+		get length() {
+			return this.lines.length;
+		}
+		getline(line) {
+			return this.lines[line] || "";
+		}
+		get highlights() {
+			return this._highlights;
+		}
+		get content() {
+			return this.lines.join("\n");
+		}
+		render(buffer, start = 0, end = -1) {
+			buffer.setLines(this.lines, {
+				start,
+				end,
+				strictIndexing: false
+			}, true);
+			for (let item of this._highlights) buffer.addHighlight({
+				hlGroup: item.hlGroup,
+				colStart: item.colStart,
+				colEnd: item.colEnd,
+				line: start + item.lnum,
+				srcId: -1
+			});
+		}
+	};
+}));
+//#endregion
+//#region src/model/editInspect.ts
+function getOriginalLine(item, change) {
+	if (typeof item.lnum !== "number") return void 0;
+	let lnum = item.lnum;
+	if (change) {
+		let edits = change.edits.map((o) => SnippetTextEdit.is(o) ? {
+			range: o.range,
+			newText: o.snippet.value
+		} : o);
+		edits = mergeSortEdits(edits);
+		lnum = getPositionFromEdits(Position.create(lnum - 1, 0), edits).line + 1;
+	}
+	return lnum;
+}
+function grouByAnnotation(changes, annotations) {
+	let map = /* @__PURE__ */ new Map();
+	for (let change of changes) {
+		let id = getAnnotationKey(change) ?? null;
+		let key = id ? annotations[id]?.label : null;
+		let arr = map.get(key);
+		if (arr) arr.push(change);
+		else map.set(key, [change]);
+	}
+	return map;
+}
+var global_id, EditInspect;
+var init_editInspect = __esmMin((() => {
+	init_main$2();
+	init_esm();
+	init_events();
+	init_util$7();
+	init_array();
+	init_fs();
+	init_node();
+	init_textedit();
+	init_highlighter();
+	global_id = 0;
+	EditInspect = class {
+		nvim;
+		keymaps;
+		disposables = [];
+		bufnr;
+		items = [];
+		renameMap = /* @__PURE__ */ new Map();
+		constructor(nvim, keymaps) {
+			this.nvim = nvim;
+			this.keymaps = keymaps;
+			events_default.on("BufUnload", (bufnr) => {
+				if (bufnr == this.bufnr) this.dispose();
+			}, null, this.disposables);
+		}
+		addFile(filepath, highlighter, lnum) {
+			this.items.push({
+				index: highlighter.length,
+				filepath,
+				lnum
+			});
+		}
+		async show(state) {
+			let { nvim } = this;
+			let id = global_id++;
+			nvim.pauseNotification();
+			nvim.command(`tabe +setl\\ buftype=nofile CocWorkspaceEdit${id}`, true);
+			nvim.command(`setl bufhidden=wipe nolist`, true);
+			nvim.command("setl nobuflisted wrap undolevels=-1 filetype=cocedits noswapfile", true);
+			await nvim.resumeNotification(true);
+			let buffer = await nvim.buffer;
+			let cwd = await nvim.call("getcwd");
+			this.bufnr = buffer.id;
+			const relpath = (uri) => {
+				let fsPath = URI.parse(uri).fsPath;
+				return isParentFolder(cwd, fsPath, true) ? path$5.relative(cwd, fsPath) : fsPath;
+			};
+			const absPath = (filepath) => {
+				return path$5.isAbsolute(filepath) ? filepath : path$5.join(cwd, filepath);
+			};
+			let highlighter = new Highlighter();
+			let map = grouByAnnotation(toArray(state.edit.documentChanges), state.edit.changeAnnotations ?? {});
+			for (let [label, changes] of map.entries()) {
+				if (label) {
+					highlighter.addLine(label, "MoreMsg");
+					highlighter.addLine("");
+				}
+				for (let change of changes) if (TextDocumentEdit.is(change)) {
+					let linesChange = state.changes[change.textDocument.uri];
+					let fsPath = relpath(change.textDocument.uri);
+					highlighter.addTexts([
+						{
+							text: "Change",
+							hlGroup: "Title"
+						},
+						{ text: " " },
+						{
+							text: fsPath,
+							hlGroup: "Directory"
+						},
+						{
+							text: `:${linesChange.lnum}`,
+							hlGroup: "LineNr"
+						}
+					]);
+					this.addFile(fsPath, highlighter, linesChange.lnum);
+					highlighter.addLine("");
+					this.addChangedLines(highlighter, linesChange, fsPath, linesChange.lnum);
+					highlighter.addLine("");
+				} else if (CreateFile.is(change) || DeleteFile.is(change)) {
+					let title = DeleteFile.is(change) ? "Delete" : "Create";
+					let fsPath = relpath(change.uri);
+					highlighter.addTexts([
+						{
+							text: title,
+							hlGroup: "Title"
+						},
+						{ text: " " },
+						{
+							text: fsPath,
+							hlGroup: "Directory"
+						}
+					]);
+					this.addFile(fsPath, highlighter);
+					highlighter.addLine("");
+				} else if (RenameFile.is(change)) {
+					let oldPath = relpath(change.oldUri);
+					let newPath = relpath(change.newUri);
+					highlighter.addTexts([
+						{
+							text: "Rename",
+							hlGroup: "Title"
+						},
+						{ text: " " },
+						{
+							text: oldPath,
+							hlGroup: "Directory"
+						},
+						{
+							text: "->",
+							hlGroup: "Comment"
+						},
+						{
+							text: newPath,
+							hlGroup: "Directory"
+						}
+					]);
+					this.renameMap.set(oldPath, newPath);
+					this.addFile(newPath, highlighter);
+					highlighter.addLine("");
+				}
+			}
+			nvim.pauseNotification();
+			highlighter.render(buffer);
+			buffer.setOption("modifiable", false, true);
+			await nvim.resumeNotification(true);
+			this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, "n", "<CR>", async () => {
+				let lnum = await nvim.call("line", ".");
+				let col = await nvim.call("col", ".");
+				let find;
+				for (let i = this.items.length - 1; i >= 0; i--) {
+					let item = this.items[i];
+					if (lnum >= item.index) {
+						find = item;
+						break;
+					}
+				}
+				if (!find) return;
+				let uri = URI.file(absPath(find.filepath)).toString();
+				let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath;
+				await nvim.call("coc#util#open_file", ["tab drop", absPath(filepath)]);
+				let change = toArray(state.edit.documentChanges).find((o) => TextDocumentEdit.is(o) && o.textDocument.uri == uri);
+				let originLine = getOriginalLine(find, change);
+				if (originLine !== void 0) await nvim.call("cursor", [originLine, col]);
+				nvim.redrawVim();
+			}, true));
+			this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, "n", "<esc>", async () => {
+				nvim.command("bwipeout!", true);
+			}, true));
+		}
+		addChangedLines(highlighter, linesChange, fsPath, lnum) {
+			let diffs = fastDiff(linesChange.oldLines.join("\n"), linesChange.newLines.join("\n"));
+			for (let i = 0; i < diffs.length; i++) {
+				let diff = diffs[i];
+				if (diff[0] == fastDiff.EQUAL) {
+					let text = diff[1];
+					if (!text.includes("\n")) highlighter.addText(text);
+					else {
+						let parts = text.split("\n");
+						highlighter.addText(parts[0]);
+						let curr = lnum + parts.length - 1;
+						highlighter.addLine("");
+						highlighter.addTexts([
+							{
+								text: "Change",
+								hlGroup: "Title"
+							},
+							{ text: " " },
+							{
+								text: fsPath,
+								hlGroup: "Directory"
+							},
+							{
+								text: `:${curr}`,
+								hlGroup: "LineNr"
+							}
+						]);
+						this.addFile(fsPath, highlighter, curr);
+						highlighter.addLine("");
+						let last = parts[parts.length - 1];
+						highlighter.addText(last);
+					}
+					lnum += text.split("\n").length - 1;
+				} else if (diff[0] == fastDiff.DELETE) {
+					lnum += diff[1].split("\n").length - 1;
+					highlighter.addText(diff[1], "DiffDelete");
+				} else highlighter.addText(diff[1], "DiffAdd");
+			}
+		}
+		dispose() {
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/core/files.ts
+function fileMatch(root, relpath, pattern) {
+	let filepath = path$5.join(root, relpath);
+	if (typeof pattern !== "string") {
+		let base = pattern.baseUri.fsPath;
+		if (!isParentFolder(base, filepath)) return false;
+		return minimatch(path$5.relative(base, filepath), pattern.pattern, { dot: true });
+	}
+	return minimatch(relpath, pattern, { dot: true });
+}
+function fsPath(uri) {
+	return URI.parse(uri).fsPath;
+}
+var logger$39, Files;
+var init_files = __esmMin((() => {
+	init_main$2();
+	init_esm();
+	init_commands$2();
+	init_events();
+	init_logger$2();
+	init_editInspect();
+	init_errors();
+	init_fs();
+	init_node();
+	init_protocol();
+	init_string$1();
+	init_textedit();
+	logger$39 = createLogger$1("core-files");
+	Files = class {
+		documents;
+		configurations;
+		workspaceFolderControl;
+		keymaps;
+		nvim;
+		env;
+		window;
+		editState;
+		operationTimeout = 500;
+		_onDidCreateFiles = new import_main$1.Emitter();
+		_onDidRenameFiles = new import_main$1.Emitter();
+		_onDidDeleteFiles = new import_main$1.Emitter();
+		_onWillCreateFiles = new import_main$1.Emitter();
+		_onWillRenameFiles = new import_main$1.Emitter();
+		_onWillDeleteFiles = new import_main$1.Emitter();
+		onDidCreateFiles = this._onDidCreateFiles.event;
+		onDidRenameFiles = this._onDidRenameFiles.event;
+		onDidDeleteFiles = this._onDidDeleteFiles.event;
+		onWillCreateFiles = this._onWillCreateFiles.event;
+		onWillRenameFiles = this._onWillRenameFiles.event;
+		onWillDeleteFiles = this._onWillDeleteFiles.event;
+		constructor(documents, configurations, workspaceFolderControl, keymaps) {
+			this.documents = documents;
+			this.configurations = configurations;
+			this.workspaceFolderControl = workspaceFolderControl;
+			this.keymaps = keymaps;
+		}
+		attach(nvim, env, window) {
+			this.nvim = nvim;
+			this.env = env;
+			this.window = window;
+		}
+		async openTextDocument(uri) {
+			uri = typeof uri === "string" ? URI.file(uri) : uri;
+			let doc = this.documents.getDocument(uri.toString());
+			if (doc) return doc;
+			const scheme = uri.scheme;
+			if (scheme == "file") {
+				if (!fs$5.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
+				fs$5.accessSync(uri.fsPath, fs$5.constants.R_OK);
+			}
+			if (scheme == "untitled") {
+				await this.nvim.call("coc#util#open_file", ["tab drop", uri.path]);
+				return await this.documents.document;
+			}
+			return await this.loadResource(uri.toString(), null);
+		}
+		async jumpTo(uri, position, openCommand) {
+			if (!openCommand) openCommand = this.configurations.initialConfiguration.get("coc.preferences.jumpCommand", "edit");
+			let { nvim } = this;
+			let u = uri instanceof URI ? uri : URI.parse(uri);
+			let doc = this.documents.getDocument(u.with({ fragment: "" }).toString());
+			let bufnr = doc ? doc.bufnr : -1;
+			if (!position && u.scheme === "file" && u.fragment) {
+				let parts = u.fragment.split(",");
+				let lnum = parseInt(parts[0], 10);
+				if (!isNaN(lnum)) {
+					let col = parts.length > 0 && /^\d+$/.test(parts[1]) ? parseInt(parts[1], 10) : void 0;
+					position = Position.create(lnum - 1, col == null ? 0 : col - 1);
+				}
+			}
+			if (bufnr != -1 && openCommand == "edit") {
+				nvim.pauseNotification();
+				nvim.command(`silent! normal! m'`, true);
+				nvim.command(`buffer ${bufnr}`, true);
+				nvim.command(`if &filetype ==# '' | filetype detect | endif`, true);
+				if (position) {
+					let col = byteIndex(doc.getline(position.line), position.character) + 1;
+					nvim.call("cursor", [position.line + 1, col], true);
+				}
+				await nvim.resumeNotification(true);
+			} else {
+				let { fsPath, scheme } = u;
+				let pos = position == null ? null : [position.line, position.character];
+				if (scheme == "file") {
+					let bufname = normalizeFilePath(fsPath);
+					await this.nvim.call("coc#util#jump", [
+						openCommand,
+						bufname,
+						pos
+					]);
+				} else await this.nvim.call("coc#util#jump", [
+					openCommand,
+					uri.toString(),
+					pos
+				]);
+			}
+		}
+		/**
+		* Open resource by uri
+		*/
+		async openResource(uri) {
+			let { nvim } = this;
+			let u = URI.parse(uri);
+			if (/^https?/.test(u.scheme)) {
+				await nvim.call("coc#ui#open_url", uri);
+				return;
+			}
+			await this.jumpTo(uri);
+			await this.documents.document;
+		}
+		/**
+		* Load uri as document.
+		*/
+		async loadResource(uri, cmd) {
+			let doc = this.documents.getDocument(uri);
+			if (doc) return doc;
+			if (cmd === void 0) cmd = this.configurations.getConfiguration("workspace").get("openResourceCommand", "tab drop");
+			let u = URI.parse(uri);
+			let bufname = u.scheme === "file" ? u.fsPath : uri;
+			let bufnr;
+			if (cmd) {
+				let winid = await this.nvim.call("win_getid");
+				bufnr = await this.nvim.call("coc#util#open_file", [cmd, bufname]);
+				await this.nvim.call("win_gotoid", [winid]);
+			} else bufnr = (await this.nvim.call("coc#ui#open_files", [[bufname]]))[0];
+			return await this.documents.createDocument(bufnr);
+		}
+		/**
+		* Load the files that not loaded
+		*/
+		async loadResources(uris) {
+			let { documents } = this;
+			let files = uris.map((uri) => {
+				let u = URI.parse(uri);
+				return u.scheme == "file" ? u.fsPath : uri;
+			});
+			let bufnrs = await this.nvim.call("coc#ui#open_files", [files]);
+			return await Promise.all(bufnrs.map((bufnr) => {
+				return documents.createDocument(bufnr);
+			}));
+		}
+		/**
+		* Create a file in vim and disk
+		*/
+		async createFile(filepath, opts = {}, recovers) {
+			let { nvim } = this;
+			let exists = fs$5.existsSync(filepath);
+			if (exists && !opts.overwrite && !opts.ignoreIfExists) throw fileExists(filepath);
+			if (!exists || opts.overwrite) {
+				let tokenSource = new import_main$1.CancellationTokenSource();
+				await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+					files: [URI.file(filepath)],
+					token: tokenSource.token
+				}, recovers);
+				tokenSource.cancel();
+				let dir = path$5.dirname(filepath);
+				if (!fs$5.existsSync(dir)) {
+					let folder;
+					let curr = dir;
+					while (![
+						".",
+						"/",
+						path$5.parse(dir).root
+					].includes(curr)) {
+						if (fs$5.existsSync(path$5.dirname(curr))) {
+							folder = curr;
+							break;
+						}
+						curr = path$5.dirname(curr);
+					}
+					fs$5.mkdirSync(dir, { recursive: true });
+					if (Array.isArray(recovers)) recovers.push(() => {
+						fs$5.rmSync(folder, {
+							force: true,
+							recursive: true
+						});
+					});
+				}
+				fs$5.writeFileSync(filepath, "", "utf8");
+				if (Array.isArray(recovers)) recovers.push(() => {
+					fs$5.rmSync(filepath, {
+						force: true,
+						recursive: true
+					});
+				});
+				let bufnr = (await this.loadResource(filepath)).bufnr;
+				if (Array.isArray(recovers)) recovers.push(() => {
+					events_default.fire("BufUnload", [bufnr]);
+					return nvim.command(`silent! bd! ${bufnr}`);
+				});
+				this._onDidCreateFiles.fire({ files: [URI.file(filepath)] });
+			}
+		}
+		/**
+		* Delete a file or folder from vim and disk.
+		*/
+		async deleteFile(filepath, opts = {}, recovers) {
+			let { ignoreIfNotExists, recursive } = opts;
+			let stat = await statAsync(filepath);
+			let isDir = stat && stat.isDirectory();
+			if (!stat && !ignoreIfNotExists) throw fileNotExists(filepath);
+			if (stat == null) return;
+			let uri = URI.file(filepath);
+			await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers);
+			if (!isDir) {
+				let bufnr = await this.nvim.call("bufnr", [filepath]);
+				if (bufnr) {
+					events_default.fire("BufUnload", [bufnr]);
+					await this.nvim.command(`silent! bwipeout ${bufnr}`);
+					if (Array.isArray(recovers)) recovers.push(() => {
+						return this.loadResource(uri.toString());
+					});
+				}
+			}
+			let folder = path$5.join(os$5.tmpdir(), "coc-" + process.pid);
+			fs$5.mkdirSync(folder, { recursive: true });
+			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
+			if (isDir && recursive) {
+				let dest = path$5.join(folder, md5);
+				let dir = path$5.dirname(filepath);
+				fs$5.renameSync(filepath, dest);
+				if (Array.isArray(recovers)) recovers.push(async () => {
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.renameSync(dest, filepath);
+				});
+			} else if (isDir) {
+				fs$5.rmdirSync(filepath);
+				if (Array.isArray(recovers)) recovers.push(() => {
+					fs$5.mkdirSync(filepath);
+				});
+			} else {
+				let dest = path$5.join(folder, md5);
+				let dir = path$5.dirname(filepath);
+				fs$5.renameSync(filepath, dest);
+				if (Array.isArray(recovers)) recovers.push(() => {
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.renameSync(dest, filepath);
+				});
+			}
+			this._onDidDeleteFiles.fire({ files: [uri] });
+		}
+		/**
+		* Rename a file or folder on vim and disk
+		*/
+		async renameFile(oldPath, newPath, opts = {}, recovers) {
+			let { nvim } = this;
+			let { overwrite, ignoreIfExists } = opts;
+			if (newPath === oldPath) return;
+			let exists = fs$5.existsSync(newPath);
+			if (exists && ignoreIfExists && !overwrite) return;
+			if (exists && !overwrite) throw fileExists(newPath);
+			let oldStat = await statAsync(oldPath);
+			let loaded = oldStat && oldStat.isDirectory() ? 0 : await nvim.call("bufloaded", [oldPath]);
+			if (!loaded && !oldStat) throw fileNotExists(oldPath);
+			let file = {
+				newUri: URI.parse(newPath),
+				oldUri: URI.parse(oldPath)
+			};
+			if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
+			if (loaded) {
+				let bufnr = await nvim.call("coc#ui#rename_file", [
+					oldPath,
+					newPath,
+					oldStat != null
+				]);
+				await this.documents.onBufCreate(bufnr);
+			} else {
+				if (oldStat.isDirectory()) for (let doc of this.documents.attached("file")) {
+					let u = URI.parse(doc.uri);
+					if (isParentFolder(oldPath, u.fsPath, false)) {
+						let filepath = u.fsPath.replace(oldPath, newPath);
+						let bufnr = await nvim.call("coc#ui#rename_file", [
+							u.fsPath,
+							filepath,
+							false
+						]);
+						await this.documents.onBufCreate(bufnr);
+					}
+				}
+				fs$5.renameSync(oldPath, newPath);
+			}
+			if (Array.isArray(recovers)) recovers.push(() => {
+				return this.renameFile(newPath, oldPath, { skipEvent: true });
+			});
+			if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] });
+		}
+		/**
+		* Return denied annotations
+		*/
+		async promptAnnotations(documentChanges, changeAnnotations) {
+			let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : [];
+			let denied = [];
+			for (let key of toConfirm) {
+				let annotation = changeAnnotations[key];
+				if (await this.window.showMenuPicker(["Yes", "No"], {
+					position: "center",
+					title: "Confirm edits",
+					content: annotation.label + (annotation.description ? " " + annotation.description : "")
+				}) !== 0) denied.push(key);
+			}
+			return denied;
+		}
+		/**
+		* Apply WorkspaceEdit.
+		*/
+		async applyEdit(edit, nested) {
+			let documentChanges = toDocumentChanges(edit);
+			let recovers = [];
+			let currentOnly = false;
+			try {
+				let denied = await this.promptAnnotations(documentChanges, edit.changeAnnotations);
+				if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied);
+				let changes = {};
+				let currentUri = await this.documents.getCurrentUri();
+				currentOnly = documentChanges.every((o) => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri);
+				this.validateChanges(documentChanges);
+				for (const change of documentChanges) if (TextDocumentEdit.is(change)) {
+					let { textDocument, edits } = change;
+					let { uri } = textDocument;
+					let doc = await this.loadResource(uri);
+					let revertEdit;
+					if (edits.some((o) => SnippetTextEdit.is(o))) {
+						let snippetEdits = mergeSortEdits(edits.map((edit) => {
+							if (SnippetTextEdit.is(edit)) return {
+								range: edit.range,
+								snippet: edit.snippet.value
+							};
+							return {
+								range: edit.range,
+								snippet: edit.newText
+							};
+						}));
+						let oldLines = doc.textDocument.lines;
+						await commands_default.executeCommand("editor.action.insertBufferSnippets", doc.bufnr, snippetEdits, doc.bufnr === events_default.bufnr);
+						let startLine = snippetEdits[0].range.start.line;
+						revertEdit = getRevertEdit(oldLines, doc.textDocument.lines, startLine);
+					} else revertEdit = await doc.applyEdits(edits, false, uri === currentUri);
+					if (revertEdit) {
+						let version = doc.version;
+						let { newText, range } = revertEdit;
+						changes[uri] = {
+							uri,
+							lnum: range.start.line + 1,
+							newLines: doc.getLines(range.start.line, range.end.line),
+							oldLines: newText.endsWith("\n") ? newText.slice(0, -1).split("\n") : newText.split("\n")
+						};
+						recovers.push(async () => {
+							let doc = this.documents.getDocument(uri);
+							if (!doc || !doc.attached || doc.version !== version) return;
+							await doc.applyEdits([revertEdit]);
+							textDocument.version = doc.version;
+						});
+					}
+				} else if (CreateFile.is(change)) await this.createFile(fsPath(change.uri), change.options, recovers);
+				else if (DeleteFile.is(change)) await this.deleteFile(fsPath(change.uri), change.options, recovers);
+				else if (RenameFile.is(change)) await this.renameFile(fsPath(change.oldUri), fsPath(change.newUri), change.options, recovers);
+				if (recovers.length === 0) return true;
+				if (!nested) this.editState = {
+					edit: {
+						documentChanges,
+						changeAnnotations: edit.changeAnnotations
+					},
+					changes,
+					recovers,
+					applied: true
+				};
+				this.nvim.redrawVim();
+			} catch (e) {
+				logger$39.error("Error on applyEdits:", edit, e);
+				if (!nested) this.window.showErrorMessage(`Error on applyEdits: ${e}`);
+				await this.undoChanges(recovers);
+				return false;
+			}
+			if (nested || currentOnly) return true;
+			this.window.showInformationMessage(`Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.`);
+			return true;
+		}
+		async undoChanges(recovers) {
+			while (recovers.length > 0) {
+				let fn = recovers.pop();
+				await Promise.resolve(fn());
+			}
+		}
+		async inspectEdit() {
+			if (!this.editState) {
+				this.window.showWarningMessage("No workspace edit to inspect");
+				return;
+			}
+			await new EditInspect(this.nvim, this.keymaps).show(this.editState);
+		}
+		async undoWorkspaceEdit() {
+			let { editState } = this;
+			if (!editState || !editState.applied) {
+				this.window.showWarningMessage(`No workspace edit to undo`);
+				return;
+			}
+			editState.applied = false;
+			await this.undoChanges(editState.recovers);
+		}
+		async redoWorkspaceEdit() {
+			let { editState } = this;
+			if (!editState || editState.applied) {
+				this.window.showWarningMessage(`No workspace edit to redo`);
+				return;
+			}
+			this.editState = void 0;
+			await this.applyEdit(editState.edit);
+		}
+		validateChanges(documentChanges) {
+			let { documents } = this;
+			for (let change of documentChanges) if (TextDocumentEdit.is(change)) {
+				let { uri, version } = change.textDocument;
+				let doc = documents.getDocument(uri);
+				if (typeof version === "number" && version > 0) {
+					if (!doc) throw notLoaded(uri);
+					if (doc.version != version) throw new Error(`${uri} changed before apply edit`);
+				} else if (!doc && !isFile(uri)) throw badScheme(uri);
+			} else if (CreateFile.is(change) || DeleteFile.is(change)) {
+				if (!isFile(change.uri)) throw badScheme(change.uri);
+			} else if (RenameFile.is(change)) {
+				if (!isFile(change.oldUri) || !isFile(change.newUri)) throw badScheme(change.oldUri);
+			}
+		}
+		async findFiles(include, exclude, maxResults, token) {
+			let folders = this.workspaceFolderControl.workspaceFolders;
+			if (token?.isCancellationRequested || !folders.length || maxResults === 0) return [];
+			maxResults = maxResults ?? Infinity;
+			let roots = folders.map((o) => URI.parse(o.uri).fsPath);
+			let pattern;
+			if (typeof include !== "string") {
+				pattern = include.pattern;
+				roots = [include.baseUri.fsPath];
+			} else pattern = include;
+			let res = [];
+			let exceed = false;
+			const ac = new AbortController();
+			if (token) token.onCancellationRequested(() => {
+				if (!ac.signal.aborted) ac.abort();
+			});
+			for (let root of roots) try {
+				let files = await glob.glob(pattern, {
+					signal: ac.signal,
+					dot: true,
+					cwd: root,
+					nodir: true,
+					absolute: false
+				});
+				if (token?.isCancellationRequested) break;
+				for (let file of files) {
+					if (exclude && fileMatch(root, file, exclude)) continue;
+					res.push(URI.file(path$5.join(root, file)));
+					if (res.length === maxResults) {
+						exceed = true;
+						break;
+					}
+				}
+				if (exceed) break;
+			} catch (e) {
+				if (e["name"] === "AbortError") break;
+			}
+			return res;
+		}
+		async fireWaitUntilEvent(emitter, properties, recovers) {
+			let firing = true;
+			let promises = [];
+			emitter.fire({
+				...properties,
+				waitUntil: (thenable) => {
+					if (!firing) throw shouldNotAsync("waitUntil");
+					let tp = new Promise((resolve) => {
+						setTimeout(resolve, this.operationTimeout);
+					});
+					let promise = Promise.race([thenable, tp]).then((edit) => {
+						if (edit && WorkspaceEdit.is(edit)) return this.applyEdit(edit, true);
+					});
+					promises.push(promise);
+				}
+			});
+			firing = false;
+			await Promise.all(promises);
+		}
+	};
+}));
+//#endregion
+//#region src/core/keymaps.ts
+function getKeymapModifier(mode, cmd) {
+	if (cmd) return "<Cmd>";
+	if (mode == "n" || mode == "o" || mode == "x" || mode == "v") return "<C-U>";
+	if (mode == "i") return "<C-o>";
+	if (mode == "s") return "<Esc>";
+	return "<Cmd>";
+}
+function getBufnr(buffer) {
+	return typeof buffer === "number" ? buffer : 0;
+}
+function toKeymapOption(option) {
+	return Object.assign({
+		sync: true,
+		cancel: true,
+		silent: true
+	}, typeof option == "boolean" ? { sync: !option } : option);
+}
+var logger$38, Keymaps;
+var init_keymaps = __esmMin((() => {
+	init_logger$2();
+	init_constants();
+	init_protocol();
+	init_string$1();
+	logger$38 = createLogger$1("core-keymaps");
+	Keymaps = class {
+		keymaps = /* @__PURE__ */ new Map();
+		nvim;
+		attach(nvim) {
+			this.nvim = nvim;
+		}
+		async doKeymap(key, defaultReturn) {
+			let keymap = this.keymaps.get(key) ?? this.keymaps.get("coc-" + key);
+			if (!keymap) {
+				logger$38.error(`keymap for ${key} not found`);
+				return defaultReturn;
+			}
+			let [fn, repeat] = keymap;
+			let res = await Promise.resolve(fn());
+			if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
+			if (res == null) return defaultReturn;
+			return res;
+		}
+		/**
+		* Register global <Plug>(coc-${key}) key mapping.
+		*/
+		registerKeymap(modes, name, fn, opts = {}) {
+			if (!name) throw new Error(`Invalid key ${name} of registerKeymap`);
+			let key = `coc-${name}`;
+			if (this.keymaps.has(key)) throw new Error(`keymap: "${name}" already exists.`);
+			const lhs = `<Plug>(${key})`;
+			opts = Object.assign({
+				sync: true,
+				cancel: true,
+				silent: true,
+				repeat: false
+			}, opts);
+			let { nvim } = this;
+			this.keymaps.set(key, [fn, !!opts.repeat]);
+			let method = opts.sync ? "request" : "notify";
+			for (let mode of modes) if (mode == "i") {
+				const cancel = opts.cancel ? 1 : 0;
+				nvim.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${key}', ${cancel})`, {
+					expr: true,
+					noremap: true,
+					silent: opts.silent
+				});
+			} else nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode, opts.cmd)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
+				noremap: true,
+				silent: opts.silent
+			});
+			return import_main$1.Disposable.create(() => {
+				this.keymaps.delete(key);
+				for (let m of modes) nvim.deleteKeymap(m, lhs);
+			});
+		}
+		registerExprKeymap(mode, lhs, fn, buffer = false, cancel = true) {
+			let bufnr = getBufnr(buffer);
+			let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ""}`;
+			let { nvim } = this;
+			let rhs;
+			if (mode == "i") rhs = `coc#_insert_key('request', '${id}', ${cancel ? "1" : "0"})`;
+			else rhs = `coc#rpc#request('doKeymap', ['${id}'])`;
+			let opts = {
+				noremap: true,
+				silent: true,
+				expr: true,
+				nowait: true
+			};
+			if (buffer !== false) nvim.call("coc#compat#buf_add_keymap", [
+				bufnr,
+				mode,
+				lhs,
+				rhs,
+				opts
+			], true);
+			else nvim.setKeymap(mode, lhs, rhs, opts);
+			this.keymaps.set(id, [fn, false]);
+			return import_main$1.Disposable.create(() => {
+				this.keymaps.delete(id);
+				if (buffer) nvim.call("coc#compat#buf_del_keymap", [
+					bufnr,
+					mode,
+					lhs
+				], true);
+				else nvim.deleteKeymap(mode, lhs);
+			});
+		}
+		registerLocalKeymap(bufnr, mode, lhs, fn, option) {
+			let { nvim } = this;
+			let buffer = nvim.createBuffer(bufnr);
+			let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`;
+			const opts = toKeymapOption(option);
+			this.keymaps.set(id, [fn, !!opts.repeat]);
+			const method = opts.sync ? "request" : "notify";
+			const opt = {
+				noremap: true,
+				silent: opts.silent !== false
+			};
+			if (isVim && opts.special) opt.special = true;
+			if (mode == "i") {
+				const cancel = opts.cancel ? 1 : 0;
+				opt.expr = true;
+				buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id}', ${cancel})`, opt);
+			} else {
+				opt.nowait = true;
+				const modify = getKeymapModifier(mode, opts.cmd);
+				buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, opt);
+			}
+			return import_main$1.Disposable.create(() => {
+				this.keymaps.delete(id);
+				buffer.deleteKeymap(mode, lhs);
+			});
+		}
+	};
+}));
+//#endregion
+//#region src/core/watchers.ts
+var logger$37, Watchers;
+var init_watchers = __esmMin((() => {
+	init_events();
+	init_logger$2();
+	init_util$7();
+	init_protocol();
+	init_string$1();
+	logger$37 = createLogger$1("watchers");
+	Watchers = class {
+		nvim;
+		optionCallbacks = /* @__PURE__ */ new Map();
+		globalCallbacks = /* @__PURE__ */ new Map();
+		disposables = [];
+		constructor() {
+			events_default.on("OptionSet", async (changed, oldValue, newValue) => {
+				let cbs = Array.from(this.optionCallbacks.get(changed) ?? []);
+				await Promise.allSettled(cbs.map((cb) => {
+					return (async () => {
+						try {
+							await Promise.resolve(cb(oldValue, newValue));
+						} catch (e) {
+							this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`);
+							logger$37.error(`Error on OptionSet callback:`, e);
+						}
+					})();
+				}));
+			}, null, this.disposables);
+			events_default.on("GlobalChange", async (changed, oldValue, newValue) => {
+				let cbs = Array.from(this.globalCallbacks.get(changed) ?? []);
+				await Promise.allSettled(cbs.map((cb) => {
+					return (async () => {
+						try {
+							await Promise.resolve(cb(oldValue, newValue));
+						} catch (e) {
+							this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`);
+							logger$37.error(`Error on GlobalChange callback:`, e);
+						}
+					})();
+				}));
+			}, null, this.disposables);
+		}
+		get options() {
+			return Array.from(this.optionCallbacks.keys());
+		}
+		attach(nvim, _env) {
+			this.nvim = nvim;
+		}
+		/**
+		* Watch for option change.
+		*/
+		watchOption(key, callback, disposables) {
+			let cbs = this.optionCallbacks.get(key);
+			if (!cbs) {
+				cbs = /* @__PURE__ */ new Set();
+				this.optionCallbacks.set(key, cbs);
+			}
+			cbs.add(callback);
+			let cmd = `autocmd! coc_dynamic_option OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`;
+			this.nvim.command(cmd, true);
+			let disposable = import_main$1.Disposable.create(() => {
+				let cbs = this.optionCallbacks.get(key);
+				cbs.delete(callback);
+				if (cbs.size === 0) this.nvim.command(`autocmd! coc_dynamic_option OptionSet ${key}`, true);
+			});
+			if (disposables) disposables.push(disposable);
+			return disposable;
+		}
+		/**
+		* Watch global variable, works on neovim only.
+		*/
+		watchGlobal(key, callback, disposables) {
+			let { nvim } = this;
+			let cbs = this.globalCallbacks.get(key);
+			if (!cbs) {
+				cbs = /* @__PURE__ */ new Set();
+				this.globalCallbacks.set(key, cbs);
+			}
+			cbs.add(callback);
+			nvim.call("coc#_watch", key, true);
+			let disposable = import_main$1.Disposable.create(() => {
+				let cbs = this.globalCallbacks.get(key);
+				cbs.delete(callback);
+				if (cbs.size === 0) nvim.call("coc#_unwatch", key, true);
+			});
+			if (disposables) disposables.push(disposable);
+			return disposable;
+		}
+		dispose() {
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/core/workspaceFolder.ts
+function toWorkspaceFolder(fsPath) {
+	if (!fsPath || !path$5.isAbsolute(fsPath)) {
+		logger$36.error(`Invalid folder: ${fsPath}, full path required.`);
+		return;
+	}
+	return {
+		name: path$5.basename(fsPath),
+		uri: URI.file(fsPath).toString()
+	};
+}
+var PatternType, logger$36, PatternTypes, checkPatternTimeout, extensionRegistry$2, WorkspaceFolderController;
+var init_workspaceFolder = __esmMin((() => {
+	init_esm();
+	init_events();
+	init_logger$2();
+	init_util$7();
+	init_array();
+	init_errors();
+	init_extensionRegistry();
+	init_fs();
+	init_node();
+	init_object();
+	init_protocol();
+	init_registry$1();
+	PatternType = /* @__PURE__ */ function(PatternType) {
+		PatternType[PatternType["Buffer"] = 0] = "Buffer";
+		PatternType[PatternType["LanguageServer"] = 1] = "LanguageServer";
+		PatternType[PatternType["Global"] = 2] = "Global";
+		return PatternType;
+	}({});
+	logger$36 = createLogger$1("core-workspaceFolder");
+	PatternTypes = [
+		0,
+		1,
+		2
+	];
+	checkPatternTimeout = getConditionValue(5e3, 50);
+	extensionRegistry$2 = Registry.as(Extensions$3.ExtensionContribution);
+	WorkspaceFolderController = class {
+		configurations;
+		config;
+		_onDidChangeWorkspaceFolders = new import_main$1.Emitter();
+		onDidChangeWorkspaceFolders = this._onDidChangeWorkspaceFolders.event;
+		rootPatterns = /* @__PURE__ */ new Map();
+		_workspaceFolders = [];
+		_tokenSources = /* @__PURE__ */ new Set();
+		constructor(configurations) {
+			this.configurations = configurations;
+			events_default.on("VimLeavePre", this.cancelAll, this);
+			this.updateConfiguration();
+			this.updateServerRootPatterns();
+			this.configurations.onDidChange((e) => {
+				if (e.affectsConfiguration("workspace") || e.affectsConfiguration("coc.preferences")) this.updateConfiguration();
+				if (e.affectsConfiguration("languageserver")) this.updateServerRootPatterns();
+			});
+		}
+		updateConfiguration() {
+			const allConfig = this.configurations.initialConfiguration;
+			let config = allConfig.get("workspace");
+			let oldConfig = allConfig.get("coc.preferences.rootPatterns");
+			this.config = {
+				rootPatterns: isFalsyOrEmpty(oldConfig) ? toArray(config.rootPatterns) : oldConfig,
+				ignoredFiletypes: toArray(config.ignoredFiletypes),
+				bottomUpFiletypes: toArray(config.bottomUpFiletypes),
+				ignoredFolders: toArray(config.ignoredFolders),
+				workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
+				workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
+			};
+		}
+		updateServerRootPatterns() {
+			let lspConfig = this.configurations.getConfiguration("languageserver", null);
+			this.rootPatterns.clear();
+			for (let config of Object.values(toObject(lspConfig))) {
+				let { filetypes, rootPatterns } = config;
+				if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) filetypes.filter((s) => typeof s === "string").forEach((filetype) => {
+					this.addRootPattern(filetype, rootPatterns);
+				});
+			}
+		}
+		cancelAll() {
+			for (let tokenSource of this._tokenSources) tokenSource.cancel();
+		}
+		setWorkspaceFolders(folders) {
+			if (!folders || !Array.isArray(folders)) return;
+			let arr = folders.filter((f) => f.length > 0).map((f) => toWorkspaceFolder(f));
+			this._workspaceFolders = arr.filter((o) => o != null);
+		}
+		getWorkspaceFolder(uri) {
+			if (uri.scheme !== "file") return void 0;
+			if (this._workspaceFolders.length === 0) return void 0;
+			let folders = Array.from(this._workspaceFolders).map((o) => URI.parse(o.uri).fsPath);
+			folders.sort((a, b) => b.length - a.length);
+			let fsPath = uri.fsPath;
+			let folder = folders.find((f) => isParentFolder(f, fsPath, true));
+			if (folder === void 0) return void 0;
+			return toWorkspaceFolder(folder);
+		}
+		getRelativePath(pathOrUri, includeWorkspace) {
+			let resource;
+			let p = "";
+			if (typeof pathOrUri === "string") {
+				resource = URI.file(pathOrUri);
+				p = pathOrUri;
+			} else if (pathOrUri != null) {
+				resource = pathOrUri;
+				p = pathOrUri.fsPath;
+			}
+			if (!resource) return p;
+			const folder = this.getWorkspaceFolder(resource);
+			if (!folder) return p;
+			if (typeof includeWorkspace === "undefined" && this._workspaceFolders) includeWorkspace = this._workspaceFolders.length > 1;
+			let result = path$5.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
+			result = result == "" ? resource.fsPath : result;
+			if (includeWorkspace && folder.name) result = `${folder.name}/${result}`;
+			return result;
+		}
+		get workspaceFolders() {
+			return this._workspaceFolders;
+		}
+		addRootPattern(filetype, rootPatterns) {
+			let patterns = this.rootPatterns.get(filetype) ?? [];
+			for (let p of rootPatterns) if (!patterns.includes(p)) patterns.push(p);
+			this.rootPatterns.set(filetype, patterns);
+		}
+		resolveRoot(document, cwd, fireEvent, expand) {
+			if (document.buftype !== "" || document.schema !== "file") return null;
+			let u = URI.parse(document.uri);
+			let dir = isDirectory(u.fsPath) ? path$5.normalize(u.fsPath) : path$5.dirname(u.fsPath);
+			let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
+			if (ignoredFiletypes?.includes(document.filetype)) return null;
+			ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter((s) => s && s.length > 0).map((s) => expand(s)) : [];
+			let res = null;
+			for (let patternType of PatternTypes) {
+				let patterns = this.getRootPatterns(document, patternType);
+				if (patterns && patterns.length) {
+					let root = resolveRoot(dir, patterns, cwd, bottomUpFiletypes.includes("*") || bottomUpFiletypes.includes(document.filetype), workspaceFolderCheckCwd, ignoredFolders);
+					if (root) {
+						res = root;
+						break;
+					}
+				}
+			}
+			if (!res && workspaceFolderFallbackCwd && !isFolderIgnored(cwd, ignoredFolders) && isParentFolder(cwd, dir, true)) res = cwd;
+			if (res) this.addWorkspaceFolder(res, fireEvent);
+			return res;
+		}
+		addWorkspaceFolder(folder, fireEvent) {
+			let workspaceFolder = toWorkspaceFolder(folder);
+			if (!workspaceFolder) return void 0;
+			if (this._workspaceFolders.findIndex((o) => o.uri == workspaceFolder.uri) == -1) {
+				this._workspaceFolders.push(workspaceFolder);
+				if (fireEvent) this._onDidChangeWorkspaceFolders.fire({
+					added: [workspaceFolder],
+					removed: []
+				});
+			}
+			return workspaceFolder;
+		}
+		renameWorkspaceFolder(oldPath, newPath) {
+			let added = toWorkspaceFolder(newPath);
+			if (!added) return;
+			let idx = this._workspaceFolders.findIndex((f) => URI.parse(f.uri).fsPath == oldPath);
+			if (idx == -1) return;
+			let removed = this.workspaceFolders[idx];
+			this._workspaceFolders.splice(idx, 1, added);
+			this._onDidChangeWorkspaceFolders.fire({
+				removed: [removed],
+				added: [added]
+			});
+		}
+		removeWorkspaceFolder(fsPath) {
+			let removed = toWorkspaceFolder(fsPath);
+			if (!removed) return;
+			let idx = this._workspaceFolders.findIndex((f) => f.uri == removed.uri);
+			if (idx == -1) return;
+			this._workspaceFolders.splice(idx, 1);
+			this._onDidChangeWorkspaceFolders.fire({
+				removed: [removed],
+				added: []
+			});
+		}
+		onDocumentDetach(uris) {
+			if (!this.configurations.initialConfiguration.get("workspace.removeEmptyWorkspaceFolder", false)) return;
+			let filepaths = [];
+			for (const uri of uris) if (uri.scheme === "file") filepaths.push(uri.fsPath);
+			for (const item of this.workspaceFolders) {
+				const folder = URI.parse(item.uri).fsPath;
+				if (!filepaths.some((f) => isParentFolder(folder, f))) {
+					this.removeWorkspaceFolder(folder);
+					return;
+				}
+			}
+		}
+		getRootPatterns(document, patternType) {
+			if (patternType == 0) return document.getVar("root_patterns", []);
+			if (patternType == 1) return this.getServerRootPatterns(document.languageId);
+			return this.config.rootPatterns;
+		}
+		reset() {
+			this.rootPatterns.clear();
+			this._workspaceFolders = [];
+		}
+		/**
+		* Get rootPatterns of filetype by languageserver configuration and extension configuration.
+		*/
+		getServerRootPatterns(filetype) {
+			let patterns = extensionRegistry$2.getRootPatternsByFiletype(filetype);
+			patterns = patterns.concat(toArray(this.rootPatterns.get(filetype)));
+			return distinct(patterns);
+		}
+		checkFolder(dir, patterns, token) {
+			return checkFolder(dir, patterns, token);
+		}
+		async checkPatterns(folders, patterns) {
+			if (isFalsyOrEmpty(folders)) return false;
+			let dirs = folders.map((f) => URI.parse(f.uri).fsPath);
+			let find = false;
+			let tokenSource = new import_main$1.CancellationTokenSource();
+			this._tokenSources.add(tokenSource);
+			let token = tokenSource.token;
+			let timer = setTimeout(() => {
+				tokenSource.cancel();
+			}, checkPatternTimeout);
+			let results = await Promise.allSettled(dirs.map((dir) => {
+				return this.checkFolder(dir, patterns, token).then((checked) => {
+					this._tokenSources.delete(tokenSource);
+					if (checked) {
+						find = true;
+						clearTimeout(timer);
+						tokenSource.cancel();
+					}
+				});
+			}));
+			clearTimeout(timer);
+			results.forEach((res) => {
+				if (res.status === "rejected" && !isCancellationError(res.reason)) logger$36.error(`checkPatterns error:`, patterns, res.reason);
+			});
+			return find;
+		}
+	};
+}));
+//#endregion
+//#region src/model/bufferSync.ts
+var BufferSync;
+var init_bufferSync = __esmMin((() => {
+	init_events();
+	init_util$7();
+	init_is();
+	BufferSync = class {
+		_create;
+		disposables = [];
+		itemsMap = /* @__PURE__ */ new Map();
+		constructor(_create, documents) {
+			this._create = _create;
+			let { disposables } = this;
+			for (let doc of documents.attached()) this.create(doc);
+			documents.onDidOpenTextDocument((e) => {
+				this.create(documents.getDocument(e.bufnr));
+			}, null, disposables);
+			documents.onDidChangeDocument((e) => {
+				this.onChange(e);
+			}, null, disposables);
+			documents.onDidCloseDocument((e) => {
+				this.delete(e.bufnr);
+			}, null, disposables);
+			events_default.on("LinesChanged", this.onTextChange, this, disposables);
+			events_default.on("WindowVisible", this.onVisible, this, disposables);
+		}
+		onTextChange(bufnr) {
+			let o = this.itemsMap.get(bufnr);
+			if (o && func(o.item.onTextChange)) o.item.onTextChange();
+		}
+		onVisible(ev) {
+			let o = this.itemsMap.get(ev.bufnr);
+			if (o && typeof o.item.onVisible === "function") o.item.onVisible(ev.winid, ev.region);
+		}
+		get items() {
+			return Array.from(this.itemsMap.values()).map((x) => x.item);
+		}
+		getItem(bufnr) {
+			if (bufnr == null) return void 0;
+			if (typeof bufnr === "number") return this.itemsMap.get(bufnr)?.item;
+			let o = Array.from(this.itemsMap.values()).find((v) => {
+				return v.uri == bufnr;
+			});
+			return o ? o.item : void 0;
+		}
+		create(doc) {
+			let o = this.itemsMap.get(doc.bufnr);
+			if (o) o.item.dispose();
+			let item = this._create(doc);
+			if (item) this.itemsMap.set(doc.bufnr, {
+				uri: doc.uri,
+				item
+			});
+		}
+		onChange(e) {
+			let o = this.itemsMap.get(e.bufnr);
+			if (o && typeof o.item.onChange == "function") o.item.onChange(e);
+		}
+		delete(bufnr) {
+			let o = this.itemsMap.get(bufnr);
+			if (o) {
+				o.item.dispose();
+				this.itemsMap.delete(bufnr);
+			}
+		}
+		reset() {
+			for (let o of this.itemsMap.values()) o.item.dispose();
+			this.itemsMap.clear();
+		}
+		dispose() {
+			disposeAll(this.disposables);
+			for (let o of this.itemsMap.values()) o.item.dispose();
+			this._create = void 0;
+			this.itemsMap.clear();
+		}
+	};
+}));
+//#endregion
+//#region src/model/db.ts
+var DB;
+var init_db$1 = __esmMin((() => {
+	init_node();
+	init_object();
+	DB = class {
+		filepath;
+		constructor(filepath) {
+			this.filepath = filepath;
+		}
+		/**
+		* Get data by key.
+		* @param {string} key unique key allows dot notation.
+		* @returns {any}
+		*/
+		fetch(key) {
+			let obj = this.load();
+			if (!key) return obj;
+			let parts = key.split(".");
+			for (let part of parts) {
+				if (typeof obj[part] === "undefined") return;
+				obj = obj[part];
+			}
+			return obj;
+		}
+		/**
+		* Check if key exists
+		* @param {string} key unique key allows dot notation.
+		*/
+		exists(key) {
+			let obj = this.load();
+			let parts = key.split(".");
+			for (let part of parts) {
+				if (typeof obj[part] === "undefined") return false;
+				obj = obj[part];
+			}
+			return true;
+		}
+		/**
+		* Delete data by key
+		* @param {string} key unique key allows dot notation.
+		*/
+		delete(key) {
+			let obj = this.load();
+			let origin = obj;
+			let parts = key.split(".");
+			let len = parts.length;
+			for (let i = 0; i < len; i++) {
+				if (typeof obj[parts[i]] === "undefined") break;
+				if (i == len - 1) {
+					delete obj[parts[i]];
+					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
+					break;
+				}
+				obj = obj[parts[i]];
+			}
+		}
+		/**
+		* Save data with key
+		* @param {string} key unique string that allows dot notation.
+		* @param {number|null|boolean|string|{[index} data saved data.
+		*/
+		push(key, data) {
+			let origin = toObject(this.load());
+			let obj = origin;
+			let parts = key.split(".");
+			let len = parts.length;
+			for (let i = 0; i < len; i++) {
+				let key = parts[i];
+				if (i == len - 1) {
+					obj[key] = data;
+					let dir = path$5.dirname(this.filepath);
+					fs$5.mkdirSync(dir, { recursive: true });
+					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
+					break;
+				}
+				if (typeof obj[key] == "undefined") {
+					obj[key] = {};
+					obj = obj[key];
+				} else obj = obj[key];
+			}
+		}
+		load() {
+			let dir = path$5.dirname(this.filepath);
+			if (!fs$5.existsSync(dir)) {
+				fs$5.mkdirSync(dir, { recursive: true });
+				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+				return {};
+			}
+			try {
+				let content = fs$5.readFileSync(this.filepath, "utf8");
+				return JSON.parse(content.trim());
+			} catch (e) {
+				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+				return {};
+			}
+		}
+		/**
+		* Empty db file.
+		*/
+		clear() {
+			if (!fs$5.existsSync(this.filepath)) return;
+			fs$5.writeFileSync(this.filepath, "{}", "utf8");
+		}
+		/**
+		* Remove db file.
+		*/
+		destroy() {
+			if (fs$5.existsSync(this.filepath)) fs$5.unlinkSync(this.filepath);
+		}
+	};
+}));
+//#endregion
+//#region src/model/status.ts
+var frames$1, StatusLine;
+var init_status = __esmMin((() => {
+	frames$1 = [
+		"⠋",
+		"⠙",
+		"⠹",
+		"⠸",
+		"⠼",
+		"⠴",
+		"⠦",
+		"⠧",
+		"⠇",
+		"⠏"
+	];
+	StatusLine = class {
+		items = /* @__PURE__ */ new Map();
+		shownIds = /* @__PURE__ */ new Set();
+		_text = "";
+		interval;
+		nvim;
+		constructor() {
+			this.interval = setInterval(() => {
+				this.setStatusText();
+			}, 100).unref();
+		}
+		dispose() {
+			this.items.clear();
+			this.shownIds.clear();
+			clearInterval(this.interval);
+		}
+		reset() {
+			this.items.clear();
+			this.shownIds.clear();
+		}
+		createStatusBarItem(priority, isProgress = false) {
+			let uid = crypto.randomUUID();
+			let item = {
+				text: "",
+				priority,
+				isProgress,
+				show: () => {
+					this.shownIds.add(uid);
+					this.setStatusText();
+				},
+				hide: () => {
+					this.shownIds.delete(uid);
+					this.setStatusText();
+				},
+				dispose: () => {
+					this.shownIds.delete(uid);
+					this.items.delete(uid);
+					this.setStatusText();
+				}
+			};
+			this.items.set(uid, item);
+			return item;
+		}
+		getText() {
+			if (this.shownIds.size == 0) return "";
+			let idx = Math.floor((/* @__PURE__ */ new Date()).getMilliseconds() / 100);
+			let text = "";
+			let items = [];
+			for (let [id, item] of this.items) if (this.shownIds.has(id)) items.push(item);
+			items.sort((a, b) => a.priority - b.priority);
+			for (let item of items) if (!item.isProgress) text = `${text} ${item.text}`;
+			else text = `${text} ${frames$1[idx]} ${item.text}`;
+			return text;
+		}
+		setStatusText() {
+			let text = this.getText();
+			let { nvim } = this;
+			if (text != this._text && nvim) {
+				this._text = text;
+				nvim.pauseNotification();
+				this.nvim.setVar("coc_status", text, true);
+				this.nvim.callTimer("coc#util#do_autocmd", ["CocStatusChange"], true);
+				nvim.resumeNotification(false, true);
+			}
+		}
+	};
+}));
+//#endregion
+//#region src/model/tabs.ts
+var Tabs;
+var init_tabs = __esmMin((() => {
+	init_esm();
+	init_protocol();
+	Tabs = class {
+		editors;
+		open = /* @__PURE__ */ new Set();
+		_onOpen;
+		_onClose;
+		constructor(editors) {
+			this.editors = editors;
+			this._onOpen = new import_main$1.Emitter();
+			this._onClose = new import_main$1.Emitter();
+			this.editors.onDidChangeVisibleTextEditors((editors) => {
+				let uris = Array.from(this.open);
+				let seen = /* @__PURE__ */ new Set();
+				let opened = /* @__PURE__ */ new Set();
+				let closed = /* @__PURE__ */ new Set();
+				for (let editor of editors) {
+					if (!seen.has(editor.uri) && !uris.includes(editor.uri)) {
+						this.open.add(editor.uri);
+						opened.add(URI.parse(editor.uri));
+					}
+					seen.add(editor.uri);
+				}
+				for (let uri of uris) if (!seen.has(uri)) {
+					this.open.delete(uri);
+					closed.add(URI.parse(uri));
+				}
+				if (opened.size > 0) this._onOpen.fire(opened);
+				if (closed.size > 0) this._onClose.fire(closed);
+			});
+		}
+		attach() {
+			for (let editor of this.editors.visibleTextEditors) this.open.add(editor.uri);
+		}
+		get onClose() {
+			return this._onClose.event;
+		}
+		get onOpen() {
+			return this._onOpen.event;
+		}
+		isActive(document) {
+			const uri = document instanceof URI ? document : document.uri;
+			return this.editors.activeTextEditor?.document.uri === uri.toString();
+		}
+		isVisible(document) {
+			const uri = document instanceof URI ? document : document.uri;
+			return this.open.has(uri.toString());
+		}
+		getTabResources() {
+			const result = /* @__PURE__ */ new Set();
+			let seen = /* @__PURE__ */ new Set();
+			for (let editor of this.editors.visibleTextEditors) if (!seen.has(editor.uri)) {
+				result.add(URI.parse(editor.uri));
+				seen.add(editor.uri);
+			}
+			return result;
+		}
+	};
+}));
+//#endregion
+//#region src/model/task.ts
+var Task$1;
+var init_task = __esmMin((() => {
+	init_events();
+	init_util$7();
+	init_protocol();
+	Task$1 = class {
+		nvim;
+		id;
+		disposables = [];
+		_onExit = new import_main$1.Emitter();
+		_onStderr = new import_main$1.Emitter();
+		_onStdout = new import_main$1.Emitter();
+		onExit = this._onExit.event;
+		onStdout = this._onStdout.event;
+		onStderr = this._onStderr.event;
+		/**
+		* @param {Neovim} nvim
+		* @param {string} id unique id
+		*/
+		constructor(nvim, id) {
+			this.nvim = nvim;
+			this.id = id;
+			events_default.on("TaskExit", (id, code) => {
+				if (id == this.id) this._onExit.fire(code);
+			}, null, this.disposables);
+			events_default.on("TaskStderr", (id, lines) => {
+				if (id == this.id) this._onStderr.fire(lines);
+			}, null, this.disposables);
+			events_default.on("TaskStdout", (id, lines) => {
+				if (id == this.id) this._onStdout.fire(lines);
+			}, null, this.disposables);
+		}
+		/**
+		* Start task, task will be restarted when already running.
+		* @param {TaskOptions} opts
+		* @returns {Promise<boolean>}
+		*/
+		async start(opts) {
+			let { nvim } = this;
+			return await nvim.call("coc#task#start", [this.id, opts]);
+		}
+		/**
+		* Stop task by SIGTERM or SIGKILL
+		*/
+		async stop() {
+			let { nvim } = this;
+			await nvim.call("coc#task#stop", [this.id]);
+		}
+		/**
+		* Check if the task is running.
+		*/
+		get running() {
+			let { nvim } = this;
+			return nvim.call("coc#task#running", [this.id]);
+		}
+		/**
+		* Stop task and dispose all events.
+		*/
+		dispose() {
+			let { nvim } = this;
+			nvim.call("coc#task#stop", [this.id], true);
+			this._onStdout.dispose();
+			this._onStderr.dispose();
+			this._onExit.dispose();
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/workspace.ts
+var logger$35, methods, Workspace, workspace_default;
+var init_workspace$1 = __esmMin((() => {
+	init_esm();
+	init_configuration$2();
+	init_shape();
+	init_autocmds();
+	init_channels();
+	init_contentProvider();
+	init_documents();
+	init_editors();
+	init_fileSystemWatcher$1();
+	init_files();
+	init_funcs();
+	init_keymaps();
+	init_ui$2();
+	init_watchers();
+	init_workspaceFolder();
+	init_events();
+	init_logger$2();
+	init_bufferSync();
+	init_db$1();
+	init_fuzzyMatch();
+	init_mru();
+	init_status();
+	init_strwidth();
+	init_tabs();
+	init_task();
+	init_util$7();
+	init_constants();
+	init_errors();
+	init_fs();
+	init_node();
+	init_object();
+	init_processes();
+	init_protocol();
+	logger$35 = createLogger$1("workspace");
+	methods = [
+		"showMessage",
+		"runTerminalCommand",
+		"openTerminal",
+		"showQuickpick",
+		"menuPick",
+		"openLocalConfig",
+		"showPrompt",
+		"createStatusBarItem",
+		"createOutputChannel",
+		"showOutputChannel",
+		"requestInput",
+		"echoLines",
+		"getCursorPosition",
+		"moveTo",
+		"getOffset",
+		"getSelectedRange",
+		"selectRange",
+		"createTerminal"
+	];
+	Workspace = class {
+		onDidChangeConfiguration;
+		onDidOpenTextDocument;
+		onDidCloseTextDocument;
+		onDidChangeTextDocument;
+		onDidSaveTextDocument;
+		onWillSaveTextDocument;
+		onDidChangeWorkspaceFolders;
+		onDidCreateFiles;
+		onDidRenameFiles;
+		onDidDeleteFiles;
+		onWillCreateFiles;
+		onWillRenameFiles;
+		onWillDeleteFiles;
+		nvim;
+		configurations;
+		workspaceFolderControl;
+		documentsManager;
+		contentProvider;
+		autocmds;
+		watchers;
+		keymaps;
+		files;
+		fileSystemWatchers;
+		editors;
+		tabs;
+		isTrusted = true;
+		statusLine = new StatusLine();
+		_onDidRuntimePathChange = new import_main$1.Emitter();
+		onDidRuntimePathChange = this._onDidRuntimePathChange.event;
+		fuzzyExports;
+		strWidth;
+		_env;
+		constructor() {
+			initFuzzyWasm().then((api) => {
+				this.fuzzyExports = api;
+			}, onUnexpectedError);
+			StrWidth.create().then((strWidth) => {
+				this.strWidth = strWidth;
+			}, onUnexpectedError);
+			events_default.on("VimResized", (columns, lines) => {
+				Object.assign(toObject(this.env), {
+					columns,
+					lines
+				});
+			});
+			Object.defineProperty(this.statusLine, "nvim", { get: () => this.nvim });
+			this.configurations = new Configurations(userConfigFile, new ConfigurationProxy(this));
+			this.workspaceFolderControl = new WorkspaceFolderController(this.configurations);
+			let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl);
+			this.contentProvider = new ContentProvider(documents);
+			this.watchers = new Watchers();
+			this.autocmds = new Autocmds();
+			this.keymaps = new Keymaps();
+			this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps);
+			this.editors = new Editors(documents);
+			this.tabs = new Tabs(this.editors);
+			this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders;
+			this.onDidChangeConfiguration = this.configurations.onDidChange;
+			this.onDidOpenTextDocument = documents.onDidOpenTextDocument;
+			this.onDidChangeTextDocument = documents.onDidChangeDocument;
+			this.onDidCloseTextDocument = documents.onDidCloseDocument;
+			this.onDidSaveTextDocument = documents.onDidSaveTextDocument;
+			this.onWillSaveTextDocument = documents.onWillSaveTextDocument;
+			this.onDidCreateFiles = this.files.onDidCreateFiles;
+			this.onDidRenameFiles = this.files.onDidRenameFiles;
+			this.onDidDeleteFiles = this.files.onDidDeleteFiles;
+			this.onWillCreateFiles = this.files.onWillCreateFiles;
+			this.onWillRenameFiles = this.files.onWillRenameFiles;
+			this.onWillDeleteFiles = this.files.onWillDeleteFiles;
+			const config = this.getWatchConfig();
+			this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config);
+		}
+		get initialConfiguration() {
+			return this.configurations.initialConfiguration;
+		}
+		getWatchConfig() {
+			let { initialConfiguration } = this;
+			let watchConfig = defaultValue(initialConfiguration.get("fileSystemWatch"), {});
+			let watchmanPath = watchConfig.watchmanPath;
+			if (!watchmanPath) watchmanPath = initialConfiguration.inspect("coc.preferences.watchmanPath").globalValue;
+			if (typeof watchmanPath === "string") watchmanPath = this.expand(watchmanPath);
+			let ignoredFolders = defaultValue(watchConfig.ignoredFolders, [
+				"${tmpdir}",
+				"/private/tmp",
+				"/"
+			]);
+			let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false);
+			return {
+				watchmanPath,
+				enable,
+				ignoredFolders: ignoredFolders.map((p) => this.expand(p))
+			};
+		}
+		async init(window) {
+			let { nvim } = this;
+			for (let method of methods) Object.defineProperty(this, method, { get: () => {
+				return (...args) => {
+					let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
+					logger$35.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
+					return window[method].apply(window, args);
+				};
+			} });
+			for (let name of ["onDidOpenTerminal", "onDidCloseTerminal"]) Object.defineProperty(this, name, { get: () => {
+				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
+				logger$35.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
+				return window[name];
+			} });
+			let env = this._env = await nvim.call("coc#util#vim_info");
+			this.checkVersion(38);
+			this.configurations.updateMemoryConfig(this._env.config);
+			this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders);
+			this.workspaceFolderControl.onDidChangeWorkspaceFolders(() => {
+				nvim.setVar("WorkspaceFolders", this.folderPaths, true);
+			});
+			this.files.attach(nvim, env, window);
+			this.contentProvider.attach(nvim);
+			this.registerTextDocumentContentProvider("output", channels_default.getProvider(nvim));
+			this.keymaps.attach(nvim);
+			this.autocmds.attach(nvim);
+			this.watchers.attach(nvim, env);
+			this.watchers.watchOption("runtimepath", async (oldValue, newValue) => {
+				let oldList = oldValue.split(",");
+				let paths = newValue.split(",").filter((x) => !oldList.includes(x));
+				if (paths.length > 0) {
+					let filepaths = [];
+					await Promise.allSettled(paths.map((filepath) => {
+						return new Promise((resolve, reject) => {
+							let converted = this.fixWin32unixFilepath(filepath);
+							getFileType(converted).then((t) => {
+								if (t == 2) filepaths.push(converted);
+								resolve(void 0);
+							}, reject);
+						});
+					}));
+					if (filepaths.length > 0) {
+						this._onDidRuntimePathChange.fire(filepaths);
+						this.env.runtimepath = [...oldList, ...filepaths].join(",");
+					}
+				}
+			});
+			await this.documentsManager.attach(this.nvim, this._env);
+			await this.editors.attach(nvim);
+			this.tabs.attach();
+			let channel = channels_default.create("watchman", nvim);
+			this.fileSystemWatchers.attach(channel);
+			if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow);
+		}
+		checkVersion(version) {
+			if (this._env.apiversion != version) {
+				this.nvim.echoError(`API version ${this._env.apiversion} is not 38, building coc.nvim by 'npm ci'.`);
+				this.nvim.call("coc#ui#fix", [], true);
+			}
+		}
+		getDisplayWidth(text, cache = false) {
+			return this.strWidth.getWidth(text, cache);
+		}
+		get version() {
+			return VERSION;
+		}
+		get cwd() {
+			return this.documentsManager.cwd;
+		}
+		get env() {
+			return this._env;
+		}
+		get root() {
+			return this.documentsManager.root || this.cwd;
+		}
+		get rootPath() {
+			return this.root;
+		}
+		get bufnr() {
+			return this.documentsManager.bufnr;
+		}
+		/**
+		* @deprecated
+		*/
+		get insertMode() {
+			return events_default.insertMode;
+		}
+		/**
+		* @deprecated always true
+		*/
+		get floatSupported() {
+			return true;
+		}
+		/**
+		* @deprecated
+		*/
+		get uri() {
+			return this.documentsManager.uri;
+		}
+		/**
+		* @deprecated
+		*/
+		get workspaceFolder() {
+			return this.workspaceFolders[0];
+		}
+		get textDocuments() {
+			return this.documentsManager.textDocuments;
+		}
+		get documents() {
+			return this.documentsManager.documents;
+		}
+		get document() {
+			return this.documentsManager.document;
+		}
+		get workspaceFolders() {
+			return this.workspaceFolderControl.workspaceFolders;
+		}
+		fixWin32unixFilepath(filepath) {
+			return this.documentsManager.fixUnixPrefix(filepath);
+		}
+		checkPatterns(patterns, folders) {
+			return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns);
+		}
+		get folderPaths() {
+			return this.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
+		}
+		get channelNames() {
+			return channels_default.names;
+		}
+		get pluginRoot() {
+			return pluginRoot;
+		}
+		get isVim() {
+			return this._env.isVim;
+		}
+		get isNvim() {
+			return !this._env.isVim;
+		}
+		/**
+		* Kept for backward compatible
+		*/
+		get completeOpt() {
+			return "";
+		}
+		get filetypes() {
+			return this.documentsManager.filetypes;
+		}
+		get languageIds() {
+			return this.documentsManager.languageIds;
+		}
+		/**
+		* @deprecated Use nvim.createNamespace() instead.
+		*/
+		createNameSpace(name) {
+			return createNameSpace(name);
+		}
+		has(feature) {
+			return has(this.env, feature);
+		}
+		/**
+		* Register autocmd on vim.
+		*/
+		registerAutocmd(autocmd, disposables) {
+			let opts = Object.assign({}, autocmd);
+			Error.captureStackTrace(opts);
+			let disposable = this.autocmds.registerAutocmd(opts);
+			if (disposables) disposables.push(disposable);
+			return disposable;
+		}
+		/**
+		* Watch for option change.
+		*/
+		watchOption(key, callback, disposables) {
+			return this.watchers.watchOption(key, callback, disposables);
+		}
+		/**
+		* Watch global variable, works on neovim only.
+		*/
+		watchGlobal(key, callback, disposables) {
+			let cb = callback ?? function() {};
+			return this.watchers.watchGlobal(key, cb, disposables);
+		}
+		/**
+		* Check if selector match document.
+		*/
+		match(selector, document) {
+			return score$1(selector, document.uri, document.languageId);
+		}
+		/**
+		* Create a FileSystemWatcher instance, doesn't fail when watchman not found.
+		*/
+		createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete) {
+			return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete);
+		}
+		createFuzzyMatch() {
+			return new FuzzyMatch(this.fuzzyExports);
+		}
+		getWatchmanPath() {
+			return getWatchmanPath(this.configurations);
+		}
+		/**
+		* Get configuration by section and optional resource uri.
+		*/
+		getConfiguration(section, scope) {
+			return this.configurations.getConfiguration(section, scope);
+		}
+		resolveJSONSchema(uri) {
+			return this.configurations.getJSONSchema(uri);
+		}
+		/**
+		* Get created document by uri or bufnr.
+		*/
+		getDocument(uri) {
+			return this.documentsManager.getDocument(uri);
+		}
+		hasDocument(uri, version) {
+			let doc = this.documentsManager.getDocument(uri);
+			return doc && (version != null ? doc.version == version : true);
+		}
+		getUri(bufnr, defaultValue = "") {
+			let doc = this.documentsManager.getDocument(bufnr);
+			return doc ? doc.uri : defaultValue;
+		}
+		isAttached(bufnr) {
+			let doc = this.documentsManager.getDocument(bufnr);
+			return doc != null && doc.attached;
+		}
+		/**
+		* Get attached document by uri or bufnr.
+		* Throw error when document doesn't exist or isn't attached.
+		*/
+		getAttachedDocument(uri) {
+			let doc = this.getDocument(uri);
+			if (!doc) throw new Error(`Buffer ${uri} not exists.`);
+			if (!doc.attached) throw new Error(`Buffer ${uri} not attached, ${doc.notAttachReason}`);
+			return doc;
+		}
+		/**
+		* Convert location to quickfix item.
+		*/
+		getQuickfixItem(loc, text, type = "", module) {
+			return this.documentsManager.getQuickfixItem(loc, text, type, module);
+		}
+		/**
+		* Create persistence Mru instance.
+		*/
+		createMru(name) {
+			return new Mru(name);
+		}
+		async getQuickfixList(locations) {
+			return this.documentsManager.getQuickfixList(locations);
+		}
+		/**
+		* Populate locations to UI.
+		*/
+		async showLocations(locations) {
+			await this.documentsManager.showLocations(locations);
+		}
+		/**
+		* Get content of line by uri and line.
+		*/
+		getLine(uri, line) {
+			return this.documentsManager.getLine(uri, line);
+		}
+		/**
+		* Get WorkspaceFolder of uri
+		*/
+		getWorkspaceFolder(uri) {
+			return this.workspaceFolderControl.getWorkspaceFolder(typeof uri === "string" ? URI.parse(uri) : uri);
+		}
+		/**
+		* Get content from buffer or file by uri.
+		*/
+		readFile(uri) {
+			return this.documentsManager.readFile(uri);
+		}
+		async getCurrentState() {
+			let document = await this.document;
+			let position = await getCursorPosition(this.nvim);
+			return {
+				document: document.textDocument,
+				position
+			};
+		}
+		async getFormatOptions(uri) {
+			return this.documentsManager.getFormatOptions(uri);
+		}
+		/**
+		* Resolve module from yarn or npm.
+		*/
+		resolveModule(name) {
+			return resolveModule(name);
+		}
+		/**
+		* Run nodejs command
+		*/
+		async runCommand(cmd, cwd, timeout) {
+			return runCommand(cmd, { cwd: cwd ?? this.cwd }, timeout);
+		}
+		/**
+		* Expand filepath with `~` and/or environment placeholders
+		*/
+		expand(filepath) {
+			return this.documentsManager.expand(filepath);
+		}
+		async callAsync(method, args) {
+			return await callAsync(this.nvim, method, args);
+		}
+		registerTextDocumentContentProvider(scheme, provider) {
+			return this.contentProvider.registerTextDocumentContentProvider(scheme, provider);
+		}
+		registerKeymap(modes, key, fn, opts = {}) {
+			return this.keymaps.registerKeymap(modes, key, fn, opts);
+		}
+		registerExprKeymap(mode, key, fn, buffer = false, cancel = true) {
+			return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel);
+		}
+		registerLocalKeymap(bufnr, mode, key, fn, notify = false) {
+			if (typeof arguments[0] === "string") {
+				bufnr = this.bufnr;
+				mode = arguments[0];
+				key = arguments[1];
+				fn = arguments[2];
+				notify = arguments[3] ?? false;
+			}
+			return this.keymaps.registerLocalKeymap(bufnr, mode, key, fn, notify);
+		}
+		/**
+		* Create Task instance that runs in vim.
+		*/
+		createTask(id) {
+			return new Task$1(this.nvim, id);
+		}
+		/**
+		* Create DB instance at extension root.
+		*/
+		createDatabase(name) {
+			return new DB(path$5.join(dataHome, name + ".json"));
+		}
+		registerBufferSync(create) {
+			return new BufferSync(create, this.documentsManager);
+		}
+		async attach() {
+			await this.documentsManager.attach(this.nvim, this._env);
+		}
+		jumpTo(uri, position, openCommand) {
+			return this.files.jumpTo(uri, position, openCommand);
+		}
+		/**
+		* Findup for filename or filenames from current filepath or root.
+		*/
+		findUp(filename) {
+			return findUp(this.nvim, this.cwd, filename);
+		}
+		/**
+		* Apply WorkspaceEdit.
+		*/
+		applyEdit(edit) {
+			return this.files.applyEdit(edit);
+		}
+		/**
+		* Create a file in vim and disk
+		*/
+		createFile(filepath, opts = {}) {
+			return this.files.createFile(filepath, opts);
+		}
+		/**
+		* Load uri as document.
+		*/
+		loadFile(uri, cmd) {
+			return this.files.loadResource(uri, cmd);
+		}
+		/**
+		* Load the files that not loaded
+		*/
+		async loadFiles(uris) {
+			return this.files.loadResources(uris);
+		}
+		/**
+		* Rename file in vim and disk
+		*/
+		async renameFile(oldPath, newPath, opts = {}) {
+			await this.files.renameFile(oldPath, newPath, opts);
+		}
+		/**
+		* Delete file from vim and disk.
+		*/
+		async deleteFile(filepath, opts = {}) {
+			await this.files.deleteFile(filepath, opts);
+		}
+		/**
+		* Open resource by uri
+		*/
+		async openResource(uri) {
+			await this.files.openResource(uri);
+		}
+		async computeWordRanges(uri, range, token) {
+			let doc = this.getDocument(uri);
+			if (!doc) return null;
+			return await doc.chars.computeWordRanges(doc.textDocument.lines, range, token);
+		}
+		openTextDocument(uri) {
+			return this.files.openTextDocument(uri);
+		}
+		getRelativePath(pathOrUri, includeWorkspace) {
+			return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace);
+		}
+		asRelativePath(pathOrUri, includeWorkspace) {
+			return this.getRelativePath(pathOrUri, includeWorkspace);
+		}
+		async findFiles(include, exclude, maxResults, token) {
+			return this.files.findFiles(include, exclude, maxResults, token);
+		}
+		detach() {
+			this.documentsManager.detach();
+		}
+		reset() {
+			this.statusLine.reset();
+			this.configurations.reset();
+			this.workspaceFolderControl.reset();
+			this.documentsManager.reset();
+		}
+		dispose() {
+			channels_default.dispose();
+			this.autocmds.dispose();
+			this.statusLine.dispose();
+			this.watchers.dispose();
+			this.contentProvider.dispose();
+			this.documentsManager.dispose();
+			this.configurations.dispose();
+		}
+	};
+	workspace_default = new Workspace();
+}));
+//#endregion
+//#region src/tree/filter.ts
+var sessionKey, HistoryInput, Filter;
+var init_filter = __esmMin((() => {
+	init_events();
+	init_protocol();
+	init_util$7();
+	sessionKey = "filter";
+	HistoryInput = class {
+		history = [];
+		next(input) {
+			let idx = this.history.indexOf(input);
+			return this.history[idx + 1] ?? this.history[0];
+		}
+		previous(input) {
+			let idx = this.history.indexOf(input);
+			return this.history[idx - 1] ?? this.history[this.history.length - 1];
+		}
+		add(input) {
+			let idx = this.history.indexOf(input);
+			if (idx !== -1) this.history.splice(idx, 1);
+			this.history.unshift(input);
+		}
+		toJSON() {
+			return `[${this.history.join(",")}]`;
+		}
+	};
+	Filter = class {
+		nvim;
+		_activated = false;
+		text;
+		history = new HistoryInput();
+		disposables = [];
+		_onDidUpdate = new import_main$1.Emitter();
+		_onDidExit = new import_main$1.Emitter();
+		_onDidKeyPress = new import_main$1.Emitter();
+		onDidKeyPress = this._onDidKeyPress.event;
+		onDidUpdate = this._onDidUpdate.event;
+		onDidExit = this._onDidExit.event;
+		constructor(nvim, keys) {
+			this.nvim = nvim;
+			this.text = "";
+			events_default.on("InputChar", (session, character) => {
+				if (session !== "filter" || !this._activated) return;
+				if (!keys.includes(character)) {
+					if (character.length == 1) {
+						this.text = this.text + character;
+						this._onDidUpdate.fire(this.text);
+						return;
+					}
+					if (character == "<bs>" || character == "<C-h>") {
+						this.text = this.text.slice(0, -1);
+						this._onDidUpdate.fire(this.text);
+						return;
+					}
+					if (character == "<C-u>") {
+						this.text = "";
+						this._onDidUpdate.fire(this.text);
+						return;
+					}
+					if (character == "<C-n>") {
+						let text = this.history.next(this.text);
+						if (text) {
+							this.text = text;
+							this._onDidUpdate.fire(this.text);
+						}
+						return;
+					}
+					if (character == "<C-p>") {
+						let text = this.history.previous(this.text);
+						if (text) {
+							this.text = text;
+							this._onDidUpdate.fire(this.text);
+						}
+					}
+					if (character == "<esc>" || character == "<C-o>") {
+						this.deactivate();
+						return;
+					}
+				}
+				this._onDidKeyPress.fire(character);
+			}, null, this.disposables);
+		}
+		active() {
+			this._activated = true;
+			this.text = "";
+			this.nvim.call("coc#prompt#start_prompt", [sessionKey], true);
+		}
+		deactivate(node) {
+			if (!this._activated) return;
+			this.nvim.call("coc#prompt#stop_prompt", [sessionKey], true);
+			this._activated = false;
+			let { text } = this;
+			this.text = "";
+			this._onDidExit.fire(node);
+			this.history.add(text);
+		}
+		get activated() {
+			return this._activated;
+		}
+		dispose() {
+			this.deactivate();
+			this._onDidKeyPress.dispose();
+			this._onDidUpdate.dispose();
+			this._onDidExit.dispose();
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/tree/TreeItem.ts
+function getItemLabel(item) {
+	return TreeItemLabel.is(item.label) ? item.label.label : item.label;
+}
+var TreeItemLabel, TreeItemCollapsibleState, TreeItem;
+var init_TreeItem = __esmMin((() => {
+	init_esm();
+	init_node();
+	(function(_TreeItemLabel) {
+		function is(obj) {
+			return typeof obj.label == "string";
+		}
+		_TreeItemLabel.is = is;
+	})(TreeItemLabel || (TreeItemLabel = {}));
+	TreeItemCollapsibleState = /* @__PURE__ */ function(TreeItemCollapsibleState) {
+		/**
+		* Determines an item can be neither collapsed nor expanded. Implies it has no children.
+		*/
+		TreeItemCollapsibleState[TreeItemCollapsibleState["None"] = 0] = "None";
+		/**
+		* Determines an item is collapsed
+		*/
+		TreeItemCollapsibleState[TreeItemCollapsibleState["Collapsed"] = 1] = "Collapsed";
+		/**
+		* Determines an item is expanded
+		*/
+		TreeItemCollapsibleState[TreeItemCollapsibleState["Expanded"] = 2] = "Expanded";
+		return TreeItemCollapsibleState;
+	}({});
+	TreeItem = class {
+		collapsibleState;
+		label;
+		id;
+		description;
+		icon;
+		resourceUri;
+		command;
+		tooltip;
+		deprecated;
+		constructor(label, collapsibleState = 0) {
+			this.collapsibleState = collapsibleState;
+			if (URI.isUri(label)) {
+				this.resourceUri = label;
+				this.label = path$5.basename(label.path);
+				this.id = label.toString();
+			} else this.label = label;
+		}
+	};
+}));
+//#endregion
+//#region src/tree/TreeView.ts
+var logger$34, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
+var init_TreeView = __esmMin((() => {
+	init_main$2();
+	init_commands$2();
+	init_events();
+	init_logger$2();
+	init_fuzzyMatch();
+	init_util$7();
+	init_array();
+	init_filter$1();
+	init_mutex();
+	init_node();
+	init_object();
+	init_protocol();
+	init_string$1();
+	init_window();
+	init_workspace$1();
+	init_filter();
+	init_TreeItem();
+	logger$34 = createLogger$1("BasicTreeView");
+	retryTimeout = getConditionValue(500, 10);
+	maxRetry = getConditionValue(5, 1);
+	highlightNamespace = "tree";
+	signOffset = 3e3;
+	globalId = 1;
+	BasicTreeView = class {
+		viewId;
+		opts;
+		bufnr;
+		bufname;
+		winid;
+		config;
+		keys;
+		_targetBufnr;
+		_targetWinId;
+		_targetTabId;
+		_selection = [];
+		_keymapDefs = [];
+		_onDispose = new import_main$1.Emitter();
+		_onDidRefrash = new import_main$1.Emitter();
+		_onDidExpandElement = new import_main$1.Emitter();
+		_onDidCollapseElement = new import_main$1.Emitter();
+		_onDidChangeSelection = new import_main$1.Emitter();
+		_onDidChangeVisibility = new import_main$1.Emitter();
+		_onDidFilterStateChange = new import_main$1.Emitter();
+		_onDidCursorMoved = new import_main$1.Emitter();
+		onDidRefrash = this._onDidRefrash.event;
+		onDispose = this._onDispose.event;
+		onDidExpandElement = this._onDidExpandElement.event;
+		onDidCollapseElement = this._onDidCollapseElement.event;
+		onDidChangeSelection = this._onDidChangeSelection.event;
+		onDidChangeVisibility = this._onDidChangeVisibility.event;
+		onDidFilterStateChange = this._onDidFilterStateChange.event;
+		onDidCursorMoved = this._onDidCursorMoved.event;
+		message;
+		title;
+		description;
+		retryTimers = 0;
+		renderedItems = [];
+		provider;
+		nodesMap = /* @__PURE__ */ new Map();
+		mutex = new Mutex();
+		timer;
+		disposables = [];
+		tooltipFactory;
+		resolveTokenSource;
+		lineState = {
+			titleCount: 0,
+			messageCount: 0
+		};
+		filter;
+		filterText;
+		itemsToFilter;
+		leafIndent;
+		winfixwidth;
+		autoWidth;
+		constructor(viewId, opts) {
+			this.viewId = viewId;
+			this.opts = opts;
+			this.loadConfiguration();
+			workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
+			if (opts.enableFilter) this.filter = new Filter(this.nvim, [
+				this.keys.selectNext,
+				this.keys.selectPrevious,
+				this.keys.invoke
+			]);
+			let id = globalId;
+			globalId = globalId + 1;
+			this.bufname = `CocTree${id}`;
+			this.tooltipFactory = window_default.createFloatFactory({ modes: ["n"] });
+			this.provider = opts.treeDataProvider;
+			this.leafIndent = opts.disableLeafIndent !== true;
+			this.winfixwidth = opts.winfixwidth !== false;
+			this.autoWidth = opts.autoWidth === true;
+			let message;
+			Object.defineProperty(this, "message", {
+				set: (msg) => {
+					message = msg ? msg.replace(/\r?\n/g, " ") : void 0;
+					this.updateHeadLines();
+				},
+				get: () => {
+					return message;
+				}
+			});
+			let title = viewId.replace(/\r?\n/g, " ");
+			Object.defineProperty(this, "title", {
+				set: (newTitle) => {
+					title = newTitle ? newTitle.replace(/\r?\n/g, " ") : void 0;
+					this.updateHeadLines();
+				},
+				get: () => {
+					return title;
+				}
+			});
+			let description;
+			Object.defineProperty(this, "description", {
+				set: (desc) => {
+					description = desc ? desc.replace(/\r?\n/g, " ") : void 0;
+					this.updateHeadLines();
+				},
+				get: () => {
+					return description;
+				}
+			});
+			let filterText;
+			Object.defineProperty(this, "filterText", {
+				set: (text) => {
+					let { titleCount, messageCount } = this.lineState;
+					let start = titleCount + messageCount;
+					if (text != null) {
+						let highlights = [{
+							lnum: start,
+							colStart: byteLength(text),
+							colEnd: byteLength(text) + 1,
+							hlGroup: "Cursor"
+						}];
+						this.renderedItems = [];
+						this.updateUI([text + " "], highlights, start, -1, true);
+						this.doFilter(text);
+					} else if (filterText != null) this.updateUI([], [], start, start + 1);
+					filterText = text;
+				},
+				get: () => {
+					return filterText;
+				}
+			});
+			if (this.provider.onDidChangeTreeData) this.provider.onDidChangeTreeData(this.onDataChange, this, this.disposables);
+			events_default.on("BufUnload", (bufnr) => {
+				if (bufnr != this.bufnr) return;
+				let isVisible = this.winid != null;
+				this.winid = void 0;
+				this.bufnr = void 0;
+				if (isVisible) this._onDidChangeVisibility.fire({ visible: false });
+				this.dispose();
+			}, null, this.disposables);
+			events_default.on("WinClosed", (winid) => {
+				if (this.winid === winid) {
+					this.winid = void 0;
+					this._onDidChangeVisibility.fire({ visible: false });
+				}
+			}, null, this.disposables);
+			events_default.on("BufWinLeave", (bufnr, winid) => {
+				if (bufnr == this.bufnr && winid == this.winid) {
+					this.winid = void 0;
+					this._onDidChangeVisibility.fire({ visible: false });
+				}
+			}, null, this.disposables);
+			window_default.onDidTabClose((id) => {
+				if (this._targetTabId === id) this.dispose();
+			}, null, this.disposables);
+			events_default.on("CursorHold", async (bufnr, cursor) => {
+				if (bufnr != this.bufnr) return;
+				await this.onHover(cursor[0]);
+			}, null, this.disposables);
+			events_default.on(["CursorMoved", "BufEnter"], () => {
+				this.cancelResolve();
+			}, null, this.disposables);
+			let debounced = debounce((bufnr, cursor) => {
+				if (bufnr !== this.bufnr) return;
+				let element = this.getElementByLnum(cursor[0] - 1);
+				this._onDidCursorMoved.fire(element);
+			}, 30);
+			this.disposables.push(import_main$1.Disposable.create(() => {
+				debounced.clear();
+			}));
+			events_default.on("CursorMoved", debounced, null, this.disposables);
+			events_default.on("WinEnter", (winid) => {
+				if (winid != this.windowId || !this.filtering) return;
+				let buf = this.nvim.createBuffer(this.bufnr);
+				let line = this.startLnum - 1;
+				let len = toText(this.filterText).length;
+				let range = Range.create(line, len, line, len + 1);
+				buf.highlightRanges(highlightNamespace, "Cursor", [range]);
+				this.nvim.call("coc#prompt#start_prompt", [sessionKey], true);
+				this.redraw();
+			}, null, this.disposables);
+			events_default.on("WinLeave", (winid) => {
+				if (winid != this.windowId || !this.filtering) return;
+				let buf = this.nvim.createBuffer(this.bufnr);
+				this.nvim.call("coc#prompt#stop_prompt", [sessionKey], true);
+				buf.clearNamespace(highlightNamespace, this.startLnum - 1, this.startLnum);
+			}, null, this.disposables);
+			this.disposables.push(this._onDidChangeVisibility, this._onDidCursorMoved, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement);
+			if (this.filter) {
+				this.filter.onDidExit((node) => {
+					this.nodesMap.clear();
+					this.filterText = void 0;
+					this.itemsToFilter = void 0;
+					if (node && typeof this.provider.getParent === "function") {
+						this.renderedItems = [];
+						this.reveal(node, { focus: true });
+					} else {
+						this.clearSelection();
+						this.render();
+					}
+					this._onDidFilterStateChange.fire(false);
+				});
+				this.filter.onDidUpdate((text) => {
+					this.filterText = text;
+				});
+				this.filter.onDidKeyPress(async (character) => {
+					let items = toArray(this.renderedItems);
+					let curr = this.selection[0];
+					if (character == "<up>" || character == this.keys.selectPrevious) {
+						let idx = items.findIndex((o) => o.node == curr);
+						let node = items[idx == -1 || idx == 0 ? items.length - 1 : idx - 1]?.node;
+						if (node) this.selectItem(node, true);
+					}
+					if (character == "<down>" || character == this.keys.selectNext) {
+						let idx = items.findIndex((o) => o.node == curr);
+						let node = items[idx == -1 || idx == items.length - 1 ? 0 : idx + 1]?.node;
+						if (node) this.selectItem(node, true);
+					}
+					if (character == "<cr>" || character == this.keys.invoke) {
+						if (!curr) return;
+						await this.invokeCommand(curr);
+						this.filter.deactivate(curr);
+					}
+				});
+			}
+		}
+		get windowId() {
+			return this.winid;
+		}
+		get targetTabId() {
+			return this._targetTabId;
+		}
+		get targetWinId() {
+			return this._targetWinId;
+		}
+		get targetBufnr() {
+			return this._targetBufnr;
+		}
+		get startLnum() {
+			let filterCount = this.filterText == null ? 0 : 1;
+			return this.lineState.messageCount + this.lineState.titleCount + filterCount;
+		}
+		get nvim() {
+			return workspace_default.nvim;
+		}
+		get filtering() {
+			return this.filter != null && this.filter.activated;
+		}
+		loadConfiguration(e) {
+			if (!e || e.affectsConfiguration("tree")) {
+				let config = workspace_default.getConfiguration("tree", null);
+				this.config = {
+					openedIcon: config.get("openedIcon", " "),
+					closedIcon: config.get("closedIcon", " ")
+				};
+				this.keys = {
+					close: config.get("key.close"),
+					invoke: config.get("key.invoke"),
+					toggle: config.get("key.toggle"),
+					actions: config.get("key.actions"),
+					collapseAll: config.get("key.collapseAll"),
+					toggleSelection: config.get("key.toggleSelection"),
+					activeFilter: config.get("key.activeFilter"),
+					selectNext: config.get("key.selectNext"),
+					selectPrevious: config.get("key.selectPrevious")
+				};
+				if (e && this.visible) this.render();
+			}
+		}
+		async doFilter(text) {
+			let items = [];
+			let index = 0;
+			let release = await this.mutex.acquire();
+			try {
+				if (!this.itemsToFilter) {
+					let itemsToFilter = [];
+					const addNodes = async (nodes) => {
+						for (let n of nodes) {
+							itemsToFilter.push(n);
+							let arr = await Promise.resolve(this.provider.getChildren(n));
+							if (!isFalsyOrEmpty(arr)) await addNodes(arr);
+						}
+					};
+					await addNodes(await Promise.resolve(this.provider.getChildren()));
+					this.itemsToFilter = itemsToFilter;
+				}
+				let lowInput = text.toLowerCase();
+				let emptyInput = text.length === 0;
+				for (let n of this.itemsToFilter) {
+					let item = await this.getTreeItem(n);
+					let label = getItemLabel(item);
+					let score = 0;
+					if (!emptyInput) {
+						let res = fuzzyScoreGracefulAggressive(text, lowInput, 0, label, label.toLowerCase(), 0, {
+							boostFullMatch: true,
+							firstMatchCanBeWeak: true
+						});
+						if (!res) continue;
+						score = res[0];
+						item.label = {
+							label,
+							highlights: toSpans(label, res)
+						};
+					} else item.label = {
+						label,
+						highlights: []
+					};
+					item.collapsibleState = 0;
+					let { line, highlights } = this.getRenderedLine(item, index, 0);
+					items.push({
+						level: 0,
+						node: n,
+						line,
+						index,
+						score,
+						highlights
+					});
+					index += 1;
+				}
+				items.sort((a, b) => {
+					if (a.score != b.score) return b.score - a.score;
+					return a.index - b.index;
+				});
+				let lnum = this.startLnum;
+				let highlights = [];
+				let renderedItems = this.renderedItems = items.map((o, idx) => {
+					highlights.push(...o.highlights.map((h) => {
+						h.lnum = lnum + idx;
+						return h;
+					}));
+					delete o.index;
+					delete o.score;
+					delete o.highlights;
+					return o;
+				});
+				this.updateUI(renderedItems.map((o) => o.line), highlights, lnum, -1, true);
+				if (renderedItems.length) this.selectItem(renderedItems[0].node, true);
+				else this.clearSelection();
+				this.redraw();
+				release();
+			} catch (e) {
+				release();
+				logger$34.error(`Error on tree filter:`, e);
+			}
+		}
+		async onHover(lnum) {
+			let element = this.getElementByLnum(lnum - 1);
+			if (!element || !this.nodesMap.has(element)) return;
+			let obj = this.nodesMap.get(element);
+			let item = obj.item;
+			if (!item.tooltip && !obj.resolved) item = await this.resolveItem(element, item);
+			if (!item.tooltip) return;
+			let doc = {
+				filetype: MarkupContent.is(item.tooltip) && item.tooltip.kind == MarkupKind.Markdown ? "markdown" : "txt",
+				content: MarkupContent.is(item.tooltip) ? item.tooltip.value : item.tooltip
+			};
+			await this.tooltipFactory.show([doc]);
+		}
+		async onClick(element) {
+			let { nvim } = this;
+			let [line, col] = await nvim.eval(`[getline('.'),col('.')]`);
+			let pre = byteSlice(line, 0, col - 1);
+			let character = line[pre.length];
+			let { openedIcon, closedIcon } = this.config;
+			if (/^\s*$/.test(pre) && [openedIcon, closedIcon].includes(character)) await this.toggleExpand(element);
+			else await this.invokeCommand(element);
+		}
+		async invokeCommand(element) {
+			let obj = this.nodesMap.get(element);
+			if (!obj) return;
+			this.selectItem(element);
+			let item = obj.item;
+			if (!item.command) item = await this.resolveItem(element, item);
+			if (!item || !item.command) throw new Error(`Failed to resolve command from TreeItem.`);
+			await commands_default.execute(item.command);
+		}
+		async invokeActions(element) {
+			if (!element) return;
+			this.selectItem(element);
+			if (typeof this.provider.resolveActions !== "function") {
+				await window_default.showWarningMessage("No actions");
+				return;
+			}
+			let obj = this.nodesMap.get(element);
+			let actions = await Promise.resolve(this.provider.resolveActions(obj.item, element));
+			if (!actions || actions.length == 0) {
+				await window_default.showWarningMessage("No actions available");
+				return;
+			}
+			let keys = actions.map((o) => o.title);
+			let res = await window_default.showMenuPicker(keys, "Choose action");
+			if (res == -1) return;
+			await Promise.resolve(actions[res].handler(element));
+		}
+		async onDataChange(node) {
+			if (this.filtering) {
+				this.itemsToFilter = void 0;
+				await this.doFilter(toText(this.filterText));
+				return;
+			}
+			this.clearSelection();
+			if (!node) {
+				await this.render();
+				return;
+			}
+			let release = await this.mutex.acquire();
+			try {
+				let items = this.renderedItems;
+				let idx = items.findIndex((o) => o.node === node);
+				if (idx != -1 && this.bufnr) {
+					let level = items[idx].level;
+					let removeCount = 0;
+					for (let i = idx; i < items.length; i++) {
+						let o = items[i];
+						if (i == idx || o && o.level > level) removeCount += 1;
+					}
+					let appendItems = [];
+					let highlights = [];
+					let start = idx + this.startLnum;
+					await this.appendTreeNode(node, level, start, appendItems, highlights);
+					items.splice(idx, removeCount, ...appendItems);
+					this.updateUI(appendItems.map((o) => o.line), highlights, start, start + removeCount);
+				}
+				release();
+			} catch (e) {
+				let errMsg = `Error on tree refresh: ${e}`;
+				logger$34.error(errMsg, e);
+				this.nvim.errWriteLine("[coc.nvim] " + errMsg);
+				release();
+			}
+		}
+		async resolveItem(element, item) {
+			if (typeof this.provider.resolveTreeItem === "function") {
+				let tokenSource = this.resolveTokenSource = new import_main$1.CancellationTokenSource();
+				let token = tokenSource.token;
+				item = await Promise.resolve(this.provider.resolveTreeItem(item, element, token));
+				tokenSource.dispose();
+				this.resolveTokenSource = void 0;
+				if (token.isCancellationRequested) return void 0;
+			}
+			this.nodesMap.set(element, {
+				item,
+				resolved: true
+			});
+			return item;
+		}
+		get visible() {
+			if (!this.bufnr) return false;
+			return this.winid != null;
+		}
+		get valid() {
+			return typeof this.bufnr === "number";
+		}
+		get selection() {
+			return this._selection.slice();
+		}
+		async checkLines() {
+			if (!this.bufnr) return false;
+			let curr = await this.nvim.createBuffer(this.bufnr).lines;
+			let { titleCount, messageCount } = this.lineState;
+			curr = curr.slice(titleCount + messageCount);
+			let lines = this.renderedItems.map((o) => o.line);
+			return equals(curr, lines);
+		}
+		/**
+		* Expand/collapse TreeItem.
+		*/
+		async toggleExpand(element) {
+			let o = this.nodesMap.get(element);
+			if (!o) return;
+			let treeItem = o.item;
+			let lnum = this.getItemLnum(element);
+			let nodeIdx = lnum - this.startLnum;
+			let obj = this.renderedItems[nodeIdx];
+			if (!obj || treeItem.collapsibleState == 0) {
+				if (typeof this.provider.getParent === "function") {
+					let node = await Promise.resolve(this.provider.getParent(element));
+					if (node) {
+						await this.toggleExpand(node);
+						this.focusItem(node);
+					}
+				}
+				return;
+			}
+			let removeCount = 0;
+			if (treeItem.collapsibleState == 2) {
+				let level = obj.level;
+				for (let i = nodeIdx + 1; i < this.renderedItems.length; i++) {
+					let o = this.renderedItems[i];
+					if (!o || o.level <= level) break;
+					removeCount += 1;
+				}
+				treeItem.collapsibleState = 1;
+			} else if (treeItem.collapsibleState == 1) treeItem.collapsibleState = 2;
+			let newItems = [];
+			let newHighlights = [];
+			await this.appendTreeNode(obj.node, obj.level, lnum, newItems, newHighlights);
+			this.renderedItems.splice(nodeIdx, removeCount + 1, ...newItems);
+			this.updateUI(newItems.map((o) => o.line), newHighlights, lnum, lnum + removeCount + 1);
+			this.refreshSigns();
+			if (treeItem.collapsibleState == 1) this._onDidCollapseElement.fire({ element });
+			else this._onDidExpandElement.fire({ element });
+		}
+		toggleSelection(element) {
+			if (!element) return;
+			let idx = this._selection.findIndex((o) => o === element);
+			if (idx !== -1) this.unselectItem(idx);
+			else this.selectItem(element);
+		}
+		clearSelection() {
+			if (!this.bufnr) return;
+			this._selection = [];
+			this.nvim.createBuffer(this.bufnr).unplaceSign({ group: "CocTree" });
+			this._onDidChangeSelection.fire({ selection: [] });
+		}
+		selectItem(item, forceSingle, noRedraw) {
+			let { nvim } = this;
+			let row = this.getItemLnum(item);
+			if (row == null || !this.bufnr) return;
+			let buf = nvim.createBuffer(this.bufnr);
+			let exists = this._selection.includes(item);
+			if (!this.opts.canSelectMany || forceSingle) this._selection = [item];
+			else if (!exists) this._selection.push(item);
+			nvim.pauseNotification();
+			if (!this.opts.canSelectMany || forceSingle) buf.unplaceSign({ group: "CocTree" });
+			nvim.call("win_execute", [this.winid, `normal! ${row + 1}G`], true);
+			buf.placeSign({
+				id: signOffset + row,
+				lnum: row + 1,
+				name: "CocTreeSelected",
+				group: "CocTree"
+			});
+			if (!noRedraw) this.redraw();
+			nvim.resumeNotification(false, true);
+			if (!exists) this._onDidChangeSelection.fire({ selection: this._selection });
+		}
+		unselectItem(idx) {
+			let item = this._selection[idx];
+			let row = this.getItemLnum(item);
+			if (row == null || !this.bufnr) return;
+			this._selection.splice(idx, 1);
+			this.nvim.createBuffer(this.bufnr).unplaceSign({
+				group: "CocTree",
+				id: signOffset + row
+			});
+			this._onDidChangeSelection.fire({ selection: this._selection });
+		}
+		focusItem(element) {
+			if (!this.winid) return;
+			let lnum = this.getItemLnum(element);
+			if (lnum == null) return;
+			this.nvim.call("win_execute", [this.winid, `exe ${lnum + 1}`], true);
+		}
+		getElementByLnum(lnum) {
+			let item = this.renderedItems[lnum - this.startLnum];
+			return item ? item.node : void 0;
+		}
+		getItemLnum(item) {
+			let idx = this.renderedItems.findIndex((o) => o.node === item);
+			if (idx == -1) return void 0;
+			return this.startLnum + idx;
+		}
+		async getTreeItem(element) {
+			let exists;
+			let resolved = false;
+			let obj = this.nodesMap.get(element);
+			if (obj != null) {
+				exists = obj.item;
+				resolved = obj.resolved;
+			}
+			let item = await Promise.resolve(this.provider.getTreeItem(element));
+			if (exists && item && exists.collapsibleState != 0 && item.collapsibleState != 0) item.collapsibleState = exists.collapsibleState;
+			this.nodesMap.set(element, {
+				item,
+				resolved
+			});
+			return item;
+		}
+		getRenderedLine(treeItem, lnum, level) {
+			let { openedIcon, closedIcon } = this.config;
+			const highlights = [];
+			const { label, deprecated, description } = treeItem;
+			let prefix = "  ".repeat(level);
+			const addHighlight = (text, hlGroup) => {
+				let colStart = byteLength(prefix);
+				highlights.push({
+					lnum,
+					hlGroup,
+					colStart,
+					colEnd: colStart + byteLength(text)
+				});
+			};
+			switch (treeItem.collapsibleState) {
+				case 2:
+					addHighlight(openedIcon, "CocTreeOpenClose");
+					prefix += openedIcon + " ";
+					break;
+				case 1:
+					addHighlight(closedIcon, "CocTreeOpenClose");
+					prefix += closedIcon + " ";
+					break;
+				default: prefix += this.leafIndent ? "  " : "";
+			}
+			if (treeItem.icon) {
+				let { text, hlGroup } = treeItem.icon;
+				addHighlight(text, hlGroup);
+				prefix += text + " ";
+			}
+			if (TreeItemLabel.is(label) && Array.isArray(label.highlights)) {
+				let colStart = byteLength(prefix);
+				for (let o of label.highlights) highlights.push({
+					lnum,
+					hlGroup: "CocSearch",
+					colStart: colStart + o[0],
+					colEnd: colStart + o[1]
+				});
+			}
+			let labelText = getItemLabel(treeItem);
+			if (deprecated) addHighlight(labelText, "CocDeprecatedHighlight");
+			prefix += labelText;
+			if (description && description.indexOf("\n") == -1) {
+				prefix += " ";
+				addHighlight(description, "CocTreeDescription");
+				prefix += description;
+			}
+			return {
+				line: prefix,
+				highlights
+			};
+		}
+		async appendTreeNode(element, level, lnum, items, highlights) {
+			let treeItem = await this.getTreeItem(element);
+			if (!treeItem) return 0;
+			let takes = 1;
+			let res = this.getRenderedLine(treeItem, lnum, level);
+			highlights.push(...res.highlights);
+			items.push({
+				level,
+				line: res.line,
+				node: element
+			});
+			if (treeItem.collapsibleState == 2) {
+				let l = level + 1;
+				let children = await Promise.resolve(this.provider.getChildren(element));
+				for (let el of toArray(children)) {
+					let n = await this.appendTreeNode(el, l, lnum + takes, items, highlights);
+					takes = takes + n;
+				}
+			}
+			return takes;
+		}
+		updateUI(lines, highlights, start = 0, end = -1, noRedraw = false) {
+			if (!this.bufnr) return;
+			let { nvim, winid } = this;
+			let buf = nvim.createBuffer(this.bufnr);
+			nvim.pauseNotification();
+			buf.setOption("modifiable", true, true);
+			buf.setLines(lines, {
+				start,
+				end,
+				strictIndexing: false
+			}, true);
+			if (this.autoWidth) this.nvim.call("coc#window#adjust_width", [winid], true);
+			if (highlights.length) {
+				let highlightEnd = end == -1 ? -1 : start + lines.length;
+				buf.updateHighlights(highlightNamespace, highlights, {
+					start,
+					end: highlightEnd
+				});
+			}
+			buf.setOption("modifiable", false, true);
+			if (!noRedraw) this.redraw();
+			nvim.resumeNotification(false, true);
+		}
+		async reveal(element, options = {}) {
+			if (this.filtering) return;
+			let isShown = this.getItemLnum(element) != null;
+			let { select, focus, expand } = options;
+			let curr = element;
+			if (typeof this.provider.getParent !== "function") throw new Error("missing getParent function from provider for reveal.");
+			if (!isShown) while (curr) {
+				let parentNode = await Promise.resolve(this.provider.getParent(curr));
+				if (parentNode) {
+					let item = await this.getTreeItem(parentNode);
+					item.collapsibleState = 2;
+					curr = parentNode;
+				} else break;
+			}
+			if (expand) {
+				let item = await this.getTreeItem(element);
+				if (item.collapsibleState != 0) {
+					item.collapsibleState = 2;
+					if (typeof expand === "boolean") expand = 1;
+					if (expand > 1) {
+						let curr = Math.min(expand, 2);
+						let nodes = await Promise.resolve(this.provider.getChildren(element));
+						while (!isFalsyOrEmpty(nodes)) {
+							let arr = [];
+							for (let n of nodes) {
+								let item = await this.getTreeItem(n);
+								if (item.collapsibleState == 0) continue;
+								item.collapsibleState = 2;
+								if (curr > 1) {
+									let res = await Promise.resolve(this.provider.getChildren(n));
+									arr.push(...res);
+								}
+							}
+							nodes = arr;
+							curr = curr - 1;
+						}
+					}
+				}
+			}
+			if (!isShown || expand) await this.render();
+			if (select !== false) this.selectItem(element);
+			if (focus) this.focusItem(element);
+		}
+		updateHeadLines(initialize = false) {
+			let { titleCount, messageCount } = this.lineState;
+			let end = initialize ? -1 : titleCount + messageCount;
+			let lines = [];
+			let highlights = [];
+			if (this.message) {
+				highlights.push({
+					hlGroup: "MoreMsg",
+					colStart: 0,
+					colEnd: byteLength(this.message),
+					lnum: 0
+				});
+				lines.push(this.message);
+				lines.push("");
+			}
+			if (this.title) {
+				highlights.push({
+					hlGroup: "CocTreeTitle",
+					colStart: 0,
+					colEnd: byteLength(this.title),
+					lnum: lines.length
+				});
+				if (this.description) {
+					let colStart = byteLength(this.title) + 1;
+					highlights.push({
+						hlGroup: "Comment",
+						colStart,
+						colEnd: colStart + byteLength(this.description),
+						lnum: lines.length
+					});
+				}
+				lines.push(this.title + (this.description ? " " + this.description : ""));
+			}
+			this.lineState.messageCount = this.message ? 2 : 0;
+			this.lineState.titleCount = this.title ? 1 : 0;
+			this.updateUI(lines, highlights, 0, end);
+			if (!initialize) this.refreshSigns();
+		}
+		/**
+		* Update signs after collapse/expand or head change
+		*/
+		refreshSigns() {
+			let { selection, nvim, bufnr } = this;
+			if (!selection.length || !bufnr) return;
+			let buf = nvim.createBuffer(bufnr);
+			nvim.pauseNotification();
+			buf.unplaceSign({ group: "CocTree" });
+			for (let n of selection) {
+				let row = this.getItemLnum(n);
+				if (row == null) continue;
+				buf.placeSign({
+					id: signOffset + row,
+					lnum: row + 1,
+					name: "CocTreeSelected",
+					group: "CocTree"
+				});
+			}
+			nvim.resumeNotification(false, true);
+		}
+		async render() {
+			if (!this.bufnr) return;
+			let release = await this.mutex.acquire();
+			try {
+				let lines = [];
+				let highlights = [];
+				let { startLnum } = this;
+				let nodes = await Promise.resolve(this.provider.getChildren());
+				let level = 0;
+				let lnum = startLnum;
+				let renderedItems = [];
+				if (isFalsyOrEmpty(nodes)) this.message = "No results";
+				else {
+					if (this.message == "No results") this.message = "";
+					for (let node of nodes) {
+						let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights);
+						lnum += n;
+					}
+				}
+				lines.push(...renderedItems.map((o) => o.line));
+				this.renderedItems = renderedItems;
+				let delta = this.startLnum - startLnum;
+				highlights.forEach((o) => o.lnum = o.lnum + delta);
+				this.updateUI(lines, highlights, this.startLnum, -1);
+				this._onDidRefrash.fire();
+				this.retryTimers = 0;
+				release();
+			} catch (err) {
+				logger$34.error("Error on render", err);
+				this.renderedItems = [];
+				this.nodesMap.clear();
+				this.lineState = {
+					titleCount: 0,
+					messageCount: 1
+				};
+				release();
+				let errMsg = `${err}`.replace(/\r?\n/g, " ");
+				this.updateUI([errMsg], [{
+					hlGroup: "WarningMsg",
+					colStart: 0,
+					colEnd: byteLength(errMsg),
+					lnum: 0
+				}]);
+				if (this.retryTimers == maxRetry) return;
+				this.timer = setTimeout(() => {
+					this.retryTimers = this.retryTimers + 1;
+					this.render();
+				}, retryTimeout);
+			}
+		}
+		async show(splitCommand = "belowright 30vs", waitRender = true) {
+			let { nvim } = this;
+			let [targetBufnr, windowId] = await nvim.eval(`[bufnr("%"),win_getid()]`);
+			this._targetBufnr = targetBufnr;
+			this._targetWinId = windowId;
+			let opts = {
+				command: splitCommand,
+				bufname: this.bufname,
+				viewId: this.viewId.replace(/"/g, "\\\""),
+				bufnr: defaultValue(this.bufnr, -1),
+				winid: defaultValue(this.winid, -1),
+				bufhidden: defaultValue(this.opts.bufhidden, "wipe"),
+				canSelectMany: this.opts.canSelectMany === true,
+				winfixwidth: this.winfixwidth === true
+			};
+			let [bufnr, winid, tabId] = await nvim.call("coc#ui#create_tree", [opts]);
+			this.bufnr = bufnr;
+			this.winid = winid;
+			this._targetTabId = tabId;
+			if (winid != opts.winid) this._onDidChangeVisibility.fire({ visible: true });
+			if (bufnr == opts.bufnr) return true;
+			this.registerKeymaps();
+			this.updateHeadLines(true);
+			let promise = this.render();
+			if (waitRender) await promise;
+			return true;
+		}
+		registerLocalKeymap(mode, key, fn, notify = false) {
+			if (!this.bufnr) this._keymapDefs.push({
+				mode,
+				key,
+				fn,
+				notify
+			});
+			else this.addLocalKeymap(mode, key, fn, notify);
+		}
+		addLocalKeymap(mode, key, fn, notify = true) {
+			if (!key) return;
+			workspace_default.registerLocalKeymap(this.bufnr, mode, key, async () => {
+				let lnum = await this.nvim.call("line", ["."]);
+				let element = this.getElementByLnum(lnum - 1);
+				await Promise.resolve(fn(element));
+			}, notify);
+		}
+		registerKeymaps() {
+			let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys;
+			let { nvim, _keymapDefs } = this;
+			this.disposables.push(workspace_default.registerLocalKeymap(this.bufnr, "n", "<C-o>", () => {
+				nvim.call("win_gotoid", [this._targetWinId], true);
+			}, true));
+			this.addLocalKeymap("n", "<LeftRelease>", async (element) => {
+				if (element) await this.onClick(element);
+			});
+			if (this.filter != null) this.addLocalKeymap("n", activeFilter, async () => {
+				this.nvim.command(`exe ${this.startLnum}`, true);
+				this.filter.active();
+				this.filterText = "";
+				this._onDidFilterStateChange.fire(true);
+			});
+			this.addLocalKeymap("n", toggleSelection, (element) => this.toggleSelection(element));
+			this.addLocalKeymap("n", invoke, (element) => this.invokeCommand(element));
+			this.addLocalKeymap("n", actions, (element) => this.invokeActions(element));
+			this.addLocalKeymap("n", toggle, (element) => this.toggleExpand(element));
+			this.addLocalKeymap("n", collapseAll, () => this.collapseAll());
+			this.addLocalKeymap("n", close, () => this.hide());
+			while (_keymapDefs.length) {
+				const def = _keymapDefs.pop();
+				this.addLocalKeymap(def.mode, def.key, def.fn, def.notify);
+			}
+		}
+		hide() {
+			this.nvim.call("coc#window#close", [this.winid], true);
+			this.redraw();
+			this.winid = void 0;
+			this._onDidChangeVisibility.fire({ visible: false });
+		}
+		redraw() {
+			if (workspace_default.isVim || this.filter?.activated) this.nvim.command("redraw", true);
+		}
+		async collapseAll() {
+			for (let obj of this.nodesMap.values()) {
+				let item = obj.item;
+				if (item.collapsibleState == 2) item.collapsibleState = 1;
+			}
+			await this.render();
+		}
+		cancelResolve() {
+			if (this.resolveTokenSource) {
+				this.resolveTokenSource.cancel();
+				this.resolveTokenSource = void 0;
+			}
+		}
+		dispose() {
+			if (!this.provider) return;
+			if (this.timer) clearTimeout(this.timer);
+			this.cancelResolve();
+			let { bufnr } = this;
+			if (this.winid) this._onDidChangeVisibility.fire({ visible: false });
+			if (bufnr) this.nvim.command(`silent! bwipeout! ${bufnr}`, true);
+			this._keymapDefs = [];
+			this.winid = void 0;
+			this.bufnr = void 0;
+			this.filter?.dispose();
+			this._selection = [];
+			this.itemsToFilter = [];
+			this.tooltipFactory.dispose();
+			this.renderedItems = [];
+			this.nodesMap.clear();
+			this.provider = void 0;
+			this._onDispose.fire();
+			this._onDispose.dispose();
+			disposeAll(this.disposables);
+		}
+	};
+}));
+//#endregion
+//#region src/window.ts
+var Window, window_default;
+var init_window = __esmMin((() => {
+	init_channels();
+	init_dialogs();
+	init_highlights$1();
+	init_notifications$1();
+	init_terminals();
+	init_ui$2();
+	init_TreeView();
+	init_object();
+	init_protocol();
+	Window = class {
+		nvim;
+		highlights = new Highlights$1();
+		terminalManager = new Terminals();
+		cursors;
+		dialogs = new Dialogs();
+		notifications = new Notifications(this.dialogs);
+		workspace;
+		constructor() {
+			Object.defineProperty(this.highlights, "nvim", { get: () => this.nvim });
+			Object.defineProperty(this.dialogs, "nvim", { get: () => this.nvim });
+			Object.defineProperty(this.dialogs, "configuration", { get: () => this.workspace.initialConfiguration });
+			Object.defineProperty(this.notifications, "nvim", { get: () => this.nvim });
+			Object.defineProperty(this.notifications, "configuration", { get: () => this.workspace.initialConfiguration });
+			Object.defineProperty(this.notifications, "statusLine", { get: () => this.workspace.statusLine });
+		}
+		get activeTextEditor() {
+			return this.workspace.editors.activeTextEditor;
+		}
+		get visibleTextEditors() {
+			return this.workspace.editors.visibleTextEditors;
+		}
+		get onDidTabClose() {
+			return this.workspace.editors.onDidTabClose;
+		}
+		get onDidChangeActiveTextEditor() {
+			return this.workspace.editors.onDidChangeActiveTextEditor;
+		}
+		get onDidChangeVisibleTextEditors() {
+			return this.workspace.editors.onDidChangeVisibleTextEditors;
+		}
+		get terminals() {
+			return this.terminalManager.terminals;
+		}
+		get onDidOpenTerminal() {
+			return this.terminalManager.onDidOpenTerminal;
+		}
+		get onDidCloseTerminal() {
+			return this.terminalManager.onDidCloseTerminal;
+		}
+		async createTerminal(opts) {
+			return await this.terminalManager.createTerminal(this.nvim, opts);
+		}
+		/**
+		* Run command in vim terminal for result
+		* @param cmd Command to run.
+		* @param cwd Cwd of terminal, default to result of |getcwd()|.
+		*/
+		async runTerminalCommand(cmd, cwd, keepfocus = false) {
+			return await this.terminalManager.runTerminalCommand(this.nvim, cmd, cwd, keepfocus);
+		}
+		/**
+		* Open terminal window.
+		* @param cmd Command to run.
+		* @param opts Terminal option.
+		* @returns number buffer number of terminal
+		*/
+		async openTerminal(cmd, opts) {
+			return await this.terminalManager.openTerminal(this.nvim, cmd, opts);
+		}
+		/**
+		* Reveal message with message type.
+		* @param msg Message text to show.
+		* @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
+		*/
+		showMessage(msg, messageType = "more") {
+			this.notifications.echoMessages(msg, messageType);
+		}
+		/**
+		* Create a new output channel
+		* @param name Unique name of output channel.
+		* @returns A new output channel.
+		*/
+		createOutputChannel(name) {
+			return channels_default.create(name, this.nvim);
+		}
+		/**
+		* Reveal buffer of output channel.
+		* @param name Name of output channel.
+		* @param cmd command for open output channel.
+		* @param preserveFocus Preserve window focus when true.
+		*/
+		showOutputChannel(name, cmd, preserveFocus) {
+			let command = cmd ? cmd : this.configuration.get("workspace.openOutputCommand", "vs");
+			channels_default.show(name, command, preserveFocus);
+		}
+		/**
+		* Echo lines at the bottom of vim.
+		* @param lines Line list.
+		* @param truncate Truncate the lines to avoid 'press enter to continue' when true
+		*/
+		async echoLines(lines, truncate = false) {
+			await echoLines(this.nvim, this.workspace.env, lines, truncate);
+		}
+		/**
+		* Get current cursor position (line, character both 0 based).
+		* @returns Cursor position.
+		*/
+		getCursorPosition() {
+			return getCursorPosition(this.nvim);
+		}
+		/**
+		* Move cursor to position.
+		* @param position LSP position.
+		*/
+		async moveTo(position) {
+			await moveTo(this.nvim, position, this.workspace.env.isVim);
+		}
+		/**
+		* Get selected range for current document
+		*/
+		getSelectedRange(mode) {
+			return getSelection(this.nvim, mode);
+		}
+		/**
+		* Visual select range of current document
+		*/
+		async selectRange(range) {
+			await selectRange(this.nvim, range, this.nvim.isVim);
+		}
+		/**
+		* Get current cursor character offset in document,
+		* length of line break would always be 1.
+		* @returns Character offset.
+		*/
+		getOffset() {
+			return getOffset(this.nvim);
+		}
+		/**
+		* Get screen position of current cursor(relative to editor),
+		* both `row` and `col` are 0 based.
+		* @returns Cursor screen position.
+		*/
+		getCursorScreenPosition() {
+			return getCursorScreenPosition(this.nvim);
+		}
+		/**
+		* Create a {@link TreeView} instance.
+		* @param viewId Id of the view, used as title of TreeView when title doesn't exist.
+		* @param options Options for creating the {@link TreeView}
+		* @returns a {@link TreeView}.
+		*/
+		createTreeView(viewId, options) {
+			return new BasicTreeView(viewId, options);
+		}
+		/**
+		* Create statusbar item that would be included in `g:coc_status`.
+		* @param priority Higher priority item would be shown right.
+		* @param option
+		* @return A new status bar item.
+		*/
+		createStatusBarItem(priority = 0, option = {}) {
+			return this.workspace.statusLine.createStatusBarItem(priority, option.progress);
+		}
+		/**
+		* Get diff from highlight items and current highlights on vim.
+		* Return null when buffer not loaded
+		* @param bufnr Buffer number
+		* @param ns Highlight namespace
+		* @param items Highlight items
+		* @param region 0 based start and end line count (end inclusive)
+		* @param token CancellationToken
+		* @returns {Promise<HighlightDiff | null>}
+		*/
+		async diffHighlights(bufnr, ns, items, region, token) {
+			return this.highlights.diffHighlights(bufnr, ns, items, region, token);
+		}
+		/**
+		* Create a FloatFactory, user's configurations are respected.
+		* @param {FloatWinConfig} conf - Float window configuration
+		* @returns {FloatFactory}
+		*/
+		createFloatFactory(conf) {
+			let configuration = this.workspace.initialConfiguration;
+			let defaults = toObject(configuration.get("floatFactory.floatConfig"));
+			let markdownPreference = this.workspace.configurations.markdownPreference;
+			return createFloatFactory(this.workspace.nvim, Object.assign({
+				...markdownPreference,
+				maxWidth: 80
+			}, conf), defaults);
+		}
+		/**
+		* Show quickpick for single item, use `window.menuPick` for menu at current current position.
+		* @deprecated Use 'window.showMenuPicker()' or `window.showQuickPick` instead.
+		* @param items Label list.
+		* @param placeholder Prompt text, default to 'choose by number'.
+		* @returns Index of selected item, or -1 when canceled.
+		*/
+		async showQuickpick(items, placeholder = "Choose by number") {
+			return await this.showMenuPicker(items, {
+				title: placeholder,
+				position: "center"
+			});
+		}
+		/**
+		* Shows a selection list.
+		*/
+		async showQuickPick(itemsOrItemsPromise, options, token = import_main$1.CancellationToken.None) {
+			return await this.dialogs.showQuickPick(itemsOrItemsPromise, options, token);
+		}
+		/**
+		* Creates a {@link QuickPick} to let the user pick an item or items from a
+		* list of items of type T.
+		*
+		* Note that in many cases the more convenient {@link window.showQuickPick}
+		* is easier to use. {@link window.createQuickPick} should be used
+		* when {@link window.showQuickPick} does not offer the required flexibility.
+		* @return A new {@link QuickPick}.
+		*/
+		async createQuickPick(config = {}) {
+			return await this.dialogs.createQuickPick(config);
+		}
+		async requestInputList(prompt, items) {
+			if (items.length > this.workspace.env.lines) items = items.slice(0, this.workspace.env.lines - 2);
+			return await this.dialogs.requestInputList(prompt, items);
+		}
+		/**
+		* Show menu picker at current cursor position.
+		* @param items Array of texts.
+		* @param option Options for menu.
+		* @param token A token that can be used to signal cancellation.
+		* @returns Selected index (0 based), -1 when canceled.
+		*/
+		async showMenuPicker(items, option, token) {
+			return await this.dialogs.showMenuPicker(items, option, token);
+		}
+		/**
+		* Prompt user for confirm, a float/popup window would be used when possible,
+		* use vim's |confirm()| function as callback.
+		* @param title The prompt text.
+		* @returns Result of confirm.
+		*/
+		async showPrompt(title) {
+			return await this.dialogs.showPrompt(title);
+		}
+		/**
+		* Show dialog window at the center of screen.
+		* Note that the dialog would always be closed after button click.
+		* @param config Dialog configuration.
+		* @returns Dialog or null when dialog can't work.
+		*/
+		async showDialog(config) {
+			return await this.dialogs.showDialog(config);
+		}
+		/**
+		* Request input from user
+		* @param title Title text of prompt window.
+		* @param value Default value of input, empty text by default.
+		* @param {InputOptions} option for input window
+		* @returns {Promise<string>}
+		*/
+		async requestInput(title, value, option) {
+			return await this.dialogs.requestInput(title, this.workspace.env, value, option);
+		}
+		/**
+		* Creates and show a {@link InputBox} to let the user enter some text input.
+		* @return A new {@link InputBox}.
+		*/
+		async createInputBox(title, value, option) {
+			return await this.dialogs.createInputBox(title, value, option);
+		}
+		async showPickerDialog(items, title, token) {
+			return await this.dialogs.showPickerDialog(items, title, token);
+		}
+		/**
+		* Show an information message to users. Optionally provide an array of items which will be presented as
+		* clickable buttons.
+		* @param message The message to show.
+		* @param items A set of items that will be rendered as actions in the message.
+		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
+		*/
+		async showInformationMessage(message, ...items) {
+			return await this.notifications._showMessage("Info", message, items);
+		}
+		/**
+		* Show an warning message to users. Optionally provide an array of items which will be presented as
+		* clickable buttons.
+		* @param message The message to show.
+		* @param items A set of items that will be rendered as actions in the message.
+		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
+		*/
+		async showWarningMessage(message, ...items) {
+			return await this.notifications._showMessage("Warning", message, items);
+		}
+		/**
+		* Show an error message to users. Optionally provide an array of items which will be presented as
+		* clickable buttons.
+		* @param message The message to show.
+		* @param items A set of items that will be rendered as actions in the message.
+		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
+		*/
+		async showErrorMessage(message, ...items) {
+			return await this.notifications._showMessage("Error", message, items);
+		}
+		async showNotification(config) {
+			let stack = Error().stack;
+			await this.notifications.showNotification(config, stack);
+		}
+		/**
+		* Show progress in the editor. Progress is shown while running the given callback
+		* and while the promise it returned isn't resolved nor rejected.
+		*/
+		async withProgress(options, task) {
+			return this.notifications.withProgress(options, task);
+		}
+		/**
+		* Apply highlight diffs, normally used with `window.diffHighlights`
+		*
+		* Timer is used to add highlights when there're too many highlight items to add,
+		* the highlight process won't be finished on that case.
+		* @param {number} bufnr - Buffer name
+		* @param {string} ns - Namespace
+		* @param {number} priority
+		* @param {HighlightDiff} diff
+		* @param {boolean} notify - Use notification, default false.
+		* @returns {Promise<void>}
+		*/
+		async applyDiffHighlights(bufnr, ns, priority, diff, notify = false) {
+			return this.highlights.applyDiffHighlights(bufnr, ns, priority, diff, notify);
+		}
+		/**
+		* Get visible ranges of bufnr with optional winid
+		*/
+		async getVisibleRanges(bufnr, winid) {
+			return await getVisibleRanges(this.nvim, bufnr, winid);
+		}
+		get configuration() {
+			return this.workspace.initialConfiguration;
+		}
+		dispose() {
+			this.terminalManager.dispose();
+		}
+	};
+	window_default = new Window();
+}));
+//#endregion
+//#region src/snippets/eval.ts
+function generateContextId(bufnr) {
+	return `${bufnr}-${context_id++}`;
+}
+function hasPython(snip) {
+	if (!snip) return false;
+	if (snip.context) return true;
+	if (snip.actions && Object.keys(snip.actions).length > 0) return true;
+	return false;
+}
+function getResetPythonCode(context) {
+	const pyCodes = [];
+	pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
+	pyCodes.push(`context = ${contexts_var}.get('${context.id}', {}).get('context', None)`);
+	pyCodes.push(`match = ${contexts_var}.get('${context.id}', {}).get('match', None)`);
+	return pyCodes;
+}
+function getPyBlockCode(snip) {
+	let { range, line } = snip;
+	let pyCodes = [
+		"import re, os, vim, string, random",
+		`path = vim.eval('coc#util#get_fullpath()') or ""`,
+		`fn = os.path.basename(path)`
+	];
+	let start = `(${range.start.line},${range.start.character})`;
+	let end = `(${range.start.line},${range.end.character})`;
+	let indent = line.match(/^\s*/)[0];
+	pyCodes.push(...getResetPythonCode(snip));
+	pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`);
+	return pyCodes;
+}
+function getInitialPythonCode(context) {
+	let pyCodes = [
+		"import re, os, vim, string, random",
+		`path = vim.eval('coc#util#get_fullpath()') or ""`,
+		`fn = os.path.basename(path)`
+	];
+	let { range, regex, line, id } = context;
+	if (context.context) {
+		pyCodes.push(`snip = ContextSnippet()`);
+		pyCodes.push(`context = ${context.context}`);
+	} else pyCodes.push(`context = None`);
+	if (regex && Range.is(range)) {
+		let trigger = line.slice(range.start.character, range.end.character);
+		pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`);
+		pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`);
+	} else pyCodes.push(`match = None`);
+	pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
+	let prefix = id.match(/^\w+-/)[0];
+	pyCodes.push(`${contexts_var} = {k: v for k, v in ${contexts_var}.items() if k.startswith('${prefix}')}`);
+	pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`);
+	return pyCodes;
+}
+async function executePythonCode(nvim, codes) {
+	if (codes.length == 0) return;
+	let lines = [...codes];
+	lines.unshift(`__requesting = ${events_default.requesting ? "True" : "False"}`);
+	try {
+		await nvim.command(`pyx ${addPythonTryCatch(lines.join("\n"))}`);
+	} catch (e) {
+		let err = new Error(e.message);
+		err.stack = `Error on execute python code:\n${codes.join("\n")}\n` + e.stack;
+		throw err;
+	}
+}
+function getVariablesCode(values) {
+	let keys = Object.keys(values);
+	if (keys.length == 0) return `t = ()`;
+	let maxIndex = Math.max.apply(null, keys.map((v) => Number(v)));
+	let vals = new Array(maxIndex).fill("\"\"");
+	for (let [idx, val] of Object.entries(values)) vals[idx] = `"${escapeString(val)}"`;
+	return `t = (${vals.join(",")},)`;
+}
+/**
+* vim8 doesn't throw any python error with :py command
+* we have to use g:errmsg since v:errmsg can't be changed in python script.
+*/
+function addPythonTryCatch(code, force = false) {
+	if (!isVim && force === false) return code;
+	let lines = [
+		"import traceback, vim",
+		`vim.vars['errmsg'] = ''`,
+		"try:"
+	];
+	lines.push(...code.split("\n").map((line) => "    " + line));
+	lines.push("except Exception as e:");
+	lines.push(`    vim.vars['errmsg'] = traceback.format_exc()`);
+	return lines.join("\n");
+}
+function escapeString(input) {
+	return input.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\t/g, "\\t").replace(/\n/g, "\\n");
+}
+var contexts_var, context_id;
+var init_eval = __esmMin((() => {
+	init_main$2();
+	init_events();
+	init_constants();
+	contexts_var = "__coc_ultisnip_contexts";
+	context_id = 1;
+}));
+//#endregion
+//#region src/util/async.ts
+function waitImmediate() {
+	return new Promise((resolve) => {
+		setImmediate(() => {
+			resolve(void 0);
+		});
+	});
+}
+async function runSequence(funcs, token) {
+	for (const fn of funcs) {
+		if (token.isCancellationRequested) break;
+		await fn();
+	}
+}
+async function forEach(items, func, token, options) {
+	if (items.length === 0) return;
+	const timer = new Timer(options?.yieldAfter);
+	function runBatch(start) {
+		timer.start();
+		for (let i = start; i < items.length; i++) {
+			func(items[i]);
+			if (timer.shouldYield()) {
+				if (options?.yieldCallback) options.yieldCallback();
+				return i + 1;
+			}
+		}
+		return -1;
+	}
+	let index = runBatch(0);
+	while (index !== -1) {
+		await waitImmediate();
+		if (token !== void 0 && token.isCancellationRequested) break;
+		index = runBatch(index);
+	}
+}
+async function filter(items, isValid, onFilter, token) {
+	if (items.length === 0) return;
+	const timer = new Timer();
+	const len = items.length;
+	function convertBatch(start) {
+		const result = [];
+		timer.start();
+		for (let i = start; i < len; i++) {
+			let item = items[i];
+			let res = isValid(item);
+			if (res === true) result.push(item);
+			else if (res) result.push(Object.assign({}, item, res));
+			if (timer.shouldYield()) {
+				let done = i === len - 1;
+				onFilter(result, done);
+				return done ? -1 : i + 1;
+			}
+		}
+		onFilter(result, true);
+		return -1;
+	}
+	let index = convertBatch(0);
+	while (index !== -1) {
+		await waitImmediate();
+		if (token != null && token.isCancellationRequested) break;
+		index = convertBatch(index);
+	}
+}
+var defaultYieldTimeout, Timer;
+var init_async$1 = __esmMin((() => {
+	defaultYieldTimeout = 15;
+	Timer = class {
+		yieldAfter;
+		startTime;
+		counter;
+		total;
+		counterInterval;
+		constructor(yieldAfter = defaultYieldTimeout) {
+			this.yieldAfter = Math.max(yieldAfter, defaultYieldTimeout);
+			this.startTime = Date.now();
+			this.counter = 0;
+			this.total = 0;
+			this.counterInterval = 1;
+		}
+		start() {
+			this.startTime = Date.now();
+		}
+		shouldYield() {
+			if (++this.counter >= this.counterInterval) {
+				const timeTaken = Date.now() - this.startTime;
+				const timeLeft = Math.max(0, this.yieldAfter - timeTaken);
+				this.total += this.counter;
+				this.counter = 0;
+				if (timeTaken >= this.yieldAfter || timeLeft <= 1) {
+					this.counterInterval = 1;
+					this.total = 0;
+					return true;
+				} else switch (timeTaken) {
+					case 0:
+					case 1:
+						this.counterInterval = this.total * 2;
+						break;
+				}
+			}
+			return false;
+		}
+	};
+}));
+//#endregion
+//#region src/snippets/util.ts
+var util_exports = /* @__PURE__ */ __exportAll({
+	WordsSource: () => WordsSource,
+	convertRegex: () => convertRegex,
+	getAction: () => getAction,
+	getNewRange: () => getNewRange,
+	getTextAfter: () => getTextAfter,
+	getTextBefore: () => getTextBefore,
+	normalizeSnippetString: () => normalizeSnippetString,
+	shouldFormat: () => shouldFormat,
+	toSnippetString: () => toSnippetString,
+	wordsSource: () => wordsSource
+});
+/**
+* Convert python regex to javascript regex,
+* throw error when unsupported pattern found
+*/
+function convertRegex(str) {
+	if (str.indexOf("\\z") !== -1) throw new Error("pattern \\z not supported");
+	if (str.indexOf("(?s)") !== -1) throw new Error("pattern (?s) not supported");
+	if (str.indexOf("(?x)") !== -1) throw new Error("pattern (?x) not supported");
+	if (str.indexOf("\n") !== -1) throw new Error("pattern \\n not supported");
+	if (conditionRe.test(str)) throw new Error("pattern (?id/name)yes-pattern|no-pattern not supported");
+	return str.replace(regex, (match, p1) => {
+		if (match.startsWith("(?#")) return "";
+		if (match.startsWith("(?P<")) return "(?" + match.slice(3);
+		if (match.startsWith("(?P=")) return `\\k<${p1}>`;
+		return "^";
+	});
+}
+/**
+* Action code from context or option
+*/
+function getAction(opt, action) {
+	if (!opt || !opt.actions) return void 0;
+	return opt.actions[action];
+}
+function shouldFormat(snippet) {
+	if (/^\s/.test(snippet)) return true;
+	if (snippet.indexOf("\n") !== -1) return true;
+	return false;
+}
+function normalizeSnippetString(snippet, indent, opts) {
+	let lines = snippet.split(/\r?\n/);
+	let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
+	let tabSize = defaultValue(opts.tabSize, 2);
+	let noExpand = opts.noExpand;
+	let trimTrailingWhitespace = opts.trimTrailingWhitespace;
+	lines = lines.map((line, idx) => {
+		let space = line.match(/^\s*/)[0];
+		let pre = space;
+		let isTab = space.startsWith("	");
+		if (isTab && opts.insertSpaces && !noExpand) pre = ind.repeat(space.length);
+		else if (!isTab && !opts.insertSpaces) pre = ind.repeat(space.length / tabSize);
+		return (idx == 0 || trimTrailingWhitespace && line.length == 0 ? "" : indent) + pre + line.slice(space.length);
+	});
+	return lines.join("\n");
+}
+/**
+* Get range from base position and position, text
+*/
+function getNewRange(base, pos, value) {
+	const { line, character } = base;
+	const start = {
+		line: line + pos.line,
+		character: pos.line == 0 ? character + pos.character : pos.character
+	};
+	return Range.create(start, getEnd(start, value));
+}
+function getTextBefore(range, text, pos) {
+	let newLines = [];
+	let { line, character } = range.start;
+	let n = pos.line - line;
+	const lines = text.split("\n");
+	for (let i = 0; i <= n; i++) {
+		let line = lines[i];
+		if (i == n) newLines.push(line.slice(0, i == 0 ? pos.character - character : pos.character));
+		else newLines.push(line);
+	}
+	return newLines.join("\n");
+}
+function getTextAfter(range, text, pos) {
+	let newLines = [];
+	let n = range.end.line - pos.line;
+	const lines = text.split("\n");
+	let len = lines.length;
+	for (let i = 0; i <= n; i++) {
+		let idx = len - i - 1;
+		let line = lines[idx];
+		if (i == n) {
+			let sc = range.start.character;
+			let from = idx == 0 ? pos.character - sc : pos.character;
+			newLines.unshift(line.slice(from));
+		} else newLines.unshift(line);
+	}
+	return newLines.join("\n");
+}
+function toSnippetString(snippet) {
+	if (typeof snippet === "string") return snippet;
+	if (typeof snippet.value === "string") return snippet.value;
+	throw new TypeError(`Snippet should be string or has value as string`);
+}
+var stringStartRe, conditionRe, regex, WordsSource, wordsSource;
+var init_util$4 = __esmMin((() => {
+	init_main$2();
+	init_util$7();
+	init_position();
+	stringStartRe = /\\A/;
+	conditionRe = /\(\?\(\w+\).+\|/;
+	regex = new RegExp(`${/\(\?#.*?\)/.source}|${stringStartRe.source}|${/\(\?P<\w+>.*?\)/.source}|${/\(\?P=(\w+)\)/.source}`, "g");
+	WordsSource = class {
+		name = "$words";
+		shortcut = "";
+		triggerOnly = true;
+		words = [];
+		startcol;
+		doComplete(opt) {
+			return {
+				startcol: this.startcol,
+				items: this.words.map((s) => {
+					return {
+						word: s,
+						filterText: opt.input
+					};
+				})
+			};
+		}
+	};
+	wordsSource = new WordsSource();
+}));
+//#endregion
+//#region src/snippets/parser.ts
+function walk(marker, visitor, ignoreChild = false) {
+	const stack = [...marker];
+	while (stack.length > 0) {
+		const marker = stack.shift();
+		if (ignoreChild && marker instanceof TextmateSnippet) continue;
+		if (!visitor(marker)) break;
+		stack.unshift(...marker.children);
+	}
+}
+function transformEscapes(input, backslashIndexes = []) {
+	let res = "";
+	let len = input.length;
+	let i = 0;
+	let toUpper = false;
+	let toLower = false;
+	while (i < len) {
+		let ch = input[i];
+		if (ch.charCodeAt(0) === 92 && !backslashIndexes.includes(i)) {
+			let next = input[i + 1];
+			if (escapedCharacters.includes(next)) {
+				i++;
+				continue;
+			}
+			if (next == "u" || next == "l") {
+				let follow = input[i + 2];
+				if (follow) res = res + (next == "u" ? follow.toUpperCase() : follow.toLowerCase());
+				i = i + 3;
+				continue;
+			}
+			if (next == "U" || next == "L") {
+				if (next == "U") toUpper = true;
+				else toLower = true;
+				i = i + 2;
+				continue;
+			}
+			if (next == "E") {
+				toUpper = false;
+				toLower = false;
+				i = i + 2;
+				continue;
+			}
+			if (next == "n") {
+				res += "\n";
+				i = i + 2;
+				continue;
+			}
+			if (next == "t") {
+				res += "	";
+				i = i + 2;
+				continue;
+			}
+		}
+		if (toUpper) ch = ch.toUpperCase();
+		else if (toLower) ch = ch.toLowerCase();
+		res += ch;
+		i++;
+	}
+	return res;
+}
+function mergeTexts(marker, begin = 0) {
+	let { children } = marker;
+	let end;
+	let start;
+	for (let i = begin; i < children.length; i++) if (children[i] instanceof Text) if (start !== void 0) end = i;
+	else start = i;
+	else {
+		if (end !== void 0) break;
+		start = void 0;
+	}
+	if (end === void 0) return;
+	let newText = "";
+	for (let i = start; i <= end; i++) newText += children[i].toString();
+	let m = new Text(newText);
+	children.splice(start, end - start + 1, m);
+	m.parent = marker;
+	return mergeTexts(marker, start + 1);
+}
+function getPlaceholderId(p) {
+	if (typeof p.id === "number") return p.id;
+	p.id = id++;
+	return p.id;
+}
+var logger$33, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform$3, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var init_parser = __esmMin((() => {
+	init_logger$2();
+	init_array();
+	init_async$1();
+	init_errors();
+	init_node();
+	init_string$1();
+	init_eval();
+	init_util$4();
+	logger$33 = createLogger$1("snippets-parser");
+	ULTISNIP_VARIABLES = [
+		"VISUAL",
+		"YANK",
+		"UUID"
+	];
+	id = 0;
+	snippet_id = 0;
+	knownRegexOptions = [
+		"d",
+		"g",
+		"i",
+		"m",
+		"s",
+		"u",
+		"y"
+	];
+	ultisnipSpecialEscape = [
+		"u",
+		"l",
+		"U",
+		"L",
+		"E",
+		"n",
+		"t"
+	];
+	Scanner = class Scanner {
+		static _table = {
+			[36]: 0,
+			[58]: 1,
+			[44]: 2,
+			[123]: 3,
+			[125]: 4,
+			[92]: 5,
+			[47]: 6,
+			[124]: 7,
+			[43]: 11,
+			[45]: 12,
+			[63]: 13,
+			[40]: 15,
+			[41]: 16,
+			[96]: 17,
+			[33]: 18
+		};
+		static isDigitCharacter(ch) {
+			return ch >= 48 && ch <= 57;
+		}
+		static isVariableCharacter(ch) {
+			return ch === 95 || ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
+		}
+		value;
+		pos;
+		constructor() {
+			this.text("");
+		}
+		text(value) {
+			this.value = value;
+			this.pos = 0;
+		}
+		tokenText(token) {
+			return this.value.slice(token.pos, token.pos + token.len);
+		}
+		isEnd() {
+			return this.pos >= this.value.length;
+		}
+		next() {
+			if (this.pos >= this.value.length) return {
+				type: 14,
+				pos: this.pos,
+				len: 0
+			};
+			let pos = this.pos;
+			let len = 0;
+			let ch = this.value.charCodeAt(pos);
+			let type;
+			type = Scanner._table[ch];
+			if (typeof type === "number") {
+				this.pos += 1;
+				return {
+					type,
+					pos,
+					len: 1
+				};
+			}
+			if (Scanner.isDigitCharacter(ch)) {
+				type = 8;
+				do {
+					len += 1;
+					ch = this.value.charCodeAt(pos + len);
+				} while (Scanner.isDigitCharacter(ch));
+				this.pos += len;
+				return {
+					type,
+					pos,
+					len
+				};
+			}
+			if (Scanner.isVariableCharacter(ch)) {
+				type = 9;
+				do
+					ch = this.value.charCodeAt(pos + ++len);
+				while (Scanner.isVariableCharacter(ch) || Scanner.isDigitCharacter(ch));
+				this.pos += len;
+				return {
+					type,
+					pos,
+					len
+				};
+			}
+			type = 10;
+			do {
+				len += 1;
+				ch = this.value.charCodeAt(pos + len);
+			} while (!isNaN(ch) && typeof Scanner._table[ch] === "undefined" && !Scanner.isDigitCharacter(ch) && !Scanner.isVariableCharacter(ch));
+			this.pos += len;
+			return {
+				type,
+				pos,
+				len
+			};
+		}
+	};
+	Marker = class {
+		parent;
+		_children = [];
+		appendChild(child) {
+			if (child instanceof Text && this._children[this._children.length - 1] instanceof Text) this._children[this._children.length - 1].value += child.value;
+			else {
+				child.parent = this;
+				this._children.push(child);
+			}
+			return this;
+		}
+		setOnlyChild(child) {
+			child.parent = this;
+			this._children = [child];
+		}
+		replaceChildren(children) {
+			for (const child of children) child.parent = this;
+			this._children = children;
+		}
+		replaceWith(newMarker) {
+			if (!this.parent) return false;
+			let p = this.parent;
+			let idx = p.children.indexOf(this);
+			if (idx == -1) return false;
+			newMarker.parent = p;
+			p.children.splice(idx, 1, newMarker);
+			return true;
+		}
+		insertBefore(text) {
+			if (!this.parent) return;
+			let p = this.parent;
+			let idx = p.children.indexOf(this);
+			if (idx == -1) return;
+			let prev = p.children[idx - 1];
+			if (prev instanceof Text) {
+				let v = prev.value;
+				prev.replaceWith(new Text(v + text));
+			} else {
+				let marker = new Text(text);
+				marker.parent = p;
+				p.children.splice(idx, 0, marker);
+			}
+		}
+		get children() {
+			return this._children;
+		}
+		get snippet() {
+			let candidate = this;
+			while (true) {
+				if (!candidate) return;
+				if (candidate instanceof TextmateSnippet) return candidate;
+				candidate = candidate.parent;
+			}
+		}
+		toString() {
+			return this.children.reduce((prev, cur) => prev + cur.toString(), "");
+		}
+		len() {
+			return 0;
+		}
+	};
+	Text = class Text extends Marker {
+		value;
+		static escape(value) {
+			return value.replace(/\$|}|\\/g, "\\$&");
+		}
+		constructor(value) {
+			super();
+			this.value = value;
+		}
+		toString() {
+			return this.value;
+		}
+		toTextmateString() {
+			return Text.escape(this.value);
+		}
+		len() {
+			return this.value.length;
+		}
+		clone() {
+			return new Text(this.value);
+		}
+	};
+	CodeBlock = class CodeBlock extends Marker {
+		code;
+		kind;
+		_value = "";
+		_related = [];
+		constructor(code, kind, value, related) {
+			super();
+			this.code = code;
+			this.kind = kind;
+			if (Array.isArray(related)) this._related = related;
+			else if (kind === "python") this._related = CodeBlock.parseRelated(code);
+			if (typeof value === "string") this._value = value;
+		}
+		static parseRelated(code) {
+			let list = [];
+			let arr;
+			let re = /\bt\[(\d+)\]/g;
+			while (true) {
+				arr = re.exec(code);
+				if (arr == null) break;
+				let n = parseInt(arr[1], 10);
+				if (!list.includes(n)) list.push(n);
+			}
+			return list;
+		}
+		get related() {
+			return this._related;
+		}
+		get index() {
+			if (this.parent instanceof Placeholder) return this.parent.index;
+		}
+		async resolve(nvim, token) {
+			if (!this.code.length) return;
+			if (token?.isCancellationRequested) return;
+			let res;
+			if (this.kind == "python") res = await this.evalPython(nvim, token);
+			else if (this.kind == "vim") res = await this.evalVim(nvim);
+			else if (this.kind == "shell") res = await this.evalShell();
+			if (token?.isCancellationRequested) return;
+			if (res != null) this._value = res;
+		}
+		async evalShell() {
+			let opts = { windowsHide: true };
+			Object.assign(opts, { shell: process.env.SHELL });
+			return (await (0, util.promisify)(child_process.exec)(this.code, opts)).stdout.toString().replace(/\s*$/, "");
+		}
+		async evalVim(nvim) {
+			let res = await nvim.eval(this.code);
+			return res == null ? "" : res.toString();
+		}
+		async evalPython(nvim, token) {
+			let lines = [`snip._reset("${escapeString(toText(this._value))}")`];
+			lines.push(...this.code.split(/\r?\n/).map((line) => line.replace(/\t/g, "    ")));
+			await executePythonCode(nvim, lines);
+			if (token?.isCancellationRequested) return;
+			return await nvim.call(`pyxeval`, "str(snip.rv)");
+		}
+		len() {
+			return this._value.length;
+		}
+		toString() {
+			return this._value;
+		}
+		get value() {
+			return this._value;
+		}
+		toTextmateString() {
+			let t = "";
+			if (this.kind == "python") t = "!p ";
+			else if (this.kind == "shell") t = "";
+			else if (this.kind == "vim") t = "!v ";
+			return "`" + t + this.code + "`";
+		}
+		clone() {
+			return new CodeBlock(this.code, this.kind, this.value, this._related.slice());
+		}
+	};
+	TransformableMarker = class extends Marker {
+		transform;
+	};
+	Placeholder = class Placeholder extends TransformableMarker {
+		index;
+		primary = false;
+		id;
+		constructor(index) {
+			super();
+			this.index = index;
+		}
+		get isFinalTabstop() {
+			return this.index === 0;
+		}
+		get choice() {
+			return this._children.length === 1 && this._children[0] instanceof Choice ? this._children[0] : void 0;
+		}
+		toTextmateString() {
+			let transformString = "";
+			if (this.transform) transformString = this.transform.toTextmateString();
+			if (this.children.length === 0 && !this.transform) return `$${this.index}`;
+			else if (this.children.length === 0 || this.children.length == 1 && this.children[0].toTextmateString() == "") return `\${${this.index}${transformString}}`;
+			else if (this.choice) return `\${${this.index}|${this.choice.toTextmateString()}|${transformString}}`;
+			else return `\${${this.index}:${this.children.map((child) => child.toTextmateString()).join("")}${transformString}}`;
+		}
+		clone() {
+			let ret = new Placeholder(this.index);
+			if (this.transform) ret.transform = this.transform.clone();
+			ret.id = this.id;
+			ret.primary = this.primary;
+			ret._children = this.children.map((child) => {
+				let m = child.clone();
+				m.parent = ret;
+				return m;
+			});
+			return ret;
+		}
+		checkParentPlaceHolders() {
+			let idx = this.index;
+			let p = this.parent;
+			while (p != null && !(p instanceof TextmateSnippet)) {
+				if (p instanceof Placeholder && p.index == idx) throw new Error(`Parent placeholder has same index: ${idx}`);
+				p = p.parent;
+			}
+		}
+	};
+	Choice = class Choice extends Marker {
+		_index;
+		constructor(index = 0) {
+			super();
+			this._index = index;
+		}
+		options = [];
+		appendChild(marker) {
+			if (marker instanceof Text) {
+				marker.parent = this;
+				this.options.push(marker);
+			}
+			return this;
+		}
+		toString() {
+			return this.options[this._index].value;
+		}
+		toTextmateString() {
+			return this.options.map((option) => option.value.replace(/\||,/g, "\\$&")).join(",");
+		}
+		len() {
+			return this.options[this._index].len();
+		}
+		clone() {
+			let ret = new Choice(this._index);
+			for (let opt of this.options) ret.appendChild(opt);
+			return ret;
+		}
+	};
+	Transform$3 = class Transform$3 extends Marker {
+		regexp;
+		ascii = false;
+		ultisnip = false;
+		resolve(value) {
+			let didMatch = false;
+			let ret = value.replace(this.regexp, (...args) => {
+				didMatch = true;
+				return this._replace(args.slice(0, -2));
+			});
+			if (!didMatch && this._children.some((child) => child instanceof FormatString && Boolean(child.elseValue))) ret = this._replace([]);
+			return ret;
+		}
+		_replace(groups) {
+			let ret = "";
+			let backslashIndexes = [];
+			for (const marker of this._children) {
+				let val = "";
+				let len = ret.length;
+				if (marker instanceof FormatString) {
+					val = marker.resolve(groups[marker.index] ?? "");
+					if (this.ultisnip && val.indexOf("\\") !== -1) for (let idx of iterateCharacter(val, "\\")) backslashIndexes.push(len + idx);
+				} else if (marker instanceof ConditionString) {
+					val = marker.resolve(groups[marker.index]);
+					if (this.ultisnip) val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
+						return toText(groups[Number(args[1])]);
+					});
+				} else val = marker.toString();
+				ret += val;
+			}
+			if (this.ascii) ret = unidecode(ret);
+			return this.ultisnip ? transformEscapes(ret, backslashIndexes) : ret;
+		}
+		toString() {
+			return "";
+		}
+		toTextmateString() {
+			let format = this.children.map((c) => c.toTextmateString()).join("");
+			if (this.ultisnip) format = format.replace(/\\\\(\w)/g, (match, ch) => {
+				if (ultisnipSpecialEscape.includes(ch)) return "\\" + ch;
+				return match;
+			});
+			return `/${this.regexp.source}/${format}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
+		}
+		clone() {
+			let ret = new Transform$3();
+			ret.regexp = new RegExp(this.regexp.source, (this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : ""));
+			ret._children = this.children.map((child) => {
+				let m = child.clone();
+				m.parent = ret;
+				return m;
+			});
+			return ret;
+		}
+	};
+	ConditionString = class ConditionString extends Marker {
+		index;
+		ifValue;
+		elseValue;
+		constructor(index, ifValue, elseValue) {
+			super();
+			this.index = index;
+			this.ifValue = ifValue;
+			this.elseValue = elseValue;
+		}
+		resolve(value) {
+			if (value) return this.ifValue;
+			return this.elseValue;
+		}
+		toTextmateString() {
+			return "(?" + this.index + ":" + this.ifValue + (this.elseValue ? ":" + this.elseValue : "") + ")";
+		}
+		clone() {
+			return new ConditionString(this.index, this.ifValue, this.elseValue);
+		}
+	};
+	FormatString = class FormatString extends Marker {
+		index;
+		shorthandName;
+		ifValue;
+		elseValue;
+		constructor(index, shorthandName, ifValue, elseValue) {
+			super();
+			this.index = index;
+			this.shorthandName = shorthandName;
+			this.ifValue = ifValue;
+			this.elseValue = elseValue;
+		}
+		resolve(value) {
+			if (this.shorthandName === "upcase") return !value ? "" : value.toLocaleUpperCase();
+			else if (this.shorthandName === "downcase") return !value ? "" : value.toLocaleLowerCase();
+			else if (this.shorthandName === "capitalize") return !value ? "" : value[0].toLocaleUpperCase() + value.slice(1);
+			else if (this.shorthandName === "pascalcase") return !value ? "" : this._toPascalCase(value);
+			else if (Boolean(value) && typeof this.ifValue === "string") return this.ifValue;
+			else if (!value && typeof this.elseValue === "string") return this.elseValue;
+			else return value || "";
+		}
+		_toPascalCase(value) {
+			const match = value.match(/[a-z]+/gi);
+			if (!match) return value;
+			return match.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join("");
+		}
+		toTextmateString() {
+			let value = "${";
+			value += this.index;
+			if (this.shorthandName) value += `:/${this.shorthandName}`;
+			else if (this.ifValue && this.elseValue) value += `:?${this.ifValue}:${this.elseValue}`;
+			else if (this.ifValue) value += `:+${this.ifValue}`;
+			else if (this.elseValue) value += `:-${this.elseValue}`;
+			value += "}";
+			return value;
+		}
+		clone() {
+			return new FormatString(this.index, this.shorthandName, this.ifValue, this.elseValue);
+		}
+	};
+	Variable = class Variable extends TransformableMarker {
+		name;
+		_resolved;
+		constructor(name, resolved = false) {
+			super();
+			this.name = name;
+			this._resolved = resolved;
+		}
+		get resolved() {
+			return this._resolved;
+		}
+		async resolve(resolver) {
+			let value = await resolver.resolve(this);
+			this._resolved = true;
+			if (value && value.includes("\n")) {
+				let indent = "";
+				this.snippet.walk((m) => {
+					if (m == this) return false;
+					if (m instanceof Text) {
+						let lines = m.toString().split(/\r?\n/);
+						indent = lines[lines.length - 1].match(/^\s*/)[0];
+					}
+					return true;
+				}, true);
+				let lines = value.split("\n");
+				let minIndent = lines.filter((s) => s.length > 0).map((s) => s.match(/^\s*/)[0]).reduce((p, c) => p < c.length ? p : c.length, 0);
+				value = lines.map((s, i) => i == 0 || s.length == 0 || !s.startsWith(" ".repeat(minIndent)) ? s : indent + s.slice(minIndent)).join("\n");
+			}
+			if (typeof value !== "string") return false;
+			if (this.transform) value = this.transform.resolve(toText(value));
+			this._children = [new Text(value.toString())];
+			return true;
+		}
+		toTextmateString() {
+			let transformString = "";
+			if (this.transform) transformString = this.transform.toTextmateString();
+			if (this.children.length === 0) return `\${${this.name}${transformString}}`;
+			else return `\${${this.name}:${this.children.map((child) => child.toTextmateString()).join("")}${transformString}}`;
+		}
+		clone() {
+			const ret = new Variable(this.name, this.resolved);
+			if (this.transform) ret.transform = this.transform.clone();
+			ret._children = this.children.map((child) => {
+				let m = child.clone();
+				m.parent = ret;
+				return m;
+			});
+			return ret;
+		}
+	};
+	TextmateSnippet = class TextmateSnippet extends Marker {
+		ultisnip;
+		id;
+		related = {};
+		constructor(ultisnip, id) {
+			super();
+			this.ultisnip = ultisnip === true;
+			this.id = id ?? snippet_id++;
+		}
+		get hasPythonBlock() {
+			if (!this.ultisnip) return false;
+			return this.pyBlocks.length > 0;
+		}
+		get hasCodeBlock() {
+			if (!this.ultisnip) return false;
+			let { pyBlocks, otherBlocks } = this;
+			return pyBlocks.length > 0 || otherBlocks.length > 0;
+		}
+		/**
+		* Values for each placeholder index
+		*/
+		get values() {
+			let values = {};
+			let maxIndexNumber = 0;
+			this.placeholders.forEach((c) => {
+				if (!Number.isInteger(c.index)) return;
+				maxIndexNumber = Math.max(c.index, maxIndexNumber);
+				if (c.transform != null) return;
+				if (c.primary || values[c.index] === void 0) values[c.index] = c.toString();
+			});
+			for (let i = 0; i <= maxIndexNumber; i++) if (values[i] === void 0) values[i] = "";
+			return values;
+		}
+		get orderedPyIndexBlocks() {
+			let res = [];
+			let filtered = this.pyBlocks.filter((o) => typeof o.index === "number");
+			if (filtered.length === 0) return res;
+			let allIndexes = filtered.map((o) => o.index);
+			let usedIndexes = [];
+			const checkBlock = (b) => {
+				let { related } = b;
+				if (related.length == 0 || related.every((idx) => !allIndexes.includes(idx) || usedIndexes.includes(idx))) {
+					usedIndexes.push(b.index);
+					res.push(b);
+					return true;
+				}
+				return false;
+			};
+			while (filtered.length > 0) {
+				let c = false;
+				for (let b of filtered) if (checkBlock(b)) c = true;
+				if (!c) break;
+				filtered = filtered.filter((o) => !usedIndexes.includes(o.index));
+			}
+			return res;
+		}
+		async evalCodeBlocks(nvim, pyCodes) {
+			const { pyBlocks, otherBlocks } = this.placeholderInfo;
+			await Promise.all(otherBlocks.map((block) => {
+				let pre = block.value;
+				return block.resolve(nvim).then(() => {
+					if (block.parent instanceof Placeholder && pre !== block.value) this.onPlaceholderUpdate(block.parent);
+				});
+			}));
+			if (pyCodes.length === 0) return;
+			let relatedBlocks = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
+			const variableCode = getVariablesCode(this.values);
+			await executePythonCode(nvim, [...pyCodes, variableCode]);
+			for (let block of pyBlocks) {
+				let pre = block.value;
+				if (relatedBlocks.includes(block)) continue;
+				await block.resolve(nvim);
+				if (pre === block.value) continue;
+				if (block.parent instanceof Placeholder) {
+					this.onPlaceholderUpdate(block.parent);
+					await executePythonCode(nvim, [getVariablesCode(this.values)]);
+				}
+			}
+			for (let block of this.orderedPyIndexBlocks) await this.updatePyIndexBlock(nvim, block);
+			for (let block of relatedBlocks) await block.resolve(nvim);
+		}
+		/**
+		* Update python blocks after user change Placeholder with index
+		*/
+		async updatePythonCodes(nvim, marker, codes, token) {
+			let index = marker.index;
+			let blocks = this.getDependentPyIndexBlocks(index);
+			await runSequence([
+				async () => {
+					await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
+				},
+				async () => {
+					for (let block of blocks) await this.updatePyIndexBlock(nvim, block, token);
+				},
+				async () => {
+					let filtered = this.pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
+					for (let block of filtered) await block.resolve(nvim, token);
+				}
+			], token);
+		}
+		getDependentPyIndexBlocks(index) {
+			const res = [];
+			const taken = [];
+			let filtered = this.pyBlocks.filter((o) => typeof o.index === "number");
+			const search = (idx) => {
+				let blocks = filtered.filter((o) => !taken.includes(o.index) && o.related.includes(idx));
+				if (blocks.length > 0) {
+					res.push(...blocks);
+					blocks.forEach((b) => {
+						search(b.index);
+					});
+				}
+			};
+			search(index);
+			return res;
+		}
+		/**
+		* Update single index block
+		*/
+		async updatePyIndexBlock(nvim, block, token) {
+			let pre = block.value;
+			await block.resolve(nvim, token);
+			if (pre === block.value || token?.isCancellationRequested) return;
+			if (block.parent instanceof Placeholder) this.onPlaceholderUpdate(block.parent);
+			await executePythonCode(nvim, [getVariablesCode(this.values)]);
+		}
+		get placeholderInfo() {
+			const pyBlocks = [];
+			const otherBlocks = [];
+			let placeholders = [];
+			this.walk((candidate) => {
+				if (candidate instanceof Placeholder) placeholders.push(candidate);
+				else if (candidate instanceof CodeBlock) if (candidate.kind === "python") pyBlocks.push(candidate);
+				else otherBlocks.push(candidate);
+				return true;
+			}, true);
+			return {
+				placeholders,
+				pyBlocks,
+				otherBlocks
+			};
+		}
+		get variables() {
+			const variables = [];
+			this.walk((candidate) => {
+				if (candidate instanceof Variable) variables.push(candidate);
+				return true;
+			}, true);
+			return variables;
+		}
+		get placeholders() {
+			let placeholders = [];
+			this.walk((candidate) => {
+				if (candidate instanceof Placeholder) placeholders.push(candidate);
+				return true;
+			}, true);
+			return placeholders;
+		}
+		get pyBlocks() {
+			return this.placeholderInfo.pyBlocks;
+		}
+		get otherBlocks() {
+			return this.placeholderInfo.otherBlocks;
+		}
+		get first() {
+			let { placeholders } = this;
+			let [normals, finals] = groupBy(placeholders.filter((p) => !p.transform), (v) => v.index !== 0);
+			if (normals.length) {
+				let minIndex = Math.min.apply(null, normals.map((o) => o.index));
+				let arr = normals.filter((v) => v.index == minIndex);
+				return arr.find((p) => p.primary) ?? arr[0];
+			}
+			return finals.find((o) => o.primary) ?? finals[0];
+		}
+		async update(nvim, marker, token) {
+			this.onPlaceholderUpdate(marker);
+			let codes = this.related.codes ?? [];
+			if (codes.length === 0 || !this.hasPythonBlock) return;
+			await this.updatePythonCodes(nvim, marker, codes, token);
+		}
+		/**
+		* Reflact changes for related markers.
+		*/
+		onPlaceholderUpdate(marker) {
+			let val = marker.toString();
+			let markers = this.placeholders.filter((o) => o.index == marker.index);
+			for (let p of markers) {
+				p.checkParentPlaceHolders();
+				if (p === marker) continue;
+				let newText = p.transform ? p.transform.resolve(val) : val;
+				p.setOnlyChild(new Text(toText(newText)));
+			}
+			this.synchronizeParents(markers);
+		}
+		synchronizeParents(markers) {
+			let parents = /* @__PURE__ */ new Set();
+			markers.forEach((m) => {
+				let p = m.parent;
+				if (p instanceof Placeholder) parents.add(p);
+			});
+			for (let p of parents) this.onPlaceholderUpdate(p);
+		}
+		offset(marker) {
+			let pos = 0;
+			let found = false;
+			this.walk((candidate) => {
+				if (candidate === marker) {
+					found = true;
+					return false;
+				}
+				pos += candidate.len();
+				return true;
+			}, true);
+			if (!found) return -1;
+			return pos;
+		}
+		fullLen(marker) {
+			let ret = 0;
+			walk([marker], (marker) => {
+				ret += marker.len();
+				return true;
+			});
+			return ret;
+		}
+		getTextBefore(marker, parent) {
+			let res = "";
+			const calc = (m) => {
+				let p = m.parent;
+				if (!p) return;
+				let s = "";
+				for (let b of p.children) {
+					if (b === m) break;
+					s = s + b.toString();
+				}
+				res = s + res;
+				if (p == parent) return;
+				calc(p);
+			};
+			calc(marker);
+			return res;
+		}
+		enclosingPlaceholders(placeholder) {
+			let ret = [];
+			let { parent } = placeholder;
+			while (parent) {
+				if (parent instanceof Placeholder) ret.push(parent);
+				parent = parent.parent;
+			}
+			return ret;
+		}
+		async resolveVariables(resolver) {
+			let variables = this.variables;
+			if (variables.length === 0) return;
+			let failed = [];
+			let succeed = [];
+			let promises = [];
+			const changedParents = /* @__PURE__ */ new Set();
+			for (let item of variables) promises.push(item.resolve(resolver).then((res) => {
+				changedParents.add(item.parent);
+				(res ? succeed : failed).push(item);
+			}, onUnexpectedError));
+			await Promise.allSettled(promises);
+			for (const variable of succeed) {
+				let text = new Text(variable.toString());
+				variable.replaceWith(text);
+			}
+			if (failed.length > 0) {
+				let indexMap = /* @__PURE__ */ new Map();
+				const primarySet = /* @__PURE__ */ new Set();
+				let max = this.getMaxPlaceholderIndex();
+				for (let i = 0; i < failed.length; i++) {
+					const v = failed[i];
+					let idx = indexMap.get(v.name);
+					if (idx == null) {
+						idx = ++max;
+						indexMap.set(v.name, idx);
+					}
+					let p = new Placeholder(idx);
+					p.transform = v.transform;
+					if (!p.transform && !primarySet.has(idx)) {
+						primarySet.add(idx);
+						p.primary = true;
+					}
+					let newText = p.transform ? p.transform.resolve(v.name) : v.name;
+					p.setOnlyChild(new Text(toText(newText)));
+					v.replaceWith(p);
+				}
+			}
+			changedParents.forEach((marker) => {
+				mergeTexts(marker);
+				if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker);
+			});
+		}
+		getMaxPlaceholderIndex() {
+			let res = 0;
+			this.walk((candidate) => {
+				if (candidate instanceof Placeholder) res = Math.max(res, candidate.index);
+				return true;
+			}, true);
+			return res;
+		}
+		replace(marker, children) {
+			marker.replaceChildren(children);
+			if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker);
+		}
+		toTextmateString() {
+			return this.children.reduce((prev, cur) => prev + cur.toTextmateString(), "");
+		}
+		clone() {
+			let ret = new TextmateSnippet(this.ultisnip, this.id);
+			ret.related.codes = this.related.codes;
+			ret.related.context = this.related.context;
+			ret._children = this.children.map((child) => {
+				let m = child.clone();
+				m.parent = ret;
+				return m;
+			});
+			return ret;
+		}
+		walk(visitor, ignoreChild = false) {
+			walk(this.children, visitor, ignoreChild);
+		}
+	};
+	SnippetParser = class SnippetParser {
+		ultisnip;
+		constructor(ultisnip) {
+			this.ultisnip = ultisnip;
+		}
+		static escape(value) {
+			return value.replace(/\$|}|\\/g, "\\$&");
+		}
+		static isPlainText(value) {
+			let s = new SnippetParser().parse(value.replace(/\$0$/, ""), false);
+			return s.children.length == 1 && s.children[0] instanceof Text;
+		}
+		_scanner = new Scanner();
+		_token;
+		text(value) {
+			return this.parse(value, false).toString();
+		}
+		parse(value, insertFinalTabstop) {
+			this._scanner.text(value);
+			this._token = this._scanner.next();
+			const snippet = new TextmateSnippet(this.ultisnip);
+			while (this._parse(snippet));
+			const defaultValues = /* @__PURE__ */ new Map();
+			const incompletePlaceholders = [];
+			let complexPlaceholders = [];
+			let hasFinal = false;
+			snippet.walk((marker) => {
+				if (marker instanceof Placeholder) {
+					if (marker.index == 0) hasFinal = true;
+					if (marker.children.some((o) => o instanceof Placeholder)) {
+						marker.primary = true;
+						complexPlaceholders.push(marker);
+					} else if (!defaultValues.has(marker.index) && marker.children.length > 0) {
+						marker.primary = true;
+						defaultValues.set(marker.index, marker.toString());
+					} else incompletePlaceholders.push(marker);
+				}
+				return true;
+			});
+			const complexIndexes = complexPlaceholders.map((p) => p.index);
+			for (const placeholder of incompletePlaceholders) if (defaultValues.has(placeholder.index)) {
+				let val = defaultValues.get(placeholder.index);
+				let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val);
+				placeholder.setOnlyChild(text);
+			} else if (!complexIndexes.includes(placeholder.index)) if (placeholder.transform) {
+				let text = new Text(placeholder.transform.resolve(""));
+				placeholder.setOnlyChild(text);
+			} else {
+				placeholder.primary = true;
+				defaultValues.set(placeholder.index, "");
+			}
+			const resolveComplex = () => {
+				let resolved = /* @__PURE__ */ new Set();
+				for (let p of complexPlaceholders) if (p.children.every((o) => !(o instanceof Placeholder) || defaultValues.has(o.index))) {
+					let val = p.toString();
+					defaultValues.set(p.index, val);
+					for (let placeholder of incompletePlaceholders.filter((o) => o.index == p.index)) {
+						let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val);
+						placeholder.setOnlyChild(text);
+					}
+					resolved.add(p.index);
+				}
+				complexPlaceholders = complexPlaceholders.filter((p) => !resolved.has(p.index));
+				if (complexPlaceholders.length == 0 || !resolved.size) return;
+				resolveComplex();
+			};
+			resolveComplex();
+			if (!hasFinal && insertFinalTabstop) snippet.appendChild(new Placeholder(0));
+			return snippet;
+		}
+		_accept(type, value) {
+			if (type === void 0 || this._token.type === type) {
+				let ret = !value ? true : this._scanner.tokenText(this._token);
+				this._token = this._scanner.next();
+				return ret;
+			}
+			return false;
+		}
+		_backTo(token) {
+			this._scanner.pos = token.pos + token.len;
+			this._token = token;
+			return false;
+		}
+		_until(type, checkBackSlash = false) {
+			if (this._token.type === 14) return false;
+			let start = this._token;
+			let pre;
+			while (this._token.type !== type || checkBackSlash && pre && pre.type === 5) {
+				if (checkBackSlash) pre = this._token;
+				this._token = this._scanner.next();
+				if (this._token.type === 14) return false;
+			}
+			let value = this._scanner.value.substring(start.pos, this._token.pos);
+			this._token = this._scanner.next();
+			return value;
+		}
+		_parse(marker) {
+			return this._parseEscaped(marker) || this._parseCodeBlock(marker) || this._parseTabstopOrVariableName(marker) || this._parseComplexPlaceholder(marker) || this._parseComplexVariable(marker) || this._parseAnything(marker);
+		}
+		_parseEscaped(marker) {
+			let value;
+			if (value = this._accept(5, true)) {
+				value = this._accept(0, true) || this._accept(4, true) || this._accept(5, true) || this.ultisnip && this._accept(3, true) || this.ultisnip && this._accept(17, true) || value;
+				marker.appendChild(new Text(value));
+				return true;
+			}
+			return false;
+		}
+		_parseTabstopOrVariableName(parent) {
+			let value;
+			const token = this._token;
+			if (!(this._accept(0) && (value = this._accept(9, true) || this._accept(8, true)))) return this._backTo(token);
+			if (/^\d+$/.test(value)) parent.appendChild(new Placeholder(Number(value)));
+			else if (this.ultisnip && !ULTISNIP_VARIABLES.includes(value)) parent.appendChild(new Text("$" + value));
+			else parent.appendChild(new Variable(value));
+			return true;
+		}
+		_checkCulybrace(marker) {
+			let count = 0;
+			for (marker of marker.children) if (marker instanceof Text) {
+				let text = marker.value;
+				for (let index = 0; index < text.length; index++) {
+					const ch = text[index];
+					if (ch === "{") count++;
+					else if (ch === "}") count--;
+				}
+			}
+			return count <= 0;
+		}
+		_parseComplexPlaceholder(parent) {
+			let index;
+			const token = this._token;
+			if (!(this._accept(0) && this._accept(3) && (index = this._accept(8, true)))) return this._backTo(token);
+			const placeholder = new Placeholder(Number(index));
+			if (this._accept(1)) while (true) {
+				const lastChar = this._scanner.isEnd();
+				if (this._accept(4)) {
+					if (!this._checkCulybrace(placeholder) && !lastChar) {
+						placeholder.appendChild(new Text("}"));
+						continue;
+					}
+					parent.appendChild(placeholder);
+					return true;
+				}
+				if (this._parse(placeholder)) continue;
+				parent.appendChild(new Text("${" + index + ":"));
+				placeholder.children.forEach(parent.appendChild, parent);
+				return true;
+			}
+			else if (placeholder.index > 0 && this._accept(7)) {
+				const choice = new Choice();
+				while (true) {
+					if (this._parseChoiceElement(choice)) {
+						if (this._accept(2)) continue;
+						if (this._accept(7)) {
+							placeholder.appendChild(choice);
+							if (this._accept(4)) {
+								parent.appendChild(placeholder);
+								return true;
+							}
+						}
+					}
+					this._backTo(token);
+					return false;
+				}
+			} else if (this._accept(6)) {
+				if (this._parseTransform(placeholder)) {
+					parent.appendChild(placeholder);
+					return true;
+				}
+				this._backTo(token);
+				return false;
+			} else if (this._accept(4)) {
+				parent.appendChild(placeholder);
+				return true;
+			} else return this._backTo(token);
+		}
+		_parseChoiceElement(parent) {
+			const token = this._token;
+			const values = [];
+			while (true) {
+				if (this._token.type === 2 || this._token.type === 7) break;
+				let value;
+				if (value = this._accept(5, true)) value = this._accept(2, true) || this._accept(7, true) || this._accept(5, true) || value;
+				else value = this._accept(void 0, true);
+				if (!value) {
+					this._backTo(token);
+					return false;
+				}
+				values.push(value);
+			}
+			if (values.length === 0) {
+				this._backTo(token);
+				return false;
+			}
+			parent.appendChild(new Text(values.join("")));
+			return true;
+		}
+		_parseComplexVariable(parent) {
+			let name;
+			const token = this._token;
+			if (!(this._accept(0) && this._accept(3) && (name = this._accept(9, true)))) return this._backTo(token);
+			if (this.ultisnip && !ULTISNIP_VARIABLES.includes(name)) return this._backTo(token);
+			const variable = new Variable(name);
+			if (this._accept(1)) while (true) {
+				if (this._accept(4)) {
+					parent.appendChild(variable);
+					return true;
+				}
+				if (this._parse(variable)) continue;
+				parent.appendChild(new Text("${" + name + ":"));
+				variable.children.forEach(parent.appendChild, parent);
+				return true;
+			}
+			else if (this._accept(6)) {
+				if (this._parseTransform(variable)) {
+					parent.appendChild(variable);
+					return true;
+				}
+				this._backTo(token);
+				return false;
+			} else if (this._accept(4)) {
+				parent.appendChild(variable);
+				return true;
+			} else return this._backTo(token);
+		}
+		_parseTransform(parent) {
+			let transform = new Transform$3();
+			transform.ultisnip = this.ultisnip === true;
+			let regexValue = "";
+			let regexOptions = "";
+			while (true) {
+				if (this._accept(6)) break;
+				let escaped;
+				if (escaped = this._accept(5, true)) {
+					escaped = this._accept(6, true) || escaped;
+					regexValue += escaped;
+					continue;
+				}
+				if (this._token.type !== 14) {
+					regexValue += this._accept(void 0, true);
+					continue;
+				}
+				return false;
+			}
+			while (true) {
+				if (this._accept(6)) break;
+				let escaped;
+				if (escaped = this._accept(5, true)) {
+					escaped = this._accept(5, true) || this._accept(6, true) || escaped;
+					transform.appendChild(new Text(escaped));
+					continue;
+				}
+				if (this._parseFormatString(transform) || this._parseConditionString(transform) || this._parseAnything(transform)) continue;
+				return false;
+			}
+			let ascii = false;
+			while (true) {
+				if (this._accept(4)) break;
+				if (this._token.type !== 14) {
+					let c = this._accept(void 0, true);
+					if (c == "a") ascii = true;
+					else {
+						if (!knownRegexOptions.includes(c)) logger$33.error(`Unknown regex option: ${c}`);
+						regexOptions += c;
+					}
+					continue;
+				}
+				return false;
+			}
+			try {
+				if (ascii) transform.ascii = true;
+				if (this.ultisnip) regexValue = convertRegex(regexValue);
+				transform.regexp = new RegExp(regexValue, regexOptions);
+			} catch (e) {
+				return false;
+			}
+			parent.transform = transform;
+			return true;
+		}
+		_parseConditionString(parent) {
+			if (!this.ultisnip) return false;
+			const token = this._token;
+			if (!this._accept(15)) return false;
+			if (!this._accept(13)) {
+				this._backTo(token);
+				return false;
+			}
+			let index = this._accept(8, true);
+			if (!index) {
+				this._backTo(token);
+				return false;
+			}
+			if (!this._accept(1)) {
+				this._backTo(token);
+				return false;
+			}
+			let text = this._until(16, true);
+			if (text) {
+				let i = 0;
+				while (i < text.length) {
+					if (text[i] == ":" && text[i - 1] != "\\") break;
+					i++;
+				}
+				let ifValue = text.slice(0, i);
+				let elseValue = text.slice(i + 1);
+				parent.appendChild(new ConditionString(Number(index), ifValue, elseValue));
+				return true;
+			}
+			this._backTo(token);
+			return false;
+		}
+		_parseFormatString(parent) {
+			const token = this._token;
+			if (!this._accept(0)) return false;
+			let complex = false;
+			if (this._accept(3)) complex = true;
+			let index = this._accept(8, true);
+			if (!index) {
+				this._backTo(token);
+				return false;
+			} else if (!complex) {
+				parent.appendChild(new FormatString(Number(index)));
+				return true;
+			} else if (this._accept(4)) {
+				parent.appendChild(new FormatString(Number(index)));
+				return true;
+			} else if (!this._accept(1)) {
+				this._backTo(token);
+				return false;
+			}
+			if (this.ultisnip) {
+				this._backTo(token);
+				return false;
+			}
+			if (this._accept(6)) {
+				let shorthand = this._accept(9, true);
+				if (!shorthand || !this._accept(4)) {
+					this._backTo(token);
+					return false;
+				} else {
+					parent.appendChild(new FormatString(Number(index), shorthand));
+					return true;
+				}
+			} else if (this._accept(11)) {
+				let ifValue = this._until(4);
+				if (ifValue) {
+					parent.appendChild(new FormatString(Number(index), void 0, ifValue, void 0));
+					return true;
+				}
+			} else if (this._accept(12)) {
+				let elseValue = this._until(4);
+				if (elseValue) {
+					parent.appendChild(new FormatString(Number(index), void 0, void 0, elseValue));
+					return true;
+				}
+			} else if (this._accept(13)) {
+				let ifValue = this._until(1);
+				if (ifValue) {
+					let elseValue = this._until(4);
+					if (elseValue) {
+						parent.appendChild(new FormatString(Number(index), void 0, ifValue, elseValue));
+						return true;
+					}
+				}
+			} else {
+				let elseValue = this._until(4);
+				if (elseValue) {
+					parent.appendChild(new FormatString(Number(index), void 0, void 0, elseValue));
+					return true;
+				}
+			}
+			this._backTo(token);
+			return false;
+		}
+		_parseCodeBlock(parent) {
+			if (!this.ultisnip) return false;
+			const token = this._token;
+			if (!this._accept(17)) return false;
+			let text = this._until(17, true);
+			if (text) {
+				if (!text.startsWith("!")) {
+					let marker = new CodeBlock(text.trim(), "shell");
+					parent.appendChild(marker);
+					return true;
+				}
+				if (text.startsWith("!v")) {
+					let marker = new CodeBlock(text.slice(2).trim(), "vim");
+					parent.appendChild(marker);
+					return true;
+				}
+				if (text.startsWith("!p")) {
+					let code = text.slice(2);
+					if (code.indexOf("\n") == -1) {
+						let marker = new CodeBlock(code.trim(), "python");
+						parent.appendChild(marker);
+					} else {
+						let codes = code.split(/\r?\n/);
+						codes = codes.filter((s) => !/^\s*$/.test(s));
+						if (!codes.length) return true;
+						let ind = codes[0].match(/^\s*/)[0];
+						if (ind.length && codes.every((s) => s.startsWith(ind))) codes = codes.map((s) => s.slice(ind.length));
+						if (ind == " " && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1);
+						let marker = new CodeBlock(codes.join("\n"), "python");
+						parent.appendChild(marker);
+					}
+					return true;
+				}
+			}
+			this._backTo(token);
+			return false;
+		}
+		_parseAnything(marker) {
+			if (this._token.type !== 14) {
+				let text = this._scanner.tokenText(this._token);
+				marker.appendChild(new Text(text));
+				this._accept(void 0);
+				return true;
+			}
+			return false;
+		}
+	};
+	escapedCharacters = [
+		":",
+		"(",
+		")",
+		"{",
+		"}"
+	];
+}));
+//#endregion
+//#region src/snippets/snippet.ts
+/**
+* Next or previous placeholder
+*/
+function getNextPlaceholder(marker, forward, nested = false) {
+	if (!marker) return void 0;
+	let { snippet } = marker;
+	let idx = marker.index;
+	if (idx < 0 || !snippet) return void 0;
+	let arr = [];
+	let min_index;
+	let max_index;
+	if (idx > 0) {
+		snippet.walk((m) => {
+			if (m instanceof Placeholder && !m.transform) {
+				if (forward && (m.index > idx || m.isFinalTabstop) || !forward && m.index < idx && !m.isFinalTabstop) {
+					arr.push(m);
+					if (!m.isFinalTabstop) min_index = min_index === void 0 ? m.index : Math.min(min_index, m.index);
+					max_index = max_index === void 0 ? m.index : Math.max(max_index, m.index);
+				}
+			}
+			return true;
+		}, true);
+		if (arr.length > 0) {
+			arr.sort((a, b) => {
+				if (b.primary && !a.primary) return 1;
+				if (a.primary && !b.primary) return -1;
+				return 0;
+			});
+			if (forward) return min_index === void 0 ? arr[0] : arr.find((o) => o.index === min_index);
+			return arr.find((o) => o.index === max_index);
+		}
+	}
+	if (snippet.parent instanceof Placeholder) return getNextPlaceholder(snippet.parent, forward, true);
+	if (nested) return marker;
+}
+/**
+* Return action code and reset code of snippet.
+*/
+function getUltiSnipActionCodes(marker, action) {
+	if (!marker) return void 0;
+	const snip = marker instanceof TextmateSnippet ? marker : marker.snippet;
+	if (!snip) return void 0;
+	let context = snip.related.context;
+	let code = getAction(context, action);
+	if (!code) return void 0;
+	return [code, getResetPythonCode(context)];
+}
+var CocSnippet;
+var init_snippet = __esmMin((() => {
+	init_main$2();
+	init_textdocument();
+	init_util$7();
+	init_position();
+	init_protocol();
+	init_eval();
+	init_parser();
+	init_util$4();
+	CocSnippet = class {
+		snippet;
+		position;
+		nvim;
+		resolver;
+		_markerSequence = [];
+		_placeholders = [];
+		_snippets = [];
+		_text;
+		_tmSnippet;
+		constructor(snippet, position, nvim, resolver) {
+			this.snippet = snippet;
+			this.position = position;
+			this.nvim = nvim;
+			this.resolver = resolver;
+		}
+		get tmSnippet() {
+			return this._tmSnippet;
+		}
+		get snippets() {
+			return this._snippets.map((o) => o.marker);
+		}
+		getSnippet(marker) {
+			return marker instanceof TextmateSnippet ? marker : marker.snippet;
+		}
+		deactivateSnippet(snip) {
+			if (!snip) return;
+			if (snip.parent) {
+				let text = new Text(snip.toString());
+				snip.replaceWith(text);
+				this.synchronize();
+			}
+		}
+		getUltiSnipOption(marker, key) {
+			let snip = this.getSnippet(marker);
+			if (!snip) return void 0;
+			let context = snip.related.context;
+			if (!context) return void 0;
+			return context[key];
+		}
+		async init(ultisnip) {
+			if (typeof this.snippet === "string") {
+				const snippet = new SnippetParser(!!ultisnip).parse(this.snippet, true);
+				this._tmSnippet = snippet;
+			} else this._tmSnippet = this.snippet;
+			await this.resolve(this._tmSnippet, ultisnip);
+			this.synchronize();
+		}
+		async resolve(snippet, ultisnip) {
+			let { resolver, nvim } = this;
+			if (resolver) await snippet.resolveVariables(resolver);
+			if (ultisnip) {
+				let pyCodes = [];
+				snippet.related.context = ultisnip;
+				if (ultisnip.noPython !== true) {
+					if (snippet.hasPythonBlock) pyCodes = getPyBlockCode(ultisnip);
+					else if (hasPython(ultisnip)) pyCodes = getResetPythonCode(ultisnip);
+					if (pyCodes.length > 0) snippet.related.codes = pyCodes;
+				}
+				await snippet.evalCodeBlocks(nvim, pyCodes);
+			}
+		}
+		getPlaceholderOnJump(current, forward) {
+			const p = getNextPlaceholder(current, forward);
+			return p ? this.getPlaceholderByMarker(p) : void 0;
+		}
+		/**
+		* Same index and in same snippet only
+		*/
+		getRanges(marker) {
+			if (marker.toString().length === 0 || !marker.snippet) return [];
+			let tmSnippet = marker.snippet;
+			return this._placeholders.filter((o) => o.index == marker.index && o.marker.snippet === tmSnippet).map((o) => o.range).filter((r) => !emptyRange(r));
+		}
+		/**
+		* Find the most possible marker contains range, throw error when not found
+		*/
+		findParent(range, current) {
+			const isInsert = emptyRange(range);
+			let marker;
+			let markerRange;
+			const { _snippets, _placeholders, _markerSequence } = this;
+			const seq = _markerSequence.filter((o) => o !== current);
+			if (current && _markerSequence.includes(current)) seq.push(current);
+			const list = seq.map((m) => {
+				return m instanceof TextmateSnippet ? _snippets.find((o) => o.marker === m) : _placeholders.find((o) => o.marker === m);
+			});
+			for (let index = list.length - 1; index >= 0; index--) {
+				const o = list[index];
+				if (rangeInRange(range, o.range)) {
+					if (isInsert && o.marker instanceof Placeholder && (o.marker.choice || o.marker.index === 0) && o.marker !== current && adjacentPosition(range.start, o.range)) continue;
+					marker = o.marker;
+					markerRange = o.range;
+					break;
+				}
+			}
+			if (!marker) throw new Error(`Unable to find parent marker in range ${JSON.stringify(range, null, 2)}`);
+			return {
+				marker,
+				range: markerRange
+			};
+		}
+		/**
+		* The change must happens with same marker parents, return the changed marker
+		*/
+		replaceWithMarker(range, marker, current) {
+			const isInsert = emptyRange(range);
+			const result = this.findParent(range, current);
+			let parentMarker = result.marker;
+			let parentRange = result.range;
+			const children = parentMarker.children;
+			let pos = parentRange.start;
+			let startIdx = 0;
+			let deleteCount = 0;
+			const { start, end } = range;
+			let startMarker;
+			let endMarker;
+			let preText = "";
+			let afterText = "";
+			let len = children.length;
+			for (let i = 0; i < len; i++) {
+				let child = children[i];
+				let value = child.toString();
+				let s = Position.create(pos.line, pos.character);
+				let e = getEnd(s, value);
+				let r = Range.create(s, e);
+				if (startMarker === void 0 && positionInRange(start, r) === 0 && !samePosition(start, e)) {
+					startMarker = child;
+					startIdx = i;
+					preText = getTextBefore(Range.create(s, e), value, start);
+					if (isInsert && samePosition(end, s)) {
+						endMarker = child;
+						break;
+					}
+				}
+				if (startMarker != null) {
+					if (positionInRange(end, r) === 0) {
+						endMarker = child;
+						afterText = getTextAfter(Range.create(s, e), value, end);
+					}
+					deleteCount += 1;
+				} else if (i == len - 1 && samePosition(start, e)) startIdx = len;
+				if (endMarker != null) break;
+				pos = e;
+			}
+			if (marker instanceof Text) {
+				let newText = new Text(preText + marker.value + afterText);
+				parentMarker.children.splice(startIdx, deleteCount, newText);
+				newText.parent = parentMarker;
+				mergeTexts(parentMarker, 0);
+				if (parentMarker instanceof Placeholder && parentMarker.children[0] instanceof Text) {
+					let text = parentMarker.children[0];
+					if (text.value.startsWith("\n")) {
+						text.replaceWith(new Text(text.value.slice(1)));
+						parentMarker.insertBefore("\n");
+					}
+				}
+			} else {
+				let markers = [];
+				if (preText) markers.push(new Text(preText));
+				if (parentMarker instanceof TextmateSnippet) {
+					let p = new Placeholder((current ? current.index : 0) + Math.random());
+					p.appendChild(marker);
+					p.primary = true;
+					markers.push(p);
+				} else markers.push(marker);
+				if (afterText) markers.push(new Text(afterText));
+				children.splice(startIdx, deleteCount, ...markers);
+				markers.forEach((m) => m.parent = parentMarker);
+				if (preText.length > 0 || afterText.length > 0) mergeTexts(parentMarker, 0);
+			}
+			if (parentMarker instanceof Placeholder && !parentMarker.primary) {
+				let first = parentMarker.children[0];
+				if (parentMarker.children.length === 1 && first instanceof Text) {
+					parentMarker.replaceWith(first);
+					return first;
+				}
+				if (Number.isInteger(parentMarker.index)) parentMarker.index += .1;
+			}
+			return parentMarker;
+		}
+		/**
+		* Replace range with text, return new Cursor position when cursor provided
+		*
+		* Get new Cursor position for synchronize update only.
+		* The cursor position should already adjusted before call this function.
+		*/
+		async replaceWithText(range, text, token, current, cursor) {
+			let cloned = this._tmSnippet.clone();
+			let marker = this.replaceWithMarker(range, new Text(text), current);
+			let snippetText = this._tmSnippet.toString();
+			if (marker === this._tmSnippet) {
+				this.synchronize();
+				return {
+					snippetText,
+					marker
+				};
+			}
+			let sp = this.getMarkerPosition(marker);
+			let changeCharacter = sp && cursor && sp.line === cursor.line;
+			const reset = () => {
+				this._tmSnippet = cloned;
+				this.synchronize();
+			};
+			token.onCancellationRequested(reset);
+			await this.onMarkerUpdate(marker, token);
+			if (token.isCancellationRequested) return void 0;
+			let ep = this.getMarkerPosition(marker);
+			let delta;
+			if (cursor && sp && ep) {
+				let lc = ep.line - sp.line;
+				let cc = changeCharacter ? ep.character - sp.character : 0;
+				if (lc != 0 || cc != 0) delta = Position.create(lc, cc);
+			}
+			return {
+				snippetText,
+				marker,
+				delta
+			};
+		}
+		async replaceWithSnippet(range, text, current, ultisnip) {
+			let snippet = new SnippetParser(!!ultisnip).parse(text, true);
+			let marker = this.replaceWithMarker(range, snippet, current);
+			await this.resolve(snippet, ultisnip);
+			await this.onMarkerUpdate(marker, import_main$1.CancellationToken.None);
+			return snippet;
+		}
+		/**
+		* Get placeholder or snippet start position in current document
+		*/
+		getMarkerPosition(marker) {
+			if (marker instanceof Placeholder) {
+				let p = this._placeholders.find((o) => o.marker === marker);
+				return p ? p.range.start : void 0;
+			}
+			let o = this._snippets.find((o) => o.marker === marker);
+			return o ? o.range.start : void 0;
+		}
+		getSnippetRange(marker) {
+			let snip = marker.snippet;
+			if (!snip) return void 0;
+			let info = this._snippets.find((o) => o.marker === snip);
+			return info ? info.range : void 0;
+		}
+		/**
+		* Get TabStops of same snippet.
+		*/
+		getSnippetTabstops(marker) {
+			let snip = marker.snippet;
+			if (!snip) return [];
+			let res = [];
+			this._placeholders.forEach((p) => {
+				const { start, end } = p.range;
+				if (p.marker.snippet === snip && (p.primary || p.index === 0)) res.push({
+					index: p.index,
+					range: [
+						start.line,
+						start.character,
+						end.line,
+						end.character
+					],
+					text: p.value
+				});
+			});
+			return res;
+		}
+		async onMarkerUpdate(marker, token) {
+			let ts = Date.now();
+			while (marker != null) if (marker instanceof Placeholder) {
+				let snip = marker.snippet;
+				if (!snip) break;
+				await snip.update(this.nvim, marker, token);
+				if (token.isCancellationRequested) return;
+				marker = snip.parent;
+			} else marker = marker.parent;
+			await waitWithToken(Math.max(0, 16 - Date.now() + ts), token);
+			if (token.isCancellationRequested) return;
+			this.synchronize();
+		}
+		usePython(snip) {
+			return snip.hasCodeBlock || hasPython(snip.related.context);
+		}
+		get hasPython() {
+			for (const info of this._snippets) {
+				let snip = info.marker;
+				if (this.usePython(snip)) return true;
+			}
+			return false;
+		}
+		resetStartPosition(pos) {
+			this.position = pos;
+			this.synchronize();
+		}
+		get start() {
+			return Position.create(this.position.line, this.position.character);
+		}
+		get range() {
+			let end = getEnd(this.position, this._text);
+			return Range.create(this.position, end);
+		}
+		get text() {
+			return this._text;
+		}
+		get hasBeginningPlaceholder() {
+			let { position } = this;
+			return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.start, position) === 0) != null;
+		}
+		get hasEndPlaceholder() {
+			let position = this._snippets[0].range.end;
+			return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.end, position) === 0) != null;
+		}
+		getPlaceholderByMarker(marker) {
+			return this._placeholders.find((o) => o.marker === marker);
+		}
+		getPlaceholderByIndex(index) {
+			let filtered = this._placeholders.filter((o) => o.index == index && !o.marker.transform);
+			return defaultValue(filtered.find((o) => o.primary), filtered[0]);
+		}
+		getPlaceholderById(id, index) {
+			let p = this._tmSnippet.placeholders.find((o) => o.id === id);
+			if (p) return p;
+			let placeholder = this.getPlaceholderByIndex(index);
+			return placeholder ? placeholder.marker : void 0;
+		}
+		/**
+		* Should be used after snippet resolved.
+		*/
+		synchronize() {
+			const snippet = this._tmSnippet;
+			const snippetStr = snippet.toString();
+			const document = new LinesTextDocument("/", "", 0, snippetStr.split(/\n/), 0, false);
+			const placeholders = [];
+			const snippets = [];
+			const markerSequence = [];
+			const { start } = this;
+			snippets.push({
+				range: Range.create(start, getEnd(start, snippetStr)),
+				marker: snippet,
+				value: snippetStr
+			});
+			markerSequence.push(snippet);
+			let offset = 0;
+			snippet.walk((marker) => {
+				if (marker instanceof Placeholder && marker.transform == null) {
+					markerSequence.push(marker);
+					const position = document.positionAt(offset);
+					const value = marker.toString();
+					placeholders.push({
+						index: marker.index,
+						value,
+						marker,
+						range: getNewRange(start, position, value),
+						primary: marker.primary === true
+					});
+				} else if (marker instanceof TextmateSnippet) {
+					markerSequence.push(marker);
+					const position = document.positionAt(offset);
+					const value = marker.toString();
+					snippets.push({
+						range: getNewRange(start, position, value),
+						marker,
+						value
+					});
+				}
+				offset += marker.len();
+				return true;
+			}, false);
+			this._snippets = snippets;
+			this._text = snippetStr;
+			this._placeholders = placeholders;
+			this._markerSequence = markerSequence;
+		}
+	};
+}));
+//#endregion
+//#region src/snippets/variableResolve.ts
+function padZero(n) {
+	return n < 10 ? "0" + n : n.toString();
+}
+function parseComments(comments) {
+	let start;
+	let end;
+	let single;
+	let parts = comments.split(",");
+	for (let s of parts) {
+		if (start && end && single) break;
+		if (!s.includes(":")) continue;
+		let [flag, str] = s.split(":");
+		if (flag.includes("s")) start = str;
+		else if (flag.includes("e")) end = str;
+		else if (!single && flag == "") single = str;
+	}
+	return {
+		start,
+		end,
+		single
+	};
+}
+function parseCommentstring(commentstring) {
+	if (commentstring.endsWith("%s")) return commentstring.slice(0, -2).trim();
+}
+var SnippetVariableResolver;
+var init_variableResolve = __esmMin((() => {
+	init_esm();
+	init_node();
+	init_object();
+	SnippetVariableResolver = class {
+		nvim;
+		workspaceFolder;
+		_variableToValue = {};
+		constructor(nvim, workspaceFolder) {
+			this.nvim = nvim;
+			this.workspaceFolder = workspaceFolder;
+			const currentDate = /* @__PURE__ */ new Date();
+			const fullyear = currentDate.getFullYear().toString();
+			Object.assign(this._variableToValue, {
+				CURRENT_YEAR: fullyear,
+				CURRENT_YEAR_SHORT: fullyear.slice(-2),
+				CURRENT_MONTH: padZero(currentDate.getMonth() + 1),
+				CURRENT_DATE: padZero(currentDate.getDate()),
+				CURRENT_HOUR: padZero(currentDate.getHours()),
+				CURRENT_MINUTE: padZero(currentDate.getMinutes()),
+				CURRENT_SECOND: padZero(currentDate.getSeconds()),
+				CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
+				CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
+				CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
+				CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
+				TM_FILENAME: null,
+				TM_FILENAME_BASE: null,
+				TM_DIRECTORY: null,
+				TM_FILEPATH: null,
+				YANK: null,
+				TM_LINE_INDEX: null,
+				TM_LINE_NUMBER: null,
+				TM_CURRENT_LINE: null,
+				TM_CURRENT_WORD: null,
+				TM_SELECTED_TEXT: null,
+				VISUAL: null,
+				CLIPBOARD: null,
+				RELATIVE_FILEPATH: null,
+				RANDOM: null,
+				RANDOM_HEX: null,
+				UUID: null,
+				BLOCK_COMMENT_START: null,
+				BLOCK_COMMENT_END: null,
+				LINE_COMMENT: null,
+				WORKSPACE_NAME: null,
+				WORKSPACE_FOLDER: null
+			});
+		}
+		async resolveValue(name) {
+			let { nvim } = this;
+			if ([
+				"TM_FILENAME",
+				"TM_FILENAME_BASE",
+				"TM_DIRECTORY",
+				"TM_FILEPATH"
+			].includes(name)) {
+				let filepath = await nvim.call("coc#util#get_fullpath");
+				if (name === "TM_FILENAME") return path$5.basename(filepath);
+				if (name === "TM_FILENAME_BASE") return path$5.basename(filepath, path$5.extname(filepath));
+				if (name === "TM_DIRECTORY") return path$5.dirname(filepath);
+				if (name === "TM_FILEPATH") return filepath;
+			}
+			if (name === "YANK") return await nvim.call("getreg", ["\"\""]);
+			if (name === "TM_LINE_INDEX") return (await nvim.call("line", ["."]) - 1).toString();
+			if (name === "TM_LINE_NUMBER") return (await nvim.call("line", ["."])).toString();
+			if (name === "TM_CURRENT_LINE") return await nvim.call("getline", ["."]);
+			if (name === "TM_CURRENT_WORD") return await nvim.eval(`expand('<cword>')`);
+			if (name === "TM_SELECTED_TEXT" || name == "VISUAL") return await nvim.eval(`get(g:,'coc_selected_text', v:null)`);
+			if (name === "CLIPBOARD") return await nvim.eval("@*");
+			if (name === "RANDOM") return Math.random().toString().slice(-6);
+			if (name === "RANDOM_HEX") return Math.random().toString(16).slice(-6);
+			if (name === "UUID") return crypto.randomUUID();
+			if ([
+				"RELATIVE_FILEPATH",
+				"WORKSPACE_NAME",
+				"WORKSPACE_FOLDER"
+			].includes(name)) {
+				let filepath = await nvim.call("coc#util#get_fullpath");
+				let folder = this.workspaceFolder.getWorkspaceFolder(URI.file(filepath));
+				if (name === "RELATIVE_FILEPATH") return this.workspaceFolder.getRelativePath(filepath);
+				if (name === "WORKSPACE_NAME") return folder.name;
+				if (name === "WORKSPACE_FOLDER") return URI.parse(folder.uri).fsPath;
+			}
+			if (name === "LINE_COMMENT") {
+				let s = parseCommentstring(await nvim.eval("&commentstring"));
+				if (s) return s;
+				let { single } = parseComments(await nvim.eval("&comments"));
+				return single;
+			}
+			if (["BLOCK_COMMENT_START", "BLOCK_COMMENT_END"].includes(name)) {
+				let { start, end } = parseComments(await nvim.eval("&comments"));
+				if (name === "BLOCK_COMMENT_START") return start;
+				if (name === "BLOCK_COMMENT_END") return end;
+			}
+		}
+		async resolve(variable) {
+			const name = variable.name;
+			let resolved = this._variableToValue[name];
+			if (resolved != null) return resolved.toString();
+			if (hasOwnProperty$1(this._variableToValue, name)) {
+				let value = await this.resolveValue(name);
+				if (!value && variable.children.length) return variable.toString();
+				return value == null ? "" : value.toString();
+			}
+			if (variable.children.length) return variable.toString();
+		}
+	};
+}));
+//#endregion
+//#region src/snippets/session.ts
+var logger$32, NAME_SPACE, SnippetSession;
+var init_session$2 = __esmMin((() => {
+	init_main$2();
+	init_events();
+	init_logger$2();
+	init_util$7();
+	init_diff();
+	init_errors();
+	init_lodash();
+	init_mutex();
+	init_object();
+	init_position();
+	init_protocol();
+	init_string$1();
+	init_textedit();
+	init_window();
+	init_workspace$1();
+	init_eval();
+	init_parser();
+	init_snippet();
+	init_util$4();
+	init_variableResolve();
+	logger$32 = createLogger$1("snippets-session");
+	NAME_SPACE = "snippets";
+	SnippetSession = class {
+		nvim;
+		document;
+		config;
+		mutex = new Mutex();
+		current;
+		textDocument;
+		tokenSource;
+		_applying = false;
+		_paused = false;
+		snippet = null;
+		_onActiveChange = new import_main$1.Emitter();
+		_selected = false;
+		onActiveChange = this._onActiveChange.event;
+		constructor(nvim, document, config) {
+			this.nvim = nvim;
+			this.document = document;
+			this.config = config;
+		}
+		get selected() {
+			return this._selected;
+		}
+		async insertSnippetEdits(edits) {
+			if (edits.length === 0) return this.isActive;
+			if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
+			const textDocument = this.document.textDocument;
+			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
+			const sharedFinals = this.getSharedEditableFinals(textEdits.map((o) => o.newText));
+			if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits);
+			const len = textEdits.length;
+			let combined = "";
+			const snippets = textEdits.map((o) => new SnippetParser().parse(o.newText));
+			let nextIndex = 1;
+			for (const snippet of snippets) {
+				const localIndexes = /* @__PURE__ */ new Set();
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index > 0) localIndexes.add(m.index);
+					return true;
+				});
+				const indexMap = /* @__PURE__ */ new Map();
+				for (const index of Array.from(localIndexes).sort((a, b) => a - b)) indexMap.set(index, nextIndex++);
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index > 0) m.index = indexMap.get(m.index);
+					return true;
+				});
+			}
+			const sharedIndexMap = /* @__PURE__ */ new Map();
+			let needsFinalTabstop = false;
+			for (const snippet of snippets) {
+				const localFinalMap = /* @__PURE__ */ new Map();
+				snippet.walk((m) => {
+					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
+						needsFinalTabstop = true;
+						const key = this.getEditableFinalKey(m);
+						let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key);
+						if (index == null) {
+							index = nextIndex++;
+							if (sharedFinals.has(key)) sharedIndexMap.set(key, index);
+							else localFinalMap.set(key, index);
+						}
+						m.index = index;
+					}
+					return true;
+				});
+			}
+			for (let i = 0; i < len; i++) {
+				combined += snippets[i].toTextmateString();
+				if (i !== len - 1) {
+					let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start);
+					combined += SnippetParser.escape(textDocument.getText(r));
+				}
+			}
+			if (needsFinalTabstop) combined += "$0";
+			this.deactivate();
+			let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end);
+			return await this.start(combined, range, false);
+		}
+		getEditableFinalKey(placeholder) {
+			return placeholder.toTextmateString();
+		}
+		getSharedEditableFinals(snippets) {
+			const counts = /* @__PURE__ */ new Map();
+			for (const text of snippets) {
+				const keys = /* @__PURE__ */ new Set();
+				new SnippetParser().parse(text).walk((m) => {
+					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) keys.add(this.getEditableFinalKey(m));
+					return true;
+				});
+				for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+			}
+			return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+		}
+		async insertNestedSnippetEdits(textEdits) {
+			const textDocument = this.document.textDocument;
+			const len = textEdits.length;
+			const snip = new TextmateSnippet();
+			for (let i = 0; i < len; i++) {
+				let range = textEdits[i].range;
+				let placeholder = new Placeholder(i + 1);
+				placeholder.appendChild(new Text(textDocument.getText(range)));
+				snip.appendChild(placeholder);
+				if (i != len - 1) {
+					let r = Range.create(range.end, textEdits[i + 1].range.start);
+					snip.appendChild(new Text(textDocument.getText(r)));
+				}
+			}
+			this.deactivate();
+			const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
+			let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver);
+			await snippet.init();
+			this.activate(snippet);
+			for (let i = len - 1; i >= 0; i--) {
+				let idx = i + 1;
+				this.current = snip.placeholders.find((o) => o.index === idx);
+				let edit = textEdits[i];
+				await this.start(edit.newText, edit.range, false);
+			}
+			return this.isActive;
+		}
+		async start(inserted, range, select = true, context) {
+			let { document, snippet } = this;
+			this._paused = false;
+			const edits = [];
+			let textmateSnippet;
+			if (inserted.length === 0) return this.isActive;
+			if (snippet && this.canNestSnippet(range, snippet)) {
+				let oldRange = snippet.range;
+				let previous = snippet.text;
+				textmateSnippet = await this.snippet.replaceWithSnippet(range, inserted, this.current, context);
+				let edit = reduceTextEdit({
+					range: oldRange,
+					newText: this.snippet.text
+				}, previous);
+				edits.push(edit);
+			} else {
+				this.deactivate();
+				const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
+				snippet = new CocSnippet(inserted, range.start, this.nvim, resolver);
+				await snippet.init(context);
+				textmateSnippet = snippet.tmSnippet;
+				edits.push(TextEdit.replace(range, snippet.text));
+				if (inserted.replace(/\$0$/, "").endsWith("\n")) {
+					const currentLine = document.getline(range.start.line);
+					const remain = currentLine.slice(range.end.character);
+					if (remain.length) {
+						let s = range.end.character;
+						let l = remain.match(/^\s*/)[0].length;
+						let r = Range.create(range.end.line, s, range.end.line, s + l);
+						edits.push(TextEdit.replace(r, currentLine.match(/^\s*/)[0]));
+					}
+				}
+			}
+			this.current = textmateSnippet.first;
+			this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
+			await this.applyEdits(edits);
+			this.activate(snippet);
+			if (context) await this.tryPostExpand(textmateSnippet);
+			let { placeholder } = this;
+			if (select && placeholder) await this.selectPlaceholder(placeholder, true);
+			return this.isActive;
+		}
+		canNestSnippet(range, snippet) {
+			let placeholder = this.placeholder;
+			return !!placeholder && rangeInRange(range, snippet.range) && rangeInRange(range, placeholder.range);
+		}
+		async tryPostExpand(textmateSnippet) {
+			let result = getUltiSnipActionCodes(textmateSnippet, "postExpand");
+			if (!result) return;
+			const { start, end } = this.snippet.range;
+			const [code, resetCodes] = result;
+			let pos = `[${start.line},${start.character},${end.line},${end.character}]`;
+			let codes = [
+				...resetCodes,
+				`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`,
+				code
+			];
+			this.cancel();
+			await executePythonCode(this.nvim, codes);
+			await this.forceSynchronize();
+		}
+		async tryPostJump(code, resetCodes, info, bufnr) {
+			await waitNextTick();
+			this.nvim.setVar("coc_ultisnips_tabstops", info.tabstops, true);
+			const { snippet_start, snippet_end } = info;
+			let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`;
+			let codes = [
+				...resetCodes,
+				`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`,
+				code
+			];
+			this.cancel();
+			await executePythonCode(this.nvim, codes);
+			await this.forceSynchronize();
+			events_default.fire("PlaceholderJump", [bufnr, info]);
+		}
+		async removeWhiteSpaceBefore(placeholder) {
+			if (!emptyRange(placeholder.range)) return;
+			let pos = placeholder.range.start;
+			let line = this.document.getline(pos.line);
+			let ms = line.match(/\s+$/);
+			if (ms && line.length === pos.character) {
+				let startCharacter = pos.character - ms[0].length;
+				let textEdit = TextEdit.del(Range.create(pos.line, startCharacter, pos.line, pos.character));
+				await this.document.applyEdits([textEdit]);
+				await this.forceSynchronize();
+			}
+		}
+		async applyEdits(edits, joinundo = false) {
+			let { document } = this;
+			this._applying = true;
+			await document.applyEdits(edits, joinundo);
+			this._applying = false;
+			this.textDocument = document.textDocument;
+		}
+		async nextPlaceholder() {
+			await this.forceSynchronize();
+			if (!this.current) return;
+			let marker = this.current;
+			if (this.snippet.getUltiSnipOption(marker, "removeWhiteSpace")) {
+				let { placeholder } = this;
+				if (placeholder) await this.removeWhiteSpaceBefore(placeholder);
+			}
+			const p = this.snippet.getPlaceholderOnJump(marker, true);
+			await this.selectPlaceholder(p, true);
+		}
+		async previousPlaceholder() {
+			await this.forceSynchronize();
+			if (!this.current) return;
+			const p = this.snippet.getPlaceholderOnJump(this.current, false);
+			await this.selectPlaceholder(p, true, false);
+		}
+		async selectCurrentPlaceholder(triggerAutocmd = true) {
+			await this.forceSynchronize();
+			let { placeholder } = this;
+			if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd);
+		}
+		async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true) {
+			let { nvim, document } = this;
+			if (!document || !placeholder) return;
+			this._selected = true;
+			let { start, end } = placeholder.range;
+			const line = document.getline(start.line);
+			const marker = this.current = placeholder.marker;
+			const range = this.snippet.getSnippetRange(marker);
+			const tabstops = this.snippet.getSnippetTabstops(marker);
+			if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
+				const col = byteIndex(line, start.character) + 1;
+				wordsSource.words = marker.choice.options.map((o) => o.value);
+				wordsSource.startcol = col - 1;
+				nvim.call("coc#snippet#show_choices", [
+					start.line + 1,
+					col,
+					end,
+					placeholder.value
+				], true);
+			} else {
+				await this.select(placeholder);
+				this.highlights();
+			}
+			if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
+			let info = {
+				forward,
+				tabstops,
+				snippet_start: range.start,
+				snippet_end: range.end,
+				index: placeholder.index,
+				range: placeholder.range,
+				charbefore: start.character == 0 ? "" : line.slice(start.character - 1, start.character)
+			};
+			let result = getUltiSnipActionCodes(marker, "postJump");
+			if (result) this.tryPostJump(result[0], result[1], info, document.bufnr).catch(onUnexpectedError);
+			else events_default.fire("PlaceholderJump", [document.bufnr, info]);
+			this.checkFinalPlaceholder();
+		}
+		checkFinalPlaceholder() {
+			let current = this.current;
+			if (current && current.index === 0) {
+				const { snippet } = current;
+				if (snippet === this.snippet.tmSnippet) {
+					logger$32.info("Jump to final placeholder, cancelling snippet session");
+					this.deactivate();
+				} else {
+					let marker = snippet.parent;
+					this.snippet.deactivateSnippet(snippet);
+					if (marker instanceof Placeholder) this.current = marker;
+				}
+			}
+		}
+		highlights() {
+			let { current, config } = this;
+			if (!current || !config.highlight || events_default.bufnr !== this.bufnr) return;
+			let buf = this.document.buffer;
+			this.nvim.pauseNotification();
+			buf.clearNamespace(NAME_SPACE);
+			let ranges = this.snippet.getRanges(current);
+			buf.highlightRanges(NAME_SPACE, "CocSnippetVisual", ranges);
+			this.nvim.resumeNotification(true, true);
+		}
+		async select(placeholder) {
+			let { range, value } = placeholder;
+			let { nvim } = this;
+			if (value.length > 0) await nvim.call("coc#snippet#select", [
+				range.start,
+				range.end,
+				value
+			]);
+			else await nvim.call("coc#snippet#move", [range.start]);
+			nvim.redrawVim();
+		}
+		async checkPosition() {
+			if (!this.isActive) return;
+			let position = await window_default.getCursorPosition();
+			if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
+				logger$32.info("Cursor insert out of range, cancelling snippet session");
+				this.deactivate();
+			}
+		}
+		onTextChange() {
+			this.cancel();
+		}
+		onChange(e) {
+			if (this._applying || !this.isActive || this._paused) return;
+			let changes = e.contentChanges;
+			this.cancel();
+			this.synchronize({
+				version: e.textDocument.version,
+				change: changes[0]
+			}).catch(onUnexpectedError);
+		}
+		async synchronize(change) {
+			const { document, isActive } = this;
+			this._paused = false;
+			if (!isActive) return;
+			await this.mutex.use(() => {
+				if (!document.attached || document.dirty || !this.snippet || !this.textDocument || document.version === this.version) return Promise.resolve();
+				if (change && (change.version - this.version !== 1 || document.version != change.version)) change = void 0;
+				return this._synchronize(change);
+			});
+		}
+		async _synchronize(documentChange) {
+			let { document, textDocument, current, snippet } = this;
+			const newDocument = document.textDocument;
+			if (equals(textDocument.lines, newDocument.lines)) {
+				this.textDocument = newDocument;
+				return;
+			}
+			const startTs = Date.now();
+			let tokenSource = this.tokenSource = new import_main$1.CancellationTokenSource();
+			const cursor = events_default.bufnr == document.bufnr ? await window_default.getCursorPosition() : void 0;
+			let change = documentChange?.change;
+			if (!change) {
+				let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events_default.insertMode);
+				change = {
+					range: edit.range,
+					text: edit.newText
+				};
+			}
+			if (!emptyRange(change.range)) {
+				let reduced = reduceTextEdit(TextEdit.replace(change.range, change.text), textDocument.getText(change.range));
+				change = {
+					range: reduced.range,
+					text: reduced.newText
+				};
+			}
+			const { range, start } = snippet;
+			let c = comparePosition(change.range.start, range.end);
+			let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
+			if (c > 0 || c === 0 && !insertEnd) {
+				logger$32.info("Content change after snippet");
+				this.textDocument = newDocument;
+				return;
+			}
+			c = comparePosition(change.range.end, range.start);
+			let insertBeginning = emptyRange(change.range) && !change.text.endsWith("\n") && snippet.hasBeginningPlaceholder;
+			if (c < 0 || c === 0 && !insertBeginning) {
+				let changeEnd = change.range.end;
+				let checkCharacter = range.start.line === changeEnd.line;
+				let newLines = change.text.split(/\n/);
+				let lc = newLines.length - (changeEnd.line - change.range.start.line + 1);
+				let cc = 0;
+				if (checkCharacter) if (newLines.length > 1) cc = newLines[newLines.length - 1].length - changeEnd.character;
+				else cc = change.range.start.character + change.text.length - changeEnd.character;
+				this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
+				this.textDocument = newDocument;
+				logger$32.info("Content change before snippet, reset snippet position");
+				return;
+			}
+			if (!rangeInRange(change.range, range)) {
+				logger$32.info("Before and snippet body changed, cancel snippet session");
+				this.deactivate();
+				return;
+			}
+			if (tokenSource.token.isCancellationRequested) return;
+			const nextPlaceholder = getNextPlaceholder(current, true);
+			const id = getPlaceholderId(current);
+			const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor);
+			this.tokenSource = void 0;
+			if (!res) {
+				if (this.snippet) {
+					let marker = this.snippet.getPlaceholderById(id, current.index);
+					this.current = defaultValue(marker, this.snippet.tmSnippet.first);
+				}
+				return;
+			}
+			this.textDocument = newDocument;
+			let { snippetText, delta } = res;
+			let changedRange = Range.create(start, getEnd(start, snippetText));
+			const expected = newDocument.getText(changedRange);
+			if (expected !== snippetText) {
+				logger$32.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
+				this.deactivate();
+				return;
+			}
+			let newText = this.snippet.text;
+			if (newText !== snippetText) {
+				let edit = reduceTextEdit({
+					range: changedRange,
+					newText
+				}, snippetText);
+				await this.applyEdits([edit], true);
+				if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
+			}
+			this.highlights();
+			logger$32.debug("update cost:", Date.now() - startTs, res.delta);
+			this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
+		}
+		async trySelectNextOnDelete(curr, next) {
+			if (!this.config.nextOnDelete || !this.snippet || !curr || curr.snippet != null && curr.toString() != "" || !next) return;
+			let p = this.snippet.getPlaceholderByMarker(next);
+			if (p) await this.selectPlaceholder(p, true);
+		}
+		async forceSynchronize() {
+			if (this.isActive) {
+				this._paused = false;
+				await this.document.patchChange();
+				await this.synchronize();
+			} else await this.document.patchChange();
+		}
+		async onCompleteDone() {
+			if (this.isActive) {
+				this._paused = false;
+				this.document._forceSync();
+				await this.synchronize();
+			}
+		}
+		get version() {
+			return this.textDocument ? this.textDocument.version : -1;
+		}
+		get isActive() {
+			return this.snippet != null;
+		}
+		get bufnr() {
+			return this.document.bufnr;
+		}
+		activate(snippet) {
+			if (this.isActive) return;
+			this.snippet = snippet;
+			this.nvim.call("coc#snippet#enable", [this.bufnr, this.config.preferComplete ? 1 : 0], true);
+			this._onActiveChange.fire(true);
+		}
+		deactivate() {
+			this.cancel();
+			if (!this.isActive) return;
+			this.snippet = null;
+			this.current = null;
+			this.nvim.call("coc#snippet#disable", [this.bufnr], true);
+			if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [
+				this.bufnr,
+				NAME_SPACE,
+				0,
+				-1
+			], true);
+			this._onActiveChange.fire(false);
+			logger$32.debug(`session ${this.bufnr} deactivate`);
+		}
+		get placeholder() {
+			if (!this.snippet || !this.current) return void 0;
+			return this.snippet.getPlaceholderByMarker(this.current);
+		}
+		cancel(pause = false) {
+			if (!this.isActive) return;
+			if (this.tokenSource) {
+				this.tokenSource.cancel();
+				this.tokenSource.dispose();
+				this.tokenSource = null;
+			}
+			if (pause) this._paused = true;
+		}
+		dispose() {
+			this.cancel();
+			this._onActiveChange.dispose();
+			this.snippet = null;
+			this.current = null;
+			this.textDocument = void 0;
+		}
+		async resolveSnippet(nvim, snippetString, ultisnip) {
+			let context;
+			if (ultisnip) {
+				ultisnip = omit$2(ultisnip, ["actions"]);
+				context = Object.assign({
+					range: Range.create(0, 0, 0, 0),
+					line: ""
+				}, ultisnip, { id: generateContextId(events_default.bufnr) });
+				if (ultisnip.noPython !== true && snippetString.includes("`!p")) await executePythonCode(nvim, getInitialPythonCode(context));
+			}
+			const resolver = new SnippetVariableResolver(nvim, workspace_default.workspaceFolderControl);
+			const snippet = new CocSnippet(snippetString, Position.create(0, 0), nvim, resolver);
+			await snippet.init(context);
+			return snippet.text;
+		}
+	};
+}));
+//#endregion
+//#region src/snippets/manager.ts
+var SnippetManager, manager_default$1;
+var init_manager$2 = __esmMin((() => {
+	init_main$2();
+	init_commands$2();
+	init_events();
+	init_util$7();
+	init_object();
+	init_position();
+	init_window();
+	init_workspace$1();
+	init_eval();
+	init_session$2();
+	init_util$4();
+	SnippetManager = class {
+		disposables = [];
+		_statusItem;
+		bufferSync;
+		config;
+		init() {
+			this.synchronizeConfig();
+			workspace_default.onDidChangeConfiguration((e) => {
+				if (e.affectsConfiguration("snippet") || e.affectsConfiguration("suggest")) this.synchronizeConfig();
+			}, null, this.disposables);
+			events_default.on(["InsertCharPre", "Enter"], () => {
+				let session = this.session;
+				if (session) session.cancel();
+			}, null, this.disposables);
+			events_default.on("CompleteDone", async (_item, _line, bufnr) => {
+				let session = this.bufferSync.getItem(bufnr);
+				if (session) await session.onCompleteDone();
+			}, null, this.disposables);
+			events_default.on("CompleteStart", async (opt) => {
+				let session = this.bufferSync.getItem(opt.bufnr);
+				if (session) session.cancel(true);
+			}, null, this.disposables);
+			events_default.on("InsertEnter", async (bufnr) => {
+				let session = this.bufferSync.getItem(bufnr);
+				if (session) await session.checkPosition();
+			}, null, this.disposables);
+			this.bufferSync = workspace_default.registerBufferSync((doc) => {
+				let session = new SnippetSession(this.nvim, doc, this.config);
+				session.onActiveChange((isActive) => {
+					if (events_default.bufnr !== session.bufnr) return;
+					this.statusItem[isActive ? "show" : "hide"]();
+				});
+				return session;
+			});
+			this.disposables.push(this.bufferSync);
+			window_default.onDidChangeActiveTextEditor(async (e) => {
+				let session = this.bufferSync.getItem(e.bufnr);
+				if (session && session.isActive) {
+					this.statusItem.show();
+					if (!session.selected) await session.selectCurrentPlaceholder();
+				} else this.statusItem.hide();
+			}, null, this.disposables);
+			commands_default.register({
+				id: "editor.action.insertSnippet",
+				execute: async (edit, ultisnip) => {
+					const opts = ultisnip === true ? {} : ultisnip;
+					return await this.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : void 0);
+				}
+			}, true);
+			commands_default.register({
+				id: "editor.action.insertBufferSnippets",
+				execute: async (bufnr, edits, select) => {
+					return await this.insertBufferSnippets(bufnr, edits, select);
+				}
+			}, true);
+		}
+		get nvim() {
+			return workspace_default.nvim;
+		}
+		get statusItem() {
+			if (this._statusItem) return this._statusItem;
+			const snippetConfig = workspace_default.initialConfiguration.get("snippet");
+			const statusItem = this._statusItem = window_default.createStatusBarItem(0);
+			statusItem.text = defaultValue(snippetConfig.statusText, "");
+			return this._statusItem;
+		}
+		synchronizeConfig() {
+			const snippetConfig = workspace_default.getConfiguration("snippet", null);
+			const suggest = workspace_default.getConfiguration("suggest", null);
+			let obj = {
+				highlight: defaultValue(snippetConfig.inspect("highlight").globalValue, false),
+				nextOnDelete: defaultValue(snippetConfig.inspect("nextPlaceholderOnDelete").globalValue, false),
+				preferComplete: suggest.get("preferCompleteThanJumpPlaceholder", false)
+			};
+			if (this.config) Object.assign(this.config, obj);
+			else this.config = obj;
+		}
+		async toRange(range) {
+			if (range) return toValidRange(range);
+			let pos = await window_default.getCursorPosition();
+			return Range.create(pos, pos);
+		}
+		async insertBufferSnippets(bufnr, edits, select = false) {
+			let document = workspace_default.getAttachedDocument(bufnr);
+			const session = this.bufferSync.getItem(bufnr);
+			session.deactivate();
+			let snippetEdits = [];
+			for (const edit of edits) {
+				let currentLine = document.getline(edit.range.start.line);
+				let inserted = await this.normalizeInsertText(bufnr, toSnippetString(edit.snippet), currentLine, InsertTextMode.asIs);
+				snippetEdits.push({
+					range: edit.range,
+					snippet: inserted
+				});
+			}
+			await session.synchronize();
+			let isActive = await session.insertSnippetEdits(snippetEdits);
+			if (isActive && select && workspace_default.bufnr === bufnr) await session.selectCurrentPlaceholder();
+			return isActive;
+		}
+		/**
+		* Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
+		*/
+		async insertBufferSnippet(bufnr, snippet, range, insertTextMode) {
+			let document = workspace_default.getAttachedDocument(bufnr);
+			const session = this.bufferSync.getItem(bufnr);
+			session.deactivate();
+			range = toValidRange(range);
+			const line = document.getline(range.start.line);
+			const snippetStr = toSnippetString(snippet);
+			const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, line, insertTextMode);
+			await session.synchronize();
+			return await session.start(inserted, range, false);
+		}
+		/**
+		* Insert snippet at current cursor position
+		*/
+		async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip) {
+			let { nvim } = workspace_default;
+			let document = workspace_default.getAttachedDocument(workspace_default.bufnr);
+			const session = this.bufferSync.getItem(document.bufnr);
+			let context;
+			session.cancel(true);
+			range = await this.toRange(range);
+			const currentLine = document.getline(range.start.line);
+			const snippetStr = toSnippetString(snippet);
+			const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
+			if (ultisnip != null) {
+				const usePy = hasPython(ultisnip) || inserted.includes("`!p");
+				const bufnr = document.bufnr;
+				context = Object.assign({
+					range: deepClone(range),
+					line: currentLine
+				}, ultisnip, { id: generateContextId(bufnr) });
+				if (usePy) {
+					if (session.placeholder) {
+						let { start, end } = session.placeholder.range;
+						let last = {
+							current_text: session.placeholder.value,
+							start: {
+								line: start.line,
+								col: start.character
+							},
+							end: {
+								line: end.line,
+								col: end.character
+							}
+						};
+						this.nvim.setVar("coc_last_placeholder", last, true);
+					} else this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
+					const codes = getInitialPythonCode(context);
+					let preExpand = getAction(ultisnip, "preExpand");
+					if (preExpand) {
+						nvim.call("coc#cursor#move_to", [range.end.line, range.end.character], true);
+						await executePythonCode(nvim, codes.concat(["snip = coc_ultisnips_dict[\"PreExpandContext\"]()", preExpand]));
+						const [valid, pos] = await nvim.call("pyxeval", "snip.getResult()");
+						if (valid) {
+							let count = range.end.character - range.start.character;
+							range = Range.create(pos[0], Math.max(0, pos[1] - count), pos[0], pos[1]);
+						} else range = Range.create(pos[0], pos[1], pos[0], pos[1]);
+					} else await executePythonCode(nvim, codes);
+				}
+			}
+			if (!(ultisnip == null && !session.isActive)) {
+				const { start } = range;
+				nvim.call("coc#cursor#move_to", [start.line, start.character], true);
+				if (!emptyRange(range)) await document.applyEdits([TextEdit.del(range)]);
+				if (session.isActive) {
+					await session.synchronize();
+					let pos = await window_default.getCursorPosition();
+					range = Range.create(pos, pos);
+				} else range.end = Position.create(start.line, start.character);
+			}
+			await session.start(inserted, range, select, context);
+			return session.isActive;
+		}
+		async selectCurrentPlaceholder(triggerAutocmd = true) {
+			let { session } = this;
+			if (session) return await session.selectCurrentPlaceholder(triggerAutocmd);
+		}
+		async nextPlaceholder() {
+			let { session } = this;
+			if (session) await session.nextPlaceholder();
+			else this.nvim.call("coc#snippet#disable", [], true);
+			return "";
+		}
+		async previousPlaceholder() {
+			let { session } = this;
+			if (session) await session.previousPlaceholder();
+			else this.nvim.call("coc#snippet#disable", [], true);
+			return "";
+		}
+		cancel() {
+			let session = this.bufferSync.getItem(workspace_default.bufnr);
+			if (session) return session.deactivate();
+			this.nvim.call("coc#snippet#disable", [], true);
+			this.statusItem.hide();
+		}
+		get session() {
+			return this.bufferSync.getItem(workspace_default.bufnr);
+		}
+		/**
+		* exported method
+		*/
+		getSession(bufnr) {
+			let session = this.bufferSync.getItem(bufnr);
+			return session && session.isActive ? session : void 0;
+		}
+		isActivated(bufnr) {
+			let session = this.bufferSync.getItem(bufnr);
+			return session && session.isActive;
+		}
+		jumpable() {
+			let { session } = this;
+			if (!session) return false;
+			return session.placeholder != null && session.placeholder.index != 0;
+		}
+		/**
+		* Exposed for snippet preview
+		*/
+		async resolveSnippet(snippetString, ultisnip) {
+			let session = this.bufferSync.getItem(workspace_default.bufnr);
+			if (!session) return;
+			return await session.resolveSnippet(this.nvim, snippetString, ultisnip);
+		}
+		async normalizeInsertText(bufnr, snippetString, currentLine, insertTextMode, ultisnip) {
+			let inserted = "";
+			if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) inserted = snippetString;
+			else {
+				const currentIndent = currentLine.match(/^\s*/)[0];
+				let formatOptions = await workspace_default.getFormatOptions(bufnr);
+				let opts = ultisnip ?? {};
+				formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
+				if (opts.noExpand) formatOptions.noExpand = true;
+				inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions);
+			}
+			return inserted;
+		}
+		dispose() {
+			this.cancel();
+			disposeAll(this.disposables);
+		}
+	};
+	manager_default$1 = new SnippetManager();
+}));
+//#endregion
+//#region src/completion/types.ts
+var SourceType;
+var init_types = __esmMin((() => {
+	SourceType = /* @__PURE__ */ function(SourceType) {
+		SourceType[SourceType["Native"] = 0] = "Native";
+		SourceType[SourceType["Remote"] = 1] = "Remote";
+		SourceType[SourceType["Service"] = 2] = "Service";
+		return SourceType;
+	}({});
+}));
+//#endregion
+//#region src/util/map.ts
+var Touch, LinkedMap, LRUCache;
+var init_map = __esmMin((() => {
+	(function(_Touch) {
+		_Touch.None = 0;
+		_Touch.AsOld = _Touch.First = 1;
+		_Touch.AsNew = _Touch.Last = 2;
+	})(Touch || (Touch = {}));
+	LinkedMap = class {
+		[Symbol.toStringTag] = "LinkedMap";
+		_map;
+		_head;
+		_tail;
+		_size;
+		_state;
+		constructor() {
+			this._map = /* @__PURE__ */ new Map();
+			this._head = void 0;
+			this._tail = void 0;
+			this._size = 0;
+			this._state = 0;
+		}
+		clear() {
+			this._map.clear();
+			this._head = void 0;
+			this._tail = void 0;
+			this._size = 0;
+			this._state++;
+		}
+		isEmpty() {
+			return !this._head && !this._tail;
+		}
+		get size() {
+			return this._size;
+		}
+		get first() {
+			return this._head?.value;
+		}
+		get last() {
+			return this._tail?.value;
+		}
+		before(key) {
+			const item = this._map.get(key);
+			return item ? item.previous?.value : void 0;
+		}
+		after(key) {
+			const item = this._map.get(key);
+			return item ? item.next?.value : void 0;
+		}
+		has(key) {
+			return this._map.has(key);
+		}
+		get(key, touch = Touch.None) {
+			const item = this._map.get(key);
+			if (!item) return;
+			if (touch !== Touch.None) this.touch(item, touch);
+			return item.value;
+		}
+		set(key, value, touch = Touch.None) {
+			let item = this._map.get(key);
+			if (item) {
+				item.value = value;
+				if (touch !== Touch.None) this.touch(item, touch);
+			} else {
+				item = {
+					key,
+					value,
+					next: void 0,
+					previous: void 0
+				};
+				switch (touch) {
+					case Touch.None:
+						this.addItemLast(item);
+						break;
+					case Touch.First:
+						this.addItemFirst(item);
+						break;
+					case Touch.Last:
+						this.addItemLast(item);
+						break;
+					default:
+						this.addItemLast(item);
+						break;
+				}
+				this._map.set(key, item);
+				this._size++;
+			}
+			return this;
+		}
+		delete(key) {
+			return !!this.remove(key);
+		}
+		remove(key) {
+			const item = this._map.get(key);
+			if (!item) return;
+			this._map.delete(key);
+			this.removeItem(item);
+			this._size--;
+			return item.value;
+		}
+		shift() {
+			if (!this._head && !this._tail) return;
+			const item = this._head;
+			this._map.delete(item.key);
+			this.removeItem(item);
+			this._size--;
+			return item.value;
+		}
+		forEach(callbackfn, thisArg) {
+			const state = this._state;
+			let current = this._head;
+			while (current) {
+				if (thisArg) callbackfn.bind(thisArg)(current.value, current.key, this);
+				else callbackfn(current.value, current.key, this);
+				if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
+				current = current.next;
+			}
+		}
+		keys() {
+			const state = this._state;
+			let current = this._head;
+			const iterator = {
+				[Symbol.iterator]: () => {
+					return iterator;
+				},
+				[Symbol.dispose]: () => {},
+				next: () => {
+					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
+					if (current) {
+						const result = {
+							value: current.key,
+							done: false
+						};
+						current = current.next;
+						return result;
+					} else return {
+						value: void 0,
+						done: true
+					};
+				}
+			};
+			return iterator;
+		}
+		values() {
+			const state = this._state;
+			let current = this._head;
+			const iterator = {
+				[Symbol.iterator]: () => {
+					return iterator;
+				},
+				[Symbol.dispose]: () => {},
+				next: () => {
+					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
+					if (current) {
+						const result = {
+							value: current.value,
+							done: false
+						};
+						current = current.next;
+						return result;
+					} else return {
+						value: void 0,
+						done: true
+					};
+				}
+			};
+			return iterator;
+		}
+		entries() {
+			const state = this._state;
+			let current = this._head;
+			const iterator = {
+				[Symbol.iterator]: () => {
+					return iterator;
+				},
+				[Symbol.dispose]: () => {},
+				next: () => {
+					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
+					if (current) {
+						const result = {
+							value: [current.key, current.value],
+							done: false
+						};
+						current = current.next;
+						return result;
+					} else return {
+						value: void 0,
+						done: true
+					};
+				}
+			};
+			return iterator;
+		}
+		[Symbol.iterator]() {
+			return this.entries();
+		}
+		trimOld(newSize) {
+			if (newSize >= this.size) return;
+			if (newSize === 0) {
+				this.clear();
+				return;
+			}
+			let current = this._head;
+			let currentSize = this.size;
+			while (current && currentSize > newSize) {
+				this._map.delete(current.key);
+				current = current.next;
+				currentSize--;
+			}
+			this._head = current;
+			this._size = currentSize;
+			if (current) current.previous = void 0;
+			this._state++;
+		}
+		addItemFirst(item) {
+			if (!this._head && !this._tail) this._tail = item;
+			else {
+				item.next = this._head;
+				this._head.previous = item;
+			}
+			this._head = item;
+			this._state++;
+		}
+		addItemLast(item) {
+			if (!this._head && !this._tail) this._head = item;
+			else {
+				item.previous = this._tail;
+				this._tail.next = item;
+			}
+			this._tail = item;
+			this._state++;
+		}
+		removeItem(item) {
+			if (item === this._head && item === this._tail) {
+				this._head = void 0;
+				this._tail = void 0;
+			} else if (item === this._head) {
+				item.next.previous = void 0;
+				this._head = item.next;
+			} else if (item === this._tail) {
+				item.previous.next = void 0;
+				this._tail = item.previous;
+			} else {
+				const next = item.next;
+				const previous = item.previous;
+				next.previous = previous;
+				previous.next = next;
+			}
+			item.next = void 0;
+			item.previous = void 0;
+			this._state++;
+		}
+		touch(item, touch) {
+			if (touch !== Touch.First && touch !== Touch.Last) return;
+			if (touch === Touch.First) {
+				if (item === this._head) return;
+				const next = item.next;
+				const previous = item.previous;
+				if (item === this._tail) {
+					previous.next = void 0;
+					this._tail = previous;
+				} else {
+					next.previous = previous;
+					previous.next = next;
+				}
+				item.previous = void 0;
+				item.next = this._head;
+				this._head.previous = item;
+				this._head = item;
+				this._state++;
+			} else if (touch === Touch.Last) {
+				if (item === this._tail) return;
+				const next = item.next;
+				const previous = item.previous;
+				if (item === this._head) {
+					next.previous = void 0;
+					this._head = next;
+				} else {
+					next.previous = previous;
+					previous.next = next;
+				}
+				item.next = void 0;
+				item.previous = this._tail;
+				this._tail.next = item;
+				this._tail = item;
+				this._state++;
+			}
+		}
+		toJSON() {
+			const data = [];
+			this.forEach((value, key) => {
+				data.push([key, value]);
+			});
+			return data;
+		}
+		fromJSON(data) {
+			this.clear();
+			for (const [key, value] of data) this.set(key, value);
+		}
+	};
+	LRUCache = class extends LinkedMap {
+		_limit;
+		_ratio;
+		constructor(limit, ratio = 1) {
+			super();
+			this._limit = limit;
+			this._ratio = Math.min(Math.max(0, ratio), 1);
+		}
+		get limit() {
+			return this._limit;
+		}
+		set limit(limit) {
+			this._limit = limit;
+			this.checkTrim();
+		}
+		get ratio() {
+			return this._ratio;
+		}
+		set ratio(ratio) {
+			this._ratio = Math.min(Math.max(0, ratio), 1);
+			this.checkTrim();
+		}
+		get(key, touch = Touch.AsNew) {
+			return super.get(key, touch);
+		}
+		peek(key) {
+			return super.get(key, Touch.None);
+		}
+		set(key, value) {
+			super.set(key, value, Touch.Last);
+			this.checkTrim();
+			return this;
+		}
+		checkTrim() {
+			if (this.size > this._limit) this.trimOld(Math.round(this._limit * this._ratio));
+		}
+	};
+}));
+//#endregion
+//#region src/completion/util.ts
+function useAscii(input) {
+	return input.length > 0 && input.charCodeAt(0) < 128;
+}
+function getKindText(kind, kindMap, defaultKindText) {
+	return number(kind) ? kindMap.get(kind) ?? defaultKindText : kind;
+}
+function getKindHighlight(kind) {
+	return number(kind) ? highlightsMap[kind] ?? DEFAULT_HL_GROUP : DEFAULT_HL_GROUP;
+}
+function getPriority(source, defaultValue) {
+	if (number(source.priority)) return source.priority;
+	return defaultValue;
+}
+function getDetail(item, filetype) {
+	const { detail, labelDetails, label } = item;
+	if (!isEmpty(labelDetails)) return {
+		filetype: "txt",
+		content: (labelDetails.detail ?? "") + (labelDetails.description ? ` ${labelDetails.description}` : "")
+	};
+	if (detail && detail !== label) return {
+		filetype: /^[\w-\s.,\t\n]+$/.test(detail) ? "txt" : filetype,
+		content: detail
+	};
+}
+/**
+* Return 1 when next is inserted as paried character
+*/
+function deltaCount(info) {
+	if (!info.insertChar || !info.insertChars) return 0;
+	if (info.insertChars.length != 2) return 0;
+	let pre = info.pre;
+	let last = pre[pre.length - 1];
+	if (last !== info.insertChars[0] || !pariedCharacters.has(last)) return 0;
+	let next = info.line[pre.length];
+	if (!next || pariedCharacters.get(last) != next) return 0;
+	return 1;
+}
+function toCompleteDoneItem(selected, item) {
+	if (!item || !selected) return {};
+	return Object.assign({
+		word: selected.word,
+		abbr: selected.abbr,
+		kind: selected.kind,
+		menu: selected.menu,
+		source: selected.source.name,
+		isSnippet: selected.isSnippet,
+		user_data: `${selected.source.name}:0`
+	}, item);
+}
+function getDocumentations(completeItem, filetype, detailRendered = false) {
+	let docs = [];
+	if (isCompletionItem(completeItem)) {
+		let { documentation } = completeItem;
+		if (!detailRendered) {
+			let doc = getDetail(completeItem, filetype);
+			if (doc) docs.push(doc);
+		}
+		if (documentation) {
+			if (typeof documentation == "string") docs.push({
+				filetype: "txt",
+				content: documentation
+			});
+			else if (documentation.value) docs.push({
+				filetype: documentation.kind == "markdown" ? "markdown" : "txt",
+				content: documentation.value
+			});
+		}
+	} else if (completeItem.documentation) docs = completeItem.documentation;
+	else if (completeItem.info) docs.push({
+		content: completeItem.info,
+		filetype: "txt"
+	});
+	return docs;
+}
+function getResumeInput(option, pretext) {
+	if (!option) return null;
+	const { line, col } = option;
+	const start = characterIndex(line, col);
+	if (pretext.length < start) return null;
+	for (let i = 0; i < start; i++) if (pretext.charCodeAt(i) !== line.charCodeAt(i)) return null;
+	return byteSlice(pretext, option.col);
+}
+function checkIgnoreRegexps(ignoreRegexps, input) {
+	if (!ignoreRegexps || ignoreRegexps.length == 0 || input.length == 0) return false;
+	return ignoreRegexps.some((regexp) => {
+		try {
+			return new RegExp(regexp).test(input);
+		} catch (e) {
+			return false;
+		}
+	});
+}
+function createKindMap(labels) {
+	return /* @__PURE__ */ new Map([
+		[CompletionItemKind.Text, labels["text"] ?? "v"],
+		[CompletionItemKind.Method, labels["method"] ?? "f"],
+		[CompletionItemKind.Function, labels["function"] ?? "f"],
+		[CompletionItemKind.Constructor, typeof labels["constructor"] == "function" ? "f" : labels["constructor"] ?? ""],
+		[CompletionItemKind.Field, labels["field"] ?? "m"],
+		[CompletionItemKind.Variable, labels["variable"] ?? "v"],
+		[CompletionItemKind.Class, labels["class"] ?? "C"],
+		[CompletionItemKind.Interface, labels["interface"] ?? "I"],
+		[CompletionItemKind.Module, labels["module"] ?? "M"],
+		[CompletionItemKind.Property, labels["property"] ?? "m"],
+		[CompletionItemKind.Unit, labels["unit"] ?? "U"],
+		[CompletionItemKind.Value, labels["value"] ?? "v"],
+		[CompletionItemKind.Enum, labels["enum"] ?? "E"],
+		[CompletionItemKind.Keyword, labels["keyword"] ?? "k"],
+		[CompletionItemKind.Snippet, labels["snippet"] ?? "S"],
+		[CompletionItemKind.Color, labels["color"] ?? "v"],
+		[CompletionItemKind.File, labels["file"] ?? "F"],
+		[CompletionItemKind.Reference, labels["reference"] ?? "r"],
+		[CompletionItemKind.Folder, labels["folder"] ?? "F"],
+		[CompletionItemKind.EnumMember, labels["enumMember"] ?? "m"],
+		[CompletionItemKind.Constant, labels["constant"] ?? "v"],
+		[CompletionItemKind.Struct, labels["struct"] ?? "S"],
+		[CompletionItemKind.Event, labels["event"] ?? "E"],
+		[CompletionItemKind.Operator, labels["operator"] ?? "O"],
+		[CompletionItemKind.TypeParameter, labels["typeParameter"] ?? "T"]
+	]);
+}
+function shouldStop(bufnr, info, option) {
+	let { pre } = info;
+	if (pre.length === 0 || getUnicodeClass(pre[pre.length - 1]) === "space") return true;
+	if (option.bufnr != bufnr || option.linenr != info.lnum) return true;
+	let text = byteSlice(option.line, 0, option.col);
+	if (!pre.startsWith(text)) return true;
+	return false;
+}
+function getInput(chars, pre, asciiCharactersOnly) {
+	let len = 0;
+	let prev;
+	for (let i = pre.length - 1; i >= 0; i--) {
+		let code = pre.charCodeAt(i);
+		if (!isWordCode(chars, code, asciiCharactersOnly) || prev !== void 0 && !sameScope(prev, code)) break;
+		len += 1;
+		prev = code;
+	}
+	return len == 0 ? "" : pre.slice(-len);
+}
+function isWordCode(chars, code, asciiCharactersOnly) {
+	if (!chars.isKeywordCode(code)) return false;
+	if (isLowSurrogate(code)) return false;
+	if (asciiCharactersOnly && code >= 255) return false;
+	return true;
+}
+function highlightOffset(pre, item) {
+	let { filterText, abbr } = item;
+	let idx = abbr.indexOf(filterText);
+	if (idx == -1) return -1;
+	return pre + (idx == 0 ? 0 : byteIndex(abbr, idx));
+}
+function emptLabelDetails(labelDetails) {
+	if (!labelDetails) return true;
+	return !labelDetails.detail && !labelDetails.description;
+}
+function isSnippetItem(item, itemDefaults) {
+	return (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet;
+}
+/**
+* Snippet or have additionalTextEdits
+*/
+function hasAction(item, itemDefaults) {
+	return isSnippetItem(item, itemDefaults) || !isFalsyOrEmpty(item.additionalTextEdits);
+}
+function toValidWord(snippet, excludes) {
+	for (let i = 0; i < snippet.length; i++) {
+		let code = snippet.charCodeAt(i);
+		if (excludes.includes(code)) return snippet.slice(0, i);
+	}
+	return snippet;
+}
+function snippetToWord(text, kind) {
+	if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method || kind === CompletionItemKind.Class) text = text.replace(/\(.+/, "");
+	if (!text.includes(DollarSign)) return text;
+	return toValidWord(new SnippetParser().text(text), INVALID_WORD_CHARS);
+}
+/**
+* Get the word to insert, it's the word to insert from range or input start position,
+* may not the actual word to insert
+*/
+function getWord(item, itemDefaults) {
+	let { label, data, kind } = item;
+	if (data && string(data.word)) return data.word;
+	let textToInsert = item.textEdit ? item.textEdit.newText : item.insertText;
+	if (!string(textToInsert)) return label;
+	return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS);
+}
+function getReplaceRange(item, defaultRange, character, insertMode) {
+	let editRange;
+	if (item.textEdit) editRange = InsertReplaceEdit.is(item.textEdit) ? item.textEdit : item.textEdit.range;
+	else if (defaultRange) editRange = defaultRange;
+	let range;
+	if (editRange) if (Range.is(editRange)) range = editRange;
+	else range = insertMode == "insert" ? editRange.insert : editRange.replace;
+	if (range && number(character) && range.start.character > character) range.start.character = character;
+	return range;
+}
+function toItemKey(item) {
+	return `${item.filterText}|${item.source.name}|${item.kind ?? ""}`;
+}
+var INVALID_WORD_CHARS, DollarSign, QuestionMark, MAX_CODE_POINT, MAX_MRU_ITEMS, DEFAULT_HL_GROUP, highlightsMap, Converter, MruLoader;
+var init_util$3 = __esmMin((() => {
+	init_main$2();
+	init_chars();
+	init_parser();
+	init_util$7();
+	init_array();
+	init_constants();
+	init_is();
+	init_map();
+	init_node();
+	init_object();
+	init_string$1();
+	INVALID_WORD_CHARS = [10, 13];
+	DollarSign = "$";
+	QuestionMark = "?";
+	MAX_CODE_POINT = 1114111;
+	MAX_MRU_ITEMS = 100;
+	DEFAULT_HL_GROUP = "CocSymbolDefault";
+	highlightsMap = {
+		[CompletionItemKind.Text]: "CocSymbolText",
+		[CompletionItemKind.Method]: "CocSymbolMethod",
+		[CompletionItemKind.Function]: "CocSymbolFunction",
+		[CompletionItemKind.Constructor]: "CocSymbolConstructor",
+		[CompletionItemKind.Field]: "CocSymbolField",
+		[CompletionItemKind.Variable]: "CocSymbolVariable",
+		[CompletionItemKind.Class]: "CocSymbolClass",
+		[CompletionItemKind.Interface]: "CocSymbolInterface",
+		[CompletionItemKind.Module]: "CocSymbolModule",
+		[CompletionItemKind.Property]: "CocSymbolProperty",
+		[CompletionItemKind.Unit]: "CocSymbolUnit",
+		[CompletionItemKind.Value]: "CocSymbolValue",
+		[CompletionItemKind.Enum]: "CocSymbolEnum",
+		[CompletionItemKind.Keyword]: "CocSymbolKeyword",
+		[CompletionItemKind.Snippet]: "CocSymbolSnippet",
+		[CompletionItemKind.Color]: "CocSymbolColor",
+		[CompletionItemKind.File]: "CocSymbolFile",
+		[CompletionItemKind.Reference]: "CocSymbolReference",
+		[CompletionItemKind.Folder]: "CocSymbolFolder",
+		[CompletionItemKind.EnumMember]: "CocSymbolEnumMember",
+		[CompletionItemKind.Constant]: "CocSymbolConstant",
+		[CompletionItemKind.Struct]: "CocSymbolStruct",
+		[CompletionItemKind.Event]: "CocSymbolEvent",
+		[CompletionItemKind.Operator]: "CocSymbolOperator",
+		[CompletionItemKind.TypeParameter]: "CocSymbolTypeParameter"
+	};
+	Converter = class {
+		inputStart;
+		option;
+		opt;
+		previousCache = /* @__PURE__ */ new Map();
+		postCache = /* @__PURE__ */ new Map();
+		character;
+		minCharacter = Number.MAX_SAFE_INTEGER;
+		inputLen;
+		constructor(inputStart, option, opt) {
+			this.inputStart = inputStart;
+			this.option = option;
+			this.opt = opt;
+			this.character = opt.position.character;
+			this.inputLen = opt.position.character - inputStart;
+		}
+		/**
+		* Text before input to replace
+		*/
+		getPrevious(character) {
+			if (this.previousCache.has(character)) return this.previousCache.get(character);
+			let prev = this.opt.line.slice(character, this.inputStart);
+			this.previousCache.set(character, prev);
+			return prev;
+		}
+		/**
+		* Text after cursor to replace
+		*/
+		getAfter(character) {
+			if (this.postCache.has(character)) return this.postCache.get(character);
+			let text = this.opt.line.slice(this.character, character);
+			this.postCache.set(character, text);
+			return text;
+		}
+		/**
+		* Exclude follow characters to replace from end of word
+		*/
+		fixFollow(word, isSnippet, endCharacter) {
+			if (isSnippet || endCharacter <= this.character) return word;
+			let toReplace = this.getAfter(endCharacter);
+			if (word.length - this.inputLen > toReplace.length && word.endsWith(toReplace)) return word.slice(0, -toReplace.length);
+			return word;
+		}
+		/**
+		* Better filter text with prefix before input removed if exists.
+		*/
+		getDelta(filterText, character) {
+			if (character < this.inputStart) {
+				let prev = this.getPrevious(character);
+				if (filterText.startsWith(prev)) return prev.length;
+			}
+			return 0;
+		}
+		convertToDurationItem(item) {
+			if (isCompletionItem(item)) return this.convertLspCompleteItem(item);
+			else if (string(item.word)) return this.convertVimCompleteItem(item);
+		}
+		convertVimCompleteItem(item) {
+			const { option } = this;
+			const { range, asciiMatch } = option;
+			const word = toText(item.word);
+			const character = range.start.character;
+			this.minCharacter = Math.min(this.minCharacter, character);
+			let filterText = item.filterText ?? word;
+			filterText = asciiMatch ? unidecode(filterText) : filterText;
+			const delta = this.getDelta(filterText, character);
+			return {
+				word: this.fixFollow(word, item.isSnippet, range.end.character),
+				abbr: item.abbr ?? word,
+				filterText,
+				delta,
+				character,
+				dup: item.dup === 1,
+				menu: item.menu,
+				kind: item.kind,
+				isSnippet: !!item.isSnippet,
+				insertText: item.insertText,
+				preselect: item.preselect,
+				sortText: item.sortText,
+				deprecated: item.deprecated,
+				detail: item.detail,
+				labelDetails: item.labelDetails,
+				get source() {
+					return option.source;
+				},
+				get priority() {
+					return option.source.priority ?? 99;
+				},
+				get shortcut() {
+					return toText(option.source.shortcut);
+				}
+			};
+		}
+		convertLspCompleteItem(item) {
+			const { option, inputStart } = this;
+			const label = item.label.trim();
+			const itemDefaults = toObject(option.itemDefaults);
+			const word = getWord(item, itemDefaults);
+			const range = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range;
+			const character = range.start.character;
+			const data = toObject(item.data);
+			const filterText = item.filterText ?? item.label;
+			const delta = this.getDelta(filterText, character);
+			let obj = {
+				word: this.fixFollow(word, isSnippetItem(item, itemDefaults), range.end.character),
+				abbr: label,
+				character,
+				delta,
+				kind: item.kind,
+				detail: item.detail,
+				sortText: item.sortText,
+				filterText,
+				preselect: item.preselect === true,
+				deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
+				isSnippet: hasAction(item, itemDefaults),
+				get source() {
+					return option.source;
+				},
+				get priority() {
+					return option.priority;
+				},
+				get shortcut() {
+					return toText(option.source.shortcut);
+				},
+				dup: data.dup !== 0
+			};
+			this.minCharacter = Math.min(this.minCharacter, character);
+			if (data.optional && !obj.abbr.endsWith(QuestionMark)) obj.abbr += QuestionMark;
+			if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails;
+			if (number(item["score"]) && !obj.sortText) obj.sortText = String.fromCodePoint(MAX_CODE_POINT - Math.round(item["score"]));
+			return obj;
+		}
+	};
+	MruLoader = class {
+		max = 0;
+		items = new LRUCache(MAX_MRU_ITEMS);
+		itemsNoPrefix = new LRUCache(MAX_MRU_ITEMS);
+		getScore(input, item, selection) {
+			let key = toItemKey(item);
+			if (input.length == 0) return this.itemsNoPrefix.get(key) ?? -1;
+			if (selection === "recentlyUsedByPrefix") key = `${input}|${key}`;
+			return (selection === "recentlyUsed" ? this.itemsNoPrefix : this.items).get(key) ?? -1;
+		}
+		add(prefix, item) {
+			if (!number(item.kind)) return;
+			let key = toItemKey(item);
+			if (!item.filterText.startsWith(prefix)) prefix = "";
+			let line = `${prefix}|${key}`;
+			this.items.set(line, this.max);
+			this.itemsNoPrefix.set(key, this.max);
+			this.max += 1;
+		}
+		clear() {
+			this.max = 0;
+			this.items.clear();
+			this.itemsNoPrefix.clear();
+		}
+	};
+}));
+//#endregion
+//#region src/completion/source-language.ts
+function getUltisnipOption(item) {
+	let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip;
+	return opts ? opts : void 0;
+}
+function fixIndent(line, currline, range) {
+	let oldIndent = line.match(/^\s*/)[0];
+	let newIndent = currline.match(/^\s*/)[0];
+	if (oldIndent === newIndent) return 0;
+	let d = newIndent.length - oldIndent.length;
+	range.start.character += d;
+	range.end.character += d;
+	return d;
+}
+function fixTextEdit(character, edit) {
+	if (TextEdit.is(edit)) {
+		if (character < edit.range.start.character) edit.range.start.character = character;
+	}
+	if (InsertReplaceEdit.is(edit)) {
+		if (character < edit.insert.start.character) edit.insert.start.character = character;
+		if (character < edit.replace.start.character) edit.replace.start.character = character;
+	}
+	return edit;
+}
+var logger$31, LanguageSource;
+var init_source_language = __esmMin((() => {
+	init_main$2();
+	init_commands$2();
+	init_ui$2();
+	init_logger$2();
+	init_manager$2();
+	init_util$7();
+	init_array();
+	init_errors();
+	init_is();
+	init_object();
+	init_protocol();
+	init_string$1();
+	init_workspace$1();
+	init_util$3();
+	logger$31 = createLogger$1("source-language");
+	LanguageSource = class {
+		name;
+		shortcut;
+		provider;
+		documentSelector;
+		triggerCharacters;
+		allCommitCharacters;
+		priority;
+		sourceType = 2;
+		_enabled = true;
+		itemDefaults = {};
+		hasDefaultRange;
+		triggerContext;
+		resolving = /* @__PURE__ */ new WeakMap();
+		constructor(name, shortcut, provider, documentSelector, triggerCharacters, allCommitCharacters, priority) {
+			this.name = name;
+			this.shortcut = shortcut;
+			this.provider = provider;
+			this.documentSelector = documentSelector;
+			this.triggerCharacters = triggerCharacters;
+			this.allCommitCharacters = allCommitCharacters;
+			this.priority = priority;
+		}
+		get enable() {
+			return this._enabled;
+		}
+		toggle() {
+			this._enabled = !this._enabled;
+		}
+		shouldCommit(item, character) {
+			if (this.allCommitCharacters.includes(character)) return true;
+			return toArray(item.commitCharacters ?? this.itemDefaults.commitCharacters).includes(character);
+		}
+		async doComplete(option, token) {
+			let { triggerCharacter, bufnr, position } = option;
+			let triggerKind = this.getTriggerKind(option);
+			this.triggerContext = {
+				lnum: position.line,
+				character: position.character,
+				line: option.line
+			};
+			let context = {
+				triggerKind,
+				option
+			};
+			if (triggerKind == import_main$1.CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter;
+			let textDocument = workspace_default.getDocument(bufnr).textDocument;
+			await waitImmediate$1();
+			let result = await Promise.resolve(this.provider.provideCompletionItems(textDocument, position, token, context));
+			if (!result || token.isCancellationRequested) return null;
+			let completeItems = Array.isArray(result) ? result : result.items;
+			if (!completeItems || completeItems.length == 0) return null;
+			let itemDefaults = this.itemDefaults = toObject(result["itemDefaults"]);
+			let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
+			this.hasDefaultRange = isEditRange(itemDefaults.editRange);
+			return {
+				isIncomplete,
+				items: completeItems,
+				itemDefaults
+			};
+		}
+		onCompleteResolve(item, opt, token) {
+			if (!func(this.provider.resolveCompletionItem)) return;
+			let promise = this.resolving.get(item);
+			if (promise) return promise;
+			let invalid = false;
+			promise = new Promise(async (resolve, reject) => {
+				let disposable = token.onCancellationRequested(() => {
+					this.resolving.delete(item);
+					reject(new CancellationError());
+				});
+				try {
+					let resolved = await Promise.resolve(this.provider.resolveCompletionItem(item, token));
+					disposable.dispose();
+					if (!token.isCancellationRequested) if (!resolved) {
+						invalid = true;
+						this.resolving.delete(item);
+					} else {
+						if (resolved.textEdit) resolved.textEdit = fixTextEdit(characterIndex(opt.line, opt.col), resolved.textEdit);
+						Object.assign(item, resolved);
+					}
+					resolve();
+				} catch (e) {
+					invalid = true;
+					this.resolving.delete(item);
+					reject(e);
+				}
+			});
+			if (!invalid) this.resolving.set(item, promise);
+			return promise;
+		}
+		async onCompleteDone(item, opt) {
+			let doc = workspace_default.getDocument(opt.bufnr);
+			await doc.patchChange();
+			let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits);
+			let version = doc.version;
+			let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt);
+			if (additionalEdits) {
+				let move = !isSnippet;
+				if (isSnippet) {
+					let pos = await getLineAndPosition(workspace_default.nvim);
+					move = Position.create(pos.line, pos.character);
+				}
+				await doc.applyEdits(item.additionalTextEdits, doc.version != version, move);
+				if (isSnippet) await manager_default$1.selectCurrentPlaceholder();
+			}
+			if (item.command) if (commands_default.has(item.command.command)) commands_default.execute(item.command);
+			else logger$31.warn(`Command "${item.command.command}" not registered to coc.nvim`);
+		}
+		async applyTextEdit(doc, additionalEdits, item, option) {
+			let { linenr, col } = option;
+			let { character, line } = this.triggerContext;
+			let pos = await getLineAndPosition(workspace_default.nvim);
+			if (pos.line != linenr - 1) return;
+			let { textEdit, textEditText, insertText, label } = item;
+			let range = getReplaceRange(item, this.itemDefaults?.editRange, void 0, option.insertMode);
+			if (!range) {
+				let end = character + (option.insertMode == "insert" ? 0 : option.followWord.length);
+				range = Range.create(pos.line, characterIndex(line, col), pos.line, end);
+			}
+			let invalidRangeEnd = range.end.character < character;
+			if (invalidRangeEnd) range.end.character = character;
+			let newText = textEdit ? textEdit.newText : (textEditText && this.hasDefaultRange ? textEditText : insertText) ?? label;
+			let indentCount = fixIndent(line, pos.text, range);
+			let delta = pos.character - character - indentCount;
+			if (delta !== 0) range.end.character += delta;
+			let next = pos.text[range.end.character];
+			if (invalidRangeEnd && next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) range.end.character += 1;
+			if (option.snippetsSupport !== false && isSnippetItem(item, this.itemDefaults)) {
+				let opts = getUltisnipOption(item);
+				let insertTextMode = item.insertTextMode ?? this.itemDefaults.insertTextMode;
+				return await manager_default$1.insertSnippet(newText, !additionalEdits, range, insertTextMode, opts);
+			}
+			await doc.applyEdits([TextEdit.replace(range, newText)], false, pos);
+			return false;
+		}
+		getTriggerKind(opt) {
+			let { triggerCharacters } = this;
+			let isTrigger = triggerCharacters.includes(opt.triggerCharacter);
+			let triggerKind = import_main$1.CompletionTriggerKind.Invoked;
+			if (opt.triggerForInComplete) triggerKind = import_main$1.CompletionTriggerKind.TriggerForIncompleteCompletions;
+			else if (isTrigger) triggerKind = import_main$1.CompletionTriggerKind.TriggerCharacter;
+			return triggerKind;
+		}
+	};
+}));
+//#endregion
+//#region src/completion/wordDistance.ts
+var WordDistance;
+var init_wordDistance = __esmMin((() => {
+	init_main$2();
+	init_events();
+	init_languages();
+	init_array();
+	init_object();
+	init_is();
+	init_position();
+	init_workspace$1();
+	init_util$7();
+	WordDistance = class WordDistance {
+		static None = new class extends WordDistance {
+			distance() {
+				return 0;
+			}
+		}();
+		static async create(localityBonus, opt, token) {
+			let { position } = opt;
+			let cursor = [opt.linenr, opt.colnr];
+			if (!localityBonus) return WordDistance.None;
+			let doc = workspace_default.getDocument(opt.bufnr);
+			const selectionRanges = await languages_default.getSelectionRanges(doc.textDocument, [position], token);
+			if (!selectionRanges || token.isCancellationRequested) return WordDistance.None;
+			let ranges = [];
+			const iterate = (r) => {
+				if (r && r.range.end.line - r.range.start.line < 2e3) {
+					ranges.unshift(r.range);
+					iterate(r.parent);
+				}
+			};
+			iterate(toArray(selectionRanges)[0]);
+			let wordRanges = ranges.length > 0 ? await Promise.race([waitWithToken(100, token), workspace_default.computeWordRanges(opt.bufnr, ranges[0], token)]) : void 0;
+			if (!objectLiteral(wordRanges)) return WordDistance.None;
+			delete wordRanges[opt.word];
+			return new class extends WordDistance {
+				distance(anchor, item) {
+					if (!equals([events_default.cursor.lnum, events_default.cursor.col], cursor)) return 0;
+					if (item.kind === CompletionItemKind.Keyword || toObject(item.source)["name"] === "snippets") return 2 << 20;
+					const wordLines = wordRanges[item.word];
+					if (isFalsyOrEmpty(wordLines)) return 2 << 20;
+					const idx = binarySearch(wordLines, Range.create(anchor, anchor), compareRangesUsingStarts);
+					const bestWordRange = idx >= 0 ? wordLines[idx] : wordLines[Math.max(0, ~idx - 1)];
+					let blockDistance = ranges.length;
+					for (const range of ranges) {
+						if (!rangeInRange(bestWordRange, range)) break;
+						blockDistance -= 1;
+					}
+					return blockDistance;
+				}
+			}();
+		}
+	};
+}));
+//#endregion
+//#region src/completion/complete.ts
+function sortItems(emptyInput, defaultSortMethod, a, b) {
+	let sa = a.sortText;
+	let sb = b.sortText;
+	if (a.score !== b.score) return b.score - a.score;
+	if (a.priority !== b.priority) return b.priority - a.priority;
+	if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1;
+	if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus;
+	if (emptyInput) return b.character - a.character;
+	switch (defaultSortMethod) {
+		case "none": return 0;
+		case "alphabetical": return a.filterText.localeCompare(b.filterText);
+		default: return a.filterText.length - b.filterText.length;
+	}
+}
+var logger$30, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
+var init_complete = __esmMin((() => {
+	init_main$2();
+	init_logger$2();
+	init_util$7();
+	init_array();
+	init_filter$1();
+	init_is();
+	init_numbers();
+	init_protocol();
+	init_string$1();
+	init_workspace$1();
+	init_source_language();
+	init_util$3();
+	init_wordDistance();
+	logger$30 = createLogger$1("completion-complete");
+	MAX_DISTANCE = 2 << 20;
+	MIN_TIMEOUT = 50;
+	MAX_TIMEOUT = 15e3;
+	MAX_TRIGGER_WAIT = 200;
+	WORD_SOURCES = /* @__PURE__ */ new Set([
+		"buffer",
+		"around",
+		"word"
+	]);
+	Complete = class {
+		option;
+		document;
+		config;
+		sources;
+		results = /* @__PURE__ */ new Map();
+		_input = "";
+		_completing = false;
+		timer;
+		names = [];
+		asciiMatch;
+		timeout;
+		cid = 0;
+		minCharacter = Number.MAX_SAFE_INTEGER;
+		inputStart;
+		completingSources = /* @__PURE__ */ new Set();
+		_onDidRefresh = new import_main$1.Emitter();
+		wordDistance;
+		tokenSources = /* @__PURE__ */ new Set();
+		tokensInfo = /* @__PURE__ */ new WeakMap();
+		itemsMap = /* @__PURE__ */ new WeakMap();
+		onDidRefresh = this._onDidRefresh.event;
+		constructor(option, document, config, sources) {
+			this.option = option;
+			this.document = document;
+			this.config = config;
+			this.sources = sources;
+			this.inputStart = characterIndex(option.line, option.col);
+			this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT);
+			sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99));
+			this.names = sources.map((o) => o.name);
+			this.asciiMatch = config.asciiMatch && useAscii(option.input);
+		}
+		get nvim() {
+			return workspace_default.nvim;
+		}
+		getTrigger(character) {
+			let { linenr, col } = this.option;
+			let line = this.document.getline(linenr - 1);
+			return (line.slice(0, characterIndex(line, col)) + this.input).slice(character);
+		}
+		fireRefresh(waitTime) {
+			clearTimeout(this.timer);
+			if (!waitTime) process.nextTick(() => {
+				this._onDidRefresh.fire();
+			});
+			else this.timer = setTimeout(() => {
+				this._onDidRefresh.fire();
+			}, waitTime);
+		}
+		get totalLength() {
+			let len = 0;
+			for (let result of this.results.values()) len += result.items.length;
+			return len;
+		}
+		resolveItem(item) {
+			if (!item) return void 0;
+			return {
+				source: item.source,
+				item: this.itemsMap.get(item)
+			};
+		}
+		get isCompleting() {
+			return this._completing;
+		}
+		get input() {
+			return this._input;
+		}
+		get isEmpty() {
+			return this.results.size === 0;
+		}
+		hasSource(source) {
+			return this.sources.includes(source);
+		}
+		getIncompleteSources() {
+			return this.sources.filter((s) => {
+				let res = this.results.get(s.name);
+				return res && res.isIncomplete === true;
+			});
+		}
+		getBackspaceSources() {
+			let sources = this.sources.filter((s) => this.results.has(s.name));
+			return sources.some((s) => this.results.get(s.name)?.isIncomplete === true || s instanceof LanguageSource) ? sources : [];
+		}
+		async doComplete() {
+			let tokenSource = this.createTokenSource(false);
+			let token = tokenSource.token;
+			let res = await Promise.all([
+				this.nvim.call("coc#util#synname", []),
+				this.nvim.call("coc#_suggest_variables", []),
+				this.document.patchChange()
+			]);
+			if (token.isCancellationRequested) return;
+			this.option.synname = res[0];
+			let variables = res[1];
+			if (variables.disable) {
+				logger$30.warn("suggest cancelled by b:coc_suggest_disable");
+				return true;
+			}
+			if (!isFalsyOrEmpty(variables.disabled_sources)) {
+				this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
+				if (this.sources.length === 0) {
+					logger$30.warn("suggest cancelled by b:coc_disabled_sources");
+					return true;
+				}
+			}
+			if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
+				logger$30.warn("suggest cancelled by b:coc_suggest_blacklist");
+				return true;
+			}
+			WordDistance.create(this.config.localityBonus, this.option, token).then((instance) => {
+				this.wordDistance = instance;
+			});
+			await waitWithToken(clamp(this.config.triggerCompletionWait, 0, MAX_TRIGGER_WAIT), tokenSource.token);
+			await this.completeSources(this.sources, tokenSource, this.cid);
+		}
+		async completeSources(sources, tokenSource, cid) {
+			const token = tokenSource.token;
+			if (token.isCancellationRequested) return;
+			this._completing = true;
+			const remains = new Set(sources.map((s) => s.name));
+			let timer;
+			let disposable;
+			let tp = new Promise((resolve) => {
+				disposable = token.onCancellationRequested(() => {
+					clearTimeout(timer);
+					resolve();
+				});
+				timer = setTimeout(() => {
+					let names = Array.from(remains);
+					disposable.dispose();
+					tokenSource.cancel();
+					logger$30.warn(`Completion timeout after ${this.timeout}ms`, names);
+					this.nvim.setVar(`coc_timeout_sources`, names, true);
+					resolve();
+				}, this.timeout);
+			});
+			const range = this.getDefaultRange();
+			let promises = sources.map((s) => this.completeSource(s, range, token).then((added) => {
+				remains.delete(s.name);
+				if (token.isCancellationRequested) return;
+				if (this.completingSources.size === 0) this.fireRefresh(0);
+				else if (added) this.fireRefresh(16);
+			}));
+			await Promise.race([tp, Promise.allSettled(promises)]);
+			this.tokenSources.delete(tokenSource);
+			disposable.dispose();
+			clearTimeout(timer);
+			if (cid === this.cid) this._completing = false;
+		}
+		async completeSource(source, range, token) {
+			let opt = Object.assign({}, this.option);
+			let { asciiMatch } = this;
+			const insertMode = this.config.insertMode;
+			const sourceName = source.name;
+			if (opt.triggerForInComplete && this.results.get(sourceName)?.isIncomplete !== true) opt.triggerForInComplete = false;
+			let added = false;
+			this.completingSources.add(sourceName);
+			try {
+				if (func(source.shouldComplete)) {
+					if (!await Promise.resolve(source.shouldComplete(opt)) || token.isCancellationRequested) return;
+				}
+				const start = Date.now();
+				const map = this.itemsMap;
+				await new Promise((resolve, reject) => {
+					Promise.resolve(source.doComplete(opt, token)).then((result) => {
+						if (token.isCancellationRequested) {
+							resolve(void 0);
+							return;
+						}
+						let len = result ? result.items.length : 0;
+						logger$30.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
+						if (len > 0) {
+							if (number(result.startcol)) {
+								let line = opt.linenr - 1;
+								range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character);
+							}
+							const priority = getPriority(source, this.config.languageSourcePriority);
+							const option = {
+								source,
+								insertMode,
+								priority,
+								asciiMatch,
+								itemDefaults: result.itemDefaults,
+								range
+							};
+							const converter = new Converter(this.inputStart, option, opt);
+							const items = result.items.reduce((items, item) => {
+								let completeItem = converter.convertToDurationItem(item);
+								if (!completeItem) {
+									logger$30.error(`Unexpected completion item from ${sourceName}:`, item);
+									return items;
+								}
+								map.set(completeItem, item);
+								items.push(completeItem);
+								return items;
+							}, []);
+							this.minCharacter = Math.min(this.minCharacter, converter.minCharacter);
+							this.results.set(sourceName, {
+								items,
+								isIncomplete: result.isIncomplete === true
+							});
+							added = true;
+						} else this.results.delete(sourceName);
+						resolve();
+					}, (err) => {
+						reject(err);
+					});
+				});
+			} catch (err) {
+				logger$30.error("Complete error:", source.name, err);
+			}
+			this.completingSources.delete(sourceName);
+			return added;
+		}
+		async completeInComplete(resumeInput, sources = this.getIncompleteSources()) {
+			let { document } = this;
+			this.cancelInComplete();
+			let tokenSource = this.createTokenSource(true);
+			await document.patchChange();
+			let { input, colnr, linenr, followWord, position } = this.option;
+			Object.assign(this.option, {
+				word: resumeInput + followWord,
+				input: resumeInput,
+				line: document.getline(linenr - 1),
+				position: {
+					line: position.line,
+					character: position.character + resumeInput.length - input.length
+				},
+				colnr: colnr + (resumeInput.length - input.length),
+				triggerCharacter: void 0,
+				triggerForInComplete: true
+			});
+			this.cid++;
+			await this.completeSources(sources, tokenSource, this.cid);
+		}
+		filterItems(input) {
+			let { results, names, option, inputStart } = this;
+			this._input = input;
+			let len = input.length;
+			let { maxItemCount, defaultSortMethod, removeDuplicateItems, removeCurrentWord } = this.config;
+			let arr = [];
+			let words = /* @__PURE__ */ new Set();
+			const emptyInput = len == 0;
+			const lowInput = input.toLowerCase();
+			const scoreFn = !this.config.filterGraceful || this.totalLength > 2e3 ? fuzzyScore : fuzzyScoreGracefulAggressive;
+			const scoreOption = {
+				boostFullMatch: true,
+				firstMatchCanBeWeak: false
+			};
+			const anchor = Position.create(option.linenr - 1, inputStart);
+			for (let name of names) {
+				let result = results.get(name);
+				if (!result) continue;
+				let isWord = WORD_SOURCES.has(name);
+				let items = result.items;
+				for (let idx = 0; idx < items.length; idx++) {
+					let item = items[idx];
+					let { word, filterText, dup } = item;
+					if (dup !== true && words.has(word)) continue;
+					if (removeCurrentWord && isWord && word === input) continue;
+					if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue;
+					let fuzzyResult;
+					if (!emptyInput) {
+						scoreOption.firstMatchCanBeWeak = item.delta === 0 && item.character !== inputStart;
+						if (item.delta > 0) {
+							let prev = filterText.slice(0, item.delta);
+							fuzzyResult = scoreFn(prev + input, prev.toLowerCase() + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
+						} else fuzzyResult = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
+						if (fuzzyResult == null) continue;
+						item.score = fuzzyResult[0];
+						item.positions = fuzzyResult;
+						if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item);
+					} else if (item.character < inputStart) {
+						let trigger = option.line.slice(item.character, inputStart);
+						scoreOption.firstMatchCanBeWeak = true;
+						fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, filterText.toLowerCase(), 0, scoreOption);
+						item.score = fuzzyResult[0];
+						item.positions = fuzzyResult;
+					} else {
+						item.score = 0;
+						item.positions = void 0;
+					}
+					words.add(word);
+					arr.push(item);
+				}
+			}
+			arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod));
+			return this.limitCompleteItems(arr.slice(0, maxItemCount));
+		}
+		async filterResults(input, backspace = false) {
+			let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources();
+			if (input !== this.option.input && sources.length > 0) {
+				this.fireRefresh(30);
+				this.completeInComplete(input, sources);
+				return;
+			}
+			clearTimeout(this.timer);
+			return this.filterItems(input);
+		}
+		limitCompleteItems(items) {
+			let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config;
+			if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items;
+			let counts = /* @__PURE__ */ new Map();
+			return items.filter((item) => {
+				let { priority, source } = item;
+				let isLow = priority < 90;
+				let curr = counts.get(source) || 0;
+				if (lowPrioritySourceLimit && isLow && curr == lowPrioritySourceLimit || highPrioritySourceLimit && !isLow && curr == highPrioritySourceLimit) return false;
+				counts.set(source, curr + 1);
+				return true;
+			});
+		}
+		getDefaultRange() {
+			let { insertMode } = this.config;
+			let { linenr, followWord, position } = this.option;
+			let line = linenr - 1;
+			let end = position.character + (insertMode == "replace" ? followWord.length : 0);
+			return Range.create(line, this.inputStart, line, end);
+		}
+		createTokenSource(isIncomplete) {
+			let tokenSource = new import_main$1.CancellationTokenSource();
+			this.tokenSources.add(tokenSource);
+			tokenSource.token.onCancellationRequested(() => {
+				this.tokenSources.delete(tokenSource);
+			});
+			this.tokensInfo.set(tokenSource, isIncomplete);
+			return tokenSource;
+		}
+		cancelInComplete() {
+			let { tokenSources, tokensInfo } = this;
+			for (let tokenSource of Array.from(tokenSources)) if (tokensInfo.get(tokenSource) === true) tokenSource.cancel();
+		}
+		cancel() {
+			let { tokenSources, timer } = this;
+			clearTimeout(timer);
+			for (let tokenSource of Array.from(tokenSources)) tokenSource.cancel();
+			tokenSources.clear();
+			this._completing = false;
+		}
+		dispose() {
+			this.cancel();
+			this.results.clear();
+			this._onDidRefresh.dispose();
+		}
+	};
+}));
+//#endregion
+//#region src/completion/floating.ts
+var logger$29, RESOLVE_TIMEOUT, Floating;
+var init_floating = __esmMin((() => {
+	init_logger$2();
+	init_markdown();
+	init_util$7();
+	init_errors();
+	init_is();
+	init_protocol();
+	init_workspace$1();
+	init_util$3();
+	logger$29 = createLogger$1("completion-floating");
+	RESOLVE_TIMEOUT = getConditionValue(500, 50);
+	Floating = class {
+		config;
+		resolveTokenSource;
+		constructor(config) {
+			this.config = config;
+		}
+		async resolveItem(source, item, opt, showDocs, detailRendered = false) {
+			this.cancel();
+			if (func(source.onCompleteResolve)) try {
+				await this.requestWithToken((token) => {
+					return Promise.resolve(source.onCompleteResolve(item, opt, token));
+				});
+			} catch (e) {
+				if (isCancellationError(e)) return;
+				logger$29.error(`Error on resolve complete item from ${source.name}:`, item, e);
+			}
+			if (showDocs) this.show(getDocumentations(item, opt.filetype, detailRendered));
+		}
+		show(docs) {
+			let config = this.config.floatConfig;
+			docs = docs.filter((o) => o.content.trim().length > 0);
+			if (docs.length === 0) this.close();
+			else {
+				const markdownPreference = workspace_default.configurations.markdownPreference;
+				let { lines, codes, highlights } = parseDocuments(docs, markdownPreference);
+				let opts = {
+					codes,
+					highlights,
+					highlight: config.highlight ?? "CocFloating",
+					maxWidth: config.maxWidth || 80,
+					rounded: config.rounded ? 1 : 0,
+					focusable: config.focusable === true ? 1 : 0
+				};
+				if (string(config.title)) opts.title = config.title;
+				if (config.shadow) opts.shadow = 1;
+				if (config.border) opts.border = [
+					1,
+					1,
+					1,
+					1
+				];
+				if (config.borderhighlight) opts.borderhighlight = config.borderhighlight;
+				if (typeof config.winblend === "number") opts.winblend = config.winblend;
+				let { nvim } = workspace_default;
+				nvim.call("coc#dialog#create_pum_float", [lines, opts], true);
+				nvim.redrawVim();
+			}
+		}
+		close() {
+			workspace_default.nvim.call("coc#pum#close_detail", [], true);
+			workspace_default.nvim.redrawVim();
+		}
+		cancel() {
+			if (this.resolveTokenSource) {
+				this.resolveTokenSource.cancel();
+				this.resolveTokenSource = void 0;
+			}
+		}
+		requestWithToken(fn) {
+			let tokenSource = this.resolveTokenSource = new import_main$1.CancellationTokenSource();
+			return new Promise((resolve, reject) => {
+				let called = false;
+				let onFinish = (err) => {
+					if (called) return;
+					called = true;
+					disposable.dispose();
+					clearTimeout(timer);
+					if (this.resolveTokenSource === tokenSource) this.resolveTokenSource = void 0;
+					if (err) reject(err);
+					else resolve();
+				};
+				let timer = setTimeout(() => {
+					tokenSource.cancel();
+				}, RESOLVE_TIMEOUT);
+				let disposable = tokenSource.token.onCancellationRequested(() => {
+					onFinish(new CancellationError());
+				});
+				fn(tokenSource.token).then(() => {
+					onFinish();
+				}, (e) => {
+					onFinish(e);
+				});
+			});
+		}
+	};
+}));
+//#endregion
+//#region src/completion/pum.ts
+/**
+* positions is FuzzyScore
+*/
+function positionHighlights(hls, label, positions, pre, line, max) {
+	for (let span of matchSpansReverse(label, positions, 2, max)) hls.push({
+		hlGroup: "CocPumSearch",
+		lnum: line,
+		colStart: pre + span[0],
+		colEnd: pre + span[1]
+	});
+}
+/**
+* Exclude part with invalid characters.
+*/
+function getInsertWord(word, codes, start) {
+	if (codes.length === 0) return word;
+	for (let i = start; i < word.length; i++) if (codes.includes(word.charCodeAt(i))) return word.slice(0, i);
+	return word;
+}
+/**
+* Append previous text to word when necessary
+*/
+function prefixWord(word, character, line, minCharacter) {
+	return minCharacter < character ? line.slice(minCharacter, character) + word : word;
+}
+var PopupMenu;
+var init_pum = __esmMin((() => {
+	init_fuzzyMatch();
+	init_array();
+	init_filter$1();
+	init_is();
+	init_numbers();
+	init_string$1();
+	init_workspace$1();
+	init_util$3();
+	PopupMenu = class {
+		config;
+		mruLoader;
+		_search = "";
+		_pumConfig;
+		constructor(config, mruLoader) {
+			this.config = config;
+			this.mruLoader = mruLoader;
+		}
+		get nvim() {
+			return workspace_default.nvim;
+		}
+		get search() {
+			return this._search;
+		}
+		reset() {
+			this._search = "";
+			this._pumConfig = void 0;
+		}
+		get pumConfig() {
+			if (this._pumConfig) return this._pumConfig;
+			let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config;
+			if (!pumFloatConfig) pumFloatConfig = floatConfig;
+			let obj = {};
+			if (pumFloatConfig.border) {
+				obj.border = [
+					1,
+					1,
+					1,
+					1
+				];
+				obj.rounded = pumFloatConfig.rounded ? 1 : 0;
+				obj.borderhighlight = pumFloatConfig.borderhighlight ?? "CocFloatBorder";
+			}
+			if (string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight;
+			if (number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend;
+			if (string(pumFloatConfig.title)) obj.title = pumFloatConfig.title;
+			obj.shadow = pumFloatConfig.shadow === true;
+			obj.reverse = reversePumAboveCursor === true;
+			this._pumConfig = obj;
+			return obj;
+		}
+		stringWidth(text, cache = false) {
+			return workspace_default.getDisplayWidth(text, cache);
+		}
+		show(items, search, option) {
+			this._search = search;
+			let { noselect, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config;
+			const invalidInsertCodes = invalidInsertCharacters.map((ch) => ch.charCodeAt(0));
+			let selectedIndex = enablePreselect ? items.findIndex((o) => o.preselect) : -1;
+			let maxMru = -1;
+			let abbrWidth = 0;
+			let menuWidth = 0;
+			let kindWidth = 0;
+			let shortcutWidth = 0;
+			let checkMru = selectedIndex == -1 && !noselect && selection !== "first";
+			let labels = [];
+			let minCharacter = characterIndex(option.line, option.col);
+			for (let i = 0; i < items.length; i++) {
+				let item = items[i];
+				if (checkMru) {
+					let n = this.mruLoader.getScore(search, item, selection);
+					if (n > maxMru) {
+						maxMru = n;
+						selectedIndex = i;
+					}
+				}
+				if (number(item.character) && item.character < minCharacter) minCharacter = item.character;
+				let label = this.getLabel(item);
+				labels.push(label);
+				abbrWidth = Math.max(this.stringWidth(label.text, true), abbrWidth);
+				if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText), true), kindWidth);
+				if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu, true), menuWidth);
+				if (item.shortcut) shortcutWidth = Math.max(this.stringWidth(item.shortcut, true) + 2, shortcutWidth);
+			}
+			if (selectedIndex !== -1 && search.length > 0) {
+				let item = items[selectedIndex];
+				if (!item.word.startsWith(search) && !item.filterText.startsWith(search)) selectedIndex = -1;
+			}
+			if (!noselect) selectedIndex = selectedIndex == -1 ? 0 : selectedIndex;
+			else {
+				if (selectedIndex > 0) {
+					let [item] = items.splice(selectedIndex, 1);
+					items.unshift(item);
+					let [label] = labels.splice(selectedIndex, 1);
+					labels.unshift(label);
+				}
+				selectedIndex = -1;
+			}
+			let opt = {
+				input: search,
+				index: selectedIndex,
+				bufnr: option.bufnr,
+				line: option.linenr,
+				col: option.col,
+				startcol: byteIndex(option.line, minCharacter),
+				virtualText,
+				words: items.map((o) => {
+					let character = o.character;
+					let start = Math.max(1, option.position.character - character + 1);
+					return prefixWord(getInsertWord(o.word, invalidInsertCodes, start), character, option.line, minCharacter);
+				})
+			};
+			let pumConfig = this.pumConfig;
+			let lines = [];
+			let highlights = [];
+			let width = 0;
+			let buildConfig = {
+				border: !!pumConfig.border,
+				menuWidth,
+				abbrWidth,
+				kindWidth,
+				shortcutWidth
+			};
+			this.adjustAbbrWidth(buildConfig);
+			let lowInput = search.toLowerCase();
+			for (let index = 0; index < items.length; index++) {
+				let [displayWidth, text] = this.buildItem(search, lowInput, items[index], labels[index], highlights, index, buildConfig);
+				width = Math.max(width, displayWidth);
+				lines.push(text);
+			}
+			let config = Object.assign({
+				width,
+				highlights
+			}, pumConfig);
+			this.nvim.call("coc#pum#create", [
+				lines,
+				opt,
+				config
+			], true);
+			this.nvim.redrawVim();
+		}
+		getLabel(item) {
+			let { labelDetails, detail } = item;
+			let { snippetIndicator, labelMaxLength, detailField, detailMaxLength } = this.config;
+			let label = item.abbr;
+			let hls = [];
+			if (item.isSnippet && !label.endsWith(snippetIndicator)) label = label + snippetIndicator;
+			if (detailField === "abbr" && detail && !labelDetails && detail.length < detailMaxLength) labelDetails = { detail: " " + detail.replace(/\r?\n\s*/g, " ") };
+			if (labelDetails) {
+				let added = (labelDetails.detail ?? "") + (labelDetails.description ? ` ${labelDetails.description}` : "");
+				if (label.length + added.length <= labelMaxLength) {
+					let start = byteLength(label);
+					hls.push({
+						start,
+						end: start + byteLength(added),
+						hlGroup: "CocPumDetail"
+					});
+					label = label + added;
+					item.detailRendered = true;
+				}
+			}
+			if (label.length > labelMaxLength) label = label.slice(0, labelMaxLength - 1) + ".";
+			return {
+				text: label,
+				highlights: hls
+			};
+		}
+		adjustAbbrWidth(config) {
+			let { formatItems } = this.config;
+			let pumwidth = toNumber(workspace_default.env.pumwidth, 15);
+			let len = 0;
+			for (const item of formatItems) if (item == "abbr") len += config.abbrWidth + 1;
+			else if (item == "menu" && config.menuWidth) len += config.menuWidth + 1;
+			else if (item == "kind" && config.kindWidth) len += config.kindWidth + 1;
+			else if (item == "shortcut" && config.shortcutWidth) len += config.shortcutWidth + 1;
+			if (len < pumwidth) config.abbrWidth = config.abbrWidth + pumwidth - len;
+		}
+		buildItem(input, lowInput, item, label, hls, index, config) {
+			let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config;
+			let text = config.border ? "" : " ";
+			let len = byteLength(text);
+			let displayWidth = text.length;
+			let append = (str, width) => {
+				let s = this.fillWidth(str, width);
+				displayWidth += width;
+				len += byteLength(s);
+				text += s;
+			};
+			for (const name of formatItems) switch (name) {
+				case "abbr": {
+					if (!isFalsyOrEmpty(item.positions)) {
+						let pre = highlightOffset(len, item);
+						if (pre != -1) positionHighlights(hls, item.filterText, item.positions, pre, index, labelMaxLength);
+						else {
+							let score = anyScore(input, lowInput, 0, item.abbr, item.abbr.toLowerCase(), 0);
+							positionHighlights(hls, item.abbr, score, len, index, labelMaxLength);
+						}
+					}
+					let abbr = label.text;
+					let start = len;
+					append(abbr, config.abbrWidth + 1);
+					label.highlights.forEach((hl) => {
+						hls.push({
+							hlGroup: hl.hlGroup,
+							lnum: index,
+							colStart: start + hl.start,
+							colEnd: start + hl.end
+						});
+					});
+					if (item.deprecated) hls.push({
+						hlGroup: "CocPumDeprecated",
+						lnum: index,
+						colStart: start,
+						colEnd: len - 1
+					});
+					break;
+				}
+				case "menu":
+					if (config.menuWidth > 0) {
+						let colStart = len;
+						append(toText(item.menu), config.menuWidth + 1);
+						if (item.menu) hls.push({
+							hlGroup: "CocPumMenu",
+							lnum: index,
+							colStart,
+							colEnd: colStart + byteLength(item.menu)
+						});
+					}
+					break;
+				case "kind":
+					if (config.kindWidth > 0) {
+						let { kind } = item;
+						let kindText = getKindText(kind, kindMap, defaultKindText);
+						let colStart = len;
+						append(toText(kindText), config.kindWidth + 1);
+						if (kindText) hls.push({
+							hlGroup: getKindHighlight(kind),
+							lnum: index,
+							colStart,
+							colEnd: colStart + byteLength(kindText)
+						});
+					}
+					break;
+				case "shortcut":
+					if (config.shortcutWidth > 0) {
+						let colStart = len;
+						let shortcut = item.shortcut;
+						append(shortcut ? `[${shortcut}]` : "", config.shortcutWidth + 1);
+						if (shortcut) hls.push({
+							hlGroup: "CocPumShortcut",
+							lnum: index,
+							colStart,
+							colEnd: colStart + byteLength(shortcut) + 2
+						});
+					}
+					break;
+			}
+			return [displayWidth, text];
+		}
+		fillWidth(text, width) {
+			let n = width - this.stringWidth(text);
+			return text + " ".repeat(Math.max(n, 0));
+		}
+	};
+}));
+//#endregion
 //#region node_modules/mimic-response/index.js
 function mimicResponse(fromStream, toStream) {
 	if (toStream._readableState.autoDestroy) throw new Error("The second stream must have the `autoDestroy` option set to `false`");
@@ -95597,7 +107854,7 @@ var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/supports-color/index.js
 var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const os$2 = require("os");
+	const os$1 = require("os");
 	const tty$1 = require("tty");
 	const hasFlag = require_has_flag();
 	const { env } = process;
@@ -95624,7 +107881,7 @@ var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 		const min = forceColor || 0;
 		if (env.TERM === "dumb") return min;
 		if (process.platform === "win32") {
-			const osRelease = os$2.release().split(".");
+			const osRelease = os$1.release().split(".");
 			if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) return Number(osRelease[2]) >= 14931 ? 3 : 2;
 			return 1;
 		}
@@ -95669,7 +107926,7 @@ var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	* Module dependencies.
 	*/
 	const tty = require("tty");
-	const util$7 = require("util");
+	const util$5 = require("util");
 	/**
 	* This is the Node.js implementation of `debug()`.
 	*/
@@ -95679,7 +107936,7 @@ var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	exports.save = save;
 	exports.load = load;
 	exports.useColors = useColors;
-	exports.destroy = util$7.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+	exports.destroy = util$5.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
 	/**
 	* Colors.
 	*/
@@ -95820,7 +108077,7 @@ var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	* Invokes `util.formatWithOptions()` with the specified arguments and writes to stderr.
 	*/
 	function log(...args) {
-		return process.stderr.write(util$7.formatWithOptions(exports.inspectOpts, ...args) + "\n");
+		return process.stderr.write(util$5.formatWithOptions(exports.inspectOpts, ...args) + "\n");
 	}
 	/**
 	* Save `namespaces`.
@@ -95859,14 +108116,14 @@ var require_node = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	*/
 	formatters.o = function(v) {
 		this.inspectOpts.colors = this.useColors;
-		return util$7.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
+		return util$5.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
 	};
 	/**
 	* Map %O to `util.inspect()`, allowing multiple lines if needed.
 	*/
 	formatters.O = function(v) {
 		this.inspectOpts.colors = this.useColors;
-		return util$7.inspect(v, this.inspectOpts);
+		return util$5.inspect(v, this.inspectOpts);
 	};
 }));
 //#endregion
@@ -96833,7 +109090,7 @@ function getAgent(endpoint, options) {
 			return null;
 		}
 		let rejectUnauthorized = typeof options.proxyStrictSSL === "boolean" ? options.proxyStrictSSL : true;
-		logger$43.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
+		logger$28.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
 		const agentOptions = { rejectUnauthorized };
 		return endpoint.protocol === "http:" ? new HttpProxyAgent(proxyURL, agentOptions) : new HttpsProxyAgent(proxyURL, agentOptions);
 	}
@@ -96944,14 +109201,14 @@ function fetch(urlInput, options = {}, token) {
 	let url = toURL(urlInput);
 	let opts = resolveRequestOptions(url, options);
 	return request(url, options.data, opts, token).catch((err) => {
-		logger$43.error(`Fetch error for ${url}:`, opts, err);
+		logger$28.error(`Fetch error for ${url}:`, opts, err);
 		if (opts.agent && opts.agent.proxy) {
 			let { proxy } = opts.agent;
 			throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`);
 		} else throw err;
 	});
 }
-var import_follow_redirects, logger$43, timeout;
+var import_follow_redirects, logger$28, timeout;
 var init_fetch = __esmMin((() => {
 	init_decompress_response();
 	import_follow_redirects = require_follow_redirects();
@@ -96964,7 +109221,7 @@ var init_fetch = __esmMin((() => {
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$43 = createLogger$1("model-fetch");
+	logger$28 = createLogger$1("model-fetch");
 	timeout = getConditionValue(500, 50);
 }));
 //#endregion
@@ -101797,11 +114054,11 @@ var require_binary = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/unzip-stream/lib/matcher-stream.js
 var require_matcher_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Transform$3 = require("stream").Transform;
-	var util$6 = require("util");
+	var Transform$2 = require("stream").Transform;
+	var util$4 = require("util");
 	function MatcherStream(patternDesc, matchFn) {
 		if (!(this instanceof MatcherStream)) return new MatcherStream();
-		Transform$3.call(this);
+		Transform$2.call(this);
 		var p = typeof patternDesc === "object" ? patternDesc.pattern : patternDesc;
 		this.pattern = Buffer.isBuffer(p) ? p : Buffer.from(p);
 		this.requiredLength = this.pattern.length;
@@ -101810,7 +114067,7 @@ var require_matcher_stream = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 		this.bytesSoFar = 0;
 		this.matchFn = matchFn;
 	}
-	util$6.inherits(MatcherStream, Transform$3);
+	util$4.inherits(MatcherStream, Transform$2);
 	MatcherStream.prototype.checkDataChunk = function(ignoreMatchZero) {
 		if (!(this.data.length >= this.requiredLength)) return;
 		var matchIndex = this.data.indexOf(this.pattern, ignoreMatchZero ? 1 : 0);
@@ -101887,7 +114144,7 @@ var require_entry = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var require_unzip_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var binary = require_binary();
 	var stream = require("stream");
-	var util$5 = require("util");
+	var util$3 = require("util");
 	var zlib = require("zlib");
 	var MatcherStream = require_matcher_stream();
 	var Entry = require_entry();
@@ -101926,7 +114183,7 @@ var require_unzip_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		this.parsedEntity = null;
 		this.outStreamInfo = {};
 	}
-	util$5.inherits(UnzipStream, stream.Transform);
+	util$3.inherits(UnzipStream, stream.Transform);
 	UnzipStream.prototype.processDataChunk = function(chunk) {
 		var requiredLength;
 		switch (this.state) {
@@ -102396,12 +114653,12 @@ var require_unzip_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/unzip-stream/lib/parser-stream.js
 var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Transform$2 = require("stream").Transform;
-	var util$4 = require("util");
+	var Transform$1 = require("stream").Transform;
+	var util$2 = require("util");
 	var UnzipStream = require_unzip_stream();
 	function ParserStream(opts) {
 		if (!(this instanceof ParserStream)) return new ParserStream(opts);
-		Transform$2.call(this, { readableObjectMode: true });
+		Transform$1.call(this, { readableObjectMode: true });
 		this.opts = opts || {};
 		this.unzipStream = new UnzipStream(this.opts);
 		var self = this;
@@ -102412,7 +114669,7 @@ var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 			self.emit("error", error);
 		});
 	}
-	util$4.inherits(ParserStream, Transform$2);
+	util$2.inherits(ParserStream, Transform$1);
 	ParserStream.prototype._transform = function(chunk, encoding, cb) {
 		this.unzipStream.write(chunk, encoding, cb);
 	};
@@ -102426,12 +114683,12 @@ var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 		});
 	};
 	ParserStream.prototype.on = function(eventName, fn) {
-		if (eventName === "entry") return Transform$2.prototype.on.call(this, "data", fn);
-		return Transform$2.prototype.on.call(this, eventName, fn);
+		if (eventName === "entry") return Transform$1.prototype.on.call(this, "data", fn);
+		return Transform$1.prototype.on.call(this, eventName, fn);
 	};
 	ParserStream.prototype.drainAll = function() {
 		this.unzipStream.drainAll();
-		return this.pipe(new Transform$2({
+		return this.pipe(new Transform$1({
 			objectMode: true,
 			transform: function(d, e, cb) {
 				cb();
@@ -102518,13 +114775,13 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var fs$1 = require("fs");
 	var path$1 = require("path");
-	var util$3 = require("util");
+	var util$1 = require("util");
 	var mkdirp = require_mkdirp();
-	var Transform$1 = require("stream").Transform;
+	var Transform = require("stream").Transform;
 	var UnzipStream = require_unzip_stream();
 	function Extract(opts) {
 		if (!(this instanceof Extract)) return new Extract(opts);
-		Transform$1.call(this);
+		Transform.call(this);
 		this.opts = opts || {};
 		this.unzipStream = new UnzipStream(this.opts);
 		this.unfinishedEntries = 0;
@@ -102536,7 +114793,7 @@ var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			self.emit("error", error);
 		});
 	}
-	util$3.inherits(Extract, Transform$1);
+	util$1.inherits(Extract, Transform);
 	Extract.prototype._transform = function(chunk, encoding, cb) {
 		this.unzipStream.write(chunk, encoding, cb);
 	};
@@ -102664,13 +114921,13 @@ function download(urlInput, options, token, obj = {}) {
 					if (hasTotal) {
 						let percent = (cur / total * 100).toFixed(1);
 						if (typeof onProgress === "function") onProgress(percent);
-						else logger$42.info(`Download ${url} progress ${percent}%`);
+						else logger$27.info(`Download ${url} progress ${percent}%`);
 					}
 				});
 				res.on("end", () => {
 					clearTimeout(timer);
 					timer = void 0;
-					logger$42.info("Download completed:", url);
+					logger$27.info("Download completed:", url);
 				});
 				let stream;
 				if (extract === "untar") {
@@ -102693,7 +114950,7 @@ function download(urlInput, options, token, obj = {}) {
 							return;
 						}
 					}
-					logger$42.info(`Downloaded ${url} => ${dest}`);
+					logger$27.info(`Downloaded ${url} => ${dest}`);
 					setTimeout(() => {
 						resolve(dest);
 					}, 100);
@@ -102722,12 +114979,12 @@ function download(urlInput, options, token, obj = {}) {
 		req.end();
 	});
 }
-var logger$42;
+var logger$27;
 var init_download = __esmMin((() => {
 	init_logger$2();
 	init_node();
 	init_fetch();
-	logger$42 = createLogger$1("model-download");
+	logger$27 = createLogger$1("model-download");
 }));
 //#endregion
 //#region src/extension/installer.ts
@@ -102744,7 +115001,7 @@ function registryUrl(home = os$5.homedir()) {
 		}
 		if (uri) res = new URL(uri);
 	} catch (e) {
-		logger$41.debug("Error on parse .npmrc:", e);
+		logger$26.debug("Error on parse .npmrc:", e);
 	}
 	return res ?? new URL("https://registry.npmjs.org");
 }
@@ -102778,7 +115035,7 @@ function getExtensionDependencies(obj) {
 	if (obj.extensionDependencies?.length > 0) return [...new Set(obj.extensionDependencies)];
 	return [];
 }
-var logger$41, local_dependencies, Installer;
+var logger$26, local_dependencies, Installer;
 var init_installer = __esmMin((() => {
 	init_logger$2();
 	init_download();
@@ -102787,7 +115044,7 @@ var init_installer = __esmMin((() => {
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$41 = createLogger$1("extension-installer");
+	logger$26 = createLogger$1("extension-installer");
 	local_dependencies = [
 		"coc.nvim",
 		"esbuild",
@@ -102870,7 +115127,7 @@ var init_installer = __esmMin((() => {
 		async install() {
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
-			logger$41.info(`Fetched info of ${this.def}`, info);
+			logger$26.info(`Fetched info of ${this.def}`, info);
 			let { name, version } = info;
 			let required = toText(info["engines.coc"]).replace(/^\^/, ">=");
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
@@ -103036,7 +115293,10 @@ var init_memos = __esmMin((() => {
 		filepath;
 		constructor(filepath) {
 			this.filepath = filepath;
-			if (!fs$5.existsSync(filepath)) fs$5.writeFileSync(filepath, "{}", "utf8");
+			if (!fs$5.existsSync(filepath)) {
+				fs$5.mkdirSync(path$5.dirname(filepath), { recursive: true });
+				fs$5.writeFileSync(filepath, "{}", "utf8");
+			}
 		}
 		merge(filepath) {
 			if (!fs$5.existsSync(filepath)) return;
@@ -103074,14 +115334,14 @@ var init_memos = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/commandTask.ts
-var spawn$1, logger$40, CommandTask;
+var spawn$1, logger$25, CommandTask;
 var init_commandTask = __esmMin((() => {
 	init_logger$2();
 	init_util$7();
 	init_node();
 	init_workspace$1();
 	spawn$1 = child_process$1.spawn;
-	logger$40 = createLogger$1("list-commandTask");
+	logger$25 = createLogger$1("list-commandTask");
 	CommandTask = class extends events.EventEmitter {
 		opt;
 		disposables = [];
@@ -103104,7 +115364,7 @@ var init_commandTask = __esmMin((() => {
 				this.emit("error", e.message);
 			});
 			proc.stderr.on("data", (chunk) => {
-				logger$40.error(`[${cmd} Error]`, chunk.toString("utf8"));
+				logger$25.error(`[${cmd} Error]`, chunk.toString("utf8"));
 			});
 			const rl = readline.createInterface(proc.stdout);
 			rl.on("line", (line) => {
@@ -103493,13 +115753,13 @@ var init_fuzzy = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/db.ts
-var logger$39, DB_PATH, DataBase, db_default;
-var init_db$1 = __esmMin((() => {
-	init_node();
+var logger$24, DB_PATH, DataBase, db_default;
+var init_db = __esmMin((() => {
 	init_logger$2();
-	init_string$1();
 	init_constants();
-	logger$39 = createLogger$1("list-db");
+	init_node();
+	init_string$1();
+	logger$24 = createLogger$1("list-db");
 	DB_PATH = path$5.join(dataHome, "list_history.dat");
 	DataBase = class {
 		folders = [];
@@ -103510,7 +115770,7 @@ var init_db$1 = __esmMin((() => {
 			try {
 				this.load();
 			} catch (e) {
-				logger$39.error(`Error on load db`, e);
+				logger$24.error(`Error on load db`, e);
 			}
 		}
 		get currItems() {
@@ -103569,6 +115829,7 @@ var init_db$1 = __esmMin((() => {
 				nameBuf,
 				...bufs
 			]);
+			fs$5.mkdirSync(path$5.dirname(DB_PATH), { recursive: true });
 			fs$5.writeFileSync(DB_PATH, resultBuf);
 			this._changed = false;
 		}
@@ -103616,15 +115877,15 @@ var init_db$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/history.ts
-var logger$38, InputHistory;
+var logger$23, InputHistory;
 var init_history = __esmMin((() => {
 	init_node();
 	init_logger$2();
 	init_array();
 	init_fuzzy();
-	init_db$1();
+	init_db();
 	init_string$1();
-	logger$38 = createLogger$1("list-history");
+	logger$23 = createLogger$1("list-history");
 	InputHistory = class {
 		prompt;
 		name;
@@ -103670,7 +115931,7 @@ var init_history = __esmMin((() => {
 				});
 				db.save();
 			} catch (e) {
-				logger$38.error(`Error on migrate history:`, e);
+				logger$23.error(`Error on migrate history:`, e);
 			}
 		}
 		get curr() {
@@ -104235,111 +116496,6 @@ var init_prompt = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/model/highlighter.ts
-var Highlighter;
-var init_highlighter = __esmMin((() => {
-	init_ansiparse();
-	init_string$1();
-	Highlighter = class {
-		lines = [];
-		_highlights = [];
-		addLine(line, hlGroup) {
-			if (line.includes("\n")) {
-				for (let content of line.split(/\r?\n/)) this.addLine(content, hlGroup);
-				return;
-			}
-			if (hlGroup) this._highlights.push({
-				lnum: this.lines.length,
-				colStart: line.match(/^\s*/)[0].length,
-				colEnd: byteLength(line),
-				hlGroup
-			});
-			if (line.includes("\x1B")) {
-				let res = parseAnsiHighlights(line);
-				for (let hl of res.highlights) {
-					let { span, hlGroup } = hl;
-					this._highlights.push({
-						lnum: this.lines.length,
-						colStart: span[0],
-						colEnd: span[1],
-						hlGroup
-					});
-				}
-				this.lines.push(res.line);
-			} else this.lines.push(line);
-		}
-		addLines(lines) {
-			this.lines.push(...lines);
-		}
-		/**
-		* Add texts to new Lines
-		*/
-		addTexts(items) {
-			let len = this.lines.length;
-			let text = "";
-			for (let item of items) {
-				let colStart = byteLength(text);
-				if (item.hlGroup) this._highlights.push({
-					lnum: len,
-					colStart,
-					colEnd: colStart + byteLength(item.text),
-					hlGroup: item.hlGroup
-				});
-				text += item.text;
-			}
-			this.lines.push(text);
-		}
-		addText(text, hlGroup) {
-			if (!text) return;
-			let { lines } = this;
-			let pre = lines[lines.length - 1] || "";
-			if (text.includes("\n")) {
-				let parts = text.split("\n");
-				this.addText(parts[0], hlGroup);
-				for (let line of parts.slice(1)) this.addLine(line, hlGroup);
-				return;
-			}
-			if (hlGroup) {
-				let colStart = byteLength(pre);
-				this._highlights.push({
-					lnum: lines.length ? lines.length - 1 : 0,
-					colStart,
-					colEnd: colStart + byteLength(text),
-					hlGroup
-				});
-			}
-			if (lines.length) lines[lines.length - 1] = `${pre}${text}`;
-			else lines.push(text);
-		}
-		get length() {
-			return this.lines.length;
-		}
-		getline(line) {
-			return this.lines[line] || "";
-		}
-		get highlights() {
-			return this._highlights;
-		}
-		get content() {
-			return this.lines.join("\n");
-		}
-		render(buffer, start = 0, end = -1) {
-			buffer.setLines(this.lines, {
-				start,
-				end,
-				strictIndexing: false
-			}, true);
-			for (let item of this._highlights) buffer.addHighlight({
-				hlGroup: item.hlGroup,
-				colStart: item.colStart,
-				colEnd: item.colEnd,
-				line: start + item.lnum,
-				srcId: -1
-			});
-		}
-	};
-}));
-//#endregion
 //#region src/util/sequence.ts
 var Sequence;
 var init_sequence = __esmMin((() => {
@@ -104381,7 +116537,7 @@ var init_sequence = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/ui.ts
-var debounceTime$9, ListUI;
+var debounceTime$8, ListUI;
 var init_ui$1 = __esmMin((() => {
 	init_events();
 	init_util$7();
@@ -104392,7 +116548,7 @@ var init_ui$1 = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_configuration$1();
-	debounceTime$9 = getConditionValue(100, 20);
+	debounceTime$8 = getConditionValue(100, 20);
 	ListUI = class {
 		nvim;
 		name;
@@ -104454,7 +116610,7 @@ var init_ui$1 = __esmMin((() => {
 				this.doHighlight(s, e);
 				nvim.command("redraw", true);
 				nvim.resumeNotification(false, true);
-			}, debounceTime$9);
+			}, debounceTime$8);
 			this.disposables.push({ dispose: () => {
 				debounced.clear();
 			} });
@@ -104894,110 +117050,6 @@ var init_ui$1 = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/util/async.ts
-function waitImmediate() {
-	return new Promise((resolve) => {
-		setImmediate(() => {
-			resolve(void 0);
-		});
-	});
-}
-async function runSequence(funcs, token) {
-	for (const fn of funcs) {
-		if (token.isCancellationRequested) break;
-		await fn();
-	}
-}
-async function forEach(items, func, token, options) {
-	if (items.length === 0) return;
-	const timer = new Timer(options?.yieldAfter);
-	function runBatch(start) {
-		timer.start();
-		for (let i = start; i < items.length; i++) {
-			func(items[i]);
-			if (timer.shouldYield()) {
-				if (options?.yieldCallback) options.yieldCallback();
-				return i + 1;
-			}
-		}
-		return -1;
-	}
-	let index = runBatch(0);
-	while (index !== -1) {
-		await waitImmediate();
-		if (token !== void 0 && token.isCancellationRequested) break;
-		index = runBatch(index);
-	}
-}
-async function filter(items, isValid, onFilter, token) {
-	if (items.length === 0) return;
-	const timer = new Timer();
-	const len = items.length;
-	function convertBatch(start) {
-		const result = [];
-		timer.start();
-		for (let i = start; i < len; i++) {
-			let item = items[i];
-			let res = isValid(item);
-			if (res === true) result.push(item);
-			else if (res) result.push(Object.assign({}, item, res));
-			if (timer.shouldYield()) {
-				let done = i === len - 1;
-				onFilter(result, done);
-				return done ? -1 : i + 1;
-			}
-		}
-		onFilter(result, true);
-		return -1;
-	}
-	let index = convertBatch(0);
-	while (index !== -1) {
-		await waitImmediate();
-		if (token != null && token.isCancellationRequested) break;
-		index = convertBatch(index);
-	}
-}
-var defaultYieldTimeout, Timer;
-var init_async$1 = __esmMin((() => {
-	defaultYieldTimeout = 15;
-	Timer = class {
-		yieldAfter;
-		startTime;
-		counter;
-		total;
-		counterInterval;
-		constructor(yieldAfter = defaultYieldTimeout) {
-			this.yieldAfter = Math.max(yieldAfter, defaultYieldTimeout);
-			this.startTime = Date.now();
-			this.counter = 0;
-			this.total = 0;
-			this.counterInterval = 1;
-		}
-		start() {
-			this.startTime = Date.now();
-		}
-		shouldYield() {
-			if (++this.counter >= this.counterInterval) {
-				const timeTaken = Date.now() - this.startTime;
-				const timeLeft = Math.max(0, this.yieldAfter - timeTaken);
-				this.total += this.counter;
-				this.counter = 0;
-				if (timeTaken >= this.yieldAfter || timeLeft <= 1) {
-					this.counterInterval = 1;
-					this.total = 0;
-					return true;
-				} else switch (timeTaken) {
-					case 0:
-					case 1:
-						this.counterInterval = this.total * 2;
-						break;
-				}
-			}
-			return false;
-		}
-	};
-}));
-//#endregion
 //#region src/list/worker.ts
 function getFilterLabel(item) {
 	return item.filterText != null ? patchLine(item.filterText, item.label) : item.label;
@@ -105043,7 +117095,7 @@ function parseInput(input) {
 	if (startIdx != input.length) res.push(input.slice(startIdx, input.length));
 	return res.map((s) => s.replace(/\\\s/g, " ").trim()).filter((s) => s.length > 0);
 }
-var logger$37, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
+var logger$22, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esmMin((() => {
 	init_logger$2();
 	init_util$7();
@@ -105057,7 +117109,7 @@ var init_worker = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_configuration$1();
-	logger$37 = createLogger$1("list-worker");
+	logger$22 = createLogger$1("list-worker");
 	controlCode$1 = "\x1B";
 	WHITE_SPACE_CHARS = [32, 9];
 	SEARCH_HL_GROUP = "CocListSearch";
@@ -105200,7 +117252,7 @@ var init_worker = __esmMin((() => {
 					clearInterval(interval);
 					workspace_default.nvim.call("coc#prompt#stop_prompt", ["list"], true);
 					workspace_default.nvim.echoError(`Task error: ${error.toString()}`);
-					logger$37.error("List task error:", error);
+					logger$22.error("List task error:", error);
 				});
 				task.on("end", onEnd);
 			}
@@ -105400,8 +117452,8 @@ var init_worker = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/session.ts
-var frames$1, debounceTime$8, ListSession;
-var init_session$2 = __esmMin((() => {
+var frames, debounceTime$7, ListSession;
+var init_session$1 = __esmMin((() => {
 	init_highlighter();
 	init_util$7();
 	init_node();
@@ -105409,11 +117461,11 @@ var init_session$2 = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_configuration$1();
-	init_db$1();
+	init_db();
 	init_history();
 	init_ui$1();
 	init_worker();
-	frames$1 = [
+	frames = [
 		"⠋",
 		"⠙",
 		"⠹",
@@ -105425,7 +117477,7 @@ var init_session$2 = __esmMin((() => {
 		"⠇",
 		"⠏"
 	];
-	debounceTime$8 = getConditionValue(50, 1);
+	debounceTime$7 = getConditionValue(50, 1);
 	ListSession = class {
 		nvim;
 		prompt;
@@ -105462,7 +117514,7 @@ var init_session$2 = __esmMin((() => {
 					let idx = this.ui.lnumToIndex(lnum);
 					await this.doPreview(idx);
 				}
-			}, debounceTime$8);
+			}, debounceTime$7);
 			this.disposables.push({ dispose: () => {
 				debouncedChangeLine.clear();
 			} });
@@ -105507,7 +117559,7 @@ var init_session$2 = __esmMin((() => {
 					if (interval) clearInterval(interval);
 					interval = setInterval(() => {
 						let idx = Math.floor((Date.now() - start) % 1e3 / 100);
-						this.loadingFrame = frames$1[idx];
+						this.loadingFrame = frames[idx];
 						this.updateStatus();
 					}, 100);
 				} else timer = setTimeout(() => {
@@ -105950,7 +118002,7 @@ function score(list, key) {
 	let idx = list.indexOf(key);
 	return idx == -1 ? -1 : list.length - idx;
 }
-var extensionRegistry$2, CommandsList;
+var extensionRegistry$1, CommandsList;
 var init_commands$1 = __esmMin((() => {
 	init_commands$2();
 	init_extensionRegistry();
@@ -105959,7 +118011,7 @@ var init_commands$1 = __esmMin((() => {
 	init_basic();
 	init_formatting$1();
 	init_string$1();
-	extensionRegistry$2 = Registry.as(Extensions$3.ExtensionContribution);
+	extensionRegistry$1 = Registry.as(Extensions$3.ExtensionContribution);
 	CommandsList = class extends BasicList {
 		defaultAction = "run";
 		description = "registered commands of coc.nvim";
@@ -105980,7 +118032,7 @@ var init_commands$1 = __esmMin((() => {
 			let items = [];
 			let mruList = await this.mru.load();
 			let ids = /* @__PURE__ */ new Set();
-			for (const obj of extensionRegistry$2.onCommands.concat(commands_default.commandList)) {
+			for (const obj of extensionRegistry$1.onCommands.concat(commands_default.commandList)) {
 				let { id, title } = obj;
 				if (ids.has(id)) continue;
 				ids.add(id);
@@ -106549,52 +118601,6 @@ var init_notifications = __esmMin((() => {
 			nvim.resumeNotification(false, true);
 		}
 	};
-}));
-//#endregion
-//#region src/util/convert.ts
-function convertFormatOptions(opts) {
-	let obj = {
-		tabSize: opts.tabsize,
-		insertSpaces: opts.expandtab == 1
-	};
-	if (opts.insertFinalNewline) obj.insertFinalNewline = true;
-	if (opts.trimTrailingWhitespace) obj.trimTrailingWhitespace = true;
-	if (opts.trimFinalNewlines) obj.trimFinalNewlines = true;
-	return obj;
-}
-function getSymbolKind(kind) {
-	switch (kind) {
-		case SymbolKind.File: return "File";
-		case SymbolKind.Module: return "Module";
-		case SymbolKind.Namespace: return "Namespace";
-		case SymbolKind.Package: return "Package";
-		case SymbolKind.Class: return "Class";
-		case SymbolKind.Method: return "Method";
-		case SymbolKind.Property: return "Property";
-		case SymbolKind.Field: return "Field";
-		case SymbolKind.Constructor: return "Constructor";
-		case SymbolKind.Enum: return "Enum";
-		case SymbolKind.Interface: return "Interface";
-		case SymbolKind.Function: return "Function";
-		case SymbolKind.Variable: return "Variable";
-		case SymbolKind.Constant: return "Constant";
-		case SymbolKind.String: return "String";
-		case SymbolKind.Number: return "Number";
-		case SymbolKind.Boolean: return "Boolean";
-		case SymbolKind.Array: return "Array";
-		case SymbolKind.Object: return "Object";
-		case SymbolKind.Key: return "Key";
-		case SymbolKind.Null: return "Null";
-		case SymbolKind.EnumMember: return "EnumMember";
-		case SymbolKind.Struct: return "Struct";
-		case SymbolKind.Event: return "Event";
-		case SymbolKind.Operator: return "Operator";
-		case SymbolKind.TypeParameter: return "TypeParameter";
-		default: return "Unknown";
-	}
-}
-var init_convert = __esmMin((() => {
-	init_main$2();
 }));
 //#endregion
 //#region src/list/source/outline.ts
@@ -107545,345 +119551,6 @@ var init_definition = __esmMin((() => {
 			} };
 			this._client.attachExtensionName(provider);
 			return [languages_default.registerDefinitionProvider(options.documentSelector, provider), provider];
-		}
-	};
-}));
-//#endregion
-//#region src/util/map.ts
-var Touch, LinkedMap, LRUCache;
-var init_map = __esmMin((() => {
-	(function(_Touch) {
-		_Touch.None = 0;
-		_Touch.AsOld = _Touch.First = 1;
-		_Touch.AsNew = _Touch.Last = 2;
-	})(Touch || (Touch = {}));
-	LinkedMap = class {
-		[Symbol.toStringTag] = "LinkedMap";
-		_map;
-		_head;
-		_tail;
-		_size;
-		_state;
-		constructor() {
-			this._map = /* @__PURE__ */ new Map();
-			this._head = void 0;
-			this._tail = void 0;
-			this._size = 0;
-			this._state = 0;
-		}
-		clear() {
-			this._map.clear();
-			this._head = void 0;
-			this._tail = void 0;
-			this._size = 0;
-			this._state++;
-		}
-		isEmpty() {
-			return !this._head && !this._tail;
-		}
-		get size() {
-			return this._size;
-		}
-		get first() {
-			return this._head?.value;
-		}
-		get last() {
-			return this._tail?.value;
-		}
-		before(key) {
-			const item = this._map.get(key);
-			return item ? item.previous?.value : void 0;
-		}
-		after(key) {
-			const item = this._map.get(key);
-			return item ? item.next?.value : void 0;
-		}
-		has(key) {
-			return this._map.has(key);
-		}
-		get(key, touch = Touch.None) {
-			const item = this._map.get(key);
-			if (!item) return;
-			if (touch !== Touch.None) this.touch(item, touch);
-			return item.value;
-		}
-		set(key, value, touch = Touch.None) {
-			let item = this._map.get(key);
-			if (item) {
-				item.value = value;
-				if (touch !== Touch.None) this.touch(item, touch);
-			} else {
-				item = {
-					key,
-					value,
-					next: void 0,
-					previous: void 0
-				};
-				switch (touch) {
-					case Touch.None:
-						this.addItemLast(item);
-						break;
-					case Touch.First:
-						this.addItemFirst(item);
-						break;
-					case Touch.Last:
-						this.addItemLast(item);
-						break;
-					default:
-						this.addItemLast(item);
-						break;
-				}
-				this._map.set(key, item);
-				this._size++;
-			}
-			return this;
-		}
-		delete(key) {
-			return !!this.remove(key);
-		}
-		remove(key) {
-			const item = this._map.get(key);
-			if (!item) return;
-			this._map.delete(key);
-			this.removeItem(item);
-			this._size--;
-			return item.value;
-		}
-		shift() {
-			if (!this._head && !this._tail) return;
-			const item = this._head;
-			this._map.delete(item.key);
-			this.removeItem(item);
-			this._size--;
-			return item.value;
-		}
-		forEach(callbackfn, thisArg) {
-			const state = this._state;
-			let current = this._head;
-			while (current) {
-				if (thisArg) callbackfn.bind(thisArg)(current.value, current.key, this);
-				else callbackfn(current.value, current.key, this);
-				if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
-				current = current.next;
-			}
-		}
-		keys() {
-			const state = this._state;
-			let current = this._head;
-			const iterator = {
-				[Symbol.iterator]: () => {
-					return iterator;
-				},
-				[Symbol.dispose]: () => {},
-				next: () => {
-					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
-					if (current) {
-						const result = {
-							value: current.key,
-							done: false
-						};
-						current = current.next;
-						return result;
-					} else return {
-						value: void 0,
-						done: true
-					};
-				}
-			};
-			return iterator;
-		}
-		values() {
-			const state = this._state;
-			let current = this._head;
-			const iterator = {
-				[Symbol.iterator]: () => {
-					return iterator;
-				},
-				[Symbol.dispose]: () => {},
-				next: () => {
-					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
-					if (current) {
-						const result = {
-							value: current.value,
-							done: false
-						};
-						current = current.next;
-						return result;
-					} else return {
-						value: void 0,
-						done: true
-					};
-				}
-			};
-			return iterator;
-		}
-		entries() {
-			const state = this._state;
-			let current = this._head;
-			const iterator = {
-				[Symbol.iterator]: () => {
-					return iterator;
-				},
-				[Symbol.dispose]: () => {},
-				next: () => {
-					if (this._state !== state) throw new Error(`LinkedMap got modified during iteration.`);
-					if (current) {
-						const result = {
-							value: [current.key, current.value],
-							done: false
-						};
-						current = current.next;
-						return result;
-					} else return {
-						value: void 0,
-						done: true
-					};
-				}
-			};
-			return iterator;
-		}
-		[Symbol.iterator]() {
-			return this.entries();
-		}
-		trimOld(newSize) {
-			if (newSize >= this.size) return;
-			if (newSize === 0) {
-				this.clear();
-				return;
-			}
-			let current = this._head;
-			let currentSize = this.size;
-			while (current && currentSize > newSize) {
-				this._map.delete(current.key);
-				current = current.next;
-				currentSize--;
-			}
-			this._head = current;
-			this._size = currentSize;
-			if (current) current.previous = void 0;
-			this._state++;
-		}
-		addItemFirst(item) {
-			if (!this._head && !this._tail) this._tail = item;
-			else {
-				item.next = this._head;
-				this._head.previous = item;
-			}
-			this._head = item;
-			this._state++;
-		}
-		addItemLast(item) {
-			if (!this._head && !this._tail) this._head = item;
-			else {
-				item.previous = this._tail;
-				this._tail.next = item;
-			}
-			this._tail = item;
-			this._state++;
-		}
-		removeItem(item) {
-			if (item === this._head && item === this._tail) {
-				this._head = void 0;
-				this._tail = void 0;
-			} else if (item === this._head) {
-				item.next.previous = void 0;
-				this._head = item.next;
-			} else if (item === this._tail) {
-				item.previous.next = void 0;
-				this._tail = item.previous;
-			} else {
-				const next = item.next;
-				const previous = item.previous;
-				next.previous = previous;
-				previous.next = next;
-			}
-			item.next = void 0;
-			item.previous = void 0;
-			this._state++;
-		}
-		touch(item, touch) {
-			if (touch !== Touch.First && touch !== Touch.Last) return;
-			if (touch === Touch.First) {
-				if (item === this._head) return;
-				const next = item.next;
-				const previous = item.previous;
-				if (item === this._tail) {
-					previous.next = void 0;
-					this._tail = previous;
-				} else {
-					next.previous = previous;
-					previous.next = next;
-				}
-				item.previous = void 0;
-				item.next = this._head;
-				this._head.previous = item;
-				this._head = item;
-				this._state++;
-			} else if (touch === Touch.Last) {
-				if (item === this._tail) return;
-				const next = item.next;
-				const previous = item.previous;
-				if (item === this._head) {
-					next.previous = void 0;
-					this._head = next;
-				} else {
-					next.previous = previous;
-					previous.next = next;
-				}
-				item.next = void 0;
-				item.previous = this._tail;
-				this._tail.next = item;
-				this._tail = item;
-				this._state++;
-			}
-		}
-		toJSON() {
-			const data = [];
-			this.forEach((value, key) => {
-				data.push([key, value]);
-			});
-			return data;
-		}
-		fromJSON(data) {
-			this.clear();
-			for (const [key, value] of data) this.set(key, value);
-		}
-	};
-	LRUCache = class extends LinkedMap {
-		_limit;
-		_ratio;
-		constructor(limit, ratio = 1) {
-			super();
-			this._limit = limit;
-			this._ratio = Math.min(Math.max(0, ratio), 1);
-		}
-		get limit() {
-			return this._limit;
-		}
-		set limit(limit) {
-			this._limit = limit;
-			this.checkTrim();
-		}
-		get ratio() {
-			return this._ratio;
-		}
-		set ratio(ratio) {
-			this._ratio = Math.min(Math.max(0, ratio), 1);
-			this.checkTrim();
-		}
-		get(key, touch = Touch.AsNew) {
-			return super.get(key, touch);
-		}
-		peek(key) {
-			return super.get(key, Touch.None);
-		}
-		set(key, value) {
-			super.set(key, value, Touch.Last);
-			this.checkTrim();
-			return this;
-		}
-		checkTrim() {
-			if (this.size > this._limit) this.trimOld(Math.round(this._limit * this._ratio));
 		}
 	};
 }));
@@ -108932,7 +120599,7 @@ function asRelativePattern(rp) {
 	return new RelativePattern$1(baseUri, pattern);
 }
 var FileSystemWatcherFeature;
-var init_fileSystemWatcher$1 = __esmMin((() => {
+var init_fileSystemWatcher = __esmMin((() => {
 	init_esm();
 	init_relativePattern();
 	init_util$7();
@@ -110888,22 +122555,22 @@ var init_errorHandler = __esmMin((() => {
 }));
 //#endregion
 //#region src/language-client/utils/logger.ts
-var logger$36, ConsoleLogger, NullLogger;
+var logger$21, ConsoleLogger, NullLogger;
 var init_logger = __esmMin((() => {
 	init_logger$2();
-	logger$36 = createLogger$1("language-client");
+	logger$21 = createLogger$1("language-client");
 	ConsoleLogger = class {
 		error(message) {
-			logger$36.error(message);
+			logger$21.error(message);
 		}
 		warn(message) {
-			logger$36.warn(message);
+			logger$21.warn(message);
 		}
 		info(message) {
-			logger$36.info(message);
+			logger$21.info(message);
 		}
 		log(message) {
-			logger$36.log(message);
+			logger$21.log(message);
 		}
 	};
 	NullLogger = class {
@@ -111172,7 +122839,7 @@ function createConnection(input, output, errorHandler, closeHandler, options) {
 		dispose: () => connection.dispose()
 	};
 }
-var import_api, logger$35, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
+var import_api, logger$20, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
 var init_client = __esmMin((() => {
 	import_api = require_api();
 	init_main$2();
@@ -111206,7 +122873,7 @@ var init_client = __esmMin((() => {
 	init_executeCommand();
 	init_features();
 	init_fileOperations();
-	init_fileSystemWatcher$1();
+	init_fileSystemWatcher();
 	init_foldingRange();
 	init_formatting();
 	init_hover$1();
@@ -111233,7 +122900,7 @@ var init_client = __esmMin((() => {
 	init_logger();
 	init_workspaceFolders();
 	init_workspaceSymbol();
-	logger$35 = createLogger$1("language-client-client");
+	logger$20 = createLogger$1("language-client-client");
 	redOpen = "\x1B[31m";
 	redClose = "\x1B[39m";
 	RevealOutputChannelOn = /* @__PURE__ */ function(RevealOutputChannelOn) {
@@ -111369,7 +123036,7 @@ var init_client = __esmMin((() => {
 				"disableDiagnostics"
 			]) if (typeof clientOptions[key] === "boolean") {
 				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-				logger$35.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
+				logger$20.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
 				if (clientOptions[key] === true) {
 					let s = key.slice(7);
 					disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
@@ -111913,7 +123580,7 @@ var init_client = __esmMin((() => {
 				return result;
 			} catch (error) {
 				this.error("Server initialization failed.", error);
-				logger$35.error(`Server "${this.id}" initialization failed.`, error);
+				logger$20.error(`Server "${this.id}" initialization failed.`, error);
 				let cb = (retry) => {
 					process.nextTick(() => {
 						new Promise((resolve, reject) => {
@@ -112050,7 +123717,7 @@ var init_client = __esmMin((() => {
 		}
 		async handleConnectionClosed() {
 			if (this.$state === 5) {
-				logger$35.info(`client ${this._id} normal closed`);
+				logger$20.info(`client ${this._id} normal closed`);
 				return;
 			}
 			try {
@@ -112451,7 +124118,7 @@ function checkProcessDied(childProcess) {
 		} catch (error) {}
 	}, STOP_TIMEOUT);
 }
-var logger$34, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
+var logger$19, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esmMin((() => {
 	init_esm();
 	init_logger$2();
@@ -112464,7 +124131,7 @@ var init_language_client = __esmMin((() => {
 	init_client();
 	init_utils();
 	init_client();
-	logger$34 = createLogger$1("language-client-index");
+	logger$19 = createLogger$1("language-client-index");
 	debugStartWith = [
 		"--debug=",
 		"--debug-brk=",
@@ -112679,7 +124346,7 @@ var init_language_client = __esmMin((() => {
 							let sp = child_process$1.fork(node.module, args, options);
 							assertStdio(sp);
 							this._serverProcess = sp;
-							logger$34.info(`Language server "${this.id}" started with ${sp.pid}`);
+							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
 							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
 							if (transport === 1) {
 								pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
@@ -112694,7 +124361,7 @@ var init_language_client = __esmMin((() => {
 						} else if (transport === 2) return createClientPipeTransport(pipeName).then((transport) => {
 							let sp = child_process$1.fork(node.module, args, options);
 							assertStdio(sp);
-							logger$34.info(`Language server "${this.id}" started with ${sp.pid}`);
+							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
 							this._serverProcess = sp;
 							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
 							pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
@@ -112709,7 +124376,7 @@ var init_language_client = __esmMin((() => {
 							let sp = child_process$1.fork(node.module, args, options);
 							assertStdio(sp);
 							this._serverProcess = sp;
-							logger$34.info(`Language server "${this.id}" started with ${sp.pid}`);
+							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
 							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
 							pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
 							transport.onConnected().then((protocol) => {
@@ -112738,7 +124405,7 @@ var init_language_client = __esmMin((() => {
 					const attachProcess = (serverProcess, pipiStdout = true) => {
 						this._serverProcess = serverProcess;
 						this._isDetached = !!options.detached;
-						logger$34.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
+						logger$19.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
 						if (pipiStdout) pipeStdoutToLogOutputChannel(serverProcess.stdout, this.outputChannel);
 						pipeStderrToLogOutputChannel(serverProcess.stderr, this.outputChannel);
 					};
@@ -112854,7 +124521,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	else serverOptions = () => new Promise((resolve, reject) => {
 		let client = new net$2.Socket();
 		let host = config.host ?? "127.0.0.1";
-		logger$33.info(`languageserver "${id}" connecting to ${host}:${port}`);
+		logger$18.info(`languageserver "${id}" connecting to ${host}:${port}`);
 		client.connect(port, host, () => {
 			resolve({
 				reader: client,
@@ -112871,7 +124538,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 		"disableCompletion",
 		"disableDiagnostics"
 	]) if (config[key] === true) {
-		logger$33.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
+		logger$18.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
 		let s = key.slice(7);
 		disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
 	}
@@ -112915,7 +124582,7 @@ function isValidServerConfig(key, config) {
 	if (!Array.isArray(config.filetypes) || !config.filetypes.every((s) => typeof s === "string")) errors.push(`"filetypes" field of languageserver ${key} should be array of string`);
 	if (config.additionalSchemes && (!Array.isArray(config.additionalSchemes) || config.additionalSchemes.some((s) => typeof s !== "string"))) errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`);
 	if (errors.length) {
-		logger$33.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
+		logger$18.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
 		return false;
 	}
 	return true;
@@ -112994,7 +124661,7 @@ function getStateName(state) {
 		default: return "unknown";
 	}
 }
-var logger$33, ServiceStat, ServiceManager, services_default;
+var logger$18, ServiceStat, ServiceManager, services_default;
 var init_services$1 = __esmMin((() => {
 	init_esm();
 	init_events();
@@ -113007,7 +124674,7 @@ var init_services$1 = __esmMin((() => {
 	init_protocol();
 	init_window();
 	init_workspace$1();
-	logger$33 = createLogger$1("services");
+	logger$18 = createLogger$1("services");
 	ServiceStat = /* @__PURE__ */ function(ServiceStat) {
 		ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
 		ServiceStat[ServiceStat["Starting"] = 1] = "Starting";
@@ -113064,7 +124731,7 @@ var init_services$1 = __esmMin((() => {
 			this.registered.set(id, service);
 			this.tryStartService(service);
 			service.onServiceReady(() => {
-				logger$33.info(`service ${id} started`);
+				logger$18.info(`service ${id} started`);
 			}, null, this.disposables);
 			return import_main$1.Disposable.create(() => {
 				if (!this.registered.has(id)) return;
@@ -113200,20 +124867,20 @@ var init_services$1 = __esmMin((() => {
 							service.state = convertState(newState);
 							let oldStr = stateString(oldState);
 							let newStr = stateString(newState);
-							logger$33.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
+							logger$18.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
 						}, null, disposables);
 					}
 					try {
 						if (!client.needsStart()) service.state = convertState(client.state);
 						else {
 							service.state = 1;
-							logger$33.debug(`starting service: ${id}`);
+							logger$18.debug(`starting service: ${id}`);
 							await client.start();
 							onDidServiceReady.fire(void 0);
 						}
 					} catch (e) {
 						window_default.showErrorMessage(`Server ${id} failed to start: ${e}`);
-						logger$33.error(`Server ${id} failed to start:`, e);
+						logger$18.error(`Server ${id} failed to start:`, e);
 						service.state = 2;
 					}
 				},
@@ -113535,8 +125202,8 @@ function createConfigurationNode(name, interactive, id) {
 	if (id) node.extensionInfo = { id };
 	return node;
 }
-var logger$32, mouseKeys, winleaveDalay, ListManager, manager_default$1;
-var init_manager$2 = __esmMin((() => {
+var logger$17, mouseKeys, winleaveDalay, ListManager, manager_default;
+var init_manager$1 = __esmMin((() => {
 	init_registry();
 	init_events();
 	init_extension();
@@ -113555,7 +125222,7 @@ var init_manager$2 = __esmMin((() => {
 	init_history();
 	init_mappings();
 	init_prompt();
-	init_session$2();
+	init_session$1();
 	init_commands$1();
 	init_diagnostics();
 	init_extensions();
@@ -113568,7 +125235,7 @@ var init_manager$2 = __esmMin((() => {
 	init_services();
 	init_sources$1();
 	init_symbols$1();
-	logger$32 = createLogger$1("list-manager");
+	logger$17 = createLogger$1("list-manager");
 	mouseKeys = [
 		"<LeftMouse>",
 		"<LeftDrag>",
@@ -113649,7 +125316,7 @@ var init_manager$2 = __esmMin((() => {
 				if (isCancellationError(e)) return;
 				window_default.showErrorMessage(`Error on "CocList ${name}": ${toErrorText(e)}`);
 				this.nvim.redrawVim();
-				logger$32.error(`Error on load ${name} list:`, e);
+				logger$17.error(`Error on load ${name} list:`, e);
 			}
 		}
 		getSessionByWinid(winid) {
@@ -113969,3137 +125636,7 @@ var init_manager$2 = __esmMin((() => {
 			disposeAll(this.disposables);
 		}
 	};
-	manager_default$1 = new ListManager();
-}));
-//#endregion
-//#region src/snippets/eval.ts
-function generateContextId(bufnr) {
-	return `${bufnr}-${context_id++}`;
-}
-function hasPython(snip) {
-	if (!snip) return false;
-	if (snip.context) return true;
-	if (snip.actions && Object.keys(snip.actions).length > 0) return true;
-	return false;
-}
-function getResetPythonCode(context) {
-	const pyCodes = [];
-	pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
-	pyCodes.push(`context = ${contexts_var}.get('${context.id}', {}).get('context', None)`);
-	pyCodes.push(`match = ${contexts_var}.get('${context.id}', {}).get('match', None)`);
-	return pyCodes;
-}
-function getPyBlockCode(snip) {
-	let { range, line } = snip;
-	let pyCodes = [
-		"import re, os, vim, string, random",
-		`path = vim.eval('coc#util#get_fullpath()') or ""`,
-		`fn = os.path.basename(path)`
-	];
-	let start = `(${range.start.line},${range.start.character})`;
-	let end = `(${range.start.line},${range.end.character})`;
-	let indent = line.match(/^\s*/)[0];
-	pyCodes.push(...getResetPythonCode(snip));
-	pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`);
-	return pyCodes;
-}
-function getInitialPythonCode(context) {
-	let pyCodes = [
-		"import re, os, vim, string, random",
-		`path = vim.eval('coc#util#get_fullpath()') or ""`,
-		`fn = os.path.basename(path)`
-	];
-	let { range, regex, line, id } = context;
-	if (context.context) {
-		pyCodes.push(`snip = ContextSnippet()`);
-		pyCodes.push(`context = ${context.context}`);
-	} else pyCodes.push(`context = None`);
-	if (regex && Range.is(range)) {
-		let trigger = line.slice(range.start.character, range.end.character);
-		pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`);
-		pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`);
-	} else pyCodes.push(`match = None`);
-	pyCodes.push(`${contexts_var} = ${contexts_var} if '${contexts_var}' in locals() else {}`);
-	let prefix = id.match(/^\w+-/)[0];
-	pyCodes.push(`${contexts_var} = {k: v for k, v in ${contexts_var}.items() if k.startswith('${prefix}')}`);
-	pyCodes.push(`${contexts_var}['${context.id}'] = {'context': context, 'match': match}`);
-	return pyCodes;
-}
-async function executePythonCode(nvim, codes) {
-	if (codes.length == 0) return;
-	let lines = [...codes];
-	lines.unshift(`__requesting = ${events_default.requesting ? "True" : "False"}`);
-	try {
-		await nvim.command(`pyx ${addPythonTryCatch(lines.join("\n"))}`);
-	} catch (e) {
-		let err = new Error(e.message);
-		err.stack = `Error on execute python code:\n${codes.join("\n")}\n` + e.stack;
-		throw err;
-	}
-}
-function getVariablesCode(values) {
-	let keys = Object.keys(values);
-	if (keys.length == 0) return `t = ()`;
-	let maxIndex = Math.max.apply(null, keys.map((v) => Number(v)));
-	let vals = new Array(maxIndex).fill("\"\"");
-	for (let [idx, val] of Object.entries(values)) vals[idx] = `"${escapeString(val)}"`;
-	return `t = (${vals.join(",")},)`;
-}
-/**
-* vim8 doesn't throw any python error with :py command
-* we have to use g:errmsg since v:errmsg can't be changed in python script.
-*/
-function addPythonTryCatch(code, force = false) {
-	if (!isVim && force === false) return code;
-	let lines = [
-		"import traceback, vim",
-		`vim.vars['errmsg'] = ''`,
-		"try:"
-	];
-	lines.push(...code.split("\n").map((line) => "    " + line));
-	lines.push("except Exception as e:");
-	lines.push(`    vim.vars['errmsg'] = traceback.format_exc()`);
-	return lines.join("\n");
-}
-function escapeString(input) {
-	return input.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\t/g, "\\t").replace(/\n/g, "\\n");
-}
-var contexts_var, context_id;
-var init_eval = __esmMin((() => {
-	init_main$2();
-	init_events();
-	init_constants();
-	contexts_var = "__coc_ultisnip_contexts";
-	context_id = 1;
-}));
-//#endregion
-//#region src/snippets/util.ts
-var util_exports = /* @__PURE__ */ __exportAll({
-	WordsSource: () => WordsSource,
-	convertRegex: () => convertRegex,
-	getAction: () => getAction,
-	getNewRange: () => getNewRange,
-	getTextAfter: () => getTextAfter,
-	getTextBefore: () => getTextBefore,
-	normalizeSnippetString: () => normalizeSnippetString,
-	shouldFormat: () => shouldFormat,
-	toSnippetString: () => toSnippetString,
-	wordsSource: () => wordsSource
-});
-/**
-* Convert python regex to javascript regex,
-* throw error when unsupported pattern found
-*/
-function convertRegex(str) {
-	if (str.indexOf("\\z") !== -1) throw new Error("pattern \\z not supported");
-	if (str.indexOf("(?s)") !== -1) throw new Error("pattern (?s) not supported");
-	if (str.indexOf("(?x)") !== -1) throw new Error("pattern (?x) not supported");
-	if (str.indexOf("\n") !== -1) throw new Error("pattern \\n not supported");
-	if (conditionRe.test(str)) throw new Error("pattern (?id/name)yes-pattern|no-pattern not supported");
-	return str.replace(regex, (match, p1) => {
-		if (match.startsWith("(?#")) return "";
-		if (match.startsWith("(?P<")) return "(?" + match.slice(3);
-		if (match.startsWith("(?P=")) return `\\k<${p1}>`;
-		return "^";
-	});
-}
-/**
-* Action code from context or option
-*/
-function getAction(opt, action) {
-	if (!opt || !opt.actions) return void 0;
-	return opt.actions[action];
-}
-function shouldFormat(snippet) {
-	if (/^\s/.test(snippet)) return true;
-	if (snippet.indexOf("\n") !== -1) return true;
-	return false;
-}
-function normalizeSnippetString(snippet, indent, opts) {
-	let lines = snippet.split(/\r?\n/);
-	let ind = opts.insertSpaces ? " ".repeat(opts.tabSize) : "	";
-	let tabSize = defaultValue(opts.tabSize, 2);
-	let noExpand = opts.noExpand;
-	let trimTrailingWhitespace = opts.trimTrailingWhitespace;
-	lines = lines.map((line, idx) => {
-		let space = line.match(/^\s*/)[0];
-		let pre = space;
-		let isTab = space.startsWith("	");
-		if (isTab && opts.insertSpaces && !noExpand) pre = ind.repeat(space.length);
-		else if (!isTab && !opts.insertSpaces) pre = ind.repeat(space.length / tabSize);
-		return (idx == 0 || trimTrailingWhitespace && line.length == 0 ? "" : indent) + pre + line.slice(space.length);
-	});
-	return lines.join("\n");
-}
-/**
-* Get range from base position and position, text
-*/
-function getNewRange(base, pos, value) {
-	const { line, character } = base;
-	const start = {
-		line: line + pos.line,
-		character: pos.line == 0 ? character + pos.character : pos.character
-	};
-	return Range.create(start, getEnd(start, value));
-}
-function getTextBefore(range, text, pos) {
-	let newLines = [];
-	let { line, character } = range.start;
-	let n = pos.line - line;
-	const lines = text.split("\n");
-	for (let i = 0; i <= n; i++) {
-		let line = lines[i];
-		if (i == n) newLines.push(line.slice(0, i == 0 ? pos.character - character : pos.character));
-		else newLines.push(line);
-	}
-	return newLines.join("\n");
-}
-function getTextAfter(range, text, pos) {
-	let newLines = [];
-	let n = range.end.line - pos.line;
-	const lines = text.split("\n");
-	let len = lines.length;
-	for (let i = 0; i <= n; i++) {
-		let idx = len - i - 1;
-		let line = lines[idx];
-		if (i == n) {
-			let sc = range.start.character;
-			let from = idx == 0 ? pos.character - sc : pos.character;
-			newLines.unshift(line.slice(from));
-		} else newLines.unshift(line);
-	}
-	return newLines.join("\n");
-}
-function toSnippetString(snippet) {
-	if (typeof snippet === "string") return snippet;
-	if (typeof snippet.value === "string") return snippet.value;
-	throw new TypeError(`Snippet should be string or has value as string`);
-}
-var stringStartRe, conditionRe, regex, WordsSource, wordsSource;
-var init_util$4 = __esmMin((() => {
-	init_main$2();
-	init_util$7();
-	init_position();
-	stringStartRe = /\\A/;
-	conditionRe = /\(\?\(\w+\).+\|/;
-	regex = new RegExp(`${/\(\?#.*?\)/.source}|${stringStartRe.source}|${/\(\?P<\w+>.*?\)/.source}|${/\(\?P=(\w+)\)/.source}`, "g");
-	WordsSource = class {
-		name = "$words";
-		shortcut = "";
-		triggerOnly = true;
-		words = [];
-		startcol;
-		doComplete(opt) {
-			return {
-				startcol: this.startcol,
-				items: this.words.map((s) => {
-					return {
-						word: s,
-						filterText: opt.input
-					};
-				})
-			};
-		}
-	};
-	wordsSource = new WordsSource();
-}));
-//#endregion
-//#region src/snippets/parser.ts
-function walk(marker, visitor, ignoreChild = false) {
-	const stack = [...marker];
-	while (stack.length > 0) {
-		const marker = stack.shift();
-		if (ignoreChild && marker instanceof TextmateSnippet) continue;
-		if (!visitor(marker)) break;
-		stack.unshift(...marker.children);
-	}
-}
-function transformEscapes(input, backslashIndexes = []) {
-	let res = "";
-	let len = input.length;
-	let i = 0;
-	let toUpper = false;
-	let toLower = false;
-	while (i < len) {
-		let ch = input[i];
-		if (ch.charCodeAt(0) === 92 && !backslashIndexes.includes(i)) {
-			let next = input[i + 1];
-			if (escapedCharacters.includes(next)) {
-				i++;
-				continue;
-			}
-			if (next == "u" || next == "l") {
-				let follow = input[i + 2];
-				if (follow) res = res + (next == "u" ? follow.toUpperCase() : follow.toLowerCase());
-				i = i + 3;
-				continue;
-			}
-			if (next == "U" || next == "L") {
-				if (next == "U") toUpper = true;
-				else toLower = true;
-				i = i + 2;
-				continue;
-			}
-			if (next == "E") {
-				toUpper = false;
-				toLower = false;
-				i = i + 2;
-				continue;
-			}
-			if (next == "n") {
-				res += "\n";
-				i = i + 2;
-				continue;
-			}
-			if (next == "t") {
-				res += "	";
-				i = i + 2;
-				continue;
-			}
-		}
-		if (toUpper) ch = ch.toUpperCase();
-		else if (toLower) ch = ch.toLowerCase();
-		res += ch;
-		i++;
-	}
-	return res;
-}
-function mergeTexts(marker, begin = 0) {
-	let { children } = marker;
-	let end;
-	let start;
-	for (let i = begin; i < children.length; i++) if (children[i] instanceof Text) if (start !== void 0) end = i;
-	else start = i;
-	else {
-		if (end !== void 0) break;
-		start = void 0;
-	}
-	if (end === void 0) return;
-	let newText = "";
-	for (let i = start; i <= end; i++) newText += children[i].toString();
-	let m = new Text(newText);
-	children.splice(start, end - start + 1, m);
-	m.parent = marker;
-	return mergeTexts(marker, start + 1);
-}
-function getPlaceholderId(p) {
-	if (typeof p.id === "number") return p.id;
-	p.id = id++;
-	return p.id;
-}
-var logger$31, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
-var init_parser = __esmMin((() => {
-	init_logger$2();
-	init_array();
-	init_async$1();
-	init_errors();
-	init_node();
-	init_string$1();
-	init_eval();
-	init_util$4();
-	logger$31 = createLogger$1("snippets-parser");
-	ULTISNIP_VARIABLES = [
-		"VISUAL",
-		"YANK",
-		"UUID"
-	];
-	id = 0;
-	snippet_id = 0;
-	knownRegexOptions = [
-		"d",
-		"g",
-		"i",
-		"m",
-		"s",
-		"u",
-		"y"
-	];
-	ultisnipSpecialEscape = [
-		"u",
-		"l",
-		"U",
-		"L",
-		"E",
-		"n",
-		"t"
-	];
-	Scanner = class Scanner {
-		static _table = {
-			[36]: 0,
-			[58]: 1,
-			[44]: 2,
-			[123]: 3,
-			[125]: 4,
-			[92]: 5,
-			[47]: 6,
-			[124]: 7,
-			[43]: 11,
-			[45]: 12,
-			[63]: 13,
-			[40]: 15,
-			[41]: 16,
-			[96]: 17,
-			[33]: 18
-		};
-		static isDigitCharacter(ch) {
-			return ch >= 48 && ch <= 57;
-		}
-		static isVariableCharacter(ch) {
-			return ch === 95 || ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
-		}
-		value;
-		pos;
-		constructor() {
-			this.text("");
-		}
-		text(value) {
-			this.value = value;
-			this.pos = 0;
-		}
-		tokenText(token) {
-			return this.value.slice(token.pos, token.pos + token.len);
-		}
-		isEnd() {
-			return this.pos >= this.value.length;
-		}
-		next() {
-			if (this.pos >= this.value.length) return {
-				type: 14,
-				pos: this.pos,
-				len: 0
-			};
-			let pos = this.pos;
-			let len = 0;
-			let ch = this.value.charCodeAt(pos);
-			let type;
-			type = Scanner._table[ch];
-			if (typeof type === "number") {
-				this.pos += 1;
-				return {
-					type,
-					pos,
-					len: 1
-				};
-			}
-			if (Scanner.isDigitCharacter(ch)) {
-				type = 8;
-				do {
-					len += 1;
-					ch = this.value.charCodeAt(pos + len);
-				} while (Scanner.isDigitCharacter(ch));
-				this.pos += len;
-				return {
-					type,
-					pos,
-					len
-				};
-			}
-			if (Scanner.isVariableCharacter(ch)) {
-				type = 9;
-				do
-					ch = this.value.charCodeAt(pos + ++len);
-				while (Scanner.isVariableCharacter(ch) || Scanner.isDigitCharacter(ch));
-				this.pos += len;
-				return {
-					type,
-					pos,
-					len
-				};
-			}
-			type = 10;
-			do {
-				len += 1;
-				ch = this.value.charCodeAt(pos + len);
-			} while (!isNaN(ch) && typeof Scanner._table[ch] === "undefined" && !Scanner.isDigitCharacter(ch) && !Scanner.isVariableCharacter(ch));
-			this.pos += len;
-			return {
-				type,
-				pos,
-				len
-			};
-		}
-	};
-	Marker = class {
-		parent;
-		_children = [];
-		appendChild(child) {
-			if (child instanceof Text && this._children[this._children.length - 1] instanceof Text) this._children[this._children.length - 1].value += child.value;
-			else {
-				child.parent = this;
-				this._children.push(child);
-			}
-			return this;
-		}
-		setOnlyChild(child) {
-			child.parent = this;
-			this._children = [child];
-		}
-		replaceChildren(children) {
-			for (const child of children) child.parent = this;
-			this._children = children;
-		}
-		replaceWith(newMarker) {
-			if (!this.parent) return false;
-			let p = this.parent;
-			let idx = p.children.indexOf(this);
-			if (idx == -1) return false;
-			newMarker.parent = p;
-			p.children.splice(idx, 1, newMarker);
-			return true;
-		}
-		insertBefore(text) {
-			if (!this.parent) return;
-			let p = this.parent;
-			let idx = p.children.indexOf(this);
-			if (idx == -1) return;
-			let prev = p.children[idx - 1];
-			if (prev instanceof Text) {
-				let v = prev.value;
-				prev.replaceWith(new Text(v + text));
-			} else {
-				let marker = new Text(text);
-				marker.parent = p;
-				p.children.splice(idx, 0, marker);
-			}
-		}
-		get children() {
-			return this._children;
-		}
-		get snippet() {
-			let candidate = this;
-			while (true) {
-				if (!candidate) return;
-				if (candidate instanceof TextmateSnippet) return candidate;
-				candidate = candidate.parent;
-			}
-		}
-		toString() {
-			return this.children.reduce((prev, cur) => prev + cur.toString(), "");
-		}
-		len() {
-			return 0;
-		}
-	};
-	Text = class Text extends Marker {
-		value;
-		static escape(value) {
-			return value.replace(/\$|}|\\/g, "\\$&");
-		}
-		constructor(value) {
-			super();
-			this.value = value;
-		}
-		toString() {
-			return this.value;
-		}
-		toTextmateString() {
-			return Text.escape(this.value);
-		}
-		len() {
-			return this.value.length;
-		}
-		clone() {
-			return new Text(this.value);
-		}
-	};
-	CodeBlock = class CodeBlock extends Marker {
-		code;
-		kind;
-		_value = "";
-		_related = [];
-		constructor(code, kind, value, related) {
-			super();
-			this.code = code;
-			this.kind = kind;
-			if (Array.isArray(related)) this._related = related;
-			else if (kind === "python") this._related = CodeBlock.parseRelated(code);
-			if (typeof value === "string") this._value = value;
-		}
-		static parseRelated(code) {
-			let list = [];
-			let arr;
-			let re = /\bt\[(\d+)\]/g;
-			while (true) {
-				arr = re.exec(code);
-				if (arr == null) break;
-				let n = parseInt(arr[1], 10);
-				if (!list.includes(n)) list.push(n);
-			}
-			return list;
-		}
-		get related() {
-			return this._related;
-		}
-		get index() {
-			if (this.parent instanceof Placeholder) return this.parent.index;
-		}
-		async resolve(nvim, token) {
-			if (!this.code.length) return;
-			if (token?.isCancellationRequested) return;
-			let res;
-			if (this.kind == "python") res = await this.evalPython(nvim, token);
-			else if (this.kind == "vim") res = await this.evalVim(nvim);
-			else if (this.kind == "shell") res = await this.evalShell();
-			if (token?.isCancellationRequested) return;
-			if (res != null) this._value = res;
-		}
-		async evalShell() {
-			let opts = { windowsHide: true };
-			Object.assign(opts, { shell: process.env.SHELL });
-			return (await (0, util.promisify)(child_process.exec)(this.code, opts)).stdout.toString().replace(/\s*$/, "");
-		}
-		async evalVim(nvim) {
-			let res = await nvim.eval(this.code);
-			return res == null ? "" : res.toString();
-		}
-		async evalPython(nvim, token) {
-			let lines = [`snip._reset("${escapeString(toText(this._value))}")`];
-			lines.push(...this.code.split(/\r?\n/).map((line) => line.replace(/\t/g, "    ")));
-			await executePythonCode(nvim, lines);
-			if (token?.isCancellationRequested) return;
-			return await nvim.call(`pyxeval`, "str(snip.rv)");
-		}
-		len() {
-			return this._value.length;
-		}
-		toString() {
-			return this._value;
-		}
-		get value() {
-			return this._value;
-		}
-		toTextmateString() {
-			let t = "";
-			if (this.kind == "python") t = "!p ";
-			else if (this.kind == "shell") t = "";
-			else if (this.kind == "vim") t = "!v ";
-			return "`" + t + this.code + "`";
-		}
-		clone() {
-			return new CodeBlock(this.code, this.kind, this.value, this._related.slice());
-		}
-	};
-	TransformableMarker = class extends Marker {
-		transform;
-	};
-	Placeholder = class Placeholder extends TransformableMarker {
-		index;
-		primary = false;
-		id;
-		constructor(index) {
-			super();
-			this.index = index;
-		}
-		get isFinalTabstop() {
-			return this.index === 0;
-		}
-		get choice() {
-			return this._children.length === 1 && this._children[0] instanceof Choice ? this._children[0] : void 0;
-		}
-		toTextmateString() {
-			let transformString = "";
-			if (this.transform) transformString = this.transform.toTextmateString();
-			if (this.children.length === 0 && !this.transform) return `$${this.index}`;
-			else if (this.children.length === 0 || this.children.length == 1 && this.children[0].toTextmateString() == "") return `\${${this.index}${transformString}}`;
-			else if (this.choice) return `\${${this.index}|${this.choice.toTextmateString()}|${transformString}}`;
-			else return `\${${this.index}:${this.children.map((child) => child.toTextmateString()).join("")}${transformString}}`;
-		}
-		clone() {
-			let ret = new Placeholder(this.index);
-			if (this.transform) ret.transform = this.transform.clone();
-			ret.id = this.id;
-			ret.primary = this.primary;
-			ret._children = this.children.map((child) => {
-				let m = child.clone();
-				m.parent = ret;
-				return m;
-			});
-			return ret;
-		}
-		checkParentPlaceHolders() {
-			let idx = this.index;
-			let p = this.parent;
-			while (p != null && !(p instanceof TextmateSnippet)) {
-				if (p instanceof Placeholder && p.index == idx) throw new Error(`Parent placeholder has same index: ${idx}`);
-				p = p.parent;
-			}
-		}
-	};
-	Choice = class Choice extends Marker {
-		_index;
-		constructor(index = 0) {
-			super();
-			this._index = index;
-		}
-		options = [];
-		appendChild(marker) {
-			if (marker instanceof Text) {
-				marker.parent = this;
-				this.options.push(marker);
-			}
-			return this;
-		}
-		toString() {
-			return this.options[this._index].value;
-		}
-		toTextmateString() {
-			return this.options.map((option) => option.value.replace(/\||,/g, "\\$&")).join(",");
-		}
-		len() {
-			return this.options[this._index].len();
-		}
-		clone() {
-			let ret = new Choice(this._index);
-			for (let opt of this.options) ret.appendChild(opt);
-			return ret;
-		}
-	};
-	Transform = class Transform extends Marker {
-		regexp;
-		ascii = false;
-		ultisnip = false;
-		resolve(value) {
-			let didMatch = false;
-			let ret = value.replace(this.regexp, (...args) => {
-				didMatch = true;
-				return this._replace(args.slice(0, -2));
-			});
-			if (!didMatch && this._children.some((child) => child instanceof FormatString && Boolean(child.elseValue))) ret = this._replace([]);
-			return ret;
-		}
-		_replace(groups) {
-			let ret = "";
-			let backslashIndexes = [];
-			for (const marker of this._children) {
-				let val = "";
-				let len = ret.length;
-				if (marker instanceof FormatString) {
-					val = marker.resolve(groups[marker.index] ?? "");
-					if (this.ultisnip && val.indexOf("\\") !== -1) for (let idx of iterateCharacter(val, "\\")) backslashIndexes.push(len + idx);
-				} else if (marker instanceof ConditionString) {
-					val = marker.resolve(groups[marker.index]);
-					if (this.ultisnip) val = val.replace(/(?<!\\)\$(\d+)/g, (...args) => {
-						return toText(groups[Number(args[1])]);
-					});
-				} else val = marker.toString();
-				ret += val;
-			}
-			if (this.ascii) ret = unidecode(ret);
-			return this.ultisnip ? transformEscapes(ret, backslashIndexes) : ret;
-		}
-		toString() {
-			return "";
-		}
-		toTextmateString() {
-			let format = this.children.map((c) => c.toTextmateString()).join("");
-			if (this.ultisnip) format = format.replace(/\\\\(\w)/g, (match, ch) => {
-				if (ultisnipSpecialEscape.includes(ch)) return "\\" + ch;
-				return match;
-			});
-			return `/${this.regexp.source}/${format}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
-		}
-		clone() {
-			let ret = new Transform();
-			ret.regexp = new RegExp(this.regexp.source, (this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : ""));
-			ret._children = this.children.map((child) => {
-				let m = child.clone();
-				m.parent = ret;
-				return m;
-			});
-			return ret;
-		}
-	};
-	ConditionString = class ConditionString extends Marker {
-		index;
-		ifValue;
-		elseValue;
-		constructor(index, ifValue, elseValue) {
-			super();
-			this.index = index;
-			this.ifValue = ifValue;
-			this.elseValue = elseValue;
-		}
-		resolve(value) {
-			if (value) return this.ifValue;
-			return this.elseValue;
-		}
-		toTextmateString() {
-			return "(?" + this.index + ":" + this.ifValue + (this.elseValue ? ":" + this.elseValue : "") + ")";
-		}
-		clone() {
-			return new ConditionString(this.index, this.ifValue, this.elseValue);
-		}
-	};
-	FormatString = class FormatString extends Marker {
-		index;
-		shorthandName;
-		ifValue;
-		elseValue;
-		constructor(index, shorthandName, ifValue, elseValue) {
-			super();
-			this.index = index;
-			this.shorthandName = shorthandName;
-			this.ifValue = ifValue;
-			this.elseValue = elseValue;
-		}
-		resolve(value) {
-			if (this.shorthandName === "upcase") return !value ? "" : value.toLocaleUpperCase();
-			else if (this.shorthandName === "downcase") return !value ? "" : value.toLocaleLowerCase();
-			else if (this.shorthandName === "capitalize") return !value ? "" : value[0].toLocaleUpperCase() + value.slice(1);
-			else if (this.shorthandName === "pascalcase") return !value ? "" : this._toPascalCase(value);
-			else if (Boolean(value) && typeof this.ifValue === "string") return this.ifValue;
-			else if (!value && typeof this.elseValue === "string") return this.elseValue;
-			else return value || "";
-		}
-		_toPascalCase(value) {
-			const match = value.match(/[a-z]+/gi);
-			if (!match) return value;
-			return match.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join("");
-		}
-		toTextmateString() {
-			let value = "${";
-			value += this.index;
-			if (this.shorthandName) value += `:/${this.shorthandName}`;
-			else if (this.ifValue && this.elseValue) value += `:?${this.ifValue}:${this.elseValue}`;
-			else if (this.ifValue) value += `:+${this.ifValue}`;
-			else if (this.elseValue) value += `:-${this.elseValue}`;
-			value += "}";
-			return value;
-		}
-		clone() {
-			return new FormatString(this.index, this.shorthandName, this.ifValue, this.elseValue);
-		}
-	};
-	Variable = class Variable extends TransformableMarker {
-		name;
-		_resolved;
-		constructor(name, resolved = false) {
-			super();
-			this.name = name;
-			this._resolved = resolved;
-		}
-		get resolved() {
-			return this._resolved;
-		}
-		async resolve(resolver) {
-			let value = await resolver.resolve(this);
-			this._resolved = true;
-			if (value && value.includes("\n")) {
-				let indent = "";
-				this.snippet.walk((m) => {
-					if (m == this) return false;
-					if (m instanceof Text) {
-						let lines = m.toString().split(/\r?\n/);
-						indent = lines[lines.length - 1].match(/^\s*/)[0];
-					}
-					return true;
-				}, true);
-				let lines = value.split("\n");
-				let minIndent = lines.filter((s) => s.length > 0).map((s) => s.match(/^\s*/)[0]).reduce((p, c) => p < c.length ? p : c.length, 0);
-				value = lines.map((s, i) => i == 0 || s.length == 0 || !s.startsWith(" ".repeat(minIndent)) ? s : indent + s.slice(minIndent)).join("\n");
-			}
-			if (typeof value !== "string") return false;
-			if (this.transform) value = this.transform.resolve(toText(value));
-			this._children = [new Text(value.toString())];
-			return true;
-		}
-		toTextmateString() {
-			let transformString = "";
-			if (this.transform) transformString = this.transform.toTextmateString();
-			if (this.children.length === 0) return `\${${this.name}${transformString}}`;
-			else return `\${${this.name}:${this.children.map((child) => child.toTextmateString()).join("")}${transformString}}`;
-		}
-		clone() {
-			const ret = new Variable(this.name, this.resolved);
-			if (this.transform) ret.transform = this.transform.clone();
-			ret._children = this.children.map((child) => {
-				let m = child.clone();
-				m.parent = ret;
-				return m;
-			});
-			return ret;
-		}
-	};
-	TextmateSnippet = class TextmateSnippet extends Marker {
-		ultisnip;
-		id;
-		related = {};
-		constructor(ultisnip, id) {
-			super();
-			this.ultisnip = ultisnip === true;
-			this.id = id ?? snippet_id++;
-		}
-		get hasPythonBlock() {
-			if (!this.ultisnip) return false;
-			return this.pyBlocks.length > 0;
-		}
-		get hasCodeBlock() {
-			if (!this.ultisnip) return false;
-			let { pyBlocks, otherBlocks } = this;
-			return pyBlocks.length > 0 || otherBlocks.length > 0;
-		}
-		/**
-		* Values for each placeholder index
-		*/
-		get values() {
-			let values = {};
-			let maxIndexNumber = 0;
-			this.placeholders.forEach((c) => {
-				if (!Number.isInteger(c.index)) return;
-				maxIndexNumber = Math.max(c.index, maxIndexNumber);
-				if (c.transform != null) return;
-				if (c.primary || values[c.index] === void 0) values[c.index] = c.toString();
-			});
-			for (let i = 0; i <= maxIndexNumber; i++) if (values[i] === void 0) values[i] = "";
-			return values;
-		}
-		get orderedPyIndexBlocks() {
-			let res = [];
-			let filtered = this.pyBlocks.filter((o) => typeof o.index === "number");
-			if (filtered.length === 0) return res;
-			let allIndexes = filtered.map((o) => o.index);
-			let usedIndexes = [];
-			const checkBlock = (b) => {
-				let { related } = b;
-				if (related.length == 0 || related.every((idx) => !allIndexes.includes(idx) || usedIndexes.includes(idx))) {
-					usedIndexes.push(b.index);
-					res.push(b);
-					return true;
-				}
-				return false;
-			};
-			while (filtered.length > 0) {
-				let c = false;
-				for (let b of filtered) if (checkBlock(b)) c = true;
-				if (!c) break;
-				filtered = filtered.filter((o) => !usedIndexes.includes(o.index));
-			}
-			return res;
-		}
-		async evalCodeBlocks(nvim, pyCodes) {
-			const { pyBlocks, otherBlocks } = this.placeholderInfo;
-			await Promise.all(otherBlocks.map((block) => {
-				let pre = block.value;
-				return block.resolve(nvim).then(() => {
-					if (block.parent instanceof Placeholder && pre !== block.value) this.onPlaceholderUpdate(block.parent);
-				});
-			}));
-			if (pyCodes.length === 0) return;
-			let relatedBlocks = pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
-			const variableCode = getVariablesCode(this.values);
-			await executePythonCode(nvim, [...pyCodes, variableCode]);
-			for (let block of pyBlocks) {
-				let pre = block.value;
-				if (relatedBlocks.includes(block)) continue;
-				await block.resolve(nvim);
-				if (pre === block.value) continue;
-				if (block.parent instanceof Placeholder) {
-					this.onPlaceholderUpdate(block.parent);
-					await executePythonCode(nvim, [getVariablesCode(this.values)]);
-				}
-			}
-			for (let block of this.orderedPyIndexBlocks) await this.updatePyIndexBlock(nvim, block);
-			for (let block of relatedBlocks) await block.resolve(nvim);
-		}
-		/**
-		* Update python blocks after user change Placeholder with index
-		*/
-		async updatePythonCodes(nvim, marker, codes, token) {
-			let index = marker.index;
-			let blocks = this.getDependentPyIndexBlocks(index);
-			await runSequence([
-				async () => {
-					await executePythonCode(nvim, [...codes, getVariablesCode(this.values)]);
-				},
-				async () => {
-					for (let block of blocks) await this.updatePyIndexBlock(nvim, block, token);
-				},
-				async () => {
-					let filtered = this.pyBlocks.filter((o) => o.index === void 0 && o.related.length > 0);
-					for (let block of filtered) await block.resolve(nvim, token);
-				}
-			], token);
-		}
-		getDependentPyIndexBlocks(index) {
-			const res = [];
-			const taken = [];
-			let filtered = this.pyBlocks.filter((o) => typeof o.index === "number");
-			const search = (idx) => {
-				let blocks = filtered.filter((o) => !taken.includes(o.index) && o.related.includes(idx));
-				if (blocks.length > 0) {
-					res.push(...blocks);
-					blocks.forEach((b) => {
-						search(b.index);
-					});
-				}
-			};
-			search(index);
-			return res;
-		}
-		/**
-		* Update single index block
-		*/
-		async updatePyIndexBlock(nvim, block, token) {
-			let pre = block.value;
-			await block.resolve(nvim, token);
-			if (pre === block.value || token?.isCancellationRequested) return;
-			if (block.parent instanceof Placeholder) this.onPlaceholderUpdate(block.parent);
-			await executePythonCode(nvim, [getVariablesCode(this.values)]);
-		}
-		get placeholderInfo() {
-			const pyBlocks = [];
-			const otherBlocks = [];
-			let placeholders = [];
-			this.walk((candidate) => {
-				if (candidate instanceof Placeholder) placeholders.push(candidate);
-				else if (candidate instanceof CodeBlock) if (candidate.kind === "python") pyBlocks.push(candidate);
-				else otherBlocks.push(candidate);
-				return true;
-			}, true);
-			return {
-				placeholders,
-				pyBlocks,
-				otherBlocks
-			};
-		}
-		get variables() {
-			const variables = [];
-			this.walk((candidate) => {
-				if (candidate instanceof Variable) variables.push(candidate);
-				return true;
-			}, true);
-			return variables;
-		}
-		get placeholders() {
-			let placeholders = [];
-			this.walk((candidate) => {
-				if (candidate instanceof Placeholder) placeholders.push(candidate);
-				return true;
-			}, true);
-			return placeholders;
-		}
-		get pyBlocks() {
-			return this.placeholderInfo.pyBlocks;
-		}
-		get otherBlocks() {
-			return this.placeholderInfo.otherBlocks;
-		}
-		get first() {
-			let { placeholders } = this;
-			let [normals, finals] = groupBy(placeholders.filter((p) => !p.transform), (v) => v.index !== 0);
-			if (normals.length) {
-				let minIndex = Math.min.apply(null, normals.map((o) => o.index));
-				let arr = normals.filter((v) => v.index == minIndex);
-				return arr.find((p) => p.primary) ?? arr[0];
-			}
-			return finals.find((o) => o.primary) ?? finals[0];
-		}
-		async update(nvim, marker, token) {
-			this.onPlaceholderUpdate(marker);
-			let codes = this.related.codes ?? [];
-			if (codes.length === 0 || !this.hasPythonBlock) return;
-			await this.updatePythonCodes(nvim, marker, codes, token);
-		}
-		/**
-		* Reflact changes for related markers.
-		*/
-		onPlaceholderUpdate(marker) {
-			let val = marker.toString();
-			let markers = this.placeholders.filter((o) => o.index == marker.index);
-			for (let p of markers) {
-				p.checkParentPlaceHolders();
-				if (p === marker) continue;
-				let newText = p.transform ? p.transform.resolve(val) : val;
-				p.setOnlyChild(new Text(toText(newText)));
-			}
-			this.synchronizeParents(markers);
-		}
-		synchronizeParents(markers) {
-			let parents = /* @__PURE__ */ new Set();
-			markers.forEach((m) => {
-				let p = m.parent;
-				if (p instanceof Placeholder) parents.add(p);
-			});
-			for (let p of parents) this.onPlaceholderUpdate(p);
-		}
-		offset(marker) {
-			let pos = 0;
-			let found = false;
-			this.walk((candidate) => {
-				if (candidate === marker) {
-					found = true;
-					return false;
-				}
-				pos += candidate.len();
-				return true;
-			}, true);
-			if (!found) return -1;
-			return pos;
-		}
-		fullLen(marker) {
-			let ret = 0;
-			walk([marker], (marker) => {
-				ret += marker.len();
-				return true;
-			});
-			return ret;
-		}
-		getTextBefore(marker, parent) {
-			let res = "";
-			const calc = (m) => {
-				let p = m.parent;
-				if (!p) return;
-				let s = "";
-				for (let b of p.children) {
-					if (b === m) break;
-					s = s + b.toString();
-				}
-				res = s + res;
-				if (p == parent) return;
-				calc(p);
-			};
-			calc(marker);
-			return res;
-		}
-		enclosingPlaceholders(placeholder) {
-			let ret = [];
-			let { parent } = placeholder;
-			while (parent) {
-				if (parent instanceof Placeholder) ret.push(parent);
-				parent = parent.parent;
-			}
-			return ret;
-		}
-		async resolveVariables(resolver) {
-			let variables = this.variables;
-			if (variables.length === 0) return;
-			let failed = [];
-			let succeed = [];
-			let promises = [];
-			const changedParents = /* @__PURE__ */ new Set();
-			for (let item of variables) promises.push(item.resolve(resolver).then((res) => {
-				changedParents.add(item.parent);
-				(res ? succeed : failed).push(item);
-			}, onUnexpectedError));
-			await Promise.allSettled(promises);
-			for (const variable of succeed) {
-				let text = new Text(variable.toString());
-				variable.replaceWith(text);
-			}
-			if (failed.length > 0) {
-				let indexMap = /* @__PURE__ */ new Map();
-				const primarySet = /* @__PURE__ */ new Set();
-				let max = this.getMaxPlaceholderIndex();
-				for (let i = 0; i < failed.length; i++) {
-					const v = failed[i];
-					let idx = indexMap.get(v.name);
-					if (idx == null) {
-						idx = ++max;
-						indexMap.set(v.name, idx);
-					}
-					let p = new Placeholder(idx);
-					p.transform = v.transform;
-					if (!p.transform && !primarySet.has(idx)) {
-						primarySet.add(idx);
-						p.primary = true;
-					}
-					let newText = p.transform ? p.transform.resolve(v.name) : v.name;
-					p.setOnlyChild(new Text(toText(newText)));
-					v.replaceWith(p);
-				}
-			}
-			changedParents.forEach((marker) => {
-				mergeTexts(marker);
-				if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker);
-			});
-		}
-		getMaxPlaceholderIndex() {
-			let res = 0;
-			this.walk((candidate) => {
-				if (candidate instanceof Placeholder) res = Math.max(res, candidate.index);
-				return true;
-			}, true);
-			return res;
-		}
-		replace(marker, children) {
-			marker.replaceChildren(children);
-			if (marker instanceof Placeholder) this.onPlaceholderUpdate(marker);
-		}
-		toTextmateString() {
-			return this.children.reduce((prev, cur) => prev + cur.toTextmateString(), "");
-		}
-		clone() {
-			let ret = new TextmateSnippet(this.ultisnip, this.id);
-			ret.related.codes = this.related.codes;
-			ret.related.context = this.related.context;
-			ret._children = this.children.map((child) => {
-				let m = child.clone();
-				m.parent = ret;
-				return m;
-			});
-			return ret;
-		}
-		walk(visitor, ignoreChild = false) {
-			walk(this.children, visitor, ignoreChild);
-		}
-	};
-	SnippetParser = class SnippetParser {
-		ultisnip;
-		constructor(ultisnip) {
-			this.ultisnip = ultisnip;
-		}
-		static escape(value) {
-			return value.replace(/\$|}|\\/g, "\\$&");
-		}
-		static isPlainText(value) {
-			let s = new SnippetParser().parse(value.replace(/\$0$/, ""), false);
-			return s.children.length == 1 && s.children[0] instanceof Text;
-		}
-		_scanner = new Scanner();
-		_token;
-		text(value) {
-			return this.parse(value, false).toString();
-		}
-		parse(value, insertFinalTabstop) {
-			this._scanner.text(value);
-			this._token = this._scanner.next();
-			const snippet = new TextmateSnippet(this.ultisnip);
-			while (this._parse(snippet));
-			const defaultValues = /* @__PURE__ */ new Map();
-			const incompletePlaceholders = [];
-			let complexPlaceholders = [];
-			let hasFinal = false;
-			snippet.walk((marker) => {
-				if (marker instanceof Placeholder) {
-					if (marker.index == 0) hasFinal = true;
-					if (marker.children.some((o) => o instanceof Placeholder)) {
-						marker.primary = true;
-						complexPlaceholders.push(marker);
-					} else if (!defaultValues.has(marker.index) && marker.children.length > 0) {
-						marker.primary = true;
-						defaultValues.set(marker.index, marker.toString());
-					} else incompletePlaceholders.push(marker);
-				}
-				return true;
-			});
-			const complexIndexes = complexPlaceholders.map((p) => p.index);
-			for (const placeholder of incompletePlaceholders) if (defaultValues.has(placeholder.index)) {
-				let val = defaultValues.get(placeholder.index);
-				let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val);
-				placeholder.setOnlyChild(text);
-			} else if (!complexIndexes.includes(placeholder.index)) if (placeholder.transform) {
-				let text = new Text(placeholder.transform.resolve(""));
-				placeholder.setOnlyChild(text);
-			} else {
-				placeholder.primary = true;
-				defaultValues.set(placeholder.index, "");
-			}
-			const resolveComplex = () => {
-				let resolved = /* @__PURE__ */ new Set();
-				for (let p of complexPlaceholders) if (p.children.every((o) => !(o instanceof Placeholder) || defaultValues.has(o.index))) {
-					let val = p.toString();
-					defaultValues.set(p.index, val);
-					for (let placeholder of incompletePlaceholders.filter((o) => o.index == p.index)) {
-						let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val);
-						placeholder.setOnlyChild(text);
-					}
-					resolved.add(p.index);
-				}
-				complexPlaceholders = complexPlaceholders.filter((p) => !resolved.has(p.index));
-				if (complexPlaceholders.length == 0 || !resolved.size) return;
-				resolveComplex();
-			};
-			resolveComplex();
-			if (!hasFinal && insertFinalTabstop) snippet.appendChild(new Placeholder(0));
-			return snippet;
-		}
-		_accept(type, value) {
-			if (type === void 0 || this._token.type === type) {
-				let ret = !value ? true : this._scanner.tokenText(this._token);
-				this._token = this._scanner.next();
-				return ret;
-			}
-			return false;
-		}
-		_backTo(token) {
-			this._scanner.pos = token.pos + token.len;
-			this._token = token;
-			return false;
-		}
-		_until(type, checkBackSlash = false) {
-			if (this._token.type === 14) return false;
-			let start = this._token;
-			let pre;
-			while (this._token.type !== type || checkBackSlash && pre && pre.type === 5) {
-				if (checkBackSlash) pre = this._token;
-				this._token = this._scanner.next();
-				if (this._token.type === 14) return false;
-			}
-			let value = this._scanner.value.substring(start.pos, this._token.pos);
-			this._token = this._scanner.next();
-			return value;
-		}
-		_parse(marker) {
-			return this._parseEscaped(marker) || this._parseCodeBlock(marker) || this._parseTabstopOrVariableName(marker) || this._parseComplexPlaceholder(marker) || this._parseComplexVariable(marker) || this._parseAnything(marker);
-		}
-		_parseEscaped(marker) {
-			let value;
-			if (value = this._accept(5, true)) {
-				value = this._accept(0, true) || this._accept(4, true) || this._accept(5, true) || this.ultisnip && this._accept(3, true) || this.ultisnip && this._accept(17, true) || value;
-				marker.appendChild(new Text(value));
-				return true;
-			}
-			return false;
-		}
-		_parseTabstopOrVariableName(parent) {
-			let value;
-			const token = this._token;
-			if (!(this._accept(0) && (value = this._accept(9, true) || this._accept(8, true)))) return this._backTo(token);
-			if (/^\d+$/.test(value)) parent.appendChild(new Placeholder(Number(value)));
-			else if (this.ultisnip && !ULTISNIP_VARIABLES.includes(value)) parent.appendChild(new Text("$" + value));
-			else parent.appendChild(new Variable(value));
-			return true;
-		}
-		_checkCulybrace(marker) {
-			let count = 0;
-			for (marker of marker.children) if (marker instanceof Text) {
-				let text = marker.value;
-				for (let index = 0; index < text.length; index++) {
-					const ch = text[index];
-					if (ch === "{") count++;
-					else if (ch === "}") count--;
-				}
-			}
-			return count <= 0;
-		}
-		_parseComplexPlaceholder(parent) {
-			let index;
-			const token = this._token;
-			if (!(this._accept(0) && this._accept(3) && (index = this._accept(8, true)))) return this._backTo(token);
-			const placeholder = new Placeholder(Number(index));
-			if (this._accept(1)) while (true) {
-				const lastChar = this._scanner.isEnd();
-				if (this._accept(4)) {
-					if (!this._checkCulybrace(placeholder) && !lastChar) {
-						placeholder.appendChild(new Text("}"));
-						continue;
-					}
-					parent.appendChild(placeholder);
-					return true;
-				}
-				if (this._parse(placeholder)) continue;
-				parent.appendChild(new Text("${" + index + ":"));
-				placeholder.children.forEach(parent.appendChild, parent);
-				return true;
-			}
-			else if (placeholder.index > 0 && this._accept(7)) {
-				const choice = new Choice();
-				while (true) {
-					if (this._parseChoiceElement(choice)) {
-						if (this._accept(2)) continue;
-						if (this._accept(7)) {
-							placeholder.appendChild(choice);
-							if (this._accept(4)) {
-								parent.appendChild(placeholder);
-								return true;
-							}
-						}
-					}
-					this._backTo(token);
-					return false;
-				}
-			} else if (this._accept(6)) {
-				if (this._parseTransform(placeholder)) {
-					parent.appendChild(placeholder);
-					return true;
-				}
-				this._backTo(token);
-				return false;
-			} else if (this._accept(4)) {
-				parent.appendChild(placeholder);
-				return true;
-			} else return this._backTo(token);
-		}
-		_parseChoiceElement(parent) {
-			const token = this._token;
-			const values = [];
-			while (true) {
-				if (this._token.type === 2 || this._token.type === 7) break;
-				let value;
-				if (value = this._accept(5, true)) value = this._accept(2, true) || this._accept(7, true) || this._accept(5, true) || value;
-				else value = this._accept(void 0, true);
-				if (!value) {
-					this._backTo(token);
-					return false;
-				}
-				values.push(value);
-			}
-			if (values.length === 0) {
-				this._backTo(token);
-				return false;
-			}
-			parent.appendChild(new Text(values.join("")));
-			return true;
-		}
-		_parseComplexVariable(parent) {
-			let name;
-			const token = this._token;
-			if (!(this._accept(0) && this._accept(3) && (name = this._accept(9, true)))) return this._backTo(token);
-			if (this.ultisnip && !ULTISNIP_VARIABLES.includes(name)) return this._backTo(token);
-			const variable = new Variable(name);
-			if (this._accept(1)) while (true) {
-				if (this._accept(4)) {
-					parent.appendChild(variable);
-					return true;
-				}
-				if (this._parse(variable)) continue;
-				parent.appendChild(new Text("${" + name + ":"));
-				variable.children.forEach(parent.appendChild, parent);
-				return true;
-			}
-			else if (this._accept(6)) {
-				if (this._parseTransform(variable)) {
-					parent.appendChild(variable);
-					return true;
-				}
-				this._backTo(token);
-				return false;
-			} else if (this._accept(4)) {
-				parent.appendChild(variable);
-				return true;
-			} else return this._backTo(token);
-		}
-		_parseTransform(parent) {
-			let transform = new Transform();
-			transform.ultisnip = this.ultisnip === true;
-			let regexValue = "";
-			let regexOptions = "";
-			while (true) {
-				if (this._accept(6)) break;
-				let escaped;
-				if (escaped = this._accept(5, true)) {
-					escaped = this._accept(6, true) || escaped;
-					regexValue += escaped;
-					continue;
-				}
-				if (this._token.type !== 14) {
-					regexValue += this._accept(void 0, true);
-					continue;
-				}
-				return false;
-			}
-			while (true) {
-				if (this._accept(6)) break;
-				let escaped;
-				if (escaped = this._accept(5, true)) {
-					escaped = this._accept(5, true) || this._accept(6, true) || escaped;
-					transform.appendChild(new Text(escaped));
-					continue;
-				}
-				if (this._parseFormatString(transform) || this._parseConditionString(transform) || this._parseAnything(transform)) continue;
-				return false;
-			}
-			let ascii = false;
-			while (true) {
-				if (this._accept(4)) break;
-				if (this._token.type !== 14) {
-					let c = this._accept(void 0, true);
-					if (c == "a") ascii = true;
-					else {
-						if (!knownRegexOptions.includes(c)) logger$31.error(`Unknown regex option: ${c}`);
-						regexOptions += c;
-					}
-					continue;
-				}
-				return false;
-			}
-			try {
-				if (ascii) transform.ascii = true;
-				if (this.ultisnip) regexValue = convertRegex(regexValue);
-				transform.regexp = new RegExp(regexValue, regexOptions);
-			} catch (e) {
-				return false;
-			}
-			parent.transform = transform;
-			return true;
-		}
-		_parseConditionString(parent) {
-			if (!this.ultisnip) return false;
-			const token = this._token;
-			if (!this._accept(15)) return false;
-			if (!this._accept(13)) {
-				this._backTo(token);
-				return false;
-			}
-			let index = this._accept(8, true);
-			if (!index) {
-				this._backTo(token);
-				return false;
-			}
-			if (!this._accept(1)) {
-				this._backTo(token);
-				return false;
-			}
-			let text = this._until(16, true);
-			if (text) {
-				let i = 0;
-				while (i < text.length) {
-					if (text[i] == ":" && text[i - 1] != "\\") break;
-					i++;
-				}
-				let ifValue = text.slice(0, i);
-				let elseValue = text.slice(i + 1);
-				parent.appendChild(new ConditionString(Number(index), ifValue, elseValue));
-				return true;
-			}
-			this._backTo(token);
-			return false;
-		}
-		_parseFormatString(parent) {
-			const token = this._token;
-			if (!this._accept(0)) return false;
-			let complex = false;
-			if (this._accept(3)) complex = true;
-			let index = this._accept(8, true);
-			if (!index) {
-				this._backTo(token);
-				return false;
-			} else if (!complex) {
-				parent.appendChild(new FormatString(Number(index)));
-				return true;
-			} else if (this._accept(4)) {
-				parent.appendChild(new FormatString(Number(index)));
-				return true;
-			} else if (!this._accept(1)) {
-				this._backTo(token);
-				return false;
-			}
-			if (this.ultisnip) {
-				this._backTo(token);
-				return false;
-			}
-			if (this._accept(6)) {
-				let shorthand = this._accept(9, true);
-				if (!shorthand || !this._accept(4)) {
-					this._backTo(token);
-					return false;
-				} else {
-					parent.appendChild(new FormatString(Number(index), shorthand));
-					return true;
-				}
-			} else if (this._accept(11)) {
-				let ifValue = this._until(4);
-				if (ifValue) {
-					parent.appendChild(new FormatString(Number(index), void 0, ifValue, void 0));
-					return true;
-				}
-			} else if (this._accept(12)) {
-				let elseValue = this._until(4);
-				if (elseValue) {
-					parent.appendChild(new FormatString(Number(index), void 0, void 0, elseValue));
-					return true;
-				}
-			} else if (this._accept(13)) {
-				let ifValue = this._until(1);
-				if (ifValue) {
-					let elseValue = this._until(4);
-					if (elseValue) {
-						parent.appendChild(new FormatString(Number(index), void 0, ifValue, elseValue));
-						return true;
-					}
-				}
-			} else {
-				let elseValue = this._until(4);
-				if (elseValue) {
-					parent.appendChild(new FormatString(Number(index), void 0, void 0, elseValue));
-					return true;
-				}
-			}
-			this._backTo(token);
-			return false;
-		}
-		_parseCodeBlock(parent) {
-			if (!this.ultisnip) return false;
-			const token = this._token;
-			if (!this._accept(17)) return false;
-			let text = this._until(17, true);
-			if (text) {
-				if (!text.startsWith("!")) {
-					let marker = new CodeBlock(text.trim(), "shell");
-					parent.appendChild(marker);
-					return true;
-				}
-				if (text.startsWith("!v")) {
-					let marker = new CodeBlock(text.slice(2).trim(), "vim");
-					parent.appendChild(marker);
-					return true;
-				}
-				if (text.startsWith("!p")) {
-					let code = text.slice(2);
-					if (code.indexOf("\n") == -1) {
-						let marker = new CodeBlock(code.trim(), "python");
-						parent.appendChild(marker);
-					} else {
-						let codes = code.split(/\r?\n/);
-						codes = codes.filter((s) => !/^\s*$/.test(s));
-						if (!codes.length) return true;
-						let ind = codes[0].match(/^\s*/)[0];
-						if (ind.length && codes.every((s) => s.startsWith(ind))) codes = codes.map((s) => s.slice(ind.length));
-						if (ind == " " && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1);
-						let marker = new CodeBlock(codes.join("\n"), "python");
-						parent.appendChild(marker);
-					}
-					return true;
-				}
-			}
-			this._backTo(token);
-			return false;
-		}
-		_parseAnything(marker) {
-			if (this._token.type !== 14) {
-				let text = this._scanner.tokenText(this._token);
-				marker.appendChild(new Text(text));
-				this._accept(void 0);
-				return true;
-			}
-			return false;
-		}
-	};
-	escapedCharacters = [
-		":",
-		"(",
-		")",
-		"{",
-		"}"
-	];
-}));
-//#endregion
-//#region src/model/textline.ts
-var TextLine;
-var init_textline = __esmMin((() => {
-	init_main$2();
-	TextLine = class {
-		_line;
-		_text;
-		_isLastLine;
-		constructor(line, text, isLastLine) {
-			this._line = line;
-			this._text = text;
-			this._isLastLine = isLastLine;
-		}
-		/**
-		* The zero-based line number.
-		*/
-		get lineNumber() {
-			return this._line;
-		}
-		/**
-		* The text of this line without the line separator characters.
-		*/
-		get text() {
-			return this._text;
-		}
-		/**
-		* The range this line covers without the line separator characters.
-		*/
-		get range() {
-			return Range.create(this._line, 0, this._line, this._text.length);
-		}
-		/**
-		* The range this line covers with the line separator characters.
-		*/
-		get rangeIncludingLineBreak() {
-			return this._isLastLine ? this.range : Range.create(this._line, 0, this._line + 1, 0);
-		}
-		/**
-		* The offset of the first character which is not a whitespace character as defined
-		* by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
-		*/
-		get firstNonWhitespaceCharacterIndex() {
-			return /^(\s*)/.exec(this._text)[1].length;
-		}
-		/**
-		* Whether this line is whitespace only, shorthand
-		* for {@link TextLine.firstNonWhitespaceCharacterIndex} === {@link TextLine.text TextLine.text.length}.
-		*/
-		get isEmptyOrWhitespace() {
-			return this.firstNonWhitespaceCharacterIndex === this._text.length;
-		}
-	};
-}));
-//#endregion
-//#region src/model/textdocument.ts
-function computeLinesOffsets(lines, eol) {
-	const result = [];
-	let textOffset = 0;
-	for (let line of lines) {
-		result.push(textOffset);
-		textOffset += line.length + 1;
-	}
-	if (eol) result.push(textOffset);
-	return result;
-}
-var LinesTextDocument;
-var init_textdocument = __esmMin((() => {
-	init_main$2();
-	init_textedit();
-	init_textline();
-	LinesTextDocument = class {
-		uri;
-		languageId;
-		version;
-		lines;
-		bufnr;
-		eol;
-		_lineOffsets;
-		_content;
-		constructor(uri, languageId, version, lines, bufnr, eol) {
-			this.uri = uri;
-			this.languageId = languageId;
-			this.version = version;
-			this.lines = lines;
-			this.bufnr = bufnr;
-			this.eol = eol;
-		}
-		get content() {
-			if (!this._content) this._content = this.lines.join("\n") + (this.eol ? "\n" : "");
-			return this._content;
-		}
-		get length() {
-			if (!this._content) {
-				let n = this.lines.reduce((p, c) => {
-					return p + c.length + 1;
-				}, 0);
-				return this.eol ? n : n - 1;
-			}
-			return this._content.length;
-		}
-		get end() {
-			let len = this.lines.length;
-			if (this.eol) return Position.create(len, 0);
-			return Position.create(len - 1, this.lines[len - 1].length);
-		}
-		get lineCount() {
-			return this.lines.length + (this.eol ? 1 : 0);
-		}
-		intersectWith(range) {
-			let start = Position.create(0, 0);
-			if (start.line < range.start.line) start = range.start;
-			else if (range.start.line === start.line) start = Position.create(start.line, Math.max(start.character, range.start.character));
-			let end = this.end;
-			if (range.end.line < end.line) end = range.end;
-			else if (range.end.line === end.line) end = Position.create(end.line, Math.min(end.character, range.end.character));
-			return Range.create(start, end);
-		}
-		getText(range) {
-			if (range) return getRangeText(this.lines, range);
-			return this.content;
-		}
-		lineAt(lineOrPos) {
-			const line = Position.is(lineOrPos) ? lineOrPos.line : lineOrPos;
-			if (typeof line !== "number" || line < 0 || line >= this.lineCount || Math.floor(line) !== line) throw new Error("Illegal value for `line`");
-			return new TextLine(line, this.lines[line] ?? "", line === this.lineCount - 1);
-		}
-		positionAt(offset) {
-			offset = Math.max(Math.min(offset, this.content.length), 0);
-			let lineOffsets = this.getLineOffsets();
-			let low = 0;
-			let high = lineOffsets.length;
-			if (high === 0) return {
-				line: 0,
-				character: offset
-			};
-			while (low < high) {
-				let mid = Math.floor((low + high) / 2);
-				if (lineOffsets[mid] > offset) high = mid;
-				else low = mid + 1;
-			}
-			let line = low - 1;
-			return {
-				line,
-				character: offset - lineOffsets[line]
-			};
-		}
-		offsetAt(position) {
-			let lineOffsets = this.getLineOffsets();
-			if (position.line >= lineOffsets.length) return this.content.length;
-			else if (position.line < 0) return 0;
-			let lineOffset = lineOffsets[position.line];
-			let nextLineOffset = position.line + 1 < lineOffsets.length ? lineOffsets[position.line + 1] : this.content.length;
-			return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset);
-		}
-		getLineOffsets() {
-			if (this._lineOffsets === void 0) this._lineOffsets = computeLinesOffsets(this.lines, this.eol);
-			return this._lineOffsets;
-		}
-	};
-}));
-//#endregion
-//#region src/snippets/snippet.ts
-/**
-* Next or previous placeholder
-*/
-function getNextPlaceholder(marker, forward, nested = false) {
-	if (!marker) return void 0;
-	let { snippet } = marker;
-	let idx = marker.index;
-	if (idx < 0 || !snippet) return void 0;
-	let arr = [];
-	let min_index;
-	let max_index;
-	if (idx > 0) {
-		snippet.walk((m) => {
-			if (m instanceof Placeholder && !m.transform) {
-				if (forward && (m.index > idx || m.isFinalTabstop) || !forward && m.index < idx && !m.isFinalTabstop) {
-					arr.push(m);
-					if (!m.isFinalTabstop) min_index = min_index === void 0 ? m.index : Math.min(min_index, m.index);
-					max_index = max_index === void 0 ? m.index : Math.max(max_index, m.index);
-				}
-			}
-			return true;
-		}, true);
-		if (arr.length > 0) {
-			arr.sort((a, b) => {
-				if (b.primary && !a.primary) return 1;
-				if (a.primary && !b.primary) return -1;
-				return 0;
-			});
-			if (forward) return min_index === void 0 ? arr[0] : arr.find((o) => o.index === min_index);
-			return arr.find((o) => o.index === max_index);
-		}
-	}
-	if (snippet.parent instanceof Placeholder) return getNextPlaceholder(snippet.parent, forward, true);
-	if (nested) return marker;
-}
-/**
-* Return action code and reset code of snippet.
-*/
-function getUltiSnipActionCodes(marker, action) {
-	if (!marker) return void 0;
-	const snip = marker instanceof TextmateSnippet ? marker : marker.snippet;
-	if (!snip) return void 0;
-	let context = snip.related.context;
-	let code = getAction(context, action);
-	if (!code) return void 0;
-	return [code, getResetPythonCode(context)];
-}
-var CocSnippet;
-var init_snippet = __esmMin((() => {
-	init_main$2();
-	init_textdocument();
-	init_util$7();
-	init_position();
-	init_protocol();
-	init_eval();
-	init_parser();
-	init_util$4();
-	CocSnippet = class {
-		snippet;
-		position;
-		nvim;
-		resolver;
-		_markerSequence = [];
-		_placeholders = [];
-		_snippets = [];
-		_text;
-		_tmSnippet;
-		constructor(snippet, position, nvim, resolver) {
-			this.snippet = snippet;
-			this.position = position;
-			this.nvim = nvim;
-			this.resolver = resolver;
-		}
-		get tmSnippet() {
-			return this._tmSnippet;
-		}
-		get snippets() {
-			return this._snippets.map((o) => o.marker);
-		}
-		getSnippet(marker) {
-			return marker instanceof TextmateSnippet ? marker : marker.snippet;
-		}
-		deactivateSnippet(snip) {
-			if (!snip) return;
-			if (snip.parent) {
-				let text = new Text(snip.toString());
-				snip.replaceWith(text);
-				this.synchronize();
-			}
-		}
-		getUltiSnipOption(marker, key) {
-			let snip = this.getSnippet(marker);
-			if (!snip) return void 0;
-			let context = snip.related.context;
-			if (!context) return void 0;
-			return context[key];
-		}
-		async init(ultisnip) {
-			if (typeof this.snippet === "string") {
-				const snippet = new SnippetParser(!!ultisnip).parse(this.snippet, true);
-				this._tmSnippet = snippet;
-			} else this._tmSnippet = this.snippet;
-			await this.resolve(this._tmSnippet, ultisnip);
-			this.synchronize();
-		}
-		async resolve(snippet, ultisnip) {
-			let { resolver, nvim } = this;
-			if (resolver) await snippet.resolveVariables(resolver);
-			if (ultisnip) {
-				let pyCodes = [];
-				snippet.related.context = ultisnip;
-				if (ultisnip.noPython !== true) {
-					if (snippet.hasPythonBlock) pyCodes = getPyBlockCode(ultisnip);
-					else if (hasPython(ultisnip)) pyCodes = getResetPythonCode(ultisnip);
-					if (pyCodes.length > 0) snippet.related.codes = pyCodes;
-				}
-				await snippet.evalCodeBlocks(nvim, pyCodes);
-			}
-		}
-		getPlaceholderOnJump(current, forward) {
-			const p = getNextPlaceholder(current, forward);
-			return p ? this.getPlaceholderByMarker(p) : void 0;
-		}
-		/**
-		* Same index and in same snippet only
-		*/
-		getRanges(marker) {
-			if (marker.toString().length === 0 || !marker.snippet) return [];
-			let tmSnippet = marker.snippet;
-			return this._placeholders.filter((o) => o.index == marker.index && o.marker.snippet === tmSnippet).map((o) => o.range).filter((r) => !emptyRange(r));
-		}
-		/**
-		* Find the most possible marker contains range, throw error when not found
-		*/
-		findParent(range, current) {
-			const isInsert = emptyRange(range);
-			let marker;
-			let markerRange;
-			const { _snippets, _placeholders, _markerSequence } = this;
-			const seq = _markerSequence.filter((o) => o !== current);
-			if (current && _markerSequence.includes(current)) seq.push(current);
-			const list = seq.map((m) => {
-				return m instanceof TextmateSnippet ? _snippets.find((o) => o.marker === m) : _placeholders.find((o) => o.marker === m);
-			});
-			for (let index = list.length - 1; index >= 0; index--) {
-				const o = list[index];
-				if (rangeInRange(range, o.range)) {
-					if (isInsert && o.marker instanceof Placeholder && (o.marker.choice || o.marker.index === 0) && o.marker !== current && adjacentPosition(range.start, o.range)) continue;
-					marker = o.marker;
-					markerRange = o.range;
-					break;
-				}
-			}
-			if (!marker) throw new Error(`Unable to find parent marker in range ${JSON.stringify(range, null, 2)}`);
-			return {
-				marker,
-				range: markerRange
-			};
-		}
-		/**
-		* The change must happens with same marker parents, return the changed marker
-		*/
-		replaceWithMarker(range, marker, current) {
-			const isInsert = emptyRange(range);
-			const result = this.findParent(range, current);
-			let parentMarker = result.marker;
-			let parentRange = result.range;
-			const children = parentMarker.children;
-			let pos = parentRange.start;
-			let startIdx = 0;
-			let deleteCount = 0;
-			const { start, end } = range;
-			let startMarker;
-			let endMarker;
-			let preText = "";
-			let afterText = "";
-			let len = children.length;
-			for (let i = 0; i < len; i++) {
-				let child = children[i];
-				let value = child.toString();
-				let s = Position.create(pos.line, pos.character);
-				let e = getEnd(s, value);
-				let r = Range.create(s, e);
-				if (startMarker === void 0 && positionInRange(start, r) === 0 && !samePosition(start, e)) {
-					startMarker = child;
-					startIdx = i;
-					preText = getTextBefore(Range.create(s, e), value, start);
-					if (isInsert && samePosition(end, s)) {
-						endMarker = child;
-						break;
-					}
-				}
-				if (startMarker != null) {
-					if (positionInRange(end, r) === 0) {
-						endMarker = child;
-						afterText = getTextAfter(Range.create(s, e), value, end);
-					}
-					deleteCount += 1;
-				} else if (i == len - 1 && samePosition(start, e)) startIdx = len;
-				if (endMarker != null) break;
-				pos = e;
-			}
-			if (marker instanceof Text) {
-				let newText = new Text(preText + marker.value + afterText);
-				parentMarker.children.splice(startIdx, deleteCount, newText);
-				newText.parent = parentMarker;
-				mergeTexts(parentMarker, 0);
-				if (parentMarker instanceof Placeholder && parentMarker.children[0] instanceof Text) {
-					let text = parentMarker.children[0];
-					if (text.value.startsWith("\n")) {
-						text.replaceWith(new Text(text.value.slice(1)));
-						parentMarker.insertBefore("\n");
-					}
-				}
-			} else {
-				let markers = [];
-				if (preText) markers.push(new Text(preText));
-				if (parentMarker instanceof TextmateSnippet) {
-					let p = new Placeholder((current ? current.index : 0) + Math.random());
-					p.appendChild(marker);
-					p.primary = true;
-					markers.push(p);
-				} else markers.push(marker);
-				if (afterText) markers.push(new Text(afterText));
-				children.splice(startIdx, deleteCount, ...markers);
-				markers.forEach((m) => m.parent = parentMarker);
-				if (preText.length > 0 || afterText.length > 0) mergeTexts(parentMarker, 0);
-			}
-			if (parentMarker instanceof Placeholder && !parentMarker.primary) {
-				let first = parentMarker.children[0];
-				if (parentMarker.children.length === 1 && first instanceof Text) {
-					parentMarker.replaceWith(first);
-					return first;
-				}
-				if (Number.isInteger(parentMarker.index)) parentMarker.index += .1;
-			}
-			return parentMarker;
-		}
-		/**
-		* Replace range with text, return new Cursor position when cursor provided
-		*
-		* Get new Cursor position for synchronize update only.
-		* The cursor position should already adjusted before call this function.
-		*/
-		async replaceWithText(range, text, token, current, cursor) {
-			let cloned = this._tmSnippet.clone();
-			let marker = this.replaceWithMarker(range, new Text(text), current);
-			let snippetText = this._tmSnippet.toString();
-			if (marker === this._tmSnippet) {
-				this.synchronize();
-				return {
-					snippetText,
-					marker
-				};
-			}
-			let sp = this.getMarkerPosition(marker);
-			let changeCharacter = sp && cursor && sp.line === cursor.line;
-			const reset = () => {
-				this._tmSnippet = cloned;
-				this.synchronize();
-			};
-			token.onCancellationRequested(reset);
-			await this.onMarkerUpdate(marker, token);
-			if (token.isCancellationRequested) return void 0;
-			let ep = this.getMarkerPosition(marker);
-			let delta;
-			if (cursor && sp && ep) {
-				let lc = ep.line - sp.line;
-				let cc = changeCharacter ? ep.character - sp.character : 0;
-				if (lc != 0 || cc != 0) delta = Position.create(lc, cc);
-			}
-			return {
-				snippetText,
-				marker,
-				delta
-			};
-		}
-		async replaceWithSnippet(range, text, current, ultisnip) {
-			let snippet = new SnippetParser(!!ultisnip).parse(text, true);
-			let marker = this.replaceWithMarker(range, snippet, current);
-			await this.resolve(snippet, ultisnip);
-			await this.onMarkerUpdate(marker, import_main$1.CancellationToken.None);
-			return snippet;
-		}
-		/**
-		* Get placeholder or snippet start position in current document
-		*/
-		getMarkerPosition(marker) {
-			if (marker instanceof Placeholder) {
-				let p = this._placeholders.find((o) => o.marker === marker);
-				return p ? p.range.start : void 0;
-			}
-			let o = this._snippets.find((o) => o.marker === marker);
-			return o ? o.range.start : void 0;
-		}
-		getSnippetRange(marker) {
-			let snip = marker.snippet;
-			if (!snip) return void 0;
-			let info = this._snippets.find((o) => o.marker === snip);
-			return info ? info.range : void 0;
-		}
-		/**
-		* Get TabStops of same snippet.
-		*/
-		getSnippetTabstops(marker) {
-			let snip = marker.snippet;
-			if (!snip) return [];
-			let res = [];
-			this._placeholders.forEach((p) => {
-				const { start, end } = p.range;
-				if (p.marker.snippet === snip && (p.primary || p.index === 0)) res.push({
-					index: p.index,
-					range: [
-						start.line,
-						start.character,
-						end.line,
-						end.character
-					],
-					text: p.value
-				});
-			});
-			return res;
-		}
-		async onMarkerUpdate(marker, token) {
-			let ts = Date.now();
-			while (marker != null) if (marker instanceof Placeholder) {
-				let snip = marker.snippet;
-				if (!snip) break;
-				await snip.update(this.nvim, marker, token);
-				if (token.isCancellationRequested) return;
-				marker = snip.parent;
-			} else marker = marker.parent;
-			await waitWithToken(Math.max(0, 16 - Date.now() + ts), token);
-			if (token.isCancellationRequested) return;
-			this.synchronize();
-		}
-		usePython(snip) {
-			return snip.hasCodeBlock || hasPython(snip.related.context);
-		}
-		get hasPython() {
-			for (const info of this._snippets) {
-				let snip = info.marker;
-				if (this.usePython(snip)) return true;
-			}
-			return false;
-		}
-		resetStartPosition(pos) {
-			this.position = pos;
-			this.synchronize();
-		}
-		get start() {
-			return Position.create(this.position.line, this.position.character);
-		}
-		get range() {
-			let end = getEnd(this.position, this._text);
-			return Range.create(this.position, end);
-		}
-		get text() {
-			return this._text;
-		}
-		get hasBeginningPlaceholder() {
-			let { position } = this;
-			return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.start, position) === 0) != null;
-		}
-		get hasEndPlaceholder() {
-			let position = this._snippets[0].range.end;
-			return this._placeholders.find((o) => o.index !== 0 && comparePosition(o.range.end, position) === 0) != null;
-		}
-		getPlaceholderByMarker(marker) {
-			return this._placeholders.find((o) => o.marker === marker);
-		}
-		getPlaceholderByIndex(index) {
-			let filtered = this._placeholders.filter((o) => o.index == index && !o.marker.transform);
-			return defaultValue(filtered.find((o) => o.primary), filtered[0]);
-		}
-		getPlaceholderById(id, index) {
-			let p = this._tmSnippet.placeholders.find((o) => o.id === id);
-			if (p) return p;
-			let placeholder = this.getPlaceholderByIndex(index);
-			return placeholder ? placeholder.marker : void 0;
-		}
-		/**
-		* Should be used after snippet resolved.
-		*/
-		synchronize() {
-			const snippet = this._tmSnippet;
-			const snippetStr = snippet.toString();
-			const document = new LinesTextDocument("/", "", 0, snippetStr.split(/\n/), 0, false);
-			const placeholders = [];
-			const snippets = [];
-			const markerSequence = [];
-			const { start } = this;
-			snippets.push({
-				range: Range.create(start, getEnd(start, snippetStr)),
-				marker: snippet,
-				value: snippetStr
-			});
-			markerSequence.push(snippet);
-			let offset = 0;
-			snippet.walk((marker) => {
-				if (marker instanceof Placeholder && marker.transform == null) {
-					markerSequence.push(marker);
-					const position = document.positionAt(offset);
-					const value = marker.toString();
-					placeholders.push({
-						index: marker.index,
-						value,
-						marker,
-						range: getNewRange(start, position, value),
-						primary: marker.primary === true
-					});
-				} else if (marker instanceof TextmateSnippet) {
-					markerSequence.push(marker);
-					const position = document.positionAt(offset);
-					const value = marker.toString();
-					snippets.push({
-						range: getNewRange(start, position, value),
-						marker,
-						value
-					});
-				}
-				offset += marker.len();
-				return true;
-			}, false);
-			this._snippets = snippets;
-			this._text = snippetStr;
-			this._placeholders = placeholders;
-			this._markerSequence = markerSequence;
-		}
-	};
-}));
-//#endregion
-//#region src/snippets/variableResolve.ts
-function padZero(n) {
-	return n < 10 ? "0" + n : n.toString();
-}
-function parseComments(comments) {
-	let start;
-	let end;
-	let single;
-	let parts = comments.split(",");
-	for (let s of parts) {
-		if (start && end && single) break;
-		if (!s.includes(":")) continue;
-		let [flag, str] = s.split(":");
-		if (flag.includes("s")) start = str;
-		else if (flag.includes("e")) end = str;
-		else if (!single && flag == "") single = str;
-	}
-	return {
-		start,
-		end,
-		single
-	};
-}
-function parseCommentstring(commentstring) {
-	if (commentstring.endsWith("%s")) return commentstring.slice(0, -2).trim();
-}
-var SnippetVariableResolver;
-var init_variableResolve = __esmMin((() => {
-	init_esm();
-	init_node();
-	init_object();
-	SnippetVariableResolver = class {
-		nvim;
-		workspaceFolder;
-		_variableToValue = {};
-		constructor(nvim, workspaceFolder) {
-			this.nvim = nvim;
-			this.workspaceFolder = workspaceFolder;
-			const currentDate = /* @__PURE__ */ new Date();
-			const fullyear = currentDate.getFullYear().toString();
-			Object.assign(this._variableToValue, {
-				CURRENT_YEAR: fullyear,
-				CURRENT_YEAR_SHORT: fullyear.slice(-2),
-				CURRENT_MONTH: padZero(currentDate.getMonth() + 1),
-				CURRENT_DATE: padZero(currentDate.getDate()),
-				CURRENT_HOUR: padZero(currentDate.getHours()),
-				CURRENT_MINUTE: padZero(currentDate.getMinutes()),
-				CURRENT_SECOND: padZero(currentDate.getSeconds()),
-				CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
-				CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
-				CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
-				CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
-				TM_FILENAME: null,
-				TM_FILENAME_BASE: null,
-				TM_DIRECTORY: null,
-				TM_FILEPATH: null,
-				YANK: null,
-				TM_LINE_INDEX: null,
-				TM_LINE_NUMBER: null,
-				TM_CURRENT_LINE: null,
-				TM_CURRENT_WORD: null,
-				TM_SELECTED_TEXT: null,
-				VISUAL: null,
-				CLIPBOARD: null,
-				RELATIVE_FILEPATH: null,
-				RANDOM: null,
-				RANDOM_HEX: null,
-				UUID: null,
-				BLOCK_COMMENT_START: null,
-				BLOCK_COMMENT_END: null,
-				LINE_COMMENT: null,
-				WORKSPACE_NAME: null,
-				WORKSPACE_FOLDER: null
-			});
-		}
-		async resolveValue(name) {
-			let { nvim } = this;
-			if ([
-				"TM_FILENAME",
-				"TM_FILENAME_BASE",
-				"TM_DIRECTORY",
-				"TM_FILEPATH"
-			].includes(name)) {
-				let filepath = await nvim.call("coc#util#get_fullpath");
-				if (name === "TM_FILENAME") return path$5.basename(filepath);
-				if (name === "TM_FILENAME_BASE") return path$5.basename(filepath, path$5.extname(filepath));
-				if (name === "TM_DIRECTORY") return path$5.dirname(filepath);
-				if (name === "TM_FILEPATH") return filepath;
-			}
-			if (name === "YANK") return await nvim.call("getreg", ["\"\""]);
-			if (name === "TM_LINE_INDEX") return (await nvim.call("line", ["."]) - 1).toString();
-			if (name === "TM_LINE_NUMBER") return (await nvim.call("line", ["."])).toString();
-			if (name === "TM_CURRENT_LINE") return await nvim.call("getline", ["."]);
-			if (name === "TM_CURRENT_WORD") return await nvim.eval(`expand('<cword>')`);
-			if (name === "TM_SELECTED_TEXT" || name == "VISUAL") return await nvim.eval(`get(g:,'coc_selected_text', v:null)`);
-			if (name === "CLIPBOARD") return await nvim.eval("@*");
-			if (name === "RANDOM") return Math.random().toString().slice(-6);
-			if (name === "RANDOM_HEX") return Math.random().toString(16).slice(-6);
-			if (name === "UUID") return crypto.randomUUID();
-			if ([
-				"RELATIVE_FILEPATH",
-				"WORKSPACE_NAME",
-				"WORKSPACE_FOLDER"
-			].includes(name)) {
-				let filepath = await nvim.call("coc#util#get_fullpath");
-				let folder = this.workspaceFolder.getWorkspaceFolder(URI.file(filepath));
-				if (name === "RELATIVE_FILEPATH") return this.workspaceFolder.getRelativePath(filepath);
-				if (name === "WORKSPACE_NAME") return folder.name;
-				if (name === "WORKSPACE_FOLDER") return URI.parse(folder.uri).fsPath;
-			}
-			if (name === "LINE_COMMENT") {
-				let s = parseCommentstring(await nvim.eval("&commentstring"));
-				if (s) return s;
-				let { single } = parseComments(await nvim.eval("&comments"));
-				return single;
-			}
-			if (["BLOCK_COMMENT_START", "BLOCK_COMMENT_END"].includes(name)) {
-				let { start, end } = parseComments(await nvim.eval("&comments"));
-				if (name === "BLOCK_COMMENT_START") return start;
-				if (name === "BLOCK_COMMENT_END") return end;
-			}
-		}
-		async resolve(variable) {
-			const name = variable.name;
-			let resolved = this._variableToValue[name];
-			if (resolved != null) return resolved.toString();
-			if (hasOwnProperty$1(this._variableToValue, name)) {
-				let value = await this.resolveValue(name);
-				if (!value && variable.children.length) return variable.toString();
-				return value == null ? "" : value.toString();
-			}
-			if (variable.children.length) return variable.toString();
-		}
-	};
-}));
-//#endregion
-//#region src/snippets/session.ts
-var logger$30, NAME_SPACE, SnippetSession;
-var init_session$1 = __esmMin((() => {
-	init_main$2();
-	init_events();
-	init_logger$2();
-	init_util$7();
-	init_diff();
-	init_errors();
-	init_lodash();
-	init_mutex();
-	init_object();
-	init_position();
-	init_protocol();
-	init_string$1();
-	init_textedit();
-	init_window();
-	init_workspace$1();
-	init_eval();
-	init_parser();
-	init_snippet();
-	init_util$4();
-	init_variableResolve();
-	logger$30 = createLogger$1("snippets-session");
-	NAME_SPACE = "snippets";
-	SnippetSession = class {
-		nvim;
-		document;
-		config;
-		mutex = new Mutex();
-		current;
-		textDocument;
-		tokenSource;
-		_applying = false;
-		_paused = false;
-		snippet = null;
-		_onActiveChange = new import_main$1.Emitter();
-		_selected = false;
-		onActiveChange = this._onActiveChange.event;
-		constructor(nvim, document, config) {
-			this.nvim = nvim;
-			this.document = document;
-			this.config = config;
-		}
-		get selected() {
-			return this._selected;
-		}
-		async insertSnippetEdits(edits) {
-			if (edits.length === 0) return this.isActive;
-			if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
-			const textDocument = this.document.textDocument;
-			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
-			const sharedFinals = this.getSharedEditableFinals(textEdits.map((o) => o.newText));
-			if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits);
-			const len = textEdits.length;
-			let combined = "";
-			const snippets = textEdits.map((o) => new SnippetParser().parse(o.newText));
-			let nextIndex = 1;
-			for (const snippet of snippets) {
-				const localIndexes = /* @__PURE__ */ new Set();
-				snippet.walk((m) => {
-					if (m instanceof Placeholder && m.index > 0) localIndexes.add(m.index);
-					return true;
-				});
-				const indexMap = /* @__PURE__ */ new Map();
-				for (const index of Array.from(localIndexes).sort((a, b) => a - b)) indexMap.set(index, nextIndex++);
-				snippet.walk((m) => {
-					if (m instanceof Placeholder && m.index > 0) m.index = indexMap.get(m.index);
-					return true;
-				});
-			}
-			const sharedIndexMap = /* @__PURE__ */ new Map();
-			let needsFinalTabstop = false;
-			for (const snippet of snippets) {
-				const localFinalMap = /* @__PURE__ */ new Map();
-				snippet.walk((m) => {
-					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
-						needsFinalTabstop = true;
-						const key = this.getEditableFinalKey(m);
-						let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key);
-						if (index == null) {
-							index = nextIndex++;
-							if (sharedFinals.has(key)) sharedIndexMap.set(key, index);
-							else localFinalMap.set(key, index);
-						}
-						m.index = index;
-					}
-					return true;
-				});
-			}
-			for (let i = 0; i < len; i++) {
-				combined += snippets[i].toTextmateString();
-				if (i !== len - 1) {
-					let r = Range.create(textEdits[i].range.end, textEdits[i + 1].range.start);
-					combined += SnippetParser.escape(textDocument.getText(r));
-				}
-			}
-			if (needsFinalTabstop) combined += "$0";
-			this.deactivate();
-			let range = Range.create(textEdits[0].range.start, textEdits[len - 1].range.end);
-			return await this.start(combined, range, false);
-		}
-		getEditableFinalKey(placeholder) {
-			return placeholder.toTextmateString();
-		}
-		getSharedEditableFinals(snippets) {
-			const counts = /* @__PURE__ */ new Map();
-			for (const text of snippets) {
-				const keys = /* @__PURE__ */ new Set();
-				new SnippetParser().parse(text).walk((m) => {
-					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) keys.add(this.getEditableFinalKey(m));
-					return true;
-				});
-				for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
-			}
-			return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
-		}
-		async insertNestedSnippetEdits(textEdits) {
-			const textDocument = this.document.textDocument;
-			const len = textEdits.length;
-			const snip = new TextmateSnippet();
-			for (let i = 0; i < len; i++) {
-				let range = textEdits[i].range;
-				let placeholder = new Placeholder(i + 1);
-				placeholder.appendChild(new Text(textDocument.getText(range)));
-				snip.appendChild(placeholder);
-				if (i != len - 1) {
-					let r = Range.create(range.end, textEdits[i + 1].range.start);
-					snip.appendChild(new Text(textDocument.getText(r)));
-				}
-			}
-			this.deactivate();
-			const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
-			let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver);
-			await snippet.init();
-			this.activate(snippet);
-			for (let i = len - 1; i >= 0; i--) {
-				let idx = i + 1;
-				this.current = snip.placeholders.find((o) => o.index === idx);
-				let edit = textEdits[i];
-				await this.start(edit.newText, edit.range, false);
-			}
-			return this.isActive;
-		}
-		async start(inserted, range, select = true, context) {
-			let { document, snippet } = this;
-			this._paused = false;
-			const edits = [];
-			let textmateSnippet;
-			if (inserted.length === 0) return this.isActive;
-			if (snippet && this.canNestSnippet(range, snippet)) {
-				let oldRange = snippet.range;
-				let previous = snippet.text;
-				textmateSnippet = await this.snippet.replaceWithSnippet(range, inserted, this.current, context);
-				let edit = reduceTextEdit({
-					range: oldRange,
-					newText: this.snippet.text
-				}, previous);
-				edits.push(edit);
-			} else {
-				this.deactivate();
-				const resolver = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
-				snippet = new CocSnippet(inserted, range.start, this.nvim, resolver);
-				await snippet.init(context);
-				textmateSnippet = snippet.tmSnippet;
-				edits.push(TextEdit.replace(range, snippet.text));
-				if (inserted.replace(/\$0$/, "").endsWith("\n")) {
-					const currentLine = document.getline(range.start.line);
-					const remain = currentLine.slice(range.end.character);
-					if (remain.length) {
-						let s = range.end.character;
-						let l = remain.match(/^\s*/)[0].length;
-						let r = Range.create(range.end.line, s, range.end.line, s + l);
-						edits.push(TextEdit.replace(r, currentLine.match(/^\s*/)[0]));
-					}
-				}
-			}
-			this.current = textmateSnippet.first;
-			this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
-			await this.applyEdits(edits);
-			this.activate(snippet);
-			if (context) await this.tryPostExpand(textmateSnippet);
-			let { placeholder } = this;
-			if (select && placeholder) await this.selectPlaceholder(placeholder, true);
-			return this.isActive;
-		}
-		canNestSnippet(range, snippet) {
-			let placeholder = this.placeholder;
-			return !!placeholder && rangeInRange(range, snippet.range) && rangeInRange(range, placeholder.range);
-		}
-		async tryPostExpand(textmateSnippet) {
-			let result = getUltiSnipActionCodes(textmateSnippet, "postExpand");
-			if (!result) return;
-			const { start, end } = this.snippet.range;
-			const [code, resetCodes] = result;
-			let pos = `[${start.line},${start.character},${end.line},${end.character}]`;
-			let codes = [
-				...resetCodes,
-				`snip = coc_ultisnips_dict["PostExpandContext"](${pos})`,
-				code
-			];
-			this.cancel();
-			await executePythonCode(this.nvim, codes);
-			await this.forceSynchronize();
-		}
-		async tryPostJump(code, resetCodes, info, bufnr) {
-			await waitNextTick();
-			this.nvim.setVar("coc_ultisnips_tabstops", info.tabstops, true);
-			const { snippet_start, snippet_end } = info;
-			let pos = `[${snippet_start.line},${snippet_start.character},${snippet_end.line},${snippet_end.character}]`;
-			let codes = [
-				...resetCodes,
-				`snip = coc_ultisnips_dict["PostJumpContext"](${pos},${info.index},${info.forward ? 1 : 0})`,
-				code
-			];
-			this.cancel();
-			await executePythonCode(this.nvim, codes);
-			await this.forceSynchronize();
-			events_default.fire("PlaceholderJump", [bufnr, info]);
-		}
-		async removeWhiteSpaceBefore(placeholder) {
-			if (!emptyRange(placeholder.range)) return;
-			let pos = placeholder.range.start;
-			let line = this.document.getline(pos.line);
-			let ms = line.match(/\s+$/);
-			if (ms && line.length === pos.character) {
-				let startCharacter = pos.character - ms[0].length;
-				let textEdit = TextEdit.del(Range.create(pos.line, startCharacter, pos.line, pos.character));
-				await this.document.applyEdits([textEdit]);
-				await this.forceSynchronize();
-			}
-		}
-		async applyEdits(edits, joinundo = false) {
-			let { document } = this;
-			this._applying = true;
-			await document.applyEdits(edits, joinundo);
-			this._applying = false;
-			this.textDocument = document.textDocument;
-		}
-		async nextPlaceholder() {
-			await this.forceSynchronize();
-			if (!this.current) return;
-			let marker = this.current;
-			if (this.snippet.getUltiSnipOption(marker, "removeWhiteSpace")) {
-				let { placeholder } = this;
-				if (placeholder) await this.removeWhiteSpaceBefore(placeholder);
-			}
-			const p = this.snippet.getPlaceholderOnJump(marker, true);
-			await this.selectPlaceholder(p, true);
-		}
-		async previousPlaceholder() {
-			await this.forceSynchronize();
-			if (!this.current) return;
-			const p = this.snippet.getPlaceholderOnJump(this.current, false);
-			await this.selectPlaceholder(p, true, false);
-		}
-		async selectCurrentPlaceholder(triggerAutocmd = true) {
-			await this.forceSynchronize();
-			let { placeholder } = this;
-			if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd);
-		}
-		async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true) {
-			let { nvim, document } = this;
-			if (!document || !placeholder) return;
-			this._selected = true;
-			let { start, end } = placeholder.range;
-			const line = document.getline(start.line);
-			const marker = this.current = placeholder.marker;
-			const range = this.snippet.getSnippetRange(marker);
-			const tabstops = this.snippet.getSnippetTabstops(marker);
-			if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-				const col = byteIndex(line, start.character) + 1;
-				wordsSource.words = marker.choice.options.map((o) => o.value);
-				wordsSource.startcol = col - 1;
-				nvim.call("coc#snippet#show_choices", [
-					start.line + 1,
-					col,
-					end,
-					placeholder.value
-				], true);
-			} else {
-				await this.select(placeholder);
-				this.highlights();
-			}
-			if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
-			let info = {
-				forward,
-				tabstops,
-				snippet_start: range.start,
-				snippet_end: range.end,
-				index: placeholder.index,
-				range: placeholder.range,
-				charbefore: start.character == 0 ? "" : line.slice(start.character - 1, start.character)
-			};
-			let result = getUltiSnipActionCodes(marker, "postJump");
-			if (result) this.tryPostJump(result[0], result[1], info, document.bufnr).catch(onUnexpectedError);
-			else events_default.fire("PlaceholderJump", [document.bufnr, info]);
-			this.checkFinalPlaceholder();
-		}
-		checkFinalPlaceholder() {
-			let current = this.current;
-			if (current && current.index === 0) {
-				const { snippet } = current;
-				if (snippet === this.snippet.tmSnippet) {
-					logger$30.info("Jump to final placeholder, cancelling snippet session");
-					this.deactivate();
-				} else {
-					let marker = snippet.parent;
-					this.snippet.deactivateSnippet(snippet);
-					if (marker instanceof Placeholder) this.current = marker;
-				}
-			}
-		}
-		highlights() {
-			let { current, config } = this;
-			if (!current || !config.highlight || events_default.bufnr !== this.bufnr) return;
-			let buf = this.document.buffer;
-			this.nvim.pauseNotification();
-			buf.clearNamespace(NAME_SPACE);
-			let ranges = this.snippet.getRanges(current);
-			buf.highlightRanges(NAME_SPACE, "CocSnippetVisual", ranges);
-			this.nvim.resumeNotification(true, true);
-		}
-		async select(placeholder) {
-			let { range, value } = placeholder;
-			let { nvim } = this;
-			if (value.length > 0) await nvim.call("coc#snippet#select", [
-				range.start,
-				range.end,
-				value
-			]);
-			else await nvim.call("coc#snippet#move", [range.start]);
-			nvim.redrawVim();
-		}
-		async checkPosition() {
-			if (!this.isActive) return;
-			let position = await window_default.getCursorPosition();
-			if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
-				logger$30.info("Cursor insert out of range, cancelling snippet session");
-				this.deactivate();
-			}
-		}
-		onTextChange() {
-			this.cancel();
-		}
-		onChange(e) {
-			if (this._applying || !this.isActive || this._paused) return;
-			let changes = e.contentChanges;
-			this.cancel();
-			this.synchronize({
-				version: e.textDocument.version,
-				change: changes[0]
-			}).catch(onUnexpectedError);
-		}
-		async synchronize(change) {
-			const { document, isActive } = this;
-			this._paused = false;
-			if (!isActive) return;
-			await this.mutex.use(() => {
-				if (!document.attached || document.dirty || !this.snippet || !this.textDocument || document.version === this.version) return Promise.resolve();
-				if (change && (change.version - this.version !== 1 || document.version != change.version)) change = void 0;
-				return this._synchronize(change);
-			});
-		}
-		async _synchronize(documentChange) {
-			let { document, textDocument, current, snippet } = this;
-			const newDocument = document.textDocument;
-			if (equals(textDocument.lines, newDocument.lines)) {
-				this.textDocument = newDocument;
-				return;
-			}
-			const startTs = Date.now();
-			let tokenSource = this.tokenSource = new import_main$1.CancellationTokenSource();
-			const cursor = events_default.bufnr == document.bufnr ? await window_default.getCursorPosition() : void 0;
-			let change = documentChange?.change;
-			if (!change) {
-				let edit = getTextEdit(textDocument.lines, newDocument.lines, cursor, events_default.insertMode);
-				change = {
-					range: edit.range,
-					text: edit.newText
-				};
-			}
-			if (!emptyRange(change.range)) {
-				let reduced = reduceTextEdit(TextEdit.replace(change.range, change.text), textDocument.getText(change.range));
-				change = {
-					range: reduced.range,
-					text: reduced.newText
-				};
-			}
-			const { range, start } = snippet;
-			let c = comparePosition(change.range.start, range.end);
-			let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
-			if (c > 0 || c === 0 && !insertEnd) {
-				logger$30.info("Content change after snippet");
-				this.textDocument = newDocument;
-				return;
-			}
-			c = comparePosition(change.range.end, range.start);
-			let insertBeginning = emptyRange(change.range) && !change.text.endsWith("\n") && snippet.hasBeginningPlaceholder;
-			if (c < 0 || c === 0 && !insertBeginning) {
-				let changeEnd = change.range.end;
-				let checkCharacter = range.start.line === changeEnd.line;
-				let newLines = change.text.split(/\n/);
-				let lc = newLines.length - (changeEnd.line - change.range.start.line + 1);
-				let cc = 0;
-				if (checkCharacter) if (newLines.length > 1) cc = newLines[newLines.length - 1].length - changeEnd.character;
-				else cc = change.range.start.character + change.text.length - changeEnd.character;
-				this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
-				this.textDocument = newDocument;
-				logger$30.info("Content change before snippet, reset snippet position");
-				return;
-			}
-			if (!rangeInRange(change.range, range)) {
-				logger$30.info("Before and snippet body changed, cancel snippet session");
-				this.deactivate();
-				return;
-			}
-			if (tokenSource.token.isCancellationRequested) return;
-			const nextPlaceholder = getNextPlaceholder(current, true);
-			const id = getPlaceholderId(current);
-			const res = await this.snippet.replaceWithText(change.range, change.text, tokenSource.token, current, cursor);
-			this.tokenSource = void 0;
-			if (!res) {
-				if (this.snippet) {
-					let marker = this.snippet.getPlaceholderById(id, current.index);
-					this.current = defaultValue(marker, this.snippet.tmSnippet.first);
-				}
-				return;
-			}
-			this.textDocument = newDocument;
-			let { snippetText, delta } = res;
-			let changedRange = Range.create(start, getEnd(start, snippetText));
-			const expected = newDocument.getText(changedRange);
-			if (expected !== snippetText) {
-				logger$30.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
-				this.deactivate();
-				return;
-			}
-			let newText = this.snippet.text;
-			if (newText !== snippetText) {
-				let edit = reduceTextEdit({
-					range: changedRange,
-					newText
-				}, snippetText);
-				await this.applyEdits([edit], true);
-				if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
-			}
-			this.highlights();
-			logger$30.debug("update cost:", Date.now() - startTs, res.delta);
-			this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
-		}
-		async trySelectNextOnDelete(curr, next) {
-			if (!this.config.nextOnDelete || !this.snippet || !curr || curr.snippet != null && curr.toString() != "" || !next) return;
-			let p = this.snippet.getPlaceholderByMarker(next);
-			if (p) await this.selectPlaceholder(p, true);
-		}
-		async forceSynchronize() {
-			if (this.isActive) {
-				this._paused = false;
-				await this.document.patchChange();
-				await this.synchronize();
-			} else await this.document.patchChange();
-		}
-		async onCompleteDone() {
-			if (this.isActive) {
-				this._paused = false;
-				this.document._forceSync();
-				await this.synchronize();
-			}
-		}
-		get version() {
-			return this.textDocument ? this.textDocument.version : -1;
-		}
-		get isActive() {
-			return this.snippet != null;
-		}
-		get bufnr() {
-			return this.document.bufnr;
-		}
-		activate(snippet) {
-			if (this.isActive) return;
-			this.snippet = snippet;
-			this.nvim.call("coc#snippet#enable", [this.bufnr, this.config.preferComplete ? 1 : 0], true);
-			this._onActiveChange.fire(true);
-		}
-		deactivate() {
-			this.cancel();
-			if (!this.isActive) return;
-			this.snippet = null;
-			this.current = null;
-			this.nvim.call("coc#snippet#disable", [this.bufnr], true);
-			if (this.config.highlight) this.nvim.call("coc#highlight#clear_highlight", [
-				this.bufnr,
-				NAME_SPACE,
-				0,
-				-1
-			], true);
-			this._onActiveChange.fire(false);
-			logger$30.debug(`session ${this.bufnr} deactivate`);
-		}
-		get placeholder() {
-			if (!this.snippet || !this.current) return void 0;
-			return this.snippet.getPlaceholderByMarker(this.current);
-		}
-		cancel(pause = false) {
-			if (!this.isActive) return;
-			if (this.tokenSource) {
-				this.tokenSource.cancel();
-				this.tokenSource.dispose();
-				this.tokenSource = null;
-			}
-			if (pause) this._paused = true;
-		}
-		dispose() {
-			this.cancel();
-			this._onActiveChange.dispose();
-			this.snippet = null;
-			this.current = null;
-			this.textDocument = void 0;
-		}
-		async resolveSnippet(nvim, snippetString, ultisnip) {
-			let context;
-			if (ultisnip) {
-				ultisnip = omit$2(ultisnip, ["actions"]);
-				context = Object.assign({
-					range: Range.create(0, 0, 0, 0),
-					line: ""
-				}, ultisnip, { id: generateContextId(events_default.bufnr) });
-				if (ultisnip.noPython !== true && snippetString.includes("`!p")) await executePythonCode(nvim, getInitialPythonCode(context));
-			}
-			const resolver = new SnippetVariableResolver(nvim, workspace_default.workspaceFolderControl);
-			const snippet = new CocSnippet(snippetString, Position.create(0, 0), nvim, resolver);
-			await snippet.init(context);
-			return snippet.text;
-		}
-	};
-}));
-//#endregion
-//#region src/snippets/manager.ts
-var SnippetManager, manager_default;
-var init_manager$1 = __esmMin((() => {
-	init_main$2();
-	init_commands$2();
-	init_events();
-	init_util$7();
-	init_object();
-	init_position();
-	init_window();
-	init_workspace$1();
-	init_eval();
-	init_session$1();
-	init_util$4();
-	SnippetManager = class {
-		disposables = [];
-		_statusItem;
-		bufferSync;
-		config;
-		init() {
-			this.synchronizeConfig();
-			workspace_default.onDidChangeConfiguration((e) => {
-				if (e.affectsConfiguration("snippet") || e.affectsConfiguration("suggest")) this.synchronizeConfig();
-			}, null, this.disposables);
-			events_default.on(["InsertCharPre", "Enter"], () => {
-				let session = this.session;
-				if (session) session.cancel();
-			}, null, this.disposables);
-			events_default.on("CompleteDone", async (_item, _line, bufnr) => {
-				let session = this.bufferSync.getItem(bufnr);
-				if (session) await session.onCompleteDone();
-			}, null, this.disposables);
-			events_default.on("CompleteStart", async (opt) => {
-				let session = this.bufferSync.getItem(opt.bufnr);
-				if (session) session.cancel(true);
-			}, null, this.disposables);
-			events_default.on("InsertEnter", async (bufnr) => {
-				let session = this.bufferSync.getItem(bufnr);
-				if (session) await session.checkPosition();
-			}, null, this.disposables);
-			this.bufferSync = workspace_default.registerBufferSync((doc) => {
-				let session = new SnippetSession(this.nvim, doc, this.config);
-				session.onActiveChange((isActive) => {
-					if (events_default.bufnr !== session.bufnr) return;
-					this.statusItem[isActive ? "show" : "hide"]();
-				});
-				return session;
-			});
-			this.disposables.push(this.bufferSync);
-			window_default.onDidChangeActiveTextEditor(async (e) => {
-				let session = this.bufferSync.getItem(e.bufnr);
-				if (session && session.isActive) {
-					this.statusItem.show();
-					if (!session.selected) await session.selectCurrentPlaceholder();
-				} else this.statusItem.hide();
-			}, null, this.disposables);
-			commands_default.register({
-				id: "editor.action.insertSnippet",
-				execute: async (edit, ultisnip) => {
-					const opts = ultisnip === true ? {} : ultisnip;
-					return await this.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : void 0);
-				}
-			}, true);
-			commands_default.register({
-				id: "editor.action.insertBufferSnippets",
-				execute: async (bufnr, edits, select) => {
-					return await this.insertBufferSnippets(bufnr, edits, select);
-				}
-			}, true);
-		}
-		get nvim() {
-			return workspace_default.nvim;
-		}
-		get statusItem() {
-			if (this._statusItem) return this._statusItem;
-			const snippetConfig = workspace_default.initialConfiguration.get("snippet");
-			const statusItem = this._statusItem = window_default.createStatusBarItem(0);
-			statusItem.text = defaultValue(snippetConfig.statusText, "");
-			return this._statusItem;
-		}
-		synchronizeConfig() {
-			const snippetConfig = workspace_default.getConfiguration("snippet", null);
-			const suggest = workspace_default.getConfiguration("suggest", null);
-			let obj = {
-				highlight: defaultValue(snippetConfig.inspect("highlight").globalValue, false),
-				nextOnDelete: defaultValue(snippetConfig.inspect("nextPlaceholderOnDelete").globalValue, false),
-				preferComplete: suggest.get("preferCompleteThanJumpPlaceholder", false)
-			};
-			if (this.config) Object.assign(this.config, obj);
-			else this.config = obj;
-		}
-		async toRange(range) {
-			if (range) return toValidRange(range);
-			let pos = await window_default.getCursorPosition();
-			return Range.create(pos, pos);
-		}
-		async insertBufferSnippets(bufnr, edits, select = false) {
-			let document = workspace_default.getAttachedDocument(bufnr);
-			const session = this.bufferSync.getItem(bufnr);
-			session.deactivate();
-			let snippetEdits = [];
-			for (const edit of edits) {
-				let currentLine = document.getline(edit.range.start.line);
-				let inserted = await this.normalizeInsertText(bufnr, toSnippetString(edit.snippet), currentLine, InsertTextMode.asIs);
-				snippetEdits.push({
-					range: edit.range,
-					snippet: inserted
-				});
-			}
-			await session.synchronize();
-			let isActive = await session.insertSnippetEdits(snippetEdits);
-			if (isActive && select && workspace_default.bufnr === bufnr) await session.selectCurrentPlaceholder();
-			return isActive;
-		}
-		/**
-		* Insert snippet to specific buffer, ultisnips not supported, and the placeholder is not selected
-		*/
-		async insertBufferSnippet(bufnr, snippet, range, insertTextMode) {
-			let document = workspace_default.getAttachedDocument(bufnr);
-			const session = this.bufferSync.getItem(bufnr);
-			session.deactivate();
-			range = toValidRange(range);
-			const line = document.getline(range.start.line);
-			const snippetStr = toSnippetString(snippet);
-			const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, line, insertTextMode);
-			await session.synchronize();
-			return await session.start(inserted, range, false);
-		}
-		/**
-		* Insert snippet at current cursor position
-		*/
-		async insertSnippet(snippet, select = true, range, insertTextMode, ultisnip) {
-			let { nvim } = workspace_default;
-			let document = workspace_default.getAttachedDocument(workspace_default.bufnr);
-			const session = this.bufferSync.getItem(document.bufnr);
-			let context;
-			session.cancel(true);
-			range = await this.toRange(range);
-			const currentLine = document.getline(range.start.line);
-			const snippetStr = toSnippetString(snippet);
-			const inserted = await this.normalizeInsertText(document.bufnr, snippetStr, currentLine, insertTextMode, ultisnip);
-			if (ultisnip != null) {
-				const usePy = hasPython(ultisnip) || inserted.includes("`!p");
-				const bufnr = document.bufnr;
-				context = Object.assign({
-					range: deepClone(range),
-					line: currentLine
-				}, ultisnip, { id: generateContextId(bufnr) });
-				if (usePy) {
-					if (session.placeholder) {
-						let { start, end } = session.placeholder.range;
-						let last = {
-							current_text: session.placeholder.value,
-							start: {
-								line: start.line,
-								col: start.character
-							},
-							end: {
-								line: end.line,
-								col: end.character
-							}
-						};
-						this.nvim.setVar("coc_last_placeholder", last, true);
-					} else this.nvim.call("coc#compat#del_var", ["coc_last_placeholder"], true);
-					const codes = getInitialPythonCode(context);
-					let preExpand = getAction(ultisnip, "preExpand");
-					if (preExpand) {
-						nvim.call("coc#cursor#move_to", [range.end.line, range.end.character], true);
-						await executePythonCode(nvim, codes.concat(["snip = coc_ultisnips_dict[\"PreExpandContext\"]()", preExpand]));
-						const [valid, pos] = await nvim.call("pyxeval", "snip.getResult()");
-						if (valid) {
-							let count = range.end.character - range.start.character;
-							range = Range.create(pos[0], Math.max(0, pos[1] - count), pos[0], pos[1]);
-						} else range = Range.create(pos[0], pos[1], pos[0], pos[1]);
-					} else await executePythonCode(nvim, codes);
-				}
-			}
-			if (!(ultisnip == null && !session.isActive)) {
-				const { start } = range;
-				nvim.call("coc#cursor#move_to", [start.line, start.character], true);
-				if (!emptyRange(range)) await document.applyEdits([TextEdit.del(range)]);
-				if (session.isActive) {
-					await session.synchronize();
-					let pos = await window_default.getCursorPosition();
-					range = Range.create(pos, pos);
-				} else range.end = Position.create(start.line, start.character);
-			}
-			await session.start(inserted, range, select, context);
-			return session.isActive;
-		}
-		async selectCurrentPlaceholder(triggerAutocmd = true) {
-			let { session } = this;
-			if (session) return await session.selectCurrentPlaceholder(triggerAutocmd);
-		}
-		async nextPlaceholder() {
-			let { session } = this;
-			if (session) await session.nextPlaceholder();
-			else this.nvim.call("coc#snippet#disable", [], true);
-			return "";
-		}
-		async previousPlaceholder() {
-			let { session } = this;
-			if (session) await session.previousPlaceholder();
-			else this.nvim.call("coc#snippet#disable", [], true);
-			return "";
-		}
-		cancel() {
-			let session = this.bufferSync.getItem(workspace_default.bufnr);
-			if (session) return session.deactivate();
-			this.nvim.call("coc#snippet#disable", [], true);
-			this.statusItem.hide();
-		}
-		get session() {
-			return this.bufferSync.getItem(workspace_default.bufnr);
-		}
-		/**
-		* exported method
-		*/
-		getSession(bufnr) {
-			let session = this.bufferSync.getItem(bufnr);
-			return session && session.isActive ? session : void 0;
-		}
-		isActivated(bufnr) {
-			let session = this.bufferSync.getItem(bufnr);
-			return session && session.isActive;
-		}
-		jumpable() {
-			let { session } = this;
-			if (!session) return false;
-			return session.placeholder != null && session.placeholder.index != 0;
-		}
-		/**
-		* Exposed for snippet preview
-		*/
-		async resolveSnippet(snippetString, ultisnip) {
-			let session = this.bufferSync.getItem(workspace_default.bufnr);
-			if (!session) return;
-			return await session.resolveSnippet(this.nvim, snippetString, ultisnip);
-		}
-		async normalizeInsertText(bufnr, snippetString, currentLine, insertTextMode, ultisnip) {
-			let inserted = "";
-			if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) inserted = snippetString;
-			else {
-				const currentIndent = currentLine.match(/^\s*/)[0];
-				let formatOptions = await workspace_default.getFormatOptions(bufnr);
-				let opts = ultisnip ?? {};
-				formatOptions.trimTrailingWhitespace = opts.trimTrailingWhitespace !== false;
-				if (opts.noExpand) formatOptions.noExpand = true;
-				inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions);
-			}
-			return inserted;
-		}
-		dispose() {
-			this.cancel();
-			disposeAll(this.disposables);
-		}
-	};
-	manager_default = new SnippetManager();
+	manager_default = new ListManager();
 }));
 //#endregion
 //#region src/snippets/string.ts
@@ -117168,260 +125705,6 @@ var init_string = __esmMin((() => {
 			}
 			this.value += "}";
 			return this;
-		}
-	};
-}));
-//#endregion
-//#region src/completion/types.ts
-var SourceType;
-var init_types = __esmMin((() => {
-	SourceType = /* @__PURE__ */ function(SourceType) {
-		SourceType[SourceType["Native"] = 0] = "Native";
-		SourceType[SourceType["Remote"] = 1] = "Remote";
-		SourceType[SourceType["Service"] = 2] = "Service";
-		return SourceType;
-	}({});
-}));
-//#endregion
-//#region src/core/workspaceFolder.ts
-function toWorkspaceFolder(fsPath) {
-	if (!fsPath || !path$5.isAbsolute(fsPath)) {
-		logger$29.error(`Invalid folder: ${fsPath}, full path required.`);
-		return;
-	}
-	return {
-		name: path$5.basename(fsPath),
-		uri: URI.file(fsPath).toString()
-	};
-}
-var PatternType, logger$29, PatternTypes, checkPatternTimeout, extensionRegistry$1, WorkspaceFolderController;
-var init_workspaceFolder = __esmMin((() => {
-	init_esm();
-	init_events();
-	init_logger$2();
-	init_util$7();
-	init_array();
-	init_errors();
-	init_extensionRegistry();
-	init_fs();
-	init_node();
-	init_object();
-	init_protocol();
-	init_registry$1();
-	PatternType = /* @__PURE__ */ function(PatternType) {
-		PatternType[PatternType["Buffer"] = 0] = "Buffer";
-		PatternType[PatternType["LanguageServer"] = 1] = "LanguageServer";
-		PatternType[PatternType["Global"] = 2] = "Global";
-		return PatternType;
-	}({});
-	logger$29 = createLogger$1("core-workspaceFolder");
-	PatternTypes = [
-		0,
-		1,
-		2
-	];
-	checkPatternTimeout = getConditionValue(5e3, 50);
-	extensionRegistry$1 = Registry.as(Extensions$3.ExtensionContribution);
-	WorkspaceFolderController = class {
-		configurations;
-		config;
-		_onDidChangeWorkspaceFolders = new import_main$1.Emitter();
-		onDidChangeWorkspaceFolders = this._onDidChangeWorkspaceFolders.event;
-		rootPatterns = /* @__PURE__ */ new Map();
-		_workspaceFolders = [];
-		_tokenSources = /* @__PURE__ */ new Set();
-		constructor(configurations) {
-			this.configurations = configurations;
-			events_default.on("VimLeavePre", this.cancelAll, this);
-			this.updateConfiguration();
-			this.updateServerRootPatterns();
-			this.configurations.onDidChange((e) => {
-				if (e.affectsConfiguration("workspace") || e.affectsConfiguration("coc.preferences")) this.updateConfiguration();
-				if (e.affectsConfiguration("languageserver")) this.updateServerRootPatterns();
-			});
-		}
-		updateConfiguration() {
-			const allConfig = this.configurations.initialConfiguration;
-			let config = allConfig.get("workspace");
-			let oldConfig = allConfig.get("coc.preferences.rootPatterns");
-			this.config = {
-				rootPatterns: isFalsyOrEmpty(oldConfig) ? toArray(config.rootPatterns) : oldConfig,
-				ignoredFiletypes: toArray(config.ignoredFiletypes),
-				bottomUpFiletypes: toArray(config.bottomUpFiletypes),
-				ignoredFolders: toArray(config.ignoredFolders),
-				workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
-				workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
-			};
-		}
-		updateServerRootPatterns() {
-			let lspConfig = this.configurations.getConfiguration("languageserver", null);
-			this.rootPatterns.clear();
-			for (let config of Object.values(toObject(lspConfig))) {
-				let { filetypes, rootPatterns } = config;
-				if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) filetypes.filter((s) => typeof s === "string").forEach((filetype) => {
-					this.addRootPattern(filetype, rootPatterns);
-				});
-			}
-		}
-		cancelAll() {
-			for (let tokenSource of this._tokenSources) tokenSource.cancel();
-		}
-		setWorkspaceFolders(folders) {
-			if (!folders || !Array.isArray(folders)) return;
-			let arr = folders.filter((f) => f.length > 0).map((f) => toWorkspaceFolder(f));
-			this._workspaceFolders = arr.filter((o) => o != null);
-		}
-		getWorkspaceFolder(uri) {
-			if (uri.scheme !== "file") return void 0;
-			if (this._workspaceFolders.length === 0) return void 0;
-			let folders = Array.from(this._workspaceFolders).map((o) => URI.parse(o.uri).fsPath);
-			folders.sort((a, b) => b.length - a.length);
-			let fsPath = uri.fsPath;
-			let folder = folders.find((f) => isParentFolder(f, fsPath, true));
-			if (folder === void 0) return void 0;
-			return toWorkspaceFolder(folder);
-		}
-		getRelativePath(pathOrUri, includeWorkspace) {
-			let resource;
-			let p = "";
-			if (typeof pathOrUri === "string") {
-				resource = URI.file(pathOrUri);
-				p = pathOrUri;
-			} else if (pathOrUri != null) {
-				resource = pathOrUri;
-				p = pathOrUri.fsPath;
-			}
-			if (!resource) return p;
-			const folder = this.getWorkspaceFolder(resource);
-			if (!folder) return p;
-			if (typeof includeWorkspace === "undefined" && this._workspaceFolders) includeWorkspace = this._workspaceFolders.length > 1;
-			let result = path$5.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
-			result = result == "" ? resource.fsPath : result;
-			if (includeWorkspace && folder.name) result = `${folder.name}/${result}`;
-			return result;
-		}
-		get workspaceFolders() {
-			return this._workspaceFolders;
-		}
-		addRootPattern(filetype, rootPatterns) {
-			let patterns = this.rootPatterns.get(filetype) ?? [];
-			for (let p of rootPatterns) if (!patterns.includes(p)) patterns.push(p);
-			this.rootPatterns.set(filetype, patterns);
-		}
-		resolveRoot(document, cwd, fireEvent, expand) {
-			if (document.buftype !== "" || document.schema !== "file") return null;
-			let u = URI.parse(document.uri);
-			let dir = isDirectory(u.fsPath) ? path$5.normalize(u.fsPath) : path$5.dirname(u.fsPath);
-			let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
-			if (ignoredFiletypes?.includes(document.filetype)) return null;
-			ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter((s) => s && s.length > 0).map((s) => expand(s)) : [];
-			let res = null;
-			for (let patternType of PatternTypes) {
-				let patterns = this.getRootPatterns(document, patternType);
-				if (patterns && patterns.length) {
-					let root = resolveRoot(dir, patterns, cwd, bottomUpFiletypes.includes("*") || bottomUpFiletypes.includes(document.filetype), workspaceFolderCheckCwd, ignoredFolders);
-					if (root) {
-						res = root;
-						break;
-					}
-				}
-			}
-			if (!res && workspaceFolderFallbackCwd && !isFolderIgnored(cwd, ignoredFolders) && isParentFolder(cwd, dir, true)) res = cwd;
-			if (res) this.addWorkspaceFolder(res, fireEvent);
-			return res;
-		}
-		addWorkspaceFolder(folder, fireEvent) {
-			let workspaceFolder = toWorkspaceFolder(folder);
-			if (!workspaceFolder) return void 0;
-			if (this._workspaceFolders.findIndex((o) => o.uri == workspaceFolder.uri) == -1) {
-				this._workspaceFolders.push(workspaceFolder);
-				if (fireEvent) this._onDidChangeWorkspaceFolders.fire({
-					added: [workspaceFolder],
-					removed: []
-				});
-			}
-			return workspaceFolder;
-		}
-		renameWorkspaceFolder(oldPath, newPath) {
-			let added = toWorkspaceFolder(newPath);
-			if (!added) return;
-			let idx = this._workspaceFolders.findIndex((f) => URI.parse(f.uri).fsPath == oldPath);
-			if (idx == -1) return;
-			let removed = this.workspaceFolders[idx];
-			this._workspaceFolders.splice(idx, 1, added);
-			this._onDidChangeWorkspaceFolders.fire({
-				removed: [removed],
-				added: [added]
-			});
-		}
-		removeWorkspaceFolder(fsPath) {
-			let removed = toWorkspaceFolder(fsPath);
-			if (!removed) return;
-			let idx = this._workspaceFolders.findIndex((f) => f.uri == removed.uri);
-			if (idx == -1) return;
-			this._workspaceFolders.splice(idx, 1);
-			this._onDidChangeWorkspaceFolders.fire({
-				removed: [removed],
-				added: []
-			});
-		}
-		onDocumentDetach(uris) {
-			if (!this.configurations.initialConfiguration.get("workspace.removeEmptyWorkspaceFolder", false)) return;
-			let filepaths = [];
-			for (const uri of uris) if (uri.scheme === "file") filepaths.push(uri.fsPath);
-			for (const item of this.workspaceFolders) {
-				const folder = URI.parse(item.uri).fsPath;
-				if (!filepaths.some((f) => isParentFolder(folder, f))) {
-					this.removeWorkspaceFolder(folder);
-					return;
-				}
-			}
-		}
-		getRootPatterns(document, patternType) {
-			if (patternType == 0) return document.getVar("root_patterns", []);
-			if (patternType == 1) return this.getServerRootPatterns(document.languageId);
-			return this.config.rootPatterns;
-		}
-		reset() {
-			this.rootPatterns.clear();
-			this._workspaceFolders = [];
-		}
-		/**
-		* Get rootPatterns of filetype by languageserver configuration and extension configuration.
-		*/
-		getServerRootPatterns(filetype) {
-			let patterns = extensionRegistry$1.getRootPatternsByFiletype(filetype);
-			patterns = patterns.concat(toArray(this.rootPatterns.get(filetype)));
-			return distinct(patterns);
-		}
-		checkFolder(dir, patterns, token) {
-			return checkFolder(dir, patterns, token);
-		}
-		async checkPatterns(folders, patterns) {
-			if (isFalsyOrEmpty(folders)) return false;
-			let dirs = folders.map((f) => URI.parse(f.uri).fsPath);
-			let find = false;
-			let tokenSource = new import_main$1.CancellationTokenSource();
-			this._tokenSources.add(tokenSource);
-			let token = tokenSource.token;
-			let timer = setTimeout(() => {
-				tokenSource.cancel();
-			}, checkPatternTimeout);
-			let results = await Promise.allSettled(dirs.map((dir) => {
-				return this.checkFolder(dir, patterns, token).then((checked) => {
-					this._tokenSources.delete(tokenSource);
-					if (checked) {
-						find = true;
-						clearTimeout(timer);
-						tokenSource.cancel();
-					}
-				});
-			}));
-			clearTimeout(timer);
-			results.forEach((res) => {
-				if (res.status === "rejected" && !isCancellationError(res.reason)) logger$29.error(`checkPatterns error:`, patterns, res.reason);
-			});
-			return find;
 		}
 	};
 }));
@@ -117620,56 +125903,6 @@ var init_semanticTokensBuilder = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/tree/TreeItem.ts
-function getItemLabel(item) {
-	return TreeItemLabel.is(item.label) ? item.label.label : item.label;
-}
-var TreeItemLabel, TreeItemCollapsibleState, TreeItem;
-var init_TreeItem = __esmMin((() => {
-	init_esm();
-	init_node();
-	(function(_TreeItemLabel) {
-		function is(obj) {
-			return typeof obj.label == "string";
-		}
-		_TreeItemLabel.is = is;
-	})(TreeItemLabel || (TreeItemLabel = {}));
-	TreeItemCollapsibleState = /* @__PURE__ */ function(TreeItemCollapsibleState) {
-		/**
-		* Determines an item can be neither collapsed nor expanded. Implies it has no children.
-		*/
-		TreeItemCollapsibleState[TreeItemCollapsibleState["None"] = 0] = "None";
-		/**
-		* Determines an item is collapsed
-		*/
-		TreeItemCollapsibleState[TreeItemCollapsibleState["Collapsed"] = 1] = "Collapsed";
-		/**
-		* Determines an item is expanded
-		*/
-		TreeItemCollapsibleState[TreeItemCollapsibleState["Expanded"] = 2] = "Expanded";
-		return TreeItemCollapsibleState;
-	}({});
-	TreeItem = class {
-		collapsibleState;
-		label;
-		id;
-		description;
-		icon;
-		resourceUri;
-		command;
-		tooltip;
-		deprecated;
-		constructor(label, collapsibleState = 0) {
-			this.collapsibleState = collapsibleState;
-			if (URI.isUri(label)) {
-				this.resourceUri = label;
-				this.label = path$5.basename(label.path);
-				this.id = label.toString();
-			} else this.label = label;
-		}
-	};
-}));
-//#endregion
 //#region src/tree/index.ts
 var init_tree = __esmMin((() => {
 	init_TreeItem();
@@ -117686,7 +125919,7 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	init_extension();
 	init_languages();
 	init_basic();
-	init_manager$2();
+	init_manager$1();
 	init_download();
 	init_fetch();
 	init_floatFactory();
@@ -117694,7 +125927,7 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	init_mru();
 	init_relativePattern();
 	init_services$1();
-	init_manager$1();
+	init_manager$2();
 	init_string();
 	init_ansiparse();
 	init_errors();
@@ -117848,7 +126081,7 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		window: window_default,
 		CodeActionTriggerKind,
 		CompletionTriggerKind: import_main$1.CompletionTriggerKind,
-		snippetManager: manager_default,
+		snippetManager: manager_default$1,
 		events: events_default,
 		services: services_default,
 		commands: commands_default,
@@ -117856,7 +126089,7 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		languages: languages_default,
 		diagnosticManager: manager_default$2,
 		extensions: extension_default,
-		listManager: manager_default$1,
+		listManager: manager_default,
 		TreeItemCollapsibleState,
 		DiagnosticPullMode,
 		ApplyKind,
@@ -117949,7 +126182,7 @@ function createSandbox(filename, logger, name, noExport = false) {
 		console: createConsole(console, logger)
 	}, { name });
 	copyGlobalProperties(sandbox, global);
-	let cocExports = noExport ? void 0 : require_src();
+	let cocExports = noExport || !isCommonJS ? void 0 : require_src();
 	sandbox.require = function sandboxRequire(p) {
 		const oldCompile = ModuleProto._compile;
 		ModuleProto._compile = compileInSandbox(sandbox, cocExports);
@@ -117987,7 +126220,7 @@ function createExtension(id, filename, isEmpty) {
 	if (typeof activate !== "function") return { activate: () => {} };
 	return typeof defaultImport === "function" ? { activate } : Object.assign({}, defaultImport);
 }
-var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
+var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto, isCommonJS;
 var init_factory = __esmMin((() => {
 	init_logger$2();
 	init_node();
@@ -118017,6 +126250,7 @@ var init_factory = __esmMin((() => {
 		"kill"
 	];
 	ModuleProto = getProtoWithCompile(Module);
+	isCommonJS = typeof module !== "undefined" && typeof module.exports !== "undefined" && typeof require === "function";
 }));
 //#endregion
 //#region src/util/timing.ts
@@ -118034,21 +126268,21 @@ function createTiming(name, timeout) {
 			clearTimeout(timer);
 			if (timeout) {
 				timer = setTimeout(() => {
-					logger$28.error(`${name} timeout after ${timeout}ms`);
+					logger$16.error(`${name} timeout after ${timeout}ms`);
 				}, timeout);
 				timer.unref();
 			}
 		},
 		stop() {
 			clearTimeout(timer);
-			logger$28.trace(`${name}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
+			logger$16.trace(`${name}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
 		}
 	};
 }
-var logger$28;
+var logger$16;
 var init_timing = __esmMin((() => {
 	init_logger$2();
-	logger$28 = createLogger$1("timing");
+	logger$16 = createLogger$1("timing");
 }));
 //#endregion
 //#region src/extension/stat.ts
@@ -118108,7 +126342,7 @@ function checkExtensionRoot(root) {
 	try {
 		if (!fs$5.existsSync(root)) fs$5.mkdirSync(root, { recursive: true });
 		if (!fs$5.statSync(root).isDirectory()) {
-			logger$27.info(`Trying to delete ${root}`);
+			logger$15.info(`Trying to delete ${root}`);
 			fs$5.unlinkSync(root);
 			fs$5.mkdirSync(root, { recursive: true });
 		}
@@ -118129,11 +126363,11 @@ function loadJson(filepath) {
 		let text = fs$5.readFileSync(filepath, "utf8");
 		return toObject(JSON.parse(text));
 	} catch (e) {
-		logger$27.error(`Error on parse json file ${filepath}`, e);
+		logger$15.error(`Error on parse json file ${filepath}`, e);
 		return {};
 	}
 }
-var logger$27, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
+var logger$15, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
 var init_stat = __esmMin((() => {
 	init_logger$2();
 	init_array();
@@ -118141,7 +126375,7 @@ var init_stat = __esmMin((() => {
 	init_is();
 	init_node();
 	init_object();
-	logger$27 = createLogger$1("extension-stat");
+	logger$15 = createLogger$1("extension-stat");
 	ONE_DAY = 1440 * 60 * 1e3;
 	DISABLE_PROMPT_KEY = "disablePrompt";
 	ExtensionStat = class {
@@ -118155,7 +126389,7 @@ var init_stat = __esmMin((() => {
 			try {
 				this.migrate();
 			} catch (e) {
-				logger$27.error(`Error on update package.json at ${folder}`, e);
+				logger$15.error(`Error on update package.json at ${folder}`, e);
 			}
 		}
 		migrate() {
@@ -118357,7 +126591,7 @@ function toWorkspaceContainsPatterns(activationEvents) {
 	}
 	return patterns;
 }
-var logger$26, extensionRegistry, memos, configurationRegistry, ExtensionManager;
+var logger$14, extensionRegistry, memos, configurationRegistry, ExtensionManager;
 var init_manager = __esmMin((() => {
 	init_esm();
 	init_registry();
@@ -118381,7 +126615,7 @@ var init_manager = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_stat();
-	logger$26 = createLogger$1("extensions-manager");
+	logger$14 = createLogger$1("extensions-manager");
 	extensionRegistry = Registry.as(Extensions$3.ExtensionContribution);
 	memos = new Memos(path$5.resolve(dataHome, "memos.json"));
 	memos.merge(path$5.resolve(dataHome, "../memos.json"));
@@ -118521,7 +126755,7 @@ var init_manager = __esmMin((() => {
 			let { extension } = item;
 			if (extension.isActive) return true;
 			if (activating.has(id)) {
-				logger$26.warn(`Circular dependency detected: ${id}`);
+				logger$14.warn(`Circular dependency detected: ${id}`);
 				return false;
 			}
 			activating = /* @__PURE__ */ new Set([...activating, id]);
@@ -118529,7 +126763,7 @@ var init_manager = __esmMin((() => {
 			if (packageJSON.extensionDependencies?.length > 0) {
 				const results = await Promise.allSettled(packageJSON.extensionDependencies.map((dep) => this.activate(dep, activating)));
 				for (const result of results) if (result.status === "rejected" || result.status === "fulfilled" && !result.value) {
-					logger$26.error(`Could not activate dependency for ${id}, activation failed.`);
+					logger$14.error(`Could not activate dependency for ${id}, activation failed.`);
 					return false;
 				}
 			}
@@ -118652,7 +126886,7 @@ var init_manager = __esmMin((() => {
 			try {
 				if (await this.checkAutoActivate(extension.packageJSON)) await Promise.resolve(this.activate(id));
 			} catch (e) {
-				logger$26.error(`Error on activate ${id}`, e);
+				logger$14.error(`Error on activate ${id}`, e);
 			}
 		}
 		async loadExtensionFile(filepath, noActive = false) {
@@ -118678,7 +126912,7 @@ var init_manager = __esmMin((() => {
 				let extensionType = stat.isLocal ? 1 : 0;
 				this.registerExtension(stat.root, stat.packageJSON, extensionType);
 			} catch (e) {
-				logger$26.error(`Error on regist extension from ${stat.root}: `, e);
+				logger$14.error(`Error on regist extension from ${stat.root}: `, e);
 			}
 		}
 		async registerExtension(root, packageJSON, extensionType, noActive = false) {
@@ -118716,7 +126950,7 @@ var init_manager = __esmMin((() => {
 							timing.stop();
 							resolve(res);
 						} catch (e) {
-							logger$26.error(`Error on active extension ${id}:`, e);
+							logger$14.error(`Error on active extension ${id}:`, e);
 							reject(e);
 						}
 					});
@@ -118756,7 +126990,7 @@ var init_manager = __esmMin((() => {
 						await Promise.resolve(ext.deactivate());
 						ext = void 0;
 					} catch (e) {
-						logger$26.error(`Error on ${id} deactivate: `, e);
+						logger$14.error(`Error on ${id} deactivate: `, e);
 					}
 				}
 			});
@@ -118878,91 +127112,8 @@ var init_manager = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/model/status.ts
-var frames, StatusLine;
-var init_status = __esmMin((() => {
-	frames = [
-		"⠋",
-		"⠙",
-		"⠹",
-		"⠸",
-		"⠼",
-		"⠴",
-		"⠦",
-		"⠧",
-		"⠇",
-		"⠏"
-	];
-	StatusLine = class {
-		items = /* @__PURE__ */ new Map();
-		shownIds = /* @__PURE__ */ new Set();
-		_text = "";
-		interval;
-		nvim;
-		constructor() {
-			this.interval = setInterval(() => {
-				this.setStatusText();
-			}, 100).unref();
-		}
-		dispose() {
-			this.items.clear();
-			this.shownIds.clear();
-			clearInterval(this.interval);
-		}
-		reset() {
-			this.items.clear();
-			this.shownIds.clear();
-		}
-		createStatusBarItem(priority, isProgress = false) {
-			let uid = crypto.randomUUID();
-			let item = {
-				text: "",
-				priority,
-				isProgress,
-				show: () => {
-					this.shownIds.add(uid);
-					this.setStatusText();
-				},
-				hide: () => {
-					this.shownIds.delete(uid);
-					this.setStatusText();
-				},
-				dispose: () => {
-					this.shownIds.delete(uid);
-					this.items.delete(uid);
-					this.setStatusText();
-				}
-			};
-			this.items.set(uid, item);
-			return item;
-		}
-		getText() {
-			if (this.shownIds.size == 0) return "";
-			let idx = Math.floor((/* @__PURE__ */ new Date()).getMilliseconds() / 100);
-			let text = "";
-			let items = [];
-			for (let [id, item] of this.items) if (this.shownIds.has(id)) items.push(item);
-			items.sort((a, b) => a.priority - b.priority);
-			for (let item of items) if (!item.isProgress) text = `${text} ${item.text}`;
-			else text = `${text} ${frames[idx]} ${item.text}`;
-			return text;
-		}
-		setStatusText() {
-			let text = this.getText();
-			let { nvim } = this;
-			if (text != this._text && nvim) {
-				this._text = text;
-				nvim.pauseNotification();
-				this.nvim.setVar("coc_status", text, true);
-				this.nvim.callTimer("coc#util#do_autocmd", ["CocStatusChange"], true);
-				nvim.resumeNotification(false, true);
-			}
-		}
-	};
-}));
-//#endregion
 //#region src/extension/ui.ts
-var interval, InstallChannel, debounceTime$7, InstallBuffer;
+var interval, InstallChannel, debounceTime$6, InstallBuffer;
 var init_ui = __esmMin((() => {
 	init_events();
 	init_status();
@@ -119000,7 +127151,7 @@ var init_ui = __esmMin((() => {
 			else this.channel.appendLine(`${name} ${this.getText()} failed!`);
 		}
 	};
-	debounceTime$7 = getConditionValue(500, 10);
+	debounceTime$6 = getConditionValue(500, 10);
 	InstallBuffer = class {
 		settings;
 		statMap = /* @__PURE__ */ new Map();
@@ -119023,7 +127174,7 @@ var init_ui = __esmMin((() => {
 					}] : [];
 					await floatFactory.show(docs);
 				}
-			}, debounceTime$7);
+			}, debounceTime$6);
 			this.disposables.push(import_main$1.Disposable.create(() => {
 				fn.clear();
 			}));
@@ -119067,7 +127218,7 @@ var init_ui = __esmMin((() => {
 				let lnum = start + lines.length;
 				switch (state) {
 					case 2:
-						processText = frames[Math.floor((/* @__PURE__ */ new Date()).getMilliseconds() / 100)];
+						processText = frames$1[Math.floor((/* @__PURE__ */ new Date()).getMilliseconds() / 100)];
 						hlGroup = void 0;
 						break;
 					case 1:
@@ -119165,7 +127316,7 @@ var init_ui = __esmMin((() => {
 function toUrl(val) {
 	return isUrl(val) ? val.replace(/\.git(#master|#main)?$/, "") : "";
 }
-var logger$25, EXTENSIONS_FOLDER, Extensions, extension_default;
+var logger$13, EXTENSIONS_FOLDER, Extensions, extension_default;
 var init_extension = __esmMin((() => {
 	init_commands$2();
 	init_events();
@@ -119183,7 +127334,7 @@ var init_extension = __esmMin((() => {
 	init_manager();
 	init_stat();
 	init_ui();
-	logger$25 = createLogger$1("extensions-index");
+	logger$13 = createLogger$1("extensions-index");
 	EXTENSIONS_FOLDER = path$5.join(dataHome, "extensions");
 	Extensions = class {
 		manager;
@@ -119198,7 +127349,7 @@ var init_extension = __esmMin((() => {
 				id: "extensions.forceUpdateAll",
 				execute: async () => {
 					let arr = await this.manager.cleanExtensions();
-					logger$25.info(`Force update extensions: ${arr}`);
+					logger$13.info(`Force update extensions: ${arr}`);
 					await this.installExtensions(arr);
 				}
 			}, false, "remove all global extensions and install them");
@@ -119264,7 +127415,7 @@ var init_extension = __esmMin((() => {
 		async activateExtensions() {
 			await this.manager.activateExtensions();
 			if (process.env.COC_NO_PLUGINS == "1") {
-				logger$25.warn("Extensions disabled by env COC_NO_PLUGINS");
+				logger$13.warn("Extensions disabled by env COC_NO_PLUGINS");
 				return;
 			}
 			let names = this.states.filterGlobalExtensions(workspace_default.env.globalExtensions);
@@ -119369,7 +127520,7 @@ var init_extension = __esmMin((() => {
 					installBuffer.addMessage(key, err.message);
 					installBuffer.finishProgress(key, false);
 					window_default.showErrorMessage(`Error on install ${key}: ${err}`);
-					logger$25.error(`Error on install ${key}`, err);
+					logger$13.error(`Error on install ${key}`, err);
 				}
 			};
 			await concurrent(list, fn);
@@ -119408,7 +127559,7 @@ var init_extension = __esmMin((() => {
 					installBuffer.addMessage(id, err.message);
 					installBuffer.finishProgress(id, false);
 					window_default.showErrorMessage(`Error on update ${id}: ${err}`);
-					logger$25.error(`Error on update ${id}`, err);
+					logger$13.error(`Error on update ${id}`, err);
 				}
 			};
 			await concurrent(stats, fn, silent ? 1 : 3);
@@ -119435,7 +127586,7 @@ var init_extension = __esmMin((() => {
 						packageJSON: json
 					});
 				} catch (err) {
-					logger$25.error(`Error on load package.json of ${key}`, err);
+					logger$13.error(`Error on load package.json of ${key}`, err);
 				}
 			}
 			return res;
@@ -119466,7 +127617,7 @@ var init_extension = __esmMin((() => {
 					packageJSON: obj
 				});
 			});
-			logger$25.debug("globalExtensionStats:", infos.length);
+			logger$13.debug("globalExtensionStats:", infos.length);
 			return infos;
 		}
 		runtimeExtensionStats(runtimepaths) {
@@ -119791,907 +127942,6 @@ var init_source = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/model/chars.ts
-function getCharCode(str) {
-	if (/^\d+$/.test(str)) return parseInt(str, 10);
-	if (str.length > 0) return str.charCodeAt(0);
-}
-function sameScope(a, b) {
-	if (a < boundary) return b < boundary;
-	return b >= boundary;
-}
-function detectLanguage(code) {
-	if (code >= 19968 && code <= 40959) return "cn";
-	if (code >= 12352 && code <= 12447 || code >= 12448 && code <= 12543) return "ja";
-	if (code >= 44032 && code <= 55215) return "ko";
-	return "";
-}
-function* parseSegments(text, segmenterLocales) {
-	if (Intl === void 0 || typeof Intl["Segmenter"] !== "function") {
-		yield text;
-		return;
-	}
-	let res = [];
-	let items = new Intl["Segmenter"](segmenterLocales === "" ? void 0 : segmenterLocales, { granularity: "word" }).segment(text);
-	for (let item of items) if (item.isWordLike) yield item.segment;
-	return res;
-}
-function splitKeywordOption(iskeyword) {
-	let res = [];
-	let i = 0;
-	let s = 0;
-	let len = iskeyword.length;
-	for (; i < len; i++) {
-		let c = iskeyword[i];
-		if (i + 1 == len && s != len) {
-			res.push(iskeyword.slice(s, len));
-			continue;
-		}
-		if (c == ",") {
-			let d = i - s;
-			if (d == 0) continue;
-			if (d == 1) {
-				let p = iskeyword[i - 1];
-				if (p == "^" || p == ",") {
-					res.push(p == "," ? "," : "^,");
-					s = i + 1;
-					if (p == "^" && iskeyword[i + 1] == ",") {
-						i++;
-						s++;
-					}
-					continue;
-				}
-			}
-			res.push(iskeyword.slice(s, i));
-			s = i + 1;
-		}
-	}
-	return res;
-}
-var WORD_RANGES, MAX_CODE_UNIT, boundary, IntegerRanges, Chars;
-var init_chars = __esmMin((() => {
-	init_main$2();
-	init_util$7();
-	init_array();
-	init_object();
-	init_string$1();
-	WORD_RANGES = [
-		[257, 893],
-		[895, 902],
-		[904, 1369],
-		[1376, 1416],
-		[1418, 1469],
-		[1471, 1471],
-		[1473, 1474],
-		[1476, 1522],
-		[1525, 1547],
-		[1549, 1562],
-		[1564, 1566],
-		[1568, 1641],
-		[1646, 1747],
-		[1749, 1791],
-		[1806, 2403],
-		[2406, 2415],
-		[2417, 3571],
-		[3573, 3662],
-		[3664, 3673],
-		[3676, 3843],
-		[3859, 3897],
-		[3902, 3972],
-		[3974, 4169],
-		[4176, 4346],
-		[4348, 4960],
-		[4969, 5740],
-		[5743, 5759],
-		[5761, 5786],
-		[5789, 5866],
-		[5870, 5940],
-		[5943, 6099],
-		[6109, 6143],
-		[6155, 8191],
-		[10240, 10495],
-		[10649, 10711],
-		[10716, 10747],
-		[10750, 11775],
-		[11904, 12287],
-		[12321, 12335],
-		[12337, 12348],
-		[12350, 64829],
-		[64832, 65071],
-		[65132, 65279],
-		[65296, 65305],
-		[65313, 65338],
-		[65345, 65370],
-		[65382, 65535]
-	];
-	MAX_CODE_UNIT = 65535;
-	boundary = 19968;
-	IntegerRanges = class IntegerRanges {
-		ranges;
-		wordChars;
-		/**
-		* Sorted ranges without overlap
-		*/
-		constructor(ranges = [], wordChars = false) {
-			this.ranges = ranges;
-			this.wordChars = wordChars;
-		}
-		clone() {
-			return new IntegerRanges(this.ranges.slice(), this.wordChars);
-		}
-		/**
-		* Add new range
-		*/
-		add(start, end) {
-			let index = 0;
-			let removeCount = 0;
-			if (end != null && end < start) {
-				let t = end;
-				end = start;
-				start = t;
-			}
-			end = end == null ? start : end;
-			for (let r of this.ranges) {
-				let [s, e] = r;
-				if (e < start) {
-					index++;
-					continue;
-				}
-				if (s > end) break;
-				removeCount++;
-				if (s < start) start = s;
-				if (e > end) {
-					end = e;
-					break;
-				}
-			}
-			this.ranges.splice(index, removeCount, [start, end]);
-		}
-		exclude(start, end) {
-			if (end != null && end < start) {
-				let t = end;
-				end = start;
-				start = t;
-			}
-			end = end == null ? start : end;
-			let index = 0;
-			let removeCount = 0;
-			let created = [];
-			for (let r of this.ranges) {
-				let [s, e] = r;
-				if (e < start) {
-					index++;
-					continue;
-				}
-				if (s > end) break;
-				removeCount++;
-				if (s < start) created.push([s, start - 1]);
-				if (e > end) {
-					created.push([end + 1, e]);
-					break;
-				}
-			}
-			if (removeCount == 0 && created.length == 0) return;
-			this.ranges.splice(index, removeCount, ...created);
-		}
-		flatten() {
-			return this.ranges.reduce((p, c) => p.concat(c), []);
-		}
-		includes(n) {
-			if (n > 256 && this.wordChars) return intable(n, WORD_RANGES);
-			return intable(n, this.ranges);
-		}
-		static fromKeywordOption(iskeyword) {
-			let range = new IntegerRanges();
-			for (let part of splitKeywordOption(iskeyword)) {
-				let exclude = part.length > 1 && part.startsWith("^");
-				let method = exclude ? "exclude" : "add";
-				if (exclude) part = part.slice(1);
-				if (part === "@" && !exclude) {
-					range.wordChars = true;
-					range[method](65, 90);
-					range[method](97, 122);
-					range[method](192, 255);
-				} else if (part == "@-@") range[method]("@".charCodeAt(0));
-				else if (part.length == 1 || /^\d+$/.test(part)) range[method](getCharCode(part));
-				else if (part.includes("-")) {
-					let items = part.split("-", 2);
-					let start = getCharCode(items[0]);
-					let end = getCharCode(items[1]);
-					if (start === void 0 || end === void 0) continue;
-					range[method](start, end);
-				}
-			}
-			return range;
-		}
-	};
-	Chars = class Chars {
-		ranges;
-		constructor(keywordOption) {
-			this.ranges = IntegerRanges.fromKeywordOption(keywordOption);
-		}
-		addKeyword(ch) {
-			this.ranges.add(ch.codePointAt(0));
-		}
-		clone() {
-			let chars = new Chars("");
-			chars.ranges = this.ranges.clone();
-			return chars;
-		}
-		isKeywordCode(code) {
-			if (code === 32 || code > MAX_CODE_UNIT) return false;
-			if (isHighSurrogate(code)) return false;
-			return this.ranges.includes(code);
-		}
-		isKeywordChar(ch) {
-			let code = ch.charCodeAt(0);
-			return this.isKeywordCode(code);
-		}
-		isKeyword(word) {
-			for (let i = 0, l = word.length; i < l; i++) if (!this.isKeywordChar(word[i])) return false;
-			return true;
-		}
-		*iterateWords(text) {
-			let start = -1;
-			let prevCode;
-			for (let i = 0, l = text.length; i < l; i++) {
-				let code = text.charCodeAt(i);
-				if (this.isKeywordCode(code)) {
-					if (start == -1) start = i;
-					else if (prevCode !== void 0 && !sameScope(prevCode, code)) {
-						yield [start, i];
-						start = i;
-					}
-				} else if (start != -1) {
-					yield [start, i];
-					start = -1;
-				}
-				if (i === l - 1 && start != -1) yield [start, i + 1];
-				prevCode = code;
-			}
-		}
-		matchLine(line, segmenterLocales = void 0, min = 2, max = 1024) {
-			let res = /* @__PURE__ */ new Set();
-			let l = line.length;
-			if (l > max) {
-				line = line.slice(0, max);
-				l = max;
-			}
-			for (let [start, end] of this.iterateWords(line)) {
-				if (end - start < min) continue;
-				let word = line.slice(start, end);
-				let code = word.charCodeAt(0);
-				if (segmenterLocales != null && code > 255) {
-					if (segmenterLocales == "") segmenterLocales = detectLanguage(code);
-					for (let text of parseSegments(word, segmenterLocales)) res.add(text);
-				} else res.add(word);
-			}
-			return Array.from(res);
-		}
-		async computeWordRanges(lines, range, token) {
-			let s = range.start.line;
-			let e = range.end.line;
-			let res = {};
-			let ts = Date.now();
-			for (let i = s; i <= e; i++) {
-				let text = lines[i];
-				if (text === void 0) break;
-				let sc = i === s ? range.start.character : 0;
-				if (i === s) text = text.slice(sc);
-				if (i === e) text = text.slice(0, range.end.character - sc);
-				if (Date.now() - ts > 15) {
-					if (token && token.isCancellationRequested) break;
-					await waitImmediate$1();
-					ts = Date.now();
-				}
-				for (let [start, end] of this.iterateWords(text)) {
-					let word = text.slice(start, end);
-					let arr = hasOwnProperty$1(res, word) ? res[word] : [];
-					arr.push(Range.create(i, start + sc, i, end + sc));
-					res[word] = arr;
-				}
-			}
-			return res;
-		}
-	};
-}));
-//#endregion
-//#region src/completion/util.ts
-function useAscii(input) {
-	return input.length > 0 && input.charCodeAt(0) < 128;
-}
-function getKindText(kind, kindMap, defaultKindText) {
-	return number(kind) ? kindMap.get(kind) ?? defaultKindText : kind;
-}
-function getKindHighlight(kind) {
-	return number(kind) ? highlightsMap[kind] ?? DEFAULT_HL_GROUP : DEFAULT_HL_GROUP;
-}
-function getPriority(source, defaultValue) {
-	if (number(source.priority)) return source.priority;
-	return defaultValue;
-}
-function getDetail(item, filetype) {
-	const { detail, labelDetails, label } = item;
-	if (!isEmpty(labelDetails)) return {
-		filetype: "txt",
-		content: (labelDetails.detail ?? "") + (labelDetails.description ? ` ${labelDetails.description}` : "")
-	};
-	if (detail && detail !== label) return {
-		filetype: /^[\w-\s.,\t\n]+$/.test(detail) ? "txt" : filetype,
-		content: detail
-	};
-}
-/**
-* Return 1 when next is inserted as paried character
-*/
-function deltaCount(info) {
-	if (!info.insertChar || !info.insertChars) return 0;
-	if (info.insertChars.length != 2) return 0;
-	let pre = info.pre;
-	let last = pre[pre.length - 1];
-	if (last !== info.insertChars[0] || !pariedCharacters.has(last)) return 0;
-	let next = info.line[pre.length];
-	if (!next || pariedCharacters.get(last) != next) return 0;
-	return 1;
-}
-function toCompleteDoneItem(selected, item) {
-	if (!item || !selected) return {};
-	return Object.assign({
-		word: selected.word,
-		abbr: selected.abbr,
-		kind: selected.kind,
-		menu: selected.menu,
-		source: selected.source.name,
-		isSnippet: selected.isSnippet,
-		user_data: `${selected.source.name}:0`
-	}, item);
-}
-function getDocumentations(completeItem, filetype, detailRendered = false) {
-	let docs = [];
-	if (isCompletionItem(completeItem)) {
-		let { documentation } = completeItem;
-		if (!detailRendered) {
-			let doc = getDetail(completeItem, filetype);
-			if (doc) docs.push(doc);
-		}
-		if (documentation) {
-			if (typeof documentation == "string") docs.push({
-				filetype: "txt",
-				content: documentation
-			});
-			else if (documentation.value) docs.push({
-				filetype: documentation.kind == "markdown" ? "markdown" : "txt",
-				content: documentation.value
-			});
-		}
-	} else if (completeItem.documentation) docs = completeItem.documentation;
-	else if (completeItem.info) docs.push({
-		content: completeItem.info,
-		filetype: "txt"
-	});
-	return docs;
-}
-function getResumeInput(option, pretext) {
-	if (!option) return null;
-	const { line, col } = option;
-	const start = characterIndex(line, col);
-	if (pretext.length < start) return null;
-	for (let i = 0; i < start; i++) if (pretext.charCodeAt(i) !== line.charCodeAt(i)) return null;
-	return byteSlice(pretext, option.col);
-}
-function checkIgnoreRegexps(ignoreRegexps, input) {
-	if (!ignoreRegexps || ignoreRegexps.length == 0 || input.length == 0) return false;
-	return ignoreRegexps.some((regexp) => {
-		try {
-			return new RegExp(regexp).test(input);
-		} catch (e) {
-			return false;
-		}
-	});
-}
-function createKindMap(labels) {
-	return /* @__PURE__ */ new Map([
-		[CompletionItemKind.Text, labels["text"] ?? "v"],
-		[CompletionItemKind.Method, labels["method"] ?? "f"],
-		[CompletionItemKind.Function, labels["function"] ?? "f"],
-		[CompletionItemKind.Constructor, typeof labels["constructor"] == "function" ? "f" : labels["constructor"] ?? ""],
-		[CompletionItemKind.Field, labels["field"] ?? "m"],
-		[CompletionItemKind.Variable, labels["variable"] ?? "v"],
-		[CompletionItemKind.Class, labels["class"] ?? "C"],
-		[CompletionItemKind.Interface, labels["interface"] ?? "I"],
-		[CompletionItemKind.Module, labels["module"] ?? "M"],
-		[CompletionItemKind.Property, labels["property"] ?? "m"],
-		[CompletionItemKind.Unit, labels["unit"] ?? "U"],
-		[CompletionItemKind.Value, labels["value"] ?? "v"],
-		[CompletionItemKind.Enum, labels["enum"] ?? "E"],
-		[CompletionItemKind.Keyword, labels["keyword"] ?? "k"],
-		[CompletionItemKind.Snippet, labels["snippet"] ?? "S"],
-		[CompletionItemKind.Color, labels["color"] ?? "v"],
-		[CompletionItemKind.File, labels["file"] ?? "F"],
-		[CompletionItemKind.Reference, labels["reference"] ?? "r"],
-		[CompletionItemKind.Folder, labels["folder"] ?? "F"],
-		[CompletionItemKind.EnumMember, labels["enumMember"] ?? "m"],
-		[CompletionItemKind.Constant, labels["constant"] ?? "v"],
-		[CompletionItemKind.Struct, labels["struct"] ?? "S"],
-		[CompletionItemKind.Event, labels["event"] ?? "E"],
-		[CompletionItemKind.Operator, labels["operator"] ?? "O"],
-		[CompletionItemKind.TypeParameter, labels["typeParameter"] ?? "T"]
-	]);
-}
-function shouldStop(bufnr, info, option) {
-	let { pre } = info;
-	if (pre.length === 0 || getUnicodeClass(pre[pre.length - 1]) === "space") return true;
-	if (option.bufnr != bufnr || option.linenr != info.lnum) return true;
-	let text = byteSlice(option.line, 0, option.col);
-	if (!pre.startsWith(text)) return true;
-	return false;
-}
-function getInput(chars, pre, asciiCharactersOnly) {
-	let len = 0;
-	let prev;
-	for (let i = pre.length - 1; i >= 0; i--) {
-		let code = pre.charCodeAt(i);
-		if (!isWordCode(chars, code, asciiCharactersOnly) || prev !== void 0 && !sameScope(prev, code)) break;
-		len += 1;
-		prev = code;
-	}
-	return len == 0 ? "" : pre.slice(-len);
-}
-function isWordCode(chars, code, asciiCharactersOnly) {
-	if (!chars.isKeywordCode(code)) return false;
-	if (isLowSurrogate(code)) return false;
-	if (asciiCharactersOnly && code >= 255) return false;
-	return true;
-}
-function highlightOffset(pre, item) {
-	let { filterText, abbr } = item;
-	let idx = abbr.indexOf(filterText);
-	if (idx == -1) return -1;
-	return pre + (idx == 0 ? 0 : byteIndex(abbr, idx));
-}
-function emptLabelDetails(labelDetails) {
-	if (!labelDetails) return true;
-	return !labelDetails.detail && !labelDetails.description;
-}
-function isSnippetItem(item, itemDefaults) {
-	return (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet;
-}
-/**
-* Snippet or have additionalTextEdits
-*/
-function hasAction(item, itemDefaults) {
-	return isSnippetItem(item, itemDefaults) || !isFalsyOrEmpty(item.additionalTextEdits);
-}
-function toValidWord(snippet, excludes) {
-	for (let i = 0; i < snippet.length; i++) {
-		let code = snippet.charCodeAt(i);
-		if (excludes.includes(code)) return snippet.slice(0, i);
-	}
-	return snippet;
-}
-function snippetToWord(text, kind) {
-	if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method || kind === CompletionItemKind.Class) text = text.replace(/\(.+/, "");
-	if (!text.includes(DollarSign)) return text;
-	return toValidWord(new SnippetParser().text(text), INVALID_WORD_CHARS);
-}
-/**
-* Get the word to insert, it's the word to insert from range or input start position,
-* may not the actual word to insert
-*/
-function getWord(item, itemDefaults) {
-	let { label, data, kind } = item;
-	if (data && string(data.word)) return data.word;
-	let textToInsert = item.textEdit ? item.textEdit.newText : item.insertText;
-	if (!string(textToInsert)) return label;
-	return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS);
-}
-function getReplaceRange(item, defaultRange, character, insertMode) {
-	let editRange;
-	if (item.textEdit) editRange = InsertReplaceEdit.is(item.textEdit) ? item.textEdit : item.textEdit.range;
-	else if (defaultRange) editRange = defaultRange;
-	let range;
-	if (editRange) if (Range.is(editRange)) range = editRange;
-	else range = insertMode == "insert" ? editRange.insert : editRange.replace;
-	if (range && number(character) && range.start.character > character) range.start.character = character;
-	return range;
-}
-function toItemKey(item) {
-	return `${item.filterText}|${item.source.name}|${item.kind ?? ""}`;
-}
-var INVALID_WORD_CHARS, DollarSign, QuestionMark, MAX_CODE_POINT, MAX_MRU_ITEMS, DEFAULT_HL_GROUP, highlightsMap, Converter, MruLoader;
-var init_util$3 = __esmMin((() => {
-	init_main$2();
-	init_chars();
-	init_parser();
-	init_util$7();
-	init_array();
-	init_constants();
-	init_is();
-	init_map();
-	init_node();
-	init_object();
-	init_string$1();
-	INVALID_WORD_CHARS = [10, 13];
-	DollarSign = "$";
-	QuestionMark = "?";
-	MAX_CODE_POINT = 1114111;
-	MAX_MRU_ITEMS = 100;
-	DEFAULT_HL_GROUP = "CocSymbolDefault";
-	highlightsMap = {
-		[CompletionItemKind.Text]: "CocSymbolText",
-		[CompletionItemKind.Method]: "CocSymbolMethod",
-		[CompletionItemKind.Function]: "CocSymbolFunction",
-		[CompletionItemKind.Constructor]: "CocSymbolConstructor",
-		[CompletionItemKind.Field]: "CocSymbolField",
-		[CompletionItemKind.Variable]: "CocSymbolVariable",
-		[CompletionItemKind.Class]: "CocSymbolClass",
-		[CompletionItemKind.Interface]: "CocSymbolInterface",
-		[CompletionItemKind.Module]: "CocSymbolModule",
-		[CompletionItemKind.Property]: "CocSymbolProperty",
-		[CompletionItemKind.Unit]: "CocSymbolUnit",
-		[CompletionItemKind.Value]: "CocSymbolValue",
-		[CompletionItemKind.Enum]: "CocSymbolEnum",
-		[CompletionItemKind.Keyword]: "CocSymbolKeyword",
-		[CompletionItemKind.Snippet]: "CocSymbolSnippet",
-		[CompletionItemKind.Color]: "CocSymbolColor",
-		[CompletionItemKind.File]: "CocSymbolFile",
-		[CompletionItemKind.Reference]: "CocSymbolReference",
-		[CompletionItemKind.Folder]: "CocSymbolFolder",
-		[CompletionItemKind.EnumMember]: "CocSymbolEnumMember",
-		[CompletionItemKind.Constant]: "CocSymbolConstant",
-		[CompletionItemKind.Struct]: "CocSymbolStruct",
-		[CompletionItemKind.Event]: "CocSymbolEvent",
-		[CompletionItemKind.Operator]: "CocSymbolOperator",
-		[CompletionItemKind.TypeParameter]: "CocSymbolTypeParameter"
-	};
-	Converter = class {
-		inputStart;
-		option;
-		opt;
-		previousCache = /* @__PURE__ */ new Map();
-		postCache = /* @__PURE__ */ new Map();
-		character;
-		minCharacter = Number.MAX_SAFE_INTEGER;
-		inputLen;
-		constructor(inputStart, option, opt) {
-			this.inputStart = inputStart;
-			this.option = option;
-			this.opt = opt;
-			this.character = opt.position.character;
-			this.inputLen = opt.position.character - inputStart;
-		}
-		/**
-		* Text before input to replace
-		*/
-		getPrevious(character) {
-			if (this.previousCache.has(character)) return this.previousCache.get(character);
-			let prev = this.opt.line.slice(character, this.inputStart);
-			this.previousCache.set(character, prev);
-			return prev;
-		}
-		/**
-		* Text after cursor to replace
-		*/
-		getAfter(character) {
-			if (this.postCache.has(character)) return this.postCache.get(character);
-			let text = this.opt.line.slice(this.character, character);
-			this.postCache.set(character, text);
-			return text;
-		}
-		/**
-		* Exclude follow characters to replace from end of word
-		*/
-		fixFollow(word, isSnippet, endCharacter) {
-			if (isSnippet || endCharacter <= this.character) return word;
-			let toReplace = this.getAfter(endCharacter);
-			if (word.length - this.inputLen > toReplace.length && word.endsWith(toReplace)) return word.slice(0, -toReplace.length);
-			return word;
-		}
-		/**
-		* Better filter text with prefix before input removed if exists.
-		*/
-		getDelta(filterText, character) {
-			if (character < this.inputStart) {
-				let prev = this.getPrevious(character);
-				if (filterText.startsWith(prev)) return prev.length;
-			}
-			return 0;
-		}
-		convertToDurationItem(item) {
-			if (isCompletionItem(item)) return this.convertLspCompleteItem(item);
-			else if (string(item.word)) return this.convertVimCompleteItem(item);
-		}
-		convertVimCompleteItem(item) {
-			const { option } = this;
-			const { range, asciiMatch } = option;
-			const word = toText(item.word);
-			const character = range.start.character;
-			this.minCharacter = Math.min(this.minCharacter, character);
-			let filterText = item.filterText ?? word;
-			filterText = asciiMatch ? unidecode(filterText) : filterText;
-			const delta = this.getDelta(filterText, character);
-			return {
-				word: this.fixFollow(word, item.isSnippet, range.end.character),
-				abbr: item.abbr ?? word,
-				filterText,
-				delta,
-				character,
-				dup: item.dup === 1,
-				menu: item.menu,
-				kind: item.kind,
-				isSnippet: !!item.isSnippet,
-				insertText: item.insertText,
-				preselect: item.preselect,
-				sortText: item.sortText,
-				deprecated: item.deprecated,
-				detail: item.detail,
-				labelDetails: item.labelDetails,
-				get source() {
-					return option.source;
-				},
-				get priority() {
-					return option.source.priority ?? 99;
-				},
-				get shortcut() {
-					return toText(option.source.shortcut);
-				}
-			};
-		}
-		convertLspCompleteItem(item) {
-			const { option, inputStart } = this;
-			const label = item.label.trim();
-			const itemDefaults = toObject(option.itemDefaults);
-			const word = getWord(item, itemDefaults);
-			const range = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range;
-			const character = range.start.character;
-			const data = toObject(item.data);
-			const filterText = item.filterText ?? item.label;
-			const delta = this.getDelta(filterText, character);
-			let obj = {
-				word: this.fixFollow(word, isSnippetItem(item, itemDefaults), range.end.character),
-				abbr: label,
-				character,
-				delta,
-				kind: item.kind,
-				detail: item.detail,
-				sortText: item.sortText,
-				filterText,
-				preselect: item.preselect === true,
-				deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
-				isSnippet: hasAction(item, itemDefaults),
-				get source() {
-					return option.source;
-				},
-				get priority() {
-					return option.priority;
-				},
-				get shortcut() {
-					return toText(option.source.shortcut);
-				},
-				dup: data.dup !== 0
-			};
-			this.minCharacter = Math.min(this.minCharacter, character);
-			if (data.optional && !obj.abbr.endsWith(QuestionMark)) obj.abbr += QuestionMark;
-			if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails;
-			if (number(item["score"]) && !obj.sortText) obj.sortText = String.fromCodePoint(MAX_CODE_POINT - Math.round(item["score"]));
-			return obj;
-		}
-	};
-	MruLoader = class {
-		max = 0;
-		items = new LRUCache(MAX_MRU_ITEMS);
-		itemsNoPrefix = new LRUCache(MAX_MRU_ITEMS);
-		getScore(input, item, selection) {
-			let key = toItemKey(item);
-			if (input.length == 0) return this.itemsNoPrefix.get(key) ?? -1;
-			if (selection === "recentlyUsedByPrefix") key = `${input}|${key}`;
-			return (selection === "recentlyUsed" ? this.itemsNoPrefix : this.items).get(key) ?? -1;
-		}
-		add(prefix, item) {
-			if (!number(item.kind)) return;
-			let key = toItemKey(item);
-			if (!item.filterText.startsWith(prefix)) prefix = "";
-			let line = `${prefix}|${key}`;
-			this.items.set(line, this.max);
-			this.itemsNoPrefix.set(key, this.max);
-			this.max += 1;
-		}
-		clear() {
-			this.max = 0;
-			this.items.clear();
-			this.itemsNoPrefix.clear();
-		}
-	};
-}));
-//#endregion
-//#region src/completion/source-language.ts
-function getUltisnipOption(item) {
-	let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip;
-	return opts ? opts : void 0;
-}
-function fixIndent(line, currline, range) {
-	let oldIndent = line.match(/^\s*/)[0];
-	let newIndent = currline.match(/^\s*/)[0];
-	if (oldIndent === newIndent) return 0;
-	let d = newIndent.length - oldIndent.length;
-	range.start.character += d;
-	range.end.character += d;
-	return d;
-}
-function fixTextEdit(character, edit) {
-	if (TextEdit.is(edit)) {
-		if (character < edit.range.start.character) edit.range.start.character = character;
-	}
-	if (InsertReplaceEdit.is(edit)) {
-		if (character < edit.insert.start.character) edit.insert.start.character = character;
-		if (character < edit.replace.start.character) edit.replace.start.character = character;
-	}
-	return edit;
-}
-var logger$24, LanguageSource;
-var init_source_language = __esmMin((() => {
-	init_main$2();
-	init_commands$2();
-	init_ui$2();
-	init_logger$2();
-	init_manager$1();
-	init_util$7();
-	init_array();
-	init_errors();
-	init_is();
-	init_object();
-	init_protocol();
-	init_string$1();
-	init_workspace$1();
-	init_util$3();
-	logger$24 = createLogger$1("source-language");
-	LanguageSource = class {
-		name;
-		shortcut;
-		provider;
-		documentSelector;
-		triggerCharacters;
-		allCommitCharacters;
-		priority;
-		sourceType = 2;
-		_enabled = true;
-		itemDefaults = {};
-		hasDefaultRange;
-		triggerContext;
-		resolving = /* @__PURE__ */ new WeakMap();
-		constructor(name, shortcut, provider, documentSelector, triggerCharacters, allCommitCharacters, priority) {
-			this.name = name;
-			this.shortcut = shortcut;
-			this.provider = provider;
-			this.documentSelector = documentSelector;
-			this.triggerCharacters = triggerCharacters;
-			this.allCommitCharacters = allCommitCharacters;
-			this.priority = priority;
-		}
-		get enable() {
-			return this._enabled;
-		}
-		toggle() {
-			this._enabled = !this._enabled;
-		}
-		shouldCommit(item, character) {
-			if (this.allCommitCharacters.includes(character)) return true;
-			return toArray(item.commitCharacters ?? this.itemDefaults.commitCharacters).includes(character);
-		}
-		async doComplete(option, token) {
-			let { triggerCharacter, bufnr, position } = option;
-			let triggerKind = this.getTriggerKind(option);
-			this.triggerContext = {
-				lnum: position.line,
-				character: position.character,
-				line: option.line
-			};
-			let context = {
-				triggerKind,
-				option
-			};
-			if (triggerKind == import_main$1.CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter;
-			let textDocument = workspace_default.getDocument(bufnr).textDocument;
-			await waitImmediate$1();
-			let result = await Promise.resolve(this.provider.provideCompletionItems(textDocument, position, token, context));
-			if (!result || token.isCancellationRequested) return null;
-			let completeItems = Array.isArray(result) ? result : result.items;
-			if (!completeItems || completeItems.length == 0) return null;
-			let itemDefaults = this.itemDefaults = toObject(result["itemDefaults"]);
-			let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
-			this.hasDefaultRange = isEditRange(itemDefaults.editRange);
-			return {
-				isIncomplete,
-				items: completeItems,
-				itemDefaults
-			};
-		}
-		onCompleteResolve(item, opt, token) {
-			if (!func(this.provider.resolveCompletionItem)) return;
-			let promise = this.resolving.get(item);
-			if (promise) return promise;
-			let invalid = false;
-			promise = new Promise(async (resolve, reject) => {
-				let disposable = token.onCancellationRequested(() => {
-					this.resolving.delete(item);
-					reject(new CancellationError());
-				});
-				try {
-					let resolved = await Promise.resolve(this.provider.resolveCompletionItem(item, token));
-					disposable.dispose();
-					if (!token.isCancellationRequested) if (!resolved) {
-						invalid = true;
-						this.resolving.delete(item);
-					} else {
-						if (resolved.textEdit) resolved.textEdit = fixTextEdit(characterIndex(opt.line, opt.col), resolved.textEdit);
-						Object.assign(item, resolved);
-					}
-					resolve();
-				} catch (e) {
-					invalid = true;
-					this.resolving.delete(item);
-					reject(e);
-				}
-			});
-			if (!invalid) this.resolving.set(item, promise);
-			return promise;
-		}
-		async onCompleteDone(item, opt) {
-			let doc = workspace_default.getDocument(opt.bufnr);
-			await doc.patchChange();
-			let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits);
-			let version = doc.version;
-			let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt);
-			if (additionalEdits) {
-				let move = !isSnippet;
-				if (isSnippet) {
-					let pos = await getLineAndPosition(workspace_default.nvim);
-					move = Position.create(pos.line, pos.character);
-				}
-				await doc.applyEdits(item.additionalTextEdits, doc.version != version, move);
-				if (isSnippet) await manager_default.selectCurrentPlaceholder();
-			}
-			if (item.command) if (commands_default.has(item.command.command)) commands_default.execute(item.command);
-			else logger$24.warn(`Command "${item.command.command}" not registered to coc.nvim`);
-		}
-		async applyTextEdit(doc, additionalEdits, item, option) {
-			let { linenr, col } = option;
-			let { character, line } = this.triggerContext;
-			let pos = await getLineAndPosition(workspace_default.nvim);
-			if (pos.line != linenr - 1) return;
-			let { textEdit, textEditText, insertText, label } = item;
-			let range = getReplaceRange(item, this.itemDefaults?.editRange, void 0, option.insertMode);
-			if (!range) {
-				let end = character + (option.insertMode == "insert" ? 0 : option.followWord.length);
-				range = Range.create(pos.line, characterIndex(line, col), pos.line, end);
-			}
-			let invalidRangeEnd = range.end.character < character;
-			if (invalidRangeEnd) range.end.character = character;
-			let newText = textEdit ? textEdit.newText : (textEditText && this.hasDefaultRange ? textEditText : insertText) ?? label;
-			let indentCount = fixIndent(line, pos.text, range);
-			let delta = pos.character - character - indentCount;
-			if (delta !== 0) range.end.character += delta;
-			let next = pos.text[range.end.character];
-			if (invalidRangeEnd && next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) range.end.character += 1;
-			if (option.snippetsSupport !== false && isSnippetItem(item, this.itemDefaults)) {
-				let opts = getUltisnipOption(item);
-				let insertTextMode = item.insertTextMode ?? this.itemDefaults.insertTextMode;
-				return await manager_default.insertSnippet(newText, !additionalEdits, range, insertTextMode, opts);
-			}
-			await doc.applyEdits([TextEdit.replace(range, newText)], false, pos);
-			return false;
-		}
-		getTriggerKind(opt) {
-			let { triggerCharacters } = this;
-			let isTrigger = triggerCharacters.includes(opt.triggerCharacter);
-			let triggerKind = import_main$1.CompletionTriggerKind.Invoked;
-			if (opt.triggerForInComplete) triggerKind = import_main$1.CompletionTriggerKind.TriggerForIncompleteCompletions;
-			else if (isTrigger) triggerKind = import_main$1.CompletionTriggerKind.TriggerCharacter;
-			return triggerKind;
-		}
-	};
-}));
-//#endregion
 //#region src/completion/source-vim.ts
 function getMethodName(name, names) {
 	if (names.includes(name)) return name;
@@ -120708,7 +127958,7 @@ var VimSource;
 var init_source_vim = __esmMin((() => {
 	init_main$2();
 	init_ui$2();
-	init_manager$1();
+	init_manager$2();
 	init_string$1();
 	init_workspace$1();
 	init_source();
@@ -120734,7 +127984,7 @@ var init_source_vim = __esmMin((() => {
 			let oldIndent = line.match(/^\s*/)[0];
 			let newIndent = pos.text.match(/^\s*/)[0];
 			let range = Range.create(pos.line, characterIndex(line, col) + newIndent.length - oldIndent.length, pos.line, pos.character);
-			await manager_default.insertSnippet(insertText, true, range);
+			await manager_default$1.insertSnippet(insertText, true, range);
 		}
 		async onCompleteDone(item, opt) {
 			if (checkInclude("on_complete", this.remoteFns)) await this.callOptionalFunc("on_complete", [item], true);
@@ -121060,21 +128310,15 @@ var init_file = __esmMin((() => {
 }));
 //#endregion
 //#region src/completion/sources.ts
-var sources_exports = /* @__PURE__ */ __exportAll({
-	Sources: () => Sources,
-	default: () => sources_default,
-	getSourceType: () => getSourceType,
-	logError: () => logError
-});
 function logError(err) {
-	logger$23.error("Error on source create", err);
+	logger$12.error("Error on source create", err);
 }
 function getSourceType(sourceType) {
 	if (sourceType === 0) return "native";
 	if (sourceType === 1) return "remote";
 	return "service";
 }
-var logger$23, Sources, sources_default;
+var logger$12, Sources, sources_default;
 var init_sources = __esmMin((() => {
 	init_events();
 	init_extension();
@@ -121093,7 +128337,7 @@ var init_sources = __esmMin((() => {
 	init_source_language();
 	init_source_vim();
 	init_util$3();
-	logger$23 = createLogger$1("sources");
+	logger$12 = createLogger$1("sources");
 	Sources = class {
 		sourceMap = /* @__PURE__ */ new Map();
 		disposables = [];
@@ -121136,7 +128380,7 @@ var init_sources = __esmMin((() => {
 		}
 		createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters) {
 			let source = new LanguageSource(name, shortcut, provider, selector, toArray(triggerCharacters), toArray(allCommitCharacters), priority);
-			logger$23.trace("created service source", name);
+			logger$12.trace("created service source", name);
 			this.sourceMap.set(name, source);
 			return { dispose: () => {
 				this.sourceMap.delete(name);
@@ -121221,7 +128465,7 @@ var init_sources = __esmMin((() => {
 					if (lines.length > 0 && lines[0].startsWith("vim9script")) return;
 				}
 				window_default.showErrorMessage(`Error on create vim source from ${filepath}: ${e}`);
-				logger$23.error(`Error on create vim source from ${filepath}`, e);
+				logger$12.error(`Error on create vim source from ${filepath}`, e);
 			}
 		}
 		createRemoteSources() {
@@ -121304,7 +128548,7 @@ var init_sources = __esmMin((() => {
 		}
 		addSource(source) {
 			let { name } = source;
-			if (this.names.includes(name)) logger$23.warn(`Recreate source ${name}`);
+			if (this.names.includes(name)) logger$12.warn(`Recreate source ${name}`);
 			this.sourceMap.set(name, source);
 			return import_main$1.Disposable.create(() => {
 				this.removeSource(source);
@@ -121349,7 +128593,7 @@ var init_sources = __esmMin((() => {
 		}
 		createSource(config) {
 			if (typeof config.name !== "string" || typeof config.doComplete !== "function") {
-				logger$23.error(`Bad config for createSource:`, config);
+				logger$12.error(`Bad config for createSource:`, config);
 				throw new TypeError(`name and doComplete required for createSource`);
 			}
 			let source = new Source(Object.assign({ sourceType: 2 }, config));
@@ -121360,7220 +128604,6 @@ var init_sources = __esmMin((() => {
 		}
 	};
 	sources_default = new Sources();
-}));
-//#endregion
-//#region src/languages.ts
-var eventDebounce, ProviderName, Languages, languages_default;
-var init_languages = __esmMin((() => {
-	init_main$2();
-	init_manager$4();
-	init_callHierarchyManager();
-	init_codeActionManager();
-	init_codeLensManager();
-	init_declarationManager();
-	init_definitionManager();
-	init_documentColorManager();
-	init_documentHighlightManager();
-	init_documentLinkManager();
-	init_documentSymbolManager();
-	init_foldingRangeManager();
-	init_formatManager();
-	init_formatRangeManager();
-	init_hoverManager();
-	init_implementationManager();
-	init_inlayHintManager();
-	init_inlineCompletionItemManager();
-	init_inlineValueManager();
-	init_linkedEditingRangeManager();
-	init_onTypeFormatManager();
-	init_referenceManager();
-	init_renameManager();
-	init_selectionRangeManager();
-	init_semanticTokensManager();
-	init_semanticTokensRangeManager();
-	init_signatureManager();
-	init_typeDefinitionManager();
-	init_typeHierarchyManager();
-	init_workspaceSymbolsManager();
-	init_util$7();
-	init_is();
-	init_protocol();
-	init_string$1();
-	eventDebounce = getConditionValue(100, 1);
-	ProviderName = /* @__PURE__ */ function(ProviderName) {
-		ProviderName["FormatOnType"] = "formatOnType";
-		ProviderName["Rename"] = "rename";
-		ProviderName["OnTypeEdit"] = "onTypeEdit";
-		ProviderName["DocumentLink"] = "documentLink";
-		ProviderName["DocumentColor"] = "documentColor";
-		ProviderName["FoldingRange"] = "foldingRange";
-		ProviderName["Format"] = "format";
-		ProviderName["CodeAction"] = "codeAction";
-		ProviderName["FormatRange"] = "formatRange";
-		ProviderName["Hover"] = "hover";
-		ProviderName["Signature"] = "signature";
-		ProviderName["WorkspaceSymbols"] = "workspaceSymbols";
-		ProviderName["DocumentSymbol"] = "documentSymbol";
-		ProviderName["DocumentHighlight"] = "documentHighlight";
-		ProviderName["Definition"] = "definition";
-		ProviderName["Declaration"] = "declaration";
-		ProviderName["TypeDefinition"] = "typeDefinition";
-		ProviderName["Reference"] = "reference";
-		ProviderName["Implementation"] = "implementation";
-		ProviderName["CodeLens"] = "codeLens";
-		ProviderName["SelectionRange"] = "selectionRange";
-		ProviderName["CallHierarchy"] = "callHierarchy";
-		ProviderName["SemanticTokens"] = "semanticTokens";
-		ProviderName["SemanticTokensRange"] = "semanticTokensRange";
-		ProviderName["LinkedEditing"] = "linkedEditing";
-		ProviderName["InlayHint"] = "inlayHint";
-		ProviderName["InlineValue"] = "inlineValue";
-		ProviderName["InlineCompletion"] = "inlineCompletion";
-		ProviderName["TypeHierarchy"] = "typeHierarchy";
-		return ProviderName;
-	}({});
-	Languages = class {
-		_onDidSemanticTokensRefresh = new import_main$1.Emitter();
-		_onDidFoldingRangeRefresh = new import_main$1.Emitter();
-		_onDidInlayHintRefresh = new import_main$1.Emitter();
-		_onDidCodeLensRefresh = new import_main$1.Emitter();
-		_onDidColorsRefresh = new import_main$1.Emitter();
-		_onDidLinksRefresh = new import_main$1.Emitter();
-		onDidSemanticTokensRefresh = this._onDidSemanticTokensRefresh.event;
-		onDidFoldingRangeRefresh = this._onDidFoldingRangeRefresh.event;
-		onDidInlayHintRefresh = this._onDidInlayHintRefresh.event;
-		onDidCodeLensRefresh = this._onDidCodeLensRefresh.event;
-		onDidColorsRefresh = this._onDidColorsRefresh.event;
-		onDidLinksRefresh = this._onDidLinksRefresh.event;
-		onTypeFormatManager = new OnTypeFormatManager();
-		documentLinkManager = new DocumentLinkManager();
-		documentColorManager = new DocumentColorManager();
-		foldingRangeManager = new FoldingRangeManager();
-		renameManager = new RenameManager();
-		formatManager = new FormatManager();
-		codeActionManager = new CodeActionManager();
-		workspaceSymbolsManager = new WorkspaceSymbolManager();
-		formatRangeManager = new FormatRangeManager();
-		hoverManager = new HoverManager();
-		signatureManager = new SignatureManager();
-		documentSymbolManager = new DocumentSymbolManager();
-		documentHighlightManager = new DocumentHighlightManager();
-		definitionManager = new DefinitionManager();
-		declarationManager = new DeclarationManager();
-		typeDefinitionManager = new TypeDefinitionManager();
-		typeHierarchyManager = new TypeHierarchyManager();
-		referenceManager = new ReferenceManager();
-		implementationManager = new ImplementationManager();
-		codeLensManager = new CodeLensManager$1();
-		selectionRangeManager = new SelectionRangeManager();
-		callHierarchyManager = new CallHierarchyManager();
-		semanticTokensManager = new SemanticTokensManager();
-		semanticTokensRangeManager = new SemanticTokensRangeManager();
-		linkedEditingManager = new LinkedEditingRangeManager();
-		inlayHintManager = new InlayHintManger();
-		inlineCompletionItemManager = new InlineCompletionItemManager();
-		inlineValueManager = new InlineValueManager();
-		registerDocumentRangeFormattingEditProvider;
-		registerDocumentFormattingEditProvider;
-		registerReferenceProvider;
-		constructor() {
-			this.registerReferenceProvider = this.registerReferencesProvider;
-			this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider;
-			this.registerDocumentFormattingEditProvider = this.registerDocumentFormatProvider;
-		}
-		hasFormatProvider(doc) {
-			if (this.formatManager.hasProvider(doc)) return true;
-			if (this.formatRangeManager.hasProvider(doc)) return true;
-			return false;
-		}
-		registerOnTypeFormattingEditProvider(selector, provider, triggerCharacters) {
-			return this.onTypeFormatManager.register(selector, provider, triggerCharacters);
-		}
-		registerCompletionItemProvider(name, shortcut, selector, provider, triggerCharacters = [], priority, allCommitCharacters) {
-			selector = string(selector) ? [{ language: selector }] : selector;
-			let sources = (init_sources(), __toCommonJS(sources_exports)).default;
-			sources.removeSource(name);
-			return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters);
-		}
-		registerInlineCompletionItemProvider(selector, provider) {
-			return this.inlineCompletionItemManager.register(selector, provider);
-		}
-		registerCodeActionProvider(selector, provider, clientId, codeActionKinds) {
-			return this.codeActionManager.register(selector, provider, clientId, codeActionKinds);
-		}
-		registerHoverProvider(selector, provider) {
-			return this.hoverManager.register(selector, provider);
-		}
-		registerSelectionRangeProvider(selector, provider) {
-			return this.selectionRangeManager.register(selector, provider);
-		}
-		registerSignatureHelpProvider(selector, provider, triggerCharacters) {
-			return this.signatureManager.register(selector, provider, triggerCharacters);
-		}
-		registerDocumentSymbolProvider(selector, provider, metadata) {
-			if (metadata) provider.meta = metadata;
-			return this.documentSymbolManager.register(selector, provider);
-		}
-		registerFoldingRangeProvider(selector, provider) {
-			return this.registerProviderWithEvent(selector, provider, "onDidChangeFoldingRanges", this.foldingRangeManager, this._onDidFoldingRangeRefresh);
-		}
-		registerDocumentHighlightProvider(selector, provider) {
-			return this.documentHighlightManager.register(selector, provider);
-		}
-		registerDocumentLinkProvider(selector, provider) {
-			this._onDidLinksRefresh.fire(selector);
-			let disposable = this.documentLinkManager.register(selector, provider);
-			return import_main$1.Disposable.create(() => {
-				disposable.dispose();
-				this._onDidLinksRefresh.fire(selector);
-			});
-		}
-		registerDocumentColorProvider(selector, provider) {
-			this._onDidColorsRefresh.fire(selector);
-			let disposable = this.documentColorManager.register(selector, provider);
-			return import_main$1.Disposable.create(() => {
-				disposable.dispose();
-				this._onDidColorsRefresh.fire(selector);
-			});
-		}
-		registerDefinitionProvider(selector, provider) {
-			return this.definitionManager.register(selector, provider);
-		}
-		registerDeclarationProvider(selector, provider) {
-			return this.declarationManager.register(selector, provider);
-		}
-		registerTypeDefinitionProvider(selector, provider) {
-			return this.typeDefinitionManager.register(selector, provider);
-		}
-		registerTypeHierarchyProvider(selector, provider) {
-			return this.typeHierarchyManager.register(selector, provider);
-		}
-		registerImplementationProvider(selector, provider) {
-			return this.implementationManager.register(selector, provider);
-		}
-		registerReferencesProvider(selector, provider) {
-			return this.referenceManager.register(selector, provider);
-		}
-		registerRenameProvider(selector, provider) {
-			return this.renameManager.register(selector, provider);
-		}
-		registerWorkspaceSymbolProvider(provider) {
-			if (arguments.length > 1 && func(arguments[1].provideWorkspaceSymbols)) provider = arguments[1];
-			return this.workspaceSymbolsManager.register(provider);
-		}
-		registerDocumentFormatProvider(selector, provider, priority = 0) {
-			return this.formatManager.register(selector, provider, priority);
-		}
-		registerDocumentRangeFormatProvider(selector, provider, priority = 0) {
-			return this.formatRangeManager.register(selector, provider, priority);
-		}
-		registerCallHierarchyProvider(selector, provider) {
-			return this.callHierarchyManager.register(selector, provider);
-		}
-		registerCodeLensProvider(selector, provider) {
-			return this.registerProviderWithEvent(selector, provider, "onDidChangeCodeLenses", this.codeLensManager, this._onDidCodeLensRefresh);
-		}
-		registerDocumentSemanticTokensProvider(selector, provider, legend) {
-			return this.registerProviderWithEvent(selector, provider, "onDidChangeSemanticTokens", this.semanticTokensManager, this._onDidSemanticTokensRefresh, legend);
-		}
-		registerDocumentRangeSemanticTokensProvider(selector, provider, legend) {
-			let disposable;
-			let timer = setTimeout(() => {
-				disposable = this.semanticTokensRangeManager.register(selector, provider, legend);
-				this._onDidSemanticTokensRefresh.fire(selector);
-			}, eventDebounce);
-			return import_main$1.Disposable.create(() => {
-				clearTimeout(timer);
-				if (disposable) {
-					disposable.dispose();
-					this._onDidSemanticTokensRefresh.fire(selector);
-				}
-			});
-		}
-		registerInlayHintsProvider(selector, provider) {
-			return this.registerProviderWithEvent(selector, provider, "onDidChangeInlayHints", this.inlayHintManager, this._onDidInlayHintRefresh);
-		}
-		registerInlineValuesProvider(selector, provider) {
-			return this.inlineValueManager.register(selector, provider);
-		}
-		registerLinkedEditingRangeProvider(selector, provider) {
-			return this.linkedEditingManager.register(selector, provider);
-		}
-		shouldTriggerSignatureHelp(document, triggerCharacter) {
-			return this.signatureManager.shouldTrigger(document, triggerCharacter);
-		}
-		async getHover(document, position, token) {
-			return await this.hoverManager.provideHover(document, position, token);
-		}
-		async getSignatureHelp(document, position, token, context) {
-			return await this.signatureManager.provideSignatureHelp(document, position, token, context);
-		}
-		async getDefinition(document, position, token) {
-			return await this.definitionManager.provideDefinition(document, position, token);
-		}
-		async getDefinitionLinks(document, position, token) {
-			return await this.definitionManager.provideDefinitionLinks(document, position, token);
-		}
-		async getDeclaration(document, position, token) {
-			return await this.declarationManager.provideDeclaration(document, position, token);
-		}
-		async getTypeDefinition(document, position, token) {
-			return await this.typeDefinitionManager.provideTypeDefinition(document, position, token);
-		}
-		async getImplementation(document, position, token) {
-			return await this.implementationManager.provideImplementations(document, position, token);
-		}
-		async getReferences(document, context, position, token) {
-			return await this.referenceManager.provideReferences(document, position, context, token);
-		}
-		async getDocumentSymbol(document, token) {
-			return await this.documentSymbolManager.provideDocumentSymbols(document, token);
-		}
-		getDocumentSymbolMetadata(document) {
-			return this.documentSymbolManager.getMetaData(document);
-		}
-		async getSelectionRanges(document, positions, token) {
-			return await this.selectionRangeManager.provideSelectionRanges(document, positions, token);
-		}
-		async getWorkspaceSymbols(query, token) {
-			return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token);
-		}
-		async resolveWorkspaceSymbol(symbol, token) {
-			return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token);
-		}
-		async prepareRename(document, position, token) {
-			return await this.renameManager.prepareRename(document, position, token);
-		}
-		async provideRenameEdits(document, position, newName, token) {
-			return await this.renameManager.provideRenameEdits(document, position, newName, token);
-		}
-		async provideDocumentFormattingEdits(document, options, token) {
-			if (!this.formatManager.hasFormatProvider(document)) {
-				if (!this.formatRangeManager.hasProvider(document)) return null;
-				let end = document.positionAt(document.getText().length);
-				let range = Range.create(Position.create(0, 0), end);
-				return await this.provideDocumentRangeFormattingEdits(document, range, options, token);
-			}
-			return await this.formatManager.provideDocumentFormattingEdits(document, options, token);
-		}
-		async provideDocumentRangeFormattingEdits(document, range, options, token) {
-			return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token);
-		}
-		async getCodeActions(document, range, context, token) {
-			return await this.codeActionManager.provideCodeActions(document, range, context, token);
-		}
-		async getDocumentHighLight(document, position, token) {
-			return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
-		}
-		async getDocumentLinks(document, token) {
-			return await this.documentLinkManager.provideDocumentLinks(document, token);
-		}
-		async resolveDocumentLink(link, token) {
-			return await this.documentLinkManager.resolveDocumentLink(link, token);
-		}
-		async provideDocumentColors(document, token) {
-			return await this.documentColorManager.provideDocumentColors(document, token);
-		}
-		async provideFoldingRanges(document, context, token) {
-			return await this.foldingRangeManager.provideFoldingRanges(document, context, token);
-		}
-		async provideColorPresentations(color, document, token) {
-			return await this.documentColorManager.provideColorPresentations(color, document, token);
-		}
-		async provideInlineCompletionItems(document, position, context, token) {
-			return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token);
-		}
-		async getCodeLens(document, token) {
-			return await this.codeLensManager.provideCodeLenses(document, token);
-		}
-		async resolveCodeLens(codeLens, token) {
-			return await this.codeLensManager.resolveCodeLens(codeLens, token);
-		}
-		async resolveCodeAction(codeAction, token) {
-			return await this.codeActionManager.resolveCodeAction(codeAction, token);
-		}
-		async provideDocumentOnTypeEdits(character, document, position, token) {
-			return this.onTypeFormatManager.onCharacterType(character, document, position, token);
-		}
-		canFormatOnType(character, document) {
-			return this.onTypeFormatManager.couldTrigger(document, character) != null;
-		}
-		async prepareCallHierarchy(document, position, token) {
-			return this.callHierarchyManager.prepareCallHierarchy(document, position, token);
-		}
-		async provideIncomingCalls(document, item, token) {
-			return this.callHierarchyManager.provideCallHierarchyIncomingCalls(document, item, token);
-		}
-		async provideOutgoingCalls(document, item, token) {
-			return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(document, item, token);
-		}
-		getLegend(document, range) {
-			if (range) return this.semanticTokensRangeManager.getLegend(document);
-			return this.semanticTokensManager.getLegend(document);
-		}
-		hasSemanticTokensEdits(document) {
-			return this.semanticTokensManager.hasSemanticTokensEdits(document);
-		}
-		async provideDocumentSemanticTokens(document, token) {
-			return this.semanticTokensManager.provideDocumentSemanticTokens(document, token);
-		}
-		async provideDocumentSemanticTokensEdits(document, previousResultId, token) {
-			return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token);
-		}
-		async provideDocumentRangeSemanticTokens(document, range, token) {
-			return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token);
-		}
-		async provideInlayHints(document, range, token) {
-			return this.inlayHintManager.provideInlayHints(document, range, token);
-		}
-		async resolveInlayHint(hint, token) {
-			return this.inlayHintManager.resolveInlayHint(hint, token);
-		}
-		async provideLinkedEdits(document, position, token) {
-			return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token);
-		}
-		async provideInlineValues(document, viewPort, context, token) {
-			return this.inlineValueManager.provideInlineValues(document, viewPort, context, token);
-		}
-		async prepareTypeHierarchy(document, position, token) {
-			return this.typeHierarchyManager.prepareTypeHierarchy(document, position, token);
-		}
-		async provideTypeHierarchySupertypes(item, token) {
-			return this.typeHierarchyManager.provideTypeHierarchySupertypes(item, token);
-		}
-		async provideTypeHierarchySubtypes(item, token) {
-			return this.typeHierarchyManager.provideTypeHierarchySubtypes(item, token);
-		}
-		createDiagnosticCollection(owner) {
-			return manager_default$2.create(owner);
-		}
-		registerProviderWithEvent(selector, provider, key, manager, emitter, extra) {
-			let disposables = [];
-			let timer = setTimeout(() => {
-				disposables.push(manager.register(selector, provider, extra));
-				emitter.fire(selector);
-				if (func(provider[key])) disposables.push(provider[key](() => {
-					emitter.fire(selector);
-				}));
-			}, eventDebounce);
-			return import_main$1.Disposable.create(() => {
-				clearTimeout(timer);
-				let registered = disposables.length > 0;
-				disposeAll(disposables);
-				if (registered) emitter.fire(selector);
-			});
-		}
-		hasProvider(id, document) {
-			switch (id) {
-				case "onTypeEdit":
-				case "formatOnType": return this.onTypeFormatManager.hasProvider(document);
-				case "rename": return this.renameManager.hasProvider(document);
-				case "documentLink": return this.documentLinkManager.hasProvider(document);
-				case "documentColor": return this.documentColorManager.hasProvider(document);
-				case "foldingRange": return this.foldingRangeManager.hasProvider(document);
-				case "format": return this.formatManager.hasProvider(document) || this.formatRangeManager.hasProvider(document);
-				case "codeAction": return this.codeActionManager.hasProvider(document);
-				case "workspaceSymbols": return this.workspaceSymbolsManager.hasProvider();
-				case "formatRange": return this.formatRangeManager.hasProvider(document);
-				case "hover": return this.hoverManager.hasProvider(document);
-				case "signature": return this.signatureManager.hasProvider(document);
-				case "documentSymbol": return this.documentSymbolManager.hasProvider(document);
-				case "documentHighlight": return this.documentHighlightManager.hasProvider(document);
-				case "definition": return this.definitionManager.hasProvider(document);
-				case "declaration": return this.declarationManager.hasProvider(document);
-				case "typeDefinition": return this.typeDefinitionManager.hasProvider(document);
-				case "reference": return this.referenceManager.hasProvider(document);
-				case "implementation": return this.implementationManager.hasProvider(document);
-				case "codeLens": return this.codeLensManager.hasProvider(document);
-				case "selectionRange": return this.selectionRangeManager.hasProvider(document);
-				case "callHierarchy": return this.callHierarchyManager.hasProvider(document);
-				case "semanticTokens": return this.semanticTokensManager.hasProvider(document);
-				case "semanticTokensRange": return this.semanticTokensRangeManager.hasProvider(document);
-				case "linkedEditing": return this.linkedEditingManager.hasProvider(document);
-				case "inlayHint": return this.inlayHintManager.hasProvider(document);
-				case "inlineCompletion": return this.inlineCompletionItemManager.hasProvider(document);
-				case "inlineValue": return this.inlineValueManager.hasProvider(document);
-				case "typeHierarchy": return this.typeHierarchyManager.hasProvider(document);
-				default: return false;
-			}
-		}
-	};
-	languages_default = new Languages();
-}));
-//#endregion
-//#region src/model/document.ts
-function fireDetach(bufnr) {
-	events_default.fire("BufDetach", [bufnr]);
-}
-function fireLinesChanged(bufnr) {
-	events_default.fire("LinesChanged", [bufnr]);
-}
-function getUri(fullpath, id, buftype) {
-	if (!fullpath) return `untitled:${id}`;
-	if (path$5.isAbsolute(fullpath)) return URI.file(path$5.normalize(fullpath)).toString();
-	if (isUrl(fullpath)) return URI.parse(fullpath).toString();
-	if (buftype != "") return `${buftype}:${id}`;
-	return `unknown:${id}`;
-}
-function getNotAttachReason(buftype, enabled, size) {
-	if (!["", "acwrite"].includes(buftype)) return `not a normal buffer, buftype "${buftype}"`;
-	if (enabled === 0) return `b:coc_enabled = 0`;
-	return `buffer size ${size} exceed coc.preferences.maxFileSize`;
-}
-var logger$22, MAX_EDITS, debounceTime$6, Document;
-var init_document = __esmMin((() => {
-	init_main$2();
-	init_esm();
-	init_events();
-	init_logger$2();
-	init_array();
-	init_constants();
-	init_diff();
-	init_util$7();
-	init_is();
-	init_node();
-	init_object();
-	init_position();
-	init_protocol();
-	init_string$1();
-	init_textedit();
-	init_chars();
-	init_textdocument();
-	logger$22 = createLogger$1("document");
-	MAX_EDITS = getConditionValue(200, 400);
-	debounceTime$6 = getConditionValue(150, 15);
-	Document = class {
-		buffer;
-		nvim;
-		buftype;
-		isIgnored = false;
-		chars;
-		eol = true;
-		_disposed = false;
-		_attached = false;
-		_notAttachReason = "";
-		_previewwindow = false;
-		_winid = -1;
-		_winids = [];
-		_filetype;
-		_bufname;
-		_commandLine = false;
-		_applying = false;
-		_uri;
-		_changedtick;
-		variables;
-		disposables = [];
-		_textDocument;
-		lines = [];
-		_applyLines;
-		fireContentChanges;
-		fetchContent;
-		_onDocumentChange = new import_main$1.Emitter();
-		onDocumentChange = this._onDocumentChange.event;
-		constructor(buffer$2, nvim, filetype, opts) {
-			this.buffer = buffer$2;
-			this.nvim = nvim;
-			this.fireContentChanges = debounce(() => {
-				this._fireContentChanges();
-			}, debounceTime$6);
-			this.init(filetype, opts);
-		}
-		/**
-		* Synchronize content
-		*/
-		get content() {
-			return this.syncLines.join("\n") + (this.eol ? "\n" : "");
-		}
-		get attached() {
-			return this._attached;
-		}
-		/**
-		* Synchronized textDocument.
-		*/
-		get textDocument() {
-			return this._textDocument;
-		}
-		get syncLines() {
-			return this._textDocument.lines;
-		}
-		get version() {
-			return this._textDocument.version;
-		}
-		/**
-		* Buffer number
-		*/
-		get bufnr() {
-			return this.buffer.id;
-		}
-		get bufname() {
-			return this._bufname;
-		}
-		get filetype() {
-			return this._filetype;
-		}
-		get uri() {
-			return this._uri;
-		}
-		get isCommandLine() {
-			return this._commandLine;
-		}
-		/**
-		* LanguageId of TextDocument, main filetype are used for combined filetypes
-		* with '.'
-		*/
-		get languageId() {
-			let { _filetype } = this;
-			return _filetype.includes(".") ? _filetype.match(/(.*?)\./)[1] : _filetype;
-		}
-		/**
-		* Get current buffer changedtick.
-		*/
-		get changedtick() {
-			return this._changedtick;
-		}
-		/**
-		* Scheme of document.
-		*/
-		get schema() {
-			return URI.parse(this.uri).scheme;
-		}
-		/**
-		* Line count of current buffer.
-		*/
-		get lineCount() {
-			return this.lines.length;
-		}
-		/**
-		* Window ID when buffer create, could be -1 when no window associated.
-		*/
-		get winid() {
-			return this._winid;
-		}
-		get winids() {
-			return this._winids;
-		}
-		/**
-		* Returns if current document is opened with previewwindow
-		* @deprecated
-		*/
-		get previewwindow() {
-			return this._previewwindow;
-		}
-		/**
-		* Initialize document model.
-		*/
-		init(filetype, opts) {
-			let buftype = this.buftype = opts.buftype;
-			this._bufname = opts.bufname;
-			this._commandLine = opts.commandline === 1;
-			this._previewwindow = !!opts.previewwindow;
-			this._winid = opts.winid;
-			this._winids = toArray(opts.winids);
-			this.variables = toObject(opts.variables);
-			this._changedtick = opts.changedtick;
-			this.eol = opts.eol == 1;
-			this._uri = getUri(opts.fullpath, this.bufnr, buftype);
-			if (Array.isArray(opts.lines)) {
-				this.lines = opts.lines.map((line) => toText(line));
-				this._attached = true;
-				this.attach();
-			} else {
-				this.lines = [];
-				this._notAttachReason = getNotAttachReason(buftype, this.variables[`coc_enabled`], opts.size);
-			}
-			this._filetype = filetype;
-			this.setIskeyword(opts.iskeyword, opts.lisp);
-			this.createTextDocument(1, this.lines);
-		}
-		get notAttachReason() {
-			return this._notAttachReason;
-		}
-		attach() {
-			let lines = this.lines;
-			const { bufnr } = this;
-			this.buffer.attach(true).then((res) => {
-				if (!res) fireDetach(this.bufnr);
-			}, (_e) => {
-				fireDetach(this.bufnr);
-			});
-			if (isVim) {
-				/**
-				* Triggered by `@chemzqm/neovim/src/api/client.ts vim_buf_change_event` which is triggered by `autoload/coc/api.vim OnBufferChange`
-				*
-				* Corresponds to `nvim_buf_lines_event`
-				* @see {@link https://neovim.io/doc/user/api/#nvim_buf_lines_event}
-				*/
-				const vim_onLinesChange = (_buf, tick, firstline, lastline, linedata, replaceAll) => {
-					this._changedtick = tick;
-					if (replaceAll) lines = linedata.slice();
-					else lines = [
-						...lines.slice(0, firstline),
-						...linedata,
-						...lines.slice(lastline)
-					];
-					if (lines.length === 0) lines = [""];
-					if (this._applying) {
-						this._applyLines = lines;
-						return;
-					}
-					this.lines = lines;
-					fireLinesChanged(bufnr);
-					if (events_default.completing) return;
-					this.fireContentChanges();
-				};
-				this.buffer.listen("vim_lines", vim_onLinesChange, this.disposables);
-			} else {
-				const onLinesChange = (_buf, tick, firstline, lastline, linedata) => {
-					if (tick && tick > this._changedtick) {
-						this._changedtick = tick;
-						lines = [
-							...lines.slice(0, firstline),
-							...linedata,
-							...lastline < 0 ? [] : lines.slice(lastline)
-						];
-						if (lines.length == 0) lines = [""];
-						if (this._applying) {
-							this._applyLines = lines;
-							return;
-						}
-						this.lines = lines;
-						fireLinesChanged(bufnr);
-						if (events_default.completing) return;
-						this.fireContentChanges();
-					}
-				};
-				this.buffer.listen("lines", onLinesChange, this.disposables);
-				this.buffer.listen("detach", () => {
-					fireDetach(this.bufnr);
-				}, this.disposables);
-			}
-		}
-		/**
-		* Check if document changed after last synchronize
-		*/
-		get dirty() {
-			return this.lines !== this.syncLines;
-		}
-		get hasChanged() {
-			if (!this.dirty) return false;
-			return !equals(this.lines, this.syncLines);
-		}
-		/**
-		* Cursor position if document is current document
-		*/
-		get cursor() {
-			let { cursor } = events_default;
-			if (cursor.bufnr !== this.bufnr) return void 0;
-			let content = toText(this.lines[cursor.lnum - 1]);
-			return Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1));
-		}
-		_fireContentChanges(edit) {
-			if (this.lines === this.syncLines) return;
-			let textDocument = this._textDocument;
-			let changes = [];
-			if (!edit) edit = getTextEdit(textDocument.lines, this.lines, this.cursor, events_default.cursor.insert);
-			let original;
-			if (edit) {
-				original = textDocument.getText(edit.range);
-				changes.push({
-					range: edit.range,
-					text: edit.newText,
-					rangeLength: original.length
-				});
-			} else original = "";
-			let created = this.createTextDocument(this.version + (edit ? 1 : 0), this.lines);
-			this._onDocumentChange.fire(Object.freeze({
-				bufnr: this.bufnr,
-				original,
-				originalLines: textDocument.lines,
-				textDocument: {
-					version: created.version,
-					uri: this.uri
-				},
-				document: created,
-				contentChanges: changes
-			}));
-		}
-		async applyEdits(edits, joinUndo = false, move = false) {
-			if (Array.isArray(arguments[1])) edits = arguments[1];
-			if (!this._attached || edits.length === 0) return;
-			const { bufnr } = this;
-			this._forceSync();
-			let textDocument = this.textDocument;
-			edits = filterSortEdits(textDocument, edits);
-			let newLines = applyEdits(textDocument, edits);
-			if (!newLines) return;
-			let lines = textDocument.lines;
-			let changed = diffLines(lines, newLines, getStartLine(edits[0]));
-			let isAppend = changed.start === changed.end && changed.start === lines.length;
-			let original = lines.slice(changed.start, changed.end);
-			let changes = [];
-			if (edits.length <= MAX_EDITS && changed.start !== changed.end && changed.replacement.length > 0) changes = toTextChanges(lines, edits);
-			const { cursor, col } = this.getCursorAndCol(move, edits, newLines);
-			this.nvim.pauseNotification();
-			if (joinUndo) this.nvim.command(`if bufnr('%') == ${bufnr} | undojoin | endif`, true);
-			if (isAppend) this.buffer.setLines(changed.replacement, {
-				start: -1,
-				end: -1
-			}, true);
-			else this.nvim.call("coc#ui#set_lines", [
-				this.bufnr,
-				this._changedtick,
-				original,
-				changed.replacement,
-				changed.start,
-				changed.end,
-				changes,
-				cursor,
-				col,
-				lines.length
-			], true);
-			this._applying = true;
-			this.lines = newLines;
-			await this.nvim.resumeNotification(true);
-			await waitNextTick();
-			fireLinesChanged(bufnr);
-			let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
-			this.fireContentChanges.clear();
-			this._fireContentChanges(textEdit);
-			let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0);
-			return TextEdit.replace(range, original.join("\n") + (original.length > 0 ? "\n" : ""));
-		}
-		onTextChange() {
-			let { bufnr } = this;
-			if (this._applying) {
-				this._applying = false;
-				if (this._applyLines != null && !equals(this._applyLines, this.textDocument.lines)) {
-					this.lines = this._applyLines;
-					this._applyLines = void 0;
-					fireLinesChanged(bufnr);
-					this.fireContentChanges();
-				}
-			}
-		}
-		getCursorAndCol(move, edits, newLines) {
-			if (!move) return {};
-			let pos = Position.is(move) ? move : this.cursor;
-			if (pos) {
-				let position = getPositionFromEdits(pos, edits);
-				if (!equals(pos, position)) {
-					let column = byteIndex(toText(newLines[position.line]), position.character) + 1;
-					return {
-						cursor: [position.line + 1, column],
-						col: byteIndex(this.lines[pos.line], pos.character) + 1
-					};
-				}
-			}
-			return {};
-		}
-		async changeLines(lines) {
-			let filtered = [];
-			let newLines = this.lines.slice();
-			for (let [lnum, text] of lines) if (newLines[lnum] != text) {
-				filtered.push([lnum, text]);
-				newLines[lnum] = text;
-			}
-			if (!filtered.length) return;
-			this.nvim.call("coc#ui#change_lines", [this.bufnr, filtered], true);
-			this.nvim.redrawVim();
-			this.lines = newLines;
-			await waitNextTick();
-			fireLinesChanged(this.bufnr);
-			this._forceSync();
-		}
-		_forceSync() {
-			if (!this._attached) return;
-			this.fireContentChanges.clear();
-			this._fireContentChanges();
-		}
-		forceSync() {}
-		/**
-		* Get offset from lnum & col
-		*/
-		getOffset(lnum, col) {
-			return this.textDocument.offsetAt({
-				line: lnum - 1,
-				character: col
-			});
-		}
-		/**
-		* Check string is word.
-		*/
-		isWord(word) {
-			return this.chars.isKeyword(word);
-		}
-		getStartWord(text) {
-			let i = 0;
-			for (; i < text.length; i++) if (!this.chars.isKeywordChar(text[i])) break;
-			return text.slice(0, i);
-		}
-		/**
-		* Current word for replacement
-		*/
-		getWordRangeAtPosition(position, extraChars, current = true) {
-			let chars = this.chars;
-			if (extraChars && extraChars.length) {
-				chars = this.chars.clone();
-				for (let ch of extraChars) chars.addKeyword(ch);
-			}
-			let line = this.getline(position.line, current);
-			let ch = line[position.character];
-			if (ch == null || !chars.isKeywordChar(ch)) return null;
-			let start = position.character;
-			let end = position.character + 1;
-			while (start >= 0) {
-				let ch = line[start - 1];
-				if (!ch || !chars.isKeywordChar(ch)) break;
-				start = start - 1;
-			}
-			while (end <= line.length) {
-				let ch = line[end];
-				if (!ch || !chars.isKeywordChar(ch)) break;
-				end = end + 1;
-			}
-			return Range.create(position.line, start, position.line, end);
-		}
-		createTextDocument(version, lines) {
-			let { uri, languageId, eol } = this;
-			return this._textDocument = new LinesTextDocument(uri, languageId, version, lines, this.bufnr, eol);
-		}
-		/**
-		* Get ranges of word in textDocument.
-		*/
-		getSymbolRanges(word) {
-			let { version, languageId, uri } = this;
-			let textDocument = new LinesTextDocument(uri, languageId, version, this.lines, this.bufnr, this.eol);
-			let res = [];
-			let content = textDocument.getText();
-			let str = "";
-			for (let i = 0, l = content.length; i < l; i++) {
-				let ch = content[i];
-				if ("-" == ch && str.length == 0) continue;
-				let isKeyword = this.chars.isKeywordChar(ch);
-				if (isKeyword) str = str + ch;
-				if (str.length > 0 && !isKeyword && str == word) res.push(Range.create(textDocument.positionAt(i - str.length), textDocument.positionAt(i)));
-				if (!isKeyword) str = "";
-			}
-			return res;
-		}
-		/**
-		* Adjust col with new valid character before position.
-		*/
-		fixStartcol(position, valids) {
-			let line = this.getline(position.line);
-			if (!line) return 0;
-			let { character } = position;
-			let start = line.slice(0, character);
-			let col = byteLength(start);
-			let { chars } = this;
-			for (let i = start.length - 1; i >= 0; i--) {
-				let c = start[i];
-				if (!chars.isKeywordChar(c) && !valids.includes(c)) break;
-				col = col - byteLength(c);
-			}
-			return col;
-		}
-		/**
-		* Add vim highlight items from highlight group and range.
-		* Synchronized lines are used for calculate cols.
-		*/
-		addHighlights(items, hlGroup, range, opts = {}) {
-			let { start, end } = range;
-			if (emptyRange(range)) return;
-			for (let line = start.line; line <= end.line; line++) {
-				const text = this.getline(line, false);
-				let colStart = line == start.line ? byteIndex(text, start.character) : 0;
-				let colEnd = line == end.line ? byteIndex(text, end.character) : buffer.Buffer.byteLength(text);
-				if (colStart >= colEnd) continue;
-				items.push(Object.assign({
-					hlGroup,
-					lnum: line,
-					colStart,
-					colEnd
-				}, opts));
-			}
-		}
-		/**
-		* Line content 0 based line
-		*/
-		getline(line, current = true) {
-			if (current) return this.lines[line] || "";
-			return this.syncLines[line] || "";
-		}
-		/**
-		* Get lines, zero indexed, end exclude.
-		*/
-		getLines(start, end) {
-			return this.lines.slice(start ?? 0, end ?? this.lines.length);
-		}
-		/**
-		* Get current content text.
-		*/
-		getDocumentContent() {
-			let content = this.lines.join("\n");
-			return this.eol ? content + "\n" : content;
-		}
-		/**
-		* Get variable value by key, defined by `b:coc_{key}`
-		*/
-		getVar(key, defaultValue) {
-			let val = this.variables[`coc_${key}`];
-			return val === void 0 ? defaultValue : val;
-		}
-		/**
-		* Get position from lnum & col
-		*/
-		getPosition(lnum, col) {
-			let line = this.getline(lnum - 1);
-			if (!line || col == 0) return {
-				line: lnum - 1,
-				character: 0
-			};
-			let pre = byteSlice(line, 0, col - 1);
-			return {
-				line: lnum - 1,
-				character: pre.length
-			};
-		}
-		/**
-		* Recreate document with new filetype.
-		*/
-		setFiletype(filetype) {
-			this._filetype = filetype;
-			let lines = this.lines;
-			this._textDocument = new LinesTextDocument(this.uri, this.languageId, 1, lines, this.bufnr, this.eol);
-		}
-		/**
-		* Change iskeyword option of document
-		*/
-		setIskeyword(iskeyword, lisp) {
-			let chars = this.chars = new Chars(iskeyword);
-			let additional = this.getVar("additional_keywords", []);
-			if (lisp) chars.addKeyword("-");
-			if (additional && Array.isArray(additional)) for (let ch of additional) chars.addKeyword(ch);
-		}
-		/**
-		* Detach document.
-		*/
-		detach() {
-			disposeAll(this.disposables);
-			if (this._disposed) return;
-			this._disposed = true;
-			this._attached = false;
-			this.lines = [];
-			this.fireContentChanges.clear();
-			this._onDocumentChange.dispose();
-		}
-		/**
-		* Synchronize latest document content
-		*/
-		async synchronize() {
-			if (!this.attached) return;
-			let { changedtick } = this;
-			await this.patchChange();
-			if (changedtick != this.changedtick) await wait(30);
-		}
-		/**
-		* Synchronize buffer change
-		*/
-		async patchChange() {
-			if (!this._attached) return;
-			this._changedtick = await this.nvim.call("coc#util#get_changedtick", [this.bufnr]);
-			this._forceSync();
-		}
-		getSha256() {
-			return sha256(this.lines.join("\n"));
-		}
-		async fetchLines() {
-			let lines = await this.nvim.call("getbufline", [
-				this.bufnr,
-				1,
-				"$"
-			]);
-			this.lines = lines;
-			fireLinesChanged(this.bufnr);
-			this.fireContentChanges();
-			logger$22.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
-		}
-	};
-}));
-//#endregion
-//#region node_modules/bytes/index.js
-/*!
-* bytes
-* Copyright(c) 2012-2014 TJ Holowaychuk
-* Copyright(c) 2015 Jed Watson
-* MIT Licensed
-*/
-var require_bytes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	/**
-	* Module exports.
-	* @public
-	*/
-	module.exports = bytes;
-	module.exports.format = format;
-	module.exports.parse = parse;
-	/**
-	* Module variables.
-	* @private
-	*/
-	var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
-	var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
-	var map = {
-		b: 1,
-		kb: 1024,
-		mb: 1 << 20,
-		gb: 1 << 30,
-		tb: Math.pow(1024, 4),
-		pb: Math.pow(1024, 5)
-	};
-	var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
-	/**
-	* Convert the given value in bytes into a string or parse to string to an integer in bytes.
-	*
-	* @param {string|number} value
-	* @param {{
-	*  case: [string],
-	*  decimalPlaces: [number]
-	*  fixedDecimals: [boolean]
-	*  thousandsSeparator: [string]
-	*  unitSeparator: [string]
-	*  }} [options] bytes options.
-	*
-	* @returns {string|number|null}
-	*/
-	function bytes(value, options) {
-		if (typeof value === "string") return parse(value);
-		if (typeof value === "number") return format(value, options);
-		return null;
-	}
-	/**
-	* Format the given value in bytes into a string.
-	*
-	* If the value is negative, it is kept as such. If it is a float,
-	* it is rounded.
-	*
-	* @param {number} value
-	* @param {object} [options]
-	* @param {number} [options.decimalPlaces=2]
-	* @param {number} [options.fixedDecimals=false]
-	* @param {string} [options.thousandsSeparator=]
-	* @param {string} [options.unit=]
-	* @param {string} [options.unitSeparator=]
-	*
-	* @returns {string|null}
-	* @public
-	*/
-	function format(value, options) {
-		if (!Number.isFinite(value)) return null;
-		var mag = Math.abs(value);
-		var thousandsSeparator = options && options.thousandsSeparator || "";
-		var unitSeparator = options && options.unitSeparator || "";
-		var decimalPlaces = options && options.decimalPlaces !== void 0 ? options.decimalPlaces : 2;
-		var fixedDecimals = Boolean(options && options.fixedDecimals);
-		var unit = options && options.unit || "";
-		if (!unit || !map[unit.toLowerCase()]) if (mag >= map.pb) unit = "PB";
-		else if (mag >= map.tb) unit = "TB";
-		else if (mag >= map.gb) unit = "GB";
-		else if (mag >= map.mb) unit = "MB";
-		else if (mag >= map.kb) unit = "KB";
-		else unit = "B";
-		var str = (value / map[unit.toLowerCase()]).toFixed(decimalPlaces);
-		if (!fixedDecimals) str = str.replace(formatDecimalsRegExp, "$1");
-		if (thousandsSeparator) str = str.split(".").map(function(s, i) {
-			return i === 0 ? s.replace(formatThousandsRegExp, thousandsSeparator) : s;
-		}).join(".");
-		return str + unitSeparator + unit;
-	}
-	/**
-	* Parse the string value into an integer in bytes.
-	*
-	* If no unit is given, it is assumed the value is in bytes.
-	*
-	* @param {number|string} val
-	*
-	* @returns {number|null}
-	* @public
-	*/
-	function parse(val) {
-		if (typeof val === "number" && !isNaN(val)) return val;
-		if (typeof val !== "string") return null;
-		var results = parseRegExp.exec(val);
-		var floatValue;
-		var unit = "b";
-		if (!results) {
-			floatValue = parseInt(val, 10);
-			unit = "b";
-		} else {
-			floatValue = parseFloat(results[1]);
-			unit = results[4].toLowerCase();
-		}
-		if (isNaN(floatValue)) return null;
-		return Math.floor(map[unit] * floatValue);
-	}
-}));
-//#endregion
-//#region src/core/documents.ts
-var logger$21, cwd, filetypeDelay, Documents;
-var init_documents = __esmMin((() => {
-	init_main$2();
-	init_esm();
-	init_commands$2();
-	init_events();
-	init_languages();
-	init_logger$2();
-	init_document();
-	init_util$7();
-	init_array();
-	init_constants();
-	init_convert();
-	init_expand();
-	init_fs();
-	init_is();
-	init_node();
-	init_object();
-	init_platform();
-	init_protocol();
-	init_string$1();
-	logger$21 = createLogger$1("core-documents");
-	cwd = normalizeFilePath(process.cwd());
-	filetypeDelay = getConditionValue(50, 10);
-	Documents = class {
-		configurations;
-		workspaceFolder;
-		_cwd;
-		_env;
-		_bufnr;
-		_root;
-		_attached = false;
-		_currentResolve = false;
-		nvim;
-		config;
-		disposables = [];
-		_filetypeTimer = /* @__PURE__ */ new Map();
-		creating = /* @__PURE__ */ new Map();
-		buffers = /* @__PURE__ */ new Map();
-		resolves = [];
-		_onDidOpenTextDocument = new import_main$1.Emitter();
-		_onDidCloseDocument = new import_main$1.Emitter();
-		_onDidChangeDocument = new import_main$1.Emitter();
-		_onDidSaveDocument = new import_main$1.Emitter();
-		_onWillSaveDocument = new import_main$1.Emitter();
-		onDidOpenTextDocument = this._onDidOpenTextDocument.event;
-		onDidCloseDocument = this._onDidCloseDocument.event;
-		onDidChangeDocument = this._onDidChangeDocument.event;
-		onDidSaveTextDocument = this._onDidSaveDocument.event;
-		onWillSaveTextDocument = this._onWillSaveDocument.event;
-		constructor(configurations, workspaceFolder) {
-			this.configurations = configurations;
-			this.workspaceFolder = workspaceFolder;
-			this._cwd = cwd;
-			this.getConfiguration();
-			this.configurations.onDidChange(this.getConfiguration, this, this.disposables);
-		}
-		async attach(nvim, env) {
-			if (this._attached) return;
-			this.nvim = nvim;
-			this._env = env;
-			this._attached = true;
-			let { bufnrs, bufnr } = await this.nvim.call("coc#util#all_state");
-			this._bufnr = bufnr;
-			await Promise.all(bufnrs.map((bufnr) => this.createDocument(bufnr)));
-			if (isVim) {
-				const checkedTick = /* @__PURE__ */ new Map();
-				events_default.on("CursorHold", async (bufnr) => {
-					let doc = this.getDocument(bufnr);
-					if (doc && doc.attached && checkedTick.get(bufnr) != doc.changedtick) {
-						let sha256 = doc.getSha256();
-						let same = await nvim.callVim("coc#vim9#Check_sha256", [bufnr, sha256]);
-						checkedTick.set(bufnr, doc.changedtick);
-						if (!same) await doc.fetchLines();
-					}
-				}, null, this.disposables);
-			}
-			events_default.on("BufDetach", this.onBufDetach, this, this.disposables);
-			events_default.on("BufRename", async (bufnr) => {
-				this.detachBuffer(bufnr);
-				await this.createDocument(bufnr);
-			}, null, this.disposables);
-			events_default.on("DirChanged", (cwd) => {
-				this._cwd = normalizeFilePath(cwd);
-			}, null, this.disposables);
-			const checkCurrentBuffer = (bufnr) => {
-				this._bufnr = bufnr;
-				this.createDocument(bufnr);
-			};
-			events_default.on("CursorMoved", checkCurrentBuffer, null, this.disposables);
-			events_default.on("CursorMovedI", checkCurrentBuffer, null, this.disposables);
-			events_default.on("BufUnload", this.onBufUnload, this, this.disposables);
-			events_default.on("BufEnter", this.onBufEnter, this, this.disposables);
-			events_default.on("BufCreate", this.onBufCreate, this, this.disposables);
-			events_default.on("TermOpen", this.onBufCreate, this, this.disposables);
-			events_default.on("BufWritePost", this.onBufWritePost, this, this.disposables);
-			events_default.on("BufWritePre", this.onBufWritePre, this, this.disposables);
-			events_default.on("FileType", this.onFileTypeChange, this, this.disposables);
-			events_default.on("BufEnter", (bufnr) => {
-				this.createDocument(bufnr);
-			}, null, this.disposables);
-			events_default.on("TextChanged", this.onTextChange, this, this.disposables);
-			events_default.on("TextChangedI", this.onTextChange, this, this.disposables);
-		}
-		onTextChange(bufnr) {
-			let doc = this.getDocument(bufnr);
-			if (doc) doc.onTextChange();
-		}
-		getConfiguration(e) {
-			if (!e || e.affectsConfiguration("coc.preferences")) {
-				let config = this.configurations.initialConfiguration.get("coc.preferences");
-				const bytes = require_bytes();
-				this.config = {
-					maxFileSize: bytes.parse(config.maxFileSize),
-					willSaveHandlerTimeout: defaultValue(config.willSaveHandlerTimeout, 500),
-					formatOnSaveTimeout: defaultValue(config.formatOnSaveTimeout, 500),
-					useQuickfixForLocations: config.useQuickfixForLocations
-				};
-			}
-		}
-		get bufnr() {
-			return this._bufnr;
-		}
-		get root() {
-			return this._root;
-		}
-		get cwd() {
-			return this._cwd;
-		}
-		get documents() {
-			return Array.from(this.buffers.values()).filter((o) => o.attached);
-		}
-		async getCurrentUri() {
-			let bufnr = await this.nvim.call("bufnr", ["%"]);
-			let doc = this.getDocument(bufnr);
-			return doc ? doc.uri : void 0;
-		}
-		*attached(schema) {
-			for (let doc of this.buffers.values()) {
-				if (!doc.attached) continue;
-				if (schema && doc.schema !== schema) continue;
-				yield doc;
-			}
-		}
-		get bufnrs() {
-			return this.buffers.keys();
-		}
-		detach() {
-			this._attached = false;
-			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
-		}
-		resolveRoot(rootPatterns, requireRootPattern = false) {
-			let doc = this.getDocument(this.bufnr);
-			let resolved;
-			if (doc && doc.schema == "file") resolved = resolveRoot(path$5.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
-			else resolved = resolveRoot(this.cwd, rootPatterns);
-			if (requireRootPattern && !resolved) throw new Error(`Required root pattern not resolved.`);
-			return resolved;
-		}
-		get textDocuments() {
-			let docs = [];
-			for (let b of this.buffers.values()) if (b.attached) docs.push(b.textDocument);
-			return docs;
-		}
-		getDocument(uri, caseInsensitive = isWindows || isMacintosh) {
-			if (typeof uri === "number") return this.buffers.get(uri);
-			let u = URI.parse(uri);
-			uri = u.toString();
-			let isFile = u.scheme === "file";
-			for (let doc of this.buffers.values()) {
-				if (doc.uri === uri) return doc;
-				if (isFile && caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc;
-			}
-			return null;
-		}
-		/**
-		* Expand filepath with `~` and/or environment placeholders
-		*/
-		expand(input) {
-			if (input.startsWith("~")) input = os$5.homedir() + input.slice(1);
-			if (input.includes("$")) {
-				let doc = this.getDocument(this.bufnr);
-				let file = doc ? URI.parse(doc.uri).fsPath : "";
-				input = expandVariables(input, {
-					root: this._root || this._cwd,
-					cwd: this._cwd,
-					file
-				});
-				input = input.replace(/\$[\w]+/g, (match) => {
-					if (match == "$HOME") return os$5.homedir();
-					return process.env[match.slice(1)] || match;
-				});
-			}
-			return input;
-		}
-		/**
-		* Current document.
-		*/
-		get document() {
-			if (this._currentResolve) return new Promise((resolve) => {
-				this.resolves.push(resolve);
-			});
-			this._currentResolve = true;
-			return new Promise((resolve) => {
-				this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`).then((opts) => {
-					let doc;
-					if (opts != null) {
-						this.creating.delete(opts.bufnr);
-						doc = this._createDocument(opts);
-					}
-					this.resolveCurrent(doc);
-					resolve(doc);
-					this._currentResolve = false;
-				}, () => {
-					resolve(void 0);
-					this._currentResolve = false;
-				});
-			});
-		}
-		resolveCurrent(document) {
-			if (this.resolves.length > 0) while (this.resolves.length) {
-				const fn = this.resolves.pop();
-				if (fn) fn(document);
-			}
-		}
-		get uri() {
-			let { bufnr } = this;
-			if (bufnr) {
-				let doc = this.getDocument(bufnr);
-				if (doc) return doc.uri;
-			}
-			return null;
-		}
-		/**
-		* Current filetypes.
-		*/
-		get filetypes() {
-			let res = /* @__PURE__ */ new Set();
-			for (let doc of this.attached()) res.add(doc.filetype);
-			return res;
-		}
-		/**
-		* Get filetype by check same extension name buffer.
-		*/
-		getLanguageId(filepath) {
-			let ext = path$5.extname(filepath);
-			if (!ext) return "";
-			for (let doc of this.attached()) {
-				let fsPath = URI.parse(doc.uri).fsPath;
-				if (path$5.extname(fsPath) == ext) return doc.languageId;
-			}
-			return "";
-		}
-		async getLines(uri) {
-			let doc = this.getDocument(uri);
-			if (doc) return doc.textDocument.lines;
-			let u = URI.parse(uri);
-			if (u.scheme !== "file") return [];
-			try {
-				return (await readFile(u.fsPath, "utf8")).split(/\r?\n/);
-			} catch (e) {
-				return [];
-			}
-		}
-		/**
-		* Current languageIds.
-		*/
-		get languageIds() {
-			let res = /* @__PURE__ */ new Set();
-			for (let doc of this.attached()) res.add(doc.languageId);
-			return res;
-		}
-		/**
-		* Get format options
-		*/
-		async getFormatOptions(uri) {
-			let bufnr = typeof uri === "number" ? uri : this.getBufnr(uri);
-			return convertFormatOptions(await this.nvim.call("coc#util#get_format_opts", [bufnr]));
-		}
-		getBufnr(uri) {
-			if (!uri) return 0;
-			let doc = this.getDocument(uri);
-			return doc ? doc.bufnr : 0;
-		}
-		/**
-		* Create document by bufnr.
-		*/
-		async createDocument(bufnr) {
-			let doc = this.buffers.get(bufnr);
-			if (doc) return doc;
-			if (this.creating.has(bufnr)) return await this.creating.get(bufnr);
-			let promise = new Promise((resolve) => {
-				this.nvim.call("coc#util#get_bufoptions", [bufnr, this.config.maxFileSize]).then((opts) => {
-					if (!this.creating.has(bufnr)) {
-						resolve(void 0);
-						return;
-					}
-					this.creating.delete(bufnr);
-					if (!opts) {
-						resolve(void 0);
-						return;
-					}
-					doc = this._createDocument(opts);
-					resolve(doc);
-				}, () => {
-					this.creating.delete(bufnr);
-					resolve(void 0);
-				});
-			});
-			this.creating.set(bufnr, promise);
-			return await promise;
-		}
-		async onBufCreate(bufnr) {
-			this.onBufUnload(bufnr);
-			await this.createDocument(bufnr);
-		}
-		_createDocument(opts) {
-			let { bufnr } = opts;
-			if (this.buffers.has(bufnr)) return this.buffers.get(bufnr);
-			let doc = new Document(this.nvim.createBuffer(bufnr), this.nvim, this.convertFiletype(opts.filetype), opts);
-			if (opts.size > this.config.maxFileSize) logger$21.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
-			this.buffers.set(bufnr, doc);
-			if (doc.attached) {
-				if (doc.schema == "file") {
-					this.configurations.locateFolderConfigution(doc.uri);
-					let root = this.workspaceFolder.resolveRoot(doc, this._cwd, true, this.expand.bind(this));
-					if (root && bufnr == this._bufnr) this.changeRoot(root);
-				}
-				this._onDidOpenTextDocument.fire(doc.textDocument);
-				doc.onDocumentChange((e) => this._onDidChangeDocument.fire(e));
-			}
-			logger$21.debug("buffer created", bufnr, doc.attached, doc.uri);
-			return doc;
-		}
-		onBufEnter(bufnr) {
-			this._bufnr = bufnr;
-			let doc = this.buffers.get(bufnr);
-			if (doc) {
-				let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri));
-				if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath;
-			}
-		}
-		onBufUnload(bufnr) {
-			this.creating.delete(bufnr);
-			this.onBufDetach(bufnr, false);
-		}
-		async onBufDetach(bufnr, checkReload = true) {
-			this.clearTimer(bufnr);
-			this.detachBuffer(bufnr);
-			if (checkReload) {
-				if (await this.nvim.call("bufloaded", [bufnr])) await this.createDocument(bufnr);
-			}
-		}
-		detachBuffer(bufnr) {
-			let doc = this.buffers.get(bufnr);
-			this.buffers.delete(bufnr);
-			if (!doc || !doc.attached) return;
-			logger$21.debug("document detach", bufnr, doc.uri);
-			this._onDidCloseDocument.fire(doc.textDocument);
-			doc.detach();
-			const uris = this.textDocuments.map((o) => URI.parse(o.uri));
-			this.workspaceFolder.onDocumentDetach(uris);
-		}
-		async onBufWritePost(bufnr, changedtick) {
-			let doc = this.buffers.get(bufnr);
-			if (doc) {
-				if (doc.changedtick != changedtick) await doc.patchChange();
-				this._onDidSaveDocument.fire(doc.textDocument);
-			}
-		}
-		async onBufWritePre(bufnr, bufname, changedtick) {
-			let doc = this.buffers.get(bufnr);
-			if (!doc || !doc.attached) return;
-			if (doc.bufname != bufname) {
-				this.detachBuffer(bufnr);
-				doc = await this.createDocument(bufnr);
-				if (!doc.attached) return;
-			}
-			if (doc.changedtick != changedtick) await doc.synchronize();
-			else await doc.patchChange();
-			let firing = true;
-			let thenables = [];
-			let event = {
-				bufnr: doc.bufnr,
-				document: doc.textDocument,
-				reason: import_main$1.TextDocumentSaveReason.Manual,
-				waitUntil: (thenable) => {
-					if (!firing) this.nvim.echoError(`waitUntil can't be used in async manner, check log for details`);
-					else thenables.push(thenable);
-				}
-			};
-			this._onWillSaveDocument.fire(event);
-			firing = false;
-			let total = thenables.length;
-			if (total) {
-				let edits = await new Promise((resolve) => {
-					const willSaveHandlerTimeout = this.config.willSaveHandlerTimeout;
-					let timer = setTimeout(() => {
-						this.nvim.outWriteLine(`Will save handler timeout after ${willSaveHandlerTimeout}ms`);
-						resolve(void 0);
-					}, willSaveHandlerTimeout);
-					let i = 0;
-					let called = false;
-					for (let p of thenables) {
-						let cb = (res) => {
-							if (called) return;
-							called = true;
-							clearTimeout(timer);
-							resolve(res);
-						};
-						p.then((res) => {
-							if (Array.isArray(res) && res.length && TextEdit.is(res[0])) return cb(res);
-							i = i + 1;
-							if (i == total) cb(void 0);
-						}, (e) => {
-							logger$21.error(`Error on will save handler:`, e);
-							i = i + 1;
-							if (i == total) cb(void 0);
-						});
-					}
-				});
-				if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr);
-			}
-			await this.tryCodeActionsOnSave(doc);
-			await this.tryFormatOnSave(doc);
-		}
-		async tryFormatOnSave(document) {
-			if (!this.shouldFormatOnSave(document)) return;
-			let options = await this.getFormatOptions(document.uri);
-			let formatOnSaveTimeout = this.config.formatOnSaveTimeout;
-			let timer;
-			let tokenSource = new import_main$1.CancellationTokenSource();
-			const tp = new Promise((c) => {
-				timer = setTimeout(() => {
-					logger$21.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
-					tokenSource.cancel();
-					c(void 0);
-				}, formatOnSaveTimeout);
-			});
-			const provideEdits = languages_default.provideDocumentFormattingEdits(document.textDocument, options, tokenSource.token);
-			let textEdits = await Promise.race([tp, provideEdits]);
-			clearTimeout(timer);
-			if (isFalsyOrEmpty(textEdits)) return;
-			await document.applyEdits(textEdits);
-			let extensionName = textEdits["__extensionName"];
-			logger$21.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
-		}
-		async tryCodeActionsOnSave(doc) {
-			let conf = this.configurations.getConfiguration("editor", doc.textDocument).get("codeActionsOnSave", {});
-			if (emptyObject(conf)) return false;
-			const actions = [];
-			for (const key of Object.keys(conf)) if (conf[key] === true || conf[key] === "always") actions.push(key);
-			if (actions.length === 0) return false;
-			await commands_default.executeCommand("editor.action.executeCodeActions", doc, void 0, actions, this.config.willSaveHandlerTimeout);
-			return true;
-		}
-		shouldFormatOnSave(document) {
-			const config = this.configurations.getConfiguration("coc.preferences", document);
-			const filetypes = config.get("formatOnSaveFiletypes", null) ?? [];
-			if (!(filetypes.includes("*") || filetypes.includes(document.languageId) || config.get("formatOnSave", false))) return false;
-			if (!languages_default.hasFormatProvider(document)) {
-				logger$21.warn(`Format provider not found for ${document.uri}`);
-				return false;
-			}
-			if (!document || document.getVar("disable_autoformat", 0)) {
-				logger$21.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
-				return false;
-			}
-			return true;
-		}
-		onFileTypeChange(filetype, bufnr) {
-			let doc = this.getDocument(bufnr);
-			if (!doc) return;
-			this.clearTimer(bufnr);
-			let timer = setTimeout(() => {
-				if (this.creating.has(bufnr) || !doc.attached) return;
-				if (this.convertFiletype(filetype) === doc.filetype) return;
-				this._onDidCloseDocument.fire(doc.textDocument);
-				doc.setFiletype(filetype);
-				this._onDidOpenTextDocument.fire(doc.textDocument);
-			}, filetypeDelay);
-			this._filetypeTimer.set(bufnr, timer);
-		}
-		async getQuickfixList(locations) {
-			let filesLines = {};
-			let filepathList = locations.reduce((pre, curr) => {
-				let u = URI.parse(curr.uri);
-				if (u.scheme == "file" && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) pre.push(u.fsPath);
-				return pre;
-			}, []);
-			await Promise.all(filepathList.map((fsPath) => {
-				return new Promise((resolve) => {
-					readFile(fsPath, "utf8").then((content) => {
-						filesLines[fsPath] = content.split(/\r?\n/);
-						resolve(void 0);
-					}, () => {
-						resolve();
-					});
-				});
-			}));
-			return await Promise.all(locations.map((loc) => {
-				let { uri, range } = loc;
-				let { fsPath } = URI.parse(uri);
-				let text;
-				let lines = filesLines[fsPath];
-				if (lines) text = lines[range.start.line];
-				return this.getQuickfixItem(loc, text);
-			}));
-		}
-		/**
-		* Populate locations to UI.
-		*/
-		async showLocations(locations) {
-			let { nvim } = this;
-			let items = await this.getQuickfixList(locations);
-			if (this.config.useQuickfixForLocations) {
-				let openCommand = await nvim.getVar("coc_quickfix_open_command");
-				if (typeof openCommand != "string") openCommand = items.length < 10 ? `copen ${items.length}` : "copen";
-				nvim.pauseNotification();
-				nvim.call("setqflist", [items], true);
-				nvim.command(openCommand, true);
-				nvim.resumeNotification(false, true);
-			} else {
-				await nvim.setVar("coc_jump_locations", items);
-				if (this._env.locationlist) nvim.command("CocList --normal --auto-preview location", true);
-				else nvim.call("coc#util#do_autocmd", ["CocLocationsChange"], true);
-			}
-		}
-		fixUnixPrefix(filepath) {
-			if (!this._env.isCygwin || !/^\w:/.test(filepath)) return filepath;
-			return this._env.unixPrefix + filepath[0].toLowerCase() + filepath.slice(2).replace(/\\/g, "/");
-		}
-		/**
-		* Convert location to quickfix item.
-		*/
-		async getQuickfixItem(loc, text, type = "", module) {
-			let targetRange = loc.targetRange;
-			if (LocationLink.is(loc)) loc = Location.create(loc.targetUri, loc.targetRange);
-			let doc = this.getDocument(loc.uri);
-			let { uri, range } = loc;
-			let { start, end } = range;
-			let u = URI.parse(uri);
-			if (!text && u.scheme == "file") text = await this.getLine(uri, start.line);
-			let endLine = start.line == end.line ? text : await this.getLine(uri, end.line);
-			let item = {
-				uri,
-				filename: u.scheme == "file" ? this.fixUnixPrefix(u.fsPath) : uri,
-				lnum: start.line + 1,
-				end_lnum: end.line + 1,
-				col: text ? byteIndex(text, start.character) + 1 : start.character + 1,
-				end_col: endLine ? byteIndex(endLine, end.character) + 1 : end.character + 1,
-				text: text || "",
-				range
-			};
-			if (targetRange) item.targetRange = targetRange;
-			if (module) item.module = module;
-			if (type) item.type = type;
-			if (doc) item.bufnr = doc.bufnr;
-			return item;
-		}
-		/**
-		* Get content of line by uri and line.
-		*/
-		async getLine(uri, line) {
-			let document = this.getDocument(uri);
-			if (document && document.attached) return document.getline(line) || "";
-			if (!uri.startsWith("file:")) return "";
-			let fsPath = URI.parse(uri).fsPath;
-			if (!fs$5.existsSync(fsPath)) return "";
-			return await readFileLine(fsPath, line);
-		}
-		/**
-		* Get content from buffer or file by uri.
-		*/
-		async readFile(uri) {
-			let document = this.getDocument(uri);
-			if (document) {
-				await document.patchChange();
-				return document.content;
-			}
-			let u = URI.parse(uri);
-			if (u.scheme != "file") return "";
-			return (await this.nvim.call("readfile", [u.fsPath])).join("\n") + "\n";
-		}
-		clearTimer(bufnr) {
-			let timer = this._filetypeTimer.get(bufnr);
-			if (timer) clearTimeout(timer);
-		}
-		convertFiletype(filetype) {
-			switch (filetype) {
-				case "javascript.jsx": return "javascriptreact";
-				case "typescript.jsx":
-				case "typescript.tsx": return "typescriptreact";
-				case "tex": return "latex";
-				default: {
-					let map = toObject(this._env.filetypeMap);
-					return toText(hasOwnProperty$1(map, filetype) ? map[filetype] : filetype);
-				}
-			}
-		}
-		reset() {
-			this.creating.clear();
-			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
-			this.buffers.clear();
-			this.changeRoot(process.cwd());
-		}
-		changeRoot(dir) {
-			this._root = normalizeFilePath(dir);
-		}
-		dispose() {
-			for (let bufnr of this.buffers.keys()) this.onBufUnload(bufnr);
-			this._attached = false;
-			this.buffers.clear();
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/core/editors.ts
-function renamed(editor, info) {
-	let { document, uri } = editor;
-	if (document.bufnr != info.bufnr) return false;
-	let u = URI.parse(uri);
-	if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
-	return false;
-}
-var logger$20, Editors;
-var init_editors = __esmMin((() => {
-	init_main$2();
-	init_esm();
-	init_events();
-	init_logger$2();
-	init_convert();
-	init_errors();
-	init_fs();
-	init_mutex();
-	init_protocol();
-	logger$20 = createLogger$1("core-editors");
-	Editors = class {
-		documents;
-		disposables = [];
-		winid = -1;
-		mutex = new Mutex();
-		previousId;
-		nvim;
-		editors = /* @__PURE__ */ new Map();
-		tabIds = /* @__PURE__ */ new Set();
-		creating = /* @__PURE__ */ new Set();
-		_onDidTabClose = new import_main$1.Emitter();
-		_onDidChangeActiveTextEditor = new import_main$1.Emitter();
-		_onDidChangeVisibleTextEditors = new import_main$1.Emitter();
-		onDidTabClose = this._onDidTabClose.event;
-		onDidChangeActiveTextEditor = this._onDidChangeActiveTextEditor.event;
-		onDidChangeVisibleTextEditors = this._onDidChangeVisibleTextEditors.event;
-		constructor(documents) {
-			this.documents = documents;
-		}
-		get activeTextEditor() {
-			return this.editors.get(this.winid);
-		}
-		get visibleTextEditors() {
-			return Array.from(this.editors.values());
-		}
-		getFormatOptions(bufnr) {
-			for (let editor of this.editors.values()) if (editor.bufnr === bufnr || editor.uri === bufnr) return editor.options;
-		}
-		getBufWinids(bufnr) {
-			let winids = [];
-			for (let editor of this.editors.values()) if (editor.bufnr == bufnr) winids.push(editor.winid);
-			return winids;
-		}
-		onChangeCurrent(editor) {
-			if (!editor) return;
-			let id = editor.id;
-			if (id === this.previousId) return;
-			this.previousId = id;
-			this._onDidChangeActiveTextEditor.fire(editor);
-		}
-		async attach(nvim) {
-			this.nvim = nvim;
-			let [winid, infos] = await nvim.eval(`[win_getid(),coc#util#editor_infos()]`);
-			await Promise.allSettled(infos.map((info) => {
-				return this.createTextEditor(info.winid);
-			}));
-			this.winid = winid;
-			events_default.on("CursorHold", this.checkEditors, this, this.disposables);
-			events_default.on("TabNew", (tabid) => {
-				this.tabIds.add(tabid);
-			}, null, this.disposables);
-			events_default.on("TabClosed", this.checkTabs, this, this.disposables);
-			events_default.on("WinEnter", (winid) => {
-				this.winid = winid;
-				let editor = this.editors.get(winid);
-				if (editor) this.onChangeCurrent(editor);
-			}, null, this.disposables);
-			events_default.on("WinClosed", (winid) => {
-				if (this.editors.has(winid)) {
-					this.editors.delete(winid);
-					this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
-				}
-			}, null, this.disposables);
-			events_default.on("BufWinEnter", async (_, winid) => {
-				this.winid = winid;
-				if (await this.createTextEditor(winid)) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
-			}, null, this.disposables);
-			this.documents.onDidOpenTextDocument(async (e) => {
-				let document = this.documents.getDocument(e.bufnr);
-				let changed = false;
-				for (let winid of document.winids) if (this.editors.get(winid)?.document !== document) {
-					if (await this.createTextEditor(winid).catch(onUnexpectedError)) changed = true;
-				}
-				if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
-			}, null, this.disposables);
-		}
-		checkTabs(ids) {
-			let changed = false;
-			for (let editor of this.editors.values()) if (!ids.includes(editor.tabpageid)) {
-				changed = true;
-				this.editors.delete(editor.winid);
-			}
-			for (let id of Array.from(this.tabIds)) if (!ids.includes(id)) this._onDidTabClose.fire(id);
-			this.tabIds = new Set(ids);
-			if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
-		}
-		checkUnloadedBuffers(bufnrs) {
-			for (let bufnr of this.documents.bufnrs) if (!bufnrs.includes(bufnr)) events_default.fire("BufUnload", [bufnr]);
-		}
-		async checkEditors() {
-			let { documents } = this;
-			await this.mutex.use(async () => {
-				let [winid, bufnrs, infos] = await this.nvim.eval(`[win_getid(),coc#util#get_loaded_bufs(),coc#util#editor_infos()]`);
-				this.winid = winid;
-				this.checkUnloadedBuffers(bufnrs);
-				let changed = false;
-				let winids = /* @__PURE__ */ new Set();
-				for (let info of infos) {
-					let editor = this.editors.get(info.winid);
-					let create = false;
-					if (!editor) create = true;
-					else if (renamed(editor, info)) {
-						events_default.fire("BufRename", [info.bufnr]);
-						create = true;
-					} else if (editor.document.bufnr != info.bufnr || editor.document !== documents.getDocument(info.bufnr) || editor.tabpageid != info.tabid) create = true;
-					if (create) {
-						await this.createTextEditor(info.winid);
-						changed = true;
-					}
-					winids.add(info.winid);
-				}
-				if (this.cleanUpEditors(winids)) changed = true;
-				this.onChangeCurrent(this.activeTextEditor);
-				if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors);
-			});
-		}
-		cleanUpEditors(winids) {
-			let changed = false;
-			for (let winid of Array.from(this.editors.keys())) if (!winids.has(winid)) {
-				changed = true;
-				this.editors.delete(winid);
-			}
-			return changed;
-		}
-		async createTextEditor(winid) {
-			let { documents, creating, nvim } = this;
-			if (creating.has(winid)) return false;
-			let changed = false;
-			creating.add(winid);
-			let opts = await nvim.call("coc#util#get_editoroption", [winid]);
-			if (opts) {
-				this.tabIds.add(opts.tabpageid);
-				let doc = documents.getDocument(opts.bufnr);
-				if (doc && doc.attached) {
-					let editor = this.fromOptions(opts);
-					this.editors.set(winid, editor);
-					if (winid == this.winid) this.onChangeCurrent(editor);
-					logger$20.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
-					changed = true;
-				} else if (this.editors.has(winid)) {
-					this.editors.delete(winid);
-					changed = true;
-				}
-			}
-			creating.delete(winid);
-			return changed;
-		}
-		fromOptions(opts) {
-			let { visibleRanges, bufnr, formatOptions } = opts;
-			let { documents } = this;
-			let document = documents.getDocument(bufnr);
-			return {
-				id: `${opts.tabpageid}-${opts.winid}-${document.uri}`,
-				tabpageid: opts.tabpageid,
-				winid: opts.winid,
-				winnr: opts.winnr,
-				uri: document.uri,
-				bufnr: document.bufnr,
-				document,
-				visibleRanges: visibleRanges.map((o) => Range.create(o[0] - 1, 0, o[1], 0)),
-				options: convertFormatOptions(formatOptions)
-			};
-		}
-	};
-}));
-//#endregion
-//#region node_modules/node-int64/Int64.js
-var require_Int64 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var VAL32 = 4294967296;
-	var _HEX = [];
-	for (var i = 0; i < 256; i++) _HEX[i] = (i > 15 ? "" : "0") + i.toString(16);
-	/**
-	* Constructor accepts any of the following argument types:
-	*
-	* new Int64(buffer[, offset=0]) - Existing Buffer with byte offset
-	* new Int64(Uint8Array[, offset=0]) - Existing Uint8Array with a byte offset
-	* new Int64(string)             - Hex string (throws if n is outside int64 range)
-	* new Int64(number)             - Number (throws if n is outside int64 range)
-	* new Int64(hi, lo)             - Raw bits as two 32-bit values
-	*/
-	var Int64 = module.exports = function(a1, a2) {
-		if (a1 instanceof Buffer) {
-			this.buffer = a1;
-			this.offset = a2 || 0;
-		} else if (Object.prototype.toString.call(a1) == "[object Uint8Array]") {
-			this.buffer = new Buffer(a1);
-			this.offset = a2 || 0;
-		} else {
-			this.buffer = this.buffer || new Buffer(8);
-			this.offset = 0;
-			this.setValue.apply(this, arguments);
-		}
-	};
-	Int64.MAX_INT = Math.pow(2, 53);
-	Int64.MIN_INT = -Math.pow(2, 53);
-	Int64.prototype = {
-		constructor: Int64,
-		/**
-		* Do in-place 2's compliment.  See
-		* http://en.wikipedia.org/wiki/Two's_complement
-		*/
-		_2scomp: function() {
-			var b = this.buffer, o = this.offset, carry = 1;
-			for (var i = o + 7; i >= o; i--) {
-				var v = (b[i] ^ 255) + carry;
-				b[i] = v & 255;
-				carry = v >> 8;
-			}
-		},
-		/**
-		* Set the value. Takes any of the following arguments:
-		*
-		* setValue(string) - A hexidecimal string
-		* setValue(number) - Number (throws if n is outside int64 range)
-		* setValue(hi, lo) - Raw bits as two 32-bit values
-		*/
-		setValue: function(hi, lo) {
-			var negate = false;
-			if (arguments.length == 1) if (typeof hi == "number") {
-				negate = hi < 0;
-				hi = Math.abs(hi);
-				lo = hi % VAL32;
-				hi = hi / VAL32;
-				if (hi > VAL32) throw new RangeError(hi + " is outside Int64 range");
-				hi = hi | 0;
-			} else if (typeof hi == "string") {
-				hi = (hi + "").replace(/^0x/, "");
-				lo = hi.substr(-8);
-				hi = hi.length > 8 ? hi.substr(0, hi.length - 8) : "";
-				hi = parseInt(hi, 16);
-				lo = parseInt(lo, 16);
-			} else throw new Error(hi + " must be a Number or String");
-			var b = this.buffer, o = this.offset;
-			for (var i = 7; i >= 0; i--) {
-				b[o + i] = lo & 255;
-				lo = i == 4 ? hi : lo >>> 8;
-			}
-			if (negate) this._2scomp();
-		},
-		/**
-		* Convert to a native JS number.
-		*
-		* WARNING: Do not expect this value to be accurate to integer precision for
-		* large (positive or negative) numbers!
-		*
-		* @param allowImprecise If true, no check is performed to verify the
-		* returned value is accurate to integer precision.  If false, imprecise
-		* numbers (very large positive or negative numbers) will be forced to +/-
-		* Infinity.
-		*/
-		toNumber: function(allowImprecise) {
-			var b = this.buffer, o = this.offset;
-			var negate = b[o] & 128, x = 0, carry = 1;
-			for (var i = 7, m = 1; i >= 0; i--, m *= 256) {
-				var v = b[o + i];
-				if (negate) {
-					v = (v ^ 255) + carry;
-					carry = v >> 8;
-					v = v & 255;
-				}
-				x += v * m;
-			}
-			if (!allowImprecise && x >= Int64.MAX_INT) return negate ? -Infinity : Infinity;
-			return negate ? -x : x;
-		},
-		/**
-		* Convert to a JS Number. Returns +/-Infinity for values that can't be
-		* represented to integer precision.
-		*/
-		valueOf: function() {
-			return this.toNumber(false);
-		},
-		/**
-		* Return string value
-		*
-		* @param radix Just like Number#toString()'s radix
-		*/
-		toString: function(radix) {
-			return this.valueOf().toString(radix || 10);
-		},
-		/**
-		* Return a string showing the buffer octets, with MSB on the left.
-		*
-		* @param sep separator string. default is '' (empty string)
-		*/
-		toOctetString: function(sep) {
-			var out = new Array(8);
-			var b = this.buffer, o = this.offset;
-			for (var i = 0; i < 8; i++) out[i] = _HEX[b[o + i]];
-			return out.join(sep || "");
-		},
-		/**
-		* Returns the int64's 8 bytes in a buffer.
-		*
-		* @param {bool} [rawBuffer=false]  If no offset and this is true, return the internal buffer.  Should only be used if
-		*                                  you're discarding the Int64 afterwards, as it breaks encapsulation.
-		*/
-		toBuffer: function(rawBuffer) {
-			if (rawBuffer && this.offset === 0) return this.buffer;
-			var out = new Buffer(8);
-			this.buffer.copy(out, 0, this.offset, this.offset + 8);
-			return out;
-		},
-		/**
-		* Copy 8 bytes of int64 into target buffer at target offset.
-		*
-		* @param {Buffer} targetBuffer       Buffer to copy into.
-		* @param {number} [targetOffset=0]   Offset into target buffer.
-		*/
-		copy: function(targetBuffer, targetOffset) {
-			this.buffer.copy(targetBuffer, targetOffset || 0, this.offset, this.offset + 8);
-		},
-		/**
-		* Returns a number indicating whether this comes before or after or is the
-		* same as the other in sort order.
-		*
-		* @param {Int64} other  Other Int64 to compare.
-		*/
-		compare: function(other) {
-			if ((this.buffer[this.offset] & 128) != (other.buffer[other.offset] & 128)) return other.buffer[other.offset] - this.buffer[this.offset];
-			for (var i = 0; i < 8; i++) if (this.buffer[this.offset + i] !== other.buffer[other.offset + i]) return this.buffer[this.offset + i] - other.buffer[other.offset + i];
-			return 0;
-		},
-		/**
-		* Returns a boolean indicating if this integer is equal to other.
-		*
-		* @param {Int64} other  Other Int64 to compare.
-		*/
-		equals: function(other) {
-			return this.compare(other) === 0;
-		},
-		/**
-		* Pretty output in console.log
-		*/
-		inspect: function() {
-			return "[Int64 value:" + this + " octets:" + this.toOctetString(" ") + "]";
-		}
-	};
-}));
-//#endregion
-//#region node_modules/bser/index.js
-var require_bser = /* @__PURE__ */ __commonJSMin(((exports) => {
-	var EE$1 = require("events").EventEmitter;
-	var util$2 = require("util");
-	var os$1 = require("os");
-	require("assert");
-	var Int64 = require_Int64();
-	var isBigEndian = os$1.endianness() == "BE";
-	function nextPow2(size) {
-		return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
-	}
-	function Accumulator(initsize) {
-		this.buf = Buffer.alloc(nextPow2(initsize || 8192));
-		this.readOffset = 0;
-		this.writeOffset = 0;
-	}
-	exports.Accumulator = Accumulator;
-	Accumulator.prototype.writeAvail = function() {
-		return this.buf.length - this.writeOffset;
-	};
-	Accumulator.prototype.readAvail = function() {
-		return this.writeOffset - this.readOffset;
-	};
-	Accumulator.prototype.reserve = function(size) {
-		if (size < this.writeAvail()) return;
-		if (this.readOffset > 0) {
-			this.buf.copy(this.buf, 0, this.readOffset, this.writeOffset);
-			this.writeOffset -= this.readOffset;
-			this.readOffset = 0;
-		}
-		if (size < this.writeAvail()) return;
-		var buf = Buffer.alloc(nextPow2(this.buf.length + size - this.writeAvail()));
-		this.buf.copy(buf);
-		this.buf = buf;
-	};
-	Accumulator.prototype.append = function(buf) {
-		if (Buffer.isBuffer(buf)) {
-			this.reserve(buf.length);
-			buf.copy(this.buf, this.writeOffset, 0, buf.length);
-			this.writeOffset += buf.length;
-		} else {
-			var size = Buffer.byteLength(buf);
-			this.reserve(size);
-			this.buf.write(buf, this.writeOffset);
-			this.writeOffset += size;
-		}
-	};
-	Accumulator.prototype.assertReadableSize = function(size) {
-		if (this.readAvail() < size) throw new Error("wanted to read " + size + " bytes but only have " + this.readAvail());
-	};
-	Accumulator.prototype.peekString = function(size) {
-		this.assertReadableSize(size);
-		return this.buf.toString("utf-8", this.readOffset, this.readOffset + size);
-	};
-	Accumulator.prototype.readString = function(size) {
-		var str = this.peekString(size);
-		this.readOffset += size;
-		return str;
-	};
-	Accumulator.prototype.peekInt = function(size) {
-		this.assertReadableSize(size);
-		switch (size) {
-			case 1: return this.buf.readInt8(this.readOffset, size);
-			case 2: return isBigEndian ? this.buf.readInt16BE(this.readOffset, size) : this.buf.readInt16LE(this.readOffset, size);
-			case 4: return isBigEndian ? this.buf.readInt32BE(this.readOffset, size) : this.buf.readInt32LE(this.readOffset, size);
-			case 8:
-				var big = this.buf.slice(this.readOffset, this.readOffset + 8);
-				if (isBigEndian) return new Int64(big);
-				return new Int64(byteswap64(big));
-			default: throw new Error("invalid integer size " + size);
-		}
-	};
-	Accumulator.prototype.readInt = function(bytes) {
-		var ival = this.peekInt(bytes);
-		if (ival instanceof Int64 && isFinite(ival.valueOf())) ival = ival.valueOf();
-		this.readOffset += bytes;
-		return ival;
-	};
-	Accumulator.prototype.peekDouble = function() {
-		this.assertReadableSize(8);
-		return isBigEndian ? this.buf.readDoubleBE(this.readOffset) : this.buf.readDoubleLE(this.readOffset);
-	};
-	Accumulator.prototype.readDouble = function() {
-		var dval = this.peekDouble();
-		this.readOffset += 8;
-		return dval;
-	};
-	Accumulator.prototype.readAdvance = function(size) {
-		if (size > 0) this.assertReadableSize(size);
-		else if (size < 0 && this.readOffset + size < 0) throw new Error("advance with negative offset " + size + " would seek off the start of the buffer");
-		this.readOffset += size;
-	};
-	Accumulator.prototype.writeByte = function(value) {
-		this.reserve(1);
-		this.buf.writeInt8(value, this.writeOffset);
-		++this.writeOffset;
-	};
-	Accumulator.prototype.writeInt = function(value, size) {
-		this.reserve(size);
-		switch (size) {
-			case 1:
-				this.buf.writeInt8(value, this.writeOffset);
-				break;
-			case 2:
-				if (isBigEndian) this.buf.writeInt16BE(value, this.writeOffset);
-				else this.buf.writeInt16LE(value, this.writeOffset);
-				break;
-			case 4:
-				if (isBigEndian) this.buf.writeInt32BE(value, this.writeOffset);
-				else this.buf.writeInt32LE(value, this.writeOffset);
-				break;
-			default: throw new Error("unsupported integer size " + size);
-		}
-		this.writeOffset += size;
-	};
-	Accumulator.prototype.writeDouble = function(value) {
-		this.reserve(8);
-		if (isBigEndian) this.buf.writeDoubleBE(value, this.writeOffset);
-		else this.buf.writeDoubleLE(value, this.writeOffset);
-		this.writeOffset += 8;
-	};
-	var BSER_ARRAY = 0;
-	var BSER_OBJECT = 1;
-	var BSER_STRING = 2;
-	var BSER_INT8 = 3;
-	var BSER_INT16 = 4;
-	var BSER_INT32 = 5;
-	var BSER_INT64 = 6;
-	var BSER_REAL = 7;
-	var BSER_TRUE = 8;
-	var BSER_FALSE = 9;
-	var BSER_NULL = 10;
-	var BSER_TEMPLATE = 11;
-	var BSER_SKIP = 12;
-	var ST_NEED_PDU = 0;
-	var ST_FILL_PDU = 1;
-	var MAX_INT8 = 127;
-	var MAX_INT16 = 32767;
-	var MAX_INT32 = 2147483647;
-	function BunserBuf() {
-		EE$1.call(this);
-		this.buf = new Accumulator();
-		this.state = ST_NEED_PDU;
-	}
-	util$2.inherits(BunserBuf, EE$1);
-	exports.BunserBuf = BunserBuf;
-	BunserBuf.prototype.append = function(buf, synchronous) {
-		if (synchronous) {
-			this.buf.append(buf);
-			return this.process(synchronous);
-		}
-		try {
-			this.buf.append(buf);
-		} catch (err) {
-			this.emit("error", err);
-			return;
-		}
-		this.processLater();
-	};
-	BunserBuf.prototype.processLater = function() {
-		var self = this;
-		process.nextTick(function() {
-			try {
-				self.process(false);
-			} catch (err) {
-				self.emit("error", err);
-			}
-		});
-	};
-	BunserBuf.prototype.process = function(synchronous) {
-		if (this.state == ST_NEED_PDU) {
-			if (this.buf.readAvail() < 2) return;
-			this.expectCode(0);
-			this.expectCode(1);
-			this.pduLen = this.decodeInt(true);
-			if (this.pduLen === false) {
-				this.buf.readAdvance(-2);
-				return;
-			}
-			this.buf.reserve(this.pduLen);
-			this.state = ST_FILL_PDU;
-		}
-		if (this.state == ST_FILL_PDU) {
-			if (this.buf.readAvail() < this.pduLen) return;
-			var val = this.decodeAny();
-			if (synchronous) return val;
-			this.emit("value", val);
-			this.state = ST_NEED_PDU;
-		}
-		if (!synchronous && this.buf.readAvail() > 0) this.processLater();
-	};
-	BunserBuf.prototype.raise = function(reason) {
-		throw new Error(reason + ", in Buffer of length " + this.buf.buf.length + " (" + this.buf.readAvail() + " readable) at offset " + this.buf.readOffset + " buffer: " + JSON.stringify(this.buf.buf.slice(this.buf.readOffset, this.buf.readOffset + 32).toJSON()));
-	};
-	BunserBuf.prototype.expectCode = function(expected) {
-		var code = this.buf.readInt(1);
-		if (code != expected) this.raise("expected bser opcode " + expected + " but got " + code);
-	};
-	BunserBuf.prototype.decodeAny = function() {
-		var code = this.buf.peekInt(1);
-		switch (code) {
-			case BSER_INT8:
-			case BSER_INT16:
-			case BSER_INT32:
-			case BSER_INT64: return this.decodeInt();
-			case BSER_REAL:
-				this.buf.readAdvance(1);
-				return this.buf.readDouble();
-			case BSER_TRUE:
-				this.buf.readAdvance(1);
-				return true;
-			case BSER_FALSE:
-				this.buf.readAdvance(1);
-				return false;
-			case BSER_NULL:
-				this.buf.readAdvance(1);
-				return null;
-			case BSER_STRING: return this.decodeString();
-			case BSER_ARRAY: return this.decodeArray();
-			case BSER_OBJECT: return this.decodeObject();
-			case BSER_TEMPLATE: return this.decodeTemplate();
-			default: this.raise("unhandled bser opcode " + code);
-		}
-	};
-	BunserBuf.prototype.decodeArray = function() {
-		this.expectCode(BSER_ARRAY);
-		var nitems = this.decodeInt();
-		var arr = [];
-		for (var i = 0; i < nitems; ++i) arr.push(this.decodeAny());
-		return arr;
-	};
-	BunserBuf.prototype.decodeObject = function() {
-		this.expectCode(BSER_OBJECT);
-		var nitems = this.decodeInt();
-		var res = {};
-		for (var i = 0; i < nitems; ++i) {
-			var key = this.decodeString();
-			res[key] = this.decodeAny();
-		}
-		return res;
-	};
-	BunserBuf.prototype.decodeTemplate = function() {
-		this.expectCode(BSER_TEMPLATE);
-		var keys = this.decodeArray();
-		var nitems = this.decodeInt();
-		var arr = [];
-		for (var i = 0; i < nitems; ++i) {
-			var obj = {};
-			for (var keyidx = 0; keyidx < keys.length; ++keyidx) {
-				if (this.buf.peekInt(1) == BSER_SKIP) {
-					this.buf.readAdvance(1);
-					continue;
-				}
-				var val = this.decodeAny();
-				obj[keys[keyidx]] = val;
-			}
-			arr.push(obj);
-		}
-		return arr;
-	};
-	BunserBuf.prototype.decodeString = function() {
-		this.expectCode(BSER_STRING);
-		var len = this.decodeInt();
-		return this.buf.readString(len);
-	};
-	BunserBuf.prototype.decodeInt = function(relaxSizeAsserts) {
-		if (relaxSizeAsserts && this.buf.readAvail() < 1) return false;
-		else this.buf.assertReadableSize(1);
-		var code = this.buf.peekInt(1);
-		var size = 0;
-		switch (code) {
-			case BSER_INT8:
-				size = 1;
-				break;
-			case BSER_INT16:
-				size = 2;
-				break;
-			case BSER_INT32:
-				size = 4;
-				break;
-			case BSER_INT64:
-				size = 8;
-				break;
-			default: this.raise("invalid bser int encoding " + code);
-		}
-		if (relaxSizeAsserts && this.buf.readAvail() < 1 + size) return false;
-		this.buf.readAdvance(1);
-		return this.buf.readInt(size);
-	};
-	function loadFromBuffer(input) {
-		var buf = new BunserBuf();
-		var result = buf.append(input, true);
-		if (buf.buf.readAvail()) throw Error("excess data found after input buffer, use BunserBuf instead");
-		if (typeof result === "undefined") throw Error("no bser found in string and no error raised!?");
-		return result;
-	}
-	exports.loadFromBuffer = loadFromBuffer;
-	function byteswap64(buf) {
-		var swap = Buffer.alloc(buf.length);
-		for (var i = 0; i < buf.length; i++) swap[i] = buf[buf.length - 1 - i];
-		return swap;
-	}
-	function dump_int64(buf, val) {
-		var be = val.toBuffer();
-		if (isBigEndian) {
-			buf.writeByte(BSER_INT64);
-			buf.append(be);
-			return;
-		}
-		var le = byteswap64(be);
-		buf.writeByte(BSER_INT64);
-		buf.append(le);
-	}
-	function dump_int(buf, val) {
-		var abs = Math.abs(val);
-		if (abs <= MAX_INT8) {
-			buf.writeByte(BSER_INT8);
-			buf.writeInt(val, 1);
-		} else if (abs <= MAX_INT16) {
-			buf.writeByte(BSER_INT16);
-			buf.writeInt(val, 2);
-		} else if (abs <= MAX_INT32) {
-			buf.writeByte(BSER_INT32);
-			buf.writeInt(val, 4);
-		} else dump_int64(buf, new Int64(val));
-	}
-	function dump_any(buf, val) {
-		switch (typeof val) {
-			case "number":
-				if (isFinite(val) && Math.floor(val) === val) dump_int(buf, val);
-				else {
-					buf.writeByte(BSER_REAL);
-					buf.writeDouble(val);
-				}
-				return;
-			case "string":
-				buf.writeByte(BSER_STRING);
-				dump_int(buf, Buffer.byteLength(val));
-				buf.append(val);
-				return;
-			case "boolean":
-				buf.writeByte(val ? BSER_TRUE : BSER_FALSE);
-				return;
-			case "object":
-				if (val === null) {
-					buf.writeByte(BSER_NULL);
-					return;
-				}
-				if (val instanceof Int64) {
-					dump_int64(buf, val);
-					return;
-				}
-				if (Array.isArray(val)) {
-					buf.writeByte(BSER_ARRAY);
-					dump_int(buf, val.length);
-					for (var i = 0; i < val.length; ++i) dump_any(buf, val[i]);
-					return;
-				}
-				buf.writeByte(BSER_OBJECT);
-				var keys = Object.keys(val);
-				var num_keys = keys.length;
-				for (var i = 0; i < keys.length; ++i) {
-					var key = keys[i];
-					var v = val[key];
-					if (typeof v == "undefined") num_keys--;
-				}
-				dump_int(buf, num_keys);
-				for (var i = 0; i < keys.length; ++i) {
-					var key = keys[i];
-					var v = val[key];
-					if (typeof v == "undefined") continue;
-					dump_any(buf, key);
-					try {
-						dump_any(buf, v);
-					} catch (e) {
-						throw new Error(e.message + " (while serializing object property with name `" + key + "')");
-					}
-				}
-				return;
-			default: throw new Error("cannot serialize type " + typeof val + " to BSER");
-		}
-	}
-	function dumpToBuffer(val) {
-		var buf = new Accumulator();
-		buf.writeByte(0);
-		buf.writeByte(1);
-		buf.writeByte(BSER_INT32);
-		buf.writeInt(0, 4);
-		dump_any(buf, val);
-		var off = buf.writeOffset;
-		var len = off - 7;
-		buf.writeOffset = 3;
-		buf.writeInt(len, 4);
-		buf.writeOffset = off;
-		return buf.buf.slice(0, off);
-	}
-	exports.dumpToBuffer = dumpToBuffer;
-}));
-//#endregion
-//#region node_modules/fb-watchman/index.js
-/**
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var net$1 = require("net");
-	var EE = require("events").EventEmitter;
-	var util$1 = require("util");
-	var childProcess = require("child_process");
-	var bser = require_bser();
-	var unilateralTags = ["subscription", "log"];
-	/**
-	* @param options An object with the following optional keys:
-	*   * 'watchmanBinaryPath' (string) Absolute path to the watchman binary.
-	*     If not provided, the Client locates the binary using the PATH specified
-	*     by the node child_process's default env.
-	*/
-	function Client(options) {
-		EE.call(this);
-		this.watchmanBinaryPath = "watchman";
-		if (options && options.watchmanBinaryPath) this.watchmanBinaryPath = options.watchmanBinaryPath.trim();
-		this.commands = [];
-	}
-	util$1.inherits(Client, EE);
-	module.exports.Client = Client;
-	Client.prototype.sendNextCommand = function() {
-		if (this.currentCommand) return;
-		this.currentCommand = this.commands.shift();
-		if (!this.currentCommand) return;
-		this.socket.write(bser.dumpToBuffer(this.currentCommand.cmd));
-	};
-	Client.prototype.cancelCommands = function(why) {
-		var error = new Error(why);
-		var cmds = this.commands;
-		this.commands = [];
-		if (this.currentCommand) {
-			cmds.unshift(this.currentCommand);
-			this.currentCommand = null;
-		}
-		cmds.forEach(function(cmd) {
-			cmd.cb(error);
-		});
-	};
-	Client.prototype.connect = function() {
-		var self = this;
-		function makeSock(sockname) {
-			self.bunser = new bser.BunserBuf();
-			self.bunser.on("value", function(obj) {
-				var unilateral = false;
-				for (var i = 0; i < unilateralTags.length; i++) {
-					var tag = unilateralTags[i];
-					if (tag in obj) unilateral = tag;
-				}
-				if (unilateral) self.emit(unilateral, obj);
-				else if (self.currentCommand) {
-					var cmd = self.currentCommand;
-					self.currentCommand = null;
-					if ("error" in obj) {
-						var error = new Error(obj.error);
-						error.watchmanResponse = obj;
-						cmd.cb(error);
-					} else cmd.cb(null, obj);
-				}
-				self.sendNextCommand();
-			});
-			self.bunser.on("error", function(err) {
-				self.emit("error", err);
-			});
-			self.socket = net$1.createConnection(sockname);
-			self.socket.on("connect", function() {
-				self.connecting = false;
-				self.emit("connect");
-				self.sendNextCommand();
-			});
-			self.socket.on("error", function(err) {
-				self.connecting = false;
-				self.emit("error", err);
-			});
-			self.socket.on("data", function(buf) {
-				if (self.bunser) self.bunser.append(buf);
-			});
-			self.socket.on("end", function() {
-				self.socket = null;
-				self.bunser = null;
-				self.cancelCommands("The watchman connection was closed");
-				self.emit("end");
-			});
-		}
-		if (process.env.WATCHMAN_SOCK) {
-			makeSock(process.env.WATCHMAN_SOCK);
-			return;
-		}
-		var args = ["--no-pretty", "get-sockname"];
-		var proc = null;
-		var spawnFailed = false;
-		function spawnError(error) {
-			if (spawnFailed) return;
-			spawnFailed = true;
-			if (error.code === "EACCES" || error.errno === "EACCES") error.message = "The Watchman CLI is installed but cannot be spawned because of a permission problem";
-			else if (error.code === "ENOENT" || error.errno === "ENOENT") error.message = "Watchman was not found in PATH.  See https://facebook.github.io/watchman/docs/install.html for installation instructions";
-			console.error("Watchman: ", error.message);
-			self.emit("error", error);
-		}
-		try {
-			proc = childProcess.spawn(this.watchmanBinaryPath, args, {
-				stdio: [
-					"ignore",
-					"pipe",
-					"pipe"
-				],
-				windowsHide: true
-			});
-		} catch (error) {
-			spawnError(error);
-			return;
-		}
-		var stdout = [];
-		var stderr = [];
-		proc.stdout.on("data", function(data) {
-			stdout.push(data);
-		});
-		proc.stderr.on("data", function(data) {
-			data = data.toString("utf8");
-			stderr.push(data);
-			console.error(data);
-		});
-		proc.on("error", function(error) {
-			spawnError(error);
-		});
-		proc.on("close", function(code, signal) {
-			if (code !== 0) {
-				spawnError(/* @__PURE__ */ new Error(self.watchmanBinaryPath + " " + args.join(" ") + " returned with exit code=" + code + ", signal=" + signal + ", stderr= " + stderr.join("")));
-				return;
-			}
-			try {
-				var obj = JSON.parse(stdout.join(""));
-				if ("error" in obj) {
-					var error = new Error(obj.error);
-					error.watchmanResponse = obj;
-					self.emit("error", error);
-					return;
-				}
-				makeSock(obj.sockname);
-			} catch (e) {
-				self.emit("error", e);
-			}
-		});
-	};
-	Client.prototype.command = function(args, done) {
-		done = done || function() {};
-		this.commands.push({
-			cmd: args,
-			cb: done
-		});
-		if (!this.socket) {
-			if (!this.connecting) {
-				this.connecting = true;
-				this.connect();
-				return;
-			}
-			return;
-		}
-		this.sendNextCommand();
-	};
-	var cap_versions = {
-		"cmd-watch-del-all": "3.1.1",
-		"cmd-watch-project": "3.1",
-		"relative_root": "3.3",
-		"term-dirname": "3.1",
-		"term-idirname": "3.1",
-		"wildmatch": "3.7"
-	};
-	function vers_compare(a, b) {
-		a = a.split(".");
-		b = b.split(".");
-		for (var i = 0; i < 3; i++) {
-			var d = parseInt(a[i] || "0") - parseInt(b[i] || "0");
-			if (d != 0) return d;
-		}
-		return 0;
-	}
-	function have_cap(vers, name) {
-		if (name in cap_versions) return vers_compare(vers, cap_versions[name]) >= 0;
-		return false;
-	}
-	Client.prototype._synthesizeCapabilityCheck = function(resp, optional, required) {
-		resp.capabilities = {};
-		var version = resp.version;
-		optional.forEach(function(name) {
-			resp.capabilities[name] = have_cap(version, name);
-		});
-		required.forEach(function(name) {
-			var have = have_cap(version, name);
-			resp.capabilities[name] = have;
-			if (!have) resp.error = "client required capability `" + name + "` is not supported by this server";
-		});
-		return resp;
-	};
-	Client.prototype.capabilityCheck = function(caps, done) {
-		var optional = caps.optional || [];
-		var required = caps.required || [];
-		var self = this;
-		this.command(["version", {
-			optional,
-			required
-		}], function(error, resp) {
-			if (error) {
-				done(error);
-				return;
-			}
-			if (!("capabilities" in resp)) {
-				resp = self._synthesizeCapabilityCheck(resp, optional, required);
-				if (resp.error) {
-					error = new Error(resp.error);
-					error.watchmanResponse = resp;
-					done(error);
-					return;
-				}
-			}
-			done(null, resp);
-		});
-	};
-	Client.prototype.end = function() {
-		this.cancelCommands("The client was ended");
-		if (this.socket) {
-			this.socket.end();
-			this.socket = null;
-		}
-		this.bunser = null;
-	};
-}));
-//#endregion
-//#region src/core/watchman.ts
-var logger$19, requiredCapabilities, Watchman;
-var init_watchman = __esmMin((() => {
-	init_logger$2();
-	init_node();
-	logger$19 = createLogger$1("core-watchman");
-	requiredCapabilities = [
-		"relative_root",
-		"cmd-watch-project",
-		"wildmatch",
-		"field-new"
-	];
-	Watchman = class Watchman {
-		channel;
-		client;
-		relative_path;
-		_listeners = [];
-		_root;
-		subscription;
-		constructor(binaryPath, channel) {
-			this.channel = channel;
-			const watchman = require_fb_watchman();
-			this.client = new watchman.Client({ watchmanBinaryPath: binaryPath });
-			this.client.setMaxListeners(300);
-		}
-		get root() {
-			return this._root;
-		}
-		checkCapability() {
-			let { client } = this;
-			return new Promise((resolve) => {
-				client.capabilityCheck({
-					optional: [],
-					required: requiredCapabilities
-				}, (error, resp) => {
-					if (error) return resolve(false);
-					let { capabilities } = resp;
-					for (let key of Object.keys(capabilities)) if (!capabilities[key]) return resolve(false);
-					resolve(true);
-				});
-			});
-		}
-		async watchProject(root) {
-			this._root = root;
-			let { watch, warning, relative_path } = await this.command(["watch-project", root]);
-			if (!watch) return false;
-			if (warning) {
-				logger$19.warn(warning);
-				this.appendOutput(warning, "Warning");
-			}
-			this.relative_path = relative_path;
-			logger$19.info(`watchman watching project: ${root}`);
-			this.appendOutput(`watchman watching project: ${root}`);
-			let { clock } = await this.command(["clock", watch]);
-			let sub = {
-				expression: ["allof", [
-					"type",
-					"f",
-					"wholename"
-				]],
-				fields: [
-					"name",
-					"size",
-					"new",
-					"exists",
-					"type",
-					"mtime_ms",
-					"ctime_ms"
-				],
-				since: clock
-			};
-			if (relative_path) {
-				sub.relative_root = relative_path;
-				root = path$5.join(watch, relative_path);
-			}
-			let uid = crypto.randomUUID();
-			let { subscribe } = await this.command([
-				"subscribe",
-				watch,
-				uid,
-				sub
-			]);
-			this.subscription = subscribe;
-			this.appendOutput(`subscribing events in ${root}`);
-			this.client.on("subscription", (resp) => {
-				if (!resp || resp.subscription != uid || !resp.files) return;
-				for (let listener of this._listeners) listener(resp);
-			});
-			return true;
-		}
-		command(args) {
-			return new Promise((resolve, reject) => {
-				this.client.command(args, (error, resp) => {
-					if (error) return reject(error);
-					resolve(resp);
-				});
-			});
-		}
-		subscribe(globPattern, cb) {
-			let fn = (change) => {
-				let { files } = change;
-				files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
-				if (!files.length) return;
-				let ev = Object.assign({}, change);
-				if (this.relative_path) ev.root = path$5.resolve(change.root, this.relative_path);
-				this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
-				cb(ev);
-			};
-			this._listeners.push(fn);
-			return { dispose: () => {
-				let idx = this._listeners.indexOf(fn);
-				if (idx !== -1) this._listeners.splice(idx, 1);
-			} };
-		}
-		dispose() {
-			if (this.client) {
-				this.client.end();
-				this.client = void 0;
-			}
-		}
-		appendOutput(message, type = "Info") {
-			if (this.channel) this.channel.appendLine(`[${type}  - ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}] ${message}`);
-		}
-		static async createClient(binaryPath, root, channel) {
-			let watchman;
-			try {
-				watchman = new Watchman(binaryPath, channel);
-				if (!await watchman.checkCapability()) throw new Error("required capabilities do not exist.");
-				if (!await watchman.watchProject(root)) throw new Error("unable to watch");
-				return watchman;
-			} catch (e) {
-				if (watchman) watchman.dispose();
-				throw e;
-			}
-		}
-	};
-}));
-//#endregion
-//#region src/core/fileSystemWatcher.ts
-var WATCHMAN_COMMAND, FileSystemWatcherManager, FileSystemWatcher;
-var init_fileSystemWatcher = __esmMin((() => {
-	init_esm();
-	init_logger$2();
-	init_util$7();
-	init_array();
-	init_fs();
-	init_node();
-	init_protocol();
-	init_watchman();
-	createLogger$1("fileSystemWatcher");
-	WATCHMAN_COMMAND = "watchman";
-	FileSystemWatcherManager = class FileSystemWatcherManager {
-		workspaceFolder;
-		config;
-		clientsMap = /* @__PURE__ */ new Map();
-		disposables = [];
-		channel;
-		creating = /* @__PURE__ */ new Set();
-		static watchers = /* @__PURE__ */ new Set();
-		_onDidCreateClient = new import_main$1.Emitter();
-		disabled = false;
-		onDidCreateClient = this._onDidCreateClient.event;
-		constructor(workspaceFolder, config) {
-			this.workspaceFolder = workspaceFolder;
-			this.config = config;
-			this.disabled = config.enable === false;
-		}
-		attach(channel) {
-			this.channel = channel;
-			let createClient = (folder) => {
-				let root = URI.parse(folder.uri).fsPath;
-				this.createClient(root);
-			};
-			this.workspaceFolder.workspaceFolders.forEach((folder) => {
-				createClient(folder);
-			});
-			this.workspaceFolder.onDidChangeWorkspaceFolders((e) => {
-				e.added.forEach((folder) => {
-					createClient(folder);
-				});
-				e.removed.forEach((folder) => {
-					let root = URI.parse(folder.uri).fsPath;
-					let client = this.clientsMap.get(root);
-					if (client) {
-						this.clientsMap.delete(root);
-						client.dispose();
-					}
-				});
-			}, null, this.disposables);
-		}
-		waitClient(root) {
-			if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root));
-			return new Promise((resolve) => {
-				let disposable = this.onDidCreateClient((r) => {
-					if (r == root) {
-						disposable.dispose();
-						resolve(this.clientsMap.get(r));
-					}
-				});
-			});
-		}
-		async createClient(root, skipCheck = false) {
-			if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return;
-			if (this.has(root)) return this.waitClient(root);
-			try {
-				this.creating.add(root);
-				let watchmanPath = await this.getWatchmanPath();
-				let client = await Watchman.createClient(watchmanPath, root, this.channel);
-				this.creating.delete(root);
-				this.clientsMap.set(root, client);
-				for (let watcher of FileSystemWatcherManager.watchers) watcher.listen(root, client);
-				this._onDidCreateClient.fire(root);
-				return client;
-			} catch (e) {
-				this.creating.delete(root);
-				if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`);
-				return false;
-			}
-		}
-		async getWatchmanPath() {
-			let watchmanPath = this.config.watchmanPath ?? WATCHMAN_COMMAND;
-			if (!process.env.WATCHMAN_SOCK) watchmanPath = await which(watchmanPath, { all: false });
-			return watchmanPath;
-		}
-		has(root) {
-			let curr = Array.from(this.clientsMap.keys());
-			curr.push(...this.creating);
-			return curr.some((r) => sameFile(r, root));
-		}
-		createFileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
-			let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents);
-			let base = typeof globPattern === "string" ? void 0 : globPattern.baseUri.fsPath;
-			for (let [root, client] of this.clientsMap.entries()) {
-				if (base && isParentFolder(root, base, true)) base = void 0;
-				fileWatcher.listen(root, client);
-			}
-			if (base) this.createClient(base);
-			FileSystemWatcherManager.watchers.add(fileWatcher);
-			return fileWatcher;
-		}
-		dispose() {
-			this._onDidCreateClient.dispose();
-			for (let client of this.clientsMap.values()) if (client) client.dispose();
-			this.clientsMap.clear();
-			FileSystemWatcherManager.watchers.clear();
-			disposeAll(this.disposables);
-		}
-	};
-	FileSystemWatcher = class {
-		globPattern;
-		ignoreCreateEvents;
-		ignoreChangeEvents;
-		ignoreDeleteEvents;
-		_onDidCreate = new import_main$1.Emitter();
-		_onDidChange = new import_main$1.Emitter();
-		_onDidDelete = new import_main$1.Emitter();
-		_onDidRename = new import_main$1.Emitter();
-		disposables = [];
-		subscribe;
-		onDidCreate = this._onDidCreate.event;
-		onDidChange = this._onDidChange.event;
-		onDidDelete = this._onDidDelete.event;
-		onDidRename = this._onDidRename.event;
-		_onDidListen = new import_main$1.Emitter();
-		onDidListen = this._onDidListen.event;
-		constructor(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
-			this.globPattern = globPattern;
-			this.ignoreCreateEvents = ignoreCreateEvents;
-			this.ignoreChangeEvents = ignoreChangeEvents;
-			this.ignoreDeleteEvents = ignoreDeleteEvents;
-		}
-		listen(root, client) {
-			let { globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents } = this;
-			let pattern;
-			let basePath;
-			if (typeof globPattern === "string") pattern = globPattern;
-			else {
-				pattern = globPattern.pattern;
-				basePath = globPattern.baseUri.fsPath;
-				if (!isParentFolder(root, basePath, true)) return;
-			}
-			const onChange = (change) => {
-				let { root, files } = change;
-				if (basePath && !sameFile(root, basePath)) files = files.filter((f) => {
-					if (f.type != "f") return false;
-					let fullpath = path$5.join(root, f.name);
-					if (!isParentFolder(basePath, fullpath)) return false;
-					return minimatch(path$5.relative(basePath, fullpath), pattern, { dot: true });
-				});
-				else files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
-				for (let file of files) {
-					let uri = URI.file(path$5.join(root, file.name));
-					if (!file.exists) {
-						if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
-					} else if (file.new === true) {
-						if (!ignoreCreateEvents) this._onDidCreate.fire(uri);
-					} else if (!ignoreChangeEvents) this._onDidChange.fire(uri);
-				}
-				if (files.length == 2 && files[0].exists !== files[1].exists) {
-					let oldFile = files.find((o) => o.exists !== true);
-					let newFile = files.find((o) => o.exists === true);
-					if (oldFile.size == newFile.size) this._onDidRename.fire({
-						oldUri: URI.file(path$5.join(root, oldFile.name)),
-						newUri: URI.file(path$5.join(root, newFile.name))
-					});
-				}
-				if (files.length > 2 && files.length % 2 == 0) {
-					let [oldFiles, newFiles] = splitArray(files, (o) => o.exists === false);
-					if (oldFiles.length == newFiles.length) for (let oldFile of oldFiles) {
-						let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
-						if (newFile) this._onDidRename.fire({
-							oldUri: URI.file(path$5.join(root, oldFile.name)),
-							newUri: URI.file(path$5.join(root, newFile.name))
-						});
-					}
-				}
-			};
-			this.subscribe = client.subscription;
-			let disposable = client.subscribe(pattern, onChange);
-			this._onDidListen.fire();
-			this.disposables.push(disposable);
-		}
-		dispose() {
-			FileSystemWatcherManager.watchers.delete(this);
-			this._onDidRename.dispose();
-			this._onDidCreate.dispose();
-			this._onDidChange.dispose();
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/model/editInspect.ts
-function getOriginalLine(item, change) {
-	if (typeof item.lnum !== "number") return void 0;
-	let lnum = item.lnum;
-	if (change) {
-		let edits = change.edits.map((o) => SnippetTextEdit.is(o) ? {
-			range: o.range,
-			newText: o.snippet.value
-		} : o);
-		edits = mergeSortEdits(edits);
-		lnum = getPositionFromEdits(Position.create(lnum - 1, 0), edits).line + 1;
-	}
-	return lnum;
-}
-function grouByAnnotation(changes, annotations) {
-	let map = /* @__PURE__ */ new Map();
-	for (let change of changes) {
-		let id = getAnnotationKey(change) ?? null;
-		let key = id ? annotations[id]?.label : null;
-		let arr = map.get(key);
-		if (arr) arr.push(change);
-		else map.set(key, [change]);
-	}
-	return map;
-}
-var global_id, EditInspect;
-var init_editInspect = __esmMin((() => {
-	init_main$2();
-	init_esm();
-	init_events();
-	init_util$7();
-	init_array();
-	init_fs();
-	init_node();
-	init_textedit();
-	init_highlighter();
-	global_id = 0;
-	EditInspect = class {
-		nvim;
-		keymaps;
-		disposables = [];
-		bufnr;
-		items = [];
-		renameMap = /* @__PURE__ */ new Map();
-		constructor(nvim, keymaps) {
-			this.nvim = nvim;
-			this.keymaps = keymaps;
-			events_default.on("BufUnload", (bufnr) => {
-				if (bufnr == this.bufnr) this.dispose();
-			}, null, this.disposables);
-		}
-		addFile(filepath, highlighter, lnum) {
-			this.items.push({
-				index: highlighter.length,
-				filepath,
-				lnum
-			});
-		}
-		async show(state) {
-			let { nvim } = this;
-			let id = global_id++;
-			nvim.pauseNotification();
-			nvim.command(`tabe +setl\\ buftype=nofile CocWorkspaceEdit${id}`, true);
-			nvim.command(`setl bufhidden=wipe nolist`, true);
-			nvim.command("setl nobuflisted wrap undolevels=-1 filetype=cocedits noswapfile", true);
-			await nvim.resumeNotification(true);
-			let buffer = await nvim.buffer;
-			let cwd = await nvim.call("getcwd");
-			this.bufnr = buffer.id;
-			const relpath = (uri) => {
-				let fsPath = URI.parse(uri).fsPath;
-				return isParentFolder(cwd, fsPath, true) ? path$5.relative(cwd, fsPath) : fsPath;
-			};
-			const absPath = (filepath) => {
-				return path$5.isAbsolute(filepath) ? filepath : path$5.join(cwd, filepath);
-			};
-			let highlighter = new Highlighter();
-			let map = grouByAnnotation(toArray(state.edit.documentChanges), state.edit.changeAnnotations ?? {});
-			for (let [label, changes] of map.entries()) {
-				if (label) {
-					highlighter.addLine(label, "MoreMsg");
-					highlighter.addLine("");
-				}
-				for (let change of changes) if (TextDocumentEdit.is(change)) {
-					let linesChange = state.changes[change.textDocument.uri];
-					let fsPath = relpath(change.textDocument.uri);
-					highlighter.addTexts([
-						{
-							text: "Change",
-							hlGroup: "Title"
-						},
-						{ text: " " },
-						{
-							text: fsPath,
-							hlGroup: "Directory"
-						},
-						{
-							text: `:${linesChange.lnum}`,
-							hlGroup: "LineNr"
-						}
-					]);
-					this.addFile(fsPath, highlighter, linesChange.lnum);
-					highlighter.addLine("");
-					this.addChangedLines(highlighter, linesChange, fsPath, linesChange.lnum);
-					highlighter.addLine("");
-				} else if (CreateFile.is(change) || DeleteFile.is(change)) {
-					let title = DeleteFile.is(change) ? "Delete" : "Create";
-					let fsPath = relpath(change.uri);
-					highlighter.addTexts([
-						{
-							text: title,
-							hlGroup: "Title"
-						},
-						{ text: " " },
-						{
-							text: fsPath,
-							hlGroup: "Directory"
-						}
-					]);
-					this.addFile(fsPath, highlighter);
-					highlighter.addLine("");
-				} else if (RenameFile.is(change)) {
-					let oldPath = relpath(change.oldUri);
-					let newPath = relpath(change.newUri);
-					highlighter.addTexts([
-						{
-							text: "Rename",
-							hlGroup: "Title"
-						},
-						{ text: " " },
-						{
-							text: oldPath,
-							hlGroup: "Directory"
-						},
-						{
-							text: "->",
-							hlGroup: "Comment"
-						},
-						{
-							text: newPath,
-							hlGroup: "Directory"
-						}
-					]);
-					this.renameMap.set(oldPath, newPath);
-					this.addFile(newPath, highlighter);
-					highlighter.addLine("");
-				}
-			}
-			nvim.pauseNotification();
-			highlighter.render(buffer);
-			buffer.setOption("modifiable", false, true);
-			await nvim.resumeNotification(true);
-			this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, "n", "<CR>", async () => {
-				let lnum = await nvim.call("line", ".");
-				let col = await nvim.call("col", ".");
-				let find;
-				for (let i = this.items.length - 1; i >= 0; i--) {
-					let item = this.items[i];
-					if (lnum >= item.index) {
-						find = item;
-						break;
-					}
-				}
-				if (!find) return;
-				let uri = URI.file(absPath(find.filepath)).toString();
-				let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath;
-				await nvim.call("coc#util#open_file", ["tab drop", absPath(filepath)]);
-				let change = toArray(state.edit.documentChanges).find((o) => TextDocumentEdit.is(o) && o.textDocument.uri == uri);
-				let originLine = getOriginalLine(find, change);
-				if (originLine !== void 0) await nvim.call("cursor", [originLine, col]);
-				nvim.redrawVim();
-			}, true));
-			this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, "n", "<esc>", async () => {
-				nvim.command("bwipeout!", true);
-			}, true));
-		}
-		addChangedLines(highlighter, linesChange, fsPath, lnum) {
-			let diffs = fastDiff(linesChange.oldLines.join("\n"), linesChange.newLines.join("\n"));
-			for (let i = 0; i < diffs.length; i++) {
-				let diff = diffs[i];
-				if (diff[0] == fastDiff.EQUAL) {
-					let text = diff[1];
-					if (!text.includes("\n")) highlighter.addText(text);
-					else {
-						let parts = text.split("\n");
-						highlighter.addText(parts[0]);
-						let curr = lnum + parts.length - 1;
-						highlighter.addLine("");
-						highlighter.addTexts([
-							{
-								text: "Change",
-								hlGroup: "Title"
-							},
-							{ text: " " },
-							{
-								text: fsPath,
-								hlGroup: "Directory"
-							},
-							{
-								text: `:${curr}`,
-								hlGroup: "LineNr"
-							}
-						]);
-						this.addFile(fsPath, highlighter, curr);
-						highlighter.addLine("");
-						let last = parts[parts.length - 1];
-						highlighter.addText(last);
-					}
-					lnum += text.split("\n").length - 1;
-				} else if (diff[0] == fastDiff.DELETE) {
-					lnum += diff[1].split("\n").length - 1;
-					highlighter.addText(diff[1], "DiffDelete");
-				} else highlighter.addText(diff[1], "DiffAdd");
-			}
-		}
-		dispose() {
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/core/files.ts
-function fileMatch(root, relpath, pattern) {
-	let filepath = path$5.join(root, relpath);
-	if (typeof pattern !== "string") {
-		let base = pattern.baseUri.fsPath;
-		if (!isParentFolder(base, filepath)) return false;
-		return minimatch(path$5.relative(base, filepath), pattern.pattern, { dot: true });
-	}
-	return minimatch(relpath, pattern, { dot: true });
-}
-function fsPath(uri) {
-	return URI.parse(uri).fsPath;
-}
-var logger$18, Files;
-var init_files = __esmMin((() => {
-	init_main$2();
-	init_esm();
-	init_commands$2();
-	init_events();
-	init_logger$2();
-	init_editInspect();
-	init_errors();
-	init_fs();
-	init_node();
-	init_protocol();
-	init_string$1();
-	init_textedit();
-	logger$18 = createLogger$1("core-files");
-	Files = class {
-		documents;
-		configurations;
-		workspaceFolderControl;
-		keymaps;
-		nvim;
-		env;
-		window;
-		editState;
-		operationTimeout = 500;
-		_onDidCreateFiles = new import_main$1.Emitter();
-		_onDidRenameFiles = new import_main$1.Emitter();
-		_onDidDeleteFiles = new import_main$1.Emitter();
-		_onWillCreateFiles = new import_main$1.Emitter();
-		_onWillRenameFiles = new import_main$1.Emitter();
-		_onWillDeleteFiles = new import_main$1.Emitter();
-		onDidCreateFiles = this._onDidCreateFiles.event;
-		onDidRenameFiles = this._onDidRenameFiles.event;
-		onDidDeleteFiles = this._onDidDeleteFiles.event;
-		onWillCreateFiles = this._onWillCreateFiles.event;
-		onWillRenameFiles = this._onWillRenameFiles.event;
-		onWillDeleteFiles = this._onWillDeleteFiles.event;
-		constructor(documents, configurations, workspaceFolderControl, keymaps) {
-			this.documents = documents;
-			this.configurations = configurations;
-			this.workspaceFolderControl = workspaceFolderControl;
-			this.keymaps = keymaps;
-		}
-		attach(nvim, env, window) {
-			this.nvim = nvim;
-			this.env = env;
-			this.window = window;
-		}
-		async openTextDocument(uri) {
-			uri = typeof uri === "string" ? URI.file(uri) : uri;
-			let doc = this.documents.getDocument(uri.toString());
-			if (doc) return doc;
-			const scheme = uri.scheme;
-			if (scheme == "file") {
-				if (!fs$5.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
-				fs$5.accessSync(uri.fsPath, fs$5.constants.R_OK);
-			}
-			if (scheme == "untitled") {
-				await this.nvim.call("coc#util#open_file", ["tab drop", uri.path]);
-				return await this.documents.document;
-			}
-			return await this.loadResource(uri.toString(), null);
-		}
-		async jumpTo(uri, position, openCommand) {
-			if (!openCommand) openCommand = this.configurations.initialConfiguration.get("coc.preferences.jumpCommand", "edit");
-			let { nvim } = this;
-			let u = uri instanceof URI ? uri : URI.parse(uri);
-			let doc = this.documents.getDocument(u.with({ fragment: "" }).toString());
-			let bufnr = doc ? doc.bufnr : -1;
-			if (!position && u.scheme === "file" && u.fragment) {
-				let parts = u.fragment.split(",");
-				let lnum = parseInt(parts[0], 10);
-				if (!isNaN(lnum)) {
-					let col = parts.length > 0 && /^\d+$/.test(parts[1]) ? parseInt(parts[1], 10) : void 0;
-					position = Position.create(lnum - 1, col == null ? 0 : col - 1);
-				}
-			}
-			if (bufnr != -1 && openCommand == "edit") {
-				nvim.pauseNotification();
-				nvim.command(`silent! normal! m'`, true);
-				nvim.command(`buffer ${bufnr}`, true);
-				nvim.command(`if &filetype ==# '' | filetype detect | endif`, true);
-				if (position) {
-					let col = byteIndex(doc.getline(position.line), position.character) + 1;
-					nvim.call("cursor", [position.line + 1, col], true);
-				}
-				await nvim.resumeNotification(true);
-			} else {
-				let { fsPath, scheme } = u;
-				let pos = position == null ? null : [position.line, position.character];
-				if (scheme == "file") {
-					let bufname = normalizeFilePath(fsPath);
-					await this.nvim.call("coc#util#jump", [
-						openCommand,
-						bufname,
-						pos
-					]);
-				} else await this.nvim.call("coc#util#jump", [
-					openCommand,
-					uri.toString(),
-					pos
-				]);
-			}
-		}
-		/**
-		* Open resource by uri
-		*/
-		async openResource(uri) {
-			let { nvim } = this;
-			let u = URI.parse(uri);
-			if (/^https?/.test(u.scheme)) {
-				await nvim.call("coc#ui#open_url", uri);
-				return;
-			}
-			await this.jumpTo(uri);
-			await this.documents.document;
-		}
-		/**
-		* Load uri as document.
-		*/
-		async loadResource(uri, cmd) {
-			let doc = this.documents.getDocument(uri);
-			if (doc) return doc;
-			if (cmd === void 0) cmd = this.configurations.getConfiguration("workspace").get("openResourceCommand", "tab drop");
-			let u = URI.parse(uri);
-			let bufname = u.scheme === "file" ? u.fsPath : uri;
-			let bufnr;
-			if (cmd) {
-				let winid = await this.nvim.call("win_getid");
-				bufnr = await this.nvim.call("coc#util#open_file", [cmd, bufname]);
-				await this.nvim.call("win_gotoid", [winid]);
-			} else bufnr = (await this.nvim.call("coc#ui#open_files", [[bufname]]))[0];
-			return await this.documents.createDocument(bufnr);
-		}
-		/**
-		* Load the files that not loaded
-		*/
-		async loadResources(uris) {
-			let { documents } = this;
-			let files = uris.map((uri) => {
-				let u = URI.parse(uri);
-				return u.scheme == "file" ? u.fsPath : uri;
-			});
-			let bufnrs = await this.nvim.call("coc#ui#open_files", [files]);
-			return await Promise.all(bufnrs.map((bufnr) => {
-				return documents.createDocument(bufnr);
-			}));
-		}
-		/**
-		* Create a file in vim and disk
-		*/
-		async createFile(filepath, opts = {}, recovers) {
-			let { nvim } = this;
-			let exists = fs$5.existsSync(filepath);
-			if (exists && !opts.overwrite && !opts.ignoreIfExists) throw fileExists(filepath);
-			if (!exists || opts.overwrite) {
-				let tokenSource = new import_main$1.CancellationTokenSource();
-				await this.fireWaitUntilEvent(this._onWillCreateFiles, {
-					files: [URI.file(filepath)],
-					token: tokenSource.token
-				}, recovers);
-				tokenSource.cancel();
-				let dir = path$5.dirname(filepath);
-				if (!fs$5.existsSync(dir)) {
-					let folder;
-					let curr = dir;
-					while (![
-						".",
-						"/",
-						path$5.parse(dir).root
-					].includes(curr)) {
-						if (fs$5.existsSync(path$5.dirname(curr))) {
-							folder = curr;
-							break;
-						}
-						curr = path$5.dirname(curr);
-					}
-					fs$5.mkdirSync(dir, { recursive: true });
-					if (Array.isArray(recovers)) recovers.push(() => {
-						fs$5.rmSync(folder, {
-							force: true,
-							recursive: true
-						});
-					});
-				}
-				fs$5.writeFileSync(filepath, "", "utf8");
-				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.rmSync(filepath, {
-						force: true,
-						recursive: true
-					});
-				});
-				let bufnr = (await this.loadResource(filepath)).bufnr;
-				if (Array.isArray(recovers)) recovers.push(() => {
-					events_default.fire("BufUnload", [bufnr]);
-					return nvim.command(`silent! bd! ${bufnr}`);
-				});
-				this._onDidCreateFiles.fire({ files: [URI.file(filepath)] });
-			}
-		}
-		/**
-		* Delete a file or folder from vim and disk.
-		*/
-		async deleteFile(filepath, opts = {}, recovers) {
-			let { ignoreIfNotExists, recursive } = opts;
-			let stat = await statAsync(filepath);
-			let isDir = stat && stat.isDirectory();
-			if (!stat && !ignoreIfNotExists) throw fileNotExists(filepath);
-			if (stat == null) return;
-			let uri = URI.file(filepath);
-			await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers);
-			if (!isDir) {
-				let bufnr = await this.nvim.call("bufnr", [filepath]);
-				if (bufnr) {
-					events_default.fire("BufUnload", [bufnr]);
-					await this.nvim.command(`silent! bwipeout ${bufnr}`);
-					if (Array.isArray(recovers)) recovers.push(() => {
-						return this.loadResource(uri.toString());
-					});
-				}
-			}
-			let folder = path$5.join(os$5.tmpdir(), "coc-" + process.pid);
-			fs$5.mkdirSync(folder, { recursive: true });
-			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
-			if (isDir && recursive) {
-				let dest = path$5.join(folder, md5);
-				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
-				if (Array.isArray(recovers)) recovers.push(async () => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
-				});
-			} else if (isDir) {
-				fs$5.rmdirSync(filepath);
-				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(filepath);
-				});
-			} else {
-				let dest = path$5.join(folder, md5);
-				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
-				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
-				});
-			}
-			this._onDidDeleteFiles.fire({ files: [uri] });
-		}
-		/**
-		* Rename a file or folder on vim and disk
-		*/
-		async renameFile(oldPath, newPath, opts = {}, recovers) {
-			let { nvim } = this;
-			let { overwrite, ignoreIfExists } = opts;
-			if (newPath === oldPath) return;
-			let exists = fs$5.existsSync(newPath);
-			if (exists && ignoreIfExists && !overwrite) return;
-			if (exists && !overwrite) throw fileExists(newPath);
-			let oldStat = await statAsync(oldPath);
-			let loaded = oldStat && oldStat.isDirectory() ? 0 : await nvim.call("bufloaded", [oldPath]);
-			if (!loaded && !oldStat) throw fileNotExists(oldPath);
-			let file = {
-				newUri: URI.parse(newPath),
-				oldUri: URI.parse(oldPath)
-			};
-			if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
-			if (loaded) {
-				let bufnr = await nvim.call("coc#ui#rename_file", [
-					oldPath,
-					newPath,
-					oldStat != null
-				]);
-				await this.documents.onBufCreate(bufnr);
-			} else {
-				if (oldStat.isDirectory()) for (let doc of this.documents.attached("file")) {
-					let u = URI.parse(doc.uri);
-					if (isParentFolder(oldPath, u.fsPath, false)) {
-						let filepath = u.fsPath.replace(oldPath, newPath);
-						let bufnr = await nvim.call("coc#ui#rename_file", [
-							u.fsPath,
-							filepath,
-							false
-						]);
-						await this.documents.onBufCreate(bufnr);
-					}
-				}
-				fs$5.renameSync(oldPath, newPath);
-			}
-			if (Array.isArray(recovers)) recovers.push(() => {
-				return this.renameFile(newPath, oldPath, { skipEvent: true });
-			});
-			if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] });
-		}
-		/**
-		* Return denied annotations
-		*/
-		async promptAnnotations(documentChanges, changeAnnotations) {
-			let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : [];
-			let denied = [];
-			for (let key of toConfirm) {
-				let annotation = changeAnnotations[key];
-				if (await this.window.showMenuPicker(["Yes", "No"], {
-					position: "center",
-					title: "Confirm edits",
-					content: annotation.label + (annotation.description ? " " + annotation.description : "")
-				}) !== 0) denied.push(key);
-			}
-			return denied;
-		}
-		/**
-		* Apply WorkspaceEdit.
-		*/
-		async applyEdit(edit, nested) {
-			let documentChanges = toDocumentChanges(edit);
-			let recovers = [];
-			let currentOnly = false;
-			try {
-				let denied = await this.promptAnnotations(documentChanges, edit.changeAnnotations);
-				if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied);
-				let changes = {};
-				let currentUri = await this.documents.getCurrentUri();
-				currentOnly = documentChanges.every((o) => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri);
-				this.validateChanges(documentChanges);
-				for (const change of documentChanges) if (TextDocumentEdit.is(change)) {
-					let { textDocument, edits } = change;
-					let { uri } = textDocument;
-					let doc = await this.loadResource(uri);
-					let revertEdit;
-					if (edits.some((o) => SnippetTextEdit.is(o))) {
-						let snippetEdits = mergeSortEdits(edits.map((edit) => {
-							if (SnippetTextEdit.is(edit)) return {
-								range: edit.range,
-								snippet: edit.snippet.value
-							};
-							return {
-								range: edit.range,
-								snippet: edit.newText
-							};
-						}));
-						let oldLines = doc.textDocument.lines;
-						await commands_default.executeCommand("editor.action.insertBufferSnippets", doc.bufnr, snippetEdits, doc.bufnr === events_default.bufnr);
-						let startLine = snippetEdits[0].range.start.line;
-						revertEdit = getRevertEdit(oldLines, doc.textDocument.lines, startLine);
-					} else revertEdit = await doc.applyEdits(edits, false, uri === currentUri);
-					if (revertEdit) {
-						let version = doc.version;
-						let { newText, range } = revertEdit;
-						changes[uri] = {
-							uri,
-							lnum: range.start.line + 1,
-							newLines: doc.getLines(range.start.line, range.end.line),
-							oldLines: newText.endsWith("\n") ? newText.slice(0, -1).split("\n") : newText.split("\n")
-						};
-						recovers.push(async () => {
-							let doc = this.documents.getDocument(uri);
-							if (!doc || !doc.attached || doc.version !== version) return;
-							await doc.applyEdits([revertEdit]);
-							textDocument.version = doc.version;
-						});
-					}
-				} else if (CreateFile.is(change)) await this.createFile(fsPath(change.uri), change.options, recovers);
-				else if (DeleteFile.is(change)) await this.deleteFile(fsPath(change.uri), change.options, recovers);
-				else if (RenameFile.is(change)) await this.renameFile(fsPath(change.oldUri), fsPath(change.newUri), change.options, recovers);
-				if (recovers.length === 0) return true;
-				if (!nested) this.editState = {
-					edit: {
-						documentChanges,
-						changeAnnotations: edit.changeAnnotations
-					},
-					changes,
-					recovers,
-					applied: true
-				};
-				this.nvim.redrawVim();
-			} catch (e) {
-				logger$18.error("Error on applyEdits:", edit, e);
-				if (!nested) this.window.showErrorMessage(`Error on applyEdits: ${e}`);
-				await this.undoChanges(recovers);
-				return false;
-			}
-			if (nested || currentOnly) return true;
-			this.window.showInformationMessage(`Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.`);
-			return true;
-		}
-		async undoChanges(recovers) {
-			while (recovers.length > 0) {
-				let fn = recovers.pop();
-				await Promise.resolve(fn());
-			}
-		}
-		async inspectEdit() {
-			if (!this.editState) {
-				this.window.showWarningMessage("No workspace edit to inspect");
-				return;
-			}
-			await new EditInspect(this.nvim, this.keymaps).show(this.editState);
-		}
-		async undoWorkspaceEdit() {
-			let { editState } = this;
-			if (!editState || !editState.applied) {
-				this.window.showWarningMessage(`No workspace edit to undo`);
-				return;
-			}
-			editState.applied = false;
-			await this.undoChanges(editState.recovers);
-		}
-		async redoWorkspaceEdit() {
-			let { editState } = this;
-			if (!editState || editState.applied) {
-				this.window.showWarningMessage(`No workspace edit to redo`);
-				return;
-			}
-			this.editState = void 0;
-			await this.applyEdit(editState.edit);
-		}
-		validateChanges(documentChanges) {
-			let { documents } = this;
-			for (let change of documentChanges) if (TextDocumentEdit.is(change)) {
-				let { uri, version } = change.textDocument;
-				let doc = documents.getDocument(uri);
-				if (typeof version === "number" && version > 0) {
-					if (!doc) throw notLoaded(uri);
-					if (doc.version != version) throw new Error(`${uri} changed before apply edit`);
-				} else if (!doc && !isFile(uri)) throw badScheme(uri);
-			} else if (CreateFile.is(change) || DeleteFile.is(change)) {
-				if (!isFile(change.uri)) throw badScheme(change.uri);
-			} else if (RenameFile.is(change)) {
-				if (!isFile(change.oldUri) || !isFile(change.newUri)) throw badScheme(change.oldUri);
-			}
-		}
-		async findFiles(include, exclude, maxResults, token) {
-			let folders = this.workspaceFolderControl.workspaceFolders;
-			if (token?.isCancellationRequested || !folders.length || maxResults === 0) return [];
-			maxResults = maxResults ?? Infinity;
-			let roots = folders.map((o) => URI.parse(o.uri).fsPath);
-			let pattern;
-			if (typeof include !== "string") {
-				pattern = include.pattern;
-				roots = [include.baseUri.fsPath];
-			} else pattern = include;
-			let res = [];
-			let exceed = false;
-			const ac = new AbortController();
-			if (token) token.onCancellationRequested(() => {
-				if (!ac.signal.aborted) ac.abort();
-			});
-			for (let root of roots) try {
-				let files = await glob.glob(pattern, {
-					signal: ac.signal,
-					dot: true,
-					cwd: root,
-					nodir: true,
-					absolute: false
-				});
-				if (token?.isCancellationRequested) break;
-				for (let file of files) {
-					if (exclude && fileMatch(root, file, exclude)) continue;
-					res.push(URI.file(path$5.join(root, file)));
-					if (res.length === maxResults) {
-						exceed = true;
-						break;
-					}
-				}
-				if (exceed) break;
-			} catch (e) {
-				if (e["name"] === "AbortError") break;
-			}
-			return res;
-		}
-		async fireWaitUntilEvent(emitter, properties, recovers) {
-			let firing = true;
-			let promises = [];
-			emitter.fire({
-				...properties,
-				waitUntil: (thenable) => {
-					if (!firing) throw shouldNotAsync("waitUntil");
-					let tp = new Promise((resolve) => {
-						setTimeout(resolve, this.operationTimeout);
-					});
-					let promise = Promise.race([thenable, tp]).then((edit) => {
-						if (edit && WorkspaceEdit.is(edit)) return this.applyEdit(edit, true);
-					});
-					promises.push(promise);
-				}
-			});
-			firing = false;
-			await Promise.all(promises);
-		}
-	};
-}));
-//#endregion
-//#region src/core/keymaps.ts
-function getKeymapModifier(mode, cmd) {
-	if (cmd) return "<Cmd>";
-	if (mode == "n" || mode == "o" || mode == "x" || mode == "v") return "<C-U>";
-	if (mode == "i") return "<C-o>";
-	if (mode == "s") return "<Esc>";
-	return "<Cmd>";
-}
-function getBufnr(buffer) {
-	return typeof buffer === "number" ? buffer : 0;
-}
-function toKeymapOption(option) {
-	return Object.assign({
-		sync: true,
-		cancel: true,
-		silent: true
-	}, typeof option == "boolean" ? { sync: !option } : option);
-}
-var logger$17, Keymaps;
-var init_keymaps = __esmMin((() => {
-	init_logger$2();
-	init_constants();
-	init_protocol();
-	init_string$1();
-	logger$17 = createLogger$1("core-keymaps");
-	Keymaps = class {
-		keymaps = /* @__PURE__ */ new Map();
-		nvim;
-		attach(nvim) {
-			this.nvim = nvim;
-		}
-		async doKeymap(key, defaultReturn) {
-			let keymap = this.keymaps.get(key) ?? this.keymaps.get("coc-" + key);
-			if (!keymap) {
-				logger$17.error(`keymap for ${key} not found`);
-				return defaultReturn;
-			}
-			let [fn, repeat] = keymap;
-			let res = await Promise.resolve(fn());
-			if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
-			if (res == null) return defaultReturn;
-			return res;
-		}
-		/**
-		* Register global <Plug>(coc-${key}) key mapping.
-		*/
-		registerKeymap(modes, name, fn, opts = {}) {
-			if (!name) throw new Error(`Invalid key ${name} of registerKeymap`);
-			let key = `coc-${name}`;
-			if (this.keymaps.has(key)) throw new Error(`keymap: "${name}" already exists.`);
-			const lhs = `<Plug>(${key})`;
-			opts = Object.assign({
-				sync: true,
-				cancel: true,
-				silent: true,
-				repeat: false
-			}, opts);
-			let { nvim } = this;
-			this.keymaps.set(key, [fn, !!opts.repeat]);
-			let method = opts.sync ? "request" : "notify";
-			for (let mode of modes) if (mode == "i") {
-				const cancel = opts.cancel ? 1 : 0;
-				nvim.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${key}', ${cancel})`, {
-					expr: true,
-					noremap: true,
-					silent: opts.silent
-				});
-			} else nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode, opts.cmd)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
-				noremap: true,
-				silent: opts.silent
-			});
-			return import_main$1.Disposable.create(() => {
-				this.keymaps.delete(key);
-				for (let m of modes) nvim.deleteKeymap(m, lhs);
-			});
-		}
-		registerExprKeymap(mode, lhs, fn, buffer = false, cancel = true) {
-			let bufnr = getBufnr(buffer);
-			let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ""}`;
-			let { nvim } = this;
-			let rhs;
-			if (mode == "i") rhs = `coc#_insert_key('request', '${id}', ${cancel ? "1" : "0"})`;
-			else rhs = `coc#rpc#request('doKeymap', ['${id}'])`;
-			let opts = {
-				noremap: true,
-				silent: true,
-				expr: true,
-				nowait: true
-			};
-			if (buffer !== false) nvim.call("coc#compat#buf_add_keymap", [
-				bufnr,
-				mode,
-				lhs,
-				rhs,
-				opts
-			], true);
-			else nvim.setKeymap(mode, lhs, rhs, opts);
-			this.keymaps.set(id, [fn, false]);
-			return import_main$1.Disposable.create(() => {
-				this.keymaps.delete(id);
-				if (buffer) nvim.call("coc#compat#buf_del_keymap", [
-					bufnr,
-					mode,
-					lhs
-				], true);
-				else nvim.deleteKeymap(mode, lhs);
-			});
-		}
-		registerLocalKeymap(bufnr, mode, lhs, fn, option) {
-			let { nvim } = this;
-			let buffer = nvim.createBuffer(bufnr);
-			let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`;
-			const opts = toKeymapOption(option);
-			this.keymaps.set(id, [fn, !!opts.repeat]);
-			const method = opts.sync ? "request" : "notify";
-			const opt = {
-				noremap: true,
-				silent: opts.silent !== false
-			};
-			if (isVim && opts.special) opt.special = true;
-			if (mode == "i") {
-				const cancel = opts.cancel ? 1 : 0;
-				opt.expr = true;
-				buffer.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${id}', ${cancel})`, opt);
-			} else {
-				opt.nowait = true;
-				const modify = getKeymapModifier(mode, opts.cmd);
-				buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, opt);
-			}
-			return import_main$1.Disposable.create(() => {
-				this.keymaps.delete(id);
-				buffer.deleteKeymap(mode, lhs);
-			});
-		}
-	};
-}));
-//#endregion
-//#region src/core/watchers.ts
-var logger$16, Watchers;
-var init_watchers = __esmMin((() => {
-	init_events();
-	init_logger$2();
-	init_util$7();
-	init_protocol();
-	init_string$1();
-	logger$16 = createLogger$1("watchers");
-	Watchers = class {
-		nvim;
-		optionCallbacks = /* @__PURE__ */ new Map();
-		globalCallbacks = /* @__PURE__ */ new Map();
-		disposables = [];
-		constructor() {
-			events_default.on("OptionSet", async (changed, oldValue, newValue) => {
-				let cbs = Array.from(this.optionCallbacks.get(changed) ?? []);
-				await Promise.allSettled(cbs.map((cb) => {
-					return (async () => {
-						try {
-							await Promise.resolve(cb(oldValue, newValue));
-						} catch (e) {
-							this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`);
-							logger$16.error(`Error on OptionSet callback:`, e);
-						}
-					})();
-				}));
-			}, null, this.disposables);
-			events_default.on("GlobalChange", async (changed, oldValue, newValue) => {
-				let cbs = Array.from(this.globalCallbacks.get(changed) ?? []);
-				await Promise.allSettled(cbs.map((cb) => {
-					return (async () => {
-						try {
-							await Promise.resolve(cb(oldValue, newValue));
-						} catch (e) {
-							this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`);
-							logger$16.error(`Error on GlobalChange callback:`, e);
-						}
-					})();
-				}));
-			}, null, this.disposables);
-		}
-		get options() {
-			return Array.from(this.optionCallbacks.keys());
-		}
-		attach(nvim, _env) {
-			this.nvim = nvim;
-		}
-		/**
-		* Watch for option change.
-		*/
-		watchOption(key, callback, disposables) {
-			let cbs = this.optionCallbacks.get(key);
-			if (!cbs) {
-				cbs = /* @__PURE__ */ new Set();
-				this.optionCallbacks.set(key, cbs);
-			}
-			cbs.add(callback);
-			let cmd = `autocmd! coc_dynamic_option OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`;
-			this.nvim.command(cmd, true);
-			let disposable = import_main$1.Disposable.create(() => {
-				let cbs = this.optionCallbacks.get(key);
-				cbs.delete(callback);
-				if (cbs.size === 0) this.nvim.command(`autocmd! coc_dynamic_option OptionSet ${key}`, true);
-			});
-			if (disposables) disposables.push(disposable);
-			return disposable;
-		}
-		/**
-		* Watch global variable, works on neovim only.
-		*/
-		watchGlobal(key, callback, disposables) {
-			let { nvim } = this;
-			let cbs = this.globalCallbacks.get(key);
-			if (!cbs) {
-				cbs = /* @__PURE__ */ new Set();
-				this.globalCallbacks.set(key, cbs);
-			}
-			cbs.add(callback);
-			nvim.call("coc#_watch", key, true);
-			let disposable = import_main$1.Disposable.create(() => {
-				let cbs = this.globalCallbacks.get(key);
-				cbs.delete(callback);
-				if (cbs.size === 0) nvim.call("coc#_unwatch", key, true);
-			});
-			if (disposables) disposables.push(disposable);
-			return disposable;
-		}
-		dispose() {
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/model/bufferSync.ts
-var BufferSync;
-var init_bufferSync = __esmMin((() => {
-	init_events();
-	init_util$7();
-	init_is();
-	BufferSync = class {
-		_create;
-		disposables = [];
-		itemsMap = /* @__PURE__ */ new Map();
-		constructor(_create, documents) {
-			this._create = _create;
-			let { disposables } = this;
-			for (let doc of documents.attached()) this.create(doc);
-			documents.onDidOpenTextDocument((e) => {
-				this.create(documents.getDocument(e.bufnr));
-			}, null, disposables);
-			documents.onDidChangeDocument((e) => {
-				this.onChange(e);
-			}, null, disposables);
-			documents.onDidCloseDocument((e) => {
-				this.delete(e.bufnr);
-			}, null, disposables);
-			events_default.on("LinesChanged", this.onTextChange, this, disposables);
-			events_default.on("WindowVisible", this.onVisible, this, disposables);
-		}
-		onTextChange(bufnr) {
-			let o = this.itemsMap.get(bufnr);
-			if (o && func(o.item.onTextChange)) o.item.onTextChange();
-		}
-		onVisible(ev) {
-			let o = this.itemsMap.get(ev.bufnr);
-			if (o && typeof o.item.onVisible === "function") o.item.onVisible(ev.winid, ev.region);
-		}
-		get items() {
-			return Array.from(this.itemsMap.values()).map((x) => x.item);
-		}
-		getItem(bufnr) {
-			if (bufnr == null) return void 0;
-			if (typeof bufnr === "number") return this.itemsMap.get(bufnr)?.item;
-			let o = Array.from(this.itemsMap.values()).find((v) => {
-				return v.uri == bufnr;
-			});
-			return o ? o.item : void 0;
-		}
-		create(doc) {
-			let o = this.itemsMap.get(doc.bufnr);
-			if (o) o.item.dispose();
-			let item = this._create(doc);
-			if (item) this.itemsMap.set(doc.bufnr, {
-				uri: doc.uri,
-				item
-			});
-		}
-		onChange(e) {
-			let o = this.itemsMap.get(e.bufnr);
-			if (o && typeof o.item.onChange == "function") o.item.onChange(e);
-		}
-		delete(bufnr) {
-			let o = this.itemsMap.get(bufnr);
-			if (o) {
-				o.item.dispose();
-				this.itemsMap.delete(bufnr);
-			}
-		}
-		reset() {
-			for (let o of this.itemsMap.values()) o.item.dispose();
-			this.itemsMap.clear();
-		}
-		dispose() {
-			disposeAll(this.disposables);
-			for (let o of this.itemsMap.values()) o.item.dispose();
-			this._create = void 0;
-			this.itemsMap.clear();
-		}
-	};
-}));
-//#endregion
-//#region src/model/db.ts
-var DB;
-var init_db = __esmMin((() => {
-	init_node();
-	init_object();
-	DB = class {
-		filepath;
-		constructor(filepath) {
-			this.filepath = filepath;
-		}
-		/**
-		* Get data by key.
-		* @param {string} key unique key allows dot notation.
-		* @returns {any}
-		*/
-		fetch(key) {
-			let obj = this.load();
-			if (!key) return obj;
-			let parts = key.split(".");
-			for (let part of parts) {
-				if (typeof obj[part] === "undefined") return;
-				obj = obj[part];
-			}
-			return obj;
-		}
-		/**
-		* Check if key exists
-		* @param {string} key unique key allows dot notation.
-		*/
-		exists(key) {
-			let obj = this.load();
-			let parts = key.split(".");
-			for (let part of parts) {
-				if (typeof obj[part] === "undefined") return false;
-				obj = obj[part];
-			}
-			return true;
-		}
-		/**
-		* Delete data by key
-		* @param {string} key unique key allows dot notation.
-		*/
-		delete(key) {
-			let obj = this.load();
-			let origin = obj;
-			let parts = key.split(".");
-			let len = parts.length;
-			for (let i = 0; i < len; i++) {
-				if (typeof obj[parts[i]] === "undefined") break;
-				if (i == len - 1) {
-					delete obj[parts[i]];
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
-					break;
-				}
-				obj = obj[parts[i]];
-			}
-		}
-		/**
-		* Save data with key
-		* @param {string} key unique string that allows dot notation.
-		* @param {number|null|boolean|string|{[index} data saved data.
-		*/
-		push(key, data) {
-			let origin = toObject(this.load());
-			let obj = origin;
-			let parts = key.split(".");
-			let len = parts.length;
-			for (let i = 0; i < len; i++) {
-				let key = parts[i];
-				if (i == len - 1) {
-					obj[key] = data;
-					let dir = path$5.dirname(this.filepath);
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
-					break;
-				}
-				if (typeof obj[key] == "undefined") {
-					obj[key] = {};
-					obj = obj[key];
-				} else obj = obj[key];
-			}
-		}
-		load() {
-			let dir = path$5.dirname(this.filepath);
-			if (!fs$5.existsSync(dir)) {
-				fs$5.mkdirSync(dir, { recursive: true });
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
-				return {};
-			}
-			try {
-				let content = fs$5.readFileSync(this.filepath, "utf8");
-				return JSON.parse(content.trim());
-			} catch (e) {
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
-				return {};
-			}
-		}
-		/**
-		* Empty db file.
-		*/
-		clear() {
-			if (!fs$5.existsSync(this.filepath)) return;
-			fs$5.writeFileSync(this.filepath, "{}", "utf8");
-		}
-		/**
-		* Remove db file.
-		*/
-		destroy() {
-			if (fs$5.existsSync(this.filepath)) fs$5.unlinkSync(this.filepath);
-		}
-	};
-}));
-//#endregion
-//#region src/model/tabs.ts
-var Tabs;
-var init_tabs = __esmMin((() => {
-	init_esm();
-	init_protocol();
-	Tabs = class {
-		editors;
-		open = /* @__PURE__ */ new Set();
-		_onOpen;
-		_onClose;
-		constructor(editors) {
-			this.editors = editors;
-			this._onOpen = new import_main$1.Emitter();
-			this._onClose = new import_main$1.Emitter();
-			this.editors.onDidChangeVisibleTextEditors((editors) => {
-				let uris = Array.from(this.open);
-				let seen = /* @__PURE__ */ new Set();
-				let opened = /* @__PURE__ */ new Set();
-				let closed = /* @__PURE__ */ new Set();
-				for (let editor of editors) {
-					if (!seen.has(editor.uri) && !uris.includes(editor.uri)) {
-						this.open.add(editor.uri);
-						opened.add(URI.parse(editor.uri));
-					}
-					seen.add(editor.uri);
-				}
-				for (let uri of uris) if (!seen.has(uri)) {
-					this.open.delete(uri);
-					closed.add(URI.parse(uri));
-				}
-				if (opened.size > 0) this._onOpen.fire(opened);
-				if (closed.size > 0) this._onClose.fire(closed);
-			});
-		}
-		attach() {
-			for (let editor of this.editors.visibleTextEditors) this.open.add(editor.uri);
-		}
-		get onClose() {
-			return this._onClose.event;
-		}
-		get onOpen() {
-			return this._onOpen.event;
-		}
-		isActive(document) {
-			const uri = document instanceof URI ? document : document.uri;
-			return this.editors.activeTextEditor?.document.uri === uri.toString();
-		}
-		isVisible(document) {
-			const uri = document instanceof URI ? document : document.uri;
-			return this.open.has(uri.toString());
-		}
-		getTabResources() {
-			const result = /* @__PURE__ */ new Set();
-			let seen = /* @__PURE__ */ new Set();
-			for (let editor of this.editors.visibleTextEditors) if (!seen.has(editor.uri)) {
-				result.add(URI.parse(editor.uri));
-				seen.add(editor.uri);
-			}
-			return result;
-		}
-	};
-}));
-//#endregion
-//#region src/model/task.ts
-var Task$1;
-var init_task = __esmMin((() => {
-	init_events();
-	init_util$7();
-	init_protocol();
-	Task$1 = class {
-		nvim;
-		id;
-		disposables = [];
-		_onExit = new import_main$1.Emitter();
-		_onStderr = new import_main$1.Emitter();
-		_onStdout = new import_main$1.Emitter();
-		onExit = this._onExit.event;
-		onStdout = this._onStdout.event;
-		onStderr = this._onStderr.event;
-		/**
-		* @param {Neovim} nvim
-		* @param {string} id unique id
-		*/
-		constructor(nvim, id) {
-			this.nvim = nvim;
-			this.id = id;
-			events_default.on("TaskExit", (id, code) => {
-				if (id == this.id) this._onExit.fire(code);
-			}, null, this.disposables);
-			events_default.on("TaskStderr", (id, lines) => {
-				if (id == this.id) this._onStderr.fire(lines);
-			}, null, this.disposables);
-			events_default.on("TaskStdout", (id, lines) => {
-				if (id == this.id) this._onStdout.fire(lines);
-			}, null, this.disposables);
-		}
-		/**
-		* Start task, task will be restarted when already running.
-		* @param {TaskOptions} opts
-		* @returns {Promise<boolean>}
-		*/
-		async start(opts) {
-			let { nvim } = this;
-			return await nvim.call("coc#task#start", [this.id, opts]);
-		}
-		/**
-		* Stop task by SIGTERM or SIGKILL
-		*/
-		async stop() {
-			let { nvim } = this;
-			await nvim.call("coc#task#stop", [this.id]);
-		}
-		/**
-		* Check if the task is running.
-		*/
-		get running() {
-			let { nvim } = this;
-			return nvim.call("coc#task#running", [this.id]);
-		}
-		/**
-		* Stop task and dispose all events.
-		*/
-		dispose() {
-			let { nvim } = this;
-			nvim.call("coc#task#stop", [this.id], true);
-			this._onStdout.dispose();
-			this._onStderr.dispose();
-			this._onExit.dispose();
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/workspace.ts
-var logger$15, methods, Workspace, workspace_default;
-var init_workspace$1 = __esmMin((() => {
-	init_esm();
-	init_configuration$2();
-	init_shape();
-	init_autocmds();
-	init_channels();
-	init_contentProvider();
-	init_documents();
-	init_editors();
-	init_fileSystemWatcher();
-	init_files();
-	init_funcs();
-	init_keymaps();
-	init_ui$2();
-	init_watchers();
-	init_workspaceFolder();
-	init_events();
-	init_logger$2();
-	init_bufferSync();
-	init_db();
-	init_fuzzyMatch();
-	init_mru();
-	init_status();
-	init_strwidth();
-	init_tabs();
-	init_task();
-	init_util$7();
-	init_constants();
-	init_errors();
-	init_fs();
-	init_node();
-	init_object();
-	init_processes();
-	init_protocol();
-	logger$15 = createLogger$1("workspace");
-	methods = [
-		"showMessage",
-		"runTerminalCommand",
-		"openTerminal",
-		"showQuickpick",
-		"menuPick",
-		"openLocalConfig",
-		"showPrompt",
-		"createStatusBarItem",
-		"createOutputChannel",
-		"showOutputChannel",
-		"requestInput",
-		"echoLines",
-		"getCursorPosition",
-		"moveTo",
-		"getOffset",
-		"getSelectedRange",
-		"selectRange",
-		"createTerminal"
-	];
-	Workspace = class {
-		onDidChangeConfiguration;
-		onDidOpenTextDocument;
-		onDidCloseTextDocument;
-		onDidChangeTextDocument;
-		onDidSaveTextDocument;
-		onWillSaveTextDocument;
-		onDidChangeWorkspaceFolders;
-		onDidCreateFiles;
-		onDidRenameFiles;
-		onDidDeleteFiles;
-		onWillCreateFiles;
-		onWillRenameFiles;
-		onWillDeleteFiles;
-		nvim;
-		configurations;
-		workspaceFolderControl;
-		documentsManager;
-		contentProvider;
-		autocmds;
-		watchers;
-		keymaps;
-		files;
-		fileSystemWatchers;
-		editors;
-		tabs;
-		isTrusted = true;
-		statusLine = new StatusLine();
-		_onDidRuntimePathChange = new import_main$1.Emitter();
-		onDidRuntimePathChange = this._onDidRuntimePathChange.event;
-		fuzzyExports;
-		strWidth;
-		_env;
-		constructor() {
-			initFuzzyWasm().then((api) => {
-				this.fuzzyExports = api;
-			}, onUnexpectedError);
-			StrWidth.create().then((strWidth) => {
-				this.strWidth = strWidth;
-			}, onUnexpectedError);
-			events_default.on("VimResized", (columns, lines) => {
-				Object.assign(toObject(this.env), {
-					columns,
-					lines
-				});
-			});
-			Object.defineProperty(this.statusLine, "nvim", { get: () => this.nvim });
-			this.configurations = new Configurations(userConfigFile, new ConfigurationProxy(this));
-			this.workspaceFolderControl = new WorkspaceFolderController(this.configurations);
-			let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl);
-			this.contentProvider = new ContentProvider(documents);
-			this.watchers = new Watchers();
-			this.autocmds = new Autocmds();
-			this.keymaps = new Keymaps();
-			this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps);
-			this.editors = new Editors(documents);
-			this.tabs = new Tabs(this.editors);
-			this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders;
-			this.onDidChangeConfiguration = this.configurations.onDidChange;
-			this.onDidOpenTextDocument = documents.onDidOpenTextDocument;
-			this.onDidChangeTextDocument = documents.onDidChangeDocument;
-			this.onDidCloseTextDocument = documents.onDidCloseDocument;
-			this.onDidSaveTextDocument = documents.onDidSaveTextDocument;
-			this.onWillSaveTextDocument = documents.onWillSaveTextDocument;
-			this.onDidCreateFiles = this.files.onDidCreateFiles;
-			this.onDidRenameFiles = this.files.onDidRenameFiles;
-			this.onDidDeleteFiles = this.files.onDidDeleteFiles;
-			this.onWillCreateFiles = this.files.onWillCreateFiles;
-			this.onWillRenameFiles = this.files.onWillRenameFiles;
-			this.onWillDeleteFiles = this.files.onWillDeleteFiles;
-			const config = this.getWatchConfig();
-			this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config);
-		}
-		get initialConfiguration() {
-			return this.configurations.initialConfiguration;
-		}
-		getWatchConfig() {
-			let { initialConfiguration } = this;
-			let watchConfig = defaultValue(initialConfiguration.get("fileSystemWatch"), {});
-			let watchmanPath = watchConfig.watchmanPath;
-			if (!watchmanPath) watchmanPath = initialConfiguration.inspect("coc.preferences.watchmanPath").globalValue;
-			if (typeof watchmanPath === "string") watchmanPath = this.expand(watchmanPath);
-			let ignoredFolders = defaultValue(watchConfig.ignoredFolders, [
-				"${tmpdir}",
-				"/private/tmp",
-				"/"
-			]);
-			let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false);
-			return {
-				watchmanPath,
-				enable,
-				ignoredFolders: ignoredFolders.map((p) => this.expand(p))
-			};
-		}
-		async init(window) {
-			let { nvim } = this;
-			for (let method of methods) Object.defineProperty(this, method, { get: () => {
-				return (...args) => {
-					let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-					logger$15.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
-					return window[method].apply(window, args);
-				};
-			} });
-			for (let name of ["onDidOpenTerminal", "onDidCloseTerminal"]) Object.defineProperty(this, name, { get: () => {
-				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-				logger$15.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
-				return window[name];
-			} });
-			let env = this._env = await nvim.call("coc#util#vim_info");
-			this.checkVersion(38);
-			this.configurations.updateMemoryConfig(this._env.config);
-			this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders);
-			this.workspaceFolderControl.onDidChangeWorkspaceFolders(() => {
-				nvim.setVar("WorkspaceFolders", this.folderPaths, true);
-			});
-			this.files.attach(nvim, env, window);
-			this.contentProvider.attach(nvim);
-			this.registerTextDocumentContentProvider("output", channels_default.getProvider(nvim));
-			this.keymaps.attach(nvim);
-			this.autocmds.attach(nvim);
-			this.watchers.attach(nvim, env);
-			this.watchers.watchOption("runtimepath", async (oldValue, newValue) => {
-				let oldList = oldValue.split(",");
-				let paths = newValue.split(",").filter((x) => !oldList.includes(x));
-				if (paths.length > 0) {
-					let filepaths = [];
-					await Promise.allSettled(paths.map((filepath) => {
-						return new Promise((resolve, reject) => {
-							let converted = this.fixWin32unixFilepath(filepath);
-							getFileType(converted).then((t) => {
-								if (t == 2) filepaths.push(converted);
-								resolve(void 0);
-							}, reject);
-						});
-					}));
-					if (filepaths.length > 0) {
-						this._onDidRuntimePathChange.fire(filepaths);
-						this.env.runtimepath = [...oldList, ...filepaths].join(",");
-					}
-				}
-			});
-			await this.documentsManager.attach(this.nvim, this._env);
-			await this.editors.attach(nvim);
-			this.tabs.attach();
-			let channel = channels_default.create("watchman", nvim);
-			this.fileSystemWatchers.attach(channel);
-			if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow);
-		}
-		checkVersion(version) {
-			if (this._env.apiversion != version) {
-				this.nvim.echoError(`API version ${this._env.apiversion} is not 38, building coc.nvim by 'npm ci'.`);
-				this.nvim.call("coc#ui#fix", [], true);
-			}
-		}
-		getDisplayWidth(text, cache = false) {
-			return this.strWidth.getWidth(text, cache);
-		}
-		get version() {
-			return VERSION;
-		}
-		get cwd() {
-			return this.documentsManager.cwd;
-		}
-		get env() {
-			return this._env;
-		}
-		get root() {
-			return this.documentsManager.root || this.cwd;
-		}
-		get rootPath() {
-			return this.root;
-		}
-		get bufnr() {
-			return this.documentsManager.bufnr;
-		}
-		/**
-		* @deprecated
-		*/
-		get insertMode() {
-			return events_default.insertMode;
-		}
-		/**
-		* @deprecated always true
-		*/
-		get floatSupported() {
-			return true;
-		}
-		/**
-		* @deprecated
-		*/
-		get uri() {
-			return this.documentsManager.uri;
-		}
-		/**
-		* @deprecated
-		*/
-		get workspaceFolder() {
-			return this.workspaceFolders[0];
-		}
-		get textDocuments() {
-			return this.documentsManager.textDocuments;
-		}
-		get documents() {
-			return this.documentsManager.documents;
-		}
-		get document() {
-			return this.documentsManager.document;
-		}
-		get workspaceFolders() {
-			return this.workspaceFolderControl.workspaceFolders;
-		}
-		fixWin32unixFilepath(filepath) {
-			return this.documentsManager.fixUnixPrefix(filepath);
-		}
-		checkPatterns(patterns, folders) {
-			return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns);
-		}
-		get folderPaths() {
-			return this.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
-		}
-		get channelNames() {
-			return channels_default.names;
-		}
-		get pluginRoot() {
-			return pluginRoot;
-		}
-		get isVim() {
-			return this._env.isVim;
-		}
-		get isNvim() {
-			return !this._env.isVim;
-		}
-		/**
-		* Kept for backward compatible
-		*/
-		get completeOpt() {
-			return "";
-		}
-		get filetypes() {
-			return this.documentsManager.filetypes;
-		}
-		get languageIds() {
-			return this.documentsManager.languageIds;
-		}
-		/**
-		* @deprecated Use nvim.createNamespace() instead.
-		*/
-		createNameSpace(name) {
-			return createNameSpace(name);
-		}
-		has(feature) {
-			return has(this.env, feature);
-		}
-		/**
-		* Register autocmd on vim.
-		*/
-		registerAutocmd(autocmd, disposables) {
-			let opts = Object.assign({}, autocmd);
-			Error.captureStackTrace(opts);
-			let disposable = this.autocmds.registerAutocmd(opts);
-			if (disposables) disposables.push(disposable);
-			return disposable;
-		}
-		/**
-		* Watch for option change.
-		*/
-		watchOption(key, callback, disposables) {
-			return this.watchers.watchOption(key, callback, disposables);
-		}
-		/**
-		* Watch global variable, works on neovim only.
-		*/
-		watchGlobal(key, callback, disposables) {
-			let cb = callback ?? function() {};
-			return this.watchers.watchGlobal(key, cb, disposables);
-		}
-		/**
-		* Check if selector match document.
-		*/
-		match(selector, document) {
-			return score$1(selector, document.uri, document.languageId);
-		}
-		/**
-		* Create a FileSystemWatcher instance, doesn't fail when watchman not found.
-		*/
-		createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete) {
-			return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete);
-		}
-		createFuzzyMatch() {
-			return new FuzzyMatch(this.fuzzyExports);
-		}
-		getWatchmanPath() {
-			return getWatchmanPath(this.configurations);
-		}
-		/**
-		* Get configuration by section and optional resource uri.
-		*/
-		getConfiguration(section, scope) {
-			return this.configurations.getConfiguration(section, scope);
-		}
-		resolveJSONSchema(uri) {
-			return this.configurations.getJSONSchema(uri);
-		}
-		/**
-		* Get created document by uri or bufnr.
-		*/
-		getDocument(uri) {
-			return this.documentsManager.getDocument(uri);
-		}
-		hasDocument(uri, version) {
-			let doc = this.documentsManager.getDocument(uri);
-			return doc && (version != null ? doc.version == version : true);
-		}
-		getUri(bufnr, defaultValue = "") {
-			let doc = this.documentsManager.getDocument(bufnr);
-			return doc ? doc.uri : defaultValue;
-		}
-		isAttached(bufnr) {
-			let doc = this.documentsManager.getDocument(bufnr);
-			return doc != null && doc.attached;
-		}
-		/**
-		* Get attached document by uri or bufnr.
-		* Throw error when document doesn't exist or isn't attached.
-		*/
-		getAttachedDocument(uri) {
-			let doc = this.getDocument(uri);
-			if (!doc) throw new Error(`Buffer ${uri} not exists.`);
-			if (!doc.attached) throw new Error(`Buffer ${uri} not attached, ${doc.notAttachReason}`);
-			return doc;
-		}
-		/**
-		* Convert location to quickfix item.
-		*/
-		getQuickfixItem(loc, text, type = "", module) {
-			return this.documentsManager.getQuickfixItem(loc, text, type, module);
-		}
-		/**
-		* Create persistence Mru instance.
-		*/
-		createMru(name) {
-			return new Mru(name);
-		}
-		async getQuickfixList(locations) {
-			return this.documentsManager.getQuickfixList(locations);
-		}
-		/**
-		* Populate locations to UI.
-		*/
-		async showLocations(locations) {
-			await this.documentsManager.showLocations(locations);
-		}
-		/**
-		* Get content of line by uri and line.
-		*/
-		getLine(uri, line) {
-			return this.documentsManager.getLine(uri, line);
-		}
-		/**
-		* Get WorkspaceFolder of uri
-		*/
-		getWorkspaceFolder(uri) {
-			return this.workspaceFolderControl.getWorkspaceFolder(typeof uri === "string" ? URI.parse(uri) : uri);
-		}
-		/**
-		* Get content from buffer or file by uri.
-		*/
-		readFile(uri) {
-			return this.documentsManager.readFile(uri);
-		}
-		async getCurrentState() {
-			let document = await this.document;
-			let position = await getCursorPosition(this.nvim);
-			return {
-				document: document.textDocument,
-				position
-			};
-		}
-		async getFormatOptions(uri) {
-			return this.documentsManager.getFormatOptions(uri);
-		}
-		/**
-		* Resolve module from yarn or npm.
-		*/
-		resolveModule(name) {
-			return resolveModule(name);
-		}
-		/**
-		* Run nodejs command
-		*/
-		async runCommand(cmd, cwd, timeout) {
-			return runCommand(cmd, { cwd: cwd ?? this.cwd }, timeout);
-		}
-		/**
-		* Expand filepath with `~` and/or environment placeholders
-		*/
-		expand(filepath) {
-			return this.documentsManager.expand(filepath);
-		}
-		async callAsync(method, args) {
-			return await callAsync(this.nvim, method, args);
-		}
-		registerTextDocumentContentProvider(scheme, provider) {
-			return this.contentProvider.registerTextDocumentContentProvider(scheme, provider);
-		}
-		registerKeymap(modes, key, fn, opts = {}) {
-			return this.keymaps.registerKeymap(modes, key, fn, opts);
-		}
-		registerExprKeymap(mode, key, fn, buffer = false, cancel = true) {
-			return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel);
-		}
-		registerLocalKeymap(bufnr, mode, key, fn, notify = false) {
-			if (typeof arguments[0] === "string") {
-				bufnr = this.bufnr;
-				mode = arguments[0];
-				key = arguments[1];
-				fn = arguments[2];
-				notify = arguments[3] ?? false;
-			}
-			return this.keymaps.registerLocalKeymap(bufnr, mode, key, fn, notify);
-		}
-		/**
-		* Create Task instance that runs in vim.
-		*/
-		createTask(id) {
-			return new Task$1(this.nvim, id);
-		}
-		/**
-		* Create DB instance at extension root.
-		*/
-		createDatabase(name) {
-			return new DB(path$5.join(dataHome, name + ".json"));
-		}
-		registerBufferSync(create) {
-			return new BufferSync(create, this.documentsManager);
-		}
-		async attach() {
-			await this.documentsManager.attach(this.nvim, this._env);
-		}
-		jumpTo(uri, position, openCommand) {
-			return this.files.jumpTo(uri, position, openCommand);
-		}
-		/**
-		* Findup for filename or filenames from current filepath or root.
-		*/
-		findUp(filename) {
-			return findUp(this.nvim, this.cwd, filename);
-		}
-		/**
-		* Apply WorkspaceEdit.
-		*/
-		applyEdit(edit) {
-			return this.files.applyEdit(edit);
-		}
-		/**
-		* Create a file in vim and disk
-		*/
-		createFile(filepath, opts = {}) {
-			return this.files.createFile(filepath, opts);
-		}
-		/**
-		* Load uri as document.
-		*/
-		loadFile(uri, cmd) {
-			return this.files.loadResource(uri, cmd);
-		}
-		/**
-		* Load the files that not loaded
-		*/
-		async loadFiles(uris) {
-			return this.files.loadResources(uris);
-		}
-		/**
-		* Rename file in vim and disk
-		*/
-		async renameFile(oldPath, newPath, opts = {}) {
-			await this.files.renameFile(oldPath, newPath, opts);
-		}
-		/**
-		* Delete file from vim and disk.
-		*/
-		async deleteFile(filepath, opts = {}) {
-			await this.files.deleteFile(filepath, opts);
-		}
-		/**
-		* Open resource by uri
-		*/
-		async openResource(uri) {
-			await this.files.openResource(uri);
-		}
-		async computeWordRanges(uri, range, token) {
-			let doc = this.getDocument(uri);
-			if (!doc) return null;
-			return await doc.chars.computeWordRanges(doc.textDocument.lines, range, token);
-		}
-		openTextDocument(uri) {
-			return this.files.openTextDocument(uri);
-		}
-		getRelativePath(pathOrUri, includeWorkspace) {
-			return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace);
-		}
-		asRelativePath(pathOrUri, includeWorkspace) {
-			return this.getRelativePath(pathOrUri, includeWorkspace);
-		}
-		async findFiles(include, exclude, maxResults, token) {
-			return this.files.findFiles(include, exclude, maxResults, token);
-		}
-		detach() {
-			this.documentsManager.detach();
-		}
-		reset() {
-			this.statusLine.reset();
-			this.configurations.reset();
-			this.workspaceFolderControl.reset();
-			this.documentsManager.reset();
-		}
-		dispose() {
-			channels_default.dispose();
-			this.autocmds.dispose();
-			this.statusLine.dispose();
-			this.watchers.dispose();
-			this.contentProvider.dispose();
-			this.documentsManager.dispose();
-			this.configurations.dispose();
-		}
-	};
-	workspace_default = new Workspace();
-}));
-//#endregion
-//#region src/tree/filter.ts
-var sessionKey, HistoryInput, Filter;
-var init_filter = __esmMin((() => {
-	init_events();
-	init_protocol();
-	init_util$7();
-	sessionKey = "filter";
-	HistoryInput = class {
-		history = [];
-		next(input) {
-			let idx = this.history.indexOf(input);
-			return this.history[idx + 1] ?? this.history[0];
-		}
-		previous(input) {
-			let idx = this.history.indexOf(input);
-			return this.history[idx - 1] ?? this.history[this.history.length - 1];
-		}
-		add(input) {
-			let idx = this.history.indexOf(input);
-			if (idx !== -1) this.history.splice(idx, 1);
-			this.history.unshift(input);
-		}
-		toJSON() {
-			return `[${this.history.join(",")}]`;
-		}
-	};
-	Filter = class {
-		nvim;
-		_activated = false;
-		text;
-		history = new HistoryInput();
-		disposables = [];
-		_onDidUpdate = new import_main$1.Emitter();
-		_onDidExit = new import_main$1.Emitter();
-		_onDidKeyPress = new import_main$1.Emitter();
-		onDidKeyPress = this._onDidKeyPress.event;
-		onDidUpdate = this._onDidUpdate.event;
-		onDidExit = this._onDidExit.event;
-		constructor(nvim, keys) {
-			this.nvim = nvim;
-			this.text = "";
-			events_default.on("InputChar", (session, character) => {
-				if (session !== "filter" || !this._activated) return;
-				if (!keys.includes(character)) {
-					if (character.length == 1) {
-						this.text = this.text + character;
-						this._onDidUpdate.fire(this.text);
-						return;
-					}
-					if (character == "<bs>" || character == "<C-h>") {
-						this.text = this.text.slice(0, -1);
-						this._onDidUpdate.fire(this.text);
-						return;
-					}
-					if (character == "<C-u>") {
-						this.text = "";
-						this._onDidUpdate.fire(this.text);
-						return;
-					}
-					if (character == "<C-n>") {
-						let text = this.history.next(this.text);
-						if (text) {
-							this.text = text;
-							this._onDidUpdate.fire(this.text);
-						}
-						return;
-					}
-					if (character == "<C-p>") {
-						let text = this.history.previous(this.text);
-						if (text) {
-							this.text = text;
-							this._onDidUpdate.fire(this.text);
-						}
-					}
-					if (character == "<esc>" || character == "<C-o>") {
-						this.deactivate();
-						return;
-					}
-				}
-				this._onDidKeyPress.fire(character);
-			}, null, this.disposables);
-		}
-		active() {
-			this._activated = true;
-			this.text = "";
-			this.nvim.call("coc#prompt#start_prompt", [sessionKey], true);
-		}
-		deactivate(node) {
-			if (!this._activated) return;
-			this.nvim.call("coc#prompt#stop_prompt", [sessionKey], true);
-			this._activated = false;
-			let { text } = this;
-			this.text = "";
-			this._onDidExit.fire(node);
-			this.history.add(text);
-		}
-		get activated() {
-			return this._activated;
-		}
-		dispose() {
-			this.deactivate();
-			this._onDidKeyPress.dispose();
-			this._onDidUpdate.dispose();
-			this._onDidExit.dispose();
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/tree/TreeView.ts
-var logger$14, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
-var init_TreeView = __esmMin((() => {
-	init_main$2();
-	init_commands$2();
-	init_events();
-	init_logger$2();
-	init_fuzzyMatch();
-	init_util$7();
-	init_array();
-	init_filter$1();
-	init_mutex();
-	init_node();
-	init_object();
-	init_protocol();
-	init_string$1();
-	init_window();
-	init_workspace$1();
-	init_filter();
-	init_TreeItem();
-	logger$14 = createLogger$1("BasicTreeView");
-	retryTimeout = getConditionValue(500, 10);
-	maxRetry = getConditionValue(5, 1);
-	highlightNamespace = "tree";
-	signOffset = 3e3;
-	globalId = 1;
-	BasicTreeView = class {
-		viewId;
-		opts;
-		bufnr;
-		bufname;
-		winid;
-		config;
-		keys;
-		_targetBufnr;
-		_targetWinId;
-		_targetTabId;
-		_selection = [];
-		_keymapDefs = [];
-		_onDispose = new import_main$1.Emitter();
-		_onDidRefrash = new import_main$1.Emitter();
-		_onDidExpandElement = new import_main$1.Emitter();
-		_onDidCollapseElement = new import_main$1.Emitter();
-		_onDidChangeSelection = new import_main$1.Emitter();
-		_onDidChangeVisibility = new import_main$1.Emitter();
-		_onDidFilterStateChange = new import_main$1.Emitter();
-		_onDidCursorMoved = new import_main$1.Emitter();
-		onDidRefrash = this._onDidRefrash.event;
-		onDispose = this._onDispose.event;
-		onDidExpandElement = this._onDidExpandElement.event;
-		onDidCollapseElement = this._onDidCollapseElement.event;
-		onDidChangeSelection = this._onDidChangeSelection.event;
-		onDidChangeVisibility = this._onDidChangeVisibility.event;
-		onDidFilterStateChange = this._onDidFilterStateChange.event;
-		onDidCursorMoved = this._onDidCursorMoved.event;
-		message;
-		title;
-		description;
-		retryTimers = 0;
-		renderedItems = [];
-		provider;
-		nodesMap = /* @__PURE__ */ new Map();
-		mutex = new Mutex();
-		timer;
-		disposables = [];
-		tooltipFactory;
-		resolveTokenSource;
-		lineState = {
-			titleCount: 0,
-			messageCount: 0
-		};
-		filter;
-		filterText;
-		itemsToFilter;
-		leafIndent;
-		winfixwidth;
-		autoWidth;
-		constructor(viewId, opts) {
-			this.viewId = viewId;
-			this.opts = opts;
-			this.loadConfiguration();
-			workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
-			if (opts.enableFilter) this.filter = new Filter(this.nvim, [
-				this.keys.selectNext,
-				this.keys.selectPrevious,
-				this.keys.invoke
-			]);
-			let id = globalId;
-			globalId = globalId + 1;
-			this.bufname = `CocTree${id}`;
-			this.tooltipFactory = window_default.createFloatFactory({ modes: ["n"] });
-			this.provider = opts.treeDataProvider;
-			this.leafIndent = opts.disableLeafIndent !== true;
-			this.winfixwidth = opts.winfixwidth !== false;
-			this.autoWidth = opts.autoWidth === true;
-			let message;
-			Object.defineProperty(this, "message", {
-				set: (msg) => {
-					message = msg ? msg.replace(/\r?\n/g, " ") : void 0;
-					this.updateHeadLines();
-				},
-				get: () => {
-					return message;
-				}
-			});
-			let title = viewId.replace(/\r?\n/g, " ");
-			Object.defineProperty(this, "title", {
-				set: (newTitle) => {
-					title = newTitle ? newTitle.replace(/\r?\n/g, " ") : void 0;
-					this.updateHeadLines();
-				},
-				get: () => {
-					return title;
-				}
-			});
-			let description;
-			Object.defineProperty(this, "description", {
-				set: (desc) => {
-					description = desc ? desc.replace(/\r?\n/g, " ") : void 0;
-					this.updateHeadLines();
-				},
-				get: () => {
-					return description;
-				}
-			});
-			let filterText;
-			Object.defineProperty(this, "filterText", {
-				set: (text) => {
-					let { titleCount, messageCount } = this.lineState;
-					let start = titleCount + messageCount;
-					if (text != null) {
-						let highlights = [{
-							lnum: start,
-							colStart: byteLength(text),
-							colEnd: byteLength(text) + 1,
-							hlGroup: "Cursor"
-						}];
-						this.renderedItems = [];
-						this.updateUI([text + " "], highlights, start, -1, true);
-						this.doFilter(text);
-					} else if (filterText != null) this.updateUI([], [], start, start + 1);
-					filterText = text;
-				},
-				get: () => {
-					return filterText;
-				}
-			});
-			if (this.provider.onDidChangeTreeData) this.provider.onDidChangeTreeData(this.onDataChange, this, this.disposables);
-			events_default.on("BufUnload", (bufnr) => {
-				if (bufnr != this.bufnr) return;
-				let isVisible = this.winid != null;
-				this.winid = void 0;
-				this.bufnr = void 0;
-				if (isVisible) this._onDidChangeVisibility.fire({ visible: false });
-				this.dispose();
-			}, null, this.disposables);
-			events_default.on("WinClosed", (winid) => {
-				if (this.winid === winid) {
-					this.winid = void 0;
-					this._onDidChangeVisibility.fire({ visible: false });
-				}
-			}, null, this.disposables);
-			events_default.on("BufWinLeave", (bufnr, winid) => {
-				if (bufnr == this.bufnr && winid == this.winid) {
-					this.winid = void 0;
-					this._onDidChangeVisibility.fire({ visible: false });
-				}
-			}, null, this.disposables);
-			window_default.onDidTabClose((id) => {
-				if (this._targetTabId === id) this.dispose();
-			}, null, this.disposables);
-			events_default.on("CursorHold", async (bufnr, cursor) => {
-				if (bufnr != this.bufnr) return;
-				await this.onHover(cursor[0]);
-			}, null, this.disposables);
-			events_default.on(["CursorMoved", "BufEnter"], () => {
-				this.cancelResolve();
-			}, null, this.disposables);
-			let debounced = debounce((bufnr, cursor) => {
-				if (bufnr !== this.bufnr) return;
-				let element = this.getElementByLnum(cursor[0] - 1);
-				this._onDidCursorMoved.fire(element);
-			}, 30);
-			this.disposables.push(import_main$1.Disposable.create(() => {
-				debounced.clear();
-			}));
-			events_default.on("CursorMoved", debounced, null, this.disposables);
-			events_default.on("WinEnter", (winid) => {
-				if (winid != this.windowId || !this.filtering) return;
-				let buf = this.nvim.createBuffer(this.bufnr);
-				let line = this.startLnum - 1;
-				let len = toText(this.filterText).length;
-				let range = Range.create(line, len, line, len + 1);
-				buf.highlightRanges(highlightNamespace, "Cursor", [range]);
-				this.nvim.call("coc#prompt#start_prompt", [sessionKey], true);
-				this.redraw();
-			}, null, this.disposables);
-			events_default.on("WinLeave", (winid) => {
-				if (winid != this.windowId || !this.filtering) return;
-				let buf = this.nvim.createBuffer(this.bufnr);
-				this.nvim.call("coc#prompt#stop_prompt", [sessionKey], true);
-				buf.clearNamespace(highlightNamespace, this.startLnum - 1, this.startLnum);
-			}, null, this.disposables);
-			this.disposables.push(this._onDidChangeVisibility, this._onDidCursorMoved, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement);
-			if (this.filter) {
-				this.filter.onDidExit((node) => {
-					this.nodesMap.clear();
-					this.filterText = void 0;
-					this.itemsToFilter = void 0;
-					if (node && typeof this.provider.getParent === "function") {
-						this.renderedItems = [];
-						this.reveal(node, { focus: true });
-					} else {
-						this.clearSelection();
-						this.render();
-					}
-					this._onDidFilterStateChange.fire(false);
-				});
-				this.filter.onDidUpdate((text) => {
-					this.filterText = text;
-				});
-				this.filter.onDidKeyPress(async (character) => {
-					let items = toArray(this.renderedItems);
-					let curr = this.selection[0];
-					if (character == "<up>" || character == this.keys.selectPrevious) {
-						let idx = items.findIndex((o) => o.node == curr);
-						let node = items[idx == -1 || idx == 0 ? items.length - 1 : idx - 1]?.node;
-						if (node) this.selectItem(node, true);
-					}
-					if (character == "<down>" || character == this.keys.selectNext) {
-						let idx = items.findIndex((o) => o.node == curr);
-						let node = items[idx == -1 || idx == items.length - 1 ? 0 : idx + 1]?.node;
-						if (node) this.selectItem(node, true);
-					}
-					if (character == "<cr>" || character == this.keys.invoke) {
-						if (!curr) return;
-						await this.invokeCommand(curr);
-						this.filter.deactivate(curr);
-					}
-				});
-			}
-		}
-		get windowId() {
-			return this.winid;
-		}
-		get targetTabId() {
-			return this._targetTabId;
-		}
-		get targetWinId() {
-			return this._targetWinId;
-		}
-		get targetBufnr() {
-			return this._targetBufnr;
-		}
-		get startLnum() {
-			let filterCount = this.filterText == null ? 0 : 1;
-			return this.lineState.messageCount + this.lineState.titleCount + filterCount;
-		}
-		get nvim() {
-			return workspace_default.nvim;
-		}
-		get filtering() {
-			return this.filter != null && this.filter.activated;
-		}
-		loadConfiguration(e) {
-			if (!e || e.affectsConfiguration("tree")) {
-				let config = workspace_default.getConfiguration("tree", null);
-				this.config = {
-					openedIcon: config.get("openedIcon", " "),
-					closedIcon: config.get("closedIcon", " ")
-				};
-				this.keys = {
-					close: config.get("key.close"),
-					invoke: config.get("key.invoke"),
-					toggle: config.get("key.toggle"),
-					actions: config.get("key.actions"),
-					collapseAll: config.get("key.collapseAll"),
-					toggleSelection: config.get("key.toggleSelection"),
-					activeFilter: config.get("key.activeFilter"),
-					selectNext: config.get("key.selectNext"),
-					selectPrevious: config.get("key.selectPrevious")
-				};
-				if (e && this.visible) this.render();
-			}
-		}
-		async doFilter(text) {
-			let items = [];
-			let index = 0;
-			let release = await this.mutex.acquire();
-			try {
-				if (!this.itemsToFilter) {
-					let itemsToFilter = [];
-					const addNodes = async (nodes) => {
-						for (let n of nodes) {
-							itemsToFilter.push(n);
-							let arr = await Promise.resolve(this.provider.getChildren(n));
-							if (!isFalsyOrEmpty(arr)) await addNodes(arr);
-						}
-					};
-					await addNodes(await Promise.resolve(this.provider.getChildren()));
-					this.itemsToFilter = itemsToFilter;
-				}
-				let lowInput = text.toLowerCase();
-				let emptyInput = text.length === 0;
-				for (let n of this.itemsToFilter) {
-					let item = await this.getTreeItem(n);
-					let label = getItemLabel(item);
-					let score = 0;
-					if (!emptyInput) {
-						let res = fuzzyScoreGracefulAggressive(text, lowInput, 0, label, label.toLowerCase(), 0, {
-							boostFullMatch: true,
-							firstMatchCanBeWeak: true
-						});
-						if (!res) continue;
-						score = res[0];
-						item.label = {
-							label,
-							highlights: toSpans(label, res)
-						};
-					} else item.label = {
-						label,
-						highlights: []
-					};
-					item.collapsibleState = 0;
-					let { line, highlights } = this.getRenderedLine(item, index, 0);
-					items.push({
-						level: 0,
-						node: n,
-						line,
-						index,
-						score,
-						highlights
-					});
-					index += 1;
-				}
-				items.sort((a, b) => {
-					if (a.score != b.score) return b.score - a.score;
-					return a.index - b.index;
-				});
-				let lnum = this.startLnum;
-				let highlights = [];
-				let renderedItems = this.renderedItems = items.map((o, idx) => {
-					highlights.push(...o.highlights.map((h) => {
-						h.lnum = lnum + idx;
-						return h;
-					}));
-					delete o.index;
-					delete o.score;
-					delete o.highlights;
-					return o;
-				});
-				this.updateUI(renderedItems.map((o) => o.line), highlights, lnum, -1, true);
-				if (renderedItems.length) this.selectItem(renderedItems[0].node, true);
-				else this.clearSelection();
-				this.redraw();
-				release();
-			} catch (e) {
-				release();
-				logger$14.error(`Error on tree filter:`, e);
-			}
-		}
-		async onHover(lnum) {
-			let element = this.getElementByLnum(lnum - 1);
-			if (!element || !this.nodesMap.has(element)) return;
-			let obj = this.nodesMap.get(element);
-			let item = obj.item;
-			if (!item.tooltip && !obj.resolved) item = await this.resolveItem(element, item);
-			if (!item.tooltip) return;
-			let doc = {
-				filetype: MarkupContent.is(item.tooltip) && item.tooltip.kind == MarkupKind.Markdown ? "markdown" : "txt",
-				content: MarkupContent.is(item.tooltip) ? item.tooltip.value : item.tooltip
-			};
-			await this.tooltipFactory.show([doc]);
-		}
-		async onClick(element) {
-			let { nvim } = this;
-			let [line, col] = await nvim.eval(`[getline('.'),col('.')]`);
-			let pre = byteSlice(line, 0, col - 1);
-			let character = line[pre.length];
-			let { openedIcon, closedIcon } = this.config;
-			if (/^\s*$/.test(pre) && [openedIcon, closedIcon].includes(character)) await this.toggleExpand(element);
-			else await this.invokeCommand(element);
-		}
-		async invokeCommand(element) {
-			let obj = this.nodesMap.get(element);
-			if (!obj) return;
-			this.selectItem(element);
-			let item = obj.item;
-			if (!item.command) item = await this.resolveItem(element, item);
-			if (!item || !item.command) throw new Error(`Failed to resolve command from TreeItem.`);
-			await commands_default.execute(item.command);
-		}
-		async invokeActions(element) {
-			if (!element) return;
-			this.selectItem(element);
-			if (typeof this.provider.resolveActions !== "function") {
-				await window_default.showWarningMessage("No actions");
-				return;
-			}
-			let obj = this.nodesMap.get(element);
-			let actions = await Promise.resolve(this.provider.resolveActions(obj.item, element));
-			if (!actions || actions.length == 0) {
-				await window_default.showWarningMessage("No actions available");
-				return;
-			}
-			let keys = actions.map((o) => o.title);
-			let res = await window_default.showMenuPicker(keys, "Choose action");
-			if (res == -1) return;
-			await Promise.resolve(actions[res].handler(element));
-		}
-		async onDataChange(node) {
-			if (this.filtering) {
-				this.itemsToFilter = void 0;
-				await this.doFilter(toText(this.filterText));
-				return;
-			}
-			this.clearSelection();
-			if (!node) {
-				await this.render();
-				return;
-			}
-			let release = await this.mutex.acquire();
-			try {
-				let items = this.renderedItems;
-				let idx = items.findIndex((o) => o.node === node);
-				if (idx != -1 && this.bufnr) {
-					let level = items[idx].level;
-					let removeCount = 0;
-					for (let i = idx; i < items.length; i++) {
-						let o = items[i];
-						if (i == idx || o && o.level > level) removeCount += 1;
-					}
-					let appendItems = [];
-					let highlights = [];
-					let start = idx + this.startLnum;
-					await this.appendTreeNode(node, level, start, appendItems, highlights);
-					items.splice(idx, removeCount, ...appendItems);
-					this.updateUI(appendItems.map((o) => o.line), highlights, start, start + removeCount);
-				}
-				release();
-			} catch (e) {
-				let errMsg = `Error on tree refresh: ${e}`;
-				logger$14.error(errMsg, e);
-				this.nvim.errWriteLine("[coc.nvim] " + errMsg);
-				release();
-			}
-		}
-		async resolveItem(element, item) {
-			if (typeof this.provider.resolveTreeItem === "function") {
-				let tokenSource = this.resolveTokenSource = new import_main$1.CancellationTokenSource();
-				let token = tokenSource.token;
-				item = await Promise.resolve(this.provider.resolveTreeItem(item, element, token));
-				tokenSource.dispose();
-				this.resolveTokenSource = void 0;
-				if (token.isCancellationRequested) return void 0;
-			}
-			this.nodesMap.set(element, {
-				item,
-				resolved: true
-			});
-			return item;
-		}
-		get visible() {
-			if (!this.bufnr) return false;
-			return this.winid != null;
-		}
-		get valid() {
-			return typeof this.bufnr === "number";
-		}
-		get selection() {
-			return this._selection.slice();
-		}
-		async checkLines() {
-			if (!this.bufnr) return false;
-			let curr = await this.nvim.createBuffer(this.bufnr).lines;
-			let { titleCount, messageCount } = this.lineState;
-			curr = curr.slice(titleCount + messageCount);
-			let lines = this.renderedItems.map((o) => o.line);
-			return equals(curr, lines);
-		}
-		/**
-		* Expand/collapse TreeItem.
-		*/
-		async toggleExpand(element) {
-			let o = this.nodesMap.get(element);
-			if (!o) return;
-			let treeItem = o.item;
-			let lnum = this.getItemLnum(element);
-			let nodeIdx = lnum - this.startLnum;
-			let obj = this.renderedItems[nodeIdx];
-			if (!obj || treeItem.collapsibleState == 0) {
-				if (typeof this.provider.getParent === "function") {
-					let node = await Promise.resolve(this.provider.getParent(element));
-					if (node) {
-						await this.toggleExpand(node);
-						this.focusItem(node);
-					}
-				}
-				return;
-			}
-			let removeCount = 0;
-			if (treeItem.collapsibleState == 2) {
-				let level = obj.level;
-				for (let i = nodeIdx + 1; i < this.renderedItems.length; i++) {
-					let o = this.renderedItems[i];
-					if (!o || o.level <= level) break;
-					removeCount += 1;
-				}
-				treeItem.collapsibleState = 1;
-			} else if (treeItem.collapsibleState == 1) treeItem.collapsibleState = 2;
-			let newItems = [];
-			let newHighlights = [];
-			await this.appendTreeNode(obj.node, obj.level, lnum, newItems, newHighlights);
-			this.renderedItems.splice(nodeIdx, removeCount + 1, ...newItems);
-			this.updateUI(newItems.map((o) => o.line), newHighlights, lnum, lnum + removeCount + 1);
-			this.refreshSigns();
-			if (treeItem.collapsibleState == 1) this._onDidCollapseElement.fire({ element });
-			else this._onDidExpandElement.fire({ element });
-		}
-		toggleSelection(element) {
-			if (!element) return;
-			let idx = this._selection.findIndex((o) => o === element);
-			if (idx !== -1) this.unselectItem(idx);
-			else this.selectItem(element);
-		}
-		clearSelection() {
-			if (!this.bufnr) return;
-			this._selection = [];
-			this.nvim.createBuffer(this.bufnr).unplaceSign({ group: "CocTree" });
-			this._onDidChangeSelection.fire({ selection: [] });
-		}
-		selectItem(item, forceSingle, noRedraw) {
-			let { nvim } = this;
-			let row = this.getItemLnum(item);
-			if (row == null || !this.bufnr) return;
-			let buf = nvim.createBuffer(this.bufnr);
-			let exists = this._selection.includes(item);
-			if (!this.opts.canSelectMany || forceSingle) this._selection = [item];
-			else if (!exists) this._selection.push(item);
-			nvim.pauseNotification();
-			if (!this.opts.canSelectMany || forceSingle) buf.unplaceSign({ group: "CocTree" });
-			nvim.call("win_execute", [this.winid, `normal! ${row + 1}G`], true);
-			buf.placeSign({
-				id: signOffset + row,
-				lnum: row + 1,
-				name: "CocTreeSelected",
-				group: "CocTree"
-			});
-			if (!noRedraw) this.redraw();
-			nvim.resumeNotification(false, true);
-			if (!exists) this._onDidChangeSelection.fire({ selection: this._selection });
-		}
-		unselectItem(idx) {
-			let item = this._selection[idx];
-			let row = this.getItemLnum(item);
-			if (row == null || !this.bufnr) return;
-			this._selection.splice(idx, 1);
-			this.nvim.createBuffer(this.bufnr).unplaceSign({
-				group: "CocTree",
-				id: signOffset + row
-			});
-			this._onDidChangeSelection.fire({ selection: this._selection });
-		}
-		focusItem(element) {
-			if (!this.winid) return;
-			let lnum = this.getItemLnum(element);
-			if (lnum == null) return;
-			this.nvim.call("win_execute", [this.winid, `exe ${lnum + 1}`], true);
-		}
-		getElementByLnum(lnum) {
-			let item = this.renderedItems[lnum - this.startLnum];
-			return item ? item.node : void 0;
-		}
-		getItemLnum(item) {
-			let idx = this.renderedItems.findIndex((o) => o.node === item);
-			if (idx == -1) return void 0;
-			return this.startLnum + idx;
-		}
-		async getTreeItem(element) {
-			let exists;
-			let resolved = false;
-			let obj = this.nodesMap.get(element);
-			if (obj != null) {
-				exists = obj.item;
-				resolved = obj.resolved;
-			}
-			let item = await Promise.resolve(this.provider.getTreeItem(element));
-			if (exists && item && exists.collapsibleState != 0 && item.collapsibleState != 0) item.collapsibleState = exists.collapsibleState;
-			this.nodesMap.set(element, {
-				item,
-				resolved
-			});
-			return item;
-		}
-		getRenderedLine(treeItem, lnum, level) {
-			let { openedIcon, closedIcon } = this.config;
-			const highlights = [];
-			const { label, deprecated, description } = treeItem;
-			let prefix = "  ".repeat(level);
-			const addHighlight = (text, hlGroup) => {
-				let colStart = byteLength(prefix);
-				highlights.push({
-					lnum,
-					hlGroup,
-					colStart,
-					colEnd: colStart + byteLength(text)
-				});
-			};
-			switch (treeItem.collapsibleState) {
-				case 2:
-					addHighlight(openedIcon, "CocTreeOpenClose");
-					prefix += openedIcon + " ";
-					break;
-				case 1:
-					addHighlight(closedIcon, "CocTreeOpenClose");
-					prefix += closedIcon + " ";
-					break;
-				default: prefix += this.leafIndent ? "  " : "";
-			}
-			if (treeItem.icon) {
-				let { text, hlGroup } = treeItem.icon;
-				addHighlight(text, hlGroup);
-				prefix += text + " ";
-			}
-			if (TreeItemLabel.is(label) && Array.isArray(label.highlights)) {
-				let colStart = byteLength(prefix);
-				for (let o of label.highlights) highlights.push({
-					lnum,
-					hlGroup: "CocSearch",
-					colStart: colStart + o[0],
-					colEnd: colStart + o[1]
-				});
-			}
-			let labelText = getItemLabel(treeItem);
-			if (deprecated) addHighlight(labelText, "CocDeprecatedHighlight");
-			prefix += labelText;
-			if (description && description.indexOf("\n") == -1) {
-				prefix += " ";
-				addHighlight(description, "CocTreeDescription");
-				prefix += description;
-			}
-			return {
-				line: prefix,
-				highlights
-			};
-		}
-		async appendTreeNode(element, level, lnum, items, highlights) {
-			let treeItem = await this.getTreeItem(element);
-			if (!treeItem) return 0;
-			let takes = 1;
-			let res = this.getRenderedLine(treeItem, lnum, level);
-			highlights.push(...res.highlights);
-			items.push({
-				level,
-				line: res.line,
-				node: element
-			});
-			if (treeItem.collapsibleState == 2) {
-				let l = level + 1;
-				let children = await Promise.resolve(this.provider.getChildren(element));
-				for (let el of toArray(children)) {
-					let n = await this.appendTreeNode(el, l, lnum + takes, items, highlights);
-					takes = takes + n;
-				}
-			}
-			return takes;
-		}
-		updateUI(lines, highlights, start = 0, end = -1, noRedraw = false) {
-			if (!this.bufnr) return;
-			let { nvim, winid } = this;
-			let buf = nvim.createBuffer(this.bufnr);
-			nvim.pauseNotification();
-			buf.setOption("modifiable", true, true);
-			buf.setLines(lines, {
-				start,
-				end,
-				strictIndexing: false
-			}, true);
-			if (this.autoWidth) this.nvim.call("coc#window#adjust_width", [winid], true);
-			if (highlights.length) {
-				let highlightEnd = end == -1 ? -1 : start + lines.length;
-				buf.updateHighlights(highlightNamespace, highlights, {
-					start,
-					end: highlightEnd
-				});
-			}
-			buf.setOption("modifiable", false, true);
-			if (!noRedraw) this.redraw();
-			nvim.resumeNotification(false, true);
-		}
-		async reveal(element, options = {}) {
-			if (this.filtering) return;
-			let isShown = this.getItemLnum(element) != null;
-			let { select, focus, expand } = options;
-			let curr = element;
-			if (typeof this.provider.getParent !== "function") throw new Error("missing getParent function from provider for reveal.");
-			if (!isShown) while (curr) {
-				let parentNode = await Promise.resolve(this.provider.getParent(curr));
-				if (parentNode) {
-					let item = await this.getTreeItem(parentNode);
-					item.collapsibleState = 2;
-					curr = parentNode;
-				} else break;
-			}
-			if (expand) {
-				let item = await this.getTreeItem(element);
-				if (item.collapsibleState != 0) {
-					item.collapsibleState = 2;
-					if (typeof expand === "boolean") expand = 1;
-					if (expand > 1) {
-						let curr = Math.min(expand, 2);
-						let nodes = await Promise.resolve(this.provider.getChildren(element));
-						while (!isFalsyOrEmpty(nodes)) {
-							let arr = [];
-							for (let n of nodes) {
-								let item = await this.getTreeItem(n);
-								if (item.collapsibleState == 0) continue;
-								item.collapsibleState = 2;
-								if (curr > 1) {
-									let res = await Promise.resolve(this.provider.getChildren(n));
-									arr.push(...res);
-								}
-							}
-							nodes = arr;
-							curr = curr - 1;
-						}
-					}
-				}
-			}
-			if (!isShown || expand) await this.render();
-			if (select !== false) this.selectItem(element);
-			if (focus) this.focusItem(element);
-		}
-		updateHeadLines(initialize = false) {
-			let { titleCount, messageCount } = this.lineState;
-			let end = initialize ? -1 : titleCount + messageCount;
-			let lines = [];
-			let highlights = [];
-			if (this.message) {
-				highlights.push({
-					hlGroup: "MoreMsg",
-					colStart: 0,
-					colEnd: byteLength(this.message),
-					lnum: 0
-				});
-				lines.push(this.message);
-				lines.push("");
-			}
-			if (this.title) {
-				highlights.push({
-					hlGroup: "CocTreeTitle",
-					colStart: 0,
-					colEnd: byteLength(this.title),
-					lnum: lines.length
-				});
-				if (this.description) {
-					let colStart = byteLength(this.title) + 1;
-					highlights.push({
-						hlGroup: "Comment",
-						colStart,
-						colEnd: colStart + byteLength(this.description),
-						lnum: lines.length
-					});
-				}
-				lines.push(this.title + (this.description ? " " + this.description : ""));
-			}
-			this.lineState.messageCount = this.message ? 2 : 0;
-			this.lineState.titleCount = this.title ? 1 : 0;
-			this.updateUI(lines, highlights, 0, end);
-			if (!initialize) this.refreshSigns();
-		}
-		/**
-		* Update signs after collapse/expand or head change
-		*/
-		refreshSigns() {
-			let { selection, nvim, bufnr } = this;
-			if (!selection.length || !bufnr) return;
-			let buf = nvim.createBuffer(bufnr);
-			nvim.pauseNotification();
-			buf.unplaceSign({ group: "CocTree" });
-			for (let n of selection) {
-				let row = this.getItemLnum(n);
-				if (row == null) continue;
-				buf.placeSign({
-					id: signOffset + row,
-					lnum: row + 1,
-					name: "CocTreeSelected",
-					group: "CocTree"
-				});
-			}
-			nvim.resumeNotification(false, true);
-		}
-		async render() {
-			if (!this.bufnr) return;
-			let release = await this.mutex.acquire();
-			try {
-				let lines = [];
-				let highlights = [];
-				let { startLnum } = this;
-				let nodes = await Promise.resolve(this.provider.getChildren());
-				let level = 0;
-				let lnum = startLnum;
-				let renderedItems = [];
-				if (isFalsyOrEmpty(nodes)) this.message = "No results";
-				else {
-					if (this.message == "No results") this.message = "";
-					for (let node of nodes) {
-						let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights);
-						lnum += n;
-					}
-				}
-				lines.push(...renderedItems.map((o) => o.line));
-				this.renderedItems = renderedItems;
-				let delta = this.startLnum - startLnum;
-				highlights.forEach((o) => o.lnum = o.lnum + delta);
-				this.updateUI(lines, highlights, this.startLnum, -1);
-				this._onDidRefrash.fire();
-				this.retryTimers = 0;
-				release();
-			} catch (err) {
-				logger$14.error("Error on render", err);
-				this.renderedItems = [];
-				this.nodesMap.clear();
-				this.lineState = {
-					titleCount: 0,
-					messageCount: 1
-				};
-				release();
-				let errMsg = `${err}`.replace(/\r?\n/g, " ");
-				this.updateUI([errMsg], [{
-					hlGroup: "WarningMsg",
-					colStart: 0,
-					colEnd: byteLength(errMsg),
-					lnum: 0
-				}]);
-				if (this.retryTimers == maxRetry) return;
-				this.timer = setTimeout(() => {
-					this.retryTimers = this.retryTimers + 1;
-					this.render();
-				}, retryTimeout);
-			}
-		}
-		async show(splitCommand = "belowright 30vs", waitRender = true) {
-			let { nvim } = this;
-			let [targetBufnr, windowId] = await nvim.eval(`[bufnr("%"),win_getid()]`);
-			this._targetBufnr = targetBufnr;
-			this._targetWinId = windowId;
-			let opts = {
-				command: splitCommand,
-				bufname: this.bufname,
-				viewId: this.viewId.replace(/"/g, "\\\""),
-				bufnr: defaultValue(this.bufnr, -1),
-				winid: defaultValue(this.winid, -1),
-				bufhidden: defaultValue(this.opts.bufhidden, "wipe"),
-				canSelectMany: this.opts.canSelectMany === true,
-				winfixwidth: this.winfixwidth === true
-			};
-			let [bufnr, winid, tabId] = await nvim.call("coc#ui#create_tree", [opts]);
-			this.bufnr = bufnr;
-			this.winid = winid;
-			this._targetTabId = tabId;
-			if (winid != opts.winid) this._onDidChangeVisibility.fire({ visible: true });
-			if (bufnr == opts.bufnr) return true;
-			this.registerKeymaps();
-			this.updateHeadLines(true);
-			let promise = this.render();
-			if (waitRender) await promise;
-			return true;
-		}
-		registerLocalKeymap(mode, key, fn, notify = false) {
-			if (!this.bufnr) this._keymapDefs.push({
-				mode,
-				key,
-				fn,
-				notify
-			});
-			else this.addLocalKeymap(mode, key, fn, notify);
-		}
-		addLocalKeymap(mode, key, fn, notify = true) {
-			if (!key) return;
-			workspace_default.registerLocalKeymap(this.bufnr, mode, key, async () => {
-				let lnum = await this.nvim.call("line", ["."]);
-				let element = this.getElementByLnum(lnum - 1);
-				await Promise.resolve(fn(element));
-			}, notify);
-		}
-		registerKeymaps() {
-			let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys;
-			let { nvim, _keymapDefs } = this;
-			this.disposables.push(workspace_default.registerLocalKeymap(this.bufnr, "n", "<C-o>", () => {
-				nvim.call("win_gotoid", [this._targetWinId], true);
-			}, true));
-			this.addLocalKeymap("n", "<LeftRelease>", async (element) => {
-				if (element) await this.onClick(element);
-			});
-			if (this.filter != null) this.addLocalKeymap("n", activeFilter, async () => {
-				this.nvim.command(`exe ${this.startLnum}`, true);
-				this.filter.active();
-				this.filterText = "";
-				this._onDidFilterStateChange.fire(true);
-			});
-			this.addLocalKeymap("n", toggleSelection, (element) => this.toggleSelection(element));
-			this.addLocalKeymap("n", invoke, (element) => this.invokeCommand(element));
-			this.addLocalKeymap("n", actions, (element) => this.invokeActions(element));
-			this.addLocalKeymap("n", toggle, (element) => this.toggleExpand(element));
-			this.addLocalKeymap("n", collapseAll, () => this.collapseAll());
-			this.addLocalKeymap("n", close, () => this.hide());
-			while (_keymapDefs.length) {
-				const def = _keymapDefs.pop();
-				this.addLocalKeymap(def.mode, def.key, def.fn, def.notify);
-			}
-		}
-		hide() {
-			this.nvim.call("coc#window#close", [this.winid], true);
-			this.redraw();
-			this.winid = void 0;
-			this._onDidChangeVisibility.fire({ visible: false });
-		}
-		redraw() {
-			if (workspace_default.isVim || this.filter?.activated) this.nvim.command("redraw", true);
-		}
-		async collapseAll() {
-			for (let obj of this.nodesMap.values()) {
-				let item = obj.item;
-				if (item.collapsibleState == 2) item.collapsibleState = 1;
-			}
-			await this.render();
-		}
-		cancelResolve() {
-			if (this.resolveTokenSource) {
-				this.resolveTokenSource.cancel();
-				this.resolveTokenSource = void 0;
-			}
-		}
-		dispose() {
-			if (!this.provider) return;
-			if (this.timer) clearTimeout(this.timer);
-			this.cancelResolve();
-			let { bufnr } = this;
-			if (this.winid) this._onDidChangeVisibility.fire({ visible: false });
-			if (bufnr) this.nvim.command(`silent! bwipeout! ${bufnr}`, true);
-			this._keymapDefs = [];
-			this.winid = void 0;
-			this.bufnr = void 0;
-			this.filter?.dispose();
-			this._selection = [];
-			this.itemsToFilter = [];
-			this.tooltipFactory.dispose();
-			this.renderedItems = [];
-			this.nodesMap.clear();
-			this.provider = void 0;
-			this._onDispose.fire();
-			this._onDispose.dispose();
-			disposeAll(this.disposables);
-		}
-	};
-}));
-//#endregion
-//#region src/window.ts
-var Window, window_default;
-var init_window = __esmMin((() => {
-	init_channels();
-	init_dialogs();
-	init_highlights$1();
-	init_notifications$1();
-	init_terminals();
-	init_ui$2();
-	init_TreeView();
-	init_object();
-	init_protocol();
-	Window = class {
-		nvim;
-		highlights = new Highlights$1();
-		terminalManager = new Terminals();
-		cursors;
-		dialogs = new Dialogs();
-		notifications = new Notifications(this.dialogs);
-		workspace;
-		constructor() {
-			Object.defineProperty(this.highlights, "nvim", { get: () => this.nvim });
-			Object.defineProperty(this.dialogs, "nvim", { get: () => this.nvim });
-			Object.defineProperty(this.dialogs, "configuration", { get: () => this.workspace.initialConfiguration });
-			Object.defineProperty(this.notifications, "nvim", { get: () => this.nvim });
-			Object.defineProperty(this.notifications, "configuration", { get: () => this.workspace.initialConfiguration });
-			Object.defineProperty(this.notifications, "statusLine", { get: () => this.workspace.statusLine });
-		}
-		get activeTextEditor() {
-			return this.workspace.editors.activeTextEditor;
-		}
-		get visibleTextEditors() {
-			return this.workspace.editors.visibleTextEditors;
-		}
-		get onDidTabClose() {
-			return this.workspace.editors.onDidTabClose;
-		}
-		get onDidChangeActiveTextEditor() {
-			return this.workspace.editors.onDidChangeActiveTextEditor;
-		}
-		get onDidChangeVisibleTextEditors() {
-			return this.workspace.editors.onDidChangeVisibleTextEditors;
-		}
-		get terminals() {
-			return this.terminalManager.terminals;
-		}
-		get onDidOpenTerminal() {
-			return this.terminalManager.onDidOpenTerminal;
-		}
-		get onDidCloseTerminal() {
-			return this.terminalManager.onDidCloseTerminal;
-		}
-		async createTerminal(opts) {
-			return await this.terminalManager.createTerminal(this.nvim, opts);
-		}
-		/**
-		* Run command in vim terminal for result
-		* @param cmd Command to run.
-		* @param cwd Cwd of terminal, default to result of |getcwd()|.
-		*/
-		async runTerminalCommand(cmd, cwd, keepfocus = false) {
-			return await this.terminalManager.runTerminalCommand(this.nvim, cmd, cwd, keepfocus);
-		}
-		/**
-		* Open terminal window.
-		* @param cmd Command to run.
-		* @param opts Terminal option.
-		* @returns number buffer number of terminal
-		*/
-		async openTerminal(cmd, opts) {
-			return await this.terminalManager.openTerminal(this.nvim, cmd, opts);
-		}
-		/**
-		* Reveal message with message type.
-		* @param msg Message text to show.
-		* @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
-		*/
-		showMessage(msg, messageType = "more") {
-			this.notifications.echoMessages(msg, messageType);
-		}
-		/**
-		* Create a new output channel
-		* @param name Unique name of output channel.
-		* @returns A new output channel.
-		*/
-		createOutputChannel(name) {
-			return channels_default.create(name, this.nvim);
-		}
-		/**
-		* Reveal buffer of output channel.
-		* @param name Name of output channel.
-		* @param cmd command for open output channel.
-		* @param preserveFocus Preserve window focus when true.
-		*/
-		showOutputChannel(name, cmd, preserveFocus) {
-			let command = cmd ? cmd : this.configuration.get("workspace.openOutputCommand", "vs");
-			channels_default.show(name, command, preserveFocus);
-		}
-		/**
-		* Echo lines at the bottom of vim.
-		* @param lines Line list.
-		* @param truncate Truncate the lines to avoid 'press enter to continue' when true
-		*/
-		async echoLines(lines, truncate = false) {
-			await echoLines(this.nvim, this.workspace.env, lines, truncate);
-		}
-		/**
-		* Get current cursor position (line, character both 0 based).
-		* @returns Cursor position.
-		*/
-		getCursorPosition() {
-			return getCursorPosition(this.nvim);
-		}
-		/**
-		* Move cursor to position.
-		* @param position LSP position.
-		*/
-		async moveTo(position) {
-			await moveTo(this.nvim, position, this.workspace.env.isVim);
-		}
-		/**
-		* Get selected range for current document
-		*/
-		getSelectedRange(mode) {
-			return getSelection(this.nvim, mode);
-		}
-		/**
-		* Visual select range of current document
-		*/
-		async selectRange(range) {
-			await selectRange(this.nvim, range, this.nvim.isVim);
-		}
-		/**
-		* Get current cursor character offset in document,
-		* length of line break would always be 1.
-		* @returns Character offset.
-		*/
-		getOffset() {
-			return getOffset(this.nvim);
-		}
-		/**
-		* Get screen position of current cursor(relative to editor),
-		* both `row` and `col` are 0 based.
-		* @returns Cursor screen position.
-		*/
-		getCursorScreenPosition() {
-			return getCursorScreenPosition(this.nvim);
-		}
-		/**
-		* Create a {@link TreeView} instance.
-		* @param viewId Id of the view, used as title of TreeView when title doesn't exist.
-		* @param options Options for creating the {@link TreeView}
-		* @returns a {@link TreeView}.
-		*/
-		createTreeView(viewId, options) {
-			return new BasicTreeView(viewId, options);
-		}
-		/**
-		* Create statusbar item that would be included in `g:coc_status`.
-		* @param priority Higher priority item would be shown right.
-		* @param option
-		* @return A new status bar item.
-		*/
-		createStatusBarItem(priority = 0, option = {}) {
-			return this.workspace.statusLine.createStatusBarItem(priority, option.progress);
-		}
-		/**
-		* Get diff from highlight items and current highlights on vim.
-		* Return null when buffer not loaded
-		* @param bufnr Buffer number
-		* @param ns Highlight namespace
-		* @param items Highlight items
-		* @param region 0 based start and end line count (end inclusive)
-		* @param token CancellationToken
-		* @returns {Promise<HighlightDiff | null>}
-		*/
-		async diffHighlights(bufnr, ns, items, region, token) {
-			return this.highlights.diffHighlights(bufnr, ns, items, region, token);
-		}
-		/**
-		* Create a FloatFactory, user's configurations are respected.
-		* @param {FloatWinConfig} conf - Float window configuration
-		* @returns {FloatFactory}
-		*/
-		createFloatFactory(conf) {
-			let configuration = this.workspace.initialConfiguration;
-			let defaults = toObject(configuration.get("floatFactory.floatConfig"));
-			let markdownPreference = this.workspace.configurations.markdownPreference;
-			return createFloatFactory(this.workspace.nvim, Object.assign({
-				...markdownPreference,
-				maxWidth: 80
-			}, conf), defaults);
-		}
-		/**
-		* Show quickpick for single item, use `window.menuPick` for menu at current current position.
-		* @deprecated Use 'window.showMenuPicker()' or `window.showQuickPick` instead.
-		* @param items Label list.
-		* @param placeholder Prompt text, default to 'choose by number'.
-		* @returns Index of selected item, or -1 when canceled.
-		*/
-		async showQuickpick(items, placeholder = "Choose by number") {
-			return await this.showMenuPicker(items, {
-				title: placeholder,
-				position: "center"
-			});
-		}
-		/**
-		* Shows a selection list.
-		*/
-		async showQuickPick(itemsOrItemsPromise, options, token = import_main$1.CancellationToken.None) {
-			return await this.dialogs.showQuickPick(itemsOrItemsPromise, options, token);
-		}
-		/**
-		* Creates a {@link QuickPick} to let the user pick an item or items from a
-		* list of items of type T.
-		*
-		* Note that in many cases the more convenient {@link window.showQuickPick}
-		* is easier to use. {@link window.createQuickPick} should be used
-		* when {@link window.showQuickPick} does not offer the required flexibility.
-		* @return A new {@link QuickPick}.
-		*/
-		async createQuickPick(config = {}) {
-			return await this.dialogs.createQuickPick(config);
-		}
-		async requestInputList(prompt, items) {
-			if (items.length > this.workspace.env.lines) items = items.slice(0, this.workspace.env.lines - 2);
-			return await this.dialogs.requestInputList(prompt, items);
-		}
-		/**
-		* Show menu picker at current cursor position.
-		* @param items Array of texts.
-		* @param option Options for menu.
-		* @param token A token that can be used to signal cancellation.
-		* @returns Selected index (0 based), -1 when canceled.
-		*/
-		async showMenuPicker(items, option, token) {
-			return await this.dialogs.showMenuPicker(items, option, token);
-		}
-		/**
-		* Prompt user for confirm, a float/popup window would be used when possible,
-		* use vim's |confirm()| function as callback.
-		* @param title The prompt text.
-		* @returns Result of confirm.
-		*/
-		async showPrompt(title) {
-			return await this.dialogs.showPrompt(title);
-		}
-		/**
-		* Show dialog window at the center of screen.
-		* Note that the dialog would always be closed after button click.
-		* @param config Dialog configuration.
-		* @returns Dialog or null when dialog can't work.
-		*/
-		async showDialog(config) {
-			return await this.dialogs.showDialog(config);
-		}
-		/**
-		* Request input from user
-		* @param title Title text of prompt window.
-		* @param value Default value of input, empty text by default.
-		* @param {InputOptions} option for input window
-		* @returns {Promise<string>}
-		*/
-		async requestInput(title, value, option) {
-			return await this.dialogs.requestInput(title, this.workspace.env, value, option);
-		}
-		/**
-		* Creates and show a {@link InputBox} to let the user enter some text input.
-		* @return A new {@link InputBox}.
-		*/
-		async createInputBox(title, value, option) {
-			return await this.dialogs.createInputBox(title, value, option);
-		}
-		async showPickerDialog(items, title, token) {
-			return await this.dialogs.showPickerDialog(items, title, token);
-		}
-		/**
-		* Show an information message to users. Optionally provide an array of items which will be presented as
-		* clickable buttons.
-		* @param message The message to show.
-		* @param items A set of items that will be rendered as actions in the message.
-		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
-		*/
-		async showInformationMessage(message, ...items) {
-			return await this.notifications._showMessage("Info", message, items);
-		}
-		/**
-		* Show an warning message to users. Optionally provide an array of items which will be presented as
-		* clickable buttons.
-		* @param message The message to show.
-		* @param items A set of items that will be rendered as actions in the message.
-		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
-		*/
-		async showWarningMessage(message, ...items) {
-			return await this.notifications._showMessage("Warning", message, items);
-		}
-		/**
-		* Show an error message to users. Optionally provide an array of items which will be presented as
-		* clickable buttons.
-		* @param message The message to show.
-		* @param items A set of items that will be rendered as actions in the message.
-		* @return Promise that resolves to the selected item or `undefined` when being dismissed.
-		*/
-		async showErrorMessage(message, ...items) {
-			return await this.notifications._showMessage("Error", message, items);
-		}
-		async showNotification(config) {
-			let stack = Error().stack;
-			await this.notifications.showNotification(config, stack);
-		}
-		/**
-		* Show progress in the editor. Progress is shown while running the given callback
-		* and while the promise it returned isn't resolved nor rejected.
-		*/
-		async withProgress(options, task) {
-			return this.notifications.withProgress(options, task);
-		}
-		/**
-		* Apply highlight diffs, normally used with `window.diffHighlights`
-		*
-		* Timer is used to add highlights when there're too many highlight items to add,
-		* the highlight process won't be finished on that case.
-		* @param {number} bufnr - Buffer name
-		* @param {string} ns - Namespace
-		* @param {number} priority
-		* @param {HighlightDiff} diff
-		* @param {boolean} notify - Use notification, default false.
-		* @returns {Promise<void>}
-		*/
-		async applyDiffHighlights(bufnr, ns, priority, diff, notify = false) {
-			return this.highlights.applyDiffHighlights(bufnr, ns, priority, diff, notify);
-		}
-		/**
-		* Get visible ranges of bufnr with optional winid
-		*/
-		async getVisibleRanges(bufnr, winid) {
-			return await getVisibleRanges(this.nvim, bufnr, winid);
-		}
-		get configuration() {
-			return this.workspace.initialConfiguration;
-		}
-		dispose() {
-			this.terminalManager.dispose();
-		}
-	};
-	window_default = new Window();
-}));
-//#endregion
-//#region src/completion/wordDistance.ts
-var WordDistance;
-var init_wordDistance = __esmMin((() => {
-	init_main$2();
-	init_events();
-	init_languages();
-	init_array();
-	init_object();
-	init_is();
-	init_position();
-	init_workspace$1();
-	init_util$7();
-	WordDistance = class WordDistance {
-		static None = new class extends WordDistance {
-			distance() {
-				return 0;
-			}
-		}();
-		static async create(localityBonus, opt, token) {
-			let { position } = opt;
-			let cursor = [opt.linenr, opt.colnr];
-			if (!localityBonus) return WordDistance.None;
-			let doc = workspace_default.getDocument(opt.bufnr);
-			const selectionRanges = await languages_default.getSelectionRanges(doc.textDocument, [position], token);
-			if (!selectionRanges || token.isCancellationRequested) return WordDistance.None;
-			let ranges = [];
-			const iterate = (r) => {
-				if (r && r.range.end.line - r.range.start.line < 2e3) {
-					ranges.unshift(r.range);
-					iterate(r.parent);
-				}
-			};
-			iterate(toArray(selectionRanges)[0]);
-			let wordRanges = ranges.length > 0 ? await Promise.race([waitWithToken(100, token), workspace_default.computeWordRanges(opt.bufnr, ranges[0], token)]) : void 0;
-			if (!objectLiteral(wordRanges)) return WordDistance.None;
-			delete wordRanges[opt.word];
-			return new class extends WordDistance {
-				distance(anchor, item) {
-					if (!equals([events_default.cursor.lnum, events_default.cursor.col], cursor)) return 0;
-					if (item.kind === CompletionItemKind.Keyword || toObject(item.source)["name"] === "snippets") return 2 << 20;
-					const wordLines = wordRanges[item.word];
-					if (isFalsyOrEmpty(wordLines)) return 2 << 20;
-					const idx = binarySearch(wordLines, Range.create(anchor, anchor), compareRangesUsingStarts);
-					const bestWordRange = idx >= 0 ? wordLines[idx] : wordLines[Math.max(0, ~idx - 1)];
-					let blockDistance = ranges.length;
-					for (const range of ranges) {
-						if (!rangeInRange(bestWordRange, range)) break;
-						blockDistance -= 1;
-					}
-					return blockDistance;
-				}
-			}();
-		}
-	};
-}));
-//#endregion
-//#region src/completion/complete.ts
-function sortItems(emptyInput, defaultSortMethod, a, b) {
-	let sa = a.sortText;
-	let sb = b.sortText;
-	if (a.score !== b.score) return b.score - a.score;
-	if (a.priority !== b.priority) return b.priority - a.priority;
-	if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1;
-	if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus;
-	if (emptyInput) return b.character - a.character;
-	switch (defaultSortMethod) {
-		case "none": return 0;
-		case "alphabetical": return a.filterText.localeCompare(b.filterText);
-		default: return a.filterText.length - b.filterText.length;
-	}
-}
-var logger$13, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
-var init_complete = __esmMin((() => {
-	init_main$2();
-	init_logger$2();
-	init_util$7();
-	init_array();
-	init_filter$1();
-	init_is();
-	init_numbers();
-	init_protocol();
-	init_string$1();
-	init_workspace$1();
-	init_source_language();
-	init_util$3();
-	init_wordDistance();
-	logger$13 = createLogger$1("completion-complete");
-	MAX_DISTANCE = 2 << 20;
-	MIN_TIMEOUT = 50;
-	MAX_TIMEOUT = 15e3;
-	MAX_TRIGGER_WAIT = 200;
-	WORD_SOURCES = /* @__PURE__ */ new Set([
-		"buffer",
-		"around",
-		"word"
-	]);
-	Complete = class {
-		option;
-		document;
-		config;
-		sources;
-		results = /* @__PURE__ */ new Map();
-		_input = "";
-		_completing = false;
-		timer;
-		names = [];
-		asciiMatch;
-		timeout;
-		cid = 0;
-		minCharacter = Number.MAX_SAFE_INTEGER;
-		inputStart;
-		completingSources = /* @__PURE__ */ new Set();
-		_onDidRefresh = new import_main$1.Emitter();
-		wordDistance;
-		tokenSources = /* @__PURE__ */ new Set();
-		tokensInfo = /* @__PURE__ */ new WeakMap();
-		itemsMap = /* @__PURE__ */ new WeakMap();
-		onDidRefresh = this._onDidRefresh.event;
-		constructor(option, document, config, sources) {
-			this.option = option;
-			this.document = document;
-			this.config = config;
-			this.sources = sources;
-			this.inputStart = characterIndex(option.line, option.col);
-			this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT);
-			sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99));
-			this.names = sources.map((o) => o.name);
-			this.asciiMatch = config.asciiMatch && useAscii(option.input);
-		}
-		get nvim() {
-			return workspace_default.nvim;
-		}
-		getTrigger(character) {
-			let { linenr, col } = this.option;
-			let line = this.document.getline(linenr - 1);
-			return (line.slice(0, characterIndex(line, col)) + this.input).slice(character);
-		}
-		fireRefresh(waitTime) {
-			clearTimeout(this.timer);
-			if (!waitTime) process.nextTick(() => {
-				this._onDidRefresh.fire();
-			});
-			else this.timer = setTimeout(() => {
-				this._onDidRefresh.fire();
-			}, waitTime);
-		}
-		get totalLength() {
-			let len = 0;
-			for (let result of this.results.values()) len += result.items.length;
-			return len;
-		}
-		resolveItem(item) {
-			if (!item) return void 0;
-			return {
-				source: item.source,
-				item: this.itemsMap.get(item)
-			};
-		}
-		get isCompleting() {
-			return this._completing;
-		}
-		get input() {
-			return this._input;
-		}
-		get isEmpty() {
-			return this.results.size === 0;
-		}
-		hasSource(source) {
-			return this.sources.includes(source);
-		}
-		getIncompleteSources() {
-			return this.sources.filter((s) => {
-				let res = this.results.get(s.name);
-				return res && res.isIncomplete === true;
-			});
-		}
-		getBackspaceSources() {
-			let sources = this.sources.filter((s) => this.results.has(s.name));
-			return sources.some((s) => this.results.get(s.name)?.isIncomplete === true || s instanceof LanguageSource) ? sources : [];
-		}
-		async doComplete() {
-			let tokenSource = this.createTokenSource(false);
-			let token = tokenSource.token;
-			let res = await Promise.all([
-				this.nvim.call("coc#util#synname", []),
-				this.nvim.call("coc#_suggest_variables", []),
-				this.document.patchChange()
-			]);
-			if (token.isCancellationRequested) return;
-			this.option.synname = res[0];
-			let variables = res[1];
-			if (variables.disable) {
-				logger$13.warn("suggest cancelled by b:coc_suggest_disable");
-				return true;
-			}
-			if (!isFalsyOrEmpty(variables.disabled_sources)) {
-				this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
-				if (this.sources.length === 0) {
-					logger$13.warn("suggest cancelled by b:coc_disabled_sources");
-					return true;
-				}
-			}
-			if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
-				logger$13.warn("suggest cancelled by b:coc_suggest_blacklist");
-				return true;
-			}
-			WordDistance.create(this.config.localityBonus, this.option, token).then((instance) => {
-				this.wordDistance = instance;
-			});
-			await waitWithToken(clamp(this.config.triggerCompletionWait, 0, MAX_TRIGGER_WAIT), tokenSource.token);
-			await this.completeSources(this.sources, tokenSource, this.cid);
-		}
-		async completeSources(sources, tokenSource, cid) {
-			const token = tokenSource.token;
-			if (token.isCancellationRequested) return;
-			this._completing = true;
-			const remains = new Set(sources.map((s) => s.name));
-			let timer;
-			let disposable;
-			let tp = new Promise((resolve) => {
-				disposable = token.onCancellationRequested(() => {
-					clearTimeout(timer);
-					resolve();
-				});
-				timer = setTimeout(() => {
-					let names = Array.from(remains);
-					disposable.dispose();
-					tokenSource.cancel();
-					logger$13.warn(`Completion timeout after ${this.timeout}ms`, names);
-					this.nvim.setVar(`coc_timeout_sources`, names, true);
-					resolve();
-				}, this.timeout);
-			});
-			const range = this.getDefaultRange();
-			let promises = sources.map((s) => this.completeSource(s, range, token).then((added) => {
-				remains.delete(s.name);
-				if (token.isCancellationRequested) return;
-				if (this.completingSources.size === 0) this.fireRefresh(0);
-				else if (added) this.fireRefresh(16);
-			}));
-			await Promise.race([tp, Promise.allSettled(promises)]);
-			this.tokenSources.delete(tokenSource);
-			disposable.dispose();
-			clearTimeout(timer);
-			if (cid === this.cid) this._completing = false;
-		}
-		async completeSource(source, range, token) {
-			let opt = Object.assign({}, this.option);
-			let { asciiMatch } = this;
-			const insertMode = this.config.insertMode;
-			const sourceName = source.name;
-			if (opt.triggerForInComplete && this.results.get(sourceName)?.isIncomplete !== true) opt.triggerForInComplete = false;
-			let added = false;
-			this.completingSources.add(sourceName);
-			try {
-				if (func(source.shouldComplete)) {
-					if (!await Promise.resolve(source.shouldComplete(opt)) || token.isCancellationRequested) return;
-				}
-				const start = Date.now();
-				const map = this.itemsMap;
-				await new Promise((resolve, reject) => {
-					Promise.resolve(source.doComplete(opt, token)).then((result) => {
-						if (token.isCancellationRequested) {
-							resolve(void 0);
-							return;
-						}
-						let len = result ? result.items.length : 0;
-						logger$13.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
-						if (len > 0) {
-							if (number(result.startcol)) {
-								let line = opt.linenr - 1;
-								range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character);
-							}
-							const priority = getPriority(source, this.config.languageSourcePriority);
-							const option = {
-								source,
-								insertMode,
-								priority,
-								asciiMatch,
-								itemDefaults: result.itemDefaults,
-								range
-							};
-							const converter = new Converter(this.inputStart, option, opt);
-							const items = result.items.reduce((items, item) => {
-								let completeItem = converter.convertToDurationItem(item);
-								if (!completeItem) {
-									logger$13.error(`Unexpected completion item from ${sourceName}:`, item);
-									return items;
-								}
-								map.set(completeItem, item);
-								items.push(completeItem);
-								return items;
-							}, []);
-							this.minCharacter = Math.min(this.minCharacter, converter.minCharacter);
-							this.results.set(sourceName, {
-								items,
-								isIncomplete: result.isIncomplete === true
-							});
-							added = true;
-						} else this.results.delete(sourceName);
-						resolve();
-					}, (err) => {
-						reject(err);
-					});
-				});
-			} catch (err) {
-				logger$13.error("Complete error:", source.name, err);
-			}
-			this.completingSources.delete(sourceName);
-			return added;
-		}
-		async completeInComplete(resumeInput, sources = this.getIncompleteSources()) {
-			let { document } = this;
-			this.cancelInComplete();
-			let tokenSource = this.createTokenSource(true);
-			await document.patchChange();
-			let { input, colnr, linenr, followWord, position } = this.option;
-			Object.assign(this.option, {
-				word: resumeInput + followWord,
-				input: resumeInput,
-				line: document.getline(linenr - 1),
-				position: {
-					line: position.line,
-					character: position.character + resumeInput.length - input.length
-				},
-				colnr: colnr + (resumeInput.length - input.length),
-				triggerCharacter: void 0,
-				triggerForInComplete: true
-			});
-			this.cid++;
-			await this.completeSources(sources, tokenSource, this.cid);
-		}
-		filterItems(input) {
-			let { results, names, option, inputStart } = this;
-			this._input = input;
-			let len = input.length;
-			let { maxItemCount, defaultSortMethod, removeDuplicateItems, removeCurrentWord } = this.config;
-			let arr = [];
-			let words = /* @__PURE__ */ new Set();
-			const emptyInput = len == 0;
-			const lowInput = input.toLowerCase();
-			const scoreFn = !this.config.filterGraceful || this.totalLength > 2e3 ? fuzzyScore : fuzzyScoreGracefulAggressive;
-			const scoreOption = {
-				boostFullMatch: true,
-				firstMatchCanBeWeak: false
-			};
-			const anchor = Position.create(option.linenr - 1, inputStart);
-			for (let name of names) {
-				let result = results.get(name);
-				if (!result) continue;
-				let isWord = WORD_SOURCES.has(name);
-				let items = result.items;
-				for (let idx = 0; idx < items.length; idx++) {
-					let item = items[idx];
-					let { word, filterText, dup } = item;
-					if (dup !== true && words.has(word)) continue;
-					if (removeCurrentWord && isWord && word === input) continue;
-					if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue;
-					let fuzzyResult;
-					if (!emptyInput) {
-						scoreOption.firstMatchCanBeWeak = item.delta === 0 && item.character !== inputStart;
-						if (item.delta > 0) {
-							let prev = filterText.slice(0, item.delta);
-							fuzzyResult = scoreFn(prev + input, prev.toLowerCase() + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
-						} else fuzzyResult = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
-						if (fuzzyResult == null) continue;
-						item.score = fuzzyResult[0];
-						item.positions = fuzzyResult;
-						if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item);
-					} else if (item.character < inputStart) {
-						let trigger = option.line.slice(item.character, inputStart);
-						scoreOption.firstMatchCanBeWeak = true;
-						fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, filterText.toLowerCase(), 0, scoreOption);
-						item.score = fuzzyResult[0];
-						item.positions = fuzzyResult;
-					} else {
-						item.score = 0;
-						item.positions = void 0;
-					}
-					words.add(word);
-					arr.push(item);
-				}
-			}
-			arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod));
-			return this.limitCompleteItems(arr.slice(0, maxItemCount));
-		}
-		async filterResults(input, backspace = false) {
-			let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources();
-			if (input !== this.option.input && sources.length > 0) {
-				this.fireRefresh(30);
-				this.completeInComplete(input, sources);
-				return;
-			}
-			clearTimeout(this.timer);
-			return this.filterItems(input);
-		}
-		limitCompleteItems(items) {
-			let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config;
-			if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items;
-			let counts = /* @__PURE__ */ new Map();
-			return items.filter((item) => {
-				let { priority, source } = item;
-				let isLow = priority < 90;
-				let curr = counts.get(source) || 0;
-				if (lowPrioritySourceLimit && isLow && curr == lowPrioritySourceLimit || highPrioritySourceLimit && !isLow && curr == highPrioritySourceLimit) return false;
-				counts.set(source, curr + 1);
-				return true;
-			});
-		}
-		getDefaultRange() {
-			let { insertMode } = this.config;
-			let { linenr, followWord, position } = this.option;
-			let line = linenr - 1;
-			let end = position.character + (insertMode == "replace" ? followWord.length : 0);
-			return Range.create(line, this.inputStart, line, end);
-		}
-		createTokenSource(isIncomplete) {
-			let tokenSource = new import_main$1.CancellationTokenSource();
-			this.tokenSources.add(tokenSource);
-			tokenSource.token.onCancellationRequested(() => {
-				this.tokenSources.delete(tokenSource);
-			});
-			this.tokensInfo.set(tokenSource, isIncomplete);
-			return tokenSource;
-		}
-		cancelInComplete() {
-			let { tokenSources, tokensInfo } = this;
-			for (let tokenSource of Array.from(tokenSources)) if (tokensInfo.get(tokenSource) === true) tokenSource.cancel();
-		}
-		cancel() {
-			let { tokenSources, timer } = this;
-			clearTimeout(timer);
-			for (let tokenSource of Array.from(tokenSources)) tokenSource.cancel();
-			tokenSources.clear();
-			this._completing = false;
-		}
-		dispose() {
-			this.cancel();
-			this.results.clear();
-			this._onDidRefresh.dispose();
-		}
-	};
-}));
-//#endregion
-//#region src/completion/floating.ts
-var logger$12, RESOLVE_TIMEOUT, Floating;
-var init_floating = __esmMin((() => {
-	init_logger$2();
-	init_markdown();
-	init_util$7();
-	init_errors();
-	init_is();
-	init_protocol();
-	init_workspace$1();
-	init_util$3();
-	logger$12 = createLogger$1("completion-floating");
-	RESOLVE_TIMEOUT = getConditionValue(500, 50);
-	Floating = class {
-		config;
-		resolveTokenSource;
-		constructor(config) {
-			this.config = config;
-		}
-		async resolveItem(source, item, opt, showDocs, detailRendered = false) {
-			this.cancel();
-			if (func(source.onCompleteResolve)) try {
-				await this.requestWithToken((token) => {
-					return Promise.resolve(source.onCompleteResolve(item, opt, token));
-				});
-			} catch (e) {
-				if (isCancellationError(e)) return;
-				logger$12.error(`Error on resolve complete item from ${source.name}:`, item, e);
-			}
-			if (showDocs) this.show(getDocumentations(item, opt.filetype, detailRendered));
-		}
-		show(docs) {
-			let config = this.config.floatConfig;
-			docs = docs.filter((o) => o.content.trim().length > 0);
-			if (docs.length === 0) this.close();
-			else {
-				const markdownPreference = workspace_default.configurations.markdownPreference;
-				let { lines, codes, highlights } = parseDocuments(docs, markdownPreference);
-				let opts = {
-					codes,
-					highlights,
-					highlight: config.highlight ?? "CocFloating",
-					maxWidth: config.maxWidth || 80,
-					rounded: config.rounded ? 1 : 0,
-					focusable: config.focusable === true ? 1 : 0
-				};
-				if (string(config.title)) opts.title = config.title;
-				if (config.shadow) opts.shadow = 1;
-				if (config.border) opts.border = [
-					1,
-					1,
-					1,
-					1
-				];
-				if (config.borderhighlight) opts.borderhighlight = config.borderhighlight;
-				if (typeof config.winblend === "number") opts.winblend = config.winblend;
-				let { nvim } = workspace_default;
-				nvim.call("coc#dialog#create_pum_float", [lines, opts], true);
-				nvim.redrawVim();
-			}
-		}
-		close() {
-			workspace_default.nvim.call("coc#pum#close_detail", [], true);
-			workspace_default.nvim.redrawVim();
-		}
-		cancel() {
-			if (this.resolveTokenSource) {
-				this.resolveTokenSource.cancel();
-				this.resolveTokenSource = void 0;
-			}
-		}
-		requestWithToken(fn) {
-			let tokenSource = this.resolveTokenSource = new import_main$1.CancellationTokenSource();
-			return new Promise((resolve, reject) => {
-				let called = false;
-				let onFinish = (err) => {
-					if (called) return;
-					called = true;
-					disposable.dispose();
-					clearTimeout(timer);
-					if (this.resolveTokenSource === tokenSource) this.resolveTokenSource = void 0;
-					if (err) reject(err);
-					else resolve();
-				};
-				let timer = setTimeout(() => {
-					tokenSource.cancel();
-				}, RESOLVE_TIMEOUT);
-				let disposable = tokenSource.token.onCancellationRequested(() => {
-					onFinish(new CancellationError());
-				});
-				fn(tokenSource.token).then(() => {
-					onFinish();
-				}, (e) => {
-					onFinish(e);
-				});
-			});
-		}
-	};
-}));
-//#endregion
-//#region src/completion/pum.ts
-/**
-* positions is FuzzyScore
-*/
-function positionHighlights(hls, label, positions, pre, line, max) {
-	for (let span of matchSpansReverse(label, positions, 2, max)) hls.push({
-		hlGroup: "CocPumSearch",
-		lnum: line,
-		colStart: pre + span[0],
-		colEnd: pre + span[1]
-	});
-}
-/**
-* Exclude part with invalid characters.
-*/
-function getInsertWord(word, codes, start) {
-	if (codes.length === 0) return word;
-	for (let i = start; i < word.length; i++) if (codes.includes(word.charCodeAt(i))) return word.slice(0, i);
-	return word;
-}
-/**
-* Append previous text to word when necessary
-*/
-function prefixWord(word, character, line, minCharacter) {
-	return minCharacter < character ? line.slice(minCharacter, character) + word : word;
-}
-var PopupMenu;
-var init_pum = __esmMin((() => {
-	init_fuzzyMatch();
-	init_array();
-	init_filter$1();
-	init_is();
-	init_numbers();
-	init_string$1();
-	init_workspace$1();
-	init_util$3();
-	PopupMenu = class {
-		config;
-		mruLoader;
-		_search = "";
-		_pumConfig;
-		constructor(config, mruLoader) {
-			this.config = config;
-			this.mruLoader = mruLoader;
-		}
-		get nvim() {
-			return workspace_default.nvim;
-		}
-		get search() {
-			return this._search;
-		}
-		reset() {
-			this._search = "";
-			this._pumConfig = void 0;
-		}
-		get pumConfig() {
-			if (this._pumConfig) return this._pumConfig;
-			let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config;
-			if (!pumFloatConfig) pumFloatConfig = floatConfig;
-			let obj = {};
-			if (pumFloatConfig.border) {
-				obj.border = [
-					1,
-					1,
-					1,
-					1
-				];
-				obj.rounded = pumFloatConfig.rounded ? 1 : 0;
-				obj.borderhighlight = pumFloatConfig.borderhighlight ?? "CocFloatBorder";
-			}
-			if (string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight;
-			if (number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend;
-			if (string(pumFloatConfig.title)) obj.title = pumFloatConfig.title;
-			obj.shadow = pumFloatConfig.shadow === true;
-			obj.reverse = reversePumAboveCursor === true;
-			this._pumConfig = obj;
-			return obj;
-		}
-		stringWidth(text, cache = false) {
-			return workspace_default.getDisplayWidth(text, cache);
-		}
-		show(items, search, option) {
-			this._search = search;
-			let { noselect, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config;
-			const invalidInsertCodes = invalidInsertCharacters.map((ch) => ch.charCodeAt(0));
-			let selectedIndex = enablePreselect ? items.findIndex((o) => o.preselect) : -1;
-			let maxMru = -1;
-			let abbrWidth = 0;
-			let menuWidth = 0;
-			let kindWidth = 0;
-			let shortcutWidth = 0;
-			let checkMru = selectedIndex == -1 && !noselect && selection !== "first";
-			let labels = [];
-			let minCharacter = characterIndex(option.line, option.col);
-			for (let i = 0; i < items.length; i++) {
-				let item = items[i];
-				if (checkMru) {
-					let n = this.mruLoader.getScore(search, item, selection);
-					if (n > maxMru) {
-						maxMru = n;
-						selectedIndex = i;
-					}
-				}
-				if (number(item.character) && item.character < minCharacter) minCharacter = item.character;
-				let label = this.getLabel(item);
-				labels.push(label);
-				abbrWidth = Math.max(this.stringWidth(label.text, true), abbrWidth);
-				if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText), true), kindWidth);
-				if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu, true), menuWidth);
-				if (item.shortcut) shortcutWidth = Math.max(this.stringWidth(item.shortcut, true) + 2, shortcutWidth);
-			}
-			if (selectedIndex !== -1 && search.length > 0) {
-				let item = items[selectedIndex];
-				if (!item.word.startsWith(search) && !item.filterText.startsWith(search)) selectedIndex = -1;
-			}
-			if (!noselect) selectedIndex = selectedIndex == -1 ? 0 : selectedIndex;
-			else {
-				if (selectedIndex > 0) {
-					let [item] = items.splice(selectedIndex, 1);
-					items.unshift(item);
-					let [label] = labels.splice(selectedIndex, 1);
-					labels.unshift(label);
-				}
-				selectedIndex = -1;
-			}
-			let opt = {
-				input: search,
-				index: selectedIndex,
-				bufnr: option.bufnr,
-				line: option.linenr,
-				col: option.col,
-				startcol: byteIndex(option.line, minCharacter),
-				virtualText,
-				words: items.map((o) => {
-					let character = o.character;
-					let start = Math.max(1, option.position.character - character + 1);
-					return prefixWord(getInsertWord(o.word, invalidInsertCodes, start), character, option.line, minCharacter);
-				})
-			};
-			let pumConfig = this.pumConfig;
-			let lines = [];
-			let highlights = [];
-			let width = 0;
-			let buildConfig = {
-				border: !!pumConfig.border,
-				menuWidth,
-				abbrWidth,
-				kindWidth,
-				shortcutWidth
-			};
-			this.adjustAbbrWidth(buildConfig);
-			let lowInput = search.toLowerCase();
-			for (let index = 0; index < items.length; index++) {
-				let [displayWidth, text] = this.buildItem(search, lowInput, items[index], labels[index], highlights, index, buildConfig);
-				width = Math.max(width, displayWidth);
-				lines.push(text);
-			}
-			let config = Object.assign({
-				width,
-				highlights
-			}, pumConfig);
-			this.nvim.call("coc#pum#create", [
-				lines,
-				opt,
-				config
-			], true);
-			this.nvim.redrawVim();
-		}
-		getLabel(item) {
-			let { labelDetails, detail } = item;
-			let { snippetIndicator, labelMaxLength, detailField, detailMaxLength } = this.config;
-			let label = item.abbr;
-			let hls = [];
-			if (item.isSnippet && !label.endsWith(snippetIndicator)) label = label + snippetIndicator;
-			if (detailField === "abbr" && detail && !labelDetails && detail.length < detailMaxLength) labelDetails = { detail: " " + detail.replace(/\r?\n\s*/g, " ") };
-			if (labelDetails) {
-				let added = (labelDetails.detail ?? "") + (labelDetails.description ? ` ${labelDetails.description}` : "");
-				if (label.length + added.length <= labelMaxLength) {
-					let start = byteLength(label);
-					hls.push({
-						start,
-						end: start + byteLength(added),
-						hlGroup: "CocPumDetail"
-					});
-					label = label + added;
-					item.detailRendered = true;
-				}
-			}
-			if (label.length > labelMaxLength) label = label.slice(0, labelMaxLength - 1) + ".";
-			return {
-				text: label,
-				highlights: hls
-			};
-		}
-		adjustAbbrWidth(config) {
-			let { formatItems } = this.config;
-			let pumwidth = toNumber(workspace_default.env.pumwidth, 15);
-			let len = 0;
-			for (const item of formatItems) if (item == "abbr") len += config.abbrWidth + 1;
-			else if (item == "menu" && config.menuWidth) len += config.menuWidth + 1;
-			else if (item == "kind" && config.kindWidth) len += config.kindWidth + 1;
-			else if (item == "shortcut" && config.shortcutWidth) len += config.shortcutWidth + 1;
-			if (len < pumwidth) config.abbrWidth = config.abbrWidth + pumwidth - len;
-		}
-		buildItem(input, lowInput, item, label, hls, index, config) {
-			let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config;
-			let text = config.border ? "" : " ";
-			let len = byteLength(text);
-			let displayWidth = text.length;
-			let append = (str, width) => {
-				let s = this.fillWidth(str, width);
-				displayWidth += width;
-				len += byteLength(s);
-				text += s;
-			};
-			for (const name of formatItems) switch (name) {
-				case "abbr": {
-					if (!isFalsyOrEmpty(item.positions)) {
-						let pre = highlightOffset(len, item);
-						if (pre != -1) positionHighlights(hls, item.filterText, item.positions, pre, index, labelMaxLength);
-						else {
-							let score = anyScore(input, lowInput, 0, item.abbr, item.abbr.toLowerCase(), 0);
-							positionHighlights(hls, item.abbr, score, len, index, labelMaxLength);
-						}
-					}
-					let abbr = label.text;
-					let start = len;
-					append(abbr, config.abbrWidth + 1);
-					label.highlights.forEach((hl) => {
-						hls.push({
-							hlGroup: hl.hlGroup,
-							lnum: index,
-							colStart: start + hl.start,
-							colEnd: start + hl.end
-						});
-					});
-					if (item.deprecated) hls.push({
-						hlGroup: "CocPumDeprecated",
-						lnum: index,
-						colStart: start,
-						colEnd: len - 1
-					});
-					break;
-				}
-				case "menu":
-					if (config.menuWidth > 0) {
-						let colStart = len;
-						append(toText(item.menu), config.menuWidth + 1);
-						if (item.menu) hls.push({
-							hlGroup: "CocPumMenu",
-							lnum: index,
-							colStart,
-							colEnd: colStart + byteLength(item.menu)
-						});
-					}
-					break;
-				case "kind":
-					if (config.kindWidth > 0) {
-						let { kind } = item;
-						let kindText = getKindText(kind, kindMap, defaultKindText);
-						let colStart = len;
-						append(toText(kindText), config.kindWidth + 1);
-						if (kindText) hls.push({
-							hlGroup: getKindHighlight(kind),
-							lnum: index,
-							colStart,
-							colEnd: colStart + byteLength(kindText)
-						});
-					}
-					break;
-				case "shortcut":
-					if (config.shortcutWidth > 0) {
-						let colStart = len;
-						let shortcut = item.shortcut;
-						append(shortcut ? `[${shortcut}]` : "", config.shortcutWidth + 1);
-						if (shortcut) hls.push({
-							hlGroup: "CocPumShortcut",
-							lnum: index,
-							colStart,
-							colEnd: colStart + byteLength(shortcut) + 2
-						});
-					}
-					break;
-			}
-			return [displayWidth, text];
-		}
-		fillWidth(text, width) {
-			let n = width - this.stringWidth(text);
-			return text + " ".repeat(Math.max(n, 0));
-		}
-	};
 }));
 //#endregion
 //#region src/completion/index.ts
@@ -130758,7 +130788,7 @@ function validCommand(command) {
 var Commands;
 var init_commands = __esmMin((() => {
 	init_commands$2();
-	init_manager$2();
+	init_manager$1();
 	init_workspace$1();
 	init_is();
 	Commands = class {
@@ -130784,7 +130814,7 @@ var init_commands = __esmMin((() => {
 		}
 		async runCommand(id, ...args) {
 			if (id) return await commands_default.fireCommand(id, ...args);
-			await manager_default$1.start(["commands"]);
+			await manager_default.start(["commands"]);
 		}
 	};
 }));
@@ -135367,14 +135397,15 @@ var init_symbols = __esmMin((() => {
 			const debounceTime = workspace_default.initialConfiguration.get("coc.preferences.currentFunctionSymbolDebounceTime", 300);
 			let prev = "";
 			let debounced = debounce(async (bufnr, cursor) => {
-				if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return;
-				let character = characterIndex(workspace_default.getDocument(bufnr).getline(cursor[0] - 1), cursor[1] - 1);
+				let item = this.buffers.getItem(bufnr);
+				if (!item || !this.autoUpdate(bufnr)) return;
+				let doc = item.doc;
+				let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1);
 				let pos = Position.create(cursor[0] - 1, character);
 				let func = await this.getFunctionSymbol(bufnr, pos);
-				let buffer = nvim.createBuffer(bufnr);
 				if (func != prev) {
 					prev = func;
-					buffer.setVar("coc_current_function", func, true);
+					doc.buffer.setVar("coc_current_function", func, true);
 					this.nvim.callTimer("coc#util#do_autocmd", ["CocStatusChange"], true);
 				}
 			}, getConditionValue(debounceTime, 0));
@@ -135619,7 +135650,7 @@ var init_workspace = __esmMin((() => {
 	init_languages();
 	init_logger$2();
 	init_highlighter();
-	init_manager$1();
+	init_manager$2();
 	init_util$7();
 	init_constants();
 	init_errors();
@@ -135848,7 +135879,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async snippetCheck(checkExpand, checkJump) {
 			if (checkJump) {
-				if (manager_default.jumpable()) return true;
+				if (manager_default$1.jumpable()) return true;
 			}
 			if (checkExpand) {
 				if (await Promise.resolve(extension_default.manager.call("coc-snippets", "expandable", []))) return true;
@@ -135857,7 +135888,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-7329b6a 2026-07-26 11:06:07 +0800";
+			let version = workspace_default.version + "-300278c 2026-07-31 21:09:40 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
@@ -136078,6 +136109,7 @@ var init_handler = __esmMin((() => {
 		async getCurrentState() {
 			let { nvim } = this;
 			let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#cursor#position(),win_getid(),mode()]");
+			await workspace_default.document;
 			return {
 				doc: workspace_default.getAttachedDocument(bufnr),
 				mode,
@@ -136174,10 +136206,11 @@ var init_plugin = __esmMin((() => {
 	init_events();
 	init_extension();
 	init_handler();
-	init_manager$2();
+	init_languages();
+	init_manager$1();
 	init_logger$2();
 	init_services$1();
-	init_manager$1();
+	init_manager$2();
 	init_util$7();
 	init_window();
 	init_workspace$1();
@@ -136198,7 +136231,7 @@ var init_plugin = __esmMin((() => {
 			Object.defineProperty(window_default, "cursors", { get: () => this.cursors });
 			Object.defineProperty(commands_default, "nvim", { get: () => this.nvim });
 			this.cursors = new Cursors(nvim);
-			manager_default$1.init(nvim);
+			manager_default.init(nvim);
 			this.addAction("checkJsonExtension", () => {
 				if (extension_default.has("coc-json")) return;
 				window_default.showInformationMessage(`Run :CocInstall coc-json for json intellisense`);
@@ -136215,10 +136248,10 @@ var init_plugin = __esmMin((() => {
 			this.addAction("doKeymap", (key, defaultReturn) => this.handler.workspace.doKeymap(key, defaultReturn));
 			this.addAction("registerExtensions", (...folders) => extension_default.manager.loadExtension(folders), "registExtensions");
 			this.addAction("snippetCheck", (checkExpand, checkJump) => this.handler.workspace.snippetCheck(checkExpand, checkJump));
-			this.addAction("snippetInsert", (range, newText, mode, ultisnip) => manager_default.insertSnippet(newText, true, range, mode, ultisnip));
-			this.addAction("snippetNext", () => manager_default.nextPlaceholder());
-			this.addAction("snippetPrev", () => manager_default.previousPlaceholder());
-			this.addAction("snippetCancel", () => manager_default.cancel());
+			this.addAction("snippetInsert", (range, newText, mode, ultisnip) => manager_default$1.insertSnippet(newText, true, range, mode, ultisnip));
+			this.addAction("snippetNext", () => manager_default$1.nextPlaceholder());
+			this.addAction("snippetPrev", () => manager_default$1.previousPlaceholder());
+			this.addAction("snippetCancel", () => manager_default$1.cancel());
 			this.addAction("openLocalConfig", () => this.handler.workspace.openLocalConfig());
 			this.addAction("bufferCheck", () => this.handler.workspace.bufferCheck());
 			this.addAction("showInfo", () => this.handler.workspace.showInfo());
@@ -136226,16 +136259,16 @@ var init_plugin = __esmMin((() => {
 			this.addAction("cursorsSelect", (bufnr, kind, mode) => this.cursors.select(bufnr, kind, mode));
 			this.addAction("commandList", () => this.handler.commands.getCommandList());
 			this.addAction("selectSymbolRange", (inner, visualmode, supportedSymbols) => this.handler.symbols.selectSymbolRange(inner, visualmode, supportedSymbols));
-			this.addAction("openList", (...args) => manager_default$1.start(args));
-			this.addAction("listNames", () => manager_default$1.names);
-			this.addAction("listDescriptions", () => manager_default$1.descriptions);
-			this.addAction("listLoadItems", (name) => manager_default$1.loadItems(name));
-			this.addAction("listResume", (name) => manager_default$1.resume(name));
-			this.addAction("listCancel", () => manager_default$1.cancel(true));
-			this.addAction("listPrev", (name) => manager_default$1.previous(name));
-			this.addAction("listNext", (name) => manager_default$1.next(name));
-			this.addAction("listFirst", (name) => manager_default$1.first(name));
-			this.addAction("listLast", (name) => manager_default$1.last(name));
+			this.addAction("openList", (...args) => manager_default.start(args));
+			this.addAction("listNames", () => manager_default.names);
+			this.addAction("listDescriptions", () => manager_default.descriptions);
+			this.addAction("listLoadItems", (name) => manager_default.loadItems(name));
+			this.addAction("listResume", (name) => manager_default.resume(name));
+			this.addAction("listCancel", () => manager_default.cancel(true));
+			this.addAction("listPrev", (name) => manager_default.previous(name));
+			this.addAction("listNext", (name) => manager_default.next(name));
+			this.addAction("listFirst", (name) => manager_default.first(name));
+			this.addAction("listLast", (name) => manager_default.last(name));
 			this.addAction("sendRequest", (id, method, params) => services_default.sendRequest(id, method, params));
 			this.addAction("sendNotification", (id, method, params) => services_default.sendNotification(id, method, params));
 			this.addAction("registerNotification", (id, method) => services_default.registerNotification(id, method), "registNotification");
@@ -136320,7 +136353,7 @@ var init_plugin = __esmMin((() => {
 			this.addAction("addCommand", (cmd) => this.handler.commands.addVimCommand(cmd));
 			this.addAction("addRanges", (ranges) => this.cursors.addRanges(ranges));
 			this.addAction("currentWorkspacePath", () => workspace_default.rootPath);
-			this.addAction("selectCurrentPlaceholder", (triggerAutocmd) => manager_default.selectCurrentPlaceholder(!!triggerAutocmd));
+			this.addAction("selectCurrentPlaceholder", (triggerAutocmd) => manager_default$1.selectCurrentPlaceholder(!!triggerAutocmd));
 			this.addAction("codeActionRange", (start, end, only) => this.handler.codeActions.codeActionRange(start, end, only));
 			this.addAction("incomingCalls", (item) => this.handler.callHierarchy.getIncoming(item));
 			this.addAction("outgoingCalls", (item) => this.handler.callHierarchy.getOutgoing(item));
@@ -136359,14 +136392,15 @@ var init_plugin = __esmMin((() => {
 			await extension_default.init(rtp);
 			await workspace_default.init(window_default);
 			nvim.setVar("coc_workspace_initialized", true, true);
-			manager_default.init();
+			manager_default$1.init();
 			services_default.init();
 			sources_default.init();
+			languages_default.sources = sources_default;
 			completion_default.init();
 			manager_default$2.init();
 			this.handler = new Handler(nvim);
 			this.disposables.push(this.handler);
-			manager_default$1.registerLists();
+			manager_default.registerLists();
 			await extension_default.activateExtensions();
 			workspace_default.configurations.flushConfigurations();
 			nvim.pauseNotification();
@@ -136394,12 +136428,12 @@ var init_plugin = __esmMin((() => {
 		dispose() {
 			disposeAll(this.disposables);
 			extension_default.dispose();
-			manager_default$1.dispose();
+			manager_default.dispose();
 			workspace_default.dispose();
 			window_default.dispose();
 			sources_default.dispose();
 			services_default.dispose();
-			manager_default.dispose();
+			manager_default$1.dispose();
 			commands_default.dispose();
 			completion_default.dispose();
 			manager_default$2.dispose();

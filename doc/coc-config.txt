@@ -346,7 +346,8 @@ EDITOR
 
 "editor.autocmdTimeout"
 
-	Timeout for execute request autocmd registered by coc extensions.
+	Timeout in miniseconds for execute request autocmd registered by coc
+	extensions.
 
 	Scope: `application`, default: `1000`
 
