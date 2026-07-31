@@ -320,10 +320,11 @@ class Events {
         break
       }
       case EventName.BufWinLeave:
-      case EventName.WinClosed: {
+        this.clearVisibleTimer(args[1])
+        break
+      case EventName.WinClosed:
         this.clearVisibleTimer(args[0])
         break
-      }
       case EventName.ModeChanged: {
         this._mode = args[0].new_mode
         break
