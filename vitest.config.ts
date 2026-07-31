@@ -1,8 +1,5 @@
 import { execSync } from 'node:child_process'
-import path from 'path'
 import { defineConfig } from 'vitest/config'
-
-const SRC_ROOT = path.resolve(__dirname, 'src')
 
 function runCommand(command) {
   return execSync(command, {
@@ -15,22 +12,12 @@ function runCommand(command) {
 }
 
 export default defineConfig({
-  plugins: [
-    {
-      name: 'register-ts-module',
-      enforce: 'post',
-      transform(code, id) {
-        const cleanId = id.split('?')[0]
-        if (!cleanId.endsWith('.ts')) return
-        if (!cleanId.startsWith(SRC_ROOT)) return
-        if (cleanId.includes(`${path.sep}__tests__${path.sep}`)) return
-        const append = `\n;(globalThis.__esmModuleCache ||= new Map()).set(${JSON.stringify(cleanId)}, module.exports);`
-        return { code: code + append, map: null }
-      },
-    },
-  ],
+  plugins: [],
   test: {
     globals: true,
+    experimental: {
+      fsModuleCache: true,
+    },
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     clearMocks: true,
@@ -51,7 +38,18 @@ export default defineConfig({
         pool: 'forks',
         detectAsyncLeaks: true,
         include: runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'),
-        exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
+        exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts', 'src/__tests__/vim.test.ts'],
+      },
+    }, {
+      extends: true,
+      test: {
+        isolate: true,
+        pool: 'forks',
+        name: 'sequential-vim',
+        env: { VIM_NODE_RPC: '1' },
+        detectAsyncLeaks: true,
+        include: ['src/__tests__/vim.test.ts'],
+        fileParallelism: false,
       },
     }, {
       extends: true,

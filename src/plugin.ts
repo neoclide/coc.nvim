@@ -1,5 +1,4 @@
 'use strict'
-import { Neovim } from './neovim'
 import { CallHierarchyItem, CodeAction, CodeActionKind, InsertTextMode, Range, WorkspaceSymbol } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion, { Completion } from './completion'
@@ -11,8 +10,10 @@ import events from './events'
 import extensions from './extension'
 import Handler from './handler'
 import { AcceptKind, InlineSuggestOption } from './handler/inline'
+import languages from './languages'
 import listManager from './list/manager'
 import { createLogger } from './logger'
+import { Neovim } from './neovim'
 import services from './services'
 import snippetManager from './snippets/manager'
 import { HoverTarget, UltiSnippetOption } from './types'
@@ -219,6 +220,7 @@ export default class Plugin {
     snippetManager.init()
     services.init()
     sources.init()
+    languages.sources = sources
     completion.init()
     diagnosticManager.init()
     this.handler = new Handler(nvim)

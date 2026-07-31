@@ -1,15 +1,15 @@
-vi.hoisted(() => {
-  process.env.VIM_NODE_RPC = '1'
-})
-import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
 import { Position, Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
+import sources from '../completion/sources'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
+import * as funcs from '../core/funcs'
+import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
+import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
 import { sameFile } from '../util/fs'
 import helper from './helper'
 
@@ -82,7 +82,6 @@ describe('vim api', () => {
 
   it('should navigate complete items', async () => {
     helper.updateConfiguration('suggest.noselect', true)
-    const sources = require('../completion/sources').default
     let name = Math.random().toString(16).slice(-6)
     let disposable = sources.createSource({
       name,
@@ -106,7 +105,6 @@ describe('vim api', () => {
   })
 
   it('should synchronize document before completion done', async () => {
-    const sources = require('../completion/sources').default
     let line: string
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
@@ -134,7 +132,6 @@ describe('vim api', () => {
   it('should place popup menu after concealed text on current line', async () => {
     // Regression for #5582: Vim's popup 'cursor' column anchor ignores concealed
     // text, so the menu must be positioned with the conceal-aware screen column.
-    const sources = require('../completion/sources').default
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -177,7 +174,6 @@ describe('vim api', () => {
     // multiple display rows. A flat column subtraction underflows below 0 and the
     // menu was clamped to the left screen edge, while the word visibly starts near
     // the right edge on an upper row. The menu must anchor under the word start.
-    const sources = require('../completion/sources').default
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -217,7 +213,6 @@ describe('vim api', () => {
   })
 
   it('should keep popup menu at word start when typed input becomes concealed', async () => {
-    const sources = require('../completion/sources').default
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -259,7 +254,6 @@ describe('vim api', () => {
   })
 
   it('should keep popup menu at word start after another concealed word', async () => {
-    const sources = require('../completion/sources').default
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -295,7 +289,6 @@ describe('vim api', () => {
   })
 
   it('should echo message by callTimer', async () => {
-    const ui = require('../core/ui')
     ui.echoMessages(nvim, 'message', 'more', 'more')
     await helper.waitValue(async () => {
       let line = await helper.getCmdline()
@@ -304,7 +297,6 @@ describe('vim api', () => {
   })
 
   it('should call async', async () => {
-    const funcs = require('../core/funcs')
     await nvim.command('normal! gg')
     let res = await funcs.callAsync(nvim, 'line', ['.'])
     expect(res).toBe(1)

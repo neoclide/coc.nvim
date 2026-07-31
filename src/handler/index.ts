@@ -1,5 +1,4 @@
 'use strict'
-import { Neovim } from '../neovim'
 import { CodeAction, CodeActionKind, Location, Position, Range, SymbolKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../commands'
@@ -8,6 +7,7 @@ import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
+import { Neovim } from '../neovim'
 import { TextDocumentMatch } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import { getSymbolKind } from '../util/convert'
@@ -207,7 +207,8 @@ export default class Handler implements HandlerDelegate {
   public async getCurrentState(): Promise<CurrentState> {
     let { nvim } = this
     let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#cursor#position(),win_getid(),mode()]") as [number, [number, number], number, string]
-    let doc = workspace.getAttachedDocument(bufnr)
+    let doc = await workspace.document
+    workspace.getAttachedDocument(bufnr)
     return {
       doc,
       mode,

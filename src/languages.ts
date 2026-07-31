@@ -125,6 +125,7 @@ class Languages {
   private inlineValueManager = new InlineValueManager()
   public readonly registerDocumentRangeFormattingEditProvider: any
   public readonly registerDocumentFormattingEditProvider: any
+  public sources: Sources
 
   public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
 
@@ -163,9 +164,8 @@ class Languages {
     allCommitCharacters?: string[]
   ): Disposable {
     selector = Is.string(selector) ? [{ language: selector }] : selector
-    let sources = require('./completion/sources').default as Sources
-    sources.removeSource(name)
-    return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
+    this.sources.removeSource(name)
+    return this.sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
   }
 
   public registerInlineCompletionItemProvider(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable {

@@ -1,32 +1,8 @@
 import fs from 'fs'
-import Module from 'module'
 import os from 'os'
 import path from 'path'
-import ts from 'typescript'
 
-const tsExt = '.ts'
-if (!(Module as any)._extensions[tsExt]) {
-  ; (Module as any)._extensions[tsExt] = function(module: any, filename: string) {
-    const cache = (globalThis as any).__esmModuleCache as Map<string, any> | undefined
-    if (cache && cache.has(filename)) {
-      module.exports = cache.get(filename)
-      return
-    }
-    const source = fs.readFileSync(filename, 'utf8')
-    const { outputText } = ts.transpileModule(source, {
-      fileName: filename,
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-        esModuleInterop: true,
-      },
-    })
-    module._compile(outputText, filename)
-  }
-}
-
-
-; (globalThis as any).__TEST__ = true
+(globalThis as any).__TEST__ = true
 let tmpdir = process.env.TMPDIR ?? os.tmpdir()
 if (!tmpdir.endsWith('coc-test')) {
   tmpdir = process.env.TMPDIR = path.join(os.tmpdir(), 'coc-test')

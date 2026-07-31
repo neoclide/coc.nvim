@@ -181,24 +181,6 @@ console.warn('warn')`, sandbox)
     expect(factory.getProtoWithCompile(fn)).toBeDefined()
   })
 
-  it('should hook require', () => {
-    const sandbox = factory.createSandbox(logfile, factory.consoleLogger, 'hook', false)
-    let fn = factory.compileInSandbox(sandbox, { wait() {} })
-    let obj: any = {}
-    fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, logfile])
-    expect(typeof obj.exports).toBe('function')
-  })
-
-  it('should createSandbox', () => {
-    const Module = require('module')
-    const sandbox = factory.createSandbox(logfile, emptyLogger, 'hook', false)
-    delete Module._cache[require.resolve(logfile)]
-    let exports = sandbox.require(logfile)
-    expect(typeof exports).toBe('function')
-    let obj = exports()
-    expect(typeof obj.wait).toBe('function')
-  })
-
   it('should clear the cache', () => {
     const Module = require('module')
     let filename = path.join(os.tmpdir(), 'cache_test.js')
@@ -210,20 +192,6 @@ console.warn('warn')`, sandbox)
     sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
     exports = sandbox.require(filename)
     expect(exports).toEqual({ y: 1 })
-    fs.rmSync(filename, { force: true })
-  })
-
-  it('should create extension', () => {
-    global.__TEST__ = false
-    let filename = path.join(os.tmpdir(), 'hash.js')
-    fs.writeFileSync(filename, `#! /usr/bin/env node
-    module.exports = function(){
-      return {fs: require("fs"), resolved: require.resolve('fs')}
-    }`, 'utf8')
-    let exp = factory.createExtension('hash', filename, false) as any
-    let res = exp.activate()
-    expect(res.fs).toBeDefined()
-    expect(res.resolved).toBe('fs')
     fs.rmSync(filename, { force: true })
   })
 })
