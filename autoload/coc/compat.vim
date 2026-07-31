@@ -25,8 +25,13 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if a:bufnr != 0 && !bufexists(a:bufnr)
     return
   endif
+  let args = [a:bufnr, a:mode, a:lhs]
+  " Neovim 0.13+ requires the optional opts argument.
+  if has('nvim-0.13')
+    call add(args, {})
+  endif
   try
-    call coc#compat#call('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
+    call coc#compat#call('buf_del_keymap', args)
   catch /E31/
     " ignore keymap doesn't exist
   endtry
