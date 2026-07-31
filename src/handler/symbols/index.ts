@@ -39,16 +39,17 @@ export default class Symbols {
     this.outline = new Outline(nvim, this.buffers, handler)
     const debounceTime = workspace.initialConfiguration.get<number>('coc.preferences.currentFunctionSymbolDebounceTime', 300)
     let prev = ''
+    // update current function symbol after CursorMoved
     let debounced = debounce(async (bufnr: number, cursor: [number, number]) => {
-      if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return
-      let doc = workspace.getDocument(bufnr)
+      let item = this.buffers.getItem(bufnr)
+      if (!item || !this.autoUpdate(bufnr)) return
+      let doc = item.doc
       let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
       let pos = Position.create(cursor[0] - 1, character)
       let func = await this.getFunctionSymbol(bufnr, pos)
-      let buffer = nvim.createBuffer(bufnr)
       if (func != prev) {
         prev = func
-        buffer.setVar('coc_current_function', func, true)
+        doc.buffer.setVar('coc_current_function', func, true)
         this.nvim.callTimer('coc#util#do_autocmd', ['CocStatusChange'], true)
       }
     }, getConditionValue(debounceTime, 0))

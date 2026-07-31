@@ -237,75 +237,97 @@ class Events {
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
-    if (event === EventName.Ready) {
-      this._ready = true
-    } else if (event == EventName.InsertEnter) {
-      this._insertMode = true
-    } else if (event == EventName.InsertLeave) {
-      this._insertMode = false
-      this._pumVisible = false
-      this._recentInserts = []
-    } else if (event == EventName.CursorHoldI || event == EventName.CursorMovedI) {
-      this._bufnr = args[0]
-      if (!this._insertMode) {
+    switch (event) {
+      case EventName.Ready:
+        this._ready = true
+        break
+      case EventName.InsertEnter:
         this._insertMode = true
-        void this.fire(EventName.InsertEnter, [args[0]])
-      }
-    } else if (event == EventName.CursorHold || event == EventName.CursorMoved) {
-      this._bufnr = args[0]
-      if (this._insertMode) {
+        break
+      case EventName.InsertLeave:
         this._insertMode = false
-        void this.fire(EventName.InsertLeave, [args[0]])
-      }
-    } else if (event == EventName.MenuPopupChanged) {
-      this._pumVisible = true
-      this._pumAlignTop = args[1] > args[0].row
-      this._pumInserted = args[0].inserted
-    } else if (event == EventName.InsertCharPre) {
-      this._recentInserts.push([args[1], args[0]])
-    } else if (event == EventName.TextChanged) {
-      this._lastChange = Date.now()
-    } else if (event == EventName.BufEnter) {
-      this._bufnr = args[0]
-    } else if (event == EventName.TextChangedI || event == EventName.TextChangedP) {
-      let info: InsertChange = args[1]
-      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
-      let arr: [number, string][]
-      arr = this._recentInserts.filter(o => o[0] == args[0])
-      this._bufnr = args[0]
-      this._recentInserts = []
-      this._lastChange = Date.now()
-      info.pre = pre
-      info.insertChars = arr.map(o => o[1])
-      // fix cursor since vim may not send CursorMovedI event
-      this._cursor = Object.freeze({
-        bufnr: args[0],
-        lnum: info.lnum,
-        col: info.col,
-        insert: true
-      })
-      if (arr.length && pre.length) {
-        let character = pre.slice(-1)
-        if (arr.findIndex(o => o[1] == character) !== -1) {
-          info.insertChar = character
-          // make it fires after TextChangedI & TextChangedP
-          process.nextTick(() => {
-            void this.fire(EventName.TextInsert, [...args, character])
-          })
+        this._pumVisible = false
+        this._recentInserts = []
+        break
+      case EventName.CursorHoldI:
+      case EventName.CursorMovedI:
+        this._bufnr = args[0]
+        if (!this._insertMode) {
+          this._insertMode = true
+          void this.fire(EventName.InsertEnter, [args[0]])
         }
+        break
+      case EventName.CursorHold:
+      case EventName.CursorMoved:
+        this._bufnr = args[0]
+        if (this._insertMode) {
+          this._insertMode = false
+          void this.fire(EventName.InsertLeave, [args[0]])
+        }
+        break
+      case EventName.MenuPopupChanged:
+        this._pumVisible = true
+        this._pumAlignTop = args[1] > args[0].row
+        this._pumInserted = args[0].inserted
+        break
+      case EventName.InsertCharPre:
+        this._recentInserts.push([args[1], args[0]])
+        break
+      case EventName.TextChanged:
+        this._lastChange = Date.now()
+        break
+      case EventName.BufEnter:
+        this._bufnr = args[0]
+        break
+      case EventName.TextChangedI:
+      case EventName.TextChangedP: {
+        this._lastChange = Date.now()
+        let info: InsertChange = args[1]
+        let pre = byteSlice(info.line ?? '', 0, info.col - 1)
+        let arr: [number, string][]
+        arr = this._recentInserts.filter(o => o[0] == args[0])
+        this._bufnr = args[0]
+        this._recentInserts = []
+        info.pre = pre
+        info.insertChars = arr.map(o => o[1])
+        // fix cursor since vim may not send CursorMovedI event
+        this._cursor = Object.freeze({
+          bufnr: args[0],
+          lnum: info.lnum,
+          col: info.col,
+          insert: true
+        })
+        if (arr.length && pre.length) {
+          let character = pre.slice(-1)
+          if (arr.findIndex(o => o[1] == character) !== -1) {
+            info.insertChar = character
+            // make it fires after TextChangedI & TextChangedP
+            process.nextTick(() => {
+              void this.fire(EventName.TextInsert, [...args, character])
+            })
+          }
+        }
+        break
       }
-    } else if (event == EventName.BufWinEnter) {
-      const [bufnr, winid, region] = args
-      this.fireVisibleEvent({ bufnr, winid, region })
-    } else if (event == EventName.WinScrolled) {
-      const [winid, bufnr, region] = args
-      this.fireVisibleEvent({ bufnr, winid, region })
-    } else if (event == EventName.WinClosed) {
-      this.clearVisibleTimer(args[0])
-    } else if (event == EventName.BufWinLeave) {
-      this.clearVisibleTimer(args[1])
-    } else if (event == EventName.ModeChanged) {
-      this._mode = args[0].new_mode
+      case EventName.BufWinEnter: {
+        const [bufnr, winid, region] = args
+        this.fireVisibleEvent({ bufnr, winid, region })
+        break
+      }
+      case EventName.WinScrolled: {
+        const [winid, bufnr, region] = args
+        this.fireVisibleEvent({ bufnr, winid, region })
+        break
+      }
+      case EventName.BufWinLeave:
+      case EventName.WinClosed: {
+        this.clearVisibleTimer(args[0])
+        break
+      }
+      case EventName.ModeChanged: {
+        this._mode = args[0].new_mode
+        break
+      }
     }
     if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
