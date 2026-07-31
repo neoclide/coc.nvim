@@ -207,8 +207,8 @@ export default class Handler implements HandlerDelegate {
   public async getCurrentState(): Promise<CurrentState> {
     let { nvim } = this
     let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#cursor#position(),win_getid(),mode()]") as [number, [number, number], number, string]
-    let doc = await workspace.document
-    workspace.getAttachedDocument(bufnr)
+    await workspace.document
+    let doc = workspace.getAttachedDocument(bufnr)
     return {
       doc,
       mode,
