@@ -26,7 +26,7 @@ Notable changes of coc.nvim:
 
 ## 2025-06-22
 
-- Link highlight group `CocSnippetVisual` to `SnippetTabstop` when exists.
+- Break change: Link highlight group `CocSnippetVisual` to `SnippetTabstop` when exists.
 
 ## 2025-06-11
 
