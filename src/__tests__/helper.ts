@@ -1,4 +1,3 @@
-import type { Buffer, Neovim, Window } from '../neovim'
 import * as cp from 'child_process'
 import crypto from 'crypto'
 import { EventEmitter } from 'events'
@@ -13,6 +12,7 @@ import type { Completion } from '../completion'
 import { DurationCompleteItem } from '../completion/types'
 import events from '../events'
 import type Document from '../model/document'
+import type { Buffer, Neovim, Window } from '../neovim'
 import type Plugin from '../plugin'
 import type { ProviderResult } from '../provider'
 import { OutputChannel } from '../types'
@@ -107,7 +107,6 @@ export class Helper extends EventEmitter {
     let address = await this.listenOnVim(server)
     let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
-      shell: true,
       cwd: __dirname,
       env: {
         COC_NVIM_REMOTE_ADDRESS: address,

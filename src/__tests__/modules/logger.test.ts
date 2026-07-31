@@ -1,12 +1,12 @@
-import { FileLogger, toTwoDigits, toThreeDigits, textToLogLevel, format, DEFAULT_LOG_LEVEL, LogLevel, stringifyLogLevel } from '../../logger/log'
-import { createLogger, logger, getTimestamp, resolveLogFilepath, emptyFile } from '../../logger/index'
-import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import path from 'path'
+import { createLogger, emptyFile, getTimestamp, logger, resolveLogFilepath } from '../../logger/index'
+import { DEFAULT_LOG_LEVEL, FileLogger, format, LogLevel, stringifyLogLevel, textToLogLevel, toThreeDigits, toTwoDigits } from '../../logger/log'
 
 let filepath: string
 afterEach(() => {
-  if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+  if (filepath && fs.existsSync(filepath)) fs.unlinkSync(filepath)
 })
 
 describe('FileLogger', () => {

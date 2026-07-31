@@ -24,7 +24,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   disposeAll(disposables)
-  if (fs.existsSync(tmpfolder)) {
+  if (tmpfolder && fs.existsSync(tmpfolder)) {
     fs.rmSync(tmpfolder, { force: true, recursive: true })
   }
 })

@@ -254,7 +254,7 @@ export default class Configurations {
   }
 
   private watchFile(filepath: string, target: ConfigurationTarget): void {
-    if (!fs.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return
+    if (!filepath || !fs.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return
     this._watchedFiles.add(filepath)
     const folder = ConfigurationTarget.WorkspaceFolder ? normalizeFilePath(path.resolve(filepath, '../..')) : undefined
     let disposable = watchFile(filepath, () => {

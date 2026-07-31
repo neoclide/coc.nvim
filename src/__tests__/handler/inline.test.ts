@@ -1,5 +1,4 @@
 import type { Mock, MockInstance } from 'vitest'
-import { Neovim } from '../../neovim'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../../commands'
 import sources from '../../completion/sources'
@@ -7,6 +6,7 @@ import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../comp
 import events from '../../events'
 import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSession } from '../../handler/inline'
 import languages from '../../languages'
+import { Neovim } from '../../neovim'
 import { Disposable } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
