@@ -2,10 +2,10 @@
  * First byte tables length,
  * 4 * table_length each table byte length.
  */
-import { fs, path } from '../util/node'
 import { createLogger } from '../logger'
-import { byteLength, byteSlice } from '../util/string'
 import { dataHome } from '../util/constants'
+import { fs, path } from '../util/node'
+import { byteLength, byteSlice } from '../util/string'
 const logger = createLogger('list-db')
 
 const DB_PATH = path.join(dataHome, 'list_history.dat')
@@ -84,6 +84,7 @@ export class DataBase {
       return p
     }, [] as Buffer[])
     let resultBuf = Buffer.concat([buf, folderBuf, nameBuf, ...bufs])
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
     fs.writeFileSync(DB_PATH, resultBuf)
     this._changed = false
   }

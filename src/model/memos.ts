@@ -1,6 +1,6 @@
 'use strict'
 import { loadJson, writeJson } from '../util/fs'
-import { fs } from '../util/node'
+import { fs, path } from '../util/node'
 import { deepClone } from '../util/object'
 
 /**
@@ -16,6 +16,7 @@ export interface Memento {
 export default class Memos {
   constructor(private filepath: string) {
     if (!fs.existsSync(filepath)) {
+      fs.mkdirSync(path.dirname(filepath), { recursive: true })
       fs.writeFileSync(filepath, '{}', 'utf8')
     }
   }

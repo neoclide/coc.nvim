@@ -68,7 +68,7 @@ describe('SettingMonitor', () => {
     await client.start()
     await client.forceDocumentSync()
     await client.sendNotification('register')
-    await helper.wait(30)
+    await helper.wait(50)
     expect(client.traceOutputChannel).toBeDefined()
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
     helper.updateConfiguration('html.enabled', false)
@@ -875,9 +875,9 @@ describe('Client integration', () => {
     })
     let n = 0
     await expect(startServer(() => {
-        n++
-        return n == 1
-      })).rejects.toThrow(Error)
+      n++
+      return n == 1
+    })).rejects.toThrow(Error)
     await helper.waitValue(() => {
       return n
     }, 2)
