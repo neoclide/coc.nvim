@@ -912,4 +912,57 @@ describe('Client integration', () => {
     registry.unregistExtension('single')
     await client.dispose()
   })
+
+  describe('server start failure', () => {
+    it('should reject start when module runtime is not found', async () => {
+      let serverOptions: lsclient.ServerOptions = {
+        module: path.join(__dirname, './server/testServer.js'),
+        runtime: path.join(__dirname, './server/not-found-node'),
+        transport: lsclient.TransportKind.stdio
+      }
+      let client = new lsclient.LanguageClient('bad-runtime', 'Test Language Server', serverOptions, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(client.start()).rejects.toThrow(/ENOENT|spawn/)
+      await client.dispose()
+    })
+
+    it('should reject start when command is not found', async () => {
+      let serverOptions: lsclient.ServerOptions = {
+        command: path.join(__dirname, './server/not-found-command'),
+        args: ['--stdio'],
+        transport: lsclient.TransportKind.stdio
+      }
+      let client = new lsclient.LanguageClient('bad-command', 'Test Language Server', serverOptions, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(client.start()).rejects.toThrow(/ENOENT|spawn/)
+      await client.dispose()
+    })
+
+    it('should still start a valid server after a failed start', async () => {
+      let bad = new lsclient.LanguageClient('bad-runtime', 'Test Language Server', {
+        module: path.join(__dirname, './server/testServer.js'),
+        runtime: path.join(__dirname, './server/not-found-node'),
+        transport: lsclient.TransportKind.stdio
+      }, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(bad.start()).rejects.toThrow(/ENOENT|spawn/)
+      let good = new lsclient.LanguageClient('css', 'Test Language Server', {
+        module: path.join(__dirname, './server/testServer.js'),
+        transport: lsclient.TransportKind.stdio
+      }, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await good.start()
+      expect(good.initializeResult).toBeDefined()
+      await good.dispose()
+      await bad.dispose()
+    })
+  })
 })

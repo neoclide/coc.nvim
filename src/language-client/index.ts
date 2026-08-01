@@ -338,7 +338,7 @@ export class LanguageClient extends BaseLanguageClient {
         let transport = node.transport || TransportKind.stdio
         let pipeName: string | undefined
         let runtime = node.runtime ? getRuntimePath(node.runtime, serverWorkingDir) : undefined
-        return new Promise<MessageTransports>((resolve, _reject) => {
+        return new Promise<MessageTransports>((resolve, reject) => {
           let args = node.args && node.args.slice() || []
           if (transport === TransportKind.ipc) {
             args.push('--node-ipc')
@@ -359,40 +359,70 @@ export class LanguageClient extends BaseLanguageClient {
 
           if (runtime) options.execPath = runtime
           if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
-            // options.stdio = 'ignore'
-            let sp = child_process.fork(node.module, args, options)
-            assertStdio(sp)
-            this._serverProcess = sp
-            logger.info(`Language server "${this.id}" started with ${sp.pid}`)
-            pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
-            if (transport === TransportKind.ipc) {
-              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
-              resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
-            } else {
-              resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
-            }
+            forkServer(node, args, options).then(sp => {
+              try {
+                assertStdio(sp)
+              } catch (e) {
+                reject(e)
+                return
+              }
+              this._serverProcess = sp
+              logger.info(`Language server "${this.id}" started with ${sp.pid}`)
+              pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
+              if (transport === TransportKind.ipc) {
+                pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
+                resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
+              } else {
+                resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
+              }
+            }, err => {
+              this.error(`Starting language server "${this.id}" failed.`, err, false)
+              reject(err)
+            })
           } else if (transport === TransportKind.pipe) {
             return createClientPipeTransport(pipeName!).then(transport => {
-              let sp = child_process.fork(node.module, args, options)
-              assertStdio(sp)
-              logger.info(`Language server "${this.id}" started with ${sp.pid}`)
-              this._serverProcess = sp
-              pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
-              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
-              void transport.onConnected().then(protocol => {
-                resolve({ reader: protocol[0], writer: protocol[1] })
+              return forkServer(node, args, options).then(sp => {
+                try {
+                  assertStdio(sp)
+                } catch (e) {
+                  transport.dispose()
+                  reject(e)
+                  return
+                }
+                logger.info(`Language server "${this.id}" started with ${sp.pid}`)
+                this._serverProcess = sp
+                pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
+                pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
+                void transport.onConnected().then(protocol => {
+                  resolve({ reader: protocol[0], writer: protocol[1] })
+                })
+              }, err => {
+                transport.dispose()
+                this.error(`Starting language server "${this.id}" failed.`, err, false)
+                reject(err)
               })
             })
           } else if (Transport.isSocket(transport)) {
             return createClientSocketTransport(transport.port).then(transport => {
-              let sp = child_process.fork(node.module, args, options)
-              assertStdio(sp)
-              this._serverProcess = sp
-              logger.info(`Language server "${this.id}" started with ${sp.pid}`)
-              pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
-              pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
-              void transport.onConnected().then(protocol => {
-                resolve({ reader: protocol[0], writer: protocol[1] })
+              return forkServer(node, args, options).then(sp => {
+                try {
+                  assertStdio(sp)
+                } catch (e) {
+                  transport.dispose()
+                  reject(e)
+                  return
+                }
+                this._serverProcess = sp
+                logger.info(`Language server "${this.id}" started with ${sp.pid}`)
+                pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
+                pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
+                void transport.onConnected().then(protocol => {
+                  resolve({ reader: protocol[0], writer: protocol[1] })
+                })
+              }, err => {
+                transport.dispose()
+                this.error(`Starting language server "${this.id}" failed.`, err, false)
+                reject(err)
               })
             })
           }
@@ -546,6 +576,36 @@ export function getServerWorkingDir(options?: { cwd?: string }): Promise<string 
   })
 }
 
+/**
+ * Fork a language server module and make sure a failed spawn rejects the
+ * returned promise instead of emitting an unhandled `error` event, which
+ * would crash the coc.nvim process. A failed spawn (invalid runtime path,
+ * missing module, EACCES) reports `pid === undefined` and fires `error`
+ * asynchronously, and the stdio streams still exist so `assertStdio` can't
+ * detect it.
+ */
+function forkServer(node: NodeModule, args: string[], options: CForkOptions): Promise<ChildProcess> {
+  return new Promise<ChildProcess>((resolve, reject) => {
+    let sp: ChildProcess
+    try {
+      sp = child_process.fork(node.module, args, options)
+    } catch (e) {
+      reject(e)
+      return
+    }
+    sp.on('error', err => {
+      reject(err instanceof Error ? err : new Error(String(err)))
+    })
+    if (sp.pid === undefined) {
+      // Spawn failed (invalid runtime path, missing module, EACCES): keep the
+      // promise pending until the 'error' event rejects it. Resolving first
+      // would make the later rejection a no-op and hang the caller.
+      return
+    }
+    resolve(sp)
+  })
+}
+
 export function startedInDebugMode(args: string[] | undefined): boolean {
   if (args) {
     return args.some(arg => {
@@ -583,4 +643,3 @@ export function checkProcessDied(childProcess: ChildProcess | undefined): void {
     }
   }, STOP_TIMEOUT)
 }
-
