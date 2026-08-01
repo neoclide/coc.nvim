@@ -3,13 +3,9 @@ import os from 'os'
 import path from 'path'
 
 (globalThis as any).__TEST__ = true
-let tmpdir = process.env.TMPDIR ?? os.tmpdir()
-if (!tmpdir.endsWith('coc-test')) {
-  tmpdir = process.env.TMPDIR = path.join(os.tmpdir(), 'coc-test')
-}
-
-const dataHome = path.join(tmpdir, process.pid.toString())
-fs.mkdirSync(dataHome, { recursive: true })
+const dataHome = path.join(os.tmpdir(), 'coc-test' + process.pid.toString())
+const tmpdir = path.join(dataHome, 'tmp')
+fs.mkdirSync(tmpdir, { recursive: true })
 // Redirect runtime sockets to the writable per-process test dir. The LSP pipe
 // transport builds its socket path from $XDG_RUNTIME_DIR (falling back to
 // os.tmpdir()), so an ambient XDG_RUNTIME_DIR pointing at e.g. ~/.local/share

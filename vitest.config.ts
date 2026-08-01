@@ -39,25 +39,15 @@ export default defineConfig({
         isolate: true,
         pool: 'forks',
         include: [...runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'), 'src/__tests__/configuration/configurationModel.test.ts'],
-        exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/vim.test.ts'],
+        exclude: ['src/__tests__/vim.test.ts'],
       },
     }, {
       extends: true,
       test: {
-        isolate: true,
         pool: 'forks',
         name: 'sequential-vim',
         env: { VIM_NODE_RPC: '1' },
         include: ['src/__tests__/vim.test.ts'],
-      },
-    }, {
-      extends: true,
-      test: {
-        isolate: true,
-        pool: 'forks',
-        name: 'sequential',
-        include: ['src/__tests__/completion/float.test.ts'],
-        fileParallelism: false,
       },
     }],
     coverage: {

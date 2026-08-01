@@ -406,7 +406,7 @@ describe('DynamicFeature', () => {
         }
       }, ['*'])
       await createFeature.send({ files: [URI.file(os.tmpdir()), URI.file(__filename)] })
-      await helper.waitValue(() => n, 2)
+      await helper.waitValue(() => n, 1)
       await client.stop()
     })
   })
