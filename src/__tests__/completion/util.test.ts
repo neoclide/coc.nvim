@@ -1,9 +1,9 @@
 import { Neovim } from '../../neovim'
 import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { sortItems } from '../../completion/complete'
+import Complete, { selectTopItems, sortItems } from '../../completion/complete'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
-import { CompleteOption, InsertMode, ISource, SortMethod } from '../../completion/types'
+import { CompleteConfig, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from '../../completion/types'
 import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentations, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events, { InsertChange } from '../../events'
@@ -560,6 +560,178 @@ describe('util functions', () => {
       check({ sortText: 'b' }, { sortText: 'a' }, 1)
       check({ sortText: 'a' }, { sortText: 'b' }, -1)
       check({ localBonus: 1 }, { localBonus: 2 }, 1)
+    })
+  })
+
+  describe('selectTopItems', () => {
+    it('should return empty for non-positive count', () => {
+      expect(selectTopItems([3, 1, 2], 0, (a, b) => a - b)).toEqual([])
+    })
+
+    it('should sort when array is not larger than count', () => {
+      let items = selectTopItems([3, 1, 2], 5, (a, b) => a - b)
+      expect(items).toEqual([1, 2, 3])
+    })
+
+    it('should keep only the best items in order', () => {
+      let items = [10, 1, 9, 2, 8, 3, 7, 4, 6, 5]
+      let top = selectTopItems(items, 3, (a, b) => a - b)
+      expect(top).toEqual([1, 2, 3])
+      // original array untouched except when it fits entirely
+      expect(items).toEqual([10, 1, 9, 2, 8, 3, 7, 4, 6, 5])
+    })
+
+    it('should match full sort result for random data', () => {
+      let values: number[] = []
+      for (let i = 0; i < 500; i++) values.push(Math.floor(Math.random() * 1000))
+      let count = 50
+      let expected = values.slice().sort((a, b) => a - b).slice(0, count)
+      expect(selectTopItems(values, count, (a, b) => a - b)).toEqual(expected)
+    })
+
+    it('should keep stable result with equal items', () => {
+      let values = [5, 1, 5, 3, 5, 2]
+      expect(selectTopItems(values, 4, (a, b) => a - b)).toEqual([1, 2, 3, 5])
+    })
+  })
+
+  describe('filterItems', () => {
+    function makeItem(word: string, opts?: Partial<DurationCompleteItem>): DurationCompleteItem {
+      return Object.assign({
+        abbr: word,
+        word,
+        filterText: word,
+        score: 0,
+        priority: 0,
+        sortText: word,
+        source: getSource(),
+        character: 1,
+        delta: 0,
+      }, opts)
+    }
+
+    function createComplete(items: DurationCompleteItem[], config?: Partial<CompleteConfig>): Complete {
+      let option = {
+        position: Position.create(0, 0),
+        bufnr: 1,
+        line: 'rlut ',
+        col: 5,
+        input: 'rlut',
+        filetype: '',
+        filepath: '',
+        word: 'rlut',
+        followWord: '',
+        colnr: 5,
+        linenr: 1,
+        changedtick: 0,
+      } as CompleteOption
+      let completeConfig: CompleteConfig = Object.assign({
+        autoTrigger: 'always',
+        insertMode: InsertMode.Replace,
+        filterGraceful: true,
+        enableFloat: true,
+        languageSourcePriority: 99,
+        snippetsSupport: true,
+        defaultSortMethod: SortMethod.Length,
+        removeDuplicateItems: false,
+        removeCurrentWord: false,
+        acceptSuggestionOnCommitCharacter: false,
+        triggerCompletionWait: 0,
+        triggerAfterInsertEnter: false,
+        maxItemCount: 256,
+        timeout: 500,
+        minTriggerInputLength: 1,
+        localityBonus: true,
+        highPrioritySourceLimit: null,
+        lowPrioritySourceLimit: null,
+        ignoreRegexps: [],
+        asciiMatch: true,
+        asciiCharactersOnly: false,
+      }, config)
+      let complete = new Complete(option, {} as any, completeConfig, [{ name: 'test' }] as any)
+      ;(complete as any).results.set('test', { items, isIncomplete: false })
+      return complete
+    }
+
+    function fill(count: number, word = 'word'): DurationCompleteItem[] {
+      let items: DurationCompleteItem[] = []
+      for (let i = 0; i < count; i++) items.push(makeItem(`${word}_${i}`))
+      return items
+    }
+
+    it('should use aggressive scorer for small sets', () => {
+      let items = fill(10)
+      items.push(makeItem('console'))
+      let complete = createComplete(items)
+      let filtered = complete.filterItems('cno')
+      let item = filtered.find(o => o.word == 'console')
+      expect(item).toBeDefined()
+      // aggressive: ^c^o^nsole
+      expect(item.positions.slice(2)).toEqual([2, 1, 0])
+    })
+
+    it('should use graceful scorer for medium sets', () => {
+      let items = fill(301)
+      items.push(makeItem('console'))
+      let complete = createComplete(items)
+      let filtered = complete.filterItems('cno')
+      let item = filtered.find(o => o.word == 'console')
+      expect(item).toBeDefined()
+      // graceful: ^co^ns^ole
+      expect(item.positions.slice(2)).toEqual([4, 2, 0])
+    })
+
+    it('should use plain scorer for large sets', () => {
+      let items = fill(2001)
+      items.push(makeItem('result'))
+      let complete = createComplete(items)
+      // 'rlut' only matches 'result' through graceful permutations
+      expect(complete.filterItems('rlut').find(o => o.word == 'result')).toBeUndefined()
+    })
+
+    it('should use plain scorer when graceful is disabled', () => {
+      let items = fill(10)
+      items.push(makeItem('result'))
+      let complete = createComplete(items, { filterGraceful: false })
+      expect(complete.filterItems('rlut').find(o => o.word == 'result')).toBeUndefined()
+    })
+
+    it('should score with delta input using precomputed text', () => {
+      let items = [makeItem('foobar', { delta: 3, character: 1 })]
+      let complete = createComplete(items)
+      let filtered = complete.filterItems('bar')
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0].word).toBe('foobar')
+      expect(filtered[0].score).toBeGreaterThan(0)
+    })
+
+    it('should score trigger text when input is empty', () => {
+      let items = [makeItem('foobar', { character: 1 })]
+      let complete = createComplete(items)
+      let filtered = complete.filterItems('')
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0].positions).toBeDefined()
+    })
+
+    it('should not match items at cursor when input is empty', () => {
+      // character beyond inputStart means the item is at/after the cursor
+      let items = [makeItem('foobar', { character: 10 })]
+      let complete = createComplete(items)
+      let filtered = complete.filterItems('')
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0].score).toBe(0)
+      expect(filtered[0].positions).toBeUndefined()
+    })
+
+    it('should keep only maxItemCount best items', () => {
+      let items = fill(500)
+      let complete = createComplete(items, { maxItemCount: 10 })
+      let filtered = complete.filterItems('word')
+      expect(filtered).toHaveLength(10)
+      expect(filtered[0].word).toBe('word_0')
+      // all 500 items match, only the top 10 by sortText are kept
+      let expected = items.slice().sort((a, b) => a.sortText < b.sortText ? -1 : 1).slice(0, 10).map(o => o.word)
+      expect(filtered.map(o => o.word)).toEqual(expected)
     })
   })
 

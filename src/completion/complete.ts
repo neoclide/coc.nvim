@@ -5,7 +5,7 @@ import { createLogger } from '../logger'
 import type Document from '../model/document'
 import { waitWithToken } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGraceful, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
 import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
@@ -22,6 +22,11 @@ const MAX_TIMEOUT = 15000
 const MAX_TRIGGER_WAIT = 200
 
 const WORD_SOURCES = new Set(['buffer', 'around', 'word'])
+
+// Sets larger than this never use the permutation based (aggressive) scorer,
+// since the extra fuzzy DP passes cost more than the typo tolerance is worth.
+const GRACEFUL_MAX_ITEMS = 2000
+const AGGRESSIVE_MAX_ITEMS = 300
 
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
@@ -288,7 +293,7 @@ export default class Complete {
     let words: Set<string> = new Set()
     const emptyInput = len == 0
     const lowInput = input.toLowerCase()
-    const scoreFn: FuzzyScorer = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive
+    const scoreFn: FuzzyScorer = this.getScoreFn()
     const scoreOption = { boostFullMatch: true, firstMatchCanBeWeak: false }
     const anchor = Position.create(option.linenr - 1, inputStart)
     for (let name of names) {
@@ -304,13 +309,15 @@ export default class Complete {
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         let fuzzyResult: FuzzyScore | undefined
         if (!emptyInput) {
+          let lowText = filterText.toLowerCase()
           scoreOption.firstMatchCanBeWeak = item.delta === 0 && item.character !== inputStart
           if (item.delta > 0) {
             // better input to make it have higher score and better highlight
             let prev = filterText.slice(0, item.delta)
-            fuzzyResult = scoreFn(prev + input, prev.toLowerCase() + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
+            let lowPrev = lowText.slice(0, item.delta)
+            fuzzyResult = scoreFn(prev + input, lowPrev + lowInput, 0, filterText, lowText, 0, scoreOption)
           } else {
-            fuzzyResult = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
+            fuzzyResult = scoreFn(input, lowInput, 0, filterText, lowText, 0, scoreOption)
           }
           if (fuzzyResult == null) continue
           item.score = fuzzyResult[0]
@@ -319,7 +326,8 @@ export default class Complete {
         } else if (item.character < inputStart) {
           let trigger = option.line.slice(item.character, inputStart)
           scoreOption.firstMatchCanBeWeak = true
-          fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, filterText.toLowerCase(), 0, scoreOption)
+          let lowText = filterText.toLowerCase()
+          fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, lowText, 0, scoreOption)
           item.score = fuzzyResult[0]
           item.positions = fuzzyResult
         } else {
@@ -330,8 +338,19 @@ export default class Complete {
         arr.push(item)
       }
     }
-    arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod))
-    return this.limitCompleteItems(arr.slice(0, maxItemCount))
+    let top = selectTopItems(arr, maxItemCount, sortItems.bind(null, emptyInput, defaultSortMethod))
+    return this.limitCompleteItems(top)
+  }
+
+  private getScoreFn(): FuzzyScorer {
+    let { filterGraceful } = this.config
+    if (!filterGraceful) return fuzzyScore
+    let len = this.totalLength
+    if (len > GRACEFUL_MAX_ITEMS) return fuzzyScore
+    // The aggressive scorer runs up to 8 fuzzy DP passes per item, cap the
+    // permutation attempts by item count to keep keystroke latency bounded.
+    if (len > AGGRESSIVE_MAX_ITEMS) return fuzzyScoreGraceful
+    return fuzzyScoreGracefulAggressive
   }
 
   public async filterResults(input: string, backspace = false): Promise<DurationCompleteItem[] | undefined> {
@@ -424,4 +443,42 @@ export function sortItems(emptyInput: boolean, defaultSortMethod: SortMethod, a:
     default: // Fallback on length
       return a.filterText.length - b.filterText.length
   }
+}
+
+/**
+ * Keep the best `count` items according to `compare` without sorting the
+ * whole array, then sort the kept items. Items that rank after the current
+ * worst of the selected top never touch the selected array, so filtering
+ * large completion sets avoids a full O(n log n) sort on every keystroke.
+ */
+export function selectTopItems<T>(items: T[], count: number, compare: (a: T, b: T) => number): T[] {
+  if (count <= 0) return []
+  if (items.length <= count) {
+    items.sort(compare)
+    return items
+  }
+  let top: T[] = []
+  for (let item of items) {
+    if (top.length < count) {
+      insertSorted(top, item, compare)
+    } else if (compare(item, top[top.length - 1]) < 0) {
+      insertSorted(top, item, compare)
+      top.pop()
+    }
+  }
+  return top
+}
+
+function insertSorted<T>(arr: T[], item: T, compare: (a: T, b: T) => number): void {
+  let low = 0
+  let high = arr.length
+  while (low < high) {
+    let mid = (low + high) >>> 1
+    if (compare(arr[mid], item) <= 0) {
+      low = mid + 1
+    } else {
+      high = mid
+    }
+  }
+  arr.splice(low, 0, item)
 }
