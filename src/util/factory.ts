@@ -172,9 +172,15 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = ModuleProto._compile
     ModuleProto._compile = compileInSandbox(sandbox, cocExports)
-    const moduleExports = sandbox.module.require(p)
-    ModuleProto._compile = oldCompile
-    return moduleExports
+    try {
+      return sandbox.module.require(p)
+    } finally {
+      // Always restore the global module compiler. Without this, a module
+      // that throws during load would leave the sandbox compiler installed,
+      // so every later require in the process would compile in the last
+      // sandbox's VM context with its fake `process` and console.
+      ModuleProto._compile = oldCompile
+    }
   }
 
   // patch `require` in sandbox to run loaded module in sandbox context
