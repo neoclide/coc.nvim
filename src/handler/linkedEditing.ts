@@ -100,16 +100,15 @@ export default class LinkedEditingHandler {
     ranges.forEach(r => r.applyChange(change))
     let edits = ranges.filter(r => r !== textRange).map(o => o.textEdit)
     // logger.debug('edits:', JSON.stringify(edits, null, 2))
-    if (delta != 0) {
-      for (let r of ranges) {
-        let n = getBeforeCount(r, ranges, textRange)
-        r.move(n * delta)
-      }
-    }
     this.changing = true
     await doc.applyEdits(edits, true, true)
     this.changing = false
-    if (this.ranges !== ranges) return
+    if (delta != 0) {
+      for (let r of ranges) {
+        let n = getBeforeCount(r, this.ranges, textRange)
+        r.move(n * delta)
+      }
+    }
     this.doHighlights()
   }
 
