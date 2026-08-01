@@ -35,6 +35,10 @@ interface ExportExtension {
    * The object of module.exports of the extension entry without activate & deactivate function.
    */
   readonly exports: any
+  /**
+   * module.exports of extension, test purpose only.
+   */
+  readonly _exports: any
 }
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
@@ -659,6 +663,9 @@ export class ExtensionManager {
       get exports() {
         let module = item.extension.module ?? {}
         return omit(module, ['activate'])
+      },
+      get _exports() {
+        return item.extension._exports
       },
       unload: () => {
         return this.unloadExtension(name)
