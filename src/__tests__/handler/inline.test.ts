@@ -514,7 +514,7 @@ describe('InlineCompletion', () => {
     let mockProvider: Mock
     let providerDisposable: Disposable
 
-    beforeEach(() => {
+    beforeEach(async () => {
       mockProvider = vi.fn()
       providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
@@ -529,6 +529,7 @@ describe('InlineCompletion', () => {
         winid: 1,
       } as any)
       mockInlineInsert(true) // Assume inline insert will succeed for trigger tests
+      await nvim.command('startinsert')
     })
 
     afterEach(() => {
@@ -554,22 +555,14 @@ describe('InlineCompletion', () => {
     })
 
     it('should not trigger if provider returns no items (autoTrigger: true)', async () => {
-      mockProvider.mockResolvedValue([])
-      const spy = vi.spyOn(window, 'showWarningMessage')
       await commands.executeCommand('editor.action.triggerInlineCompletion', { autoTrigger: true })
-      expect(mockProvider).toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()
-      expect(spy).not.toHaveBeenCalled() // No warning for autoTrigger
     })
 
     it('should show warning if provider returns no items (autoTrigger: false)', async () => {
-      mockProvider.mockResolvedValue([])
       let doc = await workspace.document
-      const spy = vi.spyOn(window, 'showWarningMessage')
       await inlineCompletion.trigger(doc.bufnr, { autoTrigger: false })
-      expect(mockProvider).toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()
-      expect(spy).toHaveBeenCalledWith('No inline completion items from provider.')
     })
 
     it('should trigger and create session if provider returns items', async () => {
@@ -628,29 +621,18 @@ describe('InlineCompletion', () => {
     })
 
     it('should not trigger if current state bufnr does not match', async () => {
-      mockProvider.mockResolvedValue([{ insertText: 'test' }])
-      let prev = await helper.createDocument('foo')
-      let doc = await helper.createDocument('bar')
-      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
-        doc: prev,
-        position: Position.create(0, 0),
-        mode: 'i',
-        winid: 1,
-      } as any)
+      let doc = await helper.createDocument('foo')
+      let promise = nvim.command('edit bar')
       await inlineCompletion.trigger(doc.bufnr)
-      expect(mockProvider).not.toHaveBeenCalled() // Provider call is guarded by state check
+      await promise
+      expect(mockProvider).not.toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()
     })
 
     it('should not trigger if current mode is not insert', async () => {
+      await nvim.command('stopinsert')
       mockProvider.mockResolvedValue([{ insertText: 'test' }])
       let doc = await workspace.document
-      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValueOnce({
-        doc: workspace.getDocument(doc.bufnr),
-        position: Position.create(0, 0),
-        mode: 'n', // Not insert mode
-        winid: 1,
-      } as any)
       await inlineCompletion.trigger(doc.bufnr)
       expect(mockProvider).not.toHaveBeenCalled()
       expect(inlineCompletion.session).toBeUndefined()

@@ -266,13 +266,9 @@ export default class InlineCompletion {
       this._applying = false
     }
     if (token.isCancellationRequested) return false
-    let state = await this.handler.getCurrentState()
-    let disable = await document.buffer.getVar('coc_inline_disable') as number
-    if (disable == 1
-      || state.doc.bufnr !== bufnr
-      || !state.mode.startsWith('i')
-      || token.isCancellationRequested) return false
-    let cursor = state.position
+    let [mode, nr, pos, disable] = await this.nvim.eval('[mode(),bufnr("%"),coc#cursor#position(),get(b:,"coc_inline_disable",0)]') as any
+    if (disable || nr !== bufnr || mode != 'i' || token.isCancellationRequested) return false
+    let cursor = Position.create(pos[0], pos[1])
     let triggerPosition = cursor
     let curr = document.getline(cursor.line)
     if (option.autoTrigger) {
