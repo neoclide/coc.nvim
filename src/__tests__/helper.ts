@@ -125,25 +125,32 @@ export class Helper extends EventEmitter {
 
   private async listenOnVim(server: Server): Promise<string> {
     const isWindows = process.platform === 'win32'
-    return new Promise((resolve, reject) => {
-      if (!isWindows) {
+    if (!isWindows) {
+      try {
+        // https://github.com/vim/vim/issues/7158
         // not work on old version vim.
         const socket = path.join(os.tmpdir(), `coc-test-${crypto.randomUUID()}.sock`)
-        server.listen(socket, () => {
-          resolve(socket)
-        })
-        server.on('error', reject)
-        server.unref()
-      } else {
-        getPort().then(port => {
-          let localhost = '127.0.0.1'
-          server.listen(port, localhost, () => {
-            resolve(`${localhost}:${port}`)
+        return await new Promise<string>((resolve, reject) => {
+          server.once('error', reject)
+          server.listen(socket, () => {
+            server.removeListener('error', reject)
+            server.unref()
+            resolve(socket)
           })
-          server.on('error', reject)
-        }, reject)
+        })
+      } catch (e) {
+        // Unix socket unavailable (e.g. sandbox denies AF_UNIX bind or the
+        // socket path is too long), fall back to a TCP connection on localhost.
       }
-      server.unref()
+    }
+    return await new Promise<string>((resolve, reject) => {
+      server.once('error', reject)
+      server.listen(0, '127.0.0.1', () => {
+        server.removeListener('error', reject)
+        let port = (server.address() as net.AddressInfo).port
+        server.unref()
+        resolve(`127.0.0.1:${port}`)
+      })
     })
   }
 
@@ -163,7 +170,7 @@ export class Helper extends EventEmitter {
 
   public async shutdown(): Promise<void> {
     if (this.plugin) this.plugin.dispose()
-    if (this.nvim) await this.nvim.quit()
+    if (this.plugin) await this.plugin.nvim.quit()
     if (this.server) this.server.close()
     if (this.proc) terminate(this.proc)
     if (typeof global.gc === 'function') {
