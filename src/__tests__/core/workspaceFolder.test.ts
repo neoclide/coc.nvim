@@ -10,6 +10,7 @@ import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { pluginRoot } from '../../util/constants'
 
 let workspaceFolder: WorkspaceFolderController
 let configurations: Configurations
@@ -119,7 +120,7 @@ describe('WorkspaceFolderController', () => {
       res = workspaceFolder.getWorkspaceFolder(URI.file(filepath))
       expect(URI.parse(res.uri).fsPath).toBe(process.cwd())
 
-      const nonWorkspaceFolderFilePath=path.join(path.dirname(process.cwd()), 'NonWorkspaceFolder/file')
+      const nonWorkspaceFolderFilePath = path.join(path.dirname(process.cwd()), 'NonWorkspaceFolder/file')
       res = workspaceFolder.getWorkspaceFolder(URI.file(nonWorkspaceFolderFilePath))
       expect(res).toBeUndefined()
     })
@@ -297,7 +298,7 @@ describe('WorkspaceFolderController', () => {
   describe('checkPatterns()', () => {
     it('should check if pattern exists', async () => {
       expect(await workspaceFolder.checkPatterns([], ['p'])).toBe(false)
-      let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
+      let folder: WorkspaceFolder = { name: '', uri: URI.file(pluginRoot).toString() }
       let res = await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
       expect(res).toBe(true)
       res = await workspaceFolder.checkPatterns([folder], ['**/not_exists'])

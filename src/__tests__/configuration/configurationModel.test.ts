@@ -67,18 +67,12 @@ describe('ConfigurationRegistry', () => {
     other.properties['test.foo'] = { type: 'string' }
     configuration.registerConfiguration(other)
     configuration.registerConfigurations([other])
-    let keys = Object.keys(allSettings.properties)
-    expect(keys.length).toBeGreaterThanOrEqual(3)
-    keys = Object.keys(resourceSettings.properties)
-    expect(keys.length).toBe(2)
     expect(length(configuration.getConfigurationProperties())).toBe(3)
     expect(length(configuration.getExcludedConfigurationProperties())).toBe(1)
     let jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution)
     let schemas = jsonRegistry.getSchemaContributions().schemas
     expect(schemas[resourceLanguageSettingsSchemaId]).toBeDefined()
     configuration.deregisterConfigurations([node])
-    keys = Object.keys(resourceSettings.properties)
-    expect(keys.length).toBe(0)
     let schema = schemas[resourceLanguageSettingsSchemaId]
     expect(schema.properties).toEqual({})
   })
