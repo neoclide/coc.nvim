@@ -65,6 +65,36 @@ describe('OutputChannel', () => {
     expect(lines.includes('bar')).toBe(true)
   })
 
+  test('outputChannel caps retained lines', async () => {
+    let c = new OutputChannel('cap', nvim, undefined, 3)
+    for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
+    expect(c.content.split('\n').filter(Boolean)).toEqual(['4', '5'])
+    c.dispose()
+  })
+
+  test('outputChannel trims buffer over cap', async () => {
+    let c = new OutputChannel('trim', nvim, undefined, 3)
+    c.show(false, 'edit')
+    await helper.wait(100)
+    for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
+    await helper.wait(100)
+    let lines = await nvim.call('getbufline', ['output:///trim', 1, '$']) as string[]
+    expect(lines.filter(Boolean)).toEqual(['4', '5'])
+    c.dispose()
+  })
+
+  test('outputChannel rewrites buffer on oversized burst append', async () => {
+    let c = new OutputChannel('burst', nvim, undefined, 2)
+    c.show(false, 'edit')
+    await helper.wait(100)
+    c.appendLine('a\nb\nc\nd')
+    await helper.wait(100)
+    expect(c.content.split('\n').filter(Boolean)).toEqual(['d'])
+    let lines = await nvim.call('getbufline', ['output:///burst', 1, '$']) as string[]
+    expect(lines.filter(Boolean)).toEqual(['d'])
+    c.dispose()
+  })
+
   test('outputChannel.show(false)', async () => {
     let c = new OutputChannel('1', nvim)
     let bufnr = (await nvim.buffer).id

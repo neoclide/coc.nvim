@@ -6,11 +6,18 @@ function escapeQuote(input: string): string {
   return input.replace(/'/g, "''")
 }
 
+/**
+ * Maximum number of lines retained per channel. Verbose LSP tracing or chatty
+ * servers can append thousands of lines, and keeping every line in Node memory
+ * (and joining them all when the buffer is opened) grows unbounded.
+ */
+const MAX_LINE_COUNT = 10000
+
 export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
   private _disposed = false
   public created = false
-  constructor(public name: string, private nvim?: Neovim, private onDispose?: () => void) {
+  constructor(public name: string, private nvim?: Neovim, private onDispose?: () => void, private maxLineCount = MAX_LINE_COUNT) {
   }
 
   public get content(): string {
@@ -26,11 +33,35 @@ export default class BufferChannel implements OutputChannel {
     this.lines[idx] = lastline
     let append = newlines.slice(1)
     this.lines = this.lines.concat(append)
+    // Keep only the newest maxLineCount lines so long sessions don't grow
+    // the channel (and the output buffer) without bound.
+    let removed = 0
+    let rewrite = false
+    if (this.maxLineCount > 0 && this.lines.length > this.maxLineCount) {
+      removed = this.lines.length - this.maxLineCount
+      this.lines.splice(0, removed)
+      // When a single append is so large that it pushed out the previous last
+      // line, rewrite the buffer instead of syncing the shifted tail.
+      let lastIdx = this.lines.length - append.length - 1
+      if (lastIdx < 0) {
+        rewrite = true
+      } else {
+        lastline = this.lines[lastIdx]
+      }
+    }
     if (!this.created) return
     nvim.pauseNotification()
-    nvim.call('setbufline', [this.bufname, '$', lastline], true)
-    if (append.length) {
-      nvim.call('appendbufline', [this.bufname, '$', append], true)
+    if (rewrite) {
+      nvim.call('deletebufline', [this.bufname, 1, '$'], true)
+      nvim.call('appendbufline', [this.bufname, '$', this.lines], true)
+    } else {
+      if (removed > 0) {
+        nvim.call('deletebufline', [this.bufname, 1, removed], true)
+      }
+      nvim.call('setbufline', [this.bufname, '$', lastline], true)
+      if (append.length) {
+        nvim.call('appendbufline', [this.bufname, '$', append], true)
+      }
     }
     nvim.resumeNotification(false, true)
   }
