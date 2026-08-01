@@ -56897,7 +56897,7 @@ function sha256(data) {
 	return crypto$1.createHash("sha256").update(data).digest("hex");
 }
 function getConditionValue(value, testValue) {
-	return value;
+	return isTester$1 ? testValue : value;
 }
 function defaultValue(val, defaultValue) {
 	return val == null ? defaultValue : val;
@@ -56962,9 +56962,10 @@ function concurrent(arr, fn, limit = 3) {
 function disposeAll(disposables) {
 	while (disposables.length) disposables.pop()?.dispose();
 }
-var pariedCharacters;
+var isTester$1, pariedCharacters;
 var init_util$7 = __esmMin((() => {
 	init_node();
+	isTester$1 = process.env.COC_TESTER == "1";
 	pariedCharacters = /* @__PURE__ */ new Map([
 		["<", ">"],
 		[">", "<"],
@@ -69870,7 +69871,7 @@ var init_constants = __esmMin((() => {
 	configHome = defaultValue(process.env.COC_VIMCONFIG, path$5.join(os$5.homedir(), ".vim"));
 	dataHome = defaultValue(process.env.COC_DATA_HOME, path$5.join(os$5.homedir(), ".config/coc"));
 	userConfigFile = path$5.join(path$5.normalize(configHome), CONFIG_FILE_NAME);
-	pluginRoot = getConditionValue(path$5.dirname(__dirname), path$5.resolve(__dirname, "../.."));
+	pluginRoot = __filename.endsWith("index.js") ? path$5.dirname(__dirname) : path$5.resolve(__dirname, "../..");
 }));
 //#endregion
 //#region node_modules/jsonc-parser/lib/esm/impl/scanner.js
@@ -98423,7 +98424,7 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		creating = /* @__PURE__ */ new Set();
 		static watchers = /* @__PURE__ */ new Set();
 		_onDidCreateClient = new import_main$1.Emitter();
-		disabled = false;
+		disabled = isTester$1;
 		onDidCreateClient = this._onDidCreateClient.event;
 		constructor(workspaceFolder, config) {
 			this.workspaceFolder = workspaceFolder;
@@ -126171,7 +126172,7 @@ function createConsole(con, logger) {
 	}
 	return result;
 }
-function createSandbox(filename, logger, name, noExport = false) {
+function createSandbox(filename, logger, name, noExport) {
 	const module = new Module(filename);
 	module.paths = Module._nodeModulePaths(filename);
 	const sandbox = vm.createContext({
@@ -126182,7 +126183,8 @@ function createSandbox(filename, logger, name, noExport = false) {
 		console: createConsole(console, logger)
 	}, { name });
 	copyGlobalProperties(sandbox, global);
-	let cocExports = noExport || !isCommonJS ? void 0 : require_src();
+	if (typeof noExport !== "boolean") noExport = global.__isMain === void 0;
+	let cocExports = noExport ? void 0 : require_src();
 	sandbox.require = function sandboxRequire(p) {
 		const oldCompile = ModuleProto._compile;
 		ModuleProto._compile = compileInSandbox(sandbox, cocExports);
@@ -126220,7 +126222,7 @@ function createExtension(id, filename, isEmpty) {
 	if (typeof activate !== "function") return { activate: () => {} };
 	return typeof defaultImport === "function" ? { activate } : Object.assign({}, defaultImport);
 }
-var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto, isCommonJS;
+var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
 var init_factory = __esmMin((() => {
 	init_logger$2();
 	init_node();
@@ -126250,7 +126252,6 @@ var init_factory = __esmMin((() => {
 		"kill"
 	];
 	ModuleProto = getProtoWithCompile(Module);
-	isCommonJS = typeof module !== "undefined" && typeof module.exports !== "undefined" && typeof require === "function";
 }));
 //#endregion
 //#region src/util/timing.ts
@@ -126960,6 +126961,9 @@ var init_manager = __esmMin((() => {
 				packageJSON,
 				extensionPath,
 				extensionUri: URI.parse(extensionPath),
+				get _exports() {
+					return isTester$1 ? ext : void 0;
+				},
 				get isActive() {
 					return isActive;
 				},
@@ -127625,6 +127629,7 @@ var init_extension = __esmMin((() => {
 			let infos = [];
 			let localIds = /* @__PURE__ */ new Set();
 			runtimepaths.map((root) => {
+				if (!root) return;
 				let errors = [];
 				let obj = loadExtensionJson(root, workspace_default.version, errors);
 				if (errors.length > 0) return;
@@ -135888,7 +135893,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-300278c 2026-07-31 21:09:40 +0800";
+			let version = workspace_default.version + "-477223c 2026-08-01 03:44:24 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
@@ -136407,7 +136412,8 @@ var init_plugin = __esmMin((() => {
 			nvim.setVar("coc_service_initialized", 1, true);
 			nvim.call("coc#util#do_autocmd", ["CocNvimInit"], true);
 			nvim.resumeNotification(false, true);
-			logger$1.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()));
+			const duration = typeof global.__starttime === "number" ? Date.now() - global.__starttime : 0;
+			logger$1.info(`coc.nvim initialized with node: ${process.version} after`, duration);
 			this.ready = true;
 			await events_default.fire("ready", []);
 		}
