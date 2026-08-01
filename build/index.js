@@ -58319,6 +58319,68 @@ var init_dist_esm = __esmMin((() => {
 	init_ExtensionCodec();
 }));
 //#endregion
+//#region src/util/errors.ts
+function assert$3(condition) {
+	if (!condition) throw new BugIndicatingError("Assertion Failed");
+}
+/**
+* Checks if the given error is a promise in canceled state
+*/
+function isCancellationError(error) {
+	if (error instanceof CancellationError) return true;
+	return error instanceof Error && error.name === canceledName && error.message === canceledName;
+}
+function shouldIgnore(err) {
+	if (isCancellationError(err)) return true;
+	if (err instanceof Error && err.message === "transport disconnected") return true;
+	return false;
+}
+function onUnexpectedError(e) {
+	if (shouldIgnore(e)) return;
+	if (e.stack) throw new Error(e.message + "\n\n" + e.stack);
+	else throw e;
+}
+function notLoaded(uri) {
+	return /* @__PURE__ */ new Error(`File ${uri} not loaded`);
+}
+function illegalArgument(name) {
+	if (name) return /* @__PURE__ */ new Error(`Illegal argument: ${name}`);
+	else return /* @__PURE__ */ new Error("Illegal argument");
+}
+function directoryNotExists(dir) {
+	return /* @__PURE__ */ new Error(`Directory ${dir} not exists`);
+}
+function fileExists(filepath) {
+	return /* @__PURE__ */ new Error(`File ${filepath} already exists`);
+}
+function fileNotExists(filepath) {
+	return /* @__PURE__ */ new Error(`File ${filepath} not exists`);
+}
+function shouldNotAsync(method) {
+	return /* @__PURE__ */ new Error(`${method} should not be called in an asynchronize manner`);
+}
+function badScheme(uri) {
+	return /* @__PURE__ */ new Error(`Change of ${uri} not supported`);
+}
+var canceledName, CancellationError, disconnectedText, BugIndicatingError;
+var init_errors = __esmMin((() => {
+	canceledName = "Canceled";
+	CancellationError = class extends Error {
+		constructor() {
+			super(canceledName);
+			this.name = this.message;
+		}
+	};
+	disconnectedText = "transport disconnected";
+	BugIndicatingError = class BugIndicatingError extends Error {
+		constructor(message) {
+			super(message);
+			Object.setPrototypeOf(this, BugIndicatingError.prototype);
+			debugger;
+		}
+	};
+}));
+//#endregion
 //#region src/neovim/utils/constants.ts
 var isTester, isVim$1;
 var init_constants$1 = __esmMin((() => {
@@ -58329,6 +58391,7 @@ var init_constants$1 = __esmMin((() => {
 //#region src/neovim/api/Base.ts
 var BaseApi;
 var init_Base = __esmMin((() => {
+	init_errors();
 	init_constants$1();
 	BaseApi = class {
 		prefix;
@@ -58359,7 +58422,7 @@ var init_Base = __esmMin((() => {
 				this.transport.request(name, converted, (err, res) => {
 					if (err) {
 						let e = new Error(err[1]);
-						if (!skipErrorLog) {
+						if (!skipErrorLog && !shouldIgnore(e)) {
 							e.stack = `Error: request error on "${name}" - ${err[1]}\n` + args["stack"].split(/\r?\n/).slice(3).join("\n");
 							this.client.logError(`request error on "${name}"`, converted.map((o) => o === this ? this.data : o), e);
 						}
@@ -59227,6 +59290,7 @@ var init_base = __esmMin((() => {
 var NvimTransport;
 var init_nvim = __esmMin((() => {
 	init_dist_esm();
+	init_errors();
 	init_types$2();
 	init_base();
 	NvimTransport = class extends Transport$1 {
@@ -59338,11 +59402,11 @@ var init_nvim = __esmMin((() => {
 			if (iter && typeof iter.return === "function") iter.return(void 0).catch((err) => {
 				this.debug("decode iterator return error:", err);
 			});
-			for (let handler of this.pending.values()) handler([0, "transport disconnected"]);
+			for (let handler of this.pending.values()) handler([0, disconnectedText]);
 			this.pending.clear();
 		}
 		request(method, args, cb) {
-			if (!this.attached) return cb([0, "transport disconnected"]);
+			if (!this.attached) return cb([0, disconnectedText]);
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId + 1;
 			let startTs = Date.now();
@@ -59579,6 +59643,7 @@ var init_request = __esmMin((() => {
 //#region src/neovim/transport/vim.ts
 var notifyMethod, VimTransport;
 var init_vim = __esmMin((() => {
+	init_errors();
 	init_constants$1();
 	init_base();
 	init_connection();
@@ -59682,7 +59747,7 @@ var init_vim = __esmMin((() => {
 		* Send request to vim
 		*/
 		request(method, args, cb) {
-			if (!this.attached) return cb([0, "transport disconnected"]);
+			if (!this.attached) return cb([0, disconnectedText]);
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId - 1;
 			let req = new Request(this.connection, (err, res) => {
@@ -60532,67 +60597,6 @@ var init_attach$1 = __esmMin((() => {
 var init_neovim = __esmMin((() => {
 	init_api();
 	init_attach$1();
-}));
-//#endregion
-//#region src/util/errors.ts
-function assert$3(condition) {
-	if (!condition) throw new BugIndicatingError("Assertion Failed");
-}
-/**
-* Checks if the given error is a promise in canceled state
-*/
-function isCancellationError(error) {
-	if (error instanceof CancellationError) return true;
-	return error instanceof Error && error.name === canceledName && error.message === canceledName;
-}
-function shouldIgnore(err) {
-	if (isCancellationError(err)) return true;
-	if (err instanceof Error && err.message.includes("transport disconnected")) return true;
-	return false;
-}
-function onUnexpectedError(e) {
-	if (shouldIgnore(e)) return;
-	if (e.stack) throw new Error(e.message + "\n\n" + e.stack);
-	else throw e;
-}
-function notLoaded(uri) {
-	return /* @__PURE__ */ new Error(`File ${uri} not loaded`);
-}
-function illegalArgument(name) {
-	if (name) return /* @__PURE__ */ new Error(`Illegal argument: ${name}`);
-	else return /* @__PURE__ */ new Error("Illegal argument");
-}
-function directoryNotExists(dir) {
-	return /* @__PURE__ */ new Error(`Directory ${dir} not exists`);
-}
-function fileExists(filepath) {
-	return /* @__PURE__ */ new Error(`File ${filepath} already exists`);
-}
-function fileNotExists(filepath) {
-	return /* @__PURE__ */ new Error(`File ${filepath} not exists`);
-}
-function shouldNotAsync(method) {
-	return /* @__PURE__ */ new Error(`${method} should not be called in an asynchronize manner`);
-}
-function badScheme(uri) {
-	return /* @__PURE__ */ new Error(`Change of ${uri} not supported`);
-}
-var canceledName, CancellationError, BugIndicatingError;
-var init_errors = __esmMin((() => {
-	canceledName = "Canceled";
-	CancellationError = class extends Error {
-		constructor() {
-			super(canceledName);
-			this.name = this.message;
-		}
-	};
-	BugIndicatingError = class BugIndicatingError extends Error {
-		constructor(message) {
-			super(message);
-			Object.setPrototypeOf(this, BugIndicatingError.prototype);
-			debugger;
-		}
-	};
 }));
 //#endregion
 //#region node_modules/vscode-languageserver-types/lib/esm/main.js
@@ -127105,6 +127109,9 @@ var init_manager = __esmMin((() => {
 				get exports() {
 					return omit$2(item.extension.module ?? {}, ["activate"]);
 				},
+				get _exports() {
+					return item.extension._exports;
+				},
 				unload: () => {
 					return this.unloadExtension(name);
 				}
@@ -135893,7 +135900,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-477223c 2026-08-01 03:44:24 +0800";
+			let version = workspace_default.version + "-d20d40e 2026-08-01 23:13:05 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
