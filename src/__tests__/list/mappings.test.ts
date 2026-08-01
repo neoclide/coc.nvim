@@ -32,6 +32,15 @@ class TestList extends BasicList {
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+let callSpy: any
+let commandSpy: any
+let evalSpy: any
+
+function installSpies(): void {
+  callSpy = vi.spyOn(nvim, 'call')
+  commandSpy = vi.spyOn(nvim, 'command')
+  evalSpy = vi.spyOn(nvim, 'eval')
+}
 const locations: ReadonlyArray<QuickfixItem> = [{
   filename: __filename,
   col: 2,
@@ -95,6 +104,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  vi.restoreAllMocks()
   manager.reset()
   await helper.reset()
 })
@@ -121,46 +131,46 @@ describe('User mappings', () => {
   it('should show warning for invalid key', async () => {
     expect(ListConfiguration).toBeDefined()
     expect(listConfiguration.fixKey('<c-a>')).toBe('<C-a>')
+    let errorSpy = vi.spyOn(window, 'showErrorMessage').mockImplementation((() => Promise.resolve(undefined)) as any)
+    let warningSpy = vi.spyOn(window, 'showWarningMessage').mockImplementation((() => Promise.resolve(undefined)) as any)
     listConfiguration.fixKey('<a')
-    let msg = await helper.getCmdline()
-    expect(msg).toMatch('not supported')
+    expect(errorSpy).toHaveBeenCalledWith('Configured key "<a" not supported.')
     let revert = helper.updateConfiguration('list.insertMappings', {
       xy: 'action:tabe',
     })
-    await helper.wait(30)
-    msg = await helper.getCmdline()
+    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
     revert()
-    await nvim.command('echo ""')
-    expect(msg).toMatch('Invalid configuration')
+    warningSpy.mockClear()
     revert = helper.updateConfiguration('list.insertMappings', {
       '<M-x>': 'action:tabe',
     })
-    await helper.wait(30)
-    msg = await helper.getCmdline()
+    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
     revert()
-    expect(msg).toMatch('Invalid configuration')
+    warningSpy.mockClear()
     revert = helper.updateConfiguration('list.insertMappings', {
       '<C-a>': 'foo:bar',
     })
-    await helper.wait(30)
-    msg = await helper.getCmdline()
+    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
     revert()
-    expect(msg).toMatch('Invalid configuration')
   })
 
   it('should execute action keymap', async () => {
+    installSpies()
     let revert = helper.updateConfiguration('list.insertMappings', {
       '<C-d>': 'action:quickfix',
     })
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-d>')
+    expect(callSpy).toHaveBeenCalledWith('setqflist', [expect.any(Array)])
+    expect(commandSpy).toHaveBeenCalledWith('copen', true)
     let buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
     revert()
   })
 
   it('should execute expr keymap', async () => {
+    installSpies()
     await helper.mockFunction('TabOpen', 'quickfix')
     helper.updateConfiguration('list.insertMappings', {
       '<C-t>': 'expr:TabOpen',
@@ -171,12 +181,15 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-t>')
+    expect(callSpy).toHaveBeenCalledWith('TabOpen', [expect.any(Object)])
+    expect(commandSpy).toHaveBeenCalledWith('copen', true)
     let buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
     await nvim.command('close')
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('t')
+    expect(commandSpy).toHaveBeenCalledWith('copen', true)
     buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
   })
@@ -229,6 +242,7 @@ describe('User mappings', () => {
   })
 
   it('should execute feedkeys keymap', async () => {
+    installSpies()
     helper.updateConfiguration('list.insertMappings', {
       '<C-f>': 'feedkeys:\\<C-f>',
       '<C-b>': 'feedkeys!:\\<C-b>',
@@ -236,8 +250,9 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-f>')
-    await helper.waitFor('line', ['.'], locations.length)
+    expect(callSpy).toHaveBeenCalledWith('eval', ['feedkeys("\\<C-f>", "i")'])
     await helper.listInput('<C-b>')
+    expect(callSpy).toHaveBeenCalledWith('eval', ['feedkeys("\\<C-b>", "in")'])
   })
 
   it('should execute normal keymap', async () => {
@@ -407,9 +422,11 @@ describe('Default normal mappings', () => {
   })
 
   it('should insert command by :', async () => {
+    installSpies()
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput(':')
+    expect(evalSpy).toHaveBeenCalledWith('feedkeys(":")')
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
     await helper.waitValue(() => {
       return nvim.getVar('x')
@@ -417,12 +434,14 @@ describe('Default normal mappings', () => {
   })
 
   it('should select action by <tab>', async () => {
+    installSpies()
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     let p = helper.listInput('<tab>')
     await helper.wait(50)
     await nvim.input('t')
     await p
+    expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
@@ -548,12 +567,14 @@ describe('list insert mappings', () => {
   })
 
   it('should select action by insert <tab>', async () => {
+    installSpies()
     await manager.start(['location'])
     await manager.session.ui.ready
     let p = helper.listInput('<tab>')
     await helper.wait(50)
     await nvim.input('d')
     await p
+    expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
     let bufname = await nvim.call('bufname', ['%'])
     expect(bufname).toMatch(path.basename(__filename))
   })
