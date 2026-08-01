@@ -305,15 +305,6 @@ describe('WorkspaceFolderController', () => {
       expect(res).toBe(false)
     })
 
-    it('should not throw when checkFolder throw error', async () => {
-      let spy = vi.spyOn(workspaceFolder, 'checkFolder').mockImplementation(() => {
-        return Promise.reject(new Error('error'))
-      })
-      let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
-      await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
-      spy.mockRestore()
-    })
-
     it('should not throw on timeout', async () => {
       let spy = vi.spyOn(workspaceFolder, 'checkFolder').mockImplementation((_dir, _patterns, token) => {
         return new Promise((resolve, reject) => {

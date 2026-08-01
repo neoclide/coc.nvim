@@ -14,6 +14,12 @@ function parse(text: string): AnsiResult {
   return res
 }
 
+afterEach(() => {
+  // clear module-level link map so leftovers don't leak into other files
+  // sharing the same no-isolate worker
+  Renderer.getLinks()
+})
+
 describe('styles', () => {
   it('should add styles', () => {
     let keys = ['gray', 'magenta', 'bold', 'underline', 'italic', 'strikethrough', 'yellow', 'green', 'blue']

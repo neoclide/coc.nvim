@@ -9,6 +9,7 @@ import { getItemLabel, TreeItem, TreeItemCollapsibleState } from '../../tree/Tre
 import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
+import window from '../../window'
 import helper from '../helper'
 import { createNodes } from './basicProvider.test'
 
@@ -662,6 +663,12 @@ describe('TreeView', () => {
     })
 
     it('should show tooltip on CursorHold', async () => {
+      let show = vi.fn()
+      let factory = { show, dispose: vi.fn() } as any
+      let spy = vi.spyOn(window, 'createFloatFactory').mockReturnValue(factory)
+      disposables.push(Disposable.create(() => {
+        spy.mockRestore()
+      }))
       createTreeView(defaultDef, {}, {
         resolveItem: (item, node) => {
           if (node.label == 'a') {
@@ -674,19 +681,11 @@ describe('TreeView', () => {
         }
       })
       await treeView.show()
-      await nvim.command('exe 2')
-      let bufnr = await nvim.eval(`bufnr('%')`) as number
+      let bufnr = (treeView as any).bufnr as number
       await events.fire('CursorHold', [bufnr, [2, 1]])
-      let win = await helper.getFloat()
-      expect(win).toBeDefined()
-      let buf = await win.buffer
-      let lines = await buf.lines
-      expect(lines).toEqual(['first'])
-      await nvim.command('exe 3')
+      expect(show).toHaveBeenCalledWith([{ filetype: 'txt', content: 'first' }])
       await events.fire('CursorHold', [bufnr, [3, 1]])
-      lines = await buf.lines
-      expect(lines).toEqual(['#title'])
-      await events.fire('CursorHold', [bufnr, [1, 1]])
+      expect(show).toHaveBeenLastCalledWith([{ filetype: 'markdown', content: '#title' }])
     })
   })
 

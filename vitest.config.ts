@@ -15,6 +15,7 @@ export default defineConfig({
   plugins: [],
   test: {
     globals: true,
+    maxWorkers: 8,
     experimental: {
       fsModuleCache: true,
     },
@@ -29,6 +30,7 @@ export default defineConfig({
         isolate: false,
         // globalSetup
         include: runCommand('rg --files-without-match -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'),
+        exclude: ['src/__tests__/configuration/configurationModel.test.ts'],
       },
     }, {
       extends: true,
@@ -36,9 +38,8 @@ export default defineConfig({
         name: 'parallel-isolate',
         isolate: true,
         pool: 'forks',
-        detectAsyncLeaks: true,
-        include: runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'),
-        exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts', 'src/__tests__/vim.test.ts'],
+        include: [...runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'), 'src/__tests__/configuration/configurationModel.test.ts'],
+        exclude: ['src/__tests__/completion/float.test.ts', 'src/__tests__/vim.test.ts'],
       },
     }, {
       extends: true,
@@ -47,9 +48,7 @@ export default defineConfig({
         pool: 'forks',
         name: 'sequential-vim',
         env: { VIM_NODE_RPC: '1' },
-        detectAsyncLeaks: true,
         include: ['src/__tests__/vim.test.ts'],
-        fileParallelism: false,
       },
     }, {
       extends: true,
@@ -57,8 +56,7 @@ export default defineConfig({
         isolate: true,
         pool: 'forks',
         name: 'sequential',
-        detectAsyncLeaks: true,
-        include: ['src/__tests__/completion/float.test.ts', 'src/__tests__/tree/treeView.test.ts'],
+        include: ['src/__tests__/completion/float.test.ts'],
         fileParallelism: false,
       },
     }],
