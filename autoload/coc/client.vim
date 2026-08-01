@@ -138,6 +138,13 @@ function! s:on_exit(name, code) abort
   endif
   let client['channel'] = v:null
   let client['async_req_id'] = 1
+  " Clear pending async callbacks, the connection is gone so they will never
+  " receive a response. Invoke them with an error so waiting scripts can
+  " recover instead of hanging forever.
+  for Callback in values(client['async_callbacks'])
+    call call(Callback, ['client '.a:name.' exited before response', v:null])
+  endfor
+  let client['async_callbacks'] = {}
   if a:code != 0 && a:code != 143 && a:code != -1
     echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif

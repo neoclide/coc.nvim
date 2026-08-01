@@ -7,6 +7,7 @@ import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
 import { isCocNvim, isTester } from '../utils/constants'
+import { disconnectedText } from '../../util/errors'
 import { ILogger } from '../utils/logger'
 import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
@@ -218,6 +219,7 @@ export class NeovimClient extends Neovim {
     this.transport.on('notification', this.handleNotification)
     this.transport.on('detach', () => {
       this.emit('disconnect')
+      this.rejectPendingResponses()
       this.transport.removeAllListeners('request')
       this.transport.removeAllListeners('notification')
       this.transport.removeAllListeners('detach')
@@ -236,8 +238,23 @@ export class NeovimClient extends Neovim {
   /* called when attach process disconnected*/
   public detach(): void {
     this.attachedBuffers.clear()
+    this.rejectPendingResponses()
     this.transport.detach()
     this.removeAllListeners()
+  }
+
+  /**
+   * Reject pending async responses. They will never be answered once the
+   * transport is gone, and leaving them pending would keep callers like
+   * `funcs.callAsync` blocked on the shared mutex forever.
+   */
+  private rejectPendingResponses(): void {
+    if (this.responses.size == 0) return
+    const err = new Error(disconnectedText)
+    for (const response of this.responses.values()) {
+      response.finish(err.message)
+    }
+    this.responses.clear()
   }
 
   public get channelId(): Promise<number> {
