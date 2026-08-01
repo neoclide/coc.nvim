@@ -19,6 +19,7 @@ const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--i
 const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
 const STOP_TIMEOUT = getConditionValue(2000, 10)
 const RESTART_TIMEOUT = getConditionValue(1000, 10)
+const CONNECT_TIMEOUT = getConditionValue(30000, 2000)
 
 export * from './client'
 
@@ -393,8 +394,11 @@ export class LanguageClient extends BaseLanguageClient {
                 this._serverProcess = sp
                 pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
                 pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
-                void transport.onConnected().then(protocol => {
+                void waitForConnection(sp, transport, CONNECT_TIMEOUT).then(protocol => {
                   resolve({ reader: protocol[0], writer: protocol[1] })
+                }, err => {
+                  this.error(`Language server "${this.id}" failed to connect.`, err, false)
+                  reject(err)
                 })
               }, err => {
                 transport.dispose()
@@ -416,8 +420,11 @@ export class LanguageClient extends BaseLanguageClient {
                 logger.info(`Language server "${this.id}" started with ${sp.pid}`)
                 pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel)
                 pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel)
-                void transport.onConnected().then(protocol => {
+                void waitForConnection(sp, transport, CONNECT_TIMEOUT).then(protocol => {
                   resolve({ reader: protocol[0], writer: protocol[1] })
+                }, err => {
+                  this.error(`Language server "${this.id}" failed to connect.`, err, false)
+                  reject(err)
                 })
               }, err => {
                 transport.dispose()
@@ -475,7 +482,7 @@ export class LanguageClient extends BaseLanguageClient {
               return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`)
             }
             attachProcess(serverProcess)
-            return transport.onConnected().then(protocol => {
+            return waitForConnection(serverProcess, transport, CONNECT_TIMEOUT).then(protocol => {
               return { reader: protocol[0], writer: protocol[1] }
             })
           })
@@ -603,6 +610,40 @@ function forkServer(node: NodeModule, args: string[], options: CForkOptions): Pr
       return
     }
     resolve(sp)
+  })
+}
+
+function waitForConnection(serverProcess: ChildProcess, transport: DisposableTransport, timeout: number): Promise<[MessageReader, MessageWriter]> {
+  return new Promise((resolve, reject) => {
+    if (serverProcess.exitCode !== null || serverProcess.signalCode !== null) {
+      transport.dispose()
+      reject(new Error('Server process exited before connection established.'))
+      return
+    }
+    let done = false
+    let timer: NodeJS.Timeout
+    const finish = (fn: () => void) => {
+      if (done) return
+      done = true
+      clearTimeout(timer)
+      serverProcess.off('exit', onExit)
+      fn()
+    }
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      transport.dispose()
+      finish(() => reject(new Error(`Server process exited with code ${code}${signal ? ` and signal ${signal}` : ''} before connection established.`)))
+    }
+    timer = setTimeout(() => {
+      transport.dispose()
+      terminate(serverProcess)
+      finish(() => reject(new Error(`Timed out after ${timeout}ms waiting for language server to connect.`)))
+    }, timeout)
+    serverProcess.once('exit', onExit)
+    transport.onConnected().then(protocol => {
+      finish(() => resolve(protocol))
+    }, error => {
+      finish(() => reject(error))
+    })
   })
 }
 

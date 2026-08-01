@@ -914,6 +914,50 @@ describe('Client integration', () => {
   })
 
   describe('server start failure', () => {
+    it('should reject start when a pipe server exits before connecting', async () => {
+      let serverOptions: lsclient.ServerOptions = {
+        module: path.join(__dirname, './server/exitServer.js'),
+        transport: lsclient.TransportKind.pipe
+      }
+      let client = new lsclient.LanguageClient('pipe-exit', 'Test Language Server', serverOptions, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(client.start()).rejects.toThrow(/exited/)
+      await client.dispose()
+    })
+
+    it('should reject start when a socket server exits before connecting', async () => {
+      let serverOptions: lsclient.ServerOptions = {
+        command: 'node',
+        args: ['-e', 'process.exit(1)', '--'],
+        transport: {
+          kind: lsclient.TransportKind.socket,
+          port: 19381
+        }
+      }
+      let client = new lsclient.LanguageClient('socket-exit', 'Test Language Server', serverOptions, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(client.start()).rejects.toThrow(/exited/)
+      await client.dispose()
+    })
+
+    it('should reject start when a pipe server never connects', async () => {
+      let serverOptions: lsclient.ServerOptions = {
+        command: 'node',
+        args: ['-e', 'setInterval(() => {}, 1000)', '--'],
+        transport: lsclient.TransportKind.pipe
+      }
+      let client = new lsclient.LanguageClient('pipe-timeout', 'Test Language Server', serverOptions, {
+        documentSelector: ['css'],
+        initializationOptions: {}
+      })
+      await expect(client.start()).rejects.toThrow(/Timed out/)
+      await client.dispose()
+    })
+
     it('should reject start when module runtime is not found', async () => {
       let serverOptions: lsclient.ServerOptions = {
         module: path.join(__dirname, './server/testServer.js'),

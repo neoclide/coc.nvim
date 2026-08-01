@@ -173,9 +173,15 @@ type MessageBufferEncoding = 'ascii' | 'utf-8'
 
 export function createClientPipeTransport(pipeName: string, encoding: MessageBufferEncoding = 'utf-8'): Promise<PipeTransport & Disposable> {
   let connectResolve: (value: [MessageReader, MessageWriter]) => void
-  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, _reject) => {
+  let connectReject: (reason?: any) => void
+  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, reject) => {
     connectResolve = resolve
+    connectReject = reject
   })
+  // A transport can be disposed before any consumer attached to `connected`
+  // (e.g. when the server process fails to spawn). Prevent the pending
+  // rejection from becoming an unhandled rejection.
+  void connected.catch(() => {})
   return new Promise<PipeTransport & Disposable>((resolve, reject) => {
     const server = net.createServer(socket => {
       server.close()
@@ -191,6 +197,7 @@ export function createClientPipeTransport(pipeName: string, encoding: MessageBuf
         onConnected: () => { return connected },
         dispose: () => {
           server.close()
+          connectReject(new Error('Transport disposed before connection established.'))
         }
       })
     })
@@ -199,9 +206,13 @@ export function createClientPipeTransport(pipeName: string, encoding: MessageBuf
 
 export function createClientSocketTransport(port: number, encoding: MessageBufferEncoding = 'utf-8'): Promise<SocketTransport & Disposable> {
   let connectResolve: (value: [MessageReader, MessageWriter]) => void
-  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, _reject) => {
+  let connectReject: (reason?: any) => void
+  const connected = new Promise<[MessageReader, MessageWriter]>((resolve, reject) => {
     connectResolve = resolve
+    connectReject = reject
   })
+  // See createClientPipeTransport.
+  void connected.catch(() => {})
   return new Promise<SocketTransport & Disposable>((resolve, reject) => {
     const server = net.createServer(socket => {
       server.close()
@@ -217,6 +228,7 @@ export function createClientSocketTransport(port: number, encoding: MessageBuffe
         onConnected: () => { return connected },
         dispose: () => {
           server.close()
+          connectReject(new Error('Transport disposed before connection established.'))
         }
       })
     })
