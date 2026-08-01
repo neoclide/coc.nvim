@@ -96225,8 +96225,8 @@ var init_document = __esmMin((() => {
 				lines.length
 			], true);
 			this._applying = true;
+			this.nvim.resumeNotification(true, true);
 			this.lines = newLines;
-			await this.nvim.resumeNotification(true);
 			await waitNextTick();
 			fireLinesChanged(bufnr);
 			let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines);
@@ -132190,14 +132190,13 @@ var init_linkedEditing = __esmMin((() => {
 			let delta = getDelta(change);
 			ranges.forEach((r) => r.applyChange(change));
 			let edits = ranges.filter((r) => r !== textRange).map((o) => o.textEdit);
-			if (delta != 0) for (let r of ranges) {
-				let n = getBeforeCount(r, ranges, textRange);
-				r.move(n * delta);
-			}
 			this.changing = true;
 			await doc.applyEdits(edits, true, true);
 			this.changing = false;
-			if (this.ranges !== ranges) return;
+			if (delta != 0) for (let r of ranges) {
+				let n = getBeforeCount(r, this.ranges, textRange);
+				r.move(n * delta);
+			}
 			this.doHighlights();
 		}
 		doHighlights() {
@@ -135900,7 +135899,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-d20d40e 2026-08-01 23:13:05 +0800";
+			let version = workspace_default.version + "-d3ef900 2026-08-02 02:31:31 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
