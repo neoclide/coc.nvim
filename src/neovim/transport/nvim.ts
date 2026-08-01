@@ -1,8 +1,14 @@
 import { decode, decodeMultiStream, Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { disconnectedText } from '../../util/errors'
+import { getConditionValue } from '../../util'
 import { Metadata } from '../api/types'
 import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
+
+// Time limit for a single nvim request. Only enabled in the test
+// environment, where a hung request would otherwise stall the whole test
+// until the test runner's own timeout.
+const REQUEST_TIMEOUT = getConditionValue(0, 3000)
 
 export class NvimTransport extends Transport {
   private pending: Map<number, (...args: any[]) => any> = new Map()
@@ -176,7 +182,17 @@ export class NvimTransport extends Transport {
     let startTs = Date.now()
     this.debug('request to nvim:', id, method, args)
     this.writer.write(this.encodeToBuffer([0, id, method, args]))
+    let timer: NodeJS.Timeout | undefined
+    if (REQUEST_TIMEOUT > 0) {
+      timer = setTimeout(() => {
+        let handler = this.pending.get(id)
+        if (!handler) return
+        this.pending.delete(id)
+        handler([0, `Request "${method}" timed out after ${REQUEST_TIMEOUT}ms.`])
+      }, REQUEST_TIMEOUT)
+    }
     this.pending.set(id, (err, res) => {
+      if (timer) clearTimeout(timer)
       this.debug('response of nvim:', id, Date.now() - startTs, res, err)
       cb(err, res)
     })
