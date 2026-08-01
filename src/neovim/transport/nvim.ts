@@ -1,4 +1,5 @@
 import { decode, decodeMultiStream, Encoder, ExtensionCodec } from '@msgpack/msgpack'
+import { disconnectedText } from '../../util/errors'
 import { Metadata } from '../api/types'
 import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
@@ -163,13 +164,13 @@ export class NvimTransport extends Transport {
       })
     }
     for (let handler of this.pending.values()) {
-      handler([0, 'transport disconnected'])
+      handler([0, disconnectedText])
     }
     this.pending.clear()
   }
 
   public request(method: string, args: any[], cb: (...args: any[]) => any): any {
-    if (!this.attached) return cb([0, 'transport disconnected'])
+    if (!this.attached) return cb([0, disconnectedText])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId + 1
     let startTs = Date.now()

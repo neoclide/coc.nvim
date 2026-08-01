@@ -17,6 +17,8 @@ export function assert(condition: boolean): void {
   }
 }
 
+export const disconnectedText = 'transport disconnected'
+
 /**
  * This error indicates a bug.
  * Do not throw this for invalid user input.
@@ -46,7 +48,7 @@ export function isCancellationError(error: any): boolean {
 
 export function shouldIgnore(err: any) {
   if (isCancellationError(err)) return true
-  if (err instanceof Error && err.message.includes('transport disconnected')) return true
+  if (err instanceof Error && err.message === disconnectedText) return true
   return false
 }
 

@@ -1,3 +1,4 @@
+import { disconnectedText } from '../../util/errors'
 import { NeovimClient } from '../api'
 import { isCocNvim } from '../utils/constants'
 import { ILogger } from '../utils/logger'
@@ -136,7 +137,7 @@ export class VimTransport extends Transport {
    * Send request to vim
    */
   public request(method: string, args: any[], cb: (...args: any[]) => any): any {
-    if (!this.attached) return cb([0, 'transport disconnected'])
+    if (!this.attached) return cb([0, disconnectedText])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
     let req = new Request(this.connection, (err, res) => {
