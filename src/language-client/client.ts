@@ -314,6 +314,9 @@ export enum ShutdownMode {
 }
 
 const delayTime = getConditionValue(250, 10)
+// Log requests still pending after this duration, slow responses must not be
+// timed out.
+const SLOW_REQUEST_TIMEOUT = 3000
 
 export abstract class BaseLanguageClient implements FeatureClient<Middleware, LanguageClientOptions> {
   private _rootPath: string | false
@@ -572,10 +575,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     type = fixRequestType(type, params)
     const _sendRequest = this._clientOptions.middleware.sendRequest
+    let request: Promise<R>
     if (_sendRequest !== undefined) {
       // Return the general middleware invocation defining `next` as a utility function that reorganizes parameters to
       // pass them to the original sendRequest function.
-      return _sendRequest(type, param, token, (type, param, token) => {
+      request = Promise.resolve(_sendRequest(type, param, token, (type, param, token) => {
         const params: any[] = []
 
         // Add the parameters if there are any
@@ -589,10 +593,27 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         }
 
         return connection.sendRequest<R>(type, ...params)
-      })
+      }))
     } else {
-      return connection.sendRequest<R>(type, ...params)
+      request = connection.sendRequest<R>(type, ...params)
     }
+    return this.trackSlowRequest(toMethod(type), request)
+  }
+
+  /**
+   * Log requests that are still pending after a while without timing them
+   * out. Slow responses are expected for some methods and must not be
+   * interrupted.
+   */
+  private trackSlowRequest<T>(method: string, request: Promise<T>): Promise<T> {
+    let timer = setTimeout(() => {
+      let msg = `[Warn  - ${currentTimeStamp()}] Request "${method}" still pending after ${SLOW_REQUEST_TIMEOUT / 1000}s`
+      this.outputChannel.appendLine(msg)
+    }, SLOW_REQUEST_TIMEOUT)
+    if (typeof timer.unref === 'function') timer.unref()
+    return request.finally(() => {
+      clearTimeout(timer)
+    })
   }
 
   public onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: NoInfer<RequestHandler0<R, E>>): Disposable
