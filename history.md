@@ -8,16 +8,28 @@ Notable changes of coc.nvim:
   rename events, through the new configuration `editor.fileOperationTimeout`
   (default `500`, minimum `1`). Handlers resolving after the timeout are ignored
   and a warning is logged.
-- Language server `args` now support workspace variables like
-  `${workspaceFolder}` and `${workspaceFolderBasename}`, resolved at server start.
+
+## 2026-07-15
+
+- Float scratch buffers are named `coc-float://<bufnr>` on both vim and neovim.
+- `formatFilepath` could be asynchronous, returns a Promise that resolves to the
+  formatted filepath.
+
+## 2026-07-02
+
+- Add `onAboutToSendNotification` event to `LanguageClient` text document features.
+
+## 2026-06-30
+
 - Expose `g:coc_channel_id` and add Lua module `coc` for RPC requests from
   Neovim Lua, including `get_diagnostics()`, `get_config(section)`,
   `execute_command(name, ...)`, `workspace_symbols(query)`,
   `document_symbols(bufnr)`, `command_list()` and `extension_stats()`.
-- Add `onAboutToSendNotification` event to `LanguageClient` text document features.
-- Float scratch buffers are named `coc-float://<bufnr>` on both vim and neovim.
-- `formatFilepath` could be asynchronous, returns a Promise that resolves to the
-  formatted filepath.
+
+## 2026-05-29
+
+- Language server `args` now support workspace variables like
+  `${workspaceFolder}` and `${workspaceFolderBasename}`, resolved at server start.
 
 ## 2026-04-29
 
