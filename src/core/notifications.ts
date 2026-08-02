@@ -61,6 +61,7 @@ export class Notifications {
   public nvim: Neovim
   public configuration: WorkspaceConfiguration
   public statusLine: StatusLine
+  private readonly historyLimit = 100
   private _history: NotificationItem[] = []
 
   constructor(private dialogs: Dialogs) {
@@ -81,6 +82,9 @@ export class Notifications {
 
   public async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
     this._history.push({ time: this.getCurrentTimestamp(), kind, message })
+    if (this._history.length > this.historyLimit) {
+      this._history.splice(0, this._history.length - this.historyLimit)
+    }
 
     let msgDialogKind = this.messageDialogKind
     if (this.enableMessageDialog === true) {

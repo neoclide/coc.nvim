@@ -338,6 +338,17 @@ describe('window', () => {
       window.showMessage('moremsg', 'more')
     })
 
+    it('should cap notification history', async () => {
+      let notifications: any = window.notifications
+      notifications.clearHistory()
+      for (let i = 0; i < 120; i++) {
+        await notifications._showMessage('Info', `message ${i}`, [])
+      }
+      expect(notifications._history.length).toBe(100)
+      expect(notifications._history[0].message).toBe('message 20')
+      expect(notifications._history[99].message).toBe('message 119')
+    })
+
     it('should show message item', async () => {
       helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
       let p = window.showInformationMessage('information message', { title: 'first' }, { title: 'second' })
