@@ -9,7 +9,7 @@ import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItem
 import { toArray } from '../util/array'
 import { isVim } from '../util/constants'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getConditionValue, sha256, wait, waitNextTick } from '../util/index'
+import { disposeAll, getConditionValue, sha256, waitNextTick } from '../util/index'
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
@@ -61,6 +61,8 @@ export default class Document {
   private _applying = false
   private _uri: string
   private _changedtick: number
+  private _linesTick = 0
+  private lineWaiters: { target: number, timer: NodeJS.Timeout, resolve: () => void }[] = []
   private variables: { [key: string]: VimValue }
   private disposables: Disposable[] = []
   private _textDocument: LinesTextDocument
@@ -192,6 +194,7 @@ export default class Document {
     this._winids = toArray(opts.winids)
     this.variables = toObject(opts.variables)
     this._changedtick = opts.changedtick
+    this._linesTick = opts.changedtick
     this.eol = opts.eol == 1
     this._uri = getUri(opts.fullpath, this.bufnr, buftype)
     if (Array.isArray(opts.lines)) {
@@ -266,6 +269,8 @@ export default class Document {
           return
         }
         this.lines = lines
+        this._linesTick = tick
+        this.settleLineWaiters(tick)
         fireLinesChanged(bufnr)
         if (events.completing) return
         this.fireContentChanges()
@@ -282,6 +287,8 @@ export default class Document {
             return
           }
           this.lines = lines
+          this._linesTick = tick
+          this.settleLineWaiters(tick)
           fireLinesChanged(bufnr)
           if (events.completing) return
           this.fireContentChanges()
@@ -651,6 +658,11 @@ export default class Document {
     this._disposed = true
     this._attached = false
     this.lines = []
+    for (let item of this.lineWaiters) {
+      clearTimeout(item.timer)
+      item.resolve()
+    }
+    this.lineWaiters = []
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
   }
@@ -663,7 +675,44 @@ export default class Document {
     let { changedtick } = this
     await this.patchChange()
     if (changedtick != this.changedtick) {
-      await wait(30)
+      // Wait for pending buffer change events to be applied instead of a
+      // fixed sleep. The flush triggered by get_changedtick could still be
+      // delivered asynchronously on neovim.
+      await this.waitForLineEvents()
+    }
+  }
+
+  /**
+   * Wait for pending buffer change events to be applied, bounded by 30ms.
+   */
+  private waitForLineEvents(): Promise<void> {
+    let target = this._changedtick
+    if (this._linesTick >= target) return Promise.resolve()
+    return new Promise<void>(resolve => {
+      let item = {
+        target,
+        timer: setTimeout(() => {
+          let idx = this.lineWaiters.indexOf(item)
+          if (idx !== -1) this.lineWaiters.splice(idx, 1)
+          resolve()
+        }, 30),
+        resolve
+      }
+      this.lineWaiters.push(item)
+    })
+  }
+
+  private settleLineWaiters(tick: number): void {
+    if (this.lineWaiters.length === 0) return
+    let waiters = this.lineWaiters
+    this.lineWaiters = []
+    for (let item of waiters) {
+      if (tick >= item.target) {
+        clearTimeout(item.timer)
+        item.resolve()
+      } else {
+        this.lineWaiters.push(item)
+      }
     }
   }
 
