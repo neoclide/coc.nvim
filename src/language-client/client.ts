@@ -1765,9 +1765,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       const feature = this._dynamicFeatures.get(registration.method)
       if (!feature) {
         this.error(`No feature implementation for "${registration.method}" found. Registration failed.`, undefined, false)
-        return
+        continue
       }
-      const options = defaultValue(registration.registerOptions, {})
+      // Copy the registration options so we never mutate the server's own
+      // registration object (e.g. when injecting the document selector).
+      const options = { ...defaultValue(registration.registerOptions, {}) }
       options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
       const data: RegistrationData<any> = {
         id: registration.id,

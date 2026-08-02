@@ -70,6 +70,28 @@ describe('DynamicFeature', () => {
       await client.stop()
     })
 
+    it('should keep registering after unknown method in batch', async () => {
+      let originalOptions: any
+      let client = await startServer({ prepareRename: false }, {
+        handleRegisterCapability: async (params, next) => {
+          let rename = params.registrations.find(o => o.method == RenameRequest.method)
+          if (rename) originalOptions = rename.registerOptions
+          // Unknown method first in the same batch must not drop the rest.
+          params.registrations.unshift({ id: 'unknown-custom', method: 'custom/unknown' })
+          await next(params)
+        }
+      })
+      // The dynamic workspace/symbol registration arrives in a later batch
+      // with the same unknown method first; it must still be applied on top
+      // of the static provider from initialize.
+      let feature = client.getFeature(WorkspaceSymbolRequest.method)
+      await helper.waitValue(() => feature.getProviders().length, 2)
+      // The server's own registration object must not be mutated.
+      await helper.waitValue(() => originalOptions != null, true)
+      expect(originalOptions.documentSelector).toBeUndefined()
+      await client.stop()
+    })
+
     it('should handle different result', async () => {
       let client = await startServer({ prepareRename: true }, {
         provideRenameEdits: (doc, pos, newName, token, next) => {
