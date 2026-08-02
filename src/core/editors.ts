@@ -217,22 +217,25 @@ export default class Editors {
     if (creating.has(winid)) return false
     let changed = false
     creating.add(winid)
-    let opts = await nvim.call('coc#util#get_editoroption', [winid]) as EditorOption
-    if (opts) {
-      this.tabIds.add(opts.tabpageid)
-      let doc = documents.getDocument(opts.bufnr)
-      if (doc && doc.attached) {
-        let editor = this.fromOptions(opts)
-        this.editors.set(winid, editor)
-        if (winid == this.winid) this.onChangeCurrent(editor)
-        logger.debug('editor created winid & bufnr & tabpageid: ', winid, opts.bufnr, opts.tabpageid)
-        changed = true
-      } else if (this.editors.has(winid)) {
-        this.editors.delete(winid)
-        changed = true
+    try {
+      let opts = await nvim.call('coc#util#get_editoroption', [winid]) as EditorOption
+      if (opts) {
+        this.tabIds.add(opts.tabpageid)
+        let doc = documents.getDocument(opts.bufnr)
+        if (doc && doc.attached) {
+          let editor = this.fromOptions(opts)
+          this.editors.set(winid, editor)
+          if (winid == this.winid) this.onChangeCurrent(editor)
+          logger.debug('editor created winid & bufnr & tabpageid: ', winid, opts.bufnr, opts.tabpageid)
+          changed = true
+        } else if (this.editors.has(winid)) {
+          this.editors.delete(winid)
+          changed = true
+        }
       }
+    } finally {
+      creating.delete(winid)
     }
-    creating.delete(winid)
     return changed
   }
 

@@ -82,6 +82,28 @@ describe('editors', () => {
     expect(res).toEqual([])
   })
 
+  it('should retry editor creation after get_editoroption failure', async () => {
+    let editors: any = workspace.editors
+    let winid = await nvim.call('win_getid') as number
+    // Simulate a window that is not tracked by the editors yet.
+    editors.editors.delete(winid)
+    let calls = 0
+    let original = nvim.call
+    let spy = vi.spyOn(nvim, 'call').mockImplementation((method: string, args?: any[]) => {
+      if (method == 'coc#util#get_editoroption' && args && args[0] === winid) {
+        calls++
+        if (calls == 1) return Promise.reject(new Error('request failed'))
+      }
+      return original.call(nvim, method, args)
+    })
+    await expect(editors.createTextEditor(winid)).rejects.toThrow('request failed')
+    let changed = await editors.createTextEditor(winid)
+    expect(calls).toBe(2)
+    expect(changed).toBe(true)
+    expect(workspace.editors.activeTextEditor).toBeDefined()
+    spy.mockRestore()
+  })
+
   it('should create editor not created', async () => {
     await nvim.command(`edit +setl\\ buftype=nofile foo`)
     let doc = await workspace.document
