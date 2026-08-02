@@ -10,7 +10,6 @@ import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { pluginRoot } from '../../util/constants'
 
 let workspaceFolder: WorkspaceFolderController
 let configurations: Configurations
@@ -298,11 +297,17 @@ describe('WorkspaceFolderController', () => {
   describe('checkPatterns()', () => {
     it('should check if pattern exists', async () => {
       expect(await workspaceFolder.checkPatterns([], ['p'])).toBe(false)
-      let folder: WorkspaceFolder = { name: '', uri: URI.file(pluginRoot).toString() }
-      let res = await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
-      expect(res).toBe(true)
-      res = await workspaceFolder.checkPatterns([folder], ['**/not_exists'])
-      expect(res).toBe(false)
+      let folderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-wsfolder-'))
+      try {
+        fs.writeFileSync(path.join(folderPath, 'package.json'), '{}')
+        let folder: WorkspaceFolder = { name: '', uri: URI.file(folderPath).toString() }
+        let res = await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
+        expect(res).toBe(true)
+        res = await workspaceFolder.checkPatterns([folder], ['**/not_exists'])
+        expect(res).toBe(false)
+      } finally {
+        fs.rmSync(folderPath, { recursive: true, force: true })
+      }
     })
 
     it('should not throw on timeout', async () => {
