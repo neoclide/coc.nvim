@@ -262,7 +262,11 @@ export class ExtensionManager {
    * Activate extension, throw error if disabled or doesn't exist.
    * Returns true if extension successfully activated.
    */
-  public async activate(id: string, activating: Set<string> = new Set()): Promise<boolean> {
+  public async activate(id: string): Promise<boolean> {
+    return this.activateWithSet(id, new Set())
+  }
+
+  private async activateWithSet(id: string, activating: Set<string>): Promise<boolean> {
     let item = this.extensions.get(id)
     if (!item) throw new Error(`Extension ${id} not registered!`)
     let { extension } = item
@@ -274,10 +278,18 @@ export class ExtensionManager {
     activating = new Set([...activating, id])
     const { packageJSON } = extension
     if (packageJSON.extensionDependencies?.length > 0) {
-      const results = await Promise.allSettled(packageJSON.extensionDependencies.map(dep => this.activate(dep, activating)))
-      for (const result of results) {
+      const deps = packageJSON.extensionDependencies
+      const results = await Promise.allSettled(deps.map(dep => this.activateWithSet(dep, activating)))
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i]
         if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
-          logger.error(`Could not activate dependency for ${id}, activation failed.`)
+          const dep = deps[i]
+          const reason = result.status === 'rejected' ? result.reason : undefined
+          if (reason !== undefined) {
+            logger.error(`Could not activate dependency ${dep} for ${id}.`, reason)
+          } else {
+            logger.error(`Could not activate dependency ${dep} for ${id}, activation failed.`)
+          }
           return false
         }
       }

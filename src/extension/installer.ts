@@ -265,7 +265,7 @@ export class Installer extends EventEmitter implements IInstaller {
     let dest = path.join(this.root, info.name)
     if (isSymbolicLink(dest)) return false
     if (installing.has(info.name)) {
-      this.log(`Skipping circular dependency: ${info.name}`)
+      this.log(`Skipping dependency: ${info.name} (already installed or in progress)`)
       return false
     }
     installing.add(info.name)
@@ -275,7 +275,7 @@ export class Installer extends EventEmitter implements IInstaller {
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined
-    let obj: any
+    let obj: { dependencies?: Record<string, string>, extensionDependencies?: string[] }
     try {
       await this.download(url, {
         dest: downloadFolder,
@@ -284,8 +284,22 @@ export class Installer extends EventEmitter implements IInstaller {
         onProgress: p => this.log(`Download progress ${p}%`, true),
       })
       this.log(`Extension download at ${downloadFolder}`)
-      obj = loadJson(path.join(downloadFolder, 'package.json')) as any
+      obj = loadJson(path.join(downloadFolder, 'package.json'))
       await this.installDependencies(downloadFolder, getDependencies(obj))
+      // Install extension dependencies before moving the main extension into
+      // place, so a dependency failure cleans up the download and never
+      // leaves the main extension half-installed on disk.
+      const extensionDependencies = getExtensionDependencies(obj)
+      if (extensionDependencies.length > 0) {
+        this.log(`Installing extension dependencies: ${extensionDependencies.join(', ')}`)
+        for (const dependency of extensionDependencies) {
+          const installer = new Installer(this.root, this.npm, dependency)
+          installer.on('message', (msg, isProgress) => {
+            this.log(msg, isProgress)
+          })
+          await installer.doInstall(await installer.getInfo(), installing)
+        }
+      }
     } catch (e) {
       fs.rmSync(downloadFolder, { recursive: true, force: true })
       throw e
@@ -295,18 +309,6 @@ export class Installer extends EventEmitter implements IInstaller {
     if (fs.existsSync(dest)) fs.rmSync(dest, { force: true, recursive: true })
     fs.renameSync(downloadFolder, dest)
     this.log(`Move extension ${info.name}@${info.version} to ${dest}`)
-
-    const extensionDependencies = getExtensionDependencies(obj)
-    if (extensionDependencies.length > 0) {
-      this.log(`Installing extension dependencies: ${extensionDependencies.join(', ')}`)
-      for (const dependency of extensionDependencies) {
-        const installer = new Installer(this.root, this.npm, dependency)
-        installer.on('message', (msg, isProgress) => {
-          this.log(msg, isProgress)
-        })
-        await installer.doInstall(await installer.getInfo(), installing)
-      }
-    }
 
     return true
   }

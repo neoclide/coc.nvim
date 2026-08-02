@@ -488,5 +488,75 @@ describe('Installer', () => {
       getInfoSpy.mockRestore()
       downloadSpy.mockRestore()
     }, 10000)
+
+    it('should not leave main extension installed when extension dependency fails', async () => {
+      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+        // @ts-expect-error this
+        const name = this.info.name
+        return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
+      })
+      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+        let name = path.basename(url, '.tgz')
+        if (name === 'coc-bad-dependency') {
+          throw new Error('download failed')
+        }
+        fs.mkdirSync(options.dest, { recursive: true })
+        let pkg = {
+          name,
+          version: '1.0.0',
+          engines: { coc: '>=0.0.1' },
+          extensionDependencies: name === 'coc-main-with-bad-dep' ? ['coc-bad-dependency'] : []
+        }
+        fs.writeFileSync(path.join(options.dest, 'package.json'), JSON.stringify(pkg))
+      })
+
+      tmpfolder = path.join(os.tmpdir(), 'coc-test-fail')
+      let installer = new Installer(tmpfolder, 'npm', 'coc-main-with-bad-dep@1.0.0')
+      await expect(installer.install()).rejects.toThrow()
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-main-with-bad-dep'))).toBe(false)
+
+      getInfoSpy.mockRestore()
+      downloadSpy.mockRestore()
+    })
+
+    it('should skip shared dependency without misleading circular message', async () => {
+      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+        // @ts-expect-error this
+        const name = this.info.name
+        return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
+      })
+      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+        let name = path.basename(url, '.tgz')
+        fs.mkdirSync(options.dest, { recursive: true })
+        let pkg: any = {
+          name,
+          version: '1.0.0',
+          engines: { coc: '>=0.0.1' }
+        }
+        if (name === 'coc-main-shared') {
+          pkg.extensionDependencies = ['coc-dep-a', 'coc-dep-b']
+        } else if (name === 'coc-dep-a' || name === 'coc-dep-b') {
+          pkg.extensionDependencies = ['coc-shared']
+        }
+        fs.writeFileSync(path.join(options.dest, 'package.json'), JSON.stringify(pkg))
+      })
+
+      tmpfolder = path.join(os.tmpdir(), 'coc-test-shared')
+      let installer = new Installer(tmpfolder, 'npm', 'coc-main-shared@1.0.0')
+      let messages: string[] = []
+      installer.on('message', msg => {
+        messages.push(msg)
+      })
+      await installer.install()
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-main-shared'))).toBe(true)
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-dep-a'))).toBe(true)
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-dep-b'))).toBe(true)
+      expect(fs.existsSync(path.join(tmpfolder, 'coc-shared'))).toBe(true)
+      expect(messages.some(m => m.includes('Skipping dependency: coc-shared'))).toBe(true)
+      expect(messages.some(m => m.includes('Skipping circular dependency'))).toBe(false)
+
+      getInfoSpy.mockRestore()
+      downloadSpy.mockRestore()
+    })
   })
 })

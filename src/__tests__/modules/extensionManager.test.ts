@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
+import { logger } from '../../logger/index'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
 import { Neovim } from '../../neovim'
@@ -377,6 +378,33 @@ describe('ExtensionManager', () => {
 
       expect(result).toBe(false)
       expect(manager.getExtension('coc-ext-main').extension.isActive).toBe(false)
+    })
+
+    it('should log failed dependency name', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+
+      let depFolder = path.join(tmpfolder, 'coc-ext-dep')
+      createExtension(depFolder, {
+        name: 'coc-ext-dep',
+        engines: { coc: '>=0.0.1' }
+      }, `exports.activate = () => { throw new Error('Dependency failed') }`)
+
+      let mainFolder = path.join(tmpfolder, 'coc-ext-main')
+      createExtension(mainFolder, {
+        name: 'coc-ext-main',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-ext-dep']
+      }, `exports.activate = () => { return { name: 'coc-ext-main' } }`)
+
+      await manager.loadExtension(depFolder)
+      await manager.loadExtension(mainFolder)
+
+      let scopeLogger = (logger as any).loggers.get('extensions-manager')
+      let spy = vi.spyOn(scopeLogger, 'error')
+      let result = await manager.activate('coc-ext-main')
+      expect(result).toBe(false)
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('coc-ext-dep'), expect.anything())
     })
 
     it('should fail on circular dependencies', async () => {

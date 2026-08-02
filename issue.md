@@ -176,6 +176,8 @@ consistent and reduce duplication.
 
 
 ─── src/extension/installer.ts:299-309 ───
+✅ resolved — extension dependencies are installed before the main extension is moved into place,
+so a dependency failure cleans up the download instead of leaving a partial install (test added)
 [bug · medium] Extension dependencies are installed only *after* the main extension has already been
 moved into place at `dest`. If `installer.getInfo()` or `installer.doInstall()` fails for any
 dependency, the exception propagates up through `install()`/`update()` and the whole operation is
@@ -188,6 +190,8 @@ message instead of aborting the already-completed main install.
 
 
 ─── src/extension/installer.ts:267-271 ───
+✅ resolved — skip message now says "already installed or in progress" instead of claiming a
+circular dependency (test added)
 [maintainability · low] The `installing` set is only ever added to and never cleaned up, so it
 conflates "currently being installed" with "already installed". In a non-circular shared-dependency
 graph (e.g. A depends on B and C, and both B and C depend on D), the second occurrence of D is
@@ -200,6 +204,7 @@ semantics.
 
 
 ─── src/extension/installer.ts:278-278 ───
+✅ resolved — `obj` typed as `{ dependencies?, extensionDependencies? }`
 [maintainability · low] Avoid `any` here. `obj` only needs to be consumed by `getDependencies` and
 `getExtensionDependencies`, which require at most `{ dependencies?: Record<string,string>;
 extensionDependencies?: string[] }`. Declaring a precise type would keep the rest of the function
@@ -229,6 +234,7 @@ checked.
 
 
 ─── src/extension/manager.ts:277-283 ───
+✅ resolved — the failed dependency's name and rejection reason are logged (test added)
 [maintainability · medium] When a dependency fails, `Promise.allSettled` discards the rejection
 reason and the loop only logs a generic message that doesn't name the failed dependency. For
 example, if a dependency isn't registered, `this.activate(dep)` rejects with `Extension ${dep} not
@@ -240,6 +246,8 @@ entirely. Consider logging `result.reason` (and the dep name) so failures are di
 
 
 ─── src/extension/manager.ts:265-265 ───
+✅ resolved — recursive activation logic extracted into a private `activateWithSet`; public
+`activate(id)` keeps a clean single-argument signature
 [maintainability · low] The `activating` set is an internal recursion-tracking detail, yet it's
 exposed as a second parameter on the public `activate` method. Since the same set object is shared
 by reference across all parallel sibling activations inside `Promise.allSettled`, correctness
