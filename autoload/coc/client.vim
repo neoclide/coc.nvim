@@ -181,7 +181,13 @@ function! s:request(method, args) dict
     endif
   catch /.*/
     if v:exception =~# 'E475'
-      if get(g:, 'coc_vim_leaving', 0) | return | endif
+      if get(g:, 'coc_vim_leaving', 0) | return '' | endif
+      if coc#client#is_running(self.name)
+        " The connection is still alive, E475 is an argument error rather
+        " than a lost connection, don't reset the client.
+        echohl Error | echo 'Error on "'.a:method.'" request: '.v:exception | echohl None
+        return ''
+      endif
       echohl Error | echom '['.self.name.'] server connection lost' | echohl None
       let name = self.name
       call s:on_exit(name, 0)
@@ -212,6 +218,12 @@ function! s:notify(method, args) dict
   catch /.*/
     if v:exception =~# 'E475'
       if get(g:, 'coc_vim_leaving', 0)
+        return
+      endif
+      if coc#client#is_running(self.name)
+        " The connection is still alive, E475 is an argument error rather
+        " than a lost connection, don't reset the client.
+        echohl Error | echo 'Error on notify ('.a:method.'): '.v:exception | echohl None
         return
       endif
       echohl Error | echom '['.self.name.'] server connection lost' | echohl None
