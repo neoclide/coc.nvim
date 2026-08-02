@@ -22,7 +22,7 @@ export class FileSystemWatcherManager {
   private clientsMap: Map<string, Watchman> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
-  private creating: Set<string> = new Set()
+  private creating: Map<string, Promise<Watchman | false | undefined>> = new Map()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
   public disabled = global.__TEST__ || isTester
@@ -58,8 +58,10 @@ export class FileSystemWatcherManager {
     }, null, this.disposables)
   }
 
-  public waitClient(root: string): Promise<Watchman> {
+  public waitClient(root: string): Promise<Watchman | false | undefined> {
     if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root))
+    let pending = this.creating.get(root)
+    if (pending) return pending
     return new Promise(resolve => {
       let disposable = this.onDidCreateClient(r => {
         if (r == root) {
@@ -73,11 +75,19 @@ export class FileSystemWatcherManager {
   public async createClient(root: string, skipCheck = false): Promise<Watchman | false | undefined> {
     if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return
     if (this.has(root)) return this.waitClient(root)
+    let pending = this.creating.get(root)
+    if (pending) return pending
+    let p = this.createClientInner(root)
+    this.creating.set(root, p)
+    return p.finally(() => {
+      this.creating.delete(root)
+    })
+  }
+
+  private async createClientInner(root: string): Promise<Watchman | false | undefined> {
     try {
-      this.creating.add(root)
       let watchmanPath = await this.getWatchmanPath()
       let client = await Watchman.createClient(watchmanPath, root, this.channel)
-      this.creating.delete(root)
       this.clientsMap.set(root, client)
       for (let watcher of FileSystemWatcherManager.watchers) {
         watcher.listen(root, client)
@@ -85,7 +95,6 @@ export class FileSystemWatcherManager {
       this._onDidCreateClient.fire(root)
       return client
     } catch (e) {
-      this.creating.delete(root)
       if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`)
       return false
     }
@@ -101,7 +110,7 @@ export class FileSystemWatcherManager {
 
   private has(root: string): boolean {
     let curr = Array.from(this.clientsMap.keys())
-    curr.push(...this.creating)
+    curr.push(...this.creating.keys())
     return curr.some(r => sameFile(r, root))
   }
 

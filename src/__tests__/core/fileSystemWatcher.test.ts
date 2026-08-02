@@ -418,4 +418,23 @@ describe('create FileSystemWatcherManager', () => {
     await expect(() => watcherManager.getWatchmanPath()).rejects.toThrow(Error)
     process.env.WATCHMAN_SOCK = sockPath
   })
+
+  it('should settle concurrent waitClient when create fails', async () => {
+    let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'invalid_command' })
+    Object.assign(watcherManager, { disabled: false })
+    process.env.WATCHMAN_SOCK = ''
+    try {
+      let p1 = watcherManager.createClient(cwd)
+      let p2 = watcherManager.createClient(cwd)
+      let results = await Promise.race([
+        Promise.all([p1, p2]),
+        wait(1000).then(() => {
+          throw new Error('waitClient did not settle after failed create')
+        })
+      ])
+      expect(results).toEqual([false, false])
+    } finally {
+      process.env.WATCHMAN_SOCK = sockPath
+    }
+  })
 })
