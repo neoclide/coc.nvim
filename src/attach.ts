@@ -3,11 +3,16 @@ import { attach, Attach, Neovim } from './neovim'
 import events from './events'
 import { createLogger } from './logger'
 import Plugin from './plugin'
+import { registerExitHandlers } from './exit'
 import { VERSION } from './util/constants'
 import { semver } from './util/node'
 import { toErrorText } from './util/string'
 import { createTiming } from './util/timing'
 const logger = createLogger('attach')
+
+if (global.__isMain) {
+  registerExitHandlers()
+}
 
 /**
  * Request actions that not need plugin ready

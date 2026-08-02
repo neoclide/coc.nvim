@@ -285,10 +285,20 @@ function! coc#client#stop(name) abort
   else
     call jobstop(client['chan_id'])
   endif
-  sleep 200m
+  " Wait for graceful exit of the service (LSP shutdown), force kill
+  " when it takes too long.
+  let i = 0
+  while i < 20 && coc#client#is_running(a:name)
+    sleep 50m
+    let i += 1
+  endwhile
   if coc#client#is_running(a:name)
-    echohl Error | echom 'client '.a:name. ' stop failed.' | echohl None
-    return 0
+    call coc#client#kill(a:name)
+    sleep 200m
+    if coc#client#is_running(a:name)
+      echohl Error | echom 'client '.a:name. ' stop failed.' | echohl None
+      return 0
+    endif
   endif
   call s:on_exit(a:name, 0)
   echohl MoreMsg | echom 'client '.a:name.' stopped!' | echohl None
@@ -297,16 +307,23 @@ endfunction
 
 function! coc#client#kill(name) abort
   let client = get(s:clients, a:name, v:null)
-  if empty(client) | return 1 | endif
-  let running = coc#client#is_running(a:name)
   if empty(client) || exists('$COC_NVIM_REMOTE_ADDRESS')
     return 1
   endif
-  if running
+  if coc#client#is_running(a:name)
     if s:is_vim
-      call job_stop(ch_getjob(client['channel']), 'kill')
+      call job_stop(ch_getjob(client['channel']), 'term')
     else
       call jobstop(client['chan_id'])
+    endif
+    " Give the service a moment for graceful exit before force killing.
+    sleep 300m
+    if coc#client#is_running(a:name)
+      if s:is_vim
+        call job_stop(ch_getjob(client['channel']), 'kill')
+      else
+        call jobstop(client['chan_id'])
+      endif
     endif
   endif
 endfunction

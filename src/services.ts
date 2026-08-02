@@ -197,6 +197,18 @@ class ServiceManager implements Disposable {
     if (service) return Promise.resolve(service.stop())
   }
 
+  /**
+   * Best-effort stop of all registered services, used on process exit.
+   * Stops waiting after `timeout` milliseconds.
+   */
+  public stopAll(timeout = 3000): Promise<void> {
+    let all = Array.from(this.registered.values())
+    return Promise.race([
+      Promise.allSettled(all.map(s => Promise.resolve(s.stop()))).then(() => undefined),
+      wait(timeout)
+    ])
+  }
+
   public async toggle(id: string): Promise<void> {
     let service = this.registered.get(id)
     if (!service) throw new Error(`Service ${id} not found`)

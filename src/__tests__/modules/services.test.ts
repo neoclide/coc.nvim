@@ -457,4 +457,82 @@ describe('services', () => {
       expect(res).toEqual({ id: 'def', method: 'notification', result: { x: 1 } })
     })
   })
+
+  describe('stopAll()', () => {
+    it('should stop all registered services', async () => {
+      let stopped: string[] = []
+      let d1 = services.register({
+        id: 'test-stop-all-1',
+        name: 'test-stop-all-1',
+        state: ServiceStat.Running,
+        selector: [],
+        onServiceReady: vi.fn(),
+        start: vi.fn(),
+        dispose: vi.fn(),
+        stop: async () => {
+          stopped.push('1')
+        },
+        restart: vi.fn()
+      } as any)
+      let d2 = services.register({
+        id: 'test-stop-all-2',
+        name: 'test-stop-all-2',
+        state: ServiceStat.Running,
+        selector: [],
+        onServiceReady: vi.fn(),
+        start: vi.fn(),
+        dispose: vi.fn(),
+        stop: async () => {
+          stopped.push('2')
+        },
+        restart: vi.fn()
+      } as any)
+      try {
+        await services.stopAll(500)
+        expect(stopped).toEqual(['1', '2'])
+      } finally {
+        d1.dispose()
+        d2.dispose()
+      }
+    })
+
+    it('should resolve on timeout when service stop hangs', async () => {
+      let d = services.register({
+        id: 'test-stop-all-hang',
+        name: 'test-stop-all-hang',
+        state: ServiceStat.Running,
+        selector: [],
+        onServiceReady: vi.fn(),
+        start: vi.fn(),
+        dispose: vi.fn(),
+        stop: () => new Promise(() => {}),
+        restart: vi.fn()
+      } as any)
+      try {
+        await services.stopAll(100)
+      } finally {
+        d.dispose()
+      }
+    })
+
+    it('should stop running language client', async () => {
+      const serverOptions: ServerOptions = {
+        module: serverModule,
+        transport: TransportKind.ipc,
+      }
+      const client = new LanguageClient('test-stop-all', 'Test Language Server', serverOptions, {
+        documentSelector: [{ language: 'vim', scheme: 'file' }]
+      })
+      let d = services.registerLanguageClient(client)
+      try {
+        let s = services.getService('test-stop-all')
+        await s.start()
+        expect(s.state).toBe(ServiceStat.Running)
+        await services.stopAll(1000)
+        expect(convertState(client.state)).toBe(ServiceStat.Stopped)
+      } finally {
+        d.dispose()
+      }
+    })
+  })
 })
