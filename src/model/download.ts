@@ -44,11 +44,14 @@ export function getExtname(dispositionHeader: string): string | undefined {
 }
 
 /**
- * Validate that zip entry path won't escape the dest folder.
+ * Validate that zip entry path won't escape the dest folder. Absolute
+ * entry paths are treated as relative and extracted under dest, same as
+ * previous unzip behavior.
  */
 function isSafeEntryPath(dest: string, entryPath: string): boolean {
-  if (path.isAbsolute(entryPath)) return false
-  let destPath = path.resolve(dest, entryPath)
+  // path.join treats absolute entry paths as relative, keeping the
+  // extracted files inside dest.
+  let destPath = path.join(dest, entryPath)
   if (destPath === dest) return false
   return destPath.startsWith(dest + path.sep)
 }
@@ -87,7 +90,7 @@ function extractZip(res: IncomingMessage, dest: string): any {
       notifyError(new Error(`Zip entry path is invalid: ${entry.path}`))
       return
     }
-    let filepath = path.resolve(dest, entry.path)
+    let filepath = path.join(dest, entry.path)
     let dir = entry.isDirectory ? filepath : path.dirname(filepath)
     let p = mkdir(dir).then(() => {
       if (entry.isDirectory) return
