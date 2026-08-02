@@ -99,6 +99,17 @@ describe('FuzzyMatch', () => {
     expect(res.positions.length).toBe(0)
   })
 
+  it('should fallback to JS scorer for highlights', () => {
+    let p = new FuzzyMatch(undefined)
+    p.setPattern('你好')
+    let res = p.matchHighlights('你好世界', 'CocSearch')
+    expect(res).toBeDefined()
+    expect(res.score).toBeGreaterThan(0)
+    expect(res.highlights[0].hlGroup).toBe('CocSearch')
+    expect(res.highlights[0].span).toEqual([0, 6])
+    p.free()
+  })
+
   it('should throw when not set pattern without wasm', () => {
     let p = new FuzzyMatch(undefined)
     expect(() => {

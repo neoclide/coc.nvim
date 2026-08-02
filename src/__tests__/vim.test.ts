@@ -1111,6 +1111,29 @@ describe('document', () => {
     expect(lines).toEqual(cur)
   }
 
+  it('should not wait for lines when already applied', async () => {
+    let doc = await helper.createDocument()
+    doc['_changedtick'] = 10
+    doc['_linesTick'] = 10
+    let p = doc['waitForLineEvents']()
+    await expect(p).resolves.toBeUndefined()
+  })
+
+  it('should settle line waiters when lines catch up', async () => {
+    let doc = await helper.createDocument()
+    doc['_changedtick'] = 10
+    doc['_linesTick'] = 9
+    let resolved = false
+    let p = doc['waitForLineEvents']().then(() => {
+      resolved = true
+    })
+    await Promise.resolve()
+    expect(resolved).toBe(false)
+    doc['settleLineWaiters'](10)
+    await p
+    expect(resolved).toBe(true)
+  })
+
   it('should synchronize current buffer when call vim function', async () => {
     let doc = await helper.createDocument()
     await nvim.call('appendbufline', [doc.bufnr, 0, ['3', '4', '5']])
