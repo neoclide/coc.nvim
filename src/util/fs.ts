@@ -14,6 +14,7 @@ import * as platform from './platform'
 import { smartcaseIndex } from './string'
 const logger = createLogger('util-fs')
 const exec = child_process.exec
+const execFile = child_process.execFile
 
 export enum FileType {
   /**
@@ -145,7 +146,8 @@ export async function isGitIgnored(fullpath: string | undefined): Promise<boolea
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
-    let { stdout } = await promisify(exec)(`git check-ignore ${file}`, { cwd: root })
+    // Use execFile so file names are never interpolated into a shell command.
+    let { stdout } = await promisify(execFile)('git', ['check-ignore', '--', file], { cwd: root })
     return stdout.trim() == file
   } catch (e) {}
   return false

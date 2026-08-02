@@ -2,6 +2,8 @@ import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normali
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { CancellationToken, CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
 
 export function wait(ms: number): Promise<void> {
@@ -285,6 +287,23 @@ describe('fs', () => {
       res = await isGitIgnored(filepath)
       expect(res).toBe(false)
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+    })
+
+    it('should not execute shell commands from file name', async () => {
+      let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
+      fs.mkdirSync(dir)
+      try {
+        await promisify(execFile)('git', ['init'], { cwd: dir })
+        let marker = path.join(dir, 'pwned')
+        let file = path.join(dir, 'evil; touch pwned')
+        fs.writeFileSync(file, '')
+        fs.writeFileSync(path.join(dir, '.gitignore'), 'evil*\n', 'utf8')
+        let res = await isGitIgnored(file)
+        expect(res).toBe(true)
+        expect(fs.existsSync(marker)).toBe(false)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
     })
   })
 
