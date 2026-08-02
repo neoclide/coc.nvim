@@ -155,6 +155,9 @@ leaving a potentially build-breaking suppression.
 
 
 ─── src/completion/source-language.ts:169-169 ───
+✅ resolved — intentional: the guard was added by fix #5577 ("invalid range end") with the
+regression test "should not eat existing paired character on valid range"; keeping it preserves
+that behavior, and dropping it would regress #5577
 [bug · medium] The newly added `invalidRangeEnd` guard narrows the paired-character range extension
 (`range.end.character += 1`) to only the case where the range was shorter than the cursor. However,
 in the common insert-mode path the default replace range ends exactly at the cursor (`end =
@@ -450,7 +453,8 @@ block.
 
 
 ─── src/neovim/api/client.ts:410-411 ───
-✅ resolved — returns the transport call directly; overloads now honestly declare `Promise<AtomicResult | undefined> | null`
+✅ resolved — the notify variant now returns `void` (fire-and-forget) instead of wrapping a `null`
+in a Promise; the transport promise is explicitly discarded
 [bug · low] Type contract mismatch: this overload declares a return type of `null`, but the
 implementation actually returns `Promise.resolve(null)` — a Promise. The underlying
 `transport.resumeNotification(true)` already returns `null` (per its own overload), so wrapping it

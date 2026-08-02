@@ -401,13 +401,16 @@ export class NeovimClient extends Neovim {
   }
 
   public resumeNotification(redrawVim?: boolean): Promise<AtomicResult>
-  public resumeNotification(redrawVim: boolean, notify: true): Promise<AtomicResult | undefined> | null
-  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | null {
+  public resumeNotification(redrawVim: boolean, notify: true): void
+  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | void {
     if (this.isVim && redrawVim) {
       this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
-      return this.transport.resumeNotification(true)
+      // Fire-and-forget flush: callers never use the result, and the
+      // transport may return null or a promise depending on paused state.
+      void this.transport.resumeNotification(true)
+      return
     }
     return this.transport.resumeNotification()
   }
