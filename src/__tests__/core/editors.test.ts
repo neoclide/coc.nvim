@@ -88,14 +88,14 @@ describe('editors', () => {
     // Simulate a window that is not tracked by the editors yet.
     editors.editors.delete(winid)
     let calls = 0
-    let original = nvim.call
-    let spy = vi.spyOn(nvim, 'call').mockImplementation((method: string, args?: any[]) => {
+    let original: any = nvim.call
+    let spy = vi.spyOn(nvim, 'call').mockImplementation(((method: string, args?: any[]) => {
       if (method == 'coc#util#get_editoroption' && args && args[0] === winid) {
         calls++
         if (calls == 1) return Promise.reject(new Error('request failed'))
       }
       return original.call(nvim, method, args)
-    })
+    }) as any)
     await expect(editors.createTextEditor(winid)).rejects.toThrow('request failed')
     let changed = await editors.createTextEditor(winid)
     expect(calls).toBe(2)

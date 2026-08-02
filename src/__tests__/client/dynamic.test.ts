@@ -78,7 +78,7 @@ describe('DynamicFeature', () => {
           if (rename) originalOptions = rename.registerOptions
           // Unknown method first in the same batch must not drop the rest.
           params.registrations.unshift({ id: 'unknown-custom', method: 'custom/unknown' })
-          await next(params)
+          await next(params, CancellationToken.None)
         }
       })
       // The dynamic workspace/symbol registration arrives in a later batch
