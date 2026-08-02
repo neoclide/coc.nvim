@@ -355,7 +355,9 @@ export default class Complete {
 
   public async filterResults(input: string, backspace = false): Promise<DurationCompleteItem[] | undefined> {
     let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources()
-    if (input !== this.option.input && sources.length > 0) {
+    // Re-fetch only when the input grew or backspace cleared it; a plain
+    // prefix-trimming edit shouldn't fire extra LSP requests.
+    if ((input.length > this.option.input.length || backspace) && sources.length > 0) {
       this.fireRefresh(30)
       void this.completeInComplete(input, sources)
       return undefined

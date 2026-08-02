@@ -4,6 +4,7 @@ import { MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-ty
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { FloatConfig, FloatFactory } from '../types'
 import { disposeAll, getConditionValue, wait } from '../util'
@@ -15,6 +16,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
 import { toDocumentation } from './util'
+const logger = createLogger('handler-signature')
 
 interface SignatureConfig {
   wait: number
@@ -63,15 +65,23 @@ export default class Signature {
         this.signatureFactory.close()
       }
     }, null, this.disposables)
+    // When the completion popup shows, FloatFactory closes the signature float
+    // on MenuPopupChanged to avoid intersecting with the pum; re-trigger the
+    // signature help after the popup changes so it reappears. hideOnChange
+    // gates this because it also hides the float on every text change.
     events.on('MenuPopupChanged', () => {
       if (this.config.hideOnChange) return
       process.nextTick(async () => {
-        if (this.signatureFactory.window != null) return
-        let bufnr = this.lastPosition?.bufnr
-        if (!bufnr) return
-        let { doc, position } = await this.handler.getCurrentState()
-        if (!doc || !doc.attached || doc.bufnr !== bufnr) return
-        await this._triggerSignatureHelp(doc, position, false)
+        try {
+          if (this.signatureFactory.window != null) return
+          let bufnr = this.lastPosition?.bufnr
+          if (!bufnr) return
+          let { doc, position } = await this.handler.getCurrentState()
+          if (!doc || !doc.attached || doc.bufnr !== bufnr) return
+          await this._triggerSignatureHelp(doc, position, false)
+        } catch (e) {
+          logger.error(`Error on trigger signature help:`, e)
+        }
       })
     }, null, this.disposables)
     events.on('TextInsert', async (bufnr, info, character) => {

@@ -735,6 +735,89 @@ describe('util functions', () => {
     })
   })
 
+  describe('Complete.filterResults', () => {
+    function makeItem(word: string): DurationCompleteItem {
+      return {
+        abbr: word,
+        word,
+        filterText: word,
+        score: 0,
+        priority: 0,
+        sortText: word,
+        source: { name: 'test' } as ISource,
+        character: 1,
+        delta: 0,
+      }
+    }
+
+    function createComplete(sources: ISource[]): Complete {
+      let option = {
+        position: Position.create(0, 0),
+        bufnr: 1,
+        line: 'foo',
+        col: 4,
+        input: 'foo',
+        filetype: '',
+        filepath: '',
+        word: 'foo',
+        followWord: '',
+        colnr: 4,
+        linenr: 1,
+        changedtick: 0,
+      } as CompleteOption
+      let completeConfig: CompleteConfig = {
+        autoTrigger: 'always',
+        insertMode: InsertMode.Insert,
+        filterGraceful: true,
+        enableFloat: true,
+        languageSourcePriority: 99,
+        snippetsSupport: true,
+        defaultSortMethod: SortMethod.Length,
+        removeDuplicateItems: false,
+        removeCurrentWord: false,
+        acceptSuggestionOnCommitCharacter: false,
+        triggerCompletionWait: 0,
+        triggerAfterInsertEnter: false,
+        maxItemCount: 256,
+        timeout: 500,
+        minTriggerInputLength: 1,
+        localityBonus: true,
+        highPrioritySourceLimit: null,
+        lowPrioritySourceLimit: null,
+        ignoreRegexps: [],
+        asciiMatch: true,
+        asciiCharactersOnly: false,
+      }
+      return new Complete(option, {} as any, completeConfig, sources)
+    }
+
+    it('should not re-trigger incomplete sources on prefix shrink without backspace', async () => {
+      let complete = createComplete([{ name: 'test' }] as any)
+      ;(complete as any).results.set('test', { items: [makeItem('foo')], isIncomplete: true })
+      let spy = vi.spyOn(complete, 'completeInComplete')
+      let res = await complete.filterResults('fo')
+      expect(res).toBeDefined()
+      expect(spy).not.toHaveBeenCalled()
+      res = await complete.filterResults('foo')
+      expect(res).toBeDefined()
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('should re-trigger on growing input and on backspace', async () => {
+      let complete = createComplete([{ name: 'test' }] as any)
+      ;(complete as any).results.set('test', { items: [makeItem('foo')], isIncomplete: true })
+      let spy = vi.spyOn(complete, 'completeInComplete')
+      let res = await complete.filterResults('foof')
+      expect(res).toBeUndefined()
+      expect(spy).toHaveBeenCalled()
+      spy.mockClear()
+      res = await complete.filterResults('', true)
+      expect(res).toBeUndefined()
+      expect(spy).toHaveBeenCalled()
+    })
+
+  })
+
   describe('MruLoader', () => {
     it('should add item without prefix', () => {
       let loader = new MruLoader()

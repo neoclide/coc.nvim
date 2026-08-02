@@ -213,6 +213,7 @@ type-safe instead of widening to `any`.
 
 
 ─── src/handler/inline.ts:270-270 ───
+✅ resolved — strict inequality
 [style · low] Use strict inequality (`!==`) instead of loose `!=`. Besides violating the project's
 strict-equality rule, note this also changes the original behavior: the previous check
 `!state.mode.startsWith('i')` accepted modes like `'ic'`/`'ix'` (insert completion), while `mode !=
@@ -224,6 +225,7 @@ states.
 
 
 ─── src/handler/inline.ts:269-269 ───
+✅ resolved — eval result typed as a strict tuple
 [maintainability · low] The `as any` cast discards type safety for the eval result. Consider typing
 the tuple explicitly (as done in `src/handler/highlights.ts` and `src/handler/index.ts`), e.g. `as
 [string, number, [number, number], number]`, so `pos[0]`/`pos[1]` and `mode`/`nr` are statically
@@ -259,6 +261,10 @@ of external callers passing a shared set.
 
 
 ─── src/completion/complete.ts:130-130 ───
+⏭️ skipped — needs user confirmation: `s.sourceType === SourceType.Service` would also match plain
+`createSource` sources (defaults to Service), keeping completion alive on backspace for word/snippet
+sources; the existing tests "should stop completion when trigger source is not active" and "should
+start new completion after backspace clears input" (#5705) guard the current narrower behavior
 [maintainability · low] `getBackspaceSources` uses `s instanceof LanguageSource` to decide whether a
 service source should be re-fetched on backspace. This couples the generic completion engine (which
 operates on `ISource<CompleteItem>[]`) to a concrete class and will silently miss any other
@@ -272,6 +278,8 @@ importing `SourceType` instead of the concrete class.
 
 
 ─── src/completion/complete.ts:357-358 ───
+✅ resolved — re-trigger restricted to growing input or backspace-cleared input, avoiding extra LSP
+requests on plain prefix-trimming edits (test added)
 [bug · low] The re-trigger condition was widened from `input.length > this.option.input.length`
 (only when input grew) to `input !== this.option.input`. In the `backspace === false` path (e.g.,
 deleting to a still non-empty word, or other non-insertChar edits), this now also re-fires
@@ -283,6 +291,7 @@ prefix-trimming edit; otherwise consider restricting the condition to the backsp
 
 
 ─── src/handler/signature.ts:68-75 ───
+✅ resolved — the deferred callback body is wrapped in try/catch and errors are logged
 [bug · medium] The async callback passed to `process.nextTick` is never awaited by the event emitter
 and has no try/catch or `.catch()`. Both `this.handler.getCurrentState()` and
 `this._triggerSignatureHelp(...)` can reject: `getCurrentState()` internally calls
@@ -295,6 +304,7 @@ errors are surfaced), or attach `.catch()`.
 
 
 ─── src/handler/signature.ts:66-67 ───
+✅ resolved — comment added explaining the MenuPopupChanged re-trigger flow and hideOnChange gate
 [maintainability · low] The purpose of this handler is non-obvious: when the completion popup is
 shown, `FloatFactory` closes the signature float on `MenuPopupChanged` to avoid intersecting with
 the pum (see `src/model/floatFactory.ts`), and this listener re-triggers signature help after the
