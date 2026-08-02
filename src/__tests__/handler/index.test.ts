@@ -138,5 +138,25 @@ describe('Handler', () => {
       await p
       expect(cancelled).toBe(true)
     })
+
+    it('should not dispose newer token source when stale request completes', async () => {
+      let releaseFirst: (value?: undefined) => void
+      let releaseSecond: (value?: undefined) => void
+      let p1 = handler.withRequestToken('test', () => new Promise<undefined>(s => {
+        releaseFirst = s
+      }), false)
+      let p2 = handler.withRequestToken('test', () => new Promise<undefined>(s => {
+        releaseSecond = s
+      }), false)
+      let current = (handler as any).requestTokenSource
+      expect(current).toBeDefined()
+      releaseFirst(undefined)
+      await p1
+      // The stale request must not tear down the newer request's token source.
+      expect((handler as any).requestTokenSource).toBe(current)
+      releaseSecond(undefined)
+      await p2
+      expect((handler as any).requestTokenSource).toBeUndefined()
+    })
   })
 })

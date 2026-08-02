@@ -237,8 +237,9 @@ export default class Handler implements HandlerDelegate {
     }
     clearTimeout(this.requestTimer)
     let statusItem = this.requestStatusItem
-    this.requestTokenSource = new CancellationTokenSource()
-    let { token } = this.requestTokenSource
+    let tokenSource = new CancellationTokenSource()
+    this.requestTokenSource = tokenSource
+    let { token } = tokenSource
     token.onCancellationRequested(() => {
       statusItem.text = `${name} request canceled`
       statusItem.isProgress = false
@@ -256,8 +257,8 @@ export default class Handler implements HandlerDelegate {
       logger.error(`Error on request ${name}`, e)
       this.nvim.errWriteLine(`Error on ${name}: ${e}`)
     }
-    if (this.requestTokenSource) {
-      this.requestTokenSource.dispose()
+    if (this.requestTokenSource === tokenSource) {
+      tokenSource.dispose()
       this.requestTokenSource = undefined
     }
     if (token.isCancellationRequested) return null
