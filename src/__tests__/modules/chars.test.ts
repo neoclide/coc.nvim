@@ -47,6 +47,25 @@ describe('funcs', () => {
     }
   })
 
+  it('should reuse cached segmenter per locale', () => {
+    let fn = Intl['Segmenter']
+    if (typeof fn !== 'function') return
+    let spy = vi.spyOn(Intl, 'Segmenter').mockImplementation(function (this: unknown, locales?: Intl.LocalesArgument, options?: Intl.SegmenterOptions) {
+      return Reflect.construct(fn, [locales, options])
+    })
+    try {
+      let locale = 'zh-x-coc-cache-test'
+      expect(Array.from(parseSegments('你好世界', locale))).toEqual(['你好', '世界'])
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(Array.from(parseSegments('你好世界', locale))).toEqual(['你好', '世界'])
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(Array.from(parseSegments('你好世界', 'zh-x-coc-cache-other'))).toEqual(['你好', '世界'])
+      expect(spy).toHaveBeenCalledTimes(2)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('should delete language', () => {
     expect(detectLanguage('你'.charCodeAt(0))).toBe('cn')
     expect(detectLanguage('れ'.charCodeAt(0))).toBe('ja')

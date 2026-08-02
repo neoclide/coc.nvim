@@ -34,19 +34,29 @@ export function detectLanguage(code: number): string {
   return ''
 }
 
+// Segmenter construction is expensive, cache one instance per locale.
+const segmenters: Map<string, Intl.Segmenter> = new Map()
+
+function getSegmenter(locales: string): Intl.Segmenter {
+  let seg = segmenters.get(locales)
+  if (!seg) {
+    seg = new Intl.Segmenter(locales === '' ? undefined : locales, { granularity: 'word' })
+    segmenters.set(locales, seg)
+  }
+  return seg
+}
+
 export function* parseSegments(text: string, segmenterLocales: string): Iterable<string> {
   if (Intl === undefined || typeof Intl['Segmenter'] !== 'function') {
     yield text
     return
   }
-  let res: string[] = []
-  let items = new Intl['Segmenter'](segmenterLocales === '' ? undefined : segmenterLocales, { granularity: 'word' }).segment(text)
+  let items = getSegmenter(segmenterLocales).segment(text)
   for (let item of items) {
     if (item.isWordLike) {
       yield item.segment
     }
   }
-  return res
 }
 
 export function splitKeywordOption(iskeyword: string): string[] {
