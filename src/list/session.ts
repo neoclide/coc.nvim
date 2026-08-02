@@ -295,7 +295,10 @@ export default class ListSession {
     nvim.pauseNotification()
     if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
     if (winid) nvim.call('coc#list#close', [winid, context.options.position, targetWinid, this.savedHeight], true)
-    if (notify) return nvim.resumeNotification(true, true)
+    if (notify) {
+      nvim.resumeNotification(true, true)
+      return
+    }
     await nvim.resumeNotification(false)
     if (isVim) {
       // required on vim

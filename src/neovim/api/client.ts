@@ -249,7 +249,7 @@ export class NeovimClient extends Neovim {
    * `funcs.callAsync` blocked on the shared mutex forever.
    */
   private rejectPendingResponses(): void {
-    if (this.responses.size == 0) return
+    if (this.responses.size === 0) return
     const err = new Error(disconnectedText)
     for (const response of this.responses.values()) {
       response.finish(err.message)
@@ -271,11 +271,11 @@ export class NeovimClient extends Neovim {
     this.emit('request', method, args, resp)
   }
 
-  public sendAsyncRequest(method: string, args: any[]): Promise<any> {
+  public sendAsyncRequest(method: string, args: VimValue[]): Promise<VimValue> {
     let id = this.requestId
     this.requestId = id + 1
     this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]])
-    return new Promise<any>((resolve, reject) => {
+    return new Promise<VimValue>((resolve, reject) => {
       let response = new AsyncResponse(id, (err?: Error, res?: any): void => {
         if (err) return reject(err)
         resolve(res)
@@ -286,7 +286,7 @@ export class NeovimClient extends Neovim {
 
   private handleNotification(method: string, args: VimValue[]): void {
     if (method.endsWith('_event')) {
-      if (method == 'vim_buf_change_event') {
+      if (method === 'vim_buf_change_event') {
         const id = args[0] as number
         if (!this.attachedBuffers.has(id)) return
         const bufferMap = this.attachedBuffers.get(id)
@@ -309,7 +309,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // async_request_event from vim
-      if (method == 'nvim_async_request_event') {
+      if (method === 'nvim_async_request_event') {
         const [id, method, arr] = args
         this.handleRequest(method as string, arr as any[], {
           send: (resp: any, isError?: boolean): void => {
@@ -319,7 +319,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // nvim_async_response_event
-      if (method == 'nvim_async_response_event') {
+      if (method === 'nvim_async_response_event') {
         const [id, err, res] = args
         const response = this.responses.get(id as number)
         if (!response) {
@@ -389,7 +389,7 @@ export class NeovimClient extends Neovim {
   public pauseNotification(): void {
     let o: any = {}
     Error.captureStackTrace(o)
-    if (this.transport.pauseLevel != 0) {
+    if (this.transport.pauseLevel !== 0) {
       this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack)
     }
     this.transport.pauseNotification()
@@ -401,14 +401,13 @@ export class NeovimClient extends Neovim {
   }
 
   public resumeNotification(redrawVim?: boolean): Promise<AtomicResult>
-  public resumeNotification(redrawVim: boolean, notify: true): null
+  public resumeNotification(redrawVim: boolean, notify: true): Promise<AtomicResult | undefined> | null
   public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | null {
     if (this.isVim && redrawVim) {
       this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
-      this.transport.resumeNotification(true)
-      return Promise.resolve(null)
+      return this.transport.resumeNotification(true)
     }
     return this.transport.resumeNotification()
   }

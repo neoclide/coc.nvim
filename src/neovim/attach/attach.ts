@@ -39,11 +39,6 @@ export function attach({
       neovim.detach()
     })
   }
-  writer.on('error', err => {
-    if (err.code == 'EPIPE') {
-      neovim.detach()
-    }
-  })
 
   if (writer && reader) {
     neovim = new NeovimClient(logger, isVim)
@@ -51,6 +46,11 @@ export function attach({
       writer,
       reader,
     }, requestApi)
+    writer.on('error', err => {
+      if (err.code === 'EPIPE') {
+        neovim.detach()
+      }
+    })
     return neovim
   }
   throw new Error('Invalid arguments, could not attach')

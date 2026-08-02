@@ -6,7 +6,7 @@ export interface Disposable {
   dispose(): void
 }
 
-export const isTester = process.env.COC_TESTER == '1'
+export const isTester = process.env.COC_TESTER === '1'
 
 export function sha256(data: string): string {
   return crypto.createHash('sha256').update(data).digest('hex')
