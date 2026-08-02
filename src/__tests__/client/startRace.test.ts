@@ -250,4 +250,32 @@ describe('Client start/restart race (#8)', () => {
       await stopAndDispose(client)
     }
   })
+
+  it('settles onReady with an error after the client stops', async () => {
+    let client = new TestLanguageClient(['ok'], {
+      error: () => ({ action: 1 }),
+      closed: () => ({ action: CloseAction.DoNotRestart })
+    })
+    try {
+      await client.start()
+      await waitForState(client, State.Running)
+      await client.stop()
+      await waitForState(client, State.Stopped)
+      let settled = false
+      let err: any
+      await Promise.race([
+        client.onReady().then(() => {
+          settled = true
+        }, e => {
+          settled = true
+          err = e
+        }),
+        new Promise(resolve => setTimeout(resolve, 500))
+      ])
+      expect(settled).toBe(true)
+      expect(err).toBeTruthy()
+    } finally {
+      await stopAndDispose(client)
+    }
+  })
 })

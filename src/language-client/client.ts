@@ -907,11 +907,17 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public onReady(): Promise<void> {
     if (this._onStart) return this._onStart
-    return new Promise(resolve => {
+    if (this.$state === ClientState.Stopped || this.$state === ClientState.StartFailed) {
+      return Promise.reject(new Error(`${this._name} client is not running and can't become ready.`))
+    }
+    return new Promise((resolve, reject) => {
       let disposable = this.onDidChangeState(e => {
         if (e.newState === State.Running) {
           disposable.dispose()
           resolve()
+        } else if (e.newState === State.Stopped || e.newState === State.StartFailed) {
+          disposable.dispose()
+          reject(new Error(`${this._name} client stopped before it became ready.`))
         }
       })
     })
