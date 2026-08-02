@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { PassThrough } from 'stream'
 import { Buffer as NvimBuffer, Tabpage, Window as NvimWindow } from '../../neovim'
+import Request from '../../neovim/transport/request'
 import { NvimTransport } from '../../neovim/transport/nvim'
 import { Metadata } from '../../neovim/api/types'
 import { nullLogger } from '../../neovim/utils/logger'
@@ -242,5 +243,15 @@ describe('NvimTransport message reception', () => {
 
     await helper.wait(25)
     expect(handler).not.toHaveBeenCalled()
+  })
+})
+
+describe('Request callback', () => {
+  it('should handle empty result for list requests', () => {
+    let cb = vi.fn()
+    let r = new Request({ call: () => {} } as any, cb, 1)
+    r.request('nvim_list_wins')
+    r.callback({ createWindow: (o: any) => o } as any, null, undefined)
+    expect(cb).toHaveBeenCalledWith(null, [])
   })
 })
