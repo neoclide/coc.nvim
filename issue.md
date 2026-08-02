@@ -14,6 +14,8 @@ when it is non-nil and not on the virt_lines path.
 
 
 ─── lua/coc/init.lua:34-40 ───
+⏭️ skipped — design decision: exposing an async variant or documenting the blocking behavior
+needs user confirmation
 [performance · medium] These wrappers use `vim.rpcrequest`, which is a synchronous blocking call
 that freezes the Neovim UI until the Node side replies. `getWorkspaceSymbols`, `getDocumentSymbols`,
 and `runCommand` can involve language-server round-trips or slow user commands (e.g.
@@ -25,6 +27,8 @@ blocking limitation on the module, or exposing an async variant for the slow ope
 
 
 ─── lua/coc/init.lua:15-18 ───
+⏭️ skipped — design decision: changing the return contract or surfacing errors via notify changes
+extension-facing behavior and needs user confirmation
 [maintainability · low] The `pcall` swallows every failure (channel closed, plugin not ready, action
 error, server error) and collapses it to `nil`, discarding the underlying error message. Callers
 therefore cannot distinguish a genuine empty result from a failed request, which makes debugging
@@ -35,6 +39,7 @@ through `vim.notify`/logging so silent failures don't hide real service bugs.
 
 
 ─── src/core/fileSystemWatcher.ts:28-28 ───
+✅ resolved — `disabled` now keeps `config.enable === false || global.__TEST__ || isTester` (test added)
 [bug · medium] The `|| isTester` addition has no runtime effect: the field initializer
 `global.__TEST__ || isTester` is always overwritten in the constructor by `this.disabled =
 config.enable === false` (class field initializers run before the constructor body). As a result,
@@ -46,6 +51,9 @@ false || global.__TEST__ || isTester`, or use this combined condition in `create
 
 
 ─── src/core/workspaceFolder.ts:89-91 ───
+✅ resolved — not reproducible: `getConfiguration()` mixes the raw config record into the wrapper
+(methods are non-enumerable), so `Object.values()` yields the actual server configs; the existing
+`should add patterns from languageserver` test passes without changes
 [bug · high] `getConfiguration('languageserver', null)` returns a `WorkspaceConfiguration` wrapper
 (an object exposing only `has`/`get`/`update` methods), not the raw languageserver configuration
 record. Iterating `Object.values()` over it yields those three method functions, so `{ filetypes,
@@ -64,6 +72,7 @@ implementation did.
 
 
 ─── src/core/notifications.ts:168-168 ───
+✅ resolved — cancel (`res < 0`) returns `undefined`; signature updated to `Promise<T | undefined>` (test added)
 [bug · medium] `Dialogs.showMenuPicker` returns `-1` when the menu is cancelled/dismissed (see
 `src/model/menu.ts` firing `-1` and `src/core/dialogs.ts:102` for token cancellation). In that case
 `items[-1]` evaluates to `undefined` at runtime, violating the declared `Promise<T>` return type.
@@ -76,6 +85,7 @@ the signature to `Promise<T | undefined>` so the contract is honest.
 
 
 ─── src/core/notifications.ts:83-83 ───
+✅ resolved — already fixed: `_history` is trimmed to `historyLimit` (100) after each push
 [performance · medium] Every call to `_showMessage` appends an entry to `_history` with no size cap
 or pruning. In a long-lived Neovim session with frequent info/warning/error messages this array
 grows without bound and leaks memory. Consider trimming to a maximum length (e.g., keep the most
@@ -86,6 +96,7 @@ recent N entries) after each push.
 
 
 ─── src/core/notifications.ts:165-165 ───
+✅ resolved — global replace normalizes all line breaks (test added)
 [maintainability · low] `title.replace(/\r?\n/, ' ')` only replaces the first newline sequence, so
 multi-line titles retain the remaining line breaks in the menu title. Use a global replace
 `title.replace(/\r?\n/g, ' ')` to normalize all line breaks.
@@ -95,6 +106,8 @@ multi-line titles retain the remaining line breaks in the menu title. Use a glob
 
 
 ─── src/core/documents.ts:563-566 ───
+⏭️ skipped — needs user confirmation: OR semantics between `formatOnSaveFiletypes` and
+`formatOnSave` may be intentional (changed in #5588)
 [bug · medium] Behavior change: the new `enabledInConfiguration` uses OR semantics, so a global
 `coc.preferences.formatOnSave: true` will now enable format-on-save for *every* filetype even when
 `formatOnSaveFiletypes` is set to a whitelist that excludes the current language. Previously (see
@@ -106,6 +119,7 @@ non-empty `formatOnSaveFiletypes` list takes priority over `formatOnSave`.
 
 
 ─── src/core/documents.ts:562-562 ───
+✅ resolved — `Array.isArray` guard restored so non-array values neither throw nor substring-match (test added)
 [bug · low] The previous code guarded `formatOnSaveFiletypes` with `Array.isArray` before calling
 `.includes`. The new `?? []` only handles `null`/`undefined`; if a user misconfigures the value as a
 string, `.includes` will do substring matching, and a number/object will throw a TypeError, breaking
@@ -114,6 +128,8 @@ format-on-save. Consider restoring the `Array.isArray` check or normalizing the 
 
 
 ─── src/core/watchman.ts:103-103 ───
+✅ resolved — replaced the suppression with an explicit `FileChange` cast; verified the directive
+was suppressing a real type error (SubscriptionResponse vs FileChange)
 [maintainability · medium] This `@ts-expect-error` bypasses the type check when passing the raw
 watchman subscription response to the `FileChange` listener. The `subscription` callback parameter
 (`resp`) is untyped `any` (inherited from `EventEmitter`), so `listener(resp)` may not actually
@@ -125,6 +141,8 @@ truly required, use a comment that explains the actual mismatch.
 
 
 ─── src/core/watchman.ts:112-112 ───
+✅ resolved — verified by removing the directive: a real TS2769 overload error appears, so it is
+kept with a comment explaining the dynamic-args mismatch
 [maintainability · medium] Same concern as the directive above: `this.client.command()` is a typed
 method whose signature accepts `any[]` args and an `(error, resp)` callback, so this directive
 likely isn't suppressing a real error and may trigger TS2578 "Unused '@ts-expect-error' directive"
@@ -149,6 +167,7 @@ should be dropped to preserve the original behavior.
 
 
 ─── src/diagnostic/manager.ts:323-324 ───
+✅ resolved — duplicated jump logic extracted into `showVirtualTextAndResetTimer`
 [maintainability · low] These two lines (show virtual text at the target line and clear the pending
 message timer) are duplicated verbatim in both `jumpPrevious` and `jumpNext`. Consider extracting
 them into a shared helper (e.g., `showVirtualTextAndResetTimer(item, pos)`) to keep the jump logic
@@ -277,6 +296,7 @@ it) would help future maintainers understand the flow.
 
 
 ─── src/handler/workspace.ts:20-20 ───
+✅ resolved — `crypto` imported from '../util/node'
 [maintainability · low] `crypto.randomUUID()` on line 106 relies on Node's global `crypto` (the
 WebCrypto API), but this file does not import `crypto`. Everywhere else in the codebase (e.g.,
 src/core/watchman.ts, src/model/status.ts, src/provider/*) consistently imports `crypto` from

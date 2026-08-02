@@ -161,14 +161,15 @@ export class Notifications {
     return items[res - 1]
   }
 
-  public async showMenuPicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T> {
+  public async showMenuPicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T | undefined> {
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let res = await this.dialogs.showMenuPicker(texts, {
       position: 'center',
       content,
-      title: title.replace(/\r?\n/, ' '),
+      title: title.replace(/\r?\n/g, ' '),
       borderhighlight: hlGroup
     })
+    if (res < 0) return undefined
     return items[res]
   }
 

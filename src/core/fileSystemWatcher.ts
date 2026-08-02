@@ -31,7 +31,7 @@ export class FileSystemWatcherManager {
     private workspaceFolder: WorkspaceFolderControl,
     private config: FileWatchConfig
   ) {
-    this.disabled = config.enable === false
+    this.disabled = config.enable === false || global.__TEST__ || isTester
   }
 
   public attach(channel: OutputChannel): void {

@@ -301,6 +301,11 @@ class DiagnosticManager implements Disposable {
     }
   }
 
+  private async showVirtualTextAndResetTimer(item: DiagnosticBuffer, pos: Position): Promise<void> {
+    await item.showVirtualTextCurrentLine(pos.line + 1)
+    if (this.messageTimer) clearTimeout(this.messageTimer)
+  }
+
   /**
    * Jump to previous diagnostic position
    */
@@ -320,8 +325,7 @@ class DiagnosticManager implements Disposable {
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
-      await item.showVirtualTextCurrentLine(pos.line + 1)
-      if (this.messageTimer) clearTimeout(this.messageTimer)
+      await this.showVirtualTextAndResetTimer(item, pos)
     } else {
       void window.showWarningMessage(`No more diagnostic before cursor position`)
     }
@@ -352,8 +356,7 @@ class DiagnosticManager implements Disposable {
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
-      await item.showVirtualTextCurrentLine(pos.line + 1)
-      if (this.messageTimer) clearTimeout(this.messageTimer)
+      await this.showVirtualTextAndResetTimer(item, pos)
     } else {
       void window.showWarningMessage(`No more diagnostic after cursor position`)
     }

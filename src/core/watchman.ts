@@ -100,8 +100,9 @@ export default class Watchman {
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid || !resp.files) return
       for (let listener of this._listeners) {
-        // @ts-expect-error file change item
-        listener(resp)
+        // The watchman subscription payload matches FileChange at runtime;
+        // @types/fb-watchman's FileChange shape omits the `new` field.
+        listener(resp as unknown as FileChange)
       }
     })
     return true
@@ -109,7 +110,9 @@ export default class Watchman {
 
   private command(args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
-      // @ts-expect-error any type
+      // Watchman commands are built dynamically from `args`, so they don't
+      // statically match any single overload of Client.command().
+      // @ts-expect-error dynamic watchman command args
       this.client.command(args, (error, resp) => {
         if (error) return reject(error)
         resolve(resp)

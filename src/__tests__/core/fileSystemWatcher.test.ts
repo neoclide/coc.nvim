@@ -113,6 +113,15 @@ afterEach(async () => {
   watchResponse = undefined
 })
 
+describe('FileSystemWatcherManager.disabled', () => {
+  it('should stay disabled under test environment even when enable is true', () => {
+    let manager = new FileSystemWatcherManager(workspaceFolder, { watchmanPath: null, enable: true, ignoredFolders: [] })
+    expect(manager.disabled).toBe(true)
+    manager = new FileSystemWatcherManager(workspaceFolder, { watchmanPath: null, enable: false, ignoredFolders: [] })
+    expect(manager.disabled).toBe(true)
+  })
+})
+
 afterAll(async () => {
   await helper.shutdown()
   watcherManager.dispose()
