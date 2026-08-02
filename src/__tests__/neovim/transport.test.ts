@@ -29,7 +29,7 @@ function fakeStream(): any {
 
 describe('Request', () => {
   let connection: Connection
-  let cb: ReturnType<typeof vi.fn>
+  let cb: (...args: any[]) => any
   let client: any
   let request: Request
 
