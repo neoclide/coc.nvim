@@ -518,6 +518,7 @@ export default class Documents implements Disposable {
     }
     await this.tryCodeActionsOnSave(doc)
     await this.tryFormatOnSave(doc)
+    await doc.synchronize()
   }
 
   public async tryFormatOnSave(document: Document): Promise<void> {
