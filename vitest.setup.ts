@@ -17,6 +17,12 @@ process.env.COC_NVIM = '1'
 process.env.COC_DATA_HOME = dataHome
 process.env.COC_VIMCONFIG = path.join(__dirname, 'src/__tests__')
 
-process.on('exit', () => {
-  fs.rmSync(dataHome, { recursive: true, force: true })
-})
+// The setup file runs once per test file in the same worker when isolate is
+// disabled, so only register the cleanup listener once per process to avoid
+// accumulating exit listeners (MaxListenersExceededWarning).
+if (!(process as any).__cocTestCleanupRegistered) {
+  (process as any).__cocTestCleanupRegistered = true
+  process.on('exit', () => {
+    fs.rmSync(dataHome, { recursive: true, force: true })
+  })
+}
