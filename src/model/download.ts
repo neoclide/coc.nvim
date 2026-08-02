@@ -44,6 +44,77 @@ export function getExtname(dispositionHeader: string): string | undefined {
 }
 
 /**
+ * Validate that zip entry path won't escape the dest folder.
+ */
+function isSafeEntryPath(dest: string, entryPath: string): boolean {
+  if (path.isAbsolute(entryPath)) return false
+  let destPath = path.resolve(dest, entryPath)
+  if (destPath === dest) return false
+  return destPath.startsWith(dest + path.sep)
+}
+
+/**
+ * Extract zip entries to dest, reject when entry path tries to escape dest.
+ */
+function extractZip(res: IncomingMessage, dest: string): any {
+  const unzip = require('unzip-stream')
+  const parser = unzip.Parse()
+  let err: Error | null = null
+  let pending: Promise<void>[] = []
+  let dirs: { [key: string]: Promise<void> } = {}
+  const notifyError = (error: Error): void => {
+    if (!err) {
+      err = error
+      parser.emit('error', error)
+      parser.destroy()
+    }
+  }
+  const mkdir = (dir: string): Promise<void> => {
+    if (dirs[dir]) return dirs[dir]
+    let p = fs.promises.mkdir(dir, { recursive: true }).then(() => {}).catch(e => {
+      notifyError(e instanceof Error ? e : new Error(String(e)))
+    })
+    dirs[dir] = p
+    return p
+  }
+  parser.on('entry', (entry: any) => {
+    if (err) {
+      entry.autodrain()
+      return
+    }
+    if (!isSafeEntryPath(dest, entry.path)) {
+      entry.autodrain()
+      notifyError(new Error(`Zip entry path is invalid: ${entry.path}`))
+      return
+    }
+    let filepath = path.resolve(dest, entry.path)
+    let dir = entry.isDirectory ? filepath : path.dirname(filepath)
+    let p = mkdir(dir).then(() => {
+      if (entry.isDirectory) return
+      return new Promise<void>((resolve, reject) => {
+        let ws = fs.createWriteStream(filepath)
+        ws.on('error', reject)
+        ws.on('close', resolve)
+        entry.pipe(ws)
+      })
+    }).catch(e => {
+      if (!entry.isDirectory) entry.autodrain()
+      notifyError(e instanceof Error ? e : new Error(String(e)))
+    })
+    pending.push(p)
+  })
+  parser.on('finish', () => {
+    Promise.all(pending).then(() => {
+      if (!err) parser.emit('done')
+    }, e => {
+      notifyError(e instanceof Error ? e : new Error(String(e)))
+    })
+  })
+  res.pipe(parser)
+  return parser
+}
+
+/**
  * Download file from url, with optional untar/unzip support.
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
@@ -123,8 +194,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
           const tar = require('tar')
           stream = res.pipe(tar.x({ strip: options.strip ?? 1, C: dest }))
         } else if (extract === 'unzip') {
-          const unzip = require('unzip-stream')
-          stream = res.pipe(unzip.Extract({ path: dest }))
+          stream = extractZip(res, dest)
         } else {
           dest = path.join(dest, `${crypto.randomUUID()}${extname}`)
           stream = res.pipe(fs.createWriteStream(dest))

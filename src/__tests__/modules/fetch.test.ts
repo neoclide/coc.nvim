@@ -94,6 +94,15 @@ async function createServer(): Promise<number> {
         let stream = fs.createReadStream(zipfile, { highWaterMark: 1 * 1024 })
         stream.pipe(res)
       }
+      if (req.url === '/evil_zip') {
+        let zipfile = path.resolve(__dirname, '../evil.zip')
+        let stat = fs.statSync(zipfile)
+        res.setHeader('Content-Length', stat.size)
+        res.setHeader('Content-Type', 'application/zip')
+        res.writeHead(200)
+        let stream = fs.createReadStream(zipfile)
+        stream.pipe(res)
+      }
       if (req.url === '/tgz') {
         res.setHeader('Content-Disposition', 'attachment; filename="file.tgz"')
         res.setHeader('Content-Type', 'application/octet-stream')
@@ -504,6 +513,16 @@ describe('download', () => {
     })
     exists = fs.existsSync(file)
     expect(exists).toBe(true)
+  })
+
+  it('should not extract zip file outside dest', async () => {
+    let dest = path.join(tempdir, 'evil')
+    let url = `http://127.0.0.1:${port}/evil_zip`
+    await expect(download(url, {
+      dest,
+      extract: true
+    })).rejects.toThrow(/Zip entry path is invalid/)
+    expect(fs.existsSync(path.join(tempdir, 'evil.txt'))).toBe(false)
   })
 
   it('should download tgz', async () => {
