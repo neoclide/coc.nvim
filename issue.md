@@ -1,4 +1,6 @@
 ─── lua/coc/vtext.lua:8-8 ───
+✅ resolved — `right_gravity` is only set on the `virt_text` path; regression test added for
+virt_lines (`text_align: 'above'`) with `right_gravity`
 [bug · medium] `right_gravity` is set unconditionally on the config, but it is only valid for
 `virt_text`. When `text_align` is 'above'/'below', the `virt_lines` branch is used and Neovim's
 `nvim_buf_set_extmark` does not support `right_gravity` with `virt_lines` (only `false` is allowed)

@@ -804,6 +804,16 @@ describe('Buffer API', () => {
     }
   })
 
+  it('should add virtual text above with right_gravity', async () => {
+    let buf = await nvim.buffer
+    await nvim.call('setline', ['.', '  foo'])
+    let ns = await nvim.createNamespace('virtual-text-gravity')
+    buf.setVirtualText(ns, 0, [['bar', 'MoreMsg']], { text_align: 'above', indent: true, right_gravity: true })
+    let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
+    let props = await nvim.call('prop_list', [1, { types }]) as any[]
+    expect(props.length).toBe(1)
+  })
+
   it('should set multiple virtual texts', async () => {
     let buf = await nvim.buffer
     let arr = (new Array(10)).fill('foo')
