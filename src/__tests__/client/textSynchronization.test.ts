@@ -2,7 +2,7 @@ import { Neovim } from '../../neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextDocumentSyncKind, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
@@ -250,6 +250,48 @@ describe('TextDocumentSynchronization', () => {
         document: doc.textDocument,
         originalLines: []
       })
+      await client.sendNotification('unregisterDocumentSync')
+      await client.stop()
+    })
+
+    it('should keep notification emitters working after dispose', async () => {
+      let client = createClient([{ scheme: 'lsptest' }])
+      await client.start()
+      await client.sendNotification('registerDocumentSync')
+      let feature = client.getFeature(DidChangeTextDocumentNotification.method) as any
+      let oldEmitter = feature._onNotificationSent
+      feature.register({ registerOptions: {} } as any)
+      let called = 0
+      feature.onNotificationSent(() => {
+        called++
+      })
+      let doc = await helper.createDocument(`${crypto.randomUUID()}.vim`)
+      await helper.waitValue(() => {
+        return client.isSynced(doc.uri)
+      }, true)
+      await nvim.call('setline', [1, 'bar'])
+      await doc.patchChange()
+      await helper.waitValue(() => {
+        return called > 0
+      }, true)
+      // Simulate a client restart: dispose then re-register, as the built-in
+      // features are reused across restarts.
+      feature.dispose()
+      // The built-in feature instances are reused across client restarts, so
+      // dispose must re-create the emitters like the base feature does.
+      expect(feature._onNotificationSent).not.toBe(oldEmitter)
+      feature.register({
+        id: crypto.randomUUID(),
+        registerOptions: { documentSelector: [{ language: 'vim' }], syncKind: TextDocumentSyncKind.Incremental }
+      } as any)
+      feature.onNotificationSent(() => {
+        called++
+      })
+      await nvim.call('setline', [1, 'baz'])
+      await doc.patchChange()
+      await helper.waitValue(() => {
+        return called > 1
+      }, true)
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
     })

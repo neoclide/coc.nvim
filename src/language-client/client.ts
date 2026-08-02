@@ -982,6 +982,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         // don't clobber the newer attempt's state or spuriously reject the
         // original start promise. Settle it with the current attempt instead.
         this._onStart.then(resolve, reject)
+        // The original promise is superseded by `this._onStart`, which
+        // `_start()` returns to callers; without a consumer its eventual
+        // rejection would surface as an unhandled promise rejection.
+        void promise.catch(() => {})
       } else {
         this.$state = ClientState.StartFailed
         this.error(`${this._name} client: couldn't create connection to server.`, error, 'force')
@@ -1227,36 +1231,42 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       // can detect that case and neither stop the restarted client nor show a
       // spurious error for the superseded attempt.
       process.nextTick(() => {
-        if (this._connection !== connection) {
-          logger.error(`Server "${this.id}" initialization failed on a superseded connection.`, error)
-          return
-        }
-        this.error('Server initialization failed.', error)
-        logger.error(`Server "${this.id}" initialization failed.`, error)
-        let cb = (retry: boolean) => {
-          process.nextTick(() => {
-            new Promise((resolve, reject) => {
-              if (retry) {
-                this.initialize(connection).then(resolve, reject)
-              } else {
-                this.stop().then(resolve, reject)
-              }
-            }).catch(err => {
-              this.error(`Unexpected error`, err, false)
-            })
-          })
-        }
-        if (this._clientOptions.initializationFailedHandler) {
-          cb(this._clientOptions.initializationFailedHandler(error))
-        } else if (error instanceof ResponseError && error.data && error.data.retry) {
-          void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
-            cb(item && item.id === 'retry')
-          })
-        } else {
-          if (error && error.message) {
-            void window.showErrorMessage(toText(error.message))
+        try {
+          if (this._connection !== connection) {
+            logger.error(`Server "${this.id}" initialization failed on a superseded connection.`, error)
+            return
           }
-          cb(false)
+          this.error('Server initialization failed.', error)
+          logger.error(`Server "${this.id}" initialization failed.`, error)
+          let cb = (retry: boolean) => {
+            process.nextTick(() => {
+              new Promise((resolve, reject) => {
+                if (retry) {
+                  this.initialize(connection).then(resolve, reject)
+                } else {
+                  this.stop().then(resolve, reject)
+                }
+              }).catch(err => {
+                this.error(`Unexpected error`, err, false)
+              })
+            })
+          }
+          if (this._clientOptions.initializationFailedHandler) {
+            cb(this._clientOptions.initializationFailedHandler(error))
+          } else if (error instanceof ResponseError && error.data && error.data.retry) {
+            void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
+              cb(item && item.id === 'retry')
+            })
+          } else {
+            if (error && error.message) {
+              void window.showErrorMessage(toText(error.message))
+            }
+            cb(false)
+          }
+        } catch (e) {
+          // A throw from the user-supplied initializationFailedHandler must
+          // not escape this deferred callback and crash the process.
+          this.error(`Error during initialization failure handling for "${this.id}".`, e, false)
         }
       })
       throw error

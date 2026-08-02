@@ -24,8 +24,8 @@ export interface FoldingRangeProviderMiddleware {
 }
 
 export interface FoldingRangeProviderShape {
-  provider: FoldingRangeProvider;
-  onDidChangeFoldingRange: Emitter<void>;
+  provider: FoldingRangeProvider
+  onDidChangeFoldingRanges: Emitter<void>
 }
 
 export class FoldingRangeFeature extends TextDocumentLanguageFeature<
@@ -51,7 +51,7 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
   ): void {
     this._client.onRequest(FoldingRangeRefreshRequest.type, async () => {
       for (const provider of this.getAllProviders()) {
-        provider.onDidChangeFoldingRange.fire()
+        provider.onDidChangeFoldingRanges.fire()
       }
     })
 
@@ -84,6 +84,6 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
     }
 
     this._client.attachExtensionName(provider)
-    return [languages.registerFoldingRangeProvider(options.documentSelector, provider), { provider, onDidChangeFoldingRange: eventEmitter }]
+    return [languages.registerFoldingRangeProvider(options.documentSelector, provider), { provider, onDidChangeFoldingRanges: eventEmitter }]
   }
 }

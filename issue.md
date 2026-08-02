@@ -309,6 +309,7 @@ engine (Node >= 20.19.0), relying on it here is inconsistent and fragile. Import
 
 
 ─── src/language-client/foldingRange.ts:26-29 ───
+✅ resolved — shape field renamed to `onDidChangeFoldingRanges` to match the provider event
 [maintainability · low] Naming inconsistency: this field is singular `onDidChangeFoldingRange`,
 while the provider event it backs is plural `onDidChangeFoldingRanges` (see
 `onDidChangeFoldingRanges: eventEmitter.event` below, and the `FoldingRangeProvider` type). The same
@@ -319,6 +320,7 @@ Consider aligning the shape field name with the plural event name (as
 
 
 ─── src/language-client/foldingRange.ts:26-29 ───
+✅ resolved — semicolons dropped to match surrounding style
 [style · low] The new interface uses semicolon separators, which is inconsistent with the project's
 semicolon-less style (e.g. `FoldingRangeProviderMiddleware` above and the sibling
 `CodeLensProviderShape`/`InlayHintsProviderShape` interfaces). Suggest dropping the semicolons to
@@ -327,6 +329,8 @@ match the surrounding code.
 
 
 ─── src/language-client/client.ts:1220-1225 ───
+✅ resolved — deferred failure handling wrapped in try/catch so a throw from
+`initializationFailedHandler` can't crash the process
 [bug · medium] Wrapping the failure handling in `process.nextTick` changes error containment: any
 exception thrown synchronously inside this callback — most notably from the user-supplied
 `this._clientOptions.initializationFailedHandler(error)` — is no longer part of the `initialize()`
@@ -348,6 +352,7 @@ re-checking client state before acting.
 
 
 ─── src/language-client/client.ts:970-975 ───
+✅ resolved — the superseded start promise's rejection is consumed with a no-op catch
 [bug · medium] When a restart is in progress (`this._onStart !== promise`), the original `promise`
 is settled via `this._onStart.then(resolve, reject)`. However, `_start()` returns `this._onStart`
 (the newer attempt's promise), so once `_onStart` was reassigned the original `promise` has no
@@ -365,6 +370,7 @@ promise or otherwise ensuring its rejection is always consumed.
 
 
 ─── src/language-client/textSynchronization.ts:362-363 ───
+✅ resolved — both emitters re-created on dispose like the base feature (regression test added)
 [bug · medium] Disposing these emitters without re-initializing them breaks client restarts.
 Built-in features are created once in the constructor and reused across restarts
 (cleanUp(ShutdownMode.Restart) disposes them, then the same instances are re-used). The base
@@ -382,6 +388,7 @@ pattern and re-initialize both emitters.
 
 
 ─── src/language-client/textSynchronization.ts:145-145 ───
+✅ resolved — returns `false` when `_delayOpen` is disabled
 [other · low] The method now declares a `Promise<boolean>` return type, but when `_delayOpen` is
 false the early `return` at `if (!this._delayOpen) return` yields `undefined` rather than a boolean.
 Current callers only check truthiness so it works today, but any future caller doing a strict

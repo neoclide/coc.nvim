@@ -143,7 +143,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
    * @returns Whether a pending open notification was dropped because it was for the closing document.
    */
   public async sendPendingOpenNotifications(closingDocument?: string): Promise<boolean> {
-    if (!this._delayOpen) return
+    if (!this._delayOpen) return false
     const notifications = Array.from(this._pendingOpenNotifications.values())
     this._pendingOpenNotifications.clear()
     let didDropOpenNotification = false
@@ -360,7 +360,13 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
   public dispose(): void {
     this._changeData.clear()
     this._onAboutToSendNotification.dispose()
+    // The base TextDocumentEventFeature re-creates its emitters on dispose so
+    // built-in features survive client restarts; do the same here or
+    // subscribers (e.g. pull-diagnostics) would silently stop receiving
+    // events after a restart.
+    this._onAboutToSendNotification = new Emitter()
     this._onNotificationSent.dispose()
+    this._onNotificationSent = new Emitter()
     if (this._listener) {
       this._listener.dispose()
       this._listener = undefined
