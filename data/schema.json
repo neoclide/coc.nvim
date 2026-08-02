@@ -1283,6 +1283,13 @@
       "scope": "application",
       "description": "Timeout for execute request autocmd registered by coc extensions."
     },
+    "editor.fileOperationTimeout": {
+      "type": "integer",
+      "default": 500,
+      "minimum": 1,
+      "scope": "application",
+      "description": "Timeout for the waitUntil handlers of file create, delete and rename events, in milliseconds."
+    },
     "editor.codeActionsOnSave": {
       "additionalProperties": {
         "type": ["string", "boolean"],

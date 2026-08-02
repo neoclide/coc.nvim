@@ -351,6 +351,14 @@ EDITOR
 
 	Scope: `application`, default: `1000`
 
+"editor.fileOperationTimeout"				*coc-config-editor-fileOperationTimeout*
+
+	Timeout in milliseconds for the waitUntil handlers of file
+	create, delete and rename events. Handlers resolving after the
+	timeout are ignored and their WorkspaceEdit is not applied.
+
+	Scope: `application`, default: `500`
+
 ------------------------------------------------------------------------------
 FLOATfACTORY
 							*coc-config-floatFactory*

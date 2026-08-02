@@ -289,6 +289,73 @@ describe('applyEdits()', () => {
     fs.rmSync(file, { force: true })
   })
 
+  it('should apply waitUntil edit within default timeout', async () => {
+    let file = await createTmpFile('content')
+    await helper.createDocument(file)
+    let newFile = path.join(os.tmpdir(), crypto.randomUUID())
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            changes: {
+              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+            }
+          })
+        }, 300)
+      }))
+    }, null, disposables)
+    await workspace.createFile(newFile, { overwrite: true })
+    await nvim.command('wa')
+    let content = await readFile(file, 'utf8')
+    expect(content).toBe('late-content\n')
+    fs.rmSync(newFile, { force: true })
+  })
+
+  it('should drop waitUntil edit after default timeout', async () => {
+    let file = await createTmpFile('content')
+    await helper.createDocument(file)
+    let newFile = path.join(os.tmpdir(), crypto.randomUUID())
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            changes: {
+              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+            }
+          })
+        }, 700)
+      }))
+    }, null, disposables)
+    await workspace.createFile(newFile, { overwrite: true })
+    await nvim.command('wa')
+    let content = await readFile(file, 'utf8')
+    expect(content).toBe('content')
+    fs.rmSync(newFile, { force: true })
+  })
+
+  it('should drop waitUntil edit after fileOperationTimeout', async () => {
+    helper.updateConfiguration('editor.fileOperationTimeout', 100, disposables)
+    let file = await createTmpFile('content')
+    await helper.createDocument(file)
+    let newFile = path.join(os.tmpdir(), crypto.randomUUID())
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            changes: {
+              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+            }
+          })
+        }, 300)
+      }))
+    }, null, disposables)
+    await workspace.createFile(newFile, { overwrite: true })
+    await nvim.command('wa')
+    let content = await readFile(file, 'utf8')
+    expect(content).toBe('content')
+    fs.rmSync(newFile, { force: true })
+  })
+
   it('should support null version of documentChanges', async () => {
     let file = path.join(__dirname, 'foo')
     await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })

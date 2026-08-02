@@ -210,7 +210,6 @@ export default class Files {
   private env: Env
   private window: Window
   private editState: EditState | undefined
-  private operationTimeout = 500
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -697,14 +696,25 @@ export default class Files {
   private async fireWaitUntilEvent<T extends WaitUntilEvent>(emitter: Emitter<T>, properties: Omit<T, 'waitUntil'>, recovers?: RecoverFunc[]): Promise<void> {
     let firing = true
     let promises: Promise<any>[] = []
+    let operationTimeout = this.configurations.initialConfiguration.get<number>('editor.fileOperationTimeout', 500)
     emitter.fire({
       ...properties,
       waitUntil: thenable => {
         if (!firing) throw errors.shouldNotAsync('waitUntil')
+        let timedOut = false
+        let timer: NodeJS.Timeout | undefined
         let tp = new Promise(resolve => {
-          setTimeout(resolve, this.operationTimeout)
+          timer = setTimeout(() => {
+            timedOut = true
+            resolve(undefined)
+          }, operationTimeout)
         })
         let promise = Promise.race([thenable, tp]).then(edit => {
+          clearTimeout(timer)
+          if (timedOut) {
+            logger.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`)
+            return
+          }
           if (edit && WorkspaceEdit.is(edit)) {
             return this.applyEdit(edit, true)
           }
