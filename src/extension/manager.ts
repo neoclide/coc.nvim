@@ -275,7 +275,7 @@ export class ExtensionManager {
       logger.warn(`Circular dependency detected: ${id}`)
       return false
     }
-    activating = new Set([...activating, id])
+    activating.add(id)
     const { packageJSON } = extension
     if (packageJSON.extensionDependencies?.length > 0) {
       const deps = packageJSON.extensionDependencies
