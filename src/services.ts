@@ -343,7 +343,13 @@ class ServiceManager implements Disposable {
       restart: async (): Promise<void> => {
         if (client) {
           service.state = ServiceStat.Starting
-          await client.restart()
+          try {
+            await client.restart()
+          } catch (e) {
+            void window.showErrorMessage(`Server ${id} failed to restart: ${e}`)
+            logger.error(`Server ${id} failed to restart:`, e)
+            service.state = ServiceStat.StartFailed
+          }
         } else {
           await service.start()
         }

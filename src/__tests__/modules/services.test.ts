@@ -377,6 +377,22 @@ describe('services', () => {
       expect(line).toMatch('failed to start')
     })
 
+    it('should not leave service Starting on restart error', async () => {
+      const serverOptions: ServerOptions = {
+        module: serverModule,
+        transport: TransportKind.ipc,
+      }
+      const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
+      let spy = vi.spyOn(client, 'restart').mockImplementation(() => {
+        throw new Error('custom error')
+      })
+      disposables.push(services.registerLanguageClient(client))
+      let service = services.getService('test')
+      await service.restart()
+      spy.mockRestore()
+      expect(service.state).toBe(ServiceStat.StartFailed)
+    })
+
     it('should sendRequest & sendNotification', async () => {
       const serverOptions: ServerOptions = {
         module: serverModule,
