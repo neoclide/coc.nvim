@@ -1,6 +1,7 @@
 'use strict'
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
+import { isParentFolder } from './fs'
 import { hasOwnProperty, toObject } from './object'
 
 export interface ExtensionExport {
@@ -213,6 +214,14 @@ function getLogger(useConsole: boolean, id: string): ILogger {
   return useConsole ? consoleLogger : createLogger(`extension:${id}`)
 }
 
+function clearCachedModules(root: string): void {
+  for (let file of Object.keys(Module._cache)) {
+    if (isParentFolder(root, file, true)) {
+      delete Module._cache[file]
+    }
+  }
+}
+
 // inspiration drawn from Module
 export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
   if (isEmpty || !fs.existsSync(filename)) return {
@@ -222,7 +231,19 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
   const logger = getLogger(!global.__isMain && !global.__TEST__, id)
   const sandbox = createSandbox(filename, logger, id)
 
-  delete Module._cache[require.resolve(filename)]
+  // Clear the cached entry file and all cached dependencies of this
+  // extension, so reloadExtension doesn't keep stale instances from the
+  // shared module cache. Cache keys are resolved to real paths by Node,
+  // resolve a symlinked extension root before matching.
+  let root = path.dirname(filename)
+  if (fs.existsSync(root)) {
+    try {
+      root = fs.realpathSync(root)
+    } catch (e) {
+      // Best effort, keep the resolved path when realpath fails.
+    }
+  }
+  clearCachedModules(root)
 
   // attempt to import plugin
   // Require plugin to export activate & deactivate
