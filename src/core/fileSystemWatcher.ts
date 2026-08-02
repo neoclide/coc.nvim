@@ -25,7 +25,7 @@ export class FileSystemWatcherManager {
   private creating: Map<string, Promise<Watchman | false | undefined>> = new Map()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
-  public disabled = global.__TEST__ || isTester
+  public disabled: boolean
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
     private workspaceFolder: WorkspaceFolderControl,
