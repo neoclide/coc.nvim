@@ -84,13 +84,15 @@ export class Workspace {
 
   private fuzzyExports: FuzzyWasi
   private strWidth: StrWidth
+  private fuzzyReady: Promise<void>
+  private strWidthReady: Promise<void>
   private _env: Env
 
   constructor() {
-    void initFuzzyWasm().then(api => {
+    this.fuzzyReady = initFuzzyWasm().then(api => {
       this.fuzzyExports = api
     }, onUnexpectedError)
-    void StrWidth.create().then(strWidth => {
+    this.strWidthReady = StrWidth.create().then(strWidth => {
       this.strWidth = strWidth
     }, onUnexpectedError)
     events.on('VimResized', (columns, lines) => {
@@ -207,6 +209,9 @@ export class Workspace {
     await this.documentsManager.attach(this.nvim, this._env)
     await this.editors.attach(nvim)
     this.tabs.attach()
+    // Make sure WASM based fuzzy matching and display width are ready before
+    // lists or completion can be used.
+    await Promise.allSettled([this.fuzzyReady, this.strWidthReady])
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
     if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow)
@@ -220,6 +225,7 @@ export class Workspace {
   }
 
   public getDisplayWidth(text: string, cache = false): number {
+    if (!this.strWidth) return text.length
     return this.strWidth.getWidth(text, cache)
   }
 

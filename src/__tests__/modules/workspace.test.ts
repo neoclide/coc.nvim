@@ -68,6 +68,17 @@ describe('workspace properties', () => {
     expect(workspace.getDisplayWidth('a')).toBe(1)
   })
 
+  it('should fallback to text length when strWidth not ready', () => {
+    let strWidth = workspace['strWidth']
+    workspace['strWidth'] = undefined
+    try {
+      expect(workspace.getDisplayWidth('foo')).toBe(3)
+      expect(workspace.getDisplayWidth('嘻嘻')).toBe(2)
+    } finally {
+      workspace['strWidth'] = strWidth
+    }
+  })
+
   it('should get channelNames', async () => {
     let names = workspace.channelNames
     expect(Array.isArray(names)).toBe(true)

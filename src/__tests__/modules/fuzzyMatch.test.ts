@@ -81,6 +81,31 @@ describe('FuzzyMatch', () => {
     p.free()
   })
 
+  it('should fallback to JS scorer when wasm not ready', () => {
+    let p = new FuzzyMatch(undefined)
+    p.setPattern('foo')
+    let res = p.match('foobar')
+    expect(res).toBeDefined()
+    expect(res.score).toBeGreaterThan(0)
+    expect(Array.from(res.positions)).toEqual([0, 1, 2])
+    p.free()
+  })
+
+  it('should fallback to JS scorer with empty pattern', () => {
+    let p = new FuzzyMatch(undefined)
+    p.setPattern('')
+    let res = p.match('foo')
+    expect(res.score).toBe(100)
+    expect(res.positions.length).toBe(0)
+  })
+
+  it('should throw when not set pattern without wasm', () => {
+    let p = new FuzzyMatch(undefined)
+    expect(() => {
+      p.match('text')
+    }).toThrow(Error)
+  })
+
   it('should slice pattern when necessary', () => {
     let pat = 'a'.repeat(258)
     let p = new FuzzyMatch(api)

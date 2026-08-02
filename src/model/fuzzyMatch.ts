@@ -123,10 +123,12 @@ export class FuzzyMatch {
   private patternPtr: number | undefined
   private resultPtr: number | undefined
   private patternLength = 0
+  private pattern = ''
+  private patternSet = false
   private matchSeq = false
   private sizes: number[] = [2048, 1024, 1024]
 
-  constructor(private exports: FuzzyWasi) {
+  constructor(private exports: FuzzyWasi | undefined) {
   }
 
   /**
@@ -169,7 +171,10 @@ export class FuzzyMatch {
     // Can't handle length > 256
     if (pattern.length > 256) pattern = pattern.slice(0, 256)
     this.matchSeq = matchSeq
+    this.pattern = pattern
     this.patternLength = matchSeq ? pattern.length : pattern.replace(/(\s|\t)/g, '').length
+    this.patternSet = true
+    if (!this.exports) return
     if (this.patternPtr == null) {
       let { malloc } = this.exports
       let { sizes } = this
@@ -202,8 +207,17 @@ export class FuzzyMatch {
   }
 
   public match(text: string): MatchResult | undefined {
-    if (this.patternPtr == null) throw new Error('setPattern not called before match')
+    if (!this.patternSet) throw new Error('setPattern not called before match')
     if (this.patternLength === 0) return { score: 100, positions: new Uint32Array() }
+    if (!this.exports) {
+      // Fall back to the JS scorer until the WASM module is ready.
+      let { pattern } = this
+      let score = fuzzyScore(pattern, pattern.toLowerCase(), 0, text, text.toLowerCase(), 0)
+      if (!score) return undefined
+      let positions = score.slice(2).reverse()
+      return { score: score[0], positions: Uint32Array.from(positions) }
+    }
+    if (this.patternPtr == null) throw new Error('setPattern not called before match')
     this.changeContent(text)
     let { fuzzyMatch, memory } = this.exports
     let { resultPtr } = this
@@ -224,6 +238,7 @@ export class FuzzyMatch {
   }
 
   public free(): void {
+    if (!this.exports) return
     let ptrs = [this.contentPtr, this.patternPtr, this.resultPtr]
     let { free } = this.exports
     ptrs.forEach(p => {
