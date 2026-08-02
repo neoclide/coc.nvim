@@ -69,6 +69,7 @@ export default {
     target: 'node20',
     define: {
       REVISION: JSON.stringify(revision),
+      'global.REVISION': JSON.stringify(revision),
       'process.env.COC_NVIM': '"1"',
       'global.__TEST__': 'false'
     }
