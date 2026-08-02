@@ -257,8 +257,11 @@ describe('textedit', () => {
     let pos = Position.create(1, 3)
     const assertChange = (rl, rc, el, ec, text, val): void => {
       let edit = TextEdit.replace(Range.create(rl, rc, el, ec), text)
+      let lines = text.split('\n')
       let res = textedits.getPosition(pos, edit)
+      let resWithLines = textedits.getPosition(pos, edit, lines)
       expect(res).toEqual(val)
+      expect(resWithLines).toEqual(res)
     }
     assertChange(0, 1, 1, 0, 'abc', Position.create(0, 7))
     assertChange(0, 1, 1, 1, 'abc', Position.create(0, 6))

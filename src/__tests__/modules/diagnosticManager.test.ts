@@ -11,6 +11,7 @@ import {
   TextEdit
 } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import manager from '../../diagnostic/manager'
 import {
   adjustDiagnostics,
@@ -29,6 +30,7 @@ import window from '../../window'
 import commands from '../../commands'
 import workspace from '../../workspace'
 import fs from 'fs'
+import { DidChangeTextDocumentParams } from '../../types'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -857,6 +859,147 @@ describe('diagnostic manager', () => {
       expect(result.map(o => o.message)).toEqual(['before', 'after'])
       expect(result[0].range).toEqual(Range.create(0, 0, 0, 1))
       expect(result[1].range).toEqual(Range.create(0, 5, 0, 7))
+    })
+
+    it('should not mutate original diagnostics', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 1), 'before'),
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 1), 'xy'))
+
+      expect(result.map(o => o.message)).toEqual(['before', 'after'])
+      expect(result[1].range).toEqual(Range.create(0, 5, 0, 7))
+      expect(diagnostics[1].range).toEqual(Range.create(0, 3, 0, 5))
+      expect(result[0]).toBe(diagnostics[0])
+      expect(result[1]).not.toBe(diagnostics[1])
+    })
+
+    it('should return same array when edit not affects diagnostics', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 1), 'before'),
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 8), 'xy'))
+
+      expect(result).toBe(diagnostics)
+    })
+
+    it('should drop diagnostic overlapping edit after later start', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 100), 'long'),
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.replace(Range.create(0, 8, 0, 9), 'x'))
+
+      expect(result.map(o => o.message)).toEqual(['after'])
+    })
+
+    it('should return same empty array for empty diagnostics', () => {
+      let diagnostics: Diagnostic[] = []
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 1), 'x'))
+
+      expect(result).toBe(diagnostics)
+    })
+
+    it('should shift all diagnostics for edit before them', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 3, 0, 5), 'a'),
+        Diagnostic.create(Range.create(0, 6, 0, 8), 'b')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 0), 'xy'))
+
+      expect(result[0].range).toEqual(Range.create(0, 5, 0, 7))
+      expect(result[1].range).toEqual(Range.create(0, 8, 0, 10))
+      expect(result[0]).not.toBe(diagnostics[0])
+      expect(diagnostics[0].range).toEqual(Range.create(0, 3, 0, 5))
+    })
+
+    it('should shift lines for multiline edit above diagnostics', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(1, 0, 1, 2), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 0), 'a\nb\n'))
+
+      expect(result[0].range).toEqual(Range.create(3, 0, 3, 2))
+    })
+
+    it('should shift lines back when lines are removed above', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(3, 0, 3, 2), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.replace(Range.create(0, 0, 2, 0), ''))
+
+      expect(result[0].range).toEqual(Range.create(1, 0, 1, 2))
+    })
+
+    it('should not adjust diagnostic starting at edit end', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 2, 0, 4), 'boundary')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.insert(Position.create(0, 2), 'x'))
+
+      expect(result).toBe(diagnostics)
+    })
+
+    it('should not adjust diagnostic ending at edit start', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 0, 0, 2), 'boundary')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.replace(Range.create(0, 2, 0, 4), 'x'))
+
+      expect(result).toBe(diagnostics)
+    })
+
+    it('should drop multiline diagnostic inside edit and shift after', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 2, 1, 2), 'inside'),
+        Diagnostic.create(Range.create(1, 5, 1, 6), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.replace(Range.create(0, 1, 1, 4), 'x'))
+
+      expect(result.map(o => o.message)).toEqual(['after'])
+      expect(result[0].range).toEqual(Range.create(0, 3, 0, 4))
+    })
+
+    it('should adjust character on edit end line for multiline replacement', () => {
+      let diagnostics: Diagnostic[] = [
+        Diagnostic.create(Range.create(0, 4, 0, 6), 'after')
+      ]
+      let result = adjustDiagnostics(diagnostics, TextEdit.replace(Range.create(0, 1, 0, 3), 'x\ny'))
+
+      expect(result[0].range).toEqual(Range.create(1, 2, 1, 4))
+    })
+  })
+
+  describe('text change adjustment', () => {
+    function createChange(buf: DiagnosticBuffer, version: number, range: Range, text: string): DidChangeTextDocumentParams {
+      let doc = buf.doc
+      return {
+        textDocument: { version, uri: doc.uri },
+        document: doc.textDocument,
+        contentChanges: [{ range, text }],
+        bufnr: doc.bufnr,
+        original: doc.textDocument.getText(),
+        originalLines: doc.textDocument.lines
+      }
+    }
+
+    it('should adjust buffer diagnostics without mutating collection', async () => {
+      let doc = await createDocument()
+      let buf = manager.getItem(doc.bufnr)
+      let collection = manager.create('test')
+      buf.onChange(createChange(buf, 1, Range.create(0, 0, 0, 0), 'xy'))
+      buf.refreshHighlights.clear()
+      let adjusted = buf['diagnosticsMap'].get('test')
+
+      expect(adjusted[0].range).toEqual(Range.create(0, 4, 0, 6))
+      expect(adjusted[1].range).toEqual(Range.create(0, 7, 0, 8))
+      expect(adjusted[2].range).toEqual(Range.create(1, 0, 1, 1))
+      let originals = collection.get(doc.uri)
+      expect(originals[0].range).toEqual(Range.create(0, 2, 0, 4))
+      expect(originals[1].range).toEqual(Range.create(0, 5, 0, 6))
+      expect(originals[2].range).toEqual(Range.create(1, 0, 1, 1))
     })
   })
 

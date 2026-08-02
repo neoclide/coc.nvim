@@ -174,9 +174,10 @@ export class DiagnosticBuffer implements SyncItem {
       let edit = TextEdit.replace(changes[0].range, changes[0].text)
       for (let [collection, diagnostics] of this.diagnosticsMap.entries()) {
         let arr = adjustDiagnostics(diagnostics, edit)
+        if (arr === diagnostics) continue
         this.diagnosticsMap.set(collection, arr)
+        this._dirties.add(collection)
       }
-      this._dirties = new Set(this.diagnosticsMap.keys())
     }
     if (!this.config.autoRefresh) return
     this.refreshHighlights()

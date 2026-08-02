@@ -1,6 +1,7 @@
 import { Neovim } from '../../neovim'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
+import { DidChangeTextDocumentParams } from '../../types'
 import workspace from '../../workspace'
 import helper from '../helper'
 import { URI } from 'vscode-uri'
@@ -199,6 +200,62 @@ describe('diagnostic buffer', () => {
       doc._forceSync()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
+    })
+  })
+
+  describe('onChange()', () => {
+    function createChange(buf: DiagnosticBuffer, version: number, range: Range, text: string): DidChangeTextDocumentParams {
+      let doc = buf.doc
+      return {
+        textDocument: { version, uri: doc.uri },
+        document: doc.textDocument,
+        contentChanges: [{ range, text }],
+        bufnr: doc.bufnr,
+        original: doc.textDocument.getText(),
+        originalLines: doc.textDocument.lines
+      }
+    }
+
+    it('should mark only affected collections dirty', async () => {
+      helper.updateConfiguration('diagnostic.autoRefresh', false)
+      let buf = await createDiagnosticBuffer()
+      let diag = Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
+      buf['diagnosticsMap'].set('a', [diag])
+      buf.onChange(createChange(buf, 1, Range.create(0, 8, 0, 8), 'x'))
+      expect(buf['_dirties'].has('a')).toBe(false)
+      buf.onChange(createChange(buf, 2, Range.create(0, 1, 0, 1), 'xy'))
+      expect(buf['_dirties'].has('a')).toBe(true)
+    })
+
+    it('should keep unaffected collections unchanged', async () => {
+      helper.updateConfiguration('diagnostic.autoRefresh', false)
+      let buf = await createDiagnosticBuffer()
+      let affected = Diagnostic.create(Range.create(0, 3, 0, 5), 'affected')
+      let unaffected = Diagnostic.create(Range.create(0, 0, 0, 1), 'unaffected')
+      buf['diagnosticsMap'].set('a', [affected])
+      buf['diagnosticsMap'].set('b', [unaffected])
+      let before = buf['diagnosticsMap'].get('b')
+      buf.onChange(createChange(buf, 1, Range.create(0, 1, 0, 1), 'xy'))
+
+      expect(buf['diagnosticsMap'].get('b')).toBe(before)
+      expect(buf['_dirties'].has('b')).toBe(false)
+      expect(buf['_dirties'].has('a')).toBe(true)
+      let adjusted = buf['diagnosticsMap'].get('a')
+      expect(adjusted).not.toBe(before)
+      expect(adjusted[0].range).toEqual(Range.create(0, 5, 0, 7))
+      expect(affected.range).toEqual(Range.create(0, 3, 0, 5))
+    })
+
+    it('should retain pre-existing dirty collections', async () => {
+      helper.updateConfiguration('diagnostic.autoRefresh', false)
+      let buf = await createDiagnosticBuffer()
+      buf['diagnosticsMap'].set('a', [Diagnostic.create(Range.create(0, 3, 0, 5), 'a')])
+      buf['diagnosticsMap'].set('b', [Diagnostic.create(Range.create(0, 3, 0, 5), 'b')])
+      buf['_dirties'].add('b')
+      buf.onChange(createChange(buf, 1, Range.create(0, 1, 0, 1), 'xy'))
+
+      expect(buf['_dirties'].has('a')).toBe(true)
+      expect(buf['_dirties'].has('b')).toBe(true)
     })
   })
 

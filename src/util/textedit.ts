@@ -337,11 +337,11 @@ export function getChangedPosition(start: Position, edit: TextEdit): { line: num
   return { line: 0, character: 0 }
 }
 
-export function getPosition(start: Position, edit: TextEdit): Position {
+export function getPosition(start: Position, edit: TextEdit, lines?: string[]): Position {
   let { line, character } = start
   let { range, newText } = edit
   let { end } = range
-  let lines = newText.split('\n')
+  if (!lines) lines = newText.split('\n')
   let lineCount = lines.length - (end.line - range.start.line) - 1
   let c = range.end.line - start.line
   if (c > 0) return { line, character }

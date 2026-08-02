@@ -193,19 +193,27 @@ export function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight[]
 }
 
 export function adjustDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, edit: TextEdit): ReadonlyArray<Diagnostic> {
-  let res: Diagnostic[] = []
   let { range } = edit
-  for (let diag of diagnostics) {
+  let res: Diagnostic[] | undefined
+  let lines: string[] | undefined
+  for (let i = 0; i < diagnostics.length; i++) {
+    let diag = diagnostics[i]
     let r = diag.range
-    if (rangeOverlap(range, r)) continue
+    if (rangeOverlap(range, r)) {
+      if (!res) res = diagnostics.slice(0, i)
+      continue
+    }
     if (comparePosition(r.start, range.end) > 0) {
-      let s = getPosition(r.start, edit)
-      let e = getPosition(r.end, edit)
+      if (!lines) lines = edit.newText.split('\n')
+      let s = getPosition(r.start, edit, lines)
+      let e = getPosition(r.end, edit, lines)
       if (s.line >= 0 && s.character >= 0 && e.line >= 0 && e.character >= 0) {
-        diag.range = Range.create(s, e)
+        if (!res) res = diagnostics.slice(0, i)
+        res.push({ ...diag, range: Range.create(s, e) })
+        continue
       }
     }
-    res.push(diag)
+    if (res) res.push(diag)
   }
-  return res
+  return res ?? diagnostics
 }
