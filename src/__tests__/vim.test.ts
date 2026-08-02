@@ -64,6 +64,30 @@ describe('workspace', () => {
   })
 })
 
+describe('disable and enable', () => {
+  it('should keep dynamic autocmd after disable and enable', async () => {
+    let times = 0
+    let disposable = helper.workspace.registerAutocmd({
+      event: 'CursorMoved',
+      request: false,
+      callback: () => {
+        times++
+      }
+    })
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.waitValue(() => times, 1)
+    await nvim.command('CocDisable')
+    // While disabled the autocmd stays installed but no RPC is sent.
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.wait(50)
+    expect(times).toBe(1)
+    await nvim.command('CocEnable')
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.waitValue(() => times, 2)
+    disposable.dispose()
+  })
+})
+
 describe('vim api', () => {
   it('should start server', async () => {
     await nvim.setLine('foobar')

@@ -178,14 +178,14 @@ function! coc#rpc#close_connection() abort
 endfunction
 
 function! coc#rpc#request(method, args) abort
-  if !coc#rpc#ready()
+  if !coc#rpc#ready() || get(g:, 'coc_enabled', 0) == 0
     return ''
   endif
   return s:client['request'](a:method, a:args)
 endfunction
 
 function! coc#rpc#notify(method, args) abort
-  if !coc#rpc#ready()
+  if !coc#rpc#ready() || get(g:, 'coc_enabled', 0) == 0
     return ''
   endif
   call s:client['notify'](a:method, a:args)
@@ -193,7 +193,7 @@ function! coc#rpc#notify(method, args) abort
 endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort
-  if !coc#rpc#ready()
+  if !coc#rpc#ready() || get(g:, 'coc_enabled', 0) == 0
     return call(a:cb, ['coc.nvim service not started.'])
   endif
   call s:client['request_async'](a:method, a:args, a:cb)
