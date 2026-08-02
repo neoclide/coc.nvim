@@ -311,17 +311,17 @@ export class Extensions {
 
   public async globalExtensions(): Promise<ExtensionToLoad[]> {
     if (process.env.COC_NO_PLUGINS == '1') return []
-    let res: ExtensionToLoad[] = []
-    for (let key of this.states.activated()) {
+    let results = await Promise.all(Array.from(this.states.activated(), async key => {
       let root = path.join(this.modulesFolder, key)
       try {
         let json = await loadGlobalJsonAsync(root, VERSION)
-        res.push({ root, isLocal: false, packageJSON: json })
+        return { root, isLocal: false, packageJSON: json }
       } catch (err) {
         logger.error(`Error on load package.json of ${key}`, err)
+        return undefined
       }
-    }
-    return res
+    }))
+    return results.filter((o): o is ExtensionToLoad => o !== undefined)
   }
 
   public globalExtensionStats(): ExtensionInfo[] {
