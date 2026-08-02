@@ -51,7 +51,7 @@ export default abstract class Transport extends EventEmitter {
   }
 
   public resumeNotification(): Promise<AtomicResult>
-  public resumeNotification(isNotify: true): Promise<AtomicResult | undefined> | null
+  public resumeNotification(isNotify: true): null
   public resumeNotification(isNotify = false): Promise<AtomicResult> | null {
     let { pauseLevel } = this
     if (pauseLevel === 0) return isNotify ? null : Promise.resolve([[], null])
