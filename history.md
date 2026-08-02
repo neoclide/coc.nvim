@@ -2,6 +2,13 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-02
+
+- Add configurable timeout for the `waitUntil` handlers of file create, delete and
+  rename events, through the new configuration `editor.fileOperationTimeout`
+  (default `500`, minimum `1`). Handlers resolving after the timeout are ignored
+  and a warning is logged.
+
 ## 2026-04-29
 
 - Break Change: minimal node version changed from 16.18.0 to 20.19.0.
