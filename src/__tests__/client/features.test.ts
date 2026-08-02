@@ -1573,7 +1573,7 @@ class CrashClient extends LanguageClient {
 }
 
 describe('sever tests', () => {
-  test('Stop fails if server crashes after shutdown request', async () => {
+  test('Stop succeeds if server crashes after shutdown request', async () => {
     let file = path.join(__dirname, './server/crashOnShutdownServer.js')
     const serverOptions: ServerOptions = {
       module: file,
@@ -1583,9 +1583,10 @@ describe('sever tests', () => {
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
     await client._start()
 
-    await assert.rejects(async () => {
-      await client.stop()
-    }, /Pending response rejected since connection got disposed/)
+    // The server dies while handling the shutdown request, so the connection
+    // closes while the client is Stopping. That should complete the stop
+    // rather than rejecting it with a spurious failure (#9).
+    await client.stop()
     assert.strictEqual(client.needsStart(), true)
     assert.strictEqual(client.needsStop(), false)
 

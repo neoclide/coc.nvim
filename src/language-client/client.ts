@@ -326,6 +326,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   protected _state: ClientState
   private _onStart: Promise<void> | undefined
   private _onStop: Promise<void> | undefined
+  // Resolves the in-flight stop when the connection closes while stopping,
+  // so the shutdown sequence owns its own finalization.
+  private _onStopClose: (() => void) | undefined
   private _connection: Connection | undefined
   private _initializeResult: InitializeResult | undefined
   private _outputChannel: OutputChannel | undefined
@@ -1289,8 +1292,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       await connection.exit()
       return connection
     })(connection)
+    // If the connection closes while the shutdown is in flight (e.g. the
+    // server crashed), handleConnectionClosed signals it here so the stop
+    // completes successfully: the server is gone, which is the outcome the
+    // caller asked for. Without this, the pending shutdown rejects after the
+    // connection is disposed, reporting a false stop failure.
+    const close = new Promise<Connection>(resolve => {
+      this._onStopClose = () => resolve(connection)
+    })
 
-    return this._onStop = Promise.race([tp, shutdown]).then(connection => {
+    return this._onStop = Promise.race([tp, shutdown, close]).then(connection => {
       if (tm) clearTimeout(tm)
       // The connection won the race with the timeout.
       if (connection !== undefined) {
@@ -1310,6 +1321,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       this._onStart = undefined
       this._onStop = undefined
+      this._onStopClose = undefined
       this._connection = undefined
       this._ignoredRegistrations.clear()
     })
@@ -1413,6 +1425,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       logger.info(`client ${this._id} normal closed`)
       return
     }
+    if (this.$state === ClientState.Stopping) {
+      // The server closed while the in-flight shutdown was waiting on it,
+      // which means the server is gone. Let the shutdown own the
+      // finalization: signal it to finish successfully, but don't re-run
+      // cleanUp or overwrite _onStop (that would double-dispose features and
+      // leave the original stop() caller waiting on a rejected promise).
+      this._onStopClose?.()
+      return
+    }
     try {
       if (this._connection !== undefined) {
         this._connection.dispose()
@@ -1422,13 +1443,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     let handlerResult: CloseHandlerResult = { action: CloseAction.DoNotRestart }
     let err
-    if (this.$state !== ClientState.Stopping) {
-      try {
-        let result = await this._clientOptions.errorHandler.closed()
-        handlerResult = toCloseHandlerResult(result)
-      } catch (error) {
-        err = error
-      }
+    try {
+      let result = await this._clientOptions.errorHandler.closed()
+      handlerResult = toCloseHandlerResult(result)
+    } catch (error) {
+      err = error
     }
     this._connection = undefined
     if (handlerResult.action === CloseAction.DoNotRestart) {
