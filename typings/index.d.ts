@@ -7106,12 +7106,16 @@ declare module 'coc.nvim' {
   export function executable(command: string): boolean
 
   /**
-   * Watch single file for change, the filepath needs to be exists file.
+   * Watch single file for change, the parent directory of the filepath needs
+   * to be exists. Watching survives file replacement by rename and deletion,
+   * so the change handler keeps being called.
    *
    * @param filepath Full path of file.
    * @param onChange Handler on file change detected.
+   * @param immediate Invoke the handler shortly after watching starts.
+   * @param onError Optional handler called when the watcher fails.
    */
-  export function watchFile(filepath: string, onChange: () => void): Disposable
+  export function watchFile(filepath: string, onChange: () => void, immediate?: boolean, onError?: (err: Error) => void): Disposable
   // }}
 
   // commands module {{

@@ -1,5 +1,5 @@
 'use strict'
-import type { Stats } from 'fs'
+import type { FSWatcher, Stats } from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -37,28 +37,40 @@ export enum FileType {
 
 export type OnReadLine = (line: string) => void
 
-export function watchFile(filepath: string, onChange: () => void, immediate = false): Disposable {
+export function watchFile(filepath: string, onChange: () => void, immediate = false, onError?: (err: Error) => void): Disposable {
   let callback = debounce(onChange, 100)
+  let watcher: FSWatcher | undefined
   try {
-    let watcher = fs.watch(filepath, {
+    // Watch the parent directory and filter events by file name, since a
+    // watcher on the file itself stops reporting after the file is replaced
+    // by rename (atomic save, git checkout) or deleted.
+    let dir = path.dirname(filepath)
+    let basename = path.basename(filepath)
+    watcher = fs.watch(dir, {
       persistent: true,
       recursive: false,
       encoding: 'utf8'
-    }, () => {
-      callback()
+    }, (_eventType, filename) => {
+      if (filename === undefined || filename === basename) {
+        callback()
+      }
+    })
+    watcher.on('error', err => {
+      logger.error(`Error on watching ${filepath}`, err)
+      watcher?.close()
+      if (onError) onError(err)
     })
     if (immediate) {
       setTimeout(onChange, 10)
     }
-    return Disposable.create(() => {
-      callback.clear()
-      watcher.close()
-    })
   } catch (e) {
-    return Disposable.create(() => {
-      callback.clear()
-    })
+    logger.error(`Error on watching ${filepath}`, e)
+    if (onError) onError(e instanceof Error ? e : new Error(String(e)))
   }
+  return Disposable.create(() => {
+    callback.clear()
+    watcher?.close()
+  })
 }
 
 export function loadJson(filepath: string): object {

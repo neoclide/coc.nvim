@@ -4,6 +4,9 @@ Notable changes of coc.nvim:
 
 ## 2026-08-02
 
+- `watchFile` now watches the parent directory of the target file, so changes
+  keep being reported after the file is replaced by rename or deleted. An
+  optional `onError` callback is added to the `watchFile` API.
 - Add configurable timeout for the `waitUntil` handlers of file create, delete and
   rename events, through the new configuration `editor.fileOperationTimeout`
   (default `500`, minimum `1`). Handlers resolving after the timeout are ignored

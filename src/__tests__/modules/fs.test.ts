@@ -14,6 +14,14 @@ export function wait(ms: number): Promise<void> {
   })
 }
 
+async function waitValue(fn: () => number, value: number): Promise<void> {
+  for (let i = 0; i < 100; i++) {
+    await wait(20)
+    if (fn() >= value) return
+  }
+  throw new Error(`waitValue ${value} timeout`)
+}
+
 describe('fs', () => {
   describe('normalizeFilePath()', () => {
     it('should fs normalizeFilePath', () => {
@@ -34,14 +42,43 @@ describe('fs', () => {
   it('should watch file', async () => {
     let filepath = path.join(os.tmpdir(), crypto.randomUUID())
     fs.writeFileSync(filepath, 'file', 'utf8')
-    let called = false
+    let called = 0
     let disposable = watchFile(filepath, () => {
-      called = true
+      called++
     }, true)
-    fs.writeFileSync(filepath, 'new file', 'utf8')
-    await wait(2)
+    // Replace the file by rename like an atomic save: the watcher must
+    // survive the inode replacement and keep reporting changes.
+    let tmp = `${filepath}.tmp`
+    fs.writeFileSync(tmp, 'new file', 'utf8')
+    fs.renameSync(tmp, filepath)
+    await waitValue(() => called, 2)
     disposable.dispose()
     disposable = watchFile('file_not_exists', () => {}, true)
+    disposable.dispose()
+  })
+
+  it('should keep watching after file is deleted and recreated', async () => {
+    let filepath = path.join(os.tmpdir(), crypto.randomUUID())
+    fs.writeFileSync(filepath, 'file', 'utf8')
+    let called = 0
+    let disposable = watchFile(filepath, () => {
+      called++
+    })
+    await wait(50)
+    fs.rmSync(filepath)
+    await waitValue(() => called, 1)
+    fs.writeFileSync(filepath, 'new file', 'utf8')
+    await waitValue(() => called, 2)
+    disposable.dispose()
+  })
+
+  it('should call onError when parent directory not exists', () => {
+    let dir = path.join(os.tmpdir(), crypto.randomUUID())
+    let error: Error | undefined
+    let disposable = watchFile(path.join(dir, 'foo.json'), () => {}, false, e => {
+      error = e
+    })
+    expect(error).toBeDefined()
     disposable.dispose()
   })
 

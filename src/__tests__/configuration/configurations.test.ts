@@ -106,7 +106,11 @@ describe('Configurations', () => {
       disposables.push(conf)
       expect(conf.getDefaultResource()).toBe(undefined)
       await wait(50)
-      fs.writeFileSync(userConfigFile, '{"foo.bar": false}', { encoding: 'utf8' })
+      // Replace the file by rename like an atomic save: the watcher must
+      // survive the inode replacement and keep tracking changes.
+      let tmp = `${userConfigFile}.tmp`
+      fs.writeFileSync(tmp, '{"foo.bar": false}', { encoding: 'utf8' })
+      fs.renameSync(tmp, userConfigFile)
       await helper.waitValue(() => {
         let c = conf.getConfiguration('foo')
         return c.get('bar')

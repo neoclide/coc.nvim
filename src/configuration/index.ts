@@ -256,10 +256,14 @@ export default class Configurations {
   private watchFile(filepath: string, target: ConfigurationTarget): void {
     if (!filepath || !fs.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return
     this._watchedFiles.add(filepath)
-    const folder = ConfigurationTarget.WorkspaceFolder ? normalizeFilePath(path.resolve(filepath, '../..')) : undefined
+    const folder = target === ConfigurationTarget.WorkspaceFolder ? normalizeFilePath(path.resolve(filepath, '../..')) : undefined
     let disposable = watchFile(filepath, () => {
       let model = this.parseConfigurationModel(filepath)
       this.changeConfiguration(target, model, folder)
+    }, false, () => {
+      // Release the registration when the watcher dies so the file can be
+      // watched again on the next addFolderFile/locateFolderConfigution call.
+      this._watchedFiles.delete(filepath)
     })
     this.disposables.push(disposable)
   }
