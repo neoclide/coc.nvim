@@ -272,12 +272,11 @@ function! coc#client#is_running(name) abort
   if !client['running'] | return 0 | endif
   try
     if s:is_vim
-      let status = job_status(ch_getjob(client['channel']))
-      return status ==# 'run'
+      let status = ch_status(client['channel'])
+      return status ==# 'open' || status ==# 'buffered'
     else
       let chan_id = client['chan_id']
-      let [code] = jobwait([chan_id], 10)
-      return code == -1
+      return !empty(nvim_get_chan_info(chan_id))
     endif
   catch /.*/
     return 0

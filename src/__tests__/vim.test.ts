@@ -64,6 +64,24 @@ describe('workspace', () => {
   })
 })
 
+describe('rpc client', () => {
+  it('should report live socket channel as running', async () => {
+    expect(await nvim.call('coc#client#is_running', ['coc'])).toBe(1)
+  })
+
+  it('should reset client when channel is gone on E475', async () => {
+    // ch_sendraw on an invalid channel raises E475, which must still be
+    // treated as connection loss for a dead channel.
+    await nvim.command(`
+      let g:fake = coc#client#create('fake', [])
+      let g:fake['running'] = 1
+      let g:fake['channel'] = 'x'
+      call g:fake['notify']('testMethod', [])
+    `)
+    expect(await nvim.call('eval', ["coc#client#get_client('fake')['running']"])).toBe(0)
+  })
+})
+
 describe('disable and enable', () => {
   it('should keep dynamic autocmd after disable and enable', async () => {
     let times = 0
