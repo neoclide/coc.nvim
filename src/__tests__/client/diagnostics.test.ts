@@ -5,7 +5,8 @@ import { CancellationToken, DidCloseTextDocumentNotification, DocumentDiagnostic
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
-import { BackgroundScheduler, DocumentPullStateTracker, PullState } from '../../language-client/diagnostic'
+import { BackgroundScheduler, DiagnosticRequestor, DocumentPullStateTracker, PullState } from '../../language-client/diagnostic'
+import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -119,6 +120,83 @@ describe('DocumentPullStateTracker', () => {
     expect(tracker.tracks(PullState.document, createUri(4))).toBe(false)
     let res = tracker.getAllResultIds()
     expect(res.length).toBe(1)
+  })
+})
+
+describe('DiagnosticRequestor', () => {
+  function createRequestor(options: any = {}): { manager: DiagnosticRequestor, client: any } {
+    const client: any = {
+      clientOptions: { diagnosticPullOptions: {} },
+      middleware: {},
+      error: vi.fn(),
+      sendRequest: vi.fn(),
+      handleFailedRequest: vi.fn(),
+      onProgress: vi.fn().mockReturnValue({ dispose: () => {} })
+    }
+    const manager = new DiagnosticRequestor(client, {
+      workspaceDiagnostics: true,
+      identifier: 'test',
+      ...options
+    })
+    return { manager, client }
+  }
+
+  it('should not reschedule workspace pull after dispose', async () => {
+    let calls = 0
+    let resolvePull: (value?: any) => void
+    const { manager, client } = createRequestor()
+    client.middleware.provideWorkspaceDiagnostics = () => {
+      calls++
+      return new Promise(res => {
+        resolvePull = res
+      })
+    }
+    manager.pullWorkspace()
+    await helper.waitValue(() => calls, 1)
+    manager.dispose()
+    resolvePull({ items: [] })
+    await helper.wait(50)
+    expect(calls).toBe(1)
+  })
+
+  it('should reset workspace error counter on success', async () => {
+    let calls = 0
+    const { manager, client } = createRequestor()
+    client.middleware.provideWorkspaceDiagnostics = () => {
+      calls++
+      if (calls <= 3) return Promise.reject(new Error('fail'))
+      if (calls == 4) return Promise.resolve({ items: [] })
+      return Promise.reject(new Error('fail'))
+    }
+    manager.pullWorkspace()
+    // 3 errors, one success, then 6 more errors stop the loop (counter resets
+    // on success so only consecutive errors count).
+    await helper.waitValue(() => calls, 10)
+    await helper.wait(100)
+    expect(calls).toBe(10)
+  })
+
+  it('should not repull a forgotten document when its request is cancelled', async () => {
+    let calls = 0
+    const { manager, client } = createRequestor({ workspaceDiagnostics: false })
+    client.middleware.provideDiagnostics = (_document: any, _previous: any, token: any, _next: any) => {
+      calls++
+      return new Promise((_resolve, reject) => {
+        token.onCancellationRequested(() => reject(new CancellationError()))
+      })
+    }
+    let visible = vi.spyOn(workspace.tabs, 'isVisible').mockReturnValue(true)
+    try {
+      let doc = createDocument(1)
+      let p = manager.pullAsync(doc)
+      await helper.waitValue(() => calls, 1)
+      manager.forgetDocument(doc)
+      await p
+      await helper.wait(50)
+      expect(calls).toBe(1)
+    } finally {
+      visible.mockRestore()
+    }
   })
 })
 

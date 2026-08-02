@@ -319,9 +319,14 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       } catch (error) {
         if (error instanceof LSPCancellationError && DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
           afterState = { state: RequestStateKind.outDated, document }
-        }
-        if (afterState === undefined && error instanceof CancellationError) {
-          afterState = { state: RequestStateKind.reschedule, document }
+        } else if (error instanceof CancellationError) {
+          // A concurrent forgetDocument may already have marked this request
+          // as outdated. Honor that state instead of unconditionally
+          // rescheduling (which would repull a forgotten document).
+          const current = this.openRequests.get(key)
+          afterState = current?.state === RequestStateKind.outDated
+            ? { state: RequestStateKind.outDated, document: current.document }
+            : { state: RequestStateKind.reschedule, document }
         } else {
           throw error
         }
@@ -400,12 +405,16 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
   }
 
   public pullWorkspace(): void {
-    if (!this.enableWorkspace) return
+    if (!this.enableWorkspace || this.isDisposed) return
     this.pullWorkspaceAsync().then(() => {
+      if (this.isDisposed) return
+      // Count consecutive errors only.
+      this.workspaceErrorCounter = 0
       this.workspaceTimeout = RAL().timer.setTimeout(() => {
         this.pullWorkspace()
       }, workspacePullDebounce)
     }, error => {
+      if (this.isDisposed) return
       if (!(error instanceof LSPCancellationError) && !DiagnosticServerCancellationData.is(error.data)) {
         this.client.error(`Workspace diagnostic pull failed.`, error)
         this.workspaceErrorCounter++
