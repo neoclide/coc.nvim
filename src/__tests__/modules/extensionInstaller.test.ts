@@ -1,6 +1,8 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { PassThrough } from 'stream'
+import child_process from 'child_process'
 import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
@@ -413,6 +415,33 @@ describe('Installer', () => {
       })
       await installer.installDependencies(tmpfolder, ['a', 'b'])
       expect(called).toBe(true)
+    })
+
+    it('should not mutate process.env when installing dependencies', async () => {
+      let npm = path.resolve(__dirname, '../npm')
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
+      fs.mkdirSync(tmpfolder)
+      let installer = new Installer(tmpfolder, npm, 'coc-omni')
+      let envBefore = process.env.NODE_ENV
+      let spawnedEnv: NodeJS.ProcessEnv | undefined
+      let fakeChild: any = {
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        on(_event: string, cb: (...args: any[]) => void) {
+          if (_event === 'exit') {
+            setTimeout(() => cb(0), 0)
+          }
+          return fakeChild
+        }
+      }
+      let spy = vi.spyOn(child_process, 'spawn').mockImplementation((_cmd, _args, opts: any) => {
+        spawnedEnv = opts.env
+        return fakeChild
+      })
+      await installer.installDependencies(tmpfolder, ['a', 'b'])
+      spy.mockRestore()
+      expect(spawnedEnv?.NODE_ENV).toBe('production')
+      expect(process.env.NODE_ENV).toBe(envBefore)
     })
 
     it('should reject on install error', async () => {
