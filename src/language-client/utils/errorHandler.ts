@@ -116,15 +116,15 @@ export class DefaultErrorHandler implements ErrorHandler {
 
   public closed(): CloseHandlerResult {
     this.restarts.push(Date.now())
-    if (this.restarts.length < this.maxRestartCount) {
+    if (this.restarts.length <= this.maxRestartCount) {
       return { action: CloseAction.Restart }
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
       if (diff <= this.milliseconds) {
-        if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`)
+        if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.restarts.length} times in the last 3 minutes. The server will not be restarted.`)
         return {
           action: CloseAction.DoNotRestart,
-          message: `The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`
+          message: `The "${this.name}" server crashed ${this.restarts.length} times in the last 3 minutes. The server will not be restarted.`
         }
       } else {
         this.restarts.shift()

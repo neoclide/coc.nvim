@@ -124,6 +124,18 @@ test('DefaultErrorHandler', async () => {
   handler.closed()
 })
 
+test('DefaultErrorHandler restart budget', () => {
+  let handler = new DefaultErrorHandler('test', 2)
+  handler.milliseconds = 60 * 1000
+  // Crashes within the restart budget keep restarting.
+  expect(handler.closed().action).toBe(CloseAction.Restart)
+  expect(handler.closed().action).toBe(CloseAction.Restart)
+  // The crash after the budget reports the actual number of crashes.
+  let res = handler.closed()
+  expect(res.action).toBe(CloseAction.DoNotRestart)
+  expect(res.message).toContain('crashed 3 times')
+})
+
 test('Delayer', () => {
   let count = 0
   let factory = () => {
