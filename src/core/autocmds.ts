@@ -58,6 +58,7 @@ export default class Autocmds implements Disposable {
   public readonly autocmds: Map<number, AutocmdItem> = new Map()
   private nvim: Neovim
   private id = 0
+  private _scheduled = false
 
   public attach(nvim: Neovim): void {
     this.nvim = nvim
@@ -99,8 +100,9 @@ export default class Autocmds implements Disposable {
     this.autocmds.set(id, item)
     this.createAutocmd(item)
     return Disposable.create(() => {
-      // only remove the item from autocmds
-      this.autocmds.delete(id)
+      if (this.autocmds.delete(id)) {
+        this.scheduleRebuildAutocmds()
+      }
     })
   }
 
@@ -122,19 +124,41 @@ export default class Autocmds implements Disposable {
     }
   }
 
-  public removeExtensionAutocmds(extensiionName: string): void {
+  /**
+   * Rebuild all editor-side autocmds of the shared group after registrations
+   * changed, so disposed registrations are removed from the editor as well.
+   * Changes of the same tick are coalesced into a single rebuild.
+   */
+  private scheduleRebuildAutocmds(): void {
+    if (this._scheduled) return
+    this._scheduled = true
+    process.nextTick(() => {
+      this._scheduled = false
+      this.rebuildAutocmds()
+    })
+  }
+
+  private rebuildAutocmds(): void {
     let { nvim, autocmds } = this
+    if (!nvim) return
     nvim.pauseNotification()
     nvim.command(`autocmd! ${groupName}`, true)
-    let items = autocmds.values()
-    for (const item of items) {
-      if (item.extensiionName === extensiionName) {
-        autocmds.delete(item.id)
-        continue
-      }
+    for (const item of autocmds.values()) {
       this.createAutocmd(item)
     }
     nvim.resumeNotification(false, true)
+  }
+
+  public removeExtensionAutocmds(extensiionName: string): void {
+    let { autocmds } = this
+    let changed = false
+    for (const [id, item] of autocmds) {
+      if (item.extensiionName === extensiionName) {
+        autocmds.delete(id)
+        changed = true
+      }
+    }
+    if (changed) this.scheduleRebuildAutocmds()
   }
 
   public dispose(): void {

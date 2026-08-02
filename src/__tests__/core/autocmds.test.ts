@@ -168,6 +168,55 @@ describe('setupDynamicAutocmd()', () => {
     expect(times).toBe(1)
   })
 
+  it('should remove autocmd from nvim on dispose', async () => {
+    let pattern = `*.${crypto.randomUUID()}.js`
+    let disposable = workspace.registerAutocmd({
+      event: 'BufEnter',
+      pattern,
+      request: false,
+      callback: () => {}
+    })
+    let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'BufEnter' }]) as any[]
+    expect(list.filter(o => o.pattern === pattern).length).toBe(1)
+    disposable.dispose()
+    await new Promise(resolve => process.nextTick(resolve))
+    list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'BufEnter' }]) as any[]
+    expect(list.filter(o => o.pattern === pattern).length).toBe(0)
+  })
+
+  it('should remove user autocmd from nvim on dispose', async () => {
+    let name = `CocTestEvent${crypto.randomUUID().replace(/-/g, '')}`
+    let disposable = workspace.registerAutocmd({
+      event: `User ${name}`,
+      callback: () => {}
+    })
+    let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'User' }]) as any[]
+    expect(list.filter(o => o.pattern === name).length).toBe(1)
+    disposable.dispose()
+    await new Promise(resolve => process.nextTick(resolve))
+    list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'User' }]) as any[]
+    expect(list.filter(o => o.pattern === name).length).toBe(0)
+  })
+
+  it('should keep same event autocmd after other is disposed', async () => {
+    let first = 0
+    let second = 0
+    let disposable = workspace.registerAutocmd({
+      event: 'CursorMoved',
+      callback: () => { first++ }
+    })
+    workspace.registerAutocmd({
+      event: 'CursorMoved',
+      callback: () => { second++ }
+    })
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.waitValue(() => first + second, 2)
+    disposable.dispose()
+    await nvim.command('doautocmd <nomodeline> CursorMoved')
+    await helper.waitValue(() => second, 2)
+    expect(first).toBe(1)
+  })
+
   it('should not throw on autocmd callback error', async () => {
     let called = false
     let disposable = workspace.registerAutocmd({

@@ -63,6 +63,7 @@ describe('Workspace handler', () => {
       let map = workspace.autocmds.autocmds
       let arr = Array.from(map.keys())
       expect(arr).toEqual([2])
+      await new Promise(resolve => process.nextTick(resolve))
       let output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
       expect(output).toMatch('CursorMoved')
       expect(output.includes('CursorHold')).toBe(false)

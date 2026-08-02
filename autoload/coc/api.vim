@@ -1004,7 +1004,13 @@ export def Del_autocmd(id: number): bool
   # vim add autocmd when cmd exists
   remove(opt, 'cmd')
   remove(autocmds_map, id)
-  return autocmd_delete([opt])
+  var res: bool = false
+  try
+    res = autocmd_delete([opt])
+  catch /.*/
+    res = false
+  endtry
+  return res
 enddef
 # }}
 

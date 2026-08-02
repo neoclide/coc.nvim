@@ -86,6 +86,20 @@ describe('disable and enable', () => {
     await helper.waitValue(() => times, 2)
     disposable.dispose()
   })
+
+  it('should remove dynamic autocmd on dispose', async () => {
+    let name = `CocTestEvent${Math.random().toString(16).slice(2, 8)}`
+    let disposable = helper.workspace.registerAutocmd({
+      event: `User ${name}`,
+      callback: () => {}
+    })
+    let output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
+    expect(output).toMatch(name)
+    disposable.dispose()
+    await new Promise(resolve => process.nextTick(resolve))
+    output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
+    expect(output.includes(name)).toBe(false)
+  })
 })
 
 describe('vim api', () => {
