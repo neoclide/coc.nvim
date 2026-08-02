@@ -40,7 +40,7 @@ emptyFile(logfile)
 const level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || 'info', 'off')
 
 export const logger = new FileLogger(logfile, textToLogLevel(level), {
-  color: !global.REVISION && process.platform !== 'win32',
+  color: global.REVISION === 'master' && process.platform !== 'win32',
   userFormatters: true
 })
 
