@@ -23,15 +23,46 @@ Notable changes of coc.nvim:
 
 - Break Change: minimal node version changed from 16.18.0 to 20.19.0.
 
+## 2026-03-13
+
+- Full document format only fallback to range formatter when no full document
+  formatter exists.
+
+## 2026-02-27
+
+- Code action request without a mode selection now uses the current cursor
+  position as the range.
+
+## 2025-12-29
+
+- Add `r` keymap for refactor action in normal list mappings.
+
 ## 2025-11-22
 
 - Add configurable front end for reporting regular messages to the user, by using
   'messageReportKind' which can be set to 'echo' or 'notification'.
 
+## 2025-11-11
+
+- Break change: notification messages without actions are now always shown as UI
+  notification instead of being echoed in the command line.
+
+## 2025-09-22
+
+- Expand `${cwd}` variable in language server `args`.
+
+## 2025-08-20
+
+- Support `workspace/foldingRange/refresh` in language client.
+
 ## 2025-07-30
 
 - Add configurable kind for dialog messages, through the use of the new configuration
   'messageDialogKind' which can be set to 'menu', 'notification', or 'confirm'.
+
+## 2025-07-28
+
+- Add `notificationHistory` action, returns the notification history.
 
 ## 2025-07-18
 
@@ -44,6 +75,14 @@ Notable changes of coc.nvim:
 ## 2025-06-22
 
 - Break change: Link highlight group `CocSnippetVisual` to `SnippetTabstop` when exists.
+
+## 2025-06-21
+
+- Export `console.Console` to extension sandbox.
+
+## 2025-06-12
+
+- Virtual text support `overlay` as text_align, works on both vim and neovim.
 
 ## 2025-06-11
 
