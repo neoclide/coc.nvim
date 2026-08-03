@@ -17,6 +17,7 @@ import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-files-'))
 
 beforeAll(async () => {
   await helper.setup()
@@ -24,6 +25,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  fs.rmSync(tmpdir, { recursive: true, force: true })
   await helper.shutdown()
 })
 
@@ -243,7 +245,7 @@ describe('applyEdits()', () => {
   })
 
   it('should apply edits when file does not exist', async () => {
-    let filepath = path.join(__dirname, 'not_exists')
+    let filepath = path.join(tmpdir, 'not_exists')
     disposables.push({
       dispose: () => {
         if (fs.existsSync(filepath)) {
@@ -357,7 +359,7 @@ describe('applyEdits()', () => {
   })
 
   it('should support null version of documentChanges', async () => {
-    let file = path.join(__dirname, 'foo')
+    let file = path.join(tmpdir, 'foo')
     await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
     let uri = URI.file(file).toString()
     let versioned = VersionedTextDocumentIdentifier.create(uri, null)
@@ -375,7 +377,7 @@ describe('applyEdits()', () => {
   })
 
   it('should support CreateFile edit', async () => {
-    let file = path.join(__dirname, 'foo')
+    let file = path.join(tmpdir, 'foo')
     let uri = URI.file(file).toString()
     let workspaceEdit: WorkspaceEdit = {
       documentChanges: [CreateFile.create(uri, { overwrite: true })]
@@ -386,7 +388,7 @@ describe('applyEdits()', () => {
   })
 
   it('should support DeleteFile edit', async () => {
-    let file = path.join(__dirname, 'foo')
+    let file = path.join(tmpdir, 'foo')
     await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
     let uri = URI.file(file).toString()
     let workspaceEdit: WorkspaceEdit = {
@@ -405,9 +407,9 @@ describe('applyEdits()', () => {
   })
 
   it('should support RenameFile edit', async () => {
-    let file = path.join(__dirname, 'foo')
+    let file = path.join(tmpdir, 'foo')
     await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
-    let newFile = path.join(__dirname, 'bar')
+    let newFile = path.join(tmpdir, 'bar')
     let uri = URI.file(file).toString()
     let workspaceEdit: WorkspaceEdit = {
       documentChanges: [RenameFile.create(uri, URI.file(newFile).toString())]
@@ -637,7 +639,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should render annotation label', async () => {
-      let filepath = path.join(__dirname, crypto.randomUUID())
+      let filepath = path.join(tmpdir, crypto.randomUUID())
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(filepath)) {
           fs.unlinkSync(filepath)
@@ -726,7 +728,7 @@ describe('getOriginalLine', () => {
 
     it('should create file if does not exist', async () => {
       await helper.edit()
-      let filepath = path.join(__dirname, 'foo')
+      let filepath = path.join(tmpdir, 'foo')
       await workspace.createFile(filepath, { ignoreIfExists: true })
       let exists = fs.existsSync(filepath)
       expect(exists).toBe(true)
@@ -758,8 +760,8 @@ describe('getOriginalLine', () => {
     it('should throw when oldPath not exists', async () => {
       await workspace.renameFile('/foo', '/foo')
       await workspace.renameFile('/foo', __filename, { ignoreIfExists: true })
-      let filepath = path.join(__dirname, 'not_exists_file')
-      let newPath = path.join(__dirname, 'bar')
+      let filepath = path.join(tmpdir, 'not_exists_file')
+      let newPath = path.join(tmpdir, 'bar')
       let fn = async () => {
         await workspace.renameFile(filepath, newPath)
       }
@@ -788,8 +790,8 @@ describe('getOriginalLine', () => {
     })
 
     it('should rename if file does not exist', async () => {
-      let filepath = path.join(__dirname, 'foo')
-      let newPath = path.join(__dirname, 'bar')
+      let filepath = path.join(tmpdir, 'foo')
+      let newPath = path.join(tmpdir, 'bar')
       await workspace.createFile(filepath)
       await workspace.renameFile(filepath, newPath)
       expect(fs.existsSync(newPath)).toBe(true)
@@ -863,7 +865,7 @@ describe('getOriginalLine', () => {
 
   describe('deleteFile()', () => {
     it('should throw when file not exists', async () => {
-      let filepath = path.join(__dirname, 'not_exists')
+      let filepath = path.join(tmpdir, 'not_exists')
       let fn = async () => {
         await workspace.deleteFile(filepath)
       }
@@ -871,7 +873,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should ignore when ignoreIfNotExists set', async () => {
-      let filepath = path.join(__dirname, 'not_exists')
+      let filepath = path.join(tmpdir, 'not_exists')
       let fns: RecoverFunc[] = []
       await workspace.files.deleteFile(filepath, { ignoreIfNotExists: true }, fns)
       expect(fns.length).toBe(0)
@@ -931,7 +933,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should delete file if exists', async () => {
-      let filepath = path.join(__dirname, 'foo')
+      let filepath = path.join(tmpdir, 'foo')
       await workspace.createFile(filepath)
       expect(fs.existsSync(filepath)).toBe(true)
       await workspace.deleteFile(filepath)
@@ -942,7 +944,7 @@ describe('getOriginalLine', () => {
   describe('loadFile()', () => {
     it('should single loadFile', async () => {
       let doc = await helper.createDocument()
-      let newFile = URI.file(path.join(__dirname, 'abc')).toString()
+      let newFile = URI.file(path.join(tmpdir, 'abc')).toString()
       let document = await workspace.loadFile(newFile)
       let bufnr = await nvim.call('bufnr', '%')
       expect(document.uri.endsWith('abc')).toBe(true)
@@ -952,7 +954,7 @@ describe('getOriginalLine', () => {
 
   describe('loadFiles', () => {
     it('should loadFiles', async () => {
-      let files = ['a', 'b', 'c'].map(key => URI.file(path.join(__dirname, key)).toString())
+      let files = ['a', 'b', 'c'].map(key => URI.file(path.join(tmpdir, key)).toString())
       let docs = await workspace.loadFiles(files)
       let uris = docs.map(o => o.uri)
       expect(uris).toEqual(files)

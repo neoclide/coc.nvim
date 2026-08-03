@@ -420,9 +420,11 @@ describe('call_function', () => {
 
 describe('client API', () => {
   it('should set current dir', async () => {
-    await nvim.setDirectory(__dirname)
+    let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
+    fs.mkdirSync(dir, { recursive: true })
+    await nvim.setDirectory(dir)
     let res = await nvim.call('getcwd') as string
-    expect(sameFile(res, __dirname)).toBe(true)
+    expect(sameFile(res, dir)).toBe(true)
   })
 
   it('should input characters', async () => {

@@ -15,7 +15,9 @@ process.env.VIMRUNTIME = ''
 process.env.NODE_ENV = 'test'
 process.env.COC_NVIM = '1'
 process.env.COC_DATA_HOME = dataHome
-process.env.COC_VIMCONFIG = path.join(__dirname, 'src/__tests__')
+const vimconfig = path.join(dataHome, 'vimconfig')
+fs.mkdirSync(vimconfig, { recursive: true })
+process.env.COC_VIMCONFIG = vimconfig
 
 // The setup file runs once per test file in the same worker when isolate is
 // disabled, so only register the cleanup listener once per process to avoid
