@@ -22,6 +22,13 @@ jobs:
         with:
           cache: "npm"
 
+      - name: Setup neovim
+        id: nvim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: "stable"
+
       - name: Install Dependencies
         run: npm install --frozen-lockfile
 
