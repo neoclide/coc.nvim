@@ -243,7 +243,7 @@ export default class CodeLensBuffer implements SyncItem {
     if (commands.length == 1) {
       await commandManager.execute(commands[0])
     } else if (commands.length > 1) {
-      let res = await window.showMenuPicker(commands.map(c => c.title))
+      let res = await window.showMenuPicker(commands.map(getCommandText))
       if (res != -1) await commandManager.execute(commands[res])
     }
   }
@@ -297,4 +297,17 @@ export function getCommands(line: number, codeLenses: CodeLens[] | undefined): C
     }
   }
   return commands
+}
+
+/**
+ * Get display text for a command, append tooltip when available.
+ *
+ * @since 3.18.0
+ */
+export function getCommandText(command: Command): string {
+  let text = command.title
+  if (command.tooltip) text = `${text} - ${command.tooltip}`
+  // TODO: long tooltip makes menu hard to read, consider showing tooltip
+  // separately (e.g. hover) or with a dedicated description line instead.
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text
 }

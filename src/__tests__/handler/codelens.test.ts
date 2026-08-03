@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import events from '../../events'
-import CodeLensBuffer, { getCommands, getTextAlign } from '../../handler/codelens/buffer'
+import CodeLensBuffer, { getCommandText, getCommands, getTextAlign } from '../../handler/codelens/buffer'
 import CodeLensHandler from '../../handler/codelens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -272,6 +272,45 @@ describe('codeLenes feature', () => {
     expect(fn).toHaveBeenCalledWith(1, 2, 3)
   })
 
+  it('should show tooltip in codeLens picker', async () => {
+    let fn = vi.fn()
+    disposables.push(commands.registerCommand('__save', () => {
+      fn()
+    }))
+    disposables.push(commands.registerCommand('__delete', () => {
+      fn()
+    }))
+    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
+      provideCodeLenses: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          command: { title: 'save', command: '__save', tooltip: 'save the file' }
+        }, {
+          range: Range.create(0, 1, 0, 2),
+          command: { title: 'delete', command: '__delete', tooltip: 'delete the file' }
+        }]
+      }
+    }))
+    let doc = await helper.createDocument('example.js')
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await doc.synchronize()
+    await codeLens.checkProvider()
+    await helper.waitValue(async () => {
+      let buf = codeLens.buffers.getItem(doc.bufnr)
+      let lenses = buf.currentCodeLens
+      return Array.isArray(lenses) && lenses.length >= 2
+    }, true)
+    let p = helper.doAction('codeLensAction')
+    await helper.waitPrompt()
+    let win = await helper.getFloat()
+    expect(win).toBeDefined()
+    let lines = await helper.getWinLines(win.id)
+    expect(lines.join('\n')).toMatch(/save the file/)
+    expect(lines.join('\n')).toMatch(/delete the file/)
+    await nvim.input('<cr>')
+    await p
+  })
+
   it('should refresh for failed codeLens request', async () => {
     let called = 0
     let fn = vi.fn()
@@ -343,5 +382,15 @@ describe('codeLenes feature', () => {
     codeLenses = [CodeLens.create(Range.create(0, 0, 1, 0)), CodeLens.create(Range.create(2, 0, 3, 0))]
     codeLenses[0].command = Command.create('save', '__save')
     expect(getCommands(0, codeLenses).length).toEqual(1)
+  })
+
+  it('should get command text with tooltip', () => {
+    let cmd = Command.create('save', '__save')
+    expect(getCommandText(cmd)).toBe('save')
+    cmd.tooltip = 'save the file'
+    expect(getCommandText(cmd)).toBe('save - save the file')
+    cmd.title = 's'
+    cmd.tooltip = 't'.repeat(100)
+    expect(getCommandText(cmd).endsWith('...')).toBe(true)
   })
 })

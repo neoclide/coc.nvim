@@ -132,6 +132,30 @@ describe('handler codeActions', () => {
       let lines = await buf.lines
       expect(lines[0]).toBe('bar')
     })
+
+    it('should show command tooltip in code action menu', async () => {
+      await helper.createDocument()
+      disposables.push(commands.registerCommand('cmd.fix', () => {}))
+      disposables.push(commands.registerCommand('cmd.refactor', () => {}))
+      currActions = [{
+        title: 'fix',
+        kind: CodeActionKind.QuickFix,
+        command: { title: 'fix', command: 'cmd.fix', tooltip: 'apply the fix' }
+      }, {
+        title: 'refactor',
+        kind: CodeActionKind.Refactor,
+        command: { title: 'refactor', command: 'cmd.refactor', tooltip: 'do the refactor' }
+      }]
+      let p = helper.doAction('codeAction', undefined)
+      await helper.waitPrompt()
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let lines = await helper.getWinLines(win.id)
+      expect(lines.join('\n')).toMatch(/fix - apply the fix/)
+      expect(lines.join('\n')).toMatch(/refactor - do the refactor/)
+      await nvim.input('<cr>')
+      await p
+    })
   })
 
   describe('getCodeActions', () => {

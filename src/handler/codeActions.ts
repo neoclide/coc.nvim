@@ -79,7 +79,7 @@ export default class CodeActions {
       void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return
     }
-    let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
+    let idx = await window.showMenuPicker(codeActions.map(toCodeActionText), 'Choose action')
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -151,11 +151,11 @@ export default class CodeActions {
     let idx = this.floatActions
       ? await window.showMenuPicker(
         codeActions.map(o => {
-          return { text: o.title, disabled: o.disabled }
+          return { text: toCodeActionText(o), disabled: o.disabled }
         }),
         'Choose action'
       )
-      : await window.requestInputList('Choose action by number', codeActions.map(o => o.title))
+      : await window.requestInputList('Choose action by number', codeActions.map(toCodeActionText))
     let action = codeActions[idx]
     if (action) await this.applyCodeAction(action)
   }
@@ -207,4 +207,16 @@ export function shouldAutoApply(only: CodeActionKind[] | string | undefined): bo
 
 function isQuickfix(codeAction: CodeAction): boolean {
   return codeAction.kind && codeAction.kind.startsWith('quickfix')
+}
+
+/**
+ * Get display text for a code action, append command tooltip when available.
+ */
+function toCodeActionText(action: CodeAction): string {
+  let text = action.title
+  let tooltip = action.command?.tooltip
+  if (tooltip) text = `${text} - ${tooltip}`
+  // TODO: long tooltip makes menu hard to read, consider showing tooltip
+  // separately (e.g. hover) or with a dedicated description line instead.
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text
 }

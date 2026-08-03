@@ -6,6 +6,8 @@ Notable changes of coc.nvim:
 
 - Add configuration `suggest.pumAlign` to align the popup menu with a field
   (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the first text.
+- Code lens action picker and code action menus now show `Command#tooltip` as a
+  `title - tooltip` suffix when the server provides one.
 
 ## 2026-08-03
 
