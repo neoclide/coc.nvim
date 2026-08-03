@@ -301,7 +301,7 @@ describe('applyEdits()', () => {
               [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
             }
           })
-        }, 300)
+        }, 100)
       }))
     }, null, disposables)
     await workspace.createFile(newFile, { overwrite: true })

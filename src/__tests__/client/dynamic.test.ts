@@ -1,3 +1,4 @@
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentLinkRequest, DocumentSymbolRequest, ExecuteCommandRequest, InlayHintRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
@@ -409,6 +410,9 @@ describe('DynamicFeature', () => {
 
     it('should filter matches', async () => {
       let n = 0
+      // os.tmpdir() is a symlink on macOS, create a real directory so the
+      // folder filter matches it.
+      let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-test-'))
       let client = await startServer({}, {
         workspace: {
           didCreateFiles: (ev, next) => {
@@ -430,9 +434,10 @@ describe('DynamicFeature', () => {
           }
         }
       }, ['*'])
-      await createFeature.send({ files: [URI.file(os.tmpdir()), URI.file(__filename)] })
+      await createFeature.send({ files: [URI.file(dir), URI.file(__filename)] })
       await helper.waitValue(() => n, 2)
       await client.stop()
+      fs.rmSync(dir, { recursive: true, force: true })
     })
   })
 

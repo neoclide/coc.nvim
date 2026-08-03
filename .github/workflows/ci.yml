@@ -81,7 +81,7 @@ jobs:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
-          ./node_modules/.bin/vitest run --coverage
+          ./node_modules/.bin/vitest run --coverage --maxWorkers=2
 
       - name: Codecov
         uses: codecov/codecov-action@v6

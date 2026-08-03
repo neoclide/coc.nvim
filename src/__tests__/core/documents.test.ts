@@ -281,6 +281,7 @@ describe('formatOnSave', () => {
 
   it('should cancel when timeout', async () => {
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['*'], disposables)
+    helper.updateConfiguration('coc.preferences.formatOnSaveTimeout', 100, disposables)
     let timer
     disposables.push(languages.registerDocumentFormatProvider(['*'], {
       provideDocumentFormattingEdits: () => {

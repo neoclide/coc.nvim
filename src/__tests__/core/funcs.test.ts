@@ -5,6 +5,7 @@ import which from 'which'
 import Configurations from '../../configuration/index'
 import * as funcs from '../../core/funcs'
 import Resolver from '../../model/resolver'
+import * as processes from '../../util/processes'
 let configurations: Configurations
 
 beforeAll(async () => {
@@ -17,10 +18,14 @@ describe('Resolver()', () => {
     let spy = vi.spyOn(fs, 'existsSync').mockImplementation(() => {
       return false
     })
+    // Avoid spawning the yarnpkg child process, the folder check below is
+    // what this test exercises.
+    let commandSpy = vi.spyOn(processes, 'runCommand').mockResolvedValue('/nonexistent')
     let r = new Resolver()
     let res = await r.yarnFolder
     expect(res).toBe('')
     spy.mockRestore()
+    commandSpy.mockRestore()
   })
 
   it('should resolve null', async () => {

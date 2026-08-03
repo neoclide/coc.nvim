@@ -8,6 +8,7 @@ import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
 import { disposeAll } from '../../util'
+import * as processes from '../../util/processes'
 import workspace, { Workspace } from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -288,15 +289,25 @@ describe('workspace methods', () => {
   })
 
   it('should resolve module path if exists', async () => {
+    // Mock the npm/yarn global folder lookup to avoid spawning child
+    // processes, the resolve logic itself stays untouched.
+    let folder = path.join(tmpFolder, 'npm-root')
+    fs.mkdirSync(path.join(folder, 'bytes'), { recursive: true })
+    fs.writeFileSync(path.join(folder, 'bytes', 'package.json'), '', 'utf8')
+    let spy = vi.spyOn(processes, 'runCommand').mockResolvedValue(folder)
     let res = await workspace.resolveModule('bytes')
     res = await workspace.resolveModule('bytes')
     expect(res).toBeTruthy()
+    spy.mockRestore()
   })
 
   it('should not resolve module if it does not exist', async () => {
+    let folder = path.join(tmpFolder, 'npm-root')
+    let spy = vi.spyOn(processes, 'runCommand').mockResolvedValue(folder)
     let res = await workspace.resolveModule('foo')
     res = await workspace.resolveModule('foo')
     expect(res).toBeFalsy()
+    spy.mockRestore()
   })
 
   it('should return match score for document', async () => {
