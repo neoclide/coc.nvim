@@ -31,7 +31,9 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    ensure(ensure(capabilities, 'textDocument')!, 'codeLens')!.dynamicRegistration = true
+    let codeLens = ensure(ensure(capabilities, 'textDocument')!, 'codeLens')!
+    codeLens.dynamicRegistration = true
+    codeLens.resolveSupport = { properties: ['command'] }
     ensure(ensure(capabilities, 'workspace')!, 'codeLens')!.refreshSupport = true
   }
 

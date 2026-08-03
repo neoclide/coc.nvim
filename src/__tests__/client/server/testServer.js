@@ -48,6 +48,7 @@ connection.onInitialize(params => {
   assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.resolveSupport.properties[0], 'tooltip')
+  assert.equal(params.capabilities.textDocument.codeLens.resolveSupport.properties[0], 'command')
 
   let valueSet = params.capabilities.textDocument.completion.completionItemKind.valueSet
   assert.equal(valueSet[0], 1)
