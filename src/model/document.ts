@@ -59,6 +59,8 @@ export default class Document {
   private _bufname: string
   private _commandLine = false
   private _applying = false
+  private _ownLines: ReadonlyArray<string>[] = []
+  private _ownTimer: NodeJS.Timeout | undefined
   private _uri: string
   private _changedtick: number
   private _linesTick = 0
@@ -265,7 +267,21 @@ export default class Document {
         }
         if (lines.length === 0) lines = ['']
         if (this._applying) {
+          if (this.isOwnLines(lines)) {
+            // Intermediate state of our own stacked applyEdits, the doc is
+            // already ahead of it. Replaying it as a content change makes
+            // listeners like cursor sessions re-apply an older state.
+            if (equals(lines, this.lines)) this._applyLines = undefined
+            return
+          }
           this._applyLines = lines
+          return
+        }
+        if (this.isOwnLines(lines)) {
+          // Confirmation of our own applyEdits, the doc already has the
+          // content. Only update the tick, do not fire a content change.
+          this._linesTick = tick
+          this.settleLineWaiters(tick)
           return
         }
         this.lines = lines
@@ -283,7 +299,21 @@ export default class Document {
           lines = [...lines.slice(0, firstline), ...linedata, ...(lastline < 0 ? [] : lines.slice(lastline))]
           if (lines.length == 0) lines = ['']
           if (this._applying) {
+            if (this.isOwnLines(lines)) {
+              // Intermediate state of our own stacked applyEdits, the doc is
+              // already ahead of it. Replaying it as a content change makes
+              // listeners like cursor sessions re-apply an older state.
+              if (equals(lines, this.lines)) this._applyLines = undefined
+              return
+            }
             this._applyLines = lines
+            return
+          }
+          if (this.isOwnLines(lines)) {
+            // Confirmation of our own applyEdits, the doc already has the
+            // content. Only update the tick, do not fire a content change.
+            this._linesTick = tick
+            this.settleLineWaiters(tick)
             return
           }
           this.lines = lines
@@ -389,6 +419,7 @@ export default class Document {
       ], true)
     }
     this._applying = true
+    this.rememberOwnLines(newLines)
     void this.nvim.resumeNotification(true, true)
     this.lines = newLines
     await waitNextTick()
@@ -411,6 +442,19 @@ export default class Document {
         this.fireContentChanges()
       }
     }
+  }
+
+  private rememberOwnLines(lines: ReadonlyArray<string>): void {
+    this._ownLines.push(lines)
+    if (this._ownTimer) clearTimeout(this._ownTimer)
+    this._ownTimer = setTimeout(() => {
+      this._ownLines = []
+      this._ownTimer = undefined
+    }, 100)
+  }
+
+  private isOwnLines(lines: ReadonlyArray<string>): boolean {
+    return this._ownLines.some(o => equals(o, lines))
   }
 
   private getCursorAndCol(move: boolean | Position, edits: TextEdit[], newLines: ReadonlyArray<string>): CursorAndCol {
@@ -658,6 +702,8 @@ export default class Document {
     this._disposed = true
     this._attached = false
     this.lines = []
+    if (this._ownTimer) clearTimeout(this._ownTimer)
+    this._ownLines = []
     for (let item of this.lineWaiters) {
       clearTimeout(item.timer)
       item.resolve()
