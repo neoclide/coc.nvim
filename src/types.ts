@@ -47,6 +47,9 @@ export interface FileWatchConfig {
   readonly ignoredFolders: string[]
 }
 
+/**
+ * @internal
+ */
 export interface LocationWithTarget extends Location {
   /**
    * The full target range of this link. If the target for example is a symbol then target range is the

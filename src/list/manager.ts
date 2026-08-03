@@ -39,7 +39,13 @@ const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'
 const winleaveDalay = isVim ? 50 : 0
 
 export class ListManager implements Disposable {
+  /**
+   * @internal
+   */
   public prompt: Prompt
+  /**
+   * @internal
+   */
   public mappings: Mappings
   private plugTs = 0
   private sessionsMap: Map<string, ListSession> = new Map()
@@ -54,6 +60,9 @@ export class ListManager implements Disposable {
   private get nvim(): Neovim {
     return workspace.nvim
   }
+  /**
+   * @internal
+   */
 
   public init(nvim: Neovim): void {
     this.prompt = new Prompt(nvim)
@@ -88,6 +97,9 @@ export class ListManager implements Disposable {
       this.session?.onInputChange()
     })
   }
+  /**
+   * @internal
+   */
 
   public registerLists(): void {
     this.registerList(new LinksList(), true)
@@ -103,6 +115,9 @@ export class ListManager implements Disposable {
     this.registerList(new ListsList(this.listMap), true)
     this.registerList(new FolderList(), true)
   }
+  /**
+   * @internal
+   */
 
   public async start(args: string[]): Promise<void> {
     let res = this.parseArgs(args)
@@ -135,6 +150,9 @@ export class ListManager implements Disposable {
     }
     return null
   }
+  /**
+   * @internal
+   */
 
   public async getCurrentSession(): Promise<ListSession | null> {
     let { id } = await this.nvim.window
@@ -146,6 +164,9 @@ export class ListManager implements Disposable {
     }
     return null
   }
+  /**
+   * @internal
+   */
 
   public async resume(name?: string): Promise<void> {
     if (!name) {
@@ -160,37 +181,58 @@ export class ListManager implements Disposable {
       await session.resume()
     }
   }
+  /**
+   * @internal
+   */
 
   public async doAction(name?: string): Promise<void> {
     let lastSession = this.lastSession
     if (!lastSession) return
     await lastSession.doAction(name)
   }
+  /**
+   * @internal
+   */
 
   public async first(name?: string): Promise<void> {
     let s = this.getSession(name)
     if (s) await s.first()
   }
+  /**
+   * @internal
+   */
 
   public async last(name?: string): Promise<void> {
     let s = this.getSession(name)
     if (s) await s.last()
   }
+  /**
+   * @internal
+   */
 
   public async previous(name?: string): Promise<void> {
     let s = this.getSession(name)
     if (s) await s.previous()
   }
+  /**
+   * @internal
+   */
 
   public async next(name?: string): Promise<void> {
     let s = this.getSession(name)
     if (s) await s.next()
   }
+  /**
+   * @internal
+   */
 
   public getSession(name?: string): ListSession {
     if (!name) return this.session
     return this.sessionsMap.get(name)
   }
+  /**
+   * @internal
+   */
 
   public async cancel(close = true): Promise<void> {
     this.prompt.cancel()
@@ -199,6 +241,7 @@ export class ListManager implements Disposable {
   }
 
   /**
+   * @internal
    * Clear all list sessions
    */
   public reset(): void {
@@ -210,10 +253,16 @@ export class ListManager implements Disposable {
     this.sessionsMap.clear()
     this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
+  /**
+   * @internal
+   */
 
   public async switchMatcher(): Promise<void> {
     await this.session?.switchMatcher()
   }
+  /**
+   * @internal
+   */
 
   public async togglePreview(): Promise<void> {
     let { nvim } = this
@@ -225,11 +274,17 @@ export class ListManager implements Disposable {
       await this.doAction('preview')
     }
   }
+  /**
+   * @internal
+   */
 
   public async chooseAction(): Promise<void> {
     let { lastSession } = this
     if (lastSession) await lastSession.chooseAction()
   }
+  /**
+   * @internal
+   */
 
   public parseArgs(args: string[]): { list: IList; options: ListOptions; listArgs: string[] } | null {
     let options: string[] = []
@@ -343,6 +398,9 @@ export class ListManager implements Disposable {
       await this.onNormalInput(ch, charmod)
     }
   }
+  /**
+   * @internal
+   */
 
   public async onInsertInput(ch: string, charmod?: number): Promise<void> {
     let { session } = this
@@ -367,6 +425,9 @@ export class ListManager implements Disposable {
       await this.prompt.acceptCharacter(s)
     }
   }
+  /**
+   * @internal
+   */
 
   public async onNormalInput(ch: string, _charmod?: number): Promise<void> {
     if (mouseKeys.includes(ch)) {
@@ -380,6 +441,9 @@ export class ListManager implements Disposable {
   private onMouseEvent(key: string): Promise<void> {
     return this.session?.onMouseEvent(key)
   }
+  /**
+   * @internal
+   */
 
   public async feedkeys(key: string, remap = true): Promise<void> {
     let { nvim } = this
@@ -389,6 +453,9 @@ export class ListManager implements Disposable {
     this.triggerCursorMoved()
     this.prompt.start()
   }
+  /**
+   * @internal
+   */
 
   public async command(command: string): Promise<void> {
     let { nvim } = this
@@ -397,6 +464,9 @@ export class ListManager implements Disposable {
     this.triggerCursorMoved()
     this.prompt.start()
   }
+  /**
+   * @internal
+   */
 
   public async normal(command: string, bang: boolean): Promise<void> {
     let { nvim } = this
@@ -405,15 +475,24 @@ export class ListManager implements Disposable {
     this.triggerCursorMoved()
     this.prompt.start()
   }
+  /**
+   * @internal
+   */
 
   public triggerCursorMoved(): void {
     if (this.nvim.isVim) this.nvim.command('doautocmd <nomodeline> CursorMoved', true)
     this.nvim.call('coc#util#do_autocmd', ['CocListMoved'], true)
   }
+  /**
+   * @internal
+   */
 
   public async call(fname: string): Promise<any> {
     if (this.session) return await this.session.call(fname)
   }
+  /**
+   * @internal
+   */
 
   public get session(): ListSession | undefined {
     return this.lastSession
@@ -449,6 +528,9 @@ export class ListManager implements Disposable {
   public get names(): string[] {
     return Array.from(this.listMap.keys())
   }
+  /**
+   * @internal
+   */
 
   public get descriptions(): { [name: string]: string } {
     let d = {}
@@ -460,6 +542,7 @@ export class ListManager implements Disposable {
   }
 
   /**
+   * @internal
    * Get items of {name} list
    * @param {string} name
    * @returns {Promise<any>}
@@ -501,20 +584,32 @@ export class ListManager implements Disposable {
     })
     return newItems
   }
+  /**
+   * @internal
+   */
 
   public toggleMode(): void {
     let lastSession = this.lastSession
     if (lastSession) lastSession.toggleMode()
   }
+  /**
+   * @internal
+   */
 
   public get isActivated(): boolean {
     return this.session?.winid != null
   }
+  /**
+   * @internal
+   */
 
   public stop(): void {
     let lastSession = this.lastSession
     if (lastSession) lastSession.stop()
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     for (let session of this.sessionsMap.values()) {

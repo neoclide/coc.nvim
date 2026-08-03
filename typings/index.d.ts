@@ -186,7 +186,13 @@ declare module 'coc.nvim' {
    * inside a text file.
    */
   export interface Location {
+    /**
+     * The document URI of the location.
+     */
     uri: DocumentUri
+    /**
+     * The range of the location.
+     */
     range: Range
   }
   /**
@@ -579,6 +585,25 @@ declare module 'coc.nvim' {
      * Checks whether the given literal conforms to the [Diagnostic](#Diagnostic) interface.
      */
     function is(value: any): value is Diagnostic
+    /**
+     * Checks whether the given diagnostic's message conforms to the 3.17.0
+     * version of the protocol where the message is a string.
+     *
+     * @param value the diagnostic
+     * @returns true if the diagnostic's message is a string, false otherwise.
+     */
+    function is3_17(value: Diagnostic): value is Omit<Diagnostic, 'message'> & {
+      message: string
+    }
+    /**
+     * Gets the message string of a diagnostic. If the message is already a
+     * string, it is returned as is. If the message is a MarkupContent,
+     * the value of the MarkupContent is returned. Otherwise an error is thrown.
+     *
+     * @param diagnostic the diagnostic to get the message string from.
+     * @returns the message string of the given diagnostic.
+     */
+    function getMessageString(diagnostic: Diagnostic): string
   }
   /**
    * Represents a reference to a command. Provides a title which
@@ -961,6 +986,9 @@ declare module 'coc.nvim' {
      * @param annotation An optional annotation.
      */
     insert(position: Position, newText: string): void
+    /**
+     * Insert the given text at the given position with an annotation.
+     */
     insert(position: Position, newText: string, annotation: ChangeAnnotation | ChangeAnnotationIdentifier): ChangeAnnotationIdentifier
     /**
      * Replace the given range with given text for the given resource.
@@ -970,6 +998,9 @@ declare module 'coc.nvim' {
      * @param annotation An optional annotation.
      */
     replace(range: Range, newText: string): void
+    /**
+     * Replace the given range with given text with an annotation.
+     */
     replace(range: Range, newText: string, annotation?: ChangeAnnotation | ChangeAnnotationIdentifier): ChangeAnnotationIdentifier
     /**
      * Delete the text at the given range.
@@ -978,6 +1009,9 @@ declare module 'coc.nvim' {
      * @param annotation An optional annotation.
      */
     delete(range: Range): void
+    /**
+     * Delete the text at the given range with an annotation.
+     */
     delete(range: Range, annotation?: ChangeAnnotation | ChangeAnnotationIdentifier): ChangeAnnotationIdentifier
   }
   /**
@@ -1001,11 +1035,29 @@ declare module 'coc.nvim' {
     getTextEditChange(uri: DocumentUri): TextEditChange
     private initDocumentChanges
     private initChanges
+    /**
+     * Create a file in the workspace edit.
+     */
     createFile(uri: DocumentUri, options?: CreateFileOptions): void
+    /**
+     * Create a file in the workspace edit with an annotation.
+     */
     createFile(uri: DocumentUri, annotation: ChangeAnnotation | ChangeAnnotationIdentifier, options?: CreateFileOptions): ChangeAnnotationIdentifier
+    /**
+     * Rename a file in the workspace edit.
+     */
     renameFile(oldUri: DocumentUri, newUri: DocumentUri, options?: RenameFileOptions): void
+    /**
+     * Rename a file in the workspace edit with an annotation.
+     */
     renameFile(oldUri: DocumentUri, newUri: DocumentUri, annotation?: ChangeAnnotation | ChangeAnnotationIdentifier, options?: RenameFileOptions): ChangeAnnotationIdentifier
+    /**
+     * Delete a file in the workspace edit.
+     */
     deleteFile(uri: DocumentUri, options?: DeleteFileOptions): void
+    /**
+     * Delete a file in the workspace edit with an annotation.
+     */
     deleteFile(uri: DocumentUri, annotation: ChangeAnnotation | ChangeAnnotationIdentifier, options?: DeleteFileOptions): ChangeAnnotationIdentifier
   }
   /**
@@ -1493,7 +1545,7 @@ declare module 'coc.nvim' {
     command?: Command
     /**
      * A data entry field that is preserved on a completion item between a
-     * [CompletionRequest](#CompletionRequest) and a [CompletionResolveRequest](#CompletionResolveRequest).
+     * `CompletionRequest` and a `CompletionResolveRequest`.
      */
     data?: LSPAny
   }
@@ -2083,6 +2135,19 @@ declare module 'coc.nvim' {
      */
     const RefactorInline: 'refactor.inline'
     /**
+     * Base kind for refactoring move actions: `refactor.move`
+     *
+     * Example move actions:
+     *
+     * - Move a function to a new file
+     * - Move a property between classes
+     * - Move method to base class
+     * - ...
+     *
+     * @since 3.18.0
+     */
+    const RefactorMove: 'refactor.move'
+    /**
      * Base kind for refactoring rewrite actions: 'refactor.rewrite'
      *
      * Example rewrite actions:
@@ -2114,6 +2179,13 @@ declare module 'coc.nvim' {
      * @since 3.15.0
      */
     const SourceFixAll: 'source.fixAll'
+    /**
+     * Base kind for all code actions applying to the entire notebook's scope. CodeActionKinds using
+     * this should always begin with `notebook.`
+     *
+     * @since 3.18.0
+     */
+    const Notebook: 'notebook'
   }
   /**
    * The reason why code actions were requested.
@@ -2293,8 +2365,7 @@ declare module 'coc.nvim' {
     command?: Command
     /**
      * A data entry field that is preserved on a code lens item between
-     * a [CodeLensRequest](#CodeLensRequest) and a [CodeLensResolveRequest]
-     * (#CodeLensResolveRequest)
+     * a `CodeLensRequest` and a `CodeLensResolveRequest`.
      */
     data?: LSPAny
   }
@@ -2543,7 +2614,11 @@ declare module 'coc.nvim' {
     /**
      * @since 3.17.0
      */
-    decorator = "decorator"
+    decorator = "decorator",
+    /**
+     * @since 3.18.0
+     */
+    label = "label"
   }
   /**
    * A set of predefined token modifiers. This set is not fixed
@@ -2620,6 +2695,9 @@ declare module 'coc.nvim' {
    * @since 3.16.0
    */
   export interface SemanticTokensDelta {
+    /**
+     * The result id of the delta, undefined when the delta is a full result.
+     */
     readonly resultId?: string
     /**
      * The semantic token edits to transform a previous result into a new result.
@@ -3233,7 +3311,13 @@ declare module 'coc.nvim' {
 
   // Language server protocol interfaces {{
   export interface Thenable<T> {
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the thenable.
+     */
     then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
+    /**
+     * Attaches a rejection callback to the thenable.
+     */
     // eslint-disable-next-line @typescript-eslint/unified-signatures
     then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
   }
@@ -3453,6 +3537,9 @@ declare module 'coc.nvim' {
      */
     triggerCharacter?: string
 
+    /**
+     * The completion option of the current completion request.
+     */
     option: CompleteOption
   }
 
@@ -3484,7 +3571,13 @@ declare module 'coc.nvim' {
   }
 
   export interface EmitterOptions {
+    /**
+     * Called when the first listener is added.
+     */
     onFirstListenerAdd?: Function
+    /**
+     * Called when the last listener is removed.
+     */
     onLastListenerRemove?: Function
   }
 
@@ -3500,6 +3593,9 @@ declare module 'coc.nvim' {
      * subscribers
      */
     fire(event: T): any
+    /**
+     * Dispose the emitter, remove all listeners.
+     */
     dispose(): void
   }
 
@@ -3526,8 +3622,17 @@ declare module 'coc.nvim' {
   }
 
   export class CancellationTokenSource {
+    /**
+     * The cancellation token of this source.
+     */
     get token(): CancellationToken
+    /**
+     * Cancel the token, firing the cancellation event.
+     */
     cancel(): void
+    /**
+     * Dispose the source.
+     */
     dispose(): void
   }
 
@@ -3658,23 +3763,24 @@ declare module 'coc.nvim' {
    *
    * @since 3.16.0
    */
-  export enum MonikerKind {
+  export namespace MonikerKind {
     /**
      * The moniker represent a symbol that is imported into a project
      */
-    import = 'import',
+    const $import = 'import'
 
     /**
      * The moniker represents a symbol that is exported from a project
      */
-    export = 'export',
+    const $export = 'export'
 
     /**
      * The moniker represents a symbol that is local to a project (e.g. a local
      * variable of a function, a class not visible outside the project, ...)
      */
-    local = 'local'
+    const local = 'local'
   }
+  export type MonikerKind = 'import' | 'export' | 'local'
 
   /**
    * Moniker definition to match LSIF 0.5 moniker definition.
@@ -3944,9 +4050,18 @@ declare module 'coc.nvim' {
    * has failed.
    */
   export class ResponseError<D = void> extends Error {
+    /**
+     * Error code of the response.
+     */
     readonly code: number
+    /**
+     * Additional data of the error.
+     */
     readonly data: D | undefined
     constructor(code: number, message: string, data?: D)
+    /**
+     * Serialize to a JSON literal.
+     */
     toJson(): ResponseErrorLiteral<D>
   }
 
@@ -3954,11 +4069,20 @@ declare module 'coc.nvim' {
    * A language server message
    */
   export interface Message {
+    /**
+     * The protocol version, always `"2.0"`.
+     */
     jsonrpc: string
   }
 
   export interface AbstractCancellationTokenSource extends Disposable {
+    /**
+     * The cancellation token of this source.
+     */
     token: CancellationToken
+    /**
+     * Cancel the token.
+     */
     cancel(): void
   }
 
@@ -3992,39 +4116,108 @@ declare module 'coc.nvim' {
 
   // see `:h nvim_set_client_info()` for details.
   export interface VimClientInfo {
+    /**
+     * Name of the client.
+     */
     name: string
+    /**
+     * Version of the client.
+     */
     version: {
+      /**
+       * Major version number.
+       */
       major?: number
+      /**
+       * Minor version number.
+       */
       minor?: number
+      /**
+       * Patch version number.
+       */
       patch?: number
+      /**
+       * Prerelease version string.
+       */
       prerelease?: string
+      /**
+       * Commit hash of the version.
+       */
       commit?: string
     }
+    /**
+     * Type of the client.
+     */
     type: 'remote' | 'embedder' | 'host'
+    /**
+     * Custom methods exposed by the client.
+     */
     methods?: {
       [index: string]: any
     }
+    /**
+     * Custom attributes of the client.
+     */
     attributes?: {
       [index: string]: any
     }
   }
 
   export interface UiAttachOptions {
+    /**
+     * Enable rgb colors.
+     */
     rgb?: boolean
+    /**
+     * Use external popupmenu.
+     */
     ext_popupmenu?: boolean
+    /**
+     * Use external tabline.
+     */
     ext_tabline?: boolean
+    /**
+     * Use external wildmenu.
+     */
     ext_wildmenu?: boolean
+    /**
+     * Use external cmdline.
+     */
     ext_cmdline?: boolean
+    /**
+     * Use external linegrid.
+     */
     ext_linegrid?: boolean
+    /**
+     * Use external hlstate.
+     */
     ext_hlstate?: boolean
   }
 
   export interface ChanInfo {
+    /**
+     * Channel id.
+     */
     id: number
+    /**
+     * Stream type of the channel.
+     */
     stream: 'stdio' | 'stderr' | 'socket' | 'job'
+    /**
+     * Mode of the channel.
+     */
     mode: 'bytes' | 'terminal' | 'rpc'
+    /**
+     * Pseudo terminal id when the channel is a terminal.
+     */
     pty?: number
+    /**
+     * Buffer number of the terminal.
+     */
     buffer?: number
+    /**
+     * Client info when the channel is an rpc client.
+     */
     client?: VimClientInfo
   }
 
@@ -4032,87 +4225,263 @@ declare module 'coc.nvim' {
    * Returned by nvim_get_commands api.
    */
   export interface VimCommandDescription {
+    /**
+     * Name of the command.
+     */
     name: string
+    /**
+     * The command accepts a `!` modifier.
+     */
     bang: boolean
+    /**
+     * The command supports a `|` separator.
+     */
     bar: boolean
+    /**
+     * The command accepts a register argument.
+     */
     register: boolean
+    /**
+     * Definition of the command.
+     */
     definition: string
+    /**
+     * Count argument accepted by the command.
+     */
     count?: number | null
+    /**
+     * Id of the script that defines the command.
+     */
     script_id: number
+    /**
+     * Completion type of the command.
+     */
     complete?: string
+    /**
+     * Number of arguments of the command.
+     */
     nargs?: string
+    /**
+     * Range specification of the command.
+     */
     range?: string
+    /**
+     * Completion argument of the command.
+     */
     complete_arg?: string
   }
 
   export interface NvimFloatOptions {
+    /**
+     * Keep the float window open when losing focus.
+     */
     standalone?: boolean
+    /**
+     * Whether the float window is focusable, default to true.
+     */
     focusable?: boolean
+    /**
+     * Position relative to editor, cursor, window or mouse.
+     */
     relative?: 'editor' | 'cursor' | 'win' | 'mouse'
+    /**
+     * Anchor corner of the float window.
+     */
     anchor?: 'NW' | 'NE' | 'SW' | 'SE'
+    /**
+     * Border style of the float window.
+     */
     border?: 'none' | 'single' | 'double' | 'rounded' | 'solid' | 'shadow' | string[]
+    /**
+     * Style of the float window.
+     */
     style?: 'minimal'
+    /**
+     * Title of the float window.
+     */
     title?: string
+    /**
+     * Position of the title.
+     */
     title_pos?: 'left' | 'center' | 'right'
+    /**
+     * Footer of the float window.
+     */
     footer?: string | [string, string][]
+    /**
+     * Position of the footer.
+     */
     footer_pos?: 'left' | 'center' | 'right'
+    /**
+     * Do not trigger autocommands for the float window.
+     */
     noautocmd?: boolean
+    /**
+     * Do not change size or position when the parent changes.
+     */
     fixed?: boolean
+    /**
+     * Hide the float window instead of closing it.
+     */
     hide?: boolean
+    /**
+     * Height of the float window.
+     */
     height: number
+    /**
+     * Width of the float window.
+     */
     width: number
+    /**
+     * Row of the float window.
+     */
     row: number
+    /**
+     * Column of the float window.
+     */
     col: number
   }
 
   export interface ExtmarkOptions {
+    /**
+     * Id of the extmark, used to update or remove it.
+     */
     id?: number
-    // 0-based inclusive.
+    /**
+     * End line, 0-based inclusive.
+     */
     end_line?: number
-    // 0-based exclusive.
+    /**
+     * End column, 0-based exclusive.
+     */
     end_col?: number
-    //  name of the highlight group used to highlight this mark.
+    /**
+     * Name of the highlight group used to highlight this mark.
+     */
     hl_group?: string
+    /**
+     * Highlight mode of the text.
+     */
     hl_mode?: 'replace' | 'combine' | 'blend'
+    /**
+     * Highlight to end of line when true.
+     */
     hl_eol?: boolean
-    // A list of [text, highlight] tuples
+    /**
+     * A list of [text, highlight] tuples.
+     */
     virt_text?: [string, string | string[]][]
+    /**
+     * Position of virtual text.
+     */
     virt_text_pos?: 'eol' | 'overlay' | 'right_align' | 'inline'
+    /**
+     * Window column of virtual text, used with overlay position.
+     */
     virt_text_win_col?: number
+    /**
+     * Hide virtual text when the line is truncated.
+     */
     virt_text_hide?: boolean
+    /**
+     * Virtual lines rendered below the mark.
+     */
     virt_lines?: [string, string | string[]][][]
+    /**
+     * Render virtual lines above the mark when true.
+     */
     virt_lines_above?: boolean
+    /**
+     * Align virtual lines to the left.
+     */
     virt_lines_leftcol?: boolean
+    /**
+     * The extmark is right gravity when true.
+     */
     right_gravity?: boolean
+    /**
+     * The end mark is right gravity when true.
+     */
     end_right_gravity?: boolean
+    /**
+     * Priority of the extmark, higher renders on top.
+     */
     priority?: number
   }
 
   export interface ExtmarkDetails {
+    /**
+     * End column, 0-based exclusive.
+     */
     end_col: number
+    /**
+     * End row of the extmark.
+     */
     end_row: number
+    /**
+     * Priority of the extmark.
+     */
     priority: number
+    /**
+     * Highlight group of the extmark.
+     */
     hl_group?: string
+    /**
+     * Virtual text of the extmark.
+     */
     virt_text?: [string, string][]
+    /**
+     * Virtual lines of the extmark.
+     */
     virt_lines?: [string, string | string][][]
   }
 
   export interface NvimProc {
+    /**
+     * Parent process id.
+     */
     ppid: number
+    /**
+     * Name of the process.
+     */
     name: string
+    /**
+     * Process id.
+     */
     pid: number
   }
 
   export interface SignPlaceOption {
+    /**
+     * Sign id, auto generated when omitted.
+     */
     id?: number
+    /**
+     * Group of the sign.
+     */
     group?: string
+    /**
+     * Name of the defined sign.
+     */
     name: string
+    /**
+     * Line number of the sign.
+     */
     lnum: number
+    /**
+     * Priority of the sign.
+     */
     priority?: number
   }
 
   export interface SignUnplaceOption {
+    /**
+     * Sign group, default to the unnamed group.
+     */
     group?: string
+    /**
+     * Sign id, unplace all signs of the group when omitted.
+     */
     id?: number
   }
 
@@ -4121,19 +4490,43 @@ declare module 'coc.nvim' {
      * Use '*' for all group, default to '' as unnamed group.
      */
     group?: string
+    /**
+     * Sign id.
+     */
     id?: number
+    /**
+     * Line number.
+     */
     lnum?: number
   }
 
   export interface SignItem {
+    /**
+     * Group of the sign.
+     */
     group: string
+    /**
+     * Id of the sign.
+     */
     id: number
+    /**
+     * Line number of the sign.
+     */
     lnum: number
+    /**
+     * Name of the sign.
+     */
     name: string
+    /**
+     * Priority of the sign.
+     */
     priority: number
   }
 
   export interface HighlightItem {
+    /**
+     * Highlight group name.
+     */
     hlGroup: string
     /**
     * 0 based
@@ -4150,8 +4543,17 @@ declare module 'coc.nvim' {
   }
 
   export interface ExtendedHighlightItem extends HighlightItem {
+    /**
+     * Combine the highlight with the existing one.
+     */
     combine?: boolean
+    /**
+     * Start column is inclusive.
+     */
     start_incl?: boolean
+    /**
+     * End column is inclusive.
+     */
     end_incl?: boolean
   }
 
@@ -4178,14 +4580,38 @@ declare module 'coc.nvim' {
    * All values default to `false`, see `:h :map-arguments`
    */
   export interface BufferKeymapOption {
+    /**
+     * Description of the keymap.
+     */
     desc?: string
+    /**
+     * Do not remap the keymap.
+     */
     noremap?: boolean
+    /**
+     * Do not wait for more characters.
+     */
     nowait?: boolean
+    /**
+     * Do not echo the command.
+     */
     silent?: boolean
+    /**
+     * Remap script-local mappings.
+     */
     script?: boolean
+    /**
+     * The right hand side is an expression.
+     */
     expr?: boolean
+    /**
+     * Fail when the keymap already exists.
+     */
     unique?: boolean
     // vim9 only
+    /**
+     * Allow special characters in the left hand side.
+     */
     special?: boolean
   }
 
@@ -4213,8 +4639,17 @@ declare module 'coc.nvim' {
   }
 
   export interface BufferClearHighlight {
+    /**
+     * Namespace to clear or -1 for ungrouped highlights.
+     */
     srcId?: number
+    /**
+     * First line to clear.
+     */
     lineStart?: number
+    /**
+     * Last line to clear.
+     */
     lineEnd?: number
   }
 
@@ -4819,6 +5254,9 @@ declare module 'coc.nvim' {
   }
 
   export interface Buffer extends BaseApi<Buffer> {
+    /**
+     * Buffer number.
+     */
     id: number
 
     /** Total number of lines in buffer */
@@ -5230,10 +5668,25 @@ declare module 'coc.nvim' {
 
   // vscode-uri {{
   export interface UriComponents {
+    /**
+     * The scheme of the URI, e.g. `file`.
+     */
     scheme: string
+    /**
+     * The authority of the URI.
+     */
     authority: string
+    /**
+     * The path of the URI.
+     */
     path: string
+    /**
+     * The query of the URI.
+     */
     query: string
+    /**
+     * The fragment of the URI.
+     */
     fragment: string
   }
   /**
@@ -5253,6 +5706,9 @@ declare module 'coc.nvim' {
    * ```
    */
   export class Uri implements UriComponents {
+    /**
+     * Checks whether the given value is a URI.
+     */
     static isUri(thing: any): thing is Uri
     /**
      * scheme is the 'http' part of 'http://www.msft.com/some/path?query#fragment'.
@@ -5309,6 +5765,11 @@ declare module 'coc.nvim' {
      * with URIs that represent files on disk (`file` scheme).
      */
     readonly fsPath: string
+    /**
+     * Returns a new URI with the changed components.
+     *
+     * @param change An object with the components to change.
+     */
     with(change: {
       scheme?: string
       authority?: string | null
@@ -5345,6 +5806,11 @@ declare module 'coc.nvim' {
      * @param path A file system path (see `URI#fsPath`)
      */
     static file(path: string): Uri
+    /**
+     * Creates a new URI from its components.
+     *
+     * @param components The components of the URI.
+     */
     static from(components: {
       scheme: string
       authority?: string
@@ -5364,6 +5830,9 @@ declare module 'coc.nvim' {
      * @param skipEncoding Do not encode the result, default is `false`
      */
     toString(skipEncoding?: boolean): string
+    /**
+     * Serialize the URI to its components.
+     */
     toJSON(): UriComponents
   }
   // }}
@@ -5373,18 +5842,45 @@ declare module 'coc.nvim' {
    * See `:h complete-items`
    */
   export interface VimCompleteItem {
+    /**
+     * The word to be inserted.
+     */
     word: string
+    /**
+     * Abbreviated word shown in the menu.
+     */
     abbr?: string
+    /**
+     * Description shown in the menu.
+     */
     menu?: string
     /**
      * @deprecated use documentation property.
      */
     info?: string
+    /**
+     * Kind of the item.
+     */
     kind?: string
+    /**
+     * Ignore case when comparing.
+     */
     icase?: number
+    /**
+     * Match when the word is equal.
+     */
     equal?: number
+    /**
+     * Duplicate the item in the list.
+     */
     dup?: number
+    /**
+     * Accept an empty word.
+     */
     empty?: number
+    /**
+     * Custom data of the item.
+     */
     user_data?: string
     /**
      * The same as deprecated tag.
@@ -5422,37 +5918,115 @@ declare module 'coc.nvim' {
   }
 
   export interface CompleteDoneItem {
+    /**
+     * The word of the completed item.
+     */
     readonly word: string
+    /**
+     * Abbreviated word of the item.
+     */
     readonly abbr?: string
+    /**
+     * Name of the completion source.
+     */
     readonly source: string
+    /**
+     * Whether the item is a snippet.
+     */
     readonly isSnippet: boolean
+    /**
+     * Kind of the item.
+     */
     readonly kind?: string | CompletionItemKind
+    /**
+     * Description shown in the menu.
+     */
     readonly menu?: string
   }
 
   export interface LocationListItem {
+    /**
+     * Buffer number of the item.
+     */
     bufnr: number
+    /**
+     * Start line, 1 based.
+     */
     lnum: number
+    /**
+     * End line, 1 based.
+     */
     end_lnum: number
+    /**
+     * Start column, 1 based.
+     */
     col: number
+    /**
+     * End column, 1 based.
+     */
     end_col: number
+    /**
+     * Text of the line.
+     */
     text: string
+    /**
+     * Type of the item, like `E`, `W` or `I`.
+     */
     type: string
   }
 
   export interface QuickfixItem {
+    /**
+     * Uri of the file.
+     */
     uri?: string
+    /**
+     * Module name of the item.
+     */
     module?: string
+    /**
+     * Range of the item.
+     */
     range?: Range
+    /**
+     * Text of the item.
+     */
     text?: string
+    /**
+     * Type of the item.
+     */
     type?: string
+    /**
+     * Filename of the item.
+     */
     filename?: string
+    /**
+     * Buffer number of the item.
+     */
     bufnr?: number
+    /**
+     * Start line, 1 based.
+     */
     lnum?: number
+    /**
+     * End line, 1 based.
+     */
     end_lnum?: number
+    /**
+     * Start column, 1 based.
+     */
     col?: number
+    /**
+     * End column, 1 based.
+     */
     end_col?: number
+    /**
+     * Whether the item is valid.
+     */
     valid?: boolean
+    /**
+     * Number of the item.
+     */
     nr?: number
   }
   // }}
@@ -6385,7 +6959,7 @@ declare module 'coc.nvim' {
 
     /**
      * An optional event to signal that inline values have changed.
-     * @see {@link EventEmitter}
+     * @see {@link Emitter}
      */
     onDidChangeInlineValues?: Event<void> | undefined
 
@@ -6404,8 +6978,17 @@ declare module 'coc.nvim' {
   }
 
   export interface DiagnosticProvider {
+    /**
+     * Event fired when diagnostics of a document change.
+     */
     onDidChangeDiagnostics: Event<void> | undefined
+    /**
+     * Provide diagnostics for the given document.
+     */
     provideDiagnostics(document: TextDocument | Uri, previousResultId: string | undefined, token: CancellationToken): ProviderResult<DocumentDiagnosticReport>
+    /**
+     * Provide workspace diagnostics.
+     */
     provideWorkspaceDiagnostics?(resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter): ProviderResult<WorkspaceDiagnosticReport>
   }
 
@@ -6491,6 +7074,9 @@ declare module 'coc.nvim' {
   }
 
   export interface Document {
+    /**
+     * Buffer of the document.
+     */
     readonly buffer: Buffer
     /**
      * Document is attached to vim.
@@ -6553,7 +7139,13 @@ declare module 'coc.nvim' {
      * Same as filetype most of the time.
      */
     readonly languageId: string
+    /**
+     * Uri of the document.
+     */
     readonly uri: string
+    /**
+     * Version of the document.
+     */
     readonly version: number
     /**
      * Current lines of buffer
@@ -6712,6 +7304,9 @@ declare module 'coc.nvim' {
      * Byte offset (0 based) that should be undelined.
      */
     active?: [number, number]
+    /**
+     * Highlights of the document.
+     */
     highlights?: HighlightItem[]
   }
 
@@ -6779,6 +7374,10 @@ declare module 'coc.nvim' {
      * @param pattern A file glob pattern like `*.{ts,js}` that will be matched on paths relative to the base.
      */
     constructor(base: WorkspaceFolder | Uri | string, pattern: string)
+    /**
+     * Serialize to a JSON object with pattern and baseUri components.
+     */
+    toJSON(): { pattern: string, baseUri: UriComponents }
   }
 
   /**
@@ -6795,6 +7394,12 @@ declare module 'coc.nvim' {
      */
     addLines(lines: string[]): void
     /**
+     * Add texts to new lines, each text may have its own highlight group.
+     *
+     * @param items List of text items.
+     */
+    addTexts(items: { text: string, hlGroup?: string }[]): void
+    /**
      * Add text with highlight.
      */
     addText(text: string, hlGroup?: string): void
@@ -6802,6 +7407,20 @@ declare module 'coc.nvim' {
      * Get line count
      */
     get length(): number
+    /**
+     * Get content of specific line.
+     *
+     * @param line Zero based line index.
+     */
+    getline(line: number): string
+    /**
+     * Highlights of the buffer.
+     */
+    get highlights(): ReadonlyArray<HighlightItem>
+    /**
+     * Content of all lines joined by newline.
+     */
+    get content(): string
     /**
      * Render lines to buffer at specified range.
      * Since notifications is used, use `nvim.pauseNotification` & `nvim.resumeNotification`
@@ -6839,9 +7458,21 @@ declare module 'coc.nvim' {
   }
 
   export interface ListConfiguration {
+    /**
+     * Get value of configuration key.
+     */
     get<T>(key: string, defaultValue?: T): T
+    /**
+     * Get previous key of configuration.
+     */
     previousKey(): string
+    /**
+     * Get next key of configuration.
+     */
     nextKey(): string
+    /**
+     * Dispose the configuration watcher.
+     */
     dispose(): void
   }
 
@@ -6877,6 +7508,9 @@ declare module 'coc.nvim' {
      * Current working directory.
      */
     cwd?: string
+    /**
+     * Environment variables of the command.
+     */
     env?: NodeJS.ProcessEnv
     /**
      * Runs for each line, return undefined for invalid item.
@@ -6905,20 +7539,23 @@ declare module 'coc.nvim' {
     options: ListArgument[]
     protected nvim: Neovim
     protected disposables: Disposable[]
-    protected config: ListConfiguration
+    /**
+     * Configuration of the current list.
+     */
+    public config: ListConfiguration
     constructor()
     /**
      * Should align columns when true.
      */
     get alignColumns(): boolean
-    get hlGroup(): string
-    get previewHeight(): string
-    get splitRight(): boolean
+    protected get hlGroup(): string
+    protected get previewHeight(): number
+    protected get splitRight(): boolean
     /**
      * Parse argument string array for argument object from `this.options`.
      * Could be used inside `this.loadItems()`
      */
-    protected parseArguments(args: string[]): { [key: string]: string | boolean }
+    public parseArguments(args: string[]): { [key: string]: string | boolean }
     /**
      * Get configurations of current list
      */
@@ -6938,12 +7575,19 @@ declare module 'coc.nvim' {
     /**
      * Add location related actions, should be called in constructor.
      */
-    protected addLocationActions(): void
-    protected convertLocation(location: Location | LocationWithLine | string): Promise<Location>
+    public addLocationActions(): void
+    /**
+     * Convert location to a `Location` object.
+     */
+    public convertLocation(location: Location | LocationWithLine | string): Promise<Location>
     /**
      * Jump to location
      */
-    protected jumpTo(location: Location | LocationWithLine | string, command?: string): Promise<void>
+    public jumpTo(location: Location | LocationWithLine | string, command?: string, context?: ListContext): Promise<void>
+    /**
+     * Add an action to this list.
+     */
+    public createAction(action: ListAction): void
     /**
      * Preview location.
      */
@@ -6951,7 +7595,7 @@ declare module 'coc.nvim' {
     /**
      * Preview lines.
      */
-    protected preview(options: PreviewOptions, context: ListContext): Promise<void>
+    public preview(options: PreviewOptions, context: ListContext): Promise<void>
     /**
      * Use for syntax highlights, invoked after buffer loaded.
      */
@@ -6975,17 +7619,39 @@ declare module 'coc.nvim' {
      * Captrue the async task function that ensures to be executed one by one.
      */
     use<T>(f: () => Promise<T>): Promise<T>
+    /**
+     * Reset the mutex, clear pending tasks.
+     */
+    reset(): void
   }
   // }}
 
   // functions {{
 
   export interface AnsiItem {
+    /**
+     * Foreground color of the text.
+     */
     foreground?: string
+    /**
+     * Background color of the text.
+     */
     background?: string
+    /**
+     * Text is bold when true.
+     */
     bold?: boolean
+    /**
+     * Text is italic when true.
+     */
     italic?: boolean
+    /**
+     * Text is underlined when true.
+     */
     underline?: boolean
+    /**
+     * The text content.
+     */
     text: string
   }
 
@@ -7014,6 +7680,9 @@ declare module 'coc.nvim' {
      * Plain object added as query of url
      */
     query?: ParsedUrlQueryInput
+    /**
+     * Headers of the request.
+     */
     headers?: any
     /**
      * User for http basic auth, should use with password
@@ -7042,6 +7711,9 @@ declare module 'coc.nvim' {
      * If true, use untar for `.tar.gz` filename
      */
     extract?: boolean | 'untar' | 'unzip'
+    /**
+     * Callback invoked with the download progress percent.
+     */
     onProgress?: (percent: string) => void
   }
 
@@ -7080,15 +7752,45 @@ declare module 'coc.nvim' {
   export function download(url: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string>
 
   interface ExecOptions {
+    /**
+     * Current working directory of the process.
+     */
     cwd?: string
+    /**
+     * Environment variables of the process.
+     */
     env?: NodeJS.ProcessEnv
+    /**
+     * Shell used to run the command.
+     */
     shell?: string
+    /**
+     * Timeout in milliseconds.
+     */
     timeout?: number
+    /**
+     * Max buffer size of stdout.
+     */
     maxBuffer?: number
+    /**
+     * Signal used to kill the process on timeout.
+     */
     killSignal?: string
+    /**
+     * User id of the process.
+     */
     uid?: number
+    /**
+     * Group id of the process.
+     */
     gid?: number
+    /**
+     * Hide the window on Windows when true.
+     */
     windowsHide?: boolean
+    /**
+     * Encoding used to decode stdout, default to 'utf8'.
+     */
     encoding?: string
   }
 
@@ -7170,8 +7872,17 @@ declare module 'coc.nvim' {
 
   // commands module {{
   export interface CommandItem {
+    /**
+     * Unique id of the command.
+     */
     id: string
+    /**
+     * Internal command, not shown in lists.
+     */
     internal?: boolean
+    /**
+     * Execute the command handler.
+     */
     execute(...args: any[]): any
   }
   /**
@@ -7204,7 +7915,7 @@ declare module 'coc.nvim' {
      * Registering a command with an existing command identifier twice
      * will cause an error.
      *
-     * @param command A unique identifier for the command.
+     * @param id A unique identifier for the command.
      * @param impl A command handler function.
      * @param thisArg The `this` context used when invoking the handler function.
      * @return Disposable which unregisters this command on disposal.
@@ -7312,9 +8023,21 @@ declare module 'coc.nvim' {
   type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
   export interface CursorPosition {
+    /**
+     * Buffer number.
+     */
     readonly bufnr: number
+    /**
+     * Line number, 1 based.
+     */
     readonly lnum: number
+    /**
+     * Column number, 1 based.
+     */
     readonly col: number
+    /**
+     * Whether the cursor is in insert mode.
+     */
     readonly insert: boolean
   }
 
@@ -7335,6 +8058,9 @@ declare module 'coc.nvim' {
      * Insert character that cause change of this time.
      */
     readonly insertChar: string | undefined
+    /**
+     * Changedtick of the buffer.
+     */
     readonly changedtick: number
   }
 
@@ -7382,7 +8108,13 @@ declare module 'coc.nvim' {
   }
 
   export interface VisibleEvent {
+    /**
+     * Window id.
+     */
     winid: number
+    /**
+     * Buffer number.
+     */
     bufnr: number
     /**
     * 1 based, end inclusive topline, botline
@@ -7765,7 +8497,6 @@ declare module 'coc.nvim' {
      * @param selector A selector that defines the documents this provider is applicable to.
      * @param provider A signature help provider.
      * @param triggerCharacters Trigger signature help when the user types one of the characters, like `,` or `(`.
-     * @param metadata Information about the provider.
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
     export function registerSignatureHelpProvider(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters?: string[]): Disposable
@@ -8069,17 +8800,45 @@ declare module 'coc.nvim' {
   }
 
   export interface IServiceProvider {
-    // unique service id
+    /**
+     * Unique service id.
+     */
     id: string
+    /**
+     * Name of the service.
+     */
     name: string
+    /**
+     * Language client of the service.
+     */
     client?: LanguageClient
+    /**
+     * Document selector of the service.
+     */
     selector: DocumentSelector
-    // current state
+    /**
+     * Current state of the service.
+     */
     state: ServiceStat
+    /**
+     * Start the service.
+     */
     start(): Promise<void>
+    /**
+     * Dispose the service.
+     */
     dispose(): void
+    /**
+     * Stop the service.
+     */
     stop(): Promise<void> | void
+    /**
+     * Restart the service.
+     */
     restart(): Promise<void> | void
+    /**
+     * Fired when the service is ready.
+     */
     onServiceReady: Event<void>
   }
 
@@ -8120,31 +8879,100 @@ declare module 'coc.nvim' {
    * Source options to create source that could respect configuration from `coc.source.{name}`
    */
   export interface SourceConfig {
+    /**
+     * Unique name of the source.
+     */
     name: string
+    /**
+     * Only complete when triggered.
+     */
     triggerOnly?: boolean
+    /**
+     * Items of the source are snippets.
+     */
     isSnippet?: boolean
+    /**
+     * Type of the source.
+     */
     sourceType?: SourceType
+    /**
+     * Filepath of the source script.
+     */
     filepath?: string
+    /**
+     * Document selector of the source.
+     */
     documentSelector?: DocumentSelector
+    /**
+     * Only the first match should be used.
+     */
     firstMatch?: boolean
+    /**
+     * Refresh the source.
+     */
     refresh?(): Promise<void>
+    /**
+     * Toggle the source.
+     */
     toggle?(): void
+    /**
+     * Called on buffer enter.
+     */
     onEnter?(bufnr: number): void
+    /**
+     * Check whether the source should complete.
+     */
     shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
+    /**
+     * Invoke completion of the source.
+     */
     doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult>
+    /**
+     * Called when a completion item is resolved.
+     */
     onCompleteResolve?(item: VimCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
+    /**
+     * Called when a completion item is confirmed.
+     */
     onCompleteDone?(item: VimCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+    /**
+     * Check whether completion should commit with the character.
+     */
     shouldCommit?(item: VimCompleteItem, character: string): boolean
   }
 
   export interface SourceStat {
+    /**
+     * Name of the source.
+     */
     name: string
+    /**
+     * Priority of the source.
+     */
     priority: number
+    /**
+     * Trigger characters of the source.
+     */
     triggerCharacters: string[]
+    /**
+     * Type of the source.
+     */
     type: 'native' | 'remote' | 'service'
+    /**
+     * Shortcut of the source.
+     */
     shortcut: string
+    /**
+     * Filepath of the source.
+     */
     filepath: string
+    /**
+     * Whether the source is disabled.
+     */
     disabled: boolean
+    /**
+     * Filetypes the source works on.
+     */
     filetypes: string[]
   }
 
@@ -8155,8 +8983,17 @@ declare module 'coc.nvim' {
   }
 
   export interface CompleteResult {
+    /**
+     * List of completion items.
+     */
     items: ReadonlyArray<VimCompleteItem>
+    /**
+     * The completion list is incomplete when true.
+     */
     isIncomplete?: boolean
+    /**
+     * Start column of the completion, 0 based.
+     */
     startcol?: number
   }
 
@@ -8178,7 +9015,13 @@ declare module 'coc.nvim' {
      * Input text.
      */
     readonly input: string
+    /**
+     * Filetype of the current buffer.
+     */
     readonly filetype: string
+    /**
+     * Filepath of the current buffer.
+     */
     readonly filepath: string
     /**
      * Word under cursor.
@@ -8192,11 +9035,17 @@ declare module 'coc.nvim' {
      * Col of cursor, 1 based.
      */
     readonly colnr: number
+    /**
+     * Line number of the cursor, 1 based.
+     */
     readonly linenr: number
     /**
      * Position of cursor when trigger completion
      */
     readonly position: Position
+    /**
+     * Syntax name at the cursor position.
+     */
     readonly synname: string
     /**
      * Buffer changetick
@@ -8221,21 +9070,49 @@ declare module 'coc.nvim' {
      * Filters of document.
      */
     documentSelector?: DocumentSelector
+    /**
+     * Whether the source is enabled, default to true.
+     */
     enable?: boolean
+    /**
+     * Shortcut shown in the completion menu.
+     */
     shortcut?: string
+    /**
+     * Priority of the source.
+     */
     priority?: number
+    /**
+     * Type of the source.
+     */
     sourceType?: SourceType
     /**
      * Should only be used when completion is triggered, requires `triggerPatterns` or `triggerCharacters` defined.
      */
     triggerOnly?: boolean
+    /**
+     * Trigger completion when the user types one of the characters.
+     */
     triggerCharacters?: string[]
-    // regex to detect trigger completion, ignored when triggerCharacters exists.
+    /**
+     * Regex to detect trigger completion, ignored when `triggerCharacters` exists.
+     */
     triggerPatterns?: RegExp[]
+    /**
+     * Syntaxes that disable the source.
+     */
     disableSyntaxes?: string[]
+    /**
+     * Filepath of the source.
+     */
     filepath?: string
-    // should the first character always match
+    /**
+     * Whether the first character should always match.
+     */
     firstMatch?: boolean
+    /**
+     * Refresh the source.
+     */
     refresh?(): Promise<void>
     /**
      * For disable/enable
@@ -8285,6 +9162,9 @@ declare module 'coc.nvim' {
      */
     onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): ProviderResult<void>
 
+    /**
+     * Check whether completion should commit with the character.
+     */
     shouldCommit?(item: VimCompleteItem, character: string): boolean
   }
 
@@ -8343,12 +9223,24 @@ declare module 'coc.nvim' {
 
   // TreeView related {{
   export interface TreeItemLabel {
+    /**
+     * Text of the label.
+     */
     label: string
+    /**
+     * Ranges of highlights, 0 based.
+     */
     highlights?: [number, number][]
   }
 
   export interface TreeItemIcon {
+    /**
+     * Text of the icon.
+     */
     text: string
+    /**
+     * Highlight group of the icon.
+     */
     hlGroup: string
   }
 
@@ -8382,9 +9274,9 @@ declare module 'coc.nvim' {
     description?: string
 
     /**
-     * The icon path or {@link ThemeIcon} for the tree item.
-     * When `falsy`, {@link ThemeIcon.Folder Folder Theme Icon} is assigned, if item is collapsible otherwise {@link ThemeIcon.File File Theme Icon}.
-     * When a file or folder {@link ThemeIcon} is specified, icon is derived from the current file icon theme for the specified theme icon using {@link TreeItem.resourceUri resourceUri} (if provided).
+     * The icon path or theme icon for the tree item.
+     * When `falsy`, the folder theme icon is assigned if the item is collapsible, otherwise the file theme icon.
+     * When a file or folder theme icon is specified, the icon is derived from the current file icon theme using {@link TreeItem.resourceUri resourceUri} (if provided).
      */
     icon?: TreeItemIcon
 
@@ -8399,7 +9291,7 @@ declare module 'coc.nvim' {
      * The {@link Uri} of the resource representing this item.
      *
      * Will be used to derive the {@link TreeItem.label label}, when it is not provided.
-     * Will be used to derive the icon from current file icon theme, when {@link TreeItem.iconPath iconPath} has {@link ThemeIcon} value.
+     * Will be used to derive the icon from the current file icon theme, when {@link TreeItem.icon icon} has a theme icon value.
      */
     resourceUri?: Uri
 
@@ -8416,6 +9308,11 @@ declare module 'coc.nvim' {
      * appear consistent with how other built-in trees open editors.
      */
     command?: Command
+
+    /**
+     * Whether the tree item is deprecated.
+     */
+    deprecated?: boolean
 
     /**
      * {@link TreeItemCollapsibleState} of the tree item.
@@ -8443,6 +9340,9 @@ declare module 'coc.nvim' {
      * Label text in menu.
      */
     title: string
+    /**
+     * Handler of the action.
+     */
     handler: (item: T) => ProviderResult<void>
   }
 
@@ -8775,7 +9675,13 @@ declare module 'coc.nvim' {
   }
 
   export interface EditerState {
+    /**
+     * Document of the editor.
+     */
     document: LinesTextDocument
+    /**
+     * Cursor position of the editor.
+     */
     position: Position
   }
 
@@ -9001,6 +9907,9 @@ declare module 'coc.nvim' {
    * A simple json database.
    */
   export interface JsonDB {
+    /**
+     * Filepath of the database file.
+     */
     filepath: string
     /**
      * Get data by key.
@@ -9036,28 +9945,73 @@ declare module 'coc.nvim' {
   }
 
   export interface RenameEvent {
+    /**
+     * Old uri of the file.
+     */
     oldUri: Uri
+    /**
+     * New uri of the file.
+     */
     newUri: Uri
   }
 
   export interface FileSystemWatcher {
+    /**
+     * Ignore create events when true.
+     */
     readonly ignoreCreateEvents: boolean
+    /**
+     * Ignore change events when true.
+     */
     readonly ignoreChangeEvents: boolean
+    /**
+     * Ignore delete events when true.
+     */
     readonly ignoreDeleteEvents: boolean
+    /**
+     * Fired when a file is created.
+     */
     readonly onDidCreate: Event<Uri>
+    /**
+     * Fired when a file is changed.
+     */
     readonly onDidChange: Event<Uri>
+    /**
+     * Fired when a file is deleted.
+     */
     readonly onDidDelete: Event<Uri>
+    /**
+     * Fired when a file is renamed.
+     */
     readonly onDidRename: Event<RenameEvent>
+    /**
+     * Dispose the watcher.
+     */
     dispose(): void
   }
 
   export type ConfigurationScope = string | null | Uri | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
 
   export interface ConfigurationInspect<T> {
+    /**
+     * Key of the configuration.
+     */
     key: string
+    /**
+     * Default value of the configuration.
+     */
     defaultValue?: T
+    /**
+     * Global value of the configuration.
+     */
     globalValue?: T
+    /**
+     * Workspace value of the configuration.
+     */
     workspaceValue?: T
+    /**
+     * Workspace folder value of the configuration.
+     */
     workspaceFolderValue?: T
   }
 
@@ -9160,16 +10114,31 @@ declare module 'coc.nvim' {
      * Get created item by bufnr
      */
     getItem(bufnr: number): T | undefined
+    /**
+     * Dispose all items.
+     */
     dispose: () => void
   }
 
   export interface FuzzyMatchResult {
+    /**
+     * Score of the match, higher is better.
+     */
     score: number,
+    /**
+     * Matched character positions.
+     */
     positions: Uint32Array
   }
 
   export interface FuzzyMatchHighlights {
+    /**
+     * Score of the match, higher is better.
+     */
     score: number
+    /**
+     * Highlights of the match.
+     */
     highlights: AnsiHighlight[]
   }
 
@@ -9185,6 +10154,9 @@ declare module 'coc.nvim' {
   export type FuzzyScore = [score: number, wordStart: number, ...matches: number[]]
 
   export interface FuzzyScoreOptions {
+    /**
+     * Boost the score of full matches.
+     */
     readonly boostFullMatch: boolean
     /**
      * Allows first match to be a weak match
@@ -9264,7 +10236,13 @@ declare module 'coc.nvim' {
   }
 
   export interface TextDocumentMatch {
+    /**
+     * Uri of the document.
+     */
     readonly uri: string
+    /**
+     * Language id of the document.
+     */
     readonly languageId: string
   }
 
@@ -9434,8 +10412,8 @@ declare module 'coc.nvim' {
      * does not exist or cannot be loaded.
      * * `untitled`-scheme: Open a blank untitled file with associated path (`openTextDocument(Uri.file(path).with({ scheme: 'untitled' }))`).
      * The language will be derived from the file name.
-     * * For all other schemes contributed {@link TextDocumentContentProvider text document content providers} and
-     * {@link FileSystemProvider file system providers} are consulted.
+     * * For all other schemes contributed `TextDocumentContentProvider` text document content providers and
+     * file system providers are consulted.
      *
      * *Note* that the lifecycle of the returned document is owned by the editor and not by the extension. That means an
      * {@linkcode workspace.onDidCloseTextDocument onDidClose}-event can occur at any time after opening it.
@@ -9579,13 +10557,16 @@ declare module 'coc.nvim' {
 
     /**
      * Load uri as document, buffer would be invisible if not loaded.
+     *
+     * @param uri Uri of the document.
+     * @param cmd Open command used to load the resource, e.g. `edit`, `tabe` or `drop`.
      */
-    export function loadFile(uri: string): Promise<Document>
+    export function loadFile(uri: string, cmd?: string): Promise<Document>
 
     /**
      * Load the files that not loaded
      */
-    export function loadFiles(uris: string[]): Promise<void>
+    export function loadFiles(uris: string[]): Promise<(Document | undefined)[]>
 
     /**
      * Rename file in vim and disk
@@ -9864,6 +10845,9 @@ declare module 'coc.nvim' {
    * Option for create status item.
    */
   export interface StatusItemOption {
+    /**
+     * Show the item as a progress indicator.
+     */
     progress?: boolean
   }
 
@@ -9877,6 +10861,9 @@ declare module 'coc.nvim' {
      */
     readonly priority: number
 
+    /**
+     * Whether the item is a progress indicator.
+     */
     isProgress: boolean
 
     /**
@@ -9969,6 +10956,9 @@ declare module 'coc.nvim' {
      * Use by callback, should >= 0
      */
     index: number
+    /**
+     * Text of the button.
+     */
     text: string
     /**
      * Not shown when true
@@ -10014,8 +11004,13 @@ declare module 'coc.nvim' {
   export type NotificationKind = 'error' | 'info' | 'warning' | 'progress'
 
   export interface NotificationConfig {
+    /**
+     * Kind of the notification.
+     */
     kind?: NotificationKind
-
+    /**
+     * Content of the notification.
+     */
     content?: string
     /**
      * Optional title text.
@@ -10185,7 +11180,13 @@ declare module 'coc.nvim' {
   }
 
   export interface ScreenPosition {
+    /**
+     * Screen row, 1 based.
+     */
     row: number
+    /**
+     * Screen column, 1 based.
+     */
     col: number
   }
 
@@ -10223,6 +11224,9 @@ declare module 'coc.nvim' {
      */
     readonly name: string
 
+    /**
+     * Current content of the channel.
+     */
     readonly content: string
     /**
      * Append the given value to the channel.
@@ -10263,8 +11267,17 @@ declare module 'coc.nvim' {
   }
 
   export interface TerminalResult {
+    /**
+     * Buffer number of the terminal.
+     */
     bufnr: number
+    /**
+     * Whether the command finished successfully.
+     */
     success: boolean
+    /**
+     * Output content of the terminal.
+     */
     content?: string
   }
 
@@ -10277,19 +11290,37 @@ declare module 'coc.nvim' {
      * Window id of dialog.
      */
     winid: Promise<number | null>
+    /**
+     * Dispose the dialog.
+     */
     dispose: () => void
   }
 
   export type HighlightItemDef = [string, number, number, number, number?, number?, number?]
 
   export interface HighlightDiff {
+    /**
+     * Namespaces to remove.
+     */
     remove: number[]
+    /**
+     * Marker namespaces to remove.
+     */
     removeMarkers: number[]
+    /**
+     * Highlights to add.
+     */
     add: HighlightItemDef[]
   }
 
   export interface MenuItem {
+    /**
+     * Text of the menu item.
+     */
     text: string
+    /**
+     * Disable the item when true or with a reason.
+     */
     disabled?: boolean | { reason: string }
   }
 
@@ -10355,7 +11386,13 @@ declare module 'coc.nvim' {
   }
 
   export interface InputDimension {
+    /**
+     * Width of the input window.
+     */
     readonly width: number
+    /**
+     * Height of the input window.
+     */
     readonly height: number
     /**
      * 0 based screen row
@@ -10406,27 +11443,93 @@ declare module 'coc.nvim' {
    * FloatWinConfig.
    */
   export interface FloatWinConfig {
+    /**
+     * Show border of the window.
+     */
     border?: boolean | [number, number, number, number]
+    /**
+     * Use rounded border.
+     */
     rounded?: boolean
+    /**
+     * Highlight group of the window.
+     */
     highlight?: string
+    /**
+     * Title of the window.
+     */
     title?: string
+    /**
+     * Highlight group of the border.
+     */
     borderhighlight?: string
+    /**
+     * Show close button.
+     */
     close?: boolean
+    /**
+     * Max height of the window.
+     */
     maxHeight?: number
+    /**
+     * Max width of the window.
+     */
     maxWidth?: number
+    /**
+     * Blend of the window, works on neovim.
+     */
     winblend?: number
+    /**
+     * Whether the window is focusable.
+     */
     focusable?: boolean
+    /**
+     * Show shadow, works on neovim.
+     */
     shadow?: boolean
+    /**
+     * Prefer show the window above the cursor.
+     */
     preferTop?: boolean
+    /**
+     * Hide the window when cursor moved.
+     */
     autoHide?: boolean
+    /**
+     * Offset x of the window from the cursor.
+     */
     offsetX?: number
+    /**
+     * Show cursorline in the window.
+     */
     cursorline?: boolean
+    /**
+     * Modes the window is shown in.
+     */
     modes?: string[]
+    /**
+     * Exclude image links in markdown content.
+     */
     excludeImages?: boolean
+    /**
+     * Position of the window.
+     */
     position?: "fixed" | "auto"
+    /**
+     * Top position of the window.
+     */
     top?: number
+    /**
+     * Bottom position of the window.
+     */
     bottom?: number
+    /**
+     * Left position of the window.
+     */
     left?: number
+    /**
+     * Right position of the window.
+     */
     right?: number
   }
 
@@ -10501,7 +11604,7 @@ declare module 'coc.nvim' {
      * Creates a {@link Terminal} with a backing shell process.
      * The terminal is created by (neo)vim.
      *
-     * @param options A TerminalOptions object describing the characteristics of the new terminal.
+     * @param opts A TerminalOptions object describing the characteristics of the new terminal.
      * @return A new Terminal.
      * @throws When running in an environment where a new process cannot be started.
      */
@@ -10607,7 +11710,7 @@ declare module 'coc.nvim' {
      * Show menu picker at current cursor position, |inputlist()| is used as fallback.
      *
      * @param items Array of texts or menu items.
-     * @param title Optional title of float/popup window.
+     * @param option Optional config of the picker, a string is treated as the title of the window.
      * @param token A token that can be used to signal cancellation.
      * @returns Selected index (0 based), -1 when canceled.
      */
@@ -10893,14 +11996,41 @@ declare module 'coc.nvim' {
 
   // extensions module {{
   export interface Logger {
+    /**
+     * Category of the logger.
+     */
     readonly category: string
+    /**
+     * Log a message.
+     */
     log(...args: any[]): void
+    /**
+     * Log a trace message.
+     */
     trace(message: any, ...args: any[]): void
+    /**
+     * Log a debug message.
+     */
     debug(message: any, ...args: any[]): void
+    /**
+     * Log an info message.
+     */
     info(message: any, ...args: any[]): void
+    /**
+     * Log a warning message.
+     */
     warn(message: any, ...args: any[]): void
+    /**
+     * Log an error message.
+     */
     error(message: any, ...args: any[]): void
+    /**
+     * Log a fatal message.
+     */
     fatal(message: any, ...args: any[]): void
+    /**
+     * Log a mark message.
+     */
     mark(message: any, ...args: any[]): void
   }
 
@@ -10947,24 +12077,63 @@ declare module 'coc.nvim' {
   }
 
   export interface ExtensionJson {
+    /**
+     * Name of the extension.
+     */
     name: string
+    /**
+     * Entry file of the extension.
+     */
     main?: string
+    /**
+     * Engines required by the extension.
+     */
     engines: {
       [key: string]: string
     }
+    /**
+     * Version of the extension.
+     */
     version?: string
     [key: string]: any
   }
 
   export interface ExtensionInfo {
+    /**
+     * Full identifier of the extension.
+     */
     id: string
+    /**
+     * Version of the extension.
+     */
     version: string
+    /**
+     * Description of the extension.
+     */
     description: string
+    /**
+     * Root directory of the extension.
+     */
     root: string
+    /**
+     * Whether the extension is exotic.
+     */
     exotic: boolean
+    /**
+     * Uri of the extension.
+     */
     uri?: string
+    /**
+     * State of the extension.
+     */
     state: ExtensionState
+    /**
+     * Whether the extension is local.
+     */
     isLocal: boolean
+    /**
+     * Parsed package.json of the extension.
+     */
     packageJSON: Readonly<ExtensionJson>
   }
 
@@ -11060,14 +12229,32 @@ declare module 'coc.nvim' {
      */
     globalState: Memento
 
+    /**
+     * Logger of the extension.
+     */
     logger: Logger
   }
 
   export interface PropertyScheme {
+    /**
+     * Type of the property.
+     */
     type: string
+    /**
+     * Default value of the property.
+     */
     default: any
+    /**
+     * Description of the property.
+     */
     description: string
+    /**
+     * Enum values of the property.
+     */
     enum?: string[]
+    /**
+     * Items of the property when it is an array.
+     */
     items?: any
     [key: string]: any
   }
@@ -11120,6 +12307,9 @@ declare module 'coc.nvim' {
 
   // listManager module {{
   export interface LocationWithLine {
+    /**
+     * Uri of the location.
+     */
     uri: string
     /**
      * Match text of line.
@@ -11136,21 +12326,45 @@ declare module 'coc.nvim' {
      * Byte indexes, 0 based.
      */
     span: [number, number]
+    /**
+     * Highlight group of the span.
+     */
     hlGroup: string
   }
 
   export interface ListItem {
+    /**
+     * Label of the item.
+     */
     label: string
+    /**
+     * Select the item by default.
+     */
     preselect?: boolean
+    /**
+     * Text used for filtering.
+     */
     filterText?: string
     /**
      * A string that should be used when comparing this item
      * with other items, only used for fuzzy filter.
      */
     sortText?: string
+    /**
+     * Location of the item.
+     */
     location?: Location | LocationWithLine | string
+    /**
+     * Custom data of the item.
+     */
     data?: any
+    /**
+     * Ansi highlights of the label.
+     */
     ansiHighlights?: AnsiHighlight[]
+    /**
+     * Whether the item is resolved.
+     */
     resolved?: boolean
   }
 
@@ -11159,17 +12373,53 @@ declare module 'coc.nvim' {
   export type ListMatcher = 'strict' | 'fuzzy' | 'regex'
 
   export interface ListOptions {
+    /**
+     * Position of the list window.
+     */
     position: string
+    /**
+     * Reverse the list when true.
+     */
     reverse: boolean
+    /**
+     * Initial input of the list.
+     */
     input: string
+    /**
+     * Ignore case when filtering.
+     */
     ignorecase: boolean
+    /**
+     * Interactive mode of the list.
+     */
     interactive: boolean
+    /**
+     * Sort the items when true.
+     */
     sort: boolean
+    /**
+     * Mode of the list.
+     */
     mode: ListMode
+    /**
+     * Matcher of the list.
+     */
     matcher: ListMatcher
+    /**
+     * Auto preview of the list.
+     */
     autoPreview: boolean
+    /**
+     * Number select of the list.
+     */
     numberSelect: boolean
+    /**
+     * Do not quit after action.
+     */
     noQuit: boolean
+    /**
+     * Select the first item by default.
+     */
     first: boolean
   }
 
@@ -11198,6 +12448,9 @@ declare module 'coc.nvim' {
      * Original buffer on list invoke.
      */
     buffer: Buffer
+    /**
+     * Window of the list, null when not created.
+     */
     listWindow: Window | null
   }
 
@@ -11233,21 +12486,51 @@ declare module 'coc.nvim' {
   }
 
   export interface MultipleListAction extends Omit<ListAction, 'execute'> {
+    /**
+     * The action handles multiple items.
+     */
     multiple: true
+    /**
+     * Handler invoked with all selected items.
+     */
     execute: (item: ListItem[], context: ListContext) => ProviderResult<void>
   }
 
   export interface ListTask {
+    /**
+     * Listen to data events.
+     */
     on(event: 'data', callback: (item: ListItem) => void): void
+    /**
+     * Listen to end events.
+     */
     on(event: 'end', callback: () => void): void
+    /**
+     * Listen to error events.
+     */
     on(event: 'error', callback: (msg: string | Error) => void): void
+    /**
+     * Dispose the task.
+     */
     dispose(): void
   }
 
   export interface ListArgument {
+    /**
+     * Key of the argument.
+     */
     key?: string
+    /**
+     * Whether the argument has a value.
+     */
     hasValue?: boolean
+    /**
+     * Name of the argument.
+     */
     name: string
+    /**
+     * Description of the argument.
+     */
     description: string
   }
 
@@ -11299,10 +12582,25 @@ declare module 'coc.nvim' {
   }
 
   export interface PreviewOptions {
+    /**
+     * Buffer name of the preview window.
+     */
     bufname?: string
+    /**
+     * Lines to preview.
+     */
     lines: string[]
+    /**
+     * Filetype of the preview window.
+     */
     filetype?: string
+    /**
+     * Line number to place the cursor on.
+     */
     lnum?: number
+    /**
+     * Range to highlight in the preview window.
+     */
     range?: Range
     /**
      * @deprecated not used
@@ -11318,26 +12616,44 @@ declare module 'coc.nvim' {
     /**
      * Register list, list session can be created by `CocList [name]` after registered.
      */
-    export function registerList(list: IList): Disposable
+    export function registerList(list: IList, internal?: boolean): Disposable
   }
   // }}
 
   // snippetManager module {{
   export interface SnippetSession {
+    /**
+     * Whether the snippet session is active.
+     */
     isActive: boolean
   }
 
   export interface SnippetEdit {
+    /**
+     * Range to replace.
+     */
     range: Range
+    /**
+     * Snippet text of the edit.
+     */
     snippet: string | SnippetString | StringValue
   }
 
   export interface UltiSnipsActions {
     // pre_expand action code.
+    /**
+     * Code executed before expansion.
+     */
     preExpand?: string
     // post_expand action code.
+    /**
+     * Code executed after expansion.
+     */
     postExpand?: string
     // post_jump action code.
+    /**
+     * Code executed after jump.
+     */
     postJump?: string
   }
 
@@ -11515,14 +12831,41 @@ declare module 'coc.nvim' {
 
   // diagnosticManager module {{
   export interface DiagnosticItem {
+    /**
+     * Filepath of the diagnostic.
+     */
     file: string
+    /**
+     * Line number, 1 based.
+     */
     lnum: number
+    /**
+     * Column number, 1 based.
+     */
     col: number
+    /**
+     * Source of the diagnostic.
+     */
     source: string
+    /**
+     * Code of the diagnostic.
+     */
     code: string | number
+    /**
+     * Message of the diagnostic.
+     */
     message: string
+    /**
+     * Severity of the diagnostic.
+     */
     severity: string
+    /**
+     * Level of the diagnostic, 1 for error, 2 for warning, 3 for info, 4 for hint.
+     */
     level: number
+    /**
+     * Location of the diagnostic.
+     */
     location: Location
   }
 
@@ -11611,8 +12954,17 @@ declare module 'coc.nvim' {
   }
 
   export interface DiagnosticEventParams {
+    /**
+     * Buffer number of the diagnostics.
+     */
     bufnr: number
+    /**
+     * Uri of the document.
+     */
     uri: string
+    /**
+     * Diagnostics of the document.
+     */
     diagnostics: ReadonlyArray<Diagnostic>
   }
 
@@ -11655,6 +13007,9 @@ declare module 'coc.nvim' {
   export type ProgressToken = number | string
 
   export interface WorkDoneProgressBegin {
+    /**
+     * Progress kind, always `begin`.
+     */
     kind: 'begin'
     /**
      * Mandatory title of the progress operation. Used to briefly inform about
@@ -11689,6 +13044,9 @@ declare module 'coc.nvim' {
   }
 
   export interface WorkDoneProgressReport {
+    /**
+     * Progress kind, always `report`.
+     */
     kind: 'report'
     /**
      * Controls enablement state of a cancel button. This property is only valid if a cancel
@@ -11718,6 +13076,9 @@ declare module 'coc.nvim' {
   }
 
   export interface WorkDoneProgressEnd {
+    /**
+     * Progress kind, always `end`.
+     */
     kind: 'end'
     /**
      * Optional, a final message indicating to for example indicate the outcome
@@ -11855,6 +13216,9 @@ declare module 'coc.nvim' {
      * @deprecated Use the new pull model (`workspace/configuration` request)
      */
     configurationSection?: string | string[]
+    /**
+     * File system watchers for synchronization.
+     */
     fileEvents?: FileSystemWatcher | FileSystemWatcher[]
   }
 
@@ -11889,15 +13253,27 @@ declare module 'coc.nvim' {
    * The parameters of a configuration request.
    */
   export interface ConfigurationParams {
+    /**
+     * Configuration items requested.
+     */
     items: ConfigurationItem[]
   }
 
   export interface ConfigurationWorkspaceMiddleware {
+    /**
+     * Middleware for the workspace configuration request.
+     */
     configuration?: (params: ConfigurationParams, token: CancellationToken, next: RequestHandler<ConfigurationParams, any[], void>) => HandlerResult<any[], void>
   }
 
   export interface WorkspaceFolderWorkspaceMiddleware {
+    /**
+     * Middleware for the workspace folders request.
+     */
     workspaceFolders?: (token: CancellationToken, next: RequestHandler0<WorkspaceFolder[] | null, void>) => HandlerResult<WorkspaceFolder[] | null, void>
+    /**
+     * Middleware for workspace folder change events.
+     */
     didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, Promise<void>>
   }
 
@@ -11911,6 +13287,9 @@ declare module 'coc.nvim' {
   }
 
   export interface TypeDefinitionMiddleware {
+    /**
+     * Middleware for providing type definitions.
+     */
     provideTypeDefinition?: (
       this: void,
       document: LinesTextDocument,
@@ -11925,6 +13304,9 @@ declare module 'coc.nvim' {
   }
 
   export interface ImplementationMiddleware {
+    /**
+     * Middleware for providing implementations.
+     */
     provideImplementation?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition | DefinitionLink[]>
   }
   export type ProvideDocumentColorsSignature = (document: LinesTextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
@@ -11936,12 +13318,18 @@ declare module 'coc.nvim' {
   ) => ProviderResult<ColorPresentation[]>
 
   export interface ColorProviderMiddleware {
+    /**
+     * Middleware for providing document colors.
+     */
     provideDocumentColors?: (
       this: void,
       document: LinesTextDocument,
       token: CancellationToken,
       next: ProvideDocumentColorsSignature
     ) => ProviderResult<ColorInformation[]>
+    /**
+     * Middleware for providing color presentations.
+     */
     provideColorPresentations?: (
       this: void,
       color: Color,
@@ -11956,6 +13344,9 @@ declare module 'coc.nvim' {
   }
 
   export interface DeclarationMiddleware {
+    /**
+     * Middleware for providing declarations.
+     */
     provideDeclaration?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration | DeclarationLink[]>
   }
 
@@ -11967,6 +13358,9 @@ declare module 'coc.nvim' {
   ) => ProviderResult<FoldingRange[]>
 
   export interface FoldingRangeProviderMiddleware {
+    /**
+     * Middleware for providing folding ranges.
+     */
     provideFoldingRanges?: (
       this: void,
       document: LinesTextDocument,
@@ -11988,6 +13382,9 @@ declare module 'coc.nvim' {
     (this: void, item: CallHierarchyItem, token: CancellationToken): ProviderResult<CallHierarchyOutgoingCall[]>
   }
   export interface CallHierarchyMiddleware {
+    /**
+     * Middleware for preparing call hierarchies.
+     */
     prepareCallHierarchy?: (
       this: void,
       document: LinesTextDocument,
@@ -11995,12 +13392,18 @@ declare module 'coc.nvim' {
       token: CancellationToken,
       next: PrepareCallHierarchySignature
     ) => ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
+    /**
+     * Middleware for providing incoming calls.
+     */
     provideCallHierarchyIncomingCalls?: (
       this: void,
       item: CallHierarchyItem,
       token: CancellationToken,
       next: CallHierarchyIncomingCallsSignature
     ) => ProviderResult<CallHierarchyIncomingCall[]>
+    /**
+     * Middleware for providing outgoing calls.
+     */
     provideCallHierarchyOutgoingCalls?: (
       this: void,
       item: CallHierarchyItem,
@@ -12022,12 +13425,18 @@ declare module 'coc.nvim' {
   }
 
   export interface SemanticTokensMiddleware {
+    /**
+     * Middleware for providing document semantic tokens.
+     */
     provideDocumentSemanticTokens?: (
       this: void,
       document: LinesTextDocument,
       token: CancellationToken,
       next: DocumentSemanticsTokensSignature
     ) => ProviderResult<SemanticTokens>
+    /**
+     * Middleware for providing semantic token edits.
+     */
     provideDocumentSemanticTokensEdits?: (
       this: void,
       document: LinesTextDocument,
@@ -12035,6 +13444,9 @@ declare module 'coc.nvim' {
       token: CancellationToken,
       next: DocumentSemanticsTokensEditsSignature
     ) => ProviderResult<SemanticTokens | SemanticTokensDelta>
+    /**
+     * Middleware for providing range semantic tokens.
+     */
     provideDocumentRangeSemanticTokens?: (
       this: void,
       document: LinesTextDocument,
@@ -12045,11 +13457,29 @@ declare module 'coc.nvim' {
   }
 
   export interface FileOperationsMiddleware {
+    /**
+     * Middleware for file create events.
+     */
     didCreateFiles?: NextSignature<FileCreateEvent, Promise<void>>
+    /**
+     * Middleware for file will-create events.
+     */
     willCreateFiles?: NextSignature<FileWillCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
+    /**
+     * Middleware for file rename events.
+     */
     didRenameFiles?: NextSignature<FileRenameEvent, Promise<void>>
+    /**
+     * Middleware for file will-rename events.
+     */
     willRenameFiles?: NextSignature<FileWillRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
+    /**
+     * Middleware for file delete events.
+     */
     didDeleteFiles?: NextSignature<FileDeleteEvent, Promise<void>>
+    /**
+     * Middleware for file will-delete events.
+     */
     willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
   }
 
@@ -12058,6 +13488,9 @@ declare module 'coc.nvim' {
   }
 
   export interface LinkedEditingRangeMiddleware {
+    /**
+     * Middleware for providing linked editing ranges.
+     */
     provideLinkedEditingRange?: (
       this: void,
       document: LinesTextDocument,
@@ -12072,6 +13505,9 @@ declare module 'coc.nvim' {
   }
 
   export interface SelectionRangeProviderMiddleware {
+    /**
+     * Middleware for providing selection ranges.
+     */
     provideSelectionRanges?: (this: void, document: LinesTextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
   }
 
@@ -12080,7 +13516,13 @@ declare module 'coc.nvim' {
   export type ProvideWorkspaceDiagnosticSignature = (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter) => ProviderResult<WorkspaceDiagnosticReport>
 
   export interface DiagnosticProviderMiddleware {
+    /**
+     * Middleware for providing document diagnostics.
+     */
     provideDiagnostics?: (this: void, document: TextDocument, previousResultId: string | undefined, token: CancellationToken, next: ProvideDiagnosticSignature) => ProviderResult<DocumentDiagnosticReport>
+    /**
+     * Middleware for providing workspace diagnostics.
+     */
     provideWorkspaceDiagnostics?: (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter, next: ProvideWorkspaceDiagnosticSignature) => ProviderResult<WorkspaceDiagnosticReport>
   }
 
@@ -12198,8 +13640,17 @@ declare module 'coc.nvim' {
   }
 
   export interface _WorkspaceMiddleware {
+    /**
+     * Middleware for configuration change notifications.
+     */
     didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
+    /**
+     * Middleware for watched file change notifications.
+     */
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
+    /**
+     * Middleware for applying workspace edits.
+     */
     handleApplyEdit?: (this: void, params: ApplyWorkspaceEditParams, next: RequestHandler<ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, void>) => HandlerResult<ApplyWorkspaceEditResult, void>
   }
 
@@ -12267,6 +13718,9 @@ declare module 'coc.nvim' {
     registerOptions?: LSPAny
   }
   export interface RegistrationParams {
+    /**
+     * Registrations of the request.
+     */
     registrations: Registration[]
   }
 
@@ -12285,10 +13739,16 @@ declare module 'coc.nvim' {
     method: string
   }
   export interface UnregistrationParams {
+    /**
+     * Unregistrations of the request.
+     */
     unregisterations: Unregistration[]
   }
 
   export interface _WindowMiddleware {
+    /**
+     * Middleware for show document requests.
+     */
     showDocument?: (
       params: ShowDocumentParams,
       token: CancellationToken,
@@ -12302,48 +13762,150 @@ declare module 'coc.nvim' {
    * from the server
    */
   interface _Middleware {
+    /**
+     * Middleware for document open notifications.
+     */
     didOpen?: NextSignature<LinesTextDocument, Promise<void>>
+    /**
+     * Middleware for document change notifications.
+     */
     didChange?: NextSignature<DidChangeTextDocumentParams, Promise<void>>
+    /**
+     * Middleware for document will-save notifications.
+     */
     willSave?: NextSignature<TextDocumentWillSaveEvent, Promise<void>>
+    /**
+     * Middleware for document will-save-wait-until requests.
+     */
     willSaveWaitUntil?: NextSignature<TextDocumentWillSaveEvent, Thenable<TextEdit[]>>
+    /**
+     * Middleware for document save notifications.
+     */
     didSave?: NextSignature<LinesTextDocument, Promise<void>>
+    /**
+     * Middleware for document close notifications.
+     */
     didClose?: NextSignature<LinesTextDocument, Promise<void>>
+    /**
+     * Middleware for diagnostics notifications.
+     */
     handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
+    /**
+     * Middleware for providing completion items.
+     */
     provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList | null>
+    /**
+     * Middleware for resolving completion items.
+     */
     resolveCompletionItem?: (this: void, item: CompletionItem, token: CancellationToken, next: ResolveCompletionItemSignature) => ProviderResult<CompletionItem>
+    /**
+     * Middleware for providing hover results.
+     */
     provideHover?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideHoverSignature) => ProviderResult<Hover>
+    /**
+     * Middleware for providing signature help.
+     */
     provideSignatureHelp?: (this: void, document: LinesTextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken, next: ProvideSignatureHelpSignature) => ProviderResult<SignatureHelp>
+    /**
+     * Middleware for providing definitions.
+     */
     provideDefinition?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDefinitionSignature) => ProviderResult<Definition | DefinitionLink[]>
+    /**
+     * Middleware for providing references.
+     */
     provideReferences?: (this: void, document: LinesTextDocument, position: Position, options: {
       includeDeclaration: boolean
     }, token: CancellationToken, next: ProvideReferencesSignature) => ProviderResult<Location[]>
+    /**
+     * Middleware for providing document highlights.
+     */
     provideDocumentHighlights?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDocumentHighlightsSignature) => ProviderResult<DocumentHighlight[]>
+    /**
+     * Middleware for providing document symbols.
+     */
     provideDocumentSymbols?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideDocumentSymbolsSignature) => ProviderResult<SymbolInformation[] | DocumentSymbol[]>
+    /**
+     * Middleware for providing workspace symbols.
+     */
     provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<WorkspaceSymbol[]>
+    /**
+     * Middleware for providing code actions.
+     */
     provideCodeActions?: (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
+    /**
+     * Middleware for work done progress notifications.
+     */
     handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
+    /**
+     * Middleware for register capability requests.
+     */
     handleRegisterCapability?: (this: void, params: RegistrationParams, next: RequestHandler<RegistrationParams, void, void>) => Promise<void>
+    /**
+     * Middleware for unregister capability requests.
+     */
     handleUnregisterCapability?: (this: void, params: UnregistrationParams, next: RequestHandler<UnregistrationParams, void, void>) => Promise<void>
+    /**
+     * Middleware for resolving code actions.
+     */
     resolveCodeAction?: (this: void, item: CodeAction, token: CancellationToken, next: ResolveCodeActionSignature) => ProviderResult<CodeAction>
+    /**
+     * Middleware for providing code lenses.
+     */
     provideCodeLenses?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideCodeLensesSignature) => ProviderResult<CodeLens[]>
+    /**
+     * Middleware for resolving code lenses.
+     */
     resolveCodeLens?: (this: void, codeLens: CodeLens, token: CancellationToken, next: ResolveCodeLensSignature) => ProviderResult<CodeLens>
+    /**
+     * Middleware for providing document formatting edits.
+     */
     provideDocumentFormattingEdits?: (this: void, document: LinesTextDocument, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    /**
+     * Middleware for providing range formatting edits.
+     */
     provideDocumentRangeFormattingEdits?: (this: void, document: LinesTextDocument, range: Range, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentRangeFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    /**
+     * Middleware for providing on-type formatting edits.
+     */
     provideOnTypeFormattingEdits?: (this: void, document: LinesTextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken, next: ProvideOnTypeFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    /**
+     * Middleware for preparing renames.
+     */
     prepareRename?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: PrepareRenameSignature) => ProviderResult<Range | {
       range: Range
       placeholder: string
     }>
+    /**
+     * Middleware for providing rename edits.
+     */
     provideRenameEdits?: (this: void, document: LinesTextDocument, position: Position, newName: string, token: CancellationToken, next: ProvideRenameEditsSignature) => ProviderResult<WorkspaceEdit>
+    /**
+     * Middleware for providing document links.
+     */
     provideDocumentLinks?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideDocumentLinksSignature) => ProviderResult<DocumentLink[]>
+    /**
+     * Middleware for resolving document links.
+     */
     resolveDocumentLink?: (this: void, link: DocumentLink, token: CancellationToken, next: ResolveDocumentLinkSignature) => ProviderResult<DocumentLink>
+    /**
+     * Middleware for executing commands.
+     */
     executeCommand?: (this: void, command: string, args: any[], next: ExecuteCommandSignature) => ProviderResult<any>
+    /**
+     * Workspace middleware.
+     */
     workspace?: WorkspaceMiddleware
+    /**
+     * Window middleware.
+     */
     window?: WindowMiddleware
   }
 
   // A general middleware is applied to both requests and notifications
   interface GeneralMiddleware {
+    /**
+     * Middleware for sending requests.
+     */
     sendRequest?<P, R>(
       this: void,
       type: string | MessageSignature,
@@ -12352,6 +13914,9 @@ declare module 'coc.nvim' {
       next: (type: string | MessageSignature, param?: P, token?: CancellationToken) => Promise<R>,
     ): Promise<R>
 
+    /**
+     * Middleware for sending notifications.
+     */
     sendNotification?<R>(
       this: void,
       type: string | MessageSignature,
@@ -12365,16 +13930,25 @@ declare module 'coc.nvim' {
   }
 
   export interface TextDocumentContentMiddleware {
+    /**
+     * Middleware for providing text document content.
+     */
     provideTextDocumentContent?: (this: void, uri: Uri, token: CancellationToken, next: ProvideTextDocumentContentSignature) => ProviderResult<string>
   }
 
   export interface InlineCompletionMiddleware {
+    /**
+     * Middleware for providing inline completion items.
+     */
     provideInlineCompletionItems?: (this: void, document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken, next: ProvideInlineCompletionItemsSignature) => ProviderResult<InlineCompletionItem[] | InlineCompletionList>
   }
 
   export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware & GeneralMiddleware & TextDocumentContentMiddleware & InlineCompletionMiddleware
 
   export interface ConnectionOptions {
+    /**
+     * Maximum number of restart attempts before giving up.
+     */
     maxRestartCount?: number
   }
 
@@ -12443,17 +14017,53 @@ declare module 'coc.nvim' {
   }
 
   export interface LanguageClientOptions {
+    /**
+     * Root paths that are ignored by the language client.
+     */
     ignoredRootPaths?: string[]
+    /**
+     * Disable snippet completion when true.
+     */
     disableSnippetCompletion?: boolean
+    /**
+     * Disable dynamic registration when true.
+     */
     disableDynamicRegister?: boolean
+    /**
+     * Features disabled for the client.
+     */
     disabledFeatures?: string[]
+    /**
+     * Priority of the formatter service.
+     */
     formatterPriority?: number
+    /**
+     * Document selector of the client.
+     */
     documentSelector?: DocumentSelector | string[]
+    /**
+     * Synchronization options of the client.
+     */
     synchronize?: SynchronizeOptions
+    /**
+     * Name of the diagnostic collection.
+     */
     diagnosticCollectionName?: string
+    /**
+     * Name of the output channel.
+     */
     outputChannelName?: string
+    /**
+     * Output channel of the client.
+     */
     outputChannel?: OutputChannel
+    /**
+     * Trace output channel of the client.
+     */
     traceOutputChannel?: OutputChannel
+    /**
+     * When to reveal the output channel.
+     */
     revealOutputChannelOn?: RevealOutputChannelOn
     /**
      * The encoding use to read stdout and stderr. Defaults
@@ -12461,17 +14071,47 @@ declare module 'coc.nvim' {
      */
     stdioEncoding?: string
     // converter used to decode uri.
+    /**
+     * Converter used to encode/decode uri.
+     */
     uriConverter?: {
       code2Protocol: URIConverter
     }
+    /**
+     * Initialization options sent to the server.
+     */
     initializationOptions?: any | (() => any)
+    /**
+     * Handler invoked when initialization fails.
+     */
     initializationFailedHandler?: InitializationFailedHandler
+    /**
+     * Show progress while initializing when true.
+     */
     progressOnInitialization?: boolean
+    /**
+     * Error handler of the client.
+     */
     errorHandler?: ErrorHandler
+    /**
+     * Middleware of the client.
+     */
     middleware?: Middleware
+    /**
+     * Workspace folder of the client.
+     */
     workspaceFolder?: WorkspaceFolder
+    /**
+     * Connection options of the client.
+     */
     connectionOptions?: ConnectionOptions
+    /**
+     * Diagnostic pull options of the client.
+     */
     diagnosticPullOptions?: DiagnosticPullOptions
+    /**
+     * Text synchronization options of the client.
+     */
     textSynchronization?: {
       /**
       * Delays sending the open notification until one of the following
@@ -12482,6 +14122,9 @@ declare module 'coc.nvim' {
       */
       delayOpenNotifications?: boolean
     }
+    /**
+     * Markdown options of the client.
+     */
     markdown?: {
       isTrusted?: boolean
       supportHtml?: boolean
@@ -12502,11 +14145,23 @@ declare module 'coc.nvim' {
     StartFailed = 4,
   }
   export interface StateChangeEvent {
+    /**
+     * State before the change.
+     */
     oldState: State
+    /**
+     * State after the change.
+     */
     newState: State
   }
   export interface RegistrationData<T> {
+    /**
+     * Id of the registration.
+     */
     id: string
+    /**
+     * Register options of the registration.
+     */
     registerOptions: T
   }
 
@@ -12691,15 +14346,30 @@ declare module 'coc.nvim' {
     */
     static readonly byName: ParameterStructures
     private constructor()
+    /**
+     * Checks whether the given value is a ParameterStructures.
+     */
     static is(value: any): value is ParameterStructures
+    /**
+     * String representation of the parameter structure.
+     */
     toString(): string
   }
   /**
    * An interface to type messages.
    */
   export interface MessageSignature {
+    /**
+     * Method name of the message.
+     */
     readonly method: string
+    /**
+     * Number of parameters of the message.
+     */
     readonly numberOfParams: number
+    /**
+     * Parameter structure of the message.
+     */
     readonly parameterStructures: ParameterStructures
   }
 
@@ -12708,9 +14378,18 @@ declare module 'coc.nvim' {
    * An abstract implementation of a MessageType.
    */
   abstract class AbstractMessageSignature implements MessageSignature {
+    /**
+     * Method name of the message.
+     */
     readonly method: string
+    /**
+     * Number of parameters of the message.
+     */
     readonly numberOfParams: number
     constructor(method: string, numberOfParams: number)
+    /**
+     * Parameter structure of the message.
+     */
     get parameterStructures(): ParameterStructures
   }
 
@@ -12732,6 +14411,9 @@ declare module 'coc.nvim' {
      */
     readonly _: [P, R, E, _EM] | undefined
     constructor(method: string, _parameterStructures?: ParameterStructures)
+    /**
+     * Parameter structure of the request.
+     */
     get parameterStructures(): ParameterStructures
   }
 
@@ -12810,6 +14492,9 @@ declare module 'coc.nvim' {
      * Clients must not use this property. It is here to ensure correct typing.
      */
     readonly ____: [RO, _EM] | undefined
+    /**
+     * Method name of the registration type.
+     */
     readonly method: string
     constructor(method: string)
   }
@@ -12852,29 +14537,74 @@ declare module 'coc.nvim' {
   }
 
   export interface ExecutableOptions {
+    /**
+     * Working directory of the process.
+     */
     cwd?: string
+    /**
+     * Environment variables of the process.
+     */
     env?: any
+    /**
+     * Detach the process from the parent.
+     */
     detached?: boolean
+    /**
+     * Use a shell to run the process.
+     */
     shell?: boolean
   }
 
   export interface Executable {
+    /**
+     * Command of the executable.
+     */
     command: string
+    /**
+     * Arguments of the command.
+     */
     args?: string[]
+    /**
+     * Options of the executable.
+     */
     options?: ExecutableOptions
   }
 
   export interface ForkOptions {
+    /**
+     * Working directory of the process.
+     */
     cwd?: string
+    /**
+     * Environment variables of the process.
+     */
     env?: any
+    /**
+     * Path of the executable.
+     */
     execPath?: string
+    /**
+     * Encoding of the process output.
+     */
     encoding?: string
+    /**
+     * Arguments passed to the executable.
+     */
     execArgv?: string[]
   }
 
   export interface StreamInfo {
+    /**
+     * Writable stream of the server.
+     */
     writer: NodeJS.WritableStream
+    /**
+     * Readable stream of the server.
+     */
     reader: NodeJS.ReadableStream
+    /**
+     * Detach the streams from the parent.
+     */
     detached?: boolean
   }
 
@@ -12886,54 +14616,135 @@ declare module 'coc.nvim' {
   }
 
   export interface SocketTransport {
+    /**
+     * Transport kind, always `socket`.
+     */
     kind: TransportKind.socket
+    /**
+     * Port of the socket.
+     */
     port: number
   }
 
   export interface NodeModule {
+    /**
+     * Module path of the server.
+     */
     module: string
+    /**
+     * Transport of the server.
+     */
     transport?: TransportKind | SocketTransport
+    /**
+     * Arguments of the server.
+     */
     args?: string[]
+    /**
+     * Runtime of the server.
+     */
     runtime?: string
+    /**
+     * Fork options of the server.
+     */
     options?: ForkOptions
   }
 
   export interface ChildProcessInfo {
+    /**
+     * Child process of the server.
+     */
     process: cp.ChildProcess
+    /**
+     * Whether the process is detached.
+     */
     detached: boolean
   }
 
   export interface PartialMessageInfo {
+    /**
+     * Token of the partial message.
+     */
     readonly messageToken: number
+    /**
+     * Waiting time of the partial message.
+     */
     readonly waitingTime: number
   }
 
   export interface MessageReader {
+    /**
+     * Fired on error.
+     */
     readonly onError: Event<Error>
+    /**
+     * Fired on close.
+     */
     readonly onClose: Event<void>
+    /**
+     * Fired on partial message.
+     */
     readonly onPartialMessage: Event<PartialMessageInfo>
+    /**
+     * Start listening for messages.
+     */
     listen(callback: (data: { jsonrpc: string }) => void): void
+    /**
+     * Dispose the reader.
+     */
     dispose(): void
   }
 
   export interface MessageWriter {
+    /**
+     * Fired on error.
+     */
     readonly onError: Event<[Error, { jsonrpc: string } | undefined, number | undefined]>
+    /**
+     * Fired on close.
+     */
     readonly onClose: Event<void>
+    /**
+     * Write a message.
+     */
     write(msg: { jsonrpc: string }): void
+    /**
+     * Dispose the writer.
+     */
     dispose(): void
   }
 
   export class NullLogger {
     constructor()
+    /**
+     * Log an error message.
+     */
     error(message: string): void
+    /**
+     * Log a warning message.
+     */
     warn(message: string): void
+    /**
+     * Log an info message.
+     */
     info(message: string): void
+    /**
+     * Log a message.
+     */
     log(message: string): void
   }
 
   export interface MessageTransports {
+    /**
+     * Message reader of the transport.
+     */
     reader: MessageReader
+    /**
+     * Message writer of the transport.
+     */
     writer: MessageWriter
+    /**
+     * Whether the transport is detached.
+     */
     detached?: boolean
   }
 
@@ -12953,6 +14764,9 @@ declare module 'coc.nvim' {
   } | (() => Promise<cp.ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
   export interface _EM {
+    /**
+     * End marker used for typing only.
+     */
     _$endMarker$_: number
   }
 
@@ -12962,6 +14776,9 @@ declare module 'coc.nvim' {
      * in TypeScript
      */
     readonly __?: [PR, _EM]
+    /**
+     * Typing marker, do not use.
+     */
     readonly _pr?: PR
     constructor()
   }
@@ -12979,44 +14796,98 @@ declare module 'coc.nvim' {
   }
 
   export interface RequestProtocolSignature<P, R, PR, E, RO> {
+    /**
+     * Method name of the request.
+     */
     method: string
+    /**
+     * Number of parameters of the request.
+     */
     numberOfParams?: number
+    /**
+     * Parameter structure of the request.
+     */
     parameterStructures?: unknown
   }
 
   export interface RequestProtocolSignature0<R, PR, E, RO> {
+    /**
+     * Method name of the request.
+     */
     method: string
   }
 
   export interface RequestSignature<P, R, E> {
+    /**
+     * Method name of the request.
+     */
     method: string
+    /**
+     * Number of parameters of the request.
+     */
     numberOfParams?: number
+    /**
+     * Parameter structure of the request.
+     */
     parameterStructures?: unknown
   }
 
   export interface RequestSignature0<R, E> {
+    /**
+     * Method name of the request.
+     */
     method: string
   }
 
   export interface NotificationProtocolSignature<P, RO> {
+    /**
+     * Method name of the notification.
+     */
     method: string
+    /**
+     * Number of parameters of the notification.
+     */
     numberOfParams?: number
+    /**
+     * Parameter structure of the notification.
+     */
     parameterStructures?: unknown
   }
 
   export interface NotificationProtocolSignature0<RO> {
+    /**
+     * Typing marker, do not use.
+     */
     readonly ____: [RO, _EM] | undefined
+    /**
+     * Method name of the notification.
+     */
     method: string
   }
 
   export interface NotificationSignature<P> {
+    /**
+     * Typing marker, do not use.
+     */
     readonly _: [P, _EM] | undefined
+    /**
+     * Method name of the notification.
+     */
     method: string
+    /**
+     * Number of parameters of the notification.
+     */
     numberOfParams?: number
+    /**
+     * Parameter structure of the notification.
+     */
     parameterStructures?: unknown
   }
 
   export interface NotificationSignature0 {
+    /**
+     * Method name of the notification.
+     */
     method: string
   }
 
@@ -13026,7 +14897,13 @@ declare module 'coc.nvim' {
      * in TypeScript
      */
     readonly ___: [PR, RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly ____: [RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly _pr: PR | undefined
     constructor(method: string)
   }
@@ -13036,7 +14913,13 @@ declare module 'coc.nvim' {
      * Clients must not use this property. It is here to ensure correct typing.
      */
     readonly ___: [PR, RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly ____: [RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly _pr: PR | undefined
     constructor(method: string)
   }
@@ -13046,6 +14929,9 @@ declare module 'coc.nvim' {
      * Clients must not use this property. It is here to ensure correct typing.
      */
     readonly ___: [RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly ____: [RO, _EM] | undefined
     constructor(method: string)
   }
@@ -13054,6 +14940,9 @@ declare module 'coc.nvim' {
      * Clients must not use this property. It is here to ensure correct typing.
      */
     readonly ___: [RO, _EM] | undefined
+    /**
+     * Typing marker, do not use.
+     */
     readonly ____: [RO, _EM] | undefined
     constructor(method: string)
   }
@@ -13082,6 +14971,9 @@ declare module 'coc.nvim' {
   }
 
   export interface DidChangeConfigurationRegistrationOptions {
+    /**
+     * Configuration sections that changed.
+     */
     section?: string | string[]
   }
 
@@ -13108,8 +15000,17 @@ declare module 'coc.nvim' {
   }
 
   interface NotificationSendEvent<E, P> {
+    /**
+     * Original event of the notification.
+     */
     original: E
+    /**
+     * Notification type of the event.
+     */
     type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>
+    /**
+     * Parameters of the notification.
+     */
     params: P
   }
 
@@ -13121,10 +15022,16 @@ declare module 'coc.nvim' {
   }
 
   interface NotifyingFeature<E, P> {
+    /**
+     * Fired when a notification is sent.
+     */
     onNotificationSent: Event<NotificationSendEvent<E, P>>
   }
 
   export interface DidOpenTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, DidOpenTextDocumentParams> {
+    /**
+     * Documents currently opened by the feature.
+     */
     openDocuments: Iterable<TextDocument>
   }
 
@@ -13136,16 +15043,31 @@ declare module 'coc.nvim' {
   export interface DidCloseTextDocumentFeatureShape extends DynamicFeature<TextDocumentRegistrationOptions>, TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>, NotifyingFeature<TextDocument, { textDocument: { uri: string } }> {}
 
   export interface TextDocumentContentProviderShape {
+    /**
+     * Scheme of the provider.
+     */
     scheme: string
+    /**
+     * Emitter used to signal content changes.
+     */
     onDidChangeEmitter: Emitter<Uri>
+    /**
+     * Provider of the text document content.
+     */
     provider: TextDocumentContentProvider
   }
 
   export interface WorkspaceProviderFeature<PR> {
+    /**
+     * Get the registered providers.
+     */
     getProviders(): PR[] | undefined
   }
 
   export interface TextDocumentProviderFeature<T> {
+    /**
+     * Number of registered providers.
+     */
     readonly registrationLength: number
     /**
     * Triggers the corresponding RPC method.
@@ -13154,28 +15076,61 @@ declare module 'coc.nvim' {
   }
 
   export interface CodeLensProviderShape {
+    /**
+     * Provider of code lenses.
+     */
     provider?: CodeLensProvider
+    /**
+     * Emitter fired when code lenses change.
+     */
     onDidChangeCodeLensEmitter: Emitter<void>
   }
 
   export interface SemanticTokensProviderShape {
+    /**
+     * Provider of range semantic tokens.
+     */
     range?: DocumentRangeSemanticTokensProvider
+    /**
+     * Provider of full document semantic tokens.
+     */
     full?: DocumentSemanticTokensProvider
+    /**
+     * Emitter fired when semantic tokens change.
+     */
     onDidChangeSemanticTokensEmitter: Emitter<void>
   }
 
   export interface InlineValueProviderShape {
+    /**
+     * Provider of inline values.
+     */
     provider: InlineValuesProvider
+    /**
+     * Emitter fired when inline values change.
+     */
     onDidChangeInlineValues: Emitter<void>
   }
 
   export interface InlayHintsProviderShape {
+    /**
+     * Provider of inlay hints.
+     */
     provider: InlayHintsProvider
+    /**
+     * Emitter fired when inlay hints change.
+     */
     onDidChangeInlayHints: Emitter<void>
   }
 
   export interface FoldingRangeProviderShape {
+    /**
+     * Provider of folding ranges.
+     */
     provider: FoldingRangeProvider
+    /**
+     * Emitter fired when folding ranges change.
+     */
     onDidChangeFoldingRange: Emitter<void>
   }
 
@@ -13198,6 +15153,9 @@ declare module 'coc.nvim' {
   }
 
   export interface DiagnosticFeatureShape {
+    /**
+     * Refresh all diagnostics.
+     */
     refresh(): void
   }
 
@@ -13208,7 +15166,13 @@ declare module 'coc.nvim' {
    * by `documentselector` of `clientOptions`.
    */
   export class LanguageClient {
+    /**
+     * Id of the language client.
+     */
     readonly id: string
+    /**
+     * Name of the language client.
+     */
     readonly name: string
     constructor(id: string, name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
     /**
@@ -13217,33 +15181,105 @@ declare module 'coc.nvim' {
      */
     constructor(name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
 
+    /**
+     * Send a request to the language server.
+     */
     sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO> | RequestProtocolSignature0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
+    /**
+     * Send a request to the language server.
+     */
     sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO> | RequestProtocolSignature<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
+    /**
+     * Send a request to the language server.
+     */
     sendRequest<R, E>(type: RequestType0<R, E> | RequestSignature0<R, E>, token?: CancellationToken): Promise<R>
+    /**
+     * Send a request to the language server.
+     */
     sendRequest<P, R, E>(type: RequestType<P, R, E> | RequestSignature<P, R, E>, params: P, token?: CancellationToken): Promise<R>
+    /**
+     * Send a request to the language server by method name.
+     */
     sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
+    /**
+     * Send a request to the language server by method name with parameters.
+     */
     sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
 
+    /**
+     * Register a request handler for requests from the language server.
+     */
     onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: RequestHandler0<R, E>): Disposable
+    /**
+     * Register a request handler for requests from the language server.
+     */
     onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: RequestHandler<P, R, E>): Disposable
+    /**
+     * Register a request handler for requests from the language server.
+     */
     onRequest<R, E>(type: RequestType0<R, E>, handler: RequestHandler0<R, E>): Disposable
+    /**
+     * Register a request handler for requests from the language server.
+     */
     onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
+    /**
+     * Register a request handler by method name.
+     */
     onRequest<R, E>(method: string, handler: (...params: any[]) => HandlerResult<R, E>): Disposable
 
+    /**
+     * Send a notification to the language server.
+     */
     sendNotification<RO>(type: ProtocolNotificationType0<RO> | NotificationProtocolSignature0<RO>): Promise<void>
+    /**
+     * Send a notification to the language server.
+     */
     sendNotification<P, RO>(type: ProtocolNotificationType<P, RO> | NotificationSignature<P>, params?: P): Promise<void>
+    /**
+     * Send a notification to the language server.
+     */
     sendNotification(type: NotificationType0 | NotificationSignature0): Promise<void>
+    /**
+     * Send a notification to the language server.
+     */
     sendNotification<P>(type: NotificationType<P> | NotificationSignature<P>, params?: P): Promise<void>
+    /**
+     * Send a notification to the language server by method name.
+     */
     sendNotification(method: string): Promise<void>
+    /**
+     * Send a notification to the language server by method name with parameters.
+     */
     sendNotification(method: string, params: any): Promise<void>
 
+    /**
+     * Register a notification handler for notifications from the language server.
+     */
     onNotification<RO>(type: ProtocolNotificationType0<RO>, handler: NotificationHandler0): Disposable
+    /**
+     * Register a notification handler for notifications from the language server.
+     */
     onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NotificationHandler<P>): Disposable
+    /**
+     * Register a notification handler for notifications from the language server.
+     */
     onNotification(type: NotificationType0, handler: () => void): Disposable
+    /**
+     * Register a notification handler for notifications from the language server.
+     */
     onNotification<P>(type: NotificationType<P>, handler: (params: P) => void): Disposable
+    /**
+     * Register a notification handler by method name.
+     */
     onNotification(method: string, handler: (...params: any[]) => void): Disposable
 
+    /**
+     * Register a progress handler for progress reports from the language server.
+     */
     onProgress<P>(type: ProgressType<any>, token: string | number, handler: (params: P) => void): Disposable
+    /**
+     * Send a progress report to the language server.
+     */
     sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
     /**
@@ -13267,20 +15303,41 @@ declare module 'coc.nvim' {
      */
     traceMessage(message: string, data?: any): void
 
+    /**
+     * Current state of the language client.
+     */
     readonly state: State
+    /**
+     * Middleware of the language client.
+     */
     readonly middleware: Middleware
+    /**
+     * Result of the initialize request.
+     */
     readonly initializeResult: InitializeResult | undefined
+    /**
+     * Options of the language client.
+     */
     readonly clientOptions: LanguageClientOptions
+    /**
+     * Output channel of the language client.
+     */
     readonly outputChannel: OutputChannel
     /**
      * Fired on language server state change.
      */
     readonly onDidChangeState: Event<StateChangeEvent>
+    /**
+     * Diagnostic collection of the language client.
+     */
     readonly diagnostics: DiagnosticCollection | undefined
     /**
      * Current running state.
      */
     readonly serviceState: ServiceStat
+    /**
+     * Whether the language client has been started.
+     */
     readonly started: boolean
     /**
      * The server is running in debug mode by forceDebug or debug arguments of NodeJS.
@@ -13298,6 +15355,9 @@ declare module 'coc.nvim' {
      * Resolved when server ready
      */
     onReady(): Promise<void>
+    /**
+     * Set the trace level of the language client.
+     */
     set trace(value: Trace)
 
     /**
@@ -13319,6 +15379,9 @@ declare module 'coc.nvim' {
      */
     restart(): Promise<void>
 
+    /**
+     * Dispose the language client.
+     */
     dispose(): Promise<void>
     /**
      * Register custom feature.
@@ -13339,51 +15402,189 @@ declare module 'coc.nvim' {
      */
     createDefaultErrorHandler(maxRestartCount?: number): ErrorHandler
 
+    /**
+     * Get the feature handling `workspace/executeCommand`, with registration for general registration options.
+     */
     getFeature(request: 'workspace/executeCommand'): DynamicFeature<GeneralRegistrationOptions>
+    /**
+     * Get the feature handling `workspace/didChangeWorkspaceFolders`.
+     */
     getFeature(request: 'workspace/didChangeWorkspaceFolders'): DynamicFeature<void>
+    /**
+     * Get the feature handling `workspace/didChangeWatchedFiles`, with registration for watched files.
+     */
     getFeature(request: 'workspace/didChangeWatchedFiles'): DynamicFeature<DidChangeWatchedFilesRegistrationOptions>
+    /**
+     * Get the feature handling `workspace/didChangeConfiguration`, with registration for configuration sections.
+     */
     getFeature(request: 'workspace/didChangeConfiguration'): DynamicFeature<DidChangeConfigurationRegistrationOptions>
+    /**
+     * Get the feature handling `textDocument/didOpen`, sending open notifications for text documents.
+     */
     getFeature(request: 'textDocument/didOpen'): DidOpenTextDocumentFeatureShape
+    /**
+     * Get the feature handling `textDocument/didChange`, sending change notifications for text documents.
+     */
     getFeature(request: 'textDocument/didChange'): DidChangeTextDocumentFeatureShape
+    /**
+     * Get the feature handling `textDocument/willSave`, sending will-save notifications.
+     */
     getFeature(request: 'textDocument/willSave'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocumentWillSaveEvent) => Promise<void>>
+    /**
+     * Get the feature handling `textDocument/willSaveWaitUntil`, sending will-save-wait-until requests that return edits.
+     */
     getFeature(request: 'textDocument/willSaveWaitUntil'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocument) => ProviderResult<TextEdit[]>>
+    /**
+     * Get the feature handling `textDocument/didSave`, sending save notifications.
+     */
     getFeature(request: 'textDocument/didSave'): DidSaveTextDocumentFeatureShape
+    /**
+     * Get the feature handling `textDocument/didClose`, sending close notifications.
+     */
     getFeature(request: 'textDocument/didClose'): DidCloseTextDocumentFeatureShape
+    /**
+     * Get the feature handling `workspace/didCreateFiles`, sending file create events.
+     */
     getFeature(request: 'workspace/didCreateFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileCreateEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/didRenameFiles`, sending file rename events.
+     */
     getFeature(request: 'workspace/didRenameFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileRenameEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/didDeleteFiles`, sending file delete events.
+     */
     getFeature(request: 'workspace/didDeleteFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileDeleteEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/willCreateFiles`, sending file will-create events.
+     */
     getFeature(request: 'workspace/willCreateFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillCreateEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/willRenameFiles`, sending file will-rename events.
+     */
     getFeature(request: 'workspace/willRenameFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillRenameEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/willDeleteFiles`, sending file will-delete events.
+     */
     getFeature(request: 'workspace/willDeleteFiles'): DynamicFeature<GeneralRegistrationOptions> & { send: (event: FileWillDeleteEvent) => Promise<void> }
+    /**
+     * Get the feature handling `workspace/symbol`, providing workspace symbol providers.
+     */
     getFeature(request: 'workspace/symbol'): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>
+    /**
+     * Get the feature handling `textDocument/completion`, providing completion item providers.
+     */
     getFeature(request: 'textDocument/completion'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CompletionItemProvider>
+    /**
+     * Get the feature handling `textDocument/hover`, providing hover providers.
+     */
     getFeature(request: 'textDocument/hover'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<HoverProvider>
+    /**
+     * Get the feature handling `textDocument/signatureHelp`, providing signature help providers.
+     */
     getFeature(request: 'textDocument/signatureHelp'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SignatureHelpProvider>
+    /**
+     * Get the feature handling `textDocument/definition`, providing definition providers.
+     */
     getFeature(request: 'textDocument/definition'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DefinitionProvider>
+    /**
+     * Get the feature handling `textDocument/references`, providing reference providers.
+     */
     getFeature(request: 'textDocument/references'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<ReferenceProvider>
+    /**
+     * Get the feature handling `textDocument/documentHighlight`, providing document highlight providers.
+     */
     getFeature(request: 'textDocument/documentHighlight'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentHighlightProvider>
+    /**
+     * Get the feature handling `textDocument/codeAction`, providing code action providers.
+     */
     getFeature(request: 'textDocument/codeAction'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CodeActionProvider>
+    /**
+     * Get the feature handling `textDocument/codeLens`, providing code lens providers.
+     */
     getFeature(request: 'textDocument/codeLens'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CodeLensProviderShape>
+    /**
+     * Get the feature handling `textDocument/formatting`, providing document formatting edit providers.
+     */
     getFeature(request: 'textDocument/formatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentFormattingEditProvider>
+    /**
+     * Get the feature handling `textDocument/rangeFormatting`, providing range formatting edit providers.
+     */
     getFeature(request: 'textDocument/rangeFormatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentRangeFormattingEditProvider>
+    /**
+     * Get the feature handling `textDocument/onTypeFormatting`, providing on-type formatting edit providers.
+     */
     getFeature(request: 'textDocument/onTypeFormatting'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<OnTypeFormattingEditProvider>
+    /**
+     * Get the feature handling `textDocument/rename`, providing rename providers.
+     */
     getFeature(request: 'textDocument/rename'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<RenameProvider>
+    /**
+     * Get the feature handling `textDocument/documentSymbol`, providing document symbol providers.
+     */
     getFeature(request: 'textDocument/documentSymbol'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentSymbolProvider>
+    /**
+     * Get the feature handling `textDocument/documentLink`, providing document link providers.
+     */
     getFeature(request: 'textDocument/documentLink'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentLinkProvider>
+    /**
+     * Get the feature handling `textDocument/documentColor`, providing document color providers.
+     */
     getFeature(request: 'textDocument/documentColor'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DocumentColorProvider>
+    /**
+     * Get the feature handling `textDocument/declaration`, providing declaration providers.
+     */
     getFeature(request: 'textDocument/declaration'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DeclarationProvider>
+    /**
+     * Get the feature handling `textDocument/foldingRange`, providing folding range providers.
+     */
     getFeature(request: 'textDocument/foldingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<FoldingRangeProviderShape>
+    /**
+     * Get the feature handling `textDocument/implementation`, providing implementation providers.
+     */
     getFeature(request: 'textDocument/implementation'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<ImplementationProvider>
+    /**
+     * Get the feature handling `textDocument/selectionRange`, providing selection range providers.
+     */
     getFeature(request: 'textDocument/selectionRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SelectionRangeProvider>
+    /**
+     * Get the feature handling `textDocument/typeDefinition`, providing type definition providers.
+     */
     getFeature(request: 'textDocument/typeDefinition'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeDefinitionProvider>
+    /**
+     * Get the feature handling `textDocument/prepareCallHierarchy`, providing call hierarchy providers.
+     */
     getFeature(request: 'textDocument/prepareCallHierarchy'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<CallHierarchyProvider>
+    /**
+     * Get the feature handling `textDocument/semanticTokens`, providing semantic tokens providers.
+     */
     getFeature(request: 'textDocument/semanticTokens'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviderShape>
+    /**
+     * Get the feature handling `textDocument/linkedEditingRange`, providing linked editing range providers.
+     */
     getFeature(request: 'textDocument/linkedEditingRange'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
+    /**
+     * Get the feature handling `textDocument/prepareTypeHierarchy`, providing type hierarchy providers.
+     */
     getFeature(request: 'textDocument/prepareTypeHierarchy'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+    /**
+     * Get the feature handling `textDocument/inlineValue`, providing inline value providers.
+     */
     getFeature(request: 'textDocument/inlineValue'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
+    /**
+     * Get the feature handling `textDocument/inlayHint`, providing inlay hint providers.
+     */
     getFeature(request: 'textDocument/inlayHint'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
+    /**
+     * Get the feature handling `textDocument/diagnostic`, providing diagnostic providers with refresh support.
+     */
     getFeature(request: 'textDocument/diagnostic'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape> & DiagnosticFeatureShape
+    /**
+     * Get the feature handling `workspace/textDocumentContent`, providing text document content providers.
+     */
     getFeature(request: 'workspace/textDocumentContent'): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<TextDocumentContentProviderShape>
+    /**
+     * Get the feature handling `textDocument/inlineCompletion`, providing inline completion item providers.
+     */
     getFeature(request: 'textDocument/inlineCompletion'): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineCompletionItemProvider>
   }
 
@@ -13392,6 +15593,9 @@ declare module 'coc.nvim' {
    */
   export class SettingMonitor {
     constructor(client: LanguageClient, setting: string)
+    /**
+     * Start monitoring the setting and start the client when it is enabled.
+     */
     start(): Disposable
   }
   // }}

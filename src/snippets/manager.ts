@@ -22,6 +22,9 @@ export class SnippetManager {
   private _statusItem: StatusBarItem
   private bufferSync: BufferSync<SnippetSession>
   private config: SnippetConfig
+  /**
+   * @internal
+   */
 
   public init() {
     this.synchronizeConfig()
@@ -219,6 +222,9 @@ export class SnippetManager {
     await session.start(inserted, range, select, context)
     return session.isActive
   }
+  /**
+   * @internal
+   */
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
     let { session } = this
@@ -251,6 +257,9 @@ export class SnippetManager {
     this.nvim.call('coc#snippet#disable', [], true)
     this.statusItem.hide()
   }
+  /**
+   * @internal
+   */
 
   public get session(): SnippetSession | undefined {
     return this.bufferSync.getItem(workspace.bufnr)
@@ -268,6 +277,9 @@ export class SnippetManager {
     let session = this.bufferSync.getItem(bufnr)
     return session && session.isActive
   }
+  /**
+   * @internal
+   */
 
   public jumpable(): boolean {
     let { session } = this
@@ -283,6 +295,9 @@ export class SnippetManager {
     if (!session) return
     return await session.resolveSnippet(this.nvim, snippetString, ultisnip)
   }
+  /**
+   * @internal
+   */
 
   public async normalizeInsertText(bufnr: number, snippetString: string, currentLine: string, insertTextMode: InsertTextMode, ultisnip?: Partial<UltiSnippetOption>): Promise<string> {
     let inserted = ''
@@ -299,6 +314,9 @@ export class SnippetManager {
     }
     return inserted
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     this.cancel()

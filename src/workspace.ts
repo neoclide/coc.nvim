@@ -51,6 +51,13 @@ const methods = [
   'getOffset', 'getSelectedRange', 'selectRange', 'createTerminal',
 ]
 
+interface WorkspaceEditMetadata {
+  /**
+   * Signal to the editor that this edit is a refactoring.
+   */
+  isRefactoring?: boolean
+}
+
 export class Workspace {
   public readonly onDidChangeConfiguration: Event<IConfigurationChangeEvent>
   public readonly onDidOpenTextDocument: Event<LinesTextDocument>
@@ -66,18 +73,54 @@ export class Workspace {
   public readonly onWillRenameFiles: Event<FileWillRenameEvent>
   public readonly onWillDeleteFiles: Event<FileWillDeleteEvent>
   public readonly nvim: Neovim
+  /**
+   * @internal
+   */
   public readonly configurations: Configurations
+  /**
+   * @internal
+   */
   public readonly workspaceFolderControl: WorkspaceFolderController
+  /**
+   * @internal
+   */
   public readonly documentsManager: Documents
+  /**
+   * @internal
+   */
   public readonly contentProvider: ContentProvider
+  /**
+   * @internal
+   */
   public readonly autocmds: Autocmds
+  /**
+   * @internal
+   */
   public readonly watchers: Watchers
+  /**
+   * @internal
+   */
   public readonly keymaps: Keymaps
+  /**
+   * @internal
+   */
   public readonly files: Files
+  /**
+   * @internal
+   */
   public readonly fileSystemWatchers: FileSystemWatcherManager
+  /**
+   * @internal
+   */
   public readonly editors: Editors
+  /**
+   * @internal
+   */
   public readonly tabs: TabsModel
   public readonly isTrusted = true
+  /**
+   * @internal
+   */
   public statusLine = new StatusLine()
   private _onDidRuntimePathChange = new Emitter<string[]>()
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
@@ -128,10 +171,16 @@ export class Workspace {
     const config = this.getWatchConfig()
     this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config)
   }
+  /**
+   * @internal
+   */
 
   public get initialConfiguration(): WorkspaceConfiguration {
     return this.configurations.initialConfiguration
   }
+  /**
+   * @internal
+   */
 
   public getWatchConfig(): FileWatchConfig {
     let { initialConfiguration } = this
@@ -147,6 +196,9 @@ export class Workspace {
       ignoredFolders: ignoredFolders.map(p => this.expand(p))
     }
   }
+  /**
+   * @internal
+   */
 
   public async init(window: any): Promise<void> {
     let { nvim } = this
@@ -216,6 +268,9 @@ export class Workspace {
     this.fileSystemWatchers.attach(channel)
     if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow)
   }
+  /**
+   * @internal
+   */
 
   public checkVersion(version: number) {
     if (this._env.apiversion != version) {
@@ -228,6 +283,9 @@ export class Workspace {
     if (!this.strWidth) return text.length
     return this.strWidth.getWidth(text, cache)
   }
+  /**
+   * @internal
+   */
 
   public get version(): string {
     return VERSION
@@ -254,6 +312,7 @@ export class Workspace {
   }
 
   /**
+   * @internal
    * @deprecated
    */
   public get insertMode(): boolean {
@@ -268,6 +327,7 @@ export class Workspace {
   }
 
   /**
+   * @internal
    * @deprecated
    */
   public get uri(): string {
@@ -300,6 +360,9 @@ export class Workspace {
   public fixWin32unixFilepath(filepath: string): string {
     return this.documentsManager.fixUnixPrefix(filepath)
   }
+  /**
+   * @internal
+   */
 
   public checkPatterns(patterns: string[], folders?: WorkspaceFolder[]): Promise<boolean> {
     return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns)
@@ -326,6 +389,7 @@ export class Workspace {
   }
 
   /**
+   * @internal
    * Kept for backward compatible
    */
   public get completeOpt(): string {
@@ -341,6 +405,7 @@ export class Workspace {
   }
 
   /**
+   * @internal
    * @deprecated Use nvim.createNamespace() instead.
    */
   public createNameSpace(name: string): number {
@@ -416,16 +481,25 @@ export class Workspace {
   public getDocument(uri: number | string): Document | null | undefined {
     return this.documentsManager.getDocument(uri)
   }
+  /**
+   * @internal
+   */
 
   public hasDocument(uri: string, version?: number): boolean {
     let doc = this.documentsManager.getDocument(uri)
     return doc && (version != null ? doc.version == version : true)
   }
+  /**
+   * @internal
+   */
 
   public getUri(bufnr: number, defaultValue = ''): string {
     let doc = this.documentsManager.getDocument(bufnr)
     return doc ? doc.uri : defaultValue
   }
+  /**
+   * @internal
+   */
 
   public isAttached(bufnr: number): boolean {
     let doc = this.documentsManager.getDocument(bufnr)
@@ -433,6 +507,7 @@ export class Workspace {
   }
 
   /**
+   * @internal
    * Get attached document by uri or bufnr.
    * Throw error when document doesn't exist or isn't attached.
    */
@@ -566,6 +641,9 @@ export class Workspace {
   public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T | undefined): BufferSync<T> {
     return new BufferSync(create, this.documentsManager)
   }
+  /**
+   * @internal
+   */
 
   public async attach(): Promise<void> {
     await this.documentsManager.attach(this.nvim, this._env)
@@ -584,8 +662,13 @@ export class Workspace {
 
   /**
    * Apply WorkspaceEdit.
+   *
+   * @param edit Workspace edit.
+   * @param metadata Edit metadata, not used yet.
+   * @returns True when the edit is applied.
    */
-  public applyEdit(edit: WorkspaceEdit): Promise<boolean> {
+  public applyEdit(edit: WorkspaceEdit, metadata?: WorkspaceEditMetadata): Promise<boolean> {
+    // TODO: metadata not used yet
     return this.files.applyEdit(edit)
   }
 
@@ -640,6 +723,9 @@ export class Workspace {
   public openTextDocument(uri: URI | string): Promise<Document> {
     return this.files.openTextDocument(uri)
   }
+  /**
+   * @internal
+   */
 
   public getRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
     return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace)
@@ -652,10 +738,16 @@ export class Workspace {
   public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
     return this.files.findFiles(include, exclude, maxResults, token)
   }
+  /**
+   * @internal
+   */
 
   public detach(): void {
     this.documentsManager.detach()
   }
+  /**
+   * @internal
+   */
 
   public reset(): void {
     this.statusLine.reset()
@@ -663,6 +755,9 @@ export class Workspace {
     this.workspaceFolderControl.reset()
     this.documentsManager.reset()
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     channels.dispose()

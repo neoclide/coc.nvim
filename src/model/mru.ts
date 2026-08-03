@@ -39,6 +39,9 @@ export default class Mru {
       return []
     }
   }
+  /**
+   * @internal
+   */
 
   public loadSync(): string[] {
     try {

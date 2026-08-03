@@ -1,5 +1,8 @@
 'use strict'
 export class SnippetString {
+  /**
+   * @internal
+   */
 
   public static isSnippetString(thing: any): thing is SnippetString {
     if (thing instanceof SnippetString) {

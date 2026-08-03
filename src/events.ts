@@ -132,7 +132,13 @@ class Events {
   private _ready = false
   private _mode = 'n'
   private _pumInserted = false
+  /**
+   * @internal
+   */
   public timeout = 1000
+  /**
+   * @internal
+   */
   // public completing = false
 
   public set requesting(val: boolean) {
@@ -142,14 +148,23 @@ class Events {
   public get requesting(): boolean {
     return this._requesting
   }
+  /**
+   * @internal
+   */
 
   public get ready(): boolean {
     return this._ready
   }
+  /**
+   * @internal
+   */
 
   public get mode(): string {
     return this._mode
   }
+  /**
+   * @internal
+   */
 
   public get pumInserted(): boolean {
     return this._pumInserted
@@ -172,6 +187,9 @@ class Events {
       clearTimeout(timer)
     }
   }
+  /**
+   * @internal
+   */
 
   public set completing(completing: boolean) {
     this._completing = completing
@@ -186,6 +204,9 @@ class Events {
   public get cursor(): CursorPosition {
     return this._cursor ?? { bufnr: this._bufnr, col: 1, lnum: 1, insert: false }
   }
+  /**
+   * @internal
+   */
 
   public get bufnr(): number {
     return this._bufnr
@@ -202,6 +223,9 @@ class Events {
   public get insertMode(): boolean {
     return this._insertMode && this._mode.startsWith('i')
   }
+  /**
+   * @internal
+   */
 
   public get lastChangeTs(): number {
     return this._lastChange
@@ -235,6 +259,9 @@ class Events {
       })
     })
   }
+  /**
+   * @internal
+   */
 
   public async fire(event: string, args: any[]): Promise<void> {
     switch (event) {
@@ -448,6 +475,9 @@ class Events {
       return disposable
     }
   }
+  /**
+   * @internal
+   */
 
   public once(event: AllEvents, handler: (...args: any[]) => Result, thisArg?: any): Disposable {
     return this.on(event, handler, thisArg, true)

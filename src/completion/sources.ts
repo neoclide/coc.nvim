@@ -36,7 +36,13 @@ export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
+  /**
+   * @internal
+   */
   public keywords: BufferSync<KeywordsBuffer>
+  /**
+   * @internal
+   */
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
@@ -60,6 +66,9 @@ export class Sources {
   private get nvim(): Neovim {
     return workspace.nvim
   }
+  /**
+   * @internal
+   */
 
   public getKeywordsBuffer(bufnr: number): KeywordsBuffer {
     return this.keywords.getItem(bufnr)
@@ -73,6 +82,9 @@ export class Sources {
       import('./native/file').then(module => { module.register(this.sourceMap) })
     ])
   }
+  /**
+   * @internal
+   */
 
   public createLanguageSource(
     name: string,
@@ -99,6 +111,9 @@ export class Sources {
       }
     }
   }
+  /**
+   * @internal
+   */
 
   public async createVimSourceExtension(filepath: string): Promise<void> {
     let { nvim } = this
@@ -206,6 +221,9 @@ export class Sources {
       this.createVimSources(path).catch(logError)
     }
   }
+  /**
+   * @internal
+   */
 
   public async createVimSources(pluginPath: string): Promise<void> {
     if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return
@@ -234,6 +252,9 @@ export class Sources {
   public getSource(name: string): ISource | null {
     return this.sourceMap.get(name) ?? null
   }
+  /**
+   * @internal
+   */
 
   public shouldCommit(source: ISource | undefined, item: CompleteItem | undefined, commitCharacter: string): boolean {
     if (!item || source == null || commitCharacter.length === 0) return false
@@ -242,6 +263,9 @@ export class Sources {
     }
     return false
   }
+  /**
+   * @internal
+   */
 
   public getSources(opt: CompleteOption): ISource[] {
     let { source } = opt
@@ -251,6 +275,7 @@ export class Sources {
   }
 
   /**
+   * @internal
    * Get sources should be used without trigger.
    * @param {string} filetype
    * @returns {ISource[]}
@@ -276,10 +301,16 @@ export class Sources {
     }
     return false
   }
+  /**
+   * @internal
+   */
 
   public shouldTrigger(pre: string, filetype: string, uri: string): boolean {
     return this.getTriggerSources(pre, filetype, uri).length > 0
   }
+  /**
+   * @internal
+   */
 
   public getTriggerSources(pre: string, filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
     if (!pre) return []
@@ -367,6 +398,9 @@ export class Sources {
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     disposeAll(this.disposables)

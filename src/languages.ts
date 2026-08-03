@@ -89,11 +89,29 @@ class Languages {
   private readonly _onDidCodeLensRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidColorsRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidLinksRefresh = new Emitter<DocumentSelector>()
+  /**
+   * @internal
+   */
   public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
+  /**
+   * @internal
+   */
   public readonly onDidFoldingRangeRefresh: Event<DocumentSelector> = this._onDidFoldingRangeRefresh.event
+  /**
+   * @internal
+   */
   public readonly onDidInlayHintRefresh: Event<DocumentSelector> = this._onDidInlayHintRefresh.event
+  /**
+   * @internal
+   */
   public readonly onDidCodeLensRefresh: Event<DocumentSelector> = this._onDidCodeLensRefresh.event
+  /**
+   * @internal
+   */
   public readonly onDidColorsRefresh: Event<DocumentSelector> = this._onDidColorsRefresh.event
+  /**
+   * @internal
+   */
   public readonly onDidLinksRefresh: Event<DocumentSelector> = this._onDidLinksRefresh.event
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
@@ -121,11 +139,26 @@ class Languages {
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
+  /**
+   * @internal
+   */
   public inlineCompletionItemManager = new InlineCompletionItemManager()
   private inlineValueManager = new InlineValueManager()
+  /**
+   * @internal
+   */
   public readonly registerDocumentRangeFormattingEditProvider: any
+  /**
+   * @internal
+   */
   public readonly registerDocumentFormattingEditProvider: any
+  /**
+   * @internal
+   */
   public sources: Sources
+  /**
+   * @internal
+   */
 
   public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
 
@@ -135,6 +168,9 @@ class Languages {
     this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider
     this.registerDocumentFormattingEditProvider = this.registerDocumentFormatProvider
   }
+  /**
+   * @internal
+   */
 
   public hasFormatProvider(doc: TextDocumentMatch): boolean {
     if (this.formatManager.hasProvider(doc)) {
@@ -295,6 +331,9 @@ class Languages {
   public registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
     return this.registerProviderWithEvent(selector, provider, 'onDidChangeInlayHints', this.inlayHintManager, this._onDidInlayHintRefresh)
   }
+  /**
+   * @internal
+   */
 
   public registerInlineValuesProvider(selector: DocumentSelector, provider: InlineValuesProvider): Disposable {
     // TODO onDidChangeInlineValues
@@ -304,70 +343,121 @@ class Languages {
   public registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
     return this.linkedEditingManager.register(selector, provider)
   }
+  /**
+   * @internal
+   */
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {
     return this.signatureManager.shouldTrigger(document, triggerCharacter)
   }
+  /**
+   * @internal
+   */
 
   public async getHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover[]> {
     return await this.hoverManager.provideHover(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getSignatureHelp(document: TextDocument, position: Position, token: CancellationToken, context: SignatureHelpContext): Promise<SignatureHelp> {
     return await this.signatureManager.provideSignatureHelp(document, position, token, context)
   }
+  /**
+   * @internal
+   */
 
   public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.definitionManager.provideDefinition(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getDefinitionLinks(document: TextDocument, position: Position, token: CancellationToken): Promise<DefinitionLink[]> {
     return await this.definitionManager.provideDefinitionLinks(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.declarationManager.provideDeclaration(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.typeDefinitionManager.provideTypeDefinition(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.implementationManager.provideImplementations(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.referenceManager.provideReferences(document, position, context, token)
   }
+  /**
+   * @internal
+   */
 
   public async getDocumentSymbol(document: TextDocument, token: CancellationToken): Promise<DocumentSymbol[] | null> {
     return await this.documentSymbolManager.provideDocumentSymbols(document, token)
   }
+  /**
+   * @internal
+   */
 
   public getDocumentSymbolMetadata(document: TextDocument): DocumentSymbolProviderMetadata | null {
     return this.documentSymbolManager.getMetaData(document)
   }
+  /**
+   * @internal
+   */
 
   public async getSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): Promise<SelectionRange[] | null> {
     return await this.selectionRangeManager.provideSelectionRanges(document, positions, token)
   }
+  /**
+   * @internal
+   */
 
   public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<WorkspaceSymbol[]> {
     return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token)
   }
+  /**
+   * @internal
+   */
 
   public async resolveWorkspaceSymbol(symbol: WorkspaceSymbol, token: CancellationToken): Promise<WorkspaceSymbol> {
     return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token)
   }
+  /**
+   * @internal
+   */
 
   public async prepareRename(document: TextDocument, position: Position, token: CancellationToken): Promise<Range | { range: Range; placeholder: string } | false> {
     return await this.renameManager.prepareRename(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideRenameEdits(document: TextDocument, position: Position, newName: string, token: CancellationToken): Promise<WorkspaceEdit> {
     return await this.renameManager.provideRenameEdits(document, position, newName, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     let hasDocumentFormatter = this.formatManager.hasFormatProvider(document)
@@ -380,54 +470,93 @@ class Languages {
     }
     return await this.formatManager.provideDocumentFormattingEdits(document, options, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
+  /**
+   * @internal
+   */
 
   public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<CodeAction[]> {
     return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
+  /**
+   * @internal
+   */
 
   public async getDocumentHighLight(document: TextDocument, position: Position, token: CancellationToken): Promise<DocumentHighlight[]> {
     return await this.documentHighlightManager.provideDocumentHighlights(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async getDocumentLinks(document: TextDocument, token: CancellationToken): Promise<DocumentLink[] | null> {
     return await this.documentLinkManager.provideDocumentLinks(document, token)
   }
+  /**
+   * @internal
+   */
 
   public async resolveDocumentLink(link: DocumentLink, token: CancellationToken): Promise<DocumentLink> {
     return await this.documentLinkManager.resolveDocumentLink(link, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[]> {
     return await this.documentColorManager.provideDocumentColors(document, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[]> {
     return await this.foldingRangeManager.provideFoldingRanges(document, context, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideColorPresentations(color: ColorInformation, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[] | null> {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideInlineCompletionItems(document: TextDocument, position: Position, context: ExtendedInlineContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
     return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token)
   }
+  /**
+   * @internal
+   */
 
   public async getCodeLens(document: TextDocument, token: CancellationToken): Promise<(CodeLens | null)[]> {
     return await this.codeLensManager.provideCodeLenses(document, token)
   }
+  /**
+   * @internal
+   */
 
   public async resolveCodeLens(codeLens: CodeLens, token: CancellationToken): Promise<CodeLens> {
     return await this.codeLensManager.resolveCodeLens(codeLens, token)
   }
+  /**
+   * @internal
+   */
 
   public async resolveCodeAction(codeAction: CodeAction, token: CancellationToken): Promise<CodeAction> {
     return await this.codeActionManager.resolveCodeAction(codeAction, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentOnTypeEdits(
     character: string,
@@ -437,67 +566,115 @@ class Languages {
   ): Promise<TextEdit[] | null> {
     return this.onTypeFormatManager.onCharacterType(character, document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public canFormatOnType(character: string, document: TextDocument): boolean {
     return this.onTypeFormatManager.couldTrigger(document, character) != null
   }
+  /**
+   * @internal
+   */
 
   public async prepareCallHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem | CallHierarchyItem[]> {
     return this.callHierarchyManager.prepareCallHierarchy(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideIncomingCalls(document: TextDocument, item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyIncomingCall[]> {
     return this.callHierarchyManager.provideCallHierarchyIncomingCalls(document, item, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideOutgoingCalls(document: TextDocument, item: CallHierarchyItem, token: CancellationToken): Promise<CallHierarchyOutgoingCall[]> {
     return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(document, item, token)
   }
+  /**
+   * @internal
+   */
 
   public getLegend(document: TextDocument, range?: boolean): SemanticTokensLegend | undefined {
     if (range) return this.semanticTokensRangeManager.getLegend(document)
     return this.semanticTokensManager.getLegend(document)
   }
+  /**
+   * @internal
+   */
 
   public hasSemanticTokensEdits(document: TextDocument): boolean {
     return this.semanticTokensManager.hasSemanticTokensEdits(document)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens | null> {
     return this.semanticTokensManager.provideDocumentSemanticTokens(document, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta | null> {
     return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): Promise<SemanticTokens> {
     return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideInlayHints(document: TextDocument, range: Range, token: CancellationToken): Promise<InlayHintWithProvider[] | null> {
     return this.inlayHintManager.provideInlayHints(document, range, token)
   }
+  /**
+   * @internal
+   */
 
   public async resolveInlayHint(hint: InlayHintWithProvider, token: CancellationToken): Promise<InlayHintWithProvider> {
     return this.inlayHintManager.resolveInlayHint(hint, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideLinkedEdits(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
     return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideInlineValues(document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken): Promise<InlineValue[]> {
     return this.inlineValueManager.provideInlineValues(document, viewPort, context, token)
   }
+  /**
+   * @internal
+   */
 
   public async prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<TypeHierarchyItem[]> {
     return this.typeHierarchyManager.prepareTypeHierarchy(document, position, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideTypeHierarchySupertypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
     return this.typeHierarchyManager.provideTypeHierarchySupertypes(item, token)
   }
+  /**
+   * @internal
+   */
 
   public async provideTypeHierarchySubtypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
     return this.typeHierarchyManager.provideTypeHierarchySubtypes(item, token)
@@ -506,6 +683,9 @@ class Languages {
   public createDiagnosticCollection(owner: string): DiagnosticCollection {
     return diagnosticManager.create(owner)
   }
+  /**
+   * @internal
+   */
 
   public registerProviderWithEvent<K extends string, P extends withKey<K>, A>(
     selector: DocumentSelector,

@@ -83,6 +83,9 @@ export interface ListAction {
   execute: Function
 }
 
+/**
+ * @internal
+ */
 export interface SingleListAction extends ListAction {
   multiple?: false
   execute: (item: ListItem, context: ListContext) => ProviderResult<void>

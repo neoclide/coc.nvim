@@ -41,8 +41,14 @@ const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.Extensi
 
 class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
+  /**
+   * @internal
+   */
   public titles = new Map<string, string>()
   private mru = new Mru('commands')
+  /**
+   * @internal
+   */
   public nvim: Neovim
 
   public get commandList(): { id: string, title: string }[] {
@@ -56,6 +62,9 @@ class CommandManager implements Disposable {
     }
     return res
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     for (const registration of this.commands.values()) {
@@ -67,6 +76,9 @@ class CommandManager implements Disposable {
   public execute(command: VCommand): Promise<any> {
     return this.executeCommand(command.command, ...(command.arguments ?? []))
   }
+  /**
+   * @internal
+   */
 
   public register<T extends Command>(command: T, internal: boolean, description?: string): T {
     for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
@@ -79,6 +91,9 @@ class CommandManager implements Disposable {
   public has(id: string): boolean {
     return this.commands.has(id)
   }
+  /**
+   * @internal
+   */
 
   public unregister(id: string): void {
     let item = this.commands.get(id)
@@ -127,6 +142,7 @@ class CommandManager implements Disposable {
   }
 
   /**
+   * @internal
    * Used for user invoked command.
    */
   public async fireCommand(id: string, ...args: any[]): Promise<unknown> {
@@ -139,11 +155,17 @@ class CommandManager implements Disposable {
     }
     return res
   }
+  /**
+   * @internal
+   */
 
   public async addRecent(cmd: string, repeat: boolean): Promise<void> {
     await this.mru.add(cmd)
     if (repeat) this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`, true)
   }
+  /**
+   * @internal
+   */
 
   public async repeatCommand(): Promise<void> {
     let mruList = await this.mru.load()

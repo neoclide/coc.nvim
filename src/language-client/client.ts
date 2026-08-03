@@ -416,6 +416,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerBuiltinFeatures()
     Error.captureStackTrace(this)
   }
+  /**
+   * @internal
+   */
 
   public switchConsole(): void {
     this._consoleDebug = !this._consoleDebug
@@ -486,6 +489,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     return { delayOpenNotifications: false }
   }
+  /**
+   * @internal
+   */
 
   public get supportedMarkupKind(): MarkupKind[] {
     if (!this.clientOptions.disableMarkdown) return [MarkupKind.Markdown, MarkupKind.PlainText]
@@ -520,10 +526,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public get middleware(): Middleware {
     return this._clientOptions.middleware
   }
+  /**
+   * @internal
+   */
 
   public get code2ProtocolConverter(): c2p.Converter {
     return this._c2p
   }
+  /**
+   * @internal
+   */
 
   public getPublicState(): State {
     switch (this.$state) {
@@ -793,6 +805,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   /**
+   * @internal
    * languageserver.xxx.settings or undefined
    */
   public get configuredSection(): string | undefined {
@@ -815,6 +828,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     return this._outputChannel
   }
+  /**
+   * @internal
+   */
 
   public get traceOutputChannel(): OutputChannel {
     return this._traceOutputChannel ? this._traceOutputChannel : this.outputChannel
@@ -921,6 +937,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private activeConnection(): Connection | undefined {
     return this.$state === ClientState.Running && this._connection !== undefined ? this._connection : undefined
   }
+  /**
+   * @internal
+   */
 
   public get hasPendingResponse(): boolean {
     return this._connection?.hasPendingResponse()
@@ -951,6 +970,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public isRunning(): boolean {
     return this.$state === ClientState.Running
   }
+  /**
+   * @internal
+   */
 
   public async _start(): Promise<void> {
     if (this._disposed === 'disposing' || this._disposed === 'disposed') {
@@ -1406,6 +1428,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._outputChannel = undefined
     }
   }
+  /**
+   * @internal
+   */
 
   public notifyFileEvent(event: FileEvent | undefined): void {
     const didChangeWatchedFile = async (event: FileEvent | undefined): Promise<void> => {
@@ -1430,10 +1455,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   /**
+   * @internal
    * @deprecated
    */
   public async forceDocumentSync(): Promise<void> {
   }
+  /**
+   * @internal
+   */
 
   public isSynced(uri: string): boolean {
     return this._syncedDocuments ? this._syncedDocuments.has(uri) : false
@@ -1509,6 +1538,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     if (err) throw err
   }
+  /**
+   * @internal
+   */
 
   public async handleConnectionError(error: Error, message: Message | undefined, count: number): Promise<void> {
     let res = await this._clientOptions.errorHandler!.error(error, message, count)
@@ -1569,6 +1601,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     string,
     DynamicFeature<any>
   >()
+  /**
+   * @internal
+   */
 
   public registerFeatures(
     features: (StaticFeature | DynamicFeature<any>)[]
@@ -1587,6 +1622,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this._dynamicFeatures.set(registrationType.method, feature)
     }
   }
+  /**
+   * @internal
+   */
 
   public getStaticFeature(method: typeof ConfigurationRequest.method): PullConfigurationFeature
   public getStaticFeature(method: typeof WorkDoneProgressCreateRequest.method): ProgressFeature
@@ -1699,6 +1737,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.registerFeature(new WorkspaceFoldersFeature(this), 'workspaceFolders')
     }
   }
+  /**
+   * @internal
+   */
 
   public registerProposedFeatures() {
     this.registerFeatures(ProposedFeatures.createAll(this))
@@ -1904,6 +1945,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.error(`Request ${type.method} failed.`, error, showNotification)
     throw error
   }
+  /**
+   * @internal
+   */
 
   // Should be kept
   public logFailedRequest(type: any, error: any): void {
@@ -1918,6 +1962,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   /**
+   * @internal
    * Return extension name or id.
    */
   public getExtensionName(): string {
@@ -1931,6 +1976,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   /**
+   * @internal
    * Add __extensionName property to provider
    */
   public attachExtensionName<T extends object>(provider: T): void {

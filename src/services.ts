@@ -101,6 +101,9 @@ class ServiceManager implements Disposable {
     this.registLanguageClient = this.registerLanguageClient.bind(this)
     this.regist = this.register.bind(this)
   }
+  /**
+   * @internal
+   */
 
   public init(): void {
     workspace.onDidOpenTextDocument(document => {
@@ -148,6 +151,9 @@ class ServiceManager implements Disposable {
       this.registered.delete(id)
     })
   }
+  /**
+   * @internal
+   */
 
   public tryStartService(service: IServiceProvider): void {
     if (!events.ready) {
@@ -178,6 +184,9 @@ class ServiceManager implements Disposable {
     }
     return false
   }
+  /**
+   * @internal
+   */
 
   public async start(document: TextDocument): Promise<void> {
     let services: IServiceProvider[] = []
@@ -198,6 +207,7 @@ class ServiceManager implements Disposable {
   }
 
   /**
+   * @internal
    * Best-effort stop of all registered services, used on process exit.
    * Stops waiting after `timeout` milliseconds.
    */
@@ -221,6 +231,9 @@ class ServiceManager implements Disposable {
       await service.restart()
     }
   }
+  /**
+   * @internal
+   */
 
   public getServiceStats(): ServiceInfo[] {
     let res: ServiceInfo[] = []
@@ -254,17 +267,26 @@ class ServiceManager implements Disposable {
     }
     return service.client
   }
+  /**
+   * @internal
+   */
 
   public async sendNotification(id: string, method: string, params?: any): Promise<void> {
     let client = await this.getLanguageClient(id)
     await Promise.resolve(client.sendNotification(method, params))
   }
+  /**
+   * @internal
+   */
 
   public async sendRequest(id: string, method: string, params?: any, token?: CancellationToken): Promise<any> {
     let client = await this.getLanguageClient(id)
     token = token ?? CancellationToken.None
     return await Promise.resolve(client.sendRequest(method, params, token))
   }
+  /**
+   * @internal
+   */
 
   public registerNotification(id: string, method: string): void {
     let service = this.getService(id)
@@ -369,6 +391,9 @@ class ServiceManager implements Disposable {
     }
     return this.register(service)
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     disposeAll(this.disposables)

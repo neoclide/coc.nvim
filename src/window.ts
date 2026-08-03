@@ -32,10 +32,22 @@ export interface StatusItemOption {
 
 export class Window {
   private nvim: Neovim
+  /**
+   * @internal
+   */
   public highlights: Highlights = new Highlights()
   private terminalManager: Terminals = new Terminals()
+  /**
+   * @internal
+   */
   public readonly cursors: Cursors
+  /**
+   * @internal
+   */
   public readonly dialogs = new Dialogs()
+  /**
+   * @internal
+   */
   public readonly notifications = new Notifications(this.dialogs)
   private workspace: Workspace
   constructor() {
@@ -66,6 +78,9 @@ export class Window {
   public get visibleTextEditors(): TextEditor[] {
     return this.workspace.editors.visibleTextEditors
   }
+  /**
+   * @internal
+   */
 
   public get onDidTabClose(): Event<number> {
     return this.workspace.editors.onDidTabClose
@@ -276,6 +291,9 @@ export class Window {
   public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T> = {}): Promise<QuickPick<T>> {
     return await this.dialogs.createQuickPick(config)
   }
+  /**
+   * @internal
+   */
 
   public async requestInputList(prompt: string, items: string[]): Promise<number> {
     if (items.length > this.workspace.env.lines) {
@@ -420,6 +438,9 @@ export class Window {
   private get configuration(): WorkspaceConfiguration {
     return this.workspace.initialConfiguration
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     this.terminalManager.dispose()

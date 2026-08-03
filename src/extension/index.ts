@@ -43,8 +43,17 @@ const EXTENSIONS_FOLDER = path.join(dataHome, 'extensions')
 
 // global local file native
 export class Extensions {
+  /**
+   * @internal
+   */
   public readonly manager: ExtensionManager
+  /**
+   * @internal
+   */
   public readonly states: ExtensionStat
+  /**
+   * @internal
+   */
   public modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
   private globalPromise: Promise<ExtensionToLoad[]>
   constructor() {
@@ -84,6 +93,9 @@ export class Extensions {
       })
     })
   }
+  /**
+   * @internal
+   */
 
   public async checkRecommendation(workspaceFolder: WorkspaceFolder | undefined): Promise<void> {
     if (!workspaceFolder) return
@@ -108,6 +120,9 @@ export class Extensions {
       this.manager.states.addNoPromptFolder(uri)
     }
   }
+  /**
+   * @internal
+   */
 
   public getUpdateSettings(): UpdateSettings {
     let config = workspace.getConfiguration(null, null)
@@ -118,6 +133,9 @@ export class Extensions {
       silentAutoupdate: extensionsConfig.silentAutoupdate ?? config.get<boolean>('coc.preferences.silentAutoupdate', true)
     }
   }
+  /**
+   * @internal
+   */
 
   public async init(runtimepath: string): Promise<void> {
     if (process.env.COC_NO_PLUGINS == '1') return
@@ -127,6 +145,9 @@ export class Extensions {
     this.manager.registerExtensions(localStats)
     void this.manager.loadFileExtensions()
   }
+  /**
+   * @internal
+   */
 
   public async activateExtensions(): Promise<void> {
     await this.manager.activateExtensions()
@@ -168,10 +189,16 @@ export class Extensions {
   public get all(): Extension<API>[] {
     return this.manager.all
   }
+  /**
+   * @internal
+   */
 
   public has(id: string): boolean {
     return this.manager.has(id)
   }
+  /**
+   * @internal
+   */
 
   public getExtension(id: string): ExtensionItem | undefined {
     return this.manager.getExtension(id)
@@ -183,6 +210,7 @@ export class Extensions {
   }
 
   /**
+   * @internal
    * @deprecated Used by old version coc-json.
    */
   public get schemes(): { [key: string]: PropertyScheme } {
@@ -190,6 +218,7 @@ export class Extensions {
   }
 
   /**
+   * @internal
    * @deprecated Used by old version coc-json.
    */
   public addSchemeProperty(key: string, def: PropertyScheme): void {
@@ -207,10 +236,16 @@ export class Extensions {
     let item = this.manager.getExtension(id)
     return item != null && item.extension.isActive
   }
+  /**
+   * @internal
+   */
 
   public async call(id: string, method: string, args: any[]): Promise<any> {
     return await this.manager.call(id, method, args)
   }
+  /**
+   * @internal
+   */
 
   public get npm(): string {
     let npm = workspace.initialConfiguration.get<string>('npm.binPath')
@@ -225,12 +260,16 @@ export class Extensions {
   private createInstallerUI(isUpdate: boolean, silent: boolean, updateUIInTab: boolean): InstallUI {
     return silent ? new InstallChannel({ isUpdate }, this.outputChannel) : new InstallBuffer({ isUpdate, updateUIInTab })
   }
+  /**
+   * @internal
+   */
 
   public createInstaller(npm: string, def: string): IInstaller {
     return new Installer(this.modulesFolder, npm, def)
   }
 
   /**
+   * @internal
    * Install extensions, can be called without initialize.
    */
   public async installExtensions(list: string[]): Promise<void> {
@@ -263,6 +302,7 @@ export class Extensions {
   }
 
   /**
+   * @internal
    * Update global extensions
    */
   public async updateExtensions(silent = false, updateUIInTab = false): Promise<void> {
@@ -311,6 +351,9 @@ export class Extensions {
     let globalStats = this.globalExtensionStats()
     return localStats.concat(globalStats)
   }
+  /**
+   * @internal
+   */
 
   public async globalExtensions(): Promise<ExtensionToLoad[]> {
     if (process.env.COC_NO_PLUGINS == '1') return []
@@ -326,6 +369,9 @@ export class Extensions {
     }))
     return results.filter((o): o is ExtensionToLoad => o !== undefined)
   }
+  /**
+   * @internal
+   */
 
   public globalExtensionStats(): ExtensionInfo[] {
     let dependencies = this.states.dependencies
@@ -356,6 +402,9 @@ export class Extensions {
     logger.debug('globalExtensionStats:', infos.length)
     return infos
   }
+  /**
+   * @internal
+   */
 
   public runtimeExtensionStats(runtimepaths: string[]): ExtensionInfo[] {
     let lockedExtensions = this.states.lockedExtensions
@@ -386,6 +435,7 @@ export class Extensions {
   }
 
   /**
+   * @internal
    * Remove unnecessary folders in node_modules
    */
   public cleanModulesFolder(): void {
@@ -404,6 +454,9 @@ export class Extensions {
       }
     }
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     this.manager.dispose()

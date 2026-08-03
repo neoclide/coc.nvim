@@ -63,6 +63,9 @@ class DiagnosticManager implements Disposable {
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private messageTimer: NodeJS.Timeout
+  /**
+   * @internal
+   */
 
   public init(): void {
     commands.register({
@@ -122,6 +125,9 @@ class DiagnosticManager implements Disposable {
       collection.set(ev.uri, ev.diagnostics)
     }, null, this.disposables)
   }
+  /**
+   * @internal
+   */
 
   public checkConfigurationErrors(): void {
     const errors = workspace.configurations.errors
@@ -134,6 +140,9 @@ class DiagnosticManager implements Disposable {
       }
     }
   }
+  /**
+   * @internal
+   */
 
   public defineSigns(config: DiagnosticSignConfig): void {
     let { nvim } = this
@@ -147,12 +156,16 @@ class DiagnosticManager implements Disposable {
     }
     nvim.resumeNotification(false, true)
   }
+  /**
+   * @internal
+   */
 
   public getItem(bufnr: number): DiagnosticBuffer | undefined {
     return this.buffers.getItem(bufnr)
   }
 
   /**
+   * @internal
    * Fill location list with diagnostics
    */
   public async setLocationlist(bufnr: number): Promise<void> {
@@ -185,6 +198,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Get diagnostics ranges from document
    */
   public getSortedRanges(uri: string, minLevel: number | undefined, severity?: string): Range[] {
@@ -227,6 +241,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Get filtered diagnostics by collection.
    */
   public getDiagnosticsByCollection(buf: DiagnosticBuffer, collection: DiagnosticCollection): Diagnostic[] {
@@ -266,6 +281,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Show diagnostics under cursor in preview window
    */
   public async preview(): Promise<void> {
@@ -307,6 +323,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Jump to previous diagnostic position
    */
   public async jumpPrevious(severity?: string): Promise<void> {
@@ -332,6 +349,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Jump to next diagnostic position
    */
   public async jumpNext(severity?: string): Promise<void> {
@@ -433,6 +451,9 @@ class DiagnosticManager implements Disposable {
     if (!res) return
     return res[0].getDiagnosticsAtPosition(res[1])
   }
+  /**
+   * @internal
+   */
 
   public async echoCurrentMessage(target?: string): Promise<void> {
     let res = await this.getBufferAndPosition()
@@ -440,6 +461,9 @@ class DiagnosticManager implements Disposable {
     let [item, position] = res
     await item.echoMessage(false, position, target)
   }
+  /**
+   * @internal
+   */
 
   public async jumpRelated(): Promise<void> {
     let locations = await this.relatedInformation()
@@ -451,6 +475,9 @@ class DiagnosticManager implements Disposable {
       void window.showWarningMessage('No related information found.')
     }
   }
+  /**
+   * @internal
+   */
 
   public async relatedInformation(): Promise<Location[]> {
     let diagnostics = await this.getCurrentDiagnostics()
@@ -458,6 +485,9 @@ class DiagnosticManager implements Disposable {
     let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
     return locations
   }
+  /**
+   * @internal
+   */
 
   public reset(): void {
     clearTimeout(this.messageTimer)
@@ -467,6 +497,9 @@ class DiagnosticManager implements Disposable {
     }
     this.collections = []
   }
+  /**
+   * @internal
+   */
 
   public dispose(): void {
     clearTimeout(this.messageTimer)
@@ -489,6 +522,9 @@ class DiagnosticManager implements Disposable {
   private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
   }
+  /**
+   * @internal
+   */
 
   public async toggleDiagnostic(enable?: number): Promise<void> {
     this.enabled = enable == undefined ? !this.enabled : enable != 0
@@ -496,6 +532,9 @@ class DiagnosticManager implements Disposable {
       return buf.setState(this.enabled)
     }))
   }
+  /**
+   * @internal
+   */
 
   public async toggleDiagnosticBuffer(bufnr?: number, enable?: number): Promise<void> {
     bufnr = bufnr ?? workspace.bufnr
@@ -508,6 +547,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Refresh diagnostics by uri or bufnr
    */
   public async refreshBuffer(uri: string | number): Promise<boolean> {
@@ -518,6 +558,7 @@ class DiagnosticManager implements Disposable {
   }
 
   /**
+   * @internal
    * Force diagnostics refresh.
    */
   public async refresh(bufnr?: number): Promise<void> {

@@ -78,6 +78,9 @@ export default class FloatFactoryImpl implements Disposable {
     events.on('CursorMoved', this.onCursorMoved.bind(this, autoHide), this, this.disposables)
     events.on('CursorMovedI', this.onCursorMoved.bind(this, autoHide), this, this.disposables)
   }
+  /**
+   * @internal
+   */
 
   public unbind(): void {
     if (this.disposables.length) {
@@ -85,6 +88,9 @@ export default class FloatFactoryImpl implements Disposable {
       this.disposables = []
     }
   }
+  /**
+   * @internal
+   */
 
   public _onCursorMoved(autoHide: boolean, bufnr: number, cursor: [number, number]): void {
     if (bufnr == this._bufnr) return
@@ -99,6 +105,7 @@ export default class FloatFactoryImpl implements Disposable {
   }
 
   /**
+   * @internal
    * Create float window/popup at cursor position.
    * @deprecated use show method instead
    */
@@ -201,19 +208,31 @@ export default class FloatFactoryImpl implements Disposable {
       nvim.redrawVim()
     }
   }
+  /**
+   * @internal
+   */
 
   public checkRetrigger(bufnr: number): boolean {
     if (this.winid && this.targetBufnr == bufnr) return true
     return false
   }
+  /**
+   * @internal
+   */
 
   public get bufnr(): number {
     return this._bufnr
   }
+  /**
+   * @internal
+   */
 
   public get buffer(): Buffer | null {
     return this.bufnr ? this.nvim.createBuffer(this.bufnr) : null
   }
+  /**
+   * @internal
+   */
 
   public get window(): Window | null {
     return this.winid ? this.nvim.createWindow(this.winid) : null
