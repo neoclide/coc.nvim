@@ -154,7 +154,7 @@ export class Workspace {
       Object.defineProperty(this, method, {
         get: () => {
           return (...args: any[]) => {
-            let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+            let stack = global.__TEST__ ? '' : '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
             logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack)
             return window[method].apply(window, args)
           }
@@ -164,7 +164,7 @@ export class Workspace {
     for (let name of ['onDidOpenTerminal', 'onDidCloseTerminal']) {
       Object.defineProperty(this, name, {
         get: () => {
-          let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+          let stack = global.__TEST__ ? '' : '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
           logger.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack)
           return window[name]
         }
@@ -356,7 +356,7 @@ export class Workspace {
    */
   public registerAutocmd(autocmd: Autocmd, disposables?: Disposable[]): Disposable {
     let opts = Object.assign({}, autocmd)
-    Error.captureStackTrace(opts)
+    if (!global.__TEST__) Error.captureStackTrace(opts)
     let disposable = this.autocmds.registerAutocmd(opts as AutocmdOptionWithStack)
     if (disposables) disposables.push(disposable)
     return disposable

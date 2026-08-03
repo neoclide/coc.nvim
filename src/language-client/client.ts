@@ -443,7 +443,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let disabledFeatures = clientOptions.disabledFeatures ?? []
     for (let key of ['disableCompletion', 'disableWorkspaceFolders', 'disableDiagnostics']) {
       if (typeof clientOptions[key] === 'boolean') {
-        let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+        let stack = global.__TEST__ ? '' : '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
         logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
         if (clientOptions[key] === true) {
           let s = key.slice(7)

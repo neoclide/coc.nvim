@@ -27,7 +27,7 @@ export default class Manager<T extends object, P = object> {
 
   protected addProvider(item: ProviderItem<T, P>): Disposable {
     if (!item.provider.hasOwnProperty('__extensionName')) {
-      Error.captureStackTrace(item)
+      if (!global.__TEST__) Error.captureStackTrace(item)
       let name: string
       Object.defineProperty(item.provider, '__extensionName', {
         get: () => {

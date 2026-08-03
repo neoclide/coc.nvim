@@ -433,7 +433,7 @@ class Events {
           reject(e as Error)
         }
       })
-      Error.captureStackTrace(wrappedhandler)
+      if (!global.__TEST__) Error.captureStackTrace(wrappedhandler)
       arr.push(wrappedhandler)
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {

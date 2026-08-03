@@ -42,14 +42,14 @@ export class BaseApi {
   }
 
   public async request(name: string, args: any[] = [], skipConvert = false, skipErrorLog = false): Promise<any> {
-    Error.captureStackTrace(args)
+    if (!global.__TEST__) Error.captureStackTrace(args)
     return new Promise<any>((resolve, reject) => {
       let converted = skipConvert ? args : this.getArgsByPrefix(args)
       this.transport.request(name, converted, (err: any, res: any) => {
         if (err) {
           let e = new Error(err[1])
           if (!skipErrorLog && !shouldIgnore(e)) {
-            e.stack = `Error: request error on "${name}" - ${err[1]}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
+            e.stack = `Error: request error on "${name}" - ${err[1]}\n` + (args['stack'] ? args['stack'].split(/\r?\n/).slice(3).join('\n') : '')
             this.client.logError(`request error on "${name}"`, converted.map(o => o === this ? this.data : o), e)
           }
           reject(e)

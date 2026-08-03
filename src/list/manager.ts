@@ -5,7 +5,7 @@ import { ConfigurationScope, ConfigurationTarget } from '../configuration/types'
 import events from '../events'
 import extensions from '../extension/index'
 import { createLogger } from '../logger'
-import { defaultValue, disposeAll, getConditionValue } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { dataHome, isVim } from '../util/constants'
 import { isCancellationError } from '../util/errors'
 import { parseExtensionName } from '../util/extensionRegistry'
@@ -422,7 +422,7 @@ export class ListManager implements Disposable {
   public registerList(list: IList, internal = false): Disposable {
     let { name, interactive } = list
     let id: string | undefined
-    if (!internal) id = getConditionValue(parseExtensionName(Error().stack), undefined)
+    if (!internal && !global.__TEST__) id = parseExtensionName(Error().stack)
     let removed = this.deregisterList(name)
     this.listMap.set(name, list)
     const configNode = createConfigurationNode(name, interactive, id)

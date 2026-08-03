@@ -232,7 +232,7 @@ export class Notifications {
   }
 
   private getNotificationPreference(source?: string, isProgress = false): NotificationPreferences {
-    if (!source) source = parseExtensionName(Error().stack)
+    if (!source && !global.__TEST__) source = parseExtensionName(Error().stack)
     let config = this.configuration.get<NotificationConfiguration>('notification')
     let disabled = false
     if (isProgress) {

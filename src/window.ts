@@ -382,7 +382,7 @@ export class Window {
   }
 
   public async showNotification(config: NotificationConfig): Promise<void> {
-    let stack = Error().stack
+    let stack = global.__TEST__ ? undefined : Error().stack
     await this.notifications.showNotification(config, stack)
   }
 

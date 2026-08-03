@@ -56,7 +56,7 @@ export default abstract class Transport extends EventEmitter {
     let { pauseLevel } = this
     if (pauseLevel === 0) return isNotify ? null : Promise.resolve([[], null])
     let obj: any = {}
-    Error.captureStackTrace(obj)
+    if (!global.__TEST__) Error.captureStackTrace(obj)
     this.pauseLevel = pauseLevel - 1
     let list = this.paused.get(pauseLevel)
     this.paused.delete(pauseLevel)
@@ -66,14 +66,14 @@ export default abstract class Transport extends EventEmitter {
           return this.request('nvim_call_atomic', [list], (err, res) => {
             if (err) {
               let e = new Error(`call_atomic error: ${err[1]}`)
-              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
+              e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack
               return reject(e)
             }
             if (Array.isArray(res) && res[1] !== null && res[1] !== undefined) {
               let [index, errType, message] = res[1]
               let [fname, args] = list[index]
               let e = new Error(`call_atomic request error on "${fname}": ${message}`)
-              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
+              e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack
               this.logger.error(`call_atomic request error ${errType} on "${fname}"`, args, message, e)
               return reject(e)
             }

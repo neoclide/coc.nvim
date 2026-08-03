@@ -388,7 +388,7 @@ export class NeovimClient extends Neovim {
 
   public pauseNotification(): void {
     let o: any = {}
-    Error.captureStackTrace(o)
+    if (!global.__TEST__) Error.captureStackTrace(o)
     if (this.transport.pauseLevel !== 0) {
       this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack)
     }

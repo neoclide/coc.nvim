@@ -104,7 +104,7 @@ export class VimTransport extends Transport {
 
   public vimRequest(command: 'call' | 'eval', args: any[]): Promise<any> {
     if (!this.attached) return Promise.reject(new Error('transport disconnected'))
-    Error.captureStackTrace(args)
+    if (!global.__TEST__) Error.captureStackTrace(args)
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
     return new Promise((resolve, reject) => {
@@ -117,7 +117,7 @@ export class VimTransport extends Transport {
           }
         }
         if (err) {
-          err.stack = `Error: vim "${command}" error - ${err}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
+          err.stack = `Error: vim "${command}" error - ${err}\n` + (args['stack'] ? args['stack'].split(/\r?\n/).slice(3).join('\n') : '')
           this.client.logError(`Error on vim command "${command}"`, args, err)
           reject(err instanceof Error ? err : new Error(String(err)))
           return

@@ -338,7 +338,7 @@ export default class Configurations {
           folder = this._configuration.resolveFolder(resource) ?? this.resolveWorkspaceFolderForResource(resource)
           if (!folder) {
             console.error(`Unable to locate workspace folder configuration for ${resource}`)
-            logger.error(`Unable to locate workspace folder configuration`, resource, Error().stack)
+            logger.error(`Unable to locate workspace folder configuration`, resource, global.__TEST__ ? '' : Error().stack)
             return
           }
         }
