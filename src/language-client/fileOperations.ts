@@ -190,13 +190,12 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
   }
 
   public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): MinimatchOptions | undefined {
-    if (options === undefined) {
-      return undefined
+    // The spec doesn't state that dot files don't match, so make matching those the default.
+    const result: MinimatchOptions = { dot: true }
+    if (options?.ignoreCase === true) {
+      result.nocase = true
     }
-    if (options.ignoreCase === true) {
-      return { nocase: true }
-    }
-    return undefined
+    return result
   }
 }
 

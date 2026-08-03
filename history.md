@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-03
+
+- File operation glob patterns now match dotfiles and dot-prefixed directories by default.
+
 ## 2026-08-02
 
 - `watchFile` now watches the parent directory of the target file, so changes
