@@ -1207,7 +1207,7 @@ describe('utility', () => {
     let tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let p = waitWithToken(200, token)
-    await wait(1)
+    await wait(20)
     tokenSource.cancel()
     res = await p
     expect(res).toBe(true)
@@ -1304,7 +1304,7 @@ describe('utility', () => {
     let delied = delay(fn, 50)
     delied(100)
     delied(10)
-    await helper.wait(50)
+    await helper.waitValue(() => times, 1)
     expect(times).toBe(1)
   })
 })
@@ -1477,7 +1477,7 @@ describe('Mutex', () => {
     })
     let mutex = new Mutex()
     await mutex.use(fn)
-    await helper.wait(1)
+    await helper.wait(20)
     await mutex.use(fn)
     expect(count).toBe(2)
   })
@@ -1502,15 +1502,15 @@ describe('Sequence', () => {
     let s = new Sequence()
     let res: number[] = []
     s.run(async () => {
-      await helper.wait(3)
+      await helper.wait(20)
       res.push(0)
     })
     s.run(async () => {
-      await helper.wait(2)
+      await helper.wait(20)
       res.push(1)
     })
     s.run(async () => {
-      await helper.wait(1)
+      await helper.wait(20)
       res.push(2)
     })
     await s.waitFinish()
@@ -1521,7 +1521,7 @@ describe('Sequence', () => {
     let s = new Sequence()
     let res: number[] = []
     s.run(async () => {
-      await helper.wait(10)
+      await helper.wait(20)
       res.push(0)
     })
     s.run(async () => {
@@ -1849,7 +1849,7 @@ describe('diff', () => {
       let t = createTiming('name', 1)
       t.start()
       t.start('label')
-      await helper.wait(10)
+      await helper.wait(20)
       t.stop()
       t.start()
       t.stop()

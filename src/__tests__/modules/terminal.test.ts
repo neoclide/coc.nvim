@@ -25,11 +25,11 @@ describe('terminal properties', () => {
   it('should have correct cwd and env', async () => {
     let bufnr = terminal.bufnr
     terminal.sendText('echo $PWD')
-    await helper.wait(300)
+    await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /\S/)
     let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
     expect(lines[0].trim().length).toBeGreaterThan(0)
     terminal.sendText('echo $COC_TERMINAL')
-    await helper.wait(300)
+    await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
     lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
     expect(lines.includes(`option '-term'`)).toBe(true)
     terminal.onExit(-1)

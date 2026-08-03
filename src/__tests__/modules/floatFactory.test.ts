@@ -32,7 +32,7 @@ describe('FloatFactory', () => {
       }]
       let p = floatFactory.show(docs, { shadow: true, focusable: true, rounded: true, border: [1, 1, 1, 1] })
       floatFactory.close()
-      await helper.wait(10)
+      await helper.wait(20)
       let win = floatFactory.window
       expect(win).toBeNull()
     })
@@ -145,7 +145,7 @@ describe('FloatFactory', () => {
         content: 'f'
       }]
       let p = floatFactory.show(docs)
-      await helper.wait(10)
+      await helper.wait(20)
       floatFactory.close()
       await p
       let activated = await floatFactory.activated()
@@ -289,9 +289,9 @@ describe('FloatFactory', () => {
       await floatFactory.show(docs)
       floatFactory._onCursorMoved(false, floatFactory.bufnr, [1, 1])
       await nvim.call('cursor', cursor)
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.call('cursor', cursor)
-      await helper.wait(10)
+      await helper.wait(20)
       await helper.waitFor('coc#float#has_float', [], 1)
     })
 
@@ -301,7 +301,7 @@ describe('FloatFactory', () => {
       await doc.synchronize()
       await nvim.call('cursor', [5, 1])
       await nvim.input('A')
-      await helper.wait(50)
+      await helper.waitFor('mode', [], 'i')
       nvim.call('coc#start', [], true)
       await helper.waitPopup()
       let docs: Documentation[] = [{

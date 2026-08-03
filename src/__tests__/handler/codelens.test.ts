@@ -172,8 +172,10 @@ describe('codeLenes feature', () => {
 
   it('should cancel codeLenes request on document change', async () => {
     let cancelled = false
+    let started = false
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
       provideCodeLenses: (_, token) => {
+        started = true
         return new Promise(resolve => {
           token.onCancellationRequested(() => {
             cancelled = true
@@ -200,7 +202,7 @@ describe('codeLenes feature', () => {
       }
     }))
     let doc = await helper.createDocument('codelens.js')
-    await helper.wait(50)
+    await helper.waitValue(() => started, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a\nb\nc')])
     expect(cancelled).toBe(true)
   })
@@ -300,7 +302,7 @@ describe('codeLenes feature', () => {
       }
     }))
     let doc = await helper.createDocument('example.js')
-    await helper.wait(50)
+    await helper.waitValue(() => codeLens.buffers.getItem(doc.buffer.id) != null, true)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
@@ -328,7 +330,7 @@ describe('codeLenes feature', () => {
         }]
       }
     }))
-    await helper.wait(10)
+    await helper.wait(20)
     await codeLens.checkProvider()
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
     expect(res.length).toBe(1)

@@ -55,7 +55,7 @@ describe('register handler', () => {
     })
     await events.fire('BufWinEnter', [1, 1000])
     await events.fire('WinClosed', [1000])
-    await wait(10)
+    await wait(20)
     expect(fn).toHaveBeenCalledTimes(0)
   })
 

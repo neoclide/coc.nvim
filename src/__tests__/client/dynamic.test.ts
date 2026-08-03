@@ -194,7 +194,10 @@ describe('DynamicFeature', () => {
       helper.updateConfiguration('languageserver.vim.settings.foo', 'bar')
       let client = await startServer({})
       await client.sendNotification('pullConfiguration')
-      await helper.wait(50)
+      await helper.waitValue(async () => {
+        let res = await client.sendRequest('getConfiguration')
+        return Array.isArray(res)
+      }, true)
       let res = await client.sendRequest('getConfiguration')
       expect(Array.isArray(res)).toBe(true)
       expect(res[0]).toEqual('bar')
@@ -462,11 +465,11 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(0)
       await client.sendNotification('requestFolders')
-      await helper.wait(10)
+      await helper.wait(20)
       let res = await client.sendRequest('getFolders')
       expect(res).toBeNull()
       workspace.workspaceFolderControl.addWorkspaceFolder(process.cwd(), true)
-      await helper.wait(10)
+      await helper.wait(20)
       await client.stop()
     })
 

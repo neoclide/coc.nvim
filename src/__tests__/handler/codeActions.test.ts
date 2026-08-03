@@ -305,7 +305,7 @@ describe('handler codeActions', () => {
       expect(lines.length).toBe(2)
       expect(lines[1]).toMatch(/code refactor/)
       await nvim.input('2')
-      await helper.wait(1)
+      await helper.wait(20)
       await nvim.input('j')
       await nvim.input('<cr>')
       await helper.waitValue(async () => {

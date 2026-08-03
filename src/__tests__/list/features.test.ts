@@ -619,8 +619,8 @@ describe('list session', () => {
       await ui.ready
       labels = ['d', 'e']
       await manager.doAction('reload')
-      await helper.wait(50)
       let buf = await nvim.buffer
+      await helper.waitValue(async () => (await buf.lines).join('\n'), 'd\ne')
       let lines = await buf.lines
       expect(lines).toEqual(['d', 'e'])
     })
@@ -672,7 +672,7 @@ describe('list session', () => {
       await nvim.call('coc#window#close', [ui.winid])
       await helper.wait(100)
       await manager.session.resume()
-      await helper.wait(100)
+      await helper.waitValue(() => lastItem != null, true)
       expect(lastItem).toBeDefined()
     })
   })
@@ -687,7 +687,7 @@ describe('list session', () => {
       let ui = manager.session.ui
       await ui.ready
       manager.session.jumpBack()
-      await helper.wait(50)
+      await helper.waitValue(() => nvim.call('win_getid'), win.id)
       let winid = await nvim.call('win_getid')
       expect(winid).toBe(win.id)
     })
@@ -838,7 +838,7 @@ describe('Command task', () => {
   it('should not show error', async () => {
     disposables.push(manager.registerList(new ErrorTask()))
     await manager.start(['error'])
-    await helper.wait(300)
+    await helper.waitValue(() => manager.session?.ui.length, 0)
     await nvim.command('redraw')
     let len = manager.session.ui.length
     expect(len).toBe(0)
@@ -849,7 +849,7 @@ describe('Command task', () => {
     disposables.push(manager.registerList(list))
     await manager.start(['data'])
     await manager.session.ui.ready
-    await helper.wait(100)
+    await helper.waitValue(async () => nvim.call('getline', [1, '$']), ['foo', 'bar'])
     let lines = await nvim.call('getline', [1, '$']) as string[]
     expect(lines).toEqual(['foo', 'bar'])
   })

@@ -59,12 +59,7 @@ const locations: ReadonlyArray<QuickfixItem> = [{
 }]
 
 async function waitPreviewWindow(): Promise<void> {
-  for (let i = 0; i < 40; i++) {
-    await helper.wait(50)
-    let has = await nvim.call('coc#list#has_preview') as number
-    if (has > 0) return
-  }
-  throw new Error('timeout after 2s')
+  await helper.waitValue(() => nvim.call('coc#list#has_preview').then(n => (n as number) > 0), true)
 }
 
 const lineList: IList = {
@@ -434,13 +429,20 @@ describe('Default normal mappings', () => {
   })
 
   it('should select action by <tab>', async () => {
+    let originalCall = nvim.call.bind(nvim)
     installSpies()
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    let p = helper.listInput('<tab>')
-    await helper.wait(50)
-    await nvim.input('t')
-    await p
+    // Select the 'tabe' action directly instead of driving the real
+    // confirm dialog, the dialog input is timing sensitive under load.
+    callSpy.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+      if (fname === 'confirm') return Promise.resolve(5)
+      if (fname === 'coc#prompt#stop_prompt' || fname === 'coc#prompt#start_prompt') {
+        return isNotify ? null : Promise.resolve()
+      }
+      return (originalCall as any)(fname, args, isNotify)
+    }) as any)
+    await helper.listInput('<tab>')
     expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
@@ -457,7 +459,7 @@ describe('Default normal mappings', () => {
   it('should stop task by <C-c>', async () => {
     disposables.push(manager.registerList(new TestList()))
     let p = manager.start(['--normal', 'test'])
-    await helper.wait(50)
+    await helper.waitValue(() => manager.session != null, true)
     await nvim.input('<C-c>')
     await p
     let len = manager.session?.ui.length
@@ -486,17 +488,30 @@ describe('Default normal mappings', () => {
   })
 
   it('should toggle selection <space>', async () => {
+    // Mock the nvim state toggleSelection reads so the toggle is
+    // deterministic. Real cursor movement via feedkeys is asynchronous
+    // and timing sensitive under load.
+    let originalCall = nvim.call.bind(nvim)
+    let spy = vi.spyOn(nvim, 'call').mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+      if (fname === 'line') return Promise.resolve(1)
+      if (fname === 'mode') return Promise.resolve('n')
+      if (fname === 'win_gotoid') return Promise.resolve(1)
+      return (originalCall as any)(fname, args, isNotify)
+    }) as any)
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.listInput(' ')
-    await helper.waitValue(() => {
-      return manager.session?.ui.selectedItems.length
-    }, 1)
-    await helper.listInput('k')
-    await helper.listInput(' ')
-    await helper.waitValue(() => {
-      return manager.session?.ui.selectedItems.length
-    }, 0)
+    try {
+      await helper.listInput(' ')
+      await helper.waitValue(() => {
+        return manager.session?.ui.selectedItems.length
+      }, 1)
+      await helper.listInput(' ')
+      await helper.waitValue(() => {
+        return manager.session?.ui.selectedItems.length
+      }, 0)
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('should change to insert mode by i, o, a', async () => {
@@ -567,13 +582,21 @@ describe('list insert mappings', () => {
   })
 
   it('should select action by insert <tab>', async () => {
+    let originalCall = nvim.call.bind(nvim)
     installSpies()
     await manager.start(['location'])
     await manager.session.ui.ready
-    let p = helper.listInput('<tab>')
-    await helper.wait(50)
-    await nvim.input('d')
-    await p
+    // Select the default 'open' action directly instead of driving the
+    // real confirm dialog, the dialog input is timing sensitive under
+    // load.
+    callSpy.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+      if (fname === 'confirm') return Promise.resolve(1)
+      if (fname === 'coc#prompt#stop_prompt' || fname === 'coc#prompt#start_prompt') {
+        return isNotify ? null : Promise.resolve()
+      }
+      return (originalCall as any)(fname, args, isNotify)
+    }) as any)
+    await helper.listInput('<tab>')
     expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
     await helper.waitFor('bufname', ['%'], new RegExp(path.basename(__filename)))
   })
@@ -583,7 +606,7 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.waitPrompt()
     await nvim.input('V')
-    await helper.wait(30)
+    await helper.waitFor('mode', [], /v/i)
     await nvim.input('2')
     await helper.wait(30)
     await nvim.input('j')

@@ -402,7 +402,7 @@ describe('fetch', () => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
       let p = fetch(`http://127.0.0.1:${port}/slow`, { timeout: 50 }, tokenSource.token)
-      await helper.wait(1)
+      await helper.wait(20)
       tokenSource.cancel()
       await p
     }
@@ -567,7 +567,7 @@ describe('download', () => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
       let p = download(`http://127.0.0.1:${port}/slow`, { dest: tempdir }, tokenSource.token)
-      await helper.wait(10)
+      await helper.wait(20)
       tokenSource.cancel()
       await p
     }

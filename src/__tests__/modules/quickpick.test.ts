@@ -254,7 +254,7 @@ describe('showQuickPick', () => {
     let p = window.showQuickPick(items, { matchOnDescription: true })
     await helper.waitFloat()
     await nvim.input('d')
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.input('<cr>')
     let res = await p
     expect(res).toBeDefined()
@@ -288,7 +288,7 @@ describe('QuickPick configuration', () => {
     await quickpick.show()
     let winid = quickpick.winid
     await nvim.input('<C-f>')
-    await helper.wait(1)
+    await helper.wait(20)
     await nvim.input('<C-f>')
     await helper.waitValue(async () => {
       let info = await nvim.call('getwininfo', [winid])
@@ -296,7 +296,7 @@ describe('QuickPick configuration', () => {
     }, 2)
     await nvim.input('<C-b>')
     await nvim.input('<C-x>')
-    await helper.wait(1)
+    await helper.wait(20)
     await nvim.input('<C-b>')
     await helper.waitValue(async () => {
       let info = await nvim.call('getwininfo', [winid])
@@ -382,13 +382,13 @@ describe('createQuickPick', () => {
     let height = await win.height
     expect(height).toBe(4)
     await nvim.input('<C-j>')
-    await helper.wait(1)
+    await helper.wait(20)
     await nvim.input('<C-j>')
     await helper.waitValue(() => {
       return quickpick.currIndex
     }, 2)
     await nvim.input('<C-k>')
-    await helper.wait(1)
+    await helper.wait(20)
     await nvim.input('<C-k>')
     await helper.waitValue(() => {
       return quickpick.currIndex
@@ -401,9 +401,9 @@ describe('createQuickPick', () => {
     await quickpick.show()
     disposables.push(quickpick)
     await nvim.input('<C-space>')
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.input('<C-k>')
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.input('<C-space>')
     await helper.waitValue(() => {
       return quickpick.selectedItems.length

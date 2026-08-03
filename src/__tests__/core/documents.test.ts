@@ -226,11 +226,11 @@ describe('documents', () => {
     let doc = await workspace.document
     doc.setFiletype('javascript')
     documents.onFileTypeChange('javascript', doc.bufnr)
-    await helper.wait(10)
+    await helper.wait(20)
     expect(fn).toHaveBeenCalledTimes(0)
     doc.detach()
     documents.onFileTypeChange('javascript', doc.bufnr)
-    await helper.wait(10)
+    await helper.wait(20)
     expect(fn).toHaveBeenCalledTimes(0)
   })
 

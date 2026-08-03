@@ -241,7 +241,7 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       await nvim.input('<C-v>')
       await nvim.input('je')
-      await helper.wait(30)
+      await helper.waitFor('mode', [], /[\x16v]/i)
       await cursors.select(doc.bufnr, 'range', '\x16')
       let n = await rangeCount()
       expect(n).toBe(2)
@@ -695,7 +695,7 @@ describe('cursors', () => {
       let count = await rangeCount()
       expect(count).toBe(3)
       await nvim.input('<esc>')
-      await helper.wait(50)
+      await helper.waitValue(() => rangeCount(), 0)
       count = await rangeCount()
       expect(count).toBe(0)
       let has = await hasKeymap('<Esc>')
@@ -736,7 +736,7 @@ describe('cursors', () => {
       await nvim.call('cursor', [3, 1])
       const next = async (line: number, character: number) => {
         await nvim.input('<C-n>')
-        await helper.wait(50)
+        await helper.waitValue(() => nvim.call('coc#cursor#position'), [line, character])
         let cursor = await nvim.call('coc#cursor#position')
         expect(cursor).toEqual([line, character])
       }
@@ -749,7 +749,7 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       const prev = async (line: number, character: number) => {
         await nvim.input('<C-p>')
-        await helper.wait(30)
+        await helper.waitValue(() => nvim.call('coc#cursor#position'), [line, character])
         let cursor = await nvim.call('coc#cursor#position')
         expect(cursor).toEqual([line, character])
       }

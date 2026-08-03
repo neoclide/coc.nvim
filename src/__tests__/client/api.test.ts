@@ -155,11 +155,11 @@ describe('ProgressPart', () => {
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
     p.begin({ kind: 'begin', title: 'p', percentage: 1, cancellable: true })
-    await helper.wait(30)
+    await helper.waitValue(async () => (await nvim.call('coc#notify#win_list') as number[]).length, 1)
     p.report({ kind: 'report', message: 'msg', percentage: 10 })
-    await helper.wait(10)
+    await helper.wait(20)
     p.report({ kind: 'report', message: 'msg', percentage: 50 })
-    await helper.wait(10)
+    await helper.wait(20)
     p.done('finished')
   })
 
@@ -171,8 +171,8 @@ describe('ProgressPart', () => {
     expect(started).toBe(true)
     p.cancel()
     p.cancel()
+    await helper.waitValue(async () => (await nvim.call('coc#notify#win_list') as number[]).length, 1)
     let winids = await nvim.call('coc#notify#win_list') as number[]
-    await helper.wait(30)
     expect(winids.length).toBe(1)
     let win = nvim.createWindow(winids[0])
     let closing = await win.getVar('closing')
@@ -186,12 +186,7 @@ describe('ProgressPart', () => {
     let p = new ProgressPart(client, token)
     let started = p.begin({ kind: 'begin', title: 'canceleld', cancellable: true })
     expect(started).toBe(true)
-    for (let i = 0; i < 10; i++) {
-      await helper.wait(30)
-      let winids = await nvim.call('coc#notify#win_list') as number[]
-      if (winids.length == 1) break
-    }
-    await helper.wait(30)
+    await helper.waitValue(async () => (await nvim.call('coc#notify#win_list') as number[]).length, 1)
     nvim.call('coc#float#close_all', [], true)
     await helper.waitValue(() => {
       return client.token

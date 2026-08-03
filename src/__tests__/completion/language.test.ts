@@ -241,11 +241,11 @@ describe('language source', () => {
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'foo' })
       await helper.waitPopup()
-      await helper.wait(10)
+      await helper.wait(20)
       let content = await getDetailContent()
       expect(content).toMatch('foo')
       await nvim.input('<C-n>')
-      await helper.wait(30)
+      await helper.waitValue(async () => (await getDetailContent()).includes('bar'), true)
       content = await getDetailContent()
       expect(content).toMatch('bar')
     })
@@ -483,7 +483,10 @@ describe('language source', () => {
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
-      await helper.wait(50)
+      await helper.waitValue(async () => {
+        let p = await nvim.call('getcurpos') as number[]
+        return [p[1], p[2]]
+      }, [1, 3])
       expect(snippetManager.session).toBeDefined()
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
@@ -512,7 +515,10 @@ describe('language source', () => {
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'let  = Some(2);')
-      await helper.wait(50)
+      await helper.waitValue(async () => {
+        let p = await nvim.call('getcurpos') as number[]
+        return [p[1], p[2]]
+      }, [1, 5])
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
       expect(col).toBe(5)

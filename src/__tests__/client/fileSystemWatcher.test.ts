@@ -89,7 +89,7 @@ describe('FileSystemWatcherFeature', () => {
     await client.start()
     expect(called).toBe(false)
     client.notifyFileEvent(undefined)
-    await helper.wait(10)
+    await helper.wait(20)
     let uri = URI.file(__filename)
     watcher.fireCreate(uri)
     expect(called).toBe(true)

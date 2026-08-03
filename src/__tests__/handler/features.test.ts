@@ -894,7 +894,7 @@ describe('LinkedEditing', () => {
     await nvim.setLine('foo foo  ')
     await doc.synchronize()
     await nvim.call('cursor', [1, 2])
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.call('cursor', [1, 9])
     await helper.waitValue(() => {
       return matches()

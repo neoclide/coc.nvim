@@ -421,7 +421,7 @@ describe('diagnostic buffer', () => {
       let diagnostic = createDiagnostic('foo')
       let diagnostics = [diagnostic]
       await buf.update('test', diagnostics)
-      await helper.wait(30)
+      await helper.waitValue(async () => (await buf.doc.buffer.getVar('coc_diagnostic_info') as any)?.error, 1)
       await buf.reset({})
       let res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
       expect(res?.error).toBe(0)

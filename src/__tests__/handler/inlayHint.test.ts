@@ -46,7 +46,7 @@ async function registerProvider(content: string): Promise<Disposable> {
       return hints
     }
   })
-  await helper.wait(10)
+  await helper.wait(20)
   await doc.buffer.setLines(content.split(/\n/), { start: 0, end: -1 })
   await doc.synchronize()
   return disposable
@@ -121,7 +121,7 @@ describe('InlayHint', () => {
           return null
         }
       }))
-      await helper.wait(10)
+      await helper.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 3, 0), tokenSource.token)
@@ -150,7 +150,7 @@ describe('InlayHint', () => {
           return hint
         }
       }))
-      await helper.wait(10)
+      await helper.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
@@ -177,7 +177,7 @@ describe('InlayHint', () => {
           })
         }
       }))
-      await helper.wait(10)
+      await helper.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
@@ -406,7 +406,7 @@ describe('InlayHint', () => {
       let disposable = await registerProvider('foo')
       disposables.push(disposable)
       await nvim.input('i')
-      await helper.wait(10)
+      await helper.wait(20)
       await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
       await helper.wait(30)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
@@ -474,7 +474,7 @@ describe('InlayHint', () => {
         }
       })
       disposables.push(disposable)
-      await helper.wait(10)
+      await helper.wait(20)
       let filepath = await createTmpFile('a\n\b\nc\n', disposables)
       await helper.createDocument(filepath)
       await nvim.command('setfiletype vim')

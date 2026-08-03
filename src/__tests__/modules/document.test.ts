@@ -8,6 +8,7 @@ import Document, { getNotAttachReason, getUri } from '../../model/document'
 import { computeLinesOffsets, firstDiffLine, LinesTextDocument } from '../../model/textdocument'
 import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
+import events from '../../events'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -342,7 +343,8 @@ describe('Document', () => {
 
   describe('attach()', () => {
     it('should not attach when buffer not loaded', async () => {
-      await nvim.command('tabe foo | doautocmd CursorHold')
+      await nvim.command('tabe foo')
+      await events.fire('CursorHold', [await nvim.call('bufnr', ['%'])])
       let doc = await workspace.document
       let spy = vi.spyOn(doc.buffer, 'attach').mockImplementation(() => {
         return Promise.reject(new Error('detached'))
@@ -351,7 +353,7 @@ describe('Document', () => {
       spy.mockRestore()
       await nvim.command(`bd ${doc.bufnr}`)
       doc.attach()
-      await helper.wait(10)
+      await helper.wait(20)
       expect(doc.attached).toBe(false)
       await doc.synchronize()
     })
@@ -441,7 +443,7 @@ describe('Document', () => {
 
     it('should move cursor', async () => {
       await nvim.input('ia')
-      await helper.wait(30)
+      await helper.waitFor('mode', [], 'i')
       let doc = await workspace.document
       let edits: TextEdit[] = []
       edits.push({

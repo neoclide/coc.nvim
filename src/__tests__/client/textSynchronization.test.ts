@@ -157,7 +157,10 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient([{ language: 'vim' }])
       await client.start()
       await workspace.nvim.command(`bd! ${doc.bufnr}`)
-      await helper.wait(30)
+      await helper.waitValue(async () => {
+        let res = await client.sendRequest('getLastClose') as any
+        return res != null && res.uri === doc.uri
+      }, true)
       let res = await client.sendRequest('getLastClose') as any
       expect(res.uri).toBe(doc.uri)
       await client.stop()
@@ -180,7 +183,7 @@ describe('TextDocumentSynchronization', () => {
       feature.register(options)
       let uri = URI.file(path.join(os.tmpdir(), 'close.vim'))
       await workspace.loadFile(uri.toString())
-      await helper.wait(10)
+      await helper.wait(20)
       feature.unregister('unknown')
       let spy = vi.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
       feature.unregister(id)
@@ -262,8 +265,13 @@ describe('TextDocumentSynchronization', () => {
       let oldEmitter = feature._onNotificationSent
       feature.register({ registerOptions: {} } as any)
       let called = 0
+      let resolveChange: () => void
+      let changeSent = new Promise<void>(resolve => {
+        resolveChange = resolve
+      })
       feature.onNotificationSent(() => {
         called++
+        resolveChange()
       })
       let doc = await helper.createDocument(`${crypto.randomUUID()}.vim`)
       await helper.waitValue(() => {
@@ -271,9 +279,7 @@ describe('TextDocumentSynchronization', () => {
       }, true)
       await nvim.call('setline', [1, 'bar'])
       await doc.patchChange()
-      await helper.waitValue(() => {
-        return called > 0
-      }, true)
+      await changeSent
       // Simulate a client restart: dispose then re-register, as the built-in
       // features are reused across restarts.
       feature.dispose()
@@ -284,14 +290,17 @@ describe('TextDocumentSynchronization', () => {
         id: crypto.randomUUID(),
         registerOptions: { documentSelector: [{ language: 'vim' }], syncKind: TextDocumentSyncKind.Incremental }
       } as any)
+      let resolveRestart: () => void
+      let restartSent = new Promise<void>(resolve => {
+        resolveRestart = resolve
+      })
       feature.onNotificationSent(() => {
         called++
+        resolveRestart()
       })
       await nvim.call('setline', [1, 'baz'])
       await doc.patchChange()
-      await helper.waitValue(() => {
-        return called > 1
-      }, true)
+      await restartSent
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
     })
@@ -381,9 +390,14 @@ describe('TextDocumentSynchronization', () => {
 
     it('should not throw on response error', async () => {
       let called = false
+      let resolveCalled: () => void
+      let p = new Promise<void>(resolve => {
+        resolveCalled = resolve
+      })
       let client = createClient([], {
         willSaveWaitUntil: (event, next) => {
           called = true
+          resolveCalled()
           return next(event)
         }
       })
@@ -400,9 +414,7 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.synchronize()
       nvim.command('w', true)
-      await helper.waitValue(() => {
-        return called
-      }, true)
+      await p
       await client.stop()
     })
 

@@ -231,7 +231,7 @@ describe('extensions', () => {
           cb('msg', false)
         },
         update: async () => {
-          await helper.wait(1)
+          await helper.wait(20)
           return ''
         }
       } as any
@@ -252,7 +252,7 @@ describe('extensions', () => {
           cb('msg', false)
         },
         update: async url => {
-          await helper.wait(1)
+          await helper.wait(20)
           called = true
           expect(url).toBe('http://example.com')
           return ''

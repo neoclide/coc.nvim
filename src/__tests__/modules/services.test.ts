@@ -163,7 +163,7 @@ describe('services', () => {
       let opts = getLanguageServerOptions('x', 'y', toConfig({ port: 12580 }))
       let fn = opts[1] as Function
       let res = await fn()
-      await helper.wait(30)
+      await helper.waitValue(() => connected, true)
       expect(res).toBeDefined()
       expect(connected).toBe(true)
       s.destroy()
@@ -427,7 +427,7 @@ describe('services', () => {
       await helper.plugin.cocAction('registerNotification', 'test', 'notification')
       await service.start()
       await service.client.sendNotification('triggerNotification')
-      await helper.wait(10)
+      await helper.wait(20)
       await services.stop('test')
     })
 

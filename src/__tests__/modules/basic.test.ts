@@ -109,7 +109,7 @@ describe('task test', () => {
     disposables.push(task)
     task.onExit(fn)
     await task.start({ cmd: 'sleep', args: ['50'] })
-    await helper.wait(10)
+    await helper.wait(20)
     await task.stop()
     expect(fn).toHaveBeenCalled()
   })
@@ -429,9 +429,9 @@ describe('sources#getTriggerSources()', () => {
     let buf = await nvim.buffer
     await buf.setVar('coc_disabled_sources', ['around', 'buffer', 'file'])
     await nvim.input('Af')
-    await helper.wait(30)
+    await helper.waitFor('mode', [], 'i')
     await nvim.input('/')
-    await helper.wait(100)
+    await helper.waitValue(() => nvim.call('pumvisible'), 0)
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
   })
@@ -455,7 +455,7 @@ describe('Dialog module', () => {
     await dialog.show({})
     let winid = await dialog.winid
     await nvim.call('coc#float#close', [winid])
-    await helper.wait(50)
+    await helper.waitValue(() => callback.mock.calls.length, 1)
     expect(callback).toHaveBeenCalledWith(-1)
   })
 

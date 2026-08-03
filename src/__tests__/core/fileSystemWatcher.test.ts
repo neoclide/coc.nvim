@@ -179,7 +179,7 @@ describe('Watchman#subscribe', () => {
     })
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription(client.subscription, cwd, changes)
-    await helper.wait(30)
+    await helper.waitValue(() => called, true)
     expect(called).toBe(true)
     disposable.dispose()
     client.dispose()
@@ -210,14 +210,14 @@ describe('Watchman#subscribe', () => {
     c.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription('uuid', cwd, changes)
-    await wait(10)
+    await wait(20)
     sendSubscription(c.subscription, cwd, [])
-    await wait(10)
+    await wait(20)
     client.write(bser.dumpToBuffer({
       subscription: c.subscription,
       root: cwd
     }))
-    await wait(10)
+    await wait(20)
     expect(fn).toHaveBeenCalledTimes(0)
   })
 })
@@ -267,7 +267,7 @@ describe('fileSystemWatcher', () => {
     watcher.onDidCreate(fn)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(30)
+    await helper.waitValue(() => fn.mock.calls.length, 1)
     expect(fn).toHaveBeenCalled()
   })
 
@@ -292,10 +292,10 @@ describe('fileSystemWatcher', () => {
     watcher.onDidCreate(() => {
       called = true
     })
-    await helper.wait(10)
+    await helper.wait(20)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(10)
+    await helper.wait(20)
     expect(called).toBe(false)
   })
 
@@ -368,7 +368,7 @@ describe('fileSystemWatcher', () => {
       createFileChange(`c`, false, true),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(10)
+    await helper.wait(20)
     expect(called).toBe(false)
   })
 

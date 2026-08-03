@@ -174,7 +174,7 @@ describe('refactor', () => {
       let items = buf.fileItems
       expect(items.length).toBe(1)
       await nvim.command(`bd! ${buf.bufnr}`)
-      await helper.wait(30)
+      await helper.waitValue(() => refactor.has(buf.bufnr), false)
       let has = refactor.has(buf.bufnr)
       expect(has).toBe(false)
     })
@@ -569,7 +569,7 @@ bar
     it('should sync buffer change to file', async () => {
       let doc = await helper.createDocument()
       await doc.buffer.replace(['foo', 'bar', 'line'], 0)
-      await helper.wait(30)
+      await helper.waitValue(async () => (await doc.buffer.lines).join('\n'), 'foo\nbar\nline')
       let filename = URI.parse(doc.uri).fsPath
       let fileItem: FileItemDef = {
         filepath: filename,

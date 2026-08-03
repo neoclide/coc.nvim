@@ -151,7 +151,7 @@ describe('rename handler', () => {
       let p = commands.executeCommand('editor.action.rename', doc.uri, Position.create(0, 0))
       await helper.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       await p
@@ -178,7 +178,7 @@ describe('rename handler', () => {
       let p = rename.rename()
       await helper.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('<cr>')
       let res = await p
       expect(res).toBe(false)
@@ -222,7 +222,7 @@ describe('rename handler', () => {
       let p = rename.rename()
       await helper.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
@@ -253,7 +253,7 @@ describe('rename handler', () => {
       let p = rename.rename()
       await helper.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
@@ -273,7 +273,7 @@ describe('rename handler', () => {
       let p = rename.rename()
       await helper.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p

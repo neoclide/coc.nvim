@@ -172,7 +172,7 @@ describe('window', () => {
       let buf = await nvim.buffer
       let bufnr = buf.id
       window.showOutputChannel('NONE', 'edit')
-      await helper.wait(10)
+      await helper.wait(20)
       buf = await nvim.buffer
       expect(buf.id).toBe(bufnr)
     })

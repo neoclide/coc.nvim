@@ -176,7 +176,7 @@ function registerProvider(): void {
 async function createRustBuffer(enableProvider = true): Promise<Buffer> {
   helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
   if (enableProvider) registerProvider()
-  await helper.wait(2)
+  await helper.wait(20)
   let doc = await workspace.document
   let code = `fn main() {
     println!("H");
@@ -492,7 +492,7 @@ describe('semanticTokens', () => {
       expect(item.enabled).toBe(false)
       await nvim.command('edit bar')
       registerProvider()
-      await helper.wait(10)
+      await helper.wait(20)
       expect(item.enabled).toBe(true)
       await nvim.command(`b ${buf.id}`)
       await waitRefresh(item)
@@ -657,7 +657,7 @@ describe('semanticTokens', () => {
           throw new Error('custom error')
         }
       }, legend))
-      await helper.wait(2)
+      await helper.wait(20)
       let item = semanticTokens.getItem(doc.bufnr)
       let winid = await nvim.call('win_getid') as number
       await item.doRangeHighlight(winid, undefined, CancellationToken.None)
@@ -696,7 +696,7 @@ describe('semanticTokens', () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       item.cancel()
       let p = item.doHighlight(false, 0)
-      await helper.wait(10)
+      await helper.wait(20)
       item.cancel(true)
       await p
       expect(rangeCancelled).toBe(true)
@@ -707,7 +707,7 @@ describe('semanticTokens', () => {
       disposables.push(registerRangeProvider('vim', range => {
         return [0, 0, 3, 1, 0]
       }))
-      await helper.wait(10)
+      await helper.wait(20)
       let doc = await helper.createDocument('t.vim')
       await nvim.call('cursor', [1, 1])
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
@@ -804,7 +804,7 @@ describe('semanticTokens', () => {
           }
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
-      await helper.wait(2)
+      await helper.wait(20)
       let winid = await nvim.call('win_getid') as number
       await item.onShown(winid)
       expect(item.enabled).toBe(false)

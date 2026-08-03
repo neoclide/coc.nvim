@@ -1,5 +1,10 @@
 import { execSync } from 'node:child_process'
+import { relative } from 'node:path'
 import { defineConfig } from 'vitest/config'
+import { BaseSequencer } from 'vitest/node'
+import type { TestSpecification } from 'vitest/node'
+
+const SLOW_TEST_DURATION = 1000
 
 function runCommand(command) {
   return execSync(command, {
@@ -11,9 +16,31 @@ function runCommand(command) {
     .filter(Boolean)
 }
 
+class SlowFirstSequencer extends BaseSequencer {
+  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+    const sorted = await super.sort(files)
+    return sorted.sort((a, b) => {
+      const groupOrderDiff = a.project.config.sequence.groupOrder - b.project.config.sequence.groupOrder
+      if (groupOrderDiff !== 0) return groupOrderDiff
+      const aSlow = this.isSlow(a) ? 0 : 1
+      const bSlow = this.isSlow(b) ? 0 : 1
+      return aSlow - bSlow
+    })
+  }
+
+  private isSlow(spec: TestSpecification): boolean {
+    const key = `${spec.project.name}:${relative(this.ctx.config.root, spec.moduleId)}`
+    const result = this.ctx.cache.getFileTestResults(key)
+    return result ? result.duration > SLOW_TEST_DURATION : false
+  }
+}
+
 export default defineConfig({
   plugins: [],
   test: {
+    sequence: {
+      sequencer: SlowFirstSequencer,
+    },
     globals: true,
     experimental: {
       fsModuleCache: true,

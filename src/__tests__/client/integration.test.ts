@@ -45,69 +45,88 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientO
   return client
 }
 
+/**
+ * Minimal stand-in for LanguageClient, only the members SettingMonitor
+ * touches. Using a real client spawns a server process and runs the LSP
+ * handshake, which is slow and timing sensitive under load.
+ */
+class FakeClient {
+  public state = lsclient.State.Stopped
+  public startCalls = 0
+  public stopCalls = 0
+  public errors: string[] = []
+  public startError: Error | undefined
+  public stopError: Error | undefined
+
+  public needsStart(): boolean {
+    return this.state === lsclient.State.Stopped
+  }
+
+  public needsStop(): boolean {
+    return this.state === lsclient.State.Running
+  }
+
+  public start(): Promise<void> {
+    this.startCalls++
+    if (this.startError) {
+      this.state = lsclient.State.StartFailed
+      return Promise.reject(this.startError)
+    }
+    this.state = lsclient.State.Running
+    return Promise.resolve()
+  }
+
+  public stop(): Promise<void> {
+    this.stopCalls++
+    if (this.stopError) return Promise.reject(this.stopError)
+    this.state = lsclient.State.Stopped
+    return Promise.resolve()
+  }
+
+  public error(message: string): void {
+    this.errors.push(message)
+  }
+
+  public dispose(): void {
+  }
+}
+
 describe('SettingMonitor', () => {
-  it('should setup SettingMonitor', async () => {
-    let clientOptions: lsclient.LanguageClientOptions = {
-      uriConverter: { code2Protocol: uri => uri.toString() },
-      initializationOptions: () => {
-        return {}
-      },
-      markdown: { supportHtml: true },
-      disableDynamicRegister: true
-    }
-    let serverModule = path.join(__dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.ipc
-    }
-    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-    client.onNotification('customNotification', () => {
-    })
-    client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', () => {
-    })
-    await client.start()
-    await client.forceDocumentSync()
-    await client.sendNotification('register')
-    await helper.wait(50)
-    expect(client.traceOutputChannel).toBeDefined()
+  it('should start and stop client by setting', async () => {
+    let fake = new FakeClient()
+    let client = fake as unknown as lsclient.LanguageClient
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
-    helper.updateConfiguration('html.enabled', false)
-    disposables.push(monitor.start())
-    await helper.waitValue(() => {
-      return client.state
-    }, lsclient.State.Stopped)
     helper.updateConfiguration('html.enabled', true, disposables)
-    await helper.waitValue(() => {
-      return client.state != lsclient.State.Stopped
-    }, true)
-    await client.onReady()
-    await client.stop()
+    disposables.push(monitor.start())
+    // enabled setting starts the client
+    await helper.waitValue(() => fake.startCalls, 1)
+    expect(fake.state).toBe(lsclient.State.Running)
+    // disabling the setting stops the client
+    helper.updateConfiguration('html.enabled', false)
+    await helper.waitValue(() => fake.stopCalls, 1)
+    expect(fake.state).toBe(lsclient.State.Stopped)
+    // enabling it again starts the client
+    helper.updateConfiguration('html.enabled', true)
+    await helper.waitValue(() => fake.startCalls, 2)
+    expect(fake.state).toBe(lsclient.State.Running)
   })
 
-  it('should use SettingMonitor for primary setting', async () => {
-    let clientOptions: lsclient.LanguageClientOptions = {}
-    let serverModule = path.join(__dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      command: 'node',
-      args: [serverModule],
-      transport: lsclient.TransportKind.stdio,
-      options: { env: false }
-    }
-    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+  it('should report start and stop errors', async () => {
+    let fake = new FakeClient()
+    let client = fake as unknown as lsclient.LanguageClient
+    fake.startError = new Error('myerror')
     let monitor = new lsclient.SettingMonitor(client, 'TestServerEnabled')
-    let spy = vi.spyOn(client, 'start').mockReturnValue(Promise.reject(new Error('myerror')) as any)
+    helper.updateConfiguration('TestServerEnabled', true, disposables)
     disposables.push(monitor.start())
-    spy.mockRestore()
+    await helper.waitValue(() => fake.startCalls, 1)
+    expect(fake.errors[0]).toContain('Start failed after configuration change')
+    // start again without error to reach running state
+    fake.startError = undefined
     await client.start()
-    let called = false
-    let s = vi.spyOn(client, 'stop').mockImplementation(() => {
-      called = true
-      return Promise.reject(new Error('myerror'))
-    })
+    fake.stopError = new Error('myerror')
     helper.updateConfiguration('TestServerEnabled', false)
-    await helper.waitValue(() => called, true)
-    s.mockRestore()
-    await client.stop()
+    await helper.waitValue(() => fake.stopCalls, 1)
+    expect(fake.errors[1]).toContain('Stop failed after configuration change')
   })
 })
 

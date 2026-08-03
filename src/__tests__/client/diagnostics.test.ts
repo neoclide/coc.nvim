@@ -155,7 +155,7 @@ describe('DiagnosticRequestor', () => {
     await helper.waitValue(() => calls, 1)
     manager.dispose()
     resolvePull({ items: [] })
-    await helper.wait(50)
+    await helper.waitValue(() => calls, 1)
     expect(calls).toBe(1)
   })
 
@@ -192,7 +192,7 @@ describe('DiagnosticRequestor', () => {
       await helper.waitValue(() => calls, 1)
       manager.forgetDocument(doc)
       await p
-      await helper.wait(50)
+      await helper.waitValue(() => calls, 1)
       expect(calls).toBe(1)
     } finally {
       visible.mockRestore()
@@ -319,7 +319,7 @@ describe('DiagnosticFeature', () => {
       opt.documentSelector = [{ language: 'vim' }]
     })
     let doc = await workspace.loadFile(getUri(1), 'edit')
-    await helper.wait(10)
+    await helper.wait(20)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(TextDocument.create('file:///1', 'vim', 1, ''))
     let res = provider.knows(PullState.document, doc.textDocument)
@@ -337,7 +337,7 @@ describe('DiagnosticFeature', () => {
       }
     })
     let doc = await workspace.loadFile(getUri('a.ts'), 'edit')
-    await helper.wait(10)
+    await helper.wait(20)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
@@ -350,7 +350,7 @@ describe('DiagnosticFeature', () => {
     await workspace.loadFile(getUri('error'), 'edit')
     await workspace.loadFile(getUri('cancel'), 'tabe')
     await workspace.loadFile(getUri('retrigger'), 'tabe')
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.command('normal! 2gt')
     await workspace.loadFile(getUri('unchanged'), 'edit')
     await helper.wait(20)
@@ -405,7 +405,7 @@ describe('DiagnosticFeature', () => {
     }, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     await nvim.command('wa')
-    await helper.wait(10)
+    await helper.wait(20)
     await client.stop()
   })
 

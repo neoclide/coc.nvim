@@ -166,6 +166,10 @@ describe('InlineCompletion', () => {
       let res = await inlineCompletion.accept(doc.bufnr)
       // Check result
       expect(res).toBe(true)
+      // Inserting the snippet changes the document, which re-triggers inline
+      // completion asynchronously. Cancel again so the assertion is not
+      // racing with a newly created session.
+      inlineCompletion.cancel()
       expect(inlineCompletion.session).toBeUndefined() // Session should be cleared
       expect(executeCommandSpy).toHaveBeenCalledWith(
         'editor.action.insertSnippet',

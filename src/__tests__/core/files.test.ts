@@ -688,7 +688,7 @@ describe('getOriginalLine', () => {
       await helper.waitFor('eval', ['expand("%:p")'], fsPath)
       await nvim.call('win_gotoid', [winid])
       await nvim.input('<esc>')
-      await helper.wait(10)
+      await helper.wait(20)
     })
   })
 

@@ -369,7 +369,7 @@ describe('Client integration', () => {
   })
 
   test('SignatureHelpRequest', async () => {
-    await helper.wait(50)
+    await helper.waitValue(() => client.getFeature(SignatureHelpRequest.method).getProvider(document) != null, true)
     let provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
     isDefined(provider)
     const result = await provider.provideSignatureHelp(document, position, tokenSource.token,

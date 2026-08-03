@@ -94,7 +94,7 @@ describe('createFloatFactory()', () => {
 describe('showMessage()', () => {
   it('should showMessage on vim', async () => {
     ui.echoMessages(nvim, 'my message', 'more', 'more')
-    await helper.wait(50)
+    await helper.waitValue(async () => helper.getCmdline().then(s => s.includes('my message')), true)
     let cmdline = await helper.getCmdline()
     expect(cmdline).toMatch(/my message/)
   })
@@ -429,6 +429,22 @@ describe('contentProvider', () => {
   })
 })
 
+async function getAutocmdIds(event: string, pattern?: string): Promise<number[]> {
+  let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event }]) as any[]
+  let ids: number[] = []
+  for (let item of list) {
+    if (pattern && item.pattern !== pattern) continue
+    let command = item.cmd ?? item.command
+    let match = /doAutocmd', \[(\d+)/.exec(command as string)
+    if (match) ids.push(Number(match[1]))
+  }
+  return ids
+}
+
+async function triggerAutocmd(id: number): Promise<void> {
+  await helper.plugin.cocAction('doAutocmd', id)
+}
+
 describe('setupDynamicAutocmd()', () => {
   afterEach(() => {
     nvim.command(`autocmd! coc_dynamic_autocmd`, true)
@@ -477,12 +493,14 @@ describe('setupDynamicAutocmd()', () => {
         times++
       }
     })
-    nvim.command('doautocmd <nomodeline> CursorMoved', true)
-    await helper.waitValue(() => times, 1)
-    disposable.dispose()
-    await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.wait(10)
+    let ids = await getAutocmdIds('CursorMoved')
+    expect(ids.length).toBe(1)
+    await triggerAutocmd(ids[0])
     expect(times).toBe(1)
+    disposable.dispose()
+    await new Promise(resolve => process.nextTick(resolve))
+    let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'CursorMoved' }]) as any[]
+    expect(list.length).toBe(0)
   })
 
   it('should remove autocmd from nvim on dispose', async () => {
@@ -526,11 +544,16 @@ describe('setupDynamicAutocmd()', () => {
       event: 'CursorMoved',
       callback: () => { second++ }
     })
-    await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.waitValue(() => first + second, 2)
+    let ids = await getAutocmdIds('CursorMoved')
+    expect(ids.length).toBe(2)
+    for (let id of ids) await triggerAutocmd(id)
+    expect(first + second).toBe(2)
     disposable.dispose()
-    await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.waitValue(() => second, 2)
+    await new Promise(resolve => process.nextTick(resolve))
+    ids = await getAutocmdIds('CursorMoved')
+    expect(ids.length).toBe(1)
+    await triggerAutocmd(ids[0])
+    expect(second).toBe(2)
     expect(first).toBe(1)
   })
 
@@ -544,8 +567,27 @@ describe('setupDynamicAutocmd()', () => {
         throw new Error('my error')
       }
     })
-    nvim.command('doautocmd <nomodeline> CursorHold', true)
-    await helper.waitValue(() => called, true)
+    let ids = await getAutocmdIds('CursorHold')
+    expect(ids.length).toBe(1)
+    await triggerAutocmd(ids[0])
+    expect(called).toBe(true)
+    disposable.dispose()
+  })
+
+  it('should not throw on rejecting autocmd callback', async () => {
+    let called = 0
+    let disposable = workspace.registerAutocmd({
+      event: 'CursorHold',
+      request: true,
+      callback: () => {
+        called++
+        return Promise.reject(new Error('my error'))
+      }
+    })
+    let ids = await getAutocmdIds('CursorHold')
+    expect(ids.length).toBe(1)
+    await triggerAutocmd(ids[0])
+    expect(called).toBe(1)
     disposable.dispose()
   })
 
@@ -557,8 +599,10 @@ describe('setupDynamicAutocmd()', () => {
         called = true
       }
     })
-    await nvim.command('doautocmd <nomodeline> User CocJumpPlaceholder')
-    await helper.waitValue(() => called, true)
+    let ids = await getAutocmdIds('User', 'CocJumpPlaceholder')
+    expect(ids.length).toBe(1)
+    await triggerAutocmd(ids[0])
+    expect(called).toBe(true)
   })
 })
 
@@ -605,10 +649,10 @@ describe('create terminal', () => {
       shellPath: which.sync('bash'),
       strictEnv: true
     })
-    await helper.wait(10)
+    await helper.wait(20)
     terminal.sendText(`echo $NODE_ENV`, true)
-    await helper.wait(50)
     let buf = nvim.createBuffer(terminal.bufnr)
+    await helper.waitFor('eval', [`join(getbufline(${terminal.bufnr},1,'$'),'\n')`], /\S/)
     let lines = await buf.lines
     expect(lines.includes('test')).toBe(false)
   })
@@ -708,7 +752,7 @@ describe('create terminal', () => {
     expect(terminal.processId).toBeDefined()
     expect(terminal.name).toBeDefined()
     terminal.dispose()
-    await helper.wait(30)
+    await helper.waitValue(() => terminal.bufnr, undefined)
     expect(terminal.bufnr).toBeUndefined()
   })
 })

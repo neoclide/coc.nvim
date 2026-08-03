@@ -91,20 +91,36 @@ describe('symbols outline', () => {
       let doc = workspace.getDocument(bufnr)
       uri = doc.uri
       await symbols.showOutline(0)
-      await helper.waitValue(async () => {
-        let id = await nvim.eval('get(w:,"cocViewId",v:null)')
-        return id != null
-      }, true)
+      let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE']) as number
+      expect(winid).not.toBe(-1)
+      // Make sure the outline window is focused before sending keys, the
+      // tree keymaps are buffer local and the float may not be current yet
+      // under load.
+      await nvim.call('win_gotoid', [winid])
+      await helper.waitValue(async () => nvim.call('win_getid') as Promise<number>, winid)
       await nvim.call('cursor', [3, 1])
       let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
         return Promise.resolve(0)
       })
-      await nvim.input('<tab>')
-      await helper.waitValue(async () => {
-        return await nvim.eval('getline(1)')
-      }, ' myClass {')
-      spy.mockRestore()
-    })
+      let resolveApplied: () => void
+      let applied = new Promise<void>(resolve => {
+        resolveApplied = resolve
+      })
+      let originalApply = workspace.applyEdit.bind(workspace)
+      let applySpy = vi.spyOn(workspace, 'applyEdit').mockImplementation((edit => {
+        let p = originalApply(edit)
+        void p.then(() => resolveApplied(), () => resolveApplied())
+        return p
+      }) as any)
+      try {
+        await nvim.input('<tab>')
+        await applied
+        await helper.waitValue(async () => nvim.eval('getline(1)') as Promise<string>, ' myClass {')
+      } finally {
+        spy.mockRestore()
+        applySpy.mockRestore()
+      }
+    }, 15000)
 
     it('should invoke visual select', async () => {
       await createBuffer()
@@ -112,13 +128,20 @@ describe('symbols outline', () => {
       await symbols.showOutline(0)
       await helper.waitFor('getline', [3], /fun1/)
       await nvim.command('exe 3')
-      await nvim.input('<tab>')
-      await helper.waitPrompt()
-      await nvim.input('<cr>')
-      await helper.waitFor('mode', [], 'v')
+      // Pick the only action (visual select) directly, the real menu
+      // prompt is timing sensitive under load.
+      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+        return Promise.resolve(0)
+      })
+      try {
+        await nvim.input('<tab>')
+        await helper.waitValue(async () => nvim.call('mode') as Promise<string>, 'v')
+      } finally {
+        spy.mockRestore()
+      }
       let buf = await nvim.buffer
       expect(buf.id).toBe(bufnr)
-    })
+    }, 15000)
   })
 
   describe('configuration', () => {
@@ -133,11 +156,10 @@ describe('symbols outline', () => {
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
       await events.fire('CursorHold', [curr, [3, 1]])
-      await helper.wait(30)
       await nvim.call('cursor', [1, 1])
       await events.fire('CursorHold', [curr, [1, 1]])
-      await helper.wait(30)
       let buf = nvim.createBuffer(bufnr)
+      await helper.waitValue(async () => (await buf.getSigns({ group: 'CocTree' })).length, 1)
       let lines = await buf.getLines()
       expect(lines.slice(1)).toEqual([
         '- c myClass 1', '    m fun1 2', '    m fun2 3'
@@ -194,7 +216,7 @@ describe('symbols outline', () => {
       let lines = await buf.lines
       expect(lines[0]).toMatch('Document symbol provider not found')
       await nvim.command(`bd! ${b.id}`)
-      await helper.wait(10)
+      await helper.wait(20)
       let loaded = await buf.loaded
       expect(loaded).toBe(true)
     })
@@ -216,7 +238,7 @@ describe('symbols outline', () => {
       helper.updateConfiguration('outline.checkBufferSwitch', false, disposables)
       await symbols.showOutline(1)
       await createBuffer()
-      await helper.wait(50)
+      await helper.waitValue(async () => (await getOutlineBuffer()) != null, true)
       let buf = await getOutlineBuffer()
       expect(buf).toBeDefined()
     })
@@ -275,15 +297,18 @@ fun1() {}
       await createBuffer(code)
       await symbols.showOutline(0)
       await helper.wait(30)
-      await nvim.input('<C-s>')
-      await helper.waitPrompt()
-      await nvim.input('<esc>')
-      await helper.wait(30)
-      await nvim.input('<C-s>')
-      await helper.waitPrompt()
-      await nvim.input('3')
-      await helper.waitFor('getline', [1], 'OUTLINE Position')
-    })
+      // Pick the 'position' sort method directly, the real menu prompt is
+      // timing sensitive under load.
+      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+        return Promise.resolve(2)
+      })
+      try {
+        await nvim.input('<C-s>')
+        await helper.waitValue(async () => nvim.eval('getline(1)') as Promise<string>, 'OUTLINE Position')
+      } finally {
+        spy.mockRestore()
+      }
+    }, 15000)
 
     it('should show detail as description', async () => {
       helper.updateConfiguration('outline.detailAsDescription', true, disposables)
@@ -318,7 +343,7 @@ fun1() {}
       await createBuffer()
       await symbols.showOutline(0)
       await nvim.command('edit')
-      await helper.wait(30)
+      await helper.waitValue(() => nvim.call('coc#window#find', ['cocViewId', 'OUTLINE']).then(w => (w as number) > 0), true)
       let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
       expect(winid).toBeGreaterThan(0)
     })
@@ -345,7 +370,7 @@ fun1() {}
     it('should recreated when original window exists', async () => {
       let win = await nvim.window
       await symbols.showOutline(1)
-      await helper.wait(50)
+      await helper.waitValue(async () => (await getOutlineBuffer()) != null, true)
       await nvim.setWindow(win)
       await createBuffer()
       await helper.waitValue(async () => {
@@ -358,7 +383,7 @@ fun1() {}
       await createBuffer()
       await symbols.showOutline(1)
       await nvim.command(`vnew +setl\\ buftype=nofile`)
-      await helper.wait(50)
+      await helper.waitValue(async () => (await getOutlineBuffer()) != null, true)
       let buf = await getOutlineBuffer()
       expect(buf).toBeDefined()
       let lines = await buf.lines

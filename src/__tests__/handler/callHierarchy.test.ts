@@ -164,7 +164,7 @@ describe('CallHierarchy', () => {
     let matches = await nvim.call('getmatches') as any[]
     expect(matches.length).toBe(2)
     await nvim.command(`b ${bufnr}`)
-    await helper.wait(50)
+    await helper.waitValue(async () => (await nvim.call('getmatches') as any[]).length, 0)
     matches = await nvim.call('getmatches') as any[]
     expect(matches.length).toBe(0)
     await nvim.command(`wincmd o`)
@@ -265,7 +265,11 @@ describe('CallHierarchy', () => {
     await nvim.input('<tab>')
     await helper.waitPrompt()
     await nvim.input('3')
-    await helper.wait(200)
+    await helper.waitValue(async () => buf.lines, [
+      'INCOMING CALLS',
+      '- c bar Detail',
+      '  + c test'
+    ])
     lines = await buf.lines
     expect(lines).toEqual([
       'INCOMING CALLS',
@@ -310,7 +314,11 @@ describe('CallHierarchy', () => {
     await nvim.input('<tab>')
     await helper.waitPrompt()
     await nvim.input('4')
-    await helper.wait(200)
+    await helper.waitValue(async () => buf.lines, [
+      'OUTGOING CALLS',
+      '- c test',
+      '  + c bar Detail'
+    ])
     lines = await buf.lines
     expect(lines).toEqual([
       'OUTGOING CALLS',
@@ -352,7 +360,10 @@ describe('CallHierarchy', () => {
     await nvim.input('<tab>')
     await helper.waitPrompt()
     await nvim.input('2')
-    await helper.wait(200)
+    await helper.waitValue(async () => buf.lines, [
+      'OUTGOING CALLS',
+      '- c foo'
+    ])
     lines = await buf.lines
     expect(lines).toEqual([
       'OUTGOING CALLS',

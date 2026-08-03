@@ -116,10 +116,9 @@ describe('list ui', () => {
       await ui.ready
       await ui.selectLines(1, 2)
       await nvim.call('coc#window#close', [ui.winid])
-      await helper.wait(100)
       await manager.session.resume()
-      await helper.wait(100)
       let buf = await nvim.buffer
+      await helper.waitValue(async () => (await buf.getSigns({ group: 'coc-list' })).length, 2)
       let res = await buf.getSigns({ group: 'coc-list' })
       expect(res.length).toBe(2)
     })
@@ -172,7 +171,7 @@ describe('list ui', () => {
       await ui.ready
       await mockMouse(win.id, 1)
       await ui.onMouse('mouseUp')
-      await helper.wait(50)
+      await helper.waitValue(async () => (await nvim.window).id, win.id)
       let curr = await nvim.window
       expect(curr.id).toBe(win.id)
     })
@@ -205,7 +204,7 @@ describe('reversed list', () => {
     let lines = await buf.lines
     expect(lines).toEqual(['d', 'c', 'b', 'a'])
     await helper.listInput('a')
-    await helper.wait(50)
+    await helper.waitValue(async () => buf.lines, ['a'])
     lines = await buf.lines
     expect(lines).toEqual(['a'])
     let res = await buf.getHighlights('list')
@@ -271,9 +270,8 @@ describe('reversed list', () => {
     let ui = manager.session.ui
     ui.setCursor(99)
     await p
-    await helper.wait(50)
-    // ui.setCursor(2)
     let buf = nvim.createBuffer(ui.bufnr)
+    await helper.waitValue(async () => buf.lines, ['5', '4', '3', '2', '1'])
     let lines = await buf.lines
     expect(lines).toEqual(['5', '4', '3', '2', '1'])
     let lnum = await nvim.call('line', ['.'])

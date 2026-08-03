@@ -112,7 +112,7 @@ test('DefaultErrorHandler', async () => {
   expect(handler.error(new Error('test'), { jsonrpc: '' }, 5).action).toBe(ErrorAction.Shutdown)
   handler.closed()
   handler.milliseconds = 1
-  await wait(10)
+  await wait(20)
   let res = handler.closed()
   expect(res.action).toBe(CloseAction.Restart)
   handler.milliseconds = 10 * 1000
@@ -173,12 +173,12 @@ test('Delayer - forceDelivery', async () => {
   let delayer = new Delayer(150)
   delayer.forceDelivery()
   delayer.trigger(factory).then((result) => { assert.equal(result, 1); assert(!delayer.isTriggered()) })
-  await wait(10)
+  await wait(20)
   delayer.forceDelivery()
   expect(count).toBe(1)
   void delayer.trigger(factory)
   delayer.trigger(factory, -1)
-  await wait(10)
+  await wait(20)
   delayer.cancel()
   expect(count).toBe(1)
 })

@@ -130,7 +130,7 @@ describe('Menu', () => {
     await menu.show()
     await helper.waitPrompt()
     await nvim.input('0')
-    await helper.wait(30)
+    await helper.waitValue(() => nvim.call('coc#float#has_float', []), 1)
     let exists = await nvim.call('coc#float#has_float', [])
     expect(exists).toBe(1)
   })
@@ -175,21 +175,21 @@ describe('Menu', () => {
     await nvim.input('j')
     await nvim.input('j')
     await nvim.input('j')
-    await helper.wait(50)
+    await helper.waitValue(async () => (await win.cursor)[0], 1)
     let cursor = await win.cursor
     expect(cursor[0]).toBe(1)
     await nvim.input('k')
     await nvim.input('k')
     await nvim.input('k')
-    await helper.wait(50)
+    await helper.waitValue(async () => (await win.cursor)[0], 1)
     cursor = await win.cursor
     expect(cursor[0]).toBe(1)
     await nvim.input('G')
-    await helper.wait(50)
+    await helper.waitValue(async () => (await win.cursor)[0], 3)
     cursor = await win.cursor
     expect(cursor[0]).toBe(3)
     await nvim.input('g')
-    await helper.wait(50)
+    await helper.waitValue(async () => (await win.cursor)[0], 1)
     cursor = await win.cursor
     expect(cursor[0]).toBe(1)
     await nvim.input('<C-f>')
@@ -210,7 +210,7 @@ describe('Menu', () => {
     })
     await helper.waitPrompt()
     await nvim.input('1')
-    await helper.wait(10)
+    await helper.wait(20)
     await nvim.input('0')
     await promise
     expect(selected).toBe(9)

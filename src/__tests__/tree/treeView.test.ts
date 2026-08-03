@@ -301,7 +301,7 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.command('exe 2')
       await nvim.input('<space>')
       await helper.waitValue(() => {
@@ -358,7 +358,7 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.command('exe 2')
       await nvim.input('<space>')
       await helper.waitValue(() => selection.length, 1)
@@ -458,7 +458,7 @@ describe('TreeView', () => {
         // noop
       })
       await nvim.input('<cr>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.command('exe 1')
       await helper.waitValue(() => cancelled, true)
       spy.mockRestore()
@@ -472,10 +472,10 @@ describe('TreeView', () => {
       await treeView.show()
       await nvim.command('exe 1')
       await nvim.input('t')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.command('exe 2')
       await nvim.input('t')
       await checkLines([
@@ -795,7 +795,7 @@ describe('TreeView', () => {
       await events.race(['TextChanged'])
       let line = await nvim.call('getline', [1])
       expect(line).toMatch(msg)
-      await helper.wait(50)
+      await helper.waitValue(() => treeView.checkLines(), true)
       let res = await treeView.checkLines()
       expect(res).toBe(true)
     })
@@ -1061,7 +1061,9 @@ describe('TreeView', () => {
         ['ab'],
         ['fA']
       ])
-      await helper.wait(30)
+      await helper.waitValue(async () => {
+        return await nvim.call('getline', [1, '$'])
+      }, ['test', 'a ', '  ab', '  fA'])
       await nvim.input('<down>')
       await helper.waitValue(() => {
         let curr = treeView.selection[0]
@@ -1114,7 +1116,7 @@ describe('TreeView', () => {
     it('should keep state when press <cr> with empty selection', async () => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await helper.wait(50)
+      await helper.waitValue(async () => nvim.call('getline', [1, '$']), ['test', 'ab '])
       await nvim.input('<cr>')
       await checkLines(['test', 'ab '])
     })
@@ -1163,17 +1165,17 @@ describe('TreeView', () => {
     it('should navigate input history by <C-n> and <C-p>', async () => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('<esc>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('f')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('b')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('<C-o>')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('f')
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('<C-n>')
       await checkLines(['test', 'b ', '  b',])
       await nvim.input('<C-p>')
