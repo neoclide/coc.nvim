@@ -8,7 +8,7 @@
   },
   "type": "commonjs",
   "scripts": {
-    "lint": "oxlint .",
+    "lint": "oxlint . && nvim --headless -u NONE -c 'helptags doc' -c 'q'",
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "rolldown -c",
     "watch": "rolldown -c -w",

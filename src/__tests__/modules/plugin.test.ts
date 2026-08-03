@@ -184,13 +184,6 @@ describe('typings declarations', () => {
 })
 
 describe('help tags', () => {
-  it('should generate help tags', async () => {
-    let root = workspace.pluginRoot
-    let dir = await nvim.call('fnameescape', path.join(root, 'doc'))
-    let res = await nvim.call('execute', `helptags ${dir}`) as string
-    expect(res.length).toBe(0)
-  })
-
   it('should return jumpable', async () => {
     let jumpable = await helper.plugin.cocAction('snippetCheck', false, true)
     expect(jumpable).toBe(false)
