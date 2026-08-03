@@ -69,9 +69,18 @@ export default class Autocmds implements Disposable {
     if (autocmd) {
       let option = autocmd.option
       logger.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option)
+      let tokenSource = new CancellationTokenSource()
+      let logged = false
+      let logError = (e: any) => {
+        if (logged) return
+        logged = true
+        logger.error(`Error on autocmd "${option.event}"`, args, omit(option, ['callback', 'stack']), e)
+      }
       try {
-        let tokenSource = new CancellationTokenSource()
+        // Handle the callback rejection here: it could settle after the
+        // request timed out, which would otherwise be an unhandled rejection.
         let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]))
+        promise.catch(logError)
         if (option.request) {
           let timer
           let tp = new Promise(resolve => {
@@ -83,12 +92,13 @@ export default class Autocmds implements Disposable {
           })
           await Promise.race([tp, promise])
           clearTimeout(timer)
-          tokenSource.dispose()
         } else {
           await promise
         }
       } catch (e) {
-        logger.error(`Error on autocmd "${option.event}"`, omit(option, ['callback', 'stack']), e)
+        logError(e)
+      } finally {
+        tokenSource.dispose()
       }
     }
   }
