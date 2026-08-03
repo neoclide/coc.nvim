@@ -241,7 +241,7 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       await nvim.input('<C-v>')
       await nvim.input('je')
-      await helper.waitFor('mode', [], /[\x16v]/i)
+      await helper.waitFor('mode', [], new RegExp(`[${String.fromCharCode(0x16)}v]`, 'i'))
       await cursors.select(doc.bufnr, 'range', '\x16')
       let n = await rangeCount()
       expect(n).toBe(2)
