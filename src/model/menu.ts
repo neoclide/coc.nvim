@@ -27,8 +27,14 @@ export function isMenuItem(item: any): item is MenuItem {
   return typeof item.text === 'string'
 }
 
-export function toIndexText(n: number): string {
-  return n < 99 ? `${n + 1}. ` : '  '
+export function toIndexText(n: number, length = 0): string {
+  if (length <= n) {
+    length = n + 1
+  }
+  let shownum = n < 99 ? `${n + 1}. ` : ''
+  let numwidth = Math.min(length, 99).toString().length + 2
+  let pre = ' '.repeat(Math.max(0, numwidth - shownum.length))
+  return pre + shownum
 }
 
 /**
@@ -190,7 +196,7 @@ export default class Menu {
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v
-      let pre = toIndexText(i)
+      let pre = toIndexText(i, items.length)
       if (shortcutIndexes.has(i)) {
         highlights.push({
           lnum: i,

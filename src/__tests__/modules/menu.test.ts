@@ -25,8 +25,15 @@ describe('Menu', () => {
     expect(isMenuItem(null)).toBe(false)
   })
 
-  it('should get index text', () => {
-    expect(toIndexText(99)).toBe('  ')
+  it('should get aligned index text', () => {
+    expect(toIndexText(0)).toBe('1. ')
+    expect(toIndexText(98)).toBe('99. ')
+    expect(toIndexText(99)).toBe('    ')
+    expect(toIndexText(0, 100)).toBe(' 1. ')
+    expect(toIndexText(1, 100)).toBe(' 2. ')
+    expect(toIndexText(9, 100)).toBe('10. ')
+    expect(toIndexText(98, 100)).toBe('99. ')
+    expect(toIndexText(99, 100)).toBe('    ')
   })
 
   it('should dispose on window close', async () => {
