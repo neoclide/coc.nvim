@@ -1,5 +1,5 @@
 'use strict'
-import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-types'
+import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
 import { Chars, sameScope } from '../model/chars'
 import { SnippetParser } from '../snippets/parser'
@@ -298,6 +298,32 @@ export function isSnippetItem(item: CompletionItem, itemDefaults: ItemDefaults):
  */
 export function hasAction(item: CompletionItem, itemDefaults: ItemDefaults) {
   return isSnippetItem(item, itemDefaults) || !isFalsyOrEmpty(item.additionalTextEdits)
+}
+
+/**
+ * Apply `CompletionList.applyKind` rules to a completion item, merging
+ * `itemDefaults` values with the item values.
+ *
+ * When `applyKind` is absent, all fields default to `ApplyKind.Replace`.
+ *
+ * @since 3.18.0
+ */
+export function applyItemDefaults(item: CompletionItem, itemDefaults: ItemDefaults, applyKind: CompletionItemApplyKinds | undefined): void {
+  if (applyKind?.commitCharacters === ApplyKind.Merge && itemDefaults.commitCharacters) {
+    let characters = item.commitCharacters ?? []
+    item.commitCharacters = Array.from(new Set([...itemDefaults.commitCharacters, ...characters]))
+  }
+  if (applyKind?.data === ApplyKind.Merge) {
+    if (item.data == null) {
+      item.data = itemDefaults.data
+    } else if (typeof item.data === 'object' && !Array.isArray(item.data)) {
+      let base = itemDefaults.data != null && typeof itemDefaults.data === 'object' && !Array.isArray(itemDefaults.data) ? itemDefaults.data : {}
+      item.data = Object.assign({}, base, item.data)
+    }
+  } else if (item.data == null && itemDefaults.data != null) {
+    // Default to Replace when applyKind.data is not Merge.
+    item.data = itemDefaults.data
+  }
 }
 
 function toValidWord(snippet: string, excludes: number[]): string {

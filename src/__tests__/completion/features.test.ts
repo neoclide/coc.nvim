@@ -4,7 +4,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { ApplyKind, CancellationToken, CancellationTokenSource, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Complete, { selectTopItems, sortItems } from '../../completion/complete'
 import Floating from '../../completion/floating'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
@@ -16,7 +16,7 @@ import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource, { checkInclude, getMethodName } from '../../completion/source-vim'
 import sources, { Sources, getSourceType, logError } from '../../completion/sources'
 import { CompleteConfig, CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem, InsertMode, ISource, SortMethod, SourceConfig, SourceType } from '../../completion/types'
-import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentations, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
+import { applyItemDefaults, checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentations, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events, { InsertChange } from '../../events'
 import extensions from '../../extension'
@@ -318,6 +318,65 @@ describe('util functions', () => {
       replace: Range.create(0, 1, 0, 3),
     }
     expect(getReplaceRange(item, undefined, 0)).toEqual(Range.create(0, 0, 0, 3))
+  })
+
+  describe('applyItemDefaults', () => {
+    it('should not change item without applyKind and defaults', () => {
+      let item: CompletionItem = { label: 'foo', commitCharacters: [','] }
+      applyItemDefaults(item, {}, undefined)
+      expect(item).toEqual({ label: 'foo', commitCharacters: [','] })
+    })
+
+    it('should merge commitCharacters', () => {
+      let item: CompletionItem = { label: 'foo', commitCharacters: [','] }
+      applyItemDefaults(item, { commitCharacters: ['.', ','] }, { commitCharacters: ApplyKind.Merge })
+      expect(item.commitCharacters).toEqual(['.', ','])
+    })
+
+    it('should use defaults as commitCharacters on merge when item has none', () => {
+      let item: CompletionItem = { label: 'foo' }
+      applyItemDefaults(item, { commitCharacters: ['.'] }, { commitCharacters: ApplyKind.Merge })
+      expect(item.commitCharacters).toEqual(['.'])
+    })
+
+    it('should keep item commitCharacters on Replace', () => {
+      let item: CompletionItem = { label: 'foo', commitCharacters: [','] }
+      applyItemDefaults(item, { commitCharacters: ['.'] }, { commitCharacters: ApplyKind.Replace })
+      expect(item.commitCharacters).toEqual([','])
+    })
+
+    it('should attach default data on Replace', () => {
+      let item: CompletionItem = { label: 'foo' }
+      applyItemDefaults(item, { data: { id: 1 } }, undefined)
+      expect(item.data).toEqual({ id: 1 })
+      let item2: CompletionItem = { label: 'foo', data: {} }
+      applyItemDefaults(item2, { data: { id: 1 } }, undefined)
+      expect(item2.data).toEqual({})
+    })
+
+    it('should shallow merge data', () => {
+      let item: CompletionItem = { label: 'foo', data: { id: 2, nested: { a: 1 } } }
+      applyItemDefaults(item, { data: { id: 1, extra: 'x' } }, { data: ApplyKind.Merge })
+      expect(item.data).toEqual({ id: 2, extra: 'x', nested: { a: 1 } })
+    })
+
+    it('should use default data as-is on merge when item data is null', () => {
+      let item: CompletionItem = { label: 'foo', data: null }
+      applyItemDefaults(item, { data: { id: 1 } }, { data: ApplyKind.Merge })
+      expect(item.data).toEqual({ id: 1 })
+    })
+
+    it('should keep non object item data on merge', () => {
+      let item: CompletionItem = { label: 'foo', data: ['a'] }
+      applyItemDefaults(item, { data: { id: 1 } }, { data: ApplyKind.Merge })
+      expect(item.data).toEqual(['a'])
+    })
+
+    it('should merge item data without default data', () => {
+      let item: CompletionItem = { label: 'foo', data: { id: 2 } }
+      applyItemDefaults(item, {}, { data: ApplyKind.Merge })
+      expect(item.data).toEqual({ id: 2 })
+    })
   })
 
   describe('Converter', () => {

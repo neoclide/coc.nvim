@@ -21,6 +21,10 @@ Notable changes of coc.nvim:
   when the provider has no ranges support. The client capability
   `textDocument.rangeFormatting.rangesSupport` is advertised to servers.
   Existing visual block selection formatting behavior is unchanged.
+- Support LSP 3.18 `CompletionList.applyKind`: the client now advertises
+  `completionList.applyKindSupport` and `data` in `itemDefaults`, and honors
+  `applyKind` merge/replace rules for `commitCharacters` (union) and `data`
+  (shallow merge, falling back to the default value when the item has none).
 
 ## 2026-08-03
 

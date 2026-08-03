@@ -35,6 +35,8 @@ connection.onInitialize(params => {
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet.length, 1)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet[0], CompletionItemTag.Deprecated)
+  assert.equal(params.capabilities.textDocument.completion.completionList.applyKindSupport, true)
+  assert.ok(params.capabilities.textDocument.completion.completionList.itemDefaults.includes('data'))
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true)
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.noActiveParameterSupport, true)
   assert.equal(params.capabilities.textDocument.definition.linkSupport, true)

@@ -16,7 +16,7 @@ import { CancellationToken, CompletionTriggerKind } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import workspace from '../workspace'
 import { CompleteDoneOption, CompleteOption, CompleteResult, InsertMode, ISource, ItemDefaults, SourceType } from './types'
-import { getReplaceRange, isSnippetItem } from './util'
+import { applyItemDefaults, getReplaceRange, isSnippetItem } from './util'
 const logger = createLogger('source-language')
 
 interface TriggerContext {
@@ -72,6 +72,12 @@ export default class LanguageSource implements ISource<CompletionItem> {
     let completeItems = Array.isArray(result) ? result : result.items
     if (!completeItems || completeItems.length == 0) return null
     let itemDefaults = this.itemDefaults = toObject<ItemDefaults>(result['itemDefaults'])
+    let applyKind = Is.isCompletionList(result) ? result['applyKind'] : undefined
+    if (applyKind || itemDefaults.data != null) {
+      for (let item of completeItems) {
+        applyItemDefaults(item, itemDefaults, applyKind)
+      }
+    }
     let isIncomplete = Is.isCompletionList(result) ? result.isIncomplete === true : false
     this.hasDefaultRange = Is.isEditRange(itemDefaults.editRange)
     return { isIncomplete, items: completeItems, itemDefaults }

@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import completion from '../../completion'
 import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
@@ -665,13 +665,13 @@ describe('language source', () => {
   })
 
   describe('itemDefaults', () => {
-    async function start(item: CompletionItem, itemDefaults: ItemDefaults, triggerCharacters: string[] = []): Promise<void> {
+    async function start(item: CompletionItem, itemDefaults: ItemDefaults, triggerCharacters: string[] = [], applyKind?: CompletionItemApplyKinds): Promise<void> {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionList> => {
-          return { items: [item], itemDefaults, isIncomplete: false }
+          return { items: [item], itemDefaults, isIncomplete: false, applyKind }
         }
       }
-      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider, triggerCharacters))
+      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider, triggerCharacters, undefined, []))
       await nvim.input('i')
       nvim.call('coc#start', [{ source: 'test' }], true)
       await helper.waitPopup()
@@ -695,6 +695,14 @@ describe('language source', () => {
       expect(events.completing).toBe(true)
       completion.cancelAndClose()
       dispose()
+    })
+
+    it('should merge commitCharacters by applyKind', async () => {
+      let item = { label: 'foo', commitCharacters: [','] }
+      await start(item, { commitCharacters: ['.'] }, ['.'], { commitCharacters: ApplyKind.Merge })
+      let source = sources.getSource('test')
+      expect(source.shouldCommit(item, '.')).toBe(true)
+      completion.cancelAndClose()
     })
 
     it('should use replace range of editRange from itemDefaults', async () => {

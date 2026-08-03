@@ -97,8 +97,9 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     completion.insertTextMode = InsertTextMode.adjustIndentation
     completion.completionList = {
       itemDefaults: [
-        'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'
-      ]
+        'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode', 'data'
+      ],
+      applyKindSupport: true
     }
   }
 
