@@ -6480,6 +6480,23 @@ declare module 'coc.nvim' {
       options: FormattingOptions,
       token: CancellationToken
     ): ProviderResult<TextEdit[]>
+    /**
+     * Provide formatting edits for multiple ranges in a document.
+     *
+     * @param document The document in which the command was invoked.
+     * @param ranges The ranges which should be formatted.
+     * @param options Options controlling formatting.
+     * @param token A cancellation token.
+     * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined`, `null`, or an empty array.
+     * @since 3.18.0
+     */
+    provideDocumentRangesFormattingEdits?(
+      document: LinesTextDocument,
+      ranges: Range[],
+      options: FormattingOptions,
+      token: CancellationToken
+    ): ProviderResult<TextEdit[]>
   }
 
   /**
@@ -13596,6 +13613,10 @@ declare module 'coc.nvim' {
     (this: void, document: LinesTextDocument, range: Range, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
 
+  export interface ProvideDocumentRangesFormattingEditsSignature {
+    (this: void, document: LinesTextDocument, ranges: Range[], options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+  }
+
   export interface ProvideOnTypeFormattingEditsSignature {
     (this: void, document: LinesTextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
@@ -13864,6 +13885,10 @@ declare module 'coc.nvim' {
      * Middleware for providing range formatting edits.
      */
     provideDocumentRangeFormattingEdits?: (this: void, document: LinesTextDocument, range: Range, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentRangeFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    /**
+     * Middleware for providing ranges formatting edits.
+     */
+    provideDocumentRangesFormattingEdits?: (this: void, document: LinesTextDocument, ranges: Range[], options: FormattingOptions, token: CancellationToken, next: ProvideDocumentRangesFormattingEditsSignature) => ProviderResult<TextEdit[]>
     /**
      * Middleware for providing on-type formatting edits.
      */
