@@ -151,6 +151,7 @@ describe('format handler', () => {
       let options = await workspace.getFormatOptions()
       let token = (new CancellationTokenSource()).token
       expect(await languages.provideDocumentRangeFormattingEdits(doc, range, options, token)).toBe(null)
+      expect(await languages.provideDocumentRangesFormattingEdits(doc, [range], options, token)).toBe(null)
       expect(languages.hasProvider(ProviderName.FormatOnType, doc)).toBe(false)
       expect(languages.hasProvider(ProviderName.OnTypeEdit, doc)).toBe(false)
       let edits = await languages.provideDocumentFormattingEdits(doc, options, token)
