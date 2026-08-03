@@ -71,7 +71,7 @@ Source option: ~
   • shortcut: The shortcut characters shown in the popup menu; the first
     three characters of the source name are used when not set.
   • priority: The priority of the source, defaults to `9`.
-  • filetypes: Array of filetype names for which this source should be
+  • filetypes: An array of filetype names for which this source should be
     triggered. The source is available for all filetypes when not set.
   • firstMatch: When truthy, only completion items whose first letter
     matches the user input are shown.
