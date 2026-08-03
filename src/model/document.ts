@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim, VimValue } from '../neovim'
+import { Buffer, Neovim, VimValue } from '@chemzqm/neovim'
 import { Buffer as NodeBuffer } from 'buffer'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'

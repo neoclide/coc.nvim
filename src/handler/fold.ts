@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import type { FoldingRangeKind } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../languages'
 import { HandlerDelegate } from './types'

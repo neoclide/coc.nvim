@@ -1,5 +1,5 @@
-import { Buffer, Neovim } from '../../neovim'
-import { HighlightItem } from '../../neovim/api/Buffer'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { convertHighlightItem } from '../../core/highlights'

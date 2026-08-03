@@ -1,7 +1,7 @@
 // Merged from inlineCompletion.test.ts, inlineValue.test.ts,
 // selectionRange.test.ts and commands.test.ts to share a single nvim
 // session and reduce per-file startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, InlineCompletionContext, InlineCompletionItem, InlineCompletionTriggerKind, InlineValueText, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import CommandsHandler from '../../handler/commands'

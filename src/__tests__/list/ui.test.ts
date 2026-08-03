@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'

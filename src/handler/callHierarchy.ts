@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Position, Range } from 'vscode-languageserver-types'
 import commands from '../commands'

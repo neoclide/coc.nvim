@@ -1,7 +1,7 @@
 // Merged from index.test.ts, documentLinks.test.ts, highlights.test.ts,
 // fold.test.ts, linkedEditing.test.ts and search.test.ts to share a single
 // nvim session and reduce per-file startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource, Disposable, DocumentHighlightKind, DocumentLink, FoldingRange, Position, Range, SymbolKind, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'

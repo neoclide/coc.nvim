@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { writeHeapSnapshot } from 'v8'
 import { Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'

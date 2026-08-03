@@ -1,6 +1,6 @@
 // Merged from editors.test.ts, locations.test.ts and workspaceFolder.test.ts
 // to share a single nvim session and reduce per-file startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'

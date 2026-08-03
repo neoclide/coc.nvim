@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { PassThrough } from 'stream'
-import { Buffer as NvimBuffer, Tabpage, Window as NvimWindow } from '../../neovim'
-import Request from '../../neovim/transport/request'
-import { NvimTransport } from '../../neovim/transport/nvim'
-import { Metadata } from '../../neovim/api/types'
-import { nullLogger } from '../../neovim/utils/logger'
+import { Buffer as NvimBuffer, Tabpage, Window as NvimWindow } from '@chemzqm/neovim'
+import Request from '@chemzqm/neovim/lib/transport/request'
+import { NvimTransport } from '@chemzqm/neovim/lib/transport/nvim'
+import { Metadata } from '@chemzqm/neovim/lib/api/types'
+import { nullLogger } from '@chemzqm/neovim/lib/utils/logger'
 import helper from '../helper'
 
 /**

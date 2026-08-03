@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim } from '../../neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { createLogger } from '../../logger'

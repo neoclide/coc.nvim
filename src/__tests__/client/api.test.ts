@@ -1,6 +1,6 @@
 // Merged from rpc.test.ts, lua_api.test.ts and progressPart.test.ts to share
 // a single nvim session and reduce per-file startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event, NotificationHandler, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { ProgressContext, ProgressPart } from '../../language-client/progressPart'
 import helper from '../helper'

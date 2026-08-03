@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from './neovim'
+import { Neovim } from '@chemzqm/neovim'
 import type { Position, Range } from 'vscode-languageserver-types'
 import type { WorkspaceConfiguration } from './configuration/types'
 import channels from './core/channels'

@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim, Window } from '../neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { defaultValue, disposeAll, getConditionValue } from '../util'

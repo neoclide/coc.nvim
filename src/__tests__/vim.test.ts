@@ -9,7 +9,7 @@ import * as funcs from '../core/funcs'
 import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
-import type { Buffer, Neovim, Tabpage, Window } from '../neovim'
+import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import { sameFile } from '../util/fs'
 import helper from './helper'
 

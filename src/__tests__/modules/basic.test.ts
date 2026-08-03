@@ -1,7 +1,7 @@
 // Merged from highlighter.test.ts, dialog.test.ts, task.test.ts and
 // sources.test.ts to share a single nvim session and reduce per-file
 // startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import sources from '../../completion/sources'

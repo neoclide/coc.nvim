@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from './neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Command as VCommand } from 'vscode-languageserver-types'
 import events from './events'
 import { createLogger } from './logger'

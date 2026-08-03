@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable, CallHierarchyItem, SymbolKind, Range, SymbolTag, CancellationToken, Position } from 'vscode-languageserver-protocol'
 import CallHierarchyHandler from '../../handler/callHierarchy'
 import languages from '../../languages'

@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import WorkspaceFolderController from '../core/workspaceFolder'
 import { path } from '../util/node'

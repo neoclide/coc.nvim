@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable, ParameterInformation, Range, SignatureInformation } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import events from '../../events'

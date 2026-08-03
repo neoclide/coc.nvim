@@ -6,7 +6,7 @@ import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../comp
 import events from '../../events'
 import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSession } from '../../handler/inline'
 import languages from '../../languages'
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'

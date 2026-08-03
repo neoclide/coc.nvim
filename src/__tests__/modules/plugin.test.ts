@@ -1,4 +1,4 @@
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import * as vsTypes from 'vscode-languageserver-types'
 import * as exportObj from '../../index'

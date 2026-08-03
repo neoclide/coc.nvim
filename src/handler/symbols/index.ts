@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, WorkspaceSymbol } from 'vscode-languageserver-types'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'

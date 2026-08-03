@@ -1,5 +1,5 @@
 'use strict'
-import type { Neovim } from '../../neovim'
+import type { Neovim } from '@chemzqm/neovim'
 import { CodeLens, Command } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import languages, { ProviderName } from '../../languages'

@@ -1,5 +1,5 @@
 'use strict'
-import { Neovim } from '../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { disposeAll } from '../util'
 import { Disposable, Emitter, Event } from '../util/protocol'

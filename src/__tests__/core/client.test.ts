@@ -1,7 +1,7 @@
 import { PassThrough } from 'stream'
 import { describe, expect, it } from 'vitest'
-import { attach } from '../../neovim'
-import { nullLogger } from '../../neovim/utils/logger'
+import { attach } from '@chemzqm/neovim'
+import { nullLogger } from '@chemzqm/neovim/lib/utils/logger'
 
 function createClient() {
   let reader = new PassThrough()

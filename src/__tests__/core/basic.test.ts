@@ -1,7 +1,7 @@
 // Merged from ui.test.ts, keymaps.test.ts, autocmds.test.ts and
 // terminals.test.ts to share a single nvim session and reduce per-file
 // startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
 import which from 'which'

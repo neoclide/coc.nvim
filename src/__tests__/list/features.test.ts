@@ -1,7 +1,7 @@
 // Merged from source-funcs.test.ts, worker.test.ts, session.test.ts and
 // commandTask.test.ts to share a single nvim session and reduce per-file
 // startup overhead.
-import { Neovim } from '../../neovim'
+import { Neovim } from '@chemzqm/neovim'
 import styles from 'ansi-styles'
 import { EventEmitter } from 'events'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
