@@ -33,33 +33,33 @@
         "close": {
           "type": "boolean",
           "default": false,
-          "description": "Set to true to draw close icon"
+          "description": "Set to true to draw a close icon."
         },
         "maxWidth": {
           "type": "integer",
-          "description": "Maximum width of float window, include border."
+          "description": "Maximum width of the float window, including the border."
         },
         "maxHeight": {
           "type": "integer",
           "minimum": 2,
-          "description": "Maximum height of float window, include border."
+          "description": "Maximum height of the float window, including the border."
         },
         "focusable": {
           "type": "boolean",
           "default": true,
-          "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+          "description": "Enable focusing by user actions (wincmds, mouse events); Neovim only."
         },
         "shadow": {
           "type": "boolean",
           "default": false,
-          "description": "Drop shadow effect by blending with the background, neovim only."
+          "description": "Enable a drop shadow by blending with the background; Neovim only."
         },
         "winblend": {
           "type": "integer",
           "default": 0,
           "minimum": 0,
           "maximum": 100,
-          "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+          "description": "Enable pseudo-transparency by setting the 'winblend' option of the window; Neovim only."
         },
         "position": {
           "type": "string",
@@ -69,7 +69,7 @@
         },
         "top": {
           "type": "number",
-          "description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `bottom` is set."
+          "description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. and is ignored if `bottom` is set."
         },
         "bottom": {
           "type": "number",
@@ -77,7 +77,7 @@
         },
         "left": {
           "type": "number",
-          "description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `right` is set."
+          "description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. and is ignored if `right` is set."
         },
         "right": {
           "type": "number",
@@ -87,13 +87,13 @@
     },
     "languageserver.enable": {
       "type": "boolean",
-      "description": "Enable the languageserver, restart coc.nvim required after change.",
+      "description": "Enable the language server. A coc.nvim restart is required after changing this.",
       "default": true
     },
     "languageserver.filetypes": {
       "type": "array",
       "default": [],
-      "description": "Supported filetypes, add * in array for all filetypes.",
+      "description": "Supported filetypes; add `*` to the array for all filetypes.",
       "items": {
         "type": "string"
       }
@@ -102,22 +102,22 @@
       "type": "integer",
       "default": 4,
       "minimum": 1,
-      "description": "Maximum restart count when server closed in the last 3 minutes."
+      "description": "Maximum number of restarts when the server closes within the last 3 minutes."
     },
     "languageserver.cwd": {
       "type": "string",
       "default": "",
-      "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+      "description": "Working directory of the language server; an absolute path or relative to the workspace folder. Uses the workspace root by default."
     },
     "languageserver.settings": {
       "type": "object",
       "default": {},
-      "description": "Settings of languageserver"
+      "description": "Settings of the language server."
     },
     "languageserver.initializationOptions": {
       "type": "object",
       "default": {},
-      "description": "initializationOptions passed to languageserver"
+      "description": "Initialization options passed to the language server."
     },
     "languageserver.env": {
       "type": "object",
@@ -127,12 +127,12 @@
     "languageserver.stdioEncoding": {
       "type": "string",
       "default": "utf8",
-      "description": "Encoding used for stdio of child process."
+      "description": "Encoding used for the stdio of the child process."
     },
     "languageserver.rootPatterns": {
       "type": "array",
       "default": [],
-      "description": "Root patterns used to resolve rootPath from current file, default to workspace root",
+      "description": "Root patterns used to resolve the rootPath from the current file; defaults to the workspace root.",
       "items": {
         "type": "string"
       }
@@ -140,12 +140,12 @@
     "languageserver.requireRootPattern": {
       "type": "boolean",
       "default": false,
-      "description": "If true, doesn't start server when root pattern not found."
+      "description": "If true, the server isn't started when no root pattern is found."
     },
     "languageserver.ignoredRootPaths": {
       "type": "array",
       "default": [],
-      "description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
+      "description": "Absolute root paths that the language server should not use as rootPath; takes priority over rootPatterns.",
       "items": {
         "type": "string"
       }
@@ -153,7 +153,7 @@
     "languageserver.additionalSchemes": {
       "type": "array",
       "default": [],
-      "description": "Additional URI schemes, default schemes including file & untitled.",
+      "description": "Additional URI schemes; default schemes include file and untitled.",
       "items": {
         "type": "string"
       }
@@ -161,25 +161,25 @@
     "languageserver.revealOutputChannelOn": {
       "type": "string",
       "default": "never",
-      "description": "Configure message level to show the output channel buffer",
+      "description": "Configure the message level at which the output channel buffer is shown.",
       "enum": ["info", "warn", "error", "never"]
     },
     "languageserver.progressOnInitialization": {
       "type": "boolean",
       "default": false,
-      "description": "Enable progress report on languageserver initialize."
+      "description": "Enable progress reporting during language server initialization."
     },
     "languageserver.trace.server": {
       "type": "string",
       "default": "off",
       "enum": ["off", "messages", "verbose"],
-      "description": "Trace level of communication between server and client"
+      "description": "Trace level of the communication between server and client."
     },
     "languageserver.trace.server.verbosity": {
       "type": "string",
       "default": "off",
       "enum": ["off", "messages", "compact", "verbose"],
-      "description": "Trace level of communication between server and client"
+      "description": "Trace level of the communication between server and client."
     },
     "languageserver.trace.server.format": {
       "type": "string",
@@ -190,17 +190,17 @@
     "languageserver.disableDynamicRegister": {
       "type": "boolean",
       "default": false,
-      "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicate feature registration."
+      "description": "Disable the dynamic registerCapability feature for this language server to avoid duplicate feature registration."
     },
     "languageserver.disableSnippetCompletion": {
       "type": "boolean",
       "default": false,
-      "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
+      "description": "Disable the snippet completion feature for this language server; the language server may not respect it."
     },
     "languageserver.disabledFeatures": {
       "type": "array",
       "default": [],
-      "description": "Disabled features for this languageserver.",
+      "description": "Features disabled for this language server.",
       "items": {
         "type": "string",
         "enum": [
@@ -250,7 +250,7 @@
     "languageserver.formatterPriority": {
       "type": "integer",
       "default": 0,
-      "description": "Priority of this languageserver's formatter."
+      "description": "Priority of this language server's formatter."
     },
     "languageServerSocket": {
       "type": "object",
@@ -259,12 +259,12 @@
       "properties": {
         "port": {
           "type": "integer",
-          "description": "Port number of socket server"
+          "description": "Port number of the socket server."
         },
         "host": {
           "type": "string",
           "default": "127.0.0.1",
-          "description": "Host of server"
+          "description": "Host of the server."
         },
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
@@ -333,12 +333,12 @@
         "module": {
           "type": "string",
           "default": "",
-          "description": "Absolute path of Javascript file, should works in IPC mode"
+          "description": "Absolute path of the JavaScript file; works in IPC mode."
         },
         "args": {
           "type": "array",
           "default": [],
-          "description": "Extra arguments of module",
+          "description": "Extra arguments of the module.",
           "items": {
             "type": "string"
           }
@@ -346,12 +346,12 @@
         "runtime": {
           "type": "string",
           "default": "",
-          "description": "Absolute path of node runtime."
+          "description": "Absolute path of the node runtime."
         },
         "execArgv": {
           "type": "array",
           "default": [],
-          "description": "ARGV passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
+          "description": "ARGV passed to node when using the module, normally used for debugging. Example: `[\"--nolazy\", \"--inspect-brk=6045\"]`.",
           "items": {
             "type": "string"
           }
@@ -359,12 +359,12 @@
         "transport": {
           "type": "string",
           "default": "ipc",
-          "description": "Transport kind used by server, could be 'ipc', 'stdio', 'socket' and 'pipe'",
+          "description": "Transport kind used by the server; can be 'ipc', 'stdio', 'socket', or 'pipe'.",
           "enum": ["ipc", "stdio", "socket", "pipe"]
         },
         "transportPort": {
           "type": "integer",
-          "description": "Port number used when transport is 'socket'"
+          "description": "Port number used when the transport is 'socket'."
         },
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
@@ -433,12 +433,12 @@
         "command": {
           "type": "string",
           "default": "",
-          "description": "Executable in $PATH to start languageserver, should not used with module"
+          "description": "Executable in $PATH used to start the language server; should not be used with `module`."
         },
         "args": {
           "type": "array",
           "default": [],
-          "description": "Arguments of command",
+          "description": "Arguments of the command.",
           "items": {
             "type": "string"
           }
@@ -446,12 +446,12 @@
         "detached": {
           "type": "boolean",
           "default": false,
-          "description": "Detach the languageserver process"
+          "description": "Detach the language server process."
         },
         "shell": {
           "type": ["boolean", "string"],
           "default": false,
-          "description": "If true runs command inside of a shell, always true on windows."
+          "description": "If true, runs the command inside a shell; always true on Windows."
         },
         "enable": {
           "$ref": "#/definitions/languageserver.enable"
@@ -539,7 +539,7 @@
       "type": ["array", "null"],
       "default": null,
       "scope": "application",
-      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+      "description": "Root patterns used to resolve the workspaceFolder from the parent folders of opened files, resolved from the top down.",
       "deprecationMessage": "Use 'workspace.rootPatterns' instead.",
       "items": {
         "type": "string"
@@ -548,19 +548,19 @@
     "coc.preferences.bracketEnterImprove": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Improve enter inside bracket `<> {} [] ()` by add new empty line below and place cursor to it. Works with `coc#on_enter()`",
+      "description": "Improve pressing enter inside brackets `<> {} [] ()` by adding a new empty line below and placing the cursor on it. Works with `coc#on_enter()`.",
       "default": true
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Automatically update the value of b:coc_current_function on CursorMove event",
+      "description": "Automatically update the value of b:coc_current_function on the CursorMove event.",
       "default": false
     },
     "coc.preferences.currentFunctionSymbolDebounceTime": {
       "type": "number",
       "scope": "application",
-      "description": "Set debounce timer for the update of b:coc_current_function on CursorMove event",
+      "description": "Set the debounce timer for the update of b:coc_current_function on the CursorMove event.",
       "default": 300
     },
     "coc.preferences.enableLinkedEditing": {
@@ -572,7 +572,7 @@
     "coc.preferences.enableMarkdown": {
       "type": "boolean",
       "scope": "application",
-      "description": "Tell the language server that markdown text format is supported, note that markdown text may not rendered as expected.",
+      "description": "Tell the language server that markdown text format is supported; note that markdown text may not be rendered as expected.",
       "default": true
     },
     "coc.preferences.enableMessageDialog": {
@@ -580,7 +580,7 @@
       "scope": "application",
       "default": false,
       "deprecationMessage": "Use configuration 'coc.preferences.messageDialogKind' instead.",
-      "description": "Enable interactive messages in notification dialog, or fallback to native vim confirm action."
+      "description": "Enable interactive messages in notification dialogs, or fall back to Vim's native confirm action."
     },
     "coc.preferences.messageDialogKind": {
       "type": "string",
@@ -598,13 +598,13 @@
     },
     "coc.preferences.excludeImageLinksInMarkdownDocument": {
       "type": "boolean",
-      "description": "Exclude image links from markdown text in float window.",
+      "description": "Exclude image links from markdown text in float windows.",
       "scope": "application",
       "default": true
     },
     "coc.preferences.enableGFMBreaksInMarkdownDocument": {
       "type": "boolean",
-      "description": "Exclude GFM breaks in markdown document.",
+      "description": "Enable GFM breaks in markdown documents.",
       "scope": "application",
       "default": true
     },
@@ -612,7 +612,7 @@
       "type": "string",
       "scope": "application",
       "default": "never",
-      "description": "Interval for check extension update, could be daily, weekly, never",
+      "description": "Interval for checking extension updates; can be daily, weekly, or never.",
       "deprecationMessage": "Use configuration 'extensions.updateCheck' instead.",
       "enum": ["daily", "weekly", "never"]
     },
@@ -621,11 +621,11 @@
       "scope": "application",
       "default": false,
       "deprecationMessage": "Use configuration 'extensions.updateUIInTab' instead.",
-      "description": "Display extension updating UI in new vim tab"
+      "description": "Display the extension update UI in a new Vim tab."
     },
     "coc.preferences.silentAutoupdate": {
       "type": "boolean",
-      "description": "Not open split window with update status when performing auto update.",
+      "description": "Don't open a split window with update status when performing auto updates.",
       "deprecationMessage": "Use configuration 'extensions.silentAutoupdate' instead.",
       "scope": "application",
       "default": true
@@ -633,13 +633,13 @@
     "coc.preferences.floatActions": {
       "type": "boolean",
       "scope": "application",
-      "description": "Set to false to disable float/popup support for actions menu.",
+      "description": "Set to false to disable float/popup support for the actions menu.",
       "default": true
     },
     "coc.preferences.autoApplySingleQuickfix": {
       "type": "boolean",
       "scope": "application",
-      "description": "Automatically apply the single quickfix action .",
+      "description": "Automatically apply the single quickfix action.",
       "default": true
     },
     "coc.preferences.formatOnSave": {
@@ -676,7 +676,7 @@
       "type": ["null", "array"],
       "default": null,
       "scope": "resource",
-      "description": "Filetypes that should run format on typing, only works when `coc.preferences.formatOnType` is `true`",
+      "description": "Filetypes that should run format on typing; only works when `coc.preferences.formatOnType` is `true`.",
       "deprecationMessage": "Use 'coc.preferences.formatOnType' as language override configuration instead, see :h coc-configuration-scope",
       "items": {
         "type": "string"
@@ -697,25 +697,25 @@
         {"type": "string", "minimum": 1}
       ],
       "scope": "application",
-      "description": "Command used for location jump, like goto definition, goto references etc. Can be also a custom command that gives file as an argument.",
+      "description": "Command used for location jumps, like goto definition and goto references. Can also be a custom command that takes a file as an argument.",
       "default": "edit"
     },
     "coc.preferences.maxFileSize": {
       "type": "string",
       "scope": "application",
       "default": "10MB",
-      "description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
+      "description": "Maximum file size in bytes that coc.nvim should handle. Default: '10MB'."
     },
     "coc.preferences.messageLevel": {
       "type": "string",
       "scope": "application",
-      "description": "Message level for filter echoed messages, could be 'more', 'warning' and 'error'",
+      "description": "Message level for filtering echoed messages; can be 'more', 'warning', or 'error'.",
       "default": "more",
       "enum": ["more", "warning", "error"]
     },
     "coc.preferences.promptInput": {
       "type": "boolean",
-      "description": "Use prompt buffer in float window for user input.",
+      "description": "Use a prompt buffer in a float window for user input.",
       "scope": "application",
       "default": true
     },
@@ -723,19 +723,19 @@
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
+      "description": "Set to false to stop the Refactor-Rename float/popup window from populating the New Name field with the old name."
     },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "scope": "application",
-      "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
+      "description": "Use Vim's quickfix list for jump locations; a restart is required when changed.",
       "default": false
     },
     "coc.preferences.watchmanPath": {
       "type": "string",
       "scope": "application",
       "deprecationMessage": "Use configuration \"fileSystemWatch.watchmanPath\" instead.",
-      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "description": "Executable path for https://facebook.github.io/watchman/; detected from $PATH by default.",
       "default": null
     },
     "coc.preferences.willSaveHandlerTimeout": {
@@ -744,13 +744,13 @@
       "default": 500,
       "minimum": 200,
       "maximum": 5000,
-      "description": "Will save handler timeout"
+      "description": "Timeout of the will-save handler."
     },
     "coc.preferences.tagDefinitionTimeout": {
       "type": "integer",
       "scope": "application",
       "default": 0,
-      "description": "The timeout of CocTagFunc, default is infinity"
+      "description": "Timeout of CocTagFunc; defaults to infinity."
     },
     "coc.source.around.disableSyntaxes": {
       "type": "array",
@@ -792,7 +792,7 @@
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Ignore git ignored files for buffer words"
+      "description": "Ignore git-ignored files for buffer words."
     },
     "coc.source.buffer.priority": {
       "type": "integer",
@@ -827,7 +827,7 @@
       "type": "array",
       "scope": "application",
       "default": [],
-      "description": "Ignore patterns of matcher",
+      "description": "Ignore patterns of the matcher.",
       "items": {
         "type": "string"
       }
@@ -854,7 +854,7 @@
       "type": "array",
       "scope": "application",
       "default": [".ts", ".js"],
-      "description": "Trim same extension on file completion",
+      "description": "Trim the same extension on file completion.",
       "items": {
         "type": "string"
       }
@@ -862,7 +862,7 @@
     "codeLens.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable codeLens feature, require neovim with set virtual text feature.",
+      "description": "Enable the codeLens feature; requires Neovim with the virtual text feature.",
       "default": false
     },
     "codeLens.display": {
@@ -881,19 +881,19 @@
     "codeLens.separator": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Separator text for codeLens in virtual text",
+      "description": "Separator text for codeLens in virtual text.",
       "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Subseparator between codeLenses in virtual text",
+      "description": "Subseparator between codeLenses in virtual text.",
       "default": " | "
     },
     "colors.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable colors highlight feature, for terminal vim, 'termguicolors' option should be enabled and the terminal support gui colors.",
+      "description": "Enable the colors highlight feature. For terminal Vim, the 'termguicolors' option should be enabled and the terminal should support GUI colors.",
       "default": false
     },
     "colors.filetypes": {
@@ -901,7 +901,7 @@
       "default": null,
       "scope": "resource",
       "deprecationMessage": "Use colors.enable as language override configuration instead, see :h coc-configuration-scope",
-      "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
+      "description": "Filetypes that should be enabled for the colors highlight feature; use \"*\" for all filetypes.",
       "items": {
         "type": "string"
       }
@@ -909,7 +909,7 @@
     "colors.highlightPriority": {
       "type": "integer",
       "scope": "application",
-      "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
+      "description": "Priority for colors highlights; works on Vim8 and Neovim >= 0.6.0.",
       "default": 1000,
       "maximum": 4096
     },
@@ -917,67 +917,67 @@
       "type": "string",
       "scope": "application",
       "default": "<esc>",
-      "description": "Key used for cancel cursors session."
+      "description": "Key used to cancel the cursors session."
     },
     "cursors.nextKey": {
       "type": "string",
       "scope": "application",
       "default": "<C-n>",
-      "description": "Key used for jump to next cursors position."
+      "description": "Key used to jump to the next cursors position."
     },
     "cursors.previousKey": {
       "type": "string",
       "scope": "application",
       "default": "<C-p>",
-      "description": "Key used for jump to previous cursors position."
+      "description": "Key used to jump to the previous cursors position."
     },
     "cursors.wrapscan": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Searches wrap around the first or last cursors range."
+      "description": "Search wraps around the first or last cursors range."
     },
     "diagnostic.autoRefresh": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable automatically refresh diagnostics, use diagnosticRefresh action when it's disabled.",
+      "description": "Automatically refresh diagnostics; use the diagnosticRefresh action when disabled.",
       "default": true
     },
     "diagnostic.checkCurrentLine": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "When enabled, show all diagnostics of current line if there are none at the current position.",
+      "description": "When enabled, show all diagnostics of the current line if there are none at the current position.",
       "default": false
     },
     "diagnostic.displayByAle": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
+      "description": "Use Ale, coc-diagnostics-shim.nvim, or another provider to display diagnostics in Vim. This setting disables diagnostic display using coc's handler. A restart is required when changed.",
       "default": false
     },
     "diagnostic.displayByVimDiagnostic": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Display diagnostics with nvim's `vim.diagnostic`. This setting will disable diagnostic display using coc's handler. A restart required on change. Neovim only.",
+      "description": "Display diagnostics with nvim's `vim.diagnostic`. This setting disables diagnostic display using coc's handler. A restart is required when changed. Neovim only.",
       "default": false
     },
     "diagnostic.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Set to false to disable diagnostic display",
+      "description": "Set to false to disable diagnostic display.",
       "default": true
     },
     "diagnostic.enableHighlightLineNumber": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Enable highlighting line numbers for diagnostics, only works with neovim."
+      "description": "Enable highlighting line numbers for diagnostics; only works with Neovim."
     },
     "diagnostic.enableMessage": {
       "type": "string",
       "scope": "application",
       "default": "always",
-      "description": "When to enable show messages of diagnostics.",
+      "description": "When to show messages of diagnostics.",
       "enum": ["always", "jump", "never"]
     },
     "diagnostic.enableSign": {
@@ -989,19 +989,19 @@
     "diagnostic.errorSign": {
       "type": "string",
       "scope": "application",
-      "description": "Text of error sign",
+      "description": "Text of the error sign.",
       "default": ">>"
     },
     "diagnostic.filetypeMap": {
       "type": "object",
       "scope": "application",
-      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type use `\"default\": \"bufferType\"`",
+      "description": "A map between the buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type, use `\"default\": \"bufferType\"`.",
       "default": {}
     },
     "diagnostic.floatConfig": {
       "type": "object",
       "scope": "application",
-      "description": "Configure float window style of diagnostic message.",
+      "description": "Configure the float window style of diagnostic messages.",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
@@ -1026,19 +1026,19 @@
     "diagnostic.format": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Define the diagnostic format that shown in float window or echoed, available parts: source, code, severity, message",
+      "description": "Define the diagnostic format shown in the float window or echoed. Available parts: source, code, severity, message.",
       "default": "%message (%source%code)"
     },
     "diagnostic.highlightLimit": {
       "type": "integer",
       "scope": "language-overridable",
-      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
+      "description": "Limit the number of highlighted diagnostics; too many diagnostic highlights could make Vim stop responding.",
       "default": 1000
     },
     "diagnostic.highlightPriority": {
       "type": "integer",
       "scope": "language-overridable",
-      "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
+      "description": "Priority for diagnostic highlights; works on Vim8 and Neovim >= 0.6.0.",
       "default": 4096,
       "maximum": 4096,
       "minimum": 110
@@ -1046,45 +1046,45 @@
     "diagnostic.hintSign": {
       "type": "string",
       "scope": "application",
-      "description": "Text of hint sign",
+      "description": "Text of the hint sign.",
       "default": ">>"
     },
     "diagnostic.infoSign": {
       "type": "string",
       "scope": "application",
-      "description": "Text of info sign",
+      "description": "Text of the info sign.",
       "default": ">>"
     },
     "diagnostic.level": {
       "type": "string",
       "scope": "resource",
-      "description": "Used for filter diagnostics by diagnostic severity.",
+      "description": "Used for filtering diagnostics by severity.",
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
     },
     "diagnostic.locationlistLevel": {
       "type": ["string", "null"],
       "scope": "language-overridable",
-      "description": "Filter diagnostics in locationlist.",
+      "description": "Filter diagnostics in the location list.",
       "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
     "diagnostic.locationlistUpdate": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Update locationlist on diagnostics change, only works with locationlist opened by :CocDiagnostics command and first window of associated buffer.",
+      "description": "Update the location list on diagnostics change; only works with the location list opened by the :CocDiagnostics command and the first window of the associated buffer.",
       "default": true
     },
     "diagnostic.messageDelay": {
       "type": "integer",
       "scope": "application",
-      "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
+      "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float.",
       "default": 200
     },
     "diagnostic.messageLevel": {
       "type": ["string", "null"],
       "scope": "language-overridable",
-      "description": "Filter diagnostic message in float window/popup.",
+      "description": "Filter diagnostic messages in the float window/popup.",
       "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
@@ -1098,32 +1098,32 @@
     "diagnostic.refreshOnInsertMode": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable diagnostic refresh on insert mode, default false.",
+      "description": "Enable diagnostic refresh in insert mode. Default: false.",
       "default": false
     },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,
       "scope": "language-overridable",
-      "description": "Show diagnostics with deprecated tag."
+      "description": "Show diagnostics with the deprecated tag."
     },
     "diagnostic.showUnused": {
       "type": "boolean",
       "default": true,
       "scope": "language-overridable",
-      "description": "Show diagnostics with unused tag, affects highlight, sign, virtual text, message"
+      "description": "Show diagnostics with the unused tag; affects highlight, sign, virtual text, and message."
     },
     "diagnostic.signLevel": {
       "type": ["string", "null"],
       "scope": "language-overridable",
-      "description": "Filter diagnostics displayed in signcolumn.",
+      "description": "Filter diagnostics displayed in the sign column.",
       "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
     "diagnostic.signPriority": {
       "type": "integer",
       "scope": "resource",
-      "description": "Priority of diagnostic signs, default to 10",
+      "description": "Priority of diagnostic signs; defaults to 10.",
       "default": 10
     },
     "diagnostic.virtualText": {
@@ -1135,26 +1135,26 @@
     "diagnostic.virtualTextAlign": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Position of virtual text, default 'after'",
+      "description": "Position of the virtual text; defaults to 'after'.",
       "default": "after",
       "enum": ["after", "right", "below"]
     },
     "diagnostic.virtualTextCurrentLineOnly": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Only show virtualText diagnostic on current cursor line",
+      "description": "Only show virtual text diagnostics on the current cursor line.",
       "default": true
     },
     "diagnostic.virtualTextFormat": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Define the virtual text diagnostic format, available parts: source, code, severity, message",
+      "description": "Define the virtual text diagnostic format. Available parts: source, code, severity, message.",
       "default": "%message"
     },
     "diagnostic.virtualTextLevel": {
       "type": ["string", "null"],
       "scope": "language-overridable",
-      "description": "Filter diagnostic message in virtual text by level",
+      "description": "Filter diagnostic messages in virtual text by level.",
       "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
@@ -1162,37 +1162,37 @@
       "type": "integer",
       "scope": "language-overridable",
       "minimum": 1,
-      "description": "The maximum number of diagnostic messages to display in one line",
+      "description": "Maximum number of diagnostic messages to display in one line.",
       "default": 999
     },
     "diagnostic.virtualTextLineSeparator": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "The text that will mark a line end from the diagnostic message",
+      "description": "The text that marks the end of a line in the diagnostic message.",
       "default": " \\ "
     },
     "diagnostic.virtualTextLines": {
       "type": "integer",
       "scope": "language-overridable",
-      "description": "The number of non empty lines from a diagnostic to display",
+      "description": "The number of non-empty lines of a diagnostic to display.",
       "default": 3
     },
     "diagnostic.virtualTextPrefix": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "The prefix added virtual text diagnostics",
+      "description": "The prefix added to virtual text diagnostics.",
       "default": " "
     },
     "diagnostic.virtualTextWinCol": {
       "type": ["integer", "null"],
       "scope": "language-overridable",
-      "description": "Window column number to align virtual text, neovim only.",
+      "description": "Window column number to align virtual text; Neovim only.",
       "default": null
     },
     "diagnostic.warningSign": {
       "type": "string",
       "scope": "application",
-      "description": "Text of warning sign",
+      "description": "Text of the warning sign.",
       "default": "⚠"
     },
     "diagnostic.showRelatedInformation": {
@@ -1205,67 +1205,67 @@
       "type": "string",
       "default": "<cr>",
       "scope": "application",
-      "description": "Confirm key for confirm selection used by menu and picker, you can always use <esc> to cancel."
+      "description": "Key used to confirm selection in menus and pickers; you can always use <esc> to cancel."
     },
     "dialog.floatBorderHighlight": {
       "type": ["string", "null"],
       "default": null,
       "scope": "application",
-      "description": "Highlight group for border of dialog window/popup, default to 'CocFloatBorder'"
+      "description": "Highlight group for the border of dialog windows/popups; defaults to 'CocFloatBorder'."
     },
     "dialog.floatHighlight": {
       "type": ["string", "null"],
       "default": null,
       "scope": "application",
-      "description": "Highlight group for dialog window/popup, default to 'CocFloating'"
+      "description": "Highlight group for dialog windows/popups; defaults to 'CocFloating'."
     },
     "dialog.maxHeight": {
       "type": "integer",
       "default": 30,
       "scope": "application",
-      "description": "Maximum height of dialog window."
+      "description": "Maximum height of the dialog window."
     },
     "dialog.maxWidth": {
       "type": "integer",
       "default": 80,
       "scope": "application",
-      "description": "Maximum width of dialog window."
+      "description": "Maximum width of the dialog window."
     },
     "dialog.pickerButtonShortcut": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Show shortcut in buttons of picker dialog window/popup, used when dialog.pickerButtons is true."
+      "description": "Show shortcuts in the buttons of the picker dialog window/popup; used when `dialog.pickerButtons` is true."
     },
     "dialog.pickerButtons": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Show buttons for picker dialog window/popup."
+      "description": "Show buttons for the picker dialog window/popup."
     },
     "dialog.rounded": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "use rounded border for dialog window."
+      "description": "Use a rounded border for dialog windows."
     },
     "dialog.shortcutHighlight": {
       "type": "string",
       "default": "MoreMsg",
       "scope": "application",
-      "description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
+      "description": "Highlight group for the shortcut character in the menu dialog; defaults to 'MoreMsg'."
     },
     "documentHighlight.priority": {
       "type": "integer",
       "default": -1,
       "scope": "resource",
-      "description": "Match priority used by document highlight, see ':h matchadd'."
+      "description": "Match priority used by document highlight; see ':h matchadd'."
     },
     "documentHighlight.limit": {
       "type": "integer",
       "default": 200,
       "scope": "resource",
-      "description": "Limit the highlights added by matchaddpos, too many positions could cause vim slow."
+      "description": "Limit the highlights added by matchaddpos; too many positions could make Vim slow."
     },
     "documentHighlight.timeout": {
       "type": "integer",
@@ -1281,14 +1281,14 @@
       "minimum": 100,
       "maximum": 5000,
       "scope": "application",
-      "description": "Timeout for execute request autocmd registered by coc extensions."
+      "description": "Timeout in milliseconds for the execute-request autocmd registered by coc extensions."
     },
     "editor.fileOperationTimeout": {
       "type": "integer",
       "default": 500,
       "minimum": 1,
       "scope": "application",
-      "description": "Timeout for the waitUntil handlers of file create, delete and rename events, in milliseconds."
+      "description": "Timeout in milliseconds for the waitUntil handlers of file create, delete, and rename events."
     },
     "editor.codeActionsOnSave": {
       "additionalProperties": {
@@ -1298,12 +1298,12 @@
       "type": "object",
       "default": {},
       "scope": "language-overridable",
-      "description": "Run Code Actions for the buffer on save, normally source actions, Example: `\"source.organizeImports\": \"always\""
+      "description": "Run code actions for the buffer on save, normally source actions. Example: `\"source.organizeImports\": \"always\"`."
     },
     "fileSystemWatch.watchmanPath": {
       "type": ["null", "string"],
       "scope": "application",
-      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "description": "Executable path for https://facebook.github.io/watchman/; detected from $PATH by default.",
       "default": null
     },
     "fileSystemWatch.enable": {
@@ -1316,7 +1316,7 @@
       "type": "array",
       "default": ["/private/tmp", "/", "${tmpdir}"],
       "scope": "application",
-      "description": "List of folders that should not be watched for file changes, environment variables and minimatch patterns can be used.",
+      "description": "List of folders that should not be watched for file changes; environment variables and minimatch patterns can be used.",
       "items": {
         "type": "string"
       }
@@ -1324,7 +1324,7 @@
     "floatFactory.floatConfig": {
       "type": "object",
       "scope": "application",
-      "description": "Configure default style float window/popup created by float factory (created around cursor and automatically closed)",
+      "description": "Configure the default float window/popup style created by the float factory (created around the cursor and automatically closed).",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
@@ -1350,12 +1350,12 @@
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Automatically hide hover float window on CursorMove or InsertEnter."
+      "description": "Automatically hide the hover float window on CursorMove or InsertEnter."
     },
     "hover.floatConfig": {
       "type": "object",
       "scope": "application",
-      "description": "Configure float window style of hover documents.",
+      "description": "Configure the float window style of hover documents.",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
@@ -1381,20 +1381,20 @@
       "type": "integer",
       "scope": "resource",
       "default": 12,
-      "description": "Max height of preview window for hover."
+      "description": "Maximum height of the preview window for hover."
     },
     "hover.target": {
       "type": "string",
       "default": "float",
       "scope": "resource",
-      "description": "Target to show hover information, default is floating window when possible.",
+      "description": "Target used to show hover information; uses a floating window when possible by default.",
       "enum": ["preview", "echo", "float"]
     },
     "http.proxy": {
       "type": "string",
       "default": "",
       "pattern": "^https?://([^:]*(:[^@]*)?@)?([^:]+|\\[[:0-9a-fA-F]+\\])(:\\d+)?/?$|^$",
-      "description": "The proxy setting to use. If not set, will be inherited from the `http_proxy` and `https_proxy` environment variables.",
+      "description": "The proxy setting to use. If not set, it's inherited from the `http_proxy` and `https_proxy` environment variables.",
       "scope": "application"
     },
     "http.proxyAuthorization": {
@@ -1405,13 +1405,13 @@
     },
     "http.proxyCA": {
       "type": "string",
-      "description": "CA (file) to use as Certificate Authority",
+      "description": "CA (file) to use as the Certificate Authority.",
       "default": null,
       "scope": "application"
     },
     "http.proxyStrictSSL": {
       "type": "boolean",
-      "description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs",
+      "description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs.",
       "default": true,
       "scope": "application"
     },
@@ -1419,13 +1419,13 @@
       "type": "string",
       "scope": "application",
       "default": "never",
-      "description": "Interval time for check extension update, could be daily, weekly, never",
+      "description": "Interval for checking extension updates; can be daily, weekly, or never.",
       "enum": ["daily", "weekly", "never"]
     },
     "extensions.recommendations": {
       "type": "array",
       "scope": "resource",
-      "description": "List of extensions recommended for installation in the current project",
+      "description": "List of extensions recommended for installation in the current project.",
       "default": [],
       "items": {
         "type": "string"
@@ -1433,7 +1433,7 @@
     },
     "extensions.silentAutoupdate": {
       "type": "boolean",
-      "description": "Not open split window with update status when performing auto update.",
+      "description": "Don't open a split window with update status when performing auto updates.",
       "scope": "application",
       "default": true
     },
@@ -1441,13 +1441,13 @@
       "type": "boolean",
       "scope": "application",
       "default": false,
-      "description": "Display extension updating UI in new vim tab"
+      "description": "Display the extension update UI in a new Vim tab."
     },
     "inlayHint.enable": {
       "type": "boolean",
       "default": true,
       "scope": "language-overridable",
-      "description": "Enable inlay hint support"
+      "description": "Enable inlay hint support."
     },
     "inlayHint.position": {
       "type": "string",
@@ -1471,7 +1471,7 @@
     "inlayHint.filetypes": {
       "type": ["array", "null"],
       "scope": "application",
-      "description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
+      "description": "Filetypes that enable inlay hints; all filetypes are enabled by default.",
       "deprecationMessage": "Use inlayHint.enable with language scope instead, see :h coc-configuration-scope",
       "default": null,
       "items": {
@@ -1482,19 +1482,19 @@
       "type": "boolean",
       "default": false,
       "scope": "language-overridable",
-      "description": "Refresh inlayHints on insert mode."
+      "description": "Refresh inlay hints in insert mode."
     },
     "inlayHint.maximumLength": {
       "type": "integer",
       "default": 0,
       "minimum": 0,
       "scope": "language-overridable",
-      "description": "Maximum overall length of inlay hints, for a single line, before they get truncated by the editor. Set to `0`to disable truncation."
+      "description": "Maximum overall length of inlay hints on a single line before they are truncated by the editor. Set to `0` to disable truncation."
     },
     "links.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable document links",
+      "description": "Enable document links.",
       "default": true
     },
     "links.tooltip": {
@@ -1506,20 +1506,20 @@
     "links.highlight": {
       "type": "boolean",
       "scope": "application",
-      "description": "Use CocLink highlight group to highlight links",
+      "description": "Use the CocLink highlight group to highlight links.",
       "default": false
     },
     "list.floatPreview": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Enable preview with float window/popup, default: `false`"
+      "description": "Enable preview with a float window/popup. Default: `false`."
     },
     "list.alignColumns": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Whether to align lists in columns, default: `false`"
+      "description": "Whether to align lists in columns. Default: `false`."
     },
     "list.extendedSearchMode": {
       "type": "boolean",
@@ -1531,86 +1531,86 @@
       "type": "integer",
       "scope": "application",
       "default": 10,
-      "description": "Height of split list window."
+      "description": "Height of the split list window."
     },
     "list.indicator": {
       "type": "string",
       "default": ">",
       "scope": "application",
-      "description": "The character used as first character in prompt line."
+      "description": "The character used as the first character in the prompt line."
     },
     "list.insertMappings": {
       "type": "object",
       "scope": "application",
       "default": {},
-      "description": "Custom keymappings on insert mode."
+      "description": "Custom key-mappings in insert mode."
     },
     "list.interactiveDebounceTime": {
       "type": "integer",
       "default": 100,
       "scope": "application",
-      "description": "Debounce time for input change on interactive mode."
+      "description": "Debounce time for input changes in interactive mode."
     },
     "list.limitLines": {
       "type": ["number", "null"],
       "scope": "application",
       "default": null,
-      "description": "Limit lines for list buffer."
+      "description": "Limit lines for the list buffer."
     },
     "list.maxPreviewHeight": {
       "type": "integer",
       "scope": "application",
       "default": 12,
-      "description": "Max height for preview window of list."
+      "description": "Maximum height of the preview window of a list."
     },
     "list.menuAction": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Use menu picker instead of confirm() for choose action."
+      "description": "Use a menu picker instead of confirm() for choosing an action."
     },
     "list.nextKeymap": {
       "type": "string",
       "scope": "application",
       "default": "<C-j>",
-      "description": "Key used for select next line on insert mode."
+      "description": "Key used to select the next line in insert mode."
     },
     "list.normalMappings": {
       "type": "object",
       "scope": "application",
       "default": {},
-      "description": "Custom keymappings on normal mode."
+      "description": "Custom key-mappings in normal mode."
     },
     "list.previewHighlightGroup": {
       "type": "string",
       "scope": "application",
       "default": "Search",
-      "description": "Highlight group used for highlight the range in preview window."
+      "description": "Highlight group used to highlight the range in the preview window."
     },
     "list.previewSplitRight": {
       "type": "boolean",
       "scope": "application",
       "default": false,
-      "description": "Use vsplit for preview window."
+      "description": "Use vsplit for the preview window."
     },
     "list.previewToplineOffset": {
       "type": "integer",
       "scope": "application",
       "default": 3,
-      "description": "Topline offset for list previews"
+      "description": "Topline offset for list previews."
     },
     "list.previewToplineStyle": {
       "type": "string",
       "scope": "application",
       "default": "offset",
-      "description": "Topline style for list previews",
+      "description": "Topline style for list previews.",
       "enum": ["offset", "middle"]
     },
     "list.previousKeymap": {
       "type": "string",
       "scope": "application",
       "default": "<C-k>",
-      "description": "Key used for select previous line on insert mode."
+      "description": "Key used to select the previous line in insert mode."
     },
     "list.selectedSignText": {
       "type": "string",
@@ -1622,13 +1622,13 @@
       "type": "integer",
       "scope": "application",
       "default": 900,
-      "description": "Sign offset of list, should be different from other plugins."
+      "description": "Sign offset of the list; should be different from other plugins."
     },
     "list.smartCase": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Use smartcase match for fuzzy match and strict match, --ignore-case will be ignored, may not affect interactive list."
+      "description": "Use smartcase matching for fuzzy and strict matching; `--ignore-case` is ignored, and this may not affect interactive lists."
     },
     "list.source.diagnostics.includeCode": {
       "type": "boolean",
@@ -1639,7 +1639,7 @@
     "list.source.diagnostics.pathFormat": {
       "type": "string",
       "scope": "application",
-      "description": "Decide how the filepath is shown in the list.",
+      "description": "Determines how the filepath is shown in the list.",
       "enum": ["full", "short", "filename", "hidden"],
       "default": "full"
     },
@@ -1647,7 +1647,7 @@
       "type": "array",
       "scope": "application",
       "default": [],
-      "description": "Filetypes that should use ctags for outline instead of language server.",
+      "description": "Filetypes that should use ctags for the outline instead of the language server.",
       "items": {
         "type": "string"
       }
@@ -1656,7 +1656,7 @@
       "type": "array",
       "scope": "application",
       "default": [],
-      "description": "Patterns of minimatch for filepath to exclude from symbols list.",
+      "description": "Minimatch patterns for filepaths to exclude from the symbols list.",
       "items": {
         "type": "string"
       }
@@ -1675,25 +1675,25 @@
       "items": {
         "types": "string"
       },
-      "description": "An array of statusline segments that will be used to draw the status line for list windows."
+      "description": "An array of statusline segments used to draw the status line for list windows."
     },
     "notification.statusLineProgress": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Show progress notification in status line, instead of float window/popup."
+      "description": "Show progress notifications in the status line instead of a float window/popup."
     },
     "notification.border": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Enable rounded border for notification windows."
+      "description": "Enable a rounded border for notification windows."
     },
     "notification.disabledProgressSources": {
       "type": "array",
       "default": [],
       "scope": "application",
-      "description": "Sources that should be disabled for message progress, use * to disable all message only progresses",
+      "description": "Sources for which message progress should be disabled; use * to disable all message-only progress.",
       "items": {
         "type": "string"
       }
@@ -1702,43 +1702,43 @@
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+      "description": "Enable focusing by user actions (wincmds, mouse events); Neovim only."
     },
     "notification.highlightGroup": {
       "type": "string",
       "default": "Normal",
       "scope": "application",
-      "description": "Highlight group of notification dialog."
+      "description": "Highlight group of the notification dialog."
     },
     "notification.marginRight": {
       "type": "integer",
       "default": 10,
       "scope": "application",
-      "description": "Margin right to the right of editor window."
+      "description": "Margin to the right of the editor window."
     },
     "notification.maxHeight": {
       "type": "integer",
       "default": 10,
       "scope": "application",
-      "description": "Maximum content height of notification dialog."
+      "description": "Maximum content height of the notification dialog."
     },
     "notification.maxWidth": {
       "type": "integer",
       "default": 60,
       "scope": "application",
-      "description": "Maximum content width of notification dialog."
+      "description": "Maximum content width of the notification dialog."
     },
     "notification.minProgressWidth": {
       "type": "integer",
       "default": 30,
       "scope": "application",
-      "description": "Minimal with of progress notification."
+      "description": "Minimal width of progress notifications."
     },
     "notification.timeout": {
       "type": "integer",
       "default": 10000,
       "scope": "application",
-      "description": "Timeout for auto close notifications, in milliseconds."
+      "description": "Timeout for auto-closing notifications, in milliseconds."
     },
     "notification.winblend": {
       "type": "integer",
@@ -1746,13 +1746,13 @@
       "minimum": 0,
       "maximum": 100,
       "scope": "application",
-      "description": "Winblend option of notification window, neovim only."
+      "description": "Winblend option of the notification window; Neovim only."
     },
     "npm.binPath": {
       "type": "string",
       "scope": "application",
       "default": "npm",
-      "description": "Command or absolute path to npm or yarn."
+      "description": "Command or absolute path to npm or yarn used for global extension install/uninstall."
     },
     "outline.autoHide": {
       "type": "boolean",
@@ -1776,13 +1776,13 @@
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Recreate outline view after user changed to another buffer on current tab."
+      "description": "Recreate the outline view after the user switches to another buffer in the current tab."
     },
     "outline.codeActionKinds": {
       "type": "array",
       "scope": "application",
       "default": ["", "quickfix", "refactor"],
-      "description": "Filter code actions in actions menu by kinds.",
+      "description": "Filter code actions in the actions menu by kind.",
       "items": {
         "type": "string",
         "enum": ["", "quickfix", "refactor", "source"]
@@ -1792,55 +1792,55 @@
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Show detail as description aside with label, when false detail will be shown in tooltip on cursor hold."
+      "description": "Show detail as a description next to the label; when false, the detail is shown in a tooltip on cursor hold."
     },
     "outline.expandLevel": {
       "type": "integer",
       "scope": "application",
       "default": 1,
-      "description": "Expand level of tree nodes."
+      "description": "Expansion level of tree nodes."
     },
     "outline.followCursor": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Reveal item in outline tree on cursor hold."
+      "description": "Reveal the item in the outline tree on cursor hold."
     },
     "outline.keepWindow": {
       "type": "boolean",
       "scope": "application",
       "default": false,
-      "description": "Jump back to original window after outline is shown."
+      "description": "Jump back to the original window after the outline is shown."
     },
     "outline.previewBorder": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Use border for preview window."
+      "description": "Use a border for the preview window."
     },
     "outline.previewBorderHighlightGroup": {
       "type": "string",
       "scope": "application",
       "default": "Normal",
-      "description": "Border highlight group of preview window."
+      "description": "Border highlight group of the preview window."
     },
     "outline.previewBorderRounded": {
       "type": "boolean",
       "scope": "application",
       "default": false,
-      "description": "Use rounded border for preview window."
+      "description": "Use a rounded border for the preview window."
     },
     "outline.previewHighlightGroup": {
       "type": "string",
       "scope": "application",
       "default": "Normal",
-      "description": "Highlight group of preview window."
+      "description": "Highlight group of the preview window."
     },
     "outline.previewMaxWidth": {
       "type": "integer",
       "scope": "application",
       "default": 80,
-      "description": "Max width of preview window."
+      "description": "Maximum width of the preview window."
     },
     "outline.previewWinblend": {
       "type": "integer",
@@ -1848,44 +1848,44 @@
       "default": 0,
       "minimum": 0,
       "maximum": 100,
-      "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+      "description": "Enable pseudo-transparency by setting the 'winblend' option of the window; Neovim only."
     },
     "outline.showLineNumber": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Show line number of symbols."
+      "description": "Show the line number of symbols."
     },
     "outline.sortBy": {
       "type": "string",
       "scope": "application",
       "default": "category",
-      "description": "Sort method for symbols.",
+      "description": "Sort method for the symbols outline.",
       "enum": ["position", "name", "category"]
     },
     "outline.splitCommand": {
       "type": "string",
       "scope": "application",
       "default": "botright 30vs",
-      "description": "Window split command used by outline."
+      "description": "Window split command used by the outline."
     },
     "outline.switchSortKey": {
       "type": "string",
       "scope": "application",
       "default": "<C-s>",
-      "description": "The key used to switch sort method for symbols provider of current tree view."
+      "description": "Key used to switch the sort method for the symbols provider of the current tree view."
     },
     "outline.togglePreviewKey": {
       "type": "string",
       "scope": "application",
       "default": "p",
-      "description": "The key used to toggle auto preview feature."
+      "description": "Key used to toggle the auto preview feature."
     },
     "pullDiagnostic.ignored": {
       "type": "array",
       "default": [],
       "scope": "application",
-      "description": "Minimatch patterns to match full filepath that should be ignored for pullDiagnostic.",
+      "description": "Minimatch patterns to match full filepaths that should be ignored for pullDiagnostic.",
       "items": {
         "type": "string"
       }
@@ -1912,36 +1912,36 @@
       "type": "integer",
       "scope": "application",
       "default": 3,
-      "description": "Print num lines of trailing context after each match."
+      "description": "Print `num` lines of trailing context after each match."
     },
     "refactor.beforeContext": {
       "type": "integer",
       "scope": "application",
       "default": 3,
-      "description": "Print num lines of leading context before each match."
+      "description": "Print `num` lines of leading context before each match."
     },
     "refactor.openCommand": {
       "type": "string",
       "scope": "application",
-      "description": "Open command for refactor window.",
+      "description": "Open command for the refactor window.",
       "default": "vsplit"
     },
     "refactor.saveToFile": {
       "type": "boolean",
       "scope": "application",
-      "description": "Save changed buffer to file when write refactor buffer with ':noa wa' command.",
+      "description": "Save the changed buffer to file when writing the refactor buffer with the ':noa wa' command.",
       "default": true
     },
     "refactor.showMenu": {
       "type": "string",
       "scope": "application",
       "default": "<Tab>",
-      "description": "Refactor buffer local mapping to bring up menu for this chunk."
+      "description": "Refactor buffer local mapping to bring up a menu for the current chunk."
     },
     "semanticTokens.combinedModifiers": {
       "type": "array",
       "scope": "language-overridable",
-      "description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
+      "description": "Semantic token modifiers whose highlights should be combined with syntax highlights.",
       "default": ["deprecated"],
       "items": {
         "type": "string"
@@ -1951,12 +1951,12 @@
       "type": "boolean",
       "default": false,
       "scope": "language-overridable",
-      "description": "Enable semantic tokens support"
+      "description": "Enable semantic tokens support."
     },
     "semanticTokens.filetypes": {
       "type": ["array", "null"],
       "scope": "resource",
-      "description": "Filetypes that enable semantic tokens highlighting or [\"*\"] for any filetype",
+      "description": "Filetypes that enable semantic tokens highlighting, or [\"*\"] for any filetype.",
       "deprecationMessage": "Use semanticTokens.enable configuration with language scope instead, see :h coc-configuration-scope",
       "default": null,
       "items": {
@@ -1966,14 +1966,14 @@
     "semanticTokens.highlightPriority": {
       "type": "integer",
       "scope": "language-overridable",
-      "description": "Priority for semantic tokens highlight.",
+      "description": "Priority for semantic tokens highlights.",
       "default": 2048,
       "maximum": 4096
     },
     "semanticTokens.incrementTypes": {
       "type": "array",
       "scope": "language-overridable",
-      "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
+      "description": "Semantic token types that should increase highlight when inserting at the start and end positions of a token.",
       "default": ["variable", "string", "parameter"],
       "items": {
         "type": "string"
@@ -1982,13 +1982,13 @@
     "signature.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable show signature help when trigger character typed.",
+      "description": "Show signature help when a trigger character is typed.",
       "default": true
     },
     "signature.floatConfig": {
       "type": "object",
       "scope": "application",
-      "description": "Configure float window style of signature documents.",
+      "description": "Configure the float window style of signature documents.",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
@@ -2013,19 +2013,19 @@
     "signature.hideOnTextChange": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Hide signature float window when text changed on insert mode.",
+      "description": "Hide the signature float window when text changes in insert mode.",
       "default": false
     },
     "signature.preferShownAbove": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show signature help float window above cursor when possible, require restart service on change.",
+      "description": "Show the signature help float window above the cursor when possible; requires restarting the service when changed.",
       "default": true
     },
     "signature.target": {
       "type": "string",
       "scope": "language-overridable",
-      "description": "Target of signature help, use float when possible by default.",
+      "description": "Target used to show signature help; uses float when possible by default.",
       "default": "float",
       "enum": ["float", "echo"]
     },
@@ -2035,12 +2035,12 @@
       "default": 500,
       "minimum": 200,
       "maximum": 1000,
-      "description": "Timeout for trigger signature help, in milliseconds."
+      "description": "Timeout for triggering signature help, in milliseconds."
     },
     "snippet.highlight": {
       "type": "boolean",
       "scope": "application",
-      "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
+      "description": "Use the 'CocSnippetVisual' highlight group to highlight placeholders with the same index as the current one.",
       "default": false
     },
     "snippet.nextPlaceholderOnDelete": {
@@ -2053,17 +2053,17 @@
       "type": "string",
       "scope": "application",
       "default": "SNIP",
-      "description": "Text shown in statusline to indicate snippet session is activated."
+      "description": "Text shown in the statusline to indicate that a snippet session is activated."
     },
     "suggest.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",
       "default": false,
       "scope": "language-overridable",
-      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character."
+      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semicolon (`;`) can be a commit character that accepts a suggestion and types that character."
     },
     "suggest.asciiCharactersOnly": {
       "type": "boolean",
-      "description": "Trigger suggest with ASCII characters only",
+      "description": "Trigger suggest with ASCII characters only.",
       "scope": "language-overridable",
       "default": false
     },
@@ -2071,11 +2071,11 @@
       "type": ["string", "null"],
       "default": "",
       "scope": "language-overridable",
-      "description": "Locales used for divide sentence into segments for around and buffer source, works when NodeJS built with intl support, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters, default empty string means auto detect, use null to disable this feature."
+      "description": "Locales used to divide sentences into segments for the around and buffer sources; works when NodeJS is built with Intl support. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters. An empty string (the default) means auto-detect; use null to disable this feature."
     },
     "suggest.asciiMatch": {
       "type": "boolean",
-      "description": "Convert unicode characters to ascii for match",
+      "description": "Convert Unicode characters to ASCII for matching.",
       "scope": "language-overridable",
       "default": true
     },
@@ -2083,12 +2083,12 @@
       "type": "string",
       "scope": "language-overridable",
       "default": "always",
-      "description": "How should completion be triggered",
+      "description": "How completion should be triggered.",
       "enum": ["always", "trigger", "none"]
     },
     "suggest.reTriggerAfterIndent": {
       "type": "boolean",
-      "description": "Re-Trigger completion after indent changes",
+      "description": "Re-trigger completion after indent changes.",
       "scope": "language-overridable",
       "default": true
     },
@@ -2096,7 +2096,7 @@
       "type": "object",
       "default": {},
       "scope": "application",
-      "description": "Set custom labels to completion items' kinds.",
+      "description": "Set custom labels for completion item kinds.",
       "properties": {
         "text": {"type": "string"},
         "method": {"type": "string"},
@@ -2138,26 +2138,26 @@
       "type": "string",
       "scope": "application",
       "default": "preview",
-      "description": "Where to show the detail text of CompleteItem from LS.",
+      "description": "Where to show the detail text of the completion item from the language server.",
       "enum": ["abbr", "preview"]
     },
     "suggest.detailMaxLength": {
       "type": "integer",
       "scope": "application",
-      "description": "Max length of detail that should be shown in popup menu.",
+      "description": "Maximum length of the detail shown in the popup menu.",
       "deprecationMessage": "Use suggest.labelMaxLength instead.",
       "default": 100
     },
     "suggest.enableFloat": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable float window with documentation aside with popupmenu.",
+      "description": "Enable a float window with documentation next to the popup menu.",
       "default": true
     },
     "suggest.enablePreselect": {
       "type": "boolean",
       "scope": "application",
-      "description": "Enable preselect feature of LSP, works when suggest.noselect is false.",
+      "description": "Enable the LSP preselect feature; works when `suggest.noselect` is false.",
       "default": true
     },
     "suggest.filterGraceful": {
@@ -2169,13 +2169,13 @@
     "suggest.filterOnBackspace": {
       "type": "boolean",
       "scope": "application",
-      "description": "Filter complete items on backspace.",
+      "description": "Filter completion items on backspace.",
       "default": true
     },
     "suggest.floatConfig": {
       "type": "object",
       "scope": "application",
-      "description": "Configure style of popup menu and documentation window of completion.",
+      "description": "Configure the style of the popup menu and documentation window for completion.",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "properties": {
@@ -2199,7 +2199,7 @@
         "enum": ["abbr"]
       },
       "uniqueItems": true,
-      "description": "Items shown in popup menu in order.",
+      "description": "Items shown in the popup menu, in order.",
       "default": ["abbr", "menu", "kind", "shortcut"]
     },
     "suggest.highPrioritySourceLimit": {
@@ -2207,7 +2207,7 @@
       "minimum": 1,
       "maximum": 100,
       "scope": "language-overridable",
-      "description": "Max items count for source priority bigger than or equal to 90."
+      "description": "Maximum number of items for sources with priority greater than or equal to 90."
     },
     "suggest.insertMode": {
       "type": "string",
@@ -2222,7 +2222,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Regexps to ignore when trigger suggest",
+      "description": "Regexps to ignore when triggering suggest.",
       "default": []
     },
     "suggest.invalidInsertCharacters": {
@@ -2231,13 +2231,13 @@
         "type": "string"
       },
       "scope": "application",
-      "description": "Invalid character for strip valid word when inserting text of complete item.",
+      "description": "Invalid characters used to strip the valid word when inserting the text of a completion item.",
       "default": ["\r", "\n"]
     },
     "suggest.labelMaxLength": {
       "type": "integer",
       "scope": "application",
-      "description": "Max length of abbr that shown as label of complete item.",
+      "description": "Maximum length of the abbr shown as the label of a completion item.",
       "default": 200
     },
     "suggest.languageSourcePriority": {
@@ -2257,36 +2257,36 @@
       "minimum": 1,
       "maximum": 100,
       "scope": "language-overridable",
-      "description": "Max items count for source priority lower than 90."
+      "description": "Maximum number of items for sources with priority lower than 90."
     },
     "suggest.maxCompleteItemCount": {
       "type": "integer",
       "default": 256,
       "scope": "language-overridable",
-      "description": "Maximum number of complete items shown in vim"
+      "description": "Maximum number of completion items shown in Vim."
     },
     "suggest.minTriggerInputLength": {
       "type": "integer",
       "default": 1,
       "scope": "language-overridable",
-      "description": "Minimal input length for trigger completion, default 1"
+      "description": "Minimum input length for triggering completion. Default: 1."
     },
     "suggest.noselect": {
       "type": "boolean",
       "scope": "application",
-      "description": "Not make vim select first item on popupmenu shown",
+      "description": "Don't make Vim select the first item when the popup menu is shown.",
       "default": false
     },
     "suggest.preferCompleteThanJumpPlaceholder": {
       "type": "boolean",
-      "description": "Confirm completion instead of jump to next placeholder when completion is activated.",
+      "description": "Confirm completion instead of jumping to the next placeholder when completion is activated.",
       "scope": "resource",
       "default": false
     },
     "suggest.pumFloatConfig": {
       "type": ["object", "null"],
       "scope": "application",
-      "description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
+      "description": "Configure the style of the popup menu; `suggest.floatConfig` is used when not specified.",
       "allOf": [{"$ref": "#/definitions/floatConfig"}],
       "additionalProperties": false,
       "default": null,
@@ -2302,20 +2302,20 @@
     },
     "suggest.removeDuplicateItems": {
       "type": "boolean",
-      "description": "Remove completion items with duplicated word for all sources, snippet items are excluded.",
+      "description": "Remove completion items with a duplicated word across all sources; snippet items are excluded.",
       "scope": "language-overridable",
       "default": false
     },
     "suggest.removeCurrentWord": {
       "type": "boolean",
-      "description": "Remove word item (from around and buffer source) that is identical to current input",
+      "description": "Remove the word item (from the around and buffer sources) that is identical to the current input.",
       "scope": "language-overridable",
       "default": false
     },
     "suggest.reversePumAboveCursor": {
       "type": "boolean",
       "scope": "application",
-      "description": "Reverse order of complete items when pum shown above cursor.",
+      "description": "Reverse the order of completion items when the popup menu is shown above the cursor.",
       "default": false
     },
     "suggest.selection": {
@@ -2329,12 +2329,12 @@
       "type": "string",
       "default": "~",
       "scope": "application",
-      "description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
+      "description": "The character used in the abbr of a completion item to indicate that the item can be expanded as a snippet."
     },
     "suggest.snippetsSupport": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Set to false to disable snippets support of completion.",
+      "description": "Set to false to disable snippet support in completion.",
       "default": true
     },
     "suggest.timeout": {
@@ -2347,7 +2347,7 @@
     },
     "suggest.triggerAfterInsertEnter": {
       "type": "boolean",
-      "description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
+      "description": "Trigger completion after InsertEnter; auto trigger should be 'always' to enable this option.",
       "scope": "language-overridable",
       "default": false
     },
@@ -2357,18 +2357,18 @@
       "minimum": 0,
       "maximum": 10,
       "scope": "language-overridable",
-      "description": "Wait time between text change and completion start, completion is canceled when text changed during wait."
+      "description": "Wait time between text change and completion start; the completion is canceled when text changes during the wait."
     },
     "suggest.virtualText": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show virtual text for insert word of the selected item if any",
+      "description": "Show virtual text for the inserted word of the selected item, if any.",
       "default": false
     },
     "inlineSuggest.autoTrigger": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable automatically trigger inline completion on insert mode cursor hold.",
+      "description": "Automatically trigger inline completion on cursor hold in insert mode.",
       "default": true
     },
     "inlineSuggest.triggerCompletionWait": {
@@ -2377,13 +2377,13 @@
       "minimum": 0,
       "maximum": 1000,
       "scope": "language-overridable",
-      "description": "Wait time in milliseconds between text change and trigger inline completion."
+      "description": "Wait time in milliseconds between text change and triggering inline completion."
     },
     "tree.closedIcon": {
       "type": "string",
       "scope": "application",
       "default": "+",
-      "description": "Closed icon of tree view."
+      "description": "Closed icon of the tree view."
     },
     "tree.key.actions": {
       "type": "string",
@@ -2395,61 +2395,61 @@
       "type": "string",
       "scope": "application",
       "default": "f",
-      "description": "Trigger key active filter."
+      "description": "Trigger key to activate the filter."
     },
     "tree.key.close": {
       "type": "string",
       "scope": "application",
       "default": "<esc>",
-      "description": "Trigger key to dispose the tree and close tree window."
+      "description": "Trigger key to dispose the tree and close the tree window."
     },
     "tree.key.collapseAll": {
       "type": "string",
       "scope": "application",
       "default": "M",
-      "description": "Trigger key to collapse all tree node."
+      "description": "Trigger key to collapse all tree nodes."
     },
     "tree.key.invoke": {
       "type": "string",
       "scope": "application",
       "default": "<cr>",
-      "description": "Trigger key to invoke default command of current node or selection."
+      "description": "Trigger key to invoke the default command of the current node or selection."
     },
     "tree.key.selectNext": {
       "type": "string",
       "scope": "application",
       "default": "<C-j>",
-      "description": "Trigger key to select next item during filter."
+      "description": "Trigger key to select the next item during filtering."
     },
     "tree.key.selectPrevious": {
       "type": "string",
       "scope": "application",
       "default": "<C-k>",
-      "description": "Trigger key to select previous item during filter."
+      "description": "Trigger key to select the previous item during filtering."
     },
     "tree.key.toggle": {
       "type": "string",
       "scope": "application",
       "default": "t",
-      "description": "Trigger key to toggle expand state of tree node, does nothing with leaf node."
+      "description": "Trigger key to toggle the expand state of a tree node; does nothing for leaf nodes."
     },
     "tree.key.toggleSelection": {
       "type": "string",
       "scope": "application",
       "default": "<space>",
-      "description": "Trigger key to select/unselect item"
+      "description": "Trigger key to select/unselect an item."
     },
     "tree.openedIcon": {
       "type": "string",
       "scope": "application",
       "default": "-",
-      "description": "Opened icon of tree view."
+      "description": "Opened icon of the tree view."
     },
     "typeHierarchy.enableTooltip": {
       "type": "boolean",
       "scope": "application",
       "default": true,
-      "description": "Enable tooltip to show relative filepath of type hierarchy."
+      "description": "Enable a tooltip showing the relative filepath of a type hierarchy item."
     },
     "typeHierarchy.openCommand": {
       "type": "string",
@@ -2467,7 +2467,7 @@
       "type": "array",
       "default": [".git", ".hg", ".projections.json"],
       "scope": "application",
-      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+      "description": "Root patterns used to resolve the workspaceFolder from the parent folders of opened files, resolved from the top down.",
       "items": {
         "type": "string"
       }
@@ -2476,7 +2476,7 @@
       "type": "array",
       "default": [],
       "scope": "application",
-      "description": "Filetypes that should have workspace folder should resolved from base directory of file, or [\"*\"] for any filetype.",
+      "description": "Filetypes for which the workspace folder should be resolved from the base directory of the file, or [\"*\"] for any filetype.",
       "items": {
         "type": "string"
       }
@@ -2485,7 +2485,7 @@
       "type": "array",
       "default": [],
       "scope": "application",
-      "description": "Filetypes that should be ignored for workspace folder resolve.",
+      "description": "Filetypes that should be ignored when resolving the workspace folder.",
       "items": {
         "type": "string"
       }
@@ -2494,7 +2494,7 @@
       "type": "array",
       "default": ["$HOME", "$HOME/.cargo/**", "$HOME/.rustup/**", "$HOME/pkg/mod/**", "$HOMEBREW_PREFIX/**"],
       "scope": "application",
-      "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
+      "description": "List of folders that should not be resolved as the workspace folder; environment variables and minimatch patterns can be used.",
       "items": {
         "type": "string"
       }
@@ -2503,37 +2503,37 @@
       "type": "string",
       "default": "vs",
       "scope": "resource",
-      "description": "Command used to open output channel."
+      "description": "Command used to open the output channel."
     },
     "workspace.openResourceCommand": {
       "type": "string",
       "default": "tab drop",
       "scope": "application",
-      "description": "Command to open files that not loaded, load files as hidden buffers when empty."
+      "description": "Command used to open files that aren't loaded; files are loaded as hidden buffers when empty."
     },
     "workspace.workspaceFolderCheckCwd": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Whether the current working directory should be used first when checking patterns match for workspace folder."
+      "description": "Whether the current working directory should be used first when checking pattern matches for the workspace folder."
     },
     "workspace.workspaceFolderFallbackCwd": {
       "type": "boolean",
       "default": true,
       "scope": "application",
-      "description": "Use current working directory as workspace folder when no root patterns resolved."
+      "description": "Use the current working directory as the workspace folder when no root patterns are resolved."
     },
     "workspace.removeEmptyWorkspaceFolder": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Automatically remove the workspace folder when no buffer associated with it."
+      "description": "Automatically remove the workspace folder when no buffer is associated with it."
     },
     "languageserver": {
       "type": "object",
       "default": {},
       "scope": "resource",
-      "description": "Dictionary of languageservers, key is used as id of languageserver, restart coc.nvim required after change.",
+      "description": "Dictionary of language servers; the key is used as the id of the language server. A coc.nvim restart is required after changing this.",
       "patternProperties": {
         "^[_a-zA-Z]+$": {
           "oneOf": [
