@@ -163,8 +163,10 @@ export class Helper extends EventEmitter {
     }
     this.completion.cancelAndClose()
     this.workspace.reset()
+    this.nvim.pauseNotification()
     this.nvim.call('coc#float#close_all', [], true)
-    await this.nvim.command('silent! %bwipeout! | setl nopreviewwindow')
+    this.nvim.command('silent! %bwipeout! | setl nopreviewwindow', true)
+    await this.nvim.resumeNotification()
     await this.workspace.document
   }
 
@@ -187,6 +189,7 @@ export class Helper extends EventEmitter {
   }
 
   public async waitPrompt(): Promise<void> {
+    if (await this.nvim.call('coc#prompt#activated')) return
     for (let i = 0; i < 60; i++) {
       await this.wait(30)
       let prompt = await this.nvim.call('coc#prompt#activated')
@@ -196,6 +199,8 @@ export class Helper extends EventEmitter {
   }
 
   public async waitPromptWin(): Promise<number> {
+    let winid = await this.nvim.call('coc#dialog#get_prompt_win') as number
+    if (winid != -1) return winid
     for (let i = 0; i < 60; i++) {
       await this.wait(30)
       let winid = await this.nvim.call('coc#dialog#get_prompt_win') as number
@@ -205,6 +210,8 @@ export class Helper extends EventEmitter {
   }
 
   public async waitFloat(): Promise<number> {
+    let winid = await this.nvim.call('GetFloatWin') as number
+    if (winid) return winid
     for (let i = 0; i < 50; i++) {
       await this.wait(20)
       let winid = await this.nvim.call('GetFloatWin') as number

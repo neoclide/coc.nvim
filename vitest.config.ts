@@ -15,7 +15,6 @@ export default defineConfig({
   plugins: [],
   test: {
     globals: true,
-    maxWorkers: 8,
     experimental: {
       fsModuleCache: true,
     },
