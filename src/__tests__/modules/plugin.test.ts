@@ -40,7 +40,6 @@ describe('exports', () => {
     // TODO: LanguageKind added in 3.18, we didn't use this yet
     // TODO: CodeActionTag added in 3.18, but prpoposed
     const excludes = [
-      'EOL',
       'URI',
       'TextDocument',
       'LanguageKind',
@@ -53,7 +52,7 @@ describe('exports', () => {
       }
     }
     expect(list.length).toBe(0)
-    for (let key of ['InlineCompletionItem', 'InlineCompletionContext']) {
+    for (let key of ['InlineCompletionItem', 'InlineCompletionContext', 'EOL', 'ExtensionType']) {
       expect(exportObj[key]).toBeDefined()
     }
   })

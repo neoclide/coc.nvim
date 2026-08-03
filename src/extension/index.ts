@@ -19,6 +19,9 @@ import { IInstaller, Installer } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState, ExtensionToLoad } from './manager'
 import { ExtensionStat, checkExtensionRoot, loadExtensionJson, loadGlobalJsonAsync } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
+
+export { ExtensionType } from './manager'
+
 const logger = createLogger('extensions-index')
 
 export interface PropertyScheme {

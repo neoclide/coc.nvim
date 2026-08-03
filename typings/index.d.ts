@@ -10638,9 +10638,10 @@ declare module 'coc.nvim' {
      * Reveal buffer of output channel.
      *
      * @param name Name of output channel.
+     * @param cmd Command used to reveal the output channel, default to `vs`.
      * @param preserveFocus Preserve window focus when true.
      */
-    export function showOutputChannel(name: string, preserveFocus: boolean): void
+    export function showOutputChannel(name: string, cmd?: string, preserveFocus?: boolean): void
 
     /**
      * Echo lines at the bottom of vim.
@@ -11464,12 +11465,6 @@ declare module 'coc.nvim' {
     severity: string
     level: number
     location: Location
-  }
-
-  export enum DiagnosticKind {
-    Syntax,
-    Semantic,
-    Suggestion,
   }
 
   /**
@@ -12907,7 +12902,13 @@ declare module 'coc.nvim' {
   export enum Trace {
     Off = 0,
     Messages = 1,
-    Verbose = 2
+    Compact = 2,
+    Verbose = 3
+  }
+
+  export namespace Trace {
+    function fromString(value: string): Trace
+    function toString(value: Trace): 'off' | 'messages' | 'compact' | 'verbose'
   }
 
   export interface RequestProtocolSignature<P, R, PR, E, RO> {

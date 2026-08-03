@@ -4,7 +4,7 @@ import {
   CodeActionTriggerKind, CodeDescription, CodeLens, Color,
   ColorInformation,
   ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
-  CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
+  CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, EOL, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
   InlayHintLabelPart, InlineCompletionList, InlineCompletionTriggerKind,
   InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
   InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer,
@@ -23,7 +23,7 @@ import commands from './commands'
 import sources from './completion/sources'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
-import extensions from './extension'
+import extensions, { ExtensionType } from './extension'
 import languages, { ProviderName } from './languages'
 import BasicList from './list/basic'
 import listManager from './list/manager'
@@ -157,6 +157,8 @@ module.exports = {
   SymbolInformation,
   MarkupContent,
   ErrorCodes,
+  EOL,
+  ExtensionType,
   CompletionItemTag,
   integer,
   uinteger,
