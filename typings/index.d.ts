@@ -6815,6 +6815,29 @@ declare module 'coc.nvim' {
     render(buffer: Buffer, start?: number, end?: number): void
   }
 
+  /**
+   * Build line with content and highlights.
+   */
+  export class LineBuilder {
+    constructor(addSpace?: boolean)
+    /**
+     * Append text with optional highlight group and nested highlights.
+     */
+    append(text: string, hlGroup?: string, nested?: { offset: number, length: number, hlGroup: string }[]): void
+    /**
+     * Append another builder to this one.
+     */
+    appendBuilder(builder: LineBuilder): void
+    /**
+     * Content of the line.
+     */
+    get label(): string
+    /**
+     * Highlights of the line.
+     */
+    get highlights(): AnsiHighlight[]
+  }
+
   export interface ListConfiguration {
     get<T>(key: string, defaultValue?: T): T
     previousKey(): string
@@ -7106,6 +7129,11 @@ declare module 'coc.nvim' {
   export function executable(command: string): boolean
 
   /**
+   * Terminate child process, works cross-platform.
+   */
+  export function terminate(process: cp.ChildProcess, cwd?: string, pt?: number): boolean
+
+  /**
    * Watch single file for change, the parent directory of the filepath needs
    * to be exists. Watching survives file replacement by rename and deletion,
    * so the change handler keeps being called.
@@ -7116,6 +7144,28 @@ declare module 'coc.nvim' {
    * @param onError Optional handler called when the watcher fails.
    */
   export function watchFile(filepath: string, onChange: () => void, immediate?: boolean, onError?: (err: Error) => void): Disposable
+
+  /**
+   * Type of a file or directory.
+   */
+  export enum FileType {
+    /**
+     * The file type is unknown.
+     */
+    Unknown = 0,
+    /**
+     * A regular file.
+     */
+    File = 1,
+    /**
+     * A directory.
+     */
+    Directory = 2,
+    /**
+     * A symbolic link to a file.
+     */
+    SymbolicLink = 64
+  }
   // }}
 
   // commands module {{
@@ -9216,6 +9266,15 @@ declare module 'coc.nvim' {
   export interface TextDocumentMatch {
     readonly uri: string
     readonly languageId: string
+  }
+
+  /**
+   * Type of pattern used by workspace folder.
+   */
+  export enum PatternType {
+    Buffer,
+    LanguageServer,
+    Global,
   }
 
   export namespace workspace {
@@ -12427,6 +12486,14 @@ declare module 'coc.nvim' {
       isTrusted?: boolean
       supportHtml?: boolean
     }
+  }
+  export enum ClientState {
+    Initial,
+    Starting,
+    StartFailed,
+    Running,
+    Stopping,
+    Stopped
   }
   export enum State {
     Stopped = 1,
