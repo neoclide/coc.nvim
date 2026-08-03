@@ -575,8 +575,7 @@ describe('list insert mappings', () => {
     await nvim.input('d')
     await p
     expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
-    let bufname = await nvim.call('bufname', ['%'])
-    expect(bufname).toMatch(path.basename(__filename))
+    await helper.waitFor('bufname', ['%'], new RegExp(path.basename(__filename)))
   })
 
   it('should select action for visual selected items', async () => {

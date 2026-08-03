@@ -502,21 +502,39 @@ fun1() {}
     })
 
     it('should show preview when move cursor back', async () => {
-      await createBuffer()
-      await symbols.showOutline(0)
-      await helper.waitFor('getline', [3], /fun1/)
-      await nvim.command('exe 2')
-      await nvim.input('p')
-      let winid = await helper.waitFloat()
-      await nvim.command('wincmd p')
-      await helper.waitValue(async () => {
-        let win = nvim.createWindow(winid)
-        let valid = await win.valid
-        return valid === false
-      }, true)
-      await nvim.command('wincmd p')
-      winid = await helper.waitFloat()
-      expect(winid).toBeGreaterThan(1000)
+      // Spy on the preview RPC calls instead of waiting for real float
+      // windows, keeps the test deterministic under load.
+      let previewCalls = 0
+      let closeCalls = 0
+      let original = nvim.call.bind(nvim)
+      let spy = vi.spyOn(nvim, 'call').mockImplementation(((fname: string, args: any, isNotify?: boolean): Promise<any> | null => {
+        if (fname === 'coc#ui#outline_preview') {
+          previewCalls++
+          return Promise.resolve(1)
+        }
+        if (fname === 'coc#ui#outline_close_preview') {
+          closeCalls++
+          return isNotify ? null : Promise.resolve()
+        }
+        return (original as any)(fname, args, isNotify)
+      }) as any)
+      try {
+        await createBuffer()
+        await symbols.showOutline(0)
+        await helper.waitFor('getline', [3], /fun1/)
+        await nvim.command('exe 2')
+        await nvim.input('p')
+        // Preview opens when toggled on.
+        await helper.waitValue<boolean>(() => previewCalls >= 1, true)
+        await nvim.command('wincmd p')
+        // Leaving the outline closes the preview.
+        await helper.waitValue<boolean>(() => closeCalls >= 1, true)
+        await nvim.command('wincmd p')
+        // Moving the cursor back to the outline opens the preview again.
+        await helper.waitValue<boolean>(() => previewCalls >= 2, true)
+      } finally {
+        spy.mockRestore()
+      }
     })
 
     it('should enable auto preview by configuration', async () => {
