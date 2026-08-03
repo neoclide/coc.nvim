@@ -6,6 +6,12 @@ Notable changes of coc.nvim:
 
 - Add configuration `suggest.pumAlign` to align the popup menu with a field
   (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the first text.
+- Advertise LSP 3.18 client capabilities for code lens and signature help:
+    - `textDocument.codeLens.resolveSupport` now reports the properties the
+      client can resolve lazily (the code lens `command`).
+    - `textDocument.signatureHelp.noActiveParameterSupport` now reports that
+      `activeParameter` can be `null` to indicate no active parameter; the
+      signature float no longer highlights the first parameter in that case.
 - Code lens action picker and code action menus now show `Command#tooltip` as a
   `title - tooltip` suffix when the server provides one.
 - Add multi-range formatting API for LSP 3.18 `textDocument/rangesFormatting`:
