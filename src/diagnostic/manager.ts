@@ -28,7 +28,7 @@ interface DiagnosticSignConfig {
   messageDelay?: number
   errorSign?: string
   warningSign?: string
-  infoSing?: string
+  infoSign?: string
   hintSign?: string
   enableHighlightLineNumber?: boolean
 }
