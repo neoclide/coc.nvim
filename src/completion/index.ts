@@ -178,6 +178,7 @@ export class Completion implements Disposable {
       invalidInsertCharacters: toArray(suggest.invalidInsertCharacters),
       formatItems: suggest.formatItems,
       filterOnBackspace: suggest.filterOnBackspace,
+      pumAlign: suggest.pumAlign,
       floatConfig: toObject(suggest.floatConfig),
       pumFloatConfig: suggest.pumFloatConfig,
       labelMaxLength: suggest.labelMaxLength,

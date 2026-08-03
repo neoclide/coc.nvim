@@ -42,6 +42,7 @@ export interface BuildConfig {
 export interface PumConfig {
   width?: number
   highlights?: HighlightItem[]
+  offset?: number
   highlight?: string
   borderhighlight?: string
   title?: string
@@ -50,6 +51,7 @@ export interface PumConfig {
   border?: [number, number, number, number] | undefined
   rounded?: number
   reverse?: boolean
+  pumAlign?: string
 }
 
 export interface PopupMenuConfig {
@@ -61,13 +63,14 @@ export interface PopupMenuConfig {
   filterOnBackspace: boolean
   floatConfig: FloatConfig
   pumFloatConfig?: FloatConfig
-  formatItems: ReadonlyArray<string>
+  formatItems: ReadonlyArray<PumItems>
   labelMaxLength: number
   reversePumAboveCursor: boolean
   snippetIndicator: string
   virtualText: boolean
   detailMaxLength: number
   detailField: string
+  pumAlign: string | null
   reTriggerAfterIndent: boolean
   invalidInsertCharacters: string[]
 }
@@ -86,6 +89,8 @@ export enum PumItems {
   Kind = 'kind',
   Shortcut = 'shortcut'
 }
+
+const validPumItems = ['abbr', 'menu', 'kind', 'shortcut']
 
 export default class PopupMenu {
   private _search = ''
@@ -111,7 +116,7 @@ export default class PopupMenu {
 
   public get pumConfig(): PumConfig {
     if (this._pumConfig) return this._pumConfig
-    let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config
+    let { floatConfig, pumAlign, pumFloatConfig, reversePumAboveCursor } = this.config
     if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
     if (pumFloatConfig.border) {
@@ -122,6 +127,7 @@ export default class PopupMenu {
     if (Is.string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight
     if (Is.number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend
     if (Is.string(pumFloatConfig.title)) obj.title = pumFloatConfig.title
+    if (Is.string(pumAlign) && validPumItems.includes(pumAlign)) obj.pumAlign = pumAlign
     obj.shadow = pumFloatConfig.shadow === true
     obj.reverse = reversePumAboveCursor === true
     this._pumConfig = obj
@@ -134,7 +140,7 @@ export default class PopupMenu {
 
   public show(items: DurationCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { noselect, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config
+    let { noselect, formatItems, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config
     const invalidInsertCodes = invalidInsertCharacters.map(ch => ch.charCodeAt(0))
     let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
@@ -207,13 +213,24 @@ export default class PopupMenu {
     let width = 0
     let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
+    let pumAlign = pumConfig.pumAlign
+    let offset = 0
+    if (pumAlign) {
+      for (let item of formatItems) {
+        if (item !== pumAlign) {
+          offset += getItemWidth(item, buildConfig)
+        } else {
+          break
+        }
+      }
+    }
     let lowInput = search.toLowerCase()
     for (let index = 0; index < items.length; index++) {
       let [displayWidth, text] = this.buildItem(search, lowInput, items[index], labels[index], highlights, index, buildConfig)
       width = Math.max(width, displayWidth)
       lines.push(text)
     }
-    let config: PumConfig = Object.assign({ width, highlights }, pumConfig)
+    let config: PumConfig = Object.assign({ width, highlights, offset }, pumConfig)
     this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
   }
@@ -249,15 +266,7 @@ export default class PopupMenu {
     let pumwidth = toNumber(workspace.env.pumwidth, 15)
     let len = 0
     for (const item of formatItems) {
-      if (item == PumItems.Abbr) {
-        len += config.abbrWidth + 1
-      } else if (item == PumItems.Menu && config.menuWidth) {
-        len += config.menuWidth + 1
-      } else if (item == PumItems.Kind && config.kindWidth) {
-        len += config.kindWidth + 1
-      } else if (item == PumItems.Shortcut && config.shortcutWidth) {
-        len += config.shortcutWidth + 1
-      }
+      len += getItemWidth(item, config)
     }
     if (len < pumwidth) {
       config.abbrWidth = config.abbrWidth + pumwidth - len
@@ -391,6 +400,22 @@ export function getInsertWord(word: string, codes: number[], start: number): str
     }
   }
   return word
+}
+
+export function getItemWidth(item: string, config: BuildConfig): number {
+  const { abbrWidth, menuWidth, kindWidth, shortcutWidth } = config
+  switch (item) {
+    case PumItems.Abbr:
+      return abbrWidth + 1
+    case PumItems.Menu:
+      return menuWidth == 0 ? 0 : menuWidth + 1
+    case PumItems.Kind:
+      return kindWidth == 0 ? 0 : kindWidth + 1
+    case PumItems.Shortcut:
+      return shortcutWidth == 0 ? 0 : shortcutWidth + 1
+    default:
+      return 0
+  }
 }
 
 /**

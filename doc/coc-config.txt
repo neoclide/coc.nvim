@@ -1945,6 +1945,15 @@ SUGGEST
 
 	Scope: `resource`, default: `false`
 
+"suggest.pumAlign"					*coc-config-suggest-pumAlign*
+
+	Field of the popup menu to align with the cursor. When `null` (default),
+	the leftmost character of the popup menu is aligned with the cursor. Set
+	to `"abbr"`, `"menu"`, `"kind"` or `"shortcut"` to shift the popup menu to
+	the left so the configured field is aligned with the cursor.
+
+	Scope: `application`, default: `null`
+
 "suggest.pumFloatConfig"				*coc-config-suggest-pumFloatConfig*
 
 	Configure the style of the popup menu; `suggest.floatConfig` is used when

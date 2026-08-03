@@ -11,7 +11,7 @@ import { caseScore, matchScore, matchScoreWithPositions } from '../../completion
 import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
 import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, getLastPart, resolveEnvVariables } from '../../completion/native/file'
-import { getInsertWord, prefixWord } from '../../completion/pum'
+import { getInsertWord, getItemWidth, prefixWord, PumItems } from '../../completion/pum'
 import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource, { checkInclude, getMethodName } from '../../completion/source-vim'
 import sources, { Sources, getSourceType, logError } from '../../completion/sources'
@@ -928,6 +928,36 @@ describe('completion float', () => {
   it('should get insert word', () => {
     expect(getInsertWord('word', [], 0)).toBe('word')
     expect(getInsertWord('word\nbar', [10], 2)).toBe('word')
+  })
+
+  it('should get item width', () => {
+    let config = {
+      border: false,
+      abbrWidth: 6,
+      menuWidth: 5,
+      kindWidth: 1,
+      shortcutWidth: 4
+    }
+    expect(getItemWidth(PumItems.Abbr, config)).toBe(7)
+    expect(getItemWidth(PumItems.Menu, config)).toBe(6)
+    expect(getItemWidth(PumItems.Kind, config)).toBe(2)
+    expect(getItemWidth(PumItems.Shortcut, config)).toBe(5)
+  })
+
+  it('should get zero width for hidden fields', () => {
+    let config = {
+      border: false,
+      abbrWidth: 0,
+      menuWidth: 0,
+      kindWidth: 0,
+      shortcutWidth: 0
+    }
+    // abbr slot is always rendered even when its width is 0
+    expect(getItemWidth(PumItems.Abbr, config)).toBe(1)
+    expect(getItemWidth(PumItems.Menu, config)).toBe(0)
+    expect(getItemWidth(PumItems.Kind, config)).toBe(0)
+    expect(getItemWidth(PumItems.Shortcut, config)).toBe(0)
+    expect(getItemWidth('invalid' as PumItems, config)).toBe(0)
   })
 
   it('should cancel float window', async () => {

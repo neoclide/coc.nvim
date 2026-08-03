@@ -393,6 +393,7 @@ Related highlight groups: ~
 To customize floating windows used by popup menu, use:
 
   • |coc-config-suggest-floatConfig|
+  • |coc-config-suggest-pumAlign|
   • |coc-config-suggest-pumFloatConfig|
 
 For floating windows created around the cursor, such as diagnostics, hover,

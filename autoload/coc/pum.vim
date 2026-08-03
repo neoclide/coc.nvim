@@ -541,7 +541,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   if s:is_vim
     return {
           \ 'row': showTop ? lineIdx - height - bh : lineIdx + 1,
-          \ 'col': colIdx + col,
+          \ 'col': colIdx + col - get(a:config, 'offset', 0),
           \ 'relative': 'editor',
           \ 'above': showTop,
           \ 'width': width,
@@ -550,7 +550,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   endif
   return {
         \ 'row': showTop ? - height : 1,
-        \ 'col': col,
+        \ 'col': col - get(a:config, 'offset', 0),
         \ 'relative': 'cursor',
         \ 'above': showTop,
         \ 'width': width,

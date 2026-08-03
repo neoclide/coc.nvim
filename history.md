@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-04
+
+- Add configuration `suggest.pumAlign` to align the popup menu with a field
+  (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the cursor.
+
 ## 2026-08-03
 
 - File operation glob patterns now match dotfiles and dot-prefixed directories by default.

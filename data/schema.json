@@ -2283,6 +2283,13 @@
       "scope": "resource",
       "default": false
     },
+    "suggest.pumAlign": {
+      "type": ["string", "null"],
+      "scope": "application",
+      "enum": ["abbr", "menu", "kind", "shortcut", null],
+      "default": null,
+      "description": "Field of the popup menu to align with the cursor. When `null`, the leftmost character of the popup menu is aligned with the cursor. When set, the popup menu is shifted to the left so the configured field is aligned with the cursor."
+    },
     "suggest.pumFloatConfig": {
       "type": ["object", "null"],
       "scope": "application",

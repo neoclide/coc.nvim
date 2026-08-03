@@ -257,6 +257,111 @@ describe('completion', () => {
       expect(lines[0]).toMatch('suggest')
     })
 
+    it('should shift pum when pumAlign is configured', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr', 'menu', 'kind', 'shortcut'])
+      let buf = await nvim.buffer
+      await buf.setLines(['xxxxxxxxxxxx foo ', ''], { start: 0, end: -1, strictIndexing: false })
+      let doc = workspace.getDocument(buf.id)
+      await doc.patchChange()
+      await nvim.call('cursor', [1, 17])
+      let name = await create([
+        { word: 'foo', menu: 'm', kind: 'w' },
+        { word: 'foobar', menu: 'menu2', kind: 'v' }
+      ], true)
+      let info = await nvim.call('coc#pum#info') as any
+      expect(info.col).toBeGreaterThan(0)
+      completion.cancelAndClose()
+      helper.updateConfiguration('suggest.pumAlign', 'menu')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let info2 = await nvim.call('coc#pum#info') as any
+      // offset: abbr width (6) + trailing space (1)
+      expect(info2.col).toBe(info.col - 7)
+    }, 10000)
+
+    it('should not shift pum when pumAlign is abbr', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr', 'menu', 'kind', 'shortcut'])
+      let buf = await nvim.buffer
+      await buf.setLines(['xxxxxxxxxxxx foo ', ''], { start: 0, end: -1, strictIndexing: false })
+      let doc = workspace.getDocument(buf.id)
+      await doc.patchChange()
+      await nvim.call('cursor', [1, 17])
+      let name = await create([
+        { word: 'foo', menu: 'm', kind: 'w' },
+        { word: 'foobar', menu: 'menu2', kind: 'v' }
+      ], true)
+      let info = await nvim.call('coc#pum#info') as any
+      completion.cancelAndClose()
+      helper.updateConfiguration('suggest.pumAlign', 'abbr')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let info2 = await nvim.call('coc#pum#info') as any
+      expect(info2.col).toBe(info.col)
+    }, 10000)
+
+    it('should shift pum by width of preceding fields for kind', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr', 'menu', 'kind', 'shortcut'])
+      let buf = await nvim.buffer
+      await buf.setLines(['x'.repeat(30) + ' foo ', ''], { start: 0, end: -1, strictIndexing: false })
+      let doc = workspace.getDocument(buf.id)
+      await doc.patchChange()
+      await nvim.call('cursor', [1, 35])
+      let name = await create([
+        { word: 'foo', menu: 'm', kind: 'w' },
+        { word: 'foobar', menu: 'menu2', kind: 'v' }
+      ], true)
+      let info = await nvim.call('coc#pum#info') as any
+      completion.cancelAndClose()
+      helper.updateConfiguration('suggest.pumAlign', 'kind')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let info2 = await nvim.call('coc#pum#info') as any
+      // offset: abbr (7) + menu width (5) + menu trailing space (1)
+      expect(info2.col).toBe(info.col - 13)
+    }, 10000)
+
+    it('should keep pum position for invalid pumAlign', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr', 'menu', 'kind', 'shortcut'])
+      let buf = await nvim.buffer
+      await buf.setLines(['xxxxxxxxxxxx foo ', ''], { start: 0, end: -1, strictIndexing: false })
+      let doc = workspace.getDocument(buf.id)
+      await doc.patchChange()
+      await nvim.call('cursor', [1, 17])
+      let name = await create([
+        { word: 'foo', menu: 'm', kind: 'w' },
+        { word: 'foobar', menu: 'menu2', kind: 'v' }
+      ], true)
+      let info = await nvim.call('coc#pum#info') as any
+      completion.cancelAndClose()
+      helper.updateConfiguration('suggest.pumAlign', 'invalid')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let info2 = await nvim.call('coc#pum#info') as any
+      expect(info2.col).toBe(info.col)
+    }, 10000)
+
+    it('should shift pum when border is configured', async () => {
+      helper.updateConfiguration('suggest.pumFloatConfig', { border: true })
+      helper.updateConfiguration('suggest.formatItems', ['abbr', 'menu', 'kind', 'shortcut'])
+      let buf = await nvim.buffer
+      await buf.setLines(['xxxxxxxxxxxx foo ', ''], { start: 0, end: -1, strictIndexing: false })
+      let doc = workspace.getDocument(buf.id)
+      await doc.patchChange()
+      await nvim.call('cursor', [1, 17])
+      let name = await create([
+        { word: 'foo', menu: 'm', kind: 'w' },
+        { word: 'foobar', menu: 'menu2', kind: 'v' }
+      ], true)
+      let info = await nvim.call('coc#pum#info') as any
+      expect(info.border).toBe(1)
+      completion.cancelAndClose()
+      helper.updateConfiguration('suggest.pumAlign', 'menu')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let info2 = await nvim.call('coc#pum#info') as any
+      expect(info2.col).toBe(info.col - 7)
+    }, 10000)
+
     it('should do filter when autoTrigger is none', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
       let doc = await workspace.document

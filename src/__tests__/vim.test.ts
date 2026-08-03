@@ -268,6 +268,52 @@ describe('vim api', () => {
     }
   })
 
+  it('should shift popup left when pumAlign is configured', async () => {
+    let name = crypto.randomUUID()
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [
+          { word: 'foo', menu: 'm', kind: 'w' },
+          { word: 'foobar', menu: 'menu2', kind: 'v' }
+        ]
+      })
+    })
+    await nvim.call('setline', [1, 'xxxxxxxxxxxx foo '])
+    await nvim.input('A')
+    nvim.call('coc#start', { source: name }, true)
+    try {
+      await helper.waitPopup()
+      let id = 0
+      await helper.waitValue(async () => {
+        id = await nvim.call('coc#pum#winid', []) as number
+        return id > 0
+      }, true)
+      let pos = await nvim.call('popup_getpos', [id]) as { col: number }
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      helper.updateConfiguration('suggest.pumAlign', 'menu')
+      await nvim.input('A')
+      nvim.call('coc#start', { source: name }, true)
+      await helper.waitPopup()
+      let id2 = 0
+      await helper.waitValue(async () => {
+        id2 = await nvim.call('coc#pum#winid', []) as number
+        return id2 > 0
+      }, true)
+      let pos2 = await nvim.call('popup_getpos', [id2]) as { col: number }
+      // offset: abbr width (6) + trailing space (1)
+      expect(pos.col - pos2.col).toBe(7)
+    } finally {
+      await nvim.call('coc#pum#close', ['cancel'])
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
   it('should keep popup menu at word start when typed input becomes concealed', async () => {
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
