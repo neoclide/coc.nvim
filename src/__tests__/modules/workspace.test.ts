@@ -595,6 +595,9 @@ describe('workspace events', () => {
     await nvim.command('wa')
     let content = doc.getDocumentContent()
     expect(content).toMatch('bar')
+    // Wait for the async waitUntil timer to fire while vim is idle, otherwise
+    // the error echo could abort a BufWritePre request of the next test.
+    await helper.wait(50)
     disposable.dispose()
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath)

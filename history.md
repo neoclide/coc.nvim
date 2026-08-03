@@ -5,7 +5,7 @@ Notable changes of coc.nvim:
 ## 2026-08-04
 
 - Add configuration `suggest.pumAlign` to align the popup menu with a field
-  (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the cursor.
+  (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the first text.
 
 ## 2026-08-03
 
