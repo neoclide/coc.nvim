@@ -40,4 +40,37 @@ export default class FormatRangeManager extends Manager<DocumentRangeFormattingE
     }
     return res
   }
+
+  /**
+   * Provide formatting edits for multiple ranges, fallback to format each
+   * range separately when the provider has no ranges support.
+   *
+   * @since 3.18.0
+   */
+  public async provideDocumentRangesFormattingEdits(
+    document: TextDocument,
+    ranges: Range[],
+    options: FormattingOptions,
+    token: CancellationToken
+  ): Promise<TextEdit[]> {
+    let item = this.getFormatProvider(document)
+    if (!item) return null
+    let { provider } = item
+    let res: TextEdit[]
+    if (provider.provideDocumentRangesFormattingEdits) {
+      res = await Promise.resolve(provider.provideDocumentRangesFormattingEdits(document, ranges, options, token))
+    } else {
+      res = []
+      for (let range of ranges) {
+        let edits = await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, token))
+        if (Array.isArray(edits)) res.push(...edits)
+      }
+    }
+    if (Array.isArray(res)) {
+      Object.defineProperty(res, '__extensionName', {
+        get: () => item.provider['__extensionName']
+      })
+    }
+    return res
+  }
 }

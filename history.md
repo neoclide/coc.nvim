@@ -8,6 +8,13 @@ Notable changes of coc.nvim:
   (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the first text.
 - Code lens action picker and code action menus now show `Command#tooltip` as a
   `title - tooltip` suffix when the server provides one.
+- Add multi-range formatting API for LSP 3.18 `textDocument/rangesFormatting`:
+  `DocumentRangeFormattingEditProvider` gains an optional
+  `provideDocumentRangesFormattingEdits` method and `languages` exposes
+  `provideDocumentRangesFormattingEdits`, falling back to per-range formatting
+  when the provider has no ranges support. The client capability
+  `textDocument.rangeFormatting.rangesSupport` is advertised to servers.
+  Existing visual block selection formatting behavior is unchanged.
 
 ## 2026-08-03
 

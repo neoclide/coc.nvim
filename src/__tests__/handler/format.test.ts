@@ -218,6 +218,53 @@ describe('format handler', () => {
         start: { line: 0, character: 0 }, end: { line: 3, character: 0 }
       })
     })
+
+    it('should provide ranges formatting edits', async () => {
+      let called = false
+      disposables.push(languages.registerDocumentRangeFormatProvider(['text'], {
+        provideDocumentRangeFormattingEdits: () => [],
+        provideDocumentRangesFormattingEdits: (_document, ranges) => {
+          called = true
+          return ranges.map(r => TextEdit.insert(Position.create(r.start.line, r.start.character), '  '))
+        }
+      }, 1))
+      let doc = await helper.createDocument()
+      doc.setFiletype('text')
+      let options = await workspace.getFormatOptions(doc.bufnr)
+      let token = (new CancellationTokenSource()).token
+      let edits = await languages.provideDocumentRangesFormattingEdits(
+        doc.textDocument,
+        [Range.create(0, 0, 0, 1), Range.create(1, 0, 1, 1)],
+        options,
+        token
+      )
+      expect(called).toBe(true)
+      expect(edits.length).toBe(2)
+    })
+
+    it('should fallback to per range formatting', async () => {
+      let ranges: Range[] = []
+      disposables.push(languages.registerDocumentRangeFormatProvider(['text'], {
+        provideDocumentRangeFormattingEdits: (_document, range) => {
+          ranges.push(range)
+          return []
+        }
+      }, 1))
+      let doc = await helper.createDocument()
+      doc.setFiletype('text')
+      let options = await workspace.getFormatOptions(doc.bufnr)
+      let token = (new CancellationTokenSource()).token
+      let edits = await languages.provideDocumentRangesFormattingEdits(
+        doc.textDocument,
+        [Range.create(0, 0, 0, 1), Range.create(1, 0, 1, 1)],
+        options,
+        token
+      )
+      expect(ranges.length).toBe(2)
+      expect(ranges[0].start.line).toBe(0)
+      expect(ranges[1].start.line).toBe(1)
+      expect(edits.length).toBe(0)
+    })
   })
 
   describe('formatOnType', () => {

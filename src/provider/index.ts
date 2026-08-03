@@ -447,6 +447,23 @@ export interface DocumentRangeFormattingEditProvider {
     options: FormattingOptions,
     token: CancellationToken
   ): ProviderResult<TextEdit[]>
+  /**
+   * Provide formatting edits for multiple ranges in a document.
+   *
+   * @param document The document in which the command was invoked.
+   * @param ranges The ranges which should be formatted.
+   * @param options Options controlling formatting.
+   * @param token A cancellation token.
+   * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   * @since 3.18.0
+   */
+  provideDocumentRangesFormattingEdits?(
+    document: TextDocument,
+    ranges: Range[],
+    options: FormattingOptions,
+    token: CancellationToken
+  ): ProviderResult<TextEdit[]>
 }
 
 /**

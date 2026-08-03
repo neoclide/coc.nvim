@@ -477,6 +477,15 @@ class Languages {
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
+
+  /**
+   * Provide formatting edits for multiple ranges in a document.
+   *
+   * @since 3.18.0
+   */
+  public async provideDocumentRangesFormattingEdits(document: TextDocument, ranges: Range[], options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
+    return await this.formatRangeManager.provideDocumentRangesFormattingEdits(document, ranges, options, token)
+  }
   /**
    * @internal
    */

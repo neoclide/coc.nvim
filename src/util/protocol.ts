@@ -98,6 +98,7 @@ export {
   ImplementationRequest,
   DocumentFormattingRequest,
   DocumentRangeFormattingRequest,
+  DocumentRangesFormattingRequest,
   DocumentOnTypeFormattingRequest,
   FoldingRangeRequest,
   DidChangeWatchedFilesNotification,

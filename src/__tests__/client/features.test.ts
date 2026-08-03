@@ -637,6 +637,27 @@ describe('Client integration', () => {
     assert.ok(middlewareCalled)
   })
 
+  test('Document Ranges Formatting', async () => {
+    const provider = client.getFeature(DocumentRangeFormattingRequest.method).getProvider(document)
+    isDefined(provider)
+    const ranges = [Range.create(3, 3, 3, 4)]
+    const result = await provider.provideDocumentRangesFormattingEdits(document, ranges, { tabSize: 4, insertSpaces: false }, tokenSource.token)
+
+    isArray(result, TextEdit)
+    const edit = result[0]
+    assert.strictEqual(edit.newText, 'ranges')
+    rangeEqual(edit.range, 3, 3, 3, 4)
+
+    let middlewareCalled = true
+    middleware.provideDocumentRangesFormattingEdits = (d, r, c, t, n) => {
+      middlewareCalled = true
+      return n(d, r, c, t)
+    }
+    await provider.provideDocumentRangesFormattingEdits(document, ranges, { tabSize: 4, insertSpaces: false }, tokenSource.token)
+    middleware.provideDocumentRangesFormattingEdits = undefined
+    assert.ok(middlewareCalled)
+  })
+
   test('Document on Type Formatting', async () => {
     const provider = client.getFeature(DocumentOnTypeFormattingRequest.method).getProvider(document)
     isDefined(provider)

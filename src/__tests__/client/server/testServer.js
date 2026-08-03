@@ -14,7 +14,8 @@ const {
   InlineCompletionItem,
   WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression,
   ApplyWorkspaceEditRequest,
-  DocumentSymbol
+  DocumentSymbol,
+  DocumentRangesFormattingRequest
 } = require('vscode-languageserver-protocol')
 
 let connection = createConnection(ProposedFeatures.all)
@@ -41,6 +42,7 @@ connection.onInitialize(params => {
   assert.equal(params.capabilities.textDocument.implementation.linkSupport, true)
   assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, true)
   assert.equal(params.capabilities.textDocument.rename.prepareSupport, true)
+  assert.equal(params.capabilities.textDocument.rangeFormatting.rangesSupport, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.relatedInformation, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet.length, 2)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[0], DiagnosticTag.Unnecessary)
@@ -341,6 +343,12 @@ connection.onDocumentFormatting(_params => {
 connection.onDocumentRangeFormatting(_params => {
   return [
     TextEdit.del(Range.create(1, 1, 1, 2))
+  ]
+})
+
+connection.onRequest(DocumentRangesFormattingRequest.type, _params => {
+  return [
+    TextEdit.replace(Range.create(3, 3, 3, 4), 'ranges')
   ]
 })
 

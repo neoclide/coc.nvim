@@ -1,10 +1,10 @@
 'use strict'
-import type { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangesFormattingParams, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, OnTypeFormattingEditProvider, ProviderResult } from '../provider'
 import {
-  DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
+  DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentRangesFormattingRequest
 } from '../util/protocol'
 import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
 
@@ -22,6 +22,16 @@ export interface ProvideDocumentRangeFormattingEditsSignature {
     this: void,
     document: TextDocument,
     range: Range,
+    options: FormattingOptions,
+    token: CancellationToken
+  ): ProviderResult<TextEdit[]>
+}
+
+export interface ProvideDocumentRangesFormattingEditsSignature {
+  (
+    this: void,
+    document: TextDocument,
+    ranges: Range[],
     options: FormattingOptions,
     token: CancellationToken
   ): ProviderResult<TextEdit[]>
@@ -57,6 +67,14 @@ export interface FormattingMiddleware {
     options: FormattingOptions,
     token: CancellationToken,
     next: ProvideDocumentRangeFormattingEditsSignature
+  ) => ProviderResult<TextEdit[]>
+  provideDocumentRangesFormattingEdits?: (
+    this: void,
+    document: TextDocument,
+    ranges: Range[],
+    options: FormattingOptions,
+    token: CancellationToken,
+    next: ProvideDocumentRangesFormattingEditsSignature
   ) => ProviderResult<TextEdit[]>
   provideOnTypeFormattingEdits?: (
     this: void,
@@ -133,10 +151,9 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    ensure(
-      ensure(capabilities, 'textDocument')!,
-      'rangeFormatting'
-    )!.dynamicRegistration = true
+    let rangeFormatting = ensure(ensure(capabilities, 'textDocument')!, 'rangeFormatting')!
+    rangeFormatting.dynamicRegistration = true
+    rangeFormatting.rangesSupport = true
   }
 
   public initialize(
@@ -154,7 +171,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
   }
 
   protected registerLanguageProvider(
-    options: TextDocumentRegistrationOptions
+    options: DocumentRangeFormattingRegistrationOptions
   ): [Disposable, DocumentRangeFormattingEditProvider] {
     const provider: DocumentRangeFormattingEditProvider = {
       provideDocumentRangeFormattingEdits: (document, range, options, token) => {
@@ -171,7 +188,22 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
         return middleware.provideDocumentRangeFormattingEdits
           ? middleware.provideDocumentRangeFormattingEdits(document, range, options, token, provideDocumentRangeFormattingEdits)
           : provideDocumentRangeFormattingEdits(document, range, options, token)
-      }
+      },
+      provideDocumentRangesFormattingEdits: options.rangesSupport ? (document, ranges, options, token) => {
+        const client = this._client
+        const provideDocumentRangesFormattingEdits: ProvideDocumentRangesFormattingEditsSignature = (document, ranges, options, token) => {
+          const params: DocumentRangesFormattingParams = {
+            textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
+            ranges,
+            options,
+          }
+          return this.sendRequest(DocumentRangesFormattingRequest.type, params, token)
+        }
+        const middleware = client.middleware!
+        return middleware.provideDocumentRangesFormattingEdits
+          ? middleware.provideDocumentRangesFormattingEdits(document, ranges, options, token, provideDocumentRangesFormattingEdits)
+          : provideDocumentRangesFormattingEdits(document, ranges, options, token)
+      } : undefined
     }
     this._client.attachExtensionName(provider)
     return [
