@@ -221,7 +221,7 @@ export default class WorkspaceHandler {
   }
 
   public async doAutocmd(id: number, args: any[]): Promise<void> {
-    let timeout = workspace.getConfiguration('editor', null).get<number>('timeout', 1000)
+    let timeout = workspace.getConfiguration('editor', null).get<number>('autocmdTimeout', 1000)
     await workspace.autocmds.doAutocmd(id, args, timeout)
   }
 
