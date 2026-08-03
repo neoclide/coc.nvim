@@ -79,6 +79,53 @@ describe('signatureHelp', () => {
       expect(hls[0].hlGroup).toBe('CocFloatActive')
     })
 
+    it('should not highlight parameter when activeParameter is null', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo(a)', 'my signature', { label: 'a' })],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await helper.doAction('showSignatureHelp')
+      await signature.triggerSignatureHelp()
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let buf = await win.buffer
+      let hls = await buf.getHighlights(-1 as any)
+      expect(hls.some(h => h.hlGroup === 'CocFloatActive')).toBe(false)
+    })
+
+    it('should not highlight parameter when signature activeParameter is null', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [{
+              label: 'foo(a)',
+              documentation: 'my signature',
+              parameters: [{ label: 'a' }],
+              activeParameter: null
+            }],
+            activeParameter: 0,
+            activeSignature: null
+          }
+        }
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await helper.doAction('showSignatureHelp')
+      await signature.triggerSignatureHelp()
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let buf = await win.buffer
+      let hls = await buf.getHighlights(-1 as any)
+      expect(hls.some(h => h.hlGroup === 'CocFloatActive')).toBe(false)
+    })
+
     it('should trigger by space', async () => {
       let promise = new Promise(resolve => {
         disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {

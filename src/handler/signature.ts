@@ -184,12 +184,11 @@ export default class Signature {
 
   private async showSignatureHelp(doc: Document, position: Position, signatureHelp: SignatureHelp, offset: number): Promise<void> {
     let { signatures, activeParameter } = signatureHelp
-    activeParameter = typeof activeParameter === 'number' ? activeParameter : undefined
     let paramDoc: string | MarkupContent = null
     let startOffset = offset
     let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
-      let activeIndex = c.activeParameter ?? activeParameter
+      let activeIndex = c.activeParameter === null ? null : (c.activeParameter ?? activeParameter)
       if (activeIndex === undefined && !isFalsyOrEmpty(c.parameters)) {
         activeIndex = 0
       }
@@ -214,10 +213,10 @@ export default class Signature {
           }
         }
       }
-      if (activeIndexes == null) {
+      if (activeIndexes == null && activeIndex !== null) {
         activeIndexes = [nameIndex + 1, nameIndex + 1]
       }
-      if (offset == startOffset) {
+      if (offset == startOffset && activeIndexes != null) {
         offset = offset + activeIndexes[0] + 1
       }
       p.push({

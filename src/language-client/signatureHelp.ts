@@ -39,6 +39,7 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
     config.signatureInformation = {
       documentationFormat: this._client.supportedMarkupKind,
       activeParameterSupport: true,
+      noActiveParameterSupport: true,
       parameterInformation: {
         labelOffsetSupport: true
       }
