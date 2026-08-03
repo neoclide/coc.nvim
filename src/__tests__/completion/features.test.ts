@@ -1,21 +1,43 @@
+// Merged from util.test.ts, float.test.ts and sources.test.ts to share a
+// single nvim session and reduce per-file startup overhead.
 import { Neovim } from '../../neovim'
-import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+import { CancellationToken, CancellationTokenSource, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Complete, { selectTopItems, sortItems } from '../../completion/complete'
+import Floating from '../../completion/floating'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import sources from '../../completion/sources'
-import { CompleteConfig, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from '../../completion/types'
+import { Around } from '../../completion/native/around'
+import { Buffer } from '../../completion/native/buffer'
+import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, getLastPart, resolveEnvVariables } from '../../completion/native/file'
+import { getInsertWord, prefixWord } from '../../completion/pum'
+import Source, { firstMatchFuzzy } from '../../completion/source'
+import VimSource, { checkInclude, getMethodName } from '../../completion/source-vim'
+import sources, { Sources, getSourceType, logError } from '../../completion/sources'
+import { CompleteConfig, CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem, InsertMode, ISource, SortMethod, SourceConfig, SourceType } from '../../completion/types'
 import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, deltaCount, emptLabelDetails, getDetail, getDocumentations, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffset, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events, { InsertChange } from '../../events'
+import extensions from '../../extension'
 import languages from '../../languages'
 import { Chars } from '../../model/chars'
+import { WordsSource } from '../../snippets/util'
+import { FloatConfig } from '../../types'
 import { disposeAll } from '../../util'
 import { getCharCodes } from '../../util/fuzzy'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
-let disposables: Disposable[] = []
 
 let nvim: Neovim
+let disposables: Disposable[] = []
+let source: ISource
+const emptyFn = () => Promise.resolve(null)
+
+function getSource(): ISource {
+  return sources.getSource('$words')
+}
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -25,12 +47,52 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-afterEach(() => {
+afterEach(async () => {
   disposeAll(disposables)
+  await helper.reset()
 })
 
-function getSource(): ISource {
-  return sources.getSource('$words')
+async function waitFloat(kind: string): Promise<void> {
+  for (let i = 0; i < 50; i++) {
+    await helper.wait(20)
+    let win = await helper.getFloat(kind)
+    if (win) return
+  }
+  throw new Error(`float ${kind} timeout after 1s`)
+}
+
+/**
+ * Mock the nvim side of the pum detail float: record the payloads sent to
+ * `coc#dialog#create_pum_float` and the number of `coc#pum#close_detail`
+ * calls, and forward everything else to the real nvim. This removes the
+ * window creation/teardown timing from the tests that only assert on the
+ * content sent to the float.
+ */
+function mockFloatCalls() {
+  let nvimClient = workspace.nvim
+  let original: any = nvimClient.call.bind(nvimClient)
+  let createCalls: any[][] = []
+  let closeCalls = 0
+  let spy = vi.spyOn(nvimClient, 'call').mockImplementation(((method: string, args: any, isNotify?: boolean): Promise<any> => {
+    if (method == 'coc#dialog#create_pum_float') {
+      createCalls.push(args ?? [])
+      return Promise.resolve(0)
+    }
+    if (method == 'coc#pum#close_detail') {
+      closeCalls++
+      return Promise.resolve()
+    }
+    return original(method, args, isNotify)
+  }) as any)
+  return {
+    createCalls,
+    get closeCalls(): number {
+      return closeCalls
+    },
+    restore: (): void => {
+      spy.mockRestore()
+    }
+  }
 }
 
 describe('util functions', () => {
@@ -831,5 +893,766 @@ describe('util functions', () => {
       score = loader.getScore('f', item, Selection.RecentlyUsed)
       expect(score).toBeGreaterThan(-1)
     })
+  })
+})
+
+describe('completion float', () => {
+  beforeAll(async () => {
+    source = {
+      name: 'float',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      doComplete: (): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{
+          word: 'foo',
+          info: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
+        }, {
+          word: 'foot',
+          info: 'foot'
+        }, {
+          word: 'football',
+        }]
+      })
+    }
+    sources.addSource(source)
+  })
+  afterAll(async () => {
+    sources.removeSource(source)
+  })
+  it('should prefix word', () => {
+    expect(prefixWord('foo', 0, '', 0)).toBe('foo')
+    expect(prefixWord('foo', 1, '$foo', 0)).toBe('$foo')
+  })
+
+  it('should get insert word', () => {
+    expect(getInsertWord('word', [], 0)).toBe('word')
+    expect(getInsertWord('word\nbar', [10], 2)).toBe('word')
+  })
+
+  it('should cancel float window', async () => {
+    await helper.edit()
+    await nvim.setLine('f')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: 'float' }, true)
+    await helper.waitPopup()
+    // Wait for the float creation triggered by the pum to finish before
+    // confirming, otherwise a late creation could land after the close.
+    await waitFloat('pumdetail')
+    await helper.confirmCompletion(0)
+    await helper.waitFor('coc#float#has_float', [], 0)
+  })
+
+  it('should adjust float window position', async () => {
+    await helper.edit()
+    await nvim.setLine(' '.repeat(70))
+    await nvim.input('Af')
+    await helper.visible('foo', 'float')
+    await waitFloat('pumdetail')
+    let floatWin = await helper.getFloat('pumdetail')
+    let config = await floatWin.getConfig()
+    expect(config.col + config.width).toBeLessThan(180)
+  })
+
+  it('should redraw float window on item change', async () => {
+    let mock = mockFloatCalls()
+    try {
+      await helper.edit()
+      await nvim.setLine(' '.repeat(70))
+      await nvim.input('Af')
+      await helper.visible('foo', 'float')
+      // The initial float is created asynchronously after the pum shows up.
+      // Wait for it so the redraw below cannot be overtaken by it.
+      await vi.waitFor(() => {
+        expect(mock.createCalls.length).toBeGreaterThan(0)
+      })
+      await nvim.call('coc#pum#select', [1, 1, 0])
+      // The redraw happens through the same async pipeline; wait until the
+      // float content for the newly selected item is sent.
+      await vi.waitFor(() => {
+        let lines = mock.createCalls[mock.createCalls.length - 1][0] as string[]
+        expect(lines.join('\n')).toMatch('foot')
+      })
+    } finally {
+      mock.restore()
+    }
+  })
+
+  it('should hide float window when item info is empty', async () => {
+    let mock = mockFloatCalls()
+    try {
+      await helper.edit()
+      await nvim.setLine(' '.repeat(70))
+      await nvim.input('Af')
+      await helper.visible('foo', 'float')
+      await vi.waitFor(() => {
+        expect(mock.createCalls.length).toBeGreaterThan(0)
+      })
+      let createsBefore = mock.createCalls.length
+      await nvim.call('coc#pum#select', [2, 1, 0])
+      // Selecting the item without documentation must close the detail float
+      // instead of sending new content for it.
+      await vi.waitFor(() => {
+        expect(mock.closeCalls).toBeGreaterThan(0)
+      })
+      expect(mock.createCalls.length).toBe(createsBefore)
+    } finally {
+      mock.restore()
+    }
+  })
+
+  it('should hide float window after completion', async () => {
+    await helper.edit()
+    await nvim.setLine(' '.repeat(70))
+    await nvim.input('Af')
+    await helper.visible('foo', 'float')
+    await waitFloat('pumdetail')
+    await nvim.input('<C-n>')
+    await nvim.input('<C-y>')
+    // Confirming completion closes the pum and its detail float; wait for the
+    // actual state instead of relying on a fixed delay.
+    await helper.waitFor('coc#float#has_float', [], 0)
+  })
+})
+
+describe('float config', () => {
+  beforeAll(async () => {
+    source = {
+      name: 'float',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      doComplete: (): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({
+        items: [{
+          word: 'foo',
+          info: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
+        }, {
+          word: 'foot',
+          info: 'foot'
+        }, {
+          word: 'football',
+        }]
+      })
+    }
+    sources.addSource(source)
+  })
+  afterAll(async () => {
+    sources.removeSource(source)
+  })
+
+  beforeEach(async () => {
+    await nvim.input('of')
+    await helper.waitPopup()
+  })
+
+  async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }]): Promise<Floating> {
+    let floating = new Floating({
+      floatConfig: {
+        border: true,
+        ...config
+      }
+    })
+    floating.show(docs)
+    return floating
+  }
+
+  async function getFloat(): Promise<number> {
+    let win = await helper.getFloat('pumdetail')
+    return win ? win.id : -1
+  }
+
+  async function getRelated(winid: number, kind: string): Promise<number> {
+    if (!winid || winid == -1) return -1
+    let win = nvim.createWindow(winid)
+    let related = await win.getVar('related') as number[]
+    if (!related || !related.length) return -1
+    for (let id of related) {
+      let w = nvim.createWindow(id)
+      let v = await w.getVar('kind')
+      if (v == kind) {
+        return id
+      }
+    }
+    return -1
+  }
+
+  it('should not shown with empty lines', async () => {
+    await createFloat({}, [{ filetype: 'txt', content: '' }])
+    let floatWin = await helper.getFloat('pumdetail')
+    expect(floatWin).toBeUndefined()
+  })
+
+  it('should show window with border', async () => {
+    await createFloat({ border: true, rounded: true, focusable: true })
+    let winid = await getFloat()
+    expect(winid).toBeGreaterThan(0)
+    let id = await getRelated(winid, 'border')
+    expect(id).toBeGreaterThan(0)
+  })
+
+  it('should change window highlights', async () => {
+    await createFloat({ border: true, highlight: 'WarningMsg', borderhighlight: 'MoreMsg' })
+    let winid = await getFloat()
+    expect(winid).toBeGreaterThan(0)
+    let win = nvim.createWindow(winid)
+    let res = await win.getOption('winhl') as string
+    expect(res).toMatch('WarningMsg')
+    let id = await getRelated(winid, 'border')
+    expect(id).toBeGreaterThan(0)
+    win = nvim.createWindow(id)
+    res = await win.getOption('winhl') as string
+    expect(res).toMatch('MoreMsg')
+  })
+
+  it('should add shadow and winblend', async () => {
+    await createFloat({ shadow: true, winblend: 30 })
+    let winid = await getFloat()
+    expect(winid).toBeGreaterThan(0)
+  })
+})
+
+describe('KeywordsBuffer', () => {
+  it('should parse keywords', async () => {
+    let filepath = await createTmpFile(' ab\nab')
+    let doc = await helper.createDocument(filepath)
+    let b = sources.getKeywordsBuffer(doc.bufnr)
+    let words = b.getWords()
+    expect(words).toEqual(['ab'])
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
+    words = b.getWords()
+    expect(words).toEqual(['foo', 'bar', 'ab'])
+    await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 1, 3), 'def ')])
+    words = b.getWords()
+    expect(words).toEqual(['def', 'ab'])
+  })
+
+  it('should yield match words', async () => {
+    let filepath = await createTmpFile(`_foo\nbar\n`)
+    let doc = await helper.createDocument(filepath)
+    let b = sources.getKeywordsBuffer(doc.bufnr)
+    const getResults = (iterable: Iterable<string>) => {
+      let res: string[] = []
+      for (let word of iterable) {
+        res.push(word)
+      }
+      return res
+    }
+    let iterable = b.matchWords(0)
+    expect(getResults(iterable)).toEqual(['_foo', 'bar'])
+    iterable = b.matchWords(2)
+    expect(getResults(iterable)).toEqual(['_foo', 'bar'])
+  })
+})
+
+describe('Source', () => {
+  function createSource(opt: SourceConfig): Source {
+    let s = new Source(opt)
+    disposables.push(s)
+    return s
+  }
+
+  function makeid(length) {
+    let result = ''
+    let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let charactersLength = characters.length
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() *
+        charactersLength))
+    }
+    return result
+  }
+
+  it('should check trigger only source', async () => {
+    expect(typeof Sources).toBe('function')
+    logError('')
+    let name = 'foo'
+    let s = createSource({ name, triggerOnly: true, doComplete: emptyFn })
+    expect(s.triggerOnly).toBe(true)
+    expect(s.triggerPatterns).toBeNull()
+    s = createSource({ name, doComplete: emptyFn })
+    helper.updateConfiguration(`coc.source.${name}.triggerPatterns`, [null, 'foo'])
+    expect(s.triggerOnly).toBe(true)
+  })
+
+  it('should get source type', async () => {
+    for (let t of [SourceType.Native, SourceType.Remote, SourceType.Service]) {
+      expect(getSourceType(t)).toBeDefined()
+    }
+  })
+
+  it('should check complete', async () => {
+    let name = 'foo'
+    let s = createSource({ name, doComplete: emptyFn })
+    helper.updateConfiguration(`coc.source.${name}.disableSyntaxes`, ['comment'])
+    await nvim.input('i')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    opt.synname = 'Comment'
+    expect(await s.checkComplete(opt)).toBe(false)
+    let result = await s.doComplete(opt, CancellationToken.None)
+    expect(result).toBeNull()
+    opt.synname = 'String'
+    expect(await s.checkComplete(opt)).toBe(true)
+    opt.synname = ''
+    expect(await s.checkComplete(opt)).toBe(true)
+    s = createSource({
+      name, shouldComplete: () => {
+        return Promise.resolve(false)
+      },
+      doComplete: emptyFn
+    })
+    expect(await s.checkComplete(opt)).toBe(false)
+  })
+
+  it('should call optional functions', async () => {
+    await nvim.input('i')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let name = 'foo'
+    let n = 0
+    let s = createSource({
+      name,
+      doComplete: emptyFn,
+      refresh: () => {
+        n++
+        return Promise.resolve()
+      },
+      onCompleteDone: () => {
+        n++
+        return Promise.resolve()
+      },
+      onCompleteResolve: () => {
+        n++
+        return Promise.resolve()
+      }
+    })
+    // expect(s.optionalFns).toEqual([])
+    await s.refresh()
+    await s.onCompleteDone({} as any, opt)
+    await s.doComplete(opt, CancellationToken.None)
+    await s.onCompleteResolve({} as any, opt, CancellationToken.None)
+    expect(n).toBe(3)
+  })
+
+  it('should get results', async () => {
+    let name = 'foo'
+    let s = createSource({ name, doComplete: emptyFn })
+    let words = []
+    for (let i = 0; i < 80000; i++) {
+      words.push(makeid(10))
+    }
+    let items: Set<string> = new Set()
+    let tokenSource = new CancellationTokenSource()
+    let p = s.getResults([words], '_$c', '', items, tokenSource.token)
+    tokenSource.cancel()
+    let res = await p
+    expect(res).toBe(true)
+    let n = Date.now()
+    p = s.getResults([words], '_$a', '', items, CancellationToken.None)
+    let spy = vi.spyOn(Date, 'now').mockImplementation(() => {
+      return n + 200
+    })
+    res = await p
+    spy.mockRestore()
+    words = []
+    for (let i = 0; i < 300; i++) {
+      words.push('a' + makeid(10))
+    }
+    items = new Set()
+    res = await s.getResults([words], 'a', '', items, CancellationToken.None)
+    expect(items.size).toBe(50)
+    items = new Set()
+    res = await s.getResults([['你好']], 'ni', '', items, CancellationToken.None)
+    expect(items.size).toBe(1)
+  })
+})
+
+describe('vim source', () => {
+  function createSourceFile(name: string, content: string): string {
+    let dir = path.join(os.tmpdir(), `coc/source`)
+    fs.mkdirSync(dir, { recursive: true })
+    let filepath = path.join(dir, `${name}.vim`)
+    fs.writeFileSync(filepath, content, 'utf8')
+    return filepath
+  }
+
+  it('should not throw when pluginPath already used', async () => {
+    await sources.createVimSources(process.cwd())
+    await sources.createVimSources(process.cwd())
+  })
+
+  it('should show error for bad source file', async () => {
+    let filepath = createSourceFile('tmp', '')
+    await sources.createVimSourceExtension(filepath)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error')
+  })
+
+  it('should register filetypes extension for vim source', async () => {
+    let content = `
+function! coc#source#foo#init()
+  return {'filetypes': ['vim'], 'firstMatch': v:true}
+endfunction
+function! coc#source#foo#complete(opt, cb) abort
+  call a:cb([])
+endfunction `
+    let filepath = createSourceFile('foo', content)
+    await sources.createVimSourceExtension(filepath)
+    let ext = extensions.getExtension('coc-vim-source-foo')
+    expect(ext).toBeDefined()
+    await Promise.resolve(ext.deactivate())
+  })
+
+  it('should retry vim source after input becomes eligible', async () => {
+    let content = `
+function! coc#source#issue5539#init() abort
+  return {'filetypes': ['mediawiki']}
+endfunction
+function! coc#source#issue5539#should_complete(opt) abort
+  return strpart(a:opt.line, 0, a:opt.colnr - 1) =~# '\\[\\[\\k\\{2,}$'
+endfunction
+function! coc#source#issue5539#complete(opt, cb) abort
+  call a:cb(['Microsoft Windows'])
+endfunction `
+    let filepath = createSourceFile('issue5539', content)
+    await sources.createVimSourceExtension(filepath)
+    await nvim.command('setfiletype mediawiki')
+    await helper.wait(30)
+
+    await nvim.input('i')
+    for (let character of '[[Mi') await nvim.input(character)
+    await helper.waitPopup()
+
+    expect(helper.completion.activeItems.some(item => item.word == 'Microsoft Windows')).toBe(true)
+  })
+
+  it('should not run by check complete', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote,
+      remoteFns: ['on_complete', 'on_enter']
+    })
+    helper.updateConfiguration('coc.source.vim.disableSyntaxes', ['comment'])
+    helper.updateConfiguration('coc.source.vim.filetypes', ['vim'])
+    opt.synname = 'VimComment'
+    opt.filetype = 'vim'
+    let res = await source.checkComplete(opt)
+    expect(res).toBe(false)
+    let result = await source.doComplete(opt, CancellationToken.None)
+    expect(result).toBe(null)
+    opt.synname = ''
+    res = await source.checkComplete(opt)
+    expect(res).toBe(true)
+    result = await source.doComplete(opt, CancellationToken.Cancelled)
+    expect(result).toBe(null)
+    source.onEnter(999)
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    source.onEnter(bufnr)
+  })
+
+  it('should register extension for vim source', async () => {
+    let content = `
+function! coc#source#foo#init()
+  return {'firstMatch': v:true, 'isSnippet': v:true}
+endfunction
+
+function! coc#source#foo#on_enter(...)
+  let g:coc_entered = 1
+endfunction
+
+function! coc#source#foo#get_startcol(opt)
+  if a:opt['col'] == 1
+    return 0
+  endif
+  return a:opt['col']
+endfunction
+
+function! coc#source#foo#complete(opt, cb) abort
+  if a:opt['col'] == 0
+    call a:cb([{'word': '.f'}])
+    return
+  endif
+  call a:cb([])
+endfunction `
+    let filepath = createSourceFile('foo', content)
+    await sources.createVimSourceExtension(filepath)
+    let source = sources.getSource('foo')
+    expect(source).toBeDefined()
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    source.onEnter(bufnr)
+    let val = await nvim.getVar('coc_entered')
+    expect(val).toBe(1)
+    await nvim.setLine('.')
+    await nvim.input('A')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let res = await source.doComplete(opt, CancellationToken.None)
+    expect(res.startcol).toBe(0)
+    expect(res.items).toEqual([{ word: '.f', isSnippet: true }])
+    opt.col = 2
+    res = await source.doComplete(opt, CancellationToken.None)
+    expect(res).toBe(null)
+  })
+
+  it('should not insert snippet when on_complete exists', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote,
+      remoteFns: ['on_complete']
+    })
+    let item: ExtendedCompleteItem = {
+      word: 'word',
+      abbr: 'word',
+      filterText: 'word',
+      isSnippet: true,
+      insertText: 'word($1)'
+    }
+    let spy = vi.spyOn(nvim, 'call').mockImplementation(() => {
+      return undefined
+    })
+    await source.refresh()
+    await source.onCompleteDone(item, opt)
+    spy.mockRestore()
+    let line = await nvim.line
+    expect(line).toBe('')
+  })
+
+  it('should insert snippet', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote
+    })
+    let item: ExtendedCompleteItem = {
+      word: 'word',
+      abbr: 'word',
+      filterText: 'word',
+      isSnippet: true,
+      insertText: 'word($1)'
+    }
+    await source.onCompleteDone(item, opt)
+    let line = await nvim.line
+    expect(line).toBe('word()')
+  })
+})
+
+describe('native sources', () => {
+  it('should not complete when buffer not exists', async () => {
+    let tokenSource = new CancellationTokenSource()
+    let source = sources.getSource('around')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { bufnr: -1, input: 'a' })
+    let res = await source.doComplete(opt, tokenSource.token)
+    expect(res).toBeNull()
+  })
+
+  it('should not complete when check failed', async () => {
+    let tokenSource = new CancellationTokenSource()
+    for (const name of ['around', 'buffer', 'file']) {
+      let source = sources.getSource(name)
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let spy = vi.spyOn(source, 'checkComplete' as any).mockReturnValue(Promise.resolve(false))
+      let res = await source.doComplete(opt, tokenSource.token)
+      spy.mockRestore()
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete with empty input', async () => {
+    for (const name of ['around', 'buffer']) {
+      let tokenSource = new CancellationTokenSource()
+      let source = sources.getSources({ source: name } as any)[0]
+      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let res = await source.doComplete(opt, tokenSource.token)
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should not complete when cancelled', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    Object.assign(opt, { input: 'a' })
+    for (const name of ['around', 'buffer']) {
+      let source = sources.getSource(name)
+      let res = await source.doComplete(opt, CancellationToken.Cancelled)
+      expect(res).toBeNull()
+    }
+  })
+
+  it('should resolveEnvVariables', () => {
+    expect(resolveEnvVariables('%HOME%/data%x%', { HOME: '/home' })).toBe('/home/data%x%')
+    expect(resolveEnvVariables('$HOME/${USER}/data', { HOME: '/home', USER: 'foo' })).toBe('/home/foo/data')
+    expect(resolveEnvVariables('$PART/data', {})).toBe('$PART/data')
+  })
+
+  it('should getDirectory', () => {
+    expect(getDirectory('a/b', '/home')).toBe('/home/a')
+    expect(getDirectory(__dirname, '/home')).toBe(path.dirname(__dirname))
+  })
+
+  it('should getItemsFromRoot', async () => {
+    let res = await getItemsFromRoot('a/b', '/not_exists', true, [])
+    expect(res).toEqual([])
+  })
+
+  it('should getLastPart', () => {
+    expect(getLastPart('/a/b!/x/y')).toBe('/x/y')
+    expect(getLastPart('/a/b /x/y')).toBe('/x/y')
+    expect(getLastPart('xy /a/b\\ /x/y')).toBe('/a/b\\ /x/y')
+    expect(getLastPart('/a/b/x/y!')).toBeNull()
+    expect(getLastPart('x#/')).toBe('/')
+    expect(getLastPart('x /')).toBe('/')
+    expect(getLastPart('/')).toBe('/')
+  })
+
+  it('should getFileItem', async () => {
+    expect(await getFileItem(__dirname, '')).toBeDefined()
+    expect(await getFileItem(__dirname, 'file_not_exists')).toBeNull()
+    expect(await getFileItem(__dirname, path.basename(__filename))).toBeDefined()
+  })
+
+  it('should filterFiles', () => {
+    expect(filterFiles(['.a', '.b', null], false)).toEqual(['.a', '.b'])
+    expect(filterFiles(['a.js', 'b.ts'], true, ['*.js'])).toEqual(['b.ts'])
+  })
+
+  it('should getRoot', async () => {
+    let file = new File(false)
+    let filepath = __filename
+    let cwd = process.cwd()
+    let root = await file.getRoot('./a', '', '', cwd)
+    expect(root).toBe(cwd)
+    root = await file.getRoot('./a', '', filepath, cwd)
+    expect(root).toBe(path.dirname(filepath))
+    root = await file.getRoot('/a/b/', '', filepath, cwd)
+    expect(root).toBe('/a/b/')
+    root = await file.getRoot('/a/b', '', filepath, cwd)
+    expect(root).toBe('/a')
+    root = await file.getRoot('', 'a/b/not_exists', filepath, cwd)
+    expect(root).toBeUndefined()
+    let dir = path.dirname(__dirname)
+    let base = path.basename(__dirname)
+    root = await file.getRoot('', base, __dirname, cwd)
+    expect(root).toBe(dir)
+    root = await file.getRoot('', base, '/a/b', dir)
+    expect(root).toBe(dir)
+    root = await file.getRoot('', '', '', dir)
+    expect(root).toBe(dir)
+    file.isWindows = true
+    root = await file.getRoot('C:\\user', '', filepath, cwd)
+    expect(root).toBe('C:\\')
+    root = await file.getRoot('C:\\user\\', '', filepath, cwd)
+    expect(root).toBe('C:\\user\\')
+    let arr = file.triggerCharacters
+    expect(arr.includes('\\')).toBe(true)
+  })
+
+  it('should firstMatchFuzzy', async () => {
+    expect(firstMatchFuzzy(97, true, '_a')).toBe(true)
+    expect(firstMatchFuzzy(97, true, 'a')).toBe(true)
+    expect(firstMatchFuzzy(97, true, 'A')).toBe(true)
+    expect(firstMatchFuzzy(97, true, 'â')).toBe(true)
+    expect(firstMatchFuzzy(226, false, 'â')).toBe(true)
+  })
+
+  it('should works for around source', async () => {
+    let doc = await workspace.document
+    await nvim.setLine('foo ')
+    await doc.synchronize()
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
+    await nvim.input('Af')
+    await helper.waitPopup()
+    let res = await helper.visible('foo', 'around')
+    expect(res).toBe(true)
+    await nvim.input('<esc>')
+  })
+
+  it('should works for buffer source', async () => {
+    await helper.createDocument()
+    await nvim.command('set hidden')
+    let doc = await helper.createDocument()
+    await nvim.setLine('other')
+    await nvim.command('bp')
+    await doc.synchronize()
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
+    await nvim.input('io')
+    let res = await helper.visible('other', 'buffer')
+    expect(res).toBe(true)
+  })
+
+  it('should trigger for inComplete complete', async () => {
+    await nvim.setLine('foo')
+    await nvim.input('A')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    opt.triggerForInComplete = true
+    let around = new Around(sources.keywords)
+    let res = await around.doComplete(opt, CancellationToken.None)
+    expect(res).toBeDefined()
+    let buffer = new Buffer(sources.keywords)
+    res = await buffer.doComplete(opt, CancellationToken.None)
+    expect(res).toBeDefined()
+  })
+
+  it('should fix col for file source', async () => {
+    await nvim.command(`edit t|setl iskeyword+=/`)
+    await nvim.setLine('./')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: 'file' }, true)
+    await helper.waitPopup()
+  })
+
+  it('should trim ext for file source', async () => {
+    let cwd = path.resolve(__dirname, '..')
+    let file = path.join(cwd, 't.ts')
+    await helper.edit(file)
+    await nvim.setLine('./')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: 'file' }, true)
+    await helper.waitPopup()
+    let items = helper.completion.activeItems
+    let idx = items.findIndex(o => o.word.endsWith('.ts'))
+    expect(idx).toBe(-1)
+  })
+
+  it('should not complete when cancelled', async () => {
+    await nvim.setLine('/foo')
+    await nvim.input('A')
+    let file = new File(false)
+    let tokenSource = new CancellationTokenSource()
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let p = file.doComplete(opt, tokenSource.token)
+    tokenSource.cancel()
+    let res = await p
+    expect(res).toBeNull()
+  })
+
+  it('should complete with words source', async () => {
+    let stats = sources.sourceStats()
+    let find = stats.find(o => o.name === '$words')
+    expect(find).toBeUndefined()
+    expect(WordsSource).toBeDefined()
+    let s = sources.getSource('$words') as WordsSource
+    expect(s.name).toBe('$words')
+    expect(s.shortcut).toBe('')
+    expect(s.triggerOnly).toBe(true)
+    s.words = ['foo', 'bar']
+    s.startcol = 1
+    await nvim.setLine('longwords')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: '$words' }, true)
+    await helper.waitPopup()
+    let items = await helper.items()
+    expect(items.map(o => o.word)).toEqual(['foo', 'bar'])
+  })
+
+  it('should get method name', () => {
+    expect(getMethodName('f', ['f', 'o'])).toBe('f')
+    expect(getMethodName('foo', ['Foo', 'Bar'])).toBe('Foo')
+    expect(() => {
+      getMethodName('foo', ['Bar'])
+    }).toThrow()
+    expect(checkInclude('f', ['f', 'o'])).toBe(true)
+    expect(checkInclude('b', ['f', 'o'])).toBe(false)
+    expect(checkInclude('foo', ['Foo', 'Bar'])).toBe(true)
   })
 })
