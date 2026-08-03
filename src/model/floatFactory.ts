@@ -47,7 +47,7 @@ export interface FloatWinConfig extends FloatConfig {
 export default class FloatFactoryImpl implements Disposable {
   private winid = 0
   private _bufnr = 0
-  private closeTs: number
+  private closeToken = 0
   private targetBufnr: number
   private mutex: Mutex = new Mutex()
   private disposables: Disposable[] = []
@@ -127,10 +127,10 @@ export default class FloatFactoryImpl implements Disposable {
       this.close()
       return
     }
-    let curr = Date.now()
+    let token = this.closeToken
     let release = await this.mutex.acquire()
     try {
-      await this.createPopup(docs, config, curr)
+      await this.createPopup(docs, config, token)
       release()
     } catch (e) {
       this.nvim.echoError(e)
@@ -138,7 +138,7 @@ export default class FloatFactoryImpl implements Disposable {
     }
   }
 
-  private async createPopup(docs: Documentation[], opts: FloatWinConfig, timestamp: number): Promise<void> {
+  private async createPopup(docs: Documentation[], opts: FloatWinConfig, token: number): Promise<void> {
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks })
     let config: any = {
@@ -178,10 +178,12 @@ export default class FloatFactoryImpl implements Disposable {
     if (autoHide) config.autohide = 1
     this.unbind()
     let arr = await this.nvim.call('coc#dialog#create_cursor_float', [this.winid, this._bufnr, lines, config]) as [number, [number, number], number, number, number]
-    if (isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
+    if (isFalsyOrEmpty(arr) || this.closeToken > token) {
       let winid = arr && arr.length > 0 ? arr[2] : this.winid
       if (winid) {
         this.winid = 0
+        this._bufnr = 0
+        this.targetBufnr = 0
         this.nvim.call('coc#float#close', [winid], true)
         this.nvim.redrawVim()
       }
@@ -200,7 +202,9 @@ export default class FloatFactoryImpl implements Disposable {
    */
   public close(): void {
     let { winid, nvim } = this
-    this.closeTs = Date.now()
+    this.closeToken++
+    this._bufnr = 0
+    this.targetBufnr = 0
     this.unbind()
     if (winid) {
       this.winid = 0
