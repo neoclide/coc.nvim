@@ -5,7 +5,7 @@ local maxCount = vim.g.coc_highlight_maximum_count or 500
 
 local function addVirtualText(bufnr, ns, opts, pre, priority)
     local align = opts.text_align or 'after'
-    local config = { hl_mode = opts.hl_mode or 'combine', right_gravity = opts.right_gravity }
+    local config = { hl_mode = opts.hl_mode or 'combine' }
     local column = opts.col or 0
     if align == 'above' or align == 'below' then
       if #pre == 0 then
@@ -19,6 +19,11 @@ local function addVirtualText(bufnr, ns, opts, pre, priority)
         config.virt_lines_above = true
       end
     else
+      -- nvim_buf_set_extmark does not support right_gravity with virt_lines,
+      -- so only pass it on the virt_text path.
+      if opts.right_gravity ~= nil then
+        config.right_gravity = opts.right_gravity
+      end
       config.virt_text = opts.blocks
       if n10 and column ~= 0 then
         config.virt_text_pos = 'inline'

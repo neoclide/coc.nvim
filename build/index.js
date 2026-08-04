@@ -43,18 +43,11 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __hasOwnProp.call(mod, "module.exports") ? mod["module.exports"] : __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 //#endregion
 let util = require("util");
-let fs = require("fs");
-fs = __toESM(fs);
-let path = require("path");
-path = __toESM(path);
-let os = require("os");
-os = __toESM(os);
 let child_process = require("child_process");
 let node_stream = require("node:stream");
 let net = require("net");
 net = __toESM(net, 1);
 let events = require("events");
-events = __toESM(events, 1);
 let buffer = require("buffer");
 let assert = require("assert");
 assert = __toESM(assert, 1);
@@ -3807,7 +3800,7 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		}
 		return out;
 	}
-	function expandSequence(body, isAlphaSequence, max) {
+	function expandSequence(body, isAlphaSequence, max, maxLength) {
 		const n = body.split(/\.\./);
 		const N = [];
 		/* c8 ignore start */
@@ -3823,6 +3816,7 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 			test = gte;
 		}
 		const pad = n.some(isPadded);
+		let length = 0;
 		for (let i = x; test(i, y) && N.length < max; i += incr) {
 			let c;
 			if (isAlphaSequence) {
@@ -3839,7 +3833,9 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 					}
 				}
 			}
+			if (length + c.length > maxLength) break;
 			N.push(c);
+			length += c.length;
 		}
 		return N;
 	}
@@ -3875,7 +3871,7 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 				firstGroup = false;
 			}
 			let values;
-			if (isSequence) values = expandSequence(m.body, isAlphaSequence, max);
+			if (isSequence) values = expandSequence(m.body, isAlphaSequence, max, maxLength);
 			else {
 				let n = parseCommaParts(m.body);
 				if (n.length === 1 && n[0] !== void 0) {
@@ -3888,8 +3884,20 @@ var require_commonjs$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 						continue;
 					}
 				}
+				let dropsEmpties = dropEmpties && !m.post.length && !pre;
+				for (let d = 0; dropsEmpties && d < acc.length; d++) if (acc[d]) dropsEmpties = false;
 				values = [];
-				for (let j = 0; j < n.length; j++) values.push.apply(values, expand_(n[j], max, maxLength, false));
+				let valuesLength = 0;
+				outer: for (let j = 0; j < n.length; j++) {
+					const expanded = expand_(n[j], max, maxLength, false);
+					for (let k = 0; k < expanded.length; k++) {
+						const v = expanded[k];
+						if (dropsEmpties && !v) continue;
+						if (values.length >= max || valuesLength + v.length > maxLength) break outer;
+						values.push(v);
+						valuesLength += v.length;
+					}
+				}
 			}
 			acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length);
 			if (!m.post.length) break;
@@ -5395,7 +5403,7 @@ var require_index_min$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 }));
 //#endregion
 //#region node_modules/which/lib/index.js
-var require_lib$2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_lib$3 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const { isexe, sync: isexeSync } = require_index_min$1();
 	const { join, delimiter, sep, posix } = require("path");
 	const isWindows = process.platform === "win32";
@@ -5474,7 +5482,7 @@ var require_lib$2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region node_modules/semver/internal/constants.js
-var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_constants$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const SEMVER_SPEC_VERSION = "2.0.0";
 	const MAX_LENGTH = 256;
 	const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
@@ -5505,7 +5513,7 @@ var require_debug$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/semver/internal/re.js
 var require_re = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants();
+	const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH, MAX_LENGTH } = require_constants$1();
 	const debug = require_debug$1();
 	exports = module.exports = {};
 	const re = exports.re = [];
@@ -5617,7 +5625,7 @@ var require_identifiers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/classes/semver.js
 var require_semver$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const debug = require_debug$1();
-	const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
+	const { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants$1();
 	const { safeRe: re, t } = require_re();
 	const parseOptions = require_parse_options();
 	const { compareIdentifiers } = require_identifiers();
@@ -6066,7 +6074,7 @@ var require_coerce = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/functions/truncate.js
 var require_truncate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const parse = require_parse();
-	const constants = require_constants();
+	const constants = require_constants$1();
 	const SemVer = require_semver$1();
 	const truncate = (version, truncation, options) => {
 		if (!constants.RELEASE_TYPES.includes(truncation)) return null;
@@ -6244,7 +6252,7 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const debug = require_debug$1();
 	const SemVer = require_semver$1();
 	const { safeRe: re, src, t, comparatorTrimReplace, tildeTrimReplace, caretTrimReplace } = require_re();
-	const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
+	const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants$1();
 	const BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
 	const isNullSet = (c) => c.value === "<0.0.0-0";
 	const isAny = (c) => c.value === "";
@@ -6809,7 +6817,7 @@ var require_subset = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/semver/index.js
 var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	const internalRe = require_re();
-	const constants = require_constants();
+	const constants = require_constants$1();
 	const SemVer = require_semver$1();
 	const identifiers = require_identifiers();
 	module.exports = {
@@ -56705,11 +56713,11 @@ var require_unidecode = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/util/node.ts
-var fs$5, path$5, os$5, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
+var fs$3, path$3, os$3, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
 var init_node = __esmMin((() => {
-	fs$5 = require("fs");
-	path$5 = require("path");
-	os$5 = require("os");
+	fs$3 = require("fs");
+	path$3 = require("path");
+	os$3 = require("os");
 	crypto$1 = require("crypto");
 	styles$1 = (init_ansi_styles(), __toCommonJS(ansi_styles_exports)).default;
 	stripAnsi = util.stripVTControlCharacters;
@@ -56718,7 +56726,7 @@ var init_node = __esmMin((() => {
 	child_process$1 = require("child_process");
 	glob = require_index_min$2();
 	({minimatch} = require_commonjs());
-	which = require_lib$2();
+	which = require_lib$3();
 	semver = require_semver();
 	vm = require("vm");
 	net$2 = require("net");
@@ -56762,16 +56770,16 @@ function stringifyLogLevel(level) {
 	return "";
 }
 function getTimestamp(date) {
-	return `${toTwoDigits$1(date.getHours())}:${toTwoDigits$1(date.getMinutes())}:${toTwoDigits$1(date.getSeconds())}.${toThreeDigits$1(date.getMilliseconds())}`;
+	return `${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}:${toTwoDigits(date.getSeconds())}.${toThreeDigits(date.getMilliseconds())}`;
 }
-var MAX_FILE_SIZE, yellowOpen, yellowClose, toTwoDigits$1, toThreeDigits$1, AbstractLogger, FileLogger;
+var MAX_FILE_SIZE, yellowOpen, yellowClose, toTwoDigits, toThreeDigits, AbstractLogger, FileLogger;
 var init_log = __esmMin((() => {
 	init_node();
 	MAX_FILE_SIZE = 5 * 1024 * 1024;
 	yellowOpen = "\x1B[33m";
 	yellowClose = "\x1B[39m";
-	toTwoDigits$1 = (v) => v < 10 ? `0${v}` : v.toString();
-	toThreeDigits$1 = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+	toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
+	toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
 	AbstractLogger = class {
 		level = 2;
 		setLevel(level) {
@@ -56865,29 +56873,27 @@ var init_log = __esmMin((() => {
 							`[${scope}]`
 						].join(" ")} - ${message}\n`;
 						else text = message;
-						await fs$5.promises.appendFile(this.fsPath, text, {
+						await fs$3.promises.appendFile(this.fsPath, text, {
 							encoding: "utf8",
 							flag: "a+"
 						});
-						let stat = await fs$5.promises.stat(this.fsPath);
+						let stat = await fs$3.promises.stat(this.fsPath);
 						if (this.shouldBackup(stat.size)) {
 							let newFile = this.getBackupResource();
-							await fs$5.promises.rename(this.fsPath, newFile);
+							await fs$3.promises.rename(this.fsPath, newFile);
 						}
 					};
 					return fn();
-				}).catch((err) => {
-					if (!global.REVISION) console.error(err);
-				});
+				}).catch((err) => {});
 			}
 		}
 		getCurrentTimestamp() {
 			const currentTime = /* @__PURE__ */ new Date();
-			return `${currentTime.getFullYear()}-${toTwoDigits$1(currentTime.getMonth() + 1)}-${toTwoDigits$1(currentTime.getDate())}T${getTimestamp(currentTime)}`;
+			return `${currentTime.getFullYear()}-${toTwoDigits(currentTime.getMonth() + 1)}-${toTwoDigits(currentTime.getDate())}T${getTimestamp(currentTime)}`;
 		}
 		getBackupResource() {
 			this.backupIndex = this.backupIndex > 5 ? 1 : this.backupIndex;
-			return path$5.join(path$5.dirname(this.fsPath), `${path$5.basename(this.fsPath)}_${this.backupIndex++}`);
+			return path$3.join(path$3.dirname(this.fsPath), `${path$3.basename(this.fsPath)}_${this.backupIndex++}`);
 		}
 	};
 }));
@@ -56897,7 +56903,7 @@ function sha256(data) {
 	return crypto$1.createHash("sha256").update(data).digest("hex");
 }
 function getConditionValue(value, testValue) {
-	return isTester$1 ? testValue : value;
+	return isTester ? testValue : value;
 }
 function defaultValue(val, defaultValue) {
 	return val == null ? defaultValue : val;
@@ -56962,10 +56968,10 @@ function concurrent(arr, fn, limit = 3) {
 function disposeAll(disposables) {
 	while (disposables.length) disposables.pop()?.dispose();
 }
-var isTester$1, pariedCharacters;
+var isTester, pariedCharacters;
 var init_util$7 = __esmMin((() => {
 	init_node();
-	isTester$1 = process.env.COC_TESTER == "1";
+	isTester = process.env.COC_TESTER === "1";
 	pariedCharacters = /* @__PURE__ */ new Map([
 		["<", ">"],
 		[">", "<"],
@@ -56977,7 +56983,7 @@ var init_util$7 = __esmMin((() => {
 //#endregion
 //#region src/logger/index.ts
 var logger_exports = /* @__PURE__ */ __exportAll({
-	createLogger: () => createLogger$1,
+	createLogger: () => createLogger,
 	emptyFile: () => emptyFile,
 	getLoggerFile: () => getLoggerFile,
 	getTimestamp: () => getTimestamp,
@@ -56989,17 +56995,17 @@ function resolveLogFilepath() {
 	if (file) return file;
 	let dir = process.env.XDG_RUNTIME_DIR;
 	if (dir) try {
-		fs$5.accessSync(dir, fs$5.constants.R_OK | fs$5.constants.W_OK);
-		return path$5.join(dir, `coc-nvim-${process.pid}.log`);
+		fs$3.accessSync(dir, fs$3.constants.R_OK | fs$3.constants.W_OK);
+		return path$3.join(dir, `coc-nvim-${process.pid}.log`);
 	} catch (err) {}
-	let tmpdir = os$5.tmpdir();
-	dir = path$5.join(tmpdir, `coc.nvim-${process.pid}`);
-	fs$5.mkdirSync(dir, { recursive: true });
-	return path$5.join(dir, `coc-nvim.log`);
+	let tmpdir = os$3.tmpdir();
+	dir = path$3.join(tmpdir, `coc.nvim-${process.pid}`);
+	fs$3.mkdirSync(dir, { recursive: true });
+	return path$3.join(dir, `coc-nvim.log`);
 }
 function emptyFile(filepath) {
-	if (fs$5.existsSync(filepath)) try {
-		fs$5.writeFileSync(filepath, "", {
+	if (fs$3.existsSync(filepath)) try {
+		fs$3.writeFileSync(filepath, "", {
 			encoding: "utf8",
 			mode: 438
 		});
@@ -57008,19 +57014,19 @@ function emptyFile(filepath) {
 function getLoggerFile() {
 	return logfile;
 }
-function createLogger$1(category = "coc.nvim") {
+function createLogger(category = "coc.nvim") {
 	return logger$55.createLogger(category);
 }
-var logfile, level$1, logger$55;
-var init_logger$2 = __esmMin((() => {
+var logfile, level, logger$55;
+var init_logger$1 = __esmMin((() => {
 	init_log();
 	init_node();
 	init_util$7();
 	logfile = resolveLogFilepath();
 	emptyFile(logfile);
-	level$1 = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || "info", "off");
-	logger$55 = new FileLogger(logfile, textToLogLevel(level$1), {
-		color: !global.REVISION && process.platform !== "win32",
+	level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || "info", "off");
+	logger$55 = new FileLogger(logfile, textToLogLevel(level), {
+		color: false,
 		userFormatters: true
 	});
 }));
@@ -57673,6 +57679,20 @@ var init_Encoder = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region node_modules/@msgpack/msgpack/dist.esm/encode.mjs
+/**
+* It encodes `value` in the MessagePack format and
+* returns a byte buffer.
+*
+* The returned buffer is a slice of a larger `ArrayBuffer`, so you have to use its `#byteOffset` and `#byteLength` in order to convert it to another typed arrays including NodeJS `Buffer`.
+*/
+function encode(value, options) {
+	return new Encoder(options).encodeSharedRef(value);
+}
+var init_encode = __esmMin((() => {
+	init_Encoder();
+}));
+//#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
 function prettyByte(byte) {
 	return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
@@ -58271,6 +58291,16 @@ var init_Decoder = __esmMin((() => {
 function decode(buffer, options) {
 	return new Decoder(options).decode(buffer);
 }
+/**
+* It decodes multiple MessagePack objects in a buffer.
+* This is corresponding to {@link decodeMultiStream}.
+*
+* @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
+* @throws {@link DecodeError} if the buffer contains invalid data.
+*/
+function decodeMulti(buffer, options) {
+	return new Decoder(options).decodeMulti(buffer);
+}
 var init_decode = __esmMin((() => {
 	init_Decoder();
 }));
@@ -58302,6 +58332,22 @@ var init_stream = __esmMin((() => {}));
 * @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
 * @throws {@link DecodeError} if the buffer contains invalid data.
 */
+async function decodeAsync(streamLike, options) {
+	const stream = ensureAsyncIterable(streamLike);
+	return new Decoder(options).decodeAsync(stream);
+}
+/**
+* @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
+* @throws {@link DecodeError} if the buffer contains invalid data.
+*/
+function decodeArrayStream(streamLike, options) {
+	const stream = ensureAsyncIterable(streamLike);
+	return new Decoder(options).decodeArrayStream(stream);
+}
+/**
+* @throws {@link RangeError} if the buffer is incomplete, including the case where the buffer is empty.
+* @throws {@link DecodeError} if the buffer contains invalid data.
+*/
 function decodeMultiStream(streamLike, options) {
 	const stream = ensureAsyncIterable(streamLike);
 	return new Decoder(options).decodeStream(stream);
@@ -58312,91 +58358,65 @@ var init_decodeAsync = __esmMin((() => {
 }));
 //#endregion
 //#region node_modules/@msgpack/msgpack/dist.esm/index.mjs
+var dist_esm_exports = /* @__PURE__ */ __exportAll({
+	DecodeError: () => DecodeError,
+	Decoder: () => Decoder,
+	EXT_TIMESTAMP: () => -1,
+	Encoder: () => Encoder,
+	ExtData: () => ExtData,
+	ExtensionCodec: () => ExtensionCodec,
+	decode: () => decode,
+	decodeArrayStream: () => decodeArrayStream,
+	decodeAsync: () => decodeAsync,
+	decodeMulti: () => decodeMulti,
+	decodeMultiStream: () => decodeMultiStream,
+	decodeTimestampExtension: () => decodeTimestampExtension,
+	decodeTimestampToTimeSpec: () => decodeTimestampToTimeSpec,
+	encode: () => encode,
+	encodeDateToTimeSpec: () => encodeDateToTimeSpec,
+	encodeTimeSpecToTimestamp: () => encodeTimeSpecToTimestamp,
+	encodeTimestampExtension: () => encodeTimestampExtension
+});
 var init_dist_esm = __esmMin((() => {
+	init_encode();
 	init_decode();
 	init_decodeAsync();
+	init_Decoder();
+	init_DecodeError();
 	init_Encoder();
 	init_ExtensionCodec();
+	init_ExtData();
+	init_timestamp();
 }));
 //#endregion
-//#region src/util/errors.ts
-function assert$3(condition) {
-	if (!condition) throw new BugIndicatingError("Assertion Failed");
-}
-/**
-* Checks if the given error is a promise in canceled state
-*/
-function isCancellationError(error) {
-	if (error instanceof CancellationError) return true;
-	return error instanceof Error && error.name === canceledName && error.message === canceledName;
-}
-function shouldIgnore(err) {
-	if (isCancellationError(err)) return true;
-	if (err instanceof Error && err.message === "transport disconnected") return true;
-	return false;
-}
-function onUnexpectedError(e) {
-	if (shouldIgnore(e)) return;
-	if (e.stack) throw new Error(e.message + "\n\n" + e.stack);
-	else throw e;
-}
-function notLoaded(uri) {
-	return /* @__PURE__ */ new Error(`File ${uri} not loaded`);
-}
-function illegalArgument(name) {
-	if (name) return /* @__PURE__ */ new Error(`Illegal argument: ${name}`);
-	else return /* @__PURE__ */ new Error("Illegal argument");
-}
-function directoryNotExists(dir) {
-	return /* @__PURE__ */ new Error(`Directory ${dir} not exists`);
-}
-function fileExists(filepath) {
-	return /* @__PURE__ */ new Error(`File ${filepath} already exists`);
-}
-function fileNotExists(filepath) {
-	return /* @__PURE__ */ new Error(`File ${filepath} not exists`);
-}
-function shouldNotAsync(method) {
-	return /* @__PURE__ */ new Error(`${method} should not be called in an asynchronize manner`);
-}
-function badScheme(uri) {
-	return /* @__PURE__ */ new Error(`Change of ${uri} not supported`);
-}
-var canceledName, CancellationError, disconnectedText, BugIndicatingError;
-var init_errors = __esmMin((() => {
-	canceledName = "Canceled";
-	CancellationError = class extends Error {
-		constructor() {
-			super(canceledName);
-			this.name = this.message;
-		}
-	};
-	disconnectedText = "transport disconnected";
-	BugIndicatingError = class BugIndicatingError extends Error {
-		constructor(message) {
-			super(message);
-			Object.setPrototypeOf(this, BugIndicatingError.prototype);
-			debugger;
-		}
-	};
+//#region node_modules/@chemzqm/neovim/lib/utils/error.js
+var require_error = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.disconnectedText = void 0;
+	exports.shouldIgnore = shouldIgnore;
+	exports.disconnectedText = "transport disconnected";
+	function shouldIgnore(err) {
+		if (err instanceof Error && err.message === exports.disconnectedText) return true;
+		return false;
+	}
 }));
 //#endregion
-//#region src/neovim/utils/constants.ts
-var isTester, isVim$1;
-var init_constants$1 = __esmMin((() => {
-	isTester = process.env.COC_TESTER == "1";
-	isVim$1 = process.env.VIM_NODE_RPC == "1";
+//#region node_modules/@chemzqm/neovim/lib/utils/constants.js
+var require_constants = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.isVim = exports.isTester = exports.isCocNvim = void 0;
+	exports.isCocNvim = true;
+	exports.isTester = process.env.COC_TESTER === "1";
+	exports.isVim = process.env.VIM_NODE_RPC === "1";
 }));
 //#endregion
-//#region src/neovim/api/Base.ts
-var BaseApi;
-var init_Base = __esmMin((() => {
-	init_errors();
-	init_constants$1();
-	BaseApi = class {
-		prefix;
-		data;
-		client;
+//#region node_modules/@chemzqm/neovim/lib/api/Base.js
+var require_Base = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.BaseApi = void 0;
+	const error_1 = require_error();
+	const constants_1 = require_constants();
+	var BaseApi = class {
 		constructor({ data, client }) {
 			this.data = data;
 			if (client) this.client = client;
@@ -58422,8 +58442,8 @@ var init_Base = __esmMin((() => {
 				this.transport.request(name, converted, (err, res) => {
 					if (err) {
 						let e = new Error(err[1]);
-						if (!skipErrorLog && !shouldIgnore(e)) {
-							e.stack = `Error: request error on "${name}" - ${err[1]}\n` + args["stack"].split(/\r?\n/).slice(3).join("\n");
+						if (!skipErrorLog && !(0, error_1.shouldIgnore)(e)) {
+							e.stack = `Error: request error on "${name}" - ${err[1]}\n` + (args["stack"] ? args["stack"].split(/\r?\n/).slice(3).join("\n") : "");
 							this.client.logError(`request error on "${name}"`, converted.map((o) => o === this ? this.data : o), e);
 						}
 						reject(e);
@@ -58432,7 +58452,7 @@ var init_Base = __esmMin((() => {
 			});
 		}
 		getArgsByPrefix(args) {
-			if (this.prefix !== "nvim_" && args[0] !== this) return [isVim$1 ? this.data : this, ...args];
+			if (this.prefix !== "nvim_" && args[0] !== this) return [constants_1.isVim ? this.data : this, ...args];
 			return args;
 		}
 		/** Retrieves a scoped variable depending on type (using `this.prefix`) */
@@ -58468,18 +58488,24 @@ var init_Base = __esmMin((() => {
 			this.transport.notify(name, skipConvert ? args : this.getArgsByPrefix(args));
 		}
 		toJSON() {
-			return this.data ?? 0;
+			var _a;
+			return (_a = this.data) !== null && _a !== void 0 ? _a : 0;
 		}
 	};
+	exports.BaseApi = BaseApi;
 }));
 //#endregion
-//#region src/neovim/api/Buffer.ts
-var Buffer$2;
-var init_Buffer = __esmMin((() => {
-	init_constants$1();
-	init_Base();
-	Buffer$2 = class extends BaseApi {
-		prefix = "nvim_buf_";
+//#region node_modules/@chemzqm/neovim/lib/api/Buffer.js
+var require_Buffer = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Buffer = void 0;
+	const constants_1 = require_constants();
+	const Base_1 = require_Base();
+	var Buffer = class extends Base_1.BaseApi {
+		constructor() {
+			super(...arguments);
+			this.prefix = "nvim_buf_";
+		}
 		/**
 		* Attach to buffer to listen to buffer events
 		* @param sendBuffer Set to true if the initial notification should contain
@@ -58498,14 +58524,16 @@ var init_Buffer = __esmMin((() => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			return this.request(`nvim_get_option_value`, [name, { buf: this.id }], true);
+			if (constants_1.isCocNvim) return this.request(`nvim_get_option_value`, [name, { buf: this.id }], true);
+			return super.getOption(name);
 		}
 		setOption(name, value, isNotify) {
-			return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
+			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
 				name,
 				value,
 				{ buf: this.id }
 			], true);
+			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/**
 		* Get the bufnr of Buffer
@@ -58545,10 +58573,10 @@ var init_Buffer = __esmMin((() => {
 			]);
 		}
 		setLines(lines, opts, notify = false) {
-			let { start, end, strictIndexing } = opts ?? {};
-			start = start ?? 0;
-			end = end ?? start + 1;
-			const indexing = strictIndexing ?? true;
+			let { start, end, strictIndexing } = opts !== null && opts !== void 0 ? opts : {};
+			start = start !== null && start !== void 0 ? start : 0;
+			end = end !== null && end !== void 0 ? end : start + 1;
+			const indexing = strictIndexing !== null && strictIndexing !== void 0 ? strictIndexing : true;
 			const method = notify ? "notify" : "request";
 			return this[method](`${this.prefix}set_lines`, [
 				start,
@@ -58797,7 +58825,7 @@ var init_Buffer = __esmMin((() => {
 				srcId,
 				hlGroup,
 				ranges,
-				option ?? {}
+				option !== null && option !== void 0 ? option : {}
 			], true);
 		}
 		/**
@@ -58925,14 +58953,19 @@ var init_Buffer = __esmMin((() => {
 			} });
 		}
 	};
+	exports.Buffer = Buffer;
 }));
 //#endregion
-//#region src/neovim/api/Tabpage.ts
-var Tabpage;
-var init_Tabpage = __esmMin((() => {
-	init_Base();
-	Tabpage = class extends BaseApi {
-		prefix = "nvim_tabpage_";
+//#region node_modules/@chemzqm/neovim/lib/api/Tabpage.js
+var require_Tabpage = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Tabpage = void 0;
+	const Base_1 = require_Base();
+	var Tabpage = class extends Base_1.BaseApi {
+		constructor() {
+			super(...arguments);
+			this.prefix = "nvim_tabpage_";
+		}
 		/**
 		* The windowid that not change within a Vim session
 		*/
@@ -58964,15 +58997,20 @@ var init_Tabpage = __esmMin((() => {
 			throw new Error("Tabpage does not have `setOption`");
 		}
 	};
+	exports.Tabpage = Tabpage;
 }));
 //#endregion
-//#region src/neovim/api/Window.ts
-var Window$1;
-var init_Window = __esmMin((() => {
-	init_constants$1();
-	init_Base();
-	Window$1 = class extends BaseApi {
-		prefix = "nvim_win_";
+//#region node_modules/@chemzqm/neovim/lib/api/Window.js
+var require_Window = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Window = void 0;
+	const constants_1 = require_constants();
+	const Base_1 = require_Base();
+	var Window = class extends Base_1.BaseApi {
+		constructor() {
+			super(...arguments);
+			this.prefix = "nvim_win_";
+		}
 		/**
 		* The windowid that not change within a Vim session
 		*/
@@ -58984,14 +59022,16 @@ var init_Window = __esmMin((() => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			return this.request(`nvim_get_option_value`, [name, { win: this.id }], true);
+			if (constants_1.isCocNvim) return this.request(`nvim_get_option_value`, [name, { win: this.id }], true);
+			return super.getOption(name);
 		}
 		setOption(name, value, isNotify) {
-			return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
+			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`nvim_set_option_value`, [
 				name,
 				value,
 				{ win: this.id }
 			], true);
+			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/** Get current buffer of window */
 		get buffer() {
@@ -59091,106 +59131,120 @@ var init_Window = __esmMin((() => {
 			this.client.call("coc#window#clear_matches", [this.id, ids], true);
 		}
 	};
+	exports.Window = Window;
 }));
 //#endregion
-//#region src/neovim/api/types.ts
-var Metadata;
-var init_types$2 = __esmMin((() => {
-	init_Buffer();
-	init_Tabpage();
-	init_Window();
-	Metadata = [
+//#region node_modules/@chemzqm/neovim/lib/api/types.js
+var require_types = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Metadata = exports.ExtType = void 0;
+	const Buffer_1 = require_Buffer();
+	const Tabpage_1 = require_Tabpage();
+	const Window_1 = require_Window();
+	var ExtType;
+	(function(ExtType) {
+		ExtType[ExtType["Buffer"] = 0] = "Buffer";
+		ExtType[ExtType["Window"] = 1] = "Window";
+		ExtType[ExtType["Tabpage"] = 2] = "Tabpage";
+	})(ExtType || (exports.ExtType = ExtType = {}));
+	exports.Metadata = [
 		{
-			constructor: Buffer$2,
+			constructor: Buffer_1.Buffer,
 			name: "Buffer",
 			prefix: "nvim_buf_"
 		},
 		{
-			constructor: Window$1,
+			constructor: Window_1.Window,
 			name: "Window",
 			prefix: "nvim_win_"
 		},
 		{
-			constructor: Tabpage,
+			constructor: Tabpage_1.Tabpage,
 			name: "Tabpage",
 			prefix: "nvim_tabpage_"
 		}
 	];
 }));
 //#endregion
-//#region src/neovim/utils/logger.ts
-function getLogFile() {
-	let file = process.env.NODE_CLIENT_LOG_FILE;
-	if (file) return file;
-	let dir = process.env.XDG_RUNTIME_DIR;
-	if (dir) return path.default.join(dir, "node-client.log");
-	return path.default.join(os.default.tmpdir(), `node-client-${process.pid}.log`);
-}
-function toObject$1(arg) {
-	if (arg == null) return arg;
-	if (Array.isArray(arg)) return arg.map((o) => toObject$1(o));
-	if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") return "[" + arg.prefix + arg.data + "]";
-	return arg;
-}
-function toString(arg) {
-	if (debugging) return (0, util.inspect)(arg, {
-		depth: null,
-		colors: true,
-		compact: false
-	});
-	if (arg == null) return String(arg);
-	if (arg instanceof Error) return arg.stack;
-	if (typeof arg == "object") return JSON.stringify(arg, null, 2);
-	return String(arg);
-}
-function toTimeString(currentTime) {
-	return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`;
-}
-function createLogger(name) {
-	return new Logger(name);
-}
-var nullLogger, debugging, LOG_FILE_PATH, level, invalid, toTwoDigits, toThreeDigits, writableStream, Logger;
-var init_logger$1 = __esmMin((() => {
-	nullLogger = {
+//#region node_modules/@chemzqm/neovim/lib/utils/logger.js
+var require_logger = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var __importDefault = exports && exports.__importDefault || function(mod) {
+		return mod && mod.__esModule ? mod : { "default": mod };
+	};
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.level = exports.nullLogger = void 0;
+	exports.createLogger = createLogger;
+	const fs_1 = __importDefault(require("fs"));
+	const os_1 = __importDefault(require("os"));
+	const path_1 = __importDefault(require("path"));
+	const util_1$1 = require("util");
+	exports.nullLogger = {
 		debug: () => {},
 		info: () => {},
 		warn: () => {},
 		error: () => {},
 		trace: () => {}
 	};
-	debugging = process.env.COC_NODE_CLIENT_DEBUG == "1" && process.env.COC_TESTER == "1";
-	LOG_FILE_PATH = getLogFile();
-	level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
-	invalid = !debugging && process.getuid && process.getuid() == 0;
+	function getLogFile() {
+		let file = process.env.NODE_CLIENT_LOG_FILE;
+		if (file) return file;
+		let dir = process.env.XDG_RUNTIME_DIR;
+		if (dir) return path_1.default.join(dir, "node-client.log");
+		return path_1.default.join(os_1.default.tmpdir(), `node-client-${process.pid}.log`);
+	}
+	const debugging = process.env.COC_NODE_CLIENT_DEBUG == "1";
+	const LOG_FILE_PATH = getLogFile();
+	exports.level = debugging ? "debug" : process.env.NODE_CLIENT_LOG_LEVEL || "info";
+	let invalid = !debugging && process.getuid && process.getuid() == 0;
 	if (!invalid && !debugging) try {
-		fs.default.mkdirSync(path.default.dirname(LOG_FILE_PATH), { recursive: true });
-		fs.default.writeFileSync(LOG_FILE_PATH, "", {
+		fs_1.default.mkdirSync(path_1.default.dirname(LOG_FILE_PATH), { recursive: true });
+		fs_1.default.writeFileSync(LOG_FILE_PATH, "", {
 			encoding: "utf8",
 			mode: 438
 		});
 	} catch (_e) {
 		invalid = true;
 	}
-	toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
-	toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
-	Logger = class {
-		name;
+	function toObject(arg) {
+		if (arg == null) return arg;
+		if (Array.isArray(arg)) return arg.map((o) => toObject(o));
+		if (typeof arg == "object" && typeof arg.prefix == "string" && typeof arg.data == "number") return "[" + arg.prefix + arg.data + "]";
+		return arg;
+	}
+	function toString(arg) {
+		if (debugging) return (0, util_1$1.inspect)(arg, {
+			depth: null,
+			colors: true,
+			compact: false
+		});
+		if (arg == null) return String(arg);
+		if (arg instanceof Error) return arg.stack;
+		if (typeof arg == "object") return JSON.stringify(arg, null, 2);
+		return String(arg);
+	}
+	const toTwoDigits = (v) => v < 10 ? `0${v}` : v.toString();
+	const toThreeDigits = (v) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString();
+	function toTimeString(currentTime) {
+		return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`;
+	}
+	let writableStream;
+	var Logger = class {
 		constructor(name) {
 			this.name = name;
 		}
 		get stream() {
 			if (writableStream) return writableStream;
 			if (debugging) writableStream = process.stdout;
-			else writableStream = fs.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
+			else writableStream = fs_1.default.createWriteStream(LOG_FILE_PATH, { encoding: "utf8" });
 			return writableStream;
 		}
 		getText(level, data, meta) {
 			let more = "";
-			if (meta.length) more = " " + toObject$1(meta).map((o) => toString(o)).join(", ");
+			if (meta.length) more = " " + toObject(meta).map((o) => toString(o)).join(", ");
 			return `${toTimeString(/* @__PURE__ */ new Date())} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`;
 		}
 		debug(data, ...meta) {
-			if (level != "debug" || invalid) return;
+			if (exports.level != "debug" || invalid) return;
 			this.stream.write(this.getText("debug", data, meta));
 		}
 		info(data, ...meta) {
@@ -59206,41 +59260,40 @@ var init_logger$1 = __esmMin((() => {
 			(debugging ? process.stderr : this.stream).write(this.getText("error", data, meta));
 		}
 		trace(data, ...meta) {
-			if (level != "trace" || invalid) return;
+			if (exports.level != "trace" || invalid) return;
 			this.stream.write(this.getText("trace", data, meta));
 		}
 	};
+	function createLogger(name) {
+		return new Logger(name);
+	}
 }));
 //#endregion
-//#region src/neovim/transport/base.ts
-var debug$3, logger$54, Transport$1;
-var init_base = __esmMin((() => {
-	init_logger$1();
-	debug$3 = level === "debug";
-	logger$54 = createLogger("transport");
-	Transport$1 = class extends events.EventEmitter {
-		logger;
-		isVim;
-		pauseLevel = 0;
-		paused = /* @__PURE__ */ new Map();
+//#region node_modules/@chemzqm/neovim/lib/transport/base.js
+var require_base = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	const events_1$2 = require("events");
+	const logger_1 = require_logger();
+	const debug = logger_1.level === "debug";
+	const logger = (0, logger_1.createLogger)("transport");
+	var Transport = class extends events_1$2.EventEmitter {
 		constructor(logger, isVim) {
 			super();
 			this.logger = logger;
 			this.isVim = isVim;
+			this.pauseLevel = 0;
+			this.paused = /* @__PURE__ */ new Map();
 		}
 		debug(key, ...meta) {
-			if (!debug$3) return;
-			logger$54.debug(key, ...meta);
-		}
-		info(key, ...meta) {
-			logger$54.info(key, ...meta);
+			if (!debug) return;
+			logger.debug(key, ...meta);
 		}
 		debugMessage(msg) {
-			if (!debug$3) return;
+			if (!debug) return;
 			const msgType = msg[0];
-			if (msgType == 0) logger$54.debug("receive request:", msg.slice(1));
-			else if (msgType == 1) {} else if (msgType == 2) logger$54.debug("receive notification:", msg.slice(1));
-			else logger$54.debug("unknown message:", msg);
+			if (msgType === 0) logger.debug("receive request:", msg.slice(1));
+			else if (msgType === 1) {} else if (msgType === 2) logger.debug("receive notification:", msg.slice(1));
+			else logger.debug("unknown message:", msg);
 		}
 		pauseNotification() {
 			this.pauseLevel = this.pauseLevel + 1;
@@ -59255,7 +59308,7 @@ var init_base = __esmMin((() => {
 		}
 		resumeNotification(isNotify = false) {
 			let { pauseLevel } = this;
-			if (pauseLevel == 0) return isNotify ? null : Promise.resolve([[], null]);
+			if (pauseLevel === 0) return isNotify ? null : Promise.resolve([[], null]);
 			let obj = {};
 			Error.captureStackTrace(obj);
 			this.pauseLevel = pauseLevel - 1;
@@ -59265,14 +59318,14 @@ var init_base = __esmMin((() => {
 				if (!isNotify) return this.request("nvim_call_atomic", [list], (err, res) => {
 					if (err) {
 						let e = /* @__PURE__ */ new Error(`call_atomic error: ${err[1]}`);
-						e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`);
+						e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack;
 						return reject(e);
 					}
-					if (Array.isArray(res) && res[1] != null) {
+					if (Array.isArray(res) && res[1] !== null && res[1] !== void 0) {
 						let [index, errType, message] = res[1];
 						let [fname, args] = list[index];
 						let e = /* @__PURE__ */ new Error(`call_atomic request error on "${fname}": ${message}`);
-						e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`);
+						e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack;
 						this.logger.error(`call_atomic request error ${errType} on "${fname}"`, args, message, e);
 						return reject(e);
 					}
@@ -59284,37 +59337,38 @@ var init_base = __esmMin((() => {
 			return isNotify ? null : Promise.resolve([[], void 0]);
 		}
 	};
+	exports.default = Transport;
 }));
 //#endregion
-//#region src/neovim/transport/nvim.ts
-var NvimTransport;
-var init_nvim = __esmMin((() => {
-	init_dist_esm();
-	init_errors();
-	init_types$2();
-	init_base();
-	NvimTransport = class extends Transport$1 {
-		pending = /* @__PURE__ */ new Map();
-		nextRequestId = 1;
-		reader;
-		writer;
-		extensionCodec = this.initializeExtensionCodec();
-		encoder = new Encoder({
-			extensionCodec: this.extensionCodec,
-			ignoreUndefined: true
-		});
-		extEncoder = new Encoder({ ignoreUndefined: true });
-		decodeIterator;
-		decodeGeneration = 0;
-		onReaderEnd;
-		attached = false;
-		client;
+//#region node_modules/@chemzqm/neovim/lib/transport/nvim.js
+var require_nvim = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var __importDefault = exports && exports.__importDefault || function(mod) {
+		return mod && mod.__esModule ? mod : { "default": mod };
+	};
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.NvimTransport = void 0;
+	const msgpack_1 = (init_dist_esm(), __toCommonJS(dist_esm_exports));
+	const error_1 = require_error();
+	const types_1 = require_types();
+	const base_1 = __importDefault(require_base());
+	const REQUEST_TIMEOUT = require_constants().isTester ? 3e3 : 0;
+	var NvimTransport = class extends base_1.default {
 		constructor(logger) {
 			super(logger, false);
+			this.pending = /* @__PURE__ */ new Map();
+			this.nextRequestId = 1;
+			this.extensionCodec = this.initializeExtensionCodec();
+			this.encoder = new msgpack_1.Encoder({
+				extensionCodec: this.extensionCodec,
+				ignoreUndefined: true
+			});
+			this.extEncoder = new msgpack_1.Encoder({ ignoreUndefined: true });
+			this.decodeGeneration = 0;
+			this.attached = false;
 		}
 		initializeExtensionCodec() {
-			const codec = new ExtensionCodec();
-			Metadata.forEach(({ constructor }, id) => {
+			const codec = new msgpack_1.ExtensionCodec();
+			types_1.Metadata.forEach(({ constructor }, id) => {
 				codec.register({
 					type: id,
 					encode: (input) => {
@@ -59323,7 +59377,7 @@ var init_nvim = __esmMin((() => {
 					},
 					decode: (data) => new constructor({
 						client: this.client,
-						data: decode(data)
+						data: (0, msgpack_1.decode)(data)
 					})
 				});
 			});
@@ -59369,7 +59423,6 @@ var init_nvim = __esmMin((() => {
 				if (iter !== this.decodeIterator || generation !== this.decodeGeneration) return;
 				console.error("Decode stream error:", err);
 				this.detach();
-				this.emit("detach");
 			}
 		}
 		attach(writer, reader, client) {
@@ -59380,12 +59433,10 @@ var init_nvim = __esmMin((() => {
 			this.decodeGeneration = this.decodeGeneration + 1;
 			const generation = this.decodeGeneration;
 			this.onReaderEnd = () => {
-				const wasAttached = this.attached;
 				this.detach();
-				if (wasAttached) this.emit("detach");
 			};
 			this.reader.once("end", this.onReaderEnd);
-			const asyncDecodeGenerator = decodeMultiStream(this.createDecodeSource(this.reader), { extensionCodec: this.extensionCodec });
+			const asyncDecodeGenerator = (0, msgpack_1.decodeMultiStream)(this.createDecodeSource(this.reader), { extensionCodec: this.extensionCodec });
 			this.decodeIterator = asyncDecodeGenerator;
 			this.decodeLoop(asyncDecodeGenerator, generation);
 		}
@@ -59402,11 +59453,12 @@ var init_nvim = __esmMin((() => {
 			if (iter && typeof iter.return === "function") iter.return(void 0).catch((err) => {
 				this.debug("decode iterator return error:", err);
 			});
-			for (let handler of this.pending.values()) handler([0, disconnectedText]);
+			for (let handler of this.pending.values()) handler([0, error_1.disconnectedText]);
 			this.pending.clear();
+			this.emit("detach");
 		}
 		request(method, args, cb) {
-			if (!this.attached) return cb([0, disconnectedText]);
+			if (!this.attached) return cb([0, error_1.disconnectedText]);
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId + 1;
 			let startTs = Date.now();
@@ -59417,7 +59469,15 @@ var init_nvim = __esmMin((() => {
 				method,
 				args
 			]));
+			let timer;
+			if (REQUEST_TIMEOUT > 0) timer = setTimeout(() => {
+				let handler = this.pending.get(id);
+				if (!handler) return;
+				this.pending.delete(id);
+				handler([0, `Request "${method}" timed out after ${REQUEST_TIMEOUT}ms.`]);
+			}, REQUEST_TIMEOUT);
 			this.pending.set(id, (err, res) => {
+				if (timer) clearTimeout(timer);
 				this.debug("response of nvim:", id, Date.now() - startTs, res, err);
 				cb(err, res);
 			});
@@ -59463,17 +59523,19 @@ var init_nvim = __esmMin((() => {
 			} };
 		}
 	};
+	exports.NvimTransport = NvimTransport;
 }));
 //#endregion
-//#region src/neovim/transport/connection.ts
-var logger$53, NR_CODE, Connection;
-var init_connection = __esmMin((() => {
-	init_logger$1();
-	logger$53 = createLogger("connection");
-	NR_CODE = 10;
-	Connection = class extends events.default {
-		writable;
-		clean;
+//#region node_modules/@chemzqm/neovim/lib/transport/connection.js
+var require_connection$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var __importDefault = exports && exports.__importDefault || function(mod) {
+		return mod && mod.__esModule ? mod : { "default": mod };
+	};
+	Object.defineProperty(exports, "__esModule", { value: true });
+	const events_1$1 = __importDefault(require("events"));
+	const logger = (0, require_logger().createLogger)("connection");
+	const NR_CODE = 10;
+	var Connection = class extends events_1$1.default {
 		constructor(readable, writable) {
 			super();
 			this.writable = writable;
@@ -59503,7 +59565,7 @@ var init_connection = __esmMin((() => {
 			};
 			readable.on("data", onData);
 			let onClose = () => {
-				logger$53.warn("readable stream closed.");
+				logger.warn("readable stream closed.");
 			};
 			readable.on("close", onClose);
 			this.clean = () => {
@@ -59517,18 +59579,18 @@ var init_connection = __esmMin((() => {
 			try {
 				arr = JSON.parse(str);
 			} catch (e) {
-				logger$53.error(`Invalid data from vim: ${str}`);
+				logger.error(`Invalid data from vim: ${str}`);
 				return;
 			}
 			let [id, obj] = arr;
 			if (id > 0) {
-				logger$53.debug("received request:", id, obj);
+				logger.debug("received request:", id, obj);
 				this.emit("request", id, obj);
 			} else if (id == 0) {
-				logger$53.debug("received notification:", obj);
+				logger.debug("received notification:", obj);
 				this.emit("notification", obj);
 			} else {
-				logger$53.debug("received response:", id, obj);
+				logger.debug("received response:", id, obj);
 				this.emit("response", id, obj);
 			}
 		}
@@ -59539,7 +59601,7 @@ var init_connection = __esmMin((() => {
 			this.send([0, [event, data || null]]);
 		}
 		send(arr) {
-			logger$53.debug("send to vim:", arr);
+			logger.debug("send to vim:", arr);
 			this.writable.write(JSON.stringify(arr) + "\n");
 		}
 		redraw(force) {
@@ -59583,30 +59645,27 @@ var init_connection = __esmMin((() => {
 			this.removeAllListeners();
 		}
 	};
+	exports.default = Connection;
 }));
 //#endregion
-//#region src/neovim/transport/request.ts
-var func$1, Request;
-var init_request = __esmMin((() => {
-	init_constants$1();
-	func$1 = "coc#api#Call";
-	Request = class {
-		connection;
-		cb;
-		id;
-		method;
-		_direct = false;
+//#region node_modules/@chemzqm/neovim/lib/transport/request.js
+var require_request = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	const func = require_constants().isCocNvim ? "coc#api#Call" : "nvim#api#Call";
+	var Request = class {
 		constructor(connection, cb, id) {
 			this.connection = connection;
 			this.cb = cb;
 			this.id = id;
+			this.method = "";
+			this._direct = false;
 		}
 		get isDirect() {
 			return this._direct;
 		}
 		request(method, args = []) {
 			this.method = method;
-			this.connection.call(func$1, [method.slice(5), args], this.id);
+			this.connection.call(func, [method.startsWith("nvim_") ? method.slice(5) : method, args], this.id);
 		}
 		call(method, args = []) {
 			this._direct = true;
@@ -59623,51 +59682,54 @@ var init_request = __esmMin((() => {
 			if (err) return cb([0, err.toString()]);
 			switch (method) {
 				case "nvim_list_wins":
-				case "nvim_tabpage_list_wins": return cb(null, result.map((o) => client.createWindow(o)));
+				case "nvim_tabpage_list_wins": return cb(null, Array.isArray(result) ? result.map((o) => client.createWindow(o)) : []);
 				case "nvim_tabpage_get_win":
 				case "nvim_get_current_win":
 				case "nvim_open_win": return cb(null, client.createWindow(result));
-				case "nvim_list_bufs": return cb(null, result.map((o) => client.createBuffer(o)));
+				case "nvim_list_bufs": return cb(null, Array.isArray(result) ? result.map((o) => client.createBuffer(o)) : []);
 				case "nvim_win_get_buf":
 				case "nvim_create_buf":
 				case "nvim_get_current_buf": return cb(null, client.createBuffer(result));
-				case "nvim_list_tabpages": return cb(null, result.map((o) => client.createTabpage(o)));
+				case "nvim_list_tabpages": return cb(null, Array.isArray(result) ? result.map((o) => client.createTabpage(o)) : []);
 				case "nvim_win_get_tabpage":
 				case "nvim_get_current_tabpage": return cb(null, client.createTabpage(result));
 				default: return cb(null, result);
 			}
 		}
 	};
+	exports.default = Request;
 }));
 //#endregion
-//#region src/neovim/transport/vim.ts
-var notifyMethod, VimTransport;
-var init_vim = __esmMin((() => {
-	init_errors();
-	init_constants$1();
-	init_base();
-	init_connection();
-	init_request();
-	notifyMethod = "coc#api#Notify";
-	VimTransport = class extends Transport$1 {
-		pending = /* @__PURE__ */ new Map();
-		nextRequestId = -1;
-		connection;
-		attached = false;
-		client;
-		/**
-		* Cached error message
-		*/
-		errText = "";
-		/**
-		* Cached out message
-		*/
-		outText = "";
+//#region node_modules/@chemzqm/neovim/lib/transport/vim.js
+var require_vim = /* @__PURE__ */ __commonJSMin(((exports) => {
+	var __importDefault = exports && exports.__importDefault || function(mod) {
+		return mod && mod.__esModule ? mod : { "default": mod };
+	};
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.VimTransport = void 0;
+	const error_1 = require_error();
+	const constants_1 = require_constants();
+	const base_1 = __importDefault(require_base());
+	const connection_1 = __importDefault(require_connection$2());
+	const request_1 = __importDefault(require_request());
+	const notifyMethod = constants_1.isCocNvim ? "coc#api#Notify" : "nvim#api#Notify";
+	var VimTransport = class extends base_1.default {
 		constructor(logger) {
 			super(logger, true);
+			this.pending = /* @__PURE__ */ new Map();
+			this.nextRequestId = -1;
+			this.attached = false;
+			/**
+			* Cached error message
+			*/
+			this.errText = "";
+			/**
+			* Cached out message
+			*/
+			this.outText = "";
 		}
 		attach(writer, reader, client) {
-			let connection = this.connection = new Connection(reader, writer);
+			let connection = this.connection = new connection_1.default(reader, writer);
 			this.attached = true;
 			this.client = client;
 			connection.on("request", (id, obj) => {
@@ -59727,11 +59789,11 @@ var init_vim = __esmMin((() => {
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId - 1;
 			return new Promise((resolve, reject) => {
-				let req = new Request(this.connection, (err, res) => {
+				let req = new request_1.default(this.connection, (err, res) => {
 					if (!err && res === "ERROR") if (command === "eval") err = /* @__PURE__ */ new Error(`Invalid expression "${args[0]}", checkout v:errmsg`);
 					else err = /* @__PURE__ */ new Error(`Error on function "${args[0]}", checkout v:errmsg"`);
 					if (err) {
-						err.stack = `Error: vim "${command}" error - ${err}\n` + args["stack"].split(/\r?\n/).slice(3).join("\n");
+						err.stack = `Error: vim "${command}" error - ${err}\n` + (args["stack"] ? args["stack"].split(/\r?\n/).slice(3).join("\n") : "");
 						this.client.logError(`Error on vim command "${command}"`, args, err);
 						reject(err instanceof Error ? err : new Error(String(err)));
 						return;
@@ -59747,10 +59809,10 @@ var init_vim = __esmMin((() => {
 		* Send request to vim
 		*/
 		request(method, args, cb) {
-			if (!this.attached) return cb([0, disconnectedText]);
+			if (!this.attached) return cb([0, error_1.disconnectedText]);
 			let id = this.nextRequestId;
 			this.nextRequestId = this.nextRequestId - 1;
-			let req = new Request(this.connection, (err, res) => {
+			let req = new request_1.default(this.connection, (err, res) => {
 				cb(err, res);
 			}, id);
 			this.pending.set(id, req);
@@ -59800,20 +59862,28 @@ var init_vim = __esmMin((() => {
 			} };
 		}
 	};
+	exports.VimTransport = VimTransport;
 }));
 //#endregion
-//#region src/neovim/api/Neovim.ts
-function getArgs(args) {
-	if (!args) return [];
-	if (Array.isArray(args)) return args;
-	return [args];
-}
-var Neovim;
-var init_Neovim = __esmMin((() => {
-	init_constants$1();
-	init_Base();
-	Neovim = class extends BaseApi {
-		prefix = "nvim_";
+//#region node_modules/@chemzqm/neovim/lib/api/Neovim.js
+var require_Neovim = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Neovim = void 0;
+	const constants_1 = require_constants();
+	const Base_1 = require_Base();
+	function getArgs(args) {
+		if (!args) return [];
+		if (Array.isArray(args)) return args;
+		return [args];
+	}
+	/**
+	* Neovim API
+	*/
+	var Neovim = class extends Base_1.BaseApi {
+		constructor() {
+			super(...arguments);
+			this.prefix = "nvim_";
+		}
 		get apiInfo() {
 			return this.request(`${this.prefix}get_api_info`);
 		}
@@ -59827,14 +59897,16 @@ var init_Neovim = __esmMin((() => {
 		}
 		/** Retrieves a scoped option depending on type of `this` */
 		getOption(name) {
-			return this.request(`${this.prefix}get_option_value`, [name, {}]);
+			if (constants_1.isCocNvim) return this.request(`${this.prefix}get_option_value`, [name, {}]);
+			return super.getOption(name);
 		}
 		setOption(name, value, isNotify) {
-			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option_value`, [
+			if (constants_1.isCocNvim) return this[isNotify ? "notify" : "request"](`${this.prefix}set_option_value`, [
 				name,
 				value,
 				{}
 			]);
+			return this[isNotify ? "notify" : "request"](`${this.prefix}set_option`, [name, value]);
 		}
 		/** Set current buffer */
 		async setBuffer(buffer) {
@@ -59847,7 +59919,7 @@ var init_Neovim = __esmMin((() => {
 			return this.request(`${this.prefix}get_chan_info`, [chan]);
 		}
 		createNamespace(name = "") {
-			name = name.startsWith("coc-") ? name : `coc-${name}`;
+			if (constants_1.isCocNvim) name = name.startsWith("coc-") ? name : `coc-${name}`;
 			return this.request(`${this.prefix}create_namespace`, [name]);
 		}
 		get namespaces() {
@@ -59989,7 +60061,7 @@ var init_Neovim = __esmMin((() => {
 			]);
 		}
 		callVim(fname, args = [], isNotify) {
-			if (!isVim$1) return this.call(fname, args, isNotify);
+			if (!constants_1.isVim) return this.call(fname, args, isNotify);
 			const _args = getArgs(args);
 			if (isNotify) return this.transport.vimCommand("call", fname, _args);
 			return this.transport.vimRequest("call", [fname, _args]);
@@ -59998,14 +60070,14 @@ var init_Neovim = __esmMin((() => {
 		* Use direct expr command on vim9
 		*/
 		evalVim(expr) {
-			if (!isVim$1) return this.request(`${this.prefix}eval`, [expr]);
+			if (!constants_1.isVim) return this.request(`${this.prefix}eval`, [expr]);
 			return this.transport.vimRequest("eval", [expr]);
 		}
 		/**
 		* Use direct ex on vim9
 		*/
 		exVim(arg) {
-			if (!isVim$1) return this.notify(`${this.prefix}command`, [arg]);
+			if (!constants_1.isVim) return this.notify(`${this.prefix}command`, [arg]);
 			this.transport.vimCommand("ex", arg);
 		}
 		call(fname, args = [], isNotify) {
@@ -60022,7 +60094,7 @@ var init_Neovim = __esmMin((() => {
 				this.notify(`${this.prefix}call_function`, ["coc#util#timer", [fname, _args]]);
 				return null;
 			}
-			if (isVim$1) {
+			if (constants_1.isVim) {
 				this.notify(`${this.prefix}call_function`, ["coc#util#timer", [fname, _args]]);
 				return new Promise((resolve) => {
 					setTimeout(() => {
@@ -60201,29 +60273,26 @@ var init_Neovim = __esmMin((() => {
 			if (this.transport) this.transport.detach();
 		}
 	};
+	exports.Neovim = Neovim;
 }));
 //#endregion
-//#region src/neovim/api/client.ts
-/**
-* Handles attaching transport
-*/
-function applyMixins(derivedCtor, constructors) {
-	constructors.forEach((baseCtor) => {
-		Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-			Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null));
-		});
-	});
-}
-var functionsOnVim, AsyncResponse, NeovimClient;
-var init_client$1 = __esmMin((() => {
-	init_nvim();
-	init_vim();
-	init_constants$1();
-	init_Buffer();
-	init_Neovim();
-	init_Tabpage();
-	init_Window();
-	functionsOnVim = [
+//#region node_modules/@chemzqm/neovim/lib/api/client.js
+var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.NeovimClient = exports.AsyncResponse = void 0;
+	/**
+	* Handles attaching transport
+	*/
+	const events_1 = require("events");
+	const nvim_1 = require_nvim();
+	const vim_1 = require_vim();
+	const constants_1 = require_constants();
+	const error_1 = require_error();
+	const Buffer_1 = require_Buffer();
+	const Neovim_1 = require_Neovim();
+	const Tabpage_1 = require_Tabpage();
+	const Window_1 = require_Window();
+	const functionsOnVim = [
 		"nvim_buf_attach",
 		"nvim_get_mode",
 		"nvim_list_runtime_paths",
@@ -60306,13 +60375,11 @@ var init_client$1 = __esmMin((() => {
 		"nvim_call_function",
 		"nvim_buf_is_valid"
 	];
-	AsyncResponse = class {
-		requestId;
-		cb;
-		finished = false;
+	var AsyncResponse = class {
 		constructor(requestId, cb) {
 			this.requestId = requestId;
 			this.cb = cb;
+			this.finished = false;
 		}
 		finish(err, res) {
 			if (this.finished) return;
@@ -60324,20 +60391,23 @@ var init_client$1 = __esmMin((() => {
 			this.cb(null, res);
 		}
 	};
-	NeovimClient = class extends Neovim {
-		logger;
-		isVim;
-		_isReady;
-		requestId = 1;
-		responses = /* @__PURE__ */ new Map();
-		_channelId;
-		attachedBuffers = /* @__PURE__ */ new Map();
-		_transport;
+	exports.AsyncResponse = AsyncResponse;
+	function applyMixins(derivedCtor, constructors) {
+		constructors.forEach((baseCtor) => {
+			Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+				Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null));
+			});
+		});
+	}
+	var NeovimClient = class extends Neovim_1.Neovim {
 		constructor(logger, isVim) {
 			super({});
 			this.logger = logger;
 			this.isVim = isVim;
-			const transport = isVim ? new VimTransport(logger) : new NvimTransport(logger);
+			this.requestId = 1;
+			this.responses = /* @__PURE__ */ new Map();
+			this.attachedBuffers = /* @__PURE__ */ new Map();
+			const transport = isVim ? new vim_1.VimTransport(logger) : new nvim_1.NvimTransport(logger);
 			Object.defineProperty(this, "_transport", {
 				enumerable: false,
 				get: () => {
@@ -60351,34 +60421,34 @@ var init_client$1 = __esmMin((() => {
 			return this._transport;
 		}
 		echoError(msg) {
-			let prefix = "[coc.nvim] ";
+			let prefix = constants_1.isCocNvim ? "[coc.nvim] " : "";
 			if (msg instanceof Error) {
-				if (!isTester) this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
+				if (!constants_1.isTester) this.errWriteLine(prefix + msg.message + " use :CocOpenLog for details");
 				this.logError(msg.message || "Unknown error", msg);
 			} else {
-				if (!isTester) this.errWriteLine(prefix + msg);
+				if (!constants_1.isTester) this.errWriteLine(prefix + msg);
 				this.logError(msg.toString(), /* @__PURE__ */ new Error());
 			}
 		}
 		logError(msg, ...args) {
-			if (isTester) console.error(msg, ...args);
+			if (constants_1.isTester) console.error(msg, ...args);
 			if (!this.logger) return;
 			this.logger.error(msg, ...args);
 		}
 		createBuffer(id) {
-			return new Buffer$2({
+			return new Buffer_1.Buffer({
 				data: id,
 				client: this
 			});
 		}
 		createWindow(id) {
-			return new Window$1({
+			return new Window_1.Window({
 				data: id,
 				client: this
 			});
 		}
 		createTabpage(id) {
-			return new Tabpage({
+			return new Tabpage_1.Tabpage({
 				data: id,
 				client: this
 			});
@@ -60397,6 +60467,7 @@ var init_client$1 = __esmMin((() => {
 			this.transport.on("notification", this.handleNotification);
 			this.transport.on("detach", () => {
 				this.emit("disconnect");
+				this.rejectPendingResponses();
 				this.transport.removeAllListeners("request");
 				this.transport.removeAllListeners("notification");
 				this.transport.removeAllListeners("detach");
@@ -60412,8 +60483,20 @@ var init_client$1 = __esmMin((() => {
 		}
 		detach() {
 			this.attachedBuffers.clear();
+			this.rejectPendingResponses();
 			this.transport.detach();
 			this.removeAllListeners();
+		}
+		/**
+		* Reject pending async responses. They will never be answered once the
+		* transport is gone, and leaving them pending would keep callers like
+		* `funcs.callAsync` blocked on the shared mutex forever.
+		*/
+		rejectPendingResponses() {
+			if (this.responses.size === 0) return;
+			const err = new Error(error_1.disconnectedText);
+			for (const response of this.responses.values()) response.finish(err.message);
+			this.responses.clear();
 		}
 		get channelId() {
 			return this._isReady.then(() => {
@@ -60441,7 +60524,7 @@ var init_client$1 = __esmMin((() => {
 		}
 		handleNotification(method, args) {
 			if (method.endsWith("_event")) {
-				if (method == "vim_buf_change_event") {
+				if (method === "vim_buf_change_event") {
 					const id = args[0];
 					if (!this.attachedBuffers.has(id)) return;
 					(this.attachedBuffers.get(id).get("vim_lines") || []).forEach((cb) => cb(...args));
@@ -60455,7 +60538,7 @@ var init_client$1 = __esmMin((() => {
 					if (shortName === "detach") this.attachedBuffers.delete(id);
 					return;
 				}
-				if (method == "nvim_async_request_event") {
+				if (method === "nvim_async_request_event") {
 					const [id, method, arr] = args;
 					this.handleRequest(method, arr, { send: (resp, isError) => {
 						this.notify("nvim_call_function", ["coc#rpc#async_response", [
@@ -60466,7 +60549,7 @@ var init_client$1 = __esmMin((() => {
 					} });
 					return;
 				}
-				if (method == "nvim_async_response_event") {
+				if (method === "nvim_async_response_event") {
 					const [id, err, res] = args;
 					const response = this.responses.get(id);
 					if (!response) {
@@ -60518,7 +60601,7 @@ var init_client$1 = __esmMin((() => {
 		pauseNotification() {
 			let o = {};
 			Error.captureStackTrace(o);
-			if (this.transport.pauseLevel != 0) this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack);
+			if (this.transport.pauseLevel !== 0) this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack);
 			this.transport.pauseNotification();
 			process.nextTick(() => {
 				if (this.transport.pauseLevel > 0) this.logError(`resumeNotification not called within same tick:`, o.stack);
@@ -60528,7 +60611,7 @@ var init_client$1 = __esmMin((() => {
 			if (this.isVim && redrawVim) this.transport.notify("nvim_command", ["redraw"]);
 			if (notify) {
 				this.transport.resumeNotification(true);
-				return Promise.resolve(null);
+				return;
 			}
 			return this.transport.resumeNotification();
 		}
@@ -60540,63 +60623,193 @@ var init_client$1 = __esmMin((() => {
 			return functionsOnVim.includes(name);
 		}
 	};
-	applyMixins(NeovimClient, [events.EventEmitter]);
+	exports.NeovimClient = NeovimClient;
+	applyMixins(NeovimClient, [events_1.EventEmitter]);
 }));
 //#endregion
-//#region src/neovim/api/index.ts
-var init_api = __esmMin((() => {
-	init_client$1();
-	init_Buffer();
-	init_Window();
-	init_Tabpage();
-}));
-//#endregion
-//#region src/neovim/attach/attach.ts
-function attach({ reader: _reader, writer: _writer, proc, socket }, logger = null, requestApi = true) {
-	let writer;
-	let reader;
-	let neovim;
-	if (!logger) logger = nullLogger;
-	if (socket) {
-		const client = (0, net.createConnection)(socket);
-		writer = client;
-		reader = client;
-		client.once("close", () => {
-			neovim.detach();
-		});
-	} else if (_reader && _writer) {
-		writer = _writer;
-		reader = _reader;
-	} else if (proc) {
-		writer = proc.stdin;
-		reader = proc.stdout;
-		proc.once("disconnect", () => {
-			neovim.detach();
-		});
-	}
-	writer.on("error", (err) => {
-		if (err.code == "EPIPE") neovim.detach();
+//#region node_modules/@chemzqm/neovim/lib/api/index.js
+var require_api$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Tabpage = exports.Window = exports.Buffer = exports.NeovimClient = exports.Neovim = void 0;
+	var client_1 = require_client();
+	Object.defineProperty(exports, "Neovim", {
+		enumerable: true,
+		get: function() {
+			return client_1.NeovimClient;
+		}
 	});
-	if (writer && reader) {
-		neovim = new NeovimClient(logger, isVim$1);
-		neovim.attach({
-			writer,
-			reader
-		}, requestApi);
-		return neovim;
-	}
-	throw new Error("Invalid arguments, could not attach");
-}
-var init_attach$1 = __esmMin((() => {
-	init_constants$1();
-	init_logger$1();
-	init_client$1();
+	var client_2 = require_client();
+	Object.defineProperty(exports, "NeovimClient", {
+		enumerable: true,
+		get: function() {
+			return client_2.NeovimClient;
+		}
+	});
+	var Buffer_1 = require_Buffer();
+	Object.defineProperty(exports, "Buffer", {
+		enumerable: true,
+		get: function() {
+			return Buffer_1.Buffer;
+		}
+	});
+	var Window_1 = require_Window();
+	Object.defineProperty(exports, "Window", {
+		enumerable: true,
+		get: function() {
+			return Window_1.Window;
+		}
+	});
+	var Tabpage_1 = require_Tabpage();
+	Object.defineProperty(exports, "Tabpage", {
+		enumerable: true,
+		get: function() {
+			return Tabpage_1.Tabpage;
+		}
+	});
 }));
 //#endregion
-//#region src/neovim/index.ts
-var init_neovim = __esmMin((() => {
-	init_api();
-	init_attach$1();
+//#region node_modules/@chemzqm/neovim/lib/attach/attach.js
+var require_attach = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.attach = attach;
+	const net_1$1 = require("net");
+	const constants_1 = require_constants();
+	const logger_1 = require_logger();
+	const client_1 = require_client();
+	function attach({ reader: _reader, writer: _writer, proc, socket }, logger = null, requestApi = true) {
+		let writer;
+		let reader;
+		let neovim;
+		if (!logger) logger = logger_1.nullLogger;
+		if (socket) {
+			const client = (0, net_1$1.createConnection)(socket);
+			writer = client;
+			reader = client;
+			client.once("close", () => {
+				neovim.detach();
+			});
+		} else if (_reader && _writer) {
+			writer = _writer;
+			reader = _reader;
+		} else if (proc) {
+			writer = proc.stdin;
+			reader = proc.stdout;
+			proc.once("disconnect", () => {
+				neovim.detach();
+			});
+		}
+		if (writer && reader) {
+			neovim = new client_1.NeovimClient(logger, constants_1.isVim);
+			neovim.attach({
+				writer,
+				reader
+			}, requestApi);
+			writer.on("error", (err) => {
+				if (err.code === "EPIPE") neovim.detach();
+			});
+			return neovim;
+		}
+		throw new Error("Invalid arguments, could not attach");
+	}
+}));
+//#endregion
+//#region node_modules/@chemzqm/neovim/lib/index.js
+var require_lib$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.attach = exports.Window = exports.Tabpage = exports.Neovim = exports.Buffer = void 0;
+	var index_1 = require_api$2();
+	Object.defineProperty(exports, "Buffer", {
+		enumerable: true,
+		get: function() {
+			return index_1.Buffer;
+		}
+	});
+	Object.defineProperty(exports, "Neovim", {
+		enumerable: true,
+		get: function() {
+			return index_1.Neovim;
+		}
+	});
+	Object.defineProperty(exports, "Tabpage", {
+		enumerable: true,
+		get: function() {
+			return index_1.Tabpage;
+		}
+	});
+	Object.defineProperty(exports, "Window", {
+		enumerable: true,
+		get: function() {
+			return index_1.Window;
+		}
+	});
+	var attach_1 = require_attach();
+	Object.defineProperty(exports, "attach", {
+		enumerable: true,
+		get: function() {
+			return attach_1.attach;
+		}
+	});
+}));
+//#endregion
+//#region src/util/errors.ts
+function assert$3(condition) {
+	if (!condition) throw new BugIndicatingError("Assertion Failed");
+}
+/**
+* Checks if the given error is a promise in canceled state
+*/
+function isCancellationError(error) {
+	if (error instanceof CancellationError) return true;
+	return error instanceof Error && error.name === canceledName && error.message === canceledName;
+}
+function shouldIgnore(err) {
+	if (isCancellationError(err)) return true;
+	if (err instanceof Error && err.message === "transport disconnected") return true;
+	return false;
+}
+function onUnexpectedError(e) {
+	if (shouldIgnore(e)) return;
+	if (e.stack) throw new Error(e.message + "\n\n" + e.stack);
+	else throw e;
+}
+function notLoaded(uri) {
+	return /* @__PURE__ */ new Error(`File ${uri} not loaded`);
+}
+function illegalArgument(name) {
+	if (name) return /* @__PURE__ */ new Error(`Illegal argument: ${name}`);
+	else return /* @__PURE__ */ new Error("Illegal argument");
+}
+function directoryNotExists(dir) {
+	return /* @__PURE__ */ new Error(`Directory ${dir} not exists`);
+}
+function fileExists(filepath) {
+	return /* @__PURE__ */ new Error(`File ${filepath} already exists`);
+}
+function fileNotExists(filepath) {
+	return /* @__PURE__ */ new Error(`File ${filepath} not exists`);
+}
+function shouldNotAsync(method) {
+	return /* @__PURE__ */ new Error(`${method} should not be called in an asynchronize manner`);
+}
+function badScheme(uri) {
+	return /* @__PURE__ */ new Error(`Change of ${uri} not supported`);
+}
+var canceledName, CancellationError, BugIndicatingError;
+var init_errors = __esmMin((() => {
+	canceledName = "Canceled";
+	CancellationError = class extends Error {
+		constructor() {
+			super(canceledName);
+			this.name = this.message;
+		}
+	};
+	BugIndicatingError = class BugIndicatingError extends Error {
+		constructor(message) {
+			super(message);
+			Object.setPrototypeOf(this, BugIndicatingError.prototype);
+			debugger;
+		}
+	};
 }));
 //#endregion
 //#region node_modules/vscode-languageserver-types/lib/esm/main.js
@@ -66064,9 +66277,9 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.createMessageConnection = createMessageConnection;
 	const ril_1 = __importDefault(require_ril());
 	ril_1.default.install();
-	const path$3 = __importStar(require("path"));
-	const os$3 = __importStar(require("os"));
-	const fs$3 = __importStar(require("fs"));
+	const path$2 = __importStar(require("path"));
+	const os$2 = __importStar(require("os"));
+	const fs$2 = __importStar(require("fs"));
 	const crypto_1 = require("crypto");
 	const net_1 = require("net");
 	const api_1 = require_api$1();
@@ -66196,12 +66409,12 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (process.platform === "win32") return `\\\\.\\pipe\\lsp-${(0, crypto_1.randomBytes)(16).toString("hex")}-sock`;
 		let randomLength = 32;
 		const fixedLength = 10;
-		const tmpDir = fs$3.realpathSync(XDG_RUNTIME_DIR ?? os$3.tmpdir());
+		const tmpDir = fs$2.realpathSync(XDG_RUNTIME_DIR ?? os$2.tmpdir());
 		const limit = safeIpcPathLengths.get(process.platform);
 		if (limit !== void 0) randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
 		if (randomLength < 16) throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
 		const randomSuffix = (0, crypto_1.randomBytes)(Math.floor(randomLength / 2)).toString("hex");
-		return path$3.join(tmpDir, `lsp-${randomSuffix}.sock`);
+		return path$2.join(tmpDir, `lsp-${randomSuffix}.sock`);
 	}
 	function createClientPipeTransport(pipeName, encoding = "utf-8") {
 		let connectResolve;
@@ -69565,16 +69778,16 @@ var init_string$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/events.ts
-var logger$52, debounceTime$11, Events, events_default;
+var logger$54, debounceTime$11, Events, events_default;
 var init_events = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_errors();
 	init_is();
 	init_object();
 	init_protocol();
 	init_string$1();
-	logger$52 = createLogger$1("events");
+	logger$54 = createLogger("events");
 	debounceTime$11 = getConditionValue(100, 10);
 	Events = class {
 		handlers = /* @__PURE__ */ new Map();
@@ -69591,19 +69804,34 @@ var init_events = __esmMin((() => {
 		_ready = false;
 		_mode = "n";
 		_pumInserted = false;
+		/**
+		* @internal
+		*/
 		timeout = 1e3;
+		/**
+		* @internal
+		*/
 		set requesting(val) {
 			this._requesting = val;
 		}
 		get requesting() {
 			return this._requesting;
 		}
+		/**
+		* @internal
+		*/
 		get ready() {
 			return this._ready;
 		}
+		/**
+		* @internal
+		*/
 		get mode() {
 			return this._mode;
 		}
+		/**
+		* @internal
+		*/
 		get pumInserted() {
 			return this._pumInserted;
 		}
@@ -69623,6 +69851,9 @@ var init_events = __esmMin((() => {
 				clearTimeout(timer);
 			}
 		}
+		/**
+		* @internal
+		*/
 		set completing(completing) {
 			this._completing = completing;
 			this._pumVisible = completing;
@@ -69639,6 +69870,9 @@ var init_events = __esmMin((() => {
 				insert: false
 			};
 		}
+		/**
+		* @internal
+		*/
 		get bufnr() {
 			return this._bufnr;
 		}
@@ -69651,6 +69885,9 @@ var init_events = __esmMin((() => {
 		get insertMode() {
 			return this._insertMode && this._mode.startsWith("i");
 		}
+		/**
+		* @internal
+		*/
 		get lastChangeTs() {
 			return this._lastChange;
 		}
@@ -69683,6 +69920,9 @@ var init_events = __esmMin((() => {
 				});
 			});
 		}
+		/**
+		* @internal
+		*/
 		async fire(event, args) {
 			switch (event) {
 				case "ready":
@@ -69801,12 +70041,12 @@ var init_events = __esmMin((() => {
 					let promiseFn = async () => {
 						let timer;
 						if (traceSlow) timer = setTimeout(() => {
-							logger$52.warn(`Slow "${event}" handler detected`, fn["stack"]);
+							logger$54.warn(`Slow "${event}" handler detected`, fn["stack"]);
 						}, this.timeout);
 						try {
 							await fn(args);
 						} catch (e) {
-							if (!shouldIgnore(e)) logger$52.error(`Error on event: ${event}`, e, fn["stack"]);
+							if (!shouldIgnore(e)) logger$54.error(`Error on event: ${event}`, e, fn["stack"]);
 						}
 						clearTimeout(timer);
 					};
@@ -69853,6 +70093,9 @@ var init_events = __esmMin((() => {
 				return disposable;
 			}
 		}
+		/**
+		* @internal
+		*/
 		once(event, handler, thisArg) {
 			return this.on(event, handler, thisArg, true);
 		}
@@ -69872,10 +70115,10 @@ var init_constants = __esmMin((() => {
 	isVim = process.env.VIM_NODE_RPC == "1";
 	floatHighlightGroup = "CocFloating";
 	CONFIG_FILE_NAME = "coc-settings.json";
-	configHome = defaultValue(process.env.COC_VIMCONFIG, path$5.join(os$5.homedir(), ".vim"));
-	dataHome = defaultValue(process.env.COC_DATA_HOME, path$5.join(os$5.homedir(), ".config/coc"));
-	userConfigFile = path$5.join(path$5.normalize(configHome), CONFIG_FILE_NAME);
-	pluginRoot = __filename.endsWith("index.js") ? path$5.dirname(__dirname) : path$5.resolve(__dirname, "../..");
+	configHome = defaultValue(process.env.COC_VIMCONFIG, path$3.join(os$3.homedir(), ".vim"));
+	dataHome = defaultValue(process.env.COC_DATA_HOME, path$3.join(os$3.homedir(), ".config/coc"));
+	userConfigFile = path$3.join(path$3.normalize(configHome), CONFIG_FILE_NAME);
+	pluginRoot = __filename.endsWith("index.js") ? path$3.dirname(__dirname) : path$3.resolve(__dirname, "../..");
 }));
 //#endregion
 //#region node_modules/jsonc-parser/lib/esm/impl/scanner.js
@@ -71539,60 +71782,67 @@ var init_platform = __esmMin((() => {
 }));
 //#endregion
 //#region src/util/fs.ts
-function watchFile(filepath, onChange, immediate = false) {
+function watchFile(filepath, onChange, immediate = false, onError) {
 	let callback = debounce(onChange, 100);
+	let watcher;
 	try {
-		let watcher = fs$5.watch(filepath, {
+		let dir = path$3.dirname(filepath);
+		let basename = path$3.basename(filepath);
+		watcher = fs$3.watch(dir, {
 			persistent: true,
 			recursive: false,
 			encoding: "utf8"
-		}, () => {
-			callback();
+		}, (_eventType, filename) => {
+			if (filename === void 0 || filename === basename) callback();
+		});
+		watcher.on("error", (err) => {
+			logger$53.error(`Error on watching ${filepath}`, err);
+			watcher?.close();
+			if (onError) onError(err);
 		});
 		if (immediate) setTimeout(onChange, 10);
-		return import_main$1.Disposable.create(() => {
-			callback.clear();
-			watcher.close();
-		});
 	} catch (e) {
-		return import_main$1.Disposable.create(() => {
-			callback.clear();
-		});
+		logger$53.error(`Error on watching ${filepath}`, e);
+		if (onError) onError(e instanceof Error ? e : new Error(String(e)));
 	}
+	return import_main$1.Disposable.create(() => {
+		callback.clear();
+		watcher?.close();
+	});
 }
 function loadJson$1(filepath) {
 	try {
 		let errors = [];
-		let data = parse(fs$5.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
-		if (errors.length > 0) logger$51.error(`Error on parse json file ${filepath}`, errors);
+		let data = parse(fs$3.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
+		if (errors.length > 0) logger$53.error(`Error on parse json file ${filepath}`, errors);
 		return data ?? {};
 	} catch (e) {
 		return {};
 	}
 }
 function writeJson(filepath, obj) {
-	let dir = path$5.dirname(filepath);
-	if (!fs$5.existsSync(dir)) {
-		fs$5.mkdirSync(dir, { recursive: true });
-		logger$51.info(`Creating directory ${dir}`);
+	let dir = path$3.dirname(filepath);
+	if (!fs$3.existsSync(dir)) {
+		fs$3.mkdirSync(dir, { recursive: true });
+		logger$53.info(`Creating directory ${dir}`);
 	}
-	fs$5.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
+	fs$3.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
 }
 async function statAsync(filepath) {
 	let stat = null;
 	try {
-		stat = await fs$5.promises.stat(filepath);
+		stat = await fs$3.promises.stat(filepath);
 	} catch (e) {}
 	return stat;
 }
 function isDirectory(filepath) {
-	if (!filepath || !path$5.isAbsolute(filepath) || !fs$5.existsSync(filepath)) return false;
-	return fs$5.statSync(filepath).isDirectory();
+	if (!filepath || !path$3.isAbsolute(filepath) || !fs$3.existsSync(filepath)) return false;
+	return fs$3.statSync(filepath).isDirectory();
 }
 async function remove(filepath) {
 	if (!filepath) return;
 	try {
-		await fs$5.promises.rm(filepath, {
+		await fs$3.promises.rm(filepath, {
 			force: true,
 			recursive: true
 		});
@@ -71602,7 +71852,7 @@ async function remove(filepath) {
 }
 async function getFileType(filepath) {
 	try {
-		const stat = await fs$5.promises.lstat(filepath);
+		const stat = await fs$3.promises.lstat(filepath);
 		if (stat.isFile()) return 1;
 		if (stat.isDirectory()) return 2;
 		if (stat.isSymbolicLink()) return 64;
@@ -71617,13 +71867,17 @@ async function isGitIgnored(fullpath) {
 	if (!stat || !stat.isFile()) return false;
 	let root = null;
 	try {
-		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$5.dirname(fullpath) });
+		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$3.dirname(fullpath) });
 		root = stdout.trim();
 	} catch (e) {}
 	if (!root) return false;
-	let file = path$5.relative(root, fullpath);
+	let file = path$3.relative(root, fullpath);
 	try {
-		let { stdout } = await (0, util.promisify)(exec$1)(`git check-ignore ${file}`, { cwd: root });
+		let { stdout } = await (0, util.promisify)(execFile)("git", [
+			"check-ignore",
+			"--",
+			file
+		], { cwd: root });
 		return stdout.trim() == file;
 	} catch (e) {}
 	return false;
@@ -71635,10 +71889,10 @@ function isFolderIgnored(folder, ignored) {
 function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignored = []) {
 	let dir = normalizeFilePath(folder);
 	if (checkCwd && cwd && isParentFolder(cwd, dir, true) && !isFolderIgnored(cwd, ignored) && inDirectory(cwd, subs)) return cwd;
-	let parts = dir.split(path$5.sep);
+	let parts = dir.split(path$3.sep);
 	if (bottomup) {
 		while (parts.length > 0) {
-			let dir = parts.join(path$5.sep);
+			let dir = parts.join(path$3.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 			parts.pop();
 		}
@@ -71647,7 +71901,7 @@ function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignor
 		let curr = [parts.shift()];
 		for (let part of parts) {
 			curr.push(part);
-			let dir = curr.join(path$5.sep);
+			let dir = curr.join(path$3.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 		}
 		return null;
@@ -71678,14 +71932,14 @@ function checkFolder(dir, patterns, token) {
 				break;
 			}
 		} catch (e) {
-			logger$51.error(`Error on glob "${pattern}"`, dir, e);
+			logger$53.error(`Error on glob "${pattern}"`, dir, e);
 		}
 		resolve(find);
 	});
 }
 function inDirectory(dir, subs) {
 	try {
-		let files = fs$5.readdirSync(dir);
+		let files = fs$3.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*") ? minimatch.match(files, pattern, {
 			nobrace: true,
 			noext: true,
@@ -71701,7 +71955,7 @@ function inDirectory(dir, subs) {
 */
 function findMatch(dir, subs) {
 	try {
-		let files = fs$5.readdirSync(dir);
+		let files = fs$3.readdirSync(dir);
 		for (let pattern of subs) if (pattern.includes("*")) {
 			let filtered = files.filter(minimatch.filter(pattern, {
 				nobrace: true,
@@ -71718,18 +71972,18 @@ function findMatch(dir, subs) {
 	} catch (e) {}
 }
 function findUp$1(name, cwd) {
-	let root = path$5.parse(cwd).root;
+	let root = path$3.parse(cwd).root;
 	let subs = toArray(name);
 	while (cwd && cwd !== root) {
 		let find = findMatch(cwd, subs);
-		if (find) return path$5.join(cwd, find);
-		cwd = path$5.dirname(cwd);
+		if (find) return path$3.join(cwd, find);
+		cwd = path$3.dirname(cwd);
 	}
 	return null;
 }
 function readFile(fullpath, encoding) {
 	return new Promise((resolve, reject) => {
-		fs$5.readFile(fullpath, encoding, (err, content) => {
+		fs$3.readFile(fullpath, encoding, (err, content) => {
 			if (err) reject(err);
 			resolve(content);
 		});
@@ -71739,15 +71993,15 @@ function getFileLineCount(filepath) {
 	let i;
 	let count = 0;
 	return new Promise((resolve, reject) => {
-		fs$5.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
+		fs$3.createReadStream(filepath).on("error", (e) => reject(e)).on("data", (chunk) => {
 			for (i = 0; i < chunk.length; ++i) if (chunk[i] == 10) count++;
 		}).on("end", () => resolve(count));
 	});
 }
 function readFileLines(fullpath, start, end) {
-	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	if (!fs$3.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
 	let res = [];
-	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
+	const input = fs$3.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -71768,8 +72022,8 @@ function readFileLines(fullpath, start, end) {
 	});
 }
 function readFileLine(fullpath, count) {
-	if (!fs$5.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
-	const input = fs$5.createReadStream(fullpath, { encoding: "utf8" });
+	if (!fs$3.existsSync(fullpath)) return Promise.reject(/* @__PURE__ */ new Error(`file does not exist: ${fullpath}`));
+	const input = fs$3.createReadStream(fullpath, { encoding: "utf8" });
 	const rl = readline.createInterface({
 		input,
 		crlfDelay: Infinity,
@@ -71794,8 +72048,8 @@ function readFileLine(fullpath, count) {
 }
 async function lineToLocation(fsPath, match, text) {
 	let uri = URI.file(fsPath).toString();
-	if (!fs$5.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
-	const rl = readline.createInterface({ input: fs$5.createReadStream(fsPath, { encoding: "utf8" }) });
+	if (!fs$3.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0));
+	const rl = readline.createInterface({ input: fs$3.createReadStream(fsPath, { encoding: "utf8" }) });
 	let n = 0;
 	let line = await new Promise((resolve) => {
 		let find = false;
@@ -71834,26 +72088,26 @@ function fileStartsWith(dir, pdir, caseInsensitive = isWindows || isMacintosh) {
 	return dir.startsWith(pdir);
 }
 async function writeFile(fullpath, content) {
-	await fs$5.promises.writeFile(fullpath, content, { encoding: "utf8" });
+	await fs$3.promises.writeFile(fullpath, content, { encoding: "utf8" });
 }
 function isFile(uri) {
 	return uri.startsWith("file:");
 }
 function normalizeFilePath(filepath) {
-	return URI.file(path$5.resolve(path$5.normalize(filepath))).fsPath;
+	return URI.file(path$3.resolve(path$3.normalize(filepath))).fsPath;
 }
 function isParentFolder(folder, filepath, checkEqual = false) {
 	let pdir = normalizeFilePath(folder);
 	let dir = normalizeFilePath(filepath);
 	if (sameFile(pdir, dir)) return checkEqual ? true : false;
-	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$5.sep;
+	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$3.sep;
 }
-var logger$51, exec$1, FileType;
+var logger$53, exec$1, execFile, FileType;
 var init_fs = __esmMin((() => {
 	init_main$1();
 	init_main$2();
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_node();
 	init_protocol();
 	init_array();
@@ -71861,8 +72115,9 @@ var init_fs = __esmMin((() => {
 	init_object();
 	init_platform();
 	init_string$1();
-	logger$51 = createLogger$1("util-fs");
+	logger$53 = createLogger("util-fs");
 	exec$1 = child_process$1.exec;
+	execFile = child_process$1.execFile;
 	FileType = /* @__PURE__ */ function(FileType) {
 		/**
 		* The file type is unknown.
@@ -71900,9 +72155,9 @@ var init_mru = __esmMin((() => {
 		*/
 		constructor(name, base, maximum = 5e3) {
 			this.maximum = maximum;
-			this.file = path$5.join(base || dataHome, name);
-			let dir = path$5.dirname(this.file);
-			fs$5.mkdirSync(dir, { recursive: true });
+			this.file = path$3.join(base || dataHome, name);
+			let dir = path$3.dirname(this.file);
+			fs$3.mkdirSync(dir, { recursive: true });
 		}
 		/**
 		* Load lines from mru file
@@ -71920,9 +72175,12 @@ var init_mru = __esmMin((() => {
 				return [];
 			}
 		}
+		/**
+		* @internal
+		*/
 		loadSync() {
 			try {
-				let content = fs$5.readFileSync(this.file, "utf8");
+				let content = fs$3.readFileSync(this.file, "utf8");
 				content = content.trim();
 				return content.length ? content.trim().split("\n") : [];
 			} catch (e) {
@@ -71935,7 +72193,7 @@ var init_mru = __esmMin((() => {
 		async add(item) {
 			let buf;
 			try {
-				buf = fs$5.readFileSync(this.file);
+				buf = fs$3.readFileSync(this.file);
 				if (buf[0] === 239 && buf[1] === 187 && buf[2] === 191) buf = buf.slice(3);
 				buf = Buffer.concat([
 					Buffer.from(item, "utf8"),
@@ -71945,7 +72203,7 @@ var init_mru = __esmMin((() => {
 			} catch (e) {
 				buf = Buffer.concat([Buffer.from(item, "utf8"), new Uint8Array([10])]);
 			}
-			await fs$5.promises.writeFile(this.file, buf);
+			await fs$3.promises.writeFile(this.file, buf);
 		}
 		/**
 		* Remove item from mru file.
@@ -71961,7 +72219,7 @@ var init_mru = __esmMin((() => {
 		*/
 		async clean() {
 			try {
-				await fs$5.promises.unlink(this.file);
+				await fs$3.promises.unlink(this.file);
 			} catch (e) {}
 		}
 	};
@@ -72087,7 +72345,7 @@ var init_extensionRegistry = __esmMin((() => {
 		resolveExtension(filepath) {
 			for (let item of this.extensionsById.values()) {
 				if (item.filepath && sameFile(item.filepath, filepath)) return item;
-				if (!item.name.startsWith("single-") && fs$5.existsSync(item.directory) && isParentFolder(fs$5.realpathSync(item.directory), filepath, false)) return item;
+				if (!item.name.startsWith("single-") && fs$3.existsSync(item.directory) && isParentFolder(fs$3.realpathSync(item.directory), filepath, false)) return item;
 			}
 		}
 		get onCommands() {
@@ -72136,17 +72394,17 @@ var init_extensionRegistry = __esmMin((() => {
 }));
 //#endregion
 //#region src/commands.ts
-var logger$50, CommandItem, extensionRegistry$3, CommandManager, commands_default;
+var logger$52, CommandItem, extensionRegistry$3, CommandManager, commands_default;
 var init_commands$2 = __esmMin((() => {
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_mru();
 	init_array();
 	init_extensionRegistry();
 	init_protocol();
 	init_registry$1();
 	init_string$1();
-	logger$50 = createLogger$1("commands");
+	logger$52 = createLogger("commands");
 	CommandItem = class {
 		id;
 		impl;
@@ -72170,8 +72428,14 @@ var init_commands$2 = __esmMin((() => {
 	extensionRegistry$3 = Registry.as(Extensions$3.ExtensionContribution);
 	CommandManager = class {
 		commands = /* @__PURE__ */ new Map();
+		/**
+		* @internal
+		*/
 		titles = /* @__PURE__ */ new Map();
 		mru = new Mru("commands");
+		/**
+		* @internal
+		*/
 		nvim;
 		get commandList() {
 			let res = [];
@@ -72185,6 +72449,9 @@ var init_commands$2 = __esmMin((() => {
 			}
 			return res;
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			for (const registration of this.commands.values()) registration.dispose();
 			this.commands.clear();
@@ -72192,6 +72459,9 @@ var init_commands$2 = __esmMin((() => {
 		execute(command) {
 			return this.executeCommand(command.command, ...command.arguments ?? []);
 		}
+		/**
+		* @internal
+		*/
 		register(command, internal, description) {
 			for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
 				this.registerCommand(id, command.execute, command, internal);
@@ -72202,6 +72472,9 @@ var init_commands$2 = __esmMin((() => {
 		has(id) {
 			return this.commands.has(id);
 		}
+		/**
+		* @internal
+		*/
 		unregister(id) {
 			let item = this.commands.get(id);
 			if (!item) return;
@@ -72221,7 +72494,7 @@ var init_commands$2 = __esmMin((() => {
 		*/
 		registerCommand(id, impl, thisArg, internal = false) {
 			if (id.startsWith("_")) internal = true;
-			if (this.commands.has(id)) logger$50.warn(`Command ${id} already registered`);
+			if (this.commands.has(id)) logger$52.warn(`Command ${id} already registered`);
 			this.commands.set(id, new CommandItem(id, impl, thisArg, internal));
 			return import_main$1.Disposable.create(() => {
 				this.commands.delete(id);
@@ -72246,6 +72519,7 @@ var init_commands$2 = __esmMin((() => {
 			return Promise.resolve(cmd.execute.apply(cmd, rest));
 		}
 		/**
+		* @internal
 		* Used for user invoked command.
 		*/
 		async fireCommand(id, ...args) {
@@ -72255,10 +72529,16 @@ var init_commands$2 = __esmMin((() => {
 			if (args.length == 0) await this.addRecent(id, events_default.lastChangeTs > start);
 			return res;
 		}
+		/**
+		* @internal
+		*/
 		async addRecent(cmd, repeat) {
 			await this.mru.add(cmd);
 			if (repeat) this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`, true);
 		}
+		/**
+		* @internal
+		*/
 		async repeatCommand() {
 			let first = (await this.mru.load())[0];
 			if (first) {
@@ -72288,19 +72568,22 @@ var init_numbers = __esmMin((() => {
 function escapeQuote(input) {
 	return input.replace(/'/g, "''");
 }
-var BufferChannel;
+var MAX_LINE_COUNT, BufferChannel;
 var init_outputChannel = __esmMin((() => {
+	MAX_LINE_COUNT = 1e4;
 	BufferChannel = class {
 		name;
 		nvim;
 		onDispose;
+		maxLineCount;
 		lines = [""];
 		_disposed = false;
 		created = false;
-		constructor(name, nvim, onDispose) {
+		constructor(name, nvim, onDispose, maxLineCount = MAX_LINE_COUNT) {
 			this.name = name;
 			this.nvim = nvim;
 			this.onDispose = onDispose;
+			this.maxLineCount = maxLineCount;
 		}
 		get content() {
 			return this.lines.join("\n");
@@ -72314,18 +72597,45 @@ var init_outputChannel = __esmMin((() => {
 			this.lines[idx] = lastline;
 			let append = newlines.slice(1);
 			this.lines = this.lines.concat(append);
+			let removed = 0;
+			let rewrite = false;
+			if (this.maxLineCount > 0 && this.lines.length > this.maxLineCount) {
+				removed = this.lines.length - this.maxLineCount;
+				this.lines.splice(0, removed);
+				let lastIdx = this.lines.length - append.length - 1;
+				if (lastIdx < 0) rewrite = true;
+				else lastline = this.lines[lastIdx];
+			}
 			if (!this.created) return;
 			nvim.pauseNotification();
-			nvim.call("setbufline", [
-				this.bufname,
-				"$",
-				lastline
-			], true);
-			if (append.length) nvim.call("appendbufline", [
-				this.bufname,
-				"$",
-				append
-			], true);
+			if (rewrite) {
+				nvim.call("deletebufline", [
+					this.bufname,
+					1,
+					"$"
+				], true);
+				nvim.call("appendbufline", [
+					this.bufname,
+					"$",
+					this.lines
+				], true);
+			} else {
+				if (removed > 0) nvim.call("deletebufline", [
+					this.bufname,
+					1,
+					removed
+				], true);
+				nvim.call("setbufline", [
+					this.bufname,
+					"$",
+					lastline
+				], true);
+				if (append.length) nvim.call("appendbufline", [
+					this.bufname,
+					"$",
+					append
+				], true);
+			}
 			nvim.resumeNotification(false, true);
 		}
 		append(value) {
@@ -72762,8 +73072,11 @@ function isMenuItem(item) {
 	if (!item) return false;
 	return typeof item.text === "string";
 }
-function toIndexText(n) {
-	return n < 99 ? `${n + 1}. ` : "  ";
+function toIndexText(n, length = 0) {
+	if (length <= n) length = n + 1;
+	let shownum = n < 99 ? `${n + 1}. ` : "";
+	let numwidth = Math.min(length, 99).toString().length + 2;
+	return " ".repeat(Math.max(0, numwidth - shownum.length)) + shownum;
 }
 var Menu;
 var init_menu = __esmMin((() => {
@@ -72935,7 +73248,7 @@ var init_menu = __esmMin((() => {
 			let highlights = [];
 			let lines = items.map((v, i) => {
 				let text = isMenuItem(v) ? v.text : v;
-				let pre = toIndexText(i);
+				let pre = toIndexText(i, items.length);
 				if (shortcutIndexes.has(i)) highlights.push({
 					lnum: i,
 					hlGroup: preferences.shortcutHighlight || "MoreMsg",
@@ -73235,6 +73548,9 @@ function isUpperCaseAtPos(pos, word, wordLow) {
 function fuzzyScoreGracefulAggressive(pattern, lowPattern, patternPos, word, lowWord, wordPos, options) {
 	return fuzzyScoreWithPermutations(pattern, lowPattern, patternPos, word, lowWord, wordPos, true, options);
 }
+function fuzzyScoreGraceful(pattern, lowPattern, patternPos, word, lowWord, wordPos, options) {
+	return fuzzyScoreWithPermutations(pattern, lowPattern, patternPos, word, lowWord, wordPos, false, options);
+}
 function fuzzyScoreWithPermutations(pattern, lowPattern, patternPos, word, lowWord, wordPos, aggressive, options) {
 	let top = fuzzyScore(pattern, lowPattern, patternPos, word, lowWord, wordPos, options);
 	if (top && !aggressive) return top;
@@ -73430,7 +73746,7 @@ var init_filter$1 = __esmMin((() => {
 //#endregion
 //#region src/model/fuzzyMatch.ts
 async function initFuzzyWasm() {
-	const buffer = await fs$5.promises.readFile(wasmFile);
+	const buffer = await fs$3.promises.readFile(wasmFile);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 /**
@@ -73505,13 +73821,15 @@ var init_fuzzyMatch = __esmMin((() => {
 	init_filter$1();
 	init_node();
 	init_string$1();
-	wasmFile = path$5.join(pluginRoot, "bin/fuzzy.wasm");
+	wasmFile = path$3.join(pluginRoot, "bin/fuzzy.wasm");
 	FuzzyMatch = class {
 		exports;
 		contentPtr;
 		patternPtr;
 		resultPtr;
 		patternLength = 0;
+		pattern = "";
+		patternSet = false;
 		matchSeq = false;
 		sizes = [
 			2048,
@@ -73552,7 +73870,10 @@ var init_fuzzyMatch = __esmMin((() => {
 		setPattern(pattern, matchSeq = false) {
 			if (pattern.length > 256) pattern = pattern.slice(0, 256);
 			this.matchSeq = matchSeq;
+			this.pattern = pattern;
 			this.patternLength = matchSeq ? pattern.length : pattern.replace(/(\s|\t)/g, "").length;
+			this.patternSet = true;
+			if (!this.exports) return;
 			if (this.patternPtr == null) {
 				let { malloc } = this.exports;
 				let { sizes } = this;
@@ -73583,11 +73904,22 @@ var init_fuzzyMatch = __esmMin((() => {
 			bytes[len] = 0;
 		}
 		match(text) {
-			if (this.patternPtr == null) throw new Error("setPattern not called before match");
+			if (!this.patternSet) throw new Error("setPattern not called before match");
 			if (this.patternLength === 0) return {
 				score: 100,
 				positions: /* @__PURE__ */ new Uint32Array()
 			};
+			if (!this.exports) {
+				let { pattern } = this;
+				let score = fuzzyScore(pattern, pattern.toLowerCase(), 0, text, text.toLowerCase(), 0);
+				if (!score) return void 0;
+				let positions = score.slice(2).reverse();
+				return {
+					score: score[0],
+					positions: Uint32Array.from(positions)
+				};
+			}
+			if (this.patternPtr == null) throw new Error("setPattern not called before match");
 			this.changeContent(text);
 			let { fuzzyMatch, memory } = this.exports;
 			let { resultPtr } = this;
@@ -73612,6 +73944,7 @@ var init_fuzzyMatch = __esmMin((() => {
 			};
 		}
 		free() {
+			if (!this.exports) return;
 			let ptrs = [
 				this.contentPtr,
 				this.patternPtr,
@@ -73628,14 +73961,14 @@ var init_fuzzyMatch = __esmMin((() => {
 //#endregion
 //#region src/model/strwidth.ts
 async function initStrWidthWasm() {
-	const buffer = await fs$5.promises.readFile(wasmPath);
+	const buffer = await fs$3.promises.readFile(wasmPath);
 	return (await global.WebAssembly.instantiate(buffer, { env: {} })).instance.exports;
 }
 var wasmPath, instance, StrWidth;
 var init_strwidth = __esmMin((() => {
 	init_constants();
 	init_node();
-	wasmPath = path$5.join(pluginRoot, "bin/strwidth.wasm");
+	wasmPath = path$3.join(pluginRoot, "bin/strwidth.wasm");
 	StrWidth = class StrWidth {
 		exports;
 		contentPtr;
@@ -73677,7 +74010,7 @@ var init_strwidth = __esmMin((() => {
 var QuickPick;
 var init_quickpick = __esmMin((() => {
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_filter$1();
@@ -73687,7 +74020,7 @@ var init_quickpick = __esmMin((() => {
 	init_input();
 	init_popup();
 	init_strwidth();
-	createLogger$1("quickpick");
+	createLogger("quickpick");
 	QuickPick = class {
 		nvim;
 		preferences;
@@ -82798,7 +83131,7 @@ function runCommand(cmd, opts = {}, timeout, isWindows = platform === 3) {
 	if (!isWindows) opts.shell = opts.shell || process.env.SHELL;
 	opts.maxBuffer = opts.maxBuffer ?? 500 * 1024;
 	let encoding = opts.encoding || "utf8";
-	encoding = import_lib.default.encodingExists(encoding) ? encoding : "utf8";
+	encoding = import_lib$1.default.encodingExists(encoding) ? encoding : "utf8";
 	return new Promise((resolve, reject) => {
 		let disposable;
 		let cp;
@@ -82823,7 +83156,7 @@ function runCommand(cmd, opts = {}, timeout, isWindows = platform === 3) {
 				reject(/* @__PURE__ */ new Error(`exited with ${err.code}\n${err}\n${stderr.toString("utf8")}`));
 				return;
 			}
-			resolve(import_lib.default.decode(stdout, encoding));
+			resolve(import_lib$1.default.decode(stdout, encoding));
 		});
 	});
 }
@@ -82847,7 +83180,7 @@ function terminate(process, cwd, pt = platform) {
 		return false;
 	}
 	else if (pt === 2 || pt === 1) try {
-		let filepath = path$5.join(pluginRoot, "bin/terminateProcess.sh");
+		let filepath = path$3.join(pluginRoot, "bin/terminateProcess.sh");
 		return child_process$1.spawnSync(filepath, [process.pid.toString()]).error ? false : true;
 	} catch (err) {
 		return false;
@@ -82857,13 +83190,13 @@ function terminate(process, cwd, pt = platform) {
 		return true;
 	}
 }
-var import_lib;
+var import_lib$1;
 var init_processes = __esmMin((() => {
 	init_constants();
 	init_errors();
 	init_node();
 	init_platform();
-	import_lib = /* @__PURE__ */ __toESM(require_lib$1());
+	import_lib$1 = /* @__PURE__ */ __toESM(require_lib$1());
 	init_protocol();
 	init_lodash();
 }));
@@ -82889,8 +83222,8 @@ var init_resolver = __esmMin((() => {
 			if (!executable("yarnpkg")) return Promise.resolve("");
 			if (this._yarnFolder) return Promise.resolve(this._yarnFolder);
 			return runCommand("yarnpkg global dir", {}, 3e3).then((root) => {
-				let folder = path$5.join(stripAnsi(root).trim(), "node_modules");
-				let exists = fs$5.existsSync(folder);
+				let folder = path$3.join(stripAnsi(root).trim(), "node_modules");
+				let exists = fs$3.existsSync(folder);
 				if (exists) this._yarnFolder = folder;
 				return exists ? folder : "";
 			});
@@ -82899,12 +83232,12 @@ var init_resolver = __esmMin((() => {
 			let nodeFolder = await this.nodeFolder;
 			let yarnFolder = await this.yarnFolder;
 			if (yarnFolder) {
-				let s = await statAsync(path$5.join(yarnFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$5.join(yarnFolder, mod);
+				let s = await statAsync(path$3.join(yarnFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$3.join(yarnFolder, mod);
 			}
 			if (nodeFolder) {
-				let s = await statAsync(path$5.join(nodeFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$5.join(nodeFolder, mod);
+				let s = await statAsync(path$3.join(nodeFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$3.join(nodeFolder, mod);
 			}
 			return null;
 		}
@@ -82959,12 +83292,12 @@ function getWatchmanPath(configurations) {
 }
 async function findUp(nvim, cwd, filename) {
 	let filepath = await nvim.call("coc#util#get_fullpath");
-	filepath = path$5.normalize(filepath);
-	let isFile = filepath && path$5.isAbsolute(filepath);
-	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$5.dirname(filepath));
+	filepath = path$3.normalize(filepath);
+	let isFile = filepath && path$3.isAbsolute(filepath);
+	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$3.dirname(filepath));
 	let res = findUp$1(filename, cwd);
-	if (res && res != os$5.homedir()) return res;
-	if (isFile) return findUp$1(filename, path$5.dirname(filepath));
+	if (res && res != os$3.homedir()) return res;
+	if (isFile) return findUp$1(filename, path$3.dirname(filepath));
 	return null;
 }
 function resolveModule(name) {
@@ -86321,7 +86654,7 @@ var init_floatFactory = __esmMin((() => {
 		nvim;
 		winid = 0;
 		_bufnr = 0;
-		closeTs;
+		closeToken = 0;
 		targetBufnr;
 		mutex = new Mutex();
 		disposables = [];
@@ -86349,12 +86682,18 @@ var init_floatFactory = __esmMin((() => {
 			events_default.on("CursorMoved", this.onCursorMoved.bind(this, autoHide), this, this.disposables);
 			events_default.on("CursorMovedI", this.onCursorMoved.bind(this, autoHide), this, this.disposables);
 		}
+		/**
+		* @internal
+		*/
 		unbind() {
 			if (this.disposables.length) {
 				disposeAll(this.disposables);
 				this.disposables = [];
 			}
 		}
+		/**
+		* @internal
+		*/
 		_onCursorMoved(autoHide, bufnr, cursor) {
 			if (bufnr == this._bufnr) return;
 			if (bufnr == this.targetBufnr && equals(cursor, this.cursor)) return;
@@ -86364,6 +86703,7 @@ var init_floatFactory = __esmMin((() => {
 			}
 		}
 		/**
+		* @internal
 		* Create float window/popup at cursor position.
 		* @deprecated use show method instead
 		*/
@@ -86382,17 +86722,17 @@ var init_floatFactory = __esmMin((() => {
 				this.close();
 				return;
 			}
-			let curr = Date.now();
+			let token = this.closeToken;
 			let release = await this.mutex.acquire();
 			try {
-				await this.createPopup(docs, config, curr);
+				await this.createPopup(docs, config, token);
 				release();
 			} catch (e) {
 				this.nvim.echoError(e);
 				release();
 			}
 		}
-		async createPopup(docs, opts, timestamp) {
+		async createPopup(docs, opts, token) {
 			docs = docs.filter((o) => o.content.trim().length > 0);
 			let { lines, codes, highlights } = parseDocuments(docs, {
 				excludeImages: opts.excludeImages,
@@ -86450,10 +86790,12 @@ var init_floatFactory = __esmMin((() => {
 				lines,
 				config
 			]);
-			if (isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
+			if (isFalsyOrEmpty(arr) || this.closeToken > token) {
 				let winid = arr && arr.length > 0 ? arr[2] : this.winid;
 				if (winid) {
 					this.winid = 0;
+					this._bufnr = 0;
+					this.targetBufnr = 0;
 					this.nvim.call("coc#float#close", [winid], true);
 					this.nvim.redrawVim();
 				}
@@ -86471,7 +86813,9 @@ var init_floatFactory = __esmMin((() => {
 		*/
 		close() {
 			let { winid, nvim } = this;
-			this.closeTs = Date.now();
+			this.closeToken++;
+			this._bufnr = 0;
+			this.targetBufnr = 0;
 			this.unbind();
 			if (winid) {
 				this.winid = 0;
@@ -86479,16 +86823,28 @@ var init_floatFactory = __esmMin((() => {
 				nvim.redrawVim();
 			}
 		}
+		/**
+		* @internal
+		*/
 		checkRetrigger(bufnr) {
 			if (this.winid && this.targetBufnr == bufnr) return true;
 			return false;
 		}
+		/**
+		* @internal
+		*/
 		get bufnr() {
 			return this._bufnr;
 		}
+		/**
+		* @internal
+		*/
 		get buffer() {
 			return this.bufnr ? this.nvim.createBuffer(this.bufnr) : null;
 		}
+		/**
+		* @internal
+		*/
 		get window() {
 			return this.winid ? this.nvim.createWindow(this.winid) : null;
 		}
@@ -87118,13 +87474,13 @@ function formatMessage(title, message, total) {
 	if (total) parts.push(total + "%");
 	return parts.join(" ");
 }
-var logger$49, ProgressNotification;
+var logger$51, ProgressNotification;
 var init_progress$1 = __esmMin((() => {
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_protocol();
 	init_notification();
-	logger$49 = createLogger$1("model-progress");
+	logger$51 = createLogger("model-progress");
 	ProgressNotification = class extends Notification {
 		option;
 		tokenSource;
@@ -87149,7 +87505,7 @@ var init_progress$1 = __esmMin((() => {
 			this.disposables.push(tokenSource);
 			let total = 0;
 			if (!preferences.disabled) await super.show(preferences);
-			else logger$49.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
+			else logger$51.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
 			task({ report: (p) => {
 				if (!this.winid) return;
 				let { nvim } = this;
@@ -87195,6 +87551,7 @@ var init_notifications$1 = __esmMin((() => {
 		nvim;
 		configuration;
 		statusLine;
+		historyLimit = 100;
 		_history = [];
 		constructor(dialogs) {
 			this.dialogs = dialogs;
@@ -87209,6 +87566,7 @@ var init_notifications$1 = __esmMin((() => {
 				kind,
 				message
 			});
+			if (this._history.length > this.historyLimit) this._history.splice(0, this._history.length - this.historyLimit);
 			let msgDialogKind = this.messageDialogKind;
 			if (this.enableMessageDialog === true) msgDialogKind = "notification";
 			if (items.length > 0) switch (msgDialogKind) {
@@ -87267,12 +87625,14 @@ var init_notifications$1 = __esmMin((() => {
 		}
 		async showMenuPicker(title, content, hlGroup, items) {
 			let texts = items.map((o) => typeof o === "string" ? o : o.title);
-			return items[await this.dialogs.showMenuPicker(texts, {
+			let res = await this.dialogs.showMenuPicker(texts, {
 				position: "center",
 				content,
-				title: title.replace(/\r?\n/, " "),
+				title: title.replace(/\r?\n/g, " "),
 				borderhighlight: hlGroup
-			})];
+			});
+			if (res < 0) return void 0;
+			return items[res];
 		}
 		async showNotification(config, stack) {
 			await new Notification(this.nvim, config).show(this.getNotificationPreference(stack));
@@ -87319,7 +87679,7 @@ var init_notifications$1 = __esmMin((() => {
 			return this.configuration.get("coc.preferences.messageReportKind", "echo");
 		}
 		getNotificationPreference(source, isProgress = false) {
-			if (!source) source = parseExtensionName(Error().stack);
+			if (!source && true) source = parseExtensionName(Error().stack);
 			let config = this.configuration.get("notification");
 			let disabled = false;
 			if (isProgress) {
@@ -87515,33 +87875,33 @@ var definitions = {
 			"close": {
 				"type": "boolean",
 				"default": false,
-				"description": "Set to true to draw close icon"
+				"description": "Set to true to draw a close icon."
 			},
 			"maxWidth": {
 				"type": "integer",
-				"description": "Maximum width of float window, include border."
+				"description": "Maximum width of the float window, including the border."
 			},
 			"maxHeight": {
 				"type": "integer",
 				"minimum": 2,
-				"description": "Maximum height of float window, include border."
+				"description": "Maximum height of the float window, including the border."
 			},
 			"focusable": {
 				"type": "boolean",
 				"default": true,
-				"description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+				"description": "Enable focusing by user actions (wincmds, mouse events); Neovim only."
 			},
 			"shadow": {
 				"type": "boolean",
 				"default": false,
-				"description": "Drop shadow effect by blending with the background, neovim only."
+				"description": "Enable a drop shadow by blending with the background; Neovim only."
 			},
 			"winblend": {
 				"type": "integer",
 				"default": 0,
 				"minimum": 0,
 				"maximum": 100,
-				"description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+				"description": "Enable pseudo-transparency by setting the 'winblend' option of the window; Neovim only."
 			},
 			"position": {
 				"type": "string",
@@ -87551,7 +87911,7 @@ var definitions = {
 			},
 			"top": {
 				"type": "number",
-				"description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `bottom` is set."
+				"description": "Distance from the top of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. and is ignored if `bottom` is set."
 			},
 			"bottom": {
 				"type": "number",
@@ -87559,7 +87919,7 @@ var definitions = {
 			},
 			"left": {
 				"type": "number",
-				"description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. Will be ignored if `right` is set."
+				"description": "Distance from the left edge of the editor window in characters. Only takes effect when `position` is set to `'fixed'`. and is ignored if `right` is set."
 			},
 			"right": {
 				"type": "number",
@@ -87569,35 +87929,35 @@ var definitions = {
 	},
 	"languageserver.enable": {
 		"type": "boolean",
-		"description": "Enable the languageserver, restart coc.nvim required after change.",
+		"description": "Enable the language server. A coc.nvim restart is required after changing this.",
 		"default": true
 	},
 	"languageserver.filetypes": {
 		"type": "array",
 		"default": [],
-		"description": "Supported filetypes, add * in array for all filetypes.",
+		"description": "Supported filetypes; add `*` to the array for all filetypes.",
 		"items": { "type": "string" }
 	},
 	"languageserver.maxRestartCount": {
 		"type": "integer",
 		"default": 4,
 		"minimum": 1,
-		"description": "Maximum restart count when server closed in the last 3 minutes."
+		"description": "Maximum number of restarts when the server closes within the last 3 minutes."
 	},
 	"languageserver.cwd": {
 		"type": "string",
 		"default": "",
-		"description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+		"description": "Working directory of the language server; an absolute path or relative to the workspace folder. Uses the workspace root by default."
 	},
 	"languageserver.settings": {
 		"type": "object",
 		"default": {},
-		"description": "Settings of languageserver"
+		"description": "Settings of the language server."
 	},
 	"languageserver.initializationOptions": {
 		"type": "object",
 		"default": {},
-		"description": "initializationOptions passed to languageserver"
+		"description": "Initialization options passed to the language server."
 	},
 	"languageserver.env": {
 		"type": "object",
@@ -87607,35 +87967,35 @@ var definitions = {
 	"languageserver.stdioEncoding": {
 		"type": "string",
 		"default": "utf8",
-		"description": "Encoding used for stdio of child process."
+		"description": "Encoding used for the stdio of the child process."
 	},
 	"languageserver.rootPatterns": {
 		"type": "array",
 		"default": [],
-		"description": "Root patterns used to resolve rootPath from current file, default to workspace root",
+		"description": "Root patterns used to resolve the rootPath from the current file; defaults to the workspace root.",
 		"items": { "type": "string" }
 	},
 	"languageserver.requireRootPattern": {
 		"type": "boolean",
 		"default": false,
-		"description": "If true, doesn't start server when root pattern not found."
+		"description": "If true, the server isn't started when no root pattern is found."
 	},
 	"languageserver.ignoredRootPaths": {
 		"type": "array",
 		"default": [],
-		"description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
+		"description": "Absolute root paths that the language server should not use as rootPath; takes priority over rootPatterns.",
 		"items": { "type": "string" }
 	},
 	"languageserver.additionalSchemes": {
 		"type": "array",
 		"default": [],
-		"description": "Additional URI schemes, default schemes including file & untitled.",
+		"description": "Additional URI schemes; default schemes include file and untitled.",
 		"items": { "type": "string" }
 	},
 	"languageserver.revealOutputChannelOn": {
 		"type": "string",
 		"default": "never",
-		"description": "Configure message level to show the output channel buffer",
+		"description": "Configure the message level at which the output channel buffer is shown.",
 		"enum": [
 			"info",
 			"warn",
@@ -87646,7 +88006,7 @@ var definitions = {
 	"languageserver.progressOnInitialization": {
 		"type": "boolean",
 		"default": false,
-		"description": "Enable progress report on languageserver initialize."
+		"description": "Enable progress reporting during language server initialization."
 	},
 	"languageserver.trace.server": {
 		"type": "string",
@@ -87656,7 +88016,7 @@ var definitions = {
 			"messages",
 			"verbose"
 		],
-		"description": "Trace level of communication between server and client"
+		"description": "Trace level of the communication between server and client."
 	},
 	"languageserver.trace.server.verbosity": {
 		"type": "string",
@@ -87667,7 +88027,7 @@ var definitions = {
 			"compact",
 			"verbose"
 		],
-		"description": "Trace level of communication between server and client"
+		"description": "Trace level of the communication between server and client."
 	},
 	"languageserver.trace.server.format": {
 		"type": "string",
@@ -87678,17 +88038,17 @@ var definitions = {
 	"languageserver.disableDynamicRegister": {
 		"type": "boolean",
 		"default": false,
-		"description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicate feature registration."
+		"description": "Disable the dynamic registerCapability feature for this language server to avoid duplicate feature registration."
 	},
 	"languageserver.disableSnippetCompletion": {
 		"type": "boolean",
 		"default": false,
-		"description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
+		"description": "Disable the snippet completion feature for this language server; the language server may not respect it."
 	},
 	"languageserver.disabledFeatures": {
 		"type": "array",
 		"default": [],
-		"description": "Disabled features for this languageserver.",
+		"description": "Features disabled for this language server.",
 		"items": {
 			"type": "string",
 			"enum": [
@@ -87738,7 +88098,7 @@ var definitions = {
 	"languageserver.formatterPriority": {
 		"type": "integer",
 		"default": 0,
-		"description": "Priority of this languageserver's formatter."
+		"description": "Priority of this language server's formatter."
 	},
 	"languageServerSocket": {
 		"type": "object",
@@ -87747,12 +88107,12 @@ var definitions = {
 		"properties": {
 			"port": {
 				"type": "integer",
-				"description": "Port number of socket server"
+				"description": "Port number of the socket server."
 			},
 			"host": {
 				"type": "string",
 				"default": "127.0.0.1",
-				"description": "Host of server"
+				"description": "Host of the server."
 			},
 			"enable": { "$ref": "#/definitions/languageserver.enable" },
 			"disableSnippetCompletion": { "$ref": "#/definitions/languageserver.disableSnippetCompletion" },
@@ -87783,29 +88143,29 @@ var definitions = {
 			"module": {
 				"type": "string",
 				"default": "",
-				"description": "Absolute path of Javascript file, should works in IPC mode"
+				"description": "Absolute path of the JavaScript file; works in IPC mode."
 			},
 			"args": {
 				"type": "array",
 				"default": [],
-				"description": "Extra arguments of module",
+				"description": "Extra arguments of the module.",
 				"items": { "type": "string" }
 			},
 			"runtime": {
 				"type": "string",
 				"default": "",
-				"description": "Absolute path of node runtime."
+				"description": "Absolute path of the node runtime."
 			},
 			"execArgv": {
 				"type": "array",
 				"default": [],
-				"description": "ARGV passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
+				"description": "ARGV passed to node when using the module, normally used for debugging. Example: `[\"--nolazy\", \"--inspect-brk=6045\"]`.",
 				"items": { "type": "string" }
 			},
 			"transport": {
 				"type": "string",
 				"default": "ipc",
-				"description": "Transport kind used by server, could be 'ipc', 'stdio', 'socket' and 'pipe'",
+				"description": "Transport kind used by the server; can be 'ipc', 'stdio', 'socket', or 'pipe'.",
 				"enum": [
 					"ipc",
 					"stdio",
@@ -87815,7 +88175,7 @@ var definitions = {
 			},
 			"transportPort": {
 				"type": "integer",
-				"description": "Port number used when transport is 'socket'"
+				"description": "Port number used when the transport is 'socket'."
 			},
 			"enable": { "$ref": "#/definitions/languageserver.enable" },
 			"disableSnippetCompletion": { "$ref": "#/definitions/languageserver.disableSnippetCompletion" },
@@ -87846,23 +88206,23 @@ var definitions = {
 			"command": {
 				"type": "string",
 				"default": "",
-				"description": "Executable in $PATH to start languageserver, should not used with module"
+				"description": "Executable in $PATH used to start the language server; should not be used with `module`."
 			},
 			"args": {
 				"type": "array",
 				"default": [],
-				"description": "Arguments of command",
+				"description": "Arguments of the command.",
 				"items": { "type": "string" }
 			},
 			"detached": {
 				"type": "boolean",
 				"default": false,
-				"description": "Detach the languageserver process"
+				"description": "Detach the language server process."
 			},
 			"shell": {
 				"type": ["boolean", "string"],
 				"default": false,
-				"description": "If true runs command inside of a shell, always true on windows."
+				"description": "If true, runs the command inside a shell; always true on Windows."
 			},
 			"enable": { "$ref": "#/definitions/languageserver.enable" },
 			"env": { "$ref": "#/definitions/languageserver.env" },
@@ -87910,26 +88270,26 @@ var properties = {
 		"type": ["array", "null"],
 		"default": null,
 		"scope": "application",
-		"description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+		"description": "Root patterns used to resolve the workspaceFolder from the parent folders of opened files, resolved from the top down.",
 		"deprecationMessage": "Use 'workspace.rootPatterns' instead.",
 		"items": { "type": "string" }
 	},
 	"coc.preferences.bracketEnterImprove": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Improve enter inside bracket `<> {} [] ()` by add new empty line below and place cursor to it. Works with `coc#on_enter()`",
+		"description": "Improve pressing enter inside brackets `<> {} [] ()` by adding a new empty line below and placing the cursor on it. Works with `coc#on_enter()`.",
 		"default": true
 	},
 	"coc.preferences.currentFunctionSymbolAutoUpdate": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Automatically update the value of b:coc_current_function on CursorMove event",
+		"description": "Automatically update the value of b:coc_current_function on the CursorMove event.",
 		"default": false
 	},
 	"coc.preferences.currentFunctionSymbolDebounceTime": {
 		"type": "number",
 		"scope": "application",
-		"description": "Set debounce timer for the update of b:coc_current_function on CursorMove event",
+		"description": "Set the debounce timer for the update of b:coc_current_function on the CursorMove event.",
 		"default": 300
 	},
 	"coc.preferences.enableLinkedEditing": {
@@ -87941,7 +88301,7 @@ var properties = {
 	"coc.preferences.enableMarkdown": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Tell the language server that markdown text format is supported, note that markdown text may not rendered as expected.",
+		"description": "Tell the language server that markdown text format is supported; note that markdown text may not be rendered as expected.",
 		"default": true
 	},
 	"coc.preferences.enableMessageDialog": {
@@ -87949,7 +88309,7 @@ var properties = {
 		"scope": "application",
 		"default": false,
 		"deprecationMessage": "Use configuration 'coc.preferences.messageDialogKind' instead.",
-		"description": "Enable interactive messages in notification dialog, or fallback to native vim confirm action."
+		"description": "Enable interactive messages in notification dialogs, or fall back to Vim's native confirm action."
 	},
 	"coc.preferences.messageDialogKind": {
 		"type": "string",
@@ -87971,13 +88331,13 @@ var properties = {
 	},
 	"coc.preferences.excludeImageLinksInMarkdownDocument": {
 		"type": "boolean",
-		"description": "Exclude image links from markdown text in float window.",
+		"description": "Exclude image links from markdown text in float windows.",
 		"scope": "application",
 		"default": true
 	},
 	"coc.preferences.enableGFMBreaksInMarkdownDocument": {
 		"type": "boolean",
-		"description": "Exclude GFM breaks in markdown document.",
+		"description": "Enable GFM breaks in markdown documents.",
 		"scope": "application",
 		"default": true
 	},
@@ -87985,7 +88345,7 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "never",
-		"description": "Interval for check extension update, could be daily, weekly, never",
+		"description": "Interval for checking extension updates; can be daily, weekly, or never.",
 		"deprecationMessage": "Use configuration 'extensions.updateCheck' instead.",
 		"enum": [
 			"daily",
@@ -87998,11 +88358,11 @@ var properties = {
 		"scope": "application",
 		"default": false,
 		"deprecationMessage": "Use configuration 'extensions.updateUIInTab' instead.",
-		"description": "Display extension updating UI in new vim tab"
+		"description": "Display the extension update UI in a new Vim tab."
 	},
 	"coc.preferences.silentAutoupdate": {
 		"type": "boolean",
-		"description": "Not open split window with update status when performing auto update.",
+		"description": "Don't open a split window with update status when performing auto updates.",
 		"deprecationMessage": "Use configuration 'extensions.silentAutoupdate' instead.",
 		"scope": "application",
 		"default": true
@@ -88010,13 +88370,13 @@ var properties = {
 	"coc.preferences.floatActions": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Set to false to disable float/popup support for actions menu.",
+		"description": "Set to false to disable float/popup support for the actions menu.",
 		"default": true
 	},
 	"coc.preferences.autoApplySingleQuickfix": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Automatically apply the single quickfix action .",
+		"description": "Automatically apply the single quickfix action.",
 		"default": true
 	},
 	"coc.preferences.formatOnSave": {
@@ -88051,7 +88411,7 @@ var properties = {
 		"type": ["null", "array"],
 		"default": null,
 		"scope": "resource",
-		"description": "Filetypes that should run format on typing, only works when `coc.preferences.formatOnType` is `true`",
+		"description": "Filetypes that should run format on typing; only works when `coc.preferences.formatOnType` is `true`.",
 		"deprecationMessage": "Use 'coc.preferences.formatOnType' as language override configuration instead, see :h coc-configuration-scope",
 		"items": { "type": "string" }
 	},
@@ -88078,19 +88438,19 @@ var properties = {
 			"minimum": 1
 		}],
 		"scope": "application",
-		"description": "Command used for location jump, like goto definition, goto references etc. Can be also a custom command that gives file as an argument.",
+		"description": "Command used for location jumps, like goto definition and goto references. Can also be a custom command that takes a file as an argument.",
 		"default": "edit"
 	},
 	"coc.preferences.maxFileSize": {
 		"type": "string",
 		"scope": "application",
 		"default": "10MB",
-		"description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
+		"description": "Maximum file size in bytes that coc.nvim should handle. Default: '10MB'."
 	},
 	"coc.preferences.messageLevel": {
 		"type": "string",
 		"scope": "application",
-		"description": "Message level for filter echoed messages, could be 'more', 'warning' and 'error'",
+		"description": "Message level for filtering echoed messages; can be 'more', 'warning', or 'error'.",
 		"default": "more",
 		"enum": [
 			"more",
@@ -88100,7 +88460,7 @@ var properties = {
 	},
 	"coc.preferences.promptInput": {
 		"type": "boolean",
-		"description": "Use prompt buffer in float window for user input.",
+		"description": "Use a prompt buffer in a float window for user input.",
 		"scope": "application",
 		"default": true
 	},
@@ -88108,19 +88468,19 @@ var properties = {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
+		"description": "Set to false to stop the Refactor-Rename float/popup window from populating the New Name field with the old name."
 	},
 	"coc.preferences.useQuickfixForLocations": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Use vim's quickfix list for jump locations,\n need restart on change.",
+		"description": "Use Vim's quickfix list for jump locations; a restart is required when changed.",
 		"default": false
 	},
 	"coc.preferences.watchmanPath": {
 		"type": "string",
 		"scope": "application",
 		"deprecationMessage": "Use configuration \"fileSystemWatch.watchmanPath\" instead.",
-		"description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+		"description": "Executable path for https://facebook.github.io/watchman/; detected from $PATH by default.",
 		"default": null
 	},
 	"coc.preferences.willSaveHandlerTimeout": {
@@ -88129,13 +88489,13 @@ var properties = {
 		"default": 500,
 		"minimum": 200,
 		"maximum": 5e3,
-		"description": "Will save handler timeout"
+		"description": "Timeout of the will-save handler."
 	},
 	"coc.preferences.tagDefinitionTimeout": {
 		"type": "integer",
 		"scope": "application",
 		"default": 0,
-		"description": "The timeout of CocTagFunc, default is infinity"
+		"description": "Timeout of CocTagFunc; defaults to infinity."
 	},
 	"coc.source.around.disableSyntaxes": {
 		"type": "array",
@@ -88173,7 +88533,7 @@ var properties = {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Ignore git ignored files for buffer words"
+		"description": "Ignore git-ignored files for buffer words."
 	},
 	"coc.source.buffer.priority": {
 		"type": "integer",
@@ -88206,7 +88566,7 @@ var properties = {
 		"type": "array",
 		"scope": "application",
 		"default": [],
-		"description": "Ignore patterns of matcher",
+		"description": "Ignore patterns of the matcher.",
 		"items": { "type": "string" }
 	},
 	"coc.source.file.priority": {
@@ -88229,13 +88589,13 @@ var properties = {
 		"type": "array",
 		"scope": "application",
 		"default": [".ts", ".js"],
-		"description": "Trim same extension on file completion",
+		"description": "Trim the same extension on file completion.",
 		"items": { "type": "string" }
 	},
 	"codeLens.enable": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable codeLens feature, require neovim with set virtual text feature.",
+		"description": "Enable the codeLens feature; requires Neovim with the virtual text feature.",
 		"default": false
 	},
 	"codeLens.display": {
@@ -88258,19 +88618,19 @@ var properties = {
 	"codeLens.separator": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Separator text for codeLens in virtual text",
+		"description": "Separator text for codeLens in virtual text.",
 		"default": ""
 	},
 	"codeLens.subseparator": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Subseparator between codeLenses in virtual text",
+		"description": "Subseparator between codeLenses in virtual text.",
 		"default": " | "
 	},
 	"colors.enable": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable colors highlight feature, for terminal vim, 'termguicolors' option should be enabled and the terminal support gui colors.",
+		"description": "Enable the colors highlight feature. For terminal Vim, the 'termguicolors' option should be enabled and the terminal should support GUI colors.",
 		"default": false
 	},
 	"colors.filetypes": {
@@ -88278,13 +88638,13 @@ var properties = {
 		"default": null,
 		"scope": "resource",
 		"deprecationMessage": "Use colors.enable as language override configuration instead, see :h coc-configuration-scope",
-		"description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
+		"description": "Filetypes that should be enabled for the colors highlight feature; use \"*\" for all filetypes.",
 		"items": { "type": "string" }
 	},
 	"colors.highlightPriority": {
 		"type": "integer",
 		"scope": "application",
-		"description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
+		"description": "Priority for colors highlights; works on Vim8 and Neovim >= 0.6.0.",
 		"default": 1e3,
 		"maximum": 4096
 	},
@@ -88292,67 +88652,67 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "<esc>",
-		"description": "Key used for cancel cursors session."
+		"description": "Key used to cancel the cursors session."
 	},
 	"cursors.nextKey": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-n>",
-		"description": "Key used for jump to next cursors position."
+		"description": "Key used to jump to the next cursors position."
 	},
 	"cursors.previousKey": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-p>",
-		"description": "Key used for jump to previous cursors position."
+		"description": "Key used to jump to the previous cursors position."
 	},
 	"cursors.wrapscan": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Searches wrap around the first or last cursors range."
+		"description": "Search wraps around the first or last cursors range."
 	},
 	"diagnostic.autoRefresh": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable automatically refresh diagnostics, use diagnosticRefresh action when it's disabled.",
+		"description": "Automatically refresh diagnostics; use the diagnosticRefresh action when disabled.",
 		"default": true
 	},
 	"diagnostic.checkCurrentLine": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "When enabled, show all diagnostics of current line if there are none at the current position.",
+		"description": "When enabled, show all diagnostics of the current line if there are none at the current position.",
 		"default": false
 	},
 	"diagnostic.displayByAle": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Use Ale, coc-diagnostics-shim.nvim, or other provider to display diagnostics in vim. This setting will disable diagnostic display using coc's handler. A restart required on change.",
+		"description": "Use Ale, coc-diagnostics-shim.nvim, or another provider to display diagnostics in Vim. This setting disables diagnostic display using coc's handler. A restart is required when changed.",
 		"default": false
 	},
 	"diagnostic.displayByVimDiagnostic": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Display diagnostics with nvim's `vim.diagnostic`. This setting will disable diagnostic display using coc's handler. A restart required on change. Neovim only.",
+		"description": "Display diagnostics with nvim's `vim.diagnostic`. This setting disables diagnostic display using coc's handler. A restart is required when changed. Neovim only.",
 		"default": false
 	},
 	"diagnostic.enable": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Set to false to disable diagnostic display",
+		"description": "Set to false to disable diagnostic display.",
 		"default": true
 	},
 	"diagnostic.enableHighlightLineNumber": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Enable highlighting line numbers for diagnostics, only works with neovim."
+		"description": "Enable highlighting line numbers for diagnostics; only works with Neovim."
 	},
 	"diagnostic.enableMessage": {
 		"type": "string",
 		"scope": "application",
 		"default": "always",
-		"description": "When to enable show messages of diagnostics.",
+		"description": "When to show messages of diagnostics.",
 		"enum": [
 			"always",
 			"jump",
@@ -88368,19 +88728,19 @@ var properties = {
 	"diagnostic.errorSign": {
 		"type": "string",
 		"scope": "application",
-		"description": "Text of error sign",
+		"description": "Text of the error sign.",
 		"default": ">>"
 	},
 	"diagnostic.filetypeMap": {
 		"type": "object",
 		"scope": "application",
-		"description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type use `\"default\": \"bufferType\"`",
+		"description": "A map between the buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type, use `\"default\": \"bufferType\"`.",
 		"default": {}
 	},
 	"diagnostic.floatConfig": {
 		"type": "object",
 		"scope": "application",
-		"description": "Configure float window style of diagnostic message.",
+		"description": "Configure the float window style of diagnostic messages.",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"properties": {
@@ -88405,19 +88765,19 @@ var properties = {
 	"diagnostic.format": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Define the diagnostic format that shown in float window or echoed, available parts: source, code, severity, message",
+		"description": "Define the diagnostic format shown in the float window or echoed. Available parts: source, code, severity, message.",
 		"default": "%message (%source%code)"
 	},
 	"diagnostic.highlightLimit": {
 		"type": "integer",
 		"scope": "language-overridable",
-		"description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
+		"description": "Limit the number of highlighted diagnostics; too many diagnostic highlights could make Vim stop responding.",
 		"default": 1e3
 	},
 	"diagnostic.highlightPriority": {
 		"type": "integer",
 		"scope": "language-overridable",
-		"description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
+		"description": "Priority for diagnostic highlights; works on Vim8 and Neovim >= 0.6.0.",
 		"default": 4096,
 		"maximum": 4096,
 		"minimum": 110
@@ -88425,19 +88785,19 @@ var properties = {
 	"diagnostic.hintSign": {
 		"type": "string",
 		"scope": "application",
-		"description": "Text of hint sign",
+		"description": "Text of the hint sign.",
 		"default": ">>"
 	},
 	"diagnostic.infoSign": {
 		"type": "string",
 		"scope": "application",
-		"description": "Text of info sign",
+		"description": "Text of the info sign.",
 		"default": ">>"
 	},
 	"diagnostic.level": {
 		"type": "string",
 		"scope": "resource",
-		"description": "Used for filter diagnostics by diagnostic severity.",
+		"description": "Used for filtering diagnostics by severity.",
 		"default": "hint",
 		"enum": [
 			"hint",
@@ -88449,7 +88809,7 @@ var properties = {
 	"diagnostic.locationlistLevel": {
 		"type": ["string", "null"],
 		"scope": "language-overridable",
-		"description": "Filter diagnostics in locationlist.",
+		"description": "Filter diagnostics in the location list.",
 		"default": null,
 		"enum": [
 			"hint",
@@ -88461,19 +88821,19 @@ var properties = {
 	"diagnostic.locationlistUpdate": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Update locationlist on diagnostics change, only works with locationlist opened by :CocDiagnostics command and first window of associated buffer.",
+		"description": "Update the location list on diagnostics change; only works with the location list opened by the :CocDiagnostics command and the first window of the associated buffer.",
 		"default": true
 	},
 	"diagnostic.messageDelay": {
 		"type": "integer",
 		"scope": "application",
-		"description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
+		"description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float.",
 		"default": 200
 	},
 	"diagnostic.messageLevel": {
 		"type": ["string", "null"],
 		"scope": "language-overridable",
-		"description": "Filter diagnostic message in float window/popup.",
+		"description": "Filter diagnostic messages in the float window/popup.",
 		"default": null,
 		"enum": [
 			"hint",
@@ -88492,25 +88852,25 @@ var properties = {
 	"diagnostic.refreshOnInsertMode": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable diagnostic refresh on insert mode, default false.",
+		"description": "Enable diagnostic refresh in insert mode. Default: false.",
 		"default": false
 	},
 	"diagnostic.showDeprecated": {
 		"type": "boolean",
 		"default": true,
 		"scope": "language-overridable",
-		"description": "Show diagnostics with deprecated tag."
+		"description": "Show diagnostics with the deprecated tag."
 	},
 	"diagnostic.showUnused": {
 		"type": "boolean",
 		"default": true,
 		"scope": "language-overridable",
-		"description": "Show diagnostics with unused tag, affects highlight, sign, virtual text, message"
+		"description": "Show diagnostics with the unused tag; affects highlight, sign, virtual text, and message."
 	},
 	"diagnostic.signLevel": {
 		"type": ["string", "null"],
 		"scope": "language-overridable",
-		"description": "Filter diagnostics displayed in signcolumn.",
+		"description": "Filter diagnostics displayed in the sign column.",
 		"default": null,
 		"enum": [
 			"hint",
@@ -88522,7 +88882,7 @@ var properties = {
 	"diagnostic.signPriority": {
 		"type": "integer",
 		"scope": "resource",
-		"description": "Priority of diagnostic signs, default to 10",
+		"description": "Priority of diagnostic signs; defaults to 10.",
 		"default": 10
 	},
 	"diagnostic.virtualText": {
@@ -88534,7 +88894,7 @@ var properties = {
 	"diagnostic.virtualTextAlign": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Position of virtual text, default 'after'",
+		"description": "Position of the virtual text; defaults to 'after'.",
 		"default": "after",
 		"enum": [
 			"after",
@@ -88545,19 +88905,19 @@ var properties = {
 	"diagnostic.virtualTextCurrentLineOnly": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Only show virtualText diagnostic on current cursor line",
+		"description": "Only show virtual text diagnostics on the current cursor line.",
 		"default": true
 	},
 	"diagnostic.virtualTextFormat": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Define the virtual text diagnostic format, available parts: source, code, severity, message",
+		"description": "Define the virtual text diagnostic format. Available parts: source, code, severity, message.",
 		"default": "%message"
 	},
 	"diagnostic.virtualTextLevel": {
 		"type": ["string", "null"],
 		"scope": "language-overridable",
-		"description": "Filter diagnostic message in virtual text by level",
+		"description": "Filter diagnostic messages in virtual text by level.",
 		"default": null,
 		"enum": [
 			"hint",
@@ -88570,37 +88930,37 @@ var properties = {
 		"type": "integer",
 		"scope": "language-overridable",
 		"minimum": 1,
-		"description": "The maximum number of diagnostic messages to display in one line",
+		"description": "Maximum number of diagnostic messages to display in one line.",
 		"default": 999
 	},
 	"diagnostic.virtualTextLineSeparator": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "The text that will mark a line end from the diagnostic message",
+		"description": "The text that marks the end of a line in the diagnostic message.",
 		"default": " \\ "
 	},
 	"diagnostic.virtualTextLines": {
 		"type": "integer",
 		"scope": "language-overridable",
-		"description": "The number of non empty lines from a diagnostic to display",
+		"description": "The number of non-empty lines of a diagnostic to display.",
 		"default": 3
 	},
 	"diagnostic.virtualTextPrefix": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "The prefix added virtual text diagnostics",
+		"description": "The prefix added to virtual text diagnostics.",
 		"default": " "
 	},
 	"diagnostic.virtualTextWinCol": {
 		"type": ["integer", "null"],
 		"scope": "language-overridable",
-		"description": "Window column number to align virtual text, neovim only.",
+		"description": "Window column number to align virtual text; Neovim only.",
 		"default": null
 	},
 	"diagnostic.warningSign": {
 		"type": "string",
 		"scope": "application",
-		"description": "Text of warning sign",
+		"description": "Text of the warning sign.",
 		"default": "⚠"
 	},
 	"diagnostic.showRelatedInformation": {
@@ -88613,67 +88973,67 @@ var properties = {
 		"type": "string",
 		"default": "<cr>",
 		"scope": "application",
-		"description": "Confirm key for confirm selection used by menu and picker, you can always use <esc> to cancel."
+		"description": "Key used to confirm selection in menus and pickers; you can always use <esc> to cancel."
 	},
 	"dialog.floatBorderHighlight": {
 		"type": ["string", "null"],
 		"default": null,
 		"scope": "application",
-		"description": "Highlight group for border of dialog window/popup, default to 'CocFloatBorder'"
+		"description": "Highlight group for the border of dialog windows/popups; defaults to 'CocFloatBorder'."
 	},
 	"dialog.floatHighlight": {
 		"type": ["string", "null"],
 		"default": null,
 		"scope": "application",
-		"description": "Highlight group for dialog window/popup, default to 'CocFloating'"
+		"description": "Highlight group for dialog windows/popups; defaults to 'CocFloating'."
 	},
 	"dialog.maxHeight": {
 		"type": "integer",
 		"default": 30,
 		"scope": "application",
-		"description": "Maximum height of dialog window."
+		"description": "Maximum height of the dialog window."
 	},
 	"dialog.maxWidth": {
 		"type": "integer",
 		"default": 80,
 		"scope": "application",
-		"description": "Maximum width of dialog window."
+		"description": "Maximum width of the dialog window."
 	},
 	"dialog.pickerButtonShortcut": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Show shortcut in buttons of picker dialog window/popup, used when dialog.pickerButtons is true."
+		"description": "Show shortcuts in the buttons of the picker dialog window/popup; used when `dialog.pickerButtons` is true."
 	},
 	"dialog.pickerButtons": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Show buttons for picker dialog window/popup."
+		"description": "Show buttons for the picker dialog window/popup."
 	},
 	"dialog.rounded": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "use rounded border for dialog window."
+		"description": "Use a rounded border for dialog windows."
 	},
 	"dialog.shortcutHighlight": {
 		"type": "string",
 		"default": "MoreMsg",
 		"scope": "application",
-		"description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
+		"description": "Highlight group for the shortcut character in the menu dialog; defaults to 'MoreMsg'."
 	},
 	"documentHighlight.priority": {
 		"type": "integer",
 		"default": -1,
 		"scope": "resource",
-		"description": "Match priority used by document highlight, see ':h matchadd'."
+		"description": "Match priority used by document highlight; see ':h matchadd'."
 	},
 	"documentHighlight.limit": {
 		"type": "integer",
 		"default": 200,
 		"scope": "resource",
-		"description": "Limit the highlights added by matchaddpos, too many positions could cause vim slow."
+		"description": "Limit the highlights added by matchaddpos; too many positions could make Vim slow."
 	},
 	"documentHighlight.timeout": {
 		"type": "integer",
@@ -88689,7 +89049,14 @@ var properties = {
 		"minimum": 100,
 		"maximum": 5e3,
 		"scope": "application",
-		"description": "Timeout for execute request autocmd registered by coc extensions."
+		"description": "Timeout in milliseconds for the execute-request autocmd registered by coc extensions."
+	},
+	"editor.fileOperationTimeout": {
+		"type": "integer",
+		"default": 500,
+		"minimum": 1,
+		"scope": "application",
+		"description": "Timeout in milliseconds for the waitUntil handlers of file create, delete, and rename events."
 	},
 	"editor.codeActionsOnSave": {
 		"additionalProperties": {
@@ -88704,12 +89071,12 @@ var properties = {
 		"type": "object",
 		"default": {},
 		"scope": "language-overridable",
-		"description": "Run Code Actions for the buffer on save, normally source actions, Example: `\"source.organizeImports\": \"always\""
+		"description": "Run code actions for the buffer on save, normally source actions. Example: `\"source.organizeImports\": \"always\"`."
 	},
 	"fileSystemWatch.watchmanPath": {
 		"type": ["null", "string"],
 		"scope": "application",
-		"description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+		"description": "Executable path for https://facebook.github.io/watchman/; detected from $PATH by default.",
 		"default": null
 	},
 	"fileSystemWatch.enable": {
@@ -88726,13 +89093,13 @@ var properties = {
 			"${tmpdir}"
 		],
 		"scope": "application",
-		"description": "List of folders that should not be watched for file changes, environment variables and minimatch patterns can be used.",
+		"description": "List of folders that should not be watched for file changes; environment variables and minimatch patterns can be used.",
 		"items": { "type": "string" }
 	},
 	"floatFactory.floatConfig": {
 		"type": "object",
 		"scope": "application",
-		"description": "Configure default style float window/popup created by float factory (created around cursor and automatically closed)",
+		"description": "Configure the default float window/popup style created by the float factory (created around the cursor and automatically closed).",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"properties": {
@@ -88758,12 +89125,12 @@ var properties = {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Automatically hide hover float window on CursorMove or InsertEnter."
+		"description": "Automatically hide the hover float window on CursorMove or InsertEnter."
 	},
 	"hover.floatConfig": {
 		"type": "object",
 		"scope": "application",
-		"description": "Configure float window style of hover documents.",
+		"description": "Configure the float window style of hover documents.",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"properties": {
@@ -88789,13 +89156,13 @@ var properties = {
 		"type": "integer",
 		"scope": "resource",
 		"default": 12,
-		"description": "Max height of preview window for hover."
+		"description": "Maximum height of the preview window for hover."
 	},
 	"hover.target": {
 		"type": "string",
 		"default": "float",
 		"scope": "resource",
-		"description": "Target to show hover information, default is floating window when possible.",
+		"description": "Target used to show hover information; uses a floating window when possible by default.",
 		"enum": [
 			"preview",
 			"echo",
@@ -88806,7 +89173,7 @@ var properties = {
 		"type": "string",
 		"default": "",
 		"pattern": "^https?://([^:]*(:[^@]*)?@)?([^:]+|\\[[:0-9a-fA-F]+\\])(:\\d+)?/?$|^$",
-		"description": "The proxy setting to use. If not set, will be inherited from the `http_proxy` and `https_proxy` environment variables.",
+		"description": "The proxy setting to use. If not set, it's inherited from the `http_proxy` and `https_proxy` environment variables.",
 		"scope": "application"
 	},
 	"http.proxyAuthorization": {
@@ -88817,13 +89184,13 @@ var properties = {
 	},
 	"http.proxyCA": {
 		"type": "string",
-		"description": "CA (file) to use as Certificate Authority",
+		"description": "CA (file) to use as the Certificate Authority.",
 		"default": null,
 		"scope": "application"
 	},
 	"http.proxyStrictSSL": {
 		"type": "boolean",
-		"description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs",
+		"description": "Controls whether the proxy server certificate should be verified against the list of supplied CAs.",
 		"default": true,
 		"scope": "application"
 	},
@@ -88831,7 +89198,7 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "never",
-		"description": "Interval time for check extension update, could be daily, weekly, never",
+		"description": "Interval for checking extension updates; can be daily, weekly, or never.",
 		"enum": [
 			"daily",
 			"weekly",
@@ -88841,13 +89208,13 @@ var properties = {
 	"extensions.recommendations": {
 		"type": "array",
 		"scope": "resource",
-		"description": "List of extensions recommended for installation in the current project",
+		"description": "List of extensions recommended for installation in the current project.",
 		"default": [],
 		"items": { "type": "string" }
 	},
 	"extensions.silentAutoupdate": {
 		"type": "boolean",
-		"description": "Not open split window with update status when performing auto update.",
+		"description": "Don't open a split window with update status when performing auto updates.",
 		"scope": "application",
 		"default": true
 	},
@@ -88855,13 +89222,13 @@ var properties = {
 		"type": "boolean",
 		"scope": "application",
 		"default": false,
-		"description": "Display extension updating UI in new vim tab"
+		"description": "Display the extension update UI in a new Vim tab."
 	},
 	"inlayHint.enable": {
 		"type": "boolean",
 		"default": true,
 		"scope": "language-overridable",
-		"description": "Enable inlay hint support"
+		"description": "Enable inlay hint support."
 	},
 	"inlayHint.position": {
 		"type": "string",
@@ -88885,7 +89252,7 @@ var properties = {
 	"inlayHint.filetypes": {
 		"type": ["array", "null"],
 		"scope": "application",
-		"description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
+		"description": "Filetypes that enable inlay hints; all filetypes are enabled by default.",
 		"deprecationMessage": "Use inlayHint.enable with language scope instead, see :h coc-configuration-scope",
 		"default": null,
 		"items": { "type": "string" }
@@ -88894,19 +89261,19 @@ var properties = {
 		"type": "boolean",
 		"default": false,
 		"scope": "language-overridable",
-		"description": "Refresh inlayHints on insert mode."
+		"description": "Refresh inlay hints in insert mode."
 	},
 	"inlayHint.maximumLength": {
 		"type": "integer",
 		"default": 0,
 		"minimum": 0,
 		"scope": "language-overridable",
-		"description": "Maximum overall length of inlay hints, for a single line, before they get truncated by the editor. Set to `0`to disable truncation."
+		"description": "Maximum overall length of inlay hints on a single line before they are truncated by the editor. Set to `0` to disable truncation."
 	},
 	"links.enable": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable document links",
+		"description": "Enable document links.",
 		"default": true
 	},
 	"links.tooltip": {
@@ -88918,20 +89285,20 @@ var properties = {
 	"links.highlight": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Use CocLink highlight group to highlight links",
+		"description": "Use the CocLink highlight group to highlight links.",
 		"default": false
 	},
 	"list.floatPreview": {
 		"type": "boolean",
 		"default": false,
 		"scope": "application",
-		"description": "Enable preview with float window/popup, default: `false`"
+		"description": "Enable preview with a float window/popup. Default: `false`."
 	},
 	"list.alignColumns": {
 		"type": "boolean",
 		"default": false,
 		"scope": "application",
-		"description": "Whether to align lists in columns, default: `false`"
+		"description": "Whether to align lists in columns. Default: `false`."
 	},
 	"list.extendedSearchMode": {
 		"type": "boolean",
@@ -88943,86 +89310,86 @@ var properties = {
 		"type": "integer",
 		"scope": "application",
 		"default": 10,
-		"description": "Height of split list window."
+		"description": "Height of the split list window."
 	},
 	"list.indicator": {
 		"type": "string",
 		"default": ">",
 		"scope": "application",
-		"description": "The character used as first character in prompt line."
+		"description": "The character used as the first character in the prompt line."
 	},
 	"list.insertMappings": {
 		"type": "object",
 		"scope": "application",
 		"default": {},
-		"description": "Custom keymappings on insert mode."
+		"description": "Custom key-mappings in insert mode."
 	},
 	"list.interactiveDebounceTime": {
 		"type": "integer",
 		"default": 100,
 		"scope": "application",
-		"description": "Debounce time for input change on interactive mode."
+		"description": "Debounce time for input changes in interactive mode."
 	},
 	"list.limitLines": {
 		"type": ["number", "null"],
 		"scope": "application",
 		"default": null,
-		"description": "Limit lines for list buffer."
+		"description": "Limit lines for the list buffer."
 	},
 	"list.maxPreviewHeight": {
 		"type": "integer",
 		"scope": "application",
 		"default": 12,
-		"description": "Max height for preview window of list."
+		"description": "Maximum height of the preview window of a list."
 	},
 	"list.menuAction": {
 		"type": "boolean",
 		"default": false,
 		"scope": "application",
-		"description": "Use menu picker instead of confirm() for choose action."
+		"description": "Use a menu picker instead of confirm() for choosing an action."
 	},
 	"list.nextKeymap": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-j>",
-		"description": "Key used for select next line on insert mode."
+		"description": "Key used to select the next line in insert mode."
 	},
 	"list.normalMappings": {
 		"type": "object",
 		"scope": "application",
 		"default": {},
-		"description": "Custom keymappings on normal mode."
+		"description": "Custom key-mappings in normal mode."
 	},
 	"list.previewHighlightGroup": {
 		"type": "string",
 		"scope": "application",
 		"default": "Search",
-		"description": "Highlight group used for highlight the range in preview window."
+		"description": "Highlight group used to highlight the range in the preview window."
 	},
 	"list.previewSplitRight": {
 		"type": "boolean",
 		"scope": "application",
 		"default": false,
-		"description": "Use vsplit for preview window."
+		"description": "Use vsplit for the preview window."
 	},
 	"list.previewToplineOffset": {
 		"type": "integer",
 		"scope": "application",
 		"default": 3,
-		"description": "Topline offset for list previews"
+		"description": "Topline offset for list previews."
 	},
 	"list.previewToplineStyle": {
 		"type": "string",
 		"scope": "application",
 		"default": "offset",
-		"description": "Topline style for list previews",
+		"description": "Topline style for list previews.",
 		"enum": ["offset", "middle"]
 	},
 	"list.previousKeymap": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-k>",
-		"description": "Key used for select previous line on insert mode."
+		"description": "Key used to select the previous line in insert mode."
 	},
 	"list.selectedSignText": {
 		"type": "string",
@@ -89034,13 +89401,13 @@ var properties = {
 		"type": "integer",
 		"scope": "application",
 		"default": 900,
-		"description": "Sign offset of list, should be different from other plugins."
+		"description": "Sign offset of the list; should be different from other plugins."
 	},
 	"list.smartCase": {
 		"type": "boolean",
 		"default": false,
 		"scope": "application",
-		"description": "Use smartcase match for fuzzy match and strict match, --ignore-case will be ignored, may not affect interactive list."
+		"description": "Use smartcase matching for fuzzy and strict matching; `--ignore-case` is ignored, and this may not affect interactive lists."
 	},
 	"list.source.diagnostics.includeCode": {
 		"type": "boolean",
@@ -89051,7 +89418,7 @@ var properties = {
 	"list.source.diagnostics.pathFormat": {
 		"type": "string",
 		"scope": "application",
-		"description": "Decide how the filepath is shown in the list.",
+		"description": "Determines how the filepath is shown in the list.",
 		"enum": [
 			"full",
 			"short",
@@ -89064,14 +89431,14 @@ var properties = {
 		"type": "array",
 		"scope": "application",
 		"default": [],
-		"description": "Filetypes that should use ctags for outline instead of language server.",
+		"description": "Filetypes that should use ctags for the outline instead of the language server.",
 		"items": { "type": "string" }
 	},
 	"list.source.symbols.excludes": {
 		"type": "array",
 		"scope": "application",
 		"default": [],
-		"description": "Patterns of minimatch for filepath to exclude from symbols list.",
+		"description": "Minimatch patterns for filepaths to exclude from the symbols list.",
 		"items": { "type": "string" }
 	},
 	"list.statusLineSegments": {
@@ -89086,68 +89453,68 @@ var properties = {
 			"%#CocListPath# %{coc#list#status(\"cwd\")} %l/%L%*"
 		],
 		"items": { "types": "string" },
-		"description": "An array of statusline segments that will be used to draw the status line for list windows."
+		"description": "An array of statusline segments used to draw the status line for list windows."
 	},
 	"notification.statusLineProgress": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Show progress notification in status line, instead of float window/popup."
+		"description": "Show progress notifications in the status line instead of a float window/popup."
 	},
 	"notification.border": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Enable rounded border for notification windows."
+		"description": "Enable a rounded border for notification windows."
 	},
 	"notification.disabledProgressSources": {
 		"type": "array",
 		"default": [],
 		"scope": "application",
-		"description": "Sources that should be disabled for message progress, use * to disable all message only progresses",
+		"description": "Sources for which message progress should be disabled; use * to disable all message-only progress.",
 		"items": { "type": "string" }
 	},
 	"notification.focusable": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+		"description": "Enable focusing by user actions (wincmds, mouse events); Neovim only."
 	},
 	"notification.highlightGroup": {
 		"type": "string",
 		"default": "Normal",
 		"scope": "application",
-		"description": "Highlight group of notification dialog."
+		"description": "Highlight group of the notification dialog."
 	},
 	"notification.marginRight": {
 		"type": "integer",
 		"default": 10,
 		"scope": "application",
-		"description": "Margin right to the right of editor window."
+		"description": "Margin to the right of the editor window."
 	},
 	"notification.maxHeight": {
 		"type": "integer",
 		"default": 10,
 		"scope": "application",
-		"description": "Maximum content height of notification dialog."
+		"description": "Maximum content height of the notification dialog."
 	},
 	"notification.maxWidth": {
 		"type": "integer",
 		"default": 60,
 		"scope": "application",
-		"description": "Maximum content width of notification dialog."
+		"description": "Maximum content width of the notification dialog."
 	},
 	"notification.minProgressWidth": {
 		"type": "integer",
 		"default": 30,
 		"scope": "application",
-		"description": "Minimal with of progress notification."
+		"description": "Minimal width of progress notifications."
 	},
 	"notification.timeout": {
 		"type": "integer",
 		"default": 1e4,
 		"scope": "application",
-		"description": "Timeout for auto close notifications, in milliseconds."
+		"description": "Timeout for auto-closing notifications, in milliseconds."
 	},
 	"notification.winblend": {
 		"type": "integer",
@@ -89155,13 +89522,13 @@ var properties = {
 		"minimum": 0,
 		"maximum": 100,
 		"scope": "application",
-		"description": "Winblend option of notification window, neovim only."
+		"description": "Winblend option of the notification window; Neovim only."
 	},
 	"npm.binPath": {
 		"type": "string",
 		"scope": "application",
 		"default": "npm",
-		"description": "Command or absolute path to npm or yarn."
+		"description": "Command or absolute path to npm or yarn used for global extension install/uninstall."
 	},
 	"outline.autoHide": {
 		"type": "boolean",
@@ -89185,7 +89552,7 @@ var properties = {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Recreate outline view after user changed to another buffer on current tab."
+		"description": "Recreate the outline view after the user switches to another buffer in the current tab."
 	},
 	"outline.codeActionKinds": {
 		"type": "array",
@@ -89195,7 +89562,7 @@ var properties = {
 			"quickfix",
 			"refactor"
 		],
-		"description": "Filter code actions in actions menu by kinds.",
+		"description": "Filter code actions in the actions menu by kind.",
 		"items": {
 			"type": "string",
 			"enum": [
@@ -89210,55 +89577,55 @@ var properties = {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Show detail as description aside with label, when false detail will be shown in tooltip on cursor hold."
+		"description": "Show detail as a description next to the label; when false, the detail is shown in a tooltip on cursor hold."
 	},
 	"outline.expandLevel": {
 		"type": "integer",
 		"scope": "application",
 		"default": 1,
-		"description": "Expand level of tree nodes."
+		"description": "Expansion level of tree nodes."
 	},
 	"outline.followCursor": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Reveal item in outline tree on cursor hold."
+		"description": "Reveal the item in the outline tree on cursor hold."
 	},
 	"outline.keepWindow": {
 		"type": "boolean",
 		"scope": "application",
 		"default": false,
-		"description": "Jump back to original window after outline is shown."
+		"description": "Jump back to the original window after the outline is shown."
 	},
 	"outline.previewBorder": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Use border for preview window."
+		"description": "Use a border for the preview window."
 	},
 	"outline.previewBorderHighlightGroup": {
 		"type": "string",
 		"scope": "application",
 		"default": "Normal",
-		"description": "Border highlight group of preview window."
+		"description": "Border highlight group of the preview window."
 	},
 	"outline.previewBorderRounded": {
 		"type": "boolean",
 		"scope": "application",
 		"default": false,
-		"description": "Use rounded border for preview window."
+		"description": "Use a rounded border for the preview window."
 	},
 	"outline.previewHighlightGroup": {
 		"type": "string",
 		"scope": "application",
 		"default": "Normal",
-		"description": "Highlight group of preview window."
+		"description": "Highlight group of the preview window."
 	},
 	"outline.previewMaxWidth": {
 		"type": "integer",
 		"scope": "application",
 		"default": 80,
-		"description": "Max width of preview window."
+		"description": "Maximum width of the preview window."
 	},
 	"outline.previewWinblend": {
 		"type": "integer",
@@ -89266,19 +89633,19 @@ var properties = {
 		"default": 0,
 		"minimum": 0,
 		"maximum": 100,
-		"description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
+		"description": "Enable pseudo-transparency by setting the 'winblend' option of the window; Neovim only."
 	},
 	"outline.showLineNumber": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Show line number of symbols."
+		"description": "Show the line number of symbols."
 	},
 	"outline.sortBy": {
 		"type": "string",
 		"scope": "application",
 		"default": "category",
-		"description": "Sort method for symbols.",
+		"description": "Sort method for the symbols outline.",
 		"enum": [
 			"position",
 			"name",
@@ -89289,25 +89656,25 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "botright 30vs",
-		"description": "Window split command used by outline."
+		"description": "Window split command used by the outline."
 	},
 	"outline.switchSortKey": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-s>",
-		"description": "The key used to switch sort method for symbols provider of current tree view."
+		"description": "Key used to switch the sort method for the symbols provider of the current tree view."
 	},
 	"outline.togglePreviewKey": {
 		"type": "string",
 		"scope": "application",
 		"default": "p",
-		"description": "The key used to toggle auto preview feature."
+		"description": "Key used to toggle the auto preview feature."
 	},
 	"pullDiagnostic.ignored": {
 		"type": "array",
 		"default": [],
 		"scope": "application",
-		"description": "Minimatch patterns to match full filepath that should be ignored for pullDiagnostic.",
+		"description": "Minimatch patterns to match full filepaths that should be ignored for pullDiagnostic.",
 		"items": { "type": "string" }
 	},
 	"pullDiagnostic.onChange": {
@@ -89332,36 +89699,36 @@ var properties = {
 		"type": "integer",
 		"scope": "application",
 		"default": 3,
-		"description": "Print num lines of trailing context after each match."
+		"description": "Print `num` lines of trailing context after each match."
 	},
 	"refactor.beforeContext": {
 		"type": "integer",
 		"scope": "application",
 		"default": 3,
-		"description": "Print num lines of leading context before each match."
+		"description": "Print `num` lines of leading context before each match."
 	},
 	"refactor.openCommand": {
 		"type": "string",
 		"scope": "application",
-		"description": "Open command for refactor window.",
+		"description": "Open command for the refactor window.",
 		"default": "vsplit"
 	},
 	"refactor.saveToFile": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Save changed buffer to file when write refactor buffer with ':noa wa' command.",
+		"description": "Save the changed buffer to file when writing the refactor buffer with the ':noa wa' command.",
 		"default": true
 	},
 	"refactor.showMenu": {
 		"type": "string",
 		"scope": "application",
 		"default": "<Tab>",
-		"description": "Refactor buffer local mapping to bring up menu for this chunk."
+		"description": "Refactor buffer local mapping to bring up a menu for the current chunk."
 	},
 	"semanticTokens.combinedModifiers": {
 		"type": "array",
 		"scope": "language-overridable",
-		"description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
+		"description": "Semantic token modifiers whose highlights should be combined with syntax highlights.",
 		"default": ["deprecated"],
 		"items": { "type": "string" }
 	},
@@ -89369,12 +89736,12 @@ var properties = {
 		"type": "boolean",
 		"default": false,
 		"scope": "language-overridable",
-		"description": "Enable semantic tokens support"
+		"description": "Enable semantic tokens support."
 	},
 	"semanticTokens.filetypes": {
 		"type": ["array", "null"],
 		"scope": "resource",
-		"description": "Filetypes that enable semantic tokens highlighting or [\"*\"] for any filetype",
+		"description": "Filetypes that enable semantic tokens highlighting, or [\"*\"] for any filetype.",
 		"deprecationMessage": "Use semanticTokens.enable configuration with language scope instead, see :h coc-configuration-scope",
 		"default": null,
 		"items": { "type": "string" }
@@ -89382,14 +89749,14 @@ var properties = {
 	"semanticTokens.highlightPriority": {
 		"type": "integer",
 		"scope": "language-overridable",
-		"description": "Priority for semantic tokens highlight.",
+		"description": "Priority for semantic tokens highlights.",
 		"default": 2048,
 		"maximum": 4096
 	},
 	"semanticTokens.incrementTypes": {
 		"type": "array",
 		"scope": "language-overridable",
-		"description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
+		"description": "Semantic token types that should increase highlight when inserting at the start and end positions of a token.",
 		"default": [
 			"variable",
 			"string",
@@ -89400,13 +89767,13 @@ var properties = {
 	"signature.enable": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable show signature help when trigger character typed.",
+		"description": "Show signature help when a trigger character is typed.",
 		"default": true
 	},
 	"signature.floatConfig": {
 		"type": "object",
 		"scope": "application",
-		"description": "Configure float window style of signature documents.",
+		"description": "Configure the float window style of signature documents.",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"properties": {
@@ -89431,19 +89798,19 @@ var properties = {
 	"signature.hideOnTextChange": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Hide signature float window when text changed on insert mode.",
+		"description": "Hide the signature float window when text changes in insert mode.",
 		"default": false
 	},
 	"signature.preferShownAbove": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Show signature help float window above cursor when possible, require restart service on change.",
+		"description": "Show the signature help float window above the cursor when possible; requires restarting the service when changed.",
 		"default": true
 	},
 	"signature.target": {
 		"type": "string",
 		"scope": "language-overridable",
-		"description": "Target of signature help, use float when possible by default.",
+		"description": "Target used to show signature help; uses float when possible by default.",
 		"default": "float",
 		"enum": ["float", "echo"]
 	},
@@ -89453,12 +89820,12 @@ var properties = {
 		"default": 500,
 		"minimum": 200,
 		"maximum": 1e3,
-		"description": "Timeout for trigger signature help, in milliseconds."
+		"description": "Timeout for triggering signature help, in milliseconds."
 	},
 	"snippet.highlight": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
+		"description": "Use the 'CocSnippetVisual' highlight group to highlight placeholders with the same index as the current one.",
 		"default": false
 	},
 	"snippet.nextPlaceholderOnDelete": {
@@ -89471,17 +89838,17 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "SNIP",
-		"description": "Text shown in statusline to indicate snippet session is activated."
+		"description": "Text shown in the statusline to indicate that a snippet session is activated."
 	},
 	"suggest.acceptSuggestionOnCommitCharacter": {
 		"type": "boolean",
 		"default": false,
 		"scope": "language-overridable",
-		"description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character."
+		"description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semicolon (`;`) can be a commit character that accepts a suggestion and types that character."
 	},
 	"suggest.asciiCharactersOnly": {
 		"type": "boolean",
-		"description": "Trigger suggest with ASCII characters only",
+		"description": "Trigger suggest with ASCII characters only.",
 		"scope": "language-overridable",
 		"default": false
 	},
@@ -89489,11 +89856,11 @@ var properties = {
 		"type": ["string", "null"],
 		"default": "",
 		"scope": "language-overridable",
-		"description": "Locales used for divide sentence into segments for around and buffer source, works when NodeJS built with intl support, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters, default empty string means auto detect, use null to disable this feature."
+		"description": "Locales used to divide sentences into segments for the around and buffer sources; works when NodeJS is built with Intl support. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter/Segmenter#parameters. An empty string (the default) means auto-detect; use null to disable this feature."
 	},
 	"suggest.asciiMatch": {
 		"type": "boolean",
-		"description": "Convert unicode characters to ascii for match",
+		"description": "Convert Unicode characters to ASCII for matching.",
 		"scope": "language-overridable",
 		"default": true
 	},
@@ -89501,7 +89868,7 @@ var properties = {
 		"type": "string",
 		"scope": "language-overridable",
 		"default": "always",
-		"description": "How should completion be triggered",
+		"description": "How completion should be triggered.",
 		"enum": [
 			"always",
 			"trigger",
@@ -89510,7 +89877,7 @@ var properties = {
 	},
 	"suggest.reTriggerAfterIndent": {
 		"type": "boolean",
-		"description": "Re-Trigger completion after indent changes",
+		"description": "Re-trigger completion after indent changes.",
 		"scope": "language-overridable",
 		"default": true
 	},
@@ -89518,7 +89885,7 @@ var properties = {
 		"type": "object",
 		"default": {},
 		"scope": "application",
-		"description": "Set custom labels to completion items' kinds.",
+		"description": "Set custom labels for completion item kinds.",
 		"properties": {
 			"text": { "type": "string" },
 			"method": { "type": "string" },
@@ -89564,26 +89931,26 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "preview",
-		"description": "Where to show the detail text of CompleteItem from LS.",
+		"description": "Where to show the detail text of the completion item from the language server.",
 		"enum": ["abbr", "preview"]
 	},
 	"suggest.detailMaxLength": {
 		"type": "integer",
 		"scope": "application",
-		"description": "Max length of detail that should be shown in popup menu.",
+		"description": "Maximum length of the detail shown in the popup menu.",
 		"deprecationMessage": "Use suggest.labelMaxLength instead.",
 		"default": 100
 	},
 	"suggest.enableFloat": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable float window with documentation aside with popupmenu.",
+		"description": "Enable a float window with documentation next to the popup menu.",
 		"default": true
 	},
 	"suggest.enablePreselect": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Enable preselect feature of LSP, works when suggest.noselect is false.",
+		"description": "Enable the LSP preselect feature; works when `suggest.noselect` is false.",
 		"default": true
 	},
 	"suggest.filterGraceful": {
@@ -89595,13 +89962,13 @@ var properties = {
 	"suggest.filterOnBackspace": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Filter complete items on backspace.",
+		"description": "Filter completion items on backspace.",
 		"default": true
 	},
 	"suggest.floatConfig": {
 		"type": "object",
 		"scope": "application",
-		"description": "Configure style of popup menu and documentation window of completion.",
+		"description": "Configure the style of the popup menu and documentation window for completion.",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"properties": {
@@ -89626,7 +89993,7 @@ var properties = {
 		] },
 		"contains": { "enum": ["abbr"] },
 		"uniqueItems": true,
-		"description": "Items shown in popup menu in order.",
+		"description": "Items shown in the popup menu, in order.",
 		"default": [
 			"abbr",
 			"menu",
@@ -89639,7 +90006,7 @@ var properties = {
 		"minimum": 1,
 		"maximum": 100,
 		"scope": "language-overridable",
-		"description": "Max items count for source priority bigger than or equal to 90."
+		"description": "Maximum number of items for sources with priority greater than or equal to 90."
 	},
 	"suggest.insertMode": {
 		"type": "string",
@@ -89652,20 +90019,20 @@ var properties = {
 		"type": "array",
 		"scope": "language-overridable",
 		"items": { "type": "string" },
-		"description": "Regexps to ignore when trigger suggest",
+		"description": "Regexps to ignore when triggering suggest.",
 		"default": []
 	},
 	"suggest.invalidInsertCharacters": {
 		"type": "array",
 		"items": { "type": "string" },
 		"scope": "application",
-		"description": "Invalid character for strip valid word when inserting text of complete item.",
+		"description": "Invalid characters used to strip the valid word when inserting the text of a completion item.",
 		"default": ["\r", "\n"]
 	},
 	"suggest.labelMaxLength": {
 		"type": "integer",
 		"scope": "application",
-		"description": "Max length of abbr that shown as label of complete item.",
+		"description": "Maximum length of the abbr shown as the label of a completion item.",
 		"default": 200
 	},
 	"suggest.languageSourcePriority": {
@@ -89685,36 +90052,49 @@ var properties = {
 		"minimum": 1,
 		"maximum": 100,
 		"scope": "language-overridable",
-		"description": "Max items count for source priority lower than 90."
+		"description": "Maximum number of items for sources with priority lower than 90."
 	},
 	"suggest.maxCompleteItemCount": {
 		"type": "integer",
 		"default": 256,
 		"scope": "language-overridable",
-		"description": "Maximum number of complete items shown in vim"
+		"description": "Maximum number of completion items shown in Vim."
 	},
 	"suggest.minTriggerInputLength": {
 		"type": "integer",
 		"default": 1,
 		"scope": "language-overridable",
-		"description": "Minimal input length for trigger completion, default 1"
+		"description": "Minimum input length for triggering completion. Default: 1."
 	},
 	"suggest.noselect": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Not make vim select first item on popupmenu shown",
+		"description": "Don't make Vim select the first item when the popup menu is shown.",
 		"default": false
 	},
 	"suggest.preferCompleteThanJumpPlaceholder": {
 		"type": "boolean",
-		"description": "Confirm completion instead of jump to next placeholder when completion is activated.",
+		"description": "Confirm completion instead of jumping to the next placeholder when completion is activated.",
 		"scope": "resource",
 		"default": false
+	},
+	"suggest.pumAlign": {
+		"type": ["string", "null"],
+		"scope": "application",
+		"enum": [
+			"abbr",
+			"menu",
+			"kind",
+			"shortcut",
+			null
+		],
+		"default": null,
+		"description": "Field of the popup menu to align with the cursor. When `null`, the leftmost character of the popup menu is aligned with the cursor. When set, the popup menu is shifted to the left so the configured field is aligned with the cursor."
 	},
 	"suggest.pumFloatConfig": {
 		"type": ["object", "null"],
 		"scope": "application",
-		"description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
+		"description": "Configure the style of the popup menu; `suggest.floatConfig` is used when not specified.",
 		"allOf": [{ "$ref": "#/definitions/floatConfig" }],
 		"additionalProperties": false,
 		"default": null,
@@ -89730,20 +90110,20 @@ var properties = {
 	},
 	"suggest.removeDuplicateItems": {
 		"type": "boolean",
-		"description": "Remove completion items with duplicated word for all sources, snippet items are excluded.",
+		"description": "Remove completion items with a duplicated word across all sources; snippet items are excluded.",
 		"scope": "language-overridable",
 		"default": false
 	},
 	"suggest.removeCurrentWord": {
 		"type": "boolean",
-		"description": "Remove word item (from around and buffer source) that is identical to current input",
+		"description": "Remove the word item (from the around and buffer sources) that is identical to the current input.",
 		"scope": "language-overridable",
 		"default": false
 	},
 	"suggest.reversePumAboveCursor": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Reverse order of complete items when pum shown above cursor.",
+		"description": "Reverse the order of completion items when the popup menu is shown above the cursor.",
 		"default": false
 	},
 	"suggest.selection": {
@@ -89761,12 +90141,12 @@ var properties = {
 		"type": "string",
 		"default": "~",
 		"scope": "application",
-		"description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
+		"description": "The character used in the abbr of a completion item to indicate that the item can be expanded as a snippet."
 	},
 	"suggest.snippetsSupport": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Set to false to disable snippets support of completion.",
+		"description": "Set to false to disable snippet support in completion.",
 		"default": true
 	},
 	"suggest.timeout": {
@@ -89779,7 +90159,7 @@ var properties = {
 	},
 	"suggest.triggerAfterInsertEnter": {
 		"type": "boolean",
-		"description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
+		"description": "Trigger completion after InsertEnter; auto trigger should be 'always' to enable this option.",
 		"scope": "language-overridable",
 		"default": false
 	},
@@ -89789,18 +90169,18 @@ var properties = {
 		"minimum": 0,
 		"maximum": 10,
 		"scope": "language-overridable",
-		"description": "Wait time between text change and completion start, completion is canceled when text changed during wait."
+		"description": "Wait time between text change and completion start; the completion is canceled when text changes during the wait."
 	},
 	"suggest.virtualText": {
 		"type": "boolean",
 		"scope": "application",
-		"description": "Show virtual text for insert word of the selected item if any",
+		"description": "Show virtual text for the inserted word of the selected item, if any.",
 		"default": false
 	},
 	"inlineSuggest.autoTrigger": {
 		"type": "boolean",
 		"scope": "language-overridable",
-		"description": "Enable automatically trigger inline completion on insert mode cursor hold.",
+		"description": "Automatically trigger inline completion on cursor hold in insert mode.",
 		"default": true
 	},
 	"inlineSuggest.triggerCompletionWait": {
@@ -89809,13 +90189,13 @@ var properties = {
 		"minimum": 0,
 		"maximum": 1e3,
 		"scope": "language-overridable",
-		"description": "Wait time in milliseconds between text change and trigger inline completion."
+		"description": "Wait time in milliseconds between text change and triggering inline completion."
 	},
 	"tree.closedIcon": {
 		"type": "string",
 		"scope": "application",
 		"default": "+",
-		"description": "Closed icon of tree view."
+		"description": "Closed icon of the tree view."
 	},
 	"tree.key.actions": {
 		"type": "string",
@@ -89827,61 +90207,61 @@ var properties = {
 		"type": "string",
 		"scope": "application",
 		"default": "f",
-		"description": "Trigger key active filter."
+		"description": "Trigger key to activate the filter."
 	},
 	"tree.key.close": {
 		"type": "string",
 		"scope": "application",
 		"default": "<esc>",
-		"description": "Trigger key to dispose the tree and close tree window."
+		"description": "Trigger key to dispose the tree and close the tree window."
 	},
 	"tree.key.collapseAll": {
 		"type": "string",
 		"scope": "application",
 		"default": "M",
-		"description": "Trigger key to collapse all tree node."
+		"description": "Trigger key to collapse all tree nodes."
 	},
 	"tree.key.invoke": {
 		"type": "string",
 		"scope": "application",
 		"default": "<cr>",
-		"description": "Trigger key to invoke default command of current node or selection."
+		"description": "Trigger key to invoke the default command of the current node or selection."
 	},
 	"tree.key.selectNext": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-j>",
-		"description": "Trigger key to select next item during filter."
+		"description": "Trigger key to select the next item during filtering."
 	},
 	"tree.key.selectPrevious": {
 		"type": "string",
 		"scope": "application",
 		"default": "<C-k>",
-		"description": "Trigger key to select previous item during filter."
+		"description": "Trigger key to select the previous item during filtering."
 	},
 	"tree.key.toggle": {
 		"type": "string",
 		"scope": "application",
 		"default": "t",
-		"description": "Trigger key to toggle expand state of tree node, does nothing with leaf node."
+		"description": "Trigger key to toggle the expand state of a tree node; does nothing for leaf nodes."
 	},
 	"tree.key.toggleSelection": {
 		"type": "string",
 		"scope": "application",
 		"default": "<space>",
-		"description": "Trigger key to select/unselect item"
+		"description": "Trigger key to select/unselect an item."
 	},
 	"tree.openedIcon": {
 		"type": "string",
 		"scope": "application",
 		"default": "-",
-		"description": "Opened icon of tree view."
+		"description": "Opened icon of the tree view."
 	},
 	"typeHierarchy.enableTooltip": {
 		"type": "boolean",
 		"scope": "application",
 		"default": true,
-		"description": "Enable tooltip to show relative filepath of type hierarchy."
+		"description": "Enable a tooltip showing the relative filepath of a type hierarchy item."
 	},
 	"typeHierarchy.openCommand": {
 		"type": "string",
@@ -89903,21 +90283,21 @@ var properties = {
 			".projections.json"
 		],
 		"scope": "application",
-		"description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+		"description": "Root patterns used to resolve the workspaceFolder from the parent folders of opened files, resolved from the top down.",
 		"items": { "type": "string" }
 	},
 	"workspace.bottomUpFiletypes": {
 		"type": "array",
 		"default": [],
 		"scope": "application",
-		"description": "Filetypes that should have workspace folder should resolved from base directory of file, or [\"*\"] for any filetype.",
+		"description": "Filetypes for which the workspace folder should be resolved from the base directory of the file, or [\"*\"] for any filetype.",
 		"items": { "type": "string" }
 	},
 	"workspace.ignoredFiletypes": {
 		"type": "array",
 		"default": [],
 		"scope": "application",
-		"description": "Filetypes that should be ignored for workspace folder resolve.",
+		"description": "Filetypes that should be ignored when resolving the workspace folder.",
 		"items": { "type": "string" }
 	},
 	"workspace.ignoredFolders": {
@@ -89930,44 +90310,44 @@ var properties = {
 			"$HOMEBREW_PREFIX/**"
 		],
 		"scope": "application",
-		"description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
+		"description": "List of folders that should not be resolved as the workspace folder; environment variables and minimatch patterns can be used.",
 		"items": { "type": "string" }
 	},
 	"workspace.openOutputCommand": {
 		"type": "string",
 		"default": "vs",
 		"scope": "resource",
-		"description": "Command used to open output channel."
+		"description": "Command used to open the output channel."
 	},
 	"workspace.openResourceCommand": {
 		"type": "string",
 		"default": "tab drop",
 		"scope": "application",
-		"description": "Command to open files that not loaded, load files as hidden buffers when empty."
+		"description": "Command used to open files that aren't loaded; files are loaded as hidden buffers when empty."
 	},
 	"workspace.workspaceFolderCheckCwd": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Whether the current working directory should be used first when checking patterns match for workspace folder."
+		"description": "Whether the current working directory should be used first when checking pattern matches for the workspace folder."
 	},
 	"workspace.workspaceFolderFallbackCwd": {
 		"type": "boolean",
 		"default": true,
 		"scope": "application",
-		"description": "Use current working directory as workspace folder when no root patterns resolved."
+		"description": "Use the current working directory as the workspace folder when no root patterns are resolved."
 	},
 	"workspace.removeEmptyWorkspaceFolder": {
 		"type": "boolean",
 		"default": false,
 		"scope": "application",
-		"description": "Automatically remove the workspace folder when no buffer associated with it."
+		"description": "Automatically remove the workspace folder when no buffer is associated with it."
 	},
 	"languageserver": {
 		"type": "object",
 		"default": {},
 		"scope": "resource",
-		"description": "Dictionary of languageservers, key is used as id of languageserver, restart coc.nvim required after change.",
+		"description": "Dictionary of language servers; the key is used as the id of the language server. A coc.nvim restart is required after changing this.",
 		"patternProperties": { "^[_a-zA-Z]+$": { "oneOf": [
 			{ "$ref": "#/definitions/languageServerModule" },
 			{ "$ref": "#/definitions/languageServerCommand" },
@@ -90216,21 +90596,21 @@ function expandVariables(input, ctx = {}) {
 			return process.env[key] ?? match;
 		}
 		switch (name) {
-			case "tmpdir": return os$5.tmpdir();
-			case "userHome": return os$5.homedir();
+			case "tmpdir": return os$3.tmpdir();
+			case "userHome": return os$3.homedir();
 			case "cwd": return ctx.cwd ?? process.cwd();
 			case "workspace":
 			case "workspaceRoot":
 			case "workspaceFolder": return ctx.root ?? match;
-			case "workspaceFolderBasename": return ctx.root ? path$5.basename(ctx.root) : match;
+			case "workspaceFolderBasename": return ctx.root ? path$3.basename(ctx.root) : match;
 			case "file": return ctx.file ?? match;
-			case "fileDirname": return ctx.file ? path$5.dirname(ctx.file) : match;
-			case "fileExtname": return ctx.file ? path$5.extname(ctx.file) : match;
-			case "fileBasename": return ctx.file ? path$5.basename(ctx.file) : match;
+			case "fileDirname": return ctx.file ? path$3.dirname(ctx.file) : match;
+			case "fileExtname": return ctx.file ? path$3.extname(ctx.file) : match;
+			case "fileBasename": return ctx.file ? path$3.basename(ctx.file) : match;
 			case "fileBasenameNoExtension": {
 				if (!ctx.file) return match;
-				const base = path$5.basename(ctx.file);
-				return base.slice(0, base.length - path$5.extname(base).length);
+				const base = path$3.basename(ctx.file);
+				return base.slice(0, base.length - path$3.extname(base).length);
 			}
 			default: return match;
 		}
@@ -91036,10 +91416,10 @@ var ConfigurationModelParser;
 var init_parser$1 = __esmMin((() => {
 	init_main$1();
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_model();
 	init_util$6();
-	createLogger$1("parser");
+	createLogger("parser");
 	ConfigurationModelParser = class {
 		_name;
 		_raw = null;
@@ -91323,10 +91703,10 @@ var init_registry = __esmMin((() => {
 	};
 	configurationRegistry$1 = new ConfigurationRegistry();
 	Registry.add(Extensions$1.Configuration, configurationRegistry$1);
-})), logger$48, jsonRegistry, configuration, Configurations;
+})), logger$50, jsonRegistry, configuration, Configurations;
 var init_configuration$2 = __esmMin((() => {
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_constants();
@@ -91344,7 +91724,7 @@ var init_configuration$2 = __esmMin((() => {
 	init_parser$1();
 	init_registry();
 	init_util$6();
-	logger$48 = createLogger$1("configurations");
+	logger$50 = createLogger("configurations");
 	jsonRegistry = Registry.as(Extensions$2.JSONContribution);
 	configuration = Registry.as(Extensions$1.Configuration);
 	Configurations = class {
@@ -91421,7 +91801,7 @@ var init_configuration$2 = __esmMin((() => {
 						keys.push(key);
 						let val = def.default;
 						addToValueTree(root, key, val, (msg) => {
-							logger$48.error(`Conflict configuration: ${msg}`);
+							logger$50.error(`Conflict configuration: ${msg}`);
 						});
 					} else toRemove.push(key);
 				}
@@ -91470,9 +91850,9 @@ var init_configuration$2 = __esmMin((() => {
 			if (hasOwnProperty$1(schemas, uri)) return schemas[uri];
 		}
 		parseConfigurationModel(filepath, filecontents) {
-			if (!filepath || !fs$5.existsSync(filepath)) return new ConfigurationModel();
+			if (!filepath || !fs$3.existsSync(filepath)) return new ConfigurationModel();
 			let parser = new ConfigurationModelParser(filepath);
-			let content = filecontents || fs$5.readFileSync(filepath, "utf8");
+			let content = filecontents || fs$3.readFileSync(filepath, "utf8");
 			let uri = URI.file(filepath).toString();
 			parser.parse(content);
 			if (!isFalsyOrEmpty(parser.errors)) {
@@ -91491,8 +91871,8 @@ var init_configuration$2 = __esmMin((() => {
 			return parser.configurationModel;
 		}
 		folderToConfigfile(folder) {
-			if (sameFile(folder, os$5.homedir())) return void 0;
-			let filepath = path$5.join(folder, ".vim", CONFIG_FILE_NAME);
+			if (sameFile(folder, os$3.homedir())) return void 0;
+			let filepath = path$3.join(folder, ".vim", CONFIG_FILE_NAME);
 			if (sameFile(filepath, this.userConfigFile)) return void 0;
 			return filepath;
 		}
@@ -91514,27 +91894,29 @@ var init_configuration$2 = __esmMin((() => {
 		* Add new folder config file.
 		*/
 		addFolderFile(configFilePath, fromCwd = false, resource) {
-			let folder = normalizeFilePath(path$5.resolve(configFilePath, "../.."));
-			if (this._configuration.hasFolder(folder) || !fs$5.existsSync(configFilePath)) return false;
+			let folder = normalizeFilePath(path$3.resolve(configFilePath, "../.."));
+			if (this._configuration.hasFolder(folder) || !fs$3.existsSync(configFilePath)) return false;
 			let configFile;
 			try {
-				configFile = fs$5.readFileSync(configFilePath, "utf8");
+				configFile = fs$3.readFileSync(configFilePath, "utf8");
 			} catch (_err) {
 				return false;
 			}
 			this.watchFile(configFilePath, 3);
 			let model = this.parseConfigurationModel(configFilePath, configFile);
 			this._configuration.addFolderConfiguration(folder, model, resource);
-			logger$48.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
+			logger$50.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
 			return true;
 		}
 		watchFile(filepath, target) {
-			if (!filepath || !fs$5.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
+			if (!filepath || !fs$3.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
 			this._watchedFiles.add(filepath);
-			const folder = normalizeFilePath(path$5.resolve(filepath, "../.."));
+			const folder = target === 3 ? normalizeFilePath(path$3.resolve(filepath, "../..")) : void 0;
 			let disposable = watchFile(filepath, () => {
 				let model = this.parseConfigurationModel(filepath);
 				this.changeConfiguration(target, model, folder);
+			}, false, () => {
+				this._watchedFiles.delete(filepath);
 			});
 			this.disposables.push(disposable);
 		}
@@ -91590,7 +91972,7 @@ var init_configuration$2 = __esmMin((() => {
 						folder = this._configuration.resolveFolder(resource) ?? this.resolveWorkspaceFolderForResource(resource);
 						if (!folder) {
 							console.error(`Unable to locate workspace folder configuration for ${resource}`);
-							logger$48.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
+							logger$50.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
 							return;
 						}
 					}
@@ -91632,7 +92014,7 @@ var init_configuration$2 = __esmMin((() => {
 			if (u.scheme !== "file") return false;
 			let dir = folder = findUp$1(".vim", u.fsPath);
 			if (!dir) return false;
-			folder = path$5.dirname(dir);
+			folder = path$3.dirname(dir);
 			let filepath = this.folderToConfigfile(folder);
 			if (filepath) {
 				this.addFolderFile(filepath, false, uri);
@@ -91650,9 +92032,9 @@ var init_configuration$2 = __esmMin((() => {
 				let fsPath = uri.fsPath;
 				let configFilePath = this.folderToConfigfile(fsPath);
 				if (configFilePath) {
-					if (!fs$5.existsSync(configFilePath)) {
-						fs$5.mkdirSync(path$5.dirname(configFilePath), { recursive: true });
-						fs$5.writeFileSync(configFilePath, "{}", "utf8");
+					if (!fs$3.existsSync(configFilePath)) {
+						fs$3.mkdirSync(path$3.dirname(configFilePath), { recursive: true });
+						fs$3.writeFileSync(configFilePath, "{}", "utf8");
 					}
 					this.addFolderFile(configFilePath, false, resource);
 					return fsPath;
@@ -91677,13 +92059,13 @@ var init_configuration$2 = __esmMin((() => {
 }));
 //#endregion
 //#region src/configuration/shape.ts
-var logger$47, ConfigurationProxy;
+var logger$49, ConfigurationProxy;
 var init_shape = __esmMin((() => {
 	init_main$1();
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_node();
-	logger$47 = createLogger$1("configuration-shape");
+	logger$49 = createLogger("configuration-shape");
 	ConfigurationProxy = class {
 		resolver;
 		_test;
@@ -91696,18 +92078,18 @@ var init_shape = __esmMin((() => {
 		}
 		async modifyConfiguration(fsPath, key, value) {
 			if (this._test) return;
-			logger$47.info(`modify configuration file: ${fsPath}`, key, value);
-			let dir = path$5.dirname(fsPath);
+			logger$49.info(`modify configuration file: ${fsPath}`, key, value);
+			let dir = path$3.dirname(fsPath);
 			let formattingOptions = {
 				tabSize: 2,
 				insertSpaces: true
 			};
-			if (!fs$5.existsSync(dir)) fs$5.mkdirSync(dir, { recursive: true });
-			let content = fs$5.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
+			if (!fs$3.existsSync(dir)) fs$3.mkdirSync(dir, { recursive: true });
+			let content = fs$3.readFileSync(fsPath, { flag: "a+" }).toString("utf8");
 			content = content || "{}";
 			let edits = modify(content, [key], value, { formattingOptions });
 			content = applyEdits$1(content, edits);
-			fs$5.writeFileSync(fsPath, content, { encoding: "utf8" });
+			fs$3.writeFileSync(fsPath, content, { encoding: "utf8" });
 		}
 		getWorkspaceFolder(resource) {
 			if (typeof this.resolver.getWorkspaceFolder === "function") {
@@ -91740,14 +92122,14 @@ function createCommand(id, event, autocmd) {
 	if (autocmd.nested) opt += " ++nested";
 	return `autocmd ${groupName} ${event}${opt}  call coc#rpc#${method}('doAutocmd', [${id}${args}])`;
 }
-var logger$46, AutocmdItem, groupName, Autocmds;
+var logger$48, AutocmdItem, groupName, Autocmds;
 var init_autocmds = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_extensionRegistry();
 	init_lodash();
 	init_protocol();
-	logger$46 = createLogger$1("autocmds");
+	logger$48 = createLogger("autocmds");
 	AutocmdItem = class {
 		id;
 		option;
@@ -91767,6 +92149,7 @@ var init_autocmds = __esmMin((() => {
 		autocmds = /* @__PURE__ */ new Map();
 		nvim;
 		id = 0;
+		_scheduled = false;
 		attach(nvim) {
 			this.nvim = nvim;
 		}
@@ -91774,25 +92157,33 @@ var init_autocmds = __esmMin((() => {
 			let autocmd = this.autocmds.get(id);
 			if (autocmd) {
 				let option = autocmd.option;
-				logger$46.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option);
+				logger$48.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option);
+				let tokenSource = new import_main$1.CancellationTokenSource();
+				let logged = false;
+				let logError = (e) => {
+					if (logged) return;
+					logged = true;
+					logger$48.error(`Error on autocmd "${option.event}"`, args, omit$2(option, ["callback", "stack"]), e);
+				};
 				try {
-					let tokenSource = new import_main$1.CancellationTokenSource();
 					let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]));
+					promise.catch(logError);
 					if (option.request) {
 						let timer;
 						let tp = new Promise((resolve) => {
 							timer = setTimeout(() => {
 								tokenSource.cancel();
-								logger$46.error(`Autocmd timeout after ${timeout}ms`, omit$2(option, ["callback", "stack"]), autocmd.option.stack);
+								logger$48.error(`Autocmd timeout after ${timeout}ms`, omit$2(option, ["callback", "stack"]), autocmd.option.stack);
 								resolve(void 0);
 							}, timeout);
 						});
 						await Promise.race([tp, promise]);
 						clearTimeout(timer);
-						tokenSource.dispose();
 					} else await promise;
 				} catch (e) {
-					logger$46.error(`Error on autocmd "${option.event}"`, omit$2(option, ["callback", "stack"]), e);
+					logError(e);
+				} finally {
+					tokenSource.dispose();
 				}
 			}
 		}
@@ -91802,7 +92193,7 @@ var init_autocmds = __esmMin((() => {
 			this.autocmds.set(id, item);
 			this.createAutocmd(item);
 			return import_main$1.Disposable.create(() => {
-				this.autocmds.delete(id);
+				if (this.autocmds.delete(id)) this.scheduleRebuildAutocmds();
 			});
 		}
 		createAutocmd(item) {
@@ -91816,19 +92207,35 @@ var init_autocmds = __esmMin((() => {
 				this.nvim.createAutocmd(Array.isArray(item.option.event) ? item.option.event : item.option.event.split(","), opt, true);
 			}
 		}
-		removeExtensionAutocmds(extensiionName) {
+		/**
+		* Rebuild all editor-side autocmds of the shared group after registrations
+		* changed, so disposed registrations are removed from the editor as well.
+		* Changes of the same tick are coalesced into a single rebuild.
+		*/
+		scheduleRebuildAutocmds() {
+			if (this._scheduled) return;
+			this._scheduled = true;
+			process.nextTick(() => {
+				this._scheduled = false;
+				this.rebuildAutocmds();
+			});
+		}
+		rebuildAutocmds() {
 			let { nvim, autocmds } = this;
+			if (!nvim) return;
 			nvim.pauseNotification();
 			nvim.command(`autocmd! ${groupName}`, true);
-			let items = autocmds.values();
-			for (const item of items) {
-				if (item.extensiionName === extensiionName) {
-					autocmds.delete(item.id);
-					continue;
-				}
-				this.createAutocmd(item);
-			}
+			for (const item of autocmds.values()) this.createAutocmd(item);
 			nvim.resumeNotification(false, true);
+		}
+		removeExtensionAutocmds(extensiionName) {
+			let { autocmds } = this;
+			let changed = false;
+			for (const [id, item] of autocmds) if (item.extensiionName === extensiionName) {
+				autocmds.delete(id);
+				changed = true;
+			}
+			if (changed) this.scheduleRebuildAutocmds();
 		}
 		dispose() {
 			this.autocmds.clear();
@@ -92439,11 +92846,11 @@ function getChangedPosition(start, edit) {
 		character: 0
 	};
 }
-function getPosition(start, edit) {
+function getPosition(start, edit, lines) {
 	let { line, character } = start;
 	let { range, newText } = edit;
 	let { end } = range;
-	let lines = newText.split("\n");
+	if (!lines) lines = newText.split("\n");
 	let lineCount = lines.length - (end.line - range.start.line) - 1;
 	let c = range.end.line - start.line;
 	if (c > 0) return {
@@ -92635,19 +93042,32 @@ function getHighlightGroup$2(diagnostic) {
 	return hlGroups;
 }
 function adjustDiagnostics(diagnostics, edit) {
-	let res = [];
 	let { range } = edit;
-	for (let diag of diagnostics) {
+	let res;
+	let lines;
+	for (let i = 0; i < diagnostics.length; i++) {
+		let diag = diagnostics[i];
 		let r = diag.range;
-		if (rangeOverlap(range, r)) continue;
-		if (comparePosition(r.start, range.end) > 0) {
-			let s = getPosition(r.start, edit);
-			let e = getPosition(r.end, edit);
-			if (s.line >= 0 && s.character >= 0 && e.line >= 0 && e.character >= 0) diag.range = Range.create(s, e);
+		if (rangeOverlap(range, r)) {
+			if (!res) res = diagnostics.slice(0, i);
+			continue;
 		}
-		res.push(diag);
+		if (comparePosition(r.start, range.end) > 0) {
+			if (!lines) lines = edit.newText.split("\n");
+			let s = getPosition(r.start, edit, lines);
+			let e = getPosition(r.end, edit, lines);
+			if (s.line >= 0 && s.character >= 0 && e.line >= 0 && e.character >= 0) {
+				if (!res) res = diagnostics.slice(0, i);
+				res.push({
+					...diag,
+					range: Range.create(s, e)
+				});
+				continue;
+			}
+		}
+		if (res) res.push(diag);
 	}
-	return res;
+	return res ?? diagnostics;
 }
 var init_util$5 = __esmMin((() => {
 	init_main$2();
@@ -92788,9 +93208,10 @@ var init_buffer$6 = __esmMin((() => {
 				let edit = TextEdit.replace(changes[0].range, changes[0].text);
 				for (let [collection, diagnostics] of this.diagnosticsMap.entries()) {
 					let arr = adjustDiagnostics(diagnostics, edit);
+					if (arr === diagnostics) continue;
 					this.diagnosticsMap.set(collection, arr);
+					this._dirties.add(collection);
 				}
-				this._dirties = new Set(this.diagnosticsMap.keys());
 			}
 			if (!this.config.autoRefresh) return;
 			this.refreshHighlights();
@@ -92959,7 +93380,7 @@ var init_buffer$6 = __esmMin((() => {
 					msg = `${diagnostic.message}\n\nRelated information:\n`;
 					for (const info of diagnostic.relatedInformation) {
 						const fsPath = URI.parse(info.location.uri).fsPath;
-						const basename = path$5.basename(fsPath);
+						const basename = path$3.basename(fsPath);
 						const line = info.location.range.start.line + 1;
 						const column = info.location.range.start.character + 1;
 						msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`;
@@ -93369,6 +93790,9 @@ var init_manager$4 = __esmMin((() => {
 		collections = [];
 		disposables = [];
 		messageTimer;
+		/**
+		* @internal
+		*/
 		init() {
 			commands_default.register({
 				id: "workspace.diagnosticRelated",
@@ -93419,6 +93843,9 @@ var init_manager$4 = __esmMin((() => {
 				this.create("config").set(ev.uri, ev.diagnostics);
 			}, null, this.disposables);
 		}
+		/**
+		* @internal
+		*/
 		checkConfigurationErrors() {
 			const errors = workspace_default.configurations.errors;
 			if (!isFalsyOrEmpty(errors)) {
@@ -93430,6 +93857,9 @@ var init_manager$4 = __esmMin((() => {
 				}
 			}
 		}
+		/**
+		* @internal
+		*/
 		defineSigns(config) {
 			let { nvim } = this;
 			nvim.pauseNotification();
@@ -93447,10 +93877,14 @@ var init_manager$4 = __esmMin((() => {
 			}
 			nvim.resumeNotification(false, true);
 		}
+		/**
+		* @internal
+		*/
 		getItem(bufnr) {
 			return this.buffers.getItem(bufnr);
 		}
 		/**
+		* @internal
 		* Fill location list with diagnostics
 		*/
 		async setLocationlist(bufnr) {
@@ -93484,6 +93918,7 @@ var init_manager$4 = __esmMin((() => {
 			return collection;
 		}
 		/**
+		* @internal
 		* Get diagnostics ranges from document
 		*/
 		getSortedRanges(uri, minLevel, severity) {
@@ -93517,6 +93952,7 @@ var init_manager$4 = __esmMin((() => {
 			return res;
 		}
 		/**
+		* @internal
 		* Get filtered diagnostics by collection.
 		*/
 		getDiagnosticsByCollection(buf, collection) {
@@ -93541,6 +93977,7 @@ var init_manager$4 = __esmMin((() => {
 			return res;
 		}
 		/**
+		* @internal
 		* Show diagnostics under cursor in preview window
 		*/
 		async preview() {
@@ -93572,7 +94009,12 @@ var init_manager$4 = __esmMin((() => {
 				ranges
 			};
 		}
+		async showVirtualTextAndResetTimer(item, pos) {
+			await item.showVirtualTextCurrentLine(pos.line + 1);
+			if (this.messageTimer) clearTimeout(this.messageTimer);
+		}
 		/**
+		* @internal
 		* Jump to previous diagnostic position
 		*/
 		async jumpPrevious(severity) {
@@ -93591,11 +94033,11 @@ var init_manager$4 = __esmMin((() => {
 			if (pos) {
 				await window_default.moveTo(pos);
 				await item.echoMessage(false, pos);
-				await item.showVirtualTextCurrentLine(pos.line + 1);
-				if (this.messageTimer) clearTimeout(this.messageTimer);
+				await this.showVirtualTextAndResetTimer(item, pos);
 			} else window_default.showWarningMessage(`No more diagnostic before cursor position`);
 		}
 		/**
+		* @internal
 		* Jump to next diagnostic position
 		*/
 		async jumpNext(severity) {
@@ -93616,8 +94058,7 @@ var init_manager$4 = __esmMin((() => {
 			if (pos) {
 				await window_default.moveTo(pos);
 				await item.echoMessage(false, pos);
-				await item.showVirtualTextCurrentLine(pos.line + 1);
-				if (this.messageTimer) clearTimeout(this.messageTimer);
+				await this.showVirtualTextAndResetTimer(item, pos);
 			} else window_default.showWarningMessage(`No more diagnostic after cursor position`);
 		}
 		/**
@@ -93678,28 +94119,43 @@ var init_manager$4 = __esmMin((() => {
 			if (!res) return;
 			return res[0].getDiagnosticsAtPosition(res[1]);
 		}
+		/**
+		* @internal
+		*/
 		async echoCurrentMessage(target) {
 			let res = await this.getBufferAndPosition();
 			if (!res) return;
 			let [item, position] = res;
 			await item.echoMessage(false, position, target);
 		}
+		/**
+		* @internal
+		*/
 		async jumpRelated() {
 			let locations = await this.relatedInformation();
 			if (locations.length == 1) await workspace_default.jumpTo(locations[0].uri, locations[0].range.start);
 			else if (locations.length > 1) await workspace_default.showLocations(locations);
 			else window_default.showWarningMessage("No related information found.");
 		}
+		/**
+		* @internal
+		*/
 		async relatedInformation() {
 			let diagnostic = (await this.getCurrentDiagnostics()).find((o) => o.relatedInformation != null);
 			return diagnostic ? diagnostic.relatedInformation.map((o) => o.location) : [];
 		}
+		/**
+		* @internal
+		*/
 		reset() {
 			clearTimeout(this.messageTimer);
 			this.buffers.reset();
 			for (let collection of this.collections) collection.dispose();
 			this.collections = [];
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			clearTimeout(this.messageTimer);
 			this.buffers.dispose();
@@ -93716,12 +94172,18 @@ var init_manager$4 = __esmMin((() => {
 		getCollections(uri) {
 			return this.collections.filter((c) => c.has(uri));
 		}
+		/**
+		* @internal
+		*/
 		async toggleDiagnostic(enable) {
 			this.enabled = enable == void 0 ? !this.enabled : enable != 0;
 			await Promise.allSettled(this.buffers.items.map((buf) => {
 				return buf.setState(this.enabled);
 			}));
 		}
+		/**
+		* @internal
+		*/
 		async toggleDiagnosticBuffer(bufnr, enable) {
 			bufnr = bufnr ?? workspace_default.bufnr;
 			let buf = this.buffers.getItem(bufnr);
@@ -93732,6 +94194,7 @@ var init_manager$4 = __esmMin((() => {
 			}
 		}
 		/**
+		* @internal
 		* Refresh diagnostics by uri or bufnr
 		*/
 		async refreshBuffer(uri) {
@@ -93741,6 +94204,7 @@ var init_manager$4 = __esmMin((() => {
 			return true;
 		}
 		/**
+		* @internal
 		* Force diagnostics refresh.
 		*/
 		async refresh(bufnr) {
@@ -93775,17 +94239,17 @@ function addLocation(arr, location) {
 		});
 	}
 }
-var logger$45, Manager;
+var logger$47, Manager;
 var init_manager$3 = __esmMin((() => {
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_errors();
 	init_extensionRegistry();
 	init_object();
 	init_protocol();
 	init_string$1();
 	init_workspace$1();
-	logger$45 = createLogger$1("provider-manager");
+	logger$47 = createLogger("provider-manager");
 	Manager = class {
 		providers = /* @__PURE__ */ new Set();
 		hasProvider(document) {
@@ -93813,7 +94277,7 @@ var init_manager$3 = __esmMin((() => {
 			let serverCancelError;
 			results.forEach((res) => {
 				if (res.status === "rejected") {
-					if (!shouldIgnore(res.reason)) logger$45.error(`Provider error on ${name}:`, res.reason);
+					if (!shouldIgnore(res.reason)) logger$47.error(`Provider error on ${name}:`, res.reason);
 					if (token && !token.isCancellationRequested && isCancellationError(res.reason)) serverCancelError = res.reason;
 				}
 			});
@@ -93835,7 +94299,7 @@ var init_manager$3 = __esmMin((() => {
 		}
 		getProvideByExtension(document, extension) {
 			for (let item of this.providers) if (item.provider["__extensionName"] === extension) return item;
-			logger$45.warn(`User-specified formatter not found for ${document.languageId}:`, extension);
+			logger$47.warn(`User-specified formatter not found for ${document.languageId}:`, extension);
 		}
 		getFormatProvider(document) {
 			const userChoice = workspace_default.getConfiguration("coc.preferences", document).get("formatterExtension");
@@ -94363,6 +94827,28 @@ var init_formatRangeManager = __esmMin((() => {
 			if (Array.isArray(res)) Object.defineProperty(res, "__extensionName", { get: () => item.provider["__extensionName"] });
 			return res;
 		}
+		/**
+		* Provide formatting edits for multiple ranges, fallback to format each
+		* range separately when the provider has no ranges support.
+		*
+		* @since 3.18.0
+		*/
+		async provideDocumentRangesFormattingEdits(document, ranges, options, token) {
+			let item = this.getFormatProvider(document);
+			if (!item) return null;
+			let { provider } = item;
+			let res;
+			if (provider.provideDocumentRangesFormattingEdits) res = await Promise.resolve(provider.provideDocumentRangesFormattingEdits(document, ranges, options, token));
+			else {
+				res = [];
+				for (let range of ranges) {
+					let edits = await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, token));
+					if (Array.isArray(edits)) res.push(...edits);
+				}
+			}
+			if (Array.isArray(res)) Object.defineProperty(res, "__extensionName", { get: () => item.provider["__extensionName"] });
+			return res;
+		}
 	};
 }));
 //#endregion
@@ -94433,11 +94919,11 @@ function isInlayHint(obj) {
 }
 function isValidInlayHint(hint, range) {
 	if (hint.label.length === 0 || Array.isArray(hint.label) && hint.label.every((part) => part.value.length === 0)) {
-		logger$44.warn("INVALID inlay hint, empty label", hint);
+		logger$46.warn("INVALID inlay hint, empty label", hint);
 		return false;
 	}
 	if (!isInlayHint(hint)) {
-		logger$44.warn("INVALID inlay hint", hint);
+		logger$46.warn("INVALID inlay hint", hint);
 		return false;
 	}
 	if (range && positionInRange(hint.position, range) !== 0) return false;
@@ -94447,13 +94933,13 @@ function getLabel(hint) {
 	if (typeof hint.label === "string") return hint.label;
 	return hint.label.map((o) => o.value).join("");
 }
-var logger$44, InlayHintManger;
+var logger$46, InlayHintManger;
 var init_inlayHintManager = __esmMin((() => {
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_position();
 	init_manager$3();
-	logger$44 = createLogger$1("inlayHintManger");
+	logger$46 = createLogger("inlayHintManger");
 	InlayHintManger = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
@@ -94591,9 +95077,9 @@ var init_inlineValueManager = __esmMin((() => {
 //#region src/provider/linkedEditingRangeManager.ts
 var LinkedEditingRangeManager;
 var init_linkedEditingRangeManager = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_manager$3();
-	createLogger$1("linkedEditingManager");
+	createLogger("linkedEditingManager");
 	LinkedEditingRangeManager = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
@@ -95069,11 +95555,29 @@ var init_languages = __esmMin((() => {
 		_onDidCodeLensRefresh = new import_main$1.Emitter();
 		_onDidColorsRefresh = new import_main$1.Emitter();
 		_onDidLinksRefresh = new import_main$1.Emitter();
+		/**
+		* @internal
+		*/
 		onDidSemanticTokensRefresh = this._onDidSemanticTokensRefresh.event;
+		/**
+		* @internal
+		*/
 		onDidFoldingRangeRefresh = this._onDidFoldingRangeRefresh.event;
+		/**
+		* @internal
+		*/
 		onDidInlayHintRefresh = this._onDidInlayHintRefresh.event;
+		/**
+		* @internal
+		*/
 		onDidCodeLensRefresh = this._onDidCodeLensRefresh.event;
+		/**
+		* @internal
+		*/
 		onDidColorsRefresh = this._onDidColorsRefresh.event;
+		/**
+		* @internal
+		*/
 		onDidLinksRefresh = this._onDidLinksRefresh.event;
 		onTypeFormatManager = new OnTypeFormatManager();
 		documentLinkManager = new DocumentLinkManager();
@@ -95101,17 +95605,35 @@ var init_languages = __esmMin((() => {
 		semanticTokensRangeManager = new SemanticTokensRangeManager();
 		linkedEditingManager = new LinkedEditingRangeManager();
 		inlayHintManager = new InlayHintManger();
+		/**
+		* @internal
+		*/
 		inlineCompletionItemManager = new InlineCompletionItemManager();
 		inlineValueManager = new InlineValueManager();
+		/**
+		* @internal
+		*/
 		registerDocumentRangeFormattingEditProvider;
+		/**
+		* @internal
+		*/
 		registerDocumentFormattingEditProvider;
+		/**
+		* @internal
+		*/
 		sources;
+		/**
+		* @internal
+		*/
 		registerReferenceProvider;
 		constructor() {
 			this.registerReferenceProvider = this.registerReferencesProvider;
 			this.registerDocumentRangeFormattingEditProvider = this.registerDocumentRangeFormatProvider;
 			this.registerDocumentFormattingEditProvider = this.registerDocumentFormatProvider;
 		}
+		/**
+		* @internal
+		*/
 		hasFormatProvider(doc) {
 			if (this.formatManager.hasProvider(doc)) return true;
 			if (this.formatRangeManager.hasProvider(doc)) return true;
@@ -95223,60 +95745,114 @@ var init_languages = __esmMin((() => {
 		registerInlayHintsProvider(selector, provider) {
 			return this.registerProviderWithEvent(selector, provider, "onDidChangeInlayHints", this.inlayHintManager, this._onDidInlayHintRefresh);
 		}
+		/**
+		* @internal
+		*/
 		registerInlineValuesProvider(selector, provider) {
 			return this.inlineValueManager.register(selector, provider);
 		}
 		registerLinkedEditingRangeProvider(selector, provider) {
 			return this.linkedEditingManager.register(selector, provider);
 		}
+		/**
+		* @internal
+		*/
 		shouldTriggerSignatureHelp(document, triggerCharacter) {
 			return this.signatureManager.shouldTrigger(document, triggerCharacter);
 		}
+		/**
+		* @internal
+		*/
 		async getHover(document, position, token) {
 			return await this.hoverManager.provideHover(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getSignatureHelp(document, position, token, context) {
 			return await this.signatureManager.provideSignatureHelp(document, position, token, context);
 		}
+		/**
+		* @internal
+		*/
 		async getDefinition(document, position, token) {
 			return await this.definitionManager.provideDefinition(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getDefinitionLinks(document, position, token) {
 			return await this.definitionManager.provideDefinitionLinks(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getDeclaration(document, position, token) {
 			return await this.declarationManager.provideDeclaration(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getTypeDefinition(document, position, token) {
 			return await this.typeDefinitionManager.provideTypeDefinition(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getImplementation(document, position, token) {
 			return await this.implementationManager.provideImplementations(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getReferences(document, context, position, token) {
 			return await this.referenceManager.provideReferences(document, position, context, token);
 		}
+		/**
+		* @internal
+		*/
 		async getDocumentSymbol(document, token) {
 			return await this.documentSymbolManager.provideDocumentSymbols(document, token);
 		}
+		/**
+		* @internal
+		*/
 		getDocumentSymbolMetadata(document) {
 			return this.documentSymbolManager.getMetaData(document);
 		}
+		/**
+		* @internal
+		*/
 		async getSelectionRanges(document, positions, token) {
 			return await this.selectionRangeManager.provideSelectionRanges(document, positions, token);
 		}
+		/**
+		* @internal
+		*/
 		async getWorkspaceSymbols(query, token) {
 			return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token);
 		}
+		/**
+		* @internal
+		*/
 		async resolveWorkspaceSymbol(symbol, token) {
 			return await this.workspaceSymbolsManager.resolveWorkspaceSymbol(symbol, token);
 		}
+		/**
+		* @internal
+		*/
 		async prepareRename(document, position, token) {
 			return await this.renameManager.prepareRename(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideRenameEdits(document, position, newName, token) {
 			return await this.renameManager.provideRenameEdits(document, position, newName, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentFormattingEdits(document, options, token) {
 			if (!this.formatManager.hasFormatProvider(document)) {
 				if (!this.formatRangeManager.hasProvider(document)) return null;
@@ -95286,97 +95862,195 @@ var init_languages = __esmMin((() => {
 			}
 			return await this.formatManager.provideDocumentFormattingEdits(document, options, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentRangeFormattingEdits(document, range, options, token) {
 			return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token);
 		}
+		/**
+		* Provide formatting edits for multiple ranges in a document.
+		*
+		* @since 3.18.0
+		*/
+		async provideDocumentRangesFormattingEdits(document, ranges, options, token) {
+			return await this.formatRangeManager.provideDocumentRangesFormattingEdits(document, ranges, options, token);
+		}
+		/**
+		* @internal
+		*/
 		async getCodeActions(document, range, context, token) {
 			return await this.codeActionManager.provideCodeActions(document, range, context, token);
 		}
+		/**
+		* @internal
+		*/
 		async getDocumentHighLight(document, position, token) {
 			return await this.documentHighlightManager.provideDocumentHighlights(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async getDocumentLinks(document, token) {
 			return await this.documentLinkManager.provideDocumentLinks(document, token);
 		}
+		/**
+		* @internal
+		*/
 		async resolveDocumentLink(link, token) {
 			return await this.documentLinkManager.resolveDocumentLink(link, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentColors(document, token) {
 			return await this.documentColorManager.provideDocumentColors(document, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideFoldingRanges(document, context, token) {
 			return await this.foldingRangeManager.provideFoldingRanges(document, context, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideColorPresentations(color, document, token) {
 			return await this.documentColorManager.provideColorPresentations(color, document, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideInlineCompletionItems(document, position, context, token) {
 			return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token);
 		}
+		/**
+		* @internal
+		*/
 		async getCodeLens(document, token) {
 			return await this.codeLensManager.provideCodeLenses(document, token);
 		}
+		/**
+		* @internal
+		*/
 		async resolveCodeLens(codeLens, token) {
 			return await this.codeLensManager.resolveCodeLens(codeLens, token);
 		}
+		/**
+		* @internal
+		*/
 		async resolveCodeAction(codeAction, token) {
 			return await this.codeActionManager.resolveCodeAction(codeAction, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentOnTypeEdits(character, document, position, token) {
 			return this.onTypeFormatManager.onCharacterType(character, document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		canFormatOnType(character, document) {
 			return this.onTypeFormatManager.couldTrigger(document, character) != null;
 		}
+		/**
+		* @internal
+		*/
 		async prepareCallHierarchy(document, position, token) {
 			return this.callHierarchyManager.prepareCallHierarchy(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideIncomingCalls(document, item, token) {
 			return this.callHierarchyManager.provideCallHierarchyIncomingCalls(document, item, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideOutgoingCalls(document, item, token) {
 			return this.callHierarchyManager.provideCallHierarchyOutgoingCalls(document, item, token);
 		}
+		/**
+		* @internal
+		*/
 		getLegend(document, range) {
 			if (range) return this.semanticTokensRangeManager.getLegend(document);
 			return this.semanticTokensManager.getLegend(document);
 		}
+		/**
+		* @internal
+		*/
 		hasSemanticTokensEdits(document) {
 			return this.semanticTokensManager.hasSemanticTokensEdits(document);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentSemanticTokens(document, token) {
 			return this.semanticTokensManager.provideDocumentSemanticTokens(document, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentSemanticTokensEdits(document, previousResultId, token) {
 			return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideDocumentRangeSemanticTokens(document, range, token) {
 			return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideInlayHints(document, range, token) {
 			return this.inlayHintManager.provideInlayHints(document, range, token);
 		}
+		/**
+		* @internal
+		*/
 		async resolveInlayHint(hint, token) {
 			return this.inlayHintManager.resolveInlayHint(hint, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideLinkedEdits(document, position, token) {
 			return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideInlineValues(document, viewPort, context, token) {
 			return this.inlineValueManager.provideInlineValues(document, viewPort, context, token);
 		}
+		/**
+		* @internal
+		*/
 		async prepareTypeHierarchy(document, position, token) {
 			return this.typeHierarchyManager.prepareTypeHierarchy(document, position, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideTypeHierarchySupertypes(item, token) {
 			return this.typeHierarchyManager.provideTypeHierarchySupertypes(item, token);
 		}
+		/**
+		* @internal
+		*/
 		async provideTypeHierarchySubtypes(item, token) {
 			return this.typeHierarchyManager.provideTypeHierarchySubtypes(item, token);
 		}
 		createDiagnosticCollection(owner) {
 			return manager_default$2.create(owner);
 		}
+		/**
+		* @internal
+		*/
 		registerProviderWithEvent(selector, provider, key, manager, emitter, extra) {
 			let disposables = [];
 			let timer = setTimeout(() => {
@@ -95446,15 +96120,21 @@ function detectLanguage(code) {
 	if (code >= 44032 && code <= 55215) return "ko";
 	return "";
 }
+function getSegmenter(locales) {
+	let seg = segmenters.get(locales);
+	if (!seg) {
+		seg = new Intl.Segmenter(locales === "" ? void 0 : locales, { granularity: "word" });
+		segmenters.set(locales, seg);
+	}
+	return seg;
+}
 function* parseSegments(text, segmenterLocales) {
 	if (Intl === void 0 || typeof Intl["Segmenter"] !== "function") {
 		yield text;
 		return;
 	}
-	let res = [];
-	let items = new Intl["Segmenter"](segmenterLocales === "" ? void 0 : segmenterLocales, { granularity: "word" }).segment(text);
+	let items = getSegmenter(segmenterLocales).segment(text);
 	for (let item of items) if (item.isWordLike) yield item.segment;
-	return res;
 }
 function splitKeywordOption(iskeyword) {
 	let res = [];
@@ -95488,7 +96168,7 @@ function splitKeywordOption(iskeyword) {
 	}
 	return res;
 }
-var WORD_RANGES, MAX_CODE_UNIT, boundary, IntegerRanges, Chars;
+var WORD_RANGES, MAX_CODE_UNIT, boundary, segmenters, IntegerRanges, Chars;
 var init_chars = __esmMin((() => {
 	init_main$2();
 	init_util$7();
@@ -95546,6 +96226,7 @@ var init_chars = __esmMin((() => {
 	];
 	MAX_CODE_UNIT = 65535;
 	boundary = 19968;
+	segmenters = /* @__PURE__ */ new Map();
 	IntegerRanges = class IntegerRanges {
 		ranges;
 		wordChars;
@@ -95906,7 +96587,7 @@ function fireLinesChanged(bufnr) {
 }
 function getUri(fullpath, id, buftype) {
 	if (!fullpath) return `untitled:${id}`;
-	if (path$5.isAbsolute(fullpath)) return URI.file(path$5.normalize(fullpath)).toString();
+	if (path$3.isAbsolute(fullpath)) return URI.file(path$3.normalize(fullpath)).toString();
 	if (isUrl(fullpath)) return URI.parse(fullpath).toString();
 	if (buftype != "") return `${buftype}:${id}`;
 	return `unknown:${id}`;
@@ -95916,12 +96597,12 @@ function getNotAttachReason(buftype, enabled, size) {
 	if (enabled === 0) return `b:coc_enabled = 0`;
 	return `buffer size ${size} exceed coc.preferences.maxFileSize`;
 }
-var logger$43, MAX_EDITS, debounceTime$9, Document;
+var logger$45, MAX_EDITS, debounceTime$9, Document;
 var init_document = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_constants();
 	init_diff();
@@ -95935,7 +96616,7 @@ var init_document = __esmMin((() => {
 	init_textedit();
 	init_chars();
 	init_textdocument();
-	logger$43 = createLogger$1("document");
+	logger$45 = createLogger("document");
 	MAX_EDITS = getConditionValue(200, 400);
 	debounceTime$9 = getConditionValue(150, 15);
 	Document = class {
@@ -95957,6 +96638,8 @@ var init_document = __esmMin((() => {
 		_applying = false;
 		_uri;
 		_changedtick;
+		_linesTick = 0;
+		lineWaiters = [];
 		variables;
 		disposables = [];
 		_textDocument;
@@ -96067,6 +96750,7 @@ var init_document = __esmMin((() => {
 			this._winids = toArray(opts.winids);
 			this.variables = toObject(opts.variables);
 			this._changedtick = opts.changedtick;
+			this._linesTick = opts.changedtick;
 			this.eol = opts.eol == 1;
 			this._uri = getUri(opts.fullpath, this.bufnr, buftype);
 			if (Array.isArray(opts.lines)) {
@@ -96113,6 +96797,8 @@ var init_document = __esmMin((() => {
 						return;
 					}
 					this.lines = lines;
+					this._linesTick = tick;
+					this.settleLineWaiters(tick);
 					fireLinesChanged(bufnr);
 					if (events_default.completing) return;
 					this.fireContentChanges();
@@ -96133,6 +96819,8 @@ var init_document = __esmMin((() => {
 							return;
 						}
 						this.lines = lines;
+						this._linesTick = tick;
+						this.settleLineWaiters(tick);
 						fireLinesChanged(bufnr);
 						if (events_default.completing) return;
 						this.fireContentChanges();
@@ -96457,6 +97145,11 @@ var init_document = __esmMin((() => {
 			this._disposed = true;
 			this._attached = false;
 			this.lines = [];
+			for (let item of this.lineWaiters) {
+				clearTimeout(item.timer);
+				item.resolve();
+			}
+			this.lineWaiters = [];
 			this.fireContentChanges.clear();
 			this._onDocumentChange.dispose();
 		}
@@ -96467,7 +97160,35 @@ var init_document = __esmMin((() => {
 			if (!this.attached) return;
 			let { changedtick } = this;
 			await this.patchChange();
-			if (changedtick != this.changedtick) await wait(30);
+			if (changedtick != this.changedtick) await this.waitForLineEvents();
+		}
+		/**
+		* Wait for pending buffer change events to be applied, bounded by 30ms.
+		*/
+		waitForLineEvents() {
+			let target = this._changedtick;
+			if (this._linesTick >= target) return Promise.resolve();
+			return new Promise((resolve) => {
+				let item = {
+					target,
+					timer: setTimeout(() => {
+						let idx = this.lineWaiters.indexOf(item);
+						if (idx !== -1) this.lineWaiters.splice(idx, 1);
+						resolve();
+					}, 30),
+					resolve
+				};
+				this.lineWaiters.push(item);
+			});
+		}
+		settleLineWaiters(tick) {
+			if (this.lineWaiters.length === 0) return;
+			let waiters = this.lineWaiters;
+			this.lineWaiters = [];
+			for (let item of waiters) if (tick >= item.target) {
+				clearTimeout(item.timer);
+				item.resolve();
+			} else this.lineWaiters.push(item);
 		}
 		/**
 		* Synchronize buffer change
@@ -96489,7 +97210,7 @@ var init_document = __esmMin((() => {
 			this.lines = lines;
 			fireLinesChanged(this.bufnr);
 			this.fireContentChanges();
-			logger$43.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
+			logger$45.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
 		}
 	};
 }));
@@ -96656,14 +97377,14 @@ var require_bytes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/core/documents.ts
-var logger$42, cwd, filetypeDelay, Documents;
+var logger$44, cwd, filetypeDelay, Documents;
 var init_documents = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_document();
 	init_util$7();
 	init_array();
@@ -96677,7 +97398,7 @@ var init_documents = __esmMin((() => {
 	init_platform();
 	init_protocol();
 	init_string$1();
-	logger$42 = createLogger$1("core-documents");
+	logger$44 = createLogger("core-documents");
 	cwd = normalizeFilePath(process.cwd());
 	filetypeDelay = getConditionValue(50, 10);
 	Documents = class {
@@ -96810,7 +97531,7 @@ var init_documents = __esmMin((() => {
 		resolveRoot(rootPatterns, requireRootPattern = false) {
 			let doc = this.getDocument(this.bufnr);
 			let resolved;
-			if (doc && doc.schema == "file") resolved = resolveRoot(path$5.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
+			if (doc && doc.schema == "file") resolved = resolveRoot(path$3.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
 			else resolved = resolveRoot(this.cwd, rootPatterns);
 			if (requireRootPattern && !resolved) throw new Error(`Required root pattern not resolved.`);
 			return resolved;
@@ -96835,7 +97556,7 @@ var init_documents = __esmMin((() => {
 		* Expand filepath with `~` and/or environment placeholders
 		*/
 		expand(input) {
-			if (input.startsWith("~")) input = os$5.homedir() + input.slice(1);
+			if (input.startsWith("~")) input = os$3.homedir() + input.slice(1);
 			if (input.includes("$")) {
 				let doc = this.getDocument(this.bufnr);
 				let file = doc ? URI.parse(doc.uri).fsPath : "";
@@ -96845,7 +97566,7 @@ var init_documents = __esmMin((() => {
 					file
 				});
 				input = input.replace(/\$[\w]+/g, (match) => {
-					if (match == "$HOME") return os$5.homedir();
+					if (match == "$HOME") return os$3.homedir();
 					return process.env[match.slice(1)] || match;
 				});
 			}
@@ -96901,11 +97622,11 @@ var init_documents = __esmMin((() => {
 		* Get filetype by check same extension name buffer.
 		*/
 		getLanguageId(filepath) {
-			let ext = path$5.extname(filepath);
+			let ext = path$3.extname(filepath);
 			if (!ext) return "";
 			for (let doc of this.attached()) {
 				let fsPath = URI.parse(doc.uri).fsPath;
-				if (path$5.extname(fsPath) == ext) return doc.languageId;
+				if (path$3.extname(fsPath) == ext) return doc.languageId;
 			}
 			return "";
 		}
@@ -96976,7 +97697,7 @@ var init_documents = __esmMin((() => {
 			let { bufnr } = opts;
 			if (this.buffers.has(bufnr)) return this.buffers.get(bufnr);
 			let doc = new Document(this.nvim.createBuffer(bufnr), this.nvim, this.convertFiletype(opts.filetype), opts);
-			if (opts.size > this.config.maxFileSize) logger$42.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
+			if (opts.size > this.config.maxFileSize) logger$44.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
 			this.buffers.set(bufnr, doc);
 			if (doc.attached) {
 				if (doc.schema == "file") {
@@ -96987,7 +97708,7 @@ var init_documents = __esmMin((() => {
 				this._onDidOpenTextDocument.fire(doc.textDocument);
 				doc.onDocumentChange((e) => this._onDidChangeDocument.fire(e));
 			}
-			logger$42.debug("buffer created", bufnr, doc.attached, doc.uri);
+			logger$44.debug("buffer created", bufnr, doc.attached, doc.uri);
 			return doc;
 		}
 		onBufEnter(bufnr) {
@@ -97013,7 +97734,7 @@ var init_documents = __esmMin((() => {
 			let doc = this.buffers.get(bufnr);
 			this.buffers.delete(bufnr);
 			if (!doc || !doc.attached) return;
-			logger$42.debug("document detach", bufnr, doc.uri);
+			logger$44.debug("document detach", bufnr, doc.uri);
 			this._onDidCloseDocument.fire(doc.textDocument);
 			doc.detach();
 			const uris = this.textDocuments.map((o) => URI.parse(o.uri));
@@ -97071,7 +97792,7 @@ var init_documents = __esmMin((() => {
 							i = i + 1;
 							if (i == total) cb(void 0);
 						}, (e) => {
-							logger$42.error(`Error on will save handler:`, e);
+							logger$44.error(`Error on will save handler:`, e);
 							i = i + 1;
 							if (i == total) cb(void 0);
 						});
@@ -97081,6 +97802,7 @@ var init_documents = __esmMin((() => {
 			}
 			await this.tryCodeActionsOnSave(doc);
 			await this.tryFormatOnSave(doc);
+			await doc.synchronize();
 		}
 		async tryFormatOnSave(document) {
 			if (!this.shouldFormatOnSave(document)) return;
@@ -97090,7 +97812,7 @@ var init_documents = __esmMin((() => {
 			let tokenSource = new import_main$1.CancellationTokenSource();
 			const tp = new Promise((c) => {
 				timer = setTimeout(() => {
-					logger$42.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
+					logger$44.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
 					tokenSource.cancel();
 					c(void 0);
 				}, formatOnSaveTimeout);
@@ -97101,7 +97823,7 @@ var init_documents = __esmMin((() => {
 			if (isFalsyOrEmpty(textEdits)) return;
 			await document.applyEdits(textEdits);
 			let extensionName = textEdits["__extensionName"];
-			logger$42.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
+			logger$44.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
 		}
 		async tryCodeActionsOnSave(doc) {
 			let conf = this.configurations.getConfiguration("editor", doc.textDocument).get("codeActionsOnSave", {});
@@ -97114,14 +97836,14 @@ var init_documents = __esmMin((() => {
 		}
 		shouldFormatOnSave(document) {
 			const config = this.configurations.getConfiguration("coc.preferences", document);
-			const filetypes = config.get("formatOnSaveFiletypes", null) ?? [];
-			if (!(filetypes.includes("*") || filetypes.includes(document.languageId) || config.get("formatOnSave", false))) return false;
+			const filetypes = config.get("formatOnSaveFiletypes", null);
+			if (!(Array.isArray(filetypes) && (filetypes.includes("*") || filetypes.includes(document.languageId)) || config.get("formatOnSave", false))) return false;
 			if (!languages_default.hasFormatProvider(document)) {
-				logger$42.warn(`Format provider not found for ${document.uri}`);
+				logger$44.warn(`Format provider not found for ${document.uri}`);
 				return false;
 			}
 			if (!document || document.getVar("disable_autoformat", 0)) {
-				logger$42.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
+				logger$44.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
 				return false;
 			}
 			return true;
@@ -97224,7 +97946,7 @@ var init_documents = __esmMin((() => {
 			if (document && document.attached) return document.getline(line) || "";
 			if (!uri.startsWith("file:")) return "";
 			let fsPath = URI.parse(uri).fsPath;
-			if (!fs$5.existsSync(fsPath)) return "";
+			if (!fs$3.existsSync(fsPath)) return "";
 			return await readFileLine(fsPath, line);
 		}
 		/**
@@ -97282,18 +98004,18 @@ function renamed(editor, info) {
 	if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
 	return false;
 }
-var logger$41, Editors;
+var logger$43, Editors;
 var init_editors = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_convert();
 	init_errors();
 	init_fs();
 	init_mutex();
 	init_protocol();
-	logger$41 = createLogger$1("core-editors");
+	logger$43 = createLogger("core-editors");
 	Editors = class {
 		documents;
 		disposables = [];
@@ -97423,22 +98145,25 @@ var init_editors = __esmMin((() => {
 			if (creating.has(winid)) return false;
 			let changed = false;
 			creating.add(winid);
-			let opts = await nvim.call("coc#util#get_editoroption", [winid]);
-			if (opts) {
-				this.tabIds.add(opts.tabpageid);
-				let doc = documents.getDocument(opts.bufnr);
-				if (doc && doc.attached) {
-					let editor = this.fromOptions(opts);
-					this.editors.set(winid, editor);
-					if (winid == this.winid) this.onChangeCurrent(editor);
-					logger$41.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
-					changed = true;
-				} else if (this.editors.has(winid)) {
-					this.editors.delete(winid);
-					changed = true;
+			try {
+				let opts = await nvim.call("coc#util#get_editoroption", [winid]);
+				if (opts) {
+					this.tabIds.add(opts.tabpageid);
+					let doc = documents.getDocument(opts.bufnr);
+					if (doc && doc.attached) {
+						let editor = this.fromOptions(opts);
+						this.editors.set(winid, editor);
+						if (winid == this.winid) this.onChangeCurrent(editor);
+						logger$43.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
+						changed = true;
+					} else if (this.editors.has(winid)) {
+						this.editors.delete(winid);
+						changed = true;
+					}
 				}
+			} finally {
+				creating.delete(winid);
 			}
-			creating.delete(winid);
 			return changed;
 		}
 		fromOptions(opts) {
@@ -97638,10 +98363,10 @@ var require_Int64 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var require_bser = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var EE$1 = require("events").EventEmitter;
 	var util$7 = require("util");
-	var os$2 = require("os");
+	var os$1 = require("os");
 	require("assert");
 	var Int64 = require_Int64();
-	var isBigEndian = os$2.endianness() == "BE";
+	var isBigEndian = os$1.endianness() == "BE";
 	function nextPow2(size) {
 		return Math.pow(2, Math.ceil(Math.log(size) / Math.LN2));
 	}
@@ -98269,11 +98994,11 @@ var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/core/watchman.ts
-var logger$40, requiredCapabilities, Watchman;
+var logger$42, requiredCapabilities, Watchman;
 var init_watchman = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_node();
-	logger$40 = createLogger$1("core-watchman");
+	logger$42 = createLogger("core-watchman");
 	requiredCapabilities = [
 		"relative_root",
 		"cmd-watch-project",
@@ -98315,11 +99040,11 @@ var init_watchman = __esmMin((() => {
 			let { watch, warning, relative_path } = await this.command(["watch-project", root]);
 			if (!watch) return false;
 			if (warning) {
-				logger$40.warn(warning);
+				logger$42.warn(warning);
 				this.appendOutput(warning, "Warning");
 			}
 			this.relative_path = relative_path;
-			logger$40.info(`watchman watching project: ${root}`);
+			logger$42.info(`watchman watching project: ${root}`);
 			this.appendOutput(`watchman watching project: ${root}`);
 			let { clock } = await this.command(["clock", watch]);
 			let sub = {
@@ -98341,7 +99066,7 @@ var init_watchman = __esmMin((() => {
 			};
 			if (relative_path) {
 				sub.relative_root = relative_path;
-				root = path$5.join(watch, relative_path);
+				root = path$3.join(watch, relative_path);
 			}
 			let uid = crypto.randomUUID();
 			let { subscribe } = await this.command([
@@ -98372,7 +99097,7 @@ var init_watchman = __esmMin((() => {
 				files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
 				if (!files.length) return;
 				let ev = Object.assign({}, change);
-				if (this.relative_path) ev.root = path$5.resolve(change.root, this.relative_path);
+				if (this.relative_path) ev.root = path$3.resolve(change.root, this.relative_path);
 				this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
 				cb(ev);
 			};
@@ -98410,14 +99135,14 @@ var init_watchman = __esmMin((() => {
 var WATCHMAN_COMMAND, FileSystemWatcherManager, FileSystemWatcher;
 var init_fileSystemWatcher$1 = __esmMin((() => {
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_fs();
 	init_node();
 	init_protocol();
 	init_watchman();
-	createLogger$1("fileSystemWatcher");
+	createLogger("fileSystemWatcher");
 	WATCHMAN_COMMAND = "watchman";
 	FileSystemWatcherManager = class FileSystemWatcherManager {
 		workspaceFolder;
@@ -98425,15 +99150,15 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		clientsMap = /* @__PURE__ */ new Map();
 		disposables = [];
 		channel;
-		creating = /* @__PURE__ */ new Set();
+		creating = /* @__PURE__ */ new Map();
 		static watchers = /* @__PURE__ */ new Set();
 		_onDidCreateClient = new import_main$1.Emitter();
-		disabled = isTester$1;
+		disabled;
 		onDidCreateClient = this._onDidCreateClient.event;
 		constructor(workspaceFolder, config) {
 			this.workspaceFolder = workspaceFolder;
 			this.config = config;
-			this.disabled = config.enable === false;
+			this.disabled = config.enable === false || isTester;
 		}
 		attach(channel) {
 			this.channel = channel;
@@ -98460,6 +99185,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		}
 		waitClient(root) {
 			if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root));
+			let pending = this.creating.get(root);
+			if (pending) return pending;
 			return new Promise((resolve) => {
 				let disposable = this.onDidCreateClient((r) => {
 					if (r == root) {
@@ -98472,17 +99199,23 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		async createClient(root, skipCheck = false) {
 			if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return;
 			if (this.has(root)) return this.waitClient(root);
+			let pending = this.creating.get(root);
+			if (pending) return pending;
+			let p = this.createClientInner(root);
+			this.creating.set(root, p);
+			return p.finally(() => {
+				this.creating.delete(root);
+			});
+		}
+		async createClientInner(root) {
 			try {
-				this.creating.add(root);
 				let watchmanPath = await this.getWatchmanPath();
 				let client = await Watchman.createClient(watchmanPath, root, this.channel);
-				this.creating.delete(root);
 				this.clientsMap.set(root, client);
 				for (let watcher of FileSystemWatcherManager.watchers) watcher.listen(root, client);
 				this._onDidCreateClient.fire(root);
 				return client;
 			} catch (e) {
-				this.creating.delete(root);
 				if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`);
 				return false;
 			}
@@ -98494,7 +99227,7 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		}
 		has(root) {
 			let curr = Array.from(this.clientsMap.keys());
-			curr.push(...this.creating);
+			curr.push(...this.creating.keys());
 			return curr.some((r) => sameFile(r, root));
 		}
 		createFileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents) {
@@ -98553,13 +99286,13 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 				let { root, files } = change;
 				if (basePath && !sameFile(root, basePath)) files = files.filter((f) => {
 					if (f.type != "f") return false;
-					let fullpath = path$5.join(root, f.name);
+					let fullpath = path$3.join(root, f.name);
 					if (!isParentFolder(basePath, fullpath)) return false;
-					return minimatch(path$5.relative(basePath, fullpath), pattern, { dot: true });
+					return minimatch(path$3.relative(basePath, fullpath), pattern, { dot: true });
 				});
 				else files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
 				for (let file of files) {
-					let uri = URI.file(path$5.join(root, file.name));
+					let uri = URI.file(path$3.join(root, file.name));
 					if (!file.exists) {
 						if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
 					} else if (file.new === true) {
@@ -98570,8 +99303,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 					let oldFile = files.find((o) => o.exists !== true);
 					let newFile = files.find((o) => o.exists === true);
 					if (oldFile.size == newFile.size) this._onDidRename.fire({
-						oldUri: URI.file(path$5.join(root, oldFile.name)),
-						newUri: URI.file(path$5.join(root, newFile.name))
+						oldUri: URI.file(path$3.join(root, oldFile.name)),
+						newUri: URI.file(path$3.join(root, newFile.name))
 					});
 				}
 				if (files.length > 2 && files.length % 2 == 0) {
@@ -98579,8 +99312,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 					if (oldFiles.length == newFiles.length) for (let oldFile of oldFiles) {
 						let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
 						if (newFile) this._onDidRename.fire({
-							oldUri: URI.file(path$5.join(root, oldFile.name)),
-							newUri: URI.file(path$5.join(root, newFile.name))
+							oldUri: URI.file(path$3.join(root, oldFile.name)),
+							newUri: URI.file(path$3.join(root, newFile.name))
 						});
 					}
 				}
@@ -98776,10 +99509,10 @@ var init_editInspect = __esmMin((() => {
 			this.bufnr = buffer.id;
 			const relpath = (uri) => {
 				let fsPath = URI.parse(uri).fsPath;
-				return isParentFolder(cwd, fsPath, true) ? path$5.relative(cwd, fsPath) : fsPath;
+				return isParentFolder(cwd, fsPath, true) ? path$3.relative(cwd, fsPath) : fsPath;
 			};
 			const absPath = (filepath) => {
-				return path$5.isAbsolute(filepath) ? filepath : path$5.join(cwd, filepath);
+				return path$3.isAbsolute(filepath) ? filepath : path$3.join(cwd, filepath);
 			};
 			let highlighter = new Highlighter();
 			let map = grouByAnnotation(toArray(state.edit.documentChanges), state.edit.changeAnnotations ?? {});
@@ -98928,24 +99661,24 @@ var init_editInspect = __esmMin((() => {
 //#endregion
 //#region src/core/files.ts
 function fileMatch(root, relpath, pattern) {
-	let filepath = path$5.join(root, relpath);
+	let filepath = path$3.join(root, relpath);
 	if (typeof pattern !== "string") {
 		let base = pattern.baseUri.fsPath;
 		if (!isParentFolder(base, filepath)) return false;
-		return minimatch(path$5.relative(base, filepath), pattern.pattern, { dot: true });
+		return minimatch(path$3.relative(base, filepath), pattern.pattern, { dot: true });
 	}
 	return minimatch(relpath, pattern, { dot: true });
 }
 function fsPath(uri) {
 	return URI.parse(uri).fsPath;
 }
-var logger$39, Files;
+var logger$41, Files;
 var init_files = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_commands$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_editInspect();
 	init_errors();
 	init_fs();
@@ -98953,7 +99686,7 @@ var init_files = __esmMin((() => {
 	init_protocol();
 	init_string$1();
 	init_textedit();
-	logger$39 = createLogger$1("core-files");
+	logger$41 = createLogger("core-files");
 	Files = class {
 		documents;
 		configurations;
@@ -98963,7 +99696,6 @@ var init_files = __esmMin((() => {
 		env;
 		window;
 		editState;
-		operationTimeout = 500;
 		_onDidCreateFiles = new import_main$1.Emitter();
 		_onDidRenameFiles = new import_main$1.Emitter();
 		_onDidDeleteFiles = new import_main$1.Emitter();
@@ -98993,8 +99725,8 @@ var init_files = __esmMin((() => {
 			if (doc) return doc;
 			const scheme = uri.scheme;
 			if (scheme == "file") {
-				if (!fs$5.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
-				fs$5.accessSync(uri.fsPath, fs$5.constants.R_OK);
+				if (!fs$3.existsSync(uri.fsPath)) throw fileNotExists(uri.fsPath);
+				fs$3.accessSync(uri.fsPath, fs$3.constants.R_OK);
 			}
 			if (scheme == "untitled") {
 				await this.nvim.call("coc#util#open_file", ["tab drop", uri.path]);
@@ -99092,7 +99824,7 @@ var init_files = __esmMin((() => {
 		*/
 		async createFile(filepath, opts = {}, recovers) {
 			let { nvim } = this;
-			let exists = fs$5.existsSync(filepath);
+			let exists = fs$3.existsSync(filepath);
 			if (exists && !opts.overwrite && !opts.ignoreIfExists) throw fileExists(filepath);
 			if (!exists || opts.overwrite) {
 				let tokenSource = new import_main$1.CancellationTokenSource();
@@ -99101,32 +99833,32 @@ var init_files = __esmMin((() => {
 					token: tokenSource.token
 				}, recovers);
 				tokenSource.cancel();
-				let dir = path$5.dirname(filepath);
-				if (!fs$5.existsSync(dir)) {
+				let dir = path$3.dirname(filepath);
+				if (!fs$3.existsSync(dir)) {
 					let folder;
 					let curr = dir;
 					while (![
 						".",
 						"/",
-						path$5.parse(dir).root
+						path$3.parse(dir).root
 					].includes(curr)) {
-						if (fs$5.existsSync(path$5.dirname(curr))) {
+						if (fs$3.existsSync(path$3.dirname(curr))) {
 							folder = curr;
 							break;
 						}
-						curr = path$5.dirname(curr);
+						curr = path$3.dirname(curr);
 					}
-					fs$5.mkdirSync(dir, { recursive: true });
+					fs$3.mkdirSync(dir, { recursive: true });
 					if (Array.isArray(recovers)) recovers.push(() => {
-						fs$5.rmSync(folder, {
+						fs$3.rmSync(folder, {
 							force: true,
 							recursive: true
 						});
 					});
 				}
-				fs$5.writeFileSync(filepath, "", "utf8");
+				fs$3.writeFileSync(filepath, "", "utf8");
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.rmSync(filepath, {
+					fs$3.rmSync(filepath, {
 						force: true,
 						recursive: true
 					});
@@ -99160,29 +99892,29 @@ var init_files = __esmMin((() => {
 					});
 				}
 			}
-			let folder = path$5.join(os$5.tmpdir(), "coc-" + process.pid);
-			fs$5.mkdirSync(folder, { recursive: true });
+			let folder = path$3.join(os$3.tmpdir(), "coc-" + process.pid);
+			fs$3.mkdirSync(folder, { recursive: true });
 			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
 			if (isDir && recursive) {
-				let dest = path$5.join(folder, md5);
-				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
+				let dest = path$3.join(folder, md5);
+				let dir = path$3.dirname(filepath);
+				fs$3.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(async () => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
+					fs$3.mkdirSync(dir, { recursive: true });
+					fs$3.renameSync(dest, filepath);
 				});
 			} else if (isDir) {
-				fs$5.rmdirSync(filepath);
+				fs$3.rmdirSync(filepath);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(filepath);
+					fs$3.mkdirSync(filepath);
 				});
 			} else {
-				let dest = path$5.join(folder, md5);
-				let dir = path$5.dirname(filepath);
-				fs$5.renameSync(filepath, dest);
+				let dest = path$3.join(folder, md5);
+				let dir = path$3.dirname(filepath);
+				fs$3.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(() => {
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.renameSync(dest, filepath);
+					fs$3.mkdirSync(dir, { recursive: true });
+					fs$3.renameSync(dest, filepath);
 				});
 			}
 			this._onDidDeleteFiles.fire({ files: [uri] });
@@ -99194,7 +99926,7 @@ var init_files = __esmMin((() => {
 			let { nvim } = this;
 			let { overwrite, ignoreIfExists } = opts;
 			if (newPath === oldPath) return;
-			let exists = fs$5.existsSync(newPath);
+			let exists = fs$3.existsSync(newPath);
 			if (exists && ignoreIfExists && !overwrite) return;
 			if (exists && !overwrite) throw fileExists(newPath);
 			let oldStat = await statAsync(oldPath);
@@ -99225,7 +99957,7 @@ var init_files = __esmMin((() => {
 						await this.documents.onBufCreate(bufnr);
 					}
 				}
-				fs$5.renameSync(oldPath, newPath);
+				fs$3.renameSync(oldPath, newPath);
 			}
 			if (Array.isArray(recovers)) recovers.push(() => {
 				return this.renameFile(newPath, oldPath, { skipEvent: true });
@@ -99314,7 +100046,7 @@ var init_files = __esmMin((() => {
 				};
 				this.nvim.redrawVim();
 			} catch (e) {
-				logger$39.error("Error on applyEdits:", edit, e);
+				logger$41.error("Error on applyEdits:", edit, e);
 				if (!nested) this.window.showErrorMessage(`Error on applyEdits: ${e}`);
 				await this.undoChanges(recovers);
 				return false;
@@ -99396,7 +100128,7 @@ var init_files = __esmMin((() => {
 				if (token?.isCancellationRequested) break;
 				for (let file of files) {
 					if (exclude && fileMatch(root, file, exclude)) continue;
-					res.push(URI.file(path$5.join(root, file)));
+					res.push(URI.file(path$3.join(root, file)));
 					if (res.length === maxResults) {
 						exceed = true;
 						break;
@@ -99411,14 +100143,25 @@ var init_files = __esmMin((() => {
 		async fireWaitUntilEvent(emitter, properties, recovers) {
 			let firing = true;
 			let promises = [];
+			let operationTimeout = this.configurations.initialConfiguration.get("editor.fileOperationTimeout", 500);
 			emitter.fire({
 				...properties,
 				waitUntil: (thenable) => {
 					if (!firing) throw shouldNotAsync("waitUntil");
+					let timedOut = false;
+					let timer;
 					let tp = new Promise((resolve) => {
-						setTimeout(resolve, this.operationTimeout);
+						timer = setTimeout(() => {
+							timedOut = true;
+							resolve(void 0);
+						}, operationTimeout);
 					});
 					let promise = Promise.race([thenable, tp]).then((edit) => {
+						clearTimeout(timer);
+						if (timedOut) {
+							logger$41.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`);
+							return;
+						}
 						if (edit && WorkspaceEdit.is(edit)) return this.applyEdit(edit, true);
 					});
 					promises.push(promise);
@@ -99448,13 +100191,13 @@ function toKeymapOption(option) {
 		silent: true
 	}, typeof option == "boolean" ? { sync: !option } : option);
 }
-var logger$38, Keymaps;
+var logger$40, Keymaps;
 var init_keymaps = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_constants();
 	init_protocol();
 	init_string$1();
-	logger$38 = createLogger$1("core-keymaps");
+	logger$40 = createLogger("core-keymaps");
 	Keymaps = class {
 		keymaps = /* @__PURE__ */ new Map();
 		nvim;
@@ -99464,7 +100207,7 @@ var init_keymaps = __esmMin((() => {
 		async doKeymap(key, defaultReturn) {
 			let keymap = this.keymaps.get(key) ?? this.keymaps.get("coc-" + key);
 			if (!keymap) {
-				logger$38.error(`keymap for ${key} not found`);
+				logger$40.error(`keymap for ${key} not found`);
 				return defaultReturn;
 			}
 			let [fn, repeat] = keymap;
@@ -99568,14 +100311,14 @@ var init_keymaps = __esmMin((() => {
 }));
 //#endregion
 //#region src/core/watchers.ts
-var logger$37, Watchers;
+var logger$39, Watchers;
 var init_watchers = __esmMin((() => {
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_protocol();
 	init_string$1();
-	logger$37 = createLogger$1("watchers");
+	logger$39 = createLogger("watchers");
 	Watchers = class {
 		nvim;
 		optionCallbacks = /* @__PURE__ */ new Map();
@@ -99590,7 +100333,7 @@ var init_watchers = __esmMin((() => {
 							await Promise.resolve(cb(oldValue, newValue));
 						} catch (e) {
 							this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`);
-							logger$37.error(`Error on OptionSet callback:`, e);
+							logger$39.error(`Error on OptionSet callback:`, e);
 						}
 					})();
 				}));
@@ -99603,7 +100346,7 @@ var init_watchers = __esmMin((() => {
 							await Promise.resolve(cb(oldValue, newValue));
 						} catch (e) {
 							this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`);
-							logger$37.error(`Error on GlobalChange callback:`, e);
+							logger$39.error(`Error on GlobalChange callback:`, e);
 						}
 					})();
 				}));
@@ -99663,20 +100406,20 @@ var init_watchers = __esmMin((() => {
 //#endregion
 //#region src/core/workspaceFolder.ts
 function toWorkspaceFolder(fsPath) {
-	if (!fsPath || !path$5.isAbsolute(fsPath)) {
-		logger$36.error(`Invalid folder: ${fsPath}, full path required.`);
+	if (!fsPath || !path$3.isAbsolute(fsPath)) {
+		logger$38.error(`Invalid folder: ${fsPath}, full path required.`);
 		return;
 	}
 	return {
-		name: path$5.basename(fsPath),
+		name: path$3.basename(fsPath),
 		uri: URI.file(fsPath).toString()
 	};
 }
-var PatternType, logger$36, PatternTypes, checkPatternTimeout, extensionRegistry$2, WorkspaceFolderController;
+var PatternType, logger$38, PatternTypes, checkPatternTimeout, extensionRegistry$2, WorkspaceFolderController;
 var init_workspaceFolder = __esmMin((() => {
 	init_esm();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -99692,13 +100435,13 @@ var init_workspaceFolder = __esmMin((() => {
 		PatternType[PatternType["Global"] = 2] = "Global";
 		return PatternType;
 	}({});
-	logger$36 = createLogger$1("core-workspaceFolder");
+	logger$38 = createLogger("core-workspaceFolder");
 	PatternTypes = [
 		0,
 		1,
 		2
 	];
-	checkPatternTimeout = getConditionValue(5e3, 50);
+	checkPatternTimeout = getConditionValue(5e3, 500);
 	extensionRegistry$2 = Registry.as(Extensions$3.ExtensionContribution);
 	WorkspaceFolderController = class {
 		configurations;
@@ -99773,7 +100516,7 @@ var init_workspaceFolder = __esmMin((() => {
 			const folder = this.getWorkspaceFolder(resource);
 			if (!folder) return p;
 			if (typeof includeWorkspace === "undefined" && this._workspaceFolders) includeWorkspace = this._workspaceFolders.length > 1;
-			let result = path$5.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
+			let result = path$3.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
 			result = result == "" ? resource.fsPath : result;
 			if (includeWorkspace && folder.name) result = `${folder.name}/${result}`;
 			return result;
@@ -99789,7 +100532,7 @@ var init_workspaceFolder = __esmMin((() => {
 		resolveRoot(document, cwd, fireEvent, expand) {
 			if (document.buftype !== "" || document.schema !== "file") return null;
 			let u = URI.parse(document.uri);
-			let dir = isDirectory(u.fsPath) ? path$5.normalize(u.fsPath) : path$5.dirname(u.fsPath);
+			let dir = isDirectory(u.fsPath) ? path$3.normalize(u.fsPath) : path$3.dirname(u.fsPath);
 			let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
 			if (ignoredFiletypes?.includes(document.filetype)) return null;
 			ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter((s) => s && s.length > 0).map((s) => expand(s)) : [];
@@ -99897,7 +100640,7 @@ var init_workspaceFolder = __esmMin((() => {
 			}));
 			clearTimeout(timer);
 			results.forEach((res) => {
-				if (res.status === "rejected" && !isCancellationError(res.reason)) logger$36.error(`checkPatterns error:`, patterns, res.reason);
+				if (res.status === "rejected" && !isCancellationError(res.reason)) logger$38.error(`checkPatterns error:`, patterns, res.reason);
 			});
 			return find;
 		}
@@ -100033,7 +100776,7 @@ var init_db$1 = __esmMin((() => {
 				if (typeof obj[parts[i]] === "undefined") break;
 				if (i == len - 1) {
 					delete obj[parts[i]];
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
+					fs$3.writeFileSync(this.filepath, JSON.stringify(origin, null, 2), "utf8");
 					break;
 				}
 				obj = obj[parts[i]];
@@ -100053,9 +100796,9 @@ var init_db$1 = __esmMin((() => {
 				let key = parts[i];
 				if (i == len - 1) {
 					obj[key] = data;
-					let dir = path$5.dirname(this.filepath);
-					fs$5.mkdirSync(dir, { recursive: true });
-					fs$5.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
+					let dir = path$3.dirname(this.filepath);
+					fs$3.mkdirSync(dir, { recursive: true });
+					fs$3.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
 					break;
 				}
 				if (typeof obj[key] == "undefined") {
@@ -100065,17 +100808,17 @@ var init_db$1 = __esmMin((() => {
 			}
 		}
 		load() {
-			let dir = path$5.dirname(this.filepath);
-			if (!fs$5.existsSync(dir)) {
-				fs$5.mkdirSync(dir, { recursive: true });
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+			let dir = path$3.dirname(this.filepath);
+			if (!fs$3.existsSync(dir)) {
+				fs$3.mkdirSync(dir, { recursive: true });
+				fs$3.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 			try {
-				let content = fs$5.readFileSync(this.filepath, "utf8");
+				let content = fs$3.readFileSync(this.filepath, "utf8");
 				return JSON.parse(content.trim());
 			} catch (e) {
-				fs$5.writeFileSync(this.filepath, "{}", "utf8");
+				fs$3.writeFileSync(this.filepath, "{}", "utf8");
 				return {};
 			}
 		}
@@ -100083,14 +100826,14 @@ var init_db$1 = __esmMin((() => {
 		* Empty db file.
 		*/
 		clear() {
-			if (!fs$5.existsSync(this.filepath)) return;
-			fs$5.writeFileSync(this.filepath, "{}", "utf8");
+			if (!fs$3.existsSync(this.filepath)) return;
+			fs$3.writeFileSync(this.filepath, "{}", "utf8");
 		}
 		/**
 		* Remove db file.
 		*/
 		destroy() {
-			if (fs$5.existsSync(this.filepath)) fs$5.unlinkSync(this.filepath);
+			if (fs$3.existsSync(this.filepath)) fs$3.unlinkSync(this.filepath);
 		}
 	};
 }));
@@ -100312,7 +101055,7 @@ var init_task = __esmMin((() => {
 }));
 //#endregion
 //#region src/workspace.ts
-var logger$35, methods, Workspace, workspace_default;
+var logger$37, methods, Workspace, workspace_default;
 var init_workspace$1 = __esmMin((() => {
 	init_esm();
 	init_configuration$2();
@@ -100330,7 +101073,7 @@ var init_workspace$1 = __esmMin((() => {
 	init_watchers();
 	init_workspaceFolder();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_bufferSync();
 	init_db$1();
 	init_fuzzyMatch();
@@ -100347,7 +101090,7 @@ var init_workspace$1 = __esmMin((() => {
 	init_object();
 	init_processes();
 	init_protocol();
-	logger$35 = createLogger$1("workspace");
+	logger$37 = createLogger("workspace");
 	methods = [
 		"showMessage",
 		"runTerminalCommand",
@@ -100383,29 +101126,67 @@ var init_workspace$1 = __esmMin((() => {
 		onWillRenameFiles;
 		onWillDeleteFiles;
 		nvim;
+		/**
+		* @internal
+		*/
 		configurations;
+		/**
+		* @internal
+		*/
 		workspaceFolderControl;
+		/**
+		* @internal
+		*/
 		documentsManager;
+		/**
+		* @internal
+		*/
 		contentProvider;
+		/**
+		* @internal
+		*/
 		autocmds;
+		/**
+		* @internal
+		*/
 		watchers;
+		/**
+		* @internal
+		*/
 		keymaps;
+		/**
+		* @internal
+		*/
 		files;
+		/**
+		* @internal
+		*/
 		fileSystemWatchers;
+		/**
+		* @internal
+		*/
 		editors;
+		/**
+		* @internal
+		*/
 		tabs;
 		isTrusted = true;
+		/**
+		* @internal
+		*/
 		statusLine = new StatusLine();
 		_onDidRuntimePathChange = new import_main$1.Emitter();
 		onDidRuntimePathChange = this._onDidRuntimePathChange.event;
 		fuzzyExports;
 		strWidth;
+		fuzzyReady;
+		strWidthReady;
 		_env;
 		constructor() {
-			initFuzzyWasm().then((api) => {
+			this.fuzzyReady = initFuzzyWasm().then((api) => {
 				this.fuzzyExports = api;
 			}, onUnexpectedError);
-			StrWidth.create().then((strWidth) => {
+			this.strWidthReady = StrWidth.create().then((strWidth) => {
 				this.strWidth = strWidth;
 			}, onUnexpectedError);
 			events_default.on("VimResized", (columns, lines) => {
@@ -100441,9 +101222,15 @@ var init_workspace$1 = __esmMin((() => {
 			const config = this.getWatchConfig();
 			this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, config);
 		}
+		/**
+		* @internal
+		*/
 		get initialConfiguration() {
 			return this.configurations.initialConfiguration;
 		}
+		/**
+		* @internal
+		*/
 		getWatchConfig() {
 			let { initialConfiguration } = this;
 			let watchConfig = defaultValue(initialConfiguration.get("fileSystemWatch"), {});
@@ -100462,18 +101249,21 @@ var init_workspace$1 = __esmMin((() => {
 				ignoredFolders: ignoredFolders.map((p) => this.expand(p))
 			};
 		}
+		/**
+		* @internal
+		*/
 		async init(window) {
 			let { nvim } = this;
 			for (let method of methods) Object.defineProperty(this, method, { get: () => {
 				return (...args) => {
 					let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-					logger$35.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
+					logger$37.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
 					return window[method].apply(window, args);
 				};
 			} });
 			for (let name of ["onDidOpenTerminal", "onDidCloseTerminal"]) Object.defineProperty(this, name, { get: () => {
 				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-				logger$35.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
+				logger$37.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
 				return window[name];
 			} });
 			let env = this._env = await nvim.call("coc#util#vim_info");
@@ -100512,10 +101302,14 @@ var init_workspace$1 = __esmMin((() => {
 			await this.documentsManager.attach(this.nvim, this._env);
 			await this.editors.attach(nvim);
 			this.tabs.attach();
+			await Promise.allSettled([this.fuzzyReady, this.strWidthReady]);
 			let channel = channels_default.create("watchman", nvim);
 			this.fileSystemWatchers.attach(channel);
 			if (this.strWidth) this.strWidth.setAmbw(!env.ambiguousIsNarrow);
 		}
+		/**
+		* @internal
+		*/
 		checkVersion(version) {
 			if (this._env.apiversion != version) {
 				this.nvim.echoError(`API version ${this._env.apiversion} is not 38, building coc.nvim by 'npm ci'.`);
@@ -100523,8 +101317,12 @@ var init_workspace$1 = __esmMin((() => {
 			}
 		}
 		getDisplayWidth(text, cache = false) {
+			if (!this.strWidth) return text.length;
 			return this.strWidth.getWidth(text, cache);
 		}
+		/**
+		* @internal
+		*/
 		get version() {
 			return VERSION;
 		}
@@ -100544,6 +101342,7 @@ var init_workspace$1 = __esmMin((() => {
 			return this.documentsManager.bufnr;
 		}
 		/**
+		* @internal
 		* @deprecated
 		*/
 		get insertMode() {
@@ -100556,6 +101355,7 @@ var init_workspace$1 = __esmMin((() => {
 			return true;
 		}
 		/**
+		* @internal
 		* @deprecated
 		*/
 		get uri() {
@@ -100582,6 +101382,9 @@ var init_workspace$1 = __esmMin((() => {
 		fixWin32unixFilepath(filepath) {
 			return this.documentsManager.fixUnixPrefix(filepath);
 		}
+		/**
+		* @internal
+		*/
 		checkPatterns(patterns, folders) {
 			return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns);
 		}
@@ -100601,6 +101404,7 @@ var init_workspace$1 = __esmMin((() => {
 			return !this._env.isVim;
 		}
 		/**
+		* @internal
 		* Kept for backward compatible
 		*/
 		get completeOpt() {
@@ -100613,6 +101417,7 @@ var init_workspace$1 = __esmMin((() => {
 			return this.documentsManager.languageIds;
 		}
 		/**
+		* @internal
 		* @deprecated Use nvim.createNamespace() instead.
 		*/
 		createNameSpace(name) {
@@ -100677,19 +101482,29 @@ var init_workspace$1 = __esmMin((() => {
 		getDocument(uri) {
 			return this.documentsManager.getDocument(uri);
 		}
+		/**
+		* @internal
+		*/
 		hasDocument(uri, version) {
 			let doc = this.documentsManager.getDocument(uri);
 			return doc && (version != null ? doc.version == version : true);
 		}
+		/**
+		* @internal
+		*/
 		getUri(bufnr, defaultValue = "") {
 			let doc = this.documentsManager.getDocument(bufnr);
 			return doc ? doc.uri : defaultValue;
 		}
+		/**
+		* @internal
+		*/
 		isAttached(bufnr) {
 			let doc = this.documentsManager.getDocument(bufnr);
 			return doc != null && doc.attached;
 		}
 		/**
+		* @internal
 		* Get attached document by uri or bufnr.
 		* Throw error when document doesn't exist or isn't attached.
 		*/
@@ -100799,11 +101614,14 @@ var init_workspace$1 = __esmMin((() => {
 		* Create DB instance at extension root.
 		*/
 		createDatabase(name) {
-			return new DB(path$5.join(dataHome, name + ".json"));
+			return new DB(path$3.join(dataHome, name + ".json"));
 		}
 		registerBufferSync(create) {
 			return new BufferSync(create, this.documentsManager);
 		}
+		/**
+		* @internal
+		*/
 		async attach() {
 			await this.documentsManager.attach(this.nvim, this._env);
 		}
@@ -100818,8 +101636,12 @@ var init_workspace$1 = __esmMin((() => {
 		}
 		/**
 		* Apply WorkspaceEdit.
+		*
+		* @param edit Workspace edit.
+		* @param metadata Edit metadata, not used yet.
+		* @returns True when the edit is applied.
 		*/
-		applyEdit(edit) {
+		applyEdit(edit, metadata) {
 			return this.files.applyEdit(edit);
 		}
 		/**
@@ -100866,6 +101688,9 @@ var init_workspace$1 = __esmMin((() => {
 		openTextDocument(uri) {
 			return this.files.openTextDocument(uri);
 		}
+		/**
+		* @internal
+		*/
 		getRelativePath(pathOrUri, includeWorkspace) {
 			return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace);
 		}
@@ -100875,15 +101700,24 @@ var init_workspace$1 = __esmMin((() => {
 		async findFiles(include, exclude, maxResults, token) {
 			return this.files.findFiles(include, exclude, maxResults, token);
 		}
+		/**
+		* @internal
+		*/
 		detach() {
 			this.documentsManager.detach();
 		}
+		/**
+		* @internal
+		*/
 		reset() {
 			this.statusLine.reset();
 			this.configurations.reset();
 			this.workspaceFolderControl.reset();
 			this.documentsManager.reset();
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			channels_default.dispose();
 			this.autocmds.dispose();
@@ -101049,7 +101883,7 @@ var init_TreeItem = __esmMin((() => {
 			this.collapsibleState = collapsibleState;
 			if (URI.isUri(label)) {
 				this.resourceUri = label;
-				this.label = path$5.basename(label.path);
+				this.label = path$3.basename(label.path);
 				this.id = label.toString();
 			} else this.label = label;
 		}
@@ -101057,12 +101891,12 @@ var init_TreeItem = __esmMin((() => {
 }));
 //#endregion
 //#region src/tree/TreeView.ts
-var logger$34, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
+var logger$36, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
 var init_TreeView = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_fuzzyMatch();
 	init_util$7();
 	init_array();
@@ -101076,7 +101910,7 @@ var init_TreeView = __esmMin((() => {
 	init_workspace$1();
 	init_filter();
 	init_TreeItem();
-	logger$34 = createLogger$1("BasicTreeView");
+	logger$36 = createLogger("BasicTreeView");
 	retryTimeout = getConditionValue(500, 10);
 	maxRetry = getConditionValue(5, 1);
 	highlightNamespace = "tree";
@@ -101414,7 +102248,7 @@ var init_TreeView = __esmMin((() => {
 				release();
 			} catch (e) {
 				release();
-				logger$34.error(`Error on tree filter:`, e);
+				logger$36.error(`Error on tree filter:`, e);
 			}
 		}
 		async onHover(lnum) {
@@ -101498,7 +102332,7 @@ var init_TreeView = __esmMin((() => {
 				release();
 			} catch (e) {
 				let errMsg = `Error on tree refresh: ${e}`;
-				logger$34.error(errMsg, e);
+				logger$36.error(errMsg, e);
 				this.nvim.errWriteLine("[coc.nvim] " + errMsg);
 				release();
 			}
@@ -101876,7 +102710,7 @@ var init_TreeView = __esmMin((() => {
 				this.retryTimers = 0;
 				release();
 			} catch (err) {
-				logger$34.error("Error on render", err);
+				logger$36.error("Error on render", err);
 				this.renderedItems = [];
 				this.nodesMap.clear();
 				this.lineState = {
@@ -102028,10 +102862,22 @@ var init_window = __esmMin((() => {
 	init_protocol();
 	Window = class {
 		nvim;
+		/**
+		* @internal
+		*/
 		highlights = new Highlights$1();
 		terminalManager = new Terminals();
+		/**
+		* @internal
+		*/
 		cursors;
+		/**
+		* @internal
+		*/
 		dialogs = new Dialogs();
+		/**
+		* @internal
+		*/
 		notifications = new Notifications(this.dialogs);
 		workspace;
 		constructor() {
@@ -102048,6 +102894,9 @@ var init_window = __esmMin((() => {
 		get visibleTextEditors() {
 			return this.workspace.editors.visibleTextEditors;
 		}
+		/**
+		* @internal
+		*/
 		get onDidTabClose() {
 			return this.workspace.editors.onDidTabClose;
 		}
@@ -102238,6 +103087,9 @@ var init_window = __esmMin((() => {
 		async createQuickPick(config = {}) {
 			return await this.dialogs.createQuickPick(config);
 		}
+		/**
+		* @internal
+		*/
 		async requestInputList(prompt, items) {
 			if (items.length > this.workspace.env.lines) items = items.slice(0, this.workspace.env.lines - 2);
 			return await this.dialogs.requestInputList(prompt, items);
@@ -102355,6 +103207,9 @@ var init_window = __esmMin((() => {
 		get configuration() {
 			return this.workspace.initialConfiguration;
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			this.terminalManager.dispose();
 		}
@@ -102781,9 +103636,9 @@ function getPlaceholderId(p) {
 	p.id = id++;
 	return p.id;
 }
-var logger$33, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform$3, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var logger$35, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform$3, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_async$1();
 	init_errors();
@@ -102791,7 +103646,7 @@ var init_parser = __esmMin((() => {
 	init_string$1();
 	init_eval();
 	init_util$4();
-	logger$33 = createLogger$1("snippets-parser");
+	logger$35 = createLogger("snippets-parser");
 	ULTISNIP_VARIABLES = [
 		"VISUAL",
 		"YANK",
@@ -103900,7 +104755,7 @@ var init_parser = __esmMin((() => {
 					let c = this._accept(void 0, true);
 					if (c == "a") ascii = true;
 					else {
-						if (!knownRegexOptions.includes(c)) logger$33.error(`Unknown regex option: ${c}`);
+						if (!knownRegexOptions.includes(c)) logger$35.error(`Unknown regex option: ${c}`);
 						regexOptions += c;
 					}
 					continue;
@@ -104585,9 +105440,9 @@ var init_variableResolve = __esmMin((() => {
 				"TM_FILEPATH"
 			].includes(name)) {
 				let filepath = await nvim.call("coc#util#get_fullpath");
-				if (name === "TM_FILENAME") return path$5.basename(filepath);
-				if (name === "TM_FILENAME_BASE") return path$5.basename(filepath, path$5.extname(filepath));
-				if (name === "TM_DIRECTORY") return path$5.dirname(filepath);
+				if (name === "TM_FILENAME") return path$3.basename(filepath);
+				if (name === "TM_FILENAME_BASE") return path$3.basename(filepath, path$3.extname(filepath));
+				if (name === "TM_DIRECTORY") return path$3.dirname(filepath);
 				if (name === "TM_FILEPATH") return filepath;
 			}
 			if (name === "YANK") return await nvim.call("getreg", ["\"\""]);
@@ -104638,11 +105493,11 @@ var init_variableResolve = __esmMin((() => {
 }));
 //#endregion
 //#region src/snippets/session.ts
-var logger$32, NAME_SPACE, SnippetSession;
+var logger$34, NAME_SPACE, SnippetSession;
 var init_session$2 = __esmMin((() => {
 	init_main$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_diff();
 	init_errors();
@@ -104660,7 +105515,7 @@ var init_session$2 = __esmMin((() => {
 	init_snippet();
 	init_util$4();
 	init_variableResolve();
-	logger$32 = createLogger$1("snippets-session");
+	logger$34 = createLogger("snippets-session");
 	NAME_SPACE = "snippets";
 	SnippetSession = class {
 		nvim;
@@ -104941,7 +105796,7 @@ var init_session$2 = __esmMin((() => {
 			if (current && current.index === 0) {
 				const { snippet } = current;
 				if (snippet === this.snippet.tmSnippet) {
-					logger$32.info("Jump to final placeholder, cancelling snippet session");
+					logger$34.info("Jump to final placeholder, cancelling snippet session");
 					this.deactivate();
 				} else {
 					let marker = snippet.parent;
@@ -104975,7 +105830,7 @@ var init_session$2 = __esmMin((() => {
 			if (!this.isActive) return;
 			let position = await window_default.getCursorPosition();
 			if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
-				logger$32.info("Cursor insert out of range, cancelling snippet session");
+				logger$34.info("Cursor insert out of range, cancelling snippet session");
 				this.deactivate();
 			}
 		}
@@ -105030,7 +105885,7 @@ var init_session$2 = __esmMin((() => {
 			let c = comparePosition(change.range.start, range.end);
 			let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
 			if (c > 0 || c === 0 && !insertEnd) {
-				logger$32.info("Content change after snippet");
+				logger$34.info("Content change after snippet");
 				this.textDocument = newDocument;
 				return;
 			}
@@ -105046,11 +105901,11 @@ var init_session$2 = __esmMin((() => {
 				else cc = change.range.start.character + change.text.length - changeEnd.character;
 				this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
 				this.textDocument = newDocument;
-				logger$32.info("Content change before snippet, reset snippet position");
+				logger$34.info("Content change before snippet, reset snippet position");
 				return;
 			}
 			if (!rangeInRange(change.range, range)) {
-				logger$32.info("Before and snippet body changed, cancel snippet session");
+				logger$34.info("Before and snippet body changed, cancel snippet session");
 				this.deactivate();
 				return;
 			}
@@ -105071,7 +105926,7 @@ var init_session$2 = __esmMin((() => {
 			let changedRange = Range.create(start, getEnd(start, snippetText));
 			const expected = newDocument.getText(changedRange);
 			if (expected !== snippetText) {
-				logger$32.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
+				logger$34.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
 				this.deactivate();
 				return;
 			}
@@ -105085,7 +105940,7 @@ var init_session$2 = __esmMin((() => {
 				if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
 			}
 			this.highlights();
-			logger$32.debug("update cost:", Date.now() - startTs, res.delta);
+			logger$34.debug("update cost:", Date.now() - startTs, res.delta);
 			this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
 		}
 		async trySelectNextOnDelete(curr, next) {
@@ -105135,7 +105990,7 @@ var init_session$2 = __esmMin((() => {
 				-1
 			], true);
 			this._onActiveChange.fire(false);
-			logger$32.debug(`session ${this.bufnr} deactivate`);
+			logger$34.debug(`session ${this.bufnr} deactivate`);
 		}
 		get placeholder() {
 			if (!this.snippet || !this.current) return void 0;
@@ -105194,6 +106049,9 @@ var init_manager$2 = __esmMin((() => {
 		_statusItem;
 		bufferSync;
 		config;
+		/**
+		* @internal
+		*/
 		init() {
 			this.synchronizeConfig();
 			workspace_default.onDidChangeConfiguration((e) => {
@@ -105365,6 +106223,9 @@ var init_manager$2 = __esmMin((() => {
 			await session.start(inserted, range, select, context);
 			return session.isActive;
 		}
+		/**
+		* @internal
+		*/
 		async selectCurrentPlaceholder(triggerAutocmd = true) {
 			let { session } = this;
 			if (session) return await session.selectCurrentPlaceholder(triggerAutocmd);
@@ -105387,6 +106248,9 @@ var init_manager$2 = __esmMin((() => {
 			this.nvim.call("coc#snippet#disable", [], true);
 			this.statusItem.hide();
 		}
+		/**
+		* @internal
+		*/
 		get session() {
 			return this.bufferSync.getItem(workspace_default.bufnr);
 		}
@@ -105401,6 +106265,9 @@ var init_manager$2 = __esmMin((() => {
 			let session = this.bufferSync.getItem(bufnr);
 			return session && session.isActive;
 		}
+		/**
+		* @internal
+		*/
 		jumpable() {
 			let { session } = this;
 			if (!session) return false;
@@ -105414,6 +106281,9 @@ var init_manager$2 = __esmMin((() => {
 			if (!session) return;
 			return await session.resolveSnippet(this.nvim, snippetString, ultisnip);
 		}
+		/**
+		* @internal
+		*/
 		async normalizeInsertText(bufnr, snippetString, currentLine, insertTextMode, ultisnip) {
 			let inserted = "";
 			if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) inserted = snippetString;
@@ -105427,6 +106297,9 @@ var init_manager$2 = __esmMin((() => {
 			}
 			return inserted;
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			this.cancel();
 			disposeAll(this.disposables);
@@ -105951,6 +106824,27 @@ function isSnippetItem(item, itemDefaults) {
 function hasAction(item, itemDefaults) {
 	return isSnippetItem(item, itemDefaults) || !isFalsyOrEmpty(item.additionalTextEdits);
 }
+/**
+* Apply `CompletionList.applyKind` rules to a completion item, merging
+* `itemDefaults` values with the item values.
+*
+* When `applyKind` is absent, all fields default to `ApplyKind.Replace`.
+*
+* @since 3.18.0
+*/
+function applyItemDefaults(item, itemDefaults, applyKind) {
+	if (applyKind?.commitCharacters === ApplyKind.Merge && itemDefaults.commitCharacters) {
+		let characters = item.commitCharacters ?? [];
+		item.commitCharacters = Array.from(/* @__PURE__ */ new Set([...itemDefaults.commitCharacters, ...characters]));
+	}
+	if (applyKind?.data === ApplyKind.Merge) {
+		if (item.data == null) item.data = itemDefaults.data;
+		else if (typeof item.data === "object" && !Array.isArray(item.data)) {
+			let base = itemDefaults.data != null && typeof itemDefaults.data === "object" && !Array.isArray(itemDefaults.data) ? itemDefaults.data : {};
+			item.data = Object.assign({}, base, item.data);
+		}
+	} else if (item.data == null && itemDefaults.data != null) item.data = itemDefaults.data;
+}
 function toValidWord(snippet, excludes) {
 	for (let i = 0; i < snippet.length; i++) {
 		let code = snippet.charCodeAt(i);
@@ -106217,12 +107111,12 @@ function fixTextEdit(character, edit) {
 	}
 	return edit;
 }
-var logger$31, LanguageSource;
+var logger$33, LanguageSource;
 var init_source_language = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_ui$2();
-	init_logger$2();
+	init_logger$1();
 	init_manager$2();
 	init_util$7();
 	init_array();
@@ -106233,7 +107127,7 @@ var init_source_language = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_util$3();
-	logger$31 = createLogger$1("source-language");
+	logger$33 = createLogger("source-language");
 	LanguageSource = class {
 		name;
 		shortcut;
@@ -106287,6 +107181,8 @@ var init_source_language = __esmMin((() => {
 			let completeItems = Array.isArray(result) ? result : result.items;
 			if (!completeItems || completeItems.length == 0) return null;
 			let itemDefaults = this.itemDefaults = toObject(result["itemDefaults"]);
+			let applyKind = isCompletionList(result) ? result["applyKind"] : void 0;
+			if (applyKind || itemDefaults.data != null) for (let item of completeItems) applyItemDefaults(item, itemDefaults, applyKind);
 			let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false;
 			this.hasDefaultRange = isEditRange(itemDefaults.editRange);
 			return {
@@ -106341,7 +107237,7 @@ var init_source_language = __esmMin((() => {
 				if (isSnippet) await manager_default$1.selectCurrentPlaceholder();
 			}
 			if (item.command) if (commands_default.has(item.command.command)) commands_default.execute(item.command);
-			else logger$31.warn(`Command "${item.command.command}" not registered to coc.nvim`);
+			else logger$33.warn(`Command "${item.command.command}" not registered to coc.nvim`);
 		}
 		async applyTextEdit(doc, additionalEdits, item, option) {
 			let { linenr, col } = option;
@@ -106452,10 +107348,40 @@ function sortItems(emptyInput, defaultSortMethod, a, b) {
 		default: return a.filterText.length - b.filterText.length;
 	}
 }
-var logger$30, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, Complete;
+/**
+* Keep the best `count` items according to `compare` without sorting the
+* whole array, then sort the kept items. Items that rank after the current
+* worst of the selected top never touch the selected array, so filtering
+* large completion sets avoids a full O(n log n) sort on every keystroke.
+*/
+function selectTopItems(items, count, compare) {
+	if (count <= 0) return [];
+	if (items.length <= count) {
+		items.sort(compare);
+		return items;
+	}
+	let top = [];
+	for (let item of items) if (top.length < count) insertSorted(top, item, compare);
+	else if (compare(item, top[top.length - 1]) < 0) {
+		insertSorted(top, item, compare);
+		top.pop();
+	}
+	return top;
+}
+function insertSorted(arr, item, compare) {
+	let low = 0;
+	let high = arr.length;
+	while (low < high) {
+		let mid = low + high >>> 1;
+		if (compare(arr[mid], item) <= 0) low = mid + 1;
+		else high = mid;
+	}
+	arr.splice(low, 0, item);
+}
+var logger$32, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, GRACEFUL_MAX_ITEMS, AGGRESSIVE_MAX_ITEMS, Complete;
 var init_complete = __esmMin((() => {
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_filter$1();
@@ -106467,7 +107393,7 @@ var init_complete = __esmMin((() => {
 	init_source_language();
 	init_util$3();
 	init_wordDistance();
-	logger$30 = createLogger$1("completion-complete");
+	logger$32 = createLogger("completion-complete");
 	MAX_DISTANCE = 2 << 20;
 	MIN_TIMEOUT = 50;
 	MAX_TIMEOUT = 15e3;
@@ -106477,6 +107403,8 @@ var init_complete = __esmMin((() => {
 		"around",
 		"word"
 	]);
+	GRACEFUL_MAX_ITEMS = 2e3;
+	AGGRESSIVE_MAX_ITEMS = 300;
 	Complete = class {
 		option;
 		document;
@@ -106573,18 +107501,18 @@ var init_complete = __esmMin((() => {
 			this.option.synname = res[0];
 			let variables = res[1];
 			if (variables.disable) {
-				logger$30.warn("suggest cancelled by b:coc_suggest_disable");
+				logger$32.warn("suggest cancelled by b:coc_suggest_disable");
 				return true;
 			}
 			if (!isFalsyOrEmpty(variables.disabled_sources)) {
 				this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
 				if (this.sources.length === 0) {
-					logger$30.warn("suggest cancelled by b:coc_disabled_sources");
+					logger$32.warn("suggest cancelled by b:coc_disabled_sources");
 					return true;
 				}
 			}
 			if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
-				logger$30.warn("suggest cancelled by b:coc_suggest_blacklist");
+				logger$32.warn("suggest cancelled by b:coc_suggest_blacklist");
 				return true;
 			}
 			WordDistance.create(this.config.localityBonus, this.option, token).then((instance) => {
@@ -106609,7 +107537,7 @@ var init_complete = __esmMin((() => {
 					let names = Array.from(remains);
 					disposable.dispose();
 					tokenSource.cancel();
-					logger$30.warn(`Completion timeout after ${this.timeout}ms`, names);
+					logger$32.warn(`Completion timeout after ${this.timeout}ms`, names);
 					this.nvim.setVar(`coc_timeout_sources`, names, true);
 					resolve();
 				}, this.timeout);
@@ -106648,7 +107576,7 @@ var init_complete = __esmMin((() => {
 							return;
 						}
 						let len = result ? result.items.length : 0;
-						logger$30.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
+						logger$32.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
 						if (len > 0) {
 							if (number(result.startcol)) {
 								let line = opt.linenr - 1;
@@ -106667,7 +107595,7 @@ var init_complete = __esmMin((() => {
 							const items = result.items.reduce((items, item) => {
 								let completeItem = converter.convertToDurationItem(item);
 								if (!completeItem) {
-									logger$30.error(`Unexpected completion item from ${sourceName}:`, item);
+									logger$32.error(`Unexpected completion item from ${sourceName}:`, item);
 									return items;
 								}
 								map.set(completeItem, item);
@@ -106687,7 +107615,7 @@ var init_complete = __esmMin((() => {
 					});
 				});
 			} catch (err) {
-				logger$30.error("Complete error:", source.name, err);
+				logger$32.error("Complete error:", source.name, err);
 			}
 			this.completingSources.delete(sourceName);
 			return added;
@@ -106722,7 +107650,7 @@ var init_complete = __esmMin((() => {
 			let words = /* @__PURE__ */ new Set();
 			const emptyInput = len == 0;
 			const lowInput = input.toLowerCase();
-			const scoreFn = !this.config.filterGraceful || this.totalLength > 2e3 ? fuzzyScore : fuzzyScoreGracefulAggressive;
+			const scoreFn = this.getScoreFn();
 			const scoreOption = {
 				boostFullMatch: true,
 				firstMatchCanBeWeak: false
@@ -106741,11 +107669,13 @@ var init_complete = __esmMin((() => {
 					if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue;
 					let fuzzyResult;
 					if (!emptyInput) {
+						let lowText = filterText.toLowerCase();
 						scoreOption.firstMatchCanBeWeak = item.delta === 0 && item.character !== inputStart;
 						if (item.delta > 0) {
 							let prev = filterText.slice(0, item.delta);
-							fuzzyResult = scoreFn(prev + input, prev.toLowerCase() + lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
-						} else fuzzyResult = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption);
+							let lowPrev = lowText.slice(0, item.delta);
+							fuzzyResult = scoreFn(prev + input, lowPrev + lowInput, 0, filterText, lowText, 0, scoreOption);
+						} else fuzzyResult = scoreFn(input, lowInput, 0, filterText, lowText, 0, scoreOption);
 						if (fuzzyResult == null) continue;
 						item.score = fuzzyResult[0];
 						item.positions = fuzzyResult;
@@ -106753,7 +107683,8 @@ var init_complete = __esmMin((() => {
 					} else if (item.character < inputStart) {
 						let trigger = option.line.slice(item.character, inputStart);
 						scoreOption.firstMatchCanBeWeak = true;
-						fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, filterText.toLowerCase(), 0, scoreOption);
+						let lowText = filterText.toLowerCase();
+						fuzzyResult = anyScore(trigger, trigger.toLowerCase(), 0, filterText, lowText, 0, scoreOption);
 						item.score = fuzzyResult[0];
 						item.positions = fuzzyResult;
 					} else {
@@ -106764,12 +107695,20 @@ var init_complete = __esmMin((() => {
 					arr.push(item);
 				}
 			}
-			arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod));
-			return this.limitCompleteItems(arr.slice(0, maxItemCount));
+			let top = selectTopItems(arr, maxItemCount, sortItems.bind(null, emptyInput, defaultSortMethod));
+			return this.limitCompleteItems(top);
+		}
+		getScoreFn() {
+			let { filterGraceful } = this.config;
+			if (!filterGraceful) return fuzzyScore;
+			let len = this.totalLength;
+			if (len > GRACEFUL_MAX_ITEMS) return fuzzyScore;
+			if (len > AGGRESSIVE_MAX_ITEMS) return fuzzyScoreGraceful;
+			return fuzzyScoreGracefulAggressive;
 		}
 		async filterResults(input, backspace = false) {
 			let sources = backspace ? this.getBackspaceSources() : this.getIncompleteSources();
-			if (input !== this.option.input && sources.length > 0) {
+			if ((input.length > this.option.input.length || backspace) && sources.length > 0) {
 				this.fireRefresh(30);
 				this.completeInComplete(input, sources);
 				return;
@@ -106826,9 +107765,9 @@ var init_complete = __esmMin((() => {
 }));
 //#endregion
 //#region src/completion/floating.ts
-var logger$29, RESOLVE_TIMEOUT, Floating;
+var logger$31, RESOLVE_TIMEOUT, Floating;
 var init_floating = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_markdown();
 	init_util$7();
 	init_errors();
@@ -106836,7 +107775,7 @@ var init_floating = __esmMin((() => {
 	init_protocol();
 	init_workspace$1();
 	init_util$3();
-	logger$29 = createLogger$1("completion-floating");
+	logger$31 = createLogger("completion-floating");
 	RESOLVE_TIMEOUT = getConditionValue(500, 50);
 	Floating = class {
 		config;
@@ -106852,7 +107791,7 @@ var init_floating = __esmMin((() => {
 				});
 			} catch (e) {
 				if (isCancellationError(e)) return;
-				logger$29.error(`Error on resolve complete item from ${source.name}:`, item, e);
+				logger$31.error(`Error on resolve complete item from ${source.name}:`, item, e);
 			}
 			if (showDocs) this.show(getDocumentations(item, opt.filetype, detailRendered));
 		}
@@ -106945,13 +107884,23 @@ function getInsertWord(word, codes, start) {
 	for (let i = start; i < word.length; i++) if (codes.includes(word.charCodeAt(i))) return word.slice(0, i);
 	return word;
 }
+function getItemWidth(item, config) {
+	const { abbrWidth, menuWidth, kindWidth, shortcutWidth } = config;
+	switch (item) {
+		case "abbr": return abbrWidth + 1;
+		case "menu": return menuWidth == 0 ? 0 : menuWidth + 1;
+		case "kind": return kindWidth == 0 ? 0 : kindWidth + 1;
+		case "shortcut": return shortcutWidth == 0 ? 0 : shortcutWidth + 1;
+		default: return 0;
+	}
+}
 /**
 * Append previous text to word when necessary
 */
 function prefixWord(word, character, line, minCharacter) {
 	return minCharacter < character ? line.slice(minCharacter, character) + word : word;
 }
-var PopupMenu;
+var validPumItems, PopupMenu;
 var init_pum = __esmMin((() => {
 	init_fuzzyMatch();
 	init_array();
@@ -106961,6 +107910,12 @@ var init_pum = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_util$3();
+	validPumItems = [
+		"abbr",
+		"menu",
+		"kind",
+		"shortcut"
+	];
 	PopupMenu = class {
 		config;
 		mruLoader;
@@ -106982,7 +107937,7 @@ var init_pum = __esmMin((() => {
 		}
 		get pumConfig() {
 			if (this._pumConfig) return this._pumConfig;
-			let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config;
+			let { floatConfig, pumAlign, pumFloatConfig, reversePumAboveCursor } = this.config;
 			if (!pumFloatConfig) pumFloatConfig = floatConfig;
 			let obj = {};
 			if (pumFloatConfig.border) {
@@ -106998,6 +107953,7 @@ var init_pum = __esmMin((() => {
 			if (string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight;
 			if (number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend;
 			if (string(pumFloatConfig.title)) obj.title = pumFloatConfig.title;
+			if (string(pumAlign) && validPumItems.includes(pumAlign)) obj.pumAlign = pumAlign;
 			obj.shadow = pumFloatConfig.shadow === true;
 			obj.reverse = reversePumAboveCursor === true;
 			this._pumConfig = obj;
@@ -107008,7 +107964,7 @@ var init_pum = __esmMin((() => {
 		}
 		show(items, search, option) {
 			this._search = search;
-			let { noselect, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config;
+			let { noselect, formatItems, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config;
 			const invalidInsertCodes = invalidInsertCharacters.map((ch) => ch.charCodeAt(0));
 			let selectedIndex = enablePreselect ? items.findIndex((o) => o.preselect) : -1;
 			let maxMru = -1;
@@ -107076,6 +108032,10 @@ var init_pum = __esmMin((() => {
 				shortcutWidth
 			};
 			this.adjustAbbrWidth(buildConfig);
+			let pumAlign = pumConfig.pumAlign;
+			let offset = 0;
+			if (pumAlign) for (let item of formatItems) if (item !== pumAlign) offset += getItemWidth(item, buildConfig);
+			else break;
 			let lowInput = search.toLowerCase();
 			for (let index = 0; index < items.length; index++) {
 				let [displayWidth, text] = this.buildItem(search, lowInput, items[index], labels[index], highlights, index, buildConfig);
@@ -107084,7 +108044,8 @@ var init_pum = __esmMin((() => {
 			}
 			let config = Object.assign({
 				width,
-				highlights
+				highlights,
+				offset
 			}, pumConfig);
 			this.nvim.call("coc#pum#create", [
 				lines,
@@ -107123,10 +108084,7 @@ var init_pum = __esmMin((() => {
 			let { formatItems } = this.config;
 			let pumwidth = toNumber(workspace_default.env.pumwidth, 15);
 			let len = 0;
-			for (const item of formatItems) if (item == "abbr") len += config.abbrWidth + 1;
-			else if (item == "menu" && config.menuWidth) len += config.menuWidth + 1;
-			else if (item == "kind" && config.kindWidth) len += config.kindWidth + 1;
-			else if (item == "shortcut" && config.shortcutWidth) len += config.shortcutWidth + 1;
+			for (const item of formatItems) len += getItemWidth(item, config);
 			if (len < pumwidth) config.abbrWidth = config.abbrWidth + pumwidth - len;
 		}
 		buildItem(input, lowInput, item, label, hls, index, config) {
@@ -107859,7 +108817,7 @@ var require_has_flag = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region node_modules/supports-color/index.js
 var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const os$1 = require("os");
+	const os = require("os");
 	const tty$1 = require("tty");
 	const hasFlag = require_has_flag();
 	const { env } = process;
@@ -107886,7 +108844,7 @@ var require_supports_color = /* @__PURE__ */ __commonJSMin(((exports, module) =>
 		const min = forceColor || 0;
 		if (env.TERM === "dumb") return min;
 		if (process.platform === "win32") {
-			const osRelease = os$1.release().split(".");
+			const osRelease = os.release().split(".");
 			if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) return Number(osRelease[2]) >= 14931 ? 3 : 2;
 			return 1;
 		}
@@ -109095,7 +110053,7 @@ function getAgent(endpoint, options) {
 			return null;
 		}
 		let rejectUnauthorized = typeof options.proxyStrictSSL === "boolean" ? options.proxyStrictSSL : true;
-		logger$28.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
+		logger$30.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
 		const agentOptions = { rejectUnauthorized };
 		return endpoint.protocol === "http:" ? new HttpProxyAgent(proxyURL, agentOptions) : new HttpsProxyAgent(proxyURL, agentOptions);
 	}
@@ -109129,7 +110087,7 @@ function resolveRequestOptions(url, options) {
 	if (dataType == "object") opts.headers["Content-Type"] = "application/json";
 	else if (dataType == "string") opts.headers["Content-Type"] = "text/plain";
 	if (proxyOptions.proxyAuthorization) opts.headers["Proxy-Authorization"] = proxyOptions.proxyAuthorization;
-	if (proxyOptions.proxyCA) opts.ca = fs$5.readFileSync(proxyOptions.proxyCA);
+	if (proxyOptions.proxyCA) opts.ca = fs$3.readFileSync(proxyOptions.proxyCA);
 	if (options.user) opts.auth = options.user + ":" + toText(options.password);
 	if (url.username) opts.auth = url.username + ":" + toText(url.password);
 	if (options.timeout) opts.timeout = options.timeout;
@@ -109206,27 +110164,27 @@ function fetch(urlInput, options = {}, token) {
 	let url = toURL(urlInput);
 	let opts = resolveRequestOptions(url, options);
 	return request(url, options.data, opts, token).catch((err) => {
-		logger$28.error(`Fetch error for ${url}:`, opts, err);
+		logger$30.error(`Fetch error for ${url}:`, opts, err);
 		if (opts.agent && opts.agent.proxy) {
 			let { proxy } = opts.agent;
 			throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`);
 		} else throw err;
 	});
 }
-var import_follow_redirects, logger$28, timeout;
+var import_follow_redirects, logger$30, timeout;
 var init_fetch = __esmMin((() => {
 	init_decompress_response();
 	import_follow_redirects = require_follow_redirects();
 	init_dist$1();
 	init_dist();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_errors();
 	init_is();
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$28 = createLogger$1("model-fetch");
+	logger$30 = createLogger("model-fetch");
 	timeout = getConditionValue(500, 50);
 }));
 //#endregion
@@ -109569,6 +110527,1622 @@ var require_content_disposition = /* @__PURE__ */ __commonJSMin(((exports, modul
 		} else result += str[idx];
 		return result;
 	}
+}));
+//#endregion
+//#region node_modules/traverse/index.js
+var require_traverse = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = Traverse;
+	function Traverse(obj) {
+		if (!(this instanceof Traverse)) return new Traverse(obj);
+		this.value = obj;
+	}
+	Traverse.prototype.get = function(ps) {
+		var node = this.value;
+		for (var i = 0; i < ps.length; i++) {
+			var key = ps[i];
+			if (!Object.hasOwnProperty.call(node, key)) {
+				node = void 0;
+				break;
+			}
+			node = node[key];
+		}
+		return node;
+	};
+	Traverse.prototype.set = function(ps, value) {
+		var node = this.value;
+		for (var i = 0; i < ps.length - 1; i++) {
+			var key = ps[i];
+			if (!Object.hasOwnProperty.call(node, key)) node[key] = {};
+			node = node[key];
+		}
+		node[ps[i]] = value;
+		return value;
+	};
+	Traverse.prototype.map = function(cb) {
+		return walk(this.value, cb, true);
+	};
+	Traverse.prototype.forEach = function(cb) {
+		this.value = walk(this.value, cb, false);
+		return this.value;
+	};
+	Traverse.prototype.reduce = function(cb, init) {
+		var skip = arguments.length === 1;
+		var acc = skip ? this.value : init;
+		this.forEach(function(x) {
+			if (!this.isRoot || !skip) acc = cb.call(this, acc, x);
+		});
+		return acc;
+	};
+	Traverse.prototype.deepEqual = function(obj) {
+		if (arguments.length !== 1) throw new Error("deepEqual requires exactly one object to compare against");
+		var equal = true;
+		var node = obj;
+		this.forEach(function(y) {
+			var notEqual = (function() {
+				equal = false;
+			}).bind(this);
+			if (!this.isRoot) {
+				if (typeof node !== "object") return notEqual();
+				node = node[this.key];
+			}
+			var x = node;
+			this.post(function() {
+				node = x;
+			});
+			var toS = function(o) {
+				return Object.prototype.toString.call(o);
+			};
+			if (this.circular) {
+				if (Traverse(obj).get(this.circular.path) !== x) notEqual();
+			} else if (typeof x !== typeof y) notEqual();
+			else if (x === null || y === null || x === void 0 || y === void 0) {
+				if (x !== y) notEqual();
+			} else if (x.__proto__ !== y.__proto__) notEqual();
+			else if (x === y) {} else if (typeof x === "function") {
+				if (x instanceof RegExp) {
+					if (x.toString() != y.toString()) notEqual();
+				} else if (x !== y) notEqual();
+			} else if (typeof x === "object") if (toS(y) === "[object Arguments]" || toS(x) === "[object Arguments]") {
+				if (toS(x) !== toS(y)) notEqual();
+			} else if (x instanceof Date || y instanceof Date) {
+				if (!(x instanceof Date) || !(y instanceof Date) || x.getTime() !== y.getTime()) notEqual();
+			} else {
+				var kx = Object.keys(x);
+				var ky = Object.keys(y);
+				if (kx.length !== ky.length) return notEqual();
+				for (var i = 0; i < kx.length; i++) {
+					var k = kx[i];
+					if (!Object.hasOwnProperty.call(y, k)) notEqual();
+				}
+			}
+		});
+		return equal;
+	};
+	Traverse.prototype.paths = function() {
+		var acc = [];
+		this.forEach(function(x) {
+			acc.push(this.path);
+		});
+		return acc;
+	};
+	Traverse.prototype.nodes = function() {
+		var acc = [];
+		this.forEach(function(x) {
+			acc.push(this.node);
+		});
+		return acc;
+	};
+	Traverse.prototype.clone = function() {
+		var parents = [], nodes = [];
+		return (function clone(src) {
+			for (var i = 0; i < parents.length; i++) if (parents[i] === src) return nodes[i];
+			if (typeof src === "object" && src !== null) {
+				var dst = copy(src);
+				parents.push(src);
+				nodes.push(dst);
+				Object.keys(src).forEach(function(key) {
+					dst[key] = clone(src[key]);
+				});
+				parents.pop();
+				nodes.pop();
+				return dst;
+			} else return src;
+		})(this.value);
+	};
+	function walk(root, cb, immutable) {
+		var path = [];
+		var parents = [];
+		var alive = true;
+		return (function walker(node_) {
+			var node = immutable ? copy(node_) : node_;
+			var modifiers = {};
+			var state = {
+				node,
+				node_,
+				path: [].concat(path),
+				parent: parents.slice(-1)[0],
+				key: path.slice(-1)[0],
+				isRoot: path.length === 0,
+				level: path.length,
+				circular: null,
+				update: function(x) {
+					if (!state.isRoot) state.parent.node[state.key] = x;
+					state.node = x;
+				},
+				"delete": function() {
+					delete state.parent.node[state.key];
+				},
+				remove: function() {
+					if (Array.isArray(state.parent.node)) state.parent.node.splice(state.key, 1);
+					else delete state.parent.node[state.key];
+				},
+				before: function(f) {
+					modifiers.before = f;
+				},
+				after: function(f) {
+					modifiers.after = f;
+				},
+				pre: function(f) {
+					modifiers.pre = f;
+				},
+				post: function(f) {
+					modifiers.post = f;
+				},
+				stop: function() {
+					alive = false;
+				}
+			};
+			if (!alive) return state;
+			if (typeof node === "object" && node !== null) {
+				state.isLeaf = Object.keys(node).length == 0;
+				for (var i = 0; i < parents.length; i++) if (parents[i].node_ === node_) {
+					state.circular = parents[i];
+					break;
+				}
+			} else state.isLeaf = true;
+			state.notLeaf = !state.isLeaf;
+			state.notRoot = !state.isRoot;
+			var ret = cb.call(state, state.node);
+			if (ret !== void 0 && state.update) state.update(ret);
+			if (modifiers.before) modifiers.before.call(state, state.node);
+			if (typeof state.node == "object" && state.node !== null && !state.circular) {
+				parents.push(state);
+				var keys = Object.keys(state.node);
+				keys.forEach(function(key, i) {
+					path.push(key);
+					if (modifiers.pre) modifiers.pre.call(state, state.node[key], key);
+					var child = walker(state.node[key]);
+					if (immutable && Object.hasOwnProperty.call(state.node, key)) state.node[key] = child.node;
+					child.isLast = i == keys.length - 1;
+					child.isFirst = i == 0;
+					if (modifiers.post) modifiers.post.call(state, child);
+					path.pop();
+				});
+				parents.pop();
+			}
+			if (modifiers.after) modifiers.after.call(state, state.node);
+			return state;
+		})(root).node;
+	}
+	Object.keys(Traverse.prototype).forEach(function(key) {
+		Traverse[key] = function(obj) {
+			var args = [].slice.call(arguments, 1);
+			var t = Traverse(obj);
+			return t[key].apply(t, args);
+		};
+	});
+	function copy(src) {
+		if (typeof src === "object" && src !== null) {
+			var dst;
+			if (Array.isArray(src)) dst = [];
+			else if (src instanceof Date) dst = new Date(src);
+			else if (src instanceof Boolean) dst = new Boolean(src);
+			else if (src instanceof Number) dst = new Number(src);
+			else if (src instanceof String) dst = new String(src);
+			else dst = Object.create(Object.getPrototypeOf(src));
+			Object.keys(src).forEach(function(key) {
+				dst[key] = src[key];
+			});
+			return dst;
+		} else return src;
+	}
+}));
+//#endregion
+//#region node_modules/chainsaw/index.js
+var require_chainsaw = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var Traverse = require_traverse();
+	var EventEmitter$4 = require("events").EventEmitter;
+	module.exports = Chainsaw;
+	function Chainsaw(builder) {
+		var saw = Chainsaw.saw(builder, {});
+		var r = builder.call(saw.handlers, saw);
+		if (r !== void 0) saw.handlers = r;
+		saw.record();
+		return saw.chain();
+	}
+	Chainsaw.light = function ChainsawLight(builder) {
+		var saw = Chainsaw.saw(builder, {});
+		var r = builder.call(saw.handlers, saw);
+		if (r !== void 0) saw.handlers = r;
+		return saw.chain();
+	};
+	Chainsaw.saw = function(builder, handlers) {
+		var saw = new EventEmitter$4();
+		saw.handlers = handlers;
+		saw.actions = [];
+		saw.chain = function() {
+			var ch = Traverse(saw.handlers).map(function(node) {
+				if (this.isRoot) return node;
+				var ps = this.path;
+				if (typeof node === "function") this.update(function() {
+					saw.actions.push({
+						path: ps,
+						args: [].slice.call(arguments)
+					});
+					return ch;
+				});
+			});
+			process.nextTick(function() {
+				saw.emit("begin");
+				saw.next();
+			});
+			return ch;
+		};
+		saw.pop = function() {
+			return saw.actions.shift();
+		};
+		saw.next = function() {
+			var action = saw.pop();
+			if (!action) saw.emit("end");
+			else if (!action.trap) {
+				var node = saw.handlers;
+				action.path.forEach(function(key) {
+					node = node[key];
+				});
+				node.apply(saw.handlers, action.args);
+			}
+		};
+		saw.nest = function(cb) {
+			var args = [].slice.call(arguments, 1);
+			var autonext = true;
+			if (typeof cb === "boolean") {
+				var autonext = cb;
+				cb = args.shift();
+			}
+			var s = Chainsaw.saw(builder, {});
+			var r = builder.call(s.handlers, s);
+			if (r !== void 0) s.handlers = r;
+			if ("undefined" !== typeof saw.step) s.record();
+			cb.apply(s.chain(), args);
+			if (autonext !== false) s.on("end", saw.next);
+		};
+		saw.record = function() {
+			upgradeChainsaw(saw);
+		};
+		[
+			"trap",
+			"down",
+			"jump"
+		].forEach(function(method) {
+			saw[method] = function() {
+				throw new Error("To use the trap, down and jump features, please call record() first to start recording actions.");
+			};
+		});
+		return saw;
+	};
+	function upgradeChainsaw(saw) {
+		saw.step = 0;
+		saw.pop = function() {
+			return saw.actions[saw.step++];
+		};
+		saw.trap = function(name, cb) {
+			var ps = Array.isArray(name) ? name : [name];
+			saw.actions.push({
+				path: ps,
+				step: saw.step,
+				cb,
+				trap: true
+			});
+		};
+		saw.down = function(name) {
+			var ps = (Array.isArray(name) ? name : [name]).join("/");
+			var i = saw.actions.slice(saw.step).map(function(x) {
+				if (x.trap && x.step <= saw.step) return false;
+				return x.path.join("/") == ps;
+			}).indexOf(true);
+			if (i >= 0) saw.step += i;
+			else saw.step = saw.actions.length;
+			var act = saw.actions[saw.step - 1];
+			if (act && act.trap) {
+				saw.step = act.step;
+				act.cb();
+			} else saw.next();
+		};
+		saw.jump = function(step) {
+			saw.step = step;
+			saw.next();
+		};
+	}
+}));
+//#endregion
+//#region node_modules/buffers/index.js
+var require_buffers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = Buffers;
+	function Buffers(bufs) {
+		if (!(this instanceof Buffers)) return new Buffers(bufs);
+		this.buffers = bufs || [];
+		this.length = this.buffers.reduce(function(size, buf) {
+			return size + buf.length;
+		}, 0);
+	}
+	Buffers.prototype.push = function() {
+		for (var i = 0; i < arguments.length; i++) if (!Buffer.isBuffer(arguments[i])) throw new TypeError("Tried to push a non-buffer");
+		for (var i = 0; i < arguments.length; i++) {
+			var buf = arguments[i];
+			this.buffers.push(buf);
+			this.length += buf.length;
+		}
+		return this.length;
+	};
+	Buffers.prototype.unshift = function() {
+		for (var i = 0; i < arguments.length; i++) if (!Buffer.isBuffer(arguments[i])) throw new TypeError("Tried to unshift a non-buffer");
+		for (var i = 0; i < arguments.length; i++) {
+			var buf = arguments[i];
+			this.buffers.unshift(buf);
+			this.length += buf.length;
+		}
+		return this.length;
+	};
+	Buffers.prototype.copy = function(dst, dStart, start, end) {
+		return this.slice(start, end).copy(dst, dStart, 0, end - start);
+	};
+	Buffers.prototype.splice = function(i, howMany) {
+		var buffers = this.buffers;
+		var index = i >= 0 ? i : this.length - i;
+		var reps = [].slice.call(arguments, 2);
+		if (howMany === void 0) howMany = this.length - index;
+		else if (howMany > this.length - index) howMany = this.length - index;
+		for (var i = 0; i < reps.length; i++) this.length += reps[i].length;
+		var removed = new Buffers();
+		var startBytes = 0;
+		for (var ii = 0; ii < buffers.length && startBytes + buffers[ii].length < index; ii++) startBytes += buffers[ii].length;
+		if (index - startBytes > 0) {
+			var start = index - startBytes;
+			if (start + howMany < buffers[ii].length) {
+				removed.push(buffers[ii].slice(start, start + howMany));
+				var orig = buffers[ii];
+				var buf0 = new Buffer(start);
+				for (var i = 0; i < start; i++) buf0[i] = orig[i];
+				var buf1 = new Buffer(orig.length - start - howMany);
+				for (var i = start + howMany; i < orig.length; i++) buf1[i - howMany - start] = orig[i];
+				if (reps.length > 0) {
+					var reps_ = reps.slice();
+					reps_.unshift(buf0);
+					reps_.push(buf1);
+					buffers.splice.apply(buffers, [ii, 1].concat(reps_));
+					ii += reps_.length;
+					reps = [];
+				} else {
+					buffers.splice(ii, 1, buf0, buf1);
+					ii += 2;
+				}
+			} else {
+				removed.push(buffers[ii].slice(start));
+				buffers[ii] = buffers[ii].slice(0, start);
+				ii++;
+			}
+		}
+		if (reps.length > 0) {
+			buffers.splice.apply(buffers, [ii, 0].concat(reps));
+			ii += reps.length;
+		}
+		while (removed.length < howMany) {
+			var buf = buffers[ii];
+			var len = buf.length;
+			var take = Math.min(len, howMany - removed.length);
+			if (take === len) {
+				removed.push(buf);
+				buffers.splice(ii, 1);
+			} else {
+				removed.push(buf.slice(0, take));
+				buffers[ii] = buffers[ii].slice(take);
+			}
+		}
+		this.length -= removed.length;
+		return removed;
+	};
+	Buffers.prototype.slice = function(i, j) {
+		var buffers = this.buffers;
+		if (j === void 0) j = this.length;
+		if (i === void 0) i = 0;
+		if (j > this.length) j = this.length;
+		var startBytes = 0;
+		for (var si = 0; si < buffers.length && startBytes + buffers[si].length <= i; si++) startBytes += buffers[si].length;
+		var target = new Buffer(j - i);
+		var ti = 0;
+		for (var ii = si; ti < j - i && ii < buffers.length; ii++) {
+			var len = buffers[ii].length;
+			var start = ti === 0 ? i - startBytes : 0;
+			var end = ti + len >= j - i ? Math.min(start + (j - i) - ti, len) : len;
+			buffers[ii].copy(target, ti, start, end);
+			ti += end - start;
+		}
+		return target;
+	};
+	Buffers.prototype.pos = function(i) {
+		if (i < 0 || i >= this.length) throw new Error("oob");
+		var l = i, bi = 0, bu = null;
+		for (;;) {
+			bu = this.buffers[bi];
+			if (l < bu.length) return {
+				buf: bi,
+				offset: l
+			};
+			else l -= bu.length;
+			bi++;
+		}
+	};
+	Buffers.prototype.get = function get(i) {
+		var pos = this.pos(i);
+		return this.buffers[pos.buf].get(pos.offset);
+	};
+	Buffers.prototype.set = function set(i, b) {
+		var pos = this.pos(i);
+		return this.buffers[pos.buf].set(pos.offset, b);
+	};
+	Buffers.prototype.indexOf = function(needle, offset) {
+		if ("string" === typeof needle) needle = new Buffer(needle);
+		else if (needle instanceof Buffer) {} else throw new Error("Invalid type for a search string");
+		if (!needle.length) return 0;
+		if (!this.length) return -1;
+		var i = 0, j = 0, match = 0, mstart, pos = 0;
+		if (offset) {
+			var p = this.pos(offset);
+			i = p.buf;
+			j = p.offset;
+			pos = offset;
+		}
+		for (;;) {
+			while (j >= this.buffers[i].length) {
+				j = 0;
+				i++;
+				if (i >= this.buffers.length) return -1;
+			}
+			if (this.buffers[i][j] == needle[match]) {
+				if (match == 0) mstart = {
+					i,
+					j,
+					pos
+				};
+				match++;
+				if (match == needle.length) return mstart.pos;
+			} else if (match != 0) {
+				i = mstart.i;
+				j = mstart.j;
+				pos = mstart.pos;
+				match = 0;
+			}
+			j++;
+			pos++;
+		}
+	};
+	Buffers.prototype.toBuffer = function() {
+		return this.slice();
+	};
+	Buffers.prototype.toString = function(encoding, start, end) {
+		return this.slice(start, end).toString(encoding);
+	};
+}));
+//#endregion
+//#region node_modules/binary/lib/vars.js
+var require_vars = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = function(store) {
+		function getset(name, value) {
+			var node = vars.store;
+			var keys = name.split(".");
+			keys.slice(0, -1).forEach(function(k) {
+				if (node[k] === void 0) node[k] = {};
+				node = node[k];
+			});
+			var key = keys[keys.length - 1];
+			if (arguments.length == 1) return node[key];
+			else return node[key] = value;
+		}
+		var vars = {
+			get: function(name) {
+				return getset(name);
+			},
+			set: function(name, value) {
+				return getset(name, value);
+			},
+			store: store || {}
+		};
+		return vars;
+	};
+}));
+//#endregion
+//#region node_modules/binary/index.js
+var require_binary = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var Chainsaw = require_chainsaw();
+	var EventEmitter$3 = require("events").EventEmitter;
+	var Buffers = require_buffers();
+	var Vars = require_vars();
+	var Stream = require("stream").Stream;
+	exports = module.exports = function(bufOrEm, eventName) {
+		if (Buffer.isBuffer(bufOrEm)) return exports.parse(bufOrEm);
+		var s = exports.stream();
+		if (bufOrEm && bufOrEm.pipe) bufOrEm.pipe(s);
+		else if (bufOrEm) {
+			bufOrEm.on(eventName || "data", function(buf) {
+				s.write(buf);
+			});
+			bufOrEm.on("end", function() {
+				s.end();
+			});
+		}
+		return s;
+	};
+	exports.stream = function(input) {
+		if (input) return exports.apply(null, arguments);
+		var pending = null;
+		function getBytes(bytes, cb, skip) {
+			pending = {
+				bytes,
+				skip,
+				cb: function(buf) {
+					pending = null;
+					cb(buf);
+				}
+			};
+			dispatch();
+		}
+		var offset = null;
+		function dispatch() {
+			if (!pending) {
+				if (caughtEnd) done = true;
+				return;
+			}
+			if (typeof pending === "function") pending();
+			else {
+				var bytes = offset + pending.bytes;
+				if (buffers.length >= bytes) {
+					var buf;
+					if (offset == null) {
+						buf = buffers.splice(0, bytes);
+						if (!pending.skip) buf = buf.slice();
+					} else {
+						if (!pending.skip) buf = buffers.slice(offset, bytes);
+						offset = bytes;
+					}
+					if (pending.skip) pending.cb();
+					else pending.cb(buf);
+				}
+			}
+		}
+		function builder(saw) {
+			function next() {
+				if (!done) saw.next();
+			}
+			var self = words(function(bytes, cb) {
+				return function(name) {
+					getBytes(bytes, function(buf) {
+						vars.set(name, cb(buf));
+						next();
+					});
+				};
+			});
+			self.tap = function(cb) {
+				saw.nest(cb, vars.store);
+			};
+			self.into = function(key, cb) {
+				if (!vars.get(key)) vars.set(key, {});
+				var parent = vars;
+				vars = Vars(parent.get(key));
+				saw.nest(function() {
+					cb.apply(this, arguments);
+					this.tap(function() {
+						vars = parent;
+					});
+				}, vars.store);
+			};
+			self.flush = function() {
+				vars.store = {};
+				next();
+			};
+			self.loop = function(cb) {
+				var end = false;
+				saw.nest(false, function loop() {
+					this.vars = vars.store;
+					cb.call(this, function() {
+						end = true;
+						next();
+					}, vars.store);
+					this.tap(function() {
+						if (end) saw.next();
+						else loop.call(this);
+					}.bind(this));
+				}, vars.store);
+			};
+			self.buffer = function(name, bytes) {
+				if (typeof bytes === "string") bytes = vars.get(bytes);
+				getBytes(bytes, function(buf) {
+					vars.set(name, buf);
+					next();
+				});
+			};
+			self.skip = function(bytes) {
+				if (typeof bytes === "string") bytes = vars.get(bytes);
+				getBytes(bytes, function() {
+					next();
+				});
+			};
+			self.scan = function find(name, search) {
+				if (typeof search === "string") search = new Buffer(search);
+				else if (!Buffer.isBuffer(search)) throw new Error("search must be a Buffer or a string");
+				var taken = 0;
+				pending = function() {
+					var pos = buffers.indexOf(search, offset + taken);
+					var i = pos - offset - taken;
+					if (pos !== -1) {
+						pending = null;
+						if (offset != null) {
+							vars.set(name, buffers.slice(offset, offset + taken + i));
+							offset += taken + i + search.length;
+						} else {
+							vars.set(name, buffers.slice(0, taken + i));
+							buffers.splice(0, taken + i + search.length);
+						}
+						next();
+						dispatch();
+					} else i = Math.max(buffers.length - search.length - offset - taken, 0);
+					taken += i;
+				};
+				dispatch();
+			};
+			self.peek = function(cb) {
+				offset = 0;
+				saw.nest(function() {
+					cb.call(this, vars.store);
+					this.tap(function() {
+						offset = null;
+					});
+				});
+			};
+			return self;
+		}
+		var stream = Chainsaw.light(builder);
+		stream.writable = true;
+		var buffers = Buffers();
+		stream.write = function(buf) {
+			buffers.push(buf);
+			dispatch();
+		};
+		var vars = Vars();
+		var done = false, caughtEnd = false;
+		stream.end = function() {
+			caughtEnd = true;
+		};
+		stream.pipe = Stream.prototype.pipe;
+		Object.getOwnPropertyNames(EventEmitter$3.prototype).forEach(function(name) {
+			stream[name] = EventEmitter$3.prototype[name];
+		});
+		return stream;
+	};
+	exports.parse = function parse(buffer) {
+		var self = words(function(bytes, cb) {
+			return function(name) {
+				if (offset + bytes <= buffer.length) {
+					var buf = buffer.slice(offset, offset + bytes);
+					offset += bytes;
+					vars.set(name, cb(buf));
+				} else vars.set(name, null);
+				return self;
+			};
+		});
+		var offset = 0;
+		var vars = Vars();
+		self.vars = vars.store;
+		self.tap = function(cb) {
+			cb.call(self, vars.store);
+			return self;
+		};
+		self.into = function(key, cb) {
+			if (!vars.get(key)) vars.set(key, {});
+			var parent = vars;
+			vars = Vars(parent.get(key));
+			cb.call(self, vars.store);
+			vars = parent;
+			return self;
+		};
+		self.loop = function(cb) {
+			var end = false;
+			var ender = function() {
+				end = true;
+			};
+			while (end === false) cb.call(self, ender, vars.store);
+			return self;
+		};
+		self.buffer = function(name, size) {
+			if (typeof size === "string") size = vars.get(size);
+			var buf = buffer.slice(offset, Math.min(buffer.length, offset + size));
+			offset += size;
+			vars.set(name, buf);
+			return self;
+		};
+		self.skip = function(bytes) {
+			if (typeof bytes === "string") bytes = vars.get(bytes);
+			offset += bytes;
+			return self;
+		};
+		self.scan = function(name, search) {
+			if (typeof search === "string") search = new Buffer(search);
+			else if (!Buffer.isBuffer(search)) throw new Error("search must be a Buffer or a string");
+			vars.set(name, null);
+			for (var i = 0; i + offset <= buffer.length - search.length + 1; i++) {
+				for (var j = 0; j < search.length && buffer[offset + i + j] === search[j]; j++);
+				if (j === search.length) break;
+			}
+			vars.set(name, buffer.slice(offset, offset + i));
+			offset += i + search.length;
+			return self;
+		};
+		self.peek = function(cb) {
+			var was = offset;
+			cb.call(self, vars.store);
+			offset = was;
+			return self;
+		};
+		self.flush = function() {
+			vars.store = {};
+			return self;
+		};
+		self.eof = function() {
+			return offset >= buffer.length;
+		};
+		return self;
+	};
+	function decodeLEu(bytes) {
+		var acc = 0;
+		for (var i = 0; i < bytes.length; i++) acc += Math.pow(256, i) * bytes[i];
+		return acc;
+	}
+	function decodeBEu(bytes) {
+		var acc = 0;
+		for (var i = 0; i < bytes.length; i++) acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
+		return acc;
+	}
+	function decodeBEs(bytes) {
+		var val = decodeBEu(bytes);
+		if ((bytes[0] & 128) == 128) val -= Math.pow(256, bytes.length);
+		return val;
+	}
+	function decodeLEs(bytes) {
+		var val = decodeLEu(bytes);
+		if ((bytes[bytes.length - 1] & 128) == 128) val -= Math.pow(256, bytes.length);
+		return val;
+	}
+	function words(decode) {
+		var self = {};
+		[
+			1,
+			2,
+			4,
+			8
+		].forEach(function(bytes) {
+			var bits = bytes * 8;
+			self["word" + bits + "le"] = self["word" + bits + "lu"] = decode(bytes, decodeLEu);
+			self["word" + bits + "ls"] = decode(bytes, decodeLEs);
+			self["word" + bits + "be"] = self["word" + bits + "bu"] = decode(bytes, decodeBEu);
+			self["word" + bits + "bs"] = decode(bytes, decodeBEs);
+		});
+		self.word8 = self.word8u = self.word8be;
+		self.word8s = self.word8bs;
+		return self;
+	}
+}));
+//#endregion
+//#region node_modules/unzip-stream/lib/matcher-stream.js
+var require_matcher_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var Transform$2 = require("stream").Transform;
+	var util$4 = require("util");
+	function MatcherStream(patternDesc, matchFn) {
+		if (!(this instanceof MatcherStream)) return new MatcherStream();
+		Transform$2.call(this);
+		var p = typeof patternDesc === "object" ? patternDesc.pattern : patternDesc;
+		this.pattern = Buffer.isBuffer(p) ? p : Buffer.from(p);
+		this.requiredLength = this.pattern.length;
+		if (patternDesc.requiredExtraSize) this.requiredLength += patternDesc.requiredExtraSize;
+		this.data = new Buffer("");
+		this.bytesSoFar = 0;
+		this.matchFn = matchFn;
+	}
+	util$4.inherits(MatcherStream, Transform$2);
+	MatcherStream.prototype.checkDataChunk = function(ignoreMatchZero) {
+		if (!(this.data.length >= this.requiredLength)) return;
+		var matchIndex = this.data.indexOf(this.pattern, ignoreMatchZero ? 1 : 0);
+		if (matchIndex >= 0 && matchIndex + this.requiredLength > this.data.length) {
+			if (matchIndex > 0) {
+				var packet = this.data.slice(0, matchIndex);
+				this.push(packet);
+				this.bytesSoFar += matchIndex;
+				this.data = this.data.slice(matchIndex);
+			}
+			return;
+		}
+		if (matchIndex === -1) {
+			var packetLen = this.data.length - this.requiredLength + 1;
+			var packet = this.data.slice(0, packetLen);
+			this.push(packet);
+			this.bytesSoFar += packetLen;
+			this.data = this.data.slice(packetLen);
+			return;
+		}
+		if (matchIndex > 0) {
+			var packet = this.data.slice(0, matchIndex);
+			this.data = this.data.slice(matchIndex);
+			this.push(packet);
+			this.bytesSoFar += matchIndex;
+		}
+		if (this.matchFn ? this.matchFn(this.data, this.bytesSoFar) : true) {
+			this.data = new Buffer("");
+			return;
+		}
+		return true;
+	};
+	MatcherStream.prototype._transform = function(chunk, encoding, cb) {
+		this.data = Buffer.concat([this.data, chunk]);
+		var firstIteration = true;
+		while (this.checkDataChunk(!firstIteration)) firstIteration = false;
+		cb();
+	};
+	MatcherStream.prototype._flush = function(cb) {
+		if (this.data.length > 0) {
+			var firstIteration = true;
+			while (this.checkDataChunk(!firstIteration)) firstIteration = false;
+		}
+		if (this.data.length > 0) {
+			this.push(this.data);
+			this.data = null;
+		}
+		cb();
+	};
+	module.exports = MatcherStream;
+}));
+//#endregion
+//#region node_modules/unzip-stream/lib/entry.js
+var require_entry = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var stream$1 = require("stream");
+	var inherits = require("util").inherits;
+	function Entry() {
+		if (!(this instanceof Entry)) return new Entry();
+		stream$1.PassThrough.call(this);
+		this.path = null;
+		this.type = null;
+		this.isDirectory = false;
+	}
+	inherits(Entry, stream$1.PassThrough);
+	Entry.prototype.autodrain = function() {
+		return this.pipe(new stream$1.Transform({ transform: function(d, e, cb) {
+			cb();
+		} }));
+	};
+	module.exports = Entry;
+}));
+//#endregion
+//#region node_modules/unzip-stream/lib/unzip-stream.js
+var require_unzip_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var binary = require_binary();
+	var stream = require("stream");
+	var util$3 = require("util");
+	var zlib = require("zlib");
+	var MatcherStream = require_matcher_stream();
+	var Entry = require_entry();
+	const states = {
+		STREAM_START: 0,
+		START: 1,
+		LOCAL_FILE_HEADER: 2,
+		LOCAL_FILE_HEADER_SUFFIX: 3,
+		FILE_DATA: 4,
+		FILE_DATA_END: 5,
+		DATA_DESCRIPTOR: 6,
+		CENTRAL_DIRECTORY_FILE_HEADER: 7,
+		CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX: 8,
+		CDIR64_END: 9,
+		CDIR64_END_DATA_SECTOR: 10,
+		CDIR64_LOCATOR: 11,
+		CENTRAL_DIRECTORY_END: 12,
+		CENTRAL_DIRECTORY_END_COMMENT: 13,
+		TRAILING_JUNK: 14,
+		ERROR: 99
+	};
+	const FOUR_GIGS = 4294967296;
+	const SIG_LOCAL_FILE_HEADER = 67324752;
+	const SIG_DATA_DESCRIPTOR = 134695760;
+	const SIG_CDIR_RECORD = 33639248;
+	const SIG_CDIR64_RECORD_END = 101075792;
+	const SIG_CDIR64_LOCATOR_END = 117853008;
+	const SIG_CDIR_RECORD_END = 101010256;
+	function UnzipStream(options) {
+		if (!(this instanceof UnzipStream)) return new UnzipStream(options);
+		stream.Transform.call(this);
+		this.options = options || {};
+		this.data = new Buffer("");
+		this.state = states.STREAM_START;
+		this.skippedBytes = 0;
+		this.parsedEntity = null;
+		this.outStreamInfo = {};
+	}
+	util$3.inherits(UnzipStream, stream.Transform);
+	UnzipStream.prototype.processDataChunk = function(chunk) {
+		var requiredLength;
+		switch (this.state) {
+			case states.STREAM_START:
+			case states.START:
+				requiredLength = 4;
+				break;
+			case states.LOCAL_FILE_HEADER:
+				requiredLength = 26;
+				break;
+			case states.LOCAL_FILE_HEADER_SUFFIX:
+				requiredLength = this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength;
+				break;
+			case states.DATA_DESCRIPTOR:
+				requiredLength = 12;
+				break;
+			case states.CENTRAL_DIRECTORY_FILE_HEADER:
+				requiredLength = 42;
+				break;
+			case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
+				requiredLength = this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength + this.parsedEntity.fileCommentLength;
+				break;
+			case states.CDIR64_END:
+				requiredLength = 52;
+				break;
+			case states.CDIR64_END_DATA_SECTOR:
+				requiredLength = this.parsedEntity.centralDirectoryRecordSize - 44;
+				break;
+			case states.CDIR64_LOCATOR:
+				requiredLength = 16;
+				break;
+			case states.CENTRAL_DIRECTORY_END:
+				requiredLength = 18;
+				break;
+			case states.CENTRAL_DIRECTORY_END_COMMENT:
+				requiredLength = this.parsedEntity.commentLength;
+				break;
+			case states.FILE_DATA: return 0;
+			case states.FILE_DATA_END: return 0;
+			case states.TRAILING_JUNK:
+				if (this.options.debug) console.log("found", chunk.length, "bytes of TRAILING_JUNK");
+				return chunk.length;
+			default: return chunk.length;
+		}
+		if (chunk.length < requiredLength) return 0;
+		switch (this.state) {
+			case states.STREAM_START:
+			case states.START:
+				var signature = chunk.readUInt32LE(0);
+				switch (signature) {
+					case SIG_LOCAL_FILE_HEADER:
+						this.state = states.LOCAL_FILE_HEADER;
+						break;
+					case SIG_CDIR_RECORD:
+						this.state = states.CENTRAL_DIRECTORY_FILE_HEADER;
+						break;
+					case SIG_CDIR64_RECORD_END:
+						this.state = states.CDIR64_END;
+						break;
+					case SIG_CDIR64_LOCATOR_END:
+						this.state = states.CDIR64_LOCATOR;
+						break;
+					case SIG_CDIR_RECORD_END:
+						this.state = states.CENTRAL_DIRECTORY_END;
+						break;
+					default:
+						var isStreamStart = this.state === states.STREAM_START;
+						if (!isStreamStart && (signature & 65535) !== 19280 && this.skippedBytes < 26) {
+							var remaining = signature;
+							var toSkip = 4;
+							for (var i = 1; i < 4 && remaining !== 0; i++) {
+								remaining = remaining >>> 8;
+								if ((remaining & 255) === 80) {
+									toSkip = i;
+									break;
+								}
+							}
+							this.skippedBytes += toSkip;
+							if (this.options.debug) console.log("Skipped", this.skippedBytes, "bytes");
+							return toSkip;
+						}
+						this.state = states.ERROR;
+						var errMsg = isStreamStart ? "Not a valid zip file" : "Invalid signature in zip file";
+						if (this.options.debug) {
+							var sig = chunk.readUInt32LE(0);
+							var asString;
+							try {
+								asString = chunk.slice(0, 4).toString();
+							} catch (e) {}
+							console.log("Unexpected signature in zip file: 0x" + sig.toString(16), "\"" + asString + "\", skipped", this.skippedBytes, "bytes");
+						}
+						this.emit("error", new Error(errMsg));
+						return chunk.length;
+				}
+				this.skippedBytes = 0;
+				return requiredLength;
+			case states.LOCAL_FILE_HEADER:
+				this.parsedEntity = this._readFile(chunk);
+				this.state = states.LOCAL_FILE_HEADER_SUFFIX;
+				return requiredLength;
+			case states.LOCAL_FILE_HEADER_SUFFIX:
+				var entry = new Entry();
+				var isUtf8 = (this.parsedEntity.flags & 2048) !== 0;
+				entry.path = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
+				var extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength);
+				var extra = this._readExtraFields(extraDataBuffer);
+				if (extra && extra.parsed) {
+					if (extra.parsed.path && !isUtf8) entry.path = extra.parsed.path;
+					if (Number.isFinite(extra.parsed.uncompressedSize) && this.parsedEntity.uncompressedSize === FOUR_GIGS - 1) this.parsedEntity.uncompressedSize = extra.parsed.uncompressedSize;
+					if (Number.isFinite(extra.parsed.compressedSize) && this.parsedEntity.compressedSize === FOUR_GIGS - 1) this.parsedEntity.compressedSize = extra.parsed.compressedSize;
+				}
+				this.parsedEntity.extra = extra.parsed || {};
+				if (this.options.debug) {
+					const debugObj = Object.assign({}, this.parsedEntity, {
+						path: entry.path,
+						flags: "0x" + this.parsedEntity.flags.toString(16),
+						extraFields: extra && extra.debug
+					});
+					console.log("decoded LOCAL_FILE_HEADER:", JSON.stringify(debugObj, null, 2));
+				}
+				this._prepareOutStream(this.parsedEntity, entry);
+				this.emit("entry", entry);
+				this.state = states.FILE_DATA;
+				return requiredLength;
+			case states.CENTRAL_DIRECTORY_FILE_HEADER:
+				this.parsedEntity = this._readCentralDirectoryEntry(chunk);
+				this.state = states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX;
+				return requiredLength;
+			case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
+				var isUtf8 = (this.parsedEntity.flags & 2048) !== 0;
+				var path = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
+				var extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength);
+				var extra = this._readExtraFields(extraDataBuffer);
+				if (extra && extra.parsed && extra.parsed.path && !isUtf8) path = extra.parsed.path;
+				this.parsedEntity.extra = extra.parsed;
+				var isUnix = (this.parsedEntity.versionMadeBy & 65280) >> 8 === 3;
+				var unixAttrs, isSymlink;
+				if (isUnix) {
+					unixAttrs = this.parsedEntity.externalFileAttributes >>> 16;
+					isSymlink = (unixAttrs >>> 12 & 10) === 10;
+				}
+				if (this.options.debug) {
+					const debugObj = Object.assign({}, this.parsedEntity, {
+						path,
+						flags: "0x" + this.parsedEntity.flags.toString(16),
+						unixAttrs: unixAttrs && "0" + unixAttrs.toString(8),
+						isSymlink,
+						extraFields: extra.debug
+					});
+					console.log("decoded CENTRAL_DIRECTORY_FILE_HEADER:", JSON.stringify(debugObj, null, 2));
+				}
+				this.state = states.START;
+				return requiredLength;
+			case states.CDIR64_END:
+				this.parsedEntity = this._readEndOfCentralDirectory64(chunk);
+				if (this.options.debug) console.log("decoded CDIR64_END_RECORD:", this.parsedEntity);
+				this.state = states.CDIR64_END_DATA_SECTOR;
+				return requiredLength;
+			case states.CDIR64_END_DATA_SECTOR:
+				this.state = states.START;
+				return requiredLength;
+			case states.CDIR64_LOCATOR:
+				this.state = states.START;
+				return requiredLength;
+			case states.CENTRAL_DIRECTORY_END:
+				this.parsedEntity = this._readEndOfCentralDirectory(chunk);
+				if (this.options.debug) console.log("decoded CENTRAL_DIRECTORY_END:", this.parsedEntity);
+				this.state = states.CENTRAL_DIRECTORY_END_COMMENT;
+				return requiredLength;
+			case states.CENTRAL_DIRECTORY_END_COMMENT:
+				if (this.options.debug) console.log("decoded CENTRAL_DIRECTORY_END_COMMENT:", chunk.slice(0, requiredLength).toString());
+				this.state = states.TRAILING_JUNK;
+				return requiredLength;
+			case states.ERROR: return chunk.length;
+			default:
+				console.log("didn't handle state #", this.state, "discarding");
+				return chunk.length;
+		}
+	};
+	UnzipStream.prototype._prepareOutStream = function(vars, entry) {
+		var self = this;
+		var isDirectory = vars.uncompressedSize === 0 && /[\/\\]$/.test(entry.path);
+		entry.path = entry.path.replace(/(?<=^|[/\\]+)[.][.]+(?=[/\\]+|$)/g, ".");
+		entry.type = isDirectory ? "Directory" : "File";
+		entry.isDirectory = isDirectory;
+		var fileSizeKnown = !(vars.flags & 8);
+		if (fileSizeKnown) entry.size = vars.uncompressedSize;
+		var isVersionSupported = vars.versionsNeededToExtract <= 45;
+		this.outStreamInfo = {
+			stream: null,
+			limit: fileSizeKnown ? vars.compressedSize : -1,
+			written: 0
+		};
+		if (!fileSizeKnown) {
+			var pattern = new Buffer(4);
+			pattern.writeUInt32LE(SIG_DATA_DESCRIPTOR, 0);
+			var zip64Mode = vars.extra.zip64Mode;
+			var matcherStream = new MatcherStream({
+				pattern,
+				requiredExtraSize: zip64Mode ? 20 : 12
+			}, function(matchedChunk, sizeSoFar) {
+				var vars = self._readDataDescriptor(matchedChunk, zip64Mode);
+				var compressedSizeMatches = vars.compressedSize === sizeSoFar;
+				if (!zip64Mode && !compressedSizeMatches && sizeSoFar >= FOUR_GIGS) {
+					var overflown = sizeSoFar - FOUR_GIGS;
+					while (overflown >= 0) {
+						compressedSizeMatches = vars.compressedSize === overflown;
+						if (compressedSizeMatches) break;
+						overflown -= FOUR_GIGS;
+					}
+				}
+				if (!compressedSizeMatches) return;
+				self.state = states.FILE_DATA_END;
+				var sliceOffset = zip64Mode ? 24 : 16;
+				if (self.data.length > 0) self.data = Buffer.concat([matchedChunk.slice(sliceOffset), self.data]);
+				else self.data = matchedChunk.slice(sliceOffset);
+				return true;
+			});
+			this.outStreamInfo.stream = matcherStream;
+		} else this.outStreamInfo.stream = new stream.PassThrough();
+		var isEncrypted = vars.flags & 1 || vars.flags & 64;
+		if (isEncrypted || !isVersionSupported) {
+			var message = isEncrypted ? "Encrypted files are not supported!" : "Zip version " + Math.floor(vars.versionsNeededToExtract / 10) + "." + vars.versionsNeededToExtract % 10 + " is not supported";
+			entry.skip = true;
+			setImmediate(() => {
+				self.emit("error", new Error(message));
+			});
+			this.outStreamInfo.stream.pipe(new Entry().autodrain());
+			return;
+		}
+		if (vars.compressionMethod > 0) {
+			var inflater = zlib.createInflateRaw();
+			inflater.on("error", function(err) {
+				self.state = states.ERROR;
+				self.emit("error", err);
+			});
+			this.outStreamInfo.stream.pipe(inflater).pipe(entry);
+		} else this.outStreamInfo.stream.pipe(entry);
+		if (this._drainAllEntries) entry.autodrain();
+	};
+	UnzipStream.prototype._readFile = function(data) {
+		return binary.parse(data).word16lu("versionsNeededToExtract").word16lu("flags").word16lu("compressionMethod").word16lu("lastModifiedTime").word16lu("lastModifiedDate").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").word16lu("fileNameLength").word16lu("extraFieldLength").vars;
+	};
+	UnzipStream.prototype._readExtraFields = function(data) {
+		var extra = {};
+		var result = { parsed: extra };
+		if (this.options.debug) result.debug = [];
+		var index = 0;
+		while (index < data.length) {
+			var vars = binary.parse(data).skip(index).word16lu("extraId").word16lu("extraSize").vars;
+			index += 4;
+			var fieldType = void 0;
+			switch (vars.extraId) {
+				case 1:
+					fieldType = "Zip64 extended information extra field";
+					var z64vars = binary.parse(data.slice(index, index + vars.extraSize)).word64lu("uncompressedSize").word64lu("compressedSize").word64lu("offsetToLocalHeader").word32lu("diskStartNumber").vars;
+					if (z64vars.uncompressedSize !== null) extra.uncompressedSize = z64vars.uncompressedSize;
+					if (z64vars.compressedSize !== null) extra.compressedSize = z64vars.compressedSize;
+					extra.zip64Mode = true;
+					break;
+				case 10:
+					fieldType = "NTFS extra field";
+					break;
+				case 21589:
+					fieldType = "extended timestamp";
+					var timestampFields = data.readUInt8(index);
+					var offset = 1;
+					if (vars.extraSize >= offset + 4 && timestampFields & 1) {
+						extra.mtime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
+						offset += 4;
+					}
+					if (vars.extraSize >= offset + 4 && timestampFields & 2) {
+						extra.atime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
+						offset += 4;
+					}
+					if (vars.extraSize >= offset + 4 && timestampFields & 4) extra.ctime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
+					break;
+				case 28789:
+					fieldType = "Info-ZIP Unicode Path Extra Field";
+					if (data.readUInt8(index) === 1) {
+						var offset = 1;
+						data.readUInt32LE(index + offset);
+						offset += 4;
+						extra.path = data.slice(index + offset).toString();
+					}
+					break;
+				case 13:
+				case 22613:
+					fieldType = vars.extraId === 13 ? "PKWARE Unix" : "Info-ZIP UNIX (type 1)";
+					var offset = 0;
+					if (vars.extraSize >= 8) {
+						var atime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
+						offset += 4;
+						var mtime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
+						offset += 4;
+						extra.atime = atime;
+						extra.mtime = mtime;
+						if (vars.extraSize >= 12) {
+							var uid = data.readUInt16LE(index + offset);
+							offset += 2;
+							var gid = data.readUInt16LE(index + offset);
+							offset += 2;
+							extra.uid = uid;
+							extra.gid = gid;
+						}
+					}
+					break;
+				case 30805:
+					fieldType = "Info-ZIP UNIX (type 2)";
+					var offset = 0;
+					if (vars.extraSize >= 4) {
+						var uid = data.readUInt16LE(index + offset);
+						offset += 2;
+						var gid = data.readUInt16LE(index + offset);
+						offset += 2;
+						extra.uid = uid;
+						extra.gid = gid;
+					}
+					break;
+				case 30837:
+					fieldType = "Info-ZIP New Unix";
+					var offset = 0;
+					var extraVer = data.readUInt8(index);
+					offset += 1;
+					if (extraVer === 1) {
+						var uidSize = data.readUInt8(index + offset);
+						offset += 1;
+						if (uidSize <= 6) extra.uid = data.readUIntLE(index + offset, uidSize);
+						offset += uidSize;
+						var gidSize = data.readUInt8(index + offset);
+						offset += 1;
+						if (gidSize <= 6) extra.gid = data.readUIntLE(index + offset, gidSize);
+					}
+					break;
+				case 30062:
+					fieldType = "ASi Unix";
+					var offset = 0;
+					if (vars.extraSize >= 14) {
+						data.readUInt32LE(index + offset);
+						offset += 4;
+						var mode = data.readUInt16LE(index + offset);
+						offset += 2;
+						data.readUInt32LE(index + offset);
+						offset += 4;
+						var uid = data.readUInt16LE(index + offset);
+						offset += 2;
+						var gid = data.readUInt16LE(index + offset);
+						offset += 2;
+						extra.mode = mode;
+						extra.uid = uid;
+						extra.gid = gid;
+						if (vars.extraSize > 14) {
+							var start = index + offset;
+							var end = index + vars.extraSize - 14;
+							extra.symlink = this._decodeString(data.slice(start, end));
+						}
+					}
+					break;
+			}
+			if (this.options.debug) result.debug.push({
+				extraId: "0x" + vars.extraId.toString(16),
+				description: fieldType,
+				data: data.slice(index, index + vars.extraSize).inspect()
+			});
+			index += vars.extraSize;
+		}
+		return result;
+	};
+	UnzipStream.prototype._readDataDescriptor = function(data, zip64Mode) {
+		if (zip64Mode) {
+			var vars = binary.parse(data).word32lu("dataDescriptorSignature").word32lu("crc32").word64lu("compressedSize").word64lu("uncompressedSize").vars;
+			return vars;
+		}
+		var vars = binary.parse(data).word32lu("dataDescriptorSignature").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").vars;
+		return vars;
+	};
+	UnzipStream.prototype._readCentralDirectoryEntry = function(data) {
+		return binary.parse(data).word16lu("versionMadeBy").word16lu("versionsNeededToExtract").word16lu("flags").word16lu("compressionMethod").word16lu("lastModifiedTime").word16lu("lastModifiedDate").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").word16lu("fileNameLength").word16lu("extraFieldLength").word16lu("fileCommentLength").word16lu("diskNumber").word16lu("internalFileAttributes").word32lu("externalFileAttributes").word32lu("offsetToLocalFileHeader").vars;
+	};
+	UnzipStream.prototype._readEndOfCentralDirectory64 = function(data) {
+		return binary.parse(data).word64lu("centralDirectoryRecordSize").word16lu("versionMadeBy").word16lu("versionsNeededToExtract").word32lu("diskNumber").word32lu("diskNumberWithCentralDirectoryStart").word64lu("centralDirectoryEntries").word64lu("totalCentralDirectoryEntries").word64lu("sizeOfCentralDirectory").word64lu("offsetToStartOfCentralDirectory").vars;
+	};
+	UnzipStream.prototype._readEndOfCentralDirectory = function(data) {
+		return binary.parse(data).word16lu("diskNumber").word16lu("diskStart").word16lu("centralDirectoryEntries").word16lu("totalCentralDirectoryEntries").word32lu("sizeOfCentralDirectory").word32lu("offsetToStartOfCentralDirectory").word16lu("commentLength").vars;
+	};
+	const cp437 = "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+	UnzipStream.prototype._decodeString = function(buffer, isUtf8) {
+		if (isUtf8) return buffer.toString("utf8");
+		if (this.options.decodeString) return this.options.decodeString(buffer);
+		let result = "";
+		for (var i = 0; i < buffer.length; i++) result += cp437[buffer[i]];
+		return result;
+	};
+	UnzipStream.prototype._parseOrOutput = function(encoding, cb) {
+		var consume;
+		while ((consume = this.processDataChunk(this.data)) > 0) {
+			this.data = this.data.slice(consume);
+			if (this.data.length === 0) break;
+		}
+		if (this.state === states.FILE_DATA) {
+			if (this.outStreamInfo.limit >= 0) {
+				var remaining = this.outStreamInfo.limit - this.outStreamInfo.written;
+				var packet;
+				if (remaining < this.data.length) {
+					packet = this.data.slice(0, remaining);
+					this.data = this.data.slice(remaining);
+				} else {
+					packet = this.data;
+					this.data = new Buffer("");
+				}
+				this.outStreamInfo.written += packet.length;
+				if (this.outStreamInfo.limit === this.outStreamInfo.written) {
+					this.state = states.START;
+					this.outStreamInfo.stream.end(packet, encoding, cb);
+				} else this.outStreamInfo.stream.write(packet, encoding, cb);
+			} else {
+				var packet = this.data;
+				this.data = new Buffer("");
+				this.outStreamInfo.written += packet.length;
+				var outputStream = this.outStreamInfo.stream;
+				outputStream.write(packet, encoding, () => {
+					if (this.state === states.FILE_DATA_END) {
+						this.state = states.START;
+						return outputStream.end(cb);
+					}
+					cb();
+				});
+			}
+			return;
+		}
+		cb();
+	};
+	UnzipStream.prototype.drainAll = function() {
+		this._drainAllEntries = true;
+	};
+	UnzipStream.prototype._transform = function(chunk, encoding, cb) {
+		var self = this;
+		if (self.data.length > 0) self.data = Buffer.concat([self.data, chunk]);
+		else self.data = chunk;
+		var startDataLength = self.data.length;
+		var done = function() {
+			if (self.data.length > 0 && self.data.length < startDataLength) {
+				startDataLength = self.data.length;
+				self._parseOrOutput(encoding, done);
+				return;
+			}
+			cb();
+		};
+		self._parseOrOutput(encoding, done);
+	};
+	UnzipStream.prototype._flush = function(cb) {
+		var self = this;
+		if (self.data.length > 0) {
+			self._parseOrOutput("buffer", function() {
+				if (self.data.length > 0) return setImmediate(function() {
+					self._flush(cb);
+				});
+				cb();
+			});
+			return;
+		}
+		if (self.state === states.FILE_DATA) return cb(/* @__PURE__ */ new Error("Stream finished in an invalid state, uncompression failed"));
+		setImmediate(cb);
+	};
+	module.exports = UnzipStream;
+}));
+//#endregion
+//#region node_modules/unzip-stream/lib/parser-stream.js
+var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var Transform$1 = require("stream").Transform;
+	var util$2 = require("util");
+	var UnzipStream = require_unzip_stream();
+	function ParserStream(opts) {
+		if (!(this instanceof ParserStream)) return new ParserStream(opts);
+		Transform$1.call(this, { readableObjectMode: true });
+		this.opts = opts || {};
+		this.unzipStream = new UnzipStream(this.opts);
+		var self = this;
+		this.unzipStream.on("entry", function(entry) {
+			self.push(entry);
+		});
+		this.unzipStream.on("error", function(error) {
+			self.emit("error", error);
+		});
+	}
+	util$2.inherits(ParserStream, Transform$1);
+	ParserStream.prototype._transform = function(chunk, encoding, cb) {
+		this.unzipStream.write(chunk, encoding, cb);
+	};
+	ParserStream.prototype._flush = function(cb) {
+		var self = this;
+		this.unzipStream.end(function() {
+			process.nextTick(function() {
+				self.emit("close");
+			});
+			cb();
+		});
+	};
+	ParserStream.prototype.on = function(eventName, fn) {
+		if (eventName === "entry") return Transform$1.prototype.on.call(this, "data", fn);
+		return Transform$1.prototype.on.call(this, eventName, fn);
+	};
+	ParserStream.prototype.drainAll = function() {
+		this.unzipStream.drainAll();
+		return this.pipe(new Transform$1({
+			objectMode: true,
+			transform: function(d, e, cb) {
+				cb();
+			}
+		}));
+	};
+	module.exports = ParserStream;
+}));
+//#endregion
+//#region node_modules/unzip-stream/node_modules/mkdirp/index.js
+var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var path$1 = require("path");
+	var fs$1 = require("fs");
+	var _0777 = parseInt("0777", 8);
+	module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
+	function mkdirP(p, opts, f, made) {
+		if (typeof opts === "function") {
+			f = opts;
+			opts = {};
+		} else if (!opts || typeof opts !== "object") opts = { mode: opts };
+		var mode = opts.mode;
+		var xfs = opts.fs || fs$1;
+		if (mode === void 0) mode = _0777;
+		if (!made) made = null;
+		var cb = f || function() {};
+		p = path$1.resolve(p);
+		xfs.mkdir(p, mode, function(er) {
+			if (!er) {
+				made = made || p;
+				return cb(null, made);
+			}
+			switch (er.code) {
+				case "ENOENT":
+					/* istanbul ignore if */
+					if (path$1.dirname(p) === p) return cb(er);
+					mkdirP(path$1.dirname(p), opts, function(er, made) {
+						/* istanbul ignore if */
+						if (er) cb(er, made);
+						else mkdirP(p, opts, cb, made);
+					});
+					break;
+				default:
+					xfs.stat(p, function(er2, stat) {
+						if (er2 || !stat.isDirectory()) cb(er, made);
+						else cb(null, made);
+					});
+					break;
+			}
+		});
+	}
+	mkdirP.sync = function sync(p, opts, made) {
+		if (!opts || typeof opts !== "object") opts = { mode: opts };
+		var mode = opts.mode;
+		var xfs = opts.fs || fs$1;
+		if (mode === void 0) mode = _0777;
+		if (!made) made = null;
+		p = path$1.resolve(p);
+		try {
+			xfs.mkdirSync(p, mode);
+			made = made || p;
+		} catch (err0) {
+			switch (err0.code) {
+				case "ENOENT":
+					made = sync(path$1.dirname(p), opts, made);
+					sync(p, opts, made);
+					break;
+				default:
+					var stat;
+					try {
+						stat = xfs.statSync(p);
+					} catch (err1) 					/* istanbul ignore next */ {
+						throw err0;
+					}
+					/* istanbul ignore if */
+					if (!stat.isDirectory()) throw err0;
+					break;
+			}
+		}
+		return made;
+	};
+}));
+//#endregion
+//#region node_modules/unzip-stream/lib/extract.js
+var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var fs = require("fs");
+	var path = require("path");
+	var util$1 = require("util");
+	var mkdirp = require_mkdirp();
+	var Transform = require("stream").Transform;
+	var UnzipStream = require_unzip_stream();
+	function Extract(opts) {
+		if (!(this instanceof Extract)) return new Extract(opts);
+		Transform.call(this);
+		this.opts = opts || {};
+		this.unzipStream = new UnzipStream(this.opts);
+		this.unfinishedEntries = 0;
+		this.afterFlushWait = false;
+		this.createdDirectories = {};
+		var self = this;
+		this.unzipStream.on("entry", this._processEntry.bind(this));
+		this.unzipStream.on("error", function(error) {
+			self.emit("error", error);
+		});
+	}
+	util$1.inherits(Extract, Transform);
+	Extract.prototype._transform = function(chunk, encoding, cb) {
+		this.unzipStream.write(chunk, encoding, cb);
+	};
+	Extract.prototype._flush = function(cb) {
+		var self = this;
+		var allDone = function() {
+			process.nextTick(function() {
+				self.emit("close");
+			});
+			cb();
+		};
+		this.unzipStream.end(function() {
+			if (self.unfinishedEntries > 0) {
+				self.afterFlushWait = true;
+				return self.on("await-finished", allDone);
+			}
+			allDone();
+		});
+	};
+	Extract.prototype._processEntry = function(entry) {
+		var self = this;
+		var destPath = path.join(this.opts.path, entry.path);
+		var directory = entry.isDirectory ? destPath : path.dirname(destPath);
+		this.unfinishedEntries++;
+		var writeFileFn = function() {
+			var pipedStream = fs.createWriteStream(destPath);
+			pipedStream.on("close", function() {
+				self.unfinishedEntries--;
+				self._notifyAwaiter();
+			});
+			pipedStream.on("error", function(error) {
+				self.emit("error", error);
+			});
+			entry.pipe(pipedStream);
+		};
+		if (this.createdDirectories[directory] || directory === ".") return writeFileFn();
+		mkdirp(directory, function(err) {
+			if (err) return self.emit("error", err);
+			self.createdDirectories[directory] = true;
+			if (entry.isDirectory) {
+				self.unfinishedEntries--;
+				self._notifyAwaiter();
+				return;
+			}
+			writeFileFn();
+		});
+	};
+	Extract.prototype._notifyAwaiter = function() {
+		if (this.afterFlushWait && this.unfinishedEntries === 0) {
+			this.emit("await-finished");
+			this.afterFlushWait = false;
+		}
+	};
+	module.exports = Extract;
+}));
+//#endregion
+//#region node_modules/unzip-stream/unzip.js
+var require_unzip = /* @__PURE__ */ __commonJSMin(((exports) => {
+	exports.Parse = require_parser_stream();
+	exports.Extract = require_extract();
 }));
 //#endregion
 //#region node_modules/tar/dist/commonjs/index.min.js
@@ -110092,7 +112666,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 			}
 		};
 		W.WriteStream = Xt;
-		var fs$6 = class extends Xt {
+		var fs = class extends Xt {
 			[be]() {
 				let e;
 				if (this[Vt] && this[de] === "r+") try {
@@ -110121,7 +112695,7 @@ while (this[jr](this[Wt]()) && this[O].length);
 				}
 			}
 		};
-		W.WriteStreamSync = fs$6;
+		W.WriteStreamSync = fs;
 	});
 	var Qt = d((S) => {
 		"use strict";
@@ -113245,1622 +115819,6 @@ while (this[Jr](this[pe].shift()));
 	Y(nr(), exports);
 }));
 //#endregion
-//#region node_modules/traverse/index.js
-var require_traverse = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = Traverse;
-	function Traverse(obj) {
-		if (!(this instanceof Traverse)) return new Traverse(obj);
-		this.value = obj;
-	}
-	Traverse.prototype.get = function(ps) {
-		var node = this.value;
-		for (var i = 0; i < ps.length; i++) {
-			var key = ps[i];
-			if (!Object.hasOwnProperty.call(node, key)) {
-				node = void 0;
-				break;
-			}
-			node = node[key];
-		}
-		return node;
-	};
-	Traverse.prototype.set = function(ps, value) {
-		var node = this.value;
-		for (var i = 0; i < ps.length - 1; i++) {
-			var key = ps[i];
-			if (!Object.hasOwnProperty.call(node, key)) node[key] = {};
-			node = node[key];
-		}
-		node[ps[i]] = value;
-		return value;
-	};
-	Traverse.prototype.map = function(cb) {
-		return walk(this.value, cb, true);
-	};
-	Traverse.prototype.forEach = function(cb) {
-		this.value = walk(this.value, cb, false);
-		return this.value;
-	};
-	Traverse.prototype.reduce = function(cb, init) {
-		var skip = arguments.length === 1;
-		var acc = skip ? this.value : init;
-		this.forEach(function(x) {
-			if (!this.isRoot || !skip) acc = cb.call(this, acc, x);
-		});
-		return acc;
-	};
-	Traverse.prototype.deepEqual = function(obj) {
-		if (arguments.length !== 1) throw new Error("deepEqual requires exactly one object to compare against");
-		var equal = true;
-		var node = obj;
-		this.forEach(function(y) {
-			var notEqual = (function() {
-				equal = false;
-			}).bind(this);
-			if (!this.isRoot) {
-				if (typeof node !== "object") return notEqual();
-				node = node[this.key];
-			}
-			var x = node;
-			this.post(function() {
-				node = x;
-			});
-			var toS = function(o) {
-				return Object.prototype.toString.call(o);
-			};
-			if (this.circular) {
-				if (Traverse(obj).get(this.circular.path) !== x) notEqual();
-			} else if (typeof x !== typeof y) notEqual();
-			else if (x === null || y === null || x === void 0 || y === void 0) {
-				if (x !== y) notEqual();
-			} else if (x.__proto__ !== y.__proto__) notEqual();
-			else if (x === y) {} else if (typeof x === "function") {
-				if (x instanceof RegExp) {
-					if (x.toString() != y.toString()) notEqual();
-				} else if (x !== y) notEqual();
-			} else if (typeof x === "object") if (toS(y) === "[object Arguments]" || toS(x) === "[object Arguments]") {
-				if (toS(x) !== toS(y)) notEqual();
-			} else if (x instanceof Date || y instanceof Date) {
-				if (!(x instanceof Date) || !(y instanceof Date) || x.getTime() !== y.getTime()) notEqual();
-			} else {
-				var kx = Object.keys(x);
-				var ky = Object.keys(y);
-				if (kx.length !== ky.length) return notEqual();
-				for (var i = 0; i < kx.length; i++) {
-					var k = kx[i];
-					if (!Object.hasOwnProperty.call(y, k)) notEqual();
-				}
-			}
-		});
-		return equal;
-	};
-	Traverse.prototype.paths = function() {
-		var acc = [];
-		this.forEach(function(x) {
-			acc.push(this.path);
-		});
-		return acc;
-	};
-	Traverse.prototype.nodes = function() {
-		var acc = [];
-		this.forEach(function(x) {
-			acc.push(this.node);
-		});
-		return acc;
-	};
-	Traverse.prototype.clone = function() {
-		var parents = [], nodes = [];
-		return (function clone(src) {
-			for (var i = 0; i < parents.length; i++) if (parents[i] === src) return nodes[i];
-			if (typeof src === "object" && src !== null) {
-				var dst = copy(src);
-				parents.push(src);
-				nodes.push(dst);
-				Object.keys(src).forEach(function(key) {
-					dst[key] = clone(src[key]);
-				});
-				parents.pop();
-				nodes.pop();
-				return dst;
-			} else return src;
-		})(this.value);
-	};
-	function walk(root, cb, immutable) {
-		var path = [];
-		var parents = [];
-		var alive = true;
-		return (function walker(node_) {
-			var node = immutable ? copy(node_) : node_;
-			var modifiers = {};
-			var state = {
-				node,
-				node_,
-				path: [].concat(path),
-				parent: parents.slice(-1)[0],
-				key: path.slice(-1)[0],
-				isRoot: path.length === 0,
-				level: path.length,
-				circular: null,
-				update: function(x) {
-					if (!state.isRoot) state.parent.node[state.key] = x;
-					state.node = x;
-				},
-				"delete": function() {
-					delete state.parent.node[state.key];
-				},
-				remove: function() {
-					if (Array.isArray(state.parent.node)) state.parent.node.splice(state.key, 1);
-					else delete state.parent.node[state.key];
-				},
-				before: function(f) {
-					modifiers.before = f;
-				},
-				after: function(f) {
-					modifiers.after = f;
-				},
-				pre: function(f) {
-					modifiers.pre = f;
-				},
-				post: function(f) {
-					modifiers.post = f;
-				},
-				stop: function() {
-					alive = false;
-				}
-			};
-			if (!alive) return state;
-			if (typeof node === "object" && node !== null) {
-				state.isLeaf = Object.keys(node).length == 0;
-				for (var i = 0; i < parents.length; i++) if (parents[i].node_ === node_) {
-					state.circular = parents[i];
-					break;
-				}
-			} else state.isLeaf = true;
-			state.notLeaf = !state.isLeaf;
-			state.notRoot = !state.isRoot;
-			var ret = cb.call(state, state.node);
-			if (ret !== void 0 && state.update) state.update(ret);
-			if (modifiers.before) modifiers.before.call(state, state.node);
-			if (typeof state.node == "object" && state.node !== null && !state.circular) {
-				parents.push(state);
-				var keys = Object.keys(state.node);
-				keys.forEach(function(key, i) {
-					path.push(key);
-					if (modifiers.pre) modifiers.pre.call(state, state.node[key], key);
-					var child = walker(state.node[key]);
-					if (immutable && Object.hasOwnProperty.call(state.node, key)) state.node[key] = child.node;
-					child.isLast = i == keys.length - 1;
-					child.isFirst = i == 0;
-					if (modifiers.post) modifiers.post.call(state, child);
-					path.pop();
-				});
-				parents.pop();
-			}
-			if (modifiers.after) modifiers.after.call(state, state.node);
-			return state;
-		})(root).node;
-	}
-	Object.keys(Traverse.prototype).forEach(function(key) {
-		Traverse[key] = function(obj) {
-			var args = [].slice.call(arguments, 1);
-			var t = Traverse(obj);
-			return t[key].apply(t, args);
-		};
-	});
-	function copy(src) {
-		if (typeof src === "object" && src !== null) {
-			var dst;
-			if (Array.isArray(src)) dst = [];
-			else if (src instanceof Date) dst = new Date(src);
-			else if (src instanceof Boolean) dst = new Boolean(src);
-			else if (src instanceof Number) dst = new Number(src);
-			else if (src instanceof String) dst = new String(src);
-			else dst = Object.create(Object.getPrototypeOf(src));
-			Object.keys(src).forEach(function(key) {
-				dst[key] = src[key];
-			});
-			return dst;
-		} else return src;
-	}
-}));
-//#endregion
-//#region node_modules/chainsaw/index.js
-var require_chainsaw = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Traverse = require_traverse();
-	var EventEmitter$4 = require("events").EventEmitter;
-	module.exports = Chainsaw;
-	function Chainsaw(builder) {
-		var saw = Chainsaw.saw(builder, {});
-		var r = builder.call(saw.handlers, saw);
-		if (r !== void 0) saw.handlers = r;
-		saw.record();
-		return saw.chain();
-	}
-	Chainsaw.light = function ChainsawLight(builder) {
-		var saw = Chainsaw.saw(builder, {});
-		var r = builder.call(saw.handlers, saw);
-		if (r !== void 0) saw.handlers = r;
-		return saw.chain();
-	};
-	Chainsaw.saw = function(builder, handlers) {
-		var saw = new EventEmitter$4();
-		saw.handlers = handlers;
-		saw.actions = [];
-		saw.chain = function() {
-			var ch = Traverse(saw.handlers).map(function(node) {
-				if (this.isRoot) return node;
-				var ps = this.path;
-				if (typeof node === "function") this.update(function() {
-					saw.actions.push({
-						path: ps,
-						args: [].slice.call(arguments)
-					});
-					return ch;
-				});
-			});
-			process.nextTick(function() {
-				saw.emit("begin");
-				saw.next();
-			});
-			return ch;
-		};
-		saw.pop = function() {
-			return saw.actions.shift();
-		};
-		saw.next = function() {
-			var action = saw.pop();
-			if (!action) saw.emit("end");
-			else if (!action.trap) {
-				var node = saw.handlers;
-				action.path.forEach(function(key) {
-					node = node[key];
-				});
-				node.apply(saw.handlers, action.args);
-			}
-		};
-		saw.nest = function(cb) {
-			var args = [].slice.call(arguments, 1);
-			var autonext = true;
-			if (typeof cb === "boolean") {
-				var autonext = cb;
-				cb = args.shift();
-			}
-			var s = Chainsaw.saw(builder, {});
-			var r = builder.call(s.handlers, s);
-			if (r !== void 0) s.handlers = r;
-			if ("undefined" !== typeof saw.step) s.record();
-			cb.apply(s.chain(), args);
-			if (autonext !== false) s.on("end", saw.next);
-		};
-		saw.record = function() {
-			upgradeChainsaw(saw);
-		};
-		[
-			"trap",
-			"down",
-			"jump"
-		].forEach(function(method) {
-			saw[method] = function() {
-				throw new Error("To use the trap, down and jump features, please call record() first to start recording actions.");
-			};
-		});
-		return saw;
-	};
-	function upgradeChainsaw(saw) {
-		saw.step = 0;
-		saw.pop = function() {
-			return saw.actions[saw.step++];
-		};
-		saw.trap = function(name, cb) {
-			var ps = Array.isArray(name) ? name : [name];
-			saw.actions.push({
-				path: ps,
-				step: saw.step,
-				cb,
-				trap: true
-			});
-		};
-		saw.down = function(name) {
-			var ps = (Array.isArray(name) ? name : [name]).join("/");
-			var i = saw.actions.slice(saw.step).map(function(x) {
-				if (x.trap && x.step <= saw.step) return false;
-				return x.path.join("/") == ps;
-			}).indexOf(true);
-			if (i >= 0) saw.step += i;
-			else saw.step = saw.actions.length;
-			var act = saw.actions[saw.step - 1];
-			if (act && act.trap) {
-				saw.step = act.step;
-				act.cb();
-			} else saw.next();
-		};
-		saw.jump = function(step) {
-			saw.step = step;
-			saw.next();
-		};
-	}
-}));
-//#endregion
-//#region node_modules/buffers/index.js
-var require_buffers = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = Buffers;
-	function Buffers(bufs) {
-		if (!(this instanceof Buffers)) return new Buffers(bufs);
-		this.buffers = bufs || [];
-		this.length = this.buffers.reduce(function(size, buf) {
-			return size + buf.length;
-		}, 0);
-	}
-	Buffers.prototype.push = function() {
-		for (var i = 0; i < arguments.length; i++) if (!Buffer.isBuffer(arguments[i])) throw new TypeError("Tried to push a non-buffer");
-		for (var i = 0; i < arguments.length; i++) {
-			var buf = arguments[i];
-			this.buffers.push(buf);
-			this.length += buf.length;
-		}
-		return this.length;
-	};
-	Buffers.prototype.unshift = function() {
-		for (var i = 0; i < arguments.length; i++) if (!Buffer.isBuffer(arguments[i])) throw new TypeError("Tried to unshift a non-buffer");
-		for (var i = 0; i < arguments.length; i++) {
-			var buf = arguments[i];
-			this.buffers.unshift(buf);
-			this.length += buf.length;
-		}
-		return this.length;
-	};
-	Buffers.prototype.copy = function(dst, dStart, start, end) {
-		return this.slice(start, end).copy(dst, dStart, 0, end - start);
-	};
-	Buffers.prototype.splice = function(i, howMany) {
-		var buffers = this.buffers;
-		var index = i >= 0 ? i : this.length - i;
-		var reps = [].slice.call(arguments, 2);
-		if (howMany === void 0) howMany = this.length - index;
-		else if (howMany > this.length - index) howMany = this.length - index;
-		for (var i = 0; i < reps.length; i++) this.length += reps[i].length;
-		var removed = new Buffers();
-		var startBytes = 0;
-		for (var ii = 0; ii < buffers.length && startBytes + buffers[ii].length < index; ii++) startBytes += buffers[ii].length;
-		if (index - startBytes > 0) {
-			var start = index - startBytes;
-			if (start + howMany < buffers[ii].length) {
-				removed.push(buffers[ii].slice(start, start + howMany));
-				var orig = buffers[ii];
-				var buf0 = new Buffer(start);
-				for (var i = 0; i < start; i++) buf0[i] = orig[i];
-				var buf1 = new Buffer(orig.length - start - howMany);
-				for (var i = start + howMany; i < orig.length; i++) buf1[i - howMany - start] = orig[i];
-				if (reps.length > 0) {
-					var reps_ = reps.slice();
-					reps_.unshift(buf0);
-					reps_.push(buf1);
-					buffers.splice.apply(buffers, [ii, 1].concat(reps_));
-					ii += reps_.length;
-					reps = [];
-				} else {
-					buffers.splice(ii, 1, buf0, buf1);
-					ii += 2;
-				}
-			} else {
-				removed.push(buffers[ii].slice(start));
-				buffers[ii] = buffers[ii].slice(0, start);
-				ii++;
-			}
-		}
-		if (reps.length > 0) {
-			buffers.splice.apply(buffers, [ii, 0].concat(reps));
-			ii += reps.length;
-		}
-		while (removed.length < howMany) {
-			var buf = buffers[ii];
-			var len = buf.length;
-			var take = Math.min(len, howMany - removed.length);
-			if (take === len) {
-				removed.push(buf);
-				buffers.splice(ii, 1);
-			} else {
-				removed.push(buf.slice(0, take));
-				buffers[ii] = buffers[ii].slice(take);
-			}
-		}
-		this.length -= removed.length;
-		return removed;
-	};
-	Buffers.prototype.slice = function(i, j) {
-		var buffers = this.buffers;
-		if (j === void 0) j = this.length;
-		if (i === void 0) i = 0;
-		if (j > this.length) j = this.length;
-		var startBytes = 0;
-		for (var si = 0; si < buffers.length && startBytes + buffers[si].length <= i; si++) startBytes += buffers[si].length;
-		var target = new Buffer(j - i);
-		var ti = 0;
-		for (var ii = si; ti < j - i && ii < buffers.length; ii++) {
-			var len = buffers[ii].length;
-			var start = ti === 0 ? i - startBytes : 0;
-			var end = ti + len >= j - i ? Math.min(start + (j - i) - ti, len) : len;
-			buffers[ii].copy(target, ti, start, end);
-			ti += end - start;
-		}
-		return target;
-	};
-	Buffers.prototype.pos = function(i) {
-		if (i < 0 || i >= this.length) throw new Error("oob");
-		var l = i, bi = 0, bu = null;
-		for (;;) {
-			bu = this.buffers[bi];
-			if (l < bu.length) return {
-				buf: bi,
-				offset: l
-			};
-			else l -= bu.length;
-			bi++;
-		}
-	};
-	Buffers.prototype.get = function get(i) {
-		var pos = this.pos(i);
-		return this.buffers[pos.buf].get(pos.offset);
-	};
-	Buffers.prototype.set = function set(i, b) {
-		var pos = this.pos(i);
-		return this.buffers[pos.buf].set(pos.offset, b);
-	};
-	Buffers.prototype.indexOf = function(needle, offset) {
-		if ("string" === typeof needle) needle = new Buffer(needle);
-		else if (needle instanceof Buffer) {} else throw new Error("Invalid type for a search string");
-		if (!needle.length) return 0;
-		if (!this.length) return -1;
-		var i = 0, j = 0, match = 0, mstart, pos = 0;
-		if (offset) {
-			var p = this.pos(offset);
-			i = p.buf;
-			j = p.offset;
-			pos = offset;
-		}
-		for (;;) {
-			while (j >= this.buffers[i].length) {
-				j = 0;
-				i++;
-				if (i >= this.buffers.length) return -1;
-			}
-			if (this.buffers[i][j] == needle[match]) {
-				if (match == 0) mstart = {
-					i,
-					j,
-					pos
-				};
-				match++;
-				if (match == needle.length) return mstart.pos;
-			} else if (match != 0) {
-				i = mstart.i;
-				j = mstart.j;
-				pos = mstart.pos;
-				match = 0;
-			}
-			j++;
-			pos++;
-		}
-	};
-	Buffers.prototype.toBuffer = function() {
-		return this.slice();
-	};
-	Buffers.prototype.toString = function(encoding, start, end) {
-		return this.slice(start, end).toString(encoding);
-	};
-}));
-//#endregion
-//#region node_modules/binary/lib/vars.js
-var require_vars = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = function(store) {
-		function getset(name, value) {
-			var node = vars.store;
-			var keys = name.split(".");
-			keys.slice(0, -1).forEach(function(k) {
-				if (node[k] === void 0) node[k] = {};
-				node = node[k];
-			});
-			var key = keys[keys.length - 1];
-			if (arguments.length == 1) return node[key];
-			else return node[key] = value;
-		}
-		var vars = {
-			get: function(name) {
-				return getset(name);
-			},
-			set: function(name, value) {
-				return getset(name, value);
-			},
-			store: store || {}
-		};
-		return vars;
-	};
-}));
-//#endregion
-//#region node_modules/binary/index.js
-var require_binary = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Chainsaw = require_chainsaw();
-	var EventEmitter$3 = require("events").EventEmitter;
-	var Buffers = require_buffers();
-	var Vars = require_vars();
-	var Stream = require("stream").Stream;
-	exports = module.exports = function(bufOrEm, eventName) {
-		if (Buffer.isBuffer(bufOrEm)) return exports.parse(bufOrEm);
-		var s = exports.stream();
-		if (bufOrEm && bufOrEm.pipe) bufOrEm.pipe(s);
-		else if (bufOrEm) {
-			bufOrEm.on(eventName || "data", function(buf) {
-				s.write(buf);
-			});
-			bufOrEm.on("end", function() {
-				s.end();
-			});
-		}
-		return s;
-	};
-	exports.stream = function(input) {
-		if (input) return exports.apply(null, arguments);
-		var pending = null;
-		function getBytes(bytes, cb, skip) {
-			pending = {
-				bytes,
-				skip,
-				cb: function(buf) {
-					pending = null;
-					cb(buf);
-				}
-			};
-			dispatch();
-		}
-		var offset = null;
-		function dispatch() {
-			if (!pending) {
-				if (caughtEnd) done = true;
-				return;
-			}
-			if (typeof pending === "function") pending();
-			else {
-				var bytes = offset + pending.bytes;
-				if (buffers.length >= bytes) {
-					var buf;
-					if (offset == null) {
-						buf = buffers.splice(0, bytes);
-						if (!pending.skip) buf = buf.slice();
-					} else {
-						if (!pending.skip) buf = buffers.slice(offset, bytes);
-						offset = bytes;
-					}
-					if (pending.skip) pending.cb();
-					else pending.cb(buf);
-				}
-			}
-		}
-		function builder(saw) {
-			function next() {
-				if (!done) saw.next();
-			}
-			var self = words(function(bytes, cb) {
-				return function(name) {
-					getBytes(bytes, function(buf) {
-						vars.set(name, cb(buf));
-						next();
-					});
-				};
-			});
-			self.tap = function(cb) {
-				saw.nest(cb, vars.store);
-			};
-			self.into = function(key, cb) {
-				if (!vars.get(key)) vars.set(key, {});
-				var parent = vars;
-				vars = Vars(parent.get(key));
-				saw.nest(function() {
-					cb.apply(this, arguments);
-					this.tap(function() {
-						vars = parent;
-					});
-				}, vars.store);
-			};
-			self.flush = function() {
-				vars.store = {};
-				next();
-			};
-			self.loop = function(cb) {
-				var end = false;
-				saw.nest(false, function loop() {
-					this.vars = vars.store;
-					cb.call(this, function() {
-						end = true;
-						next();
-					}, vars.store);
-					this.tap(function() {
-						if (end) saw.next();
-						else loop.call(this);
-					}.bind(this));
-				}, vars.store);
-			};
-			self.buffer = function(name, bytes) {
-				if (typeof bytes === "string") bytes = vars.get(bytes);
-				getBytes(bytes, function(buf) {
-					vars.set(name, buf);
-					next();
-				});
-			};
-			self.skip = function(bytes) {
-				if (typeof bytes === "string") bytes = vars.get(bytes);
-				getBytes(bytes, function() {
-					next();
-				});
-			};
-			self.scan = function find(name, search) {
-				if (typeof search === "string") search = new Buffer(search);
-				else if (!Buffer.isBuffer(search)) throw new Error("search must be a Buffer or a string");
-				var taken = 0;
-				pending = function() {
-					var pos = buffers.indexOf(search, offset + taken);
-					var i = pos - offset - taken;
-					if (pos !== -1) {
-						pending = null;
-						if (offset != null) {
-							vars.set(name, buffers.slice(offset, offset + taken + i));
-							offset += taken + i + search.length;
-						} else {
-							vars.set(name, buffers.slice(0, taken + i));
-							buffers.splice(0, taken + i + search.length);
-						}
-						next();
-						dispatch();
-					} else i = Math.max(buffers.length - search.length - offset - taken, 0);
-					taken += i;
-				};
-				dispatch();
-			};
-			self.peek = function(cb) {
-				offset = 0;
-				saw.nest(function() {
-					cb.call(this, vars.store);
-					this.tap(function() {
-						offset = null;
-					});
-				});
-			};
-			return self;
-		}
-		var stream = Chainsaw.light(builder);
-		stream.writable = true;
-		var buffers = Buffers();
-		stream.write = function(buf) {
-			buffers.push(buf);
-			dispatch();
-		};
-		var vars = Vars();
-		var done = false, caughtEnd = false;
-		stream.end = function() {
-			caughtEnd = true;
-		};
-		stream.pipe = Stream.prototype.pipe;
-		Object.getOwnPropertyNames(EventEmitter$3.prototype).forEach(function(name) {
-			stream[name] = EventEmitter$3.prototype[name];
-		});
-		return stream;
-	};
-	exports.parse = function parse(buffer) {
-		var self = words(function(bytes, cb) {
-			return function(name) {
-				if (offset + bytes <= buffer.length) {
-					var buf = buffer.slice(offset, offset + bytes);
-					offset += bytes;
-					vars.set(name, cb(buf));
-				} else vars.set(name, null);
-				return self;
-			};
-		});
-		var offset = 0;
-		var vars = Vars();
-		self.vars = vars.store;
-		self.tap = function(cb) {
-			cb.call(self, vars.store);
-			return self;
-		};
-		self.into = function(key, cb) {
-			if (!vars.get(key)) vars.set(key, {});
-			var parent = vars;
-			vars = Vars(parent.get(key));
-			cb.call(self, vars.store);
-			vars = parent;
-			return self;
-		};
-		self.loop = function(cb) {
-			var end = false;
-			var ender = function() {
-				end = true;
-			};
-			while (end === false) cb.call(self, ender, vars.store);
-			return self;
-		};
-		self.buffer = function(name, size) {
-			if (typeof size === "string") size = vars.get(size);
-			var buf = buffer.slice(offset, Math.min(buffer.length, offset + size));
-			offset += size;
-			vars.set(name, buf);
-			return self;
-		};
-		self.skip = function(bytes) {
-			if (typeof bytes === "string") bytes = vars.get(bytes);
-			offset += bytes;
-			return self;
-		};
-		self.scan = function(name, search) {
-			if (typeof search === "string") search = new Buffer(search);
-			else if (!Buffer.isBuffer(search)) throw new Error("search must be a Buffer or a string");
-			vars.set(name, null);
-			for (var i = 0; i + offset <= buffer.length - search.length + 1; i++) {
-				for (var j = 0; j < search.length && buffer[offset + i + j] === search[j]; j++);
-				if (j === search.length) break;
-			}
-			vars.set(name, buffer.slice(offset, offset + i));
-			offset += i + search.length;
-			return self;
-		};
-		self.peek = function(cb) {
-			var was = offset;
-			cb.call(self, vars.store);
-			offset = was;
-			return self;
-		};
-		self.flush = function() {
-			vars.store = {};
-			return self;
-		};
-		self.eof = function() {
-			return offset >= buffer.length;
-		};
-		return self;
-	};
-	function decodeLEu(bytes) {
-		var acc = 0;
-		for (var i = 0; i < bytes.length; i++) acc += Math.pow(256, i) * bytes[i];
-		return acc;
-	}
-	function decodeBEu(bytes) {
-		var acc = 0;
-		for (var i = 0; i < bytes.length; i++) acc += Math.pow(256, bytes.length - i - 1) * bytes[i];
-		return acc;
-	}
-	function decodeBEs(bytes) {
-		var val = decodeBEu(bytes);
-		if ((bytes[0] & 128) == 128) val -= Math.pow(256, bytes.length);
-		return val;
-	}
-	function decodeLEs(bytes) {
-		var val = decodeLEu(bytes);
-		if ((bytes[bytes.length - 1] & 128) == 128) val -= Math.pow(256, bytes.length);
-		return val;
-	}
-	function words(decode) {
-		var self = {};
-		[
-			1,
-			2,
-			4,
-			8
-		].forEach(function(bytes) {
-			var bits = bytes * 8;
-			self["word" + bits + "le"] = self["word" + bits + "lu"] = decode(bytes, decodeLEu);
-			self["word" + bits + "ls"] = decode(bytes, decodeLEs);
-			self["word" + bits + "be"] = self["word" + bits + "bu"] = decode(bytes, decodeBEu);
-			self["word" + bits + "bs"] = decode(bytes, decodeBEs);
-		});
-		self.word8 = self.word8u = self.word8be;
-		self.word8s = self.word8bs;
-		return self;
-	}
-}));
-//#endregion
-//#region node_modules/unzip-stream/lib/matcher-stream.js
-var require_matcher_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Transform$2 = require("stream").Transform;
-	var util$4 = require("util");
-	function MatcherStream(patternDesc, matchFn) {
-		if (!(this instanceof MatcherStream)) return new MatcherStream();
-		Transform$2.call(this);
-		var p = typeof patternDesc === "object" ? patternDesc.pattern : patternDesc;
-		this.pattern = Buffer.isBuffer(p) ? p : Buffer.from(p);
-		this.requiredLength = this.pattern.length;
-		if (patternDesc.requiredExtraSize) this.requiredLength += patternDesc.requiredExtraSize;
-		this.data = new Buffer("");
-		this.bytesSoFar = 0;
-		this.matchFn = matchFn;
-	}
-	util$4.inherits(MatcherStream, Transform$2);
-	MatcherStream.prototype.checkDataChunk = function(ignoreMatchZero) {
-		if (!(this.data.length >= this.requiredLength)) return;
-		var matchIndex = this.data.indexOf(this.pattern, ignoreMatchZero ? 1 : 0);
-		if (matchIndex >= 0 && matchIndex + this.requiredLength > this.data.length) {
-			if (matchIndex > 0) {
-				var packet = this.data.slice(0, matchIndex);
-				this.push(packet);
-				this.bytesSoFar += matchIndex;
-				this.data = this.data.slice(matchIndex);
-			}
-			return;
-		}
-		if (matchIndex === -1) {
-			var packetLen = this.data.length - this.requiredLength + 1;
-			var packet = this.data.slice(0, packetLen);
-			this.push(packet);
-			this.bytesSoFar += packetLen;
-			this.data = this.data.slice(packetLen);
-			return;
-		}
-		if (matchIndex > 0) {
-			var packet = this.data.slice(0, matchIndex);
-			this.data = this.data.slice(matchIndex);
-			this.push(packet);
-			this.bytesSoFar += matchIndex;
-		}
-		if (this.matchFn ? this.matchFn(this.data, this.bytesSoFar) : true) {
-			this.data = new Buffer("");
-			return;
-		}
-		return true;
-	};
-	MatcherStream.prototype._transform = function(chunk, encoding, cb) {
-		this.data = Buffer.concat([this.data, chunk]);
-		var firstIteration = true;
-		while (this.checkDataChunk(!firstIteration)) firstIteration = false;
-		cb();
-	};
-	MatcherStream.prototype._flush = function(cb) {
-		if (this.data.length > 0) {
-			var firstIteration = true;
-			while (this.checkDataChunk(!firstIteration)) firstIteration = false;
-		}
-		if (this.data.length > 0) {
-			this.push(this.data);
-			this.data = null;
-		}
-		cb();
-	};
-	module.exports = MatcherStream;
-}));
-//#endregion
-//#region node_modules/unzip-stream/lib/entry.js
-var require_entry = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var stream$1 = require("stream");
-	var inherits = require("util").inherits;
-	function Entry() {
-		if (!(this instanceof Entry)) return new Entry();
-		stream$1.PassThrough.call(this);
-		this.path = null;
-		this.type = null;
-		this.isDirectory = false;
-	}
-	inherits(Entry, stream$1.PassThrough);
-	Entry.prototype.autodrain = function() {
-		return this.pipe(new stream$1.Transform({ transform: function(d, e, cb) {
-			cb();
-		} }));
-	};
-	module.exports = Entry;
-}));
-//#endregion
-//#region node_modules/unzip-stream/lib/unzip-stream.js
-var require_unzip_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var binary = require_binary();
-	var stream = require("stream");
-	var util$3 = require("util");
-	var zlib = require("zlib");
-	var MatcherStream = require_matcher_stream();
-	var Entry = require_entry();
-	const states = {
-		STREAM_START: 0,
-		START: 1,
-		LOCAL_FILE_HEADER: 2,
-		LOCAL_FILE_HEADER_SUFFIX: 3,
-		FILE_DATA: 4,
-		FILE_DATA_END: 5,
-		DATA_DESCRIPTOR: 6,
-		CENTRAL_DIRECTORY_FILE_HEADER: 7,
-		CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX: 8,
-		CDIR64_END: 9,
-		CDIR64_END_DATA_SECTOR: 10,
-		CDIR64_LOCATOR: 11,
-		CENTRAL_DIRECTORY_END: 12,
-		CENTRAL_DIRECTORY_END_COMMENT: 13,
-		TRAILING_JUNK: 14,
-		ERROR: 99
-	};
-	const FOUR_GIGS = 4294967296;
-	const SIG_LOCAL_FILE_HEADER = 67324752;
-	const SIG_DATA_DESCRIPTOR = 134695760;
-	const SIG_CDIR_RECORD = 33639248;
-	const SIG_CDIR64_RECORD_END = 101075792;
-	const SIG_CDIR64_LOCATOR_END = 117853008;
-	const SIG_CDIR_RECORD_END = 101010256;
-	function UnzipStream(options) {
-		if (!(this instanceof UnzipStream)) return new UnzipStream(options);
-		stream.Transform.call(this);
-		this.options = options || {};
-		this.data = new Buffer("");
-		this.state = states.STREAM_START;
-		this.skippedBytes = 0;
-		this.parsedEntity = null;
-		this.outStreamInfo = {};
-	}
-	util$3.inherits(UnzipStream, stream.Transform);
-	UnzipStream.prototype.processDataChunk = function(chunk) {
-		var requiredLength;
-		switch (this.state) {
-			case states.STREAM_START:
-			case states.START:
-				requiredLength = 4;
-				break;
-			case states.LOCAL_FILE_HEADER:
-				requiredLength = 26;
-				break;
-			case states.LOCAL_FILE_HEADER_SUFFIX:
-				requiredLength = this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength;
-				break;
-			case states.DATA_DESCRIPTOR:
-				requiredLength = 12;
-				break;
-			case states.CENTRAL_DIRECTORY_FILE_HEADER:
-				requiredLength = 42;
-				break;
-			case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
-				requiredLength = this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength + this.parsedEntity.fileCommentLength;
-				break;
-			case states.CDIR64_END:
-				requiredLength = 52;
-				break;
-			case states.CDIR64_END_DATA_SECTOR:
-				requiredLength = this.parsedEntity.centralDirectoryRecordSize - 44;
-				break;
-			case states.CDIR64_LOCATOR:
-				requiredLength = 16;
-				break;
-			case states.CENTRAL_DIRECTORY_END:
-				requiredLength = 18;
-				break;
-			case states.CENTRAL_DIRECTORY_END_COMMENT:
-				requiredLength = this.parsedEntity.commentLength;
-				break;
-			case states.FILE_DATA: return 0;
-			case states.FILE_DATA_END: return 0;
-			case states.TRAILING_JUNK:
-				if (this.options.debug) console.log("found", chunk.length, "bytes of TRAILING_JUNK");
-				return chunk.length;
-			default: return chunk.length;
-		}
-		if (chunk.length < requiredLength) return 0;
-		switch (this.state) {
-			case states.STREAM_START:
-			case states.START:
-				var signature = chunk.readUInt32LE(0);
-				switch (signature) {
-					case SIG_LOCAL_FILE_HEADER:
-						this.state = states.LOCAL_FILE_HEADER;
-						break;
-					case SIG_CDIR_RECORD:
-						this.state = states.CENTRAL_DIRECTORY_FILE_HEADER;
-						break;
-					case SIG_CDIR64_RECORD_END:
-						this.state = states.CDIR64_END;
-						break;
-					case SIG_CDIR64_LOCATOR_END:
-						this.state = states.CDIR64_LOCATOR;
-						break;
-					case SIG_CDIR_RECORD_END:
-						this.state = states.CENTRAL_DIRECTORY_END;
-						break;
-					default:
-						var isStreamStart = this.state === states.STREAM_START;
-						if (!isStreamStart && (signature & 65535) !== 19280 && this.skippedBytes < 26) {
-							var remaining = signature;
-							var toSkip = 4;
-							for (var i = 1; i < 4 && remaining !== 0; i++) {
-								remaining = remaining >>> 8;
-								if ((remaining & 255) === 80) {
-									toSkip = i;
-									break;
-								}
-							}
-							this.skippedBytes += toSkip;
-							if (this.options.debug) console.log("Skipped", this.skippedBytes, "bytes");
-							return toSkip;
-						}
-						this.state = states.ERROR;
-						var errMsg = isStreamStart ? "Not a valid zip file" : "Invalid signature in zip file";
-						if (this.options.debug) {
-							var sig = chunk.readUInt32LE(0);
-							var asString;
-							try {
-								asString = chunk.slice(0, 4).toString();
-							} catch (e) {}
-							console.log("Unexpected signature in zip file: 0x" + sig.toString(16), "\"" + asString + "\", skipped", this.skippedBytes, "bytes");
-						}
-						this.emit("error", new Error(errMsg));
-						return chunk.length;
-				}
-				this.skippedBytes = 0;
-				return requiredLength;
-			case states.LOCAL_FILE_HEADER:
-				this.parsedEntity = this._readFile(chunk);
-				this.state = states.LOCAL_FILE_HEADER_SUFFIX;
-				return requiredLength;
-			case states.LOCAL_FILE_HEADER_SUFFIX:
-				var entry = new Entry();
-				var isUtf8 = (this.parsedEntity.flags & 2048) !== 0;
-				entry.path = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
-				var extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength);
-				var extra = this._readExtraFields(extraDataBuffer);
-				if (extra && extra.parsed) {
-					if (extra.parsed.path && !isUtf8) entry.path = extra.parsed.path;
-					if (Number.isFinite(extra.parsed.uncompressedSize) && this.parsedEntity.uncompressedSize === FOUR_GIGS - 1) this.parsedEntity.uncompressedSize = extra.parsed.uncompressedSize;
-					if (Number.isFinite(extra.parsed.compressedSize) && this.parsedEntity.compressedSize === FOUR_GIGS - 1) this.parsedEntity.compressedSize = extra.parsed.compressedSize;
-				}
-				this.parsedEntity.extra = extra.parsed || {};
-				if (this.options.debug) {
-					const debugObj = Object.assign({}, this.parsedEntity, {
-						path: entry.path,
-						flags: "0x" + this.parsedEntity.flags.toString(16),
-						extraFields: extra && extra.debug
-					});
-					console.log("decoded LOCAL_FILE_HEADER:", JSON.stringify(debugObj, null, 2));
-				}
-				this._prepareOutStream(this.parsedEntity, entry);
-				this.emit("entry", entry);
-				this.state = states.FILE_DATA;
-				return requiredLength;
-			case states.CENTRAL_DIRECTORY_FILE_HEADER:
-				this.parsedEntity = this._readCentralDirectoryEntry(chunk);
-				this.state = states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX;
-				return requiredLength;
-			case states.CENTRAL_DIRECTORY_FILE_HEADER_SUFFIX:
-				var isUtf8 = (this.parsedEntity.flags & 2048) !== 0;
-				var path = this._decodeString(chunk.slice(0, this.parsedEntity.fileNameLength), isUtf8);
-				var extraDataBuffer = chunk.slice(this.parsedEntity.fileNameLength, this.parsedEntity.fileNameLength + this.parsedEntity.extraFieldLength);
-				var extra = this._readExtraFields(extraDataBuffer);
-				if (extra && extra.parsed && extra.parsed.path && !isUtf8) path = extra.parsed.path;
-				this.parsedEntity.extra = extra.parsed;
-				var isUnix = (this.parsedEntity.versionMadeBy & 65280) >> 8 === 3;
-				var unixAttrs, isSymlink;
-				if (isUnix) {
-					unixAttrs = this.parsedEntity.externalFileAttributes >>> 16;
-					isSymlink = (unixAttrs >>> 12 & 10) === 10;
-				}
-				if (this.options.debug) {
-					const debugObj = Object.assign({}, this.parsedEntity, {
-						path,
-						flags: "0x" + this.parsedEntity.flags.toString(16),
-						unixAttrs: unixAttrs && "0" + unixAttrs.toString(8),
-						isSymlink,
-						extraFields: extra.debug
-					});
-					console.log("decoded CENTRAL_DIRECTORY_FILE_HEADER:", JSON.stringify(debugObj, null, 2));
-				}
-				this.state = states.START;
-				return requiredLength;
-			case states.CDIR64_END:
-				this.parsedEntity = this._readEndOfCentralDirectory64(chunk);
-				if (this.options.debug) console.log("decoded CDIR64_END_RECORD:", this.parsedEntity);
-				this.state = states.CDIR64_END_DATA_SECTOR;
-				return requiredLength;
-			case states.CDIR64_END_DATA_SECTOR:
-				this.state = states.START;
-				return requiredLength;
-			case states.CDIR64_LOCATOR:
-				this.state = states.START;
-				return requiredLength;
-			case states.CENTRAL_DIRECTORY_END:
-				this.parsedEntity = this._readEndOfCentralDirectory(chunk);
-				if (this.options.debug) console.log("decoded CENTRAL_DIRECTORY_END:", this.parsedEntity);
-				this.state = states.CENTRAL_DIRECTORY_END_COMMENT;
-				return requiredLength;
-			case states.CENTRAL_DIRECTORY_END_COMMENT:
-				if (this.options.debug) console.log("decoded CENTRAL_DIRECTORY_END_COMMENT:", chunk.slice(0, requiredLength).toString());
-				this.state = states.TRAILING_JUNK;
-				return requiredLength;
-			case states.ERROR: return chunk.length;
-			default:
-				console.log("didn't handle state #", this.state, "discarding");
-				return chunk.length;
-		}
-	};
-	UnzipStream.prototype._prepareOutStream = function(vars, entry) {
-		var self = this;
-		var isDirectory = vars.uncompressedSize === 0 && /[\/\\]$/.test(entry.path);
-		entry.path = entry.path.replace(/(?<=^|[/\\]+)[.][.]+(?=[/\\]+|$)/g, ".");
-		entry.type = isDirectory ? "Directory" : "File";
-		entry.isDirectory = isDirectory;
-		var fileSizeKnown = !(vars.flags & 8);
-		if (fileSizeKnown) entry.size = vars.uncompressedSize;
-		var isVersionSupported = vars.versionsNeededToExtract <= 45;
-		this.outStreamInfo = {
-			stream: null,
-			limit: fileSizeKnown ? vars.compressedSize : -1,
-			written: 0
-		};
-		if (!fileSizeKnown) {
-			var pattern = new Buffer(4);
-			pattern.writeUInt32LE(SIG_DATA_DESCRIPTOR, 0);
-			var zip64Mode = vars.extra.zip64Mode;
-			var matcherStream = new MatcherStream({
-				pattern,
-				requiredExtraSize: zip64Mode ? 20 : 12
-			}, function(matchedChunk, sizeSoFar) {
-				var vars = self._readDataDescriptor(matchedChunk, zip64Mode);
-				var compressedSizeMatches = vars.compressedSize === sizeSoFar;
-				if (!zip64Mode && !compressedSizeMatches && sizeSoFar >= FOUR_GIGS) {
-					var overflown = sizeSoFar - FOUR_GIGS;
-					while (overflown >= 0) {
-						compressedSizeMatches = vars.compressedSize === overflown;
-						if (compressedSizeMatches) break;
-						overflown -= FOUR_GIGS;
-					}
-				}
-				if (!compressedSizeMatches) return;
-				self.state = states.FILE_DATA_END;
-				var sliceOffset = zip64Mode ? 24 : 16;
-				if (self.data.length > 0) self.data = Buffer.concat([matchedChunk.slice(sliceOffset), self.data]);
-				else self.data = matchedChunk.slice(sliceOffset);
-				return true;
-			});
-			this.outStreamInfo.stream = matcherStream;
-		} else this.outStreamInfo.stream = new stream.PassThrough();
-		var isEncrypted = vars.flags & 1 || vars.flags & 64;
-		if (isEncrypted || !isVersionSupported) {
-			var message = isEncrypted ? "Encrypted files are not supported!" : "Zip version " + Math.floor(vars.versionsNeededToExtract / 10) + "." + vars.versionsNeededToExtract % 10 + " is not supported";
-			entry.skip = true;
-			setImmediate(() => {
-				self.emit("error", new Error(message));
-			});
-			this.outStreamInfo.stream.pipe(new Entry().autodrain());
-			return;
-		}
-		if (vars.compressionMethod > 0) {
-			var inflater = zlib.createInflateRaw();
-			inflater.on("error", function(err) {
-				self.state = states.ERROR;
-				self.emit("error", err);
-			});
-			this.outStreamInfo.stream.pipe(inflater).pipe(entry);
-		} else this.outStreamInfo.stream.pipe(entry);
-		if (this._drainAllEntries) entry.autodrain();
-	};
-	UnzipStream.prototype._readFile = function(data) {
-		return binary.parse(data).word16lu("versionsNeededToExtract").word16lu("flags").word16lu("compressionMethod").word16lu("lastModifiedTime").word16lu("lastModifiedDate").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").word16lu("fileNameLength").word16lu("extraFieldLength").vars;
-	};
-	UnzipStream.prototype._readExtraFields = function(data) {
-		var extra = {};
-		var result = { parsed: extra };
-		if (this.options.debug) result.debug = [];
-		var index = 0;
-		while (index < data.length) {
-			var vars = binary.parse(data).skip(index).word16lu("extraId").word16lu("extraSize").vars;
-			index += 4;
-			var fieldType = void 0;
-			switch (vars.extraId) {
-				case 1:
-					fieldType = "Zip64 extended information extra field";
-					var z64vars = binary.parse(data.slice(index, index + vars.extraSize)).word64lu("uncompressedSize").word64lu("compressedSize").word64lu("offsetToLocalHeader").word32lu("diskStartNumber").vars;
-					if (z64vars.uncompressedSize !== null) extra.uncompressedSize = z64vars.uncompressedSize;
-					if (z64vars.compressedSize !== null) extra.compressedSize = z64vars.compressedSize;
-					extra.zip64Mode = true;
-					break;
-				case 10:
-					fieldType = "NTFS extra field";
-					break;
-				case 21589:
-					fieldType = "extended timestamp";
-					var timestampFields = data.readUInt8(index);
-					var offset = 1;
-					if (vars.extraSize >= offset + 4 && timestampFields & 1) {
-						extra.mtime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
-						offset += 4;
-					}
-					if (vars.extraSize >= offset + 4 && timestampFields & 2) {
-						extra.atime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
-						offset += 4;
-					}
-					if (vars.extraSize >= offset + 4 && timestampFields & 4) extra.ctime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
-					break;
-				case 28789:
-					fieldType = "Info-ZIP Unicode Path Extra Field";
-					if (data.readUInt8(index) === 1) {
-						var offset = 1;
-						data.readUInt32LE(index + offset);
-						offset += 4;
-						extra.path = data.slice(index + offset).toString();
-					}
-					break;
-				case 13:
-				case 22613:
-					fieldType = vars.extraId === 13 ? "PKWARE Unix" : "Info-ZIP UNIX (type 1)";
-					var offset = 0;
-					if (vars.extraSize >= 8) {
-						var atime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
-						offset += 4;
-						var mtime = /* @__PURE__ */ new Date(data.readUInt32LE(index + offset) * 1e3);
-						offset += 4;
-						extra.atime = atime;
-						extra.mtime = mtime;
-						if (vars.extraSize >= 12) {
-							var uid = data.readUInt16LE(index + offset);
-							offset += 2;
-							var gid = data.readUInt16LE(index + offset);
-							offset += 2;
-							extra.uid = uid;
-							extra.gid = gid;
-						}
-					}
-					break;
-				case 30805:
-					fieldType = "Info-ZIP UNIX (type 2)";
-					var offset = 0;
-					if (vars.extraSize >= 4) {
-						var uid = data.readUInt16LE(index + offset);
-						offset += 2;
-						var gid = data.readUInt16LE(index + offset);
-						offset += 2;
-						extra.uid = uid;
-						extra.gid = gid;
-					}
-					break;
-				case 30837:
-					fieldType = "Info-ZIP New Unix";
-					var offset = 0;
-					var extraVer = data.readUInt8(index);
-					offset += 1;
-					if (extraVer === 1) {
-						var uidSize = data.readUInt8(index + offset);
-						offset += 1;
-						if (uidSize <= 6) extra.uid = data.readUIntLE(index + offset, uidSize);
-						offset += uidSize;
-						var gidSize = data.readUInt8(index + offset);
-						offset += 1;
-						if (gidSize <= 6) extra.gid = data.readUIntLE(index + offset, gidSize);
-					}
-					break;
-				case 30062:
-					fieldType = "ASi Unix";
-					var offset = 0;
-					if (vars.extraSize >= 14) {
-						data.readUInt32LE(index + offset);
-						offset += 4;
-						var mode = data.readUInt16LE(index + offset);
-						offset += 2;
-						data.readUInt32LE(index + offset);
-						offset += 4;
-						var uid = data.readUInt16LE(index + offset);
-						offset += 2;
-						var gid = data.readUInt16LE(index + offset);
-						offset += 2;
-						extra.mode = mode;
-						extra.uid = uid;
-						extra.gid = gid;
-						if (vars.extraSize > 14) {
-							var start = index + offset;
-							var end = index + vars.extraSize - 14;
-							extra.symlink = this._decodeString(data.slice(start, end));
-						}
-					}
-					break;
-			}
-			if (this.options.debug) result.debug.push({
-				extraId: "0x" + vars.extraId.toString(16),
-				description: fieldType,
-				data: data.slice(index, index + vars.extraSize).inspect()
-			});
-			index += vars.extraSize;
-		}
-		return result;
-	};
-	UnzipStream.prototype._readDataDescriptor = function(data, zip64Mode) {
-		if (zip64Mode) {
-			var vars = binary.parse(data).word32lu("dataDescriptorSignature").word32lu("crc32").word64lu("compressedSize").word64lu("uncompressedSize").vars;
-			return vars;
-		}
-		var vars = binary.parse(data).word32lu("dataDescriptorSignature").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").vars;
-		return vars;
-	};
-	UnzipStream.prototype._readCentralDirectoryEntry = function(data) {
-		return binary.parse(data).word16lu("versionMadeBy").word16lu("versionsNeededToExtract").word16lu("flags").word16lu("compressionMethod").word16lu("lastModifiedTime").word16lu("lastModifiedDate").word32lu("crc32").word32lu("compressedSize").word32lu("uncompressedSize").word16lu("fileNameLength").word16lu("extraFieldLength").word16lu("fileCommentLength").word16lu("diskNumber").word16lu("internalFileAttributes").word32lu("externalFileAttributes").word32lu("offsetToLocalFileHeader").vars;
-	};
-	UnzipStream.prototype._readEndOfCentralDirectory64 = function(data) {
-		return binary.parse(data).word64lu("centralDirectoryRecordSize").word16lu("versionMadeBy").word16lu("versionsNeededToExtract").word32lu("diskNumber").word32lu("diskNumberWithCentralDirectoryStart").word64lu("centralDirectoryEntries").word64lu("totalCentralDirectoryEntries").word64lu("sizeOfCentralDirectory").word64lu("offsetToStartOfCentralDirectory").vars;
-	};
-	UnzipStream.prototype._readEndOfCentralDirectory = function(data) {
-		return binary.parse(data).word16lu("diskNumber").word16lu("diskStart").word16lu("centralDirectoryEntries").word16lu("totalCentralDirectoryEntries").word32lu("sizeOfCentralDirectory").word32lu("offsetToStartOfCentralDirectory").word16lu("commentLength").vars;
-	};
-	const cp437 = "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
-	UnzipStream.prototype._decodeString = function(buffer, isUtf8) {
-		if (isUtf8) return buffer.toString("utf8");
-		if (this.options.decodeString) return this.options.decodeString(buffer);
-		let result = "";
-		for (var i = 0; i < buffer.length; i++) result += cp437[buffer[i]];
-		return result;
-	};
-	UnzipStream.prototype._parseOrOutput = function(encoding, cb) {
-		var consume;
-		while ((consume = this.processDataChunk(this.data)) > 0) {
-			this.data = this.data.slice(consume);
-			if (this.data.length === 0) break;
-		}
-		if (this.state === states.FILE_DATA) {
-			if (this.outStreamInfo.limit >= 0) {
-				var remaining = this.outStreamInfo.limit - this.outStreamInfo.written;
-				var packet;
-				if (remaining < this.data.length) {
-					packet = this.data.slice(0, remaining);
-					this.data = this.data.slice(remaining);
-				} else {
-					packet = this.data;
-					this.data = new Buffer("");
-				}
-				this.outStreamInfo.written += packet.length;
-				if (this.outStreamInfo.limit === this.outStreamInfo.written) {
-					this.state = states.START;
-					this.outStreamInfo.stream.end(packet, encoding, cb);
-				} else this.outStreamInfo.stream.write(packet, encoding, cb);
-			} else {
-				var packet = this.data;
-				this.data = new Buffer("");
-				this.outStreamInfo.written += packet.length;
-				var outputStream = this.outStreamInfo.stream;
-				outputStream.write(packet, encoding, () => {
-					if (this.state === states.FILE_DATA_END) {
-						this.state = states.START;
-						return outputStream.end(cb);
-					}
-					cb();
-				});
-			}
-			return;
-		}
-		cb();
-	};
-	UnzipStream.prototype.drainAll = function() {
-		this._drainAllEntries = true;
-	};
-	UnzipStream.prototype._transform = function(chunk, encoding, cb) {
-		var self = this;
-		if (self.data.length > 0) self.data = Buffer.concat([self.data, chunk]);
-		else self.data = chunk;
-		var startDataLength = self.data.length;
-		var done = function() {
-			if (self.data.length > 0 && self.data.length < startDataLength) {
-				startDataLength = self.data.length;
-				self._parseOrOutput(encoding, done);
-				return;
-			}
-			cb();
-		};
-		self._parseOrOutput(encoding, done);
-	};
-	UnzipStream.prototype._flush = function(cb) {
-		var self = this;
-		if (self.data.length > 0) {
-			self._parseOrOutput("buffer", function() {
-				if (self.data.length > 0) return setImmediate(function() {
-					self._flush(cb);
-				});
-				cb();
-			});
-			return;
-		}
-		if (self.state === states.FILE_DATA) return cb(/* @__PURE__ */ new Error("Stream finished in an invalid state, uncompression failed"));
-		setImmediate(cb);
-	};
-	module.exports = UnzipStream;
-}));
-//#endregion
-//#region node_modules/unzip-stream/lib/parser-stream.js
-var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var Transform$1 = require("stream").Transform;
-	var util$2 = require("util");
-	var UnzipStream = require_unzip_stream();
-	function ParserStream(opts) {
-		if (!(this instanceof ParserStream)) return new ParserStream(opts);
-		Transform$1.call(this, { readableObjectMode: true });
-		this.opts = opts || {};
-		this.unzipStream = new UnzipStream(this.opts);
-		var self = this;
-		this.unzipStream.on("entry", function(entry) {
-			self.push(entry);
-		});
-		this.unzipStream.on("error", function(error) {
-			self.emit("error", error);
-		});
-	}
-	util$2.inherits(ParserStream, Transform$1);
-	ParserStream.prototype._transform = function(chunk, encoding, cb) {
-		this.unzipStream.write(chunk, encoding, cb);
-	};
-	ParserStream.prototype._flush = function(cb) {
-		var self = this;
-		this.unzipStream.end(function() {
-			process.nextTick(function() {
-				self.emit("close");
-			});
-			cb();
-		});
-	};
-	ParserStream.prototype.on = function(eventName, fn) {
-		if (eventName === "entry") return Transform$1.prototype.on.call(this, "data", fn);
-		return Transform$1.prototype.on.call(this, eventName, fn);
-	};
-	ParserStream.prototype.drainAll = function() {
-		this.unzipStream.drainAll();
-		return this.pipe(new Transform$1({
-			objectMode: true,
-			transform: function(d, e, cb) {
-				cb();
-			}
-		}));
-	};
-	module.exports = ParserStream;
-}));
-//#endregion
-//#region node_modules/unzip-stream/node_modules/mkdirp/index.js
-var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var path$2 = require("path");
-	var fs$2 = require("fs");
-	var _0777 = parseInt("0777", 8);
-	module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
-	function mkdirP(p, opts, f, made) {
-		if (typeof opts === "function") {
-			f = opts;
-			opts = {};
-		} else if (!opts || typeof opts !== "object") opts = { mode: opts };
-		var mode = opts.mode;
-		var xfs = opts.fs || fs$2;
-		if (mode === void 0) mode = _0777;
-		if (!made) made = null;
-		var cb = f || function() {};
-		p = path$2.resolve(p);
-		xfs.mkdir(p, mode, function(er) {
-			if (!er) {
-				made = made || p;
-				return cb(null, made);
-			}
-			switch (er.code) {
-				case "ENOENT":
-					/* istanbul ignore if */
-					if (path$2.dirname(p) === p) return cb(er);
-					mkdirP(path$2.dirname(p), opts, function(er, made) {
-						/* istanbul ignore if */
-						if (er) cb(er, made);
-						else mkdirP(p, opts, cb, made);
-					});
-					break;
-				default:
-					xfs.stat(p, function(er2, stat) {
-						if (er2 || !stat.isDirectory()) cb(er, made);
-						else cb(null, made);
-					});
-					break;
-			}
-		});
-	}
-	mkdirP.sync = function sync(p, opts, made) {
-		if (!opts || typeof opts !== "object") opts = { mode: opts };
-		var mode = opts.mode;
-		var xfs = opts.fs || fs$2;
-		if (mode === void 0) mode = _0777;
-		if (!made) made = null;
-		p = path$2.resolve(p);
-		try {
-			xfs.mkdirSync(p, mode);
-			made = made || p;
-		} catch (err0) {
-			switch (err0.code) {
-				case "ENOENT":
-					made = sync(path$2.dirname(p), opts, made);
-					sync(p, opts, made);
-					break;
-				default:
-					var stat;
-					try {
-						stat = xfs.statSync(p);
-					} catch (err1) 					/* istanbul ignore next */ {
-						throw err0;
-					}
-					/* istanbul ignore if */
-					if (!stat.isDirectory()) throw err0;
-					break;
-			}
-		}
-		return made;
-	};
-}));
-//#endregion
-//#region node_modules/unzip-stream/lib/extract.js
-var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var fs$1 = require("fs");
-	var path$1 = require("path");
-	var util$1 = require("util");
-	var mkdirp = require_mkdirp();
-	var Transform = require("stream").Transform;
-	var UnzipStream = require_unzip_stream();
-	function Extract(opts) {
-		if (!(this instanceof Extract)) return new Extract(opts);
-		Transform.call(this);
-		this.opts = opts || {};
-		this.unzipStream = new UnzipStream(this.opts);
-		this.unfinishedEntries = 0;
-		this.afterFlushWait = false;
-		this.createdDirectories = {};
-		var self = this;
-		this.unzipStream.on("entry", this._processEntry.bind(this));
-		this.unzipStream.on("error", function(error) {
-			self.emit("error", error);
-		});
-	}
-	util$1.inherits(Extract, Transform);
-	Extract.prototype._transform = function(chunk, encoding, cb) {
-		this.unzipStream.write(chunk, encoding, cb);
-	};
-	Extract.prototype._flush = function(cb) {
-		var self = this;
-		var allDone = function() {
-			process.nextTick(function() {
-				self.emit("close");
-			});
-			cb();
-		};
-		this.unzipStream.end(function() {
-			if (self.unfinishedEntries > 0) {
-				self.afterFlushWait = true;
-				return self.on("await-finished", allDone);
-			}
-			allDone();
-		});
-	};
-	Extract.prototype._processEntry = function(entry) {
-		var self = this;
-		var destPath = path$1.join(this.opts.path, entry.path);
-		var directory = entry.isDirectory ? destPath : path$1.dirname(destPath);
-		this.unfinishedEntries++;
-		var writeFileFn = function() {
-			var pipedStream = fs$1.createWriteStream(destPath);
-			pipedStream.on("close", function() {
-				self.unfinishedEntries--;
-				self._notifyAwaiter();
-			});
-			pipedStream.on("error", function(error) {
-				self.emit("error", error);
-			});
-			entry.pipe(pipedStream);
-		};
-		if (this.createdDirectories[directory] || directory === ".") return writeFileFn();
-		mkdirp(directory, function(err) {
-			if (err) return self.emit("error", err);
-			self.createdDirectories[directory] = true;
-			if (entry.isDirectory) {
-				self.unfinishedEntries--;
-				self._notifyAwaiter();
-				return;
-			}
-			writeFileFn();
-		});
-	};
-	Extract.prototype._notifyAwaiter = function() {
-		if (this.afterFlushWait && this.unfinishedEntries === 0) {
-			this.emit("await-finished");
-			this.afterFlushWait = false;
-		}
-	};
-	module.exports = Extract;
-}));
-//#endregion
-//#region node_modules/unzip-stream/unzip.js
-var require_unzip = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.Parse = require_parser_stream();
-	exports.Extract = require_extract();
-}));
-//#endregion
 //#region src/model/download.ts
 function getEtag(headers) {
 	let header = headers["etag"];
@@ -114871,7 +115829,76 @@ function getEtag(headers) {
 }
 function getExtname(dispositionHeader) {
 	let filename = require_content_disposition().parse(dispositionHeader).parameters.filename;
-	if (filename) return path$5.extname(filename);
+	if (filename) return path$3.extname(filename);
+}
+/**
+* Validate that zip entry path won't escape the dest folder. Absolute
+* entry paths are treated as relative and extracted under dest, same as
+* previous unzip behavior.
+*/
+function isSafeEntryPath(dest, entryPath) {
+	let destPath = path$3.join(dest, entryPath);
+	if (destPath === dest) return false;
+	return destPath.startsWith(dest + path$3.sep);
+}
+/**
+* Extract zip entries to dest, reject when entry path tries to escape dest.
+*/
+function extractZip(res, dest) {
+	const parser = require_unzip().Parse();
+	let err = null;
+	let pending = [];
+	let dirs = {};
+	const notifyError = (error) => {
+		if (!err) {
+			err = error;
+			parser.emit("error", error);
+			parser.destroy();
+		}
+	};
+	const mkdir = (dir) => {
+		if (dirs[dir]) return dirs[dir];
+		let p = fs$3.promises.mkdir(dir, { recursive: true }).then(() => {}).catch((e) => {
+			notifyError(e instanceof Error ? e : new Error(String(e)));
+		});
+		dirs[dir] = p;
+		return p;
+	};
+	parser.on("entry", (entry) => {
+		if (err) {
+			entry.autodrain();
+			return;
+		}
+		if (!isSafeEntryPath(dest, entry.path)) {
+			entry.autodrain();
+			notifyError(/* @__PURE__ */ new Error(`Zip entry path is invalid: ${entry.path}`));
+			return;
+		}
+		let filepath = path$3.join(dest, entry.path);
+		let dir = entry.isDirectory ? filepath : path$3.dirname(filepath);
+		let p = mkdir(dir).then(() => {
+			if (entry.isDirectory) return;
+			return new Promise((resolve, reject) => {
+				let ws = fs$3.createWriteStream(filepath);
+				ws.on("error", reject);
+				ws.on("close", resolve);
+				entry.pipe(ws);
+			});
+		}).catch((e) => {
+			if (!entry.isDirectory) entry.autodrain();
+			notifyError(e instanceof Error ? e : new Error(String(e)));
+		});
+		pending.push(p);
+	});
+	parser.on("finish", () => {
+		Promise.all(pending).then(() => {
+			if (!err) parser.emit("done");
+		}, (e) => {
+			notifyError(e instanceof Error ? e : new Error(String(e)));
+		});
+	});
+	res.pipe(parser);
+	return parser;
 }
 /**
 * Download file from url, with optional untar/unzip support.
@@ -114882,16 +115909,16 @@ function download(urlInput, options, token, obj = {}) {
 	let url = toURL(urlInput);
 	let { etagAlgorithm } = options;
 	let { dest, onProgress, extract } = options;
-	if (!dest || !path$5.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
-	if (!fs$5.existsSync(dest)) fs$5.mkdirSync(dest, { recursive: true });
+	if (!dest || !path$3.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
+	if (!fs$3.existsSync(dest)) fs$3.mkdirSync(dest, { recursive: true });
 	else {
-		let stat = fs$5.statSync(dest);
+		let stat = fs$3.statSync(dest);
 		if (stat && !stat.isDirectory()) throw new Error(`${dest} exists, but not directory!`);
 	}
 	let mod = getRequestModule(url);
 	let opts = resolveRequestOptions(url, options);
 	if (!opts.agent && options.agent) opts.agent = options.agent;
-	let extname = path$5.extname(url.pathname);
+	let extname = path$3.extname(url.pathname);
 	return new Promise((resolve, reject) => {
 		if (token) {
 			let disposable = token.onCancellationRequested(() => {
@@ -114926,13 +115953,13 @@ function download(urlInput, options, token, obj = {}) {
 					if (hasTotal) {
 						let percent = (cur / total * 100).toFixed(1);
 						if (typeof onProgress === "function") onProgress(percent);
-						else logger$27.info(`Download ${url} progress ${percent}%`);
+						else logger$29.info(`Download ${url} progress ${percent}%`);
 					}
 				});
 				res.on("end", () => {
 					clearTimeout(timer);
 					timer = void 0;
-					logger$27.info("Download completed:", url);
+					logger$29.info("Download completed:", url);
 				});
 				let stream;
 				if (extract === "untar") {
@@ -114941,12 +115968,10 @@ function download(urlInput, options, token, obj = {}) {
 						strip: options.strip ?? 1,
 						C: dest
 					}));
-				} else if (extract === "unzip") {
-					const unzip = require_unzip();
-					stream = res.pipe(unzip.Extract({ path: dest }));
-				} else {
-					dest = path$5.join(dest, `${crypto$1.randomUUID()}${extname}`);
-					stream = res.pipe(fs$5.createWriteStream(dest));
+				} else if (extract === "unzip") stream = extractZip(res, dest);
+				else {
+					dest = path$3.join(dest, `${crypto$1.randomUUID()}${extname}`);
+					stream = res.pipe(fs$3.createWriteStream(dest));
 				}
 				stream.on("finish", () => {
 					if (hash) {
@@ -114955,7 +115980,7 @@ function download(urlInput, options, token, obj = {}) {
 							return;
 						}
 					}
-					logger$27.info(`Downloaded ${url} => ${dest}`);
+					logger$29.info(`Downloaded ${url} => ${dest}`);
 					setTimeout(() => {
 						resolve(dest);
 					}, 100);
@@ -114984,20 +116009,20 @@ function download(urlInput, options, token, obj = {}) {
 		req.end();
 	});
 }
-var logger$27;
+var logger$29;
 var init_download = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_node();
 	init_fetch();
-	logger$27 = createLogger$1("model-download");
+	logger$29 = createLogger("model-download");
 }));
 //#endregion
 //#region src/extension/installer.ts
-function registryUrl(home = os$5.homedir()) {
+function registryUrl(home = os$3.homedir()) {
 	let res;
-	let filepath = path$5.join(home, ".npmrc");
-	if (fs$5.existsSync(filepath)) try {
-		let content = fs$5.readFileSync(filepath, "utf8");
+	let filepath = path$3.join(home, ".npmrc");
+	if (fs$3.existsSync(filepath)) try {
+		let content = fs$3.readFileSync(filepath, "utf8");
 		let uri;
 		for (let line of content.split(/\r?\n/)) {
 			if (line.startsWith("#")) continue;
@@ -115006,16 +116031,16 @@ function registryUrl(home = os$5.homedir()) {
 		}
 		if (uri) res = new URL(uri);
 	} catch (e) {
-		logger$26.debug("Error on parse .npmrc:", e);
+		logger$28.debug("Error on parse .npmrc:", e);
 	}
 	return res ?? new URL("https://registry.npmjs.org");
 }
 function isNpmCommand(exePath) {
-	let name = path$5.basename(exePath);
+	let name = path$3.basename(exePath);
 	return name === "npm" || name === "npm.CMD";
 }
 function isYarn(exePath) {
-	let name = path$5.basename(exePath);
+	let name = path$3.basename(exePath);
 	return [
 		"yarn",
 		"yarn.CMD",
@@ -115024,12 +116049,12 @@ function isYarn(exePath) {
 	].includes(name);
 }
 function isPnpm(exePath) {
-	let name = path$5.basename(exePath);
+	let name = path$3.basename(exePath);
 	return name === "pnpm" || name === "pnpm.CMD";
 }
 function isSymbolicLink(folder) {
-	if (fs$5.existsSync(folder)) {
-		if (fs$5.lstatSync(folder).isSymbolicLink()) return true;
+	if (fs$3.existsSync(folder)) {
+		if (fs$3.lstatSync(folder).isSymbolicLink()) return true;
 	}
 	return false;
 }
@@ -115040,16 +116065,16 @@ function getExtensionDependencies(obj) {
 	if (obj.extensionDependencies?.length > 0) return [...new Set(obj.extensionDependencies)];
 	return [];
 }
-var logger$26, local_dependencies, Installer;
+var logger$28, local_dependencies, Installer;
 var init_installer = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_download();
 	init_fetch();
 	init_fs();
 	init_node();
 	init_string$1();
 	init_workspace$1();
-	logger$26 = createLogger$1("extension-installer");
+	logger$28 = createLogger("extension-installer");
 	local_dependencies = [
 		"coc.nvim",
 		"esbuild",
@@ -115132,7 +116157,7 @@ var init_installer = __esmMin((() => {
 		async install() {
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
-			logger$26.info(`Fetched info of ${this.def}`, info);
+			logger$28.info(`Fetched info of ${this.def}`, info);
 			let { name, version } = info;
 			let required = toText(info["engines.coc"]).replace(/^\^/, ">=");
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
@@ -115141,19 +116166,19 @@ var init_installer = __esmMin((() => {
 				updated: await this.doInstall(info, /* @__PURE__ */ new Set()),
 				version,
 				url: this.url,
-				folder: path$5.join(this.root, info.name)
+				folder: path$3.join(this.root, info.name)
 			};
 		}
 		async update(url) {
 			if (url) this.url = url;
 			let version;
 			if (this.name) {
-				let folder = path$5.join(this.root, this.name);
+				let folder = path$3.join(this.root, this.name);
 				if (isSymbolicLink(folder)) {
 					this.log(`Skipped update for symbol link`);
 					return;
 				}
-				version = loadJson$1(path$5.join(folder, "package.json")).version;
+				version = loadJson$1(path$3.join(folder, "package.json")).version;
 			}
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
@@ -115164,9 +116189,9 @@ var init_installer = __esmMin((() => {
 			let required = info["engines.coc"] ? info["engines.coc"].replace(/^\^/, ">=") : "";
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${info.version} requires coc.nvim ${required}, please update coc.nvim.`);
 			if (!await this.doInstall(info, /* @__PURE__ */ new Set())) return;
-			let jsonFile = path$5.join(this.root, info.name, "package.json");
+			let jsonFile = path$3.join(this.root, info.name, "package.json");
 			this.log(`Updated to v${info.version}`);
-			return path$5.dirname(jsonFile);
+			return path$3.dirname(jsonFile);
 		}
 		getInstallArguments(exePath, url) {
 			let env = "production";
@@ -115211,7 +116236,10 @@ var init_installer = __esmMin((() => {
 				const child = child_process$1.spawn(cmd, args, {
 					cwd: folder,
 					shell: process.platform === "win32",
-					env: Object.assign(process.env, { NODE_ENV: env })
+					env: {
+						...process.env,
+						NODE_ENV: env
+					}
 				});
 				this.readLines("[npm stdout]", child.stdout);
 				this.readLines("[npm stderr]", child.stderr);
@@ -115228,15 +116256,15 @@ var init_installer = __esmMin((() => {
 			});
 		}
 		async doInstall(info, installing = /* @__PURE__ */ new Set()) {
-			let dest = path$5.join(this.root, info.name);
+			let dest = path$3.join(this.root, info.name);
 			if (isSymbolicLink(dest)) return false;
 			if (installing.has(info.name)) {
-				this.log(`Skipping circular dependency: ${info.name}`);
+				this.log(`Skipping dependency: ${info.name} (already installed or in progress)`);
 				return false;
 			}
 			installing.add(info.name);
 			let key = info.name.replace(/\//g, "_");
-			let downloadFolder = path$5.join(this.root, `${key}-${crypto.randomUUID()}`);
+			let downloadFolder = path$3.join(this.root, `${key}-${crypto.randomUUID()}`);
 			let url = info["dist.tarball"];
 			this.log(`Downloading from ${url}`);
 			let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
@@ -115249,34 +116277,34 @@ var init_installer = __esmMin((() => {
 					onProgress: (p) => this.log(`Download progress ${p}%`, true)
 				});
 				this.log(`Extension download at ${downloadFolder}`);
-				obj = loadJson$1(path$5.join(downloadFolder, "package.json"));
+				obj = loadJson$1(path$3.join(downloadFolder, "package.json"));
 				await this.installDependencies(downloadFolder, getDependencies(obj));
+				const extensionDependencies = getExtensionDependencies(obj);
+				if (extensionDependencies.length > 0) {
+					this.log(`Installing extension dependencies: ${extensionDependencies.join(", ")}`);
+					for (const dependency of extensionDependencies) {
+						const installer = new Installer(this.root, this.npm, dependency);
+						installer.on("message", (msg, isProgress) => {
+							this.log(msg, isProgress);
+						});
+						await installer.doInstall(await installer.getInfo(), installing);
+					}
+				}
 			} catch (e) {
-				fs$5.rmSync(downloadFolder, {
+				fs$3.rmSync(downloadFolder, {
 					recursive: true,
 					force: true
 				});
 				throw e;
 			}
 			this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`);
-			fs$5.mkdirSync(path$5.dirname(dest), { recursive: true });
-			if (fs$5.existsSync(dest)) fs$5.rmSync(dest, {
+			fs$3.mkdirSync(path$3.dirname(dest), { recursive: true });
+			if (fs$3.existsSync(dest)) fs$3.rmSync(dest, {
 				force: true,
 				recursive: true
 			});
-			fs$5.renameSync(downloadFolder, dest);
+			fs$3.renameSync(downloadFolder, dest);
 			this.log(`Move extension ${info.name}@${info.version} to ${dest}`);
-			const extensionDependencies = getExtensionDependencies(obj);
-			if (extensionDependencies.length > 0) {
-				this.log(`Installing extension dependencies: ${extensionDependencies.join(", ")}`);
-				for (const dependency of extensionDependencies) {
-					const installer = new Installer(this.root, this.npm, dependency);
-					installer.on("message", (msg, isProgress) => {
-						this.log(msg, isProgress);
-					});
-					await installer.doInstall(await installer.getInfo(), installing);
-				}
-			}
 			return true;
 		}
 		async download(url, options) {
@@ -115298,18 +116326,18 @@ var init_memos = __esmMin((() => {
 		filepath;
 		constructor(filepath) {
 			this.filepath = filepath;
-			if (!fs$5.existsSync(filepath)) {
-				fs$5.mkdirSync(path$5.dirname(filepath), { recursive: true });
-				fs$5.writeFileSync(filepath, "{}", "utf8");
+			if (!fs$3.existsSync(filepath)) {
+				fs$3.mkdirSync(path$3.dirname(filepath), { recursive: true });
+				fs$3.writeFileSync(filepath, "{}", "utf8");
 			}
 		}
 		merge(filepath) {
-			if (!fs$5.existsSync(filepath)) return;
+			if (!fs$3.existsSync(filepath)) return;
 			let obj = loadJson$1(filepath);
 			let current = loadJson$1(this.filepath);
 			Object.assign(current, obj);
 			writeJson(this.filepath, current);
-			fs$5.unlinkSync(filepath);
+			fs$3.unlinkSync(filepath);
 		}
 		fetchContent(id, key) {
 			let obj = loadJson$1(this.filepath)[id];
@@ -115339,14 +116367,14 @@ var init_memos = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/commandTask.ts
-var spawn$1, logger$25, CommandTask;
+var spawn$1, logger$27, CommandTask;
 var init_commandTask = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_node();
 	init_workspace$1();
 	spawn$1 = child_process$1.spawn;
-	logger$25 = createLogger$1("list-commandTask");
+	logger$27 = createLogger("list-commandTask");
 	CommandTask = class extends events.EventEmitter {
 		opt;
 		disposables = [];
@@ -115369,7 +116397,7 @@ var init_commandTask = __esmMin((() => {
 				this.emit("error", e.message);
 			});
 			proc.stderr.on("data", (chunk) => {
-				logger$25.error(`[${cmd} Error]`, chunk.toString("utf8"));
+				logger$27.error(`[${cmd} Error]`, chunk.toString("utf8"));
 			});
 			const rl = readline.createInterface(proc.stdout);
 			rl.on("line", (line) => {
@@ -115758,14 +116786,14 @@ var init_fuzzy = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/db.ts
-var logger$24, DB_PATH, DataBase, db_default;
+var logger$26, DB_PATH, DataBase, db_default;
 var init_db = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_constants();
 	init_node();
 	init_string$1();
-	logger$24 = createLogger$1("list-db");
-	DB_PATH = path$5.join(dataHome, "list_history.dat");
+	logger$26 = createLogger("list-db");
+	DB_PATH = path$3.join(dataHome, "list_history.dat");
 	DataBase = class {
 		folders = [];
 		names = [];
@@ -115775,7 +116803,7 @@ var init_db = __esmMin((() => {
 			try {
 				this.load();
 			} catch (e) {
-				logger$24.error(`Error on load db`, e);
+				logger$26.error(`Error on load db`, e);
 			}
 		}
 		get currItems() {
@@ -115834,13 +116862,13 @@ var init_db = __esmMin((() => {
 				nameBuf,
 				...bufs
 			]);
-			fs$5.mkdirSync(path$5.dirname(DB_PATH), { recursive: true });
-			fs$5.writeFileSync(DB_PATH, resultBuf);
+			fs$3.mkdirSync(path$3.dirname(DB_PATH), { recursive: true });
+			fs$3.writeFileSync(DB_PATH, resultBuf);
 			this._changed = false;
 		}
 		load() {
-			if (!fs$5.existsSync(DB_PATH)) return;
-			let buffer = fs$5.readFileSync(DB_PATH);
+			if (!fs$3.existsSync(DB_PATH)) return;
+			let buffer = fs$3.readFileSync(DB_PATH);
 			let folder_length = buffer.readUInt32BE(1);
 			let name_length = buffer.readUInt32BE(5);
 			let folderBuf = buffer.slice(9, 9 + folder_length);
@@ -115882,15 +116910,15 @@ var init_db = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/history.ts
-var logger$23, InputHistory;
+var logger$25, InputHistory;
 var init_history = __esmMin((() => {
 	init_node();
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_fuzzy();
 	init_db();
 	init_string$1();
-	logger$23 = createLogger$1("list-history");
+	logger$25 = createLogger("list-history");
 	InputHistory = class {
 		prompt;
 		name;
@@ -115916,13 +116944,13 @@ var init_history = __esmMin((() => {
 		}
 		static migrate(folder) {
 			try {
-				let files = fs$5.readdirSync(folder);
-				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$5.statSync(path$5.join(folder, f)).isFile());
+				let files = fs$3.readdirSync(folder);
+				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$3.statSync(path$3.join(folder, f)).isFile());
 				if (files.length === 0) return;
 				let db = new DataBase();
 				for (let file of files) {
 					let name = file.match(/^list-(.*)-history.json$/)[1];
-					let content = fs$5.readFileSync(path$5.join(folder, file), "utf8");
+					let content = fs$3.readFileSync(path$3.join(folder, file), "utf8");
 					let obj = JSON.parse(content);
 					for (let [key, texts] of Object.entries(obj)) {
 						let folder = Buffer.from(key, "base64").toString("utf8");
@@ -115932,11 +116960,11 @@ var init_history = __esmMin((() => {
 					}
 				}
 				files.forEach((f) => {
-					fs$5.unlinkSync(path$5.join(folder, f));
+					fs$3.unlinkSync(path$3.join(folder, f));
 				});
 				db.save();
 			} catch (e) {
-				logger$23.error(`Error on migrate history:`, e);
+				logger$25.error(`Error on migrate history:`, e);
 			}
 		}
 		get curr() {
@@ -117100,9 +118128,9 @@ function parseInput(input) {
 	if (startIdx != input.length) res.push(input.slice(startIdx, input.length));
 	return res.map((s) => s.replace(/\\\s/g, " ").trim()).filter((s) => s.length > 0);
 }
-var logger$22, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
+var logger$24, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_ansiparse();
 	init_array();
@@ -117114,7 +118142,7 @@ var init_worker = __esmMin((() => {
 	init_string$1();
 	init_workspace$1();
 	init_configuration$1();
-	logger$22 = createLogger$1("list-worker");
+	logger$24 = createLogger("list-worker");
 	controlCode$1 = "\x1B";
 	WHITE_SPACE_CHARS = [32, 9];
 	SEARCH_HL_GROUP = "CocListSearch";
@@ -117257,7 +118285,7 @@ var init_worker = __esmMin((() => {
 					clearInterval(interval);
 					workspace_default.nvim.call("coc#prompt#stop_prompt", ["list"], true);
 					workspace_default.nvim.echoError(`Task error: ${error.toString()}`);
-					logger$22.error("List task error:", error);
+					logger$24.error("List task error:", error);
 				});
 				task.on("end", onEnd);
 			}
@@ -117737,7 +118765,10 @@ var init_session$1 = __esmMin((() => {
 				targetWinid,
 				this.savedHeight
 			], true);
-			if (notify) return nvim.resumeNotification(true, true);
+			if (notify) {
+				nvim.resumeNotification(true, true);
+				return;
+			}
 			await nvim.resumeNotification(false);
 			if (isVim) {
 				await wait(10);
@@ -117965,7 +118996,7 @@ function fixWidth(str, width) {
 function formatUri(uri, cwd) {
 	if (!uri.startsWith("file:")) return uri;
 	let filepath = URI.parse(uri).fsPath;
-	return isParentFolder(cwd, filepath) ? path$5.relative(cwd, filepath) : filepath;
+	return isParentFolder(cwd, filepath) ? path$3.relative(cwd, filepath) : filepath;
 }
 function formatListItems(align, list) {
 	if (list.length === 0) return [];
@@ -117987,11 +119018,11 @@ function formatPath(format, pathToFormat) {
 	if (format === "hidden") return "";
 	else if (format === "full") return pathToFormat;
 	else if (format === "short") {
-		const segments = pathToFormat.split(path$5.sep);
+		const segments = pathToFormat.split(path$3.sep);
 		if (segments.length < 2) return pathToFormat;
-		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$5.sep);
+		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$3.sep);
 	} else {
-		const segments = pathToFormat.split(path$5.sep);
+		const segments = pathToFormat.split(path$3.sep);
 		return toText(segments[segments.length - 1]);
 	}
 }
@@ -118102,7 +119133,7 @@ var init_location = __esmMin((() => {
 			let ignoreFilepath = locs.every((o) => o.bufnr == bufnr);
 			return await Promise.all(locs.map((loc) => {
 				let filename = ignoreFilepath ? "" : loc.filename;
-				if (filename.length > 0 && path$5.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$5.relative(context.cwd, filename) : filename;
+				if (filename.length > 0 && path$3.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$3.relative(context.cwd, filename) : filename;
 				return this.createItem(filename, loc);
 			}));
 		}
@@ -118166,7 +119197,7 @@ var init_location = __esmMin((() => {
 //#endregion
 //#region src/list/source/diagnostics.ts
 function convertToLabel(item, cwd, includeCode, pathFormat = "full") {
-	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$5.relative(cwd, item.file) : item.file);
+	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$3.relative(cwd, item.file) : item.file);
 	const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : [];
 	const source = includeCode ? `[${item.source} ${defaultValue(item.code, "")}]` : item.source;
 	return [
@@ -118318,9 +119349,9 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("configuration", async (item) => {
 				let { root } = item.data;
-				let jsonFile = path$5.join(root, "package.json");
-				if (fs$5.existsSync(jsonFile)) {
-					let idx = fs$5.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
+				let jsonFile = path$3.join(root, "package.json");
+				if (fs$3.existsSync(jsonFile)) {
+					let idx = fs$3.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
 					await workspace_default.jumpTo(URI.file(jsonFile), {
 						line: idx == -1 ? 0 : idx,
 						character: 0
@@ -118356,8 +119387,8 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("help", async (item) => {
 				let { root } = item.data;
-				let file = fs$5.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
-				if (file) await workspace_default.jumpTo(URI.file(path$5.join(root, file)));
+				let file = fs$3.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
+				if (file) await workspace_default.jumpTo(URI.file(path$3.join(root, file)));
 			});
 			this.addAction("reload", async (item) => {
 				let { id } = item.data;
@@ -118380,14 +119411,14 @@ var init_extensions = __esmMin((() => {
 			let list = await extension_default.getExtensionStates();
 			for (let stat of list) {
 				let prefix = getExtensionPrefix(stat.state);
-				let root = fs$5.realpathSync(stat.root);
+				let root = fs$3.realpathSync(stat.root);
 				let locked = stat.isLocked;
 				items.push({
 					label: [
 						`${prefix} ${stat.id}${locked ? " " : ""}`,
 						...stat.isLocal ? ["[RTP]"] : [],
 						stat.version,
-						root.replace(os$5.homedir(), "~")
+						root.replace(os$3.homedir(), "~")
 					],
 					filterText: stat.id,
 					data: {
@@ -118642,11 +119673,11 @@ function getFilterText(s, kind) {
 async function loadCtagsSymbols(document, nvim, token) {
 	if (!which.sync("ctags", { nothrow: true })) return [];
 	let uri = URI.parse(document.uri);
-	let extname = path$5.extname(uri.fsPath);
+	let extname = path$3.extname(uri.fsPath);
 	let content = "";
 	let tempname = await nvim.call("tempname");
 	let filepath = `${tempname}.${extname}`;
-	let cwd = path$5.dirname(tempname);
+	let cwd = path$3.dirname(tempname);
 	let escaped = await nvim.call("fnameescape", filepath);
 	await writeFile(escaped, document.getDocumentContent());
 	try {
@@ -119133,7 +120164,9 @@ var init_codeLens = __esmMin((() => {
 			super(client, import_main$1.CodeLensRequest.type);
 		}
 		fillClientCapabilities(capabilities) {
-			ensure(ensure(capabilities, "textDocument"), "codeLens").dynamicRegistration = true;
+			let codeLens = ensure(ensure(capabilities, "textDocument"), "codeLens");
+			codeLens.dynamicRegistration = true;
+			codeLens.resolveSupport = { properties: ["command"] };
 			ensure(ensure(capabilities, "workspace"), "codeLens").refreshSupport = true;
 		}
 		initialize(capabilities, documentSelector) {
@@ -119291,12 +120324,16 @@ var init_completion$1 = __esmMin((() => {
 			};
 			completion.completionItemKind = { valueSet: SupportedCompletionItemKinds };
 			completion.insertTextMode = InsertTextMode.adjustIndentation;
-			completion.completionList = { itemDefaults: [
-				"commitCharacters",
-				"editRange",
-				"insertTextFormat",
-				"insertTextMode"
-			] };
+			completion.completionList = {
+				itemDefaults: [
+					"commitCharacters",
+					"editRange",
+					"insertTextFormat",
+					"insertTextMode",
+					"data"
+				],
+				applyKindSupport: true
+			};
 		}
 		initialize(capabilities, documentSelector) {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider);
@@ -119749,11 +120786,16 @@ var init_diagnostic = __esmMin((() => {
 						state: "drop",
 						document
 					};
-					if (afterState === void 0 && error instanceof CancellationError) afterState = {
-						state: "reschedule",
-						document
-					};
-					else throw error;
+					else if (error instanceof CancellationError) {
+						const current = this.openRequests.get(key);
+						afterState = current?.state === "drop" ? {
+							state: "drop",
+							document: current.document
+						} : {
+							state: "reschedule",
+							document
+						};
+					} else throw error;
 				}
 				afterState = afterState ?? this.openRequests.get(key);
 				if (afterState === void 0) {
@@ -119810,12 +120852,15 @@ var init_diagnostic = __esmMin((() => {
 			}
 		}
 		pullWorkspace() {
-			if (!this.enableWorkspace) return;
+			if (!this.enableWorkspace || this.isDisposed) return;
 			this.pullWorkspaceAsync().then(() => {
+				if (this.isDisposed) return;
+				this.workspaceErrorCounter = 0;
 				this.workspaceTimeout = (0, import_main$1.RAL)().timer.setTimeout(() => {
 					this.pullWorkspace();
 				}, workspacePullDebounce);
 			}, (error) => {
+				if (this.isDisposed) return;
 				if (!(error instanceof LSPCancellationError) && !import_main$1.DiagnosticServerCancellationData.is(error.data)) {
 					this.client.error(`Workspace diagnostic pull failed.`, error);
 					this.workspaceErrorCounter++;
@@ -120469,8 +121514,9 @@ var init_fileOperations = __esmMin((() => {
 			};
 		}
 		static asMinimatchOptions(options) {
-			if (options === void 0) return;
-			if (options.ignoreCase === true) return { nocase: true };
+			const result = { dot: true };
+			if (options?.ignoreCase === true) result.nocase = true;
+			return result;
 		}
 	};
 	NotificationFileOperationFeature = class extends FileOperationFeature {
@@ -120727,7 +121773,7 @@ var init_foldingRange = __esmMin((() => {
 		}
 		initialize(capabilities, documentSelector) {
 			this._client.onRequest(import_api$3.FoldingRangeRefreshRequest.type, async () => {
-				for (const provider of this.getAllProviders()) provider.onDidChangeFoldingRange.fire();
+				for (const provider of this.getAllProviders()) provider.onDidChangeFoldingRanges.fire();
 			});
 			const [id, options] = this.getRegistration(documentSelector, capabilities.foldingRangeProvider);
 			if (!id || !options) return;
@@ -120753,7 +121799,7 @@ var init_foldingRange = __esmMin((() => {
 			this._client.attachExtensionName(provider);
 			return [languages_default.registerFoldingRangeProvider(options.documentSelector, provider), {
 				provider,
-				onDidChangeFoldingRange: eventEmitter
+				onDidChangeFoldingRanges: eventEmitter
 			}];
 		}
 	};
@@ -120802,7 +121848,9 @@ var init_formatting = __esmMin((() => {
 			super(client, import_main$1.DocumentRangeFormattingRequest.type);
 		}
 		fillClientCapabilities(capabilities) {
-			ensure(ensure(capabilities, "textDocument"), "rangeFormatting").dynamicRegistration = true;
+			let rangeFormatting = ensure(ensure(capabilities, "textDocument"), "rangeFormatting");
+			rangeFormatting.dynamicRegistration = true;
+			rangeFormatting.rangesSupport = true;
 		}
 		initialize(capabilities, documentSelector) {
 			const options = this.getRegistrationOptions(documentSelector, capabilities.documentRangeFormattingProvider);
@@ -120813,19 +121861,34 @@ var init_formatting = __esmMin((() => {
 			});
 		}
 		registerLanguageProvider(options) {
-			const provider = { provideDocumentRangeFormattingEdits: (document, range, options, token) => {
-				const client = this._client;
-				const provideDocumentRangeFormattingEdits = (document, range, options, token) => {
-					const params = {
-						textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
-						range,
-						options
+			const provider = {
+				provideDocumentRangeFormattingEdits: (document, range, options, token) => {
+					const client = this._client;
+					const provideDocumentRangeFormattingEdits = (document, range, options, token) => {
+						const params = {
+							textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
+							range,
+							options
+						};
+						return this.sendRequest(import_main$1.DocumentRangeFormattingRequest.type, params, token);
 					};
-					return this.sendRequest(import_main$1.DocumentRangeFormattingRequest.type, params, token);
-				};
-				const middleware = client.middleware;
-				return middleware.provideDocumentRangeFormattingEdits ? middleware.provideDocumentRangeFormattingEdits(document, range, options, token, provideDocumentRangeFormattingEdits) : provideDocumentRangeFormattingEdits(document, range, options, token);
-			} };
+					const middleware = client.middleware;
+					return middleware.provideDocumentRangeFormattingEdits ? middleware.provideDocumentRangeFormattingEdits(document, range, options, token, provideDocumentRangeFormattingEdits) : provideDocumentRangeFormattingEdits(document, range, options, token);
+				},
+				provideDocumentRangesFormattingEdits: options.rangesSupport ? (document, ranges, options, token) => {
+					const client = this._client;
+					const provideDocumentRangesFormattingEdits = (document, ranges, options, token) => {
+						const params = {
+							textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document),
+							ranges,
+							options
+						};
+						return this.sendRequest(import_main$1.DocumentRangesFormattingRequest.type, params, token);
+					};
+					const middleware = client.middleware;
+					return middleware.provideDocumentRangesFormattingEdits ? middleware.provideDocumentRangesFormattingEdits(document, ranges, options, token, provideDocumentRangesFormattingEdits) : provideDocumentRangesFormattingEdits(document, ranges, options, token);
+				} : void 0
+			};
 			this._client.attachExtensionName(provider);
 			return [languages_default.registerDocumentRangeFormatProvider(options.documentSelector, provider, this._client.clientOptions.formatterPriority), provider];
 		}
@@ -121586,6 +122649,7 @@ var init_signatureHelp = __esmMin((() => {
 			config.signatureInformation = {
 				documentationFormat: this._client.supportedMarkupKind,
 				activeParameterSupport: true,
+				noActiveParameterSupport: true,
 				parameterInformation: { labelOffsetSupport: true }
 			};
 		}
@@ -121795,7 +122859,7 @@ var init_textSynchronization = __esmMin((() => {
 		* @returns Whether a pending open notification was dropped because it was for the closing document.
 		*/
 		async sendPendingOpenNotifications(closingDocument) {
-			if (!this._delayOpen) return;
+			if (!this._delayOpen) return false;
 			const notifications = Array.from(this._pendingOpenNotifications.values());
 			this._pendingOpenNotifications.clear();
 			let didDropOpenNotification = false;
@@ -121940,7 +123004,9 @@ var init_textSynchronization = __esmMin((() => {
 		dispose() {
 			this._changeData.clear();
 			this._onAboutToSendNotification.dispose();
+			this._onAboutToSendNotification = new import_main$1.Emitter();
 			this._onNotificationSent.dispose();
+			this._onNotificationSent = new import_main$1.Emitter();
 			if (this._listener) {
 				this._listener.dispose();
 				this._listener = void 0;
@@ -122230,9 +123296,12 @@ function data2String(data, color = false) {
 }
 function createClientPipeTransport(pipeName, encoding = "utf-8") {
 	let connectResolve;
-	const connected = new Promise((resolve, _reject) => {
+	let connectReject;
+	const connected = new Promise((resolve, reject) => {
 		connectResolve = resolve;
+		connectReject = reject;
 	});
+	connected.catch(() => {});
 	return new Promise((resolve, reject) => {
 		const server = net$2.createServer((socket) => {
 			server.close();
@@ -122247,6 +123316,7 @@ function createClientPipeTransport(pipeName, encoding = "utf-8") {
 				},
 				dispose: () => {
 					server.close();
+					connectReject(/* @__PURE__ */ new Error("Transport disposed before connection established."));
 				}
 			});
 		});
@@ -122254,9 +123324,12 @@ function createClientPipeTransport(pipeName, encoding = "utf-8") {
 }
 function createClientSocketTransport(port, encoding = "utf-8") {
 	let connectResolve;
-	const connected = new Promise((resolve, _reject) => {
+	let connectReject;
+	const connected = new Promise((resolve, reject) => {
 		connectResolve = resolve;
+		connectReject = reject;
 	});
+	connected.catch(() => {});
 	return new Promise((resolve, reject) => {
 		const server = net$2.createServer((socket) => {
 			server.close();
@@ -122271,6 +123344,7 @@ function createClientSocketTransport(port, encoding = "utf-8") {
 				},
 				dispose: () => {
 					server.close();
+					connectReject(/* @__PURE__ */ new Error("Transport disposed before connection established."));
 				}
 			});
 		});
@@ -122544,12 +123618,12 @@ var init_errorHandler = __esmMin((() => {
 		}
 		closed() {
 			this.restarts.push(Date.now());
-			if (this.restarts.length < this.maxRestartCount) return { action: 2 };
+			if (this.restarts.length <= this.maxRestartCount) return { action: 2 };
 			else if (this.restarts[this.restarts.length - 1] - this.restarts[0] <= this.milliseconds) {
-				if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`);
+				if (this.outputChannel) this.outputChannel.appendLine(`The server crashed ${this.restarts.length} times in the last 3 minutes. The server will not be restarted.`);
 				return {
 					action: 1,
-					message: `The "${this.name}" server crashed ${this.maxRestartCount + 1} times in the last 3 minutes. The server will not be restarted.`
+					message: `The "${this.name}" server crashed ${this.restarts.length} times in the last 3 minutes. The server will not be restarted.`
 				};
 			} else {
 				this.restarts.shift();
@@ -122560,22 +123634,22 @@ var init_errorHandler = __esmMin((() => {
 }));
 //#endregion
 //#region src/language-client/utils/logger.ts
-var logger$21, ConsoleLogger, NullLogger;
+var logger$23, ConsoleLogger, NullLogger;
 var init_logger = __esmMin((() => {
-	init_logger$2();
-	logger$21 = createLogger$1("language-client");
+	init_logger$1();
+	logger$23 = createLogger("language-client");
 	ConsoleLogger = class {
 		error(message) {
-			logger$21.error(message);
+			logger$23.error(message);
 		}
 		warn(message) {
-			logger$21.warn(message);
+			logger$23.warn(message);
 		}
 		info(message) {
-			logger$21.info(message);
+			logger$23.info(message);
 		}
 		log(message) {
-			logger$21.log(message);
+			logger$23.log(message);
 		}
 	};
 	NullLogger = class {
@@ -122844,13 +123918,13 @@ function createConnection(input, output, errorHandler, closeHandler, options) {
 		dispose: () => connection.dispose()
 	};
 }
-var import_api, logger$20, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, BaseLanguageClient, ProposedFeatures;
+var import_api, logger$22, redOpen, redClose, RevealOutputChannelOn, State, ClientState, MessageTransports, delayTime, SLOW_REQUEST_TIMEOUT, BaseLanguageClient, ProposedFeatures;
 var init_client = __esmMin((() => {
 	import_api = require_api();
 	init_main$2();
 	init_esm();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -122905,7 +123979,7 @@ var init_client = __esmMin((() => {
 	init_logger();
 	init_workspaceFolders();
 	init_workspaceSymbol();
-	logger$20 = createLogger$1("language-client-client");
+	logger$22 = createLogger("language-client-client");
 	redOpen = "\x1B[31m";
 	redClose = "\x1B[39m";
 	RevealOutputChannelOn = /* @__PURE__ */ function(RevealOutputChannelOn) {
@@ -122939,6 +124013,7 @@ var init_client = __esmMin((() => {
 		_MessageTransports.is = is;
 	})(MessageTransports || (MessageTransports = {}));
 	delayTime = getConditionValue(250, 10);
+	SLOW_REQUEST_TIMEOUT = 3e3;
 	BaseLanguageClient = class BaseLanguageClient {
 		_rootPath;
 		_consoleDebug = false;
@@ -122949,6 +124024,7 @@ var init_client = __esmMin((() => {
 		_state;
 		_onStart;
 		_onStop;
+		_onStopClose;
 		_connection;
 		_initializeResult;
 		_outputChannel;
@@ -123012,6 +124088,9 @@ var init_client = __esmMin((() => {
 			this.registerBuiltinFeatures();
 			Error.captureStackTrace(this);
 		}
+		/**
+		* @internal
+		*/
 		switchConsole() {
 			this._consoleDebug = !this._consoleDebug;
 			this.changeTrace(import_main$1.Trace.Verbose, import_main$1.TraceFormat.Text);
@@ -123041,7 +124120,7 @@ var init_client = __esmMin((() => {
 				"disableDiagnostics"
 			]) if (typeof clientOptions[key] === "boolean") {
 				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-				logger$20.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
+				logger$22.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack);
 				if (clientOptions[key] === true) {
 					let s = key.slice(7);
 					disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
@@ -123079,6 +124158,9 @@ var init_client = __esmMin((() => {
 			if (options && typeof options.delayOpenNotifications === "boolean") return { delayOpenNotifications: options.delayOpenNotifications };
 			return { delayOpenNotifications: false };
 		}
+		/**
+		* @internal
+		*/
 		get supportedMarkupKind() {
 			if (!this.clientOptions.disableMarkdown) return [MarkupKind.Markdown, MarkupKind.PlainText];
 			return [MarkupKind.PlainText];
@@ -123107,9 +124189,15 @@ var init_client = __esmMin((() => {
 		get middleware() {
 			return this._clientOptions.middleware;
 		}
+		/**
+		* @internal
+		*/
 		get code2ProtocolConverter() {
 			return this._c2p;
 		}
+		/**
+		* @internal
+		*/
 		getPublicState() {
 			switch (this.$state) {
 				case 1: return 3;
@@ -123136,13 +124224,30 @@ var init_client = __esmMin((() => {
 			if (token !== void 0 && token.isCancellationRequested) return Promise.reject(new import_main$1.ResponseError(import_main$1.LSPErrorCodes.RequestCancelled, "Request got cancelled"));
 			type = fixRequestType(type, params);
 			const _sendRequest = this._clientOptions.middleware.sendRequest;
-			if (_sendRequest !== void 0) return _sendRequest(type, param, token, (type, param, token) => {
+			let request;
+			if (_sendRequest !== void 0) request = Promise.resolve(_sendRequest(type, param, token, (type, param, token) => {
 				const params = [];
 				if (param !== void 0) params.push(param);
 				if (token !== void 0) params.push(token);
 				return connection.sendRequest(type, ...params);
+			}));
+			else request = connection.sendRequest(type, ...params);
+			return this.trackSlowRequest(toMethod(type), request);
+		}
+		/**
+		* Log requests that are still pending after a while without timing them
+		* out. Slow responses are expected for some methods and must not be
+		* interrupted.
+		*/
+		trackSlowRequest(method, request) {
+			let timer = setTimeout(() => {
+				let msg = `[Warn  - ${currentTimeStamp()}] Request "${method}" still pending after ${SLOW_REQUEST_TIMEOUT / 1e3}s`;
+				this.outputChannel.appendLine(msg);
+			}, SLOW_REQUEST_TIMEOUT);
+			if (typeof timer.unref === "function") timer.unref();
+			return request.finally(() => {
+				clearTimeout(timer);
 			});
-			else return connection.sendRequest(type, ...params);
 		}
 		onRequest(type, handler) {
 			const method = toMethod(type);
@@ -123272,6 +124377,7 @@ var init_client = __esmMin((() => {
 			}
 		}
 		/**
+		* @internal
 		* languageserver.xxx.settings or undefined
 		*/
 		get configuredSection() {
@@ -123291,6 +124397,9 @@ var init_client = __esmMin((() => {
 			}
 			return this._outputChannel;
 		}
+		/**
+		* @internal
+		*/
 		get traceOutputChannel() {
 			return this._traceOutputChannel ? this._traceOutputChannel : this.outputChannel;
 		}
@@ -123357,16 +124466,23 @@ var init_client = __esmMin((() => {
 		activeConnection() {
 			return this.$state === 3 && this._connection !== void 0 ? this._connection : void 0;
 		}
+		/**
+		* @internal
+		*/
 		get hasPendingResponse() {
 			return this._connection?.hasPendingResponse();
 		}
 		onReady() {
 			if (this._onStart) return this._onStart;
-			return new Promise((resolve) => {
+			if (this.$state === 5 || this.$state === 2) return Promise.reject(/* @__PURE__ */ new Error(`${this._name} client is not running and can't become ready.`));
+			return new Promise((resolve, reject) => {
 				let disposable = this.onDidChangeState((e) => {
 					if (e.newState === 2) {
 						disposable.dispose();
 						resolve();
+					} else if (e.newState === 1 || e.newState === 4) {
+						disposable.dispose();
+						reject(/* @__PURE__ */ new Error(`${this._name} client stopped before it became ready.`));
 					}
 				});
 			});
@@ -123377,6 +124493,9 @@ var init_client = __esmMin((() => {
 		isRunning() {
 			return this.$state === 3;
 		}
+		/**
+		* @internal
+		*/
 		async _start() {
 			if (this._disposed === "disposing" || this._disposed === "disposed") throw new Error(`Client got disposed and can't be restarted.`);
 			if (this.$state === 4) throw new Error(`Client is currently stopping. Can only restart a full stopped client`);
@@ -123396,9 +124515,14 @@ var init_client = __esmMin((() => {
 				await this.initialize(connection);
 				resolve();
 			} catch (error) {
-				this.$state = 2;
-				this.error(`${this._name} client: couldn't create connection to server.`, error, "force");
-				reject(error);
+				if (this._onStart !== void 0 && this._onStart !== promise) {
+					this._onStart.then(resolve, reject);
+					promise.catch(() => {});
+				} else {
+					this.$state = 2;
+					this.error(`${this._name} client: couldn't create connection to server.`, error, "force");
+					reject(error);
+				}
 			}
 			return this._onStart;
 		}
@@ -123507,7 +124631,7 @@ var init_client = __esmMin((() => {
 			let resolved;
 			if (!isFalsyOrEmpty(rootPatterns)) resolved = workspace_default.documentsManager.resolveRoot(rootPatterns, requireRootPattern);
 			let rootPath = resolved || workspace_default.rootPath;
-			if (sameFile(rootPath, os$5.homedir()) || ignoredRootPaths.some((p) => sameFile(rootPath, p))) {
+			if (sameFile(rootPath, os$3.homedir()) || ignoredRootPaths.some((p) => sameFile(rootPath, p))) {
 				this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`);
 				return null;
 			}
@@ -123584,29 +124708,39 @@ var init_client = __esmMin((() => {
 				this.initializeFeatures(connection);
 				return result;
 			} catch (error) {
-				this.error("Server initialization failed.", error);
-				logger$20.error(`Server "${this.id}" initialization failed.`, error);
-				let cb = (retry) => {
-					process.nextTick(() => {
-						new Promise((resolve, reject) => {
-							if (retry) this.initialize(connection).then(resolve, reject);
-							else this.stop().then(resolve, reject);
-						}).catch((err) => {
-							this.error(`Unexpected error`, err, false);
+				process.nextTick(() => {
+					try {
+						if (this._connection !== connection) {
+							logger$22.error(`Server "${this.id}" initialization failed on a superseded connection.`, error);
+							return;
+						}
+						this.error("Server initialization failed.", error);
+						logger$22.error(`Server "${this.id}" initialization failed.`, error);
+						let cb = (retry) => {
+							process.nextTick(() => {
+								new Promise((resolve, reject) => {
+									if (retry) this.initialize(connection).then(resolve, reject);
+									else this.stop().then(resolve, reject);
+								}).catch((err) => {
+									this.error(`Unexpected error`, err, false);
+								});
+							});
+						};
+						if (this._clientOptions.initializationFailedHandler) cb(this._clientOptions.initializationFailedHandler(error));
+						else if (error instanceof import_main$1.ResponseError && error.data && error.data.retry) window_default.showErrorMessage(error.message, {
+							title: "Retry",
+							id: "retry"
+						}).then((item) => {
+							cb(item && item.id === "retry");
 						});
-					});
-				};
-				if (this._clientOptions.initializationFailedHandler) cb(this._clientOptions.initializationFailedHandler(error));
-				else if (error instanceof import_main$1.ResponseError && error.data && error.data.retry) window_default.showErrorMessage(error.message, {
-					title: "Retry",
-					id: "retry"
-				}).then((item) => {
-					cb(item && item.id === "retry");
+						else {
+							if (error && error.message) window_default.showErrorMessage(toText(error.message));
+							cb(false);
+						}
+					} catch (e) {
+						this.error(`Error during initialization failure handling for "${this.id}".`, e, false);
+					}
 				});
-				else {
-					if (error && error.message) window_default.showErrorMessage(toText(error.message));
-					cb(false);
-				}
 				throw error;
 			}
 		}
@@ -123631,7 +124765,14 @@ var init_client = __esmMin((() => {
 				await connection.exit();
 				return connection;
 			})(connection);
-			return this._onStop = Promise.race([tp, shutdown]).then((connection) => {
+			const close = new Promise((resolve) => {
+				this._onStopClose = () => resolve(connection);
+			});
+			return this._onStop = Promise.race([
+				tp,
+				shutdown,
+				close
+			]).then((connection) => {
 				if (tm) clearTimeout(tm);
 				if (connection !== void 0) {
 					connection.end();
@@ -123648,6 +124789,7 @@ var init_client = __esmMin((() => {
 				if (mode === "stop") this.cleanUpChannel();
 				this._onStart = void 0;
 				this._onStop = void 0;
+				this._onStopClose = void 0;
 				this._connection = void 0;
 				this._ignoredRegistrations.clear();
 			});
@@ -123679,6 +124821,9 @@ var init_client = __esmMin((() => {
 				this._outputChannel = void 0;
 			}
 		}
+		/**
+		* @internal
+		*/
 		notifyFileEvent(event) {
 			const didChangeWatchedFile = async (event) => {
 				if (event) this._fileEvents.push(event);
@@ -123700,9 +124845,13 @@ var init_client = __esmMin((() => {
 			});
 		}
 		/**
+		* @internal
 		* @deprecated
 		*/
 		async forceDocumentSync() {}
+		/**
+		* @internal
+		*/
 		isSynced(uri) {
 			return this._syncedDocuments ? this._syncedDocuments.has(uri) : false;
 		}
@@ -123722,7 +124871,11 @@ var init_client = __esmMin((() => {
 		}
 		async handleConnectionClosed() {
 			if (this.$state === 5) {
-				logger$20.info(`client ${this._id} normal closed`);
+				logger$22.info(`client ${this._id} normal closed`);
+				return;
+			}
+			if (this.$state === 4) {
+				this._onStopClose?.();
 				return;
 			}
 			try {
@@ -123730,7 +124883,7 @@ var init_client = __esmMin((() => {
 			} catch (error) {}
 			let handlerResult = { action: 1 };
 			let err;
-			if (this.$state !== 4) try {
+			try {
 				handlerResult = toCloseHandlerResult(await this._clientOptions.errorHandler.closed());
 			} catch (error) {
 				err = error;
@@ -123755,6 +124908,9 @@ var init_client = __esmMin((() => {
 			}
 			if (err) throw err;
 		}
+		/**
+		* @internal
+		*/
 		async handleConnectionError(error, message, count) {
 			let res = await this._clientOptions.errorHandler.error(error, message, count);
 			let result = typeof res === "number" ? { action: res } : defaultValue(res, { action: 2 });
@@ -123800,6 +124956,9 @@ var init_client = __esmMin((() => {
 		}
 		_features = [];
 		_dynamicFeatures = /* @__PURE__ */ new Map();
+		/**
+		* @internal
+		*/
 		registerFeatures(features) {
 			for (let feature of features) this.registerFeature(feature, "");
 		}
@@ -123869,6 +125028,9 @@ var init_client = __esmMin((() => {
 			this.registerFeature(new WorkspaceSymbolFeature(this), "workspaceSymbol");
 			if (this.clientOptions.workspaceFolder === void 0) this.registerFeature(new WorkspaceFoldersFeature(this), "workspaceFolders");
 		}
+		/**
+		* @internal
+		*/
 		registerProposedFeatures() {
 			this.registerFeatures(ProposedFeatures.createAll(this));
 		}
@@ -123969,9 +125131,9 @@ var init_client = __esmMin((() => {
 				const feature = this._dynamicFeatures.get(registration.method);
 				if (!feature) {
 					this.error(`No feature implementation for "${registration.method}" found. Registration failed.`, void 0, false);
-					return;
+					continue;
 				}
-				const options = defaultValue(registration.registerOptions, {});
+				const options = { ...defaultValue(registration.registerOptions, {}) };
 				options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector;
 				const data = {
 					id: registration.id,
@@ -124038,11 +125200,15 @@ var init_client = __esmMin((() => {
 			this.error(`Request ${type.method} failed.`, error, showNotification);
 			throw error;
 		}
+		/**
+		* @internal
+		*/
 		logFailedRequest(type, error) {
 			if (error instanceof import_main$1.ResponseError && error.code === import_main$1.LSPErrorCodes.RequestCancelled) return;
 			this.error(`Request ${type.method} failed.`, error);
 		}
 		/**
+		* @internal
 		* Return extension name or id.
 		*/
 		getExtensionName() {
@@ -124055,6 +125221,7 @@ var init_client = __esmMin((() => {
 			return this._id;
 		}
 		/**
+		* @internal
 		* Add __extensionName property to provider
 		*/
 		attachExtensionName(provider) {
@@ -124071,15 +125238,15 @@ var init_client = __esmMin((() => {
 //#endregion
 //#region src/language-client/index.ts
 function getRuntimePath(runtime, serverWorkingDirectory) {
-	if (path$5.isAbsolute(runtime)) return runtime;
+	if (path$3.isAbsolute(runtime)) return runtime;
 	const mainRootPath = mainGetRootPath();
 	if (mainRootPath !== void 0) {
-		const result = path$5.join(mainRootPath, runtime);
-		if (fs$5.existsSync(result)) return result;
+		const result = path$3.join(mainRootPath, runtime);
+		if (fs$3.existsSync(result)) return result;
 	}
 	if (serverWorkingDirectory !== void 0) {
-		const result = path$5.join(serverWorkingDirectory, runtime);
-		if (fs$5.existsSync(result)) return result;
+		const result = path$3.join(serverWorkingDirectory, runtime);
+		if (fs$3.existsSync(result)) return result;
 	}
 	return runtime;
 }
@@ -124090,11 +125257,68 @@ function mainGetRootPath() {
 }
 function getServerWorkingDir(options) {
 	let cwd = options && options.cwd;
-	if (cwd && !path$5.isAbsolute(cwd)) cwd = path$5.join(workspace_default.cwd, cwd);
+	if (cwd && !path$3.isAbsolute(cwd)) cwd = path$3.join(workspace_default.cwd, cwd);
 	if (!cwd) cwd = workspace_default.cwd;
 	return new Promise((s) => {
-		fs$5.lstat(cwd, (err, stats) => {
+		fs$3.lstat(cwd, (err, stats) => {
 			s(!err && stats.isDirectory() ? cwd : void 0);
+		});
+	});
+}
+/**
+* Fork a language server module and make sure a failed spawn rejects the
+* returned promise instead of emitting an unhandled `error` event, which
+* would crash the coc.nvim process. A failed spawn (invalid runtime path,
+* missing module, EACCES) reports `pid === undefined` and fires `error`
+* asynchronously, and the stdio streams still exist so `assertStdio` can't
+* detect it.
+*/
+function forkServer(node, args, options) {
+	return new Promise((resolve, reject) => {
+		let sp;
+		try {
+			sp = child_process$1.fork(node.module, args, options);
+		} catch (e) {
+			reject(e);
+			return;
+		}
+		sp.on("error", (err) => {
+			reject(err instanceof Error ? err : new Error(String(err)));
+		});
+		if (sp.pid === void 0) return;
+		resolve(sp);
+	});
+}
+function waitForConnection(serverProcess, transport, timeout) {
+	return new Promise((resolve, reject) => {
+		if (serverProcess.exitCode !== null || serverProcess.signalCode !== null) {
+			transport.dispose();
+			reject(/* @__PURE__ */ new Error("Server process exited before connection established."));
+			return;
+		}
+		let done = false;
+		let timer;
+		const finish = (fn) => {
+			if (done) return;
+			done = true;
+			clearTimeout(timer);
+			serverProcess.off("exit", onExit);
+			fn();
+		};
+		const onExit = (code, signal) => {
+			transport.dispose();
+			finish(() => reject(/* @__PURE__ */ new Error(`Server process exited with code ${code}${signal ? ` and signal ${signal}` : ""} before connection established.`)));
+		};
+		timer = setTimeout(() => {
+			transport.dispose();
+			terminate(serverProcess);
+			finish(() => reject(/* @__PURE__ */ new Error(`Timed out after ${timeout}ms waiting for language server to connect.`)));
+		}, timeout);
+		serverProcess.once("exit", onExit);
+		transport.onConnected().then((protocol) => {
+			finish(() => resolve(protocol));
+		}, (error) => {
+			finish(() => reject(error));
 		});
 	});
 }
@@ -124123,10 +125347,10 @@ function checkProcessDied(childProcess) {
 		} catch (error) {}
 	}, STOP_TIMEOUT);
 }
-var logger$19, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
+var logger$21, debugStartWith, debugEquals, STOP_TIMEOUT, RESTART_TIMEOUT, CONNECT_TIMEOUT, TransportKind, Transport, Executable, NodeModule, StreamInfo, ChildProcessInfo, LanguageClient, SettingMonitor;
 var init_language_client = __esmMin((() => {
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_is();
 	init_node();
@@ -124136,7 +125360,7 @@ var init_language_client = __esmMin((() => {
 	init_client();
 	init_utils();
 	init_client();
-	logger$19 = createLogger$1("language-client-index");
+	logger$21 = createLogger("language-client-index");
 	debugStartWith = [
 		"--debug=",
 		"--debug-brk=",
@@ -124151,6 +125375,7 @@ var init_language_client = __esmMin((() => {
 	];
 	STOP_TIMEOUT = getConditionValue(2e3, 10);
 	RESTART_TIMEOUT = getConditionValue(1e3, 10);
+	CONNECT_TIMEOUT = getConditionValue(3e4, 2e3);
 	TransportKind = /* @__PURE__ */ function(TransportKind) {
 		TransportKind[TransportKind["stdio"] = 0] = "stdio";
 		TransportKind[TransportKind["ipc"] = 1] = "ipc";
@@ -124332,7 +125557,7 @@ var init_language_client = __esmMin((() => {
 					let transport = node.transport || 0;
 					let pipeName;
 					let runtime = node.runtime ? getRuntimePath(node.runtime, serverWorkingDir) : void 0;
-					return new Promise((resolve, _reject) => {
+					return new Promise((resolve, reject) => {
 						let args = node.args && node.args.slice() || [];
 						if (transport === 1) args.push("--node-ipc");
 						else if (transport === 0) args.push("--stdio");
@@ -124347,11 +125572,15 @@ var init_language_client = __esmMin((() => {
 						options.cwd = serverWorkingDir;
 						options.silent = true;
 						if (runtime) options.execPath = runtime;
-						if (transport === 1 || transport === 0) {
-							let sp = child_process$1.fork(node.module, args, options);
-							assertStdio(sp);
+						if (transport === 1 || transport === 0) forkServer(node, args, options).then((sp) => {
+							try {
+								assertStdio(sp);
+							} catch (e) {
+								reject(e);
+								return;
+							}
 							this._serverProcess = sp;
-							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
+							logger$21.info(`Language server "${this.id}" started with ${sp.pid}`);
 							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
 							if (transport === 1) {
 								pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
@@ -124363,32 +125592,64 @@ var init_language_client = __esmMin((() => {
 								reader: new import_main$1.StreamMessageReader(sp.stdout),
 								writer: new import_main$1.StreamMessageWriter(sp.stdin)
 							});
-						} else if (transport === 2) return createClientPipeTransport(pipeName).then((transport) => {
-							let sp = child_process$1.fork(node.module, args, options);
-							assertStdio(sp);
-							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
-							this._serverProcess = sp;
-							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
-							pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
-							transport.onConnected().then((protocol) => {
-								resolve({
-									reader: protocol[0],
-									writer: protocol[1]
+						}, (err) => {
+							this.error(`Starting language server "${this.id}" failed.`, err, false);
+							reject(err);
+						});
+						else if (transport === 2) return createClientPipeTransport(pipeName).then((transport) => {
+							return forkServer(node, args, options).then((sp) => {
+								try {
+									assertStdio(sp);
+								} catch (e) {
+									transport.dispose();
+									reject(e);
+									return;
+								}
+								logger$21.info(`Language server "${this.id}" started with ${sp.pid}`);
+								this._serverProcess = sp;
+								pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
+								pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
+								waitForConnection(sp, transport, CONNECT_TIMEOUT).then((protocol) => {
+									resolve({
+										reader: protocol[0],
+										writer: protocol[1]
+									});
+								}, (err) => {
+									this.error(`Language server "${this.id}" failed to connect.`, err, false);
+									reject(err);
 								});
+							}, (err) => {
+								transport.dispose();
+								this.error(`Starting language server "${this.id}" failed.`, err, false);
+								reject(err);
 							});
 						});
 						else if (Transport.isSocket(transport)) return createClientSocketTransport(transport.port).then((transport) => {
-							let sp = child_process$1.fork(node.module, args, options);
-							assertStdio(sp);
-							this._serverProcess = sp;
-							logger$19.info(`Language server "${this.id}" started with ${sp.pid}`);
-							pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
-							pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
-							transport.onConnected().then((protocol) => {
-								resolve({
-									reader: protocol[0],
-									writer: protocol[1]
+							return forkServer(node, args, options).then((sp) => {
+								try {
+									assertStdio(sp);
+								} catch (e) {
+									transport.dispose();
+									reject(e);
+									return;
+								}
+								this._serverProcess = sp;
+								logger$21.info(`Language server "${this.id}" started with ${sp.pid}`);
+								pipeStderrToLogOutputChannel(sp.stderr, this.outputChannel);
+								pipeStdoutToLogOutputChannel(sp.stdout, this.outputChannel);
+								waitForConnection(sp, transport, CONNECT_TIMEOUT).then((protocol) => {
+									resolve({
+										reader: protocol[0],
+										writer: protocol[1]
+									});
+								}, (err) => {
+									this.error(`Language server "${this.id}" failed to connect.`, err, false);
+									reject(err);
 								});
+							}, (err) => {
+								transport.dispose();
+								this.error(`Starting language server "${this.id}" failed.`, err, false);
+								reject(err);
 							});
 						});
 					});
@@ -124410,7 +125671,7 @@ var init_language_client = __esmMin((() => {
 					const attachProcess = (serverProcess, pipiStdout = true) => {
 						this._serverProcess = serverProcess;
 						this._isDetached = !!options.detached;
-						logger$19.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
+						logger$21.info(`Language server "${this.id}" started with ${serverProcess.pid}`);
 						if (pipiStdout) pipeStdoutToLogOutputChannel(serverProcess.stdout, this.outputChannel);
 						pipeStderrToLogOutputChannel(serverProcess.stderr, this.outputChannel);
 					};
@@ -124434,7 +125695,7 @@ var init_language_client = __esmMin((() => {
 								return handleChildProcessStartError(serverProcess, `Launching server using command ${cmd} failed.`);
 							}
 							attachProcess(serverProcess);
-							return transport.onConnected().then((protocol) => {
+							return waitForConnection(serverProcess, transport, CONNECT_TIMEOUT).then((protocol) => {
 								return {
 									reader: protocol[0],
 									writer: protocol[1]
@@ -124507,7 +125768,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	args = args.map((s) => workspace_default.expand(s));
 	if (module) {
 		module = workspace_default.expand(module);
-		if (!fs$5.existsSync(module)) {
+		if (!fs$3.existsSync(module)) {
 			window_default.showErrorMessage(`Module file "${module}" not found for LS "${name}"`);
 			return null;
 		}
@@ -124526,7 +125787,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	else serverOptions = () => new Promise((resolve, reject) => {
 		let client = new net$2.Socket();
 		let host = config.host ?? "127.0.0.1";
-		logger$18.info(`languageserver "${id}" connecting to ${host}:${port}`);
+		logger$20.info(`languageserver "${id}" connecting to ${host}:${port}`);
 		client.connect(port, host, () => {
 			resolve({
 				reader: client,
@@ -124543,7 +125804,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 		"disableCompletion",
 		"disableDiagnostics"
 	]) if (config[key] === true) {
-		logger$18.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
+		logger$20.warn(`Language server config "${key}" is deprecated, use "disabledFeatures" instead.`);
 		let s = key.slice(7);
 		disabledFeatures.push(s[0].toLowerCase() + s.slice(1));
 	}
@@ -124551,7 +125812,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	let ignoredRootPaths = toArray(config.ignoredRootPaths);
 	let clientOptions = {
 		workspaceFolder: folder == null ? void 0 : {
-			name: path$5.basename(folder.fsPath),
+			name: path$3.basename(folder.fsPath),
 			uri: folder.toString()
 		},
 		rootPatterns: config.rootPatterns,
@@ -124587,7 +125848,7 @@ function isValidServerConfig(key, config) {
 	if (!Array.isArray(config.filetypes) || !config.filetypes.every((s) => typeof s === "string")) errors.push(`"filetypes" field of languageserver ${key} should be array of string`);
 	if (config.additionalSchemes && (!Array.isArray(config.additionalSchemes) || config.additionalSchemes.some((s) => typeof s !== "string"))) errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`);
 	if (errors.length) {
-		logger$18.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
+		logger$20.error(`Invalid language server configuration for ${key}`, errors.join("\n"));
 		return false;
 	}
 	return true;
@@ -124666,12 +125927,12 @@ function getStateName(state) {
 		default: return "unknown";
 	}
 }
-var logger$18, ServiceStat, ServiceManager, services_default;
+var logger$20, ServiceStat, ServiceManager, services_default;
 var init_services$1 = __esmMin((() => {
 	init_esm();
 	init_events();
 	init_language_client();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_node();
@@ -124679,7 +125940,7 @@ var init_services$1 = __esmMin((() => {
 	init_protocol();
 	init_window();
 	init_workspace$1();
-	logger$18 = createLogger$1("services");
+	logger$20 = createLogger("services");
 	ServiceStat = /* @__PURE__ */ function(ServiceStat) {
 		ServiceStat[ServiceStat["Initial"] = 0] = "Initial";
 		ServiceStat[ServiceStat["Starting"] = 1] = "Starting";
@@ -124705,6 +125966,9 @@ var init_services$1 = __esmMin((() => {
 			this.registLanguageClient = this.registerLanguageClient.bind(this);
 			this.regist = this.register.bind(this);
 		}
+		/**
+		* @internal
+		*/
 		init() {
 			workspace_default.onDidOpenTextDocument((document) => {
 				this.start(document);
@@ -124736,7 +126000,7 @@ var init_services$1 = __esmMin((() => {
 			this.registered.set(id, service);
 			this.tryStartService(service);
 			service.onServiceReady(() => {
-				logger$18.info(`service ${id} started`);
+				logger$20.info(`service ${id} started`);
 			}, null, this.disposables);
 			return import_main$1.Disposable.create(() => {
 				if (!this.registered.has(id)) return;
@@ -124744,6 +126008,9 @@ var init_services$1 = __esmMin((() => {
 				this.registered.delete(id);
 			});
 		}
+		/**
+		* @internal
+		*/
 		tryStartService(service) {
 			if (!events_default.ready) {
 				let disposable = events_default.on("ready", () => {
@@ -124763,6 +126030,9 @@ var init_services$1 = __esmMin((() => {
 			for (let doc of workspace_default.documents) if (workspace_default.match(selector, doc.textDocument)) return true;
 			return false;
 		}
+		/**
+		* @internal
+		*/
 		async start(document) {
 			let services = [];
 			for (let service of this.registered.values()) if (service.state == 0 && workspace_default.match(service.selector, document) > 0) services.push(service);
@@ -124774,6 +126044,15 @@ var init_services$1 = __esmMin((() => {
 			let service = this.registered.get(id);
 			if (service) return Promise.resolve(service.stop());
 		}
+		/**
+		* @internal
+		* Best-effort stop of all registered services, used on process exit.
+		* Stops waiting after `timeout` milliseconds.
+		*/
+		stopAll(timeout = 3e3) {
+			let all = Array.from(this.registered.values());
+			return Promise.race([Promise.allSettled(all.map((s) => Promise.resolve(s.stop()))).then(() => void 0), wait(timeout)]);
+		}
 		async toggle(id) {
 			let service = this.registered.get(id);
 			if (!service) throw new Error(`Service ${id} not found`);
@@ -124782,6 +126061,9 @@ var init_services$1 = __esmMin((() => {
 			else if (state == 0 || state == 2) await service.start();
 			else if (state == 5) await service.restart();
 		}
+		/**
+		* @internal
+		*/
 		getServiceStats() {
 			let res = [];
 			for (let [id, service] of this.registered) res.push({
@@ -124805,15 +126087,24 @@ var init_services$1 = __esmMin((() => {
 			if (!service || !service.client) throw new Error(`Language server ${id} not found`);
 			return service.client;
 		}
+		/**
+		* @internal
+		*/
 		async sendNotification(id, method, params) {
 			let client = await this.getLanguageClient(id);
 			await Promise.resolve(client.sendNotification(method, params));
 		}
+		/**
+		* @internal
+		*/
 		async sendRequest(id, method, params, token) {
 			let client = await this.getLanguageClient(id);
 			token = token ?? import_main$1.CancellationToken.None;
 			return await Promise.resolve(client.sendRequest(method, params, token));
 		}
+		/**
+		* @internal
+		*/
 		registerNotification(id, method) {
 			let service = this.getService(id);
 			if (service && service.client) service.client.onNotification(method, async (result) => {
@@ -124872,20 +126163,20 @@ var init_services$1 = __esmMin((() => {
 							service.state = convertState(newState);
 							let oldStr = stateString(oldState);
 							let newStr = stateString(newState);
-							logger$18.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
+							logger$20.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`);
 						}, null, disposables);
 					}
 					try {
 						if (!client.needsStart()) service.state = convertState(client.state);
 						else {
 							service.state = 1;
-							logger$18.debug(`starting service: ${id}`);
+							logger$20.debug(`starting service: ${id}`);
 							await client.start();
 							onDidServiceReady.fire(void 0);
 						}
 					} catch (e) {
 						window_default.showErrorMessage(`Server ${id} failed to start: ${e}`);
-						logger$18.error(`Server ${id} failed to start:`, e);
+						logger$20.error(`Server ${id} failed to start:`, e);
 						service.state = 2;
 					}
 				},
@@ -124900,12 +126191,21 @@ var init_services$1 = __esmMin((() => {
 				restart: async () => {
 					if (client) {
 						service.state = 1;
-						await client.restart();
+						try {
+							await client.restart();
+						} catch (e) {
+							window_default.showErrorMessage(`Server ${id} failed to restart: ${e}`);
+							logger$20.error(`Server ${id} failed to restart:`, e);
+							service.state = 2;
+						}
 					} else await service.start();
 				}
 			};
 			return this.register(service);
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			disposeAll(this.disposables);
 			for (let service of this.registered.values()) service.dispose();
@@ -125207,12 +126507,12 @@ function createConfigurationNode(name, interactive, id) {
 	if (id) node.extensionInfo = { id };
 	return node;
 }
-var logger$17, mouseKeys, winleaveDalay, ListManager, manager_default;
+var logger$19, mouseKeys, winleaveDalay, ListManager, manager_default;
 var init_manager$1 = __esmMin((() => {
 	init_registry();
 	init_events();
 	init_extension();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_constants();
 	init_errors();
@@ -125240,7 +126540,7 @@ var init_manager$1 = __esmMin((() => {
 	init_services();
 	init_sources$1();
 	init_symbols$1();
-	logger$17 = createLogger$1("list-manager");
+	logger$19 = createLogger("list-manager");
 	mouseKeys = [
 		"<LeftMouse>",
 		"<LeftDrag>",
@@ -125249,7 +126549,13 @@ var init_manager$1 = __esmMin((() => {
 	];
 	winleaveDalay = isVim ? 50 : 0;
 	ListManager = class {
+		/**
+		* @internal
+		*/
 		prompt;
+		/**
+		* @internal
+		*/
 		mappings;
 		plugTs = 0;
 		sessionsMap = /* @__PURE__ */ new Map();
@@ -125262,6 +126568,9 @@ var init_manager$1 = __esmMin((() => {
 		get nvim() {
 			return workspace_default.nvim;
 		}
+		/**
+		* @internal
+		*/
 		init(nvim) {
 			this.prompt = new Prompt(nvim);
 			this.mappings = new Mappings(this, nvim);
@@ -125289,6 +126598,9 @@ var init_manager$1 = __esmMin((() => {
 				this.session?.onInputChange();
 			});
 		}
+		/**
+		* @internal
+		*/
 		registerLists() {
 			this.registerList(new LinksList(), true);
 			this.registerList(new LocationList(), true);
@@ -125303,6 +126615,9 @@ var init_manager$1 = __esmMin((() => {
 			this.registerList(new ListsList(this.listMap), true);
 			this.registerList(new FoldList(), true);
 		}
+		/**
+		* @internal
+		*/
 		async start(args) {
 			let res = this.parseArgs(args);
 			if (!res) return;
@@ -125321,7 +126636,7 @@ var init_manager$1 = __esmMin((() => {
 				if (isCancellationError(e)) return;
 				window_default.showErrorMessage(`Error on "CocList ${name}": ${toErrorText(e)}`);
 				this.nvim.redrawVim();
-				logger$17.error(`Error on load ${name} list:`, e);
+				logger$19.error(`Error on load ${name} list:`, e);
 			}
 		}
 		getSessionByWinid(winid) {
@@ -125331,6 +126646,9 @@ var init_manager$1 = __esmMin((() => {
 			}
 			return null;
 		}
+		/**
+		* @internal
+		*/
 		async getCurrentSession() {
 			let { id } = await this.nvim.window;
 			for (let session of this.sessionsMap.values()) if (session && session.winid == id) {
@@ -125339,6 +126657,9 @@ var init_manager$1 = __esmMin((() => {
 			}
 			return null;
 		}
+		/**
+		* @internal
+		*/
 		async resume(name) {
 			if (!name) await this.session?.resume();
 			else {
@@ -125351,37 +126672,59 @@ var init_manager$1 = __esmMin((() => {
 				await session.resume();
 			}
 		}
+		/**
+		* @internal
+		*/
 		async doAction(name) {
 			let lastSession = this.lastSession;
 			if (!lastSession) return;
 			await lastSession.doAction(name);
 		}
+		/**
+		* @internal
+		*/
 		async first(name) {
 			let s = this.getSession(name);
 			if (s) await s.first();
 		}
+		/**
+		* @internal
+		*/
 		async last(name) {
 			let s = this.getSession(name);
 			if (s) await s.last();
 		}
+		/**
+		* @internal
+		*/
 		async previous(name) {
 			let s = this.getSession(name);
 			if (s) await s.previous();
 		}
+		/**
+		* @internal
+		*/
 		async next(name) {
 			let s = this.getSession(name);
 			if (s) await s.next();
 		}
+		/**
+		* @internal
+		*/
 		getSession(name) {
 			if (!name) return this.session;
 			return this.sessionsMap.get(name);
 		}
+		/**
+		* @internal
+		*/
 		async cancel(close = true) {
 			this.prompt.cancel();
 			if (!close) return;
 			if (this.session) await this.session.hide();
 		}
 		/**
+		* @internal
 		* Clear all list sessions
 		*/
 		reset() {
@@ -125391,9 +126734,15 @@ var init_manager$1 = __esmMin((() => {
 			this.sessionsMap.clear();
 			this.nvim.call("coc#prompt#stop_prompt", ["list"], true);
 		}
+		/**
+		* @internal
+		*/
 		async switchMatcher() {
 			await this.session?.switchMatcher();
 		}
+		/**
+		* @internal
+		*/
 		async togglePreview() {
 			let { nvim } = this;
 			if (await nvim.call("coc#list#get_preview", [0]) != -1) {
@@ -125401,10 +126750,16 @@ var init_manager$1 = __esmMin((() => {
 				await nvim.command("redraw");
 			} else await this.doAction("preview");
 		}
+		/**
+		* @internal
+		*/
 		async chooseAction() {
 			let { lastSession } = this;
 			if (lastSession) await lastSession.chooseAction();
 		}
+		/**
+		* @internal
+		*/
 		parseArgs(args) {
 			let options = [];
 			let interactive = false;
@@ -125493,6 +126848,9 @@ var init_manager$1 = __esmMin((() => {
 			if (mode == "insert") await this.onInsertInput(ch, charmod);
 			else await this.onNormalInput(ch, charmod);
 		}
+		/**
+		* @internal
+		*/
 		async onInsertInput(ch, charmod) {
 			let { session } = this;
 			if (mouseKeys.includes(ch)) {
@@ -125513,6 +126871,9 @@ var init_manager$1 = __esmMin((() => {
 				await this.prompt.acceptCharacter(s);
 			}
 		}
+		/**
+		* @internal
+		*/
 		async onNormalInput(ch, _charmod) {
 			if (mouseKeys.includes(ch)) {
 				await this.onMouseEvent(ch);
@@ -125523,6 +126884,9 @@ var init_manager$1 = __esmMin((() => {
 		onMouseEvent(key) {
 			return this.session?.onMouseEvent(key);
 		}
+		/**
+		* @internal
+		*/
 		async feedkeys(key, remap = true) {
 			let { nvim } = this;
 			key = key.startsWith("<") && key.endsWith(">") ? `\\${key}` : key;
@@ -125531,6 +126895,9 @@ var init_manager$1 = __esmMin((() => {
 			this.triggerCursorMoved();
 			this.prompt.start();
 		}
+		/**
+		* @internal
+		*/
 		async command(command) {
 			let { nvim } = this;
 			await nvim.call("coc#prompt#stop_prompt", ["list"]);
@@ -125538,6 +126905,9 @@ var init_manager$1 = __esmMin((() => {
 			this.triggerCursorMoved();
 			this.prompt.start();
 		}
+		/**
+		* @internal
+		*/
 		async normal(command, bang) {
 			let { nvim } = this;
 			await nvim.call("coc#prompt#stop_prompt", ["list"]);
@@ -125545,20 +126915,29 @@ var init_manager$1 = __esmMin((() => {
 			this.triggerCursorMoved();
 			this.prompt.start();
 		}
+		/**
+		* @internal
+		*/
 		triggerCursorMoved() {
 			if (this.nvim.isVim) this.nvim.command("doautocmd <nomodeline> CursorMoved", true);
 			this.nvim.call("coc#util#do_autocmd", ["CocListMoved"], true);
 		}
+		/**
+		* @internal
+		*/
 		async call(fname) {
 			if (this.session) return await this.session.call(fname);
 		}
+		/**
+		* @internal
+		*/
 		get session() {
 			return this.lastSession;
 		}
 		registerList(list, internal = false) {
 			let { name, interactive } = list;
 			let id;
-			if (!internal) id = getConditionValue(parseExtensionName(Error().stack), void 0);
+			if (!internal && true) id = parseExtensionName(Error().stack);
 			let removed = this.deregisterList(name);
 			this.listMap.set(name, list);
 			const configNode = createConfigurationNode(name, interactive, id);
@@ -125580,12 +126959,16 @@ var init_manager$1 = __esmMin((() => {
 		get names() {
 			return Array.from(this.listMap.keys());
 		}
+		/**
+		* @internal
+		*/
 		get descriptions() {
 			let d = {};
 			for (let name of this.listMap.keys()) d[name] = this.listMap.get(name).description;
 			return d;
 		}
 		/**
+		* @internal
 		* Get items of {name} list
 		* @param {string} name
 		* @returns {Promise<any>}
@@ -125623,17 +127006,29 @@ var init_manager$1 = __esmMin((() => {
 				});
 			});
 		}
+		/**
+		* @internal
+		*/
 		toggleMode() {
 			let lastSession = this.lastSession;
 			if (lastSession) lastSession.toggleMode();
 		}
+		/**
+		* @internal
+		*/
 		get isActivated() {
 			return this.session?.winid != null;
 		}
+		/**
+		* @internal
+		*/
 		stop() {
 			let lastSession = this.lastSession;
 			if (lastSession) lastSession.stop();
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			for (let session of this.sessionsMap.values()) session.dispose();
 			this.sessionsMap.clear();
@@ -125648,6 +127043,9 @@ var init_manager$1 = __esmMin((() => {
 var SnippetString;
 var init_string = __esmMin((() => {
 	SnippetString = class SnippetString {
+		/**
+		* @internal
+		*/
 		static isSnippetString(thing) {
 			if (thing instanceof SnippetString) return true;
 			if (!thing) return false;
@@ -126037,6 +127435,8 @@ var require_src = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		SymbolInformation,
 		MarkupContent,
 		ErrorCodes: import_main$1.ErrorCodes,
+		EOL,
+		ExtensionType,
 		CompletionItemTag,
 		integer,
 		uinteger,
@@ -126132,7 +127532,7 @@ function makeRequireFunction(cocExports) {
 function compileInSandbox(sandbox, cocExports) {
 	return function(content, filename) {
 		const require = makeRequireFunction.call(this, cocExports);
-		const dirname = path$5.dirname(filename);
+		const dirname = path$3.dirname(filename);
 		const newContent = content.startsWith("#!") ? content.replace(/^#!.*/, "") : content;
 		const wrapper = Module.wrap(newContent);
 		const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename });
@@ -126192,9 +127592,11 @@ function createSandbox(filename, logger, name, noExport) {
 	sandbox.require = function sandboxRequire(p) {
 		const oldCompile = ModuleProto._compile;
 		ModuleProto._compile = compileInSandbox(sandbox, cocExports);
-		const moduleExports = sandbox.module.require(p);
-		ModuleProto._compile = oldCompile;
-		return moduleExports;
+		try {
+			return sandbox.module.require(p);
+		} finally {
+			ModuleProto._compile = oldCompile;
+		}
 	};
 	sandbox.process = new process.constructor();
 	for (let key of Reflect.ownKeys(process)) {
@@ -126212,15 +127614,22 @@ function createSandbox(filename, logger, name, noExport) {
 	return sandbox;
 }
 function getLogger(useConsole, id) {
-	return useConsole ? consoleLogger : createLogger$1(`extension:${id}`);
+	return useConsole ? consoleLogger : createLogger(`extension:${id}`);
+}
+function clearCachedModules(root) {
+	for (let file of Object.keys(Module._cache)) if (isParentFolder(root, file, true)) delete Module._cache[file];
 }
 function createExtension(id, filename, isEmpty) {
-	if (isEmpty || !fs$5.existsSync(filename)) return {
+	if (isEmpty || !fs$3.existsSync(filename)) return {
 		activate: () => {},
 		deactivate: null
 	};
 	const sandbox = createSandbox(filename, getLogger(!global.__isMain && true, id), id);
-	delete Module._cache[require.resolve(filename)];
+	let root = path$3.dirname(filename);
+	if (fs$3.existsSync(root)) try {
+		root = fs$3.realpathSync(root);
+	} catch (e) {}
+	clearCachedModules(root);
 	const defaultImport = sandbox.require(filename);
 	const activate = defaultImport && defaultImport.activate || defaultImport;
 	if (typeof activate !== "function") return { activate: () => {} };
@@ -126228,8 +127637,9 @@ function createExtension(id, filename, isEmpty) {
 }
 var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
 var init_factory = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_node();
+	init_fs();
 	init_object();
 	consoleLogger = {
 		category: "",
@@ -126273,21 +127683,21 @@ function createTiming(name, timeout) {
 			clearTimeout(timer);
 			if (timeout) {
 				timer = setTimeout(() => {
-					logger$16.error(`${name} timeout after ${timeout}ms`);
+					logger$18.error(`${name} timeout after ${timeout}ms`);
 				}, timeout);
 				timer.unref();
 			}
 		},
 		stop() {
 			clearTimeout(timer);
-			logger$16.trace(`${name}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
+			logger$18.trace(`${name}${_label ? ` ${_label}` : ""} cost:`, Date.now() - start);
 		}
 	};
 }
-var logger$16;
+var logger$18;
 var init_timing = __esmMin((() => {
-	init_logger$2();
-	logger$16 = createLogger$1("timing");
+	init_logger$1();
+	logger$18 = createLogger("timing");
 }));
 //#endregion
 //#region src/extension/stat.ts
@@ -126304,18 +127714,18 @@ function getEntryFile(main) {
 	return main;
 }
 async function loadGlobalJsonAsync(folder, version) {
-	let content = await readFile(path$5.join(folder, "package.json"), "utf8");
+	let content = await readFile(path$3.join(folder, "package.json"), "utf8");
 	let packageJSON = JSON.parse(content);
 	let { engines } = packageJSON;
 	let main = getEntryFile(packageJSON.main);
 	if (!engines || typeof engines.coc !== "string" && typeof engines.vscode !== "string") throw new Error("Invalid engines field");
 	if (Object.keys(engines).includes("coc") && !semver.satisfies(version, engines["coc"].replace(/^\^/, ">="))) throw new Error(`coc.nvim version not match, required ${engines["coc"]}`);
-	if (!engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
+	if (!engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
 	return packageJSON;
 }
 function loadExtensionJson(folder, version, errors) {
-	let jsonFile = path$5.join(folder, "package.json");
-	if (!fs$5.existsSync(jsonFile)) {
+	let jsonFile = path$3.join(folder, "package.json");
+	if (!fs$3.existsSync(jsonFile)) {
 		errors.push(`package.json not found in ${folder}`);
 		return;
 	}
@@ -126324,7 +127734,7 @@ function loadExtensionJson(folder, version, errors) {
 	let main = getEntryFile(packageJSON.main);
 	if (!name) errors.push(`can't find name in package.json`);
 	if (!engines || !objectLiteral(engines)) errors.push(`invalid engines in ${jsonFile}`);
-	if (engines && !engines.vscode && !fs$5.existsSync(path$5.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
+	if (engines && !engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
 	if (engines) {
 		let keys = Object.keys(engines);
 		if (!keys.includes("coc") && !keys.includes("vscode")) errors.push(`Engines in package.json doesn't have coc or vscode`);
@@ -126345,14 +127755,14 @@ function getExtensionName(def) {
 }
 function checkExtensionRoot(root) {
 	try {
-		if (!fs$5.existsSync(root)) fs$5.mkdirSync(root, { recursive: true });
-		if (!fs$5.statSync(root).isDirectory()) {
-			logger$15.info(`Trying to delete ${root}`);
-			fs$5.unlinkSync(root);
-			fs$5.mkdirSync(root, { recursive: true });
+		if (!fs$3.existsSync(root)) fs$3.mkdirSync(root, { recursive: true });
+		if (!fs$3.statSync(root).isDirectory()) {
+			logger$17.info(`Trying to delete ${root}`);
+			fs$3.unlinkSync(root);
+			fs$3.mkdirSync(root, { recursive: true });
 		}
-		let jsonFile = path$5.join(root, "package.json");
-		if (!fs$5.existsSync(jsonFile)) fs$5.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
+		let jsonFile = path$3.join(root, "package.json");
+		if (!fs$3.existsSync(jsonFile)) fs$3.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
 	} catch (e) {
 		console.error(`Unexpected error when check data home ${root}: ${e}`);
 		return false;
@@ -126360,27 +127770,27 @@ function checkExtensionRoot(root) {
 	return true;
 }
 async function getJsFiles(folder) {
-	if (!fs$5.existsSync(folder)) return [];
-	return (await fs$5.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
+	if (!fs$3.existsSync(folder)) return [];
+	return (await fs$3.promises.readdir(folder)).filter((f) => f.endsWith(".js"));
 }
 function loadJson(filepath) {
 	try {
-		let text = fs$5.readFileSync(filepath, "utf8");
+		let text = fs$3.readFileSync(filepath, "utf8");
 		return toObject(JSON.parse(text));
 	} catch (e) {
-		logger$15.error(`Error on parse json file ${filepath}`, e);
+		logger$17.error(`Error on parse json file ${filepath}`, e);
 		return {};
 	}
 }
-var logger$15, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
+var logger$17, ONE_DAY, DISABLE_PROMPT_KEY, ExtensionStat;
 var init_stat = __esmMin((() => {
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_fs();
 	init_is();
 	init_node();
 	init_object();
-	logger$15 = createLogger$1("extension-stat");
+	logger$17 = createLogger("extension-stat");
 	ONE_DAY = 1440 * 60 * 1e3;
 	DISABLE_PROMPT_KEY = "disablePrompt";
 	ExtensionStat = class {
@@ -126394,14 +127804,14 @@ var init_stat = __esmMin((() => {
 			try {
 				this.migrate();
 			} catch (e) {
-				logger$15.error(`Error on update package.json at ${folder}`, e);
+				logger$17.error(`Error on update package.json at ${folder}`, e);
 			}
 		}
 		migrate() {
 			let curr = loadJson(this.jsonFile);
-			let db = path$5.join(this.folder, "db.json");
+			let db = path$3.join(this.folder, "db.json");
 			let changed = false;
-			if (fs$5.existsSync(db)) {
+			if (fs$3.existsSync(db)) {
 				let obj = loadJson(db);
 				let def = obj.extension ?? {};
 				for (let [key, o] of Object.entries(def)) {
@@ -126411,7 +127821,7 @@ var init_stat = __esmMin((() => {
 				curr.disabled = Array.from(this.disabled);
 				curr.locked = Array.from(this.locked);
 				curr.lastUpdate = obj.lastUpdate;
-				fs$5.unlinkSync(db);
+				fs$3.unlinkSync(db);
 				changed = true;
 			} else {
 				this.disabled = new Set(curr.disabled ?? []);
@@ -126441,7 +127851,7 @@ var init_stat = __esmMin((() => {
 			this.localExtensions.set(name, folder);
 		}
 		getFolder(name) {
-			if (this.extensions.has(name)) return path$5.join(this.folder, "node_modules", name);
+			if (this.extensions.has(name)) return path$3.join(this.folder, "node_modules", name);
 			return this.localExtensions.get(name);
 		}
 		getExtensionsStat() {
@@ -126519,7 +127929,7 @@ var init_stat = __esmMin((() => {
 			});
 			let currentUrls = [];
 			let exists = [];
-			for (let [key, val] of Object.entries(dependencies)) if (fs$5.existsSync(path$5.join(this.folder, "node_modules", key, "package.json"))) {
+			for (let [key, val] of Object.entries(dependencies)) if (fs$3.existsSync(path$3.join(this.folder, "node_modules", key, "package.json"))) {
 				exists.push(key);
 				if (typeof val === "string" && /^https?:/.test(val)) currentUrls.push(val);
 			}
@@ -126538,7 +127948,7 @@ var init_stat = __esmMin((() => {
 			writeJson(this.jsonFile, curr);
 		}
 		get jsonFile() {
-			return path$5.join(this.folder, "package.json");
+			return path$3.join(this.folder, "package.json");
 		}
 	};
 }));
@@ -126596,12 +128006,12 @@ function toWorkspaceContainsPatterns(activationEvents) {
 	}
 	return patterns;
 }
-var logger$14, extensionRegistry, memos, configurationRegistry, ExtensionManager;
+var logger$16, ExtensionType, extensionRegistry, memos, configurationRegistry, ExtensionManager;
 var init_manager = __esmMin((() => {
 	init_esm();
 	init_registry();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_memos();
 	init_util$7();
 	init_array();
@@ -126620,10 +128030,17 @@ var init_manager = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_stat();
-	logger$14 = createLogger$1("extensions-manager");
+	logger$16 = createLogger("extensions-manager");
+	ExtensionType = /* @__PURE__ */ function(ExtensionType) {
+		ExtensionType[ExtensionType["Global"] = 0] = "Global";
+		ExtensionType[ExtensionType["Local"] = 1] = "Local";
+		ExtensionType[ExtensionType["SingleFile"] = 2] = "SingleFile";
+		ExtensionType[ExtensionType["Internal"] = 3] = "Internal";
+		return ExtensionType;
+	}({});
 	extensionRegistry = Registry.as(Extensions$3.ExtensionContribution);
-	memos = new Memos(path$5.resolve(dataHome, "memos.json"));
-	memos.merge(path$5.resolve(dataHome, "../memos.json"));
+	memos = new Memos(path$3.resolve(dataHome, "memos.json"));
+	memos.merge(path$3.resolve(dataHome, "../memos.json"));
 	configurationRegistry = Registry.as(Extensions$1.Configuration);
 	ExtensionManager = class {
 		states;
@@ -126635,7 +128052,7 @@ var init_manager = __esmMin((() => {
 		_onDidLoadExtension = new import_main$1.Emitter();
 		_onDidActiveExtension = new import_main$1.Emitter();
 		_onDidUnloadExtension = new import_main$1.Emitter();
-		singleExtensionsRoot = path$5.join(configHome, "coc-extensions");
+		singleExtensionsRoot = path$3.join(configHome, "coc-extensions");
 		modulesFolder;
 		onDidLoadExtension = this._onDidLoadExtension.event;
 		onDidActiveExtension = this._onDidActiveExtension.event;
@@ -126643,7 +128060,7 @@ var init_manager = __esmMin((() => {
 		constructor(states, folder) {
 			this.states = states;
 			this.folder = folder;
-			this.modulesFolder = path$5.join(this.folder, "node_modules");
+			this.modulesFolder = path$3.join(this.folder, "node_modules");
 		}
 		activateExtensions() {
 			this.activated = true;
@@ -126663,7 +128080,7 @@ var init_manager = __esmMin((() => {
 			let folder = this.singleExtensionsRoot;
 			let files = await getJsFiles(folder);
 			await Promise.allSettled(files.map((file) => {
-				return this.loadExtensionFile(path$5.join(folder, file));
+				return this.loadExtensionFile(path$3.join(folder, file));
 			}));
 		}
 		attachEvents() {
@@ -126754,22 +128171,32 @@ var init_manager = __esmMin((() => {
 		* Activate extension, throw error if disabled or doesn't exist.
 		* Returns true if extension successfully activated.
 		*/
-		async activate(id, activating = /* @__PURE__ */ new Set()) {
+		async activate(id) {
+			return this.activateWithSet(id, /* @__PURE__ */ new Set());
+		}
+		async activateWithSet(id, activating) {
 			let item = this.extensions.get(id);
 			if (!item) throw new Error(`Extension ${id} not registered!`);
 			let { extension } = item;
 			if (extension.isActive) return true;
 			if (activating.has(id)) {
-				logger$14.warn(`Circular dependency detected: ${id}`);
+				logger$16.warn(`Circular dependency detected: ${id}`);
 				return false;
 			}
-			activating = /* @__PURE__ */ new Set([...activating, id]);
+			activating.add(id);
 			const { packageJSON } = extension;
 			if (packageJSON.extensionDependencies?.length > 0) {
-				const results = await Promise.allSettled(packageJSON.extensionDependencies.map((dep) => this.activate(dep, activating)));
-				for (const result of results) if (result.status === "rejected" || result.status === "fulfilled" && !result.value) {
-					logger$14.error(`Could not activate dependency for ${id}, activation failed.`);
-					return false;
+				const deps = packageJSON.extensionDependencies;
+				const results = await Promise.allSettled(deps.map((dep) => this.activateWithSet(dep, activating)));
+				for (let i = 0; i < results.length; i++) {
+					const result = results[i];
+					if (result.status === "rejected" || result.status === "fulfilled" && !result.value) {
+						const dep = deps[i];
+						const reason = result.status === "rejected" ? result.reason : void 0;
+						if (reason !== void 0) logger$16.error(`Could not activate dependency ${dep} for ${id}.`, reason);
+						else logger$16.error(`Could not activate dependency ${dep} for ${id}, activation failed.`);
+						return false;
+					}
 				}
 			}
 			await extension.activate();
@@ -126891,22 +128318,22 @@ var init_manager = __esmMin((() => {
 			try {
 				if (await this.checkAutoActivate(extension.packageJSON)) await Promise.resolve(this.activate(id));
 			} catch (e) {
-				logger$14.error(`Error on activate ${id}`, e);
+				logger$16.error(`Error on activate ${id}`, e);
 			}
 		}
 		async loadExtensionFile(filepath, noActive = false) {
 			let stat = await statAsync(filepath);
 			if (!stat || !stat.isFile()) return;
-			let filename = path$5.basename(filepath);
-			let basename = path$5.basename(filepath, ".js");
+			let filename = path$3.basename(filepath);
+			let basename = path$3.basename(filepath, ".js");
 			let name = "single-" + basename;
-			let root = path$5.dirname(filepath);
+			let root = path$3.dirname(filepath);
 			let packageJSON = {
 				name,
 				main: filename,
 				engines: { coc: ">=0.0.82" }
 			};
-			let obj = loadJson$1(path$5.join(root, basename + ".json"));
+			let obj = loadJson$1(path$3.join(root, basename + ".json"));
 			for (const attr of ["activationEvents", "contributes"]) packageJSON[attr] = obj[attr];
 			await this.unloadExtension(name);
 			await this.registerExtension(root, packageJSON, 2, noActive);
@@ -126917,7 +128344,7 @@ var init_manager = __esmMin((() => {
 				let extensionType = stat.isLocal ? 1 : 0;
 				this.registerExtension(stat.root, stat.packageJSON, extensionType);
 			} catch (e) {
-				logger$14.error(`Error on regist extension from ${stat.root}: `, e);
+				logger$16.error(`Error on regist extension from ${stat.root}: `, e);
 			}
 		}
 		async registerExtension(root, packageJSON, extensionType, noActive = false) {
@@ -126925,7 +128352,7 @@ var init_manager = __esmMin((() => {
 			if (this.states.isDisabled(id)) return;
 			let isActive = false;
 			let result;
-			let filename = path$5.join(root, packageJSON.main || "index.js");
+			let filename = path$3.join(root, packageJSON.main || "index.js");
 			let extensionPath = extensionType === 2 ? filename : root;
 			let exports;
 			let ext;
@@ -126944,9 +128371,9 @@ var init_manager = __esmMin((() => {
 								extensionPath,
 								globalState: memos.createMemento(`${id}|global`),
 								workspaceState: memos.createMemento(`${id}|${workspace_default.rootPath}`),
-								asAbsolutePath: (relativePath) => path$5.join(root, relativePath),
-								storagePath: path$5.join(this.folder, `${id}-data`),
-								logger: createLogger$1(`extension:${id}`)
+								asAbsolutePath: (relativePath) => path$3.join(root, relativePath),
+								storagePath: path$3.join(this.folder, `${id}-data`),
+								logger: createLogger(`extension:${id}`)
 							};
 							let res = await Promise.resolve(ext.activate(context));
 							isActive = true;
@@ -126955,7 +128382,7 @@ var init_manager = __esmMin((() => {
 							timing.stop();
 							resolve(res);
 						} catch (e) {
-							logger$14.error(`Error on active extension ${id}:`, e);
+							logger$16.error(`Error on active extension ${id}:`, e);
 							reject(e);
 						}
 					});
@@ -126966,7 +128393,7 @@ var init_manager = __esmMin((() => {
 				extensionPath,
 				extensionUri: URI.parse(extensionPath),
 				get _exports() {
-					return isTester$1 ? ext : void 0;
+					return isTester ? ext : void 0;
 				},
 				get isActive() {
 					return isActive;
@@ -126998,7 +128425,7 @@ var init_manager = __esmMin((() => {
 						await Promise.resolve(ext.deactivate());
 						ext = void 0;
 					} catch (e) {
-						logger$14.error(`Error on ${id} deactivate: `, e);
+						logger$16.error(`Error on ${id} deactivate: `, e);
 					}
 				}
 			});
@@ -127039,7 +128466,7 @@ var init_manager = __esmMin((() => {
 				await this.unloadExtension(id);
 				this.states.removeExtension(id);
 				extensionRegistry.unregistExtension(id);
-				await remove(path$5.join(this.modulesFolder, id));
+				await remove(path$3.join(this.modulesFolder, id));
 			}
 			if (filtered.length > 0) window_default.showWarningMessage(`Global extensions ${filtered.join(", ")} not found`);
 			if (globals.length > 0) window_default.showInformationMessage(`Removed extensions: ${globals.join(" ")}`);
@@ -127054,7 +128481,7 @@ var init_manager = __esmMin((() => {
 			} else {
 				this.states.setDisable(id, false);
 				if (id.startsWith("single-")) {
-					let filepath = path$5.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
+					let filepath = path$3.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
 					await this.loadExtensionFile(filepath);
 				} else {
 					let folder = this.states.getFolder(id);
@@ -127089,7 +128516,7 @@ var init_manager = __esmMin((() => {
 		async load(filepath, active) {
 			let name;
 			if (isDirectory(filepath)) {
-				name = loadJson$1(path$5.join(filepath, "package.json")).name;
+				name = loadJson$1(path$3.join(filepath, "package.json")).name;
 				await this.loadExtension(filepath, true);
 			} else name = await this.loadExtensionFile(filepath, true);
 			if (!name) throw new Error(`Unable to load extension at ${filepath}`);
@@ -127327,11 +128754,11 @@ var init_ui = __esmMin((() => {
 function toUrl(val) {
 	return isUrl(val) ? val.replace(/\.git(#master|#main)?$/, "") : "";
 }
-var logger$13, EXTENSIONS_FOLDER, Extensions, extension_default;
+var logger$15, EXTENSIONS_FOLDER, Extensions, extension_default;
 var init_extension = __esmMin((() => {
 	init_commands$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_constants();
@@ -127345,12 +128772,21 @@ var init_extension = __esmMin((() => {
 	init_manager();
 	init_stat();
 	init_ui();
-	logger$13 = createLogger$1("extensions-index");
-	EXTENSIONS_FOLDER = path$5.join(dataHome, "extensions");
+	logger$15 = createLogger("extensions-index");
+	EXTENSIONS_FOLDER = path$3.join(dataHome, "extensions");
 	Extensions = class {
+		/**
+		* @internal
+		*/
 		manager;
+		/**
+		* @internal
+		*/
 		states;
-		modulesFolder = path$5.join(EXTENSIONS_FOLDER, "node_modules");
+		/**
+		* @internal
+		*/
+		modulesFolder = path$3.join(EXTENSIONS_FOLDER, "node_modules");
 		globalPromise;
 		constructor() {
 			checkExtensionRoot(EXTENSIONS_FOLDER);
@@ -127360,7 +128796,7 @@ var init_extension = __esmMin((() => {
 				id: "extensions.forceUpdateAll",
 				execute: async () => {
 					let arr = await this.manager.cleanExtensions();
-					logger$13.info(`Force update extensions: ${arr}`);
+					logger$15.info(`Force update extensions: ${arr}`);
 					await this.installExtensions(arr);
 				}
 			}, false, "remove all global extensions and install them");
@@ -127388,6 +128824,9 @@ var init_extension = __esmMin((() => {
 				});
 			});
 		}
+		/**
+		* @internal
+		*/
 		async checkRecommendation(workspaceFolder) {
 			if (!workspaceFolder) return;
 			const unInstalled = toArray(workspace_default.getConfiguration("extensions", workspaceFolder).inspect("recommendations").workspaceFolderValue).filter((name) => !this.states.hasExtension(name));
@@ -127406,6 +128845,9 @@ var init_extension = __esmMin((() => {
 			if (item.index === 1) await this.installExtensions(unInstalled);
 			else this.manager.states.addNoPromptFolder(uri);
 		}
+		/**
+		* @internal
+		*/
 		getUpdateSettings() {
 			let config = workspace_default.getConfiguration(null, null);
 			let extensionsConfig = toObject(config.inspect("extensions").globalValue);
@@ -127415,6 +128857,9 @@ var init_extension = __esmMin((() => {
 				silentAutoupdate: extensionsConfig.silentAutoupdate ?? config.get("coc.preferences.silentAutoupdate", true)
 			};
 		}
+		/**
+		* @internal
+		*/
 		async init(runtimepath) {
 			if (process.env.COC_NO_PLUGINS == "1") return;
 			let stats = await this.globalPromise;
@@ -127423,10 +128868,13 @@ var init_extension = __esmMin((() => {
 			this.manager.registerExtensions(localStats);
 			this.manager.loadFileExtensions();
 		}
+		/**
+		* @internal
+		*/
 		async activateExtensions() {
 			await this.manager.activateExtensions();
 			if (process.env.COC_NO_PLUGINS == "1") {
-				logger$13.warn("Extensions disabled by env COC_NO_PLUGINS");
+				logger$15.warn("Extensions disabled by env COC_NO_PLUGINS");
 				return;
 			}
 			let names = this.states.filterGlobalExtensions(workspace_default.env.globalExtensions);
@@ -127457,9 +128905,15 @@ var init_extension = __esmMin((() => {
 		get all() {
 			return this.manager.all;
 		}
+		/**
+		* @internal
+		*/
 		has(id) {
 			return this.manager.has(id);
 		}
+		/**
+		* @internal
+		*/
 		getExtension(id) {
 			return this.manager.getExtension(id);
 		}
@@ -127468,12 +128922,14 @@ var init_extension = __esmMin((() => {
 			return item ? item.extension : void 0;
 		}
 		/**
+		* @internal
 		* @deprecated Used by old version coc-json.
 		*/
 		get schemes() {
 			return {};
 		}
 		/**
+		* @internal
 		* @deprecated Used by old version coc-json.
 		*/
 		addSchemeProperty(key, def) {}
@@ -127487,9 +128943,15 @@ var init_extension = __esmMin((() => {
 			let item = this.manager.getExtension(id);
 			return item != null && item.extension.isActive;
 		}
+		/**
+		* @internal
+		*/
 		async call(id, method, args) {
 			return await this.manager.call(id, method, args);
 		}
+		/**
+		* @internal
+		*/
 		get npm() {
 			let npm = workspace_default.initialConfiguration.get("npm.binPath");
 			npm = workspace_default.expand(npm);
@@ -127503,10 +128965,14 @@ var init_extension = __esmMin((() => {
 				updateUIInTab
 			});
 		}
+		/**
+		* @internal
+		*/
 		createInstaller(npm, def) {
 			return new Installer(this.modulesFolder, npm, def);
 		}
 		/**
+		* @internal
 		* Install extensions, can be called without initialize.
 		*/
 		async installExtensions(list) {
@@ -127531,12 +128997,13 @@ var init_extension = __esmMin((() => {
 					installBuffer.addMessage(key, err.message);
 					installBuffer.finishProgress(key, false);
 					window_default.showErrorMessage(`Error on install ${key}: ${err}`);
-					logger$13.error(`Error on install ${key}`, err);
+					logger$15.error(`Error on install ${key}`, err);
 				}
 			};
 			await concurrent(list, fn);
 		}
 		/**
+		* @internal
 		* Update global extensions
 		*/
 		async updateExtensions(silent = false, updateUIInTab = false) {
@@ -127570,7 +129037,7 @@ var init_extension = __esmMin((() => {
 					installBuffer.addMessage(id, err.message);
 					installBuffer.finishProgress(id, false);
 					window_default.showErrorMessage(`Error on update ${id}: ${err}`);
-					logger$13.error(`Error on update ${id}`, err);
+					logger$15.error(`Error on update ${id}`, err);
 				}
 			};
 			await concurrent(stats, fn, silent ? 1 : 3);
@@ -127584,30 +129051,34 @@ var init_extension = __esmMin((() => {
 			let globalStats = this.globalExtensionStats();
 			return localStats.concat(globalStats);
 		}
+		/**
+		* @internal
+		*/
 		async globalExtensions() {
 			if (process.env.COC_NO_PLUGINS == "1") return [];
-			let res = [];
-			for (let key of this.states.activated()) {
-				let root = path$5.join(this.modulesFolder, key);
+			return (await Promise.all(Array.from(this.states.activated(), async (key) => {
+				let root = path$3.join(this.modulesFolder, key);
 				try {
-					let json = await loadGlobalJsonAsync(root, VERSION);
-					res.push({
+					return {
 						root,
 						isLocal: false,
-						packageJSON: json
-					});
+						packageJSON: await loadGlobalJsonAsync(root, VERSION)
+					};
 				} catch (err) {
-					logger$13.error(`Error on load package.json of ${key}`, err);
+					logger$15.error(`Error on load package.json of ${key}`, err);
+					return;
 				}
-			}
-			return res;
+			}))).filter((o) => o !== void 0);
 		}
+		/**
+		* @internal
+		*/
 		globalExtensionStats() {
 			let dependencies = this.states.dependencies;
 			let lockedExtensions = this.states.lockedExtensions;
 			let infos = [];
 			Object.entries(dependencies).map(([key, val]) => {
-				let root = path$5.join(this.modulesFolder, key);
+				let root = path$3.join(this.modulesFolder, key);
 				let errors = [];
 				let obj = loadExtensionJson(root, VERSION, errors);
 				if (errors.length > 0) {
@@ -127628,9 +129099,12 @@ var init_extension = __esmMin((() => {
 					packageJSON: obj
 				});
 			});
-			logger$13.debug("globalExtensionStats:", infos.length);
+			logger$15.debug("globalExtensionStats:", infos.length);
 			return infos;
 		}
+		/**
+		* @internal
+		*/
 		runtimeExtensionStats(runtimepaths) {
 			let lockedExtensions = this.states.lockedExtensions;
 			let infos = [];
@@ -127659,23 +129133,27 @@ var init_extension = __esmMin((() => {
 			return infos;
 		}
 		/**
+		* @internal
 		* Remove unnecessary folders in node_modules
 		*/
 		cleanModulesFolder() {
 			let folders = this.states.globalIds.map((s) => s.replace(/\/.*$/, ""));
-			if (!fs$5.existsSync(this.modulesFolder)) return;
-			let files = fs$5.readdirSync(this.modulesFolder);
+			if (!fs$3.existsSync(this.modulesFolder)) return;
+			let files = fs$3.readdirSync(this.modulesFolder);
 			for (let file of files) {
 				if (folders.includes(file)) continue;
-				let p = path$5.join(this.modulesFolder, file);
-				let stat = fs$5.lstatSync(p);
-				if (stat.isSymbolicLink()) fs$5.unlinkSync(p);
-				else if (stat.isDirectory()) fs$5.rmSync(p, {
+				let p = path$3.join(this.modulesFolder, file);
+				let stat = fs$3.lstatSync(p);
+				if (stat.isSymbolicLink()) fs$3.unlinkSync(p);
+				else if (stat.isDirectory()) fs$3.rmSync(p, {
 					recursive: true,
 					force: true
 				});
 			}
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			this.manager.dispose();
 		}
@@ -128177,7 +129655,7 @@ function getLastPart(text) {
 	return text.slice(begin);
 }
 async function getFileItem(root, filename) {
-	let stat = await statAsync(path$5.join(root, filename));
+	let stat = await statAsync(path$3.join(root, filename));
 	if (stat) {
 		let dir = stat.isDirectory();
 		return {
@@ -128196,15 +129674,15 @@ function filterFiles(files, ignoreHidden, ignorePatterns = []) {
 	});
 }
 function getDirectory(pathstr, root) {
-	let part = /[\\/]$/.test(pathstr) ? pathstr : path$5.dirname(pathstr);
-	return path$5.isAbsolute(pathstr) ? part : path$5.join(root, part);
+	let part = /[\\/]$/.test(pathstr) ? pathstr : path$3.dirname(pathstr);
+	return path$3.isAbsolute(pathstr) ? part : path$3.join(root, part);
 }
 async function getItemsFromRoot(pathstr, root, ignoreHidden, ignorePatterns) {
 	let res = [];
 	let dir = getDirectory(pathstr, root);
 	let stat = await statAsync(dir);
 	if (stat && stat.isDirectory()) {
-		let files = await fs$5.promises.readdir(dir);
+		let files = await fs$3.promises.readdir(dir);
 		files = filterFiles(files, ignoreHidden, ignorePatterns);
 		let items = await Promise.all(files.map((filename) => getFileItem(dir, filename)));
 		res = res.concat(items);
@@ -128281,15 +129759,15 @@ var init_file = __esmMin((() => {
 		}
 		async getRoot(pathstr, part, filepath, cwd) {
 			let root;
-			let dirname = filepath ? path$5.dirname(filepath) : "";
+			let dirname = filepath ? path$3.dirname(filepath) : "";
 			if (pathstr.startsWith(".")) root = filepath ? dirname : cwd;
-			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$5.win32.dirname(pathstr);
-			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$5.posix.dirname(pathstr);
+			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$3.win32.dirname(pathstr);
+			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$3.posix.dirname(pathstr);
 			else if (part) {
-				let exists = await fs$5.promises.access(path$5.join(dirname, part)).then(() => true, () => false);
+				let exists = await fs$3.promises.access(path$3.join(dirname, part)).then(() => true, () => false);
 				if (exists) root = dirname;
 				else {
-					exists = await fs$5.promises.access(path$5.join(cwd, part)).then(() => true, () => false);
+					exists = await fs$3.promises.access(path$3.join(cwd, part)).then(() => true, () => false);
 					if (exists) root = cwd;
 				}
 			} else root = cwd;
@@ -128302,14 +129780,14 @@ var init_file = __esmMin((() => {
 			if (!option || option.startcol < opt.col) return null;
 			let { pathstr, part, startcol } = option;
 			let startPart = opt.col == startcol ? "" : byteSlice(opt.line, opt.col, startcol);
-			let ext = path$5.extname(path$5.basename(filepath));
+			let ext = path$3.extname(path$3.basename(filepath));
 			let cwd = await this.nvim.call("getcwd", []);
 			let root = await this.getRoot(pathstr, part, filepath, cwd);
 			if (!root || token.isCancellationRequested) return null;
 			let items = await getItemsFromRoot(pathstr, root, this.getConfig("ignoreHidden", true), this.getConfig("ignorePatterns", []));
 			let trimExt = this.shouldTrim(ext);
 			return { items: items.map((item) => {
-				let ex = path$5.extname(item.word);
+				let ex = path$3.extname(item.word);
 				item.word = trimExt && ex === ext ? item.word.replace(ext, "") : item.word;
 				return {
 					word: `${startPart}${item.word}`,
@@ -128323,18 +129801,18 @@ var init_file = __esmMin((() => {
 //#endregion
 //#region src/completion/sources.ts
 function logError(err) {
-	logger$12.error("Error on source create", err);
+	logger$14.error("Error on source create", err);
 }
 function getSourceType(sourceType) {
 	if (sourceType === 0) return "native";
 	if (sourceType === 1) return "remote";
 	return "service";
 }
-var logger$12, Sources, sources_default;
+var logger$14, Sources, sources_default;
 var init_sources = __esmMin((() => {
 	init_events();
 	init_extension();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_fs();
@@ -128349,12 +129827,18 @@ var init_sources = __esmMin((() => {
 	init_source_language();
 	init_source_vim();
 	init_util$3();
-	logger$12 = createLogger$1("sources");
+	logger$14 = createLogger("sources");
 	Sources = class {
 		sourceMap = /* @__PURE__ */ new Map();
 		disposables = [];
 		remoteSourcePaths = [];
+		/**
+		* @internal
+		*/
 		keywords;
+		/**
+		* @internal
+		*/
 		init() {
 			this.keywords = workspace_default.registerBufferSync((doc) => {
 				return new KeywordsBuffer(doc, workspace_default.getConfiguration("suggest", doc).get("segmenterLocales"));
@@ -128373,6 +129857,9 @@ var init_sources = __esmMin((() => {
 		get nvim() {
 			return workspace_default.nvim;
 		}
+		/**
+		* @internal
+		*/
 		getKeywordsBuffer(bufnr) {
 			return this.keywords.getItem(bufnr);
 		}
@@ -128390,19 +129877,25 @@ var init_sources = __esmMin((() => {
 				})
 			]);
 		}
+		/**
+		* @internal
+		*/
 		createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters) {
 			let source = new LanguageSource(name, shortcut, provider, selector, toArray(triggerCharacters), toArray(allCommitCharacters), priority);
-			logger$12.trace("created service source", name);
+			logger$14.trace("created service source", name);
 			this.sourceMap.set(name, source);
 			return { dispose: () => {
 				this.sourceMap.delete(name);
 			} };
 		}
+		/**
+		* @internal
+		*/
 		async createVimSourceExtension(filepath) {
 			let { nvim } = this;
 			try {
-				let name = path$5.basename(filepath, ".vim");
-				await nvim.command(`source ${filepath.split(path$5.sep).join(path$5.posix.sep)}`);
+				let name = path$3.basename(filepath, ".vim");
+				await nvim.command(`source ${filepath.split(path$3.sep).join(path$3.posix.sep)}`);
 				let fns = await nvim.call("coc#_remote_fns", name);
 				let lowercased = fns.map((fn) => fn[0].toLowerCase() + fn.slice(1));
 				for (let fn of ["init", "complete"]) if (!lowercased.includes(fn)) throw new Error(`function "coc#source#${name}#${fn}" not found`);
@@ -128477,20 +129970,23 @@ var init_sources = __esmMin((() => {
 					if (lines.length > 0 && lines[0].startsWith("vim9script")) return;
 				}
 				window_default.showErrorMessage(`Error on create vim source from ${filepath}: ${e}`);
-				logger$12.error(`Error on create vim source from ${filepath}`, e);
+				logger$14.error(`Error on create vim source from ${filepath}`, e);
 			}
 		}
 		createRemoteSources() {
 			let paths = workspace_default.env.runtimepath.split(",");
 			for (let path of paths) this.createVimSources(path).catch(logError);
 		}
+		/**
+		* @internal
+		*/
 		async createVimSources(pluginPath) {
 			if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return;
 			this.remoteSourcePaths.push(pluginPath);
-			let folder = path$5.join(pluginPath, "autoload/coc/source");
+			let folder = path$3.join(pluginPath, "autoload/coc/source");
 			let stat = await statAsync(folder);
 			if (stat && stat.isDirectory()) {
-				let files = (await fs$5.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$5.join(folder, s));
+				let files = (await fs$3.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$3.join(folder, s));
 				await Promise.allSettled(files.map((p) => this.createVimSourceExtension(p)));
 			}
 		}
@@ -128506,11 +130002,17 @@ var init_sources = __esmMin((() => {
 		getSource(name) {
 			return this.sourceMap.get(name) ?? null;
 		}
+		/**
+		* @internal
+		*/
 		shouldCommit(source, item, commitCharacter) {
 			if (!item || source == null || commitCharacter.length === 0) return false;
 			if (func(source.shouldCommit)) return source.shouldCommit(item, commitCharacter);
 			return false;
 		}
+		/**
+		* @internal
+		*/
 		getSources(opt) {
 			let { source } = opt;
 			if (source) return toArray(this.getSource(source));
@@ -128518,6 +130020,7 @@ var init_sources = __esmMin((() => {
 			return this.getNormalSources(opt.filetype, uri);
 		}
 		/**
+		* @internal
 		* Get sources should be used without trigger.
 		* @param {string} filetype
 		* @returns {ISource[]}
@@ -128540,9 +130043,15 @@ var init_sources = __esmMin((() => {
 			if (!isFalsyOrEmpty(triggerPatterns) && triggerPatterns.findIndex((p) => p.test(pre)) !== -1) return true;
 			return false;
 		}
+		/**
+		* @internal
+		*/
 		shouldTrigger(pre, filetype, uri) {
 			return this.getTriggerSources(pre, filetype, uri).length > 0;
 		}
+		/**
+		* @internal
+		*/
 		getTriggerSources(pre, filetype, uri, disabled = []) {
 			if (!pre) return [];
 			let character = pre[pre.length - 1];
@@ -128560,7 +130069,7 @@ var init_sources = __esmMin((() => {
 		}
 		addSource(source) {
 			let { name } = source;
-			if (this.names.includes(name)) logger$12.warn(`Recreate source ${name}`);
+			if (this.names.includes(name)) logger$14.warn(`Recreate source ${name}`);
 			this.sourceMap.set(name, source);
 			return import_main$1.Disposable.create(() => {
 				this.removeSource(source);
@@ -128605,12 +130114,15 @@ var init_sources = __esmMin((() => {
 		}
 		createSource(config) {
 			if (typeof config.name !== "string" || typeof config.doComplete !== "function") {
-				logger$12.error(`Bad config for createSource:`, config);
+				logger$14.error(`Bad config for createSource:`, config);
 				throw new TypeError(`name and doComplete required for createSource`);
 			}
 			let source = new Source(Object.assign({ sourceType: 2 }, config));
 			return this.addSource(source);
 		}
+		/**
+		* @internal
+		*/
 		dispose() {
 			disposeAll(this.disposables);
 		}
@@ -128619,13 +130131,13 @@ var init_sources = __esmMin((() => {
 }));
 //#endregion
 //#region src/completion/index.ts
-var logger$11, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
+var logger$13, TRIGGER_TIMEOUT, CURSORMOVE_DEBOUNCE, Completion, completion_default;
 var init_completion = __esmMin((() => {
 	init_main$2();
 	init_esm();
 	init_commands$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -128641,7 +130153,7 @@ var init_completion = __esmMin((() => {
 	init_pum();
 	init_sources();
 	init_util$3();
-	logger$11 = createLogger$1("completion");
+	logger$13 = createLogger("completion");
 	TRIGGER_TIMEOUT = getConditionValue(200, 20);
 	CURSORMOVE_DEBOUNCE = getConditionValue(20, 20);
 	Completion = class {
@@ -128779,6 +130291,7 @@ var init_completion = __esmMin((() => {
 				invalidInsertCharacters: toArray(suggest.invalidInsertCharacters),
 				formatItems: suggest.formatItems,
 				filterOnBackspace: suggest.filterOnBackspace,
+				pumAlign: suggest.pumAlign,
 				floatConfig: toObject(suggest.floatConfig),
 				pumFloatConfig: suggest.pumFloatConfig,
 				labelMaxLength: suggest.labelMaxLength,
@@ -128807,7 +130320,7 @@ var init_completion = __esmMin((() => {
 			this._debounced.clear();
 			let doc = workspace_default.getAttachedDocument(option.bufnr);
 			option.filetype = doc.filetype;
-			logger$11.debug("trigger completion with", option);
+			logger$13.debug("trigger completion with", option);
 			this.cancelAndClose();
 			sourceList = sourceList ?? sources_default.getSources(option);
 			if (isFalsyOrEmpty(sourceList)) return;
@@ -128881,7 +130394,7 @@ var init_completion = __esmMin((() => {
 				let resolvedItem = this.selectedItem;
 				let result = this.complete.resolveItem(resolvedItem);
 				if (result && sources_default.shouldCommit(result.source, result.item, last)) {
-					logger$11.debug(`commit by commit character: ${last}`);
+					logger$13.debug(`commit by commit character: ${last}`);
 					let startcol = byteIndex(this.option.line, resolvedItem.character) + 1;
 					let delta = deltaCount(info);
 					await this.nvim.call("coc#pum#replace", [
@@ -128930,7 +130443,7 @@ var init_completion = __esmMin((() => {
 			if (!sources && !this.shouldTrigger(doc, pre)) return false;
 			const option = this.getCompleteOption(doc, info);
 			if (sources == null && option.input.length < minTriggerInputLength) {
-				logger$11.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
+				logger$13.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`);
 				return false;
 			}
 			if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false;
@@ -129248,11 +130761,11 @@ function surroundChanges(changes, len) {
 	if (changes[1].offset + (changes[1].remove ? changes[1].remove.length : 0) !== len) return false;
 	return true;
 }
-var logger$10, CursorSession;
+var logger$12, CursorSession;
 var init_session = __esmMin((() => {
 	init_main();
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_node();
 	init_position();
@@ -129262,7 +130775,7 @@ var init_session = __esmMin((() => {
 	init_workspace$1();
 	init_textRange();
 	init_util$2();
-	logger$10 = createLogger$1("cursors-session");
+	logger$12 = createLogger("cursors-session");
 	CursorSession = class {
 		nvim;
 		doc;
@@ -129362,7 +130875,7 @@ var init_session = __esmMin((() => {
 			});
 			if (emptyRange(range) && affected.length > 0) affected = affected.slice(0, 1);
 			if (affected.length == 0) {
-				logger$10.debug("no affected ranges");
+				logger$12.debug("no affected ranges");
 				this.ranges.forEach((r) => {
 					r.adjustFromEdit({
 						range,
@@ -129371,7 +130884,7 @@ var init_session = __esmMin((() => {
 				});
 				this.doHighlights();
 			} else if (affected.length == 1 && rangeInRange(range, affected[0].range)) {
-				logger$10.debug("affected single range");
+				logger$12.debug("affected single range");
 				if (text.includes("\n")) {
 					this.cancel();
 					return;
@@ -129381,7 +130894,7 @@ var init_session = __esmMin((() => {
 					newText: text
 				});
 			} else if (!text.length || !this.validChange(range, text)) {
-				logger$10.debug("filter affected ranges.");
+				logger$12.debug("filter affected ranges.");
 				let ranges = this.ranges.filter((r) => !affected.includes(r));
 				if (ranges.length > 0) {
 					this.ranges = ranges;
@@ -129394,7 +130907,7 @@ var init_session = __esmMin((() => {
 					this.doHighlights();
 				} else this.cancel();
 			} else {
-				logger$10.debug("Check undo & redo");
+				logger$12.debug("Check undo & redo");
 				let first = this.ranges[0];
 				let last = this.ranges[this.ranges.length - 1];
 				let originalLines = e.originalLines.slice(first.line, last.line + 1);
@@ -129441,7 +130954,7 @@ var init_session = __esmMin((() => {
 		*/
 		cancel() {
 			if (!this.activated) return;
-			logger$10.debug("cursors cancel");
+			logger$12.debug("cursors cancel");
 			let buffer = this.doc.buffer;
 			this.activated = false;
 			this.ranges = [];
@@ -129777,7 +131290,7 @@ var init_LocationsDataProvider = __esmMin((() => {
 		}
 		getTreeItem(element) {
 			let item = new TreeItem(element.name, element.children ? 2 : 1);
-			if (this.config.enableTooltip) item.tooltip = path$5.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
+			if (this.config.enableTooltip) item.tooltip = path$3.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
 			if (typeof element.detail === "string" && element.detail.length > 0 && element.name !== element.detail) item.description = element.detail;
 			item.deprecated = element.tags?.includes(SymbolTag.Deprecated);
 			item.icon = this.getIcon(element.kind);
@@ -129988,20 +131501,29 @@ function shouldAutoApply(only) {
 function isQuickfix(codeAction) {
 	return codeAction.kind && codeAction.kind.startsWith("quickfix");
 }
-var logger$9, CodeActions;
+/**
+* Get display text for a code action, append command tooltip when available.
+*/
+function toCodeActionText(action) {
+	let text = action.title;
+	let tooltip = action.command?.tooltip;
+	if (tooltip) text = `${text} - ${tooltip}`;
+	return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+}
+var logger$11, CodeActions;
 var init_codeActions = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_manager$4();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_numbers();
 	init_protocol();
 	init_timing();
 	init_window();
 	init_workspace$1();
-	logger$9 = createLogger$1("handler-codeActions");
+	logger$11 = createLogger("handler-codeActions");
 	CodeActions = class {
 		nvim;
 		handler;
@@ -130022,14 +131544,14 @@ var init_codeActions = __esmMin((() => {
 			for (const kind of actionKinds) {
 				let codeAction = (await this.getCodeActions(doc, range, [kind])).find((o) => !o.disabled);
 				if (codeAction) {
-					logger$9.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`);
+					logger$11.info(`Apply code action "${kind}" to buffer ${doc.bufnr}`);
 					timing.start(`"${kind}"`);
 					let tokenSource = new import_main$1.CancellationTokenSource();
 					let timer;
 					let _resolve;
 					const tp = new Promise((c) => {
 						timer = setTimeout(() => {
-							logger$9.warn(`Apply code action "${kind}" timeout after ${timeout}ms`);
+							logger$11.warn(`Apply code action "${kind}" timeout after ${timeout}ms`);
 							tokenSource.cancel();
 							c(void 0);
 						}, timeout);
@@ -130057,7 +131579,7 @@ var init_codeActions = __esmMin((() => {
 				window_default.showWarningMessage(`No${only ? " " + only : ""} code action available`);
 				return;
 			}
-			let idx = await window_default.showMenuPicker(codeActions.map((o) => o.title), "Choose action");
+			let idx = await window_default.showMenuPicker(codeActions.map(toCodeActionText), "Choose action");
 			let action = codeActions[idx];
 			if (action) await this.applyCodeAction(action);
 		}
@@ -130118,10 +131640,10 @@ var init_codeActions = __esmMin((() => {
 			}
 			let idx = this.floatActions ? await window_default.showMenuPicker(codeActions.map((o) => {
 				return {
-					text: o.title,
+					text: toCodeActionText(o),
 					disabled: o.disabled
 				};
-			}), "Choose action") : await window_default.requestInputList("Choose action by number", codeActions.map((o) => o.title));
+			}), "Choose action") : await window_default.requestInputList("Choose action by number", codeActions.map(toCodeActionText));
 			let action = codeActions[idx];
 			if (action) await this.applyCodeAction(action);
 		}
@@ -130175,11 +131697,21 @@ function getCommands(line, codeLenses) {
 	}
 	return commands;
 }
+/**
+* Get display text for a command, append tooltip when available.
+*
+* @since 3.18.0
+*/
+function getCommandText(command) {
+	let text = command.title;
+	if (command.tooltip) text = `${text} - ${command.tooltip}`;
+	return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+}
 var srcId$2, debounceTime$5, CODELENS_HL, NORMAL_HL, CodeLensBuffer;
 var init_buffer$4 = __esmMin((() => {
 	init_commands$2();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_errors();
@@ -130188,7 +131720,7 @@ var init_buffer$4 = __esmMin((() => {
 	init_protocol();
 	init_window();
 	init_workspace$1();
-	createLogger$1("codelens-buffer");
+	createLogger("codelens-buffer");
 	debounceTime$5 = getConditionValue(200, 20);
 	CODELENS_HL = "CocCodeLens";
 	NORMAL_HL = "Normal";
@@ -130364,7 +131896,7 @@ var init_buffer$4 = __esmMin((() => {
 			let commands = getCommands(line, this.codeLenses?.codeLenses);
 			if (commands.length == 1) await commands_default.execute(commands[0]);
 			else if (commands.length > 1) {
-				let res = await window_default.showMenuPicker(commands.map((c) => c.title));
+				let res = await window_default.showMenuPicker(commands.map(getCommandText));
 				if (res != -1) await commands_default.execute(commands[res]);
 			}
 		}
@@ -130871,19 +132403,19 @@ var init_fold = __esmMin((() => {
 }));
 //#endregion
 //#region src/handler/format.ts
-var logger$8, FormatHandler;
+var logger$10, FormatHandler;
 var init_format = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_array();
 	init_util$7();
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$8 = createLogger$1("handler-format");
+	logger$10 = createLogger("handler-format");
 	FormatHandler = class {
 		nvim;
 		handler;
@@ -130936,7 +132468,7 @@ var init_format = __esmMin((() => {
 			if (!ch || isAlphabet(ch.charCodeAt(0))) return false;
 			if (!this.shouldFormatOnType(doc.filetype)) return false;
 			if (!languages_default.hasProvider("formatOnType", doc.textDocument)) {
-				logger$8.warn(`Format on type provider not found for buffer: ${doc.uri}`);
+				logger$10.warn(`Format on type provider not found for buffer: ${doc.uri}`);
 				return false;
 			}
 			if (!languages_default.canFormatOnType(ch, doc.textDocument)) return false;
@@ -131017,7 +132549,7 @@ var init_format = __esmMin((() => {
 		logProvider(bufnr, edits) {
 			if (!Array.isArray(edits) || edits.length === 0) return;
 			let extensionName = edits["__extensionName"];
-			if (extensionName) logger$8.info(`Format buffer ${bufnr} by ${extensionName}`);
+			if (extensionName) logger$10.info(`Format buffer ${bufnr} by ${extensionName}`);
 		}
 		async documentRangeFormat(doc, mode) {
 			this.handler.checkProvider("formatRange", doc.textDocument);
@@ -131225,7 +132757,7 @@ async function readLines(uri, start, end) {
 	let doc = workspace_default.getDocument(uri);
 	if (doc) return doc.getLines(start, end + 1);
 	let fsPath = URI.parse(uri).fsPath;
-	if (!fs$5.existsSync(fsPath)) return [];
+	if (!fs$3.existsSync(fsPath)) return [];
 	return await readFileLines(fsPath, start, end);
 }
 var highlightDelay, HoverHandler;
@@ -131422,12 +132954,12 @@ function getHighlightGroup(kind) {
 		default: return "CocInlayHint";
 	}
 }
-var logger$7, srcId$1, debounceInterval$1, requestDelay$1, InlayHintBuffer;
+var logger$9, srcId$1, debounceInterval$1, requestDelay$1, InlayHintBuffer;
 var init_buffer$3 = __esmMin((() => {
 	init_main$2();
 	init_events();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_regions();
 	init_inlayHintManager();
 	init_util$7();
@@ -131437,7 +132969,7 @@ var init_buffer$3 = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$7 = createLogger$1("inlayHint-buffer");
+	logger$9 = createLogger("inlayHint-buffer");
 	debounceInterval$1 = getConditionValue(150, 10);
 	requestDelay$1 = getConditionValue(500, 10);
 	InlayHintBuffer = class {
@@ -131637,7 +133169,7 @@ var init_buffer$3 = __esmMin((() => {
 					totalLineLen: 0
 				};
 				if (maximumLength > 0 && lineInfo.totalLineLen > maximumLength) {
-					logger$7.warn(`Inlay hint of ${lineInfo.lineNum} too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`);
+					logger$9.warn(`Inlay hint of ${lineInfo.lineNum} too long, max length: ${maximumLength}, current line total length: ${lineInfo.totalLineLen}`);
 					continue;
 				}
 				let col = byteIndex(this.doc.getline(position.line), position.character) + 1;
@@ -131806,14 +133338,14 @@ function fixRange(range, inserted) {
 	if (!inserted || !range) return range;
 	return Range.create(range.start, Position.create(range.end.line, range.end.character + inserted.length));
 }
-var logger$6, NAMESPACE$2, InlineSession, InlineCompletion;
+var logger$8, NAMESPACE$2, InlineSession, InlineCompletion;
 var init_inline = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_completion();
 	init_events();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_parser();
 	init_util$7();
 	init_errors();
@@ -131822,7 +133354,7 @@ var init_inline = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$6 = createLogger$1("handler-inline");
+	logger$8 = createLogger("handler-inline");
 	NAMESPACE$2 = "inlineSuggest";
 	InlineSession = class {
 		bufnr;
@@ -131967,9 +133499,9 @@ var init_inline = __esmMin((() => {
 				this._applying = false;
 			}
 			if (token.isCancellationRequested) return false;
-			let state = await this.handler.getCurrentState();
-			if (await document.buffer.getVar("coc_inline_disable") == 1 || state.doc.bufnr !== bufnr || !state.mode.startsWith("i") || token.isCancellationRequested) return false;
-			let cursor = state.position;
+			let [mode, nr, pos, disable] = await this.nvim.eval("[mode(),bufnr(\"%\"),coc#cursor#position(),get(b:,\"coc_inline_disable\",0)]");
+			if (disable || nr !== bufnr || mode !== "i" || token.isCancellationRequested) return false;
+			let cursor = Position.create(pos[0], pos[1]);
 			let triggerPosition = cursor;
 			let curr = document.getline(cursor.line);
 			if (option.autoTrigger) {
@@ -132031,7 +133563,7 @@ var init_inline = __esmMin((() => {
 			if (item.command) try {
 				await commands_default.execute(item.command);
 			} catch (err) {
-				logger$6.error(`Error on execute command "${item.command.command}"`, err);
+				logger$8.error(`Error on execute command "${item.command.command}"`, err);
 			}
 			await events_default.fire("InlineAccept", [insertedLength, item]);
 			return true;
@@ -132706,12 +134238,12 @@ function fixChangeParams(e) {
 		originalLines
 	};
 }
-var logger$5, RefactorBuffer;
+var logger$7, RefactorBuffer;
 var init_buffer$2 = __esmMin((() => {
 	init_main();
 	init_main$2();
 	init_esm();
-	init_logger$2();
+	init_logger$1();
 	init_highlighter();
 	init_util$7();
 	init_fs();
@@ -132725,7 +134257,7 @@ var init_buffer$2 = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_changes();
-	logger$5 = createLogger$1("handler-refactorBuffer");
+	logger$7 = createLogger("handler-refactorBuffer");
 	RefactorBuffer = class {
 		bufnr;
 		srcId;
@@ -133003,7 +134535,7 @@ var init_buffer$2 = __esmMin((() => {
 						highlighter.addLine("　");
 						highlighter.addLine("　");
 						let lnum = count + highlighter.length;
-						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$5.relative(cwd, item.filepath) : item.filepath}`);
+						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$3.relative(cwd, item.filepath) : item.filepath}`);
 						let n = String(range.start + 1).length + String(range.end).length + 4;
 						if (!this.srcId) highlighter.addText(" ".repeat(n));
 						let base = 0 - highlighter.length - count;
@@ -133045,7 +134577,7 @@ var init_buffer$2 = __esmMin((() => {
 				await window_default.cursors.addRanges(hlRanges);
 			} catch (e) {
 				this.changing = false;
-				logger$5.error(`Error on add file item:`, e);
+				logger$7.error(`Error on add file item:`, e);
 			}
 			release();
 		}
@@ -133114,8 +134646,8 @@ var init_buffer$2 = __esmMin((() => {
 			return await readFileLines(fsPath, start, end - 1);
 		}
 		getAbsolutePath(filepath) {
-			if (path$5.isAbsolute(filepath)) return filepath;
-			return path$5.join(this.opts.cwd, filepath);
+			if (path$3.isAbsolute(filepath)) return filepath;
+			return path$3.join(this.opts.cwd, filepath);
 		}
 		/**
 		* Use conceal/virtual text to add lineNr
@@ -133150,7 +134682,7 @@ var init_buffer$2 = __esmMin((() => {
 				}
 				let id = 2e3;
 				for (let item of fileItems) {
-					let col = byteLength(`${cwd ? path$5.relative(cwd, item.filepath) : item.filepath}`) + 1;
+					let col = byteLength(`${cwd ? path$3.relative(cwd, item.filepath) : item.filepath}`) + 1;
 					for (let range of item.ranges) {
 						let end = range.start + range.lines.length;
 						let text = `:${range.start + 1}:${end}`;
@@ -133239,17 +134771,17 @@ function getPathFromArgs(args) {
 	if (args[len - 2].startsWith("-")) return void 0;
 	return args[len - 1];
 }
-var spawn, logger$4, defaultArgs, controlCode, Task, Search;
+var spawn, logger$6, defaultArgs, controlCode, Task, Search;
 var init_search = __esmMin((() => {
 	init_main$2();
-	init_logger$2();
+	init_logger$1();
 	init_highlighter();
 	init_ansiparse();
 	init_mutex();
 	init_node();
 	init_window();
 	({spawn} = child_process$1);
-	logger$4 = createLogger$1("handler-search");
+	logger$6 = createLogger("handler-search");
 	defaultArgs = [
 		"--color",
 		"ansi",
@@ -133286,7 +134818,7 @@ var init_search = __esmMin((() => {
 					if (items.length == 0) return;
 					if (items[0].foreground == "black") {
 						fileItem = {
-							filepath: path$5.join(cwd, items[0].text),
+							filepath: path$3.join(cwd, items[0].text),
 							ranges: []
 						};
 						return;
@@ -133362,7 +134894,7 @@ var init_search = __esmMin((() => {
 			].concat(defaultArgs, args);
 			let p = getPathFromArgs(args);
 			if (p) argList.pop();
-			argList.push("--", p ? path$5.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
+			argList.push("--", p ? path$3.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
 			this.task = new Task();
 			this.task.start(cmd, argList, cwd);
 			let mutex = new Mutex();
@@ -133378,7 +134910,7 @@ var init_search = __esmMin((() => {
 				try {
 					await refactorBuf.addFileItems(items);
 				} catch (e) {
-					logger$4.error(e);
+					logger$6.error(e);
 				}
 				release();
 			};
@@ -133829,11 +135361,11 @@ function toHighlightPart(token) {
 	highlightGroupMap.set(token, part);
 	return part;
 }
-var logger$3, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE, debounceInterval, requestDelay, highlightGroupMap, SemanticTokensBuffer;
+var logger$5, yieldEveryMilliseconds, HLGROUP_PREFIX, NAMESPACE, debounceInterval, requestDelay, highlightGroupMap, SemanticTokensBuffer;
 var init_buffer$1 = __esmMin((() => {
 	init_main$2();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_regions();
 	init_util$7();
 	init_array();
@@ -133843,7 +135375,7 @@ var init_buffer$1 = __esmMin((() => {
 	init_string$1();
 	init_window();
 	init_workspace$1();
-	logger$3 = createLogger$1("semanticTokens-buffer");
+	logger$5 = createLogger("semanticTokens-buffer");
 	yieldEveryMilliseconds = getConditionValue(15, 5);
 	HLGROUP_PREFIX = "CocSem";
 	NAMESPACE = "semanticTokens";
@@ -134107,7 +135639,7 @@ var init_buffer$1 = __esmMin((() => {
 				return await fn();
 			} catch (e) {
 				if (!token.isCancellationRequested) if (e instanceof CancellationError) this.doHighlight(true, requestDelay).catch(onUnexpectedError);
-				else logger$3.error("Error on request semanticTokens: ", e);
+				else logger$5.error("Error on request semanticTokens: ", e);
 				return;
 			}
 		}
@@ -134475,10 +136007,11 @@ var init_util$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/handler/signature.ts
-var debounceTime, Signature;
+var logger$4, debounceTime, Signature;
 var init_signature = __esmMin((() => {
 	init_events();
 	init_languages();
+	init_logger$1();
 	init_util$7();
 	init_array();
 	init_node();
@@ -134487,6 +136020,7 @@ var init_signature = __esmMin((() => {
 	init_window();
 	init_workspace$1();
 	init_util$1();
+	logger$4 = createLogger("handler-signature");
 	debounceTime = getConditionValue(100, 10);
 	Signature = class {
 		nvim;
@@ -134522,12 +136056,16 @@ var init_signature = __esmMin((() => {
 			events_default.on("MenuPopupChanged", () => {
 				if (this.config.hideOnChange) return;
 				process.nextTick(async () => {
-					if (this.signatureFactory.window != null) return;
-					let bufnr = this.lastPosition?.bufnr;
-					if (!bufnr) return;
-					let { doc, position } = await this.handler.getCurrentState();
-					if (!doc || !doc.attached || doc.bufnr !== bufnr) return;
-					await this._triggerSignatureHelp(doc, position, false);
+					try {
+						if (this.signatureFactory.window != null) return;
+						let bufnr = this.lastPosition?.bufnr;
+						if (!bufnr) return;
+						let { doc, position } = await this.handler.getCurrentState();
+						if (!doc || !doc.attached || doc.bufnr !== bufnr) return;
+						await this._triggerSignatureHelp(doc, position, false);
+					} catch (e) {
+						logger$4.error(`Error on trigger signature help:`, e);
+					}
 				});
 			}, null, this.disposables);
 			events_default.on("TextInsert", async (bufnr, info, character) => {
@@ -134620,12 +136158,11 @@ var init_signature = __esmMin((() => {
 		}
 		async showSignatureHelp(doc, position, signatureHelp, offset) {
 			let { signatures, activeParameter } = signatureHelp;
-			activeParameter = typeof activeParameter === "number" ? activeParameter : void 0;
 			let paramDoc = null;
 			let startOffset = offset;
 			let docs = signatures.reduce((p, c, idx) => {
 				let activeIndexes = null;
-				let activeIndex = c.activeParameter ?? activeParameter;
+				let activeIndex = c.activeParameter === null ? null : c.activeParameter ?? activeParameter;
 				if (activeIndex === void 0 && !isFalsyOrEmpty(c.parameters)) activeIndex = 0;
 				let nameIndex = c.label.indexOf("(");
 				if (idx == 0 && typeof activeIndex === "number") {
@@ -134641,8 +136178,8 @@ var init_signature = __esmMin((() => {
 						} else activeIndexes = active.label;
 					}
 				}
-				if (activeIndexes == null) activeIndexes = [nameIndex + 1, nameIndex + 1];
-				if (offset == startOffset) offset = offset + activeIndexes[0] + 1;
+				if (activeIndexes == null && activeIndex !== null) activeIndexes = [nameIndex + 1, nameIndex + 1];
+				if (offset == startOffset && activeIndexes != null) offset = offset + activeIndexes[0] + 1;
 				p.push({
 					content: c.label,
 					filetype: doc.filetype,
@@ -134738,12 +136275,12 @@ var init_signature = __esmMin((() => {
 var DEBEBOUNCE_INTERVAL, SymbolsBuffer;
 var init_buffer = __esmMin((() => {
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_errors();
 	init_node();
 	init_protocol();
-	createLogger$1("symbols-buffer");
+	createLogger("symbols-buffer");
 	DEBEBOUNCE_INTERVAL = getConditionValue(500, 10);
 	SymbolsBuffer = class {
 		doc;
@@ -135659,7 +137196,7 @@ var init_workspace = __esmMin((() => {
 	init_workspaceFolder();
 	init_extension();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_highlighter();
 	init_manager$2();
 	init_util$7();
@@ -135740,7 +137277,7 @@ var init_workspace = __esmMin((() => {
 			commands_default.register({
 				id: "workspace.writeHeapSnapshot",
 				execute: async () => {
-					let filepath = path$5.join(os$5.homedir(), `${crypto.randomUUID()}-${process.pid}.heapsnapshot`);
+					let filepath = path$3.join(os$3.homedir(), `${crypto$1.randomUUID()}-${process.pid}.heapsnapshot`);
 					(0, v8.writeHeapSnapshot)(filepath);
 					window_default.showInformationMessage(`Create heapdump at: ${filepath}`);
 					return filepath;
@@ -135772,7 +137309,7 @@ var init_workspace = __esmMin((() => {
 		async openLocalConfig() {
 			let fsPath = await this.nvim.call("coc#util#get_fullpath", []);
 			let filetype = await this.nvim.eval("&filetype");
-			if (!fsPath || !path$5.isAbsolute(fsPath)) {
+			if (!fsPath || !path$3.isAbsolute(fsPath)) {
 				window_default.showWarningMessage(`Current buffer doesn't have valid file path.`);
 				return;
 			}
@@ -135788,12 +137325,12 @@ var init_workspace = __esmMin((() => {
 				return;
 			}
 			let root = URI.parse(folder.uri).fsPath;
-			let dir = path$5.join(root, ".vim");
-			if (!fs$5.existsSync(dir)) {
+			let dir = path$3.join(root, ".vim");
+			if (!fs$3.existsSync(dir)) {
 				if (!await window_default.showPrompt(`Would you like to create folder'${root}/.vim'?`)) return;
-				fs$5.mkdirSync(dir);
+				fs$3.mkdirSync(dir);
 			}
-			await workspace_default.jumpTo(URI.file(path$5.join(dir, CONFIG_FILE_NAME)));
+			await workspace_default.jumpTo(URI.file(path$3.join(dir, CONFIG_FILE_NAME)));
 		}
 		async renameCurrent() {
 			let { nvim } = this;
@@ -135805,7 +137342,7 @@ var init_workspace = __esmMin((() => {
 			]);
 			newPath = newPath.trim();
 			if (newPath === oldPath || !newPath) return;
-			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$5.existsSync(newPath)) {
+			if (oldPath.toLowerCase() != newPath.toLowerCase() && fs$3.existsSync(newPath)) {
 				if (!await window_default.showPrompt(`${newPath} exists, overwrite?`)) return;
 			}
 			await workspace_default.renameFile(oldPath, newPath, { overwrite: true });
@@ -135865,7 +137402,7 @@ var init_workspace = __esmMin((() => {
 			});
 		}
 		async doAutocmd(id, args) {
-			let timeout = workspace_default.getConfiguration("editor", null).get("timeout", 1e3);
+			let timeout = workspace_default.getConfiguration("editor", null).get("autocmdTimeout", 1e3);
 			await workspace_default.autocmds.doAutocmd(id, args, timeout);
 		}
 		async getConfiguration(key) {
@@ -135899,22 +137436,22 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-d3ef900 2026-08-02 02:31:31 +0800";
+			let version = workspace_default.version + "-22127fe 2026-08-04 05:58:29 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
 			lines.push("vim version: " + first + `${isVim ? " " + workspace_default.env.version : ""}`);
 			lines.push("node version: " + process.version);
 			lines.push("coc.nvim version: " + version);
-			lines.push("coc.nvim directory: " + path$5.dirname(__dirname));
+			lines.push("coc.nvim directory: " + path$3.dirname(__dirname));
 			lines.push("term: " + defaultValue(process.env.TERM_PROGRAM, process.env.TERM));
 			lines.push("platform: " + process.platform);
 			lines.push("");
 			lines.push("## Log of coc.nvim");
 			lines.push("");
 			let file = getLoggerFile();
-			if (fs$5.existsSync(file)) {
-				let content = fs$5.readFileSync(file, { encoding: "utf8" });
+			if (fs$3.existsSync(file)) {
+				let content = fs$3.readFileSync(file, { encoding: "utf8" });
 				lines.push(...content.split(/\r?\n/).map((line) => stripAnsi(line)));
 			}
 			await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted");
@@ -135928,13 +137465,13 @@ var init_workspace = __esmMin((() => {
 }));
 //#endregion
 //#region src/handler/index.ts
-var logger$2, requestTimeout, Handler;
+var logger$3, requestTimeout, Handler;
 var init_handler = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
 	init_events();
 	init_languages();
-	init_logger$2();
+	init_logger$1();
 	init_util$7();
 	init_convert();
 	init_is();
@@ -135965,7 +137502,7 @@ var init_handler = __esmMin((() => {
 	init_symbols();
 	init_typeHierarchy();
 	init_workspace();
-	logger$2 = createLogger$1("Handler");
+	logger$3 = createLogger("Handler");
 	requestTimeout = getConditionValue(500, 10);
 	Handler = class {
 		nvim;
@@ -136144,8 +137681,9 @@ var init_handler = __esmMin((() => {
 			}
 			clearTimeout(this.requestTimer);
 			let statusItem = this.requestStatusItem;
-			this.requestTokenSource = new import_main$1.CancellationTokenSource();
-			let { token } = this.requestTokenSource;
+			let tokenSource = new import_main$1.CancellationTokenSource();
+			this.requestTokenSource = tokenSource;
+			let { token } = tokenSource;
 			token.onCancellationRequested(() => {
 				statusItem.text = `${name} request canceled`;
 				statusItem.isProgress = false;
@@ -136160,11 +137698,11 @@ var init_handler = __esmMin((() => {
 			try {
 				res = await Promise.resolve(fn(token));
 			} catch (e) {
-				logger$2.error(`Error on request ${name}`, e);
+				logger$3.error(`Error on request ${name}`, e);
 				this.nvim.errWriteLine(`Error on ${name}: ${e}`);
 			}
-			if (this.requestTokenSource) {
-				this.requestTokenSource.dispose();
+			if (this.requestTokenSource === tokenSource) {
+				tokenSource.dispose();
 				this.requestTokenSource = void 0;
 			}
 			if (token.isCancellationRequested) return null;
@@ -136206,7 +137744,7 @@ var init_handler = __esmMin((() => {
 }));
 //#endregion
 //#region src/plugin.ts
-var logger$1, Plugin;
+var logger$2, Plugin;
 var init_plugin = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
@@ -136219,13 +137757,13 @@ var init_plugin = __esmMin((() => {
 	init_handler();
 	init_languages();
 	init_manager$1();
-	init_logger$2();
+	init_logger$1();
 	init_services$1();
 	init_manager$2();
 	init_util$7();
 	init_window();
 	init_workspace$1();
-	logger$1 = createLogger$1("plugin");
+	logger$2 = createLogger("plugin");
 	Plugin = class {
 		nvim;
 		ready = false;
@@ -136419,7 +137957,7 @@ var init_plugin = __esmMin((() => {
 			nvim.call("coc#util#do_autocmd", ["CocNvimInit"], true);
 			nvim.resumeNotification(false, true);
 			const duration = typeof global.__starttime === "number" ? Date.now() - global.__starttime : 0;
-			logger$1.info(`coc.nvim initialized with node: ${process.version} after`, duration);
+			logger$2.info(`coc.nvim initialized with node: ${process.version} after`, duration);
 			this.ready = true;
 			await events_default.fire("ready", []);
 		}
@@ -136453,25 +137991,63 @@ var init_plugin = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/exit.ts
+/**
+* Best-effort graceful shutdown: stop all language servers (LSP
+* shutdown/exit) before exiting, so server processes are not orphaned
+* when the editor restarts or terminates coc.
+*/
+function gracefulExit(signal) {
+	logger$1.info(`Received ${signal}, stopping language servers`);
+	let timer = setTimeout(() => exitFn(0), EXIT_TIMEOUT);
+	services_default.stopAll(EXIT_TIMEOUT).finally(() => {
+		clearTimeout(timer);
+		exitFn(0);
+	});
+}
+/**
+* Register SIGTERM/SIGINT handlers for the coc service process.
+*/
+function registerExitHandlers() {
+	let exiting = false;
+	const handler = (signal) => {
+		if (exiting) return;
+		exiting = true;
+		gracefulExit(signal);
+	};
+	process.on("SIGTERM", () => handler("SIGTERM"));
+	process.on("SIGINT", () => handler("SIGINT"));
+}
+var logger$1, EXIT_TIMEOUT, exitFn;
+var init_exit = __esmMin((() => {
+	init_logger$1();
+	init_services$1();
+	logger$1 = createLogger("exit");
+	EXIT_TIMEOUT = 1e3;
+	exitFn = (code) => process.exit(code);
+}));
+//#endregion
 //#region src/attach.ts
 var attach_exports = /* @__PURE__ */ __exportAll({ default: () => attach_default });
-var logger, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
+var import_lib, logger, ACTIONS_NO_WAIT, semVer, pendingNotifications, NO_ERROR_REQUEST, attach_default;
 var init_attach = __esmMin((() => {
-	init_neovim();
+	import_lib = require_lib$2();
 	init_events();
-	init_logger$2();
+	init_logger$1();
 	init_plugin();
+	init_exit();
 	init_constants();
 	init_node();
 	init_string$1();
 	init_timing();
-	logger = createLogger$1("attach");
+	logger = createLogger("attach");
+	if (global.__isMain) registerExitHandlers();
 	ACTIONS_NO_WAIT = ["installExtensions", "updateExtensions"];
 	semVer = semver.parse(VERSION);
 	pendingNotifications = [];
 	NO_ERROR_REQUEST = ["doAutocmd", "CocAutocmd"];
 	attach_default = (opts, requestApi = false) => {
-		const nvim = attach(opts, createLogger$1("node-client"), requestApi);
+		const nvim = (0, import_lib.attach)(opts, createLogger("node-client"), requestApi);
 		nvim.setVar("coc_process_pid", process.pid, true);
 		nvim.setClientInfo("coc", {
 			major: semVer.major,
@@ -136563,7 +138139,7 @@ var init_attach = __esmMin((() => {
 //#endregion
 //#region \0coc-entry
 if (global.__isMain) {
-	const { createLogger } = (init_logger$2(), __toCommonJS(logger_exports));
+	const { createLogger } = (init_logger$1(), __toCommonJS(logger_exports));
 	const logger = createLogger("server");
 	Object.defineProperty(console, "log", { value() {
 		if (logger) logger.info(...arguments);
@@ -136589,7 +138165,7 @@ if (global.__isMain) {
 	});
 } else {
 	const exports = require_src();
-	const logger = (init_logger$2(), __toCommonJS(logger_exports)).logger;
+	const logger = (init_logger$1(), __toCommonJS(logger_exports)).logger;
 	const attach = (init_attach(), __toCommonJS(attach_exports)).default;
 	module.exports = {
 		attach,

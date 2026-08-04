@@ -2,19 +2,110 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-04
+
+- Add configuration `suggest.pumAlign` to align the popup menu with a field
+  (`"abbr"`, `"menu"`, `"kind"` or `"shortcut"`) instead of the first text.
+- Advertise LSP 3.18 client capabilities for code lens and signature help:
+    - `textDocument.codeLens.resolveSupport` now reports the properties the
+      client can resolve lazily (the code lens `command`).
+    - `textDocument.signatureHelp.noActiveParameterSupport` now reports that
+      `activeParameter` can be `null` to indicate no active parameter; the
+      signature float no longer highlights the first parameter in that case.
+- Code lens action picker and code action menus now show `Command#tooltip` as a
+  `title - tooltip` suffix when the server provides one.
+- Add multi-range formatting API for LSP 3.18 `textDocument/rangesFormatting`:
+  `DocumentRangeFormattingEditProvider` gains an optional
+  `provideDocumentRangesFormattingEdits` method and `languages` exposes
+  `provideDocumentRangesFormattingEdits`, falling back to per-range formatting
+  when the provider has no ranges support. The client capability
+  `textDocument.rangeFormatting.rangesSupport` is advertised to servers.
+  Existing visual block selection formatting behavior is unchanged.
+- Support LSP 3.18 `CompletionList.applyKind`: the client now advertises
+  `completionList.applyKindSupport` and `data` in `itemDefaults`, and honors
+  `applyKind` merge/replace rules for `commitCharacters` (union) and `data`
+  (shallow merge, falling back to the default value when the item has none).
+
+## 2026-08-03
+
+- File operation glob patterns now match dotfiles and dot-prefixed directories by default.
+
+## 2026-08-02
+
+- `watchFile` now watches the parent directory of the target file, so changes
+  keep being reported after the file is replaced by rename or deleted. An
+  optional `onError` callback is added to the `watchFile` API.
+- Add configurable timeout for the `waitUntil` handlers of file create, delete and
+  rename events, through the new configuration `editor.fileOperationTimeout`
+  (default `500`, minimum `1`). Handlers resolving after the timeout are ignored
+  and a warning is logged.
+
+## 2026-07-15
+
+- Float scratch buffers are named `coc-float://<bufnr>` on both vim and neovim.
+- `formatFilepath` could be asynchronous, returns a Promise that resolves to the
+  formatted filepath.
+
+## 2026-07-02
+
+- Add `onAboutToSendNotification` event to `LanguageClient` text document features.
+
+## 2026-06-30
+
+- Expose `g:coc_channel_id` and add Lua module `coc` for RPC requests from
+  Neovim Lua, including `get_diagnostics()`, `get_config(section)`,
+  `execute_command(name, ...)`, `workspace_symbols(query)`,
+  `document_symbols(bufnr)`, `command_list()` and `extension_stats()`.
+
+## 2026-05-29
+
+- Language server `args` now support workspace variables like
+  `${workspaceFolder}` and `${workspaceFolderBasename}`, resolved at server start.
+
 ## 2026-04-29
 
 - Break Change: minimal node version changed from 16.18.0 to 20.19.0.
+
+## 2026-03-13
+
+- Full document format only fallback to range formatter when no full document
+  formatter exists.
+
+## 2026-02-27
+
+- Code action request without a mode selection now uses the current cursor
+  position as the range.
+
+## 2025-12-29
+
+- Add `r` keymap for refactor action in normal list mappings.
 
 ## 2025-11-22
 
 - Add configurable front end for reporting regular messages to the user, by using
   'messageReportKind' which can be set to 'echo' or 'notification'.
 
+## 2025-11-11
+
+- Break change: notification messages without actions are now always shown as UI
+  notification instead of being echoed in the command line.
+
+## 2025-09-22
+
+- Expand `${cwd}` variable in language server `args`.
+
+## 2025-08-20
+
+- Support `workspace/foldingRange/refresh` in language client.
+
 ## 2025-07-30
 
 - Add configurable kind for dialog messages, through the use of the new configuration
   'messageDialogKind' which can be set to 'menu', 'notification', or 'confirm'.
+
+## 2025-07-28
+
+- Add `notificationHistory` action, returns the notification history.
 
 ## 2025-07-18
 
@@ -27,6 +118,14 @@ Notable changes of coc.nvim:
 ## 2025-06-22
 
 - Break change: Link highlight group `CocSnippetVisual` to `SnippetTabstop` when exists.
+
+## 2025-06-21
+
+- Export `console.Console` to extension sandbox.
+
+## 2025-06-12
+
+- Virtual text support `overlay` as text_align, works on both vim and neovim.
 
 ## 2025-06-11
 

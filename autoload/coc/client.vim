@@ -138,6 +138,13 @@ function! s:on_exit(name, code) abort
   endif
   let client['channel'] = v:null
   let client['async_req_id'] = 1
+  " Clear pending async callbacks, the connection is gone so they will never
+  " receive a response. Invoke them with an error so waiting scripts can
+  " recover instead of hanging forever.
+  for Callback in values(client['async_callbacks'])
+    call call(Callback, ['client '.a:name.' exited before response', v:null])
+  endfor
+  let client['async_callbacks'] = {}
   if a:code != 0 && a:code != 143 && a:code != -1
     echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
@@ -174,7 +181,13 @@ function! s:request(method, args) dict
     endif
   catch /.*/
     if v:exception =~# 'E475'
-      if get(g:, 'coc_vim_leaving', 0) | return | endif
+      if get(g:, 'coc_vim_leaving', 0) | return '' | endif
+      if coc#client#is_running(self.name)
+        " The connection is still alive, E475 is an argument error rather
+        " than a lost connection, don't reset the client.
+        echohl Error | echo 'Error on "'.a:method.'" request: '.v:exception | echohl None
+        return ''
+      endif
       echohl Error | echom '['.self.name.'] server connection lost' | echohl None
       let name = self.name
       call s:on_exit(name, 0)
@@ -205,6 +218,12 @@ function! s:notify(method, args) dict
   catch /.*/
     if v:exception =~# 'E475'
       if get(g:, 'coc_vim_leaving', 0)
+        return
+      endif
+      if coc#client#is_running(self.name)
+        " The connection is still alive, E475 is an argument error rather
+        " than a lost connection, don't reset the client.
+        echohl Error | echo 'Error on notify ('.a:method.'): '.v:exception | echohl None
         return
       endif
       echohl Error | echom '['.self.name.'] server connection lost' | echohl None
@@ -253,12 +272,11 @@ function! coc#client#is_running(name) abort
   if !client['running'] | return 0 | endif
   try
     if s:is_vim
-      let status = job_status(ch_getjob(client['channel']))
-      return status ==# 'run'
+      let status = ch_status(client['channel'])
+      return status ==# 'open' || status ==# 'buffered'
     else
       let chan_id = client['chan_id']
-      let [code] = jobwait([chan_id], 10)
-      return code == -1
+      return !empty(nvim_get_chan_info(chan_id))
     endif
   catch /.*/
     return 0
@@ -278,10 +296,20 @@ function! coc#client#stop(name) abort
   else
     call jobstop(client['chan_id'])
   endif
-  sleep 200m
+  " Wait for graceful exit of the service (LSP shutdown), force kill
+  " when it takes too long.
+  let i = 0
+  while i < 20 && coc#client#is_running(a:name)
+    sleep 50m
+    let i += 1
+  endwhile
   if coc#client#is_running(a:name)
-    echohl Error | echom 'client '.a:name. ' stop failed.' | echohl None
-    return 0
+    call coc#client#kill(a:name)
+    sleep 200m
+    if coc#client#is_running(a:name)
+      echohl Error | echom 'client '.a:name. ' stop failed.' | echohl None
+      return 0
+    endif
   endif
   call s:on_exit(a:name, 0)
   echohl MoreMsg | echom 'client '.a:name.' stopped!' | echohl None
@@ -290,16 +318,23 @@ endfunction
 
 function! coc#client#kill(name) abort
   let client = get(s:clients, a:name, v:null)
-  if empty(client) | return 1 | endif
-  let running = coc#client#is_running(a:name)
   if empty(client) || exists('$COC_NVIM_REMOTE_ADDRESS')
     return 1
   endif
-  if running
+  if coc#client#is_running(a:name)
     if s:is_vim
-      call job_stop(ch_getjob(client['channel']), 'kill')
+      call job_stop(ch_getjob(client['channel']), 'term')
     else
       call jobstop(client['chan_id'])
+    endif
+    " Give the service a moment for graceful exit before force killing.
+    sleep 300m
+    if coc#client#is_running(a:name)
+      if s:is_vim
+        call job_stop(ch_getjob(client['channel']), 'kill')
+      else
+        call jobstop(client['chan_id'])
+      endif
     endif
   endif
 endfunction
