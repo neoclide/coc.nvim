@@ -2670,6 +2670,15 @@
       "default": [],
       "scope": "application",
       "description": "Glob patterns of paths the MCP server must never access; applied before allowedPaths."
+    },
+    "mcp.allowedTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "scope": "application",
+      "description": "Whitelist of MCP tool names exposed to agents; empty by default so no tools are sent until explicitly enabled. Built-in tools: document/read, document/read_lines, document/apply_edits, document/write, document/format, document/open, workspace/info, workspace/configuration, workspace/search, workspace/files, workspace/apply_edit, workspace/create_file, workspace/rename_file, workspace/delete_file, lsp/hover, lsp/signature_help, lsp/definition, lsp/declaration, lsp/type_definition, lsp/implementation, lsp/references, lsp/document_symbols, lsp/workspace_symbols, lsp/diagnostics, lsp/code_actions, lsp/apply_code_action, lsp/rename, lsp/execute_command, lsp/request, lsp/capabilities, lsp/batch. Extension tools registered via mcp.registerTool() are subject to the same whitelist."
     }
   }
 }

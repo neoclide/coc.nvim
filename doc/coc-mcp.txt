@@ -137,6 +137,9 @@ full list. Highlights:
 					(default `5000`, mutating tools).
 	mcp.readTimeout			Timeout for read-only tools such as LSP
 					queries (default `15000`).
+	mcp.allowedTools		Whitelist of tool names exposed to the
+					agent (empty by default: no tools are
+					sent until enabled; see |coc-config-mcp-allowedTools|).
 
 ==============================================================================
 6. RESULT LIMITS				*coc-mcp-result-limits*
@@ -164,6 +167,10 @@ asking for fewer results also makes the call faster.
 7. SECURITY				*coc-mcp-security*
 
 - The server binds loopback only and requires a per-start random token.
+- Tools are hidden behind a whitelist: `tools/list` only returns the names
+  in `mcp.allowedTools`, and calls to other tools are rejected. The default
+  is empty, so enable the tools you want explicitly in `coc-settings.json`
+  (see |coc-config-mcp-allowedTools| for the full list).
 - Public-key client auth: set `mcp.authClientPublicKey` (PEM) and give the
   bridge the matching private key via `COC_MCP_AUTH_KEY` (or
   `COC_MCP_AUTH_KEY_FILE` for a PEM file). When configured, the client

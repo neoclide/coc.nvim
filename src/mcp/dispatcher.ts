@@ -64,7 +64,10 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     return
   }
   if (!server.tools.has(name)) {
-    session.sendError(id, P.JSONRPC_INVALID_PARAMS, `Unknown tool: ${name}`)
+    let message = server.tools.isAllowed(name)
+      ? `Unknown tool: ${name}`
+      : `Tool not allowed by mcp.allowedTools: ${name}`
+    session.sendError(id, P.JSONRPC_INVALID_PARAMS, message)
     return
   }
   let args = params?.arguments

@@ -437,7 +437,8 @@ Register a custom MCP tool. `tool` has the following shape:
 token; return `{ content: [{ type: 'text', text }], structuredContent?, isError? }`.
 Mark mutating tools with `annotations.destructiveHint: true` so clients prompt
 for confirmation. The returned Disposable unregisters the tool. Tools survive
-server restarts until disposed.
+server restarts until disposed. A tool is only exposed to MCP clients when
+its name is listed in the `mcp.allowedTools` whitelist (|coc-config-mcp-allowedTools|).
 
 	mcp.running ~
 	mcp.status() ~

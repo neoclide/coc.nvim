@@ -35,6 +35,7 @@ export interface McpConfig {
   authClientPublicKey: string
   readTimeout: number
   logLevel: string
+  allowedTools: string[]
 }
 
 class McpService implements Disposable {
@@ -110,6 +111,8 @@ class McpService implements Disposable {
     } catch (e) {
       logger.error('Failed to create MCP directory', e)
     }
+    let registry = this.getRegistry()
+    registry.setAllowedTools(config.allowedTools)
     let server = new McpServer({
       transport: config.transport,
       host: config.host,
@@ -124,7 +127,7 @@ class McpService implements Disposable {
       maxRequestsPerSecond: config.maxRequestsPerSecond,
       authClientPublicKey: config.authClientPublicKey,
       readTimeout: config.readTimeout
-    }, this.getRegistry(), new ResourceManager())
+    }, registry, new ResourceManager())
     try {
       let address = await server.listen()
       this.server = server
@@ -231,7 +234,20 @@ class McpService implements Disposable {
       maxRequestsPerSecond: config.get<number>('maxRequestsPerSecond', 60),
       authClientPublicKey: config.get<string>('authClientPublicKey', ''),
       readTimeout: config.get<number>('readTimeout', 15000),
-      logLevel: config.get<string>('logLevel', 'info')
+      logLevel: config.get<string>('logLevel', 'info'),
+      // Only tools listed in mcp.allowedTools are exposed to agents
+      // (default: none). Built-in tools:
+      // document/read, document/read_lines, document/apply_edits,
+      // document/write, document/format, document/open,
+      // workspace/info, workspace/configuration, workspace/search,
+      // workspace/files, workspace/apply_edit, workspace/create_file,
+      // workspace/rename_file, workspace/delete_file,
+      // lsp/hover, lsp/signature_help, lsp/definition, lsp/declaration,
+      // lsp/type_definition, lsp/implementation, lsp/references,
+      // lsp/document_symbols, lsp/workspace_symbols, lsp/diagnostics,
+      // lsp/code_actions, lsp/apply_code_action, lsp/rename,
+      // lsp/execute_command, lsp/request, lsp/capabilities, lsp/batch.
+      allowedTools: config.get<string[]>('allowedTools', [])
     }
   }
 }

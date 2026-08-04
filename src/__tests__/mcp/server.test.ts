@@ -384,6 +384,35 @@ describe('mcp server hardening', () => {
     server.dispose()
   })
 
+  it('exposes only whitelisted tools and rejects calls to the rest', async () => {
+    let registry = new ToolRegistry()
+    registry.register(echoTool())
+    registry.register({
+      name: 'blocked',
+      description: 'Not whitelisted',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [{ type: 'text', text: 'no' }] })
+    })
+    registry.setAllowedTools(['echo'])
+    let server = newServer({}, registry)
+    let address = await server.listen()
+    let client = new TestClient(address.port)
+    await authInit(client)
+    let list = await client.request(2, 'tools/list')
+    expect(list.tools.map((t: any) => t.name)).toEqual(['echo'])
+    let blocked: any
+    try {
+      await client.request(3, 'tools/call', { name: 'blocked', arguments: {} })
+    } catch (e) {
+      blocked = e
+    }
+    expect(String(blocked)).toContain('allowedTools')
+    let ok = await client.request(4, 'tools/call', { name: 'echo', arguments: { value: 'hi' } })
+    expect(ok.content[0].text).toBe('hi')
+    client.close()
+    server.dispose()
+  })
+
   it('answers malformed frames with a -32700 parse error', async () => {
     let server = newServer()
     let address = await server.listen()

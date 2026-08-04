@@ -850,6 +850,30 @@ the `coc-mcp` stdio bridge.
 
 	Default: `[]`
 
+"mcp.allowedTools"			*coc-config-mcp-allowedTools*
+
+	Whitelist of MCP tool names exposed to agents. Only the tools listed
+	here are returned by `tools/list` and callable via `tools/call`;
+	everything else is hidden from clients. Default is empty, so no tools
+	are exposed until you add the names you want to enable.
+
+	Built-in tools:
+	- document/read, document/read_lines, document/apply_edits,
+	  document/write, document/format, document/open
+	- workspace/info, workspace/configuration, workspace/search,
+	  workspace/files, workspace/apply_edit, workspace/create_file,
+	  workspace/rename_file, workspace/delete_file
+	- lsp/hover, lsp/signature_help, lsp/definition, lsp/declaration,
+	  lsp/type_definition, lsp/implementation, lsp/references,
+	  lsp/document_symbols, lsp/workspace_symbols, lsp/diagnostics,
+	  lsp/code_actions, lsp/apply_code_action, lsp/rename,
+	  lsp/execute_command, lsp/request, lsp/capabilities, lsp/batch
+
+	Tools registered by extensions through `mcp.registerTool()` are
+	subject to the same whitelist.
+
+	Default: `[]`
+
 ==============================================================================
 
 LSP FEATURES

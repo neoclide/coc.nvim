@@ -11,11 +11,11 @@ import workspace from '../../workspace'
 describe('mcp service', () => {
   afterEach(() => {
     mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false, 'mcp.allowedTools': [] })
   })
 
   it('starts the socket server and writes the per-instance discovery file', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['workspace/info', 'workspace/configuration'] })
     await mcp.start()
     expect(mcp.running).toBe(true)
     let status = mcp.status()
@@ -65,7 +65,7 @@ describe('mcp service', () => {
   })
 
   it('formats human-readable status lines', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['document/read', 'lsp/references'] })
     await mcp.start()
     let lines = mcp.getStatusLines()
     expect(lines[0]).toBe('MCP server: running')
@@ -106,7 +106,7 @@ describe('mcp service', () => {
   })
 
   it('registers a custom extension tool visible in tools/list', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/hello'] })
     let disposable = mcp.registerTool({
       name: 'extension/hello',
       description: 'extension tool',
@@ -120,7 +120,7 @@ describe('mcp service', () => {
   })
 
   it('registers a tool while running and unregisters on dispose', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/live'] })
     await mcp.start()
     let disposable = mcp.registerTool({
       name: 'extension/live',
@@ -150,7 +150,7 @@ describe('mcp service', () => {
   })
 
   it('keeps extension tools across server restarts', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/persist'] })
     let disposable = mcp.registerTool({
       name: 'extension/persist',
       description: 'extension tool',

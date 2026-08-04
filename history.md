@@ -19,6 +19,10 @@ Notable changes of coc.nvim:
 - MCP: `workspace/apply_edit` now saves all modified buffers with `:wa`
   after applying, so edits are on disk for subsequent tools; the result
   reports `saved` and a `saveError` when the save fails.
+- MCP: new `mcp.allowedTools` whitelist controls which tools are exposed to
+  agents — `tools/list` only returns whitelisted names and `tools/call`
+  rejects the rest. Default is empty (no tools exposed) so tool access is
+  opt-in; the configuration documents the full built-in tool list.
 
 ## 2026-08-04
 

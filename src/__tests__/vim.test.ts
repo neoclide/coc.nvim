@@ -89,11 +89,11 @@ describe('rpc client', () => {
 describe('mcp server on vim', () => {
   afterEach(() => {
     mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false, 'mcp.allowedTools': [] })
   })
 
   it('serves MCP tools over the socket on Vim', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['document/read', 'workspace/configuration'] })
     await mcp.start()
     expect(mcp.running).toBe(true)
     let status = mcp.status()
