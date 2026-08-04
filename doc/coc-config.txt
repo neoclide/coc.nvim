@@ -713,11 +713,17 @@ Configurations of the built-in MCP (Model Context Protocol) socket server,
 which lets agents like Codex connect to the running coc.nvim instance through
 the `coc-mcp` stdio bridge.
 
-"mcp.enabled"				*coc-config-mcp-enabled*
+"mcp.autoStart"				*coc-config-mcp-autoStart*
 
-	Enable the MCP socket server. When enabled, coc.nvim listens on a
-	loopback socket and writes the connection info (port and per-start
-	token) to `~/.coc/mcp/coc-<pid>.json`.
+	Auto start the MCP socket server when coc.nvim starts. When enabled,
+	coc.nvim listens on a loopback socket and writes the connection info
+	(port and per-start token) to `~/.coc/mcp/coc-<pid>.json` (keyed by
+	the vim pid, so a coc.nvim restart rewrites the same file).
+
+	When disabled, the server can still be started manually with
+	`:CocCommand mcp.start`.
+	The server also restarts automatically after `:CocRestart` when it was
+	running before the restart.
 
 	Default: `false`
 
@@ -758,9 +764,9 @@ the `coc-mcp` stdio bridge.
 	`--connect` mode (SSH-forwarded ports), where the token-bearing
 	discovery file must not leave the remote host. Generate a keypair with
 	`node bin/coc-mcp.js --generate-key`, put the public key here and the
-	private key in the bridge's `COC_MCP_AUTH_KEY` (or
-	`COC_MCP_AUTH_KEY_FILE`) environment variable. Empty (default) keeps
-	the token-only flow.
+	private key in the bridge's `COC_MCP_AUTH_KEY_FILE` environment
+	variable (a path to a PEM file). Empty (default) keeps the token-only
+	flow.
 
 "mcp.maxClients"			*coc-config-mcp-maxClients*
 
@@ -851,6 +857,7 @@ the `coc-mcp` stdio bridge.
 	are exposed until you add the names you want to enable.
 
 	Built-in tools:
+	- editor/state
 	- document/read, document/read_lines, document/apply_edits,
 	  document/write, document/format, document/open
 	- workspace/info, workspace/configuration, workspace/search,

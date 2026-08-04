@@ -214,13 +214,13 @@ export function createWorkspaceTools(): McpTool[] {
     {
       name: 'workspace/configuration',
       title: 'Read coc Configuration',
-      description: 'Read a coc.nvim configuration value by dotted key, e.g. "mcp.enabled". Returns value and inspection data (default/user/workspace sources).',
+      description: 'Read a coc.nvim configuration value by dotted key, e.g. "mcp.autoStart". Returns value and inspection data (default/user/workspace sources).',
       inputSchema: {
         type: 'object',
         properties: {
           key: {
             type: 'string',
-            description: 'Dotted configuration key, e.g. "mcp.enabled". Empty string returns the whole configuration tree.'
+            description: 'Dotted configuration key, e.g. "mcp.autoStart". Empty string returns the whole configuration tree.'
           }
         },
         required: ['key']

@@ -30,6 +30,14 @@ interface BridgeClient {
   splitter: FrameSplitter
 }
 
+async function waitFor(fn: () => boolean, timeout = 5000): Promise<void> {
+  let start = Date.now()
+  while (!fn()) {
+    if (Date.now() - start > timeout) throw new Error('waitFor timeout')
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+}
+
 describe('coc-mcp stdio bridge', () => {
   let server: McpServer
   let address: { host: string, port: number, socketPath: string }
@@ -509,33 +517,34 @@ describe('coc-mcp stdio bridge', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it('exits cleanly when the coc.nvim service shuts down', async () => {
+  it('reconnects when the discovery file is rewritten after a restart', async () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-bridge-'))
     fs.mkdirSync(path.join(dir, 'mcp'), { recursive: true })
     let registry = new ToolRegistry()
     registry.register({
-      name: 'bridge_exit_tool',
-      description: 'exit test',
+      name: 'before_restart',
+      description: 'before restart',
       inputSchema: { type: 'object' },
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
-    let exitServer = new McpServer({
+    let firstServer = new McpServer({
       transport: 'tcp',
       host: '127.0.0.1',
       port: 0,
-      token: 'bridge-token',
+      token: 'token-before',
       authRequired: true,
       maxClients: 2,
       timeout: 1000
     }, registry)
-    let exitAddress = await exitServer.listen()
-    fs.writeFileSync(path.join(dir, 'mcp', `coc-${process.pid}.json`), JSON.stringify({
+    let firstAddress = await firstServer.listen()
+    let file = path.join(dir, 'mcp', `coc-${process.pid}.json`)
+    fs.writeFileSync(file, JSON.stringify({
       version: 1,
       pid: process.pid,
       transport: 'tcp',
       host: '127.0.0.1',
-      port: exitAddress.port,
-      token: 'bridge-token',
+      port: firstAddress.port,
+      token: 'token-before',
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
@@ -549,13 +558,51 @@ describe('coc-mcp stdio bridge', () => {
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    // simulate coc.nvim exiting: the server closes all sessions
-    exitServer.dispose()
-    let code = await Promise.race([
-      new Promise<number | null>(resolve => proc.on('exit', resolve)),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('bridge did not exit after server shutdown')), 5000))
-    ])
-    expect(code).toBe(0)
+    let before = await request(2, 'tools/list')
+    expect(before.tools.map((t: any) => t.name)).toContain('before_restart')
+    let stderr = ''
+    proc.stderr.on('data', chunk => {
+      stderr += chunk.toString('utf8')
+    })
+    // simulate coc.nvim restarting: the old server goes away and a new one
+    // rewrites the discovery file with a new endpoint and token
+    firstServer.dispose()
+    await waitFor(() => stderr.includes('waiting for restart'))
+    let registry2 = new ToolRegistry()
+    registry2.register({
+      name: 'after_restart',
+      description: 'after restart',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    let secondServer = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'token-after',
+      authRequired: true,
+      maxClients: 2,
+      timeout: 1000
+    }, registry2)
+    let secondAddress = await secondServer.listen()
+    fs.writeFileSync(file, JSON.stringify({
+      version: 1,
+      pid: process.pid,
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: secondAddress.port,
+      token: 'token-after',
+      protocolVersion: '2025-06-18',
+      serverInfo: { name: 'coc.nvim', version: '0.0.0' },
+      apiVersion: 38,
+      startedAt: Date.now()
+    }))
+    // the bridge reconnects and relays requests to the new server
+    let after = await request(3, 'tools/list')
+    expect(after.tools.map((t: any) => t.name)).toContain('after_restart')
+    proc.stdin.end()
+    await new Promise<void>(resolve => proc.on('exit', () => resolve()))
+    secondServer.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -650,11 +697,13 @@ describe('coc-mcp stdio bridge', () => {
       apiVersion: 38,
       startedAt: Date.now()
     }))
+    let keyFile = path.join(dir, 'key.pem')
+    fs.writeFileSync(keyFile, privateKey.export({ type: 'pkcs8', format: 'pem' }).toString())
     let proc = spawn(process.execPath, [bridgePath], {
       env: {
         ...process.env,
         COC_MCP_DIR: path.join(dir, 'mcp'),
-        COC_MCP_AUTH_KEY: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
+        COC_MCP_AUTH_KEY_FILE: keyFile,
         COC_MCP_WAIT_MS: '3000'
       },
       stdio: ['pipe', 'pipe', 'pipe']
@@ -743,7 +792,7 @@ describe('coc-mcp stdio bridge', () => {
     })
     let code = await new Promise<number | null>(resolve => proc.on('exit', resolve))
     expect(code).toBe(2)
-    expect(stderr).toContain('COC_MCP_AUTH_KEY')
+    expect(stderr).toContain('COC_MCP_AUTH_KEY_FILE')
   })
 
   it('--connect with public-key auth connects to a forwarded port', async () => {

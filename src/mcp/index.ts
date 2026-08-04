@@ -17,12 +17,13 @@ import { ResourceManager } from './resources'
 import { McpServer } from './server'
 import { McpTool, ToolRegistry } from './tools'
 import { createDocumentTools } from './tools/document'
+import { createEditorTools } from './tools/editor'
 import { createLspTools } from './tools/lsp'
 import { createWorkspaceTools } from './tools/workspace'
 const logger = createLogger('mcp')
 
 export interface McpConfig {
-  enabled: boolean
+  autoStart: boolean
   host: string
   port: number
   transport: 'tcp' | 'unix'
@@ -44,6 +45,7 @@ class McpService implements Disposable {
   private registry: ToolRegistry | undefined
   private socketPath: string | undefined
   private vimLeaveDisposable: Disposable | undefined
+  private pid = 0
 
   public get running(): boolean {
     return this.server != null
@@ -92,15 +94,27 @@ class McpService implements Disposable {
   }
 
   /**
-   * Start the MCP socket server. No-op when mcp.enabled is false.
+   * Start the MCP socket server. No-op when mcp.autoStart is false, unless
+   * force is true (`:CocCommand mcp.start` starts the server regardless).
    */
-  public async start(): Promise<void> {
+  public async start(force = false): Promise<void> {
     if (this.server) return
     let config = this.getConfig()
-    if (!config.enabled) {
+    if (!force && !config.autoStart) {
       logger.info('MCP server disabled by configuration')
       return
     }
+    // The instance file is keyed by the vim pid so the bridge can detect a
+    // coc.nvim restart (same vim, new node process) from the file change.
+    let pid = process.pid
+    if (workspace.nvim) {
+      try {
+        pid = await workspace.nvim.call('getpid', []) as number
+      } catch (_e) {
+        // keep the node pid when the editor is unavailable
+      }
+    }
+    this.pid = pid
     let token = generateToken()
     let socketPath = config.transport === 'unix'
       ? path.join(getMcpDir(), `coc-${process.pid}.sock`)
@@ -153,14 +167,43 @@ class McpService implements Disposable {
         port: address.port,
         socketPath: address.socketPath || socketPath,
         token,
+        pid,
         cwd,
         workspaceRoot: root
       }))
+      if (workspace.nvim) {
+        try {
+          workspace.nvim.setVar('coc_mcp_started', 1, true)
+        } catch (_e) {
+          // ignore: state restore is best-effort
+        }
+      }
       let location = config.transport === 'unix' ? address.socketPath : `${address.host}:${address.port}`
       logger.info(`MCP server listening on ${location}, tools: ${server.tools.list().tools.length}`)
     } catch (e) {
       server.dispose()
       logger.error('Failed to start MCP server', e)
+    }
+  }
+
+  /**
+   * Called once at plugin init: start the server when mcp.autoStart is set,
+   * or when it was running before a coc.nvim restart (`:CocRestart`), whose
+   * started state is kept in a vim variable.
+   */
+  public async init(): Promise<void> {
+    let saved = 0
+    if (workspace.nvim) {
+      try {
+        saved = await workspace.nvim.eval('get(g:, "coc_mcp_started", 0)') as number
+      } catch (_e) {
+        // ignore: no vim variable yet
+      }
+    }
+    if (saved === 1) {
+      await this.start(true)
+    } else {
+      await this.start()
     }
   }
 
@@ -186,6 +229,17 @@ class McpService implements Disposable {
       this.socketPath = undefined
     }
     removeInstanceFile(process.pid)
+    if (this.pid && this.pid !== process.pid) {
+      removeInstanceFile(this.pid)
+    }
+    this.pid = 0
+    if (workspace.nvim) {
+      try {
+        workspace.nvim.setVar('coc_mcp_started', 0, true)
+      } catch (_e) {
+        // ignore
+      }
+    }
     logger.info('MCP server stopped')
   }
 
@@ -210,7 +264,7 @@ class McpService implements Disposable {
   private getRegistry(): ToolRegistry {
     if (!this.registry) {
       let registry = new ToolRegistry()
-      for (let tool of [...createWorkspaceTools(), ...createDocumentTools(), ...createLspTools()]) {
+      for (let tool of [...createWorkspaceTools(), ...createDocumentTools(), ...createLspTools(), ...createEditorTools()]) {
         registry.register(tool)
       }
       this.registry = registry
@@ -221,7 +275,7 @@ class McpService implements Disposable {
   private getConfig(): McpConfig {
     let config = workspace.getConfiguration('mcp')
     return {
-      enabled: config.get<boolean>('enabled', false),
+      autoStart: config.get<boolean>('autoStart', false),
       host: config.get<string>('host', '127.0.0.1'),
       port: config.get<number>('port', 0),
       transport: resolveTransport(config.get<string>('transport', 'auto')),

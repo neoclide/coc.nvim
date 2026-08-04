@@ -18,8 +18,8 @@ describe('mcp workspace tools', () => {
   it('workspace/configuration reads defaults from the schema', async () => {
     let tools = createWorkspaceTools()
     let tool = tools.find(t => t.name === 'workspace/configuration')!
-    let result = await tool.handler({ key: 'mcp.enabled' }, { token: CancellationToken.None })
-    expect(result.structuredContent.key).toBe('mcp.enabled')
+    let result = await tool.handler({ key: 'mcp.autoStart' }, { token: CancellationToken.None })
+    expect(result.structuredContent.key).toBe('mcp.autoStart')
     expect(result.structuredContent.value).toBe(false)
     expect(result.structuredContent.inspect).toBeTruthy()
   })

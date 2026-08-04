@@ -229,14 +229,14 @@ export default class Plugin {
     commandManager.register({
       id: 'mcp.start',
       execute: async () => {
-        await mcp.start()
+        await mcp.start(true)
         if (mcp.running) {
           await window.echoLines(['MCP server started'])
         } else {
-          await window.echoLines(['MCP server not started, set "mcp.enabled": true in coc-settings.json'])
+          await window.echoLines(['MCP server failed to start'])
         }
       }
-    }, false, 'Start the MCP socket server')
+    }, false, 'Start the MCP socket server (ignores mcp.autoStart)')
     commandManager.register({
       id: 'mcp.stop',
       execute: async () => {
@@ -250,7 +250,7 @@ export default class Plugin {
         await window.echoLines(mcp.getStatusLines())
       }
     }, false, 'Show MCP server status')
-    void mcp.start()
+    void mcp.init()
     listManager.registerLists()
     await extensions.activateExtensions()
     workspace.configurations.flushConfigurations()

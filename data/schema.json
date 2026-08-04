@@ -2557,11 +2557,11 @@
         }
       }
     },
-    "mcp.enabled": {
+    "mcp.autoStart": {
       "type": "boolean",
       "default": false,
       "scope": "application",
-      "description": "Enable the built-in MCP (Model Context Protocol) socket server that lets agents like Codex connect to coc.nvim through a stdio bridge."
+      "description": "Auto start the built-in MCP (Model Context Protocol) socket server when coc.nvim starts, so agents like Codex can connect through a stdio bridge. When disabled, the server can still be started manually with :CocCommand mcp.start."
     },
     "mcp.host": {
       "type": "string",
@@ -2653,7 +2653,7 @@
       },
       "default": [],
       "scope": "application",
-      "description": "Glob patterns of paths the MCP server may access. Empty means workspace roots and opened documents only (temporary directory is readable for fallback reads). Denied paths win over allowed paths."
+      "description": "Glob patterns of paths the MCP server may access. Empty means files in workspace roots and opened documents only (temporary directory is readable for fallback reads). Denied paths win over allowed paths."
     },
     "mcp.deniedPaths": {
       "type": "array",
@@ -2669,6 +2669,7 @@
       "items": {
         "type": "string",
         "enum": [
+          "editor/state",
           "document/read",
           "document/read_lines",
           "document/apply_edits",

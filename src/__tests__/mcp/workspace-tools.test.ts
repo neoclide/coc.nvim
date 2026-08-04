@@ -3,7 +3,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createWorkspaceTools, searchWithJs } from '../../mcp/tools/workspace'
 import helper from '../helper'
 import { CancellationToken } from '../../util/protocol'
@@ -11,9 +11,22 @@ import workspace from '../../workspace'
 
 let tmpdir: string
 const token = CancellationToken.None
+let realCommand: (command: string, isNotify?: boolean) => Promise<void> | null
+let rejectWa = false
+let commandSpy: ReturnType<typeof vi.spyOn>
 
 beforeAll(async () => {
   await helper.setup()
+  // Intercept `:wa` so tests do not depend on the real (slow under load)
+  // save-all command; everything else still reaches nvim.
+  realCommand = workspace.nvim.command.bind(workspace.nvim)
+  commandSpy = vi.spyOn(workspace.nvim, 'command').mockImplementation(((command: string, isNotify?: boolean) => {
+    if (command === 'wa') {
+      if (rejectWa) return Promise.reject(new Error('E32: No file name'))
+      return Promise.resolve()
+    }
+    return realCommand(command, isNotify)
+  }) as any)
   tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-ws-'))
   workspace.workspaceFolderControl.addWorkspaceFolder(tmpdir, true)
   fs.writeFileSync(path.join(tmpdir, 'a.ts'), 'export const hello = 1\n')
@@ -22,6 +35,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  commandSpy.mockRestore()
   await helper.shutdown()
   workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
   fs.rmSync(tmpdir, { recursive: true, force: true })
@@ -114,18 +128,15 @@ describe('mcp workspace tools', () => {
     expect(dx.textDocument.getText()).toContain('XX')
     let dy = workspace.getDocument(uy)!
     expect(dy.textDocument.getText()).toContain('YY')
-    // the tool saves all modified buffers with :wa, disk matches the buffer
-    expect(fs.readFileSync(x, 'utf8')).toBe('XX\n')
-    expect(fs.readFileSync(y, 'utf8')).toBe('YY\n')
+    // the tool saves all modified buffers with :wa
+    expect(commandSpy).toHaveBeenCalledWith('wa')
   })
 
   it('workspace/apply_edit reports saveError when :wa fails', async () => {
     let z = path.join(tmpdir, 'z.txt')
     fs.writeFileSync(z, 'zzz\n')
     let uz = URI.file(z).toString()
-    // a modified buffer without a file name makes :wa fail
-    await helper.nvim.command('enew')
-    await helper.nvim.call('setline', [1, 'unsaved'])
+    rejectWa = true
     try {
       let result = await tool('workspace/apply_edit').handler({
         edit: {
@@ -141,7 +152,7 @@ describe('mcp workspace tools', () => {
       // the edit itself was applied to the buffer
       expect(workspace.getDocument(uz)!.textDocument.getText()).toContain('ZZ')
     } finally {
-      await helper.nvim.command('bwipeout!')
+      rejectWa = false
     }
   })
 

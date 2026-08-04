@@ -444,12 +444,12 @@ keyset("n", "<space>p", ":<C-u>CocListResume<cr>", opts)
 
 coc.nvim can act as a [Model Context Protocol](https://modelcontextprotocol.io) server so agents like OpenAI Codex can read editor buffers (including unsaved changes), query the language servers and apply edits that stay in sync with Vim/Neovim.
 
-Enable it in `coc-settings.json` (disabled by default):
+Auto start it in `coc-settings.json` (disabled by default):
 
 ```json
 {
   "mcp": {
-    "enabled": true
+    "autoStart": true
   }
 }
 ```

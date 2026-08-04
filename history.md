@@ -4,6 +4,19 @@ Notable changes of coc.nvim:
 
 ## 2026-08-05
 
+- MCP: the socket server survives `:CocRestart` — its started state is kept
+  in a vim variable and restored on startup, the per-instance discovery
+  file is keyed by the vim pid, and the `coc-mcp` bridge reconnects to the
+  new endpoint/token when the file is rewritten instead of exiting.
+- MCP: `mcp.autoStart` controls whether the socket server starts
+  automatically with coc.nvim (default off); `:CocCommand mcp.start`
+  starts it on demand for the current session regardless of the setting.
+- MCP: the `coc-mcp` bridge reads the private key from
+  `COC_MCP_AUTH_KEY_FILE` (path to a PEM file).
+- MCP: new `editor/state` tool returns a snapshot of the active editor —
+  workspace root, active document (uri, language, version), cursor,
+  visual selection, visible line range, surrounding lines, innermost
+  document symbol under the cursor and current diagnostics.
 - MCP: cache idempotent LSP queries (`lsp/hover`, `lsp/definition`,
   `lsp/references` and the other read-only batch queries) keyed by document
   uri, position, method and document version with a short TTL, and invalidate
@@ -16,9 +29,9 @@ Notable changes of coc.nvim:
   queueing behind the dead requests forever. The same bound applies with
   `mcp.maxConcurrentRequests: 0` (unlimited concurrency, 16 stuck requests
   per server).
-- MCP: `workspace/apply_edit` now saves all modified buffers with `:wa`
-  after applying, so edits are on disk for subsequent tools; the result
-  reports `saved` and a `saveError` when the save fails.
+- MCP: `workspace/apply_edit` saves all modified buffers with `:wa` after
+  applying, so edits are on disk for subsequent tools; the result reports
+  `saved` and a `saveError` when the save fails.
 - MCP: new `mcp.allowedTools` whitelist controls which tools are exposed to
   agents — `tools/list` only returns whitelisted names and `tools/call`
   rejects the rest. Default is empty (no tools exposed) so tool access is
@@ -49,7 +62,7 @@ Notable changes of coc.nvim:
   (shallow merge, falling back to the default value when the item has none).
 - Add a built-in MCP (Model Context Protocol) server so agents like Codex can
   interact with the running editor through tools, notifications and resources:
-    - `mcp.enabled` starts a loopback socket server (TCP or Unix) exposing
+    - `:CocCommand mcp.start` starts a loopback socket server (TCP or Unix)
       tools to read editor buffers (including unsaved changes), search the
       workspace, apply workspace edits, and query the language servers;
       `bin/coc-mcp.js` (command `coc-mcp`) is a stdio bridge for Codex.

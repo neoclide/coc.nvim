@@ -143,7 +143,7 @@ function matchMode() {
  * port`, defaulting to 127.0.0.1). Used with SSH-forwarded loopback ports:
  * no discovery file is read, so the token-bearing coc-<pid>.json never
  * needs to leave the remote host. Public-key auth is mandatory in this
- * mode (COC_MCP_AUTH_KEY / COC_MCP_AUTH_KEY_FILE).
+ * mode (COC_MCP_AUTH_KEY_FILE).
  */
 function parseConnectEndpoint(value) {
   if (typeof value !== 'string' || value.length === 0) {
@@ -191,13 +191,10 @@ function connectEndpoint() {
 }
 
 /**
- * The bridge private key PEM: COC_MCP_AUTH_KEY holds the key content,
- * COC_MCP_AUTH_KEY_FILE points at a PEM file (easier to configure in
- * ~/.codex/config.toml, the key content is multi-line).
+ * The bridge private key PEM from COC_MCP_AUTH_KEY_FILE (a path to a PEM
+ * file, easier to configure in ~/.codex/config.toml than multi-line env).
  */
 function resolveAuthKey() {
-  const inline = process.env.COC_MCP_AUTH_KEY
-  if (typeof inline === 'string' && inline.length > 0) return inline
   const file = process.env.COC_MCP_AUTH_KEY_FILE
   if (typeof file === 'string' && file.length > 0) {
     return fs.readFileSync(file, 'utf8')
@@ -269,7 +266,7 @@ function getWaitMs() {
 function main() {
   if (process.argv.includes('--generate-key')) {
     const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
-    console.log('PRIVATE KEY (set as COC_MCP_AUTH_KEY for the bridge, keep secret):')
+    console.log('PRIVATE KEY (write to a PEM file and set COC_MCP_AUTH_KEY_FILE for the bridge, keep secret):')
     console.log(privateKey.export({ type: 'pkcs8', format: 'pem' }).toString())
     console.log('PUBLIC KEY (set as mcp.authClientPublicKey in coc-settings.json):')
     console.log(publicKey.export({ type: 'spki', format: 'pem' }).toString())
@@ -283,7 +280,7 @@ function main() {
         throw new Error('--connect cannot be combined with --match-cwd/--match-first')
       }
       if (!resolveAuthKey()) {
-        log('--connect requires public-key auth: set COC_MCP_AUTH_KEY (or COC_MCP_AUTH_KEY_FILE) to the private key')
+        log('--connect requires public-key auth: set COC_MCP_AUTH_KEY_FILE to the private key PEM file')
         log('generate a keypair with `node bin/coc-mcp.js --generate-key` and set the public key as mcp.authClientPublicKey on the remote coc.nvim')
         process.exit(2)
       }
@@ -303,7 +300,7 @@ function main() {
   }
   const waitMs = getWaitMs()
   const started = Date.now()
-  let mode = 'poll' // 'poll' | 'selection' | 'relay'
+  let mode = 'poll' // 'poll' | 'selection' | 'relay' | 'waiting'
   let closed = false
   let socket = null
   let retryTimer = null
@@ -311,6 +308,10 @@ function main() {
   let selectionBuffer = ''
   let selectionQueue = Promise.resolve()
   let agentProtocolVersion = '2025-06-18'
+  let currentInfo = null
+  let relaying = false
+  let reconnecting = false
+  let instanceWatcher = null
 
   function writeStdout(msg) {
     process.stdout.write(JSON.stringify(msg) + '\n')
@@ -329,7 +330,7 @@ function main() {
 
   function giveUp(reason) {
     log('coc.nvim MCP server did not become available within ' + waitMs + 'ms: ' + reason)
-    log('start vim/nvim with coc.nvim and set "mcp.enabled": true in coc-settings.json')
+    log('start vim/nvim with coc.nvim and set "mcp.autoStart": true in coc-settings.json, or run :CocCommand mcp.start')
     log('for slow starts raise COC_MCP_WAIT_MS and the codex mcp startup_timeout_sec, or set COC_MCP_NO_WAIT=1')
     process.exit(2)
   }
@@ -350,25 +351,117 @@ function main() {
    * Forward frames between the agent (stdin/stdout) and the connected coc
    * socket. All frames after the handshake are relayed verbatim.
    */
-  function startRelay(s) {
+  function startRelay(s, info) {
     socket = s
     mode = 'relay'
+    relaying = true
+    currentInfo = info
     log('relaying frames between codex and coc.nvim')
     s.on('data', chunk => {
       process.stdout.write(chunk)
     })
     s.on('error', err => {
-      fail(2, 'connection error: ' + err.message)
+      log('connection error: ' + err.message)
     })
     s.on('close', () => {
-      if (closed) return
-      closed = true
-      process.exit(0)
+      if (closed) {
+        // the agent ended the session: exit once the socket is gone
+        process.exit(0)
+        return
+      }
+      if (!relaying) return
+      relaying = false
+      mode = 'waiting'
+      // The agent session ends through stdin close (handled elsewhere). A
+      // socket close with the agent still connected means coc.nvim went
+      // away: wait for the discovery file to be rewritten (coc restart) and
+      // reconnect, or exit when the vim process is gone.
+      if (!currentInfo || typeof currentInfo.pid !== 'number' || !isPidAlive(currentInfo.pid)) {
+        process.exit(0)
+      }
+      log('coc.nvim MCP server disconnected, waiting for restart...')
+      handleInstanceFileEvent(currentInfo.pid)
     })
     if (stdinBuffer.length) {
       s.write(stdinBuffer)
       stdinBuffer = Buffer.alloc(0)
     }
+    watchInstanceFile(info)
+  }
+
+  /**
+   * Watch the connected instance's discovery file. coc.nvim keys it by the
+   * vim pid, so a restart rewrites the same file; the bridge reconnects to
+   * the new endpoint/token instead of exiting.
+   */
+  function watchInstanceFile(info) {
+    if (instanceWatcher) {
+      instanceWatcher.close()
+      instanceWatcher = null
+    }
+    if (!info || typeof info.pid !== 'number') return
+    const name = 'coc-' + info.pid + '.json'
+    try {
+      instanceWatcher = fs.watch(mcpInstancesDir(), (_event, filename) => {
+        if (filename !== name) return
+        handleInstanceFileEvent(info.pid)
+      })
+    } catch (e) {
+      // directory watching unavailable: no reconnect support
+    }
+  }
+
+  function handleInstanceFileEvent(pid) {
+    if (closed || reconnecting) return
+    const filepath = path.join(mcpInstancesDir(), 'coc-' + pid + '.json')
+    if (!fs.existsSync(filepath)) {
+      // removed (or not written yet): vim gone means the session is over
+      if (!isPidAlive(pid)) process.exit(0)
+      return
+    }
+    let info
+    try {
+      info = readDiscovery(filepath)
+    } catch (e) {
+      // mid-write: retry shortly
+      setTimeout(() => handleInstanceFileEvent(pid), 200)
+      return
+    }
+    if (!isPidAlive(info.pid)) {
+      process.exit(0)
+      return
+    }
+    if (currentInfo && sameEndpoint(currentInfo, info)) return
+    reconnectTo(info)
+  }
+
+  function sameEndpoint(a, b) {
+    if (a.transport !== b.transport || a.token !== b.token) return false
+    if (a.transport === 'unix') return a.socketPath === b.socketPath
+    return a.host === b.host && a.port === b.port
+  }
+
+  /**
+   * Reconnect to a restarted coc.nvim MCP server: close the old socket and
+   * run the handshake (auth + the bridge's own initialize) against the new
+   * endpoint, then resume relaying.
+   */
+  function reconnectTo(info) {
+    if (closed || relaying || reconnecting) return
+    reconnecting = true
+    log('coc.nvim MCP server restarted, reconnecting...')
+    if (socket) {
+      const old = socket
+      old.removeAllListeners('close')
+      old.destroy()
+      socket = null
+    }
+    connectToInstance(info, true).then(() => {
+      reconnecting = false
+    }).catch(err => {
+      reconnecting = false
+      log('reconnect failed: ' + err.message + ', waiting for the next restart')
+    })
   }
 
   /**
@@ -448,7 +541,7 @@ function main() {
               log('server capabilities: ' + (Object.keys(caps).join(', ') || '(none)'))
               if (!internalInit) {
                 s.removeListener('data', onData)
-                startRelay(s)
+                startRelay(s, info)
                 resolve(s)
                 return
               }
@@ -471,7 +564,7 @@ function main() {
                 return
               }
               s.removeListener('data', onData)
-              startRelay(s)
+              startRelay(s, info)
               resolve(s)
               return
             }

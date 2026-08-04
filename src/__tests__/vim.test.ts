@@ -89,11 +89,11 @@ describe('rpc client', () => {
 describe('mcp server on vim', () => {
   afterEach(() => {
     mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false, 'mcp.allowedTools': [] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [] })
   })
 
   it('serves MCP tools over the socket on Vim', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['document/read', 'workspace/configuration'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['document/read', 'workspace/configuration'] })
     await mcp.start()
     expect(mcp.running).toBe(true)
     let status = mcp.status()
@@ -104,8 +104,10 @@ describe('mcp server on vim', () => {
       expect(status.socketPath).toBeTruthy()
     }
     expect(status.tools).toContain('document/read')
-    let info = readDiscoveryFile(getInstanceFilePath(process.pid))
+    let vimPid = await nvim.call('getpid', []) as number
+    let info = readDiscoveryFile(getInstanceFilePath(vimPid))
     expect(info).not.toBeNull()
+    expect(info!.pid).toBe(vimPid)
     let client = info!.transport === 'unix'
       ? new TestClient(info!.socketPath)
       : new TestClient(info!.port)
@@ -116,7 +118,7 @@ describe('mcp server on vim', () => {
     expect(list.tools.length).toBeGreaterThan(0)
     let conf = await client.request(3, 'tools/call', {
       name: 'workspace/configuration',
-      arguments: { key: 'mcp.enabled' }
+      arguments: { key: 'mcp.autoStart' }
     })
     expect(conf.structuredContent.value).toBe(true)
     let shutdown = await client.request(4, 'shutdown')
@@ -126,7 +128,7 @@ describe('mcp server on vim', () => {
   })
 
   it('includes MCP status in CocInfo output', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
     await mcp.start()
     await helper.plugin.cocAction('showInfo')
     let buffer = await helper.nvim.buffer
@@ -136,6 +138,22 @@ describe('mcp server on vim', () => {
     expect(content).toContain('MCP server: running')
     expect(content).toContain('cwd:')
     await helper.nvim.command('bwipeout!')
+  })
+
+  it('restores the MCP server across coc restarts from the vim state', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
+    await mcp.start(true)
+    expect(mcp.running).toBe(true)
+    expect(await nvim.eval('get(g:, "coc_mcp_started", 0)')).toBe(1)
+    mcp.stop()
+    expect(mcp.running).toBe(false)
+    expect(await nvim.eval('get(g:, "coc_mcp_started", 0)')).toBe(0)
+    // simulate a coc.nvim restart: the vim variable still remembers that the
+    // server was running, so init() starts it again
+    nvim.setVar('coc_mcp_started', 1, true)
+    await mcp.init()
+    expect(mcp.running).toBe(true)
+    mcp.stop()
   })
 })
 

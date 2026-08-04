@@ -11,11 +11,11 @@ import workspace from '../../workspace'
 describe('mcp service', () => {
   afterEach(() => {
     mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false, 'mcp.allowedTools': [] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [] })
   })
 
   it('starts the socket server and writes the per-instance discovery file', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['workspace/info', 'workspace/configuration'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['workspace/info', 'workspace/configuration'] })
     await mcp.start()
     expect(mcp.running).toBe(true)
     let status = mcp.status()
@@ -44,7 +44,7 @@ describe('mcp service', () => {
   })
 
   it('removes the per-instance discovery file and stops listening on stop', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
     await mcp.start()
     let instancePath = getInstanceFilePath(process.pid)
     expect(fs.existsSync(instancePath)).toBe(true)
@@ -58,14 +58,21 @@ describe('mcp service', () => {
   })
 
   it('does nothing when disabled', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
     await mcp.start()
     expect(mcp.running).toBe(false)
     expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
   })
 
+  it('starts even when disabled when forced', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
+    await mcp.start(true)
+    expect(mcp.running).toBe(true)
+    expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(true)
+  })
+
   it('formats human-readable status lines', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['document/read', 'lsp/references'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['document/read', 'lsp/references'] })
     await mcp.start()
     let lines = mcp.getStatusLines()
     expect(lines[0]).toBe('MCP server: running')
@@ -80,7 +87,7 @@ describe('mcp service', () => {
   })
 
   it('stops the MCP service on VimLeavePre', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
     await mcp.start()
     expect(mcp.running).toBe(true)
     await events.fire('VimLeavePre', [])
@@ -106,7 +113,7 @@ describe('mcp service', () => {
   })
 
   it('registers a custom extension tool visible in tools/list', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/hello'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['extension/hello'] })
     let disposable = mcp.registerTool({
       name: 'extension/hello',
       description: 'extension tool',
@@ -120,7 +127,7 @@ describe('mcp service', () => {
   })
 
   it('registers a tool while running and unregisters on dispose', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/live'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['extension/live'] })
     await mcp.start()
     let disposable = mcp.registerTool({
       name: 'extension/live',
@@ -150,7 +157,7 @@ describe('mcp service', () => {
   })
 
   it('keeps extension tools across server restarts', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true, 'mcp.allowedTools': ['extension/persist'] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['extension/persist'] })
     let disposable = mcp.registerTool({
       name: 'extension/persist',
       description: 'extension tool',

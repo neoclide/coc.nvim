@@ -1,7 +1,8 @@
 # Example `~/.codex/config.toml` section for the coc.nvim MCP server.
 #
 # 1. Enable the server in coc-settings.json:
-#      { "mcp": { "enabled": true } }
+#      { "mcp": { "autoStart": true } }
+#    (or start it manually per session with :CocCommand mcp.start)
 # 2. Copy the [mcp_servers.coc] section below into ~/.codex/config.toml
 #    and adjust the paths.
 # 3. Run `codex mcp list` to verify, then start a Codex session.

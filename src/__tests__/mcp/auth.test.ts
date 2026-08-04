@@ -35,7 +35,8 @@ describe('mcp auth', () => {
     let info = createDiscoveryInfo({
       transport: 'unix',
       socketPath: '/tmp/coc-mcp-test.sock',
-      token: 'token-2'
+      token: 'token-2',
+      pid: process.pid
     })
     expect(info.socketPath).toBe('/tmp/coc-mcp-test.sock')
     expect(info.port).toBeUndefined()
@@ -47,6 +48,7 @@ describe('mcp auth', () => {
       host: '127.0.0.1',
       port: 23456,
       token: 'token-instance',
+      pid: process.pid,
       cwd: '/tmp/project-a',
       workspaceRoot: '/tmp/project-a'
     })

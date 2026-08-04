@@ -124,12 +124,13 @@ export function createDiscoveryInfo(options: {
   port?: number
   socketPath?: string
   token: string
+  pid: number
   cwd?: string
   workspaceRoot?: string
 }): DiscoveryInfo {
   return {
     version: 1,
-    pid: process.pid,
+    pid: options.pid,
     transport: options.transport,
     host: options.host,
     port: options.port,
