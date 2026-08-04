@@ -440,6 +440,33 @@ keyset("n", "<space>k", ":<C-u>CocPrev<cr>", opts)
 keyset("n", "<space>p", ":<C-u>CocListResume<cr>", opts)
 ```
 
+## MCP Server
+
+coc.nvim can act as a [Model Context Protocol](https://modelcontextprotocol.io) server so agents like OpenAI Codex can read editor buffers (including unsaved changes), query the language servers and apply edits that stay in sync with Vim/Neovim.
+
+Enable it in `coc-settings.json` (disabled by default):
+
+```json
+{
+  "mcp": {
+    "enabled": true
+  }
+}
+```
+
+Register the stdio bridge in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.coc]
+command = "node"
+args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
+enabled = true
+```
+
+Run `codex mcp list` to verify the server, then call tools such as `document/read`, `lsp/references` or `workspace/apply_edit`. See [doc/coc-mcp.txt](doc/coc-mcp.txt) for the interface specification and tool list.
+
+The bridge waits up to 15s (configurable with the `COC_MCP_WAIT_MS` environment variable in `[mcp_servers.coc.env]`) for coc.nvim to start, so a Codex session can be opened before vim is running.
+
 ## Articles
 
 - [coc.nvim 插件体系介绍](https://zhuanlan.zhihu.com/p/65524706)

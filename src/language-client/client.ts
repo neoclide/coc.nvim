@@ -1584,6 +1584,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private changeTrace(trace: Trace, traceFormat: TraceFormat, sendNotification = true): void {
+    if (this._trace === trace) return
     this._trace = trace
     this._traceFormat = traceFormat
     if (this._connection && (this.$state === ClientState.Running || this.$state === ClientState.Starting)) {

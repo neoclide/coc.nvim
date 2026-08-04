@@ -304,6 +304,13 @@ connection.onSignatureHelp(_params => {
 })
 
 connection.onReferences(params => {
+  if (params.textDocument.uri.endsWith('many.vim')) {
+    const many = []
+    for (let i = 0; i < 250; i++) {
+      many.push(Location.create(params.textDocument.uri, Range.create(i, 0, i, 1)))
+    }
+    return many
+  }
   return [
     Location.create(params.textDocument.uri, Range.create(0, 0, 0, 0)),
     Location.create(params.textDocument.uri, Range.create(1, 1, 1, 1))
@@ -318,6 +325,13 @@ connection.onDocumentHighlight(_params => {
 
 connection.onCodeAction(params => {
   if (params.textDocument.uri.endsWith('empty.bat')) return undefined
+  if (params.textDocument.uri.endsWith('many.vim')) {
+    const many = []
+    for (let i = 0; i < 150; i++) {
+      many.push(CodeAction.create('title' + i))
+    }
+    return many
+  }
   return [
     CodeAction.create('title', Command.create('title', 'test_command')),
     CodeAction.create('other title'),
@@ -380,6 +394,13 @@ connection.onDocumentLinkResolve(link => {
 })
 
 connection.onDocumentSymbol(_params => {
+  if (_params.textDocument.uri.endsWith('many.vim')) {
+    const many = []
+    for (let i = 0; i < 600; i++) {
+      many.push(DocumentSymbol.create('name' + i, undefined, SymbolKind.Method, Range.create(i, 1, i + 1, 1), Range.create(i, 1, i, 3)))
+    }
+    return many
+  }
   return [
     DocumentSymbol.create('name', undefined, SymbolKind.Method, Range.create(1, 1, 3, 1), Range.create(2, 1, 2, 3))
   ]
@@ -520,7 +541,17 @@ connection.languages.semanticTokens.onDelta(() => {
   }
 })
 
-connection.languages.diagnostics.on(() => {
+connection.languages.diagnostics.on(params => {
+  if (params && params.textDocument && params.textDocument.uri.endsWith('many.vim')) {
+    const items = []
+    for (let i = 0; i < 150; i++) {
+      items.push(Diagnostic.create(Range.create(i, 1, i, 1), 'diagnostic ' + i, DiagnosticSeverity.Error))
+    }
+    return {
+      kind: DocumentDiagnosticReportKind.Full,
+      items
+    }
+  }
   return {
     kind: DocumentDiagnosticReportKind.Full,
     items: [
@@ -639,7 +670,14 @@ connection.onRequest(new ProtocolRequestType('testing/sendPercentageProgress'), 
 })
 
 const uri = 'file:///abc.txt'
-connection.onWorkspaceSymbol(() => {
+connection.onWorkspaceSymbol(params => {
+  if (params && params.query && params.query.startsWith('many')) {
+    const many = []
+    for (let i = 0; i < 600; i++) {
+      many.push({name: 'name' + i, kind: SymbolKind.Array, location: {uri}})
+    }
+    return many
+  }
   return [
     {name: 'name', kind: SymbolKind.Array, location: {uri}}
   ]

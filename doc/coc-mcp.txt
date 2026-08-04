@@ -1,0 +1,243 @@
+*coc-mcp.txt*				MCP server integration for coc.nvim
+
+MCP (Model Context Protocol) integration lets agents like OpenAI Codex
+connect to the running coc.nvim instance, read editor buffers (including
+unsaved changes), explore code through the language servers and apply
+edits that stay in sync with Vim/Neovim.
+
+TABLE OF CONTENTS				*coc-mcp-toc*
+
+Overview					|coc-mcp-overview|
+Enable						|coc-mcp-enable|
+Codex setup					|coc-mcp-codex|
+Commands					|coc-mcp-commands|
+Configuration					|coc-mcp-configuration|
+Result limits					|coc-mcp-result-limits|
+Security					|coc-mcp-security|
+Troubleshooting					|coc-mcp-troubleshooting|
+Remote over SSH					|coc-mcp-ssh|
+
+==============================================================================
+1. OVERVIEW					*coc-mcp-overview*
+
+coc.nvim starts a local MCP server over a loopback socket (TCP or Unix
+socket). Codex spawns a tiny stdio bridge (`coc-mcp`) which forwards MCP
+messages between Codex and the socket.
+
+==============================================================================
+2. ENABLE					*coc-mcp-enable*
+
+The server is disabled by default. Enable it explicitly in
+coc-settings.json:
+
+	{
+	  "mcp": {
+	    "enabled": true
+	  }
+	}
+
+By default (`mcp.transport: "auto"`) the server listens on a per-process
+Unix socket on macOS/Linux (no local TCP port is exposed) and falls back
+to loopback TCP with a random port on Windows. The connection info
+(address + per-start token) is written to `~/.coc/mcp/coc-<pid>.json`; the
+file (and the unix socket, when used) is removed when coc.nvim exits, and
+stale files from crashed instances are cleaned up by the bridge whenever it
+scans the directory.
+
+Use `:CocCommand mcp.status` to show the current address, working
+directory and connected clients (each with its pid and connect/last-activity
+time) and the full list of available MCP tools. `:CocInfo` includes the same
+MCP status section.
+
+==============================================================================
+3. CODEX SETUP				*coc-mcp-codex*
+
+Add a stdio MCP server to `~/.codex/config.toml`:
+
+	[mcp_servers.coc]
+	command = "node"
+	args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
+	enabled = true
+
+No environment variables are required: the bridge reads the per-instance
+discovery files from `~/.coc/mcp` (the same directory coc.nvim writes them
+to). `COC_MCP_DIR` optionally overrides that directory for special setups
+(e.g. tests or remote mounts). Run `codex mcp list` to verify the server
+shows up, then start a Codex session and call tools such as
+`document/read`, `lsp/references` (or `lsp/batch` to run several LSP
+queries in one call) or `workspace/apply_edit`.
+A commented example with timeouts and an optional tool whitelist lives in
+`doc/coc-mcp-example.toml`.
+
+The bridge waits for the MCP service instead of failing immediately: if
+coc.nvim is not running yet (or is restarting), it polls the discovery
+file and socket until the service appears (default up to 15s, configurable
+with the `COC_MCP_WAIT_MS` environment variable; `COC_MCP_NO_WAIT=1`
+restores the immediate-exit behavior). Make sure Codex's
+`startup_timeout_sec` is large enough for the wait window.
+
+	[mcp_servers.coc]
+	command = "node"
+	args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
+	enabled = true
+	startup_timeout_sec = 30
+
+	[mcp_servers.coc.env]
+	COC_MCP_WAIT_MS = "30000"   # wait up to 30s for the service
+
+Multiple editor instances: ~
+
+Each running coc.nvim writes its own discovery file under
+`~/.coc/mcp/coc-<pid>.json` (with `pid`, port, token, protocol
+version and workspace root), so several vim/neovim instances do not
+overwrite each other. The bridge picks an instance as follows:
+
+- `--match-cwd` connects to the first instance whose workspace root
+  contains the bridge working directory (symlinks are normalized);
+- `--match-first` connects to the first available instance, ignoring the
+  working directory (useful when the agent is not started from a
+  terminal);
+- otherwise the single live instance, or the single cwd-matching instance,
+  is used automatically;
+- with several instances and no clear match the bridge enters *selection
+  mode*: it answers the MCP session itself and exposes two tools so the
+  agent can choose at runtime: `coc/instances` (list pid, workspace root,
+  version) and `coc/connect` (connect to a pid). After `coc/connect` the
+  bridge relays the chosen instance's tools.
+
+`mcp.status` shows the server pid, working directory and the connected
+clients (each bridge reports its own pid). In the agent, `coc/instances` /
+`coc/connect` (selection mode) list and pick instances at runtime.
+
+==============================================================================
+4. COMMANDS					*coc-mcp-commands*
+
+`:CocCommand mcp.start`		Start the MCP server (requires
+				`"mcp.enabled": true`)
+`:CocCommand mcp.stop`		Stop the MCP server
+`:CocCommand mcp.status`	Show address, cwd, connected clients (pid and
+				connect/last-activity time) and the full
+				tool list
+
+==============================================================================
+5. CONFIGURATION				*coc-mcp-configuration*
+
+All options live under the `mcp` section; see |coc-config-mcp| for the
+full list. Highlights:
+
+	mcp.enabled			Enable the socket server.
+	mcp.allowedPaths		Glob patterns of accessible paths.
+	mcp.deniedPaths			Glob patterns that are never accessible.
+	mcp.maxRequestsPerSecond	Per-session request rate limit.
+	mcp.authClientPublicKey		PEM public key; when set, clients
+					authenticate by signing a challenge
+					(replaces the per-start token).
+	mcp.timeout			Tool call timeout in milliseconds
+					(default `5000`, mutating tools).
+	mcp.readTimeout			Timeout for read-only tools such as LSP
+					queries (default `15000`).
+
+==============================================================================
+6. RESULT LIMITS				*coc-mcp-result-limits*
+
+LSP list tools cap the number of returned items so large results do not
+flood the agent or cost unnecessary memory/time (the server still counts
+all results). Each affected tool accepts an optional `maxResults`
+argument (minimum 1, hard maximum 1000):
+
+	lsp/references, lsp/definition, lsp/declaration,
+	lsp/type_definition, lsp/implementation		default 200
+	lsp/document_symbols, lsp/workspace_symbols	default 500
+	lsp/diagnostics, lsp/code_actions		default 100
+
+When the result was truncated, the structured output adds
+`returned` (number actually returned) and `truncated` (true) next to
+`count` (total found), and the text content notes how many results were
+shown. The truncation happens before the results are serialized, so
+asking for fewer results also makes the call faster.
+
+==============================================================================
+7. SECURITY				*coc-mcp-security*
+
+- The server binds loopback only and requires a per-start random token.
+- Public-key client auth: set `mcp.authClientPublicKey` (PEM) and give the
+  bridge the matching private key via `COC_MCP_AUTH_KEY` (or
+  `COC_MCP_AUTH_KEY_FILE` for a PEM file). When configured, the client
+  authenticates by signing a server-issued nonce (`coc/challenge`) and the
+  per-start token is no longer required. This is mandatory for `--connect`
+  (see |coc-mcp-ssh|) so the token-bearing discovery file never has to
+  leave the remote host. Generate a keypair with
+  `node bin/coc-mcp.js --generate-key`. Off by default (token-only).
+- Path access is restricted to workspace roots and opened documents
+  unless `mcp.allowedPaths` extends it; `mcp.deniedPaths` always wins.
+- Mutating tool calls are serialized across clients by a global write
+  lock; read-only tools run in parallel.
+- Destructive tools carry MCP `destructiveHint` annotations so Codex
+  prompts for confirmation before invoking them.
+
+==============================================================================
+8. TROUBLESHOOTING				*coc-mcp-troubleshooting*
+
+`codex mcp list` shows the server but tools do not appear:
+- Make sure coc.nvim is running and `"mcp.enabled": true` is set.
+- Check `~/.coc/mcp/coc-<pid>.json` exists.
+- If coc.nvim starts slowly, raise `startup_timeout_sec` in
+  `~/.codex/config.toml` and `COC_MCP_WAIT_MS` for the bridge.
+- If `mcp.authClientPublicKey` is configured but the bridge has no
+  `COC_MCP_AUTH_KEY`, authentication fails: set the private key or clear
+  the config.
+- With several vim instances the bridge may connect to the wrong one: run
+  the bridge from the workspace directory of the target instance, or use
+  selection mode (`coc/instances` / `coc/connect`) inside the agent.
+
+Edits are not visible on disk:
+- Tool edits always go through editor buffers; use `document/write` or
+  `:wa` when a tool result reports `pendingSave`.
+
+==============================================================================
+9. REMOTE OVER SSH				*coc-mcp-ssh*
+
+The server binds loopback only, so it cannot be reached over the network
+directly. To use it on a remote host, forward the MCP port over SSH and
+run the bridge locally. Public-key auth is required for this scenario:
+never copy the per-instance discovery file (`coc-<pid>.json`) to the local
+machine - it contains the per-start token, which also changes every time
+coc.nvim restarts.
+
+Setup on the remote host:
+
+	# generate a keypair once (do this locally or remotely, keep the
+	# private key on the local machine):
+	node /path/to/coc.nvim/bin/coc-mcp.js --generate-key
+
+	# set mcp.authClientPublicKey in the remote coc-settings.json to the
+	# generated public key, then restart coc.nvim. Read the port from
+	# ~/.coc/mcp/coc-<pid>.json.
+
+On the local machine, forward the port and configure the bridge to connect
+to it with `--connect`, authenticated by the private key (no discovery
+file, no token):
+
+	ssh -N -L 127.0.0.1:PORT:127.0.0.1:PORT user@remote-host
+
+	[mcp_servers.coc]
+	command = "node"
+	args = ["/path/to/coc.nvim/bin/coc-mcp.js", "--connect=127.0.0.1:PORT"]
+	enabled = true
+	startup_timeout_sec = 30
+
+	[mcp_servers.coc.env]
+	COC_MCP_AUTH_KEY_FILE = "/home/user/.config/coc-mcp/key.pem"
+	COC_MCP_WAIT_MS = "30000"
+
+`--connect` accepts `host:port` (or a bare `port`, defaulting to
+`127.0.0.1`; IPv6 like `[::1]:port` works too). The bridge sends
+`coc/challenge`, signs the nonce with the private key from
+`COC_MCP_AUTH_KEY` (PEM content) or `COC_MCP_AUTH_KEY_FILE` (path to a PEM
+file) and authenticates; the remote server must have
+`mcp.authClientPublicKey` set to the matching public key. Keep the private
+key private; never forward it to untrusted hosts.
+
+See also: |coc-config-mcp|.
+==============================================================================
+vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:

@@ -15,6 +15,7 @@ Core features
 	Http 					|coc-config-http|
 	Npm 					|coc-config-npm|
 	Language server 			|coc-config-languageserver|
+	MCP 					|coc-config-mcp|
 
 LSP features
 	Call hierarchy 				|coc-config-callHierarchy|
@@ -702,6 +703,151 @@ Language server using an initialized socket server: ~
 
 	- "host": Host of the socket server; defaults to `127.0.0.1`.
 
+
+==============================================================================
+
+MCP
+							*coc-config-mcp*
+
+Configurations of the built-in MCP (Model Context Protocol) socket server,
+which lets agents like Codex connect to the running coc.nvim instance through
+the `coc-mcp` stdio bridge.
+
+"mcp.enabled"				*coc-config-mcp-enabled*
+
+	Enable the MCP socket server. When enabled, coc.nvim listens on a
+	loopback socket and writes the connection info (port and per-start
+	token) to `~/.coc/mcp/coc-<pid>.json`.
+
+	Default: `false`
+
+"mcp.host"				*coc-config-mcp-host*
+
+	Host the MCP socket server binds to. Only loopback is supported.
+
+	Default: `"127.0.0.1"`
+
+"mcp.port"				*coc-config-mcp-port*
+
+	Port of the MCP socket server. `0` picks a random free port; the
+	active port is written to `~/.coc/mcp/coc-<pid>.json`.
+
+	Default: `0`
+
+"mcp.transport"				*coc-config-mcp-transport*
+
+	Socket transport of the MCP server: `"auto"` (default) uses a
+	per-process Unix socket under `~/.coc/mcp` on macOS/Linux and
+	loopback TCP on Windows, so no local TCP port is exposed where the
+	platform supports it; `"tcp"` forces loopback TCP; `"unix"` forces a
+	Unix socket.
+
+"mcp.authRequired"			*coc-config-mcp-authRequired*
+
+	Require the per-start random token (`coc/auth`) before an MCP
+	connection is accepted. Disable only for trusted local debugging.
+
+	Default: `true`
+
+"mcp.authClientPublicKey"		*coc-config-mcp-authClientPublicKey*
+
+	Optional PEM public key (SPKI) of the MCP client (the `coc-mcp`
+	bridge). When set, clients must prove possession of the matching
+	private key by signing a server-issued nonce (`coc/challenge`) in
+	place of the per-start token. This is required for the bridge's
+	`--connect` mode (SSH-forwarded ports), where the token-bearing
+	discovery file must not leave the remote host. Generate a keypair with
+	`node bin/coc-mcp.js --generate-key`, put the public key here and the
+	private key in the bridge's `COC_MCP_AUTH_KEY` (or
+	`COC_MCP_AUTH_KEY_FILE`) environment variable. Empty (default) keeps
+	the token-only flow.
+
+"mcp.maxClients"			*coc-config-mcp-maxClients*
+
+	Maximum concurrent MCP client connections.
+
+	Default: `4`
+
+"mcp.frameMaxBytes"			*coc-config-mcp-frameMaxBytes*
+
+	Maximum size of a single MCP JSON-RPC frame in bytes.
+
+	Default: `16777216`
+
+"mcp.timeout"				*coc-config-mcp-timeout*
+
+	Timeout in milliseconds for MCP tool calls. `0` disables the timeout.
+
+	Default: `5000`
+
+"mcp.readTimeout"			*coc-config-mcp-readTimeout*
+
+	Timeout in milliseconds for read-only MCP tool calls (LSP queries such
+	as hover, references or workspace symbols), which are typically slower
+	than mutating operations. `0` disables the timeout. Agents cannot
+	override these timeouts.
+
+	Default: `15000`
+
+"mcp.idleTimeout"			*coc-config-mcp-idleTimeout*
+
+	Close MCP sessions idle for this many milliseconds. `0` disables the
+	idle timeout.
+
+	Default: `0`
+
+"mcp.maxRequestsPerSecond"		*coc-config-mcp-maxRequestsPerSecond*
+
+	Maximum number of JSON-RPC requests per second per MCP session.
+	`0` disables the rate limit.
+
+	Default: `60`
+
+"mcp.maxConcurrentRequests"		*coc-config-mcp-maxConcurrentRequests*
+
+	Maximum number of LSP requests MCP tools may send to a single
+	language server at the same time. Extra requests wait in a per-service
+	queue until a slot frees up, so several MCP clients cannot overwhelm
+	one language server. Different servers have different capacity; tune
+	per setup. `0` disables the limit.
+
+	Default: `4`
+
+"mcp.logLevel"				*coc-config-mcp-logLevel*
+
+	Log level of the MCP server: `"debug"`, `"info"`, `"warn"` or
+	`"error"`.
+
+	Default: `"info"`
+
+"mcp.languageServiceMap"		*coc-config-mcp-languageServiceMap*
+
+	Map of `languageId` to language server id. When a document's
+	languageId has an entry, LSP query tools (hover, definition,
+	references, document symbols, rename, ...) send the request directly
+	to that server instead of aggregating all matching providers. This
+	avoids waiting for the slowest of several attached language servers.
+	`lsp/code_actions` always aggregates all matching providers. Server
+	ids are shown by `:CocList services`. Leave empty (default) to keep
+	the aggregated provider behavior.
+
+	Default: `{}`
+
+"mcp.allowedPaths"			*coc-config-mcp-allowedPaths*
+
+	Glob patterns of paths the MCP server may access. When empty, only
+	workspace roots and documents opened in the editor are allowed (the
+	temporary directory stays readable for fallback reads). Denied paths
+	win over allowed paths.
+
+	Default: `[]`
+
+"mcp.deniedPaths"			*coc-config-mcp-deniedPaths*
+
+	Glob patterns of paths the MCP server must never access; applied
+	before `mcp.allowedPaths`.
+
+	Default: `[]`
 
 ==============================================================================
 

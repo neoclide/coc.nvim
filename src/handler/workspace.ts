@@ -10,6 +10,7 @@ import { PatternType } from '../core/workspaceFolder'
 import extensions from '../extension'
 import languages, { ProviderName } from '../languages'
 import { getLoggerFile } from '../logger'
+import mcp from '../mcp'
 import Highlighter from '../model/highlighter'
 import snippetManager from '../snippets/manager'
 import { defaultValue } from '../util'
@@ -274,6 +275,10 @@ export default class WorkspaceHandler {
     lines.push('coc.nvim directory: ' + path.dirname(__dirname))
     lines.push('term: ' + defaultValue(process.env.TERM_PROGRAM, process.env.TERM))
     lines.push('platform: ' + process.platform)
+    lines.push('')
+    lines.push('## MCP server')
+    lines.push('')
+    lines.push(...mcp.getStatusLines())
     lines.push('')
     lines.push('## Log of coc.nvim')
     lines.push('')

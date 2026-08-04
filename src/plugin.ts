@@ -13,6 +13,7 @@ import { AcceptKind, InlineSuggestOption } from './handler/inline'
 import languages from './languages'
 import listManager from './list/manager'
 import { createLogger } from './logger'
+import mcp from './mcp'
 import { Neovim } from '@chemzqm/neovim'
 import services from './services'
 import snippetManager from './snippets/manager'
@@ -225,6 +226,31 @@ export default class Plugin {
     diagnosticManager.init()
     this.handler = new Handler(nvim)
     this.disposables.push(this.handler)
+    commandManager.register({
+      id: 'mcp.start',
+      execute: async () => {
+        await mcp.start()
+        if (mcp.running) {
+          await window.echoLines(['MCP server started'])
+        } else {
+          await window.echoLines(['MCP server not started, set "mcp.enabled": true in coc-settings.json'])
+        }
+      }
+    }, false, 'Start the MCP socket server')
+    commandManager.register({
+      id: 'mcp.stop',
+      execute: async () => {
+        mcp.stop()
+        await window.echoLines(['MCP server stopped'])
+      }
+    }, false, 'Stop the MCP socket server')
+    commandManager.register({
+      id: 'mcp.status',
+      execute: async () => {
+        await window.echoLines(mcp.getStatusLines())
+      }
+    }, false, 'Show MCP server status')
+    void mcp.start()
     listManager.registerLists()
     await extensions.activateExtensions()
     workspace.configurations.flushConfigurations()
@@ -268,5 +294,6 @@ export default class Plugin {
     commandManager.dispose()
     completion.dispose()
     diagnosticManager.dispose()
+    mcp.dispose()
   }
 }

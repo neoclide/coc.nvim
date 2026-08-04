@@ -10,8 +10,12 @@ import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
+import mcp from '../mcp'
+import { getInstanceFilePath, readDiscoveryFile } from '../mcp/auth'
 import { sameFile } from '../util/fs'
+import workspace from '../workspace'
 import helper from './helper'
+import { TestClient } from './mcp/testClient'
 
 function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
@@ -79,6 +83,59 @@ describe('rpc client', () => {
       call g:fake['notify']('testMethod', [])
     `)
     expect(await nvim.call('eval', ["coc#client#get_client('fake')['running']"])).toBe(0)
+  })
+})
+
+describe('mcp server on vim', () => {
+  afterEach(() => {
+    mcp.stop()
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': false })
+  })
+
+  it('serves MCP tools over the socket on Vim', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    await mcp.start()
+    expect(mcp.running).toBe(true)
+    let status = mcp.status()
+    expect(status.transport).toBe(process.platform === 'win32' ? 'tcp' : 'unix')
+    if (status.transport === 'tcp') {
+      expect(status.port).toBeGreaterThan(0)
+    } else {
+      expect(status.socketPath).toBeTruthy()
+    }
+    expect(status.tools).toContain('document/read')
+    let info = readDiscoveryFile(getInstanceFilePath(process.pid))
+    expect(info).not.toBeNull()
+    let client = info!.transport === 'unix'
+      ? new TestClient(info!.socketPath)
+      : new TestClient(info!.port)
+    await client.request(0, 'coc/auth', { token: info!.token })
+    await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
+    client.notify('notifications/initialized')
+    let list = await client.request(2, 'tools/list')
+    expect(list.tools.length).toBeGreaterThan(0)
+    let conf = await client.request(3, 'tools/call', {
+      name: 'workspace/configuration',
+      arguments: { key: 'mcp.enabled' }
+    })
+    expect(conf.structuredContent.value).toBe(true)
+    let shutdown = await client.request(4, 'shutdown')
+    expect(shutdown).toBeNull()
+    client.notify('notifications/exit')
+    client.close()
+  })
+
+  it('includes MCP status in CocInfo output', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.enabled': true })
+    await mcp.start()
+    await helper.plugin.cocAction('showInfo')
+    let buffer = await helper.nvim.buffer
+    let lines = (await buffer.lines) as string[]
+    let content = lines.join('\n')
+    expect(content).toContain('## MCP server')
+    expect(content).toContain('MCP server: running')
+    expect(content).toContain('cwd:')
+    await helper.nvim.command('bwipeout!')
   })
 })
 

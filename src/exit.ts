@@ -1,5 +1,6 @@
 'use strict'
 import { createLogger } from './logger'
+import mcp from './mcp'
 import services from './services'
 const logger = createLogger('exit')
 
@@ -25,6 +26,7 @@ export function setExitHook(fn: ExitFunction): void {
  */
 export function gracefulExit(signal: string): void {
   logger.info(`Received ${signal}, stopping language servers`)
+  mcp.stop()
   let timer = setTimeout(() => exitFn(0), EXIT_TIMEOUT)
   void services.stopAll(EXIT_TIMEOUT).finally(() => {
     clearTimeout(timer)

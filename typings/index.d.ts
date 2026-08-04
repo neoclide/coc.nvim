@@ -15623,6 +15623,48 @@ declare module 'coc.nvim' {
      */
     start(): Disposable
   }
+
+  /**
+   * MCP (Model Context Protocol) server integration. Register custom tools
+   * from extensions with `registerTool`; they become visible to connected
+   * MCP clients like Codex.
+   */
+  export const mcp: {
+    readonly running: boolean
+    start(): Promise<void>
+    stop(): void
+    status(): any
+    registerTool(tool: mcp.Tool): Disposable
+  }
+  export namespace mcp {
+    interface ToolAnnotations {
+      readOnlyHint?: boolean
+      destructiveHint?: boolean
+      idempotentHint?: boolean
+      openWorldHint?: boolean
+    }
+    interface TextContent {
+      type: 'text'
+      text: string
+    }
+    interface ToolResult {
+      content: TextContent[]
+      structuredContent?: any
+      isError?: boolean
+    }
+    interface ToolContext {
+      token: CancellationToken
+    }
+    interface Tool {
+      name: string
+      title?: string
+      description: string
+      inputSchema: Record<string, any>
+      outputSchema?: Record<string, any>
+      annotations?: ToolAnnotations
+      handler(args: any, context: ToolContext): ToolResult | Promise<ToolResult>
+    }
+  }
   // }}
 }
 // vim: set tw=80 sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:

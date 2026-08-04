@@ -3,6 +3,9 @@
   "version": "0.0.82",
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./build/index.js",
+  "bin": {
+    "coc-mcp": "bin/coc-mcp.js"
+  },
   "engines": {
     "node": ">=20.19.0"
   },

@@ -27,6 +27,7 @@ import extensions, { ExtensionType } from './extension'
 import languages, { ProviderName } from './languages'
 import BasicList from './list/basic'
 import listManager from './list/manager'
+import mcp from './mcp'
 import download from './model/download'
 import fetch from './model/fetch'
 import FloatFactory from './model/floatFactory'
@@ -213,6 +214,7 @@ module.exports = {
   services,
   commands,
   sources,
+  mcp,
   languages,
   diagnosticManager,
   extensions,

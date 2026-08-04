@@ -25,6 +25,39 @@ Notable changes of coc.nvim:
   `completionList.applyKindSupport` and `data` in `itemDefaults`, and honors
   `applyKind` merge/replace rules for `commitCharacters` (union) and `data`
   (shallow merge, falling back to the default value when the item has none).
+- Add a built-in MCP (Model Context Protocol) server so agents like Codex can
+  interact with the running editor through tools, notifications and resources:
+    - `mcp.enabled` starts a loopback socket server (TCP or Unix) exposing
+      tools to read editor buffers (including unsaved changes), search the
+      workspace, apply workspace edits, and query the language servers;
+      `bin/coc-mcp.js` (command `coc-mcp`) is a stdio bridge for Codex.
+    - New public API `mcp.registerTool()` lets extensions register custom
+      MCP tools.
+    - New configuration section `mcp.*` (`enabled`, `host`, `port`,
+      `transport`, `authRequired`, `allowedPaths`, `deniedPaths`,
+      `maxClients`, `frameMaxBytes`, `timeout`, `idleTimeout`,
+      `maxRequestsPerSecond`, `logLevel`) and commands
+      `:CocCommand mcp.start`, `mcp.stop` and `mcp.status`.
+    - Protocol: MCP `2025-06-18` with `2025-11-25` version negotiation,
+      `coc/*` notifications (document saved/changed, diagnostics, workspace
+      folders, editor state, service state) via `coc/subscribe`, and
+      `coc://` resources. Interface specification and roadmap live in
+      the MCP design document, usage guide in `doc/coc-mcp.txt`.
+    - `:CocInfo` includes an `## MCP server` section (transport, address,
+      pid, cwd and connected clients with pid and connect/last-activity
+      time); the MCP service closes its discovery/socket files on
+      SIGTERM/SIGINT and on Vim 8 `VimLeavePre`, and clients (the stdio
+      bridge) exit cleanly when the service shuts down.
+    - MCP discovery is unified under `~/.coc/mcp` : every coc.nvim instance
+      writes `coc-<pid>.json` (and its unix socket) there, stale files are
+      cleaned by the stdio bridge on every scan, and the bridge reads the
+      same directory without any environment variable (`COC_MCP_DIR` is an
+      optional override).
+    - LSP list tools cap their results via an optional `maxResults` argument
+      (defaults: 200 for location tools, 500 for symbol tools, 100 for
+      diagnostics and code actions; hard maximum 1000). Truncated responses
+      add `returned` and `truncated` to the structured output next to the
+      total `count`, and location tools truncate before enriching `lineText`.
 
 ## 2026-08-03
 

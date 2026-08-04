@@ -12,6 +12,7 @@ File system watch 				|coc-filesystemwatch|
 Language server 				|coc-languageserver|
 Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
+MCP 						|coc-mcp|
 Floating windows 				|coc-floating|
 LSP features 					|coc-lsp|
   Document 					|coc-document|

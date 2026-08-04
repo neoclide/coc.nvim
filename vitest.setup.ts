@@ -15,6 +15,8 @@ process.env.VIMRUNTIME = ''
 process.env.NODE_ENV = 'test'
 process.env.COC_NVIM = '1'
 process.env.COC_DATA_HOME = dataHome
+// MCP discovery directory override so tests never touch the real ~/.coc/mcp
+process.env.COC_MCP_DIR = path.join(dataHome, 'mcp')
 const vimconfig = path.join(dataHome, 'vimconfig')
 fs.mkdirSync(vimconfig, { recursive: true })
 process.env.COC_VIMCONFIG = vimconfig

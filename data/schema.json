@@ -2556,6 +2556,120 @@
           ]
         }
       }
+    },
+    "mcp.enabled": {
+      "type": "boolean",
+      "default": false,
+      "scope": "application",
+      "description": "Enable the built-in MCP (Model Context Protocol) socket server that lets agents like Codex connect to coc.nvim through a stdio bridge."
+    },
+    "mcp.host": {
+      "type": "string",
+      "default": "127.0.0.1",
+      "scope": "application",
+      "description": "Host the MCP socket server binds to. Only loopback is supported."
+    },
+    "mcp.port": {
+      "type": "number",
+      "default": 0,
+      "scope": "application",
+      "description": "Port of the MCP socket server. 0 picks a random free port. The active port is written to ~/.coc/mcp/coc-<pid>.json."
+    },
+    "mcp.transport": {
+      "type": "string",
+      "enum": ["auto", "tcp", "unix"],
+      "default": "auto",
+      "scope": "application",
+      "description": "Socket transport of the MCP server. 'auto' uses a per-process Unix socket in ~/.coc/mcp on macOS/Linux and loopback TCP on Windows (no exposed local port); 'tcp' forces loopback TCP; 'unix' forces a Unix socket."
+    },
+    "mcp.authRequired": {
+      "type": "boolean",
+      "default": true,
+      "scope": "application",
+      "description": "Require the per-start random token (coc/auth) before the MCP session is accepted. Disable only for trusted local debugging."
+    },
+    "mcp.authClientPublicKey": {
+      "type": "string",
+      "default": "",
+      "scope": "application",
+      "description": "Optional PEM public key (SPKI) of the MCP client (the coc-mcp bridge). When set, clients must prove possession of the matching private key by signing a server-issued nonce (coc/challenge) in addition to the token. Generate a keypair with `node bin/coc-mcp.js --generate-key`. Empty disables key auth (token-only)."
+    },
+    "mcp.maxClients": {
+      "type": "number",
+      "default": 4,
+      "scope": "application",
+      "description": "Maximum concurrent MCP client connections."
+    },
+    "mcp.frameMaxBytes": {
+      "type": "number",
+      "default": 16777216,
+      "scope": "application",
+      "description": "Maximum size of a single MCP JSON-RPC frame in bytes."
+    },
+    "mcp.timeout": {
+      "type": "number",
+      "default": 5000,
+      "scope": "application",
+      "description": "Timeout in milliseconds for MCP tool calls. 0 disables the timeout."
+    },
+    "mcp.readTimeout": {
+      "type": "number",
+      "default": 15000,
+      "scope": "application",
+      "description": "Timeout in milliseconds for read-only MCP tool calls (e.g. LSP queries like hover, references or workspace symbols). 0 disables the timeout. The agent cannot override these timeouts."
+    },
+    "mcp.idleTimeout": {
+      "type": "number",
+      "default": 0,
+      "scope": "application",
+      "description": "Close MCP sessions idle for this many milliseconds. 0 disables the idle timeout."
+    },
+    "mcp.maxRequestsPerSecond": {
+      "type": "number",
+      "default": 60,
+      "scope": "application",
+      "description": "Maximum number of JSON-RPC requests per second per MCP session. 0 disables the rate limit."
+    },
+    "mcp.maxConcurrentRequests": {
+      "type": "number",
+      "default": 4,
+      "minimum": 0,
+      "scope": "application",
+      "description": "Maximum concurrent LSP requests MCP tools may send to a single language server. Requests beyond the limit wait in a per-service queue until a slot frees up. Different servers have different capacity, tune per setup. 0 disables the limit."
+    },
+    "mcp.logLevel": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error"],
+      "default": "info",
+      "scope": "application",
+      "description": "Log level of the MCP server."
+    },
+    "mcp.languageServiceMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "scope": "application",
+      "description": "Map languageId to a language server id. MCP LSP tools on a document whose languageId matches send the request directly to that server instead of aggregating all matching providers. Server ids are shown by :CocList services."
+    },
+    "mcp.allowedPaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "scope": "application",
+      "description": "Glob patterns of paths the MCP server may access. Empty means workspace roots and opened documents only (temporary directory is readable for fallback reads). Denied paths win over allowed paths."
+    },
+    "mcp.deniedPaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "scope": "application",
+      "description": "Glob patterns of paths the MCP server must never access; applied before allowedPaths."
     }
   }
 }
