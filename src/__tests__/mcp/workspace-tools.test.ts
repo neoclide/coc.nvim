@@ -109,12 +109,40 @@ describe('mcp workspace tools', () => {
     expect(result.isError).toBeFalsy()
     expect(result.structuredContent.applied).toBe(true)
     expect(result.structuredContent.pendingSave).toBe(true)
+    expect(result.structuredContent.saved).toBe(true)
     let dx = workspace.getDocument(ux)!
     expect(dx.textDocument.getText()).toContain('XX')
     let dy = workspace.getDocument(uy)!
     expect(dy.textDocument.getText()).toContain('YY')
-    // TextEdits only touch buffers, disk stays unchanged
-    expect(fs.readFileSync(x, 'utf8')).toBe('xxx\n')
+    // the tool saves all modified buffers with :wa, disk matches the buffer
+    expect(fs.readFileSync(x, 'utf8')).toBe('XX\n')
+    expect(fs.readFileSync(y, 'utf8')).toBe('YY\n')
+  })
+
+  it('workspace/apply_edit reports saveError when :wa fails', async () => {
+    let z = path.join(tmpdir, 'z.txt')
+    fs.writeFileSync(z, 'zzz\n')
+    let uz = URI.file(z).toString()
+    // a modified buffer without a file name makes :wa fail
+    await helper.nvim.command('enew')
+    await helper.nvim.call('setline', [1, 'unsaved'])
+    try {
+      let result = await tool('workspace/apply_edit').handler({
+        edit: {
+          changes: {
+            [uz]: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, newText: 'ZZ' }]
+          }
+        }
+      }, { token })
+      expect(result.isError).toBeFalsy()
+      expect(result.structuredContent.applied).toBe(true)
+      expect(result.structuredContent.saved).toBe(false)
+      expect(result.structuredContent.saveError).toBeTruthy()
+      // the edit itself was applied to the buffer
+      expect(workspace.getDocument(uz)!.textDocument.getText()).toContain('ZZ')
+    } finally {
+      await helper.nvim.command('bwipeout!')
+    }
   })
 
   it('workspace/apply_edit carries optional WorkspaceEditMetadata', async () => {

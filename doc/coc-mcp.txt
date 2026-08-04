@@ -191,8 +191,10 @@ asking for fewer results also makes the call faster.
   selection mode (`coc/instances` / `coc/connect`) inside the agent.
 
 Edits are not visible on disk:
-- Tool edits always go through editor buffers; use `document/write` or
-  `:wa` when a tool result reports `pendingSave`.
+- `workspace/apply_edit` saves all modified buffers with `:wa` after
+  applying, so edited files are on disk when the tool returns (`saved` in
+  the result). If `saveError` is present, save manually with
+  `document/write` or `:wa`.
 
 ==============================================================================
 9. REMOTE OVER SSH				*coc-mcp-ssh*

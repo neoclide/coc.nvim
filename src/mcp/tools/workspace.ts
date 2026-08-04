@@ -359,7 +359,7 @@ export function createWorkspaceTools(): McpTool[] {
     {
       name: 'workspace/apply_edit',
       title: 'Apply Workspace Edit',
-      description: 'Apply an LSP WorkspaceEdit (multi-file TextEdits plus create/rename/delete) through the editor, optionally with WorkspaceEditMetadata (e.g. { "isRefactoring": true }). All buffers, LSP notifications and undo are kept in sync.',
+      description: 'Apply an LSP WorkspaceEdit (multi-file TextEdits plus create/rename/delete) through the editor, optionally with WorkspaceEditMetadata (e.g. { "isRefactoring": true }). All buffers, LSP notifications and undo are kept in sync; modified buffers are saved with :wa so the edits are on disk when the tool returns.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -383,6 +383,8 @@ export function createWorkspaceTools(): McpTool[] {
           applied: { type: 'boolean' },
           files: { type: 'array', items: { type: 'string' } },
           pendingSave: { type: 'boolean' },
+          saved: { type: 'boolean', description: 'Whether modified buffers were written to disk after applying.' },
+          saveError: { type: 'string', description: 'Error when :wa failed; edits are in buffers but files may not be on disk.' },
           metadata: { type: ['object', 'null'] }
         }
       },
@@ -417,8 +419,30 @@ export function createWorkspaceTools(): McpTool[] {
         } else if (edit.changes && typeof edit.changes === 'object') {
           pendingSave = Object.keys(edit.changes).length > 0
         }
+        // Save all modified buffers with :wa so the edits are visible on
+        // disk for subsequent tools (search, LSP, disk reads). A failed
+        // save is reported instead of failing the whole call: the edits
+        // were applied to the buffers.
+        let saved = applied && !pendingSave
+        let saveError: string | undefined
+        if (applied && pendingSave) {
+          try {
+            await workspace.nvim.command('wa')
+            saved = true
+          } catch (e) {
+            saved = false
+            saveError = e instanceof Error ? e.message : String(e)
+          }
+        }
         let files = [...new Set(uris)]
-        let result = { applied, files, pendingSave, metadata: metadata ?? null }
+        let result = {
+          applied,
+          files,
+          pendingSave,
+          saved,
+          metadata: metadata ?? null,
+          ...(saveError ? { saveError } : {})
+        }
         return textResult(JSON.stringify(result, null, 2), result)
       }
     },

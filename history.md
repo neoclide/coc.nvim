@@ -14,6 +14,9 @@ Notable changes of coc.nvim:
   server never answered are tracked as stuck; when all request slots are
   stuck, new queries to that server fail fast with a restart hint instead of
   queueing behind the dead requests forever.
+- MCP: `workspace/apply_edit` now saves all modified buffers with `:wa`
+  after applying, so edits are on disk for subsequent tools; the result
+  reports `saved` and a `saveError` when the save fails.
 
 ## 2026-08-04
 
