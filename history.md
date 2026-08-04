@@ -13,7 +13,9 @@ Notable changes of coc.nvim:
   are dropped from the per-server request queue, and requests the language
   server never answered are tracked as stuck; when all request slots are
   stuck, new queries to that server fail fast with a restart hint instead of
-  queueing behind the dead requests forever.
+  queueing behind the dead requests forever. The same bound applies with
+  `mcp.maxConcurrentRequests: 0` (unlimited concurrency, 16 stuck requests
+  per server).
 - MCP: `workspace/apply_edit` now saves all modified buffers with `:wa`
   after applying, so edits are on disk for subsequent tools; the result
   reports `saved` and a `saveError` when the save fails.

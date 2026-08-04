@@ -34,6 +34,14 @@ const MAX_RESULTS_HARD_LIMIT = 1000
 const QUERY_CACHE_TTL_MS = 5000
 const QUERY_CACHE_MAX_ENTRIES = 200
 
+/**
+ * Bound for abandoned LSP requests per server when
+ * `mcp.maxConcurrentRequests` is 0 (unlimited concurrency): requests a hung
+ * server never answers are tracked as stuck, and new queries fail fast once
+ * this many accumulate instead of being sent and abandoned forever.
+ */
+export const MAX_STUCK_REQUESTS = 16
+
 export function maxResultsFromArgs(args: any, fallback: number): number {
   let n = args?.maxResults
   if (typeof n !== 'number' || !isFinite(n)) return fallback
@@ -215,7 +223,8 @@ workspace.onDidCloseTextDocument(doc => invalidateLspQueryCache(doc.uri))
  * 0 = unlimited). When an MCP request is abandoned (timeout or
  * notifications/cancelled) its queued task is dropped so abandoned calls
  * cannot pile up, and a task that is already running counts as stuck until
- * the language server actually responds.
+ * the language server actually responds. With `limit <= 0` there is no
+ * concurrency cap, but queued-task dropping and stuck tracking still apply.
  */
 interface WaitingTask {
   run: () => void
@@ -294,7 +303,7 @@ export class ServiceLimiter {
   }
 
   private pump(): void {
-    while (this.active < this.limit && this.waiting.length > 0) {
+    while ((this.limit <= 0 || this.active < this.limit) && this.waiting.length > 0) {
       this.active++
       this.waiting.shift()!.run()
     }
@@ -316,12 +325,11 @@ export function getServiceLimiter(serviceId: string, limit: number): ServiceLimi
 
 /**
  * Run `fn` under the per-service concurrency limit for `serviceId`.
- * `limit <= 0` disables the limit. When `token` is cancelled a queued
- * request is dropped and a running one is tracked as stuck (see
- * `ServiceLimiter`).
+ * `limit <= 0` disables the limit but still tracks abandoned requests as
+ * stuck. When `token` is cancelled a queued request is dropped and a
+ * running one is tracked as stuck (see `ServiceLimiter`).
  */
 export function withServiceLimit<T>(serviceId: string, limit: number, fn: () => Promise<T>, token?: CancellationToken): Promise<T> {
-  if (limit <= 0) return fn()
   return getServiceLimiter(serviceId, limit).run(fn, token)
 }
 
@@ -340,12 +348,11 @@ export async function serviceCall(
   if (!service || !service.client) return { error: `Language server "${serviceId}" not found or not running` }
   service.client.trace = Trace.Off
   let limit = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
-  if (limit > 0) {
-    let limiter = getServiceLimiter(serviceId, limit)
-    if (limiter.stuckCount >= limiter.limit) {
-      return {
-        error: `Language server "${serviceId}" has ${limiter.stuckCount} stuck requests, new queries rejected. Restart the language server to recover.`
-      }
+  let limiter = getServiceLimiter(serviceId, limit)
+  let maxStuck = limit > 0 ? limiter.limit : MAX_STUCK_REQUESTS
+  if (limiter.stuckCount >= maxStuck) {
+    return {
+      error: `Language server "${serviceId}" has ${limiter.stuckCount} stuck requests, new queries rejected. Restart the language server to recover.`
     }
   }
   try {

@@ -184,6 +184,31 @@ describe('mcp lsp helpers', () => {
     expect(await limiter.run(async () => 'ok')).toBe('ok')
   })
 
+  it('ServiceLimiter with limit 0 runs tasks immediately but tracks stuck requests', async () => {
+    let limiter = new ServiceLimiter(0)
+    let order: string[] = []
+    let release!: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let start!: () => void
+    let started = new Promise<void>(resolve => { start = resolve })
+    let token = new CancellationTokenSource()
+    let task = limiter.run(async () => {
+      start()
+      order.push('start')
+      await gate
+      order.push('end')
+    }, token.token)
+    // with limit 0 the task starts without waiting for a slot
+    await started
+    expect(limiter.stuckCount).toBe(0)
+    token.cancel()
+    expect(limiter.stuckCount).toBe(1)
+    release()
+    await task
+    expect(limiter.stuckCount).toBe(0)
+    expect(order).toEqual(['start', 'end'])
+  })
+
   it('hoverContents and hoverSummary extract text', () => {
     expect(hoverContents('plain')).toEqual(['plain'])
     expect(hoverContents({ value: 'md' })).toEqual(['md'])

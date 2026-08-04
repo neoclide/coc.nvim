@@ -809,7 +809,8 @@ the `coc-mcp` stdio bridge.
 	language server at the same time. Extra requests wait in a per-service
 	queue until a slot frees up, so several MCP clients cannot overwhelm
 	one language server. Different servers have different capacity; tune
-	per setup. `0` disables the limit.
+	per setup. `0` disables the limit; abandoned requests are still tracked
+	as stuck and new queries fail fast once 16 accumulate per server.
 
 	Default: `4`
 

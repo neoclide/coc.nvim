@@ -113,9 +113,12 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     callPromise.catch(() => {})
     let resultPromise: Promise<McpToolResult>
     if (timeout > 0) {
-      // race the call against the timeout so a hung tool cannot block the
-      // session queue; the underlying call keeps running in the background
-      // with a cancelled token (LSP requests get $/cancelRequest)
+      // Race the call against the timeout so a hung tool cannot block the
+      // session queue. The token is cancelled (LSP requests get
+      // $/cancelRequest); the per-service limiter drops queued LSP requests
+      // and tracks abandoned running ones as stuck, failing fast once the
+      // server is saturated, so abandoned calls cannot pile up in the
+      // language client.
       resultPromise = Promise.race([
         callPromise,
         new Promise<McpToolResult>((_, reject) => {

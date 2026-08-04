@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import commands from '../../commands'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
-import { createLspTools, getServiceLimiter, lspQueryCache, withServiceLimit } from '../../mcp/tools/lsp'
+import { createLspTools, getServiceLimiter, lspQueryCache, MAX_STUCK_REQUESTS, withServiceLimit } from '../../mcp/tools/lsp'
 import services, { ServiceStat } from '../../services'
 import helper from '../helper'
 import { CancellationToken, CancellationTokenSource, Trace } from '../../util/protocol'
@@ -390,6 +390,40 @@ describe('mcp lsp tools', () => {
     } finally {
       for (let release of releases) release()
       await Promise.allSettled(tasks)
+      expect(limiter.stuckCount).toBe(0)
+    }
+  })
+
+  it('fails fast with unlimited concurrency once stuck requests accumulate', async () => {
+    let prev = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
+    workspace.configurations.updateMemoryConfig({ 'mcp.maxConcurrentRequests': 0 })
+    lspQueryCache.clear()
+    let limiter = getServiceLimiter('test', 0)
+    let releases: (() => void)[] = []
+    let tasks: Promise<unknown>[] = []
+    try {
+      for (let i = 0; i < MAX_STUCK_REQUESTS; i++) {
+        let token = new CancellationTokenSource()
+        let release!: () => void
+        let gate = new Promise<void>(resolve => { release = resolve })
+        let start!: () => void
+        let started = new Promise<void>(resolve => { start = resolve })
+        releases.push(release)
+        tasks.push(limiter.run(async () => {
+          start()
+          await gate
+        }, token.token))
+        await started
+        token.cancel()
+      }
+      expect(limiter.stuckCount).toBe(MAX_STUCK_REQUESTS)
+      let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('stuck requests')
+    } finally {
+      for (let release of releases) release()
+      await Promise.allSettled(tasks)
+      workspace.configurations.updateMemoryConfig({ 'mcp.maxConcurrentRequests': prev })
       expect(limiter.stuckCount).toBe(0)
     }
   })
