@@ -268,11 +268,11 @@ class DiagnosticManager implements Disposable {
     return items
   }
 
-  public getDiagnosticsInRange(document: TextDocumentIdentifier, range: Range): Diagnostic[] {
+  public getDiagnosticsInRange(document: TextDocumentIdentifier, range?: Range | null): Diagnostic[] {
     let res: Diagnostic[] = []
     for (let collection of this.collections) {
       for (let item of collection.get(document.uri) ?? []) {
-        if (rangeIntersect(item.range, range)) {
+        if (!range || rangeIntersect(item.range, range)) {
           res.push(item)
         }
       }

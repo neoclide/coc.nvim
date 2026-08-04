@@ -78,7 +78,8 @@ export function rangeFromArgs(args: any, key = 'range'): Range | null {
 }
 
 export function fullRange(doc: Document): Range {
-  return Range.create(Position.create(0, 0), doc.textDocument.positionAt(doc.textDocument.getText().length))
+  const end = Position.create(doc.lineCount, 0)
+  return Range.create(Position.create(0, 0), end)
 }
 
 export function hasProvider(name: ProviderName, doc: Document): boolean {
@@ -732,8 +733,8 @@ export async function getCodeActionList(args: any, context: ToolContext): Promis
   let doc = ref.doc!
   doc._forceSync()
   disableLanguageTrace(doc)
-  let r = rangeFromArgs(args) ?? fullRange(doc)
-  let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, r)
+  let range = rangeFromArgs(args) ?? fullRange(doc)
+  let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
   let codeActionContext: CodeActionContext = {
     diagnostics,
     triggerKind: CodeActionTriggerKind.Invoked
@@ -741,11 +742,11 @@ export async function getCodeActionList(args: any, context: ToolContext): Promis
   if (typeof args?.kind === 'string') codeActionContext.only = [args.kind]
   let actions: CodeAction[]
   try {
-    actions = await languages.getCodeActions(doc.textDocument, r, codeActionContext, context.token)
+    actions = await languages.getCodeActions(doc.textDocument, range, codeActionContext, context.token)
   } catch (e) {
-    return { doc, range: r, actions: [], error: `Code action request failed: ${e instanceof Error ? e.message : String(e)}` }
+    return { doc, range, actions: [], error: `Code action request failed: ${e instanceof Error ? e.message : String(e)}` }
   }
-  return { doc, range: r, actions: actions || [] }
+  return { doc, range, actions: actions || [] }
 }
 
 export function positionInputSchema(extra?: Record<string, any>): Record<string, any> {
@@ -1116,10 +1117,9 @@ export function createLspTools(): McpTool[] {
         if (ref.error) return errorResult(ref.error)
         if (!ref.doc) return errorResult(`Document is not open: ${ref.uri}`)
         let doc = ref.doc
-        let r = rangeFromArgs(args) ?? fullRange(doc)
         let diagnostics: Diagnostic[] = []
         try {
-          diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, r)
+          diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, rangeFromArgs(args))
         } catch (e) {
           return errorResult(`Failed to read diagnostics: ${e instanceof Error ? e.message : String(e)}`)
         }

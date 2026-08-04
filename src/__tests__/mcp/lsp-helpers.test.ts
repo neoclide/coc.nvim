@@ -64,14 +64,11 @@ describe('mcp lsp helpers', () => {
 
   it('fullRange spans the whole document text', () => {
     let doc: any = {
-      textDocument: {
-        getText: () => 'a\nb\n',
-        positionAt: () => Position.create(2, 0)
-      }
+      lineCount: 3
     }
     let range = fullRange(doc)
     expect(range.start).toEqual(Position.create(0, 0))
-    expect(range.end.line).toBe(2)
+    expect(range.end).toEqual(Position.create(3, 0))
   })
 
   it('locationText renders positions and truncation', () => {
