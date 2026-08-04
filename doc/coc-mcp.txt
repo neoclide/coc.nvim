@@ -16,6 +16,7 @@ Result limits					|coc-mcp-result-limits|
 Security					|coc-mcp-security|
 Troubleshooting					|coc-mcp-troubleshooting|
 Remote over SSH					|coc-mcp-ssh|
+Resources and notifications			|coc-mcp-resources|
 
 ==============================================================================
 1. OVERVIEW					*coc-mcp-overview*
@@ -149,12 +150,15 @@ argument (minimum 1, hard maximum 1000):
 	lsp/type_definition, lsp/implementation		default 200
 	lsp/document_symbols, lsp/workspace_symbols	default 500
 	lsp/diagnostics, lsp/code_actions		default 100
+	lsp/batch					default 200 per method
 
 When the result was truncated, the structured output adds
 `returned` (number actually returned) and `truncated` (true) next to
 `count` (total found), and the text content notes how many results were
 shown. The truncation happens before the results are serialized, so
 asking for fewer results also makes the call faster.
+`lsp/batch` applies `maxResults` to every listed method (the default is
+200 per method).
 
 ==============================================================================
 7. SECURITY				*coc-mcp-security*
@@ -239,6 +243,51 @@ file, no token):
 file) and authenticates; the remote server must have
 `mcp.authClientPublicKey` set to the matching public key. Keep the private
 key private; never forward it to untrusted hosts.
+
+==============================================================================
+10. RESOURCES AND NOTIFICATIONS		*coc-mcp-resources*
+
+The server exposes read-only `coc://` resources and push notifications for
+editor events. Both are opt-in: resources use the standard MCP requests,
+and notifications are only sent to sessions that subscribed.
+
+RESOURCES: ~
+
+Use the standard MCP requests `resources/list`, `resources/read` and
+`resources/templates/list`:
+
+	coc://documents/{uri}	Text content of an editor document (buffer
+				first, unsaved changes included); `{uri}` is
+				the URL-encoded file URI.
+	coc://diagnostics	Workspace diagnostics as JSON.
+	coc://services		Language server state and initialize
+				capabilities as JSON.
+	coc://workspace		Workspace root, folders and cwd as JSON.
+
+Reading an unknown resource returns MCP error `-32002`.
+
+NOTIFICATIONS: ~
+
+Subscribe per session with the `coc/subscribe` request:
+
+	{ "jsonrpc": "2.0", "id": 1, "method": "coc/subscribe",
+	  "params": { "events": ["coc/document_saved", "coc/diagnostics_changed"] } }
+
+`coc/unsubscribe` removes subscriptions. Only subscribed sessions receive
+the events, and event names that do not start with `coc/` are ignored:
+
+	coc/diagnostics_changed		{ uri, bufnr, version, diagnostics }
+	coc/document_changed		{ uri, version, changes }
+	coc/document_saved		{ uri, version, languageId }
+	coc/workspace_folders_changed	{ added, removed }
+	coc/editor_state_changed	{ uri, bufnr, languageId }
+	coc/service_state_changed	{ id, state, languageIds }
+
+The server also broadcasts `notifications/tools/list_changed` to all
+initialized sessions when the registered tool set changes (for example an
+extension registers a tool). Query the current server status at any time
+with the `coc/status` tool (address, clients, tool list and protocol
+version).
 
 See also: |coc-config-mcp|.
 ==============================================================================

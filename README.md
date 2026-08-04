@@ -463,7 +463,7 @@ args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
 enabled = true
 ```
 
-Run `codex mcp list` to verify the server, then call tools such as `document/read`, `lsp/references` or `workspace/apply_edit`. See [doc/coc-mcp.txt](doc/coc-mcp.txt) for the interface specification and tool list.
+Run `codex mcp list` to verify the server, then call tools such as `document/read`, `lsp/references` or `workspace/apply_edit`. See [doc/coc-mcp.txt](doc/coc-mcp.txt) for the interface specification. List the available tools in vim with `:CocCommand mcp.status` or via the MCP `tools/list` request.
 
 The bridge waits up to 15s (configurable with the `COC_MCP_WAIT_MS` environment variable in `[mcp_servers.coc.env]`) for coc.nvim to start, so a Codex session can be opened before vim is running.
 

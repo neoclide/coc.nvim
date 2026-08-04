@@ -52,10 +52,11 @@ Notable changes of coc.nvim:
     - New public API `mcp.registerTool()` lets extensions register custom
       MCP tools.
     - New configuration section `mcp.*` (`enabled`, `host`, `port`,
-      `transport`, `authRequired`, `allowedPaths`, `deniedPaths`,
-      `maxClients`, `frameMaxBytes`, `timeout`, `idleTimeout`,
-      `maxRequestsPerSecond`, `logLevel`) and commands
-      `:CocCommand mcp.start`, `mcp.stop` and `mcp.status`.
+      `transport`, `authRequired`, `authClientPublicKey`, `allowedPaths`,
+      `deniedPaths`, `maxClients`, `frameMaxBytes`, `timeout`,
+      `readTimeout`, `idleTimeout`, `maxRequestsPerSecond`,
+      `maxConcurrentRequests`, `logLevel`, `languageServiceMap`) and
+      commands `:CocCommand mcp.start`, `mcp.stop` and `mcp.status`.
     - Protocol: MCP `2025-06-18` with `2025-11-25` version negotiation,
       `coc/*` notifications (document saved/changed, diagnostics, workspace
       folders, editor state, service state) via `coc/subscribe`, and
